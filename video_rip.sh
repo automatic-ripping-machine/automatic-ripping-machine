@@ -1,14 +1,20 @@
 #!/bin/bash
 #
-# Rip video using MakeMKV then call transcode script
-# eject media when transcode script completes
+# Rip video using MakeMKV then eject and call transcode script
 
 {
-	makemkvcon mkv dev:/dev/sr0 all /mnt/media/ARM/raw -r
 
-	/opt/arm/video_transcode.sh
-	
+        TIMESTAMP=`date '+%Y%m%d_%H%M%S'`;
+        DEST=/mnt/media/ARM/raw/${TIMESTAMP}_${ID_FS_LABEL}
+        mkdir $DEST
+
+
+	makemkvcon mkv dev:/dev/sr0 all $DEST -r
+
 	eject
+
+	/opt/arm/video_transcode.sh $DEST $ID_FS_LABEL $TIMESTAMP
+	
 
 
 } >> /opt/arm/log

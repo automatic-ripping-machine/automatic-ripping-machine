@@ -2,15 +2,17 @@
 # Transcodes Video files using HandBrake and removes source files when done
 
 
-SRC=/mnt/media/ARM/raw/
+#SRC=/mnt/media/ARM/raw/
+SRC=$1
+LABEL=$2
+TIMESTAMP=$3
 DEST_EXT=mkv
 HANDBRAKE_CLI=HandBrakeCLI
 
 echo "Start video transcoding script" >> /home/ben/log
 
-	TIMESTAMP=`date '+%Y%m%d_%H%M%S'`;
-	mkdir /mnt/media/ARM/$TIMESTAMP
-	DEST=/mnt/media/ARM/$TIMESTAMP
+	DEST=/mnt/media/ARM/${TIMESTAMP}_${LABEL}
+	mkdir $DEST
 
         for FILE in `ls $SRC`
                 do
