@@ -19,12 +19,12 @@ elif [ $ID_FS_TYPE == "iso9660" ]; then
 	eject
 elif (($ID_CDROM_MEDIA_TRACK_COUNT_AUDIO > 0 )); then
 	echo "identified audio" >> /opt/arm/log
-	eject
+	abcde
 else
 	echo "unable to identify" >> /opt/arm/log
 	echo $ID_CDROM_MEDIA_TRACK_COUNT_AUDIO >> /opt/arm/log
-	echo "FS_TYPE"
 	echo $ID_FS_TYPE >> /opt/arm/log
+	eject
 fi
 
 
