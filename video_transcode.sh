@@ -8,6 +8,8 @@ LABEL=$2
 TIMESTAMP=$3
 DEST_EXT=mkv
 HANDBRAKE_CLI=HandBrakeCLI
+#HB_PRESET="Normal"
+HB_PRESET="High Profile"
 
 echo "Start video transcoding script" >> /home/ben/log
 
@@ -22,7 +24,7 @@ echo "Start video transcoding script" >> /home/ben/log
 	
 		echo "Transcoding file $FILE" >> /opt/arm/log
 
-                $HANDBRAKE_CLI -i $SRC/$FILE -o $DEST/$filename.$DEST_EXT --preset=Normal --subtitle scan -F -E fdk_haac >> /opt/arm/log
+                $HANDBRAKE_CLI -i $SRC/$FILE -o $DEST/$filename.$DEST_EXT --preset="$HB_PRESET" --subtitle scan -F -E fdk_haac 2> /opt/arm/log
 		#TIMESTAMP=`date '+%Y_%m_%d__%H_%M_%S'`;
 		#mv $SRC/$FILE $SRC/done/$TIMESTAMP.$FILE
 		#mv $DEST/$FILE $DEST/done/$FILE
