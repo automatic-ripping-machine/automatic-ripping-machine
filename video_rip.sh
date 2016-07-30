@@ -13,7 +13,7 @@
 
 	eject
 
-	/opt/arm/video_transcode.sh $DEST $ID_FS_LABEL $TIMESTAMP
+	echo /opt/arm/video_transcode.sh $DEST $ID_FS_LABEL $TIMESTAMP | batch
 	
 
 
