@@ -24,11 +24,11 @@ echo "Start video transcoding script" >> /home/ben/log
 	
 		echo "Transcoding file $FILE" >> /opt/arm/log
 
-                $HANDBRAKE_CLI -i $SRC/$FILE -o $DEST/$filename.$DEST_EXT --preset="$HB_PRESET" --subtitle scan -F -E fdk_haac 2> /opt/arm/log
+                $HANDBRAKE_CLI -i $SRC/$FILE -o $DEST/$filename.$DEST_EXT --preset="$HB_PRESET" --subtitle scan -F 2> /opt/arm/log
 		#TIMESTAMP=`date '+%Y_%m_%d__%H_%M_%S'`;
 		#mv $SRC/$FILE $SRC/done/$TIMESTAMP.$FILE
 		#mv $DEST/$FILE $DEST/done/$FILE
 		rm $SRC/$FILE
 
-        	done
+       	done
 
