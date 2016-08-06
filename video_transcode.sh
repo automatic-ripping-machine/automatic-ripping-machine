@@ -11,7 +11,7 @@ HANDBRAKE_CLI=HandBrakeCLI
 #HB_PRESET="Normal"
 HB_PRESET="High Profile"
 
-echo "Start video transcoding script" >> /home/ben/log
+echo "Start video transcoding script" >> /opt/arm/log
 
 	DEST=/mnt/media/ARM/${TIMESTAMP}_${LABEL}
 	mkdir $DEST
