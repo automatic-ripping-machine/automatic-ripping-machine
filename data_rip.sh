@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Rip Data using DD
-
+source /opt/arm/config
 
 {
 
@@ -19,4 +19,4 @@
 	eject
 
 
-} >> /opt/arm/log
+} >> $LOG
