@@ -35,5 +35,5 @@ echo "Start video transcoding script" >> $LOG
 
 rmdir $SRC
 
-echo /opt/arm/notify.sh "\"Transcode: ${ID_FS_LABEl} complete.\"" |at now
+echo /opt/arm/notify.sh "\"Transcode: ${ID_FS_LABEL} complete.\"" |at now
 
