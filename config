@@ -48,7 +48,7 @@ HANDBRAKE_CLI=HandBrakeCLI
 
 #Pushbullet API Key
 #Leave empty or comment out to disable Pushbullet notifications
-PB_KEY="o.u74EXY4fkFGABUSyxjvj1NCEHxgVXZov"
+#PB_KEY=""
 
 #IFTTT API KEY
 #Leave empty or comment out to disable IFTTT notifications
