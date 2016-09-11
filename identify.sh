@@ -2,11 +2,12 @@
 #
 source /opt/arm/config
 
+# Create log dir if needed
+mkdir -p $LOGPATH
+
 {
 echo "Starting Identify Script..." >> $LOG
 
-# Create log dir if needed
-mkdir -p $LOGPATH
 
 #Clean up old log files
 FILESFOUND=( $(find $LOGPATH -mtime +$LOGLIFE -type f))
