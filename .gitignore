@@ -1,1 +1,5 @@
-log
+logs/*
+test.sh
+archive/
+config
+
