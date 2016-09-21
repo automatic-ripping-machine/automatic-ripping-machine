@@ -22,7 +22,7 @@ if [ $ID_FS_TYPE == "udf" ]; then
 
 elif (($ID_CDROM_MEDIA_TRACK_COUNT_AUDIO > 0 )); then
 	echo "identified audio" >> $LOG
-	abcde
+	abcde -d $DEVNAME
 
 elif [ $ID_FS_TYPE == "iso9660" ]; then
 	echo "identified data" >> $LOG
