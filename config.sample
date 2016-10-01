@@ -1,6 +1,14 @@
 #!/bin/bash
 # ARM (Automatic Ripping Machine) oonfig file
 
+#################
+## ARM Options ##
+#################
+
+# Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.
+ARM_CHECK_UDF=true
+
+
 #####################
 ## Directory setup ##
 #####################
