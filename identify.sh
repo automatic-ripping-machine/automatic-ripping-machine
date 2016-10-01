@@ -2,8 +2,6 @@
 #
 source /opt/arm/config
 
-echo "starting" >> /opt/arm/logs/generic
-
 # Create log dir if needed
 mkdir -p $LOGPATH
 
@@ -23,23 +21,27 @@ export HOME="/root/"
 if [ $ID_FS_TYPE == "udf" ]; then
 	echo "identified udf" >> $LOG
 	echo "found ${ID_FS_LABEL} on ${DEVNAME}" >> $LOG
-	# check to see if this is really a video
-	mkdir -p /mnt/${DEVNAME}
-	mount ${DEVNAME} /mnt/${DEVNAME}
-	if [[ -d /mnt/${DEVNAME}/VIDEO_TS || -d /mnt/${DEVNAME}/BDMV ]]; then
-		echo "identified udf as video" >> $LOG
-		umount /mnt/${DEVNAME}
-		/opt/arm/video_rip.sh $LOG
-	else
-		umount /mnt/${DEVNAME}
-		echo "identified udf as data" >> $LOG
-		/opt/arm/data_rip.sh $LOG
-		eject $DEVNAME
 
+	if [ $ARM_CHECK_UDF == true ]; then
+		# check to see if this is really a video
+		mkdir -p /mnt/${DEVNAME}
+		mount ${DEVNAME} /mnt/${DEVNAME}
+		if [[ -d /mnt/${DEVNAME}/VIDEO_TS || -d /mnt/${DEVNAME}/BDMV ]]; then
+			echo "identified udf as video" >> $LOG
+			umount /mnt/${DEVNAME}
+			/opt/arm/video_rip.sh $LOG
+		else
+			umount /mnt/${DEVNAME}
+			echo "identified udf as data" >> $LOG
+			/opt/arm/data_rip.sh $LOG
+			eject $DEVNAME
+
+		fi
+	else
+		echo "ARM_CHECK_UDF is false, assuming udf is video" >> $LOG
+		/opt/arm/video_rip.sh $LOG
 	fi	
 
-	#echo "ripping video" >> $LOG
-	#/opt/arm/video_rip.sh $LOG
 
 elif (($ID_CDROM_MEDIA_TRACK_COUNT_AUDIO > 0 )); then
 	echo "identified audio" >> $LOG
