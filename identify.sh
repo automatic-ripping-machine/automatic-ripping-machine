@@ -2,6 +2,8 @@
 #
 source /opt/arm/config
 
+echo "starting" >> /opt/arm/logs/generic
+
 # Create log dir if needed
 mkdir -p $LOGPATH
 
@@ -24,7 +26,7 @@ if [ $ID_FS_TYPE == "udf" ]; then
 	# check to see if this is really a video
 	mkdir -p /mnt/${DEVNAME}
 	mount ${DEVNAME} /mnt/${DEVNAME}
-	if [[ -d /mnt/${DEVNAME}/VIDEO_TS OR -d /mnt/${DEVNAME}/BDMV ]]; then
+	if [[ -d /mnt/${DEVNAME}/VIDEO_TS || -d /mnt/${DEVNAME}/BDMV ]]; then
 		echo "identified udf as video" >> $LOG
 		umount /mnt/${DEVNAME}
 		/opt/arm/video_rip.sh $LOG
