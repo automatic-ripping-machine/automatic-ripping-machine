@@ -13,23 +13,32 @@ echo "Start video transcoding script" >> $LOG
 	DEST=${ARMPATH}/${LABEL}_${TIMESTAMP}
 	mkdir $DEST
 
-        for FILE in `ls $SRC`
-                do
-                filename=$(basename $FILE)
-                extension=${filename##*.}
-                filename=${filename%.*}
-	
-		echo "Transcoding file $FILE" >> $LOG
+	if [ $RIPMETHOD = "backup" ] && [ "$MAINFEATURE" = true ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
+		echo "Transcoding BluRay main feature only." >> $LOG
+		$HANDBRAKE_CLI -i $SRC -o $DEST/$LABEL.$DEST_EXT --main-feature --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
+		rmdir -rf $SRC
+	elif [ $MAINFEATURE = true ] && [ $ID_CDROM_MEDIA_DVD = "1" ]; then
+		echo "Transcoding DVD main feature only." >> $LOG
+                $HANDBRAKE_CLI -i $DEVNAME -o $DEST/$LABEL.$DEST_EXT --main-feature --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
+		eject $DEVNAME
+		rmdir $SRC
+	else
+		echo "Transcoding all files." >> $LOG
+	        for FILE in `ls $SRC`
+                	do
+                	filename=$(basename $FILE)
+                	extension=${filename##*.}
+                	filename=${filename%.*}
 
-                $HANDBRAKE_CLI -i $SRC/$FILE -o $DEST/$filename.$DEST_EXT --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
-		#TIMESTAMP=`date '+%Y_%m_%d__%H_%M_%S'`;
-		#mv $SRC/$FILE $SRC/done/$TIMESTAMP.$FILE
-		#mv $DEST/$FILE $DEST/done/$FILE
-		rm $SRC/$FILE
+			echo "Transcoding file $FILE" >> $LOG
 
-       	done
+                	$HANDBRAKE_CLI -i $SRC/$FILE -o $DEST/$filename.$DEST_EXT --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
+			rm $SRC/$FILE
+       		done
+		rmdir $SRC
+	fi
 
-rmdir $SRC
+#rmdir $SRC
 
 TRANSEND=$(date +%s);
 TRANSSEC=$(($TRANSEND-$TRANSSTART));
@@ -39,3 +48,4 @@ echo "STAT: ${ID_FS_LABEL} transcoded in ${TRANSTIME}" >> $LOG
 
 echo /opt/arm/notify.sh "\"Transcode: ${ID_FS_LABEL} completed in ${TRANSTIME}\"" |at now
 
+echo /opt/arm/rename.sh $DEST

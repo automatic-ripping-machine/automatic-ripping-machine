@@ -27,6 +27,13 @@ LOGLIFE=1
 #Minimum length of track for MakeMKV rip (in seconds)
 MINLENGTH="600"
 
+#Method of MakeMKV to use for Blu Ray discs.  Options are "mkv" or "backup".
+#mkv is the normal method of ripping mkv files directly from the DVD
+#backup decrypts the dvd and then copies it to the hard drive.  This allows HandBrake to apply some of it's
+#analytical abilities such as the main-feature identification.  This method seems to offer success on bluray 
+#discs that fail in "mkv" mode. *** NOTE: MakeMKV only supports the backup method on BluRay discs.  Regular
+#DVD's will always default back to the "mkv" mode. 
+RIPMETHOD="backup" 
 
 ##########################
 ## HandBrake Parameters ##
@@ -42,13 +49,22 @@ DEST_EXT=mkv
 #Handbrake binary to call
 HANDBRAKE_CLI=HandBrakeCLI
 
+#Have HandBrake transcode the main feature only.  BluRay discs must have RIPMETHOD="backup" for this to work.
+#If MAINFEATURE is true, blurays will be backed up to the HD and then HandBrake will go to work on the backed up
+#files.  For normal DVDs, ARM will by pass MakeMKV and be accessed directly by HandBrake.  This will require 
+#libdvdcss2 be installed.
+#NOTE: For the most part, HandBrake correctly identifies the main feature on movie DVD's, although it is not perfect. 
+#However, it does not handle tv shows well at all.  You will likely want this value to be false when ripping tv shows.
+#MAINFEATURE=false
+MAINFEATURE=false
+
 #############################
 ## Notification Parameters ##
 #############################
 
 #Pushbullet API Key
 #Leave empty or comment out to disable Pushbullet notifications
-#PB_KEY=""
+PB_KEY=""
 
 #IFTTT API KEY
 #Leave empty or comment out to disable IFTTT notifications
