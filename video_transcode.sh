@@ -51,7 +51,7 @@ TRANSTIME="$(($TRANSSEC / 3600)) hours, $((($TRANSSEC / 60) % 60)) minutes and $
 
 echo "STAT: ${ID_FS_LABEL} transcoded in ${TRANSTIME}" >> $LOG
 
-echo /opt/arm/rename.sh $DEST
+#echo /opt/arm/rename.sh $DEST
 
 echo /opt/arm/notify.sh "\"Transcode: ${ID_FS_LABEL} completed in ${TRANSTIME}\"" |at now
 
