@@ -8,6 +8,7 @@ LABEL=$2
 TIMESTAMP=$3
 TRANSSTART=$(date +%s);
 
+
 echo "Start video transcoding script" >> $LOG
 
 	DEST=${ARMPATH}/${LABEL}_${TIMESTAMP}
@@ -16,6 +17,10 @@ echo "Start video transcoding script" >> $LOG
 	if [ $RIPMETHOD = "backup" ] && [ "$MAINFEATURE" = true ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
 		echo "Transcoding BluRay main feature only." >> $LOG
 		$HANDBRAKE_CLI -i $SRC -o $DEST/$LABEL.$DEST_EXT --main-feature --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
+		rmdir -rf $SRC
+	elif [ $RIPMETHOD = "backup" ] && [ "$MAINFEATURE" = false ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
+		echo "Transcoding BluRay all titles above minlength." >> $LOG
+		$HANDBRAKE_CLI -i $SRC -o $DEST/$LABEL.$DEST_EXT --min-duration $MINLENGTH --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
 		rmdir -rf $SRC
 	elif [ $MAINFEATURE = true ] && [ $ID_CDROM_MEDIA_DVD = "1" ]; then
 		echo "Transcoding DVD main feature only." >> $LOG
@@ -46,6 +51,7 @@ TRANSTIME="$(($TRANSSEC / 3600)) hours, $((($TRANSSEC / 60) % 60)) minutes and $
 
 echo "STAT: ${ID_FS_LABEL} transcoded in ${TRANSTIME}" >> $LOG
 
+echo /opt/arm/rename.sh $DEST
+
 echo /opt/arm/notify.sh "\"Transcode: ${ID_FS_LABEL} completed in ${TRANSTIME}\"" |at now
 
-echo /opt/arm/rename.sh $DEST
