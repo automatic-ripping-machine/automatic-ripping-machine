@@ -17,6 +17,8 @@ find $LOGPATH -mtime +$LOGLIFE -type f -delete
 # Set Home to home folder of user that is setup to run MakeMKV
 export HOME="/root/"
 
+# Output UDEV info
+udevadm info -q env -n ${DEVNAME} >> $LOG
 
 if [ $ID_FS_TYPE == "udf" ]; then
 	echo "identified udf" >> $LOG
