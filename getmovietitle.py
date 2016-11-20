@@ -10,13 +10,13 @@ import xmltodict
 
 def entry():
     """ Entry to program, parses arguments"""
-    parser = argparse.ArgumentParser(description='hello')
+    parser = argparse.ArgumentParser(description='Get Movie Title from DVD or Blu-Ray')
     parser.add_argument('-p', '--path', help='Mount path to disc', required=True)
 
     return parser.parse_args()
 
 def getdvdtitle():
-    """ Calculates CRC64 for the DVD and calls Microsoft's
+    """ Calculates CRC64 for the DVD and calls Windows Media
         Metaservices and returns the Title and year of DVD """
     crc64 = pydvdid.compute(args.path)
     # print (crc64)
