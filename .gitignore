@@ -2,4 +2,4 @@ logs/*
 test.sh
 archive/
 config
-
+temp/
