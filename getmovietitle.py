@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import argparse
 import urllib
@@ -7,6 +7,7 @@ import datetime
 import pydvdid
 import unicodedata
 import xmltodict
+import sys
 
 def entry():
     """ Entry to program, parses arguments"""
