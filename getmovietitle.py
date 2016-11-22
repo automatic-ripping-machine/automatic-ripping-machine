@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import argparse
-import urllib.request
+import urllib
 import os
 import datetime
 import pydvdid
@@ -41,10 +41,10 @@ def getbluraytitle():
     bluray_modified_timestamp = os.path.getmtime(args.path + '/BDMV/META/DL/bdmt_eng.xml')
     bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))
 
-    bluray_title = unicodedata.normalize('NFKD', bluray_title).encode('ascii', 'ignore')
+    bluray_title = unicodedata.normalize('NFKD', bluray_title).encode('ascii', 'ignore').decode()
 
-    bluray_title = bluray_title.replace(' - Blu-ray', '')
     bluray_title = bluray_title.replace(' - Blu-rayTM', '')
+    bluray_title = bluray_title.replace(' - Blu-ray', '')
     return bluray_title + " (" + bluray_year + ")"
 
 #pylint: disable=C0103
