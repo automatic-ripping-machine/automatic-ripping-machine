@@ -33,13 +33,13 @@ if [ $ID_FS_TYPE == "udf" ]; then
 
 			if [ $GET_VIDEO_TITLE == true ]; then
 
-				GET_TITLE_OUTPUT=$(./getmovietitle.py -p /mnt/${DEVNAME} 2>&1)
+				GET_TITLE_OUTPUT=$(/opt/arm/getmovietitle.py -p /mnt/${DEVNAME} 2>&1)
 				GET_TITLE_RESULT=$?
 
 				if [ $GET_TITLE_RESULT = 0 ]; then
 						echo "Obtained Title $GET_TITLE_OUTPUT"
 				else
-						echo "failed to get title."
+						echo "failed to get title $GET_TITLE_OUTPUT"
 
 				fi
 			fi
