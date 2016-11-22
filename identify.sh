@@ -30,6 +30,21 @@ if [ $ID_FS_TYPE == "udf" ]; then
 		mount ${DEVNAME} /mnt/${DEVNAME}
 		if [[ -d /mnt/${DEVNAME}/VIDEO_TS || -d /mnt/${DEVNAME}/BDMV ]]; then
 			echo "identified udf as video" >> $LOG
+
+			if [ $GET_VIDEO_TITLE == true ]; then
+
+				GET_TITLE_OUTPUT=$(./getmovietitle.py -p /mnt/dev/sr0 2>&1)
+				GET_TITLE_RESULT=$?
+
+				if [ $GET_TITLE_RESULT = 0 ]; then
+						echo "Obtained Title $GET_TITLE_OUTPUT"
+				else
+						echo "failed to get title."
+
+				fi
+			fi
+
+
 			umount /mnt/${DEVNAME}
 			/opt/arm/video_rip.sh $LOG
 		else

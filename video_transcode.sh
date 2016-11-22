@@ -11,7 +11,12 @@ TRANSSTART=$(date +%s);
 
 echo "Start video transcoding script" >> $LOG
 
-	DEST=${ARMPATH}/${LABEL}_${TIMESTAMP}
+	if [ "$GET_TITLE_RESULT" = 0]
+		DEST=${ARMPATH}/${GET_TITLE_RESULT}
+	else
+		DEST=${ARMPATH}/${LABEL}_${TIMESTAMP}
+	fi	
+
 	mkdir $DEST
 
 	if [ $RIPMETHOD = "backup" ] && [ "$MAINFEATURE" = true ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
