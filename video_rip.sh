@@ -14,7 +14,7 @@ VIDEO_TITLE=$1
         DEST=${RAWPATH}/${VIDEO_TITLE}
 	RIPSTART=$(date +%s);
 
-	echo /opt/arm/video_transcode.sh "$DEST" "$VIDEO_TITLE" $TIMESTAMP >> $LOG
+	echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP >> $LOG
 
 	echo "DEST is ${DEST}"
 
@@ -45,8 +45,8 @@ VIDEO_TITLE=$1
 
 	echo "STAT: ${ID_FS_LABEL} ripped in ${RIPTIME}" >> $LOG
 
-	echo /opt/arm/video_transcode.sh "$DEST" "$VIDEO_TITLE" $TIMESTAMP >> $LOG
-	echo /opt/arm/video_transcode.sh "$DEST" "$VIDEO_TITLE" $TIMESTAMP | batch
+	echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP >> $LOG
+	echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP | batch
 
 	echo "${ID_FS_LABEL} sent to transcoding queue..." >> $LOG
 
