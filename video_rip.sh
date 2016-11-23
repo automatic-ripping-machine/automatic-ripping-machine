@@ -6,10 +6,14 @@ source /opt/arm/config
 
 {
 
+	echo "Video Title is ${VIDEO_TITLE}"
         echo "Ripping video ${ID_FS_LABEL} from ${DEVNAME}" >> $LOG
 	TIMESTAMP=`date '+%Y%m%d_%H%M%S'`;
         DEST=${RAWPATH}/${VIDEO_TITLE}
 	RIPSTART=$(date +%s);
+
+	echo "DEST is ${DEST}"
+
         mkdir $DEST
 
 	if [ $RIPMETHOD = "backup" ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
