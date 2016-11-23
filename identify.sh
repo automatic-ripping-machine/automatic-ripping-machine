@@ -38,13 +38,13 @@ if [ $ID_FS_TYPE == "udf" ]; then
 
 				if [ $GET_TITLE_RESULT = 0 ]; then
 					echo "Obtained Title $GET_TITLE_OUTPUT"
-					VIDEO_TITLE = ${GET_TITLE_OUTPUT}
+					VIDEO_TITLE=${GET_TITLE_OUTPUT}
 				else
 					echo "failed to get title $GET_TITLE_OUTPUT"
-					VIDEO_TITLE = ${ID_FS_LABEL} 
+					VIDEO_TITLE=${ID_FS_LABEL} 
 				fi
 			else
-				VIDEO_TITLE = ${ID_FS_LABEL} 
+				VIDEO_TITLE=${ID_FS_LABEL} 
 			fi
 
 			echo "got to here"
