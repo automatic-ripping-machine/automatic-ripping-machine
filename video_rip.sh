@@ -8,7 +8,7 @@ source /opt/arm/config
 
         echo "Ripping video ${ID_FS_LABEL} from ${DEVNAME}" >> $LOG
 	TIMESTAMP=`date '+%Y%m%d_%H%M%S'`;
-        DEST=${RAWPATH}/${ID_FS_LABEL}_${TIMESTAMP}
+        DEST=${RAWPATH}/${VIDEO_TITLE}
 	RIPSTART=$(date +%s);
         mkdir $DEST
 
@@ -39,9 +39,11 @@ source /opt/arm/config
 
 
 	if [ "$GET_TITLE_RESULT" = 0]; then
+		echo "got video title from dvdid"
 		echo /opt/arm/video_transcode.sh $DEST "${GET_TITLE_OUTPUT}" $TIMESTAMP | batch
 	else
-		echo /opt/arm/video_transcode.sh $DEST $ID_FS_LABEL $TIMESTAMP | batch
+		echo "god video title from disc"
+		echo /opt/arm/video_transcode.sh $DEST $VIDEO_TITLE $TIMESTAMP | batch
 	fi		
 
 	echo "${ID_FS_LABEL} sent to transcoding queue..." >> $LOG
