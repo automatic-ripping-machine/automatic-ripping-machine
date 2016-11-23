@@ -48,6 +48,7 @@ if [ $ID_FS_TYPE == "udf" ]; then
 			fi
 
 			echo "got to here"
+			echo "video title is now ${VIDEO_TITLE}"
 
 			umount /mnt/${DEVNAME}
 			/opt/arm/video_rip.sh $LOG
