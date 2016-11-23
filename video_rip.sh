@@ -46,7 +46,7 @@ VIDEO_TITLE=$1
 
 	if [ "$GET_TITLE_RESULT" = 0]; then
 		echo "got video title from dvdid"
-		echo /opt/arm/video_transcode.sh "$DEST" "${GET_TITLE_OUTPUT}" $TIMESTAMP | batch
+		echo /opt/arm/video_transcode.sh "$DEST" "$VIDEO_TITLE" $TIMESTAMP | batch
 	else
 		echo "god video title from disc"
 		echo /opt/arm/video_transcode.sh "$DEST" "$VIDEO_TITLE" $TIMESTAMP | batch
