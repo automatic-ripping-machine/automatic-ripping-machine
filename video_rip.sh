@@ -36,7 +36,13 @@ source /opt/arm/config
 	echo /opt/arm/notify.sh "\"Ripped: ${ID_FS_LABEL} completed from ${DEVNAME} in ${RIPTIME}\"" |at now
 
 	echo "STAT: ${ID_FS_LABEL} ripped in ${RIPTIME}" >> $LOG
-	echo /opt/arm/video_transcode.sh $DEST $ID_FS_LABEL $TIMESTAMP | batch
+
+
+	if [ "$GET_TITLE_RESULT" = 0]
+		echo /opt/arm/video_transcode.sh $DEST "${GET_TITLE_OUTPUT}" $TIMESTAMP | batch
+	else
+		echo /opt/arm/video_transcode.sh $DEST $ID_FS_LABEL $TIMESTAMP | batch
+	fi		
 
 	echo "${ID_FS_LABEL} sent to transcoding queue..." >> $LOG
 
