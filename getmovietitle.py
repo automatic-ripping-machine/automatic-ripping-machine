@@ -8,6 +8,7 @@ import pydvdid
 import unicodedata
 import xmltodict
 import sys
+import re
 
 def entry():
     """ Entry to program, parses arguments"""
@@ -48,14 +49,20 @@ def getbluraytitle():
     bluray_title = bluray_title.replace(' - Blu-ray', '')
     return bluray_title + " (" + bluray_year + ")"
 
+def clean_for_filename(string):
+    """ Cleans up string for use in filename """
+    string = string.replace(' : ',' - ')
+    string = string.replace(': ',' - ')
+    return re.sub('[^\w\-_\.\(\) ]', '', string)
+
 #pylint: disable=C0103
 
 args = entry()
 
 try:
-    disc_title = getdvdtitle()
+    disc_title = clean_for_filename(getdvdtitle())
 except:
-    disc_title = getbluraytitle()
+    disc_title = clean_for_filename(getbluraytitle())
     print(disc_title)
 else:
     print(disc_title)
