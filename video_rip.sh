@@ -16,7 +16,7 @@ VIDEO_TITLE=$1
 
 	echo "DEST is ${DEST}"
 
-        mkdir $DEST
+        mkdir "$DEST"
 
 	if [ $RIPMETHOD = "backup" ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
 		echo "Using backup method of ripping." >> $LOG
@@ -46,10 +46,10 @@ VIDEO_TITLE=$1
 
 	if [ "$GET_TITLE_RESULT" = 0]; then
 		echo "got video title from dvdid"
-		echo /opt/arm/video_transcode.sh $DEST "${GET_TITLE_OUTPUT}" $TIMESTAMP | batch
+		echo /opt/arm/video_transcode.sh "$DEST" "${GET_TITLE_OUTPUT}" $TIMESTAMP | batch
 	else
 		echo "god video title from disc"
-		echo /opt/arm/video_transcode.sh $DEST $VIDEO_TITLE $TIMESTAMP | batch
+		echo /opt/arm/video_transcode.sh "$DEST" "$VIDEO_TITLE" $TIMESTAMP | batch
 	fi		
 
 	echo "${ID_FS_LABEL} sent to transcoding queue..." >> $LOG
