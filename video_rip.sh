@@ -4,6 +4,8 @@
 
 source /opt/arm/config
 
+VIDEO_TITLE=$1
+
 {
 
 	echo "Video Title is ${VIDEO_TITLE}"
@@ -27,7 +29,7 @@ source /opt/arm/config
 
 	else
 		echo "Using mkv method of ripping." >> $LOG
-		makemkvcon mkv dev:$DEVNAME all $DEST --minlength=$MINLENGTH -r
+		makemkvcon mkv dev:$DEVNAME all "$DEST" --minlength=$MINLENGTH -r
 		eject $DEVNAME
 	fi
 

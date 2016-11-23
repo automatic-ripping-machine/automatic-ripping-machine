@@ -8,6 +8,8 @@ mkdir -p $LOGPATH
 {
 echo "Starting Identify Script..." >> $LOG
 
+VIDEO_TITLE=""
+
 
 #Clean up old log files
 FILESFOUND=( $(find $LOGPATH -mtime +$LOGLIFE -type f))
@@ -51,7 +53,7 @@ if [ $ID_FS_TYPE == "udf" ]; then
 			echo "video title is now ${VIDEO_TITLE}"
 
 			umount /mnt/${DEVNAME}
-			/opt/arm/video_rip.sh $LOG
+			/opt/arm/video_rip.sh "$VIDEO_TITLE" $LOG
 		else
 			umount /mnt/${DEVNAME}
 			echo "identified udf as data" >> $LOG
