@@ -14,6 +14,8 @@ VIDEO_TITLE=$1
         DEST=${RAWPATH}/${VIDEO_TITLE}
 	RIPSTART=$(date +%s);
 
+	echo /opt/arm/video_transcode.sh "$DEST" "$VIDEO_TITLE" $TIMESTAMP >> $LOG
+
 	echo "DEST is ${DEST}"
 
         mkdir "$DEST"
@@ -43,14 +45,8 @@ VIDEO_TITLE=$1
 
 	echo "STAT: ${ID_FS_LABEL} ripped in ${RIPTIME}" >> $LOG
 
-
-	if [ "$GET_TITLE_RESULT" = 0]; then
-		echo "got video title from dvdid"
-		echo /opt/arm/video_transcode.sh "$DEST" "$VIDEO_TITLE" $TIMESTAMP | batch
-	else
-		echo "god video title from disc"
-		echo /opt/arm/video_transcode.sh "$DEST" "$VIDEO_TITLE" $TIMESTAMP | batch
-	fi		
+	echo /opt/arm/video_transcode.sh "$DEST" "$VIDEO_TITLE" $TIMESTAMP >> $LOG
+	echo /opt/arm/video_transcode.sh "$DEST" "$VIDEO_TITLE" $TIMESTAMP | batch
 
 	echo "${ID_FS_LABEL} sent to transcoding queue..." >> $LOG
 
