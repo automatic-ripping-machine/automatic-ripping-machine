@@ -38,7 +38,7 @@ source /opt/arm/config
 	echo "STAT: ${ID_FS_LABEL} ripped in ${RIPTIME}" >> $LOG
 
 
-	if [ "$GET_TITLE_RESULT" = 0]
+	if [ "$GET_TITLE_RESULT" = 0]; then
 		echo /opt/arm/video_transcode.sh $DEST "${GET_TITLE_OUTPUT}" $TIMESTAMP | batch
 	else
 		echo /opt/arm/video_transcode.sh $DEST $ID_FS_LABEL $TIMESTAMP | batch

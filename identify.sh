@@ -37,13 +37,13 @@ if [ $ID_FS_TYPE == "udf" ]; then
 				GET_TITLE_RESULT=$?
 
 				if [ $GET_TITLE_RESULT = 0 ]; then
-						echo "Obtained Title $GET_TITLE_OUTPUT"
+					echo "Obtained Title $GET_TITLE_OUTPUT"
 				else
-						echo "failed to get title $GET_TITLE_OUTPUT"
-
+					echo "failed to get title $GET_TITLE_OUTPUT"
 				fi
 			fi
 
+			echo "got to here"
 
 			umount /mnt/${DEVNAME}
 			/opt/arm/video_rip.sh $LOG

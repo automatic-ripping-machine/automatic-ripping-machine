@@ -11,7 +11,7 @@ TRANSSTART=$(date +%s);
 
 echo "Start video transcoding script" >> $LOG
 
-	if [ "$GET_TITLE_RESULT" = 0]
+	if [ "$GET_TITLE_RESULT" = 0]; then
 		echo "title result is 0"
 		DEST=${ARMPATH}/${LABEL}
 	else
