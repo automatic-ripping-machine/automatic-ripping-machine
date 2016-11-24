@@ -5,17 +5,21 @@ source /opt/arm/config
 
 SRC=$1
 LABEL=$2
-TIMESTAMP=$3
+HAS_NICE_TITLE=$3
+TIMESTAMP=$4
 TRANSSTART=$(date +%s);
 
 
 echo "Start video transcoding script" >> $LOG
 
-	if [ "$GET_TITLE_RESULT" = 0]; then
-		echo "title result is 0"
+	if [ "$HAS_NICE_TITLE" = true ]; then
+		echo "transcoding with a nice title"
 		DEST="${ARMPATH}/${LABEL}"
+		if [ -d $"DEST" ]; then
+			DEST="${ARMPATH}/${LABEL}_${TIMESTAMP}"
+		fi
 	else
-		echo "title result is not 0, appending timestamp"
+		echo "transcoding without a nice title"
 		DEST="${ARMPATH}/${LABEL}_${TIMESTAMP}"
 	fi	
 

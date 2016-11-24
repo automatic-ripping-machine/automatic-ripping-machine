@@ -5,6 +5,7 @@
 source /opt/arm/config
 
 VIDEO_TITLE=$1
+HAS_NICE_TITLE=$2
 
 {
 
@@ -45,8 +46,8 @@ VIDEO_TITLE=$1
 
 	echo "STAT: ${ID_FS_LABEL} ripped in ${RIPTIME}" >> $LOG
 
-	echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP >> $LOG
-	echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP | batch
+	echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" \"$HAS_NICE_TITLE\" $TIMESTAMP >> $LOG
+	echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" \"$HAS_NICE_TITLE\" $TIMESTAMP | batch
 
 	echo "${ID_FS_LABEL} sent to transcoding queue..." >> $LOG
 

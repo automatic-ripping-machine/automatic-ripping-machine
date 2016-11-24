@@ -9,6 +9,7 @@ mkdir -p $LOGPATH
 echo "Starting Identify Script..." >> $LOG
 
 VIDEO_TITLE=""
+HAS_NICE_TITLE=""
 
 
 #Clean up old log files
@@ -40,12 +41,15 @@ if [ $ID_FS_TYPE == "udf" ]; then
 
 				if [ $GET_TITLE_RESULT = 0 ]; then
 					echo "Obtained Title $GET_TITLE_OUTPUT"
+					HAS_NICE_TITLE=true
 					VIDEO_TITLE=${GET_TITLE_OUTPUT}
 				else
 					echo "failed to get title $GET_TITLE_OUTPUT"
+					HAS_NICE_TITLE=false
 					VIDEO_TITLE=${ID_FS_LABEL} 
 				fi
 			else
+				HAS_NICE_TITLE=false
 				VIDEO_TITLE=${ID_FS_LABEL} 
 			fi
 
@@ -53,7 +57,7 @@ if [ $ID_FS_TYPE == "udf" ]; then
 			echo "video title is now ${VIDEO_TITLE}"
 
 			umount /mnt/${DEVNAME}
-			/opt/arm/video_rip.sh "$VIDEO_TITLE" $LOG
+			/opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" $LOG
 		else
 			umount /mnt/${DEVNAME}
 			echo "identified udf as data" >> $LOG
