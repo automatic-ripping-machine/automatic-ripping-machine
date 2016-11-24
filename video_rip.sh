@@ -10,10 +10,12 @@ HAS_NICE_TITLE=$2
 {
 
 	echo "Video Title is ${VIDEO_TITLE}"
-    echo "Ripping video ${ID_FS_LABEL} from ${DEVNAME}" >> $LOG
+ 	echo "Ripping video ${ID_FS_LABEL} from ${DEVNAME}" >> $LOG
 	TIMESTAMP=`date '+%Y%m%d_%H%M%S'`;
-    DEST=${RAWPATH}/${VIDEO_TITLE}_${TIMESTAMP}
+	DEST=${RAWPATH}/${VIDEO_TITLE}_${TIMESTAMP}
 	RIPSTART=$(date +%s);
+    
+	mkdir "$DEST"
 
 	echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP >> $LOG
 	if [ $RIPMETHOD = "backup" ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
@@ -28,17 +30,16 @@ HAS_NICE_TITLE=$2
 	echo "DEST is ${DEST}"
 	else
 		echo "Using mkv method of ripping." >> $LOG
-		makemkvcon mkv dev:$DEVNAME all $DEST --minlength=$MINLENGTH -r
+		makemkvcon mkv dev:$DEVNAME all "$DEST" --minlength=$MINLENGTH -r
 		eject $DEVNAME
 	fi
 
-    mkdir "$DEST"
 
 	if [ $RIPMETHOD = "backup" ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
 		echo "Using backup method of ripping." >> $LOG
 		DISC="${DEVNAME: -1}"
 		echo "Sending command: "makemkvcon backup --decrypt -r disc:$DISC $DEST/""
-		makemkvcon backup --decrypt -r disc:$DISC $DEST/
+		makemkvcon backup --decrypt -r disc:$DISC "$DEST"/
 		eject $DEVNAME
 	elif [ $MAINFEATURE = true ] && [ $ID_CDROM_MEDIA_DVD = "1" ] && [ -z $ID_CDROM_MEDIA_BD ]; then
 		echo "Media is DVD and Main Feature parameter in config file is true.  Bypassing MakeMKV." >> $LOG
