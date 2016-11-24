@@ -12,7 +12,7 @@ HAS_NICE_TITLE=$2
 	echo "Video Title is ${VIDEO_TITLE}"
         echo "Ripping video ${ID_FS_LABEL} from ${DEVNAME}" >> $LOG
 	TIMESTAMP=`date '+%Y%m%d_%H%M%S'`;
-        DEST=${RAWPATH}/${VIDEO_TITLE}
+        DEST=${RAWPATH}/${VIDEO_TITLE}_${TIMESTAMP}
 	RIPSTART=$(date +%s);
 
 	echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP >> $LOG
