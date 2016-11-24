@@ -28,6 +28,7 @@ echo "Start video transcoding script" >> $LOG
 
 	if [ $RIPMETHOD = "backup" ] && [ "$MAINFEATURE" = true ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
 		echo "Transcoding BluRay main feature only." >> $LOG
+<<<<<<< HEAD
 		$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL.$DEST_EXT" --main-feature --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
 		rmdir -rf "$SRC"
 	elif [ $RIPMETHOD = "backup" ] && [ "$MAINFEATURE" = false ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
@@ -49,10 +50,11 @@ echo "Start video transcoding script" >> $LOG
 
 			echo "Transcoding file $FILE" >> $LOG
 
-                	$HANDBRAKE_CLI -i "$SRC/$FILE" -o "$DEST/$filename.$DEST_EXT" --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
+           	$HANDBRAKE_CLI -i "$SRC/$FILE" -o "$DEST/$filename.$DEST_EXT" --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
 			rm "$SRC/$FILE"
        		done
 		rmdir "$SRC"
+
 	fi
 
 #rmdir $SRC

@@ -10,16 +10,16 @@ HAS_NICE_TITLE=$2
 {
 
 	echo "Video Title is ${VIDEO_TITLE}"
-        echo "Ripping video ${ID_FS_LABEL} from ${DEVNAME}" >> $LOG
+    echo "Ripping video ${ID_FS_LABEL} from ${DEVNAME}" >> $LOG
 	TIMESTAMP=`date '+%Y%m%d_%H%M%S'`;
-        DEST=${RAWPATH}/${VIDEO_TITLE}_${TIMESTAMP}
+    DEST=${RAWPATH}/${VIDEO_TITLE}_${TIMESTAMP}
 	RIPSTART=$(date +%s);
 
 	echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP >> $LOG
 
 	echo "DEST is ${DEST}"
 
-        mkdir "$DEST"
+    mkdir "$DEST"
 
 	if [ $RIPMETHOD = "backup" ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
 		echo "Using backup method of ripping." >> $LOG
