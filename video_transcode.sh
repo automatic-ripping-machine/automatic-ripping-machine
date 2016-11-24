@@ -15,7 +15,7 @@ echo "Start video transcoding script" >> $LOG
 	if [ "$HAS_NICE_TITLE" = true ]; then
 		echo "transcoding with a nice title"
 		DEST="${ARMPATH}/${LABEL}"
-		if [ -d $"DEST" ]; then
+		if [ -d "$DEST" ]; then
 			echo "directory already exists... adding timestamp"
 			DEST="${ARMPATH}/${LABEL}_${TIMESTAMP}"
 		fi
