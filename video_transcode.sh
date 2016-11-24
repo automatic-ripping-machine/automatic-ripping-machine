@@ -5,15 +5,26 @@ source /opt/arm/config
 
 SRC=$1
 LABEL=$2
-TIMESTAMP=$3
+HAS_NICE_TITLE=$3
+TIMESTAMP=$4
 TRANSSTART=$(date +%s);
 
 
 echo "Start video transcoding script" >> $LOG
 
-	DEST=${ARMPATH}/${LABEL}_${TIMESTAMP}
-	mkdir $DEST
+	if [ "$HAS_NICE_TITLE" = true ]; then
+		echo "transcoding with a nice title"
+		DEST="${ARMPATH}/${LABEL}"
+		if [ -d "$DEST" ]; then
+			echo "directory already exists... adding timestamp"
+			DEST="${ARMPATH}/${LABEL}_${TIMESTAMP}"
+		fi
+	else
+		echo "transcoding without a nice title"
+		DEST="${ARMPATH}/${LABEL}_${TIMESTAMP}"
+	fi	
 
+	mkdir "$DEST"
 	if [ $RIPMETHOD = "backup" ] && [ "$MAINFEATURE" = true ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
 		echo "Transcoding BluRay main feature only." >> $LOG
 		$HANDBRAKE_CLI -i $SRC -o $DEST/$LABEL.$DEST_EXT --main-feature --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
@@ -36,11 +47,40 @@ echo "Start video transcoding script" >> $LOG
                 	filename=${filename%.*}
 
 			echo "Transcoding file $FILE" >> $LOG
+	if [ $RIPMETHOD = "backup" ] && [ "$MAINFEATURE" = true ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
+		echo "Transcoding BluRay main feature only." >> $LOG
+<<<<<<< HEAD
+		$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL.$DEST_EXT" --main-feature --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
+		rmdir -rf "$SRC"
+	elif [ $RIPMETHOD = "backup" ] && [ "$MAINFEATURE" = false ] && [ $ID_CDROM_MEDIA_BD = "1" ]; then
+		echo "Transcoding BluRay all titles above minlength." >> $LOG
+		$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL.$DEST_EXT" --min-duration $MINLENGTH --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
+		rmdir -rf "$SRC"
+	elif [ $MAINFEATURE = true ] && [ $ID_CDROM_MEDIA_DVD = "1" ]; then
+		echo "Transcoding DVD main feature only." >> $LOG
+                $HANDBRAKE_CLI -i $DEVNAME -o "$DEST/$LABEL.$DEST_EXT" --main-feature --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
+		eject $DEVNAME
+		rmdir "$SRC"
+	else
+		echo "Transcoding all files." >> $LOG
+	        for FILE in `ls "$SRC"`
+                	do
+                	filename=$(basename $FILE)
+                	extension=${filename##*.}
+                	filename=${filename%.*}
 
+			echo "Transcoding file $FILE" >> $LOG
                 	$HANDBRAKE_CLI -i $SRC/$FILE -o $DEST/$filename.$DEST_EXT --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
 			rm $SRC/$FILE
        		done
 		rmdir $SRC
+	fi
+
+           	$HANDBRAKE_CLI -i "$SRC/$FILE" -o "$DEST/$filename.$DEST_EXT" --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
+			rm "$SRC/$FILE"
+       		done
+		rmdir "$SRC"
+
 	fi
 
 #rmdir $SRC

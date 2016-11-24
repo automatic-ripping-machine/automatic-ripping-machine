@@ -8,6 +8,10 @@
 # Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.
 ARM_CHECK_UDF=true
 
+# When enabled if the disc is a DVD use dvdid to calculate a crc64 and query Windows Media Meta Services for the Movie Title.
+# For BluRays attempts to extract the title from an XML file on the disc
+GET_VIDEO_TITLE=false
+
 
 #####################
 ## Directory setup ##

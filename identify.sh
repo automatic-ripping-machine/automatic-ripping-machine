@@ -8,6 +8,9 @@ mkdir -p $LOGPATH
 {
 echo "Starting Identify Script..." >> $LOG
 
+VIDEO_TITLE=""
+HAS_NICE_TITLE=""
+
 
 #Clean up old log files
 FILESFOUND=( $(find $LOGPATH -mtime +$LOGLIFE -type f))
@@ -30,8 +33,31 @@ if [ $ID_FS_TYPE == "udf" ]; then
 		mount ${DEVNAME} /mnt/${DEVNAME}
 		if [[ -d /mnt/${DEVNAME}/VIDEO_TS || -d /mnt/${DEVNAME}/BDMV ]]; then
 			echo "identified udf as video" >> $LOG
+
+			if [ $GET_VIDEO_TITLE == true ]; then
+
+				GET_TITLE_OUTPUT=$(/opt/arm/getmovietitle.py -p "/mnt${DEVNAME}" 2>&1)
+				GET_TITLE_RESULT=$?
+
+				if [ $GET_TITLE_RESULT = 0 ]; then
+					echo "Obtained Title $GET_TITLE_OUTPUT"
+					HAS_NICE_TITLE=true
+					VIDEO_TITLE=${GET_TITLE_OUTPUT}
+				else
+					echo "failed to get title $GET_TITLE_OUTPUT"
+					HAS_NICE_TITLE=false
+					VIDEO_TITLE=${ID_FS_LABEL} 
+				fi
+			else
+				HAS_NICE_TITLE=false
+				VIDEO_TITLE=${ID_FS_LABEL} 
+			fi
+
+			echo "got to here"
+			echo "video title is now ${VIDEO_TITLE}"
+
 			umount /mnt/${DEVNAME}
-			/opt/arm/video_rip.sh $LOG
+			/opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" $LOG
 		else
 			umount /mnt/${DEVNAME}
 			echo "identified udf as data" >> $LOG
