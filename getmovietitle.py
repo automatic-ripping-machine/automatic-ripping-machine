@@ -10,6 +10,7 @@ import xmltodict
 import sys
 import re
 
+
 def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Get Movie Title from DVD or Blu-Ray')
@@ -35,8 +36,9 @@ def getdvdtitle():
 
 def getbluraytitle():
     """ Get's Blu-Ray title by parsing XML in bdmt_eng.xml """
-    with open(args.path + '/BDMV/META/DL/bdmt_eng.xml') as xml_file:
+    with open(args.path + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
         doc = xmltodict.parse(xml_file.read())
+
 
     bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
 
