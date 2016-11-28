@@ -48,16 +48,25 @@ if [ $ID_FS_TYPE == "udf" ]; then
 					HAS_NICE_TITLE=false
 					VIDEO_TITLE=${ID_FS_LABEL} 
 				fi
+
 			else
 				HAS_NICE_TITLE=false
 				VIDEO_TITLE=${ID_FS_LABEL} 
 			fi
 
+			if [ $HAS_NICE_TITLE == true ]; then
+				VIDEO_TYPE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" 2>&1)
+			else
+				VIDEO_TYPE="unknown"
+			fi
+
 			echo "got to here"
+			echo "HAS_NICE_TITLE is ${HAS_NICE_TITLE}"
 			echo "video title is now ${VIDEO_TITLE}"
+			echo "video type is ${VIDEO_TYPE}"
 
 			umount /mnt/${DEVNAME}
-			/opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" $LOG
+			/opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" $LOG
 		else
 			umount /mnt/${DEVNAME}
 			echo "identified udf as data" >> $LOG
