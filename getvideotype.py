@@ -12,7 +12,6 @@ def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Get type of dvd--movie or tv series')
     parser.add_argument('-t', '--title', help='Title', required=True)
-    # parser.add_argument('-y', '--year', help='Year', required=False)
 
     return parser.parse_args()
 
@@ -38,13 +37,10 @@ def getdvdtype():
 
 def cleanupstring(string):
     # clean up title string to pass to OMDbapi.org
-    #string = string.replace(" ","+")
     return re.sub('[_ ]',"+",string)
 
 args = entry()
 
-# dvd_t = getdvdtype()
-# print(dvd_t)
     
 try:
     dvd_type = getdvdtype()
