@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck source=./config.sample
 
 source "$ARM_CONFIG"
 MSG=$1

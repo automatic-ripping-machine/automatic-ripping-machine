@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck source=./config.sample
 #
 # Rip video using MakeMKV then eject and call transcode script
 

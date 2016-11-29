@@ -1,5 +1,6 @@
 #!/bin/bash
 # Transcodes Video files using HandBrake and removes source files when done
+# shellcheck source=./config.sample
 
 source "$ARM_CONFIG"
 

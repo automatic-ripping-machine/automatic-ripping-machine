@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck source=./config.sample
 
 export ARM_CONFIG=$1
 
