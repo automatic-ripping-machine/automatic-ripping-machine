@@ -45,7 +45,7 @@ TIMESTAMP=$5
 		eject "$DEVNAME"
 	else
 		echo "Transcoding all files." >> "$LOG"
-	        for FILE in $SRC
+	        for FILE in "$SRC""
                 	do
                 	filename=$(basename "$FILE")
 
