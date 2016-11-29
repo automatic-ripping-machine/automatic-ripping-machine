@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck source=./config.sample
+# shellcheck source=config.sample
 #
 # Rip Data using DD
 source "$ARM_CONFIG"
