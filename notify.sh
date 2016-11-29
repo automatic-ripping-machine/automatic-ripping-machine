@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source /opt/arm/config
+source "$ARM_CONFIG"
 MSG=$1
 
 {

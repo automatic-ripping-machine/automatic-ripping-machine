@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Rip Data using DD
-source /opt/arm/config
+source "$ARM_CONFIG"
 
 {
 

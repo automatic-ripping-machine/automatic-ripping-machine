@@ -2,7 +2,7 @@
 #
 # Rip video using MakeMKV then eject and call transcode script
 
-source /opt/arm/config
+source "$ARM_CONFIG"
 
 VIDEO_TITLE=$1
 HAS_NICE_TITLE=$2

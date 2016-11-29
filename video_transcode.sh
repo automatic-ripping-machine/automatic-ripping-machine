@@ -1,7 +1,7 @@
 #!/bin/bash
 # Transcodes Video files using HandBrake and removes source files when done
 
-source /opt/arm/config
+source "$ARM_CONFIG"
 
 SRC=$1
 LABEL=$2

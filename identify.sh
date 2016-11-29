@@ -1,7 +1,11 @@
 #!/bin/bash
 
-#
-source /opt/arm/config
+IDENTIFY_SCRIPT=$(readlink -f "$0")
+IDENTIFY_SCRIPT_PATH=$(dirname "$IDENTIFY_SCRIPT")
+
+ARM_CONFIG="$IDENTIFY_SCRIPT_PATH/config"
+
+source "$ARM_CONFIG"
 
 # Create log dir if needed
 mkdir -p "$LOGPATH"
