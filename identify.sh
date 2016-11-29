@@ -1,10 +1,12 @@
 #!/bin/bash
+
 #
 source /opt/arm/config
 
 # Create log dir if needed
 mkdir -p "$LOGPATH"
 
+#shellcheck disable=SC2094
 {
 echo "Starting Identify Script..." >> "$LOG"
 
@@ -29,14 +31,14 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 
 	if [ "$ARM_CHECK_UDF" == true ]; then
 		# check to see if this is really a video
-		mkdir -p "/mnt/$DEVNAME"
-		mount "$DEVNAME" "/mnt/DEVNAME"
+		mkdir -p /mnt/"$DEVNAME"
+		mount "$DEVNAME" /mnt/"$DEVNAME"
 		if [[ -d /mnt/${DEVNAME}/VIDEO_TS || -d /mnt/${DEVNAME}/BDMV ]]; then
 			echo "identified udf as video" >> "$LOG"
 
 			if [ "$GET_VIDEO_TITLE" == true ]; then
 
-				GET_TITLE_OUTPUT=$(/opt/arm/getmovietitle.py -p "/mnt${DEVNAME}" 2>&1)
+				GET_TITLE_OUTPUT=$(/opt/arm/getmovietitle.py -p /mnt"${DEVNAME}" 2>&1)
 				GET_TITLE_RESULT=$?
 
 				if [ $GET_TITLE_RESULT = 0 ]; then
@@ -70,7 +72,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 		else
 			umount "/mnt/$DEVNAME"
 			echo "identified udf as data" >> "$LOG"
-			/opt/arm/data_rip.sh "$LOG"
+			/opt/arm/data_rip.sh
 			eject "$DEVNAME"
 
 		fi
@@ -96,4 +98,4 @@ else
 fi
 
 
-} >> "identify-$LOG"
+} >> "$LOG"

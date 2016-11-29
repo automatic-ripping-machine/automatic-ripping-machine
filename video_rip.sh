@@ -53,4 +53,4 @@ VIDEO_TYPE=$3
 
 
 
-} >> "video-rip-$LOG"
+} >> "$LOG"

@@ -24,5 +24,5 @@ else
 	printf "\nIFTTT notification sent" >> "$LOG"
 fi
 
-} >> "notify-$LOG"
+} >> "$LOG"
 
