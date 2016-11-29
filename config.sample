@@ -1,4 +1,3 @@
-#!/bin/bash
 # ARM (Automatic Ripping Machine) oonfig file
 
 #################
@@ -92,7 +91,7 @@ IFTTT_EVENT="arm_event"
 #use the label of the DVD/CD or else use empty.log
 #this is required for udev events where there is no media available
 #such as ejecting the drive
-if [ -z $ID_FS_LABEL]; then
+if [ -z "$ID_FS_LABEL" ]; then
         LOGFILE="empty.log"
 else
         LOGFILE=${ID_FS_LABEL}".log"
@@ -100,3 +99,4 @@ fi
 
 #Set full logfile path
 LOG=$LOGPATH$LOGFILE
+
