@@ -47,12 +47,13 @@ TIMESTAMP=$5
 	        for FILE in `ls $SRC`
                 	do
                 	filename=$(basename $FILE)
+
                 	extension=${filename##*.}
                 	filename=${filename%.*}
 
 			echo "Transcoding file $FILE" >> $LOG
-                	$HANDBRAKE_CLI -i $SRC/$FILE -o "$DEST/$filename.$DEST_EXT" --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
-			rm $SRC/$FILE
+                	$HANDBRAKE_CLI -i "$SRC/$FILE" -o "$DEST/$filename.$DEST_EXT" --preset="$HB_PRESET" --subtitle scan -F 2>> $LOG
+			rm "$SRC"/"$FILE"
        		done
 		rmdir $SRC
 	fi
