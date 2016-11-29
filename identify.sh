@@ -1,9 +1,8 @@
 #!/bin/bash
 
-IDENTIFY_SCRIPT=$(readlink -f "$0")
-IDENTIFY_SCRIPT_PATH=$(dirname "$IDENTIFY_SCRIPT")
+export ARM_CONFIG=$1
 
-ARM_CONFIG="$IDENTIFY_SCRIPT_PATH/config"
+echo "$ARM_CONFIG"
 
 source "$ARM_CONFIG"
 
