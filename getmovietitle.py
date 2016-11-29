@@ -53,6 +53,8 @@ def getbluraytitle():
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
+    string = re.sub('\[(.*?)\]', '', string)
+    string = re.sub( '\s+', ' ', string)
     string = string.replace(' : ',' - ')
     string = string.replace(': ',' - ')
     return re.sub('[^\w\-_\.\(\) ]', '', string)
