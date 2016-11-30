@@ -1,10 +1,10 @@
 #!/bin/bash
-# shellcheck source=./config.sample
 
 export ARM_CONFIG=$1
 
 echo "$ARM_CONFIG"
 
+# shellcheck disable=SC1091
 source "$ARM_CONFIG"
 
 # Create log dir if needed

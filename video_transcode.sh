@@ -1,7 +1,7 @@
 #!/bin/bash
 # Transcodes Video files using HandBrake and removes source files when done
-# shellcheck source=./config.sample
 
+# shellcheck disable=SC1091
 source "$ARM_CONFIG"
 
 SRC=$1
@@ -45,7 +45,8 @@ TIMESTAMP=$5
 		eject "$DEVNAME"
 	else
 		echo "Transcoding all files." >> "$LOG"
-	        for FILE in "$SRC"
+		# shellcheck disable=SC2045
+	        for FILE in $(ls "$SRC")
                 	do
                 	filename=$(basename "$FILE")
 

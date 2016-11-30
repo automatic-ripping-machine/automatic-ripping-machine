@@ -1,7 +1,7 @@
 #!/bin/bash
-# shellcheck source=config.sample
-#
 # Rip Data using DD
+
+# shellcheck disable=SC1091
 source "$ARM_CONFIG"
 
 {

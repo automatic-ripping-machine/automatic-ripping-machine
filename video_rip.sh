@@ -1,8 +1,7 @@
 #!/bin/bash
-# shellcheck source=./config.sample
-#
 # Rip video using MakeMKV then eject and call transcode script
 
+# shellcheck disable=SC1091
 source "$ARM_CONFIG"
 
 VIDEO_TITLE=$1

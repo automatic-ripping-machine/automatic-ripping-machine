@@ -1,6 +1,6 @@
 #!/bin/bash
-# shellcheck source=./config.sample
 
+# shellcheck disable=SC1091
 source "$ARM_CONFIG"
 MSG=$1
 
