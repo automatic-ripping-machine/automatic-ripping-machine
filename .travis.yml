@@ -7,6 +7,6 @@ before_script:
 install:
   - ./build/install.sh
 script:
-  - ./build/build.sh
+  - ./build/build.sh -x
 notifications:
   email: false
