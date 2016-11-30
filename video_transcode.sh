@@ -55,8 +55,8 @@ TIMESTAMP=$5
                 	filename=${filename%.*}
 
 			echo "Transcoding file $FILE" >> "$LOG"
-                	$HANDBRAKE_CLI -i "$FILE" -o "$DEST/$filename.$DEST_EXT" --preset="$HB_PRESET" --subtitle scan -F 2>> "$LOG"
-			rm "$FILE"
+                	$HANDBRAKE_CLI -i "$SRC/$FILE" -o "$DEST/$filename.$DEST_EXT" --preset="$HB_PRESET" --subtitle scan -F 2>> "$LOG"
+			rm "$SRC/$FILE"
        		done
 		rmdir "$SRC"
 	fi
