@@ -1,6 +1,7 @@
 #!/bin/bash
 # Transcodes Video files using HandBrake and removes source files when done
 
+# shellcheck source=config
 # shellcheck disable=SC1091
 source "$ARM_CONFIG"
 

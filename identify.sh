@@ -4,6 +4,7 @@ export ARM_CONFIG=$1
 
 echo "$ARM_CONFIG"
 
+# shellcheck source=config
 # shellcheck disable=SC1091
 source "$ARM_CONFIG"
 
