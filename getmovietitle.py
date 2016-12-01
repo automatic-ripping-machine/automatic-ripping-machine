@@ -48,6 +48,8 @@ def getbluraytitle():
     bluray_title = unicodedata.normalize('NFKD', bluray_title).encode('ascii', 'ignore').decode()
 
     bluray_title = bluray_title.replace(' - Blu-rayTM', '')
+    bluray_title = bluray_title.replace(' - BLU-RAYTM', '')
+    bluray_title = bluray_title.replace(' - BLU-RAY', '')
     bluray_title = bluray_title.replace(' - Blu-ray', '')
     return bluray_title + " (" + bluray_year + ")"
 

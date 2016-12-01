@@ -1,2 +1,2 @@
 #!/bin/bash
-echo bash /opt/arm/identify.sh | at now
+echo bash /opt/arm/identify.sh /opt/arm/config | at now

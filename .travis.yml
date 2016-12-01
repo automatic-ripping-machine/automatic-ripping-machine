@@ -2,9 +2,11 @@ language: bash
 sudo: required
 os:
   - linux
+before_script:
+  - cp ./config.sample config
 install:
   - ./build/install.sh
 script:
-  - ./build/build.sh
+  - ./build/build.sh 
 notifications:
   email: false
