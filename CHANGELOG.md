@@ -1,6 +1,6 @@
 # Changelog
 
-## Current
+## 1.3.0
  - Get Title for DVD and Blu-Rays so that media servesr can identify them easily.
  - Determine if video is Movie or TV-Show from OMDB API query so that different actions can be taken (TV shows usually require manual episode identification)
  - Option for MakeMKV to rip using backup method.
