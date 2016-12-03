@@ -1,8 +1,73 @@
-Automatic Ripping Machine (ARM)
+# Automatic Ripping Machine (ARM)
 
 [![Build Status](https://travis-ci.org/ahnooie/automatic-ripping-machine.svg?branch=master)](https://travis-ci.org/ahnooie/automatic-ripping-machine)
 
-For more details and install instructions see: https://b3n.org/automatic-ripping-machine
+## Overview
+
+Insert an optical disc.  Blu-Ray, DVD, or CD.  Checks for 3 data types, audio CD, video DVD or Blu-Ray, or data CD, DVD,  Blu-Ray and rips appropriate
+
+See: https://b3n.org/automatic-ripping-machine
 
 
+## Features
 
+- Detects insertion of disc using udev
+- Determines disc type...
+  - If video (Blu-Ray or DVD)
+    - Retrieve title from disc or Windows Media MetaServices API to name the folder "movie title (year)" so that Plex or Emby can pick it up
+    - Determine if video is Movie or TV using OMDb API
+    - Rip using MakeMKV (can rip all features or main feature)
+    - Eject disc and queue up Handbrake transcoding when done 
+    - Transcoding jobs are asynchronusly batched from ripping
+    - Send notification when done via IFTTT or Pushbullet
+  - If audio (CD) - rip using abcde
+  - If data (Blu-Ray, DVD, or CD) - make an ISO backup
+- Headless, designed to be run from a server
+- Can rip from multiple-optical drives in parallel
+
+
+## Requirements
+
+- Ubuntu Server 16.04 (should work with other Linux distros)
+- One or more optical drives to rip Blu-Rays, DVDs, and CDs
+- Lots of drive space (I suggest using a NAS like FreeNAS) to store your movies
+
+## Install
+
+    sudo su
+    add-apt-repository ppa:heyarje/makemkv-beta
+    add-apt-repository ppa:stebbins/handbrake-releases
+    add-apt-repository ppa:mc3man/xerus-media
+    apt update
+    apt install makemkv-bin makemkv-oss
+    apt install handbrake-cli libavcodec-extra
+    apt install abcde flac imagemagick glyrc cdparanoia
+    apt install at
+    apt install python3 python3-pip
+    cd /opt
+    git clone https://github.com/ahnooie/automatic-ripping-machine.git arm
+    cd arm
+    pip3 install -r requirements.txt
+    ln -s /opt/arm/51-automedia.rules /lib/udev/rules.d/
+    ln -s /opt/arm/.abcde.conf /root/
+    cp config.sample config
+
+Go over your "config" file to determine what options you'd like to use.
+
+## Usage
+
+- Insert disc
+- Wait for disc to eject
+- Repeat
+
+## Troubleshooting
+
+Check /opt/arm/log to see if you can find where the script failed.  If you need any help feel free to open an issue.
+
+## Contributing
+
+Pull requests are welcome
+
+## License
+
+[MIT License](LICENSE)
