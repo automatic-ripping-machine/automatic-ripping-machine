@@ -52,7 +52,9 @@ See: https://b3n.org/automatic-ripping-machine
     ln -s /opt/arm/.abcde.conf /root/
     cp config.sample config
 
-Go over your "config" file to determine what options you'd like to use.
+Edit your "config" file to determine what options you'd like to use.
+
+Optionally if you want something more stable than master you can download the latest release from the releases page.
 
 ## Usage
 
