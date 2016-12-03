@@ -4,7 +4,7 @@
 
 ## Overview
 
-Insert an optical disc.  Blu-Ray, DVD, or CD.  Checks for 3 data types, audio CD, video DVD or Blu-Ray, or data CD, DVD,  Blu-Ray and rips appropriate
+Insert an optical disc (Blu-Ray, DVD, CD) and checks to see if it's audio, video (Movie or TV), or data, then rips it.
 
 See: https://b3n.org/automatic-ripping-machine
 
