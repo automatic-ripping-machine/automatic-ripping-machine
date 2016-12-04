@@ -46,8 +46,8 @@ MINLENGTH="600"
 #backup decrypts the dvd and then copies it to the hard drive.  This allows HandBrake to apply some of it's
 #analytical abilities such as the main-feature identification.  This method seems to offer success on bluray 
 #discs that fail in "mkv" mode. *** NOTE: MakeMKV only supports the backup method on BluRay discs.  Regular
-#DVD's will always default back to the "mkv" mode. 
-RIPMETHOD="backup" 
+#DVD's will always default back to the "mkv" mode. If this is set to "backup" then you must also set HandBrake's MAINFEATURE to true. 
+RIPMETHOD="mkv" 
 
 ##########################
 ## HandBrake Parameters ##
