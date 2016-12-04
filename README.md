@@ -44,6 +44,8 @@ See: https://b3n.org/automatic-ripping-machine
     apt install abcde flac imagemagick glyrc cdparanoia
     apt install at
     apt install python3 python3-pip
+    apt-get install libdvd-pkg
+    dpkg-reconfigure libdvd-pkg
     cd /opt
     git clone https://github.com/ahnooie/automatic-ripping-machine.git arm
     cd arm
