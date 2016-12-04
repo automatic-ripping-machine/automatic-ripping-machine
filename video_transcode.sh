@@ -33,11 +33,11 @@ TIMESTAMP=$5
 	if [ "$RIPMETHOD" = "backup" ] && [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then
 		echo "Transcoding BluRay main feature only." >> "$LOG"
 		$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL.$DEST_EXT" --main-feature --preset="$HB_PRESET" --subtitle scan -F 2>> "$LOG"
-		rmdir -rf "$SRC"
+		rmdir "$SRC"
 	elif [ "$RIPMETHOD" = "backup" ] && [ "$MAINFEATURE" = false ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then
 		echo "Transcoding BluRay all titles above minlength." >> "$LOG"
 		$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL.$DEST_EXT" --min-duration "$MINLENGTH" --preset="$HB_PRESET" --subtitle scan -F 2>> "$LOG"
-		rmdir -rf "$SRC"
+		rmdir "$SRC"
 	elif [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
 		echo "Transcoding DVD main feature only." >> "$LOG"
 		# echo "$HANDBRAKE_CLI -i $DEVNAME -o \"${DEST}/${LABEL}.${DEST_EXT}\" --main-feature --preset="${HB_PRESET}" --subtitle scan -F 2" >> $LOG
@@ -73,7 +73,7 @@ TIMESTAMP=$5
         echo "Nothing here..." >> "$LOG"
 	fi
 
-rmdir -rf "$SRC" 
+rmdir "$SRC" 
 
 TRANSEND=$(date +%s);
 TRANSSEC=$((TRANSEND-TRANSSTART));
