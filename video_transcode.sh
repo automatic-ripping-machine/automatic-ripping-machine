@@ -77,13 +77,13 @@ TIMESTAMP=$5
 
 				if [ ${#RESPONSE} = 0 ]; then
 					# scan was successful
-					echo "Emby refresh command sent successfully" >> $LOG
+					echo "Emby refresh command sent successfully" >> "$LOG"
 				else
 					# scan failed
-					echo "Emby refresh command failed for some reason.  Probably authentication issues" >> $LOG
+					echo "Emby refresh command failed for some reason.  Probably authentication issues" >> "$LOG"
 				fi
 			else
-				echo "Emby Refresh False.  Skipping library scan" >> $LOG
+				echo "Emby Refresh False.  Skipping library scan" >> "$LOG"
 			fi
 		else	
 			echo "Warning: $MEDIA_DIR/$LABEL.$DEST_EXT File exists! File moving aborted" >> "$LOG"
