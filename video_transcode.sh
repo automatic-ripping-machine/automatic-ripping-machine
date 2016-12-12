@@ -71,9 +71,9 @@ TIMESTAMP=$5
 
 			if [ "$EMBY_REFRESH" = true ]; then
 				# signal emby to scan library
-				ApiKey="$(curl -s -H "Authorization: MediaBrowser Client=$EMBY_CLIENT, Device=$EMBY_DEVICE, DeviceId=$EMBY_DEVICEID, Version=1.0.0.0, UserId=$EMBY_USERID" -d "username=$EMBY_USERNAME" -d "password=$EMBY_PASSWORD" 'http://'$EMBY_SERVER':'$EMBY_PORT'/users/authenticatebyname?format=json' | python -m json.tool | grep 'AccessToken' | sed 's/\"//g; s/AccessToken://g; s/\,//g; s/ //g')"
+				ApiKey="$(curl -s -H "Authorization: MediaBrowser Client="$EMBY_CLIENT", Device="$EMBY_DEVICE", DeviceId="$EMBY_DEVICEID", Version=1.0.0.0, UserId="$EMBY_USERID"" -d "username="$EMBY_USERNAME"" -d "password="$EMBY_PASSWORD"" 'http://'"$EMBY_SERVER"':'"$EMBY_PORT"'/users/authenticatebyname?format=json' | python -m json.tool | grep 'AccessToken' | sed 's/\"//g; s/AccessToken://g; s/\,//g; s/ //g')"
 
-				RESPONSE=$(curl -d 'Library' "http://$EMBY_SERVER:$EMBY_PORT/Library/Refresh?api_key=$ApiKey")
+				RESPONSE=$(curl -d 'Library' "http://"$EMBY_SERVER":"$EMBY_PORT"/Library/Refresh?api_key="$ApiKey"")
 
 				if [ ${#RESPONSE} = 0 ]; then
 					# scan was successful
