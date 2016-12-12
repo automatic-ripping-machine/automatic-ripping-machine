@@ -81,8 +81,9 @@ MAINFEATURE=false
 # Scan emby library after succesful placement of mainfeature (see above)
 EMBY_REFRESH=false
 
-# Server params
-EMBY_SERVER="10.10.10.7"
+# Server parameters
+# Server can be ip address or domain name
+EMBY_SERVER=""
 EMBY_PORT="8096"
 
 # Emby authentication fluff parameters.  These can be anything.
@@ -93,13 +94,13 @@ EMBY_DEVICEID="ARM"
 # Emby authentication parameters.  These are parameters that must be set to a current user in Emby.
 EMBY_USERNAME=""
 
-# EMBY_USERID is the user ID associated with the username above.  You can find this by going to the following emby web address
-# <server>:port/Users/Public and getting the ID value for the username above.
+# EMBY_USERID is the user ID associated with the username above.  You can find this by going to the following address on your emby server
+# <server>:<port>/Users/Public and getting the ID value for the username above.
 EMBY_USERID=""
 
 # This is the SHA1 encrypted password for the username above.  You can generate the SHA1 hash of your password by executing the following at
 # the command line: 
-# echo -n password | sha1sum | awk '{print $1}'
+# echo -n your-password | sha1sum | awk '{print $1}'
 # or using an online generator like the one located at http://www.sha1-online.com/
 EMBY_PASSWORD=""
 
