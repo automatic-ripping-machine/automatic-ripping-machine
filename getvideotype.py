@@ -53,7 +53,6 @@ def getdvdtype():
 
     return dvd_type
 
-
 def cleanupstring(string):
     # clean up title string to pass to OMDbapi.org
     string = string.strip()
@@ -77,14 +76,3 @@ args = entry()
 
 dvd_type = getdvdtype()
 print(dvd_type)
-
-# try:
-#     dvd_type = getdvdtype()
-# except:
-#     print("fail")
-# else:
-#     # we only want "movie" or "series"
-#     if dvd_type == "movie" or dvd_type == "series":
-#         print(dvd_type)
-#     else:
-#         print("other")
