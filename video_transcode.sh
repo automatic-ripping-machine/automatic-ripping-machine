@@ -63,10 +63,28 @@ TIMESTAMP=$5
 	fi
 
 	if [ "$VIDEO_TYPE" = "movie" ] && [ "$MAINFEATURE" = true ] && [ "$HAS_NICE_TITLE" = true ]; then
-        echo "checing for existing file" >> "$LOG"
+	# move the file to the final media directory
+        echo "Checing for existing file..." >> "$LOG"
 		if [ ! -f "$MEDIA_DIR/$LABEL.$DEST_EXT" ]; then
 			echo "No file found.  Moving \"$DEST/$LABEL.$DEST_EXT to $MEDIA_DIR/$LABEL.$DEST_EXT\"" >> "$LOG"
 			mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL.$DEST_EXT"
+
+			if [ "$EMBY_REFRESH" = true ]; then
+				# signal emby to scan library
+				ApiKey="$(curl -s -H "Authorization: MediaBrowser Client=\"$EMBY_CLIENT\", Device=\"$EMBY_DEVICE\", DeviceId=\"$EMBY_DEVICEID\", Version=1.0.0.0, UserId=\"$EMBY_USERID\"" -d "username=$EMBY_USERNAME" -d "password=$EMBY_PASSWORD" "http://$EMBY_SERVER:$EMBY_PORT/users/authenticatebyname?format=json" | python -m json.tool | grep 'AccessToken' | sed 's/\"//g; s/AccessToken://g; s/\,//g; s/ //g')"
+
+				RESPONSE=$(curl -d 'Library' "http://$EMBY_SERVER:$EMBY_PORT/Library/Refresh?api_key=$ApiKey")
+
+				if [ ${#RESPONSE} = 0 ]; then
+					# scan was successful
+					echo "Emby refresh command sent successfully" >> "$LOG"
+				else
+					# scan failed
+					echo "Emby refresh command failed for some reason.  Probably authentication issues" >> "$LOG"
+				fi
+			else
+				echo "Emby Refresh False.  Skipping library scan" >> "$LOG"
+			fi
 		else	
 			echo "Warning: $MEDIA_DIR/$LABEL.$DEST_EXT File exists! File moving aborted" >> "$LOG"
         fi
