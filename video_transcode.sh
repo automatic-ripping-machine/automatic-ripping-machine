@@ -36,14 +36,31 @@ TIMESTAMP=$5
 		rmdir "$SRC"	
 	elif [ "$RIPMETHOD" = "backup" ] && [ "$MAINFEATURE" = false ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then		
 		echo "Transcoding BluRay all titles above minlength." >> "$LOG"
-		# This fails, need to figure out how to iterate through all fetures on a backup source
-		$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL.$DEST_EXT" --min-duration "$MINLENGTH" --preset="$HB_PRESET" --subtitle scan -F 2>> "$LOG"		
-		rmdir "$SRC"
+		# Itterate through titles of MakeMKV backup
+		# First get number of titles
+		TITLES="$(echo ""|HandBrakeCLI --input "$SRC" --scan |& grep -Po '(?<=scan: BD has )([0-9]+)')"
+		echo "$TITLES titles on BluRay Disc" >> "$LOG"
+
+		for TITLE in $(seq 1 $TITLES)
+		do
+			echo "Processing title $TITLE" >> "$LOG"
+
+			TIME="$(echo ""|HandBrakeCLI --input "$SRC" --title "$TITLE" --scan |& grep 'duration is' | sed -r 's/.*\((.*)ms\)/\1/')"
+			
+			SEC=$(( TIME / 1000 )) >> "$LOG"
+			echo "Title length is $SEC seconds." >> "$LOG"
+			if [ $SEC -gt $MINLENGTH ]; then
+				echo "HandBraking title $TITLE"
+				$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL-$TITLE.$DEST_EXT" --min-duration=$MINLENGTH -t $TITLE --preset="$HB_PRESET" --subtitle scan -F 2  >> "$LOG"
+			else    
+				echo "Title $TITLE lenth less than $MINLENGTH.  Skipping." >> "$LOG"
+			fi
+		done	
+		rm -rf "$SRC"
 	elif [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
 		echo "Transcoding DVD main feature only." >> "$LOG"
 		# echo "$HANDBRAKE_CLI -i $DEVNAME -o \"${DEST}/${LABEL}.${DEST_EXT}\" --main-feature --preset="${HB_PRESET}" --subtitle scan -F 2" >> $LOG
         $HANDBRAKE_CLI -i "$DEVNAME" -o "${DEST}/${LABEL}.${DEST_EXT}" --main-feature --preset="${HB_PRESET}" --subtitle scan -F 2>> "$LOG"
-		# $HANDBRAKE_CLI -i $DEVNAME -o "${DEST}/${LABEL}.${DEST_EXT}" --main-feature --preset="${HB_PRESET}">> $LOG
 		eject "$DEVNAME"
 	else
 		echo "Transcoding all files." >> "$LOG"
