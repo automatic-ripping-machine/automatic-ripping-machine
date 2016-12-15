@@ -41,7 +41,7 @@ TIMESTAMP=$5
 		TITLES="$(echo ""|HandBrakeCLI --input "$SRC" --scan |& grep -Po '(?<=scan: BD has )([0-9]+)')"
 		echo "$TITLES titles on BluRay Disc" >> "$LOG"
 
-		for TITLE in $(seq 1 $TITLES)
+		for TITLE in $(seq 1 "$TITLES")
 		do
 			echo "Processing title $TITLE" >> "$LOG"
 
@@ -49,9 +49,9 @@ TIMESTAMP=$5
 			
 			SEC=$(( TIME / 1000 )) >> "$LOG"
 			echo "Title length is $SEC seconds." >> "$LOG"
-			if [ $SEC -gt $MINLENGTH ]; then
+			if [ $SEC -gt "$MINLENGTH" ]; then
 				echo "HandBraking title $TITLE"
-				$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL-$TITLE.$DEST_EXT" --min-duration=$MINLENGTH -t $TITLE --preset="$HB_PRESET" --subtitle scan -F 2  >> "$LOG"
+				$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL-$TITLE.$DEST_EXT" --min-duration="$MINLENGTH" -t "$TITLE" --preset="$HB_PRESET" --subtitle scan -F 2  >> "$LOG"
 			else    
 				echo "Title $TITLE lenth less than $MINLENGTH.  Skipping." >> "$LOG"
 			fi
