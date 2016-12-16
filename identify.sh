@@ -13,6 +13,13 @@ mkdir -p "$LOGPATH"
 
 #shellcheck disable=SC2094
 {
+# echo all config parameters to logfile
+# excludes sensative parameters
+echo "*** Start config parameters ****" >> "$LOG"
+# shellcheck disable=SC2002
+cat config|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d' >> "$LOG"
+echo "*** End config parameters ****" >> "$LOG"
+
 echo "Starting Identify Script..." >> "$LOG"
 
 VIDEO_TITLE=""
