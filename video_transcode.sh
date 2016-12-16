@@ -3,8 +3,7 @@
 
 # shellcheck source=config
 # shellcheck disable=SC1091
-# source "$ARM_CONFIG"
-source /opt/arm/config
+source "$ARM_CONFIG"
 
 SRC=$1
 LABEL=$2
