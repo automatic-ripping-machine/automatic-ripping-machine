@@ -3,7 +3,8 @@
 
 # shellcheck source=config
 # shellcheck disable=SC1091
-source "$ARM_CONFIG"
+# source "$ARM_CONFIG"
+source /opt/arm/config
 
 SRC=$1
 LABEL=$2
@@ -30,7 +31,11 @@ TIMESTAMP=$5
 
 	# DEST="${ARMPATH}/${LABEL}_${TIMESTAMP}"
 	mkdir "$DEST"
-	if [ "$RIPMETHOD" = "backup" ] && [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then
+	if [ "$SKIP_TRANSCODE" = true ] && [ "$RIPMETHOD" = "mkv" ]; then
+		# this only works for files ripped by MakeMKV into .mkv files
+		echo "Skipping transcode.  Moving files from $SRC to $DEST" >> "$LOG"
+		mv "$SRC"/* "$DEST"/  >> "$LOG"
+	elif [ "$RIPMETHOD" = "backup" ] && [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then
 		echo "Transcoding BluRay main feature only." >> "$LOG"
 		$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL.$DEST_EXT" --main-feature --preset="$HB_PRESET" --subtitle scan -F 2>> "$LOG"
 		rmdir "$SRC"	

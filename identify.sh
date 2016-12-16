@@ -8,6 +8,11 @@ echo "$ARM_CONFIG"
 # shellcheck disable=SC1091
 source "$ARM_CONFIG"
 
+# echo all config parameters to logfile
+# exclueds sensative parameters
+cat config|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d' >> "$LOG"
+
+
 # Create log dir if needed
 mkdir -p "$LOGPATH"
 
