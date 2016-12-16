@@ -18,7 +18,7 @@ mkdir -p "$LOGPATH"
 # shellcheck disable=SC2129
 echo "*** Start config parameters ****" >> "$LOG"
 # shellcheck disable=SC2002
-cat config|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d' >> "$LOG"
+cat "$ARM_CONFIG"|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d' >> "$LOG"
 echo "*** End config parameters ****" >> "$LOG"
 
 echo "Starting Identify Script..." >> "$LOG"
