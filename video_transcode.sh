@@ -41,7 +41,7 @@ TIMESTAMP=$5
 	elif [ "$RIPMETHOD" = "backup" ] && [ "$MAINFEATURE" = false ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then		
 		echo "Transcoding BluRay all titles above minlength." >> "$LOG"
 		# Itterate through titles of MakeMKV backup
-		# First get the main title
+		# First check if this is the main title
 		MAINTITLENO="$(echo ""|HandBrakeCLI --input "/dev/sr0" --title 0 --scan |& grep -B 1 "Main Feature" | sed 's/[^0-9]*//g')"
 
 		# Get number of titles
