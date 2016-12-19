@@ -109,6 +109,7 @@ TIMESTAMP=$5
 
 	if [ "$VIDEO_TYPE" = "movie" ] && [ "$MAINFEATURE" = true ] && [ "$HAS_NICE_TITLE" = true ] && [ "$EMBY_SUBFOLDERS" = false ]; then
 		# move the file to the final media directory
+		# shellcheck disable=SC2129,SC2016
 		echo '$VIDEO_TYPE is movie, $MAINFEATURE is true, $HAS_NICE_TITLE is true, $EMBY_SUBFOLDERS is false' >> "$LOG"
 		echo "Moving a single file." >> "$LOG"
         echo "Checing for existing file..." >> "$LOG"
@@ -126,6 +127,7 @@ TIMESTAMP=$5
 			echo "Warning: $MEDIA_DIR/$LABEL.$DEST_EXT File exists! File moving aborted" >> "$LOG"
         fi
     elif [ "$VIDEO_TYPE" = "movie" ] && [ "$MAINFEATURE" = true ] && [ "$HAS_NICE_TITLE" = true ] && [ "$EMBY_SUBFOLDERS" = true ]; then
+		# shellcheck disable=SC2129,SC2016
 		echo '$VIDEO_TYPE is movie, $MAINFEATURE is true, $HAS_NICE_TITLE is true, $EMBY_SUBFOLDERS is true' >> "$LOG"
         echo "Moving a single file to emby subfolders" >> "$LOG"
 		mkdir "$MEDIA_DIR/$LABEL" >> "$LOG"
@@ -143,6 +145,7 @@ TIMESTAMP=$5
 			echo "Warning: $MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT File exists! File moving aborted" >> "$LOG"
         fi
 	elif [ "$VIDEO_TYPE" = "movie" ] && [ "$MAINFEATURE" = false ] && [ "$HAS_NICE_TITLE" = true ] && [ "$EMBY_SUBFOLDERS" = false ]; then
+		# shellcheck disable=SC2129,SC2016
 		echo '$VIDEO_TYPE is movie, $MAINFEATURE is false, $HAS_NICE_TITLE is true, $EMBY_SUBFOLDERS is false' >> "$LOG"
 		# hopefully this is never happen because it will cause a lot of duplicate files
 		echo "***WARNING!*** This will likely leave files in the transcoding directory as there is very likely existing files in the media directory"
@@ -155,6 +158,7 @@ TIMESTAMP=$5
 			echo "Emby Refresh False.  Skipping library scan" >> "$LOG"
 		fi
 	elif [ "$VIDEO_TYPE" = "movie" ] && [ "$MAINFEATURE" = false ] && [ "$HAS_NICE_TITLE" = true ] && [ "$EMBY_SUBFOLDERS" = true ]; then
+		# shellcheck disable=SC2129,SC2016
 		echo '$VIDEO_TYPE is movie, $MAINFEATURE is false, $HAS_NICE_TITLE is true, $EMBY_SUBFOLDERS is true' >> "$LOG"
         echo "Moving multiple files to emby movie subfolders" >> "$LOG"
 		echo "First move main title" >> "$LOG"
@@ -165,7 +169,9 @@ TIMESTAMP=$5
 		fi
 
 		#now move "extras"
+		# shellcheck disable=SC2129,SC2016
 		mkdir -v "$MEDIA_DIR/$LABEL/extras" >> "$LOG"
+		# shellcheck disable=SC2086
         echo "Sending command: mv -n "\"$DEST/$LABEL/*\"" "\"$MEDIA_DIR/$LABEL/extras/\""" >> "$LOG"
         mv -n "${DEST}"/* "$MEDIA_DIR/$LABEL/extras/" >> "$LOG"
 		if [ "$EMBY_REFRESH" = true ]; then
