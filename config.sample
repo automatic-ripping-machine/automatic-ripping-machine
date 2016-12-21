@@ -11,7 +11,7 @@ ARM_CHECK_UDF=true
 # For BluRays attempts to extract the title from an XML file on the disc
 GET_VIDEO_TITLE=true
 
-# Skip transcoding if you want the original MakeMKV files as our final output
+# Skip transcoding if you want the original MakeMKV files as your final output
 # Thiw will produce the highest quality videos (and use the most storage)
 # Note: RIPMETHOD must be set to "mkv" for this feature to work
 SKIP_TRANSCODE=false
@@ -84,6 +84,9 @@ MAINFEATURE=false
 
 # Scan emby library after succesful placement of mainfeature (see above)
 EMBY_REFRESH=false
+
+# Use subfolders in Emby as described here: https://github.com/MediaBrowser/Wiki/wiki/Movie%20naming#movie-extras
+EMBY_SUBFOLDERS=true
 
 # Server parameters
 # Server can be ip address or domain name

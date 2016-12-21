@@ -41,7 +41,10 @@ TIMESTAMP=$5
 	elif [ "$RIPMETHOD" = "backup" ] && [ "$MAINFEATURE" = false ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then		
 		echo "Transcoding BluRay all titles above minlength." >> "$LOG"
 		# Itterate through titles of MakeMKV backup
-		# First get number of titles
+		# First check if this is the main title
+		MAINTITLENO="$(echo ""|HandBrakeCLI --input "$SRC" --title 0 --scan |& grep -B 1 "Main Feature" | sed 's/[^0-9]*//g')"
+
+		# Get number of titles
 		TITLES="$(echo ""|HandBrakeCLI --input "$SRC" --scan |& grep -Po '(?<=scan: BD has )([0-9]+)')"
 		echo "$TITLES titles on BluRay Disc" >> "$LOG"
 
@@ -56,6 +59,12 @@ TIMESTAMP=$5
 			if [ $SEC -gt "$MINLENGTH" ]; then
 				echo "HandBraking title $TITLE"
 				$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL-$TITLE.$DEST_EXT" --min-duration="$MINLENGTH" -t "$TITLE" --preset="$HB_PRESET" --subtitle scan -F 2  >> "$LOG"
+
+				# Check for main title and rename
+				if [ "$MAINTITLENO" = "$TITLE" ] && [ "$HAS_NICE_TITLE" = true ]; then
+					echo "Sending the following command: mv -n \"$DEST/$LABEL-$TITLE.$DEST_EXT\" \"${DEST}/${LABEL}.${DEST_EXT}\"" >> "$LOG"
+					mv -n "$DEST/$LABEL-$TITLE.$DEST_EXT" "${DEST}/${LABEL}.${DEST_EXT}" >> "$LOG"
+				fi
 			else    
 				echo "Title $TITLE lenth less than $MINLENGTH.  Skipping." >> "$LOG"
 			fi
@@ -83,8 +92,26 @@ TIMESTAMP=$5
 		rmdir "$SRC"
 	fi
 
-	if [ "$VIDEO_TYPE" = "movie" ] && [ "$MAINFEATURE" = true ] && [ "$HAS_NICE_TITLE" = true ]; then
-	# move the file to the final media directory
+	embyrefresh ()
+	{
+			ApiKey="$(curl -s -H "Authorization: MediaBrowser Client=\"$EMBY_CLIENT\", Device=\"$EMBY_DEVICE\", DeviceId=\"$EMBY_DEVICEID\", Version=1.0.0.0, UserId=\"$EMBY_USERID\"" -d "username=$EMBY_USERNAME" -d "password=$EMBY_PASSWORD" "http://$EMBY_SERVER:$EMBY_PORT/users/authenticatebyname?format=json" | python -m json.tool | grep 'AccessToken' | sed 's/\"//g; s/AccessToken://g; s/\,//g; s/ //g')"
+
+			RESPONSE=$(curl -d 'Library' "http://$EMBY_SERVER:$EMBY_PORT/Library/Refresh?api_key=$ApiKey")
+
+			if [ ${#RESPONSE} = 0 ]; then
+				# scan was successful
+				echo "Emby refresh command sent successfully" >> "$LOG"
+			else
+				# scan failed
+				echo "Emby refresh command failed for some reason.  Probably authentication issues" >> "$LOG"
+			fi
+	}
+
+	if [ "$VIDEO_TYPE" = "movie" ] && [ "$MAINFEATURE" = true ] && [ "$HAS_NICE_TITLE" = true ] && [ "$EMBY_SUBFOLDERS" = false ]; then
+		# move the file to the final media directory
+		# shellcheck disable=SC2129,SC2016
+		echo '$VIDEO_TYPE is movie, $MAINFEATURE is true, $HAS_NICE_TITLE is true, $EMBY_SUBFOLDERS is false' >> "$LOG"
+		echo "Moving a single file." >> "$LOG"
         echo "Checing for existing file..." >> "$LOG"
 		if [ ! -f "$MEDIA_DIR/$LABEL.$DEST_EXT" ]; then
 			echo "No file found.  Moving \"$DEST/$LABEL.$DEST_EXT to $MEDIA_DIR/$LABEL.$DEST_EXT\"" >> "$LOG"
@@ -92,25 +119,68 @@ TIMESTAMP=$5
 
 			if [ "$EMBY_REFRESH" = true ]; then
 				# signal emby to scan library
-				ApiKey="$(curl -s -H "Authorization: MediaBrowser Client=\"$EMBY_CLIENT\", Device=\"$EMBY_DEVICE\", DeviceId=\"$EMBY_DEVICEID\", Version=1.0.0.0, UserId=\"$EMBY_USERID\"" -d "username=$EMBY_USERNAME" -d "password=$EMBY_PASSWORD" "http://$EMBY_SERVER:$EMBY_PORT/users/authenticatebyname?format=json" | python -m json.tool | grep 'AccessToken' | sed 's/\"//g; s/AccessToken://g; s/\,//g; s/ //g')"
-
-				RESPONSE=$(curl -d 'Library' "http://$EMBY_SERVER:$EMBY_PORT/Library/Refresh?api_key=$ApiKey")
-
-				if [ ${#RESPONSE} = 0 ]; then
-					# scan was successful
-					echo "Emby refresh command sent successfully" >> "$LOG"
-				else
-					# scan failed
-					echo "Emby refresh command failed for some reason.  Probably authentication issues" >> "$LOG"
-				fi
+				embyrefresh
 			else
 				echo "Emby Refresh False.  Skipping library scan" >> "$LOG"
 			fi
 		else	
 			echo "Warning: $MEDIA_DIR/$LABEL.$DEST_EXT File exists! File moving aborted" >> "$LOG"
         fi
-    else
-        echo "Nothing here..." >> "$LOG"
+    elif [ "$VIDEO_TYPE" = "movie" ] && [ "$MAINFEATURE" = true ] && [ "$HAS_NICE_TITLE" = true ] && [ "$EMBY_SUBFOLDERS" = true ]; then
+		# shellcheck disable=SC2129,SC2016
+		echo '$VIDEO_TYPE is movie, $MAINFEATURE is true, $HAS_NICE_TITLE is true, $EMBY_SUBFOLDERS is true' >> "$LOG"
+        echo "Moving a single file to emby subfolders" >> "$LOG"
+		mkdir "$MEDIA_DIR/$LABEL" >> "$LOG"
+		if [ ! -f "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT" ]; then
+			echo "No file found.  Moving \"$DEST/$LABEL.$DEST_EXT to $MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT\"" >> "$LOG"
+			mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT"
+
+			if [ "$EMBY_REFRESH" = true ]; then
+				# signal emby to scan library
+				embyrefresh
+			else
+				echo "Emby Refresh False.  Skipping library scan" >> "$LOG"
+			fi
+		else	
+			echo "Warning: $MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT File exists! File moving aborted" >> "$LOG"
+        fi
+	elif [ "$VIDEO_TYPE" = "movie" ] && [ "$MAINFEATURE" = false ] && [ "$HAS_NICE_TITLE" = true ] && [ "$EMBY_SUBFOLDERS" = false ]; then
+		# shellcheck disable=SC2129,SC2016
+		echo '$VIDEO_TYPE is movie, $MAINFEATURE is false, $HAS_NICE_TITLE is true, $EMBY_SUBFOLDERS is false' >> "$LOG"
+		# hopefully this is never happen because it will cause a lot of duplicate files
+		echo "***WARNING!*** This will likely leave files in the transcoding directory as there is very likely existing files in the media directory"
+        echo "Moving multiple files to emby movie folder" >> "$LOG"
+		mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL.$DEST_EXT"
+		if [ "$EMBY_REFRESH" = true ]; then
+			# signal emby to scan library
+			embyrefresh
+		else
+			echo "Emby Refresh False.  Skipping library scan" >> "$LOG"
+		fi
+	elif [ "$VIDEO_TYPE" = "movie" ] && [ "$MAINFEATURE" = false ] && [ "$HAS_NICE_TITLE" = true ] && [ "$EMBY_SUBFOLDERS" = true ]; then
+		# shellcheck disable=SC2129,SC2016
+		echo '$VIDEO_TYPE is movie, $MAINFEATURE is false, $HAS_NICE_TITLE is true, $EMBY_SUBFOLDERS is true' >> "$LOG"
+        echo "Moving multiple files to emby movie subfolders" >> "$LOG"
+		echo "First move main title" >> "$LOG"
+        mkdir -v "$MEDIA_DIR/$LABEL" >> "$LOG"
+		if [ ! -f "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT" ]; then
+			echo "No file found.  Moving \"$DEST/$LABEL.$DEST_EXT to $MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT\"" >> "$LOG"
+			mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT" >> "$LOG"
+		fi
+
+		#now move "extras"
+		# shellcheck disable=SC2129,SC2016
+		mkdir -v "$MEDIA_DIR/$LABEL/extras" >> "$LOG"
+		# shellcheck disable=SC2086
+        echo "Sending command: mv -n "\"$DEST/$LABEL/*\"" "\"$MEDIA_DIR/$LABEL/extras/\""" >> "$LOG"
+        mv -n "${DEST}"/* "$MEDIA_DIR/$LABEL/extras/" >> "$LOG"
+		if [ "$EMBY_REFRESH" = true ]; then
+			# signal emby to scan library
+			embyrefresh
+		else
+			echo "Emby Refresh False.  Skipping library scan" >> "$LOG"
+		fi
+		rmdir "$DEST"
 	fi
 
 rmdir "$SRC" 
