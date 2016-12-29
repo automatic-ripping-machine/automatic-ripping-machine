@@ -23,7 +23,7 @@ echo "*** End config parameters ****" >> "$LOG"
 
 echo "Starting Identify Script..." >> "$LOG"
 
-VIDEO_TITLE=""
+VIDEE=""
 HAS_NICE_TITLE=""
 
 
@@ -70,7 +70,16 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			fi
 
 			if [ $HAS_NICE_TITLE == true ]; then
-				VIDEO_TYPE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" 2>&1)
+				VTYPE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" 2>&1)
+
+				#handle year mismath if found
+				if [[ $VTYPE =~ .*#.* ]]; then
+					VIDEO_TYPE=$(echo $VTYPE | cut -f1 -d#)
+					NEW_YEAR=$(echo $VTYPE | cut -f2 -d#)
+					echo "VIDEO_TYPE is $VIDEO_TYPE and NEW_YEAR is $NEW_YEAR"
+					VIDEO_TITLE="$(echo $VIDEO_TITLE | cut -f1 -d\()($NEW_YEAR)" 
+					echo "Year mismatch found.  New video title is $VIDEO_TITLE"
+				fi
 			else
 				VIDEO_TYPE="unknown"
 			fi
@@ -81,7 +90,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			echo "video type is ${VIDEO_TYPE}"
 
 			umount "/mnt/$DEVNAME"
-			/opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
+			# /opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
 		else
 			umount "/mnt/$DEVNAME"
 			echo "identified udf as data" >> "$LOG"
