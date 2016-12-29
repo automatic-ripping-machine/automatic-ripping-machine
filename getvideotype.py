@@ -19,6 +19,7 @@ def getdvdtype():
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
     dvd_title = args.title
+    needs_new_year = "false"
 
     try:
         year = dvd_title[(dvd_title.rindex('(')):len(dvd_title)]
