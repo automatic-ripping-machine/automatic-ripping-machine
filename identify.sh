@@ -23,7 +23,7 @@ echo "*** End config parameters ****" >> "$LOG"
 
 echo "Starting Identify Script..." >> "$LOG"
 
-# VIDEE=""
+VIDEO_TITLE=""
 HAS_NICE_TITLE=""
 
 
