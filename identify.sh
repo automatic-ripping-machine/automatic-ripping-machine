@@ -90,7 +90,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			echo "video type is ${VIDEO_TYPE}"
 
 			umount "/mnt/$DEVNAME"
-			# /opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
+			/opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
 		else
 			umount "/mnt/$DEVNAME"
 			echo "identified udf as data" >> "$LOG"
