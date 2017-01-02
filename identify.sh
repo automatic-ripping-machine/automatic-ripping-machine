@@ -92,7 +92,12 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			echo "video type is ${VIDEO_TYPE}"
 
 			umount "/mnt/$DEVNAME"
-			/opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
+
+			if [ $VIDEO_TYPE = "series" && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
+				echo "Calling: tv_dvd.py \"$DEVNAME\" \"$MINLENGTH\" \"$MAXLENGTH\" \"$ARMPATH\" \"$RAWPATH\" \"$VIDEO_TITLE\" \"$HANDBRAKE_CLI\" \"HB_PRESET\" \"$HB_ARGS\" \"$LOG\"" >> "$LOG"
+				# /opt/arm/tv_dvd.py "$DEVNAME" "$MINLENGTH" "$MAXLENGTH" "$ARMPATH" "$RAWPATH" "$VIDEO_TITLE" "$HANDBRAKE_CLI" "HB_PRESET" "$HB_ARGS" "$LOG"
+			else			
+				# /opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
 		else
 			umount "/mnt/$DEVNAME"
 			echo "identified udf as data" >> "$LOG"
@@ -102,6 +107,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 		fi
 	else
 		echo "ARM_CHECK_UDF is false, assuming udf is video" >> "$LOG"
+
 		/opt/arm/video_rip.sh "$LOG"
 	fi	
 
