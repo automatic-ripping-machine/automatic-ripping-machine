@@ -25,7 +25,7 @@ VIDEO_TYPE=$3
 		echo "Using backup method of ripping." >> "$LOG"
 		DISC="${DEVNAME: -1}"
 		echo "Sending command: makemkvcon backup --decrypt -r disc:$DISC $DEST"
-		makemkvcon $PROFILE backup --decrypt -r disc:"$DISC" "$DEST"/
+		makemkvcon "$PROFILE" backup --decrypt -r disc:"$DISC" "$DEST"/
 		eject "$DEVNAME"
 	elif [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ] && [ -z "$ID_CDROM_MEDIA_BD" ]; then
 		echo "Media is DVD and Main Feature parameter in config file is true.  Bypassing MakeMKV." >> "$LOG"
@@ -34,7 +34,7 @@ VIDEO_TYPE=$3
 	echo "DEST is ${DEST}"
 	else
 		echo "Using mkv method of ripping." >> "$LOG"
-		makemkvcon $PROFILE mkv dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r
+		makemkvcon "$PROFILE" mkv dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r
 		eject "$DEVNAME"
 	fi
 
