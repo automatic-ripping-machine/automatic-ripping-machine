@@ -15,7 +15,7 @@ VIDEO_TYPE=$3
  	echo "Ripping video ${ID_FS_LABEL} from ${DEVNAME}" >> "$LOG"
 	TIMESTAMP=$(date '+%Y%m%d_%H%M%S');
 	DEST="${RAWPATH}/${VIDEO_TITLE}_${TIMESTAMP}"
-	PROFILE="--profile=/${MAKEMKVPROFILE_FILE}"
+	PROFILE="--profile=${MAKEMKVPROFILE_FILE}"
 	RIPSTART=$(date +%s);
     
 	mkdir "$DEST"
