@@ -180,7 +180,10 @@ TIMESTAMP=$5
 			# shellcheck disable=SC2086
        			echo "Sending command: mv -n "\"$DEST/$LABEL/*\"" "\"$MEDIA_DIR/$LABEL/Featurettes/\""" >> "$LOG"
        			mv -n "${DEST}"/* "$MEDIA_DIR/$LABEL/Featurettes/" >> "$LOG"
-				
+			
+			# Move Largest file to main folder for Plex/Emby/Kodi to detect main movie
+			ls -S "$MEDIA_DIR/$LABEL/extras/" | head -1 | xargs -I '{}' mv {} "$MEDIA_DIR/$LABEL/" >> "$LOG"
+			
 		else
 				
 			# shellcheck disable=SC2129,SC2016
@@ -192,6 +195,9 @@ TIMESTAMP=$5
 			# shellcheck disable=SC2086
       			echo "Sending command: mv -n "\"$DEST/$LABEL/*\"" "\"$MEDIA_DIR/$LABEL/extras/\""" >> "$LOG"
        			mv -n "${DEST}"/* "$MEDIA_DIR/$LABEL/extras/" >> "$LOG"
+			
+			# Move Largest file to main folder for Plex/Emby/Kodi to detect main movie
+			ls -S "$MEDIA_DIR/$LABEL/extras/" | head -1 | xargs -I '{}' mv {} "$MEDIA_DIR/$LABEL/" >> "$LOG"
 			
 			if [ "$EMBY_REFRESH" = true ]; then
 				# signal emby to scan library
