@@ -175,7 +175,7 @@ TIMESTAMP=$5
 			mkdir -v "$MEDIA_DIR/$LABEL/Featurettes" >> "$LOG"
 			
 			# Create Emby ignore file for "extras" Folder
-			touch "$MEDIA_DIR/$LABEL/Featurettes/.ignore"
+			touch "$MEDIA_DIR/$LABEL/Featurettes/.ignore"  >> "$LOG"
 			
 			# shellcheck disable=SC2086
        			echo "Sending command: mv -n "\"$DEST/$LABEL/*\"" "\"$MEDIA_DIR/$LABEL/Featurettes/\""" >> "$LOG"
@@ -187,7 +187,7 @@ TIMESTAMP=$5
 			mkdir -v "$MEDIA_DIR/$LABEL/extras" >> "$LOG"
 				
 			# Create Plex ignore file for "extras" Folder
-			touch "$MEDIA_DIR/$LABEL/extras/.plexignore"
+			touch "$MEDIA_DIR/$LABEL/extras/.plexignore"  >> "$LOG"
 			
 			# shellcheck disable=SC2086
       			echo "Sending command: mv -n "\"$DEST/$LABEL/*\"" "\"$MEDIA_DIR/$LABEL/extras/\""" >> "$LOG"
