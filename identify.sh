@@ -101,7 +101,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 				eval "${STR}" 2>> "$LOG"
 				eject "$DEVNAME"
 			elif
-				["$VIDEO_TYPE" = "unknown" ] && [ "$DEFAULT_VIDEOTYPE" == "series" ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
+				[ "$VIDEO_TYPE" = "unknown" ] && [ "$DEFAULT_VIDEOTYPE" == "series" ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
 				echo "Video type is 'unknown' and default video type is series.  Processing TV series.  Calling tv_dvd.py" >> "$LOG"
 				STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""
 				echo "Sending command ${STR}"
