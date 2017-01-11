@@ -77,7 +77,7 @@ HANDBRAKE_CLI=HandBrakeCLI
 MAINFEATURE=false
 
 # Additional HandBrake arguments.  
-HB_ARGS="--subtitle scan -F --subtitle-burned --audio-lang-list eng --all-audio"
+HB_ARGS="--subtitle scan -F"
 
 #####################
 ## Emby Parameters ##
