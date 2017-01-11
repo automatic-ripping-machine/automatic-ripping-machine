@@ -16,6 +16,9 @@ GET_VIDEO_TITLE=true
 # Note: RIPMETHOD must be set to "mkv" for this feature to work
 SKIP_TRANSCODE=false
 
+# Default Video Type.  Use this to give ARM a way to handle dvds/bds that aren't identifiable.
+# DEFAULT_VIDEOTYPE="series"
+
 #####################
 ## Directory setup ##
 #####################

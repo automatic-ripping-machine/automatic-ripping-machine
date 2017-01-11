@@ -84,6 +84,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 				fi
 			else
 				VIDEO_TYPE="unknown"
+
 			fi
 
 			echo "got to here"
@@ -93,11 +94,23 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 
 			umount "/mnt/$DEVNAME"
 
-			if [ $VIDEO_TYPE = "series" && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
-				echo "Calling: tv_dvd.py \"$DEVNAME\" \"$MINLENGTH\" \"$MAXLENGTH\" \"$ARMPATH\" \"$RAWPATH\" \"$VIDEO_TITLE\" \"$HANDBRAKE_CLI\" \"HB_PRESET\" \"$HB_ARGS\" \"$LOG\"" >> "$LOG"
-				# /opt/arm/tv_dvd.py "$DEVNAME" "$MINLENGTH" "$MAXLENGTH" "$ARMPATH" "$RAWPATH" "$VIDEO_TITLE" "$HANDBRAKE_CLI" "HB_PRESET" "$HB_ARGS" "$LOG"
-			else			
-				# /opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
+			if [ $VIDEO_TYPE = "series" ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
+				echo "Processing TV series.  Calling tv_dvd.py" >> "$LOG"
+				STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""
+				echo "Sending command ${STR}"
+				eval "${STR}" 2>> "$LOG"
+				eject "$DEVNAME"
+			elif
+				["$VIDEO_TYPE" = "unknown" ] && [ "$DEFAULT_VIDEOTYPE" == "series" ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
+				echo "Video type is 'unknown' and default video type is series.  Processing TV series.  Calling tv_dvd.py" >> "$LOG"
+				STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""
+				echo "Sending command ${STR}"
+				eval "${STR}" 2>> "$LOG"
+				eject "$DEVNAME"
+			else
+				echo "Sending to video_rip queue" >> "$LOG"
+				/opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
+			fi
 		else
 			umount "/mnt/$DEVNAME"
 			echo "identified udf as data" >> "$LOG"

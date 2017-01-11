@@ -26,7 +26,7 @@ def getdvdtype():
     except:
         year = ""
     else:
-        year = re.sub('[()]','', year)
+        year = re.sub('[()]', '', year)
 
     try:
         dvd_title = dvd_title[0:(dvd_title.rindex('('))].strip()
@@ -49,22 +49,22 @@ def getdvdtype():
         dvd_type = callwebservice(dvd_title_clean, "")
         # print (dvd_type)
 
-        if (dvd_type != "fail"):
-            #that means the year is wrong. 
+        if dvd_type != "fail":
+            #that means the year is wrong.
             needs_new_year = "true"
 
-        if (dvd_type == "fail"):
+        if dvd_type == "fail":
             # second see if there is a hyphen and split it
-            if (dvd_title.find("-") > -1):
+            if dvd_title.find("-") > -1:
                 dvd_title_slice = dvd_title[:dvd_title.find("-")]
-                dvd_title_slice =cleanupstring(dvd_title_slice)
+                dvd_title_slice = cleanupstring(dvd_title_slice)
                 dvd_type = callwebservice(dvd_title_slice)
-                
+
             # if still fail, then try slicing off the last word in a loop
             while dvd_type == "fail" and dvd_title_clean.count('+') > 0:
                 dvd_title_clean = dvd_title_clean.rsplit('+', 1)[0]
                 dvd_type = callwebservice(dvd_title_clean)
-        
+
     if needs_new_year == "true":
         #pass the new year back to bash to handle
         global new_year

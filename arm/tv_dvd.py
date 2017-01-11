@@ -7,6 +7,7 @@ import os
 import subprocess
 import logging
 import pprint
+import time
 
 def entry():
     """ Entry to program, parses arguments"""
@@ -27,16 +28,17 @@ def entry():
 def log_params():
     """log all entry parameters"""
 
-    # logging.info("Logging tv_dvd parameters")
-    # logging.info("Input parameters are: ")
-    # logging.info(args.devpath)
-    # logging.info(args.minlength)
-    # logging.info(args.maxlength)
-    # logging.info(args.armpath)
-    # logging.info(args.rawpath)
-    # logging.info(args.handbrakecli)
-    # logging.info(args.hb_preset)
-    # logging.info(args.logfile)
+    logging.info("Logging tv_dvd parameters")
+    logging.info("**** Start tv_dvd.py paramaters *** ")
+    logging.info(args.devpath)
+    logging.info(args.minlength)
+    logging.info(args.maxlength)
+    logging.info(args.armpath)
+    logging.info(args.rawpath)
+    logging.info(args.handbrakecli)
+    logging.info(args.hb_preset)
+    logging.info(args.logfile)
+    logging.info("*** End of tv_dvd.py parameters ***")
 
 def main():
     """main tv processing function"""
@@ -53,47 +55,41 @@ def main():
     info = eval(data, {})
     # print(info['track'])
 
+    #get filesystem in order
+    ts = round(time.time() * 100)
+    basepath = os.path.join(args.armpath, args.label + "_" + str(ts))
+    if not os.path.exists(basepath):
+        try:
+            os.makedirs(basepath)
+        except:
+            logging.error("Couldn't create the base file path: " + basepath + " Probably a permissions error")
+            err = "Couldn't create the base file path: " + basepath + " Probably a permissions error"
+            sys.exit(err)
+
+    total = 0
     for index, item in enumerate(info['track']):
-        # print(index, item['ix'], item['length'])
-        # print("Track #" + str(item['ix']) + " is " + str(item['length']) + " long.")
+        if item['ix'] > total:
+            total = item['ix']
+
+    logging.info("Found " + str(total) + " tracks.")
+
+    for index, item in enumerate(info['track']):
 
         if item['length'] < args.minlength:
             #too short
-            logging.info("Track #" + str(item['ix']) + " length (" + str(item['length']) + \
+            logging.info("Track #" + str(item['ix']) + " of " + str(total) + ". Length (" + str(item['length']) + \
             ") is less than minimum length (" + str(args.minlength) + ").  Skipping")
         elif item['length'] > args.maxlength:
             #too long
-            logging.info("Track #" + str(item['ix']) + " length (" + str(item['length']) + \
+            logging.info("Track #" + str(item['ix']) +" of " + str(total) + ". Length (" + str(item['length']) + \
             ") is greater than maximum length (" + str(args.maxlength) + ").  Skipping")
         else:
             #just right
-            #get filesystem in order
-            logging.info("Processing track #" + str(item['ix']) + ". Length is " + str(item['length']) + " seconds.")
-            basepath = os.path.join(args.rawpath, args.label)
-            if not os.path.exists(basepath):
-                try:
-                    os.makedirs(basepath)
-                except:
-                    logging.error("Couldn't create the base file path: " + basepath + " Probably a permissions error")
-                    err = "Couldn't create the base file path: " + basepath + " Probably a permissions error"
-                    sys.exit(err)
+            logging.info("Processing track #" + str(item['ix']) + " of " + str(total) + ". Length is " + str(item['length']) + " seconds.")
+
 
             filename = os.path.join(basepath, "title_" + str(item['ix']) + ".mkv")
-            # logging.info(args.handbrakecli + " -i " + args.devpath + " -o " + filename + " -t" +  \
-            # str(item['ix']) + " --preset \"" + args.hb_preset + "\" --subtitle scan -F 2")
 
-            #call handbrake
-            # try:
-            #     hb = subprocess.check_output([args.handbrakecli, "-i " + args.devpath, \
-            #     "-o \"" + filename + "\"", "-t " + str(item['ix']), \
-            #     "--preset \"" + args.hb_preset + "\"", "--subtitle scan", "-F 2"]).decode("utf-8")
-            #     cmd = "Handbrake command sent is: " + hb.args
-            #     logging.info(cmd)
-            # except subprocess.CalledProcessError as hb_error:
-            #     err = "Call to hadnbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
-            #     logging.error(err)
-            #     sys.exit(err)
-            
             cmd = 'nice {0} -i "{1}" -o "{2}" --preset "{3}" -t {4} {5}>> {6}'.format(
                 args.handbrakecli,
                 args.devpath,
@@ -104,26 +100,17 @@ def main():
                 args.logfile
                 )
 
-            logging.info("Sending command: %s", (cmd))
+            logging.debug("Sending command: %s", (cmd))
 
-            # try:
-            #     hb = subprocess.check_output(
-            #         cmd,
-            #         # stdout=subprocess.PIPE,
-            #         # stderr=subprocess.STDOUT,
-            #         shell=True
-            #     ).decode("utf-8")
-            # except subprocess.CalledProcessError as hb_error:
-            #     err = "Call to hadnbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
-            #     logging.error(err)
-            #     sys.exit(err)
-
-            # if hb.returncode is not 0:
-            #     err = "Call to hadnbrake failed with code: " + str(hb.returncode)
-            #     logging.error(err)
-            #     sys.exit(err)
-
-
+            try:
+                hb = subprocess.check_output(
+                    cmd,
+                    shell=True
+                ).decode("utf-8")
+            except subprocess.CalledProcessError as hb_error:
+                err = "Call to hadnbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
+                logging.error(err)
+                sys.exit(err)
 
 args = entry()
 
@@ -131,4 +118,5 @@ args = entry()
 logging.basicConfig(filename=args.logfile, format='[%(asctime)s] ARM: %(levelname)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S', \
 level=logging.INFO)
 
+log_params()
 main()
