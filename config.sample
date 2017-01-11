@@ -76,6 +76,9 @@ HANDBRAKE_CLI=HandBrakeCLI
 # However, it does not handle tv shows well at all.  You will likely want this value to be false when ripping tv shows.
 MAINFEATURE=false
 
+# Additional HandBrake arguments.  
+HB_ARGS="--subtitle scan -F --subtitle-burned --audio-lang-list eng --all-audio"
+
 #####################
 ## Emby Parameters ##
 #####################

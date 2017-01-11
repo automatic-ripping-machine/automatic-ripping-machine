@@ -36,7 +36,7 @@ TIMESTAMP=$5
 		mv "$SRC"/* "$DEST"/  >> "$LOG"
 	elif [ "$RIPMETHOD" = "backup" ] && [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then
 		echo "Transcoding BluRay main feature only." >> "$LOG"
-		$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL.$DEST_EXT" --main-feature --preset="$HB_PRESET" --subtitle scan -F 2>> "$LOG"
+		$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL.$DEST_EXT" --main-feature --preset="$HB_PRESET" $HB_ARGS 2>> "$LOG"
 		rmdir "$SRC"	
 	elif [ "$RIPMETHOD" = "backup" ] && [ "$MAINFEATURE" = false ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then		
 		echo "Transcoding BluRay all titles above minlength." >> "$LOG"
@@ -58,7 +58,7 @@ TIMESTAMP=$5
 			echo "Title length is $SEC seconds." >> "$LOG"
 			if [ $SEC -gt "$MINLENGTH" ]; then
 				echo "HandBraking title $TITLE"
-				$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL-$TITLE.$DEST_EXT" --min-duration="$MINLENGTH" -t "$TITLE" --preset="$HB_PRESET" --subtitle scan -F 2  >> "$LOG"
+				$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL-$TITLE.$DEST_EXT" --min-duration="$MINLENGTH" -t "$TITLE" --preset="$HB_PRESET" $HB_ARGS 2  >> "$LOG"
 
 				# Check for main title and rename
 				if [ "$MAINTITLENO" = "$TITLE" ] && [ "$HAS_NICE_TITLE" = true ]; then
@@ -73,7 +73,7 @@ TIMESTAMP=$5
 	elif [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
 		echo "Transcoding DVD main feature only." >> "$LOG"
 		# echo "$HANDBRAKE_CLI -i $DEVNAME -o \"${DEST}/${LABEL}.${DEST_EXT}\" --main-feature --preset="${HB_PRESET}" --subtitle scan -F 2" >> $LOG
-        $HANDBRAKE_CLI -i "$DEVNAME" -o "${DEST}/${LABEL}.${DEST_EXT}" --main-feature --preset="${HB_PRESET}" --subtitle scan -F 2>> "$LOG"
+        $HANDBRAKE_CLI -i "$DEVNAME" -o "${DEST}/${LABEL}.${DEST_EXT}" --main-feature --preset="${HB_PRESET}" $HB_ARGS 2>> "$LOG"
 		eject "$DEVNAME"
 	else
 		echo "Transcoding all files." >> "$LOG"
@@ -86,7 +86,7 @@ TIMESTAMP=$5
                 	filename=${filename%.*}
 
 			echo "Transcoding file $FILE" >> "$LOG"
-                	$HANDBRAKE_CLI -i "$SRC/$FILE" -o "$DEST/$filename.$DEST_EXT" --preset="$HB_PRESET" --subtitle scan -F 2>> "$LOG"
+                	$HANDBRAKE_CLI -i "$SRC/$FILE" -o "$DEST/$filename.$DEST_EXT" --preset="$HB_PRESET" $HB_ARGS 2>> "$LOG"
 			rm "$SRC/$FILE"
        		done
 		rmdir "$SRC"
