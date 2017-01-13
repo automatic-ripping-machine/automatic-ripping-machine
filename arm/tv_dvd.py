@@ -30,14 +30,15 @@ def log_params():
 
     logging.info("Logging tv_dvd parameters")
     logging.info("**** Start tv_dvd.py paramaters *** ")
-    logging.info(args.devpath)
-    logging.info(args.minlength)
-    logging.info(args.maxlength)
-    logging.info(args.armpath)
-    logging.info(args.rawpath)
-    logging.info(args.handbrakecli)
-    logging.info(args.hb_preset)
-    logging.info(args.logfile)
+    logging.info("devpath: " + args.devpath)
+    logging.info("minlength: " + str(args.minlength))
+    logging.info("maxlength: " + str(args.maxlength))
+    logging.info("armpath: " + args.armpath)
+    logging.info("rawpath: " + args.rawpath)
+    logging.info("handbrakecli: " + args.handbrakecli)
+    logging.info("hb_preset: " + args.hb_preset)
+    logging.info("logfile: " + args.logfile)
+    logging.info("hb_args: " + args.hb_args)
     logging.info("*** End of tv_dvd.py parameters ***")
 
 def main():
