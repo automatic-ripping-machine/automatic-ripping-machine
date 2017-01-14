@@ -20,6 +20,6 @@ source "$ARM_CONFIG"
 
 	eject
 	
-	chmod 777 -r "$DEST"
+	chmod 777 -R "$DEST"
 
 } >> "$LOG"
