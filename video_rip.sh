@@ -17,7 +17,7 @@ VIDEO_TYPE=$3
 	DEST="${RAWPATH}/${VIDEO_TITLE}_${TIMESTAMP}"
 	RIPSTART=$(date +%s);
     
-	mkdir "$DEST"
+	mkdir -p "$DEST"
 
 	#echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP >> $LOG
 	if [ "$RIPMETHOD" = "backup" ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then
