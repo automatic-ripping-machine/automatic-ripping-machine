@@ -22,15 +22,15 @@ SKIP_TRANSCODE=false
 
 # Base directory of ARM media directory
 # Ripped and transcoded files end up here
-ARMPATH="/mnt/media/ARM/"
+ARMPATH="~/ARM/Media/Unidentified/"
 
 # Path to raw MakeMKV directory
 # Destination for MakeMKV and source for HandBrake
-RAWPATH="/mnt/media/ARM/raw/"
+RAWPATH="~/ARM/raw/"
 
 # Path to final media directory
 # Destination for final file.  Only used for movies that are positively identified
-MEDIA_DIR="/mnt/media/ARM/Media/Movies/"
+MEDIA_DIR="~/ARM/Media/Movies/"
 
 # Path to directory to hold log files
 # Make sure to include trailing /
