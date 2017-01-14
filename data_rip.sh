@@ -10,8 +10,8 @@ source "$ARM_CONFIG"
 
 
         TIMESTAMP=$(date '+%Y%m%d_%H%M%S');
-        DEST="/mnt/media/ARM/${TIMESTAMP}_${ID_FS_LABEL}"
-        mkdir "$DEST"
+        DEST="/mnt/media/ARM/Media/Data/${TIMESTAMP}_${ID_FS_LABEL}"
+        mkdir -p "$DEST"
 	FILENAME=${ID_FS_LABEL}_disc.iso
 
 
@@ -19,6 +19,7 @@ source "$ARM_CONFIG"
 	cat "$DEVNAME" > "$DEST/$FILENAME"
 
 	eject
-
+	
+	chmod 777 -r "$DEST"
 
 } >> "$LOG"
