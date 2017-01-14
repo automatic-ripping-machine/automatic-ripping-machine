@@ -29,7 +29,7 @@ TIMESTAMP=$5
 	fi	
 
 	# DEST="${ARMPATH}/${LABEL}_${TIMESTAMP}"
-	mkdir "$DEST"
+	mkdir -p "$DEST"
 	if [ "$SKIP_TRANSCODE" = true ] && [ "$RIPMETHOD" = "mkv" ]; then
 		# this only works for files ripped by MakeMKV into .mkv files
 		echo "Skipping transcode.  Moving files from $SRC to $DEST" >> "$LOG"
@@ -132,7 +132,7 @@ TIMESTAMP=$5
 		# shellcheck disable=SC2129,SC2016
 		echo '$VIDEO_TYPE is movie, $MAINFEATURE is true, $HAS_NICE_TITLE is true, $EMBY_SUBFOLDERS is true' >> "$LOG"
         echo "Moving a single file to emby subfolders" >> "$LOG"
-		mkdir "$MEDIA_DIR/$LABEL" >> "$LOG"
+		mkdir -p "$MEDIA_DIR/$LABEL" >> "$LOG"
 		if [ ! -f "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT" ]; then
 			echo "No file found.  Moving \"$DEST/$LABEL.$DEST_EXT to $MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT\"" >> "$LOG"
 			mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT"
@@ -169,7 +169,7 @@ TIMESTAMP=$5
 		echo '$VIDEO_TYPE is movie, $MAINFEATURE is false, $HAS_NICE_TITLE is true, $EMBY_SUBFOLDERS is true' >> "$LOG"
         echo "Moving multiple files to emby movie subfolders" >> "$LOG"
 		echo "First move main title" >> "$LOG"
-        mkdir -v "$MEDIA_DIR/$LABEL" >> "$LOG"
+        mkdir -p -v "$MEDIA_DIR/$LABEL" >> "$LOG"
 		if [ ! -f "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT" ]; then
 			echo "No file found.  Moving \"$DEST/$LABEL.$DEST_EXT to $MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT\"" >> "$LOG"
 			mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT" >> "$LOG"
@@ -180,7 +180,7 @@ TIMESTAMP=$5
 		if [ "$PLEX_SUPPORT" = true ]; then
 		
 			# shellcheck disable=SC2129,SC2016
-			mkdir -v "$MEDIA_DIR/$LABEL/Featurettes" >> "$LOG"
+			mkdir -p -v "$MEDIA_DIR/$LABEL/Featurettes" >> "$LOG"
 			
 			# Create Emby ignore file for "extras" Folder
 			touch "$MEDIA_DIR/$LABEL/Featurettes/.ignore"  >> "$LOG"
@@ -197,7 +197,7 @@ TIMESTAMP=$5
 		else
 				
 			# shellcheck disable=SC2129,SC2016
-			mkdir -v "$MEDIA_DIR/$LABEL/extras" >> "$LOG"
+			mkdir -p -v "$MEDIA_DIR/$LABEL/extras" >> "$LOG"
 				
 			# Create Plex ignore file for "extras" Folder
 			touch "$MEDIA_DIR/$LABEL/extras/.plexignore"  >> "$LOG"
