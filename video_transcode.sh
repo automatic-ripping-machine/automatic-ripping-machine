@@ -116,6 +116,8 @@ TIMESTAMP=$5
 		if [ ! -f "$MEDIA_DIR/$LABEL.$DEST_EXT" ]; then
 			echo "No file found.  Moving \"$DEST/$LABEL.$DEST_EXT to $MEDIA_DIR/$LABEL.$DEST_EXT\"" >> "$LOG"
 			mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL.$DEST_EXT"
+			
+			chmod 777 "$MEDIA_DIR" -R
 
 			if [ "$EMBY_REFRESH" = true ]; then
 				# signal emby to scan library
@@ -134,6 +136,8 @@ TIMESTAMP=$5
 		if [ ! -f "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT" ]; then
 			echo "No file found.  Moving \"$DEST/$LABEL.$DEST_EXT to $MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT\"" >> "$LOG"
 			mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT"
+			
+			chmod 777 "$MEDIA_DIR/$LABEL" -R
 
 			if [ "$EMBY_REFRESH" = true ]; then
 				# signal emby to scan library
@@ -151,6 +155,9 @@ TIMESTAMP=$5
 		echo "***WARNING!*** This will likely leave files in the transcoding directory as there is very likely existing files in the media directory"
         echo "Moving multiple files to emby movie folder" >> "$LOG"
 		mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL.$DEST_EXT"
+		
+		chmod 777 "$MEDIA_DIR" -R
+		
 		if [ "$EMBY_REFRESH" = true ]; then
 			# signal emby to scan library
 			embyrefresh
@@ -166,6 +173,7 @@ TIMESTAMP=$5
 		if [ ! -f "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT" ]; then
 			echo "No file found.  Moving \"$DEST/$LABEL.$DEST_EXT to $MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT\"" >> "$LOG"
 			mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT" >> "$LOG"
+			chmod 777 "$MEDIA_DIR/$LABEL" -R
 		fi
 
 		#now move "extras"
@@ -185,6 +193,7 @@ TIMESTAMP=$5
 			# shellcheck disable=SC2012
 			ls -S "$MEDIA_DIR/$LABEL/Featurettes/" | head -1 | xargs -I '{}' mv "$MEDIA_DIR/$LABEL/Featurettes/"{} "$MEDIA_DIR/$LABEL/$LABEL.mkv" >> "$LOG"
 			
+			chmod 777 "$MEDIA_DIR/$LABEL" -R
 		else
 				
 			# shellcheck disable=SC2129,SC2016
@@ -200,6 +209,8 @@ TIMESTAMP=$5
 			# Move Largest file to main folder for Plex/Emby/Kodi to detect main movie
 			# shellcheck disable=SC2012
 			ls -S "$MEDIA_DIR/$LABEL/extras/" | head -1 | xargs -I '{}' mv "$MEDIA_DIR/$LABEL/extras/"{} "$MEDIA_DIR/$LABEL/$LABEL.mkv" >> "$LOG"
+			
+			chmod 777 "$MEDIA_DIR/$LABEL" -R
 			
 			if [ "$EMBY_REFRESH" = true ]; then
 				# signal emby to scan library
