@@ -48,7 +48,6 @@ See: https://b3n.org/automatic-ripping-machine
     sudo apt install python3 python3-pip
     sudo apt-get install libdvd-pkg
     sudo dpkg-reconfigure libdvd-pkg
-    sudo mkdir -p /mnt/media/ARM/Media/Music
     sudo su
     cd /opt
     git clone https://github.com/RandomNinjaAtk/automatic-ripping-machine.git arm
