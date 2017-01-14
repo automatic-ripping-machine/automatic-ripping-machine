@@ -34,6 +34,9 @@ See: https://b3n.org/automatic-ripping-machine
 
 ## Install
 
+    sudo apt-get install git
+    sudo apt-get install regionset
+    sudo regionset /dev/sr0
     sudo add-apt-repository ppa:heyarje/makemkv-beta
     sudo add-apt-repository ppa:stebbins/handbrake-releases
     sudo add-apt-repository ppa:mc3man/xerus-media
