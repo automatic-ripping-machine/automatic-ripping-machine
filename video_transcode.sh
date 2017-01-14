@@ -182,6 +182,7 @@ TIMESTAMP=$5
        			mv -n "${DEST}"/* "$MEDIA_DIR/$LABEL/Featurettes/" >> "$LOG"
 			
 			# Move Largest file to main folder for Plex/Emby/Kodi to detect main movie
+			# shellcheck disable=SC2012
 			ls -S "$MEDIA_DIR/$LABEL/Featurettes/" | head -1 | xargs -I '{}' mv "$MEDIA_DIR/$LABEL/Featurettes/"{} "$MEDIA_DIR/$LABEL/$LABEL.mkv" >> "$LOG"
 			
 		else
@@ -197,6 +198,7 @@ TIMESTAMP=$5
        			mv -n "${DEST}"/* "$MEDIA_DIR/$LABEL/extras/" >> "$LOG"
 			
 			# Move Largest file to main folder for Plex/Emby/Kodi to detect main movie
+			# shellcheck disable=SC2012
 			ls -S "$MEDIA_DIR/$LABEL/extras/" | head -1 | xargs -I '{}' mv "$MEDIA_DIR/$LABEL/extras/"{} "$MEDIA_DIR/$LABEL/$LABEL.mkv" >> "$LOG"
 			
 			if [ "$EMBY_REFRESH" = true ]; then
