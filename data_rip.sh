@@ -21,9 +21,7 @@ source "$ARM_CONFIG"
 	if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
 			
 	chmod -R "$CHMOD_VALUE" "$DEST"
-			
-	else
-	
+		
 	fi
 
 } >> "$LOG"
