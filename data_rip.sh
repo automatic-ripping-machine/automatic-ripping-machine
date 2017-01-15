@@ -7,8 +7,6 @@ source "$ARM_CONFIG"
 
 {
 
-
-
         TIMESTAMP=$(date '+%Y%m%d_%H%M%S');
         DEST="/mnt/media/ARM/Media/Data/${TIMESTAMP}_${ID_FS_LABEL}"
         mkdir -p "$DEST"
@@ -20,6 +18,12 @@ source "$ARM_CONFIG"
 
 	eject
 	
-	chmod 777 -R "$DEST"
+	if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
+			
+	chmod -R "$CHMOD_VALUE" "$DEST"
+			
+	else
+	
+	fi
 
 } >> "$LOG"
