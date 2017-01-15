@@ -43,9 +43,11 @@ LOGLIFE=1
 ##  File Permissions  ##
 ########################
 
-# Enabling this seting will set the file Permissions to "777", which is read/write/execute for all users
+# Enabling this seting will allow you to adjust the default file permissions of the outputted files
+# The default value is set to 777 for read/write/execute for all users, but can be changed below using the "CHMOD_VALUE" setting
 # This setting is helpfuly when storing the data locally on the system
 SET_MEDIA_PERMISSIONS=false
+CHMOD_VALUE=777
 
 ########################
 ## MakeMKV Parameters ##
