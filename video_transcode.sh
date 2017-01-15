@@ -117,7 +117,13 @@ TIMESTAMP=$5
 			echo "No file found.  Moving \"$DEST/$LABEL.$DEST_EXT to $MEDIA_DIR/$LABEL.$DEST_EXT\"" >> "$LOG"
 			mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL.$DEST_EXT"
 			
-			chmod 777 "$MEDIA_DIR" -R
+			if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
+			
+			chmod -R "$CHMOD_VALUE" "$MEDIA_DIR"
+			
+			else
+			
+			fi
 
 			if [ "$EMBY_REFRESH" = true ]; then
 				# signal emby to scan library
@@ -137,7 +143,13 @@ TIMESTAMP=$5
 			echo "No file found.  Moving \"$DEST/$LABEL.$DEST_EXT to $MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT\"" >> "$LOG"
 			mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT"
 			
-			chmod 777 "$MEDIA_DIR/$LABEL" -R
+			if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
+			
+			chmod -R "$CHMOD_VALUE" "$MEDIA_DIR/$LABEL"
+			
+			else
+			
+			fi
 
 			if [ "$EMBY_REFRESH" = true ]; then
 				# signal emby to scan library
@@ -156,7 +168,13 @@ TIMESTAMP=$5
         echo "Moving multiple files to emby movie folder" >> "$LOG"
 		mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL.$DEST_EXT"
 		
-		chmod 777 "$MEDIA_DIR" -R
+		if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
+			
+		chmod -R "$CHMOD_VALUE" "$MEDIA_DIR"
+			
+		else
+			
+		fi
 		
 		if [ "$EMBY_REFRESH" = true ]; then
 			# signal emby to scan library
@@ -173,7 +191,15 @@ TIMESTAMP=$5
 		if [ ! -f "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT" ]; then
 			echo "No file found.  Moving \"$DEST/$LABEL.$DEST_EXT to $MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT\"" >> "$LOG"
 			mv -n "$DEST/$LABEL.$DEST_EXT" "$MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT" >> "$LOG"
-			chmod 777 "$MEDIA_DIR/$LABEL" -R
+			
+			if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
+			
+			chmod -R "$CHMOD_VALUE" "$MEDIA_DIR/$LABEL"
+			
+			else
+			
+			fi
+			
 		fi
 
 		#now move "extras"
@@ -193,7 +219,13 @@ TIMESTAMP=$5
 			# shellcheck disable=SC2012
 			ls -S "$MEDIA_DIR/$LABEL/Featurettes/" | head -1 | xargs -I '{}' mv "$MEDIA_DIR/$LABEL/Featurettes/"{} "$MEDIA_DIR/$LABEL/$LABEL.mkv" >> "$LOG"
 			
-			chmod 777 "$MEDIA_DIR/$LABEL" -R
+			if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
+			
+			chmod -R "$CHMOD_VALUE" "$MEDIA_DIR/$LABEL"
+			
+			else
+			
+			fi
 		else
 				
 			# shellcheck disable=SC2129,SC2016
@@ -210,7 +242,13 @@ TIMESTAMP=$5
 			# shellcheck disable=SC2012
 			ls -S "$MEDIA_DIR/$LABEL/extras/" | head -1 | xargs -I '{}' mv "$MEDIA_DIR/$LABEL/extras/"{} "$MEDIA_DIR/$LABEL/$LABEL.mkv" >> "$LOG"
 			
-			chmod 777 "$MEDIA_DIR/$LABEL" -R
+			if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
+			
+			chmod -R "$CHMOD_VALUE" "$MEDIA_DIR/$LABEL"
+			
+			else
+			
+			fi
 			
 			if [ "$EMBY_REFRESH" = true ]; then
 				# signal emby to scan library
