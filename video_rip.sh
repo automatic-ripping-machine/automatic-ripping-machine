@@ -23,6 +23,7 @@ VIDEO_TYPE=$3
 	if [ "$RIPMETHOD" = "backup" ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then
 		echo "Using backup method of ripping." >> "$LOG"
 		DISC="${DEVNAME: -1}"
+		# shellcheck disable=SC2086
 		makemkvcon backup --decrypt $MKV_ARGS -r disc:"$DISC" "$DEST"/
 		eject "$DEVNAME"
 	elif [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ] && [ -z "$ID_CDROM_MEDIA_BD" ]; then
@@ -32,6 +33,7 @@ VIDEO_TYPE=$3
 	echo "DEST is ${DEST}"
 	else
 		echo "Using mkv method of ripping." >> "$LOG"
+		# shellcheck disable=SC2086
 		makemkvcon mkv $MKV_ARGS dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r
 		eject "$DEVNAME"
 	fi
