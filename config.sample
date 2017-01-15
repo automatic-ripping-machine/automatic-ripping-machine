@@ -30,7 +30,7 @@ RAWPATH="/mnt/media/ARM/raw/"
 
 # Path to final media directory
 # Destination for final file.  Only used for movies that are positively identified
-MEDIA_DIR="/mnt/media/ARM/emby/movies/"
+MEDIA_DIR="/mnt/media/ARM/Media/Movies/"
 
 # Path to directory to hold log files
 # Make sure to include trailing /
@@ -78,6 +78,13 @@ MAINFEATURE=false
 
 # Additional HandBrake arguments.  
 HB_ARGS="--subtitle scan -F"
+
+#####################
+## Enable Plex Use ##
+#####################
+
+# Set this setting to true, to enable Plex Extras support
+PLEX_SUPPORT=false
 
 #####################
 ## Emby Parameters ##

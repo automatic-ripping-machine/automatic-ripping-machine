@@ -173,16 +173,37 @@ TIMESTAMP=$5
 		fi
 
 		#now move "extras"
-		# shellcheck disable=SC2129,SC2016
-		mkdir -v "$MEDIA_DIR/$LABEL/extras" >> "$LOG"
-		# shellcheck disable=SC2086
-        echo "Sending command: mv -n "\"$DEST/$LABEL/*\"" "\"$MEDIA_DIR/$LABEL/extras/\""" >> "$LOG"
-        mv -n "${DEST}"/* "$MEDIA_DIR/$LABEL/extras/" >> "$LOG"
-		if [ "$EMBY_REFRESH" = true ]; then
-			# signal emby to scan library
-			embyrefresh
+		if [ "$PLEX_SUPPORT" = true ]; then
+		
+			# shellcheck disable=SC2129,SC2016
+			mkdir -v "$MEDIA_DIR/$LABEL/Featurettes" >> "$LOG"
+			
+			# Create Emby ignore file for "extras" Folder
+			touch "$MEDIA_DIR/$LABEL/Featurettes/.ignore"
+			
+			# shellcheck disable=SC2086
+       			echo "Sending command: mv -n "\"$DEST/$LABEL/*\"" "\"$MEDIA_DIR/$LABEL/Featurettes/\""" >> "$LOG"
+       			mv -n "${DEST}"/* "$MEDIA_DIR/$LABEL/Featurettes/" >> "$LOG"
+				
 		else
-			echo "Emby Refresh False.  Skipping library scan" >> "$LOG"
+				
+			# shellcheck disable=SC2129,SC2016
+			mkdir -v "$MEDIA_DIR/$LABEL/extras" >> "$LOG"
+				
+			# Create Plex ignore file for "extras" Folder
+			touch "$MEDIA_DIR/$LABEL/extras/.plexignore"
+			
+			# shellcheck disable=SC2086
+      			echo "Sending command: mv -n "\"$DEST/$LABEL/*\"" "\"$MEDIA_DIR/$LABEL/extras/\""" >> "$LOG"
+       			mv -n "${DEST}"/* "$MEDIA_DIR/$LABEL/extras/" >> "$LOG"
+			
+			if [ "$EMBY_REFRESH" = true ]; then
+				# signal emby to scan library
+					embyrefresh
+			else
+					echo "Emby Refresh False.  Skipping library scan" >> "$LOG"
+			fi
+				
 		fi
 		rmdir "$DEST"
 	fi
