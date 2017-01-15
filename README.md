@@ -34,20 +34,23 @@ See: https://b3n.org/automatic-ripping-machine
 
 ## Install
 
+    sudo apt-get install git
+    sudo apt-get install regionset
+    sudo regionset /dev/sr0
+    sudo add-apt-repository ppa:heyarje/makemkv-beta
+    sudo add-apt-repository ppa:stebbins/handbrake-releases
+    sudo add-apt-repository ppa:mc3man/xerus-media
+    sudo apt update
+    sudo apt install makemkv-bin makemkv-oss
+    sudo apt install handbrake-cli libavcodec-extra
+    sudo apt install abcde flac imagemagick glyrc cdparanoia
+    sudo apt install at
+    sudo apt install python3 python3-pip
+    sudo apt-get install libdvd-pkg
+    sudo dpkg-reconfigure libdvd-pkg
     sudo su
-    add-apt-repository ppa:heyarje/makemkv-beta
-    add-apt-repository ppa:stebbins/handbrake-releases
-    add-apt-repository ppa:mc3man/xerus-media
-    apt update
-    apt install makemkv-bin makemkv-oss
-    apt install handbrake-cli libavcodec-extra
-    apt install abcde flac imagemagick glyrc cdparanoia
-    apt install at
-    apt install python3 python3-pip
-    apt-get install libdvd-pkg
-    dpkg-reconfigure libdvd-pkg
     cd /opt
-    git clone https://github.com/ahnooie/automatic-ripping-machine.git arm
+    git clone https://github.com/RandomNinjaAtk/automatic-ripping-machine.git arm
     cd arm
     pip3 install -r requirements.txt
     ln -s /opt/arm/51-automedia.rules /lib/udev/rules.d/

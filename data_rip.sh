@@ -7,11 +7,9 @@ source "$ARM_CONFIG"
 
 {
 
-
-
         TIMESTAMP=$(date '+%Y%m%d_%H%M%S');
-        DEST="/mnt/media/ARM/${TIMESTAMP}_${ID_FS_LABEL}"
-        mkdir "$DEST"
+        DEST="/mnt/media/ARM/Media/Data/${TIMESTAMP}_${ID_FS_LABEL}"
+        mkdir -p "$DEST"
 	FILENAME=${ID_FS_LABEL}_disc.iso
 
 
@@ -19,6 +17,11 @@ source "$ARM_CONFIG"
 	cat "$DEVNAME" > "$DEST/$FILENAME"
 
 	eject
-
+	
+	if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
+			
+	chmod -R "$CHMOD_VALUE" "$DEST"
+		
+	fi
 
 } >> "$LOG"

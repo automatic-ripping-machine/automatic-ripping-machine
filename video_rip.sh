@@ -17,14 +17,14 @@ VIDEO_TYPE=$3
 	DEST="${RAWPATH}/${VIDEO_TITLE}_${TIMESTAMP}"
 	RIPSTART=$(date +%s);
     
-	mkdir "$DEST"
+	mkdir -p "$DEST"
 
 	#echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP >> $LOG
 	if [ "$RIPMETHOD" = "backup" ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then
 		echo "Using backup method of ripping." >> "$LOG"
 		DISC="${DEVNAME: -1}"
 		echo "Sending command: makemkvcon backup --decrypt -r disc:$DISC $DEST"
-		makemkvcon backup --decrypt -r disc:"$DISC" "$DEST"/
+		makemkvcon "$MKV_ARGS" backup --decrypt -r disc:"$DISC" "$DEST"/
 		eject "$DEVNAME"
 	elif [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ] && [ -z "$ID_CDROM_MEDIA_BD" ]; then
 		echo "Media is DVD and Main Feature parameter in config file is true.  Bypassing MakeMKV." >> "$LOG"
@@ -33,7 +33,7 @@ VIDEO_TYPE=$3
 	echo "DEST is ${DEST}"
 	else
 		echo "Using mkv method of ripping." >> "$LOG"
-		makemkvcon mkv dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r
+		makemkvcon "$MKV_ARGS" mkv dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r
 		eject "$DEVNAME"
 	fi
 
