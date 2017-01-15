@@ -34,9 +34,12 @@ See: https://b3n.org/automatic-ripping-machine
 
 ## Install
 
+If you have a  new DVD drive that you haven't used before, some require setting the region before they can play anything.  Be aware most DVD players only let you change the region a handful (4 or 5?) of times then lockout any further changes.  If your region is already set or you have a region free DVD drive you can skip this step.
+
+       sudo apt-get install regionset
+       sudo regionset /dev/sr0
+
     sudo apt-get install git
-    sudo apt-get install regionset
-    sudo regionset /dev/sr0
     sudo add-apt-repository ppa:heyarje/makemkv-beta
     sudo add-apt-repository ppa:stebbins/handbrake-releases
     sudo add-apt-repository ppa:mc3man/xerus-media
@@ -50,7 +53,7 @@ See: https://b3n.org/automatic-ripping-machine
     sudo dpkg-reconfigure libdvd-pkg
     sudo su
     cd /opt
-    git clone https://github.com/RandomNinjaAtk/automatic-ripping-machine.git arm
+    git clone https://github.com/ahnooie/automatic-ripping-machine.git arm
     cd arm
     pip3 install -r requirements.txt
     ln -s /opt/arm/51-automedia.rules /lib/udev/rules.d/
