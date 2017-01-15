@@ -167,9 +167,7 @@ TIMESTAMP=$5
 		if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
 			
 		chmod -R "$CHMOD_VALUE" "$MEDIA_DIR"
-			
-		else
-			
+					
 		fi
 		
 		if [ "$EMBY_REFRESH" = true ]; then
