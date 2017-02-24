@@ -16,7 +16,7 @@ source "$ARM_CONFIG"
 	#dd if=/dev/sr0 of=$DEST/$FILENAME 
 	cat "$DEVNAME" > "$DEST/$FILENAME"
 
-	eject
+	eject "$DEVNAME"
 	
 	if [ "$SET_MEDIA_PERMISSIONS" = true ]; then
 			
