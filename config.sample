@@ -153,6 +153,11 @@ PB_KEY=""
 # IFTTT Event Name
 IFTTT_EVENT="arm_event"
 
+# Pushover API User and Application Key
+# Leave User key empty or comment out to disable Pushover notifications
+PO_USER_KEY=""
+PO_APP_KEY=""
+
 # Determine logfile name
 # use the label of the DVD/CD or else use empty.log
 # this is required for udev events where there is no media available
