@@ -13,6 +13,8 @@ mkdir -p "$LOGPATH"
 
 #shellcheck disable=SC2094
 {
+echo "####################################################################" >> "$LOG"
+echo "Starting rip at $(date)" >> "$LOG"
 # echo all config parameters to logfile
 # excludes sensative parameters
 # shellcheck disable=SC2129
@@ -113,13 +115,20 @@ elif (("$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" > 0 )); then
 elif [ "$ID_FS_TYPE" == "iso9660" ]; then
 	echo "identified data" >> "$LOG"
 	/opt/arm/data_rip.sh "$LOG"
-	eject "$DEVNAME"
+	echo eject "$DEVNAME"
 else
-	echo "unable to identify"
-	echo "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" >> "$LOG"
-	echo "$ID_FS_TYPE" >> "$LOG"
-	eject "$DEVNAME"
+	echo "unable to identify" >> "$LOG"
+	echo "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO: $ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" >> "$LOG"
+	echo "ID_FS_TYPE: $ID_FS_TYPE" >> "$LOG"
+	DVDNAME=$(blkid -o value -s LABEL ${DEVNAME})
+	
+        /opt/arm/video_rip.sh "Unidentified_${DVDNAME}" "true" "movie" "Unidentified"
+	echo eject "$DEVNAME"
 fi
+
+
+echo "Finishing rip at $(date)" >> "$LOG"
+echo "*************************************************" >> "$LOG"
 
 
 } >> "$LOG"
