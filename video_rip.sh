@@ -36,13 +36,15 @@ VIDEO_TYPE=$3
 	else
 		echo "Using mkv method of ripping." >> "$LOG"
 		# shellcheck disable=SC2086
-		MAKIN_MOVIE=$(echo makemkvcon mkv $MKV_ARGS dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r)
-		echo ${MAKIN_MOVIE} >> "$LOG"
+		MAKIN_MOVIE=$(echo makemkvcon mkv $MKV_ARGS dev:"$DEVNAME" all \"$DEST\" --minlength="$MINLENGTH" -r)
+		echo "MAKIN_MOVIE" ${MAKIN_MOVIE} >> "$LOG"
 		echo "${LOG} MAKING_MOVIE: ${MAKIN_MOVIE}" | ts >> "$INFO_LOG"
 
-		$(${MAKIN_MOVIE})
+		makemkvcon mkv $MKV_ARGS dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r >> "${LOG}"
 		echo eject "$DEVNAME"
 	fi
+
+	#blkid | ts >> "$INFO_LOG"
 
 	RIPEND=$(date +%s);
 	RIPSEC=$((RIPEND-RIPSTART));

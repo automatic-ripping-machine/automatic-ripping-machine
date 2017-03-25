@@ -30,6 +30,7 @@ echo "*** Start config parameters ****" >> "$LOG"
 cat "$ARM_CONFIG"|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d' >> "$LOG"
 echo "*** End config parameters ****" >> "$LOG"
 
+
 echo "Starting Identify Script..." >> "$LOG"
 
 VIDEO_TITLE=""
@@ -47,6 +48,8 @@ echo "PRINT BLOCK ID@@@@@@@@@@@@@@@@" >> "$LOG"
 echo "Block id: $(blkid -o udev -p /dev/sr0)" >>"$LOG"
 echo "Block id2: $(blkid -o udev -p ${DEVNAME})" >>"$LOG"
 # Output UDEV info
+makemkvcon info dev:"${DEVNAME}" -r >> "$LOG" 
+
 udevadm info -q env -n "$DEVNAME" >> "$LOG"
 
 $(blkid -o udev -p ${DEVNAME})
