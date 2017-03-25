@@ -1,4 +1,5 @@
 #!/bin/bash
+sleep 5
 
 export ARM_CONFIG=$1
 
@@ -15,6 +16,10 @@ mkdir -p "$LOGPATH"
 {
 echo "####################################################################" >> "$LOG"
 echo "Starting rip at $(date)" >> "$LOG"
+
+# Print out the environment
+set >> "$LOG"
+
 # echo all config parameters to logfile
 # excludes sensative parameters
 # shellcheck disable=SC2129
@@ -36,10 +41,18 @@ find "$LOGPATH" -mtime +"$LOGLIFE" -type f -delete
 
 # Set Home to home folder of user that is setup to run MakeMKV
 export HOME="/root/"
-
+echo "PRINT BLOCK ID@@@@@@@@@@@@@@@@" >> "$LOG"
+echo "Block id: $(blkid -o udev -p /dev/sr0)" >>"$LOG"
+echo "Block id2: $(blkid -o udev -p ${DEVNAME})" >>"$LOG"
 # Output UDEV info
 udevadm info -q env -n "$DEVNAME" >> "$LOG"
 
+$(blkid -o udev -p ${DEVNAME})
+
+eval "$(blkid -o udev -p /dev/sr0 | sed 's/^/export /g')"
+
+echo "Environment!" >> "${LOG}"
+set >> "${LOG}"
 if [ "$ID_FS_TYPE" == "udf" ]; then
 	echo "identified udf" >> "$LOG"
 	echo "found ${ID_FS_LABEL} on ${DEVNAME}" >> "$LOG"
@@ -120,9 +133,16 @@ else
 	echo "unable to identify" >> "$LOG"
 	echo "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO: $ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" >> "$LOG"
 	echo "ID_FS_TYPE: $ID_FS_TYPE" >> "$LOG"
-	DVDNAME=$(blkid -o value -s LABEL ${DEVNAME})
-	
-        /opt/arm/video_rip.sh "Unidentified_${DVDNAME}" "true" "movie" "Unidentified"
+echo "Whoiam $(whoami)" >> "$LOG"
+	DVDNAME=$(blkid -o value -s LABEL "${DEVNAME}")
+	DVDNAME2=$(blkid -o value -s LABEL /dev/sr0)
+
+	echo "DVDNAME: $DVDNAME" >> "$LOG"
+	echo "DEVNAME: $DEVNAME" >> "$LOG"
+	echo "DVDNAME2: $DVDNAME2" >> "$LOG"
+
+	/opt/arm/video_rip.sh "Unidentified_${DVDNAME}" "true" "movie" "Unknown"
+
 	echo eject "$DEVNAME"
 fi
 
