@@ -113,6 +113,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 
 			umount "/mnt/$DEVNAME"
 			/opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
+			eject "$DEVNAME"
 		else
 			umount "/mnt/$DEVNAME"
 			echo "identified udf as data" >> "$LOG"
@@ -133,12 +134,12 @@ elif (("$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" > 0 )); then
 elif [ "$ID_FS_TYPE" == "iso9660" ]; then
 	echo "identified data" >> "$LOG"
 	/opt/arm/data_rip.sh "$LOG"
-	echo eject "$DEVNAME"
+	eject "$DEVNAME"
 else
 	echo "unable to identify" >> "$LOG"
 	echo "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO: $ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" >> "$LOG"
 	echo "ID_FS_TYPE: $ID_FS_TYPE" >> "$LOG"
-echo "Whoiam $(whoami)" >> "$LOG"
+	echo "Whoiam $(whoami)" >> "$LOG"
 	DVDNAME=$(blkid -o value -s LABEL "${DEVNAME}")
 	DVDNAME2=$(blkid -o value -s LABEL /dev/sr0)
 
@@ -147,7 +148,7 @@ echo "Whoiam $(whoami)" >> "$LOG"
 	echo "DVDNAME2: $DVDNAME2" >> "$LOG"
         echo "${LOG} Unidentified Rip" | ts >> "$INFO_LOG"
 
-	/opt/arm/video_rip.sh "Unidentified_${DVDNAME}" "true" "movie" "Unknown"
+#	/opt/arm/video_rip.sh "Unidentified_${DVDNAME}" "true" "movie" "Unknown"
 
 	echo eject "$DEVNAME"
 fi

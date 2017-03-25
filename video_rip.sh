@@ -44,13 +44,9 @@ VIDEO_TYPE=$3
 		echo eject "$DEVNAME"
 	fi
 
-	#blkid | ts >> "$INFO_LOG"
-
 	RIPEND=$(date +%s);
 	RIPSEC=$((RIPEND-RIPSTART));
 	RIPTIME="$((RIPSEC / 3600)) hours, $(((RIPSEC / 60) % 60)) minutes and $((RIPSEC % 60)) seconds."
-
-	#eject $DEVNAME
 
 	#echo /opt/arm/notify.sh "\"Ripped: ${ID_FS_LABEL} completed from ${DEVNAME} in ${RIPTIME}\"" |at now
 
