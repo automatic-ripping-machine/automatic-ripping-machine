@@ -12,7 +12,7 @@ source "$ARM_CONFIG"
 # Create log dir if needed
 mkdir -p "$LOGPATH"
 
-echo "BEGIN identify.sh" | ts "${LOG}" >> "$INFO_LOG"
+echo "${LOG} BEGIN identify.sh" | ts >> "$INFO_LOG"
 
 #shellcheck disable=SC2094
 {
@@ -142,7 +142,7 @@ echo "Whoiam $(whoami)" >> "$LOG"
 	echo "DVDNAME: $DVDNAME" >> "$LOG"
 	echo "DEVNAME: $DEVNAME" >> "$LOG"
 	echo "DVDNAME2: $DVDNAME2" >> "$LOG"
-        echo "Unidentified Rip" | ts "${LOG}" >> "$INFO_LOG"
+        echo "${LOG} Unidentified Rip" | ts >> "$INFO_LOG"
 
 	/opt/arm/video_rip.sh "Unidentified_${DVDNAME}" "true" "movie" "Unknown"
 
@@ -153,7 +153,7 @@ fi
 echo "Finishing rip at $(date)" >> "$LOG"
 echo "*************************************************" >> "$LOG"
 
-echo "END identify.sh" | ts "${LOG}" >> "$INFO_LOG"
+echo "${LOG} END identify.sh" | ts >> "$INFO_LOG"
 
 
 } >> "$LOG"
