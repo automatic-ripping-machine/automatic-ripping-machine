@@ -5,6 +5,8 @@
 # shellcheck disable=SC1091
 source "$ARM_CONFIG"
 
+echo "BEGIN video_rip" | ts "${LOG}" >> "$INFO_LOG"
+
 VIDEO_TITLE=$1
 HAS_NICE_TITLE=$2
 VIDEO_TYPE=$3
@@ -34,7 +36,11 @@ VIDEO_TYPE=$3
 	else
 		echo "Using mkv method of ripping." >> "$LOG"
 		# shellcheck disable=SC2086
-		makemkvcon mkv $MKV_ARGS dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r
+		MAKIN_MOVIE=makemkvcon mkv $MKV_ARGS dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r
+		echo ${MAKIN_MOVIE} >> "$LOG"
+		echo "${MAKIN_MOVIE}" | ts "${LOG}" >> "$INFO_LOG"
+
+		$(MAKIN_MOVIE)
 		echo eject "$DEVNAME"
 	fi
 
@@ -53,6 +59,7 @@ VIDEO_TYPE=$3
 
 	echo "${ID_FS_LABEL} sent to transcoding queue..." >> "$LOG"
 
+        echo "END video_rip" | ts "${LOG}" >> "$INFO_LOG"
 
 
 } >> "$LOG"
