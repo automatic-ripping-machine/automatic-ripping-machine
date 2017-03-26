@@ -100,8 +100,15 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			echo "video type is ${VIDEO_TYPE}"
 
 			umount "/mnt/$DEVNAME"
-			/opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
-			eject "$DEVNAME"
+			LAST_VIDEO_TITLE=$(cat /opt/arm/.last_video_title)
+			if [ "$LAST_VIDEO_TITLE" != "$VIDEO_TITLE" ]; then
+			    /opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
+			    eject "$DEVNAME"
+			else
+			    echo "Skipping duplicate $VIDEO_TITLE" >> "$LOG"
+			fi
+			
+			echo "$VIDEO_TITLE" > /opt/arm/.last_video_title
 		else
 			umount "/mnt/$DEVNAME"
 			echo "identified udf as data" >> "$LOG"
