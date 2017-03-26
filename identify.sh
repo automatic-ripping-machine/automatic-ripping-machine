@@ -36,28 +36,16 @@ echo "Starting Identify Script..." >> "$LOG"
 VIDEO_TITLE=""
 HAS_NICE_TITLE=""
 
-
-#Clean up old log files
-FILESFOUND=( $(find "$LOGPATH" -mtime +"$LOGLIFE" -type f))
-echo "Deleting ${#FILESFOUND[@]} old log files: ${FILESFOUND[*]}" >> "$LOG"
-find "$LOGPATH" -mtime +"$LOGLIFE" -type f -delete
-
 # Set Home to home folder of user that is setup to run MakeMKV
 export HOME="/root/"
-echo "PRINT BLOCK ID@@@@@@@@@@@@@@@@" >> "$LOG"
-echo "Block id: $(blkid -o udev -p /dev/sr0)" >>"$LOG"
-echo "Block id2: $(blkid -o udev -p ${DEVNAME})" >>"$LOG"
+
 # Output UDEV info
 makemkvcon info dev:"${DEVNAME}" -r >> "$LOG" 
 
 udevadm info -q env -n "$DEVNAME" >> "$LOG"
 
-$(blkid -o udev -p ${DEVNAME})
-
 eval "$(blkid -o udev -p /dev/sr0 | sed 's/^/export /g')"
 
-echo "Environment!" >> "${LOG}"
-set >> "${LOG}"
 if [ "$ID_FS_TYPE" == "udf" ]; then
 	echo "identified udf" >> "$LOG"
 	echo "found ${ID_FS_LABEL} on ${DEVNAME}" >> "$LOG"
@@ -139,16 +127,6 @@ else
 	echo "unable to identify" >> "$LOG"
 	echo "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO: $ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" >> "$LOG"
 	echo "ID_FS_TYPE: $ID_FS_TYPE" >> "$LOG"
-	echo "Whoiam $(whoami)" >> "$LOG"
-	DVDNAME=$(blkid -o value -s LABEL "${DEVNAME}")
-	DVDNAME2=$(blkid -o value -s LABEL /dev/sr0)
-
-	echo "DVDNAME: $DVDNAME" >> "$LOG"
-	echo "DEVNAME: $DEVNAME" >> "$LOG"
-	echo "DVDNAME2: $DVDNAME2" >> "$LOG"
-        echo "${LOG} Unidentified Rip" | ts >> "$INFO_LOG"
-
-#	/opt/arm/video_rip.sh "Unidentified_${DVDNAME}" "true" "movie" "Unknown"
 
 	echo eject "$DEVNAME"
 fi

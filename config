@@ -164,9 +164,9 @@ PO_APP_KEY=""
 # such as ejecting the drive
 if [ -n "${CONFIG_RESET}" ]; then
    if [ -z "$ID_FS_LABEL" ]; then
-      export LOGFILE="$(date --iso-8601=seconds)_empty_$(uuid).log"
+      export LOGFILE="${LOG_PREFIX}$(date --iso-8601=seconds)_empty_$(uuid).log"
    else
-      export LOGFILE="$(date --iso-8601=seconds)_${ID_FS_LABEL}_$(uuid).log"
+      export LOGFILE="${LOG_PREFIX}$(date --iso-8601=seconds)_${ID_FS_LABEL}_$(uuid).log"
    fi
    CONFIG_RESET=""
 fi
