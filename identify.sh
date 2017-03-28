@@ -44,7 +44,11 @@ makemkvcon info dev:"${DEVNAME}" -r >> "$LOG"
 
 udevadm info -q env -n "$DEVNAME" >> "$LOG"
 
-eval "$(blkid -o udev -p /dev/sr0 | sed 's/^/export /g')"
+if [ "$ID_CDROM_DVD" != "1" ]; then
+    echo "Disc not inserted" >> "$LOG"
+else
+    eval "$(blkid -o udev -p /dev/sr0 | sed 's/^/export /g')"
+fi
 
 if [ "$ID_FS_TYPE" == "udf" ]; then
 	echo "identified udf" >> "$LOG"
