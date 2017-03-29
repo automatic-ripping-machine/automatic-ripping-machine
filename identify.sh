@@ -1,6 +1,7 @@
 #!/bin/bash
 
-CONFIG_RESET="true"
+# This is the primary entry point, so reset the logs
+LOG_RESET="true"
 export ARM_CONFIG=$1
 
 echo "$ARM_CONFIG"
@@ -16,9 +17,6 @@ echo "${LOG} BEGIN identify.sh" | ts >> "$INFO_LOG"
 
 #shellcheck disable=SC2094
 {
-echo "####################################################################" >> "$LOG"
-echo "Starting rip at $(date)" >> "$LOG"
-
 # Print out the environment
 set >> "$LOG"
 
@@ -30,7 +28,6 @@ echo "*** Start config parameters ****" >> "$LOG"
 cat "$ARM_CONFIG"|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d' >> "$LOG"
 echo "*** End config parameters ****" >> "$LOG"
 
-
 echo "Starting Identify Script..." >> "$LOG"
 
 VIDEO_TITLE=""
@@ -39,14 +36,19 @@ HAS_NICE_TITLE=""
 # Set Home to home folder of user that is setup to run MakeMKV
 export HOME="/root/"
 
-# Output UDEV info
-makemkvcon info dev:"${DEVNAME}" -r >> "$LOG" 
+# Makemkvcon will determine the name of the disk (ID_FS_LABEL et al). FWiW, this takes a while (30-60s) but
+# ID_FS_LABEL is populated almost immediately if checked from another proecess, the there is room for improvement here.
+makemkvcon info dev:"${DEVNAME}" -r >> "$LOG"
 
+# Output UDEV info
 udevadm info -q env -n "$DEVNAME" >> "$LOG"
 
+# Make sure there is a disk in the drive. If there isn't, do nothing. Note that calling blkid when the disk is ejected
+# can cause the drive to uneject
 if [ "$ID_CDROM_DVD" != "1" ]; then
     echo "Disc not inserted" >> "$LOG"
 else
+    # Run blkid to get the ID_FS_TYPE etc information
     eval "$(blkid -o udev -p /dev/sr0 | sed 's/^/export /g')"
 fi
 
@@ -104,14 +106,19 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			echo "video type is ${VIDEO_TYPE}"
 
 			umount "/mnt/$DEVNAME"
+
+			# Check to see if this file was already ripped. If it was, don't do it again. Fixes accidental infinite
+			# ripping loops if a DVD gets reinserted
 			LAST_VIDEO_TITLE=$(cat /opt/arm/.last_video_title)
 			if [ "$LAST_VIDEO_TITLE" != "$VIDEO_TITLE" ]; then
+			    # This is uniqe, so rip then eject
 			    /opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
 			    eject "$DEVNAME"
 			else
+			    # If it's a duplicate, don't eject
 			    echo "Skipping duplicate $VIDEO_TITLE" >> "$LOG"
 			fi
-			
+			# Leave breadcrumb for the next run
 			echo "$VIDEO_TITLE" > /opt/arm/.last_video_title
 		else
 			umount "/mnt/$DEVNAME"
@@ -139,12 +146,9 @@ else
 	echo "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO: $ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" >> "$LOG"
 	echo "ID_FS_TYPE: $ID_FS_TYPE" >> "$LOG"
 
-	echo eject "$DEVNAME"
+    # Note: Don't eject if unable to identify. For DVDs, this runs multiple times
+	echo "would have ejected $DEVNAME"
 fi
-
-
-echo "Finishing rip at $(date)" >> "$LOG"
-echo "*************************************************" >> "$LOG"
 
 echo "${LOG} END identify.sh" | ts >> "$INFO_LOG"
 

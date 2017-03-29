@@ -18,7 +18,6 @@ VIDEO_TYPE=$3
 	TIMESTAMP=$(date '+%Y%m%d_%H%M%S');
 	DEST="${RAWPATH}/${VIDEO_TITLE}_${TIMESTAMP}"
 	RIPSTART=$(date +%s);
-	echo "\$DEST: ${DEST}" 
 	mkdir -p "$DEST"
 
 	#echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP >> $LOG
@@ -27,6 +26,7 @@ VIDEO_TYPE=$3
 		DISC="${DEVNAME: -1}"
 		# shellcheck disable=SC2086
 		makemkvcon backup --decrypt $MKV_ARGS -r disc:"$DISC" "$DEST"/
+		# Note: Don't eject here. the calling script should eject
 		echo eject "$DEVNAME"
 	elif [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ] && [ -z "$ID_CDROM_MEDIA_BD" ]; then
 		echo "Media is DVD and Main Feature parameter in config file is true.  Bypassing MakeMKV." >> "$LOG"
@@ -41,6 +41,7 @@ VIDEO_TYPE=$3
 		echo "${LOG} MAKING_MOVIE: ${MAKIN_MOVIE}" | ts >> "$INFO_LOG"
 
 		makemkvcon mkv $MKV_ARGS dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r >> "${LOG}"
+		# Note: Don't eject here. the calling script should eject
 		echo eject "$DEVNAME"
 	fi
 
@@ -57,7 +58,7 @@ VIDEO_TYPE=$3
 
 	echo "${ID_FS_LABEL} sent to transcoding queue..." >> "$LOG"
 
-        echo "${LOG} END video_rip" | ts >> "$INFO_LOG"
+    echo "${LOG} END video_rip" | ts >> "$INFO_LOG"
 
 
 } >> "$LOG"
