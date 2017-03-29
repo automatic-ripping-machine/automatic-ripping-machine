@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # This is the primary entry point, so reset the logs
+# shellcheck disable=SC2034
 LOG_RESET="true"
 export ARM_CONFIG=$1
 
@@ -122,29 +123,29 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			echo "$VIDEO_TITLE" > /opt/arm/.last_video_title
 		else
 			umount "/mnt/$DEVNAME"
-			echo "identified udf as data" >> "$LOG"
+			echo "identified udf as data" 
 			/opt/arm/data_rip.sh
 			eject "$DEVNAME"
 
 		fi
 	else
-		echo "ARM_CHECK_UDF is false, assuming udf is video" >> "$LOG"
+		echo "ARM_CHECK_UDF is false, assuming udf is video"
 		/opt/arm/video_rip.sh "$LOG"
 	fi	
 
 
 elif (("$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" > 0 )); then
-	echo "identified audio" >> "$LOG"
+	echo "identified audio"
 	abcde -d "$DEVNAME"
 
 elif [ "$ID_FS_TYPE" == "iso9660" ]; then
-	echo "identified data" >> "$LOG"
+	echo "identified data"
 	/opt/arm/data_rip.sh "$LOG"
 	eject "$DEVNAME"
 else
-	echo "unable to identify" >> "$LOG"
-	echo "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO: $ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" >> "$LOG"
-	echo "ID_FS_TYPE: $ID_FS_TYPE" >> "$LOG"
+	echo "unable to identify"
+	echo "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO: $ID_CDROM_MEDIA_TRACK_COUNT_AUDIO"
+	echo "ID_FS_TYPE: $ID_FS_TYPE"
 
     # Note: Don't eject if unable to identify. For DVDs, this runs multiple times
 	echo "would have ejected $DEVNAME"
