@@ -16,20 +16,21 @@ mkdir -p "$LOGPATH"
 
 echo "${LOG} BEGIN identify.sh" | ts >> "$INFO_LOG"
 
+# Start of "all stdout goes to logfile" scope
 #shellcheck disable=SC2094
 {
 # Print out the environment
-set >> "$LOG"
+set
 
 # echo all config parameters to logfile
 # excludes sensative parameters
 # shellcheck disable=SC2129
-echo "*** Start config parameters ****" >> "$LOG"
+echo "*** Start config parameters ****"
 # shellcheck disable=SC2002
-cat "$ARM_CONFIG"|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d' >> "$LOG"
-echo "*** End config parameters ****" >> "$LOG"
+cat "$ARM_CONFIG"|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d'
+echo "*** End config parameters ****"
 
-echo "Starting Identify Script..." >> "$LOG"
+echo "Starting Identify Script..."
 
 VIDEO_TITLE=""
 HAS_NICE_TITLE=""
@@ -39,30 +40,30 @@ export HOME="/root/"
 
 # Makemkvcon will determine the name of the disk (ID_FS_LABEL et al). FWiW, this takes a while (30-60s) but
 # ID_FS_LABEL is populated almost immediately if checked from another proecess, the there is room for improvement here.
-makemkvcon info dev:"${DEVNAME}" -r >> "$LOG"
+makemkvcon info dev:"${DEVNAME}" -r
 
 # Output UDEV info
-udevadm info -q env -n "$DEVNAME" >> "$LOG"
+udevadm info -q env -n "$DEVNAME"
 
 # Make sure there is a disk in the drive. If there isn't, do nothing. Note that calling blkid when the disk is ejected
 # can cause the drive to uneject
 if [ "$ID_CDROM_DVD" != "1" ]; then
-    echo "Disc not inserted" >> "$LOG"
+    echo "Disc not inserted"
 else
     # Run blkid to get the ID_FS_TYPE etc information
     eval "$(blkid -o udev -p /dev/sr0 | sed 's/^/export /g')"
 fi
 
 if [ "$ID_FS_TYPE" == "udf" ]; then
-	echo "identified udf" >> "$LOG"
-	echo "found ${ID_FS_LABEL} on ${DEVNAME}" >> "$LOG"
+	echo "identified udf"
+	echo "found ${ID_FS_LABEL} on ${DEVNAME}"
 
 	if [ "$ARM_CHECK_UDF" == true ]; then
 		# check to see if this is really a video
 		mkdir -p /mnt/"$DEVNAME"
 		mount "$DEVNAME" /mnt/"$DEVNAME"
 		if [[ -d /mnt/${DEVNAME}/VIDEO_TS || -d /mnt/${DEVNAME}/BDMV ]]; then
-			echo "identified udf as video" >> "$LOG"
+			echo "identified udf as video"
 
 			if [ "$GET_VIDEO_TITLE" == true ]; then
 
@@ -87,7 +88,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			if [ $HAS_NICE_TITLE == true ]; then
 				VTYPE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" 2>&1)
 
-				#handle year mismath if found
+				# Handle year mismatch if found
 				if [[ $VTYPE =~ .*#.* ]]; then
 					VIDEO_TYPE=$(echo "$VTYPE" | cut -f1 -d#)
 					NEW_YEAR=$(echo "$VTYPE" | cut -f2 -d#)
@@ -117,13 +118,13 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			    eject "$DEVNAME"
 			else
 			    # If it's a duplicate, don't eject
-			    echo "Skipping duplicate $VIDEO_TITLE" >> "$LOG"
+			    echo "Skipping duplicate $VIDEO_TITLE" 
 			fi
 			# Leave breadcrumb for the next run
 			echo "$VIDEO_TITLE" > /opt/arm/.last_video_title
 		else
 			umount "/mnt/$DEVNAME"
-			echo "identified udf as data" 
+			echo "identified udf as data"
 			/opt/arm/data_rip.sh
 			eject "$DEVNAME"
 
