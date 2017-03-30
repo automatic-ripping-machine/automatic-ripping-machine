@@ -40,7 +40,7 @@ VIDEO_TYPE=$3
 		echo "MAKIN_MOVIE ${MAKIN_MOVIE}" >> "$LOG"
 		echo "${LOG} MAKING_MOVIE: ${MAKIN_MOVIE}" | ts >> "$INFO_LOG"
 
-		makemkvcon mkv "$MKV_ARGS" dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r >> "${LOG}"
+		makemkvcon mkv $MKV_ARGS dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r >> "${LOG}"
 		# Note: Don't eject here. the calling script should eject
 		echo eject "$DEVNAME"
 	fi
