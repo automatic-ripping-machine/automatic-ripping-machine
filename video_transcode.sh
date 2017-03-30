@@ -3,7 +3,10 @@
 
 # shellcheck source=config
 # shellcheck disable=SC1091
+# shellcheck disable=SC2034
 LOG_PREFIX="Transcode_${2}"
+
+# shellcheck disable=SC1090
 source "$ARM_CONFIG"
 
 SRC=$1
