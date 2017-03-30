@@ -118,7 +118,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			    eject "$DEVNAME"
 			else
 			    # If it's a duplicate, don't eject
-			    echo "Skipping duplicate $VIDEO_TITLE" 
+			    echo "Skipping duplicate $VIDEO_TITLE"
 			fi
 			# Leave breadcrumb for the next run
 			echo "$VIDEO_TITLE" > /opt/arm/.last_video_title

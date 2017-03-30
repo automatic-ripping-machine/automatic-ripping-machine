@@ -36,11 +36,11 @@ VIDEO_TYPE=$3
 	else
 		echo "Using mkv method of ripping." >> "$LOG"
 		# shellcheck disable=SC2086
-		MAKIN_MOVIE=$(echo makemkvcon mkv $MKV_ARGS dev:"$DEVNAME" all \"$DEST\" --minlength="$MINLENGTH" -r)
-		echo "MAKIN_MOVIE" ${MAKIN_MOVIE} >> "$LOG"
+		MAKIN_MOVIE=makemkvcon mkv $MKV_ARGS dev:"$DEVNAME" all \"$DEST\" --minlength="$MINLENGTH" -r
+		echo "MAKIN_MOVIE ${MAKIN_MOVIE}" >> "$LOG"
 		echo "${LOG} MAKING_MOVIE: ${MAKIN_MOVIE}" | ts >> "$INFO_LOG"
 
-		makemkvcon mkv $MKV_ARGS dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r >> "${LOG}"
+		makemkvcon mkv "$MKV_ARGS" dev:"$DEVNAME" all "$DEST" --minlength="$MINLENGTH" -r >> "${LOG}"
 		# Note: Don't eject here. the calling script should eject
 		echo eject "$DEVNAME"
 	fi
