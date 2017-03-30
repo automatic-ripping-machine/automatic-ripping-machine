@@ -35,10 +35,7 @@ VIDEO_TYPE=$3
 	echo "DEST is ${DEST}"
 	else
 		echo "Using mkv method of ripping." >> "$LOG"
-		# shellcheck disable=SC2086
-		MAKIN_MOVIE=makemkvcon mkv $MKV_ARGS dev:"$DEVNAME" all \"$DEST\" --minlength="$MINLENGTH" -r
-		echo "MAKIN_MOVIE ${MAKIN_MOVIE}" >> "$LOG"
-		echo "${LOG} MAKING_MOVIE: ${MAKIN_MOVIE}" | ts >> "$INFO_LOG"
+		echo "${LOG} MAKING_MOVIE: ${DEST} @ ${DEVNAME}" | ts >> "$INFO_LOG"
 
         # Disable because MKV_ARGS may be multiple arguments
         # shellcheck disable=SC2086
