@@ -178,6 +178,7 @@ LOG=$LOGPATH$LOGFILE
 # The INFO_LOG gives high-level messages
 INFO_LOG=${LOGPATH}info.log
 
+# If arm_wrapper.sh is called directly from the command line, this will set it
 # Set the DEVNAME to a default if it's not set
 if [ -z "${DEVNAME}" ]; then
     DEVNAME="/dev/sr0"
