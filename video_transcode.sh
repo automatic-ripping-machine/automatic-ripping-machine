@@ -127,6 +127,12 @@ TIMESTAMP=$5
 							
 			fi
 
+			if [ "$SET_MEDIA_OWNER" = true ]; then
+			
+			chown -R "$CHOWN_USER":"$CHOWN_GROUP" "$MEDIA_DIR"
+							
+			fi
+
 			if [ "$EMBY_REFRESH" = true ]; then
 				# signal emby to scan library
 				embyrefresh
@@ -151,6 +157,12 @@ TIMESTAMP=$5
 						
 			fi
 
+			if [ "$SET_MEDIA_OWNER" = true ]; then
+			
+			chown -R "$CHOWN_USER":"$CHOWN_GROUP" "$MEDIA_DIR/$LABEL"
+							
+			fi
+
 			if [ "$EMBY_REFRESH" = true ]; then
 				# signal emby to scan library
 				embyrefresh
@@ -173,6 +185,12 @@ TIMESTAMP=$5
 		chmod -R "$CHMOD_VALUE" "$MEDIA_DIR"
 					
 		fi
+
+		if [ "$SET_MEDIA_OWNER" = true ]; then
+			
+			chown -R "$CHOWN_USER":"$CHOWN_GROUP" "$MEDIA_DIR"
+							
+			fi
 		
 		if [ "$EMBY_REFRESH" = true ]; then
 			# signal emby to scan library
@@ -194,6 +212,12 @@ TIMESTAMP=$5
 			
 			chmod -R "$CHMOD_VALUE" "$MEDIA_DIR/$LABEL"
 						
+			fi
+
+			if [ "$SET_MEDIA_OWNER" = true ]; then
+			
+			chown -R "$CHOWN_USER":"$CHOWN_GROUP" "$MEDIA_DIR/$LABEL"
+							
 			fi
 			
 		fi
@@ -220,6 +244,12 @@ TIMESTAMP=$5
 			chmod -R "$CHMOD_VALUE" "$MEDIA_DIR/$LABEL"
 						
 			fi
+
+			if [ "$SET_MEDIA_OWNER" = true ]; then
+			
+			chown -R "$CHOWN_USER":"$CHOWN_GROUP" "$MEDIA_DIR/$LABEL"
+							
+			fi
 		else
 				
 			# shellcheck disable=SC2129,SC2016
@@ -240,6 +270,12 @@ TIMESTAMP=$5
 			
 			chmod -R "$CHMOD_VALUE" "$MEDIA_DIR/$LABEL"
 						
+			fi
+
+			if [ "$SET_MEDIA_OWNER" = true ]; then
+			
+			chown -R "$CHOWN_USER":"$CHOWN_GROUP" "$MEDIA_DIR/$LABEL"
+							
 			fi
 			
 			if [ "$EMBY_REFRESH" = true ]; then

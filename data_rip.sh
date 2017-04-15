@@ -24,4 +24,10 @@ source "$ARM_CONFIG"
 		
 	fi
 
+	if [ "$SET_MEDIA_OWNER" = true ]; then
+			
+	chown -R "$CHOWN_USER":"$CHOWN_GROUP" "$DEST"
+		
+	fi
+
 } >> "$LOG"
