@@ -46,6 +46,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 		# check to see if this is really a video
 		mkdir -p /mnt/"$DEVNAME"
 		mount "$DEVNAME" /mnt/"$DEVNAME"
+		# shellcheck disable=SC2126
 		if [[ -d /mnt/${DEVNAME}/VIDEO_TS || -d /mnt/${DEVNAME}/BDMV || -d /mnt/${DEVNAME}/HVDVD_TS || $(ls -laR /mnt/${DEVNAME}/ 2>/dev/null |grep -P "HVDVD_TS" |wc -l) == 1 ]]; then
 			echo "identified udf as video" >> "$LOG"
 
