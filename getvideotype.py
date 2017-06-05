@@ -12,6 +12,7 @@ def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Get type of dvd--movie or tv series')
     parser.add_argument('-t', '--title', help='Title', required=True)
+    parser.add_argument('-k', '--key', help='API_Key', required=True)
 
     return parser.parse_args()
 
