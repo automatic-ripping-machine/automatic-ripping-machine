@@ -48,7 +48,7 @@ def getdvdtype():
 
         # first try submitting without the year
         dvd_type = callwebservice(dvd_title_clean, "")
-        # print (dvd_type)
+        print (dvd_type)
 
         if (dvd_type != "fail"):
             #that means the year is wrong. 
@@ -81,7 +81,7 @@ def cleanupstring(string):
 def callwebservice(dvd_title, year=""):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
-    # print (dvd_title)
+    print (dvd_title)
 # This is where we will start changes.
     try:
         # dvd_title_info_json = urllib.request.urlopen("http://www.omdbapi.com/?t={0}&y={1}&plot=short&r=json".format(dvd_title, year)).read()
