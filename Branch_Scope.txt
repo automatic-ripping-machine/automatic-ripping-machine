@@ -24,3 +24,6 @@ config.sample -- will likely need a new variable to support the eu's API key,
     keyed tools like pushbullet and (presumably) MakeMKV.
     
 getvideotype.py -- primary python script that gets the video type.
+
+identify.sh -- Primary script that calls video type. Altered to pass the API
+    key to getvideotype.py as part of the request
