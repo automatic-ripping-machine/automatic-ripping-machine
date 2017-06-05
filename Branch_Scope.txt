@@ -12,6 +12,11 @@ This branch will update the code making the queries to get movie by type, which
     is used by the ARM to determine whether a video disc is a "movie" or a
     "TV series," (or potentially any other type of video). 
     
+API Key for OMDBAPI.com (Not sure how private this should be)
+OMDb API: http://www.omdbapi.com/?i=tt3896198&apikey=38d39b96
+Poster API: http://img.omdbapi.com/?i=tt3896198&h=600&apikey=38d39b96
+KEY: 38d39b96
+    
 Files affected:
 
 config.sample -- will likely need a new variable to support the eu's API key,
