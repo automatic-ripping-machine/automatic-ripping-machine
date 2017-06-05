@@ -15,6 +15,7 @@ def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Get Movie Title from DVD or Blu-Ray')
     parser.add_argument('-p', '--path', help='Mount path to disc', required=True)
+    parser.add_argument('-k', '--key', help='API_Key', required=True)
 
     return parser.parse_args()
 
