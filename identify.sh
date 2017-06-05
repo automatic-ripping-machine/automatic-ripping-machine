@@ -18,6 +18,7 @@ mkdir -p "$LOGPATH"
 # shellcheck disable=SC2129
 echo "*** Start config parameters ****" >> "$LOG"
 echo "Timestamp: [`date`]" >> "$LOG"
+echo -e "\tTimestamp: $(date -R)" >> "$LOG"
 # shellcheck disable=SC2002
 cat "$ARM_CONFIG"|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d' >> "$LOG"
 echo "*** End config parameters ****" >> "$LOG"
