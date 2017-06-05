@@ -16,6 +16,9 @@ API Key for OMDBAPI.com (Not sure how private this should be)
 OMDb API: http://www.omdbapi.com/?i=tt3896198&apikey=38d39b96
 Poster API: http://img.omdbapi.com/?i=tt3896198&h=600&apikey=38d39b96
 KEY: 38d39b96
+Generated URL:
+http://www.omdbapi.com/?t={0}&y={1}&plot=short&r=json&apikey={omdb_api_key
+http://www.omdbapi.com/?t="true grit"&plot=short&4=json&apikey=38d39b96
     
 Files affected:
 

@@ -71,7 +71,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 
 			if [ $HAS_NICE_TITLE == true ]; then
 #               VTYPE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" 2>&1)
-				VTYPE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" -k "{OMDB_API_KEY}" 2>&1)
+				VTYPE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" -k "${OMDB_API_KEY}" 2>&1)
                 
 				#handle year mismath if found
 				if [[ $VTYPE =~ .*#.* ]]; then
