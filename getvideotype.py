@@ -12,7 +12,6 @@ def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Get type of dvd--movie or tv series')
     parser.add_argument('-t', '--title', help='Title', required=True)
-    parser.add_argument('-k', '--key', help='API_key',required=True)
 
     return parser.parse_args()
 
@@ -48,7 +47,7 @@ def getdvdtype():
 
         # first try submitting without the year
         dvd_type = callwebservice(dvd_title_clean, "")
-        print (dvd_type)
+        # print (dvd_type)
 
         if (dvd_type != "fail"):
             #that means the year is wrong. 
@@ -81,12 +80,11 @@ def cleanupstring(string):
 def callwebservice(dvd_title, year=""):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
-    print (dvd_title)
-# This is where we will start changes.
+    # print (dvd_title)
+
     try:
-        # dvd_title_info_json = urllib.request.urlopen("http://www.omdbapi.com/?t={0}&y={1}&plot=short&r=json".format(dvd_title, year)).read()
-        dvd_title_info_json = urllib.request.urlopen("http://www.omdbapi.com/?t={0}&y={1}&plot=short&r=json".format(dvd_title, year)).read()   
-   except:
+        dvd_title_info_json = urllib.request.urlopen("http://www.omdbapi.com/?t={0}&y={1}&plot=short&r=json".format(dvd_title, year)).read()
+    except:
         return "fail"
     else:
         doc = json.loads(dvd_title_info_json.decode())
