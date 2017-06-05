@@ -39,7 +39,7 @@ def getdvdtype():
     if year is None:
         year = ""
 
-    dvd_type = callwebservice(dvd_title_clean, year)
+    dvd_type = callwebservice(omdb_api_key, dvd_title_clean, year)
     # print (dvd_type)
 
     # handle failures
