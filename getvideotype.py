@@ -21,6 +21,7 @@ def getdvdtype():
         or a tv series """
     dvd_title = args.title
     needs_new_year = "false"
+    omdb_api_key = args.omdb_api_key
 
     try:
         year = dvd_title[(dvd_title.rindex('(')):len(dvd_title)]
