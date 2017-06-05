@@ -12,7 +12,7 @@ def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Get type of dvd--movie or tv series')
     parser.add_argument('-t', '--title', help='Title', required=True)
-    parser.add_argument('-k', '--key', help='API_Key', required=True)
+    parser.add_argument('-k', '--key', help='API_Key', dest='omdb_api_key', required=True)
 
     return parser.parse_args()
 
@@ -84,7 +84,8 @@ def callwebservice(dvd_title, year=""):
     # print (dvd_title)
 
     try:
-        dvd_title_info_json = urllib.request.urlopen("http://www.omdbapi.com/?t={0}&y={1}&plot=short&r=json".format(dvd_title, year)).read()
+        # dvd_title_info_json = urllib.request.urlopen("http://www.omdbapi.com/?t={0}&y={1}&plot=short&r=json".format(dvd_title, year)).read()
+        dvd_title_info_json = urllib.request.urlopen("http://www.omdbapi.com/?t={0}&y={1}&plot=short&r=json&apikey={omdb_api_key}".format(dvd_title, year)).read()
     except:
         return "fail"
     else:
