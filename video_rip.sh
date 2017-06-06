@@ -10,7 +10,7 @@ HAS_NICE_TITLE=$2
 VIDEO_TYPE=$3
 
 {
-
+    echo "Starting video_rip.sh"
 	echo "Video Title is ${VIDEO_TITLE}"
  	echo "Ripping video ${ID_FS_LABEL} from ${DEVNAME}" >> "$LOG"
 	TIMESTAMP=$(date '+%Y%m%d_%H%M%S');
