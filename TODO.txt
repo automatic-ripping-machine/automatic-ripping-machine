@@ -1,0 +1,3 @@
+Need to write a useful doc file for this code, dealing with the new API and the background
+Need to remove my key from the public/production branch when published for pull/commit
+
