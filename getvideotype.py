@@ -82,9 +82,9 @@ def cleanupstring(string):
 def callwebservice(omdb_api_key, dvd_title, year=""):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
-    print (dvd_title)
-    print (year)
-    print (omdb_api_key)
+    # print (dvd_title)
+    # print (year)
+    # print (omdb_api_key)
 
     try:
         # dvd_title_info_json = urllib.request.urlopen("http://www.omdbapi.com/?t={0}&y={1}&plot=short&r=json".format(dvd_title, year)).read()
