@@ -20,6 +20,7 @@ Generated URL:
 http://www.omdbapi.com/?t={0}&y={1}&plot=short&r=json&apikey={omdb_api_key
 http://www.omdbapi.com/?t="true grit"&plot=short&4=json&apikey=38d39b96
 video name example "Raising Arizona (1999)"
+goal URL: http://www.omdbapi.com/?t="Raising Arizona (1999)"&plot=short&4=json&apikey=38d39b96
     
 Files affected:
 
