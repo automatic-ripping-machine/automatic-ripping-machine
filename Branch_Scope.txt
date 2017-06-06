@@ -27,6 +27,7 @@ goal URL: http://www.omdbapi.com/?t="Raising Arizona (1999)"&plot=short&4=json&a
 -- Success! Identifies the movie as a "movie" AND properly redates it to 1989.
 CUrrently running a full rip process to see if it properly locates it in the 
 Movies folder (Takes a LONG time on the laptop I'm using for a sandbox)
+-- Successfully moved finished product to ..../Movies/Raising Arizona (1989)/Raisng Arizona (1989).mkv
     
 Files affected:
 
