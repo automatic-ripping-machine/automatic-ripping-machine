@@ -14,6 +14,7 @@ TIMESTAMP=$5
 
 	TRANSSTART=$(date +%s);
 	echo "Start video transcoding script" >> "$LOG"
+    echo "Test log line to see if redirects are required or legacy [CAB]"
 
 	if [ "$HAS_NICE_TITLE" = true ]; then
 		echo "transcoding with a nice title" >> "$LOG"

@@ -13,6 +13,7 @@ VIDEO_TYPE=$3
     echo "Starting video_rip.sh"
 	echo "Video Title is ${VIDEO_TITLE}"
  	echo "Ripping video ${ID_FS_LABEL} from ${DEVNAME}" >> "$LOG"
+    echo "Test log line from video_rip.sh to see if log redirects are required or legacy [CAB]"
 	TIMESTAMP=$(date '+%Y%m%d_%H%M%S');
 	DEST="${RAWPATH}/${VIDEO_TITLE}_${TIMESTAMP}"
 	RIPSTART=$(date +%s);
