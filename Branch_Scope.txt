@@ -14,26 +14,11 @@ This branch will update the code making the queries to get movie by type, which
     
 History: Issue #57, reported by user MidasLamb ... Movie Hancock ripped but didn't get moved.
 
-Notes: Confirmed that log file redirects are not required in identify.sh
-        Confirmed log file redirects not required in video_rip.sh
-        Log file redirects ARE required in video_transcode.sh
-            - Probable that by turning it into a function {} it'll work....a project for another branch.
-        
+Notes: Purchased a 1-year $1/month API key for testing. Contact me for testing
+    info at cbunt1@yahoo.com.
+        Tested code udpates with two different older movies, both with year mis-
+        match between DVD release an Movie release successfully.
 
-    
-API Key for OMDBAPI.com (Not sure how private this should be)
-OMDb API: http://www.omdbapi.com/?i=tt3896198&apikey=38d39b96
-Poster API: http://img.omdbapi.com/?i=tt3896198&h=600&apikey=38d39b96
-KEY: 38d39b96
-Generated URL:
-http://www.omdbapi.com/?t={0}&y={1}&plot=short&r=json&apikey={omdb_api_key
-http://www.omdbapi.com/?t="true grit"&plot=short&4=json&apikey=38d39b96
-video name example "Raising Arizona (1999)"
-goal URL: http://www.omdbapi.com/?t="Raising Arizona (1999)"&plot=short&4=json&apikey=38d39b96
--- Success! Identifies the movie as a "movie" AND properly redates it to 1989.
-CUrrently running a full rip process to see if it properly locates it in the 
-Movies folder (Takes a LONG time on the laptop I'm using for a sandbox)
--- Successfully moved finished product to ..../Movies/Raising Arizona (1989)/Raisng Arizona (1989).mkv
     
 Files affected:
 
