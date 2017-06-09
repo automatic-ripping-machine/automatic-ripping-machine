@@ -52,3 +52,6 @@ Since not everyone interested in testing this update prior to pulling it into th
 may want to purchase an API key, and since each API key gives access to 100,000 queries per day,
 I am willing to share my key for testing purposes provided you don't go over, oh let's say, 25,000
 queries in a day (LOL). Contact me at my primary email cbunt1@yahoo.com or my github account cbunt1.
+
+A special thank you to Aaron Helton (aargonian) for your help with the Python update...I'm a
+Shell scripter, not a Python scripter...:-)
