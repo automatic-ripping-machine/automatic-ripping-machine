@@ -14,6 +14,12 @@ This branch will update the code making the queries to get movie by type, which
     
 History: Issue #57, reported by user MidasLamb ... Movie Hancock ripped but didn't get moved.
 
+Notes: Confirmed that log file redirects are not required in identify.sh
+        Confirmed log file redirects not required in video_rip.sh
+        Log file redirects ARE required in video_transcode.sh
+            - Probable that by turning it into a function {} it'll work....a project for another branch.
+        
+
     
 API Key for OMDBAPI.com (Not sure how private this should be)
 OMDb API: http://www.omdbapi.com/?i=tt3896198&apikey=38d39b96

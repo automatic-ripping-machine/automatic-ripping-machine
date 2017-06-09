@@ -17,7 +17,6 @@ mkdir -p "$LOGPATH"
 # excludes sensative parameters
 # shellcheck disable=SC2129
 echo "*** Start config parameters ****" >> "$LOG"
-echo "Test logline in identify.sh to see if log redirects are required or legacy [CAB]"
 # shellcheck disable=SC2002
 cat "$ARM_CONFIG"|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d' >> "$LOG"
 echo "*** End config parameters ****" >> "$LOG"
