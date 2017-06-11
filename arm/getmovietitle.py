@@ -9,6 +9,8 @@ import unicodedata
 import xmltodict
 import sys
 import re
+import logging
+import logger
 
 
 def entry():
@@ -22,7 +24,9 @@ def getdvdtitle():
     """ Calculates CRC64 for the DVD and calls Windows Media
         Metaservices and returns the Title and year of DVD """
     crc64 = pydvdid.compute(args.path)
-    # print (crc64)
+    logging.info("DVD CRC64 hash is: " + str(crc64))
+    urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
+    logging.info(urlstring)
     dvd_info_xml = urllib.request.urlopen(
         "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".
         format(crc64)).read()
@@ -65,10 +69,14 @@ def clean_for_filename(string):
 
 args = entry()
 
+logfile = logger.setuplogging()
+
 try:
     disc_title = clean_for_filename(getdvdtitle())
+    logging.info("getmovietitle dvd title found: " + disc_title)
 except:
     disc_title = clean_for_filename(getbluraytitle())
+    logging.info("getmovietitle bluray title found: " + disc_title)
     print(disc_title)
 else:
     print(disc_title)

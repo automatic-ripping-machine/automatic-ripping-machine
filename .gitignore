@@ -4,3 +4,7 @@ archive/
 config
 temp/
 test.py
+.abcde.conf
+.vscode
+arm/__pycache__/
+arm/config.yaml

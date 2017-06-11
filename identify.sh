@@ -51,7 +51,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 
 			if [ "$GET_VIDEO_TITLE" == true ]; then
 
-				GET_TITLE_OUTPUT=$(/opt/arm/getmovietitle.py -p /mnt"${DEVNAME}" 2>&1)
+				GET_TITLE_OUTPUT=$(/opt/arm/arm/getmovietitle.py -p /mnt"${DEVNAME}" 2>&1)
 				GET_TITLE_RESULT=$?
 
 				if [ $GET_TITLE_RESULT = 0 ]; then
@@ -70,7 +70,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			fi
 
 			if [ $HAS_NICE_TITLE == true ]; then
-				VTYPE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" 2>&1)
+				VTYPE=$(/opt/arm/arm/getvideotype.py -t "${VIDEO_TITLE}" 2>&1)
 
 				#handle year mismath if found
 				if [[ $VTYPE =~ .*#.* ]]; then
@@ -94,19 +94,21 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 
 			umount "/mnt/$DEVNAME"
 
-			if [ $VIDEO_TYPE = "series" ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
-				echo "Processing TV series.  Calling tv_dvd.py" >> "$LOG"
-				STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""
+			# if [ $VIDEO_TYPE = "series" ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
+			if [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then			
+				echo "Processing dvd.  Calling tv_dvd.py" >> "$LOG"
+				STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -y "\"${VIDEO_TYPE}\"" -e "\"${ID_FS_LABEL}\"" -n "\"${HAS_NICE_TITLE}\"""
+				# STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -f "\"${MAINFEATURE}\"" -y "\"${VIDEO_TYPE}\"" -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -n "\"${HAS_NICE_TITLE}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""				
 				echo "Sending command ${STR}"
 				eval "${STR}" 2>> "$LOG"
 				eject "$DEVNAME"
-			elif
-				[ "$VIDEO_TYPE" = "unknown" ] && [ "$DEFAULT_VIDEOTYPE" == "series" ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
-				echo "Video type is 'unknown' and default video type is series.  Processing TV series.  Calling tv_dvd.py" >> "$LOG"
-				STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""
-				echo "Sending command ${STR}"
-				eval "${STR}" 2>> "$LOG"
-				eject "$DEVNAME"
+			# elif
+			# 	[ "$VIDEO_TYPE" = "unknown" ] && [ "$DEFAULT_VIDEOTYPE" == "series" ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
+			# 	echo "Video type is 'unknown' and default video type is series.  Processing TV series.  Calling tv_dvd.py" >> "$LOG"
+			# 	STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -f "\"${MAINFEATURE}\"" -y "\"${VIDEO_TYPE}\""  -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""
+			# 	echo "Sending command ${STR}"
+			# 	eval "${STR}" 2>> "$LOG"
+			# 	eject "$DEVNAME"
 			else
 				echo "Sending to video_rip queue" >> "$LOG"
 				/opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
