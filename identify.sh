@@ -114,6 +114,8 @@ elif [ "$ID_FS_TYPE" == "iso9660" ]; then
 	echo "identified data" >> "$LOG"
 	/opt/arm/data_rip.sh "$LOG"
 	eject "$DEVNAME"
+elif [ -z "${ID_CDROM_MEDIA+x}" ] && [ -z "${ID_FS_TYPE}" ]; then
+	echo "drive seems empty, not ejecting" >> "$LOG"
 else
 	echo "unable to identify"
 	echo "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" >> "$LOG"
