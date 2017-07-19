@@ -1,0 +1,109 @@
+- hosts: all
+  become: yes
+  tasks:
+
+  - name: update apt
+    apt: update_cache=yes
+
+  - name: add apt repositories
+    apt_repository:
+      repo: "{{ item }}"
+    with_items:
+    - 'ppa:heyarje/makemkv-beta'
+    - 'ppa:stebbins/handbrake-releases'
+    - 'ppa:mc3man/xerus-media'
+
+  - name: update apt
+    apt: update_cache=yes
+
+  - name: install packages
+    apt:
+        name: "{{ item }}"
+        state: installed
+      with_items:
+      - git
+      - makemkv-bin
+      - makemkv-oss
+      - handbrake-cli
+      - libavcodec-extra
+      - abcde
+      - flac
+      - imagemagick
+      - glyrc
+      - cdparanoia
+      - at
+      - python3
+      - python3-pip
+      - cifs-utils
+
+    - name: install libdvd
+      apt: name=libdvd-pkg state=installed
+      notify: reconfigure libdvd-pkg
+
+    - name: get A.R.M. from GitHub
+      git:
+        repo: 'https://github.com/jswetzen/automatic-ripping-machine.git'
+        dest: /opt/arm
+
+    - name: install pip dependencies
+      pip:
+        requirements: '/opt/arm/requirements.txt'
+        executable: pip3
+
+    - name: symlink udev rule and abcde config
+      file:
+        src: "/opt/arm/{{ item.src }}"
+        dest: "{{ item.dest_dir }}/{{ item.src }}"
+        state: link
+      with_items:
+      - { src: '51-automedia.rules', dest_dir: '/lib/udev/rules.d/' }
+      - { src: '.abcde.conf', dest_dir: '/root/' }
+
+    - name: copy ARM config
+      copy:
+      src: config
+      dest: /opt/arm/config
+
+  - name: set cifs_username fact if CIFS_USER is set
+    set_fact:
+      cifs_username: ",username={{ CIFS_USER }}"
+      cifs_password: ""
+    when: CIFS_USER != ""
+
+  - name: set cifs_password fact if CIFS_PASSWORD is set
+    set_fact:
+      cifs_password: ",password={{ CIFS_PASSWORD }}"
+    when:
+    - CIFS_USER != ""
+    - CIFS_PASSWORD != ""
+
+  - name: set cifs_guest fact if CIFS_USER is not set
+    set_fact:
+      cifs_guest: ",guest"
+    when:
+    - CIFS_USER == ""
+
+  - name: mount cifs network drive on boot if required
+    mount:
+      name: "{{ CIFS_MOUNT_POINT }}"
+      src: "{{ CIFS_PATH }}"
+      fstype: cifs
+      opts: "rw,user,auto,suid{{ lookup('env', 'cifs_guest') }}{{ lookup('env', 'cifs_username') }}{{ lookup('env', 'cifs_password') }}"
+      state: mounted
+    when:
+    - CIFS_PATH != ""
+    - CIFS_MOUNT_POINT != ""
+
+  - name: create directories
+    file:
+      path: "{{ item }}"
+      state: directory
+      recurse: yes
+    with_items:
+    - "{{ ARMPATH }}"
+    - "{{ RAWPATH }}"
+    - "{{ MEDIA_DIR }}"
+
+  handlers:
+  - name: reconfigure libdvd-pkg
+    command: dpkg-reconfigure -fnoninteractive libdvd-pkg
