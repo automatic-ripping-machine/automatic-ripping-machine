@@ -42,7 +42,7 @@
 
     - name: get A.R.M. from GitHub
       git:
-        repo: 'https://github.com/jswetzen/automatic-ripping-machine.git'
+        repo: 'https://github.com/ahnooie/automatic-ripping-machine.git'
         dest: /opt/arm
 
     - name: install pip dependencies
