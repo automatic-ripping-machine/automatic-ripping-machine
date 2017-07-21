@@ -18,49 +18,50 @@
 
   - name: install packages
     apt:
-        name: "{{ item }}"
-        state: installed
-      with_items:
-      - git
-      - makemkv-bin
-      - makemkv-oss
-      - handbrake-cli
-      - libavcodec-extra
-      - abcde
-      - flac
-      - imagemagick
-      - glyrc
-      - cdparanoia
-      - at
-      - python3
-      - python3-pip
-      - cifs-utils
+      name: "{{ item }}"
+      state: installed
+    with_items:
+    - git
+    - makemkv-bin
+    - makemkv-oss
+    - handbrake-cli
+    - libavcodec-extra
+    - abcde
+    - flac
+    - imagemagick
+    - glyrc
+    - cdparanoia
+    - at
+    - python3
+    - python3-pip
+    - cifs-utils
 
-    - name: install libdvd
-      apt: name=libdvd-pkg state=installed
-      notify: reconfigure libdvd-pkg
+  - name: install libdvd
+    apt: name=libdvd-pkg state=installed
+    notify: reconfigure libdvd-pkg
 
-    - name: get A.R.M. from GitHub
-      git:
-        repo: 'https://github.com/ahnooie/automatic-ripping-machine.git'
-        dest: /opt/arm
+  - name: get A.R.M. from GitHub
+    git:
+      repo: 'https://github.com/ahnooie/automatic-ripping-machine'
+      dest: /opt/arm
+      force: yes
 
-    - name: install pip dependencies
-      pip:
-        requirements: '/opt/arm/requirements.txt'
-        executable: pip3
+  - name: install pip dependencies
+    pip:
+      requirements: '/opt/arm/requirements.txt'
+      executable: pip3
 
-    - name: symlink udev rule and abcde config
-      file:
-        src: "/opt/arm/{{ item.src }}"
-        dest: "{{ item.dest_dir }}/{{ item.src }}"
-        state: link
-      with_items:
-      - { src: '51-automedia.rules', dest_dir: '/lib/udev/rules.d/' }
-      - { src: '.abcde.conf', dest_dir: '/root/' }
+  - name: symlink udev rule and abcde config
+    file:
+      src: "/opt/arm/{{ item.src }}"
+      dest: "{{ item.dest_dir }}/{{ item.src }}"
+      state: link
+    with_items:
+    - { src: '51-automedia.rules', dest_dir: '/lib/udev/rules.d/' }
+    - { src: '.abcde.conf', dest_dir: '/root/' }
 
-    - name: copy ARM config
-      copy:
+  - name: copy ARM config
+    copy:
       src: config
       dest: /opt/arm/config
 
@@ -68,6 +69,7 @@
     set_fact:
       cifs_username: ",username={{ CIFS_USER }}"
       cifs_password: ""
+      cifs_guest: ""
     when: CIFS_USER != ""
 
   - name: set cifs_password fact if CIFS_PASSWORD is set
@@ -79,6 +81,8 @@
 
   - name: set cifs_guest fact if CIFS_USER is not set
     set_fact:
+      cifs_username: ""
+      cifs_password: ""
       cifs_guest: ",guest"
     when:
     - CIFS_USER == ""
@@ -88,7 +92,7 @@
       name: "{{ CIFS_MOUNT_POINT }}"
       src: "{{ CIFS_PATH }}"
       fstype: cifs
-      opts: "rw,user,auto,suid{{ lookup('env', 'cifs_guest') }}{{ lookup('env', 'cifs_username') }}{{ lookup('env', 'cifs_password') }}"
+      opts: "rw,user,auto,suid{{ cifs_guest }}{{ cifs_username }}{{ cifs_password }}"
       state: mounted
     when:
     - CIFS_PATH != ""
