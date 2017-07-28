@@ -40,6 +40,9 @@
     apt: name=libdvd-pkg state=installed
     notify: reconfigure libdvd-pkg
 
+  # Ensure libdvd-pkg is reconfigured
+  - meta: flush_handlers
+
   - name: get A.R.M. from GitHub
     git:
       repo: 'https://github.com/ahnooie/automatic-ripping-machine'
