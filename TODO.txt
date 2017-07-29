@@ -1,9 +1,0 @@
-Need to write a useful doc file for this code, dealing with the new API and the background
-Need to remove my key from the public/production branch when published for pull/commit
-
-Different branches/features:
-1) Add ability to shut off disc ejection in config file (as a t/s feature)
-2) Clean up all the unnecessary >>LOG redirects throughout files...just because it's neater.
-
-
-
