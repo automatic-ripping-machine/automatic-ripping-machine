@@ -12,6 +12,7 @@ def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Get type of dvd--movie or tv series')
     parser.add_argument('-t', '--title', help='Title', required=True)
+    parser.add_argument('-k', '--key', help='API_Key', dest='omdb_api_key', required=True)
 
     return parser.parse_args()
 
@@ -20,6 +21,7 @@ def getdvdtype():
         or a tv series """
     dvd_title = args.title
     needs_new_year = "false"
+    omdb_api_key = args.omdb_api_key
 
     try:
         year = dvd_title[(dvd_title.rindex('(')):len(dvd_title)]
@@ -38,7 +40,7 @@ def getdvdtype():
     if year is None:
         year = ""
 
-    dvd_type = callwebservice(dvd_title_clean, year)
+    dvd_type = callwebservice(omdb_api_key, dvd_title_clean, year)
     # print (dvd_type)
 
     # handle failures
@@ -46,7 +48,7 @@ def getdvdtype():
     if (dvd_type == "fail"):
 
         # first try submitting without the year
-        dvd_type = callwebservice(dvd_title_clean, "")
+        dvd_type = callwebservice(omdb_api_key, dvd_title_clean, "")
         # print (dvd_type)
 
         if (dvd_type != "fail"):
@@ -58,12 +60,12 @@ def getdvdtype():
             if (dvd_title.find("-") > -1):
                 dvd_title_slice = dvd_title[:dvd_title.find("-")]
                 dvd_title_slice =cleanupstring(dvd_title_slice)
-                dvd_type = callwebservice(dvd_title_slice)
+                dvd_type = callwebservice(omdb_api_key, dvd_title_slice)
                 
             # if still fail, then try slicing off the last word in a loop
             while dvd_type == "fail" and dvd_title_clean.count('+') > 0:
                 dvd_title_clean = dvd_title_clean.rsplit('+', 1)[0]
-                dvd_type = callwebservice(dvd_title_clean)
+                dvd_type = callwebservice(omdb_api_key, dvd_title_clean)
         
     if needs_new_year == "true":
         #pass the new year back to bash to handle
@@ -77,13 +79,15 @@ def cleanupstring(string):
     string = string.strip()
     return re.sub('[_ ]',"+",string)
 
-def callwebservice(dvd_title, year=""):
+def callwebservice(omdb_api_key, dvd_title, year=""):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
     # print (dvd_title)
+    # print (year)
+    # print (omdb_api_key)
 
     try:
-        dvd_title_info_json = urllib.request.urlopen("http://www.omdbapi.com/?t={0}&y={1}&plot=short&r=json".format(dvd_title, year)).read()
+        dvd_title_info_json = urllib.request.urlopen("http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year)).read()
     except:
         return "fail"
     else:

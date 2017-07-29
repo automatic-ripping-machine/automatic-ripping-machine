@@ -161,6 +161,14 @@ IFTTT_EVENT="arm_event"
 PO_USER_KEY=""
 PO_APP_KEY=""
 
+# OMDB_API_KEY
+# omdbapi.com API Key
+# See README-OMDBAPI for background and info
+# This is the API key for omdbapi.com queries.
+# More info at http://omdbapi.com/
+OMDB_API_KEY=""
+
+
 # Determine logfile name
 # use the label of the DVD/CD or else use empty.log
 # this is required for udev events where there is no media available
