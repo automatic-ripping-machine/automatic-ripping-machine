@@ -36,12 +36,8 @@ TIMESTAMP=$5
 		mv "$SRC"/* "$DEST"/  >> "$LOG"
 	elif [ "$RIPMETHOD" = "backup" ] && [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then
 		echo "Transcoding BluRay main feature only." >> "$LOG"
-<<<<<<< HEAD
-		$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL.$DEST_EXT" --main-feature --preset="$HB_PRESET" --subtitle scan -F --audio-lang-list eng --all-audio 2>> "$LOG"
-=======
 		# shellcheck disable=SC2086
 		$HANDBRAKE_CLI -i "$SRC" -o "$DEST/$LABEL.$DEST_EXT" --main-feature --preset="$HB_PRESET" $HB_ARGS 2>> "$LOG"
->>>>>>> master
 		rmdir "$SRC"	
 	elif [ "$RIPMETHOD" = "backup" ] && [ "$MAINFEATURE" = false ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then		
 		echo "Transcoding BluRay all titles above minlength." >> "$LOG"
