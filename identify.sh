@@ -17,6 +17,7 @@ mkdir -p "$LOGPATH"
 # excludes sensative parameters
 # shellcheck disable=SC2129
 echo "*** Start config parameters ****" >> "$LOG"
+echo -e "\tTimestamp: $(date -R)" >> "$LOG"
 # shellcheck disable=SC2002
 cat "$ARM_CONFIG"|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d' >> "$LOG"
 echo "*** End config parameters ****" >> "$LOG"
@@ -46,7 +47,10 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 		# check to see if this is really a video
 		mkdir -p /mnt/"$DEVNAME"
 		mount "$DEVNAME" /mnt/"$DEVNAME"
-		if [[ -d /mnt/${DEVNAME}/VIDEO_TS || -d /mnt/${DEVNAME}/BDMV ]]; then
+		# shellcheck disable=SC2086
+		# shellcheck disable=SC2010
+		# shellcheck disable=SC2126
+		if [[ -d /mnt/${DEVNAME}/VIDEO_TS || -d /mnt/${DEVNAME}/BDMV || -d /mnt/${DEVNAME}/HVDVD_TS || $(ls -laR /mnt/${DEVNAME}/ 2>/dev/null |grep -P "HVDVD_TS" |wc -l) == 1 ]]; then
 			echo "identified udf as video" >> "$LOG"
 
 			if [ "$GET_VIDEO_TITLE" == true ]; then
@@ -106,7 +110,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 	fi	
 
 
-elif (("$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" > 0 )); then
+elif [ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" ]; then
 	echo "identified audio" >> "$LOG"
 	abcde -d "$DEVNAME"
 
@@ -114,6 +118,8 @@ elif [ "$ID_FS_TYPE" == "iso9660" ]; then
 	echo "identified data" >> "$LOG"
 	/opt/arm/data_rip.sh "$LOG"
 	eject "$DEVNAME"
+elif [ -z "${ID_CDROM_MEDIA+x}" ] && [ -z "${ID_FS_TYPE}" ]; then
+	echo "drive seems empty, not ejecting" >> "$LOG"
 else
 	echo "unable to identify"
 	echo "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" >> "$LOG"

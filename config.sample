@@ -48,6 +48,9 @@ LOGLIFE=1
 # This setting is helpfuly when storing the data locally on the system
 SET_MEDIA_PERMISSIONS=false
 CHMOD_VALUE=777
+SET_MEDIA_OWNER=false
+CHOWN_USER=
+CHOWN_GROUP=
 
 ########################
 ## MakeMKV Parameters ##
@@ -170,10 +173,15 @@ OMDB_API_KEY=""
 # use the label of the DVD/CD or else use empty.log
 # this is required for udev events where there is no media available
 # such as ejecting the drive
-if [ -z "$ID_FS_LABEL" ]; then
-        LOGFILE="empty.log"
-else
+
+if [ -n "$ID_FS_LABEL" ]; then
         LOGFILE=${ID_FS_LABEL}".log"
+        elif [[ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" && $(which abcde-musicbrainz-tool) ]]; then
+                LOGFILE=$(abcde-musicbrainz-tool --device "$DEVNAME" | cut -f1 -d ' ')".log"
+        elif [[ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" &&  $(which cd-discid) ]]; then
+                LOGFILE=$(cd-discid "$DEVNAME" | cut -f1 -d ' ')".log"
+else
+        LOGFILE="empty.log"
 fi
 
 # Set full logfile path
