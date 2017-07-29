@@ -70,7 +70,11 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			fi
 
 			if [ $HAS_NICE_TITLE == true ]; then
+<<<<<<< HEAD
 				VTYPE=$(/opt/arm/arm/getvideotype.py -t "${VIDEO_TITLE}" 2>&1)
+=======
+				VTYPE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" 2>&1)
+>>>>>>> master
 
 				#handle year mismath if found
 				if [[ $VTYPE =~ .*#.* ]]; then

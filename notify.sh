@@ -26,5 +26,15 @@ else
 	printf "\nIFTTT notification sent" >> "$LOG"
 fi
 
+#Notification via Pushover
+#Trigger onl if variable is set
+if [ -z "$PO_USER_KEY" ]; then
+        echo "Pusover notifications not enabled" >> "$LOG"
+else
+        echo "Sending Pushover notification" >> "$LOG"
+        curl -s --form-string "token=$PO_APP_KEY"  --form-string "user=$PO_USER_KEY" --form-string "message=$MSG" https://api.pushover.net/1/messages.json
+        echo "Pushover notification sent" >> "$LOG"
+fi
+
 } >> "$LOG"
 
