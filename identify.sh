@@ -17,6 +17,7 @@ mkdir -p "$LOGPATH"
 # excludes sensative parameters
 # shellcheck disable=SC2129
 echo "*** Start config parameters ****" >> "$LOG"
+echo -e "\tTimestamp: $(date -R)" >> "$LOG"
 # shellcheck disable=SC2002
 cat "$ARM_CONFIG"|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d' >> "$LOG"
 echo "*** End config parameters ****" >> "$LOG"
@@ -109,7 +110,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 	fi	
 
 
-elif (("$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" > 0 )); then
+elif [ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" ]; then
 	echo "identified audio" >> "$LOG"
 	abcde -d "$DEVNAME"
 
