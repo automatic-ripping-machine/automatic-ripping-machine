@@ -4,3 +4,4 @@ archive/
 config
 temp/
 test.py
+*.sh~
