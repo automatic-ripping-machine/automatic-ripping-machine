@@ -48,6 +48,9 @@ LOGLIFE=1
 # This setting is helpfuly when storing the data locally on the system
 SET_MEDIA_PERMISSIONS=false
 CHMOD_VALUE=777
+SET_MEDIA_OWNER=false
+CHOWN_USER=
+CHOWN_GROUP=
 
 ########################
 ## MakeMKV Parameters ##
