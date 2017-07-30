@@ -1,2 +1,4 @@
 #!/bin/bash
-echo bash /opt/arm/identify.sh /opt/arm/config | at now
+DEVNAME=$1
+udevadm info --query=env "/dev/$DEVNAME" > /tmp/arm_disc_info
+echo bash /opt/arm/identify.sh /opt/arm/config /tmp/arm_disc_info | at now
