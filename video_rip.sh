@@ -2,6 +2,7 @@
 # Rip video using MakeMKV then eject and call transcode script
 
 # shellcheck source=config
+# shellcheck disable=SC1090
 # shellcheck disable=SC1091
 source "$ARM_CONFIG"
 source "$DISC_INFO"
