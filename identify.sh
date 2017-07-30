@@ -8,6 +8,7 @@ echo "$ARM_CONFIG"
 # shellcheck source=config
 # shellcheck disable=SC1091
 source "$ARM_CONFIG"
+# shellcheck disable=SC1090
 source "$DISC_INFO"
 
 # Create log dir if needed
