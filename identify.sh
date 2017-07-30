@@ -1,12 +1,14 @@
 #!/bin/bash
 
 export ARM_CONFIG=$1
+export DISC_INFO=$2
 
 echo "$ARM_CONFIG"
 
 # shellcheck source=config
 # shellcheck disable=SC1091
 source "$ARM_CONFIG"
+source "$DISC_INFO"
 
 # Create log dir if needed
 mkdir -p "$LOGPATH"
@@ -65,23 +67,23 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 				else
 					echo "failed to get title $GET_TITLE_OUTPUT"
 					HAS_NICE_TITLE=false
-					VIDEO_TITLE=${ID_FS_LABEL} 
+					VIDEO_TITLE=${ID_FS_LABEL}
 				fi
 
 			else
 				HAS_NICE_TITLE=false
-				VIDEO_TITLE=${ID_FS_LABEL} 
+				VIDEO_TITLE=${ID_FS_LABEL}
 			fi
 
 			if [ $HAS_NICE_TITLE == true ]; then
 				VTYPE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" -k "${OMDB_API_KEY}" 2>&1)
-                
+
 				#handle year mismath if found
 				if [[ $VTYPE =~ .*#.* ]]; then
 					VIDEO_TYPE=$(echo "$VTYPE" | cut -f1 -d#)
 					NEW_YEAR=$(echo "$VTYPE" | cut -f2 -d#)
 					echo "VIDEO_TYPE is $VIDEO_TYPE and NEW_YEAR is $NEW_YEAR"
-					VIDEO_TITLE="$(echo "$VIDEO_TITLE" | cut -f1 -d\()($NEW_YEAR)" 
+					VIDEO_TITLE="$(echo "$VIDEO_TITLE" | cut -f1 -d\()($NEW_YEAR)"
 					echo "Year mismatch found.  New video title is $VIDEO_TITLE"
 				else
 					VIDEO_TYPE="$VTYPE"
@@ -107,7 +109,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 	else
 		echo "ARM_CHECK_UDF is false, assuming udf is video" >> "$LOG"
 		/opt/arm/video_rip.sh "$LOG"
-	fi	
+	fi
 
 
 elif [ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" ]; then
