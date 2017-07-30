@@ -1,10 +1,10 @@
 #!/bin/bash
 # Rip Data using DD
 
-# shellcheck disable=SC1090
 # shellcheck disable=SC1091
 # shellcheck source=config
 source "$ARM_CONFIG"
+# shellcheck disable=SC1090
 source "$DISC_INFO"
 
 {
