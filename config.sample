@@ -170,6 +170,9 @@ IFTTT_EVENT="arm_event"
 PO_USER_KEY=""
 PO_APP_KEY=""
 
+# DO NOT REMOVE THE FOLLOWING LINE!
+# PYSTOP
+
 # Determine logfile name
 # use the label of the DVD/CD or else use empty.log
 # this is required for udev events where there is no media available
