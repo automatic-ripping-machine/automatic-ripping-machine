@@ -55,6 +55,4 @@ VIDEO_TYPE=$3
 
 	echo "${ID_FS_LABEL} sent to transcoding queue..." >> "$LOG"
 
-  rm "$DISC_INFO"
-
 } >> "$LOG"

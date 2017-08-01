@@ -130,5 +130,6 @@ else
 	eject "$DEVNAME"
 fi
 
+rm "$DISC_INFO"
 
 } >> "$LOG"
