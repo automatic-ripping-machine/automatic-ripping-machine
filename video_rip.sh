@@ -4,6 +4,8 @@
 # shellcheck source=config
 # shellcheck disable=SC1091
 source "$ARM_CONFIG"
+# shellcheck disable=SC1090
+source "$DISC_INFO"
 
 VIDEO_TITLE=$1
 HAS_NICE_TITLE=$2
@@ -16,7 +18,7 @@ VIDEO_TYPE=$3
 	TIMESTAMP=$(date '+%Y%m%d_%H%M%S');
 	DEST="${RAWPATH}/${VIDEO_TITLE}_${TIMESTAMP}"
 	RIPSTART=$(date +%s);
-    
+
 	mkdir -p "$DEST"
 
 	#echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP >> $LOG
@@ -52,7 +54,5 @@ VIDEO_TYPE=$3
 	echo "/opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" \"$HAS_NICE_TITLE\" \"$VIDEO_TYPE\" \"$TIMESTAMP\"" | batch
 
 	echo "${ID_FS_LABEL} sent to transcoding queue..." >> "$LOG"
-
-
 
 } >> "$LOG"
