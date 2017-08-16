@@ -1,12 +1,15 @@
 #!/bin/bash
 
 export ARM_CONFIG=$1
+export DISC_INFO=$2
 
 echo "$ARM_CONFIG"
 
 # shellcheck source=config
 # shellcheck disable=SC1091
 source "$ARM_CONFIG"
+# shellcheck disable=SC1090
+source "$DISC_INFO"
 
 # Create log dir if needed
 mkdir -p "$LOGPATH"
@@ -17,6 +20,7 @@ mkdir -p "$LOGPATH"
 # excludes sensative parameters
 # shellcheck disable=SC2129
 echo "*** Start config parameters ****" >> "$LOG"
+echo -e "\tTimestamp: $(date -R)" >> "$LOG"
 # shellcheck disable=SC2002
 cat "$ARM_CONFIG"|sed '/^[#;].*$/d;/^$/d;/if/d;/^ /d;/^else/d;/^fi/d;/KEY=/d;/PASSWORD/d' >> "$LOG"
 echo "*** End config parameters ****" >> "$LOG"
@@ -46,7 +50,10 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 		# check to see if this is really a video
 		mkdir -p /mnt/"$DEVNAME"
 		mount "$DEVNAME" /mnt/"$DEVNAME"
-		if [[ -d /mnt/${DEVNAME}/VIDEO_TS || -d /mnt/${DEVNAME}/BDMV ]]; then
+		# shellcheck disable=SC2086
+		# shellcheck disable=SC2010
+		# shellcheck disable=SC2126
+		if [[ -d /mnt/${DEVNAME}/VIDEO_TS || -d /mnt/${DEVNAME}/BDMV || -d /mnt/${DEVNAME}/HVDVD_TS || $(ls -laR /mnt/${DEVNAME}/ 2>/dev/null |grep -P "HVDVD_TS" |wc -l) == 1 ]]; then
 			echo "identified udf as video" >> "$LOG"
 
 			if [ "$GET_VIDEO_TITLE" == true ]; then
@@ -61,23 +68,24 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 				else
 					echo "failed to get title $GET_TITLE_OUTPUT"
 					HAS_NICE_TITLE=false
-					VIDEO_TITLE=${ID_FS_LABEL} 
+					VIDEO_TITLE=${ID_FS_LABEL}
 				fi
 
 			else
 				HAS_NICE_TITLE=false
-				VIDEO_TITLE=${ID_FS_LABEL} 
+				VIDEO_TITLE=${ID_FS_LABEL}
 			fi
 
 			if [ $HAS_NICE_TITLE == true ]; then
-				VTYPE=$(/opt/arm/arm/getvideotype.py -t "${VIDEO_TITLE}" 2>&1)
+
+				VTYPE=$(/opt/arm/getvideotype.py -t "${VIDEO_TITLE}" -k "${OMDB_API_KEY}" 2>&1)
 
 				#handle year mismath if found
 				if [[ $VTYPE =~ .*#.* ]]; then
 					VIDEO_TYPE=$(echo "$VTYPE" | cut -f1 -d#)
 					NEW_YEAR=$(echo "$VTYPE" | cut -f2 -d#)
 					echo "VIDEO_TYPE is $VIDEO_TYPE and NEW_YEAR is $NEW_YEAR"
-					VIDEO_TITLE="$(echo "$VIDEO_TITLE" | cut -f1 -d\()($NEW_YEAR)" 
+					VIDEO_TITLE="$(echo "$VIDEO_TITLE" | cut -f1 -d\()($NEW_YEAR)"
 					echo "Year mismatch found.  New video title is $VIDEO_TITLE"
 				else
 					VIDEO_TYPE="$VTYPE"
@@ -124,10 +132,10 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 		echo "ARM_CHECK_UDF is false, assuming udf is video" >> "$LOG"
 
 		/opt/arm/video_rip.sh "$LOG"
-	fi	
+	fi
 
 
-elif (("$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" > 0 )); then
+elif [ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" ]; then
 	echo "identified audio" >> "$LOG"
 	abcde -d "$DEVNAME"
 
@@ -135,6 +143,8 @@ elif [ "$ID_FS_TYPE" == "iso9660" ]; then
 	echo "identified data" >> "$LOG"
 	/opt/arm/data_rip.sh "$LOG"
 	eject "$DEVNAME"
+elif [ -z "${ID_CDROM_MEDIA+x}" ] && [ -z "${ID_FS_TYPE}" ]; then
+	echo "drive seems empty, not ejecting" >> "$LOG"
 else
 	echo "unable to identify"
 	echo "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" >> "$LOG"
@@ -142,5 +152,6 @@ else
 	eject "$DEVNAME"
 fi
 
+rm "$DISC_INFO"
 
 } >> "$LOG"

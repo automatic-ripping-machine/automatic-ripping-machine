@@ -8,3 +8,6 @@ test.py
 .vscode
 arm/__pycache__/
 arm/config.yaml
+*.sh~
+Branch_Scope_Sanatization.txt
+

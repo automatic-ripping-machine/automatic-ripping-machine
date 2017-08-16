@@ -17,7 +17,7 @@ See: https://b3n.org/automatic-ripping-machine
     - Retrieve title from disc or Windows Media MetaServices API to name the folder "movie title (year)" so that Plex or Emby can pick it up
     - Determine if video is Movie or TV using OMDb API
     - Rip using MakeMKV (can rip all features or main feature)
-    - Eject disc and queue up Handbrake transcoding when done 
+    - Eject disc and queue up Handbrake transcoding when done
     - Transcoding jobs are asynchronusly batched from ripping
     - Send notification when done via IFTTT or Pushbullet
   - If audio (CD) - rip using abcde
@@ -58,12 +58,13 @@ If you have a  new DVD drive that you haven't used before, some require setting 
     pip3 install -r requirements.txt
     ln -s /opt/arm/51-automedia.rules /lib/udev/rules.d/
     ln -s /opt/arm/.abcde.conf /root/
+    cp /opt/arm/arm@.service /etc/systemd/system/
     cp config.sample config
 
 - Edit your "config" file to determine what options you'd like to use
 - To rip Blu-Rays after the MakeMKV trial is up you will need to purchase a license key or while MakeMKV is in BETA you can get a free key (which you will need to update from time to time) here:  https://www.makemkv.com/forum2/viewtopic.php?f=5&t=1053 and create /root/.MakeMKV/settings.conf with the contents:
 
-        app_Key = "insertlicensekeyhere" 
+        app_Key = "insertlicensekeyhere"
 
 
 Optionally if you want something more stable than master you can download the latest release from the releases page.
