@@ -8,11 +8,13 @@ import xmltodict
 import json
 import re
 
+from config import cfg
+
 def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Get type of dvd--movie or tv series')
     parser.add_argument('-t', '--title', help='Title', required=True)
-    parser.add_argument('-k', '--key', help='API_Key', dest='omdb_api_key', required=True)
+    # parser.add_argument('-k', '--key', help='API_Key', dest='omdb_api_key', required=True)
 
     return parser.parse_args()
 
@@ -21,7 +23,7 @@ def getdvdtype():
         or a tv series """
     dvd_title = args.title
     needs_new_year = "false"
-    omdb_api_key = args.omdb_api_key
+    omdb_api_key = cfg['OMDB_API_KEY']
 
     try:
         year = dvd_title[(dvd_title.rindex('(')):len(dvd_title)]
