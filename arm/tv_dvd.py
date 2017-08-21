@@ -125,7 +125,7 @@ def handbrake_all(basepath, logfile):
     else:
         mt_track = 0
 
-        mt_track = str(mt_track).strip()
+    mt_track = str(mt_track).strip()
 
     for index, item in enumerate(info['track']):
         if item['length'] < int(cfg['MINLENGTH']):
@@ -165,11 +165,12 @@ def handbrake_all(basepath, logfile):
             except subprocess.CalledProcessError as hb_error:
                 err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
                 logging.error(err)
-                return
+                # return
                 # sys.exit(err)
 
             # move file
             if args.videotype == "movie":
+                logging.debug("mt_track: " + mt_track + " List track: " + str(item['ix']))
                 if mt_track == str(item['ix']):
                     move_files(basepath, filename, True)
                 else:
