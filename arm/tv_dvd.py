@@ -239,6 +239,8 @@ def main(logfile):
     """main dvd processing function"""
     logging.info("Starting DVD processing")
 
+    notify.notify("ARM notification","Found disc: " + args.videotitle + ". Video type is " + args.videotype + ". Main Feature is " + cfg['MAINFEATURE'] + ".")
+
     #get filesystem in order
     ts = round(time.time() * 100)
     basepath = os.path.join(cfg['ARMPATH'], args.label + "_" + str(ts))
@@ -256,6 +258,8 @@ def main(logfile):
     else:
         handbrake_all(basepath, logfile)
 
+    notify.notify("ARM notification", "DVD: " + args.videotitle + "processing complete.")
+
     logging.info("DVD processing comlete")
 
 
@@ -267,7 +271,5 @@ args = entry()
 logfile = logger.setuplogging()
 
 log_params(logfile)
-
-notify.notify("ARM notification","Found disc: " + args.videotitle + ". Type is " + args.videotype + ". Main Feature is " + cfg['MAINFEATURE'] + ".")
 
 main(logfile)
