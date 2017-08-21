@@ -4,3 +4,4 @@ requests>=2.9.1
 urllib3>=1.13.1
 xmltodict>=0.10.2
 pushbullet.py>=0.11.0
+pyfttt>=0.3.2
