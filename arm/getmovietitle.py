@@ -26,7 +26,7 @@ def getdvdtitle():
     crc64 = pydvdid.compute(args.path)
     logging.info("DVD CRC64 hash is: " + str(crc64))
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
-    logging.info(urlstring)
+    logging.debug(urlstring)
     dvd_info_xml = urllib.request.urlopen(
         "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".
         format(crc64)).read()

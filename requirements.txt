@@ -3,3 +3,4 @@ pydvdid>=1.0
 requests>=2.9.1
 urllib3>=1.13.1
 xmltodict>=0.10.2
+pushbullet.py>=0.11.0

@@ -9,6 +9,7 @@ import time
 import shutil
 import requests
 import logger
+import notify
 
 from config import cfg
 
@@ -17,18 +18,10 @@ def entry():
     parser = argparse.ArgumentParser(description='Process DVD using HandBrakeCLI')
     parser.add_argument('-d', '--devpath', help='Devpath', required=True)
     parser.add_argument('-t', '--videotitle', help='Video Title', required=True)
-    # parser.add_argument('-f', '--mainfeature', help='MainFeature (True or false)', required=True)
     parser.add_argument('-y', '--videotype', help='Video Type', required=True)
-    # parser.add_argument('-m', '--minlength', help='Minimum Length', default=0, type=int)
-    # parser.add_argument('-x', '--maxlength', help='Maximum Length', default=0, type=int)
-    # parser.add_argument('-a', '--armpath', help='ArmPath', required=True)
-    # parser.add_argument('-r', '--rawpath', help='Rawpath', required=True)
     parser.add_argument('-e', '--label', help='Label', required=True)
-    # parser.add_argument('-b', '--handbrakecli', help='HandbrakeCLI', default="HandBrakeCLI")
-    # parser.add_argument('-p', '--hb_preset', help='Handbrake Preset', required=True)
-    # parser.add_argument('-g', '--hb_args', help='Handbrake Arguements', default='')
     parser.add_argument('-n', '--hasnicetitle', help="Has Nice Title", required=False)
-    # parser.add_argument('-l', '--logfile', help='Logfile (path/logname)', required=True)
+
 
     return parser.parse_args()
 
@@ -39,13 +32,10 @@ def log_params(logfile):
     logging.info("**** Start tv_dvd.py paramaters *** ")
     logging.info("devpath: " + args.devpath)
     logging.info("videotitle: " + args.videotitle)
-    # logging.info("mainfeature: " + args.mainfeature)
+    logging.info("mainfeature: " + cfg['MAINFEATURE'])
     logging.info("videotype: " + args.videotype)
     logging.info("minlength: " + cfg['MINLENGTH'])
     logging.info("maxlength: " + cfg['MAXLENGTH'])
-    # logging.info("armpath: " + args.armpath)
-    # logging.info("rawpath: " + args.rawpath)
-    # logging.info("handbrakecli: " + args.handbrakecli)
     logging.info("hb_preset: " + cfg['HB_PRESET'])
     logging.info("hb_args: " + cfg['HB_ARGS'])
     logging.info("logfile: " + logfile)
@@ -277,5 +267,7 @@ args = entry()
 logfile = logger.setuplogging()
 
 log_params(logfile)
+
+notify.notify("ARM notification","Found disc: " + args.videotitle + ". Type is " + args.videotype + ". Main Feature is " + cfg['MAINFEATURE'] + ".")
 
 main(logfile)
