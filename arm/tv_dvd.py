@@ -165,7 +165,7 @@ def handbrake_all(basepath, logfile):
             except subprocess.CalledProcessError as hb_error:
                 err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
                 logging.error(err)
-                # return
+                return
                 # sys.exit(err)
 
             # move file
@@ -266,9 +266,6 @@ def main(logfile):
 
 args = entry()
 
-#set up logging
-# logging.basicConfig(filename=args.logfile, format='[%(asctime)s] ARM: %(levelname)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S', \
-# level=logging.INFO)
 logfile = logger.setuplogging()
 
 log_params(logfile)
