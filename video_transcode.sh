@@ -295,8 +295,8 @@ TRANSEND=$(date +%s);
 TRANSSEC=$((TRANSEND-TRANSSTART));
 TRANSTIME="$((TRANSSEC / 3600)) hours, $(((TRANSSEC / 60) % 60)) minutes and $((TRANSSEC % 60)) seconds."
 
-echo "STAT: ${ID_FS_LABEL} transcoded in ${TRANSTIME}" >> "$LOG"
+echo "STAT: ${LABEL} transcoded in ${TRANSTIME}" >> "$LOG"
 
 #echo /opt/arm/rename.sh $DEST
 
-echo /opt/arm/notify.sh "\"Transcode: ${ID_FS_LABEL} completed in ${TRANSTIME}\"" |at now
+echo /opt/arm/notify.sh "\"Transcode: ${LABEL} completed in ${TRANSTIME}\"" |at now
