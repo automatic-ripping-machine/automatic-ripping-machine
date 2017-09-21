@@ -54,5 +54,7 @@ VIDEO_TYPE=$3
 	echo "/opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" \"$HAS_NICE_TITLE\" \"$VIDEO_TYPE\" \"$TIMESTAMP\"" | batch
 
 	echo "${ID_FS_LABEL} sent to transcoding queue..." >> "$LOG"
+	
+	echo /opt/arm/notify.sh "\"Rip: ${ID_FS_LABEL} completed.\"" |at now
 
 } >> "$LOG"
