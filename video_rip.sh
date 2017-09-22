@@ -46,13 +46,15 @@ VIDEO_TYPE=$3
 
 	#eject $DEVNAME
 
-	#echo /opt/arm/notify.sh "\"Ripped: ${ID_FS_LABEL} completed from ${DEVNAME} in ${RIPTIME}\"" |at now
+    if [ "$NOTIFY_RIP" = "true" ]; then
+		echo /opt/arm/notify.sh "\"Ripped: ${VIDEO_TITLE} completed from ${DEVNAME} in ${RIPTIME}\"" |at now
+    fi
 
 	echo "STAT: ${ID_FS_LABEL} ripped in ${RIPTIME}" >> "$LOG"
 
 	echo "/opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" \"$HAS_NICE_TITLE\" \"$VIDEO_TYPE\" $TIMESTAMP"
 	echo "/opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" \"$HAS_NICE_TITLE\" \"$VIDEO_TYPE\" \"$TIMESTAMP\"" | batch
 
-	echo "${ID_FS_LABEL} sent to transcoding queue..." >> "$LOG"
+	echo "${VIDEO_TITLE} sent to transcoding queue..." >> "$LOG"
 
 } >> "$LOG"
