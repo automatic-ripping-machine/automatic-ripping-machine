@@ -299,4 +299,7 @@ echo "STAT: ${LABEL} transcoded in ${TRANSTIME}" >> "$LOG"
 
 #echo /opt/arm/rename.sh $DEST
 
-echo /opt/arm/notify.sh "\"Transcode: ${LABEL} completed in ${TRANSTIME}\"" |at now
+if [ "$NOTIFY_TRANSCODE" = "true" ]; then
+	echo /opt/arm/notify.sh "\"Transcode: ${LABEL} completed in ${TRANSTIME}\"" |at now
+fi
+
