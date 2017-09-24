@@ -47,16 +47,16 @@ class S(BaseHTTPRequestHandler):
 
     def info(self):
         freeraw = getsize(RAWPATH)
-	freearm = getsize(ARMPATH)
+	    freearm = getsize(ARMPATH)
         output = subprocess.check_output("atq | perl -lane 'print $F[0]'", shell=True)
-        self.wfile.write("<html><head><title>ARM Status</title><meta http-equiv=\"refresh\" content=\"60\"></head><body><h1>Disk Info</h1>")
+        self.wfile.write("<html><head><title>ARM Status</title><meta http-equiv=\"refresh\" content=\"60\"><style>table {font-family: arial, sans-serif;border-collapse: collapse;width: 100%;}td, th {border: 1px solid #dddddd;text-align: left;padding: 8px;}tr:nth-child(even) {background-color: \#dddddd;}</style></head><body><h1>Disk Info</h1>")
         self.wfile.write("<h2>" + str(freeraw) + " GB free for ripping</h2>")
         self.wfile.write("<h2>" + str(freearm) + " GB free for transcoding</h2>")
-        self.wfile.write("<html><body><h1>Queue Items</h1><pre>")
+        self.wfile.write("<html><body><h1>Queue Items</h1><table><tr><th>Queue Number</th><th>Command</th></tr>")
         for line in output.split():
             item = subprocess.check_output("at -c {0} | tail -n 2".format(line), shell=True)
-	    self.wfile.write(item)
-        self.wfile.write("</pre></body></html>")
+	        self.wfile.write("<tr><td>" + line + "</td><td>" + item + "</td></tr>")
+        self.wfile.write("</table></body></html>")
 
     def do_GET(self):
         self._set_headers()
