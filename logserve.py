@@ -13,6 +13,8 @@ View the empty.log in reverse order::
 View the Info page
     http://localhost:[port]/info/
 
+Thanks to derex99 for the disc favicon
+ derex99 - Own work, CC BY-SA 3.0, https://commons.wikimedia.org/w/index.php?curid=3836116
 
 """
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -59,15 +61,23 @@ class S(BaseHTTPRequestHandler):
         self.wfile.write("</table></body></html>")
 
     def do_GET(self):
-        self._set_headers()
 	# There is special handling for http://127.0.0.1/info. That URL
         # displays some internal information.
         if self.path == '/info' or self.path == '/info/':
+            self._set_headers()
             self.info()
+        elif self.path == '/favicon.ico':
+            self.send_response(200)
+            self.send_header('Content-type','image/jpeg')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            with open("favicon.ico", "rb") as fout:
+                self.wfile.write(fout.read())
         else:
-	    contents = open(LOGFILE,"r")
+            self._set_headers()
+            contents = open(LOGFILE,"r")
             self.wfile.write("<html><body><h1>ARM Log</h1><pre>")
-	    for lines in reversed(contents.readlines()):
+	        for lines in reversed(contents.readlines()):
                 self.wfile.write(lines + "<br>\n")
             self.wfile.write("</pre></body></html>")
 
