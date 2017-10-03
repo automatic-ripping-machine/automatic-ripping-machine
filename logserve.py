@@ -76,10 +76,10 @@ class S(BaseHTTPRequestHandler):
                 self.wfile.write(fout.read())
         else:
             self._set_headers()
-            contents = open(LOGFILE,"r")
+            #contents = open(LOGFILE,"r")
+            contents = subprocess.check_output("tail -n 50 {0}".format(LOGFILE), shell=True)
             self.wfile.write("<html><body><h1>ARM Log</h1><pre>")
-	        for lines in reversed(contents.readlines()):
-                self.wfile.write(lines + "<br>\n")
+            self.wfile.write(contents + "<br>\n")
             self.wfile.write("</pre></body></html>")
 
     def do_HEAD(self):
