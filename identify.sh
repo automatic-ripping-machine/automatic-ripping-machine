@@ -116,6 +116,9 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 elif [ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" ]; then
 	echo "identified audio" >> "$LOG"
 	abcde -d "$DEVNAME"
+   if [ "$NOTIFY_RIP" = "true" ]; then
+	    echo /opt/arm/notify.sh "\"Audio Rip completed from ${DEVNAME}\"" |at now
+   fi
 
 elif [ "$ID_FS_TYPE" == "iso9660" ]; then
 	echo "identified data" >> "$LOG"
