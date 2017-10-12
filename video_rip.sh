@@ -47,7 +47,7 @@ VIDEO_TYPE=$3
 	#eject $DEVNAME
 
     if [ "$NOTIFY_RIP" = "true" ]; then
-		echo /opt/arm/notify.sh "\"Ripped: ${VIDEO_TITLE} completed from ${DEVNAME} in ${RIPTIME}\"" |at now
+		echo /opt/arm/notify.sh "\"Ripped: ${VIDEO_TITLE} completed from ${DEVNAME} in ${RIPTIME}\"" |at -M now
     fi
 
 	echo "STAT: ${ID_FS_LABEL} ripped in ${RIPTIME}" >> "$LOG"
