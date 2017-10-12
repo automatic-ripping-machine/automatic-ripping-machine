@@ -42,10 +42,9 @@ if [ -z "$EMAIL_NOTIFY" ]; then
         echo "EMail notifications not enabled" >> "$LOG"
 else
         echo "Sending EMail notification" >> "$LOG"
-        echo "${MSG}" | mutt -s "ARM Alert from `hostname`" ${EMAIL_NOTIFY}
+        echo "${MSG}" | mutt -s "ARM Alert from $(hostname)" ${EMAIL_NOTIFY}
 	echo "EMail notification sent" >> "$LOG"
 fi
-
 
 } >> "$LOG"
 
