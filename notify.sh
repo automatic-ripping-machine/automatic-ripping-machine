@@ -37,7 +37,7 @@ else
 fi
 
 #Notification via E-Mail - Note this requires an already functional PostFix/Mutt installation
-#Trigger onl if variable is set
+#Trigger only if variable is set
 if [ -z "$EMAIL_NOTIFY" ]; then
         echo "EMail notifications not enabled" >> "$LOG"
 else
