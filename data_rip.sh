@@ -33,7 +33,7 @@ source "$DISC_INFO"
 	fi
 
 	if [ "$NOTIFY_RIP" = "true" ]; then
-		echo /opt/arm/notify.sh "\"Ripped: ${FILENAME} completed from ${DEVNAME}\"" |at now
+		echo /opt/arm/notify.sh "\"Ripped: ${FILENAME} completed from ${DEVNAME}\"" |at -M now
     fi
 
 } >> "$LOG"
