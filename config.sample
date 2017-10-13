@@ -193,6 +193,3 @@ fi
 # Set full logfile path
 LOG=$LOGPATH$LOGFILE
 
-# Flag to set for EMail Notification 
-# Leave empty or comment out to disable email notifications
-# EMAIL_NOTIFY="user@email.com"
