@@ -10,6 +10,7 @@ LABEL=$2
 HAS_NICE_TITLE=$3
 VIDEO_TYPE=$4
 TIMESTAMP=$5
+LOG=$6
 
 
 	TRANSSTART=$(date +%s);
@@ -300,6 +301,6 @@ echo "STAT: ${LABEL} transcoded in ${TRANSTIME}" >> "$LOG"
 #echo /opt/arm/rename.sh $DEST
 
 if [ "$NOTIFY_TRANSCODE" = "true" ]; then
-	echo /opt/arm/notify.sh "\"Transcode: ${LABEL} completed in ${TRANSTIME}\"" |at -M now
+	echo /opt/arm/notify.sh "\"Transcode: ${LABEL} completed in ${TRANSTIME}\" \"$LOG\""|at -M now
 fi
 
