@@ -12,18 +12,23 @@ source "$ARM_CONFIG"
 source "$DISC_INFO"
 
 # Determine logfile name
-# use the label of the DVD/CD or else use empty.log
+# If LOG_SINGLE_FILE is set to true, log all activity to ARM.log
+# If false (default) use the label of the DVD/CD or else use empty.log
 # this is required for udev events where there is no media available
 # such as ejecting the drive
 
-if [ -n "$ID_FS_LABEL" ]; then
+if [ "$LOG_SINGLE_FILE" == true ]; then
+	LOGFILE="ARM.log"
+else
+	if [ -n "$ID_FS_LABEL" ]; then
         LOGFILE=${ID_FS_LABEL}".log"
         elif [[ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" && $(which abcde-musicbrainz-tool) ]]; then
                 LOGFILE=$(abcde-musicbrainz-tool --device "$DEVNAME" | cut -f1 -d ' ')".log"
         elif [[ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" &&  $(which cd-discid) ]]; then
                 LOGFILE=$(cd-discid "$DEVNAME" | cut -f1 -d ' ')".log"
-else
+	else
         LOGFILE="empty.log"
+	fi
 fi
 
 # Set full logfile path

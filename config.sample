@@ -39,6 +39,9 @@ LOGPATH="/opt/arm/logs/"
 # How long to let log files live before deleting (in days)
 LOGLIFE=1
 
+# Set to true if you prefer a single log file for all activity versus a separate log per disc.
+LOG_SINGLE_FILE=false 
+
 ########################
 ##  File Permissions  ##
 ########################
