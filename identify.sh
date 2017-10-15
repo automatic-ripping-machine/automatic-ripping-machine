@@ -121,7 +121,7 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 		else
 			umount "/mnt/$DEVNAME"
 			echo "identified udf as data" >> "$LOG"
-			/opt/arm/data_rip.sh
+			/opt/arm/data_rip.sh "$LOG"
 			eject "$DEVNAME"
 
 		fi
