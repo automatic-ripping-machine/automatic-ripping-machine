@@ -37,5 +37,15 @@ else
         echo "Pushover notification sent" >> "$LOG"
 fi
 
+#Notification via E-Mail - Note this requires an already functional PostFix/Mutt installation
+#Trigger only if variable is set
+if [ -z "$EMAIL_NOTIFY" ]; then
+        echo "EMail notifications not enabled" >> "$LOG"
+else
+        echo "Sending EMail notification" >> "$LOG"
+        echo "${MSG}" | mutt -s "ARM Alert from $(hostname)" "${EMAIL_NOTIFY}"
+	echo "EMail notification sent" >> "$LOG"
+fi
+
 } >> "$LOG"
 

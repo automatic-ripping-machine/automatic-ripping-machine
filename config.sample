@@ -177,6 +177,10 @@ PO_APP_KEY=""
 # More info at http://omdbapi.com/
 OMDB_API_KEY=""
 
-
-
+# Flag to set for EMail Notification 
+# Leave empty or comment out to disable email notifications
+# This system uses MUTT to send the emails.  A guide for installing and
+# configuraing mutt can be found here:
+# https://www.garron.me/en/go2linux/send-mail-gmail-mutt.html
+# EMAIL_NOTIFY="user@email.com"
 
