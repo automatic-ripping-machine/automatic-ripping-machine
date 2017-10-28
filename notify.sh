@@ -4,6 +4,7 @@
 # shellcheck disable=SC1091
 source "$ARM_CONFIG"
 MSG=$1
+LOG=$2
 
 {
 #Notification via pushbullet

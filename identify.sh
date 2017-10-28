@@ -11,6 +11,29 @@ source "$ARM_CONFIG"
 # shellcheck disable=SC1090
 source "$DISC_INFO"
 
+# Determine logfile name
+# If LOG_SINGLE_FILE is set to true, log all activity to ARM.log
+# If false (default) use the label of the DVD/CD or else use empty.log
+# this is required for udev events where there is no media available
+# such as ejecting the drive
+
+if [ "$LOG_SINGLE_FILE" == true ]; then
+	LOGFILE="ARM.log"
+else
+	if [ -n "$ID_FS_LABEL" ]; then
+        LOGFILE=${ID_FS_LABEL}".log"
+        elif [[ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" && $(which abcde-musicbrainz-tool) ]]; then
+                LOGFILE=$(abcde-musicbrainz-tool --device "$DEVNAME" | cut -f1 -d ' ')".log"
+        elif [[ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" &&  $(which cd-discid) ]]; then
+                LOGFILE=$(cd-discid "$DEVNAME" | cut -f1 -d ' ')".log"
+	else
+        LOGFILE="empty.log"
+	fi
+fi
+
+# Set full logfile path
+LOG=$LOGPATH$LOGFILE
+
 # Create log dir if needed
 mkdir -p "$LOGPATH"
 
@@ -103,13 +126,13 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 		else
 			umount "/mnt/$DEVNAME"
 			echo "identified udf as data" >> "$LOG"
-			/opt/arm/data_rip.sh
+			/opt/arm/data_rip.sh "$LOG"
 			eject "$DEVNAME"
 
 		fi
 	else
 		echo "ARM_CHECK_UDF is false, assuming udf is video" >> "$LOG"
-		/opt/arm/video_rip.sh "$LOG"
+		/opt/arm/video_rip.sh "UnknownTitle" "false" "unknown" "$LOG"
 	fi
 
 
@@ -117,7 +140,7 @@ elif [ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" ]; then
 	echo "identified audio" >> "$LOG"
 	abcde -d "$DEVNAME"
     if [ "$NOTIFY_RIP" = "true" ]; then
-	    echo /opt/arm/notify.sh "\"Audio Rip: ${ID_FS_LABEL} completed from ${DEVNAME}\"" |at -M now
+	    echo /opt/arm/notify.sh "\"Audio Rip: ${ID_FS_LABEL} completed from ${DEVNAME}\" \"$LOG\"" |at -M now
 	fi
 
 elif [ "$ID_FS_TYPE" == "iso9660" ]; then
