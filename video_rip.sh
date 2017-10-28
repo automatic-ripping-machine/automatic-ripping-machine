@@ -10,6 +10,7 @@ source "$DISC_INFO"
 VIDEO_TITLE=$1
 HAS_NICE_TITLE=$2
 VIDEO_TYPE=$3
+LOG=$4
 
 {
     echo "Starting video_rip.sh"
@@ -47,13 +48,13 @@ VIDEO_TYPE=$3
 	#eject $DEVNAME
 
     if [ "$NOTIFY_RIP" = "true" ]; then
-		echo /opt/arm/notify.sh "\"Ripped: ${VIDEO_TITLE} completed from ${DEVNAME} in ${RIPTIME}\"" |at -M now
+		echo /opt/arm/notify.sh "\"Ripped: ${VIDEO_TITLE} completed from ${DEVNAME} in ${RIPTIME}\" \"$LOG\""|at -M now
     fi
 
 	echo "STAT: ${ID_FS_LABEL} ripped in ${RIPTIME}" >> "$LOG"
 
-	echo "/opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" \"$HAS_NICE_TITLE\" \"$VIDEO_TYPE\" $TIMESTAMP"
-	echo "/opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" \"$HAS_NICE_TITLE\" \"$VIDEO_TYPE\" \"$TIMESTAMP\"" | batch
+	echo "/opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" \"$HAS_NICE_TITLE\" \"$VIDEO_TYPE\" \"$TIMESTAMP\" \"$LOG\"" 
+	echo "/opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" \"$HAS_NICE_TITLE\" \"$VIDEO_TYPE\" \"$TIMESTAMP\" \"$LOG\"" | batch
 
 	echo "${VIDEO_TITLE} sent to transcoding queue..." >> "$LOG"
 

@@ -7,6 +7,8 @@ source "$ARM_CONFIG"
 # shellcheck disable=SC1090
 source "$DISC_INFO"
 
+LOG=$1
+
 {
 
         TIMESTAMP=$(date '+%Y%m%d_%H%M%S');
@@ -33,7 +35,7 @@ source "$DISC_INFO"
 	fi
 
 	if [ "$NOTIFY_RIP" = "true" ]; then
-		echo /opt/arm/notify.sh "\"Ripped: ${FILENAME} completed from ${DEVNAME}\"" |at -M now
+		echo /opt/arm/notify.sh "\"Ripped: ${FILENAME} completed from ${DEVNAME}\" \"$LOG\""|at -M now
     fi
 
 } >> "$LOG"

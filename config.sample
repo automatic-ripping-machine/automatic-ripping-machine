@@ -39,6 +39,9 @@ LOGPATH="/opt/arm/logs/"
 # How long to let log files live before deleting (in days)
 LOGLIFE=1
 
+# Set to true if you prefer a single log file for all activity versus a separate log per disc.
+LOG_SINGLE_FILE=false 
+
 ########################
 ##  File Permissions  ##
 ########################
@@ -181,20 +184,3 @@ OMDB_API_KEY=""
 # https://www.garron.me/en/go2linux/send-mail-gmail-mutt.html
 # EMAIL_NOTIFY="user@email.com"
 
-# Determine logfile name
-# use the label of the DVD/CD or else use empty.log
-# this is required for udev events where there is no media available
-# such as ejecting the drive
-
-if [ -n "$ID_FS_LABEL" ]; then
-        LOGFILE=${ID_FS_LABEL}".log"
-        elif [[ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" && $(which abcde-musicbrainz-tool) ]]; then
-                LOGFILE=$(abcde-musicbrainz-tool --device "$DEVNAME" | cut -f1 -d ' ')".log"
-        elif [[ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" &&  $(which cd-discid) ]]; then
-                LOGFILE=$(cd-discid "$DEVNAME" | cut -f1 -d ' ')".log"
-else
-        LOGFILE="empty.log"
-fi
-
-# Set full logfile path
-LOG=$LOGPATH$LOGFILE
