@@ -30,6 +30,7 @@ Vagrant.configure(2) do |config|
     cd /vagrant
     if [ ! -f config ]; then cp config{.sample,}; fi
     config_vars=$(env -i bash -c "set -a; . ./config; env" | sed 's/^\([^=]*\)=\(.*\)/\1="\2"/' | tr '\n' ' ')
+    sudo ansible-galaxy install jswetzen.automatic-ripping-machine
     ANSIBLE_FORCE_COLOR=true ansible-playbook -i="localhost," --extra-vars="$config_vars" -c local arm-ansible-playbook.yml
   INLINE_SCRIPT
   config.vm.provision "shell", inline: $inline_script, privileged: false, keep_color: true
