@@ -1,4 +1,4 @@
 # ID_CDROM_MEDIA_BD = Bluray
 # ID_CDROM_MEDIA_DVD = DVD
 # ID_CDROM_MEDIA_CD = CD
-ACTION=="change", SUBSYSTEM=="block", TAG+="systemd", RUN+="/bin/systemctl start arm@%k.service"
+ACTION=="change", SUBSYSTEM=="block", TAG+="systemd", KERNEL=="sr[0-9]*|vdisk*|xvd*", ENV{DEVTYPE}=="disk", RUN+="/bin/systemctl start arm@%k.service"
