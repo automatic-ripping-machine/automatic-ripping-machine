@@ -35,7 +35,7 @@ LOGFILE = LOGPATH + "empty.log"
 RAWPATH = getconfig("RAWPATH=")
 ARMPATH = getconfig("ARMPATH=")
 
-def getsize(path)
+def getsize(path):
     st = os.statvfs(path)
     free = (st.f_bavail * st.f_frsize)
     freegb = free/1073741824
