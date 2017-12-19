@@ -295,12 +295,14 @@ rmdir "$SRC"
 TRANSEND=$(date +%s);
 TRANSSEC=$((TRANSEND-TRANSSTART));
 TRANSTIME="$((TRANSSEC / 3600)) hours, $(((TRANSSEC / 60) % 60)) minutes and $((TRANSSEC % 60)) seconds."
+TRANSLEFT=$(ls $RAWPATH |wc -l);
+RAWSPACELEFT=$(df ${RAWPATH} -k -h  --output=avail |tail -n1)
 
 echo "STAT: ${LABEL} transcoded in ${TRANSTIME}" >> "$LOG"
 
 #echo /opt/arm/rename.sh $DEST
 
 if [ "$NOTIFY_TRANSCODE" = "true" ]; then
-	echo /opt/arm/notify.sh "\"Transcode: ${LABEL} completed in ${TRANSTIME}\" \"$LOG\""|at -M now
+	echo -e /opt/arm/notify.sh "\"Transcode: ${LABEL} completed in ${TRANSTIME} \n Transcodes Remaining: ${TRANSLEFT} \n Raw space left: ${RAWSPACELEFT}\" \"$LOG\"" |at -M now
 fi
 
