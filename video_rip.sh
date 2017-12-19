@@ -44,11 +44,13 @@ LOG=$4
 	RIPEND=$(date +%s);
 	RIPSEC=$((RIPEND-RIPSTART));
 	RIPTIME="$((RIPSEC / 3600)) hours, $(((RIPSEC / 60) % 60)) minutes and $((RIPSEC % 60)) seconds."
+        TRANSLEFT=$(ls $RAWPATH |wc -l);
+        RAWSPACELEFT=$(df ${RAWPATH} -k -h  --output=avail |tail -n1)
 
 	#eject $DEVNAME
 
     if [ "$NOTIFY_RIP" = "true" ]; then
-		echo /opt/arm/notify.sh "\"Ripped: ${VIDEO_TITLE} completed from ${DEVNAME} in ${RIPTIME}\" \"$LOG\""|at -M now
+		echo -e /opt/arm/notify.sh "\"Ripped: ${VIDEO_TITLE} completed from ${DEVNAME} in ${RIPTIME} \n Transcodes Remaining: ${TRANSLEFT} \n Raw space left: ${RAWSPACELEFT}\" \"$LOG\"" |at -M now
     fi
 
 	echo "STAT: ${ID_FS_LABEL} ripped in ${RIPTIME}" >> "$LOG"
