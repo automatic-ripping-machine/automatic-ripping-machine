@@ -25,9 +25,8 @@ LOG=$4
 	#echo /opt/arm/video_transcode.sh \"$DEST\" \"$VIDEO_TITLE\" $TIMESTAMP >> $LOG
 	if [ "$RIPMETHOD" = "backup" ] && [ "$ID_CDROM_MEDIA_BD" = "1" ]; then
 		echo "Using backup method of ripping." >> "$LOG"
-		DISC="${DEVNAME: -1}"
 		# shellcheck disable=SC2086
-		makemkvcon backup --decrypt $MKV_ARGS -r disc:"$DISC" "$DEST"/
+		makemkvcon backup --decrypt $MKV_ARGS -r disc:"${DEVNAME}" "$DEST"/
 		eject "$DEVNAME"
 	elif [ "$MAINFEATURE" = true ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ] && [ -z "$ID_CDROM_MEDIA_BD" ]; then
 		echo "Media is DVD and Main Feature parameter in config file is true.  Bypassing MakeMKV." >> "$LOG"
