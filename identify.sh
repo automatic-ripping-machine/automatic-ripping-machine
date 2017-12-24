@@ -31,11 +31,28 @@ else
 	fi
 fi
 
+
+
+
 # Set full logfile path
 LOG=$LOGPATH$LOGFILE
 
 # Create log dir if needed
 mkdir -p "$LOGPATH"
+
+
+#check if the disk was accidentally re-inserted
+touch '$LOGPATH${$DEVNAME -3}".log"'
+LASTRIP=tail -1 '$LOGPATH${$DEVNAME -3}".log"'
+if ["$LASTRIP" == "${ID_FS_LABEL}"]; then
+	echo "Last disk reinserted. Aborting rip" >> "$LOG"
+	eject "$DEVNAME"
+	echo /opt/arm/notify.sh "\"Disk: ${ID_FS_LABEL} was previously ripped on ${DEVNAME}\" \"$LOG\"" |at -M now
+else
+	echo "${ID_FS_LABEL}" >> $LOGPATH${DEVNAME -3}".log"
+fi
+	
+
 
 #shellcheck disable=SC2094
 {
