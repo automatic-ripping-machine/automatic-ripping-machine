@@ -26,7 +26,7 @@ VIDEO_TYPE=$3
 		echo "Using backup method of ripping." >> "$LOG"
 		# DISC="${DEVNAME: -1}"
 		DISC=$(makemkvcon -r info disc:9999  |grep "$DEVNAME" |grep -oP '(?<=:).*?(?=,)')
-		echo "Disc is: "${DISC} >> "$LOG"
+		echo "Disc is: ${DISC}" >> "$LOG"
 		# shellcheck disable=SC2086
 		makemkvcon backup --decrypt $MKV_ARGS -r disc:"$DISC" "$DEST"/
 		eject "$DEVNAME"
