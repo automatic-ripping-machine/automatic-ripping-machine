@@ -117,16 +117,21 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 			# 	echo "Sending command ${STR}"
 			# 	eval "${STR}" 2>> "$LOG"
 			# 	eject "$DEVNAME"
-			else
-				echo "Sending to video_rip queue" >> "$LOG"
-				/opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
+			elif [ "$RIPMETHOD" = "backup" ]; then
+				echo "Processing bluray with backup method.  Calling tv_dvd.py" >> "$LOG"
+				STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -y "\"${VIDEO_TYPE}\"" -e "\"${ID_FS_LABEL}\"" -b "true" -n "\"${HAS_NICE_TITLE}\"""
+				# STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -f "\"${MAINFEATURE}\"" -y "\"${VIDEO_TYPE}\"" -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -n "\"${HAS_NICE_TITLE}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""				
+				echo "Sending command ${STR}"
+				eval "${STR}" 2>> "$LOG"
+				eject "$DEVNAME"
+				# echo "Sending to video_rip queue" >> "$LOG"
+				# /opt/arm/video_rip.sh "$VIDEO_TITLE" "$HAS_NICE_TITLE" "$VIDEO_TYPE" "$LOG"
 			fi
 		else
 			umount "/mnt/$DEVNAME"
 			echo "identified udf as data" >> "$LOG"
 			/opt/arm/data_rip.sh
 			eject "$DEVNAME"
-
 		fi
 	else
 		echo "ARM_CHECK_UDF is false, assuming udf is video" >> "$LOG"

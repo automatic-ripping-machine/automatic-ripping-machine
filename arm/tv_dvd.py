@@ -8,8 +8,10 @@ import logging
 import time
 import shutil
 import requests
+import shlex
 import logger
 import notify
+import makemkv
 
 from config import cfg
 
@@ -21,6 +23,7 @@ def entry():
     parser.add_argument('-y', '--videotype', help='Video Type', required=True)
     parser.add_argument('-e', '--label', help='Label', required=True)
     parser.add_argument('-n', '--hasnicetitle', help="Has Nice Title", required=False)
+    parser.add_argument('-b', '--isbluray', help="Is Bluray", default="false", required=False)
 
 
     return parser.parse_args()
@@ -50,15 +53,14 @@ def handbrake_mainfeature(basepath, logfile):
     filename = os.path.join(basepath, args.videotitle + ".mkv")
     filepathname = os.path.join(basepath, filename)
 
-    logging.info("Ripping title Mainfeature to " + filepathname)
+    logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
 
-    cmd = 'nice {0} -i "{1}" -o "{2}" --main-feature --preset "{3}" {4}>> {5}'.format(
+    cmd = 'nice {0} -i {1} -o {2} --main-feature --preset "{3}" {4}'.format(
         cfg['HANDBRAKE_CLI'],
-        args.devpath,
-        filepathname,
+        shlex.quote(args.devpath),
+        shlex.quote(filepathname),
         cfg['HB_PRESET'],
-        cfg['HB_ARGS'],
-        logfile
+        cfg['HB_ARGS']
         )
 
     logging.debug("Sending command: %s", (cmd))
@@ -107,7 +109,7 @@ def handbrake_all(basepath, logfile):
     #check for main title
     cmd = '{0} --input "{1}" --title 0 --scan |& grep -B 1 "Main Feature" | sed \'s/[^0-9]*//g\''.format(
         cfg['HANDBRAKE_CLI'],
-        args.devpath
+        shlex.quote(args.devpath)
         )
 
     # Get main title track #
@@ -143,16 +145,15 @@ def handbrake_all(basepath, logfile):
             filename = "title_" + str.zfill(str((item['ix'])), 2) + "." + cfg['DEST_EXT']
             filepathname = os.path.join(basepath, filename)
 
-            logging.info("Ripping title " + str((item['ix'])) + " to " + filepathname)
+            logging.info("Ripping title " + str((item['ix'])) + " to " + shlex.quote(filepathname))
 
-            cmd = 'nice {0} -i "{1}" -o "{2}" --preset "{3}" -t {4} {5}>> {6}'.format(
+            cmd = 'nice {0} -i "{1}" -o "{2}" --preset "{3}" -t {4} {5}'.format(
                 cfg['HANDBRAKE_CLI'],
-                args.devpath,
-                filepathname,
+                shlex.quote(args.devpath),
+                shlex.quote(filepathname),
                 cfg['HB_PRESET'],
                 str(item['ix']),
-                cfg['HB_ARGS'],
-                logfile
+                cfg['HB_ARGS']
                 )
 
             logging.debug("Sending command: %s", (cmd))
@@ -238,13 +239,12 @@ def move_files(basepath, filename, ismainfeature=False):
 
 def main(logfile):
     """main dvd processing function"""
-    logging.info("Starting DVD processing")
+    logging.info("Starting Disc processing")
 
     notify.notify("ARM notification","Found disc: " + args.videotitle + ". Video type is " + args.videotype + ". Main Feature is " + cfg['MAINFEATURE'] + ".")
 
     #get filesystem in order
-    ts = round(time.time() * 100)
-    basepath = os.path.join(cfg['ARMPATH'], args.label + "_" + str(ts))
+    basepath = os.path.join(cfg['ARMPATH'], args.videotitle)
 
     if not os.path.exists(basepath):
         try:
@@ -253,11 +253,31 @@ def main(logfile):
             logging.error("Couldn't create the base file path: " + basepath + " Probably a permissions error")
             err = "Couldn't create the base file path: " + basepath + " Probably a permissions error"
             sys.exit(err)
+    else:
+        ts = round(time.time() * 100)
+        basepath = os.path.join(cfg['ARMPATH'], args.videotitle + "_" + str(ts))
+        try:
+            os.makedirs(basepath)
+        except OSError:
+            logging.error("Couldn't create the base file path: " + basepath + " Probably a permissions error")
+            err = "Couldn't create the base file path: " + basepath + " Probably a permissions error"
+            sys.exit(err)
+
+    if args.isbluray == "true":
+        #send to makemkv for ripping
+        if cfg['RIPMETHOD'] == "backup":
+            #backup method
+            src = makemkv.makemkv(logfile, args.devpath, args.videotitle)
+            args.devpath = src
+        # else:
+            #currently do nothing
 
     if args.videotype == "movie" and cfg['MAINFEATURE'] == "true":
         handbrake_mainfeature(basepath, logfile)
     else:
         handbrake_all(basepath, logfile)
+
+    shutil.rmtree(src)
 
     notify.notify("ARM notification", "DVD: " + args.videotitle + "processing complete.")
 

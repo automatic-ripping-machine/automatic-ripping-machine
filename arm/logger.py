@@ -30,4 +30,4 @@ def setuplogging():
     logging.basicConfig(filename=logfull, format='[%(asctime)s] ARM: %(levelname)s %(message)s', \
     datefmt='%Y-%m-%d %H:%M:%S', level=logging.INFO)
 
-    return  logfile
+    return  logfull
