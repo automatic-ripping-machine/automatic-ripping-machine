@@ -158,18 +158,18 @@ EMBY_PASSWORD=""
 #############################
 
 # Pushbullet API Key
-# Leave empty or comment out to disable Pushbullet notifications
+# Leave empty to disable Pushbullet notifications
 PB_KEY=""
 
 # IFTTT API KEY
-# Leave empty or comment out to disable IFTTT notifications
+# Leave empty to disable IFTTT notifications
 # IFTTT_KEY=""
 
 # IFTTT Event Name
 IFTTT_EVENT="arm_event"
 
 # Pushover API User and Application Key
-# Leave User key empty or comment out to disable Pushover notifications
+# Leave User key empty to disable Pushover notifications
 PO_USER_KEY=""
 PO_APP_KEY=""
 

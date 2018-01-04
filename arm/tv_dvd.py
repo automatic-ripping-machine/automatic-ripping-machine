@@ -12,6 +12,7 @@ import shlex
 import logger
 import notify
 import makemkv
+import handbrake
 
 from config import cfg
 
@@ -46,143 +47,143 @@ def log_params(logfile):
     logging.info("MEDIA_DIR: " + cfg['MEDIA_DIR'])
     logging.info("*** End of dvd parameters ***")
 
-def handbrake_mainfeature(basepath, logfile):
-    """process dvd with mainfeature enabled"""
-    logging.info("Starting DVD Movie Mainfeature processing")
+# def handbrake_mainfeature(basepath, logfile):
+#     """process dvd with mainfeature enabled"""
+#     logging.info("Starting DVD Movie Mainfeature processing")
 
-    filename = os.path.join(basepath, args.videotitle + ".mkv")
-    filepathname = os.path.join(basepath, filename)
+#     filename = os.path.join(basepath, args.videotitle + ".mkv")
+#     filepathname = os.path.join(basepath, filename)
 
-    logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
+#     logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
 
-    cmd = 'nice {0} -i {1} -o {2} --main-feature --preset "{3}" {4}'.format(
-        cfg['HANDBRAKE_CLI'],
-        shlex.quote(args.devpath),
-        shlex.quote(filepathname),
-        cfg['HB_PRESET'],
-        cfg['HB_ARGS']
-        )
+#     cmd = 'nice {0} -i {1} -o {2} --main-feature --preset "{3}" {4}'.format(
+#         cfg['HANDBRAKE_CLI'],
+#         shlex.quote(args.devpath),
+#         shlex.quote(filepathname),
+#         cfg['HB_PRESET'],
+#         cfg['HB_ARGS']
+#         )
 
-    logging.debug("Sending command: %s", (cmd))
+#     logging.debug("Sending command: %s", (cmd))
 
-    try:
-        hb = subprocess.check_output(
-            cmd,
-            shell=True
-        ).decode("utf-8")
-    except subprocess.CalledProcessError as hb_error:
-        err = "Call to hadnbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
-        logging.error(err)
-        sys.exit(err)
+#     try:
+#         hb = subprocess.check_output(
+#             cmd,
+#             shell=True
+#         ).decode("utf-8")
+#     except subprocess.CalledProcessError as hb_error:
+#         err = "Call to hadnbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
+#         logging.error(err)
+#         sys.exit(err)
 
-    move_files(basepath, filename, True)
+#     move_files(basepath, filename, True)
 
-    try:
-        os.rmdir(basepath)
-    except OSError:
-        pass
+#     try:
+#         os.rmdir(basepath)
+#     except OSError:
+#         pass
         
-    scan_emby()
+#     scan_emby()
 
-def handbrake_all(basepath, logfile):
-    """Process all titles on the dvd"""
+# def handbrake_all(basepath, logfile):
+#     """Process all titles on the dvd"""
 
-    # get title info
-    try:
-        d = subprocess.check_output(["lsdvd", '-Oy', args.devpath]).decode("utf-8")
-    except subprocess.CalledProcessError as derror:
-        print("Call to lsdvd failed with code: " + str(derror.returncode), derror.output)
-        err = "Aborting.  Call to lsdvd failed with code: " + str(derror.returncode), derror.output
-        sys.exit(err)
+#     # get title info
+#     try:
+#         d = subprocess.check_output(["lsdvd", '-Oy', args.devpath]).decode("utf-8")
+#     except subprocess.CalledProcessError as derror:
+#         print("Call to lsdvd failed with code: " + str(derror.returncode), derror.output)
+#         err = "Aborting.  Call to lsdvd failed with code: " + str(derror.returncode), derror.output
+#         sys.exit(err)
 
-    data = d.replace("lsdvd = ", "", 1)
-    info = eval(data, {})
-    # print(info['track'])
+#     data = d.replace("lsdvd = ", "", 1)
+#     info = eval(data, {})
+#     # print(info['track'])
 
-    total = 0
-    for index, item in enumerate(info['track']):
-        if item['ix'] > total:
-            total = item['ix']
+#     total = 0
+#     for index, item in enumerate(info['track']):
+#         if item['ix'] > total:
+#             total = item['ix']
 
-    logging.info("Found " + str(total) + " tracks.")
+#     logging.info("Found " + str(total) + " tracks.")
 
-    #check for main title
-    cmd = '{0} --input "{1}" --title 0 --scan |& grep -B 1 "Main Feature" | sed \'s/[^0-9]*//g\''.format(
-        cfg['HANDBRAKE_CLI'],
-        shlex.quote(args.devpath)
-        )
+#     #check for main title
+#     cmd = '{0} --input "{1}" --title 0 --scan |& grep -B 1 "Main Feature" | sed \'s/[^0-9]*//g\''.format(
+#         cfg['HANDBRAKE_CLI'],
+#         shlex.quote(args.devpath)
+#         )
 
-    # Get main title track #
-    if args.hasnicetitle == "true":
-        try:
-            mt_track = subprocess.check_output(
-                cmd,
-                executable="/bin/bash",
-                shell=True
-            ).decode("utf-8")
-            logging.info("Maintitle track is #" + mt_track)
-        except subprocess.CalledProcessError as mt_error:
-            err = "Attempt to retrieve maintitle track number from Handbrake failed with code: " + str(mt_error.returncode) + "(" + str(mt_error.output) + ")"
-            logging.error(err)
-    else:
-        mt_track = 0
+#     # Get main title track #
+#     if args.hasnicetitle == "true":
+#         try:
+#             mt_track = subprocess.check_output(
+#                 cmd,
+#                 executable="/bin/bash",
+#                 shell=True
+#             ).decode("utf-8")
+#             logging.info("Maintitle track is #" + mt_track)
+#         except subprocess.CalledProcessError as mt_error:
+#             err = "Attempt to retrieve maintitle track number from Handbrake failed with code: " + str(mt_error.returncode) + "(" + str(mt_error.output) + ")"
+#             logging.error(err)
+#     else:
+#         mt_track = 0
 
-    mt_track = str(mt_track).strip()
+#     mt_track = str(mt_track).strip()
 
-    for index, item in enumerate(info['track']):
-        if item['length'] < int(cfg['MINLENGTH']):
-            #too short
-            logging.info("Track #" + str(item['ix']) + " of " + str(total) + ". Length (" + str(item['length']) + \
-            ") is less than minimum length (" + cfg['MINLENGTH'] + ").  Skipping")
-        elif item['length'] > int(cfg['MAXLENGTH']):
-            #too long
-            logging.info("Track #" + str(item['ix']) +" of " + str(total) + ". Length (" + str(item['length']) + \
-            ") is greater than maximum length (" + cfg['MAXLENGTH'] + ").  Skipping")
-        else:
-            #just right
-            logging.info("Processing track #" + str(item['ix']) + " of " + str(total) + ". Length is " + str(item['length']) + " seconds.")
+#     for index, item in enumerate(info['track']):
+#         if item['length'] < int(cfg['MINLENGTH']):
+#             #too short
+#             logging.info("Track #" + str(item['ix']) + " of " + str(total) + ". Length (" + str(item['length']) + \
+#             ") is less than minimum length (" + cfg['MINLENGTH'] + ").  Skipping")
+#         elif item['length'] > int(cfg['MAXLENGTH']):
+#             #too long
+#             logging.info("Track #" + str(item['ix']) +" of " + str(total) + ". Length (" + str(item['length']) + \
+#             ") is greater than maximum length (" + cfg['MAXLENGTH'] + ").  Skipping")
+#         else:
+#             #just right
+#             logging.info("Processing track #" + str(item['ix']) + " of " + str(total) + ". Length is " + str(item['length']) + " seconds.")
 
-            filename = "title_" + str.zfill(str((item['ix'])), 2) + "." + cfg['DEST_EXT']
-            filepathname = os.path.join(basepath, filename)
+#             filename = "title_" + str.zfill(str((item['ix'])), 2) + "." + cfg['DEST_EXT']
+#             filepathname = os.path.join(basepath, filename)
 
-            logging.info("Ripping title " + str((item['ix'])) + " to " + shlex.quote(filepathname))
+#             logging.info("Ripping title " + str((item['ix'])) + " to " + shlex.quote(filepathname))
 
-            cmd = 'nice {0} -i "{1}" -o "{2}" --preset "{3}" -t {4} {5}'.format(
-                cfg['HANDBRAKE_CLI'],
-                shlex.quote(args.devpath),
-                shlex.quote(filepathname),
-                cfg['HB_PRESET'],
-                str(item['ix']),
-                cfg['HB_ARGS']
-                )
+#             cmd = 'nice {0} -i "{1}" -o "{2}" --preset "{3}" -t {4} {5}'.format(
+#                 cfg['HANDBRAKE_CLI'],
+#                 shlex.quote(args.devpath),
+#                 shlex.quote(filepathname),
+#                 cfg['HB_PRESET'],
+#                 str(item['ix']),
+#                 cfg['HB_ARGS']
+#                 )
 
-            logging.debug("Sending command: %s", (cmd))
+#             logging.debug("Sending command: %s", (cmd))
 
-            try:
-                hb = subprocess.check_output(
-                    cmd,
-                    shell=True
-                ).decode("utf-8")
-            except subprocess.CalledProcessError as hb_error:
-                err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
-                logging.error(err)
-                return
-                # sys.exit(err)
+#             try:
+#                 hb = subprocess.check_output(
+#                     cmd,
+#                     shell=True
+#                 ).decode("utf-8")
+#             except subprocess.CalledProcessError as hb_error:
+#                 err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
+#                 logging.error(err)
+#                 return
+#                 # sys.exit(err)
 
-            # move file
-            if args.videotype == "movie":
-                logging.debug("mt_track: " + mt_track + " List track: " + str(item['ix']))
-                if mt_track == str(item['ix']):
-                    move_files(basepath, filename, True)
-                else:
-                    move_files(basepath, filename, False)
+#             # move file
+#             if args.videotype == "movie":
+#                 logging.debug("mt_track: " + mt_track + " List track: " + str(item['ix']))
+#                 if mt_track == str(item['ix']):
+#                     move_files(basepath, filename, True)
+#                 else:
+#                     move_files(basepath, filename, False)
 
-    try:
-        os.rmdir(basepath)
-    except OSError:
-        pass
+#     try:
+#         os.rmdir(basepath)
+#     except OSError:
+#         pass
 
-    scan_emby()
+#     scan_emby()
 
 
 def scan_emby():
@@ -198,16 +199,17 @@ def scan_emby():
     except requests.exceptions.HTTPError:
         logging.error("Emby Library Scan request failed with status code: " + str(req.status_code))
 
-def move_files(basepath, filename, ismainfeature=False):
+def move_files(basepath, filename, hasnicetitle, videotitle, ismainfeature=False):
     """Move files into final media directory
     basepath = path to source directory
     filename = name of file to be moved
+    hasnicetitle = hasnicetitle value
     ismainfeature = True/False"""
 
-    logging.debug("Arguments: " + basepath + " : " + filename + " : " + str(ismainfeature))
+    logging.debug("Arguments: " + basepath + " : " + filename + " : " + hasnicetitle + " : " + str(ismainfeature))
 
-    if args.hasnicetitle == "true":
-        m_path = os.path.join(cfg['MEDIA_DIR'] + args.videotitle)
+    if hasnicetitle == "true":
+        m_path = os.path.join(cfg['MEDIA_DIR'] + videotitle)
 
         if not os.path.exists(m_path):
             logging.info("Creating base title directory: " + m_path)
@@ -217,7 +219,7 @@ def move_files(basepath, filename, ismainfeature=False):
             logging.info("Track is the Main Title.  Moving '" + filename + "' to " + m_path)
 
             try:
-                shutil.move(os.path.join(basepath, filename), os.path.join(m_path, args.videotitle + "." + cfg['DEST_EXT']))
+                shutil.move(os.path.join(basepath, filename), os.path.join(m_path, videotitle + "." + cfg['DEST_EXT']))
             except shutil.Error:
                 logging.error("Unable to move '" + filename + "' to " + m_path)
         else:
@@ -241,7 +243,7 @@ def main(logfile):
     """main dvd processing function"""
     logging.info("Starting Disc processing")
 
-    notify.notify("ARM notification","Found disc: " + args.videotitle + ". Video type is " + args.videotype + ". Main Feature is " + cfg['MAINFEATURE'] + ".")
+    notify.notify("ARM notification", "Found disc: " + args.videotitle + ". Video type is " + args.videotype + ". Main Feature is " + cfg['MAINFEATURE'] + ".")
 
     #get filesystem in order
     basepath = os.path.join(cfg['ARMPATH'], args.videotitle)
@@ -273,21 +275,23 @@ def main(logfile):
             #currently do nothing
 
     if args.videotype == "movie" and cfg['MAINFEATURE'] == "true":
-        handbrake_mainfeature(basepath, logfile)
+        handbrake.handbrake_mainfeature(args.devpath, basepath, args.videotitle, logfile, args.hasnicetitle)
     else:
-        handbrake_all(basepath, logfile)
+        # handbrake_all(basepath, logfile)
+        handbrake.handbrake_all(args.devpath, basepath, args.videotitle, logfile, args.hasnicetitle, args.videotype)
 
-    shutil.rmtree(src)
+    if args.isbluray == "true":
+        shutil.rmtree(src)
 
     notify.notify("ARM notification", "DVD: " + args.videotitle + "processing complete.")
 
-    logging.info("DVD processing comlete")
+    logging.info("Transcoding comlete")
 
+if __name__ == "__main__":
+    args = entry()
 
-args = entry()
+    logfile = logger.setuplogging()
 
-logfile = logger.setuplogging()
+    log_params(logfile)
 
-log_params(logfile)
-
-main(logfile)
+    main(logfile)

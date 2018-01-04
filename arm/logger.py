@@ -28,6 +28,6 @@ def setuplogging():
         logfull = cfg["LOGPATH"] + "/" + logfile
 
     logging.basicConfig(filename=logfull, format='[%(asctime)s] ARM: %(levelname)s %(message)s', \
-    datefmt='%Y-%m-%d %H:%M:%S', level=logging.INFO)
+    datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
 
     return  logfull
