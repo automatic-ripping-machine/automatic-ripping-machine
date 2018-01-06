@@ -10,7 +10,8 @@ import requests
 import argparse
 import time
 import logger
-import tv_dvd
+import main
+import utils
 
 from config import cfg
 
@@ -44,15 +45,13 @@ def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle):
         sys.exit(err)
 
     if hasnicetitle:
-        tv_dvd.move_files(basepath, filename, hasnicetitle, videotitle, True)
-        tv_dvd.scan_emby()
+        utils.move_files(basepath, filename, hasnicetitle, videotitle, True)
+        utils.scan_emby()
 
     try:
         os.rmdir(basepath)
     except OSError:
         pass
-        
-    
 
 def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotype):
     """Process all titles on the dvd"""
@@ -95,51 +94,17 @@ def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotyp
             t = prevline.split()
             mt_track = re.sub('[:]', '', (t[2]))
             logging.debug("Line found is: " + line)
-            logging.info("Main Feature title is #" + mt_track)
+            logging.info("Main Feature is title #" + mt_track)
         prevline = line
 
     if titles == 0:
         raise ValueError("Couldn't get total number of tracks","handbrake_all")
 
-    #check for main title
-    # logging.debug("Getting main title")
-    # cmd = '{0} --input "{1}" --title 0 --scan |& grep -B 1 "Main Feature" | sed \'s/[^0-9]*//g\''.format(
-    #     cfg['HANDBRAKE_CLI'],
-    #     shlex.quote(srcpath)
-    #     )
-
-    # logging.debug("Sending command: %s", (cmd))
-
-    # Get main title track #
-    # mt_track = 0
-    # if hasnicetitle == "true":
-    #     prevline = ""
-    #     for line in hb.stderr.decode('utf-8').splitlines():
-    #         if(re.search("Main Feature", line)) != None:
-    #             t = prevline.split()
-    #             mt_track = re.sub('[:]', '', (t[2]))
-    #             logging.debug("Line found is: " + line)
-    #             logging.info("Found " + titles.strip() + " titles")
-    #             prevline = line
-
-    #     try:
-    #         mt_track = subprocess.check_output(
-    #             cmd,
-    #             executable="/bin/bash",
-    #             shell=True
-    #         ).decode("utf-8")
-    #         logging.info("Maintitle track is #" + mt_track.strip())
-    #     except subprocess.CalledProcessError as mt_error:
-    #         err = "Attempt to retrieve maintitle track number from Handbrake failed with code: " + str(mt_error.returncode) + "(" + str(mt_error.output) + ")"
-    #         logging.error(err)
-    # else:
-    #     mt_track = 0
-
     mt_track = str(mt_track).strip()
 
     for title in range(1, int(titles) + 1):
+        
         # get length
-
         tlength = get_title_length(title, srcpath)
         
         if tlength < int(cfg['MINLENGTH']):
@@ -186,12 +151,12 @@ def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotyp
             if videotype == "movie" and hasnicetitle:
                 logging.debug("mt_track: " + mt_track + " List track: " + str(title))
                 if mt_track == str(title):
-                    tv_dvd.move_files(basepath, filename, hasnicetitle, videotitle, True)
+                    utils.move_files(basepath, filename, hasnicetitle, videotitle, True)
                 else:
-                    tv_dvd.move_files(basepath, filename, hasnicetitle, videotitle, False)
+                    utils.move_files(basepath, filename, hasnicetitle, videotitle, False)
 
     if videotype == "movie" and hasnicetitle:
-        tv_dvd.scan_emby()
+        utils.scan_emby()
 
     try:
         os.rmdir(basepath)
@@ -232,7 +197,4 @@ def get_title_length(title, srcpath):
             seconds =  int(h) * 3600 + int(m) * 60 + int(s)
             return(seconds)
 
-# logging.basicConfig(filename="/opt/arm/logs/test.log", format='[%(asctime)s] ARM: %(levelname)s %(message)s', \
-#     datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
 
-# handbrake_all("/dev/sr0", "/opt/arm/logs/test.log", "mnt/media/ARM/movies/test/", "true", "movie")

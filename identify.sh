@@ -104,23 +104,23 @@ if [ "$ID_FS_TYPE" == "udf" ]; then
 
 			# if [ $VIDEO_TYPE = "series" ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
 			if [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then			
-				echo "Processing dvd.  Calling tv_dvd.py" >> "$LOG"
-				STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -y "\"${VIDEO_TYPE}\"" -e "\"${ID_FS_LABEL}\"" -n "\"${HAS_NICE_TITLE}\"""
-				# STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -f "\"${MAINFEATURE}\"" -y "\"${VIDEO_TYPE}\"" -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -n "\"${HAS_NICE_TITLE}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""				
+				echo "Processing dvd.  Calling main.py" >> "$LOG"
+				STR="/opt/arm/arm/main.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -y "\"${VIDEO_TYPE}\"" -e "\"${ID_FS_LABEL}\"" -n "\"${HAS_NICE_TITLE}\"""
+				# STR="/opt/arm/arm/main.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -f "\"${MAINFEATURE}\"" -y "\"${VIDEO_TYPE}\"" -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -n "\"${HAS_NICE_TITLE}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""				
 				echo "Sending command ${STR}"
 				eval "${STR}" 2>> "$LOG"
 				eject "$DEVNAME"
 			# elif
 			# 	[ "$VIDEO_TYPE" = "unknown" ] && [ "$DEFAULT_VIDEOTYPE" == "series" ] && [ "$ID_CDROM_MEDIA_DVD" = "1" ]; then
-			# 	echo "Video type is 'unknown' and default video type is series.  Processing TV series.  Calling tv_dvd.py" >> "$LOG"
-			# 	STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -f "\"${MAINFEATURE}\"" -y "\"${VIDEO_TYPE}\""  -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""
+			# 	echo "Video type is 'unknown' and default video type is series.  Processing TV series.  Calling main.py" >> "$LOG"
+			# 	STR="/opt/arm/arm/main.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -f "\"${MAINFEATURE}\"" -y "\"${VIDEO_TYPE}\""  -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""
 			# 	echo "Sending command ${STR}"
 			# 	eval "${STR}" 2>> "$LOG"
 			# 	eject "$DEVNAME"
 			elif [ "$RIPMETHOD" = "backup" ]; then
-				echo "Processing bluray with backup method.  Calling tv_dvd.py" >> "$LOG"
-				STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -y "\"${VIDEO_TYPE}\"" -e "\"${ID_FS_LABEL}\"" -b \"true\" -n "\"${HAS_NICE_TITLE}\"""
-				# STR="/opt/arm/arm/tv_dvd.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -f "\"${MAINFEATURE}\"" -y "\"${VIDEO_TYPE}\"" -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -n "\"${HAS_NICE_TITLE}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""				
+				echo "Processing bluray with backup method.  Calling main.py" >> "$LOG"
+				STR="/opt/arm/arm/main.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -y "\"${VIDEO_TYPE}\"" -e "\"${ID_FS_LABEL}\"" -b \"true\" -n "\"${HAS_NICE_TITLE}\"""
+				# STR="/opt/arm/arm/main.py -d "\"${DEVNAME}\"" -t "\"${VIDEO_TITLE}\"" -f "\"${MAINFEATURE}\"" -y "\"${VIDEO_TYPE}\"" -m ${MINLENGTH} -x ${MAXLENGTH} -a "\"${ARMPATH}\"" -r "\"${RAWPATH}\"" -e "\"${ID_FS_LABEL}\"" -b "\"${HANDBRAKE_CLI}\"" -p "\"${HB_PRESET}\"" -n "\"${HAS_NICE_TITLE}\"" -g "\"${HB_ARGS}\"" -l "\"${LOG}\"""				
 				echo "Sending command ${STR}"
 				eval "${STR}" 2>> "$LOG"
 				eject "$DEVNAME"

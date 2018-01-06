@@ -4,7 +4,7 @@ import sys
 import argparse
 import urllib
 import os
-import xmltodict
+# import xmltodict
 import json
 import re
 
@@ -43,7 +43,6 @@ def getdvdtype():
         year = ""
 
     dvd_type = callwebservice(omdb_api_key, dvd_title_clean, year)
-    # print (dvd_type)
 
     # handle failures
     # this is kind of kludgy, but it kind of work...
