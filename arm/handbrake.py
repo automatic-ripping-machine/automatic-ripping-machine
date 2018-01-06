@@ -44,9 +44,8 @@ def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle):
         logging.error(err)
         sys.exit(err)
 
-    if hasnicetitle:
-        utils.move_files(basepath, filename, hasnicetitle, videotitle, True)
-        utils.scan_emby()
+    utils.move_files(basepath, filename, hasnicetitle, videotitle, True)
+    utils.scan_emby()
 
     try:
         os.rmdir(basepath)
@@ -148,7 +147,7 @@ def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotyp
                 # sys.exit(err)
 
             # move file
-            if videotype == "movie" and hasnicetitle:
+            if videotype == "movie":
                 logging.debug("mt_track: " + mt_track + " List track: " + str(title))
                 if mt_track == str(title):
                     utils.move_files(basepath, filename, hasnicetitle, videotitle, True)

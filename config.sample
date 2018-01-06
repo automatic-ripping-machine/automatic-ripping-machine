@@ -35,6 +35,12 @@ RAWPATH="/mnt/media/ARM/raw/"
 # Destination for final file.  Only used for movies that are positively identified
 MEDIA_DIR="/mnt/media/ARM/Media/Movies/"
 
+# Movie subdirectory name for "extras"
+# Valid names are dependent on your media server
+# For Emby see https://github.com/MediaBrowser/Wiki/wiki/Movie%20naming#user-content-movie-extras
+# For Plex see https://support.plex.tv/hc/en-us/articles/200220677
+EXTRAS_SUB="extras"
+
 # Path to directory to hold log files
 # Make sure to include trailing /
 LOGPATH="/opt/arm/logs/"
@@ -105,7 +111,7 @@ HANDBRAKE_CLI=HandBrakeCLI
 # files.  For normal DVDs, ARM will bypass MakeMKV and hand off the dvd directly to HandBrake.  This will require 
 # libdvdcss2 be installed.
 # NOTE: For the most part, HandBrake correctly identifies the main feature on movie DVD's, although it is not perfect. 
-# However, it does not handle tv shows well at all.  You will likely want this value to be false when ripping tv shows.
+# However, it does not handle tv shows well at all.  This setting is only used when the video is identified as a movie.
 MAINFEATURE=false
 
 # Additional HandBrake arguments.  
@@ -116,7 +122,8 @@ HB_ARGS="--subtitle scan -F"
 #####################
 
 # Set this setting to true, to enable Plex Extras support
-PLEX_SUPPORT=false
+# This setting is no longer needed.  See EXTRAS_SUB above.
+# PLEX_SUPPORT=false
 
 #####################
 ## Emby Parameters ##
