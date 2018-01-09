@@ -48,64 +48,10 @@ def log_params(logfile):
     logging.info("extras_sub" + cfg['EXTRAS_SUB'])
     logging.info("isbluray: " + args.isbluray)
     logging.info("emby_refresh: " + cfg['EMBY_REFRESH'])
-    # logging.info("plex_support: " + cfg['PLEX_SUPPORT'])
     logging.info("emby_subfolders: " + cfg['EMBY_SUBFOLDERS'])
     logging.info("emby_server: " + cfg['EMBY_SERVER'])
     logging.info("emby_port: " + cfg['EMBY_PORT'])
     logging.info("*** End of dvd parameters ***")
-
-# def scan_emby():
-#     """Trigger a media scan on Emby"""
-
-#     logging.info("Sending Emby library scan request")
-#     url = "http://" + cfg['EMBY_SERVER'] + ":" + cfg['EMBY_PORT'] + "/Library/Refresh?api_key=" + cfg['EMBY_API_KEY']
-#     try:
-#         req = requests.post(url)
-#         if req.status_code > 299:
-#             req.raise_for_status()
-#         logging.info("Emby Library Scan request successful")
-#     except requests.exceptions.HTTPError:
-#         logging.error("Emby Library Scan request failed with status code: " + str(req.status_code))
-
-# def move_files(basepath, filename, hasnicetitle, videotitle, ismainfeature=False):
-#     """Move files into final media directory
-#     basepath = path to source directory
-#     filename = name of file to be moved
-#     hasnicetitle = hasnicetitle value
-#     ismainfeature = True/False"""
-
-#     logging.debug("Arguments: " + basepath + " : " + filename + " : " + hasnicetitle + " : " + str(ismainfeature))
-
-#     if hasnicetitle == "true":
-#         m_path = os.path.join(cfg['MEDIA_DIR'] + videotitle)
-
-#         if not os.path.exists(m_path):
-#             logging.info("Creating base title directory: " + m_path)
-#             os.makedirs(m_path)
-
-#         if ismainfeature is True:
-#             logging.info("Track is the Main Title.  Moving '" + filename + "' to " + m_path)
-
-#             try:
-#                 shutil.move(os.path.join(basepath, filename), os.path.join(m_path, videotitle + "." + cfg['DEST_EXT']))
-#             except shutil.Error:
-#                 logging.error("Unable to move '" + filename + "' to " + m_path)
-#         else:
-#             e_path = os.path.join(m_path, "extras")
-
-#             logging.info("Creating extras directory " + e_path)
-#             if not os.path.exists(e_path):
-#                 os.makedirs(e_path)
-
-#             logging.info("Moving '" + filename + "' to " + e_path)
-
-#             try:
-#                 shutil.move(os.path.join(basepath, filename), os.path.join(e_path, filename))
-#             except shutil.Error:
-#                 logging.error("Unable to move '" + filename + "' to " + e_path)
-
-#     else:
-#         logging.info("hasnicetitle is false.  Not moving files.")
 
 def main(logfile):
     """main dvd processing function"""
