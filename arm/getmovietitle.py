@@ -11,6 +11,7 @@ import sys
 import re
 import logging
 import logger
+import classes
 
 
 def entry():
@@ -20,10 +21,13 @@ def entry():
 
     return parser.parse_args()
 
-def getdvdtitle():
+def getdvdtitle(disc):
     """ Calculates CRC64 for the DVD and calls Windows Media
         Metaservices and returns the Title and year of DVD """
-    crc64 = pydvdid.compute(args.path)
+    logging.debug("Entering getmovietitle.getdvdtitle. Disc: " + str(disc))
+
+    crc64 = pydvdid.compute(str(disc.mountpoint))
+    # crc64 = pydvdid.compute("/mnt/dev/sr1")
     logging.info("DVD CRC64 hash is: " + str(crc64))
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
     logging.debug(urlstring)
@@ -36,17 +40,18 @@ def getdvdtitle():
     dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
 
     # title + release year
-    return dvd_title + " (" + dvd_release_date.split()[0] + ")"
+    # return dvd_title + " (" + dvd_release_date.split()[0] + ")"
+    return[dvd_title, dvd_release_date]
 
-def getbluraytitle():
+def getbluraytitle(disc):
     """ Get's Blu-Ray title by parsing XML in bdmt_eng.xml """
-    with open(args.path + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
+    with open(disc.mountpoint + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
         doc = xmltodict.parse(xml_file.read())
 
 
     bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
 
-    bluray_modified_timestamp = os.path.getmtime(args.path + '/BDMV/META/DL/bdmt_eng.xml')
+    bluray_modified_timestamp = os.path.getmtime(disc.mountpoint + '/BDMV/META/DL/bdmt_eng.xml')
     bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))
 
     bluray_title = unicodedata.normalize('NFKD', bluray_title).encode('ascii', 'ignore').decode()
@@ -55,7 +60,7 @@ def getbluraytitle():
     bluray_title = bluray_title.replace(' - BLU-RAYTM', '')
     bluray_title = bluray_title.replace(' - BLU-RAY', '')
     bluray_title = bluray_title.replace(' - Blu-ray', '')
-    return bluray_title + " (" + bluray_year + ")"
+    return (bluray_title, bluray_year)
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
@@ -67,16 +72,22 @@ def clean_for_filename(string):
 
 #pylint: disable=C0103
 
-args = entry()
+def main(disc):
+    # args = entry()
 
-logfile = logger.setuplogging()
-
-try:
-    disc_title = clean_for_filename(getdvdtitle())
-    logging.info("getmovietitle dvd title found: " + disc_title)
-except:
-    disc_title = clean_for_filename(getbluraytitle())
-    logging.info("getmovietitle bluray title found: " + disc_title)
-    print(disc_title)
-else:
-    print(disc_title)
+    # logfile = logger.setuplogging()
+    disc.hasnicetitle = False
+    try:
+        disc_title, disc_year = getdvdtitle(disc)
+        disc_title = clean_for_filename(disc_title)
+        logging.info("getmovietitle dvd title found: " + disc_title + " : " + disc_year)
+    except:
+        disc_title, disc_year = getbluraytitle(disc)
+        disc_title = clean_for_filename(disc_title)
+        logging.info("getmovietitle bluray title found: " + disc_title + " : " + disc_year)
+        # print(disc_title)
+    else:
+        logging.info(disc_title + " : " + disc_year)
+        if disc_title:
+            disc.hasnicetitle = True
+        return(disc_title, disc_year)

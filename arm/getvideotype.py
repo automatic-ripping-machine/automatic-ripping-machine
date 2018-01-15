@@ -5,6 +5,7 @@ import argparse
 import urllib
 import os
 import xmltodict
+import logging
 import json
 import re
 
@@ -18,26 +19,30 @@ def entry():
 
     return parser.parse_args()
 
-def getdvdtype():
+def getdvdtype(disc):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
-    dvd_title = args.title
+
+    dvd_title = disc.videotitle
+    year = disc.videoyear
     needs_new_year = "false"
     omdb_api_key = cfg['OMDB_API_KEY']
 
-    try:
-        year = dvd_title[(dvd_title.rindex('(')):len(dvd_title)]
-    except:
-        year = ""
-    else:
-        year = re.sub('[()]', '', year)
+    logging.debug("Title: " + dvd_title + " | Year: " + year)
 
-    try:
-        dvd_title = dvd_title[0:(dvd_title.rindex('('))].strip()
-    except:
-        dvd_title_clean = cleanupstring(dvd_title)
-    else:
-        dvd_title_clean = cleanupstring(dvd_title)
+    # try:
+    #     year = dvd_title[(dvd_title.rindex('(')):len(dvd_title)]
+    # except:
+    #     year = ""
+    # else:
+    #     year = re.sub('[()]', '', year)
+
+    # try:
+    #     dvd_title = dvd_title[0:(dvd_title.rindex('('))].strip()
+    # except:
+    #     dvd_title_clean = cleanupstring(dvd_title)
+    # else:
+    dvd_title_clean = cleanupstring(dvd_title)
 
     if year is None:
         year = ""
@@ -70,11 +75,13 @@ def getdvdtype():
                 dvd_type = callwebservice(omdb_api_key, dvd_title_clean)
         
     if needs_new_year == "true":
-        #pass the new year back to bash to handle
-        global new_year
-        return dvd_type + "#" + new_year
+    #     #pass the new year back to bash to handle
+    #     global new_year
+    #     return dvd_type + "#" + new_year
+        return (dvd_type, new_year)
     else:
-        return dvd_type
+    #     return dvd_type
+        return (dvd_type, year)
 
 def cleanupstring(string):
     # clean up title string to pass to OMDbapi.org
@@ -101,7 +108,10 @@ def callwebservice(omdb_api_key, dvd_title, year=""):
             new_year = doc['Year']
             return doc['Type']
 
-args = entry()
+def main(disc):
+    # args = entry()
 
-dvd_type = getdvdtype()
-print(dvd_type)
+    logging.debug("Entering getvideotype module")
+    dvd_type, year = getdvdtype(disc)
+    # print(dvd_type)
+    return(dvd_type, year)

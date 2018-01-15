@@ -6,17 +6,26 @@ import logging
 import subprocess
 import re
 import shlex
+import utils
 import requests
 import argparse
 import time
 import logger
 import main
-import utils
+
 
 from config import cfg
 
 def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle):
-    """process dvd with mainfeature enabled"""
+    """process dvd with mainfeature enabled.\n
+    srcpath = Path to source for HB (dvd or files)\n
+    basepath = Path where HB will save trancoded files\n
+    videotitle = Title of the source\n
+    logfile = Logfile for HB to redirect output to\n
+    hasnicetitle = Boolean as to if the title has been 'nicified'\n
+    
+    Returns nothing
+    """
     logging.info("Starting DVD Movie Mainfeature processing")
 
     filename = os.path.join(basepath, videotitle + ".mkv")
@@ -24,26 +33,30 @@ def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle):
 
     logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
 
-    cmd = 'nice {0} -i {1} -o {2} --main-feature --preset "{3}" {4}'.format(
+    cmd = 'nice {0} -i {1} -o {2} --main-feature --preset "{3}" {4} >> {5} 2>&1'.format(
         cfg['HANDBRAKE_CLI'],
         shlex.quote(srcpath),
         shlex.quote(filepathname),
         cfg['HB_PRESET'],
-        cfg['HB_ARGS']
+        cfg['HB_ARGS'],
+        logfile
         )
 
     logging.debug("Sending command: %s", (cmd))
 
-    try:
-        hb = subprocess.check_output(
-            cmd,
-            shell=True
-        ).decode("utf-8")
-    except subprocess.CalledProcessError as hb_error:
-        err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
-        logging.error(err)
-        sys.exit(err)
+    # try:
+    #     hb = subprocess.check_output(
+    #         cmd,
+    #         shell=True
+    #     ).decode("utf-8")
+    #     logging.info("Handbrake call successful")
+    # except subprocess.CalledProcessError as hb_error:
+    #     err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
+    #     logging.error(err)
+    #     sys.exit(err)
 
+    logging.debug("Handbrake processing complete")
+    logging.debug(basepath + ", " + filename + ", " + str(hasnicetitle) + ", " +  videotitle)
     utils.move_files(basepath, filename, hasnicetitle, videotitle, True)
     utils.scan_emby()
 
@@ -53,7 +66,16 @@ def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle):
         pass
 
 def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotype):
-    """Process all titles on the dvd"""
+    """Process all titles on the dvd\n
+    srcpath = Path to source for HB (dvd or files)\n
+    basepath = Path where HB will save trancoded files\n
+    videotitle = Title of the source\n
+    logfile = Logfile for HB to redirect output to\n
+    hasnicetitle = Boolean as to if the title has been 'nicified'\n
+    videotype = 'movie', 'series', etc\n
+    
+    Returns nothing
+    """
     logging.info("Starting BluRay/DVD transcoding - All titles")
 
     # get number of titles
@@ -123,7 +145,7 @@ def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotyp
 
             logging.info("Transcoding title " + str(title) + " to " + shlex.quote(filepathname))
 
-            cmd = 'nice {0} -i "{1}" -o {2} --preset "{3}" -t {4} {5}>> {6}'.format(
+            cmd = 'nice {0} -i "{1}" -o {2} --preset "{3}" -t {4} {5}>> {6} 2>&1'.format(
                 cfg['HANDBRAKE_CLI'],
                 shlex.quote(srcpath),
                 shlex.quote(filepathname),

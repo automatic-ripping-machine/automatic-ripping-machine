@@ -10,9 +10,16 @@ import shlex
 
 from config import cfg
 
-def makemkv(logfile, devpath="/dev/sr0", label="something went wrong"):
-    # Rip Blurays with MakeMKV
-    # logfile = logging.getLogger("logfile")
+def makemkv(logfile, devpath, label):
+    """ 
+    Rip Blurays with MakeMKV\n
+    logfile = Location of logfile to redirect MakeMKV logs to\n
+    devpath = Path to disc\n
+    label = Name of dvd to create subdirectory\n
+
+    Returns path to ripped files.
+    """
+
     logging.info("Starting MakeMKV rip. Method is " + cfg['RIPMETHOD'])
 
     # get MakeMKV disc number
@@ -36,7 +43,7 @@ def makemkv(logfile, devpath="/dev/sr0", label="something went wrong"):
 
     #get filesystem in order
     rawpath = os.path.join(cfg['RAWPATH'], label)
-    logging.info("rawpath is " + rawpath)
+    logging.info("Destination is " + rawpath)
 
     if not os.path.exists(rawpath):
         try:
@@ -72,10 +79,10 @@ def makemkv(logfile, devpath="/dev/sr0", label="something went wrong"):
         ).decode("utf-8")
         # print("mkv is: " + mkv)
     except subprocess.CalledProcessError as mdisc_error:
-        err = "Call to handbrake failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
+        err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
         logging.error(err)
         # print("Error: " + mkv)
-        return
+        return None
 
     os.system("eject " + devpath)
 

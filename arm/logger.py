@@ -6,26 +6,28 @@ import logging
 
 from config import cfg
 
-def setuplogging():
+def setuplogging(disc):
     """Setup logging"""
-
-    # with open("/opt/parm/docs/config.yaml", "r") as f:
-    #     cfg = yaml.load(f)
-
-    # print(cfg['LOGPATH'])
 
     if not os.path.exists(cfg['LOGPATH']):
         os.makedirs(cfg['LOGPATH'])
 
-    if str(os.getenv('ID_FS_LABEL')) == "None":
+    if disc.label == None:
         logfile = "empty.log"
     else:
-        logfile = str(os.getenv('ID_FS_LABEL')) + ".log"
+        logfile = disc.label + ".log"
 
     if cfg["LOGPATH"][-1:] == "/":
         logfull = cfg["LOGPATH"] + logfile
     else:
         logfull = cfg["LOGPATH"] + "/" + logfile
+
+    # logging = logging.getLogger("ARM")
+    # fh = logging.FileHandler(logfull)
+    # formatter = logging.formatter('[%(asctime)s] %(name)s: %(levelname)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    # fh.setFormatter(formatter)
+    # logging.addHandler(fh)
+
 
     logging.basicConfig(filename=logfull, format='[%(asctime)s] ARM: %(levelname)s %(message)s', \
     datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)

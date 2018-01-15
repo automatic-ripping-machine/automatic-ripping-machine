@@ -36,6 +36,8 @@ FILESFOUND=( $(find "$LOGPATH" -mtime +"$LOGLIFE" -type f))
 echo "Deleting ${#FILESFOUND[@]} old log files: ${FILESFOUND[*]}" >> "$LOG"
 find "$LOGPATH" -mtime +"$LOGLIFE" -type f -delete
 
+echo "DEVNAME IS: $DEVNAME" >> "$LOG"
+
 # Set Home to home folder of user that is setup to run MakeMKV
 export HOME="/root/"
 
@@ -157,6 +159,6 @@ else
 	eject "$DEVNAME"
 fi
 
-rm "$DISC_INFO"
+# rm "$DISC_INFO"
 
 } >> "$LOG"
