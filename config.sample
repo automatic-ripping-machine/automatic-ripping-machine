@@ -45,6 +45,10 @@ EXTRAS_SUB="extras"
 # Make sure to include trailing /
 LOGPATH="/opt/arm/logs/"
 
+# Log level.  DEBUG, INFO, WARNING, ERROR, CRITICAL
+# The default is INFO
+LOGLEVEL="INFO"
+
 # How long to let log files live before deleting (in days)
 LOGLIFE=1
 

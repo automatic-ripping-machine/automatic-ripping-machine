@@ -142,6 +142,7 @@ if __name__ == "__main__":
     print (disc.label)
 
     logfile = logger.setuplogging(disc)
+    # log = logging.getLogger(__name__)
 
     if disc.label == None:
         logging.info("Drive appears to be empty.  Exiting ARM.")
@@ -152,4 +153,7 @@ if __name__ == "__main__":
     log_udev_params()
     # log_arm_params(disc)
 
-    main(logfile, disc)
+    try:
+        main(logfile, disc)
+    except Exception:
+        logging.exception("A fatal error has occured and ARM is exiting.  See traceback below for details.")

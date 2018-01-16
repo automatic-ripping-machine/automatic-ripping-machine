@@ -33,6 +33,7 @@ def notify(title, body):
 
 def scan_emby():
     """Trigger a media scan on Emby"""
+    # log = logging.getLogger(__name__)
 
     logging.info("Sending Emby library scan request")
     url = "http://" + cfg['EMBY_SERVER'] + ":" + cfg['EMBY_PORT'] + "/Library/Refresh?api_key=" + cfg['EMBY_API_KEY']
