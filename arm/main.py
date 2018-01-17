@@ -87,6 +87,7 @@ def main(logfile, disc):
     hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle))
 
     if not os.path.exists(hboutpath):
+        logging.debug("Creating directory: " + hboutpath)
         try:
             os.makedirs(hboutpath)
         except OSError:
@@ -127,7 +128,7 @@ def main(logfile, disc):
     if disc.disctype == "bluray":
         shutil.rmtree(mkvoutpath)
 
-    utils.notify("ARM notification", str(disc.videotitle) + "processing complete.")
+    utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
 
     logging.info("Transcoding comlete")
 

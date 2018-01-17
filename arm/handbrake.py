@@ -44,16 +44,16 @@ def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle):
 
     logging.debug("Sending command: %s", (cmd))
 
-    # try:
-    #     hb = subprocess.check_output(
-    #         cmd,
-    #         shell=True
-    #     ).decode("utf-8")
-    #     logging.info("Handbrake call successful")
-    # except subprocess.CalledProcessError as hb_error:
-    #     err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
-    #     logging.error(err)
-    #     sys.exit(err)
+    try:
+        hb = subprocess.check_output(
+            cmd,
+            shell=True
+        ).decode("utf-8")
+        logging.info("Handbrake call successful")
+    except subprocess.CalledProcessError as hb_error:
+        err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
+        logging.error(err)
+        sys.exit(err)
 
     logging.debug("Handbrake processing complete")
     logging.debug(basepath + ", " + filename + ", " + str(hasnicetitle) + ", " +  videotitle)
@@ -101,7 +101,7 @@ def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotyp
     titles = 0
     mt_track = 0
     prevline = ""
-    for line in hb.stderr.decode("utf-8").splitlines():
+    for line in hb.stderr.decode("utf-8").splitlines(True):
         # get number of titles on disc
         pattern = re.compile(r'\bscan\:.*\btitle\(s\)')
         if(re.search(pattern, line)) != None:
@@ -114,7 +114,7 @@ def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotyp
         if(re.search("Main Feature", line)) != None:
             t = prevline.split()
             mt_track = re.sub('[:]', '', (t[2]))
-            logging.debug("Line found is: " + line)
+            logging.debug("Line found is: " + prevline)
             logging.info("Main Feature is title #" + mt_track)
         prevline = line
 

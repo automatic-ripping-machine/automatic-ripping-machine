@@ -31,27 +31,30 @@ class Disc(object):
     def parse_udev(self):
         """Parse udev for properties of current disc"""
 
-        isbluray, isdvd, ismusic = False, False, False
+        # isbluray, isdvd, ismusic = False, False, False
         context = pyudev.Context()
         device = pyudev.Devices.from_device_file(context, self.devpath)
+        self.disctype = "unknown"
         for key, value in device.items():
             if key == "ID_FS_LABEL":
                 self.label = value
-            elif key == "ID_CDROM_MEDIA_BD:":
-                isbluray = True
-            elif key == "ID_CDROM_MEDIA_DVD:":
-                isdvd = True
-            elif key == "ID_CDROM_MEDIA":
-                ismusic = True
+                if value == "iso9660":
+                    self.disctype = "data"
+            elif key == "ID_CDROM_MEDIA_BD":
+                self.disctype = "bluray"
+            elif key == "ID_CDROM_MEDIA_DVD":
+                self.disctype = "dvd"
+            elif key == "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO":
+                self.disctype = "music"
             else:
                 pass
 
-        if isbluray:
-            self.disctype = "bluray"
-        elif isdvd:
-            self.disctype = "dvd"
-        elif ismusic:
-            self.disctype = "music"
+        # if isbluray:
+        #     self.disctype = "bluray"
+        # elif isdvd:
+        #     self.disctype = "dvd"
+        # elif ismusic:
+        #     self.disctype = "music"
 
     def __str__(self):
         """Returns a string of the object"""
@@ -60,13 +63,7 @@ class Disc(object):
         for attr, value in self.__dict__.items():
             s = s + "(" + str(attr) + "=" +  str(value) + ") "
 
-        # s = s + "]"
         return s
-
-    # def __repr__(self):
-        '''Returns representation of the object'''
-        # return("{}('{}''{}''{}''{}''{}''{}''{}''{}''{}')".format(self.__class__.__name__, self.devpath, self.mountpoint, self.mkvoutpath, self.))
-        # return '[' +  ', '.join(str(x) for x in self) + ']'
 
 
 

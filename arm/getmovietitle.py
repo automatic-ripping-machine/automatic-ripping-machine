@@ -24,7 +24,7 @@ def entry():
 def getdvdtitle(disc):
     """ Calculates CRC64 for the DVD and calls Windows Media
         Metaservices and returns the Title and year of DVD """
-    logging.debug("Entering getmovietitle.getdvdtitle. Disc: " + str(disc))
+    logging.debug(str(disc))
 
     crc64 = pydvdid.compute(str(disc.mountpoint))
     # crc64 = pydvdid.compute("/mnt/dev/sr1")
@@ -38,6 +38,7 @@ def getdvdtitle(disc):
     doc = xmltodict.parse(dvd_info_xml)
     dvd_title = doc['METADATA']['MDR-DVD']['dvdTitle']
     dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
+    dvd_title = dvd_title.strip()
 
     # title + release year
     # return dvd_title + " (" + dvd_release_date.split()[0] + ")"
@@ -68,6 +69,7 @@ def clean_for_filename(string):
     string = re.sub( '\s+', ' ', string)
     string = string.replace(' : ',' - ')
     string = string.replace(': ',' - ')
+    string = string.strip()
     return re.sub('[^\w\-_\.\(\) ]', '', string)
 
 #pylint: disable=C0103

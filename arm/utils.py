@@ -54,7 +54,7 @@ def move_files(basepath, filename, hasnicetitle, videotitle, ismainfeature=False
 
     logging.debug("Arguments: " + basepath + " : " + filename + " : " + str(hasnicetitle) + " : " + videotitle + " : " + str(ismainfeature))
 
-    if hasnicetitle == "true":
+    if hasnicetitle:
         m_path = os.path.join(cfg['MEDIA_DIR'] + videotitle)
 
         if not os.path.exists(m_path):
