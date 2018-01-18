@@ -120,10 +120,12 @@ def main(logfile, disc):
             #currently do nothing
 
     if disc.videotype == "movie" and cfg['MAINFEATURE'] == "true":
-        handbrake.handbrake_mainfeature(hbinpath, hboutpath, str(disc.videotitle), logfile, disc.hasnicetitle)
+        handbrake.handbrake_mainfeature(hbinpath, hboutpath, str(disc.videotitle), logfile, disc.hasnicetitle, disc)
+        os.system("eject " + disc.devpath)
     else:
         # handbrake_all(hboutpath, logfile)
-        handbrake.handbrake_all(hbinpath, hboutpath, str(disc.videotitle), logfile, disc.hasnicetitle, str(disc.videotype))
+        handbrake.handbrake_all(hbinpath, hboutpath, str(disc.videotitle), logfile, disc.hasnicetitle, str(disc.videotype), disc)
+        os.system("eject " + disc.devpath)
 
     if disc.disctype == "bluray":
         shutil.rmtree(mkvoutpath)
@@ -158,3 +160,4 @@ if __name__ == "__main__":
         main(logfile, disc)
     except Exception:
         logging.exception("A fatal error has occured and ARM is exiting.  See traceback below for details.")
+        utils.notify("ARM notification", "ARM encountered a fatal error processing " + str(disc.videotitle) + ". Check the logs for more details")

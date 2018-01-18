@@ -39,6 +39,7 @@ def getdvdtitle(disc):
     dvd_title = doc['METADATA']['MDR-DVD']['dvdTitle']
     dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
     dvd_title = dvd_title.strip()
+    dvd_release_date = dvd_release_date.split()[0]
 
     # title + release year
     # return dvd_title + " (" + dvd_release_date.split()[0] + ")"
@@ -87,9 +88,13 @@ def main(disc):
         disc_title, disc_year = getbluraytitle(disc)
         disc_title = clean_for_filename(disc_title)
         logging.info("getmovietitle bluray title found: " + disc_title + " : " + disc_year)
+        if disc_title:
+            disc.hasnicetitle = True
+        return(disc_title, disc_year)
         # print(disc_title)
     else:
         logging.info(disc_title + " : " + disc_year)
         if disc_title:
             disc.hasnicetitle = True
+        logging.info("Returning: " + disc_title + ", " + disc_year)
         return(disc_title, disc_year)

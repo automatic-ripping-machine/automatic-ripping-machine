@@ -16,7 +16,7 @@ import main
 
 from config import cfg
 
-def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle):
+def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle, disc):
     """process dvd with mainfeature enabled.\n
     srcpath = Path to source for HB (dvd or files)\n
     basepath = Path where HB will save trancoded files\n
@@ -56,7 +56,7 @@ def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle):
         sys.exit(err)
 
     logging.debug("Handbrake processing complete")
-    logging.debug(basepath + ", " + filename + ", " + str(hasnicetitle) + ", " +  videotitle)
+    logging.debug(str(disc))
     utils.move_files(basepath, filename, hasnicetitle, videotitle, True)
     utils.scan_emby()
 
@@ -65,7 +65,7 @@ def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle):
     except OSError:
         pass
 
-def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotype):
+def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotype, disc):
     """Process all titles on the dvd\n
     srcpath = Path to source for HB (dvd or files)\n
     basepath = Path where HB will save trancoded files\n
@@ -103,18 +103,24 @@ def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotyp
     prevline = ""
     for line in hb.stderr.decode("utf-8").splitlines(True):
         # get number of titles on disc
-        pattern = re.compile(r'\bscan\:.*\btitle\(s\)')
-        if(re.search(pattern, line)) != None:
-            t = line.split()
-            titles = (t[4])
-            logging.debug("Line found is: " + line)
-            logging.info("Found " + titles.strip() + " titles")
+        # pattern = re.compile(r'\bscan\:.*\btitle\(s\)')
+        
+        if disc.disctype == "bluray":
+            result = re.search('scan: DVD has (.*) title\(s\)',line)
+        else:
+            result = re.search('scan: DVD has (.*) title\(s\)',line)
 
+        if result:
+            titles = result.group(1)
+            titles = titles.strip()
+            logging.debug("Line found is: " + line)
+            logging.info("Found " + titles + " titles")
+        
         # get main feature title number
         if(re.search("Main Feature", line)) != None:
             t = prevline.split()
             mt_track = re.sub('[:]', '', (t[2]))
-            logging.debug("Line found is: " + prevline)
+            logging.debug("Lines found are: 1) " + line.rstrip() + " | 2)" + prevline)
             logging.info("Main Feature is title #" + mt_track)
         prevline = line
 
@@ -176,6 +182,7 @@ def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotyp
                 else:
                     utils.move_files(basepath, filename, hasnicetitle, videotitle, False)
 
+    
     if videotype == "movie" and hasnicetitle:
         utils.scan_emby()
 
