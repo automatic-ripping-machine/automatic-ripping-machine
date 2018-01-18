@@ -16,19 +16,17 @@ import main
 
 from config import cfg
 
-def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle, disc):
+def handbrake_mainfeature(srcpath, basepath, logfile, disc):
     """process dvd with mainfeature enabled.\n
     srcpath = Path to source for HB (dvd or files)\n
     basepath = Path where HB will save trancoded files\n
-    videotitle = Title of the source\n
     logfile = Logfile for HB to redirect output to\n
-    hasnicetitle = Boolean as to if the title has been 'nicified'\n
     
     Returns nothing
     """
     logging.info("Starting DVD Movie Mainfeature processing")
 
-    filename = os.path.join(basepath, videotitle + ".mkv")
+    filename = os.path.join(basepath, disc.videotitle + ".mkv")
     filepathname = os.path.join(basepath, filename)
 
     logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
@@ -57,7 +55,7 @@ def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle, 
 
     logging.debug("Handbrake processing complete")
     logging.debug(str(disc))
-    utils.move_files(basepath, filename, hasnicetitle, videotitle, True)
+    utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle, True)
     utils.scan_emby()
 
     try:
@@ -65,14 +63,11 @@ def handbrake_mainfeature(srcpath, basepath, videotitle, logfile, hasnicetitle, 
     except OSError:
         pass
 
-def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotype, disc):
+def handbrake_all(srcpath, basepath, logfile, disc):
     """Process all titles on the dvd\n
     srcpath = Path to source for HB (dvd or files)\n
     basepath = Path where HB will save trancoded files\n
-    videotitle = Title of the source\n
     logfile = Logfile for HB to redirect output to\n
-    hasnicetitle = Boolean as to if the title has been 'nicified'\n
-    videotype = 'movie', 'series', etc\n
     
     Returns nothing
     """
@@ -175,15 +170,15 @@ def handbrake_all(srcpath, basepath, videotitle, logfile, hasnicetitle, videotyp
                 # sys.exit(err)
 
             # move file
-            if videotype == "movie":
+            if disc.videotype == "movie":
                 logging.debug("mt_track: " + mt_track + " List track: " + str(title))
                 if mt_track == str(title):
-                    utils.move_files(basepath, filename, hasnicetitle, videotitle, True)
+                    utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle, True)
                 else:
-                    utils.move_files(basepath, filename, hasnicetitle, videotitle, False)
+                    utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle, False)
 
     
-    if videotype == "movie" and hasnicetitle:
+    if disc.videotype == "movie" and disc.hasnicetitle:
         utils.scan_emby()
 
     try:

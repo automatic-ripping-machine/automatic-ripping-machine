@@ -120,11 +120,11 @@ def main(logfile, disc):
             #currently do nothing
 
     if disc.videotype == "movie" and cfg['MAINFEATURE'] == "true":
-        handbrake.handbrake_mainfeature(hbinpath, hboutpath, str(disc.videotitle), logfile, disc.hasnicetitle, disc)
+        handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
         os.system("eject " + disc.devpath)
     else:
         # handbrake_all(hboutpath, logfile)
-        handbrake.handbrake_all(hbinpath, hboutpath, str(disc.videotitle), logfile, disc.hasnicetitle, str(disc.videotype), disc)
+        handbrake.handbrake_all(hbinpath, hboutpath, logfile, disc)
         os.system("eject " + disc.devpath)
 
     if disc.disctype == "bluray":

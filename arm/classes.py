@@ -5,7 +5,8 @@ class Disc(object):
 
 
     Attributes:
-        path
+        devpath
+        mountpoint
         videotitle
         videoyear
         videotype
@@ -18,14 +19,13 @@ class Disc(object):
         """Return a disc object"""
         self.devpath = devpath
         self.mountpoint = "/mnt" + devpath
-        self.mkvoutpath = None
-        self.basepath = None
-        self.videotitle = None
-        self.videoyear = None
-        self.videotype = None
+        self.videotitle = ""
+        self.videoyear = ""
+        self.videotype = ""
         self.hasnicetitle = False
-        self.label = None
-        self.disctype = None
+        self.label = ""
+        self.disctype = ""
+        
         self.parse_udev()
 
     def parse_udev(self):
@@ -48,13 +48,6 @@ class Disc(object):
                 self.disctype = "music"
             else:
                 pass
-
-        # if isbluray:
-        #     self.disctype = "bluray"
-        # elif isdvd:
-        #     self.disctype = "dvd"
-        # elif ismusic:
-        #     self.disctype = "music"
 
     def __str__(self):
         """Returns a string of the object"""
