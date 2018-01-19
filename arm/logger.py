@@ -13,7 +13,7 @@ def setuplogging(disc):
     if not os.path.exists(cfg['LOGPATH']):
         os.makedirs(cfg['LOGPATH'])
 
-    if disc.label == None:
+    if disc.label == "":
         logfile = "empty.log"
     else:
         logfile = disc.label + ".log"

@@ -104,6 +104,8 @@ def main(logfile, disc):
             logging.error(err)
             sys.exit(err)
     
+    logging.info("Ripping files to: " + hboutpath)
+    
     hbinpath = str(disc.devpath)
     if disc.disctype == "bluray":
         #send to makemkv for ripping
@@ -130,9 +132,15 @@ def main(logfile, disc):
     if disc.disctype == "bluray":
         shutil.rmtree(mkvoutpath)
 
-    utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
+    if disc.errors:
+        errlist = ', '.join(disc.errors)
+        utils.notify("ARM notification", str(disc.videotitle) + " processing completed with errors. Title(s) " + errlist + " failed to complete.")
+        logging.info("Transcoding comleted with errors.  Title(s) " + errlist + " failed to complete.")
+    else:
+        utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
+        logging.info("Transcoding comlete")
 
-    logging.info("Transcoding comlete")
+    
 
 if __name__ == "__main__":
     args = entry()
@@ -147,7 +155,7 @@ if __name__ == "__main__":
     logfile = logger.setuplogging(disc)
     # log = logging.getLogger(__name__)
 
-    if disc.label == None:
+    if disc.label == "":
         logging.info("Drive appears to be empty.  Exiting ARM.")
         sys.exit()
 

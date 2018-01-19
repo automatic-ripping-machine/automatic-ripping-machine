@@ -13,6 +13,7 @@ class Disc(object):
         hasnicetitle
         label
         disctype
+        errors
     """
 
     def __init__(self, devpath):
@@ -25,7 +26,8 @@ class Disc(object):
         self.hasnicetitle = False
         self.label = ""
         self.disctype = ""
-        
+        self.errors = []
+
         self.parse_udev()
 
     def parse_udev(self):

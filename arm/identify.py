@@ -25,8 +25,10 @@ def identify(disc):
 
         os.system("mount " + disc.devpath + " " + disc.mountpoint)
 
+        logging.info("Getting movie title...")
         disc.videotitle, disc.videoyear = getmovietitle.main(disc)
 
+        logging.info("Getting video type...")
         disc.videotype, disc.videoyear = getvideotype.main(disc)
 
         os.system("umount " + str(disc.mountpoint))

@@ -163,10 +163,12 @@ def handbrake_all(srcpath, basepath, logfile, disc):
                     cmd,
                     shell=True
                 ).decode("utf-8")
+                logging.debug("Handbrake exit code: " + hb)
             except subprocess.CalledProcessError as hb_error:
-                err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
+                err = "Handbrake encoding of title " + str(title) + " failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
                 logging.error(err)
-                return
+                disc.errors.append(str(title))
+                # return
                 # sys.exit(err)
 
             # move file
