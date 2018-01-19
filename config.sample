@@ -118,8 +118,11 @@ HANDBRAKE_CLI=HandBrakeCLI
 # However, it does not handle tv shows well at all.  This setting is only used when the video is identified as a movie.
 MAINFEATURE=false
 
-# Additional HandBrake arguments.  
+# Additional HandBrake arguments for DVDs.  
 HB_ARGS="--subtitle scan -F"
+
+# Additional Handbrake arguments for Bluray Discs.
+HB_ARGS_BD="--subtitle scan -F --subtitle-burned --audio-lang-list eng --all-audio"
 
 #####################
 ## Enable Plex Use ##

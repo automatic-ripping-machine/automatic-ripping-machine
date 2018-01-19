@@ -31,12 +31,19 @@ def handbrake_mainfeature(srcpath, basepath, logfile, disc):
 
     logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
 
+    if disc.disctype == "dvd":
+        hb_args = cfg['HB_ARGS_DVD']
+        hb_preset = cfg['HB_PRESET_DVD']
+    elif disc.disctype == "bluray":
+        hb_args = cfg['HB_ARGS_BD']
+        hb_preset = cfg['HB_PRESET_BD']
+
     cmd = 'nice {0} -i {1} -o {2} --main-feature --preset "{3}" {4} >> {5} 2>&1'.format(
         cfg['HANDBRAKE_CLI'],
         shlex.quote(srcpath),
         shlex.quote(filepathname),
-        cfg['HB_PRESET'],
-        cfg['HB_ARGS'],
+        hb_preset,
+        hb_args,
         logfile
         )
 
@@ -124,6 +131,13 @@ def handbrake_all(srcpath, basepath, logfile, disc):
 
     mt_track = str(mt_track).strip()
 
+    if disc.disctype == "dvd":
+        hb_args = cfg['HB_ARGS_DVD']
+        hb_preset = cfg['HB_PRESET_DVD']
+    elif disc.disctype == "bluray":
+        hb_args = cfg['HB_ARGS_BD']
+        hb_preset = cfg['HB_PRESET_BD']
+
     for title in range(1, int(titles) + 1):
         
         # get length
@@ -150,9 +164,9 @@ def handbrake_all(srcpath, basepath, logfile, disc):
                 cfg['HANDBRAKE_CLI'],
                 shlex.quote(srcpath),
                 shlex.quote(filepathname),
-                cfg['HB_PRESET'],
+                hb_preset,
                 str(title),
-                cfg['HB_ARGS'],
+                hb_args,
                 logfile
                 )
 
