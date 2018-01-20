@@ -103,7 +103,7 @@ def handbrake_all(srcpath, basepath, logfile, disc):
     titles = 0
     mt_track = 0
     prevline = ""
-    for line in hb.stderr.decode("utf-8").splitlines(True):
+    for line in hb.stderr.decode(errors='ignore').splitlines(True):
         # get number of titles on disc
         # pattern = re.compile(r'\bscan\:.*\btitle\(s\)')
         
