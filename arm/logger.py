@@ -2,6 +2,7 @@
 
 import os
 import logging
+import time
 # import yaml
 
 from config import cfg
@@ -31,3 +32,21 @@ def setuplogging(disc):
         datefmt='%Y-%m-%d %H:%M:%S', level=cfg["LOGLEVEL"])
 
     return  logfull
+
+def cleanuplogs(logpath, loglife):
+    """Delete all log files older than x days\n
+    logpath = path of log files\n
+    loglife = days to let logs live\n
+    
+    """
+
+    now = time.time()
+    logging.info("Looking for log files older than " + str(loglife) + " days old.")
+
+    for filename in os.listdir(logpath):
+        fullname = os.path.join(logpath, filename)
+        if fullname.endswith(".log"):
+            if os.stat(fullname).st_mtime < now - loglife * 86400:
+                logging.info("Deleting log file: " + filename)
+                os.remove(fullname)
+

@@ -23,13 +23,7 @@ from config import cfg
 def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Process disc using ARM')
-    # parser.add_argument('-l', '--label', help='Label', required=True)
     parser.add_argument('-d', '--devpath', help='Devpath', required=True)
-    # parser.add_argument('-t', '--videotitle', help='Video Title', required=True)
-    # parser.add_argument('-y', '--videotype', help='Video Type', required=True)
-    # parser.add_argument('-e', '--label', help='Label', required=True)
-    # parser.add_argument('-n', '--hasnicetitle', help="Has Nice Title", required=False)
-    # parser.add_argument('-b', '--isbluray', help="Is Bluray", default="false", required=False)
 
     return parser.parse_args()
 
@@ -48,7 +42,6 @@ def log_arm_params(disc):
     """log all entry parameters"""
 
     #log arm parameters
-    # logging.info("Logging dvd parameters")
     logging.info("**** Logging ARM paramaters ****")
     logging.info("devpath: " + str(disc.devpath))
     logging.info("mountpoint: " + str(disc.mountpoint))
@@ -127,7 +120,6 @@ def main(logfile, disc):
         handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
         os.system("eject " + disc.devpath)
     else:
-        # handbrake_all(hboutpath, logfile)
         handbrake.handbrake_all(hbinpath, hboutpath, logfile, disc)
         os.system("eject " + disc.devpath)
 
@@ -155,7 +147,8 @@ if __name__ == "__main__":
     print (disc.label)
 
     logfile = logger.setuplogging(disc)
-    # log = logging.getLogger(__name__)
+
+    logger.cleanuplogs(cfg['LOGPATH'], cfg['LOGLIFE'])
 
     if disc.label == "":
         logging.info("Drive appears to be empty.  Exiting ARM.")
