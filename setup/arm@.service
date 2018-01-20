@@ -1,0 +1,9 @@
+[Unit]
+Description=Automatic Ripping Machine
+
+[Service]
+Type=oneshot
+ExecStart=/opt/arm/arm/main.py -d %i
+
+[Install]
+WantedBy=multi-user.target
