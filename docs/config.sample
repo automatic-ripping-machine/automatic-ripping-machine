@@ -171,6 +171,12 @@ EMBY_PASSWORD=""
 ## Notification Parameters ##
 #############################
 
+# Notify after Rip?
+NOTIFY_RIP=true
+
+# Notify after transcode?
+NOTIFY_TRANSCODE=true
+
 # Pushbullet API Key
 # Leave empty to disable Pushbullet notifications
 PB_KEY=""
