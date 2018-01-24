@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 
 import os
+import sys
 import logging
 import shutil
 import requests
-import argparse
+# import argparse
 
 from config import cfg
 
@@ -85,3 +86,23 @@ def move_files(basepath, filename, hasnicetitle, videotitle, ismainfeature=False
     else:
         logging.info("hasnicetitle is false.  Not moving files.")
 
+def make_dir(path):
+    """
+Make a directory\n
+    path = Path to directory\n
+
+    returns success True if successful
+        false if the directory already exists
+    """
+    if not os.path.exists(path):
+        logging.debug("Creating directory: " + path)
+        try:
+            os.makedirs(path)
+            return True
+        except OSError:
+            err = "Couldn't create a directory at path: " + path + " Probably a permissions error.  Exiting"
+            logging.error(err)
+            sys.exit(err)
+            # return False
+    else:
+        return False

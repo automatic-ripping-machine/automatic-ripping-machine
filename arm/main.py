@@ -3,15 +3,15 @@
 import sys
 import argparse
 import os
-import subprocess
+# import subprocess
 import logging
 import time
-import shutil
-import requests
-import shlex
-import logger
-import pyudev
 import datetime
+import shutil
+# import requests
+# import shlex
+import pyudev
+import logger
 import utils
 import makemkv
 import handbrake
@@ -81,23 +81,31 @@ def main(logfile, disc):
     #get filesystem in order
     hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle))
 
-    if not os.path.exists(hboutpath):
-        logging.debug("Creating directory: " + hboutpath)
-        try:
-            os.makedirs(hboutpath)
-        except OSError:
-            logging.error("Couldn't create the base file path: " + hboutpath + " Probably a permissions error")
-            err = "Couldn't create the base file path: " + hboutpath + " Probably a permissions error"
-            sys.exit(err)
-    else:
+    if (utils.make_dir(hboutpath)) is False:
         ts = round(time.time() * 100)
         hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle) + "_" + str(ts))
-        try:
-            os.makedirs(hboutpath)
-        except OSError:
-            err = "Couldn't create the base file path: " + hboutpath + " Probably a permissions error"
-            logging.error(err)
-            sys.exit(err)
+        if(utils.make_dir(hboutpath)) is False:
+            logging.info("Failed to create base directory.  Exiting.")
+            sys.exit()
+
+
+    # if not os.path.exists(hboutpath):
+    #     logging.debug("Creating directory: " + hboutpath)
+    #     try:
+    #         os.makedirs(hboutpath)
+    #     except OSError:
+    #         logging.error("Couldn't create the base file path: " + hboutpath + " Probably a permissions error")
+    #         err = "Couldn't create the base file path: " + hboutpath + " Probably a permissions error"
+    #         sys.exit(err)
+    # else:
+    #     ts = round(time.time() * 100)
+    #     hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle) + "_" + str(ts))
+    #     try:
+    #         os.makedirs(hboutpath)
+    #     except OSError:
+    #         err = "Couldn't create the base file path: " + hboutpath + " Probably a permissions error"
+    #         logging.error(err)
+    #         sys.exit(err)
     
     logging.info("Ripping files to: " + hboutpath)
     
@@ -123,8 +131,8 @@ def main(logfile, disc):
         handbrake.handbrake_all(hbinpath, hboutpath, logfile, disc)
         os.system("eject " + disc.devpath)
 
-    if disc.disctype == "bluray":
-        shutil.rmtree(mkvoutpath)
+    # if disc.disctype == "bluray":
+    #     shutil.rmtree(mkvoutpath)
 
     if disc.errors:
         errlist = ', '.join(disc.errors)

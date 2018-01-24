@@ -5,7 +5,7 @@ import os
 import logging
 import subprocess
 import time
-import logger
+# import logger
 import shlex
 
 from config import cfg
@@ -89,9 +89,3 @@ def makemkv(logfile, devpath, label):
     logging.info("Exiting MakeMKV processing with return value of: " + rawpath)
     return(rawpath)
 
-# p=makemkv("/dev/sr0", "bigtest")
-# print(p)
-
-# args = entry()
-
-# notify(args.title, args.body)

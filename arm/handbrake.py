@@ -7,11 +7,11 @@ import subprocess
 import re
 import shlex
 import utils
-import requests
-import argparse
-import time
-import logger
-import main
+# import requests
+# import argparse
+# import time
+# import logger
+# import main
 
 
 from config import cfg
@@ -108,7 +108,7 @@ def handbrake_all(srcpath, basepath, logfile, disc):
         # pattern = re.compile(r'\bscan\:.*\btitle\(s\)')
         
         if disc.disctype == "bluray":
-            result = re.search('scan: DVD has (.*) title\(s\)',line)
+            result = re.search('scan: BD has (.*) title\(s\)',line)
         else:
             result = re.search('scan: DVD has (.*) title\(s\)',line)
 
@@ -160,7 +160,7 @@ def handbrake_all(srcpath, basepath, logfile, disc):
 
             logging.info("Transcoding title " + str(title) + " to " + shlex.quote(filepathname))
 
-            cmd = 'nice {0} -i "{1}" -o {2} --preset "{3}" -t {4} {5}>> {6} 2>&1'.format(
+            cmd = 'nice {0} -i {1} -o {2} --preset "{3}" -t {4} {5}>> {6} 2>&1'.format(
                 cfg['HANDBRAKE_CLI'],
                 shlex.quote(srcpath),
                 shlex.quote(filepathname),
@@ -193,18 +193,22 @@ def handbrake_all(srcpath, basepath, logfile, disc):
                 else:
                     utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle, False)
 
-    
     if disc.videotype == "movie" and disc.hasnicetitle:
         utils.scan_emby()
-
-    try:
-        os.rmdir(basepath)
-    except OSError:
-        pass
+        if cfg['MAINFEATURE'] == "true":
+            try:
+                os.rmdir(basepath)
+            except OSError:
+                pass
 
 
 def get_title_length(title, srcpath):
-    """process all titles on disc""" 
+    """Use HandBrake to get the title length\n
+    title = title to scan\n
+    srcpath = location of the dvd or decrypted bluray\n
+    
+    returns the length of the title or -1 if the length could not be determinied
+    """ 
     logging.debug("Getting length from " + srcpath + " on title: " + str(title))
 
     cmd = '{0} -i {1} -t {2} --scan'.format(
