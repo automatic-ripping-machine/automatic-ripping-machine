@@ -57,9 +57,18 @@ If you have a  new DVD drive that you haven't used before, some require setting 
     cd arm
     pip3 install -r requirements.txt
     ln -s /opt/arm/51-automedia.rules /lib/udev/rules.d/
-    ln -s /opt/arm/.abcde.conf /root/
-    cp /opt/arm/arm@.service /etc/systemd/system/
+    ln -s /opt/arm/setup/.abcde.conf /root/
+    cp /opt/arm/setup/arm@.service /etc/systemd/system/
     cp config.sample config
+
+    Setup 'arm'user:
+    groupadd arm
+    useradd -m arm -g arm
+    passwd arm 
+      <enter new password>
+
+    Create entries in /etc/fstab to allow non-root to mount dvd-roms
+    /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
 
 - Edit your "config" file to determine what options you'd like to use
 - To rip Blu-Rays after the MakeMKV trial is up you will need to purchase a license key or while MakeMKV is in BETA you can get a free key (which you will need to update from time to time) here:  https://www.makemkv.com/forum2/viewtopic.php?f=5&t=1053 and create /root/.MakeMKV/settings.conf with the contents:

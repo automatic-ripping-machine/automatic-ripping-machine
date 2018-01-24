@@ -23,7 +23,8 @@ def identify(disc):
         if not os.path.exists(str(disc.mountpoint)):
             os.makedirs(str(disc.mountpoint))
 
-        os.system("mount " + disc.devpath + " " + disc.mountpoint)
+        # os.system("mount " + disc.devpath + " " + disc.mountpoint)
+        os.system("mount " + disc.devpath)
 
         logging.info("Getting movie title...")
         disc.videotitle, disc.videoyear = getmovietitle.main(disc)
@@ -31,7 +32,7 @@ def identify(disc):
         logging.info("Getting video type...")
         disc.videotype, disc.videoyear = getvideotype.main(disc)
 
-        os.system("umount " + str(disc.mountpoint))
+        os.system("umount " + disc.devpath
 
         logging.info("Disc title: " + str(disc.videotitle) + " : " + str(disc.videoyear) + " : " + str(disc.videotype))
         logging.debug("Identification complete: " + str(disc))

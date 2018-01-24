@@ -3,6 +3,8 @@ Description=Automatic Ripping Machine
 
 [Service]
 Type=oneshot
+User=arm
+Group=arm
 ExecStart=/opt/arm/arm/main.py -d %i
 
 [Install]
