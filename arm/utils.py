@@ -5,10 +5,8 @@ import sys
 import logging
 import shutil
 import requests
-# import argparse
 
 from config import cfg
-
 
 def notify(title, body):
     # Send notificaions

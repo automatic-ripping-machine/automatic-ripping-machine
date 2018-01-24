@@ -3,22 +3,22 @@
 import sys
 import argparse
 import os
-# import subprocess
 import logging
 import time
 import datetime
 import shutil
-# import requests
-# import shlex
 import pyudev
 import logger
 import utils
 import makemkv
 import handbrake
-import classes
+# import classes
 import identify
 
 from config import cfg
+from classes import Disc
+
+# from config import cfg
 
 def entry():
     """ Entry to program, parses arguments"""
@@ -74,8 +74,6 @@ def main(logfile, disc):
 
     log_arm_params(disc)
 
-    # sys.exit()
-
     utils.notify("ARM notification", "Found disc: " + str(disc.videotitle) + ". Video type is " + str(disc.videotype) + ". Main Feature is " + cfg['MAINFEATURE'] + ".")
 
     #get filesystem in order
@@ -87,27 +85,8 @@ def main(logfile, disc):
         if(utils.make_dir(hboutpath)) is False:
             logging.info("Failed to create base directory.  Exiting.")
             sys.exit()
-
-
-    # if not os.path.exists(hboutpath):
-    #     logging.debug("Creating directory: " + hboutpath)
-    #     try:
-    #         os.makedirs(hboutpath)
-    #     except OSError:
-    #         logging.error("Couldn't create the base file path: " + hboutpath + " Probably a permissions error")
-    #         err = "Couldn't create the base file path: " + hboutpath + " Probably a permissions error"
-    #         sys.exit(err)
-    # else:
-    #     ts = round(time.time() * 100)
-    #     hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle) + "_" + str(ts))
-    #     try:
-    #         os.makedirs(hboutpath)
-    #     except OSError:
-    #         err = "Couldn't create the base file path: " + hboutpath + " Probably a permissions error"
-    #         logging.error(err)
-    #         sys.exit(err)
     
-    logging.info("Ripping files to: " + hboutpath)
+    logging.info("Processing files to: " + hboutpath)
     
     hbinpath = str(disc.devpath)
     if disc.disctype == "bluray":
@@ -119,6 +98,7 @@ def main(logfile, disc):
             if mkvoutpath is None:
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
                 sys.exit()
+
             #point HB to the path MakeMKV ripped to
             hbinpath = mkvoutpath
         # else:
@@ -131,8 +111,8 @@ def main(logfile, disc):
         handbrake.handbrake_all(hbinpath, hboutpath, logfile, disc)
         os.system("eject " + disc.devpath)
 
-    # if disc.disctype == "bluray":
-    #     shutil.rmtree(mkvoutpath)
+    if disc.disctype == "bluray":
+        shutil.rmtree(mkvoutpath)
 
     if disc.errors:
         errlist = ', '.join(disc.errors)
@@ -146,12 +126,11 @@ def main(logfile, disc):
 
 if __name__ == "__main__":
     args = entry()
-    # sys.exit()
-    # print(args.devpath)
+
     devpath = "/dev/" + args.devpath
     print(devpath)
 
-    disc = classes.Disc(devpath)
+    disc = Disc(devpath)
     print (disc.label)
 
     logfile = logger.setuplogging(disc)
@@ -165,7 +144,6 @@ if __name__ == "__main__":
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
 
     log_udev_params()
-    # log_arm_params(disc)
 
     try:
         main(logfile, disc)

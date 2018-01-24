@@ -5,7 +5,6 @@ import os
 import logging
 import subprocess
 import time
-# import logger
 import shlex
 
 from config import cfg

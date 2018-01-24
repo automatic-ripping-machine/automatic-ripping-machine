@@ -7,12 +7,6 @@ import subprocess
 import re
 import shlex
 import utils
-# import requests
-# import argparse
-# import time
-# import logger
-# import main
-
 
 from config import cfg
 
