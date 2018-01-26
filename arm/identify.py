@@ -32,7 +32,7 @@ def identify(disc):
         logging.info("Getting video type...")
         disc.videotype, disc.videoyear = getvideotype.main(disc)
 
-        os.system("umount " + disc.devpath
+        os.system("umount " + disc.devpath)
 
         logging.info("Disc title: " + str(disc.videotitle) + " : " + str(disc.videoyear) + " : " + str(disc.videotype))
         logging.debug("Identification complete: " + str(disc))

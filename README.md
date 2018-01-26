@@ -34,10 +34,16 @@ See: https://b3n.org/automatic-ripping-machine
 
 ## Install
 
-If you have a  new DVD drive that you haven't used before, some require setting the region before they can play anything.  Be aware most DVD players only let you change the region a handful (4 or 5?) of times then lockout any further changes.  If your region is already set or you have a region free DVD drive you can skip this step.
+If you have a new DVD drive that you haven't used before, some require setting the region before they can play anything.  Be aware most DVD players only let you change the region a handful (4 or 5?) of times then lockout any further changes.  If your region is already set or you have a region free DVD drive you can skip this step.
 
        sudo apt-get install regionset
        sudo regionset /dev/sr0
+
+    Setup 'arm' user:
+    groupadd arm
+    useradd -m arm -g arm
+    passwd arm 
+      <enter new password>
 
     sudo apt-get install git
     sudo add-apt-repository ppa:heyarje/makemkv-beta
@@ -61,13 +67,8 @@ If you have a  new DVD drive that you haven't used before, some require setting 
     cp /opt/arm/setup/arm@.service /etc/systemd/system/
     cp config.sample config
 
-    Setup 'arm'user:
-    groupadd arm
-    useradd -m arm -g arm
-    passwd arm 
-      <enter new password>
-
     Create entries in /etc/fstab to allow non-root to mount dvd-roms
+    Example (create for each optical drive you plan on using for ARM:
     /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
 
 - Edit your "config" file to determine what options you'd like to use
