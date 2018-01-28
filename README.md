@@ -62,7 +62,7 @@ If you have a new DVD drive that you haven't used before, some require setting t
     git clone https://github.com/ahnooie/automatic-ripping-machine.git arm
     cd arm
     pip3 install -r requirements.txt
-    ln -s /opt/arm/51-automedia.rules /lib/udev/rules.d/
+    ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
     ln -s /opt/arm/setup/.abcde.conf /root/
     cp /opt/arm/setup/arm@.service /etc/systemd/system/
     cp config.sample config
