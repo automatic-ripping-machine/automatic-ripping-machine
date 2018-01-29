@@ -3,6 +3,8 @@
 import os
 import sys
 import logging
+import fcntl
+import subprocess
 import shutil
 import requests
 
@@ -104,3 +106,60 @@ Make a directory\n
             # return False
     else:
         return False
+
+def get_cdrom_status(devpath):
+    """get the status of the cdrom drive\n
+    devpath = path to cdrom\n
+
+    returns int
+    CDS_NO_INFO		0\n
+    CDS_NO_DISC		1\n
+    CDS_TRAY_OPEN		2\n
+    CDS_DRIVE_NOT_READY	3\n
+    CDS_DISC_OK		4\n
+
+    see linux/cdrom.h for specifics\n
+    """
+
+    try:
+        fd = os.open(devpath, os.O_RDONLY|os.O_NONBLOCK)
+    except:
+        logging.info("Failed to open device " + devpath + " to check status.")
+        exit(2)
+    
+    result = drresult=fcntl.ioctl(fd, 0x5326, 0)
+
+    return result
+
+def rip_music(disc, logfile):
+    """
+    disc = disc object\n
+    logfile = location of logfile\n
+
+    returns True/False for success/fail
+    """
+
+    if disc.disctype == "music":
+        logging.info("Disc identified as music")
+        
+        cmd = 'abcde -d "{0}" >> "{1}" 2>&1'.format(
+            disc.devpath,
+            logfile
+        )
+
+        logging.debug("Sending command: " + cmd)
+
+        try:
+            hb = subprocess.check_output(
+                cmd,
+                shell=True
+            ).decode("utf-8")
+            logging.info("abcde call successful")
+            return True
+        except subprocess.CalledProcessError as ab_error:
+            err = "Call to abcde failed with code: " + str(ab_error.returncode) + "(" + str(ab_error.output) + ")"
+            logging.error(err)
+            # sys.exit(err)
+
+    return False
+

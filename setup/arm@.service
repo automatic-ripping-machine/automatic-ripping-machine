@@ -5,6 +5,7 @@ Description=Automatic Ripping Machine
 Type=oneshot
 User=arm
 Group=arm
+WorkingDirectory=/home/arm
 ExecStart=/opt/arm/arm/main.py -d %i
 
 [Install]

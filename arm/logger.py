@@ -15,7 +15,10 @@ def setuplogging(disc):
         os.makedirs(cfg['LOGPATH'])
 
     if disc.label == "":
-        logfile = "empty.log"
+        if disc.disctype == "music":
+            logfile = "music_cd.log"
+        else:
+            logfile = "empty.log"
     else:
         logfile = disc.label + ".log"
 

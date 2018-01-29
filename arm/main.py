@@ -70,57 +70,83 @@ def main(logfile, disc):
     """main dvd processing function"""
     logging.info("Starting Disc identification")
 
-    identify.identify(disc)
+    identify.identify(disc, logfile)
 
     log_arm_params(disc)
 
-    utils.notify("ARM notification", "Found disc: " + str(disc.videotitle) + ". Video type is " + str(disc.videotype) + ". Main Feature is " + cfg['MAINFEATURE'] + ".")
+    if disc.disctype in ["dvd", "bluray"]:
+        utils.notify("ARM notification", "Found disc: " + str(disc.videotitle) + ". Video type is " + str(disc.videotype) + ". Main Feature is " + cfg['MAINFEATURE'] + ".")
+    elif disc.disctype == "music":
+        utils.notify("ARM notification", "Found music CD: " + disc.label + ". Ripping all tracks")
+    elif disc.disctype == "data":
+        utils.notify("ARM notification", "Faound data disc.  Copying data.")
+    else:
+        utils.notify("ARM Notification", "Could not identify disc.  Exiting.")
+        sys.exit()
 
-    #get filesystem in order
-    hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle))
+    if disc.disctype in ["dvd", "bluray"]:
+        #get filesystem in order
+        hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle))
 
-    if (utils.make_dir(hboutpath)) is False:
-        ts = round(time.time() * 100)
-        hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle) + "_" + str(ts))
-        if(utils.make_dir(hboutpath)) is False:
-            logging.info("Failed to create base directory.  Exiting.")
-            sys.exit()
-    
-    logging.info("Processing files to: " + hboutpath)
-    
-    hbinpath = str(disc.devpath)
-    if disc.disctype == "bluray":
-        #send to makemkv for ripping
-        if cfg['RIPMETHOD'] == "backup":
-            #backup method
-            #run MakeMKV and get path to ouput
-            mkvoutpath = makemkv.makemkv(logfile, str(disc.devpath), str(disc.videotitle))
-            if mkvoutpath is None:
-                logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
+        if (utils.make_dir(hboutpath)) is False:
+            ts = round(time.time() * 100)
+            hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle) + "_" + str(ts))
+            if(utils.make_dir(hboutpath)) is False:
+                logging.info("Failed to create base directory.  Exiting ARM.")
                 sys.exit()
+        
+        logging.info("Processing files to: " + hboutpath)
+        
+        # Do the work!
+        hbinpath = str(disc.devpath)
+        if disc.disctype == "bluray":
+            #send to makemkv for ripping
+            if cfg['RIPMETHOD'] == "backup":
+                #backup method
+                #run MakeMKV and get path to ouput
+                mkvoutpath = makemkv.makemkv(logfile, str(disc.devpath), str(disc.videotitle))
+                if mkvoutpath is None:
+                    logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
+                    sys.exit()
 
-            #point HB to the path MakeMKV ripped to
-            hbinpath = mkvoutpath
-        # else:
-            #currently do nothing
+                #point HB to the path MakeMKV ripped to
+                hbinpath = mkvoutpath
+            # else:
+                #currently do nothing
+                #future mkv option?
+    
+        if disc.videotype == "movie":
+            if cfg['MAINFEATURE'] == "true":
+                handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
+                os.system("eject " + disc.devpath)
+            else:
+                handbrake.handbrake_all(hbinpath, hboutpath, logfile, disc)
+                os.system("eject " + disc.devpath)
+        # report errors if any
+        if disc.errors:
+            errlist = ', '.join(disc.errors)
+            utils.notify("ARM notification", str(disc.videotitle) + " processing completed with errors. Title(s) " + errlist + " failed to complete.")
+            logging.info("Transcoding comleted with errors.  Title(s) " + errlist + " failed to complete.")
+        else:
+            utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
+            logging.info("Transcoding comlete")
 
-    if disc.videotype == "movie" and cfg['MAINFEATURE'] == "true":
-        handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
-        os.system("eject " + disc.devpath)
+        # Clean up bluray backup
+        if disc.disctype == "bluray":
+            shutil.rmtree(mkvoutpath)
+
+    elif disc.disctype == "music":
+        if utils.rip_music(disc, logfile):
+            utils.notify("ARM notification", "Music CD: " + disc.label + " processing complete.")
+            utils.scan_emby()
+        else:
+            logging.info("Music rip failed.  See previous errors.  Exiting.")
+
+    elif disc.disctype == "data":
+        # do something here
+        pass
     else:
-        handbrake.handbrake_all(hbinpath, hboutpath, logfile, disc)
-        os.system("eject " + disc.devpath)
-
-    if disc.disctype == "bluray":
-        shutil.rmtree(mkvoutpath)
-
-    if disc.errors:
-        errlist = ', '.join(disc.errors)
-        utils.notify("ARM notification", str(disc.videotitle) + " processing completed with errors. Title(s) " + errlist + " failed to complete.")
-        logging.info("Transcoding comleted with errors.  Title(s) " + errlist + " failed to complete.")
-    else:
-        utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
-        logging.info("Transcoding comlete")
+        logging.info("Couldn't identify the disc type. Exiting without any action.")
 
     
 
@@ -133,13 +159,19 @@ if __name__ == "__main__":
     disc = Disc(devpath)
     print (disc.label)
 
+    # sys.exit()
+
     logfile = logger.setuplogging(disc)
 
     logger.cleanuplogs(cfg['LOGPATH'], cfg['LOGLIFE'])
 
-    if disc.label == "":
+    if utils.get_cdrom_status(devpath) == 2:
         logging.info("Drive appears to be empty.  Exiting ARM.")
         sys.exit()
+
+    # if disc.label == "":
+    #     logging.info("Drive appears to be empty.  Exiting ARM.")
+    #     sys.exit()
 
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
 
