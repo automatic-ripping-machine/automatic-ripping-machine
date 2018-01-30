@@ -115,13 +115,13 @@ def main(logfile, disc):
                 #currently do nothing
                 #future mkv option?
     
-        if disc.videotype == "movie":
-            if cfg['MAINFEATURE'] == "true":
-                handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
-                os.system("eject " + disc.devpath)
-            else:
-                handbrake.handbrake_all(hbinpath, hboutpath, logfile, disc)
-                os.system("eject " + disc.devpath)
+        if disc.videotype == "movie" and cfg['MAINFEATURE'] == "true":
+            handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
+            os.system("eject " + disc.devpath)
+        else:
+            handbrake.handbrake_all(hbinpath, hboutpath, logfile, disc)
+            os.system("eject " + disc.devpath)
+            
         # report errors if any
         if disc.errors:
             errlist = ', '.join(disc.errors)
@@ -165,8 +165,8 @@ if __name__ == "__main__":
 
     logger.cleanuplogs(cfg['LOGPATH'], cfg['LOGLIFE'])
 
-    if utils.get_cdrom_status(devpath) == 2:
-        logging.info("Drive appears to be empty.  Exiting ARM.")
+    if utils.get_cdrom_status(devpath) != 4:
+        logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
 
     # if disc.label == "":

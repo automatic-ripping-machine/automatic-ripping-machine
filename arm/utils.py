@@ -127,7 +127,7 @@ def get_cdrom_status(devpath):
         logging.info("Failed to open device " + devpath + " to check status.")
         exit(2)
     
-    result = drresult=fcntl.ioctl(fd, 0x5326, 0)
+    result = fcntl.ioctl(fd, 0x5326, 0)
 
     return result
 
