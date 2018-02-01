@@ -58,6 +58,7 @@ Setup 'arm' user:
     sudo apt install python3 python3-pip
     sudo apt-get install libdvd-pkg
     sudo dpkg-reconfigure libdvd-pkg
+    sudo apt install default-jre
     sudo su
     cd /opt
     git clone https://github.com/ahnooie/automatic-ripping-machine.git arm
