@@ -36,13 +36,13 @@ See: https://b3n.org/automatic-ripping-machine
 
 If you have a new DVD drive that you haven't used before, some require setting the region before they can play anything.  Be aware most DVD players only let you change the region a handful (4 or 5?) of times then lockout any further changes.  If your region is already set or you have a region free DVD drive you can skip this step.
 
-       sudo apt-get install regionset
-       sudo regionset /dev/sr0
+    sudo apt-get install regionset
+    sudo regionset /dev/sr0
 
-    Setup 'arm' user:
-    groupadd arm
-    useradd -m arm -g arm
-    passwd arm 
+Setup 'arm' user:
+    sudo groupadd arm
+    sudo useradd -m arm -g arm
+    sudo passwd arm 
       <enter new password>
 
     sudo apt-get install git
@@ -61,11 +61,13 @@ If you have a new DVD drive that you haven't used before, some require setting t
     cd /opt
     git clone https://github.com/ahnooie/automatic-ripping-machine.git arm
     cd arm
+    # TODO: Remove below line before merging to master
+    git checkout v2_master
     pip3 install -r requirements.txt
     ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
     ln -s /opt/arm/setup/.abcde.conf ~/
     cp /opt/arm/setup/arm@.service /etc/systemd/system/
-    cp config.sample config
+    cp /docs/config.sample config
 
     Create entries in /etc/fstab to allow non-root to mount dvd-roms
     Example (create for each optical drive you plan on using for ARM:
@@ -75,6 +77,8 @@ If you have a new DVD drive that you haven't used before, some require setting t
 - To rip Blu-Rays after the MakeMKV trial is up you will need to purchase a license key or while MakeMKV is in BETA you can get a free key (which you will need to update from time to time) here:  https://www.makemkv.com/forum2/viewtopic.php?f=5&t=1053 and create /root/.MakeMKV/settings.conf with the contents:
 
         app_Key = "insertlicensekeyhere"
+
+- For ARM to identify movie/tv titles register for an API key at OMDb API: http://www.omdbapi.com/apikey.aspx and set the OMDB_API_KEY parameter in the config file.
 
 
 Optionally if you want something more stable than master you can download the latest release from the releases page.
@@ -91,7 +95,7 @@ Check /opt/arm/log to see if you can find where the script failed.  If you need 
 
 ## Contributing
 
-Pull requests are welcome
+Pull requests are welcome.
 
 ## License
 
