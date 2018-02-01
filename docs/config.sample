@@ -87,7 +87,6 @@ RIPMETHOD="mkv"
 # audio and burn them into the video
 # HB_ARGS="--subtitle scan -F --subtitle-burned"
 # HB_ARGS= "--subtitle scan -F --audio-lang-list eng --all-audio"
-HB_ARGS="--subtitle scan -F --subtitle-burned"
 
 # MakeMKV Arguments
 # MakeMKV Profile used for controlling Audio Track Selection.
@@ -102,7 +101,10 @@ MKV_ARGS=""
 
 # Handbrake preset profile
 # Execute "HandBrakeCLI -z" to see a list of all presets
-HB_PRESET="High Profile" 
+####### HB_PRESET="High Profile" 
+
+HB_PRESET_DVD="High Profile" 
+HB_PRESET_BD="High Profile" 
 
 # Extension of the final video file
 DEST_EXT=mkv
@@ -183,7 +185,7 @@ PB_KEY=""
 
 # IFTTT API KEY
 # Leave empty to disable IFTTT notifications
-# IFTTT_KEY=""
+IFTTT_KEY=""
 
 # IFTTT Event Name
 IFTTT_EVENT="arm_event"
