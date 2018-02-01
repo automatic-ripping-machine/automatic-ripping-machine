@@ -81,8 +81,11 @@ Setup 'arm' user:
 
 - For ARM to identify movie/tv titles register for an API key at OMDb API: http://www.omdbapi.com/apikey.aspx and set the OMDB_API_KEY parameter in the config file.
 
-
 Optionally if you want something more stable than master you can download the latest release from the releases page.
+
+After setup is complete reboot...
+    
+    reboot
 
 ## Usage
 
