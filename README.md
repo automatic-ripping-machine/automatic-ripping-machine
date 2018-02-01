@@ -40,6 +40,7 @@ If you have a new DVD drive that you haven't used before, some require setting t
     sudo regionset /dev/sr0
 
 Setup 'arm' user:
+
     sudo groupadd arm
     sudo useradd -m arm -g arm
     sudo passwd arm 
