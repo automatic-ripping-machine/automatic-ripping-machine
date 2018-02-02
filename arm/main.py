@@ -72,6 +72,8 @@ def main(logfile, disc):
 
     identify.identify(disc, logfile)
 
+    # sys.exit()
+
     log_arm_params(disc)
 
     if disc.disctype in ["dvd", "bluray"]:
@@ -143,8 +145,23 @@ def main(logfile, disc):
             logging.info("Music rip failed.  See previous errors.  Exiting.")
 
     elif disc.disctype == "data":
-        # do something here
-        pass
+        # get filesystem in order
+        datapath = os.path.join(cfg['ARMPATH'], str(disc.label))
+        if (utils.make_dir(datapath)) is False:
+            ts = round(time.time() * 100)
+            datapath = os.path.join(cfg['ARMPATH'], str(disc.label) + "_" + str(ts))
+
+            if(utils.make_dir(datapath)) is False:
+                logging.info("Could not create data directory: " + datapath + ".  Exiting ARM.")
+                sys.exit()
+
+        if utils.rip_data(disc, datapath, logfile):
+            utils.notify("ARM notification", "Data disc: " + disc.label + " copying complete.")
+            os.system("eject " + disc.devpath)
+        else:
+            logging.info("Data rip failed.  See previous errors.  Exiting.")
+            os.system("eject " + disc.devpath)
+
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
 

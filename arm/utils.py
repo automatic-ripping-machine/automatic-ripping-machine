@@ -15,14 +15,14 @@ def notify(title, body):
     # title = title for notification
     # body = body of the notification
 
-    if cfg['PB_KEY']  != "":
+    if cfg['PB_KEY'] != "":
         from pushbullet import Pushbullet
         pb = Pushbullet(cfg['PB_KEY'])
         push = pb.push_note(title, body)
 
 
     if cfg['IFTTT_KEY'] != "":
-        import pyfttt as pyfttt        
+        import pyfttt as pyfttt
         event = cfg['IFTTT_EVENT']
         pyfttt.send_event(cfg['IFTTT_KEY'], event, title, body)
 
@@ -131,8 +131,23 @@ def get_cdrom_status(devpath):
 
     return result
 
+def find_file(filename, search_path):
+    """
+    Check to see if file exists by searching a directory recursively\n
+    filename = filename to look for\n
+    search_path = path to search recursively\n
+
+    returns True or False
+    """
+
+    for dirpath, dirnames, filenames in os.walk(search_path):
+        if filename in filenames:
+            return True
+    return False
+
 def rip_music(disc, logfile):
     """
+    Rip music CD using abcde using abcde config\n
     disc = disc object\n
     logfile = location of logfile\n
 
@@ -150,7 +165,7 @@ def rip_music(disc, logfile):
         logging.debug("Sending command: " + cmd)
 
         try:
-            hb = subprocess.check_output(
+            ab = subprocess.check_output(
                 cmd,
                 shell=True
             ).decode("utf-8")
@@ -163,3 +178,44 @@ def rip_music(disc, logfile):
 
     return False
 
+def rip_data(disc, datapath, logfile):
+    """
+    Rip data disc using cat on the command line\n
+    disc = disc object\n
+    datapath = path to copy data to\n
+    logfile = location of logfile\n
+
+    returns True/False for success/fail
+    """
+
+    if disc.disctype == "data":
+        logging.info("Disc identified as data")
+        
+        if (disc.label) == "":
+            disc.label = "datadisc"
+        
+        filename = os.path.join(datapath, disc.label + ".iso")
+
+        logging.info("Ripping data disc to: " + filename)
+
+        cmd = 'cat "{0}" > "{1}" 2>> {2}'.format(
+            disc.devpath,
+            filename,
+            logfile
+        )
+
+        logging.debug("Sending command: " + cmd)
+
+        try:
+            dd = subprocess.check_output(
+                cmd,
+                shell=True
+            ).decode("utf-8")
+            logging.info("Data rip call successful")
+            return True
+        except subprocess.CalledProcessError as dd_error:
+            err = "Data rip failed with code: " + str(dd_error.returncode) + "(" + str(dd_error.output) + ")"
+            logging.error(err)
+            # sys.exit(err)
+
+    return False
