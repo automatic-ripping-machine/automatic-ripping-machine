@@ -39,10 +39,10 @@ def identify(disc, logfile):
         disc.disctype = "data"
 
     if disc.disctype in ["dvd", "bluray"]:
-        
+
         logging.info("Disc identified as video")
 
-        if str(cfg["GET_VIDEO_TITLE"]).lower == "true":
+        if str(cfg["GET_VIDEO_TITLE"]).lower() == "true":
 
             logging.info("Getting movie title...")
             disc.videotitle, disc.videoyear = getmovietitle.main(disc)
