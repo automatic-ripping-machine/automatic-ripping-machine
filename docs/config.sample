@@ -41,6 +41,9 @@ MEDIA_DIR="/mnt/media/ARM/Media/Movies/"
 # For Plex see https://support.plex.tv/hc/en-us/articles/200220677
 EXTRAS_SUB="extras"
 
+# Path to installation of ARM 
+ARMINSTALLPATH="/opt/arm/"
+
 # Path to directory to hold log files
 # Make sure to include trailing /
 LOGPATH="/opt/arm/logs/"
@@ -95,6 +98,9 @@ HB_ARGS="--subtitle scan -F --subtitle-burned"
 # to be advanced usage of MakeMKV. But this will allow users to alternatively tell makemkv to select HD audio tracks and etc.
 # MKV_ARGS="--profile=/opt/arm/default.mmcp.xml"
 MKV_ARGS=""
+
+# Remove the files created by MakeMKV after processing is complete
+DELRAWFILES="true"
 
 ##########################
 ## HandBrake Parameters ##

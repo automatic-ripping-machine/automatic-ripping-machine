@@ -35,7 +35,7 @@ def makemkv(logfile, devpath, label):
         logging.info("MakeMKV disc number: " + mdisc.strip())
         # print("mdisc is: " + mdisc)
     except subprocess.CalledProcessError as mdisc_error:
-        err = "Call to handbrake failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
+        err = "Call to makemkv failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
         logging.error(err)
         # print("Error: " + err)
         return
@@ -72,11 +72,13 @@ def makemkv(logfile, devpath, label):
     logging.info("Backing up with the following command: " + cmd)
 
     try:
-        mkv = subprocess.check_output(
+        mkv = subprocess.run(
             cmd,
             shell=True
-        ).decode("utf-8")
+        )
+        # ).decode("utf-8")
         # print("mkv is: " + mkv)
+        logging.debug("The exit code for MakeMKV is: " + str(mkv.returncode))
     except subprocess.CalledProcessError as mdisc_error:
         err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
         logging.error(err)
