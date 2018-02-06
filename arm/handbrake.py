@@ -54,7 +54,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, disc):
         logging.error(err)
         sys.exit(err)
 
-    logging.debug("Handbrake processing complete")
+    logging.info("Handbrake processing complete")
     logging.debug(str(disc))
     utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle, True)
     utils.scan_emby()
@@ -187,6 +187,8 @@ def handbrake_all(srcpath, basepath, logfile, disc):
                 else:
                     utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle, False)
 
+    logging.info("Handbrake processing complete")
+    logging.debug(str(disc))
     if disc.videotype == "movie" and disc.hasnicetitle:
         utils.scan_emby()
         if cfg['MAINFEATURE'] == "true":

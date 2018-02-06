@@ -116,6 +116,7 @@ def main(logfile, disc):
             # else:
                 #currently do nothing
                 #future mkv option?
+            utils.notify("ARM notification", str(disc.videotitle + " rip complete.  Starting transcode."))
     
         if disc.videotype == "movie" and cfg['MAINFEATURE'] == "true":
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
@@ -134,7 +135,7 @@ def main(logfile, disc):
             logging.info("Transcoding comlete")
 
         # Clean up bluray backup
-        if disc.disctype == "bluray":
+        if disc.disctype == "bluray" and str(cfg["DELRAWFILES"]).lower == "true":
             shutil.rmtree(mkvoutpath)
 
     elif disc.disctype == "music":
