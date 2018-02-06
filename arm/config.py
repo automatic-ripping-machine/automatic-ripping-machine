@@ -7,7 +7,13 @@ import yaml
 yamlpath = "/tmp/arm_config.yaml"
 
 if os.path.exists(yamlpath):
-    os.remove(yamlpath)
+    try:
+        os.remove(yamlpath)
+    except OSError:
+        err = "Could not delete .yaml path at:  " + yamlpath + " Probably a permissions error.  Exiting"
+        print(err)
+        raise ValueError(err,"config")
+
 
 with open("/opt/arm/config", 'r') as f:
     with open(yamlpath, 'w') as of:
