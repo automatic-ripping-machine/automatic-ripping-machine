@@ -4,28 +4,27 @@ import os
 import re
 import yaml
 
-yamlpath = "/tmp/arm_config.yaml"
+yamlfile = "/tmp/arm_config.yaml"
+cfgfile = "/etc/arm/arm.conf"
 
-if os.path.exists(yamlpath):
+if os.path.exists(yamlfile):
     try:
-        os.remove(yamlpath)
+        os.remove(yamlfile)
     except OSError:
-        err = "Could not delete .yaml path at:  " + yamlpath + " Probably a permissions error.  Exiting"
+        err = "Could not delete .yaml path at:  " + yamlfile + " Probably a permissions error.  Exiting"
         print(err)
         raise ValueError(err,"config")
 
 
-with open("/opt/arm/config", 'r') as f:
-    with open(yamlpath, 'w') as of:
+with open(cfgfile, 'r') as f:
+    with open(yamlfile, 'w') as of:
         for line in f:
-            if 'PYSTOP' in line:
-                break
-            elif not '#' in line and line.strip():
+            if not '#' in line and line.strip():
                 # print(line.strip())
                 line = re.sub("true", "\"true\"", line)
                 line = re.sub("false", "\"false\"", line)
                 line = re.sub("=", ": ", line,1)
                 of.writelines(line)
 
-with open(yamlpath, "r") as f:
+with open(yamlfile, "r") as f:
     cfg = yaml.load(f)

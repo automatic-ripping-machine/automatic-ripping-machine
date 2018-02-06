@@ -16,9 +16,6 @@ GET_VIDEO_TITLE=true
 # Note: RIPMETHOD must be set to "mkv" for this feature to work
 SKIP_TRANSCODE=false
 
-# Default Video Type.  Use this to give ARM a way to handle dvds/bds that aren't identifiable.
-# DEFAULT_VIDEOTYPE="series"
-
 #####################
 ## Directory setup ##
 #####################
@@ -79,17 +76,11 @@ MINLENGTH="600"
 MAXLENGTH="0"
 
 # Method of MakeMKV to use for Blu Ray discs.  Options are "mkv" or "backup".
-# mkv is the normal method of ripping mkv files directly from the DVD
 # backup decrypts the dvd and then copies it to the hard drive.  This allows HandBrake to apply some of it's
 # analytical abilities such as the main-feature identification.  This method seems to offer success on bluray 
-# discs that fail in "mkv" mode. *** NOTE: MakeMKV only supports the backup method on BluRay discs.  Regular
-# DVD's will always default back to the "mkv" mode. If this is set to "backup" then you must also set HandBrake's MAINFEATURE to true. 
-RIPMETHOD="mkv" 
-
-# Additional HandBrake arguments.  '--subtitle scan -F --subtitle-burned' will scan for forced foreign language
-# audio and burn them into the video
-# HB_ARGS="--subtitle scan -F --subtitle-burned"
-# HB_ARGS= "--subtitle scan -F --audio-lang-list eng --all-audio"
+# discs that fail in "mkv" mode. *** NOTE: MakeMKV only supports the backup method on BluRay discs.  ARM does
+# not use MakeMKV for DVDs.   
+RIPMETHOD="backup" 
 
 # MakeMKV Arguments
 # MakeMKV Profile used for controlling Audio Track Selection.
@@ -105,11 +96,12 @@ DELRAWFILES="true"
 ## HandBrake Parameters ##
 ##########################
 
-# Handbrake preset profile
+# Handbrake preset profile for DVDs
 # Execute "HandBrakeCLI -z" to see a list of all presets
-####### HB_PRESET="High Profile" 
-
 HB_PRESET_DVD="High Profile" 
+
+# Handbrake preset profile for Blurays
+# Execute "HandBrakeCLI -z" to see a list of all presets
 HB_PRESET_BD="High Profile" 
 
 # Extension of the final video file
@@ -120,8 +112,8 @@ HANDBRAKE_CLI=HandBrakeCLI
 
 # Have HandBrake transcode the main feature only.  BluRay discs must have RIPMETHOD="backup" for this to work.
 # If MAINFEATURE is true, blurays will be backed up to the HD and then HandBrake will go to work on the backed up
-# files.  For normal DVDs, ARM will bypass MakeMKV and hand off the dvd directly to HandBrake.  This will require 
-# libdvdcss2 be installed.
+# files.  
+# This will require libdvdcss2 be installed.
 # NOTE: For the most part, HandBrake correctly identifies the main feature on movie DVD's, although it is not perfect. 
 # However, it does not handle tv shows well at all.  This setting is only used when the video is identified as a movie.
 MAINFEATURE=false
@@ -131,14 +123,6 @@ HB_ARGS="--subtitle scan -F"
 
 # Additional Handbrake arguments for Bluray Discs.
 HB_ARGS_BD="--subtitle scan -F --subtitle-burned --audio-lang-list eng --all-audio"
-
-#####################
-## Enable Plex Use ##
-#####################
-
-# Set this setting to true, to enable Plex Extras support
-# This setting is no longer needed.  See EXTRAS_SUB above.
-# PLEX_SUPPORT=false
 
 #####################
 ## Emby Parameters ##
@@ -207,25 +191,4 @@ PO_APP_KEY=""
 # This is the API key for omdbapi.com queries.
 # More info at http://omdbapi.com/
 OMDB_API_KEY=""
-
-# DO NOT REMOVE THE FOLLOWING LINE!
-# PYSTOP
-
-# Determine logfile name
-# use the label of the DVD/CD or else use empty.log
-# this is required for udev events where there is no media available
-# such as ejecting the drive
-
-if [ -n "$ID_FS_LABEL" ]; then
-        LOGFILE=${ID_FS_LABEL}".log"
-        elif [[ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" && $(which abcde-musicbrainz-tool) ]]; then
-                LOGFILE=$(abcde-musicbrainz-tool --device "$DEVNAME" | cut -f1 -d ' ')".log"
-        elif [[ -n "$ID_CDROM_MEDIA_TRACK_COUNT_AUDIO" &&  $(which cd-discid) ]]; then
-                LOGFILE=$(cd-discid "$DEVNAME" | cut -f1 -d ' ')".log"
-else
-        LOGFILE="empty.log"
-fi
-
-# Set full logfile path
-LOG=$LOGPATH$LOGFILE
 

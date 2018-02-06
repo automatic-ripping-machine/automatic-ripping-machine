@@ -69,7 +69,9 @@ Setup 'arm' user:
     ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
     ln -s /opt/arm/setup/.abcde.conf ~/
     cp /opt/arm/setup/arm@.service /etc/systemd/system/
-    cp /docs/config.sample config
+    cp /docs/arm.conf.sample arm.conf
+    mkdir /etc/arm/
+    ln -s /opt/arm/arm.conf /etc/arm/
 
     Create entries in /etc/fstab to allow non-root to mount dvd-roms
     Example (create for each optical drive you plan on using for ARM:
