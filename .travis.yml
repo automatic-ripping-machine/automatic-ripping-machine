@@ -1,12 +1,6 @@
-language: bash
-sudo: required
-os:
-  - linux
-before_script:
-  - cp ./config.sample config
-install:
-  - ./build/install.sh
+language: python
+python:
+  - "3.5"
+install: "pip install -r requirements.txt"
 script:
-  - ./build/build.sh 
-notifications:
-  email: false
+  - flake8 arm
