@@ -11,7 +11,7 @@ from config import cfg
 
 
 def makemkv(logfile, devpath, label):
-    """ 
+    """
     Rip Blurays with MakeMKV\n
     logfile = Location of logfile to redirect MakeMKV logs to\n
     devpath = Path to disc\n
@@ -62,7 +62,7 @@ def makemkv(logfile, devpath, label):
             # logging.error("Couldn't create the base file path: " + rawpath + " Probably a permissions error")
             err = "Couldn't create the base file path: " + rawpath + " Probably a permissions error"
             sys.exit(err)
-        
+
     # rip bluray
     cmd = 'makemkvcon backup --decrypt {0} -r disc:{1} {2}>> {3}'.format(
         cfg['MKV_ARGS'],
@@ -90,4 +90,3 @@ def makemkv(logfile, devpath, label):
 
     logging.info("Exiting MakeMKV processing with return value of: " + rawpath)
     return(rawpath)
-

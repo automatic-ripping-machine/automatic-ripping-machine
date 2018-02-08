@@ -60,6 +60,3 @@ class Disc(object):
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 
         return s
-
-
-

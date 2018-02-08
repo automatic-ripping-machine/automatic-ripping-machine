@@ -129,7 +129,6 @@ def get_cdrom_status(devpath):
     except Exception:
         logging.info("Failed to open device " + devpath + " to check status.")
         exit(2)
-    
     result = fcntl.ioctl(fd, 0x5326, 0)
 
     return result
@@ -160,8 +159,7 @@ def rip_music(disc, logfile):
     """
 
     if disc.disctype == "music":
-        logging.info("Disc identified as music")
-        
+        logging.info("Disc identified as music") 
         cmd = 'abcde -d "{0}" >> "{1}" 2>&1'.format(
             disc.devpath,
             logfile
@@ -196,10 +194,10 @@ def rip_data(disc, datapath, logfile):
 
     if disc.disctype == "data":
         logging.info("Disc identified as data")
-        
+
         if (disc.label) == "":
             disc.label = "datadisc"
-        
+
         filename = os.path.join(datapath, disc.label + ".iso")
 
         logging.info("Ripping data disc to: " + filename)

@@ -9,7 +9,7 @@ from config import cfg
 
 
 def setuplogging(disc):
-    """Setup logging and return the path to the logfile for 
+    """Setup logging and return the path to the logfile for
     redirection of external calls"""
 
     if not os.path.exists(cfg['LOGPATH']):

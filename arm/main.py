@@ -101,9 +101,9 @@ def main(logfile, disc):
             if(utils.make_dir(hboutpath)) is False:
                 logging.info("Failed to create base directory.  Exiting ARM.")
                 sys.exit()
-        
+
         logging.info("Processing files to: " + hboutpath)
-        
+
         # Do the work!
         hbinpath = str(disc.devpath)
         if disc.disctype == "bluray":
@@ -122,14 +122,14 @@ def main(logfile, disc):
                 # currently do nothing
                 # future mkv option?
             utils.notify("ARM notification", str(disc.videotitle + " rip complete.  Starting transcode."))
-    
+
         if disc.videotype == "movie" and cfg['MAINFEATURE'] == "true":
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
             os.system("eject " + disc.devpath)
         else:
             handbrake.handbrake_all(hbinpath, hboutpath, logfile, disc)
             os.system("eject " + disc.devpath)
-            
+
         # report errors if any
         if disc.errors:
             errlist = ', '.join(disc.errors)

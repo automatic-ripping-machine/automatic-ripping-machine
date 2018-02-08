@@ -69,12 +69,12 @@ def getdvdtype(disc):
                 dvd_title_slice = dvd_title[:dvd_title.find("-")]
                 dvd_title_slice = cleanupstring(dvd_title_slice)
                 dvd_type = callwebservice(omdb_api_key, dvd_title_slice)
-                
+
             # if still fail, then try slicing off the last word in a loop
             while dvd_type == "fail" and dvd_title_clean.count('+') > 0:
                 dvd_title_clean = dvd_title_clean.rsplit('+', 1)[0]
                 dvd_type = callwebservice(omdb_api_key, dvd_title_clean)
-        
+
     if needs_new_year == "true":
         #     #pass the new year back to bash to handle
         #     global new_year
