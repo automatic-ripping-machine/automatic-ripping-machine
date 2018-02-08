@@ -1,21 +1,22 @@
 #!/usr/bin/python3
 
 import os
-import sys
+import sys # noqa # pylint: disable=unused-import
 import logging
-import classes
+import classes # noqa # pylint: disable=unused-import
 import getmovietitle
 import getvideotype
 import utils
 
 from config import cfg
 
+
 def identify(disc, logfile):
     """Identify disc attributes"""
 
     logging.debug("Identification starting: " + str(disc))
 
-    #If UDF CHeck is on
+    # If UDF CHeck is on
     # if cfg['ARM_CHECK_UDF']:
 
     logging.info("Mounting disc to: " + str(disc.mountpoint))

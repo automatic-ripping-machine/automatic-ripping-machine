@@ -10,12 +10,13 @@ import utils
 
 from config import cfg
 
+
 def handbrake_mainfeature(srcpath, basepath, logfile, disc):
     """process dvd with mainfeature enabled.\n
     srcpath = Path to source for HB (dvd or files)\n
     basepath = Path where HB will save trancoded files\n
     logfile = Logfile for HB to redirect output to\n
-    
+
     Returns nothing
     """
     logging.info("Starting DVD Movie Mainfeature processing")
@@ -44,7 +45,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, disc):
     logging.debug("Sending command: %s", (cmd))
 
     try:
-        hb = subprocess.check_output(
+        subprocess.check_output(
             cmd,
             shell=True
         ).decode("utf-8")
@@ -64,12 +65,13 @@ def handbrake_mainfeature(srcpath, basepath, logfile, disc):
     except OSError:
         pass
 
+
 def handbrake_all(srcpath, basepath, logfile, disc):
     """Process all titles on the dvd\n
     srcpath = Path to source for HB (dvd or files)\n
     basepath = Path where HB will save trancoded files\n
     logfile = Logfile for HB to redirect output to\n
-    
+
     Returns nothing
     """
     logging.info("Starting BluRay/DVD transcoding - All titles")
@@ -100,20 +102,20 @@ def handbrake_all(srcpath, basepath, logfile, disc):
     for line in hb.stderr.decode(errors='ignore').splitlines(True):
         # get number of titles on disc
         # pattern = re.compile(r'\bscan\:.*\btitle\(s\)')
-        
+
         if disc.disctype == "bluray":
-            result = re.search('scan: BD has (.*) title\(s\)',line)
+            result = re.search('scan: BD has (.*) title\(s\)', line)
         else:
-            result = re.search('scan: DVD has (.*) title\(s\)',line)
+            result = re.search('scan: DVD has (.*) title\(s\)', line)
 
         if result:
             titles = result.group(1)
             titles = titles.strip()
             logging.debug("Line found is: " + line)
             logging.info("Found " + titles + " titles")
-        
+
         # get main feature title number
-        if(re.search("Main Feature", line)) != None:
+        if(re.search("Main Feature", line)) is not None:
             t = prevline.split()
             mt_track = re.sub('[:]', '', (t[2]))
             logging.debug("Lines found are: 1) " + line.rstrip() + " | 2)" + prevline)
@@ -121,7 +123,7 @@ def handbrake_all(srcpath, basepath, logfile, disc):
         prevline = line
 
     if titles == 0:
-        raise ValueError("Couldn't get total number of tracks","handbrake_all")
+        raise ValueError("Couldn't get total number of tracks", "handbrake_all")
 
     mt_track = str(mt_track).strip()
 
@@ -133,20 +135,20 @@ def handbrake_all(srcpath, basepath, logfile, disc):
         hb_preset = cfg['HB_PRESET_BD']
 
     for title in range(1, int(titles) + 1):
-        
+
         # get length
         tlength = get_title_length(title, srcpath)
-        
+
         if tlength < int(cfg['MINLENGTH']):
-            #too short
-            logging.info("Track #" + str(title) + " of " + str(titles) + ". Length (" + str(tlength) + \
-            ") is less than minimum length (" + cfg['MINLENGTH'] + ").  Skipping")
+            # too short
+            logging.info("Track #" + str(title) + " of " + str(titles) + ". Length (" + str(tlength) +
+                         ") is less than minimum length (" + cfg['MINLENGTH'] + ").  Skipping")
         elif tlength > int(cfg['MAXLENGTH']):
-            #too long
-            logging.info("Track #" + str(title) +" of " + str(titles) + ". Length (" + str(tlength) + \
-            ") is greater than maximum length (" + cfg['MAXLENGTH'] + ").  Skipping")
+            # too long
+            logging.info("Track #" + str(title) + " of " + str(titles) + ". Length (" + str(tlength) +
+                         ") is greater than maximum length (" + cfg['MAXLENGTH'] + ").  Skipping")
         else:
-            #just right
+            # just right
             logging.info("Processing track #" + str(title) + " of " + str(titles) + ". Length is " + str(tlength) + " seconds.")
 
             filename = "title_" + str.zfill(str(title), 2) + "." + cfg['DEST_EXT']
@@ -202,9 +204,9 @@ def get_title_length(title, srcpath):
     """Use HandBrake to get the title length\n
     title = title to scan\n
     srcpath = location of the dvd or decrypted bluray\n
-    
+
     returns the length of the title or -1 if the length could not be determinied
-    """ 
+    """
     logging.debug("Getting length from " + srcpath + " on title: " + str(title))
 
     cmd = '{0} -i {1} -t {2} --scan'.format(
@@ -227,13 +229,10 @@ def get_title_length(title, srcpath):
         return(-1)
         # sys.exit(err)
 
-
     pattern = re.compile(r'.*duration\:.*')
     for line in hb:
-        if(re.search(pattern, line)) != None:
+        if(re.search(pattern, line)) is not None:
             t = line.split()
             h, m, s = t[2].split(':')
-            seconds =  int(h) * 3600 + int(m) * 60 + int(s)
+            seconds = int(h) * 3600 + int(m) * 60 + int(s)
             return(seconds)
-
-

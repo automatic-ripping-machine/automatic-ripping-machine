@@ -1,15 +1,16 @@
 #!/usr/bin/python3
 
-import sys
+import sys # noqa # pylint: disable=unused-import
 import argparse
 import urllib
-import os
-import xmltodict
+import os # noqa # pylint: disable=unused-import
+import xmltodict # noqa # pylint: disable=unused-import
 import logging
 import json
 import re
 
 from config import cfg
+
 
 def entry():
     """ Entry to program, parses arguments"""
@@ -18,6 +19,7 @@ def entry():
     # parser.add_argument('-k', '--key', help='API_Key', dest='omdb_api_key', required=True)
 
     return parser.parse_args()
+
 
 def getdvdtype(disc):
     """ Queries OMDbapi.org for title information and parses if it's a movie
@@ -49,7 +51,6 @@ def getdvdtype(disc):
 
     dvd_type = callwebservice(omdb_api_key, dvd_title_clean, year)
 
-
     # handle failures
     # this is kind of kludgy, but it kind of work...
     if (dvd_type == "fail"):
@@ -59,14 +60,14 @@ def getdvdtype(disc):
         # print (dvd_type)
 
         if dvd_type != "fail":
-            #that means the year is wrong.
+            # that means the year is wrong.
             needs_new_year = "true"
 
         if dvd_type == "fail":
             # second see if there is a hyphen and split it
             if dvd_title.find("-") > -1:
                 dvd_title_slice = dvd_title[:dvd_title.find("-")]
-                dvd_title_slice =cleanupstring(dvd_title_slice)
+                dvd_title_slice = cleanupstring(dvd_title_slice)
                 dvd_type = callwebservice(omdb_api_key, dvd_title_slice)
                 
             # if still fail, then try slicing off the last word in a loop
@@ -75,18 +76,20 @@ def getdvdtype(disc):
                 dvd_type = callwebservice(omdb_api_key, dvd_title_clean)
         
     if needs_new_year == "true":
-    #     #pass the new year back to bash to handle
-    #     global new_year
-    #     return dvd_type + "#" + new_year
+        #     #pass the new year back to bash to handle
+        #     global new_year
+        #     return dvd_type + "#" + new_year
         return (dvd_type, new_year)
     else:
-    #     return dvd_type
+        #     return dvd_type
         return (dvd_type, year)
+
 
 def cleanupstring(string):
     # clean up title string to pass to OMDbapi.org
     string = string.strip()
-    return re.sub('[_ ]',"+",string)
+    return re.sub('[_ ]', "+", string)
+
 
 def callwebservice(omdb_api_key, dvd_title, year=""):
     """ Queries OMDbapi.org for title information and parses if it's a movie
@@ -96,17 +99,19 @@ def callwebservice(omdb_api_key, dvd_title, year=""):
     # print (omdb_api_key)
 
     try:
-        dvd_title_info_json = urllib.request.urlopen("http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year)).read()
-    except:
+        dvd_title_info_json = urllib.request.urlopen(
+            "http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year)).read()
+    except Exception:
         return "fail"
     else:
         doc = json.loads(dvd_title_info_json.decode())
         if doc['Response'] == "False":
             return "fail"
         else:
-            global new_year 
+            global new_year
             new_year = doc['Year']
             return doc['Type']
+
 
 def main(disc):
     # args = entry()

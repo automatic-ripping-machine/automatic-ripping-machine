@@ -10,6 +10,7 @@ import requests
 
 from config import cfg
 
+
 def notify(title, body):
     # Send notificaions
     # title = title for notification
@@ -18,19 +19,18 @@ def notify(title, body):
     if cfg['PB_KEY'] != "":
         from pushbullet import Pushbullet
         pb = Pushbullet(cfg['PB_KEY'])
-        push = pb.push_note(title, body)
-
+        pb.push_note(title, body)
 
     if cfg['IFTTT_KEY'] != "":
         import pyfttt as pyfttt
         event = cfg['IFTTT_EVENT']
         pyfttt.send_event(cfg['IFTTT_KEY'], event, title, body)
 
-
     if cfg['PO_USER_KEY'] != "":
         from pushover import init, Client
         init(cfg['PO_APP_KEY'])
         Client(cfg['PO_USER_KEY']).send_message(body, title=title)
+
 
 def scan_emby():
     """Trigger a media scan on Emby"""
@@ -45,6 +45,7 @@ def scan_emby():
         logging.info("Emby Library Scan request successful")
     except requests.exceptions.HTTPError:
         logging.error("Emby Library Scan request failed with status code: " + str(req.status_code))
+
 
 def move_files(basepath, filename, hasnicetitle, videotitle, ismainfeature=False):
     """Move files into final media directory
@@ -86,6 +87,7 @@ def move_files(basepath, filename, hasnicetitle, videotitle, ismainfeature=False
     else:
         logging.info("hasnicetitle is false.  Not moving files.")
 
+
 def make_dir(path):
     """
 Make a directory\n
@@ -107,6 +109,7 @@ Make a directory\n
     else:
         return False
 
+
 def get_cdrom_status(devpath):
     """get the status of the cdrom drive\n
     devpath = path to cdrom\n
@@ -122,14 +125,15 @@ def get_cdrom_status(devpath):
     """
 
     try:
-        fd = os.open(devpath, os.O_RDONLY|os.O_NONBLOCK)
-    except:
+        fd = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
+    except Exception:
         logging.info("Failed to open device " + devpath + " to check status.")
         exit(2)
     
     result = fcntl.ioctl(fd, 0x5326, 0)
 
     return result
+
 
 def find_file(filename, search_path):
     """
@@ -144,6 +148,7 @@ def find_file(filename, search_path):
         if filename in filenames:
             return True
     return False
+
 
 def rip_music(disc, logfile):
     """
@@ -165,7 +170,7 @@ def rip_music(disc, logfile):
         logging.debug("Sending command: " + cmd)
 
         try:
-            ab = subprocess.check_output(
+            subprocess.check_output(
                 cmd,
                 shell=True
             ).decode("utf-8")
@@ -177,6 +182,7 @@ def rip_music(disc, logfile):
             # sys.exit(err)
 
     return False
+
 
 def rip_data(disc, datapath, logfile):
     """
@@ -207,7 +213,7 @@ def rip_data(disc, datapath, logfile):
         logging.debug("Sending command: " + cmd)
 
         try:
-            dd = subprocess.check_output(
+            subprocess.check_output(
                 cmd,
                 shell=True
             ).decode("utf-8")
@@ -219,3 +225,4 @@ def rip_data(disc, datapath, logfile):
             # sys.exit(err)
 
     return False
+    
