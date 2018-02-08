@@ -192,6 +192,11 @@ if __name__ == "__main__":
     #     sys.exit()
 
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
+    
+    # Log version number
+    with open(os.path.join(cfg['INSTALLPATH'], 'VERSION')) as version_file:
+        version = version_file.read().strip()
+    logging.info("ARM version: " + version)
 
     log_udev_params()
 
