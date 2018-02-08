@@ -1,6 +1,6 @@
 # Automatic Ripping Machine (ARM)
 
-[![Build Status](https://travis-ci.org/ahnooie/automatic-ripping-machine.svg?branch=master)](https://travis-ci.org/ahnooie/automatic-ripping-machine)
+[![Build Status](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine.svg?branch=master)](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine)
 
 ## Overview
 
@@ -36,8 +36,10 @@ See: https://b3n.org/automatic-ripping-machine
 
 If you have a  new DVD drive that you haven't used before, some require setting the region before they can play anything.  Be aware most DVD players only let you change the region a handful (4 or 5?) of times then lockout any further changes.  If your region is already set or you have a region free DVD drive you can skip this step.
 
-       sudo apt-get install regionset
-       sudo regionset /dev/sr0
+    sudo apt-get install regionset
+    sudo regionset /dev/sr0
+
+Install...    
 
     sudo apt-get install git
     sudo add-apt-repository ppa:heyarje/makemkv-beta
@@ -53,7 +55,7 @@ If you have a  new DVD drive that you haven't used before, some require setting 
     sudo dpkg-reconfigure libdvd-pkg
     sudo su
     cd /opt
-    git clone https://github.com/ahnooie/automatic-ripping-machine.git arm
+    git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
     cd arm
     pip3 install -r requirements.txt
     ln -s /opt/arm/51-automedia.rules /lib/udev/rules.d/
