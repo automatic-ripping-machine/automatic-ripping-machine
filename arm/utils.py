@@ -225,4 +225,3 @@ def rip_data(disc, datapath, logfile):
             # sys.exit(err)
 
     return False
-    
