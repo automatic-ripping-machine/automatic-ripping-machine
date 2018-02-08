@@ -9,8 +9,9 @@ import shlex
 
 from config import cfg
 
+
 def makemkv(logfile, devpath, label):
-    """ 
+    """
     Rip Blurays with MakeMKV\n
     logfile = Location of logfile to redirect MakeMKV logs to\n
     devpath = Path to disc\n
@@ -23,7 +24,7 @@ def makemkv(logfile, devpath, label):
 
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
-    cmd='makemkvcon -r info disc:9999  |grep {0} |grep -oP \'(?<=:).*?(?=,)\''.format(
+    cmd = 'makemkvcon -r info disc:9999  |grep {0} |grep -oP \'(?<=:).*?(?=,)\''.format(
                 devpath
     )
 
@@ -40,7 +41,7 @@ def makemkv(logfile, devpath, label):
         # print("Error: " + err)
         return
 
-    #get filesystem in order
+    # get filesystem in order
     rawpath = os.path.join(cfg['RAWPATH'], label)
     logging.info("Destination is " + rawpath)
 
@@ -61,9 +62,9 @@ def makemkv(logfile, devpath, label):
             # logging.error("Couldn't create the base file path: " + rawpath + " Probably a permissions error")
             err = "Couldn't create the base file path: " + rawpath + " Probably a permissions error"
             sys.exit(err)
-        
+
     # rip bluray
-    cmd='makemkvcon backup --decrypt {0} -r disc:{1} {2}>> {3}'.format(
+    cmd = 'makemkvcon backup --decrypt {0} -r disc:{1} {2}>> {3}'.format(
         cfg['MKV_ARGS'],
         mdisc.strip(),
         shlex.quote(rawpath),
@@ -89,4 +90,3 @@ def makemkv(logfile, devpath, label):
 
     logging.info("Exiting MakeMKV processing with return value of: " + rawpath)
     return(rawpath)
-

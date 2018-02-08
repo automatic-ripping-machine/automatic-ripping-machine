@@ -1,5 +1,6 @@
 import pyudev
 
+
 class Disc(object):
     """A disc class
 
@@ -56,9 +57,6 @@ class Disc(object):
 
         s = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
-            s = s + "(" + str(attr) + "=" +  str(value) + ") "
+            s = s + "(" + str(attr) + "=" + str(value) + ") "
 
         return s
-
-
-
