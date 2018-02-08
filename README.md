@@ -1,6 +1,6 @@
 # Automatic Ripping Machine (ARM)
 
-[![Build Status](https://travis-ci.org/ahnooie/automatic-ripping-machine.svg?branch=master)](https://travis-ci.org/ahnooie/automatic-ripping-machine)
+[![Build Status](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine.svg?branch=master)](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine)
 
 ## Overview
 
@@ -61,7 +61,7 @@ Setup 'arm' user:
     sudo apt install default-jre
     sudo su
     cd /opt
-    git clone https://github.com/ahnooie/automatic-ripping-machine.git arm
+    git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
     cd arm
     # TODO: Remove below line before merging to master
     git checkout v2_master

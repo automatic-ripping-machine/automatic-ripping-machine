@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-Very basic web access to log and queue monitor for ARM (Automatic Ripping Machine) https://github.com/ahnooie/automatic-ripping-machine
+Very basic web access to log and queue monitor for ARM (Automatic Ripping Machine) https://github.com/automatic-ripping-machine/automatic-ripping-machine
 
 
 Usage::
