@@ -167,7 +167,7 @@ def rip_music(disc, logfile):
     """
 
     if disc.disctype == "music":
-        logging.info("Disc identified as music") 
+        logging.info("Disc identified as music")
         cmd = 'abcde -d "{0}" >> "{1}" 2>&1'.format(
             disc.devpath,
             logfile
