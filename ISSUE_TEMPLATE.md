@@ -9,4 +9,4 @@
 
 ### Environment
 [OS Distribution and version (run "cat /etc/lsb-release")]
-[ARM Release Version or if cloning from git branch/commit (run "git log -1" to get this)]
+[ARM Release Version or if cloning from git branch/commit (run "git branch" and "git log -1" to get this)]
