@@ -65,23 +65,31 @@ def move_files(basepath, filename, hasnicetitle, videotitle, ismainfeature=False
         if ismainfeature is True:
             logging.info("Track is the Main Title.  Moving '" + filename + "' to " + m_path)
 
-            try:
-                shutil.move(os.path.join(basepath, filename), os.path.join(m_path, videotitle + "." + cfg['DEST_EXT']))
-            except shutil.Error:
-                logging.error("Unable to move '" + filename + "' to " + m_path)
+            m_file = os.path.join(m_path, videotitle + "." + cfg['DEST_EXT'])
+            if not os.path.isfile(m_file):
+                try:
+                    shutil.move(os.path.join(basepath, filename), m_file)
+                except shutil.Error:
+                    logging.error("Unable to move '" + filename + "' to " + m_path)
+            else:
+                logging.info("File: " + m_file + " already exists.  Not moving.")
         else:
             e_path = os.path.join(m_path, cfg['EXTRAS_SUB'])
-
-            logging.info("Creating extras directory " + e_path)
+            
             if not os.path.exists(e_path):
+                logging.info("Creating extras directory " + e_path)
                 os.makedirs(e_path)
 
             logging.info("Moving '" + filename + "' to " + e_path)
-
-            try:
-                shutil.move(os.path.join(basepath, filename), os.path.join(e_path, filename))
-            except shutil.Error:
-                logging.error("Unable to move '" + filename + "' to " + e_path)
+            
+            e_file = os.path.join(e_path, videotitle + "." + cfg['DEST_EXT'])
+            if not os.path.isfile(e_file):
+                try:
+                    shutil.move(os.path.join(basepath, filename), os.path.join(e_path, filename))
+                except shutil.Error:
+                    logging.error("Unable to move '" + filename + "' to " + e_path)
+            else:
+                logging.info("File: " + e_file + " already exists.  Not moving.")
 
     else:
         logging.info("hasnicetitle is false.  Not moving files.")
