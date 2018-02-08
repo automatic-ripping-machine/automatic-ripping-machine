@@ -76,13 +76,13 @@ def move_files(basepath, filename, hasnicetitle, videotitle, ismainfeature=False
                 logging.info("File: " + m_file + " already exists.  Not moving.")
         else:
             e_path = os.path.join(m_path, cfg['EXTRAS_SUB'])
-            
+
             if not os.path.exists(e_path):
                 logging.info("Creating extras directory " + e_path)
                 os.makedirs(e_path)
 
             logging.info("Moving '" + filename + "' to " + e_path)
-            
+
             e_file = os.path.join(e_path, videotitle + "." + cfg['DEST_EXT'])
             if not os.path.isfile(e_file):
                 try:
