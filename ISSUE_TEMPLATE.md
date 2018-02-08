@@ -5,11 +5,8 @@
 [Contents of log files under /opt/arm/logs]
 
 ### Config file
-[Contents of your config file]
+[Contents of your /opt/arm/config file]
 
 ### Environment
-[Distribution and version]
-[ARM Version]
-
-
-
+[OS Distribution and version (run "cat /etc/lsb-release")]
+[ARM Release Version or if cloning from git branch/commit (run "git log -1" to get this)]
