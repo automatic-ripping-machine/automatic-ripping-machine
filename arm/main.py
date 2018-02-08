@@ -12,13 +12,11 @@ import logger
 import utils
 import makemkv
 import handbrake
-# import classes
 import identify
 
 from config import cfg
 from classes import Disc
 
-# from config import cfg
 
 def entry():
     """ Entry to program, parses arguments"""
@@ -26,6 +24,7 @@ def entry():
     parser.add_argument('-d', '--devpath', help='Devpath', required=True)
 
     return parser.parse_args()
+
 
 def log_udev_params():
     """log all udev paramaters"""
@@ -37,6 +36,7 @@ def log_udev_params():
     for key, value in device.items():
         logging.debug(key + ":" + value)
     logging.debug("**** End udev attributes ****")
+
 
 def log_arm_params(disc):
     """log all entry parameters"""
@@ -66,6 +66,7 @@ def log_arm_params(disc):
     logging.info("emby_port: " + cfg['EMBY_PORT'])
     logging.info("**** End of ARM parameters ****")
 
+
 def main(logfile, disc):
     """main dvd processing function"""
     logging.info("Starting Disc identification")
@@ -87,7 +88,7 @@ def main(logfile, disc):
         sys.exit()
 
     if disc.disctype in ["dvd", "bluray"]:
-        #get filesystem in order
+        # get filesystem in order
         hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle))
 
         if (utils.make_dir(hboutpath)) is False:
@@ -102,29 +103,29 @@ def main(logfile, disc):
         # Do the work!
         hbinpath = str(disc.devpath)
         if disc.disctype == "bluray":
-            #send to makemkv for ripping
+            # send to makemkv for ripping
             if cfg['RIPMETHOD'] == "backup":
-                #backup method
-                #run MakeMKV and get path to ouput
+                # backup method
+                # run MakeMKV and get path to ouput
                 mkvoutpath = makemkv.makemkv(logfile, str(disc.devpath), str(disc.videotitle))
                 if mkvoutpath is None:
                     logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
                     sys.exit()
 
-                #point HB to the path MakeMKV ripped to
+                # point HB to the path MakeMKV ripped to
                 hbinpath = mkvoutpath
             # else:
-                #currently do nothing
-                #future mkv option?
+                # currently do nothing
+                # future mkv option?
             utils.notify("ARM notification", str(disc.videotitle + " rip complete.  Starting transcode."))
-    
+
         if disc.videotype == "movie" and cfg['MAINFEATURE'] == "true":
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
             os.system("eject " + disc.devpath)
         else:
             handbrake.handbrake_all(hbinpath, hboutpath, logfile, disc)
             os.system("eject " + disc.devpath)
-            
+
         # report errors if any
         if disc.errors:
             errlist = ', '.join(disc.errors)
@@ -166,7 +167,6 @@ def main(logfile, disc):
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
 
-    
 
 if __name__ == "__main__":
     args = entry()
