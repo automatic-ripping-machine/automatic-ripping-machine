@@ -90,7 +90,7 @@ RIPMETHOD="backup"
 MKV_ARGS=""
 
 # Remove the files created by MakeMKV after processing is complete
-DELRAWFILES="true"
+DELRAWFILES=true
 
 ##########################
 ## HandBrake Parameters ##
