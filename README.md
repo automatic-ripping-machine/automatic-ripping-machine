@@ -56,6 +56,7 @@ Setup 'arm' user:
     sudo apt install abcde flac imagemagick glyrc cdparanoia
     sudo apt install at
     sudo apt install python3 python3-pip
+    sudo apt-get install libcurl4-openssl-dev libssl-dev
     sudo apt-get install libdvd-pkg
     sudo dpkg-reconfigure libdvd-pkg
     sudo apt install default-jre
@@ -65,6 +66,7 @@ Setup 'arm' user:
     cd arm
     # TODO: Remove below line before merging to master
     git checkout v2_master
+    pip3 install --upgrade pip
     pip3 install -r requirements.txt
     ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
     ln -s /opt/arm/setup/.abcde.conf ~/
