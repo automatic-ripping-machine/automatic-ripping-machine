@@ -39,7 +39,7 @@ MEDIA_DIR="/mnt/media/ARM/Media/Movies/"
 EXTRAS_SUB="extras"
 
 # Path to installation of ARM 
-ARMINSTALLPATH="/opt/arm/"
+INSTALLPATH="/opt/arm/"
 
 # Path to directory to hold log files
 # Make sure to include trailing /
@@ -119,7 +119,7 @@ HANDBRAKE_CLI=HandBrakeCLI
 MAINFEATURE=false
 
 # Additional HandBrake arguments for DVDs.  
-HB_ARGS="--subtitle scan -F"
+HB_ARGS_DVD="--subtitle scan -F"
 
 # Additional Handbrake arguments for Bluray Discs.
 HB_ARGS_BD="--subtitle scan -F --subtitle-burned --audio-lang-list eng --all-audio"
