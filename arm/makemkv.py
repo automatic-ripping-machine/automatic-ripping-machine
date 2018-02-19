@@ -64,13 +64,25 @@ def makemkv(logfile, devpath, label):
             sys.exit(err)
 
     # rip bluray
-    cmd = 'makemkvcon backup --decrypt {0} -r disc:{1} {2}>> {3}'.format(
-        cfg['MKV_ARGS'],
-        mdisc.strip(),
-        shlex.quote(rawpath),
-        logfile
-    )
-    logging.info("Backing up with the following command: " + cmd)
+    if cfg['RIPMETHOD'] == "backup":
+        cmd = 'makemkvcon backup --decrypt {0} -r disc:{1} {2}>> {3}'.format(
+            cfg['MKV_ARGS'],
+            mdisc.strip(),
+            shlex.quote(rawpath),
+            logfile
+        )
+        logging.info("Backing up with the following command: " + cmd)
+    elif cfg['RIPMETHOD'] == "mkv":
+        cmd = 'makemkvcon mkv {0} -r dev:{1} all {2} --minlength={3}>> {4}'.format(
+            cfg['MKV_ARGS'],
+            devpath,
+            shlex.quote(rawpath),
+            cfg['MINLENGTH'],
+            logfile
+        )
+        logging.info("Ripping with the following command: " + cmd)
+    else:
+        logging.info("I'm confused what to do....  Passing on MakeMKV")
 
     try:
         mkv = subprocess.run(
