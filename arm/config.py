@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-import os
-import re
+# import os
+# import re
 import yaml
 
 yamlfile = "/etc/arm/arm.conf.yaml"
