@@ -32,32 +32,23 @@ def getdvdtype(disc):
 
     logging.debug("Title: " + dvd_title + " | Year: " + year)
 
-    # try:
-    #     year = dvd_title[(dvd_title.rindex('(')):len(dvd_title)]
-    # except:
-    #     year = ""
-    # else:
-    #     year = re.sub('[()]', '', year)
-
-    # try:
-    #     dvd_title = dvd_title[0:(dvd_title.rindex('('))].strip()
-    # except:
-    #     dvd_title_clean = cleanupstring(dvd_title)
-    # else:
     dvd_title_clean = cleanupstring(dvd_title)
 
     if year is None:
         year = ""
 
+    logging.debug("Calling webservice with title: " + dvd_title_clean + " and year: " + year)
     dvd_type = callwebservice(omdb_api_key, dvd_title_clean, year)
+    logging.debug("dvd_type: " + dvd_type)
 
     # handle failures
-    # this is kind of kludgy, but it kind of work...
+    # this is a little kludgy, but it kind of works...
     if (dvd_type == "fail"):
 
         # first try submitting without the year
+        logging.debug("Removing year...")
         dvd_type = callwebservice(omdb_api_key, dvd_title_clean, "")
-        # print (dvd_type)
+        logging.debug("dvd_type: " + dvd_type)
 
         if dvd_type != "fail":
             # that means the year is wrong.
@@ -68,12 +59,16 @@ def getdvdtype(disc):
             if dvd_title.find("-") > -1:
                 dvd_title_slice = dvd_title[:dvd_title.find("-")]
                 dvd_title_slice = cleanupstring(dvd_title_slice)
-                dvd_type = callwebservice(omdb_api_key, dvd_title_slice)
+                logging.debug("Trying title: " + dvd_title_slice)
+                dvd_type = callwebservice(omdb_api_key, dvd_title_slice, year)
+                logging.debug("dvd_type: " + dvd_type)
 
             # if still fail, then try slicing off the last word in a loop
             while dvd_type == "fail" and dvd_title_clean.count('+') > 0:
                 dvd_title_clean = dvd_title_clean.rsplit('+', 1)[0]
-                dvd_type = callwebservice(omdb_api_key, dvd_title_clean)
+                logging.debug("Trying title: " + dvd_title_clean)
+                dvd_type = callwebservice(omdb_api_key, dvd_title_clean, year)
+                logging.debug("dvd_type: " + dvd_type)
 
     if needs_new_year == "true":
         #     #pass the new year back to bash to handle
@@ -94,29 +89,29 @@ def cleanupstring(string):
 def callwebservice(omdb_api_key, dvd_title, year=""):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
-    # print (dvd_title)
-    # print (year)
-    # print (omdb_api_key)
 
+    logging.debug("***Calling webservice with Title: " + dvd_title + " and Year: " + year)
     try:
-        dvd_title_info_json = urllib.request.urlopen(
-            "http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year)).read()
+        strurl = "http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year)
+        logging.debug("http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format("key_hidden", dvd_title, year))
+        dvd_title_info_json = urllib.request.urlopen(strurl).read()
     except Exception:
+        logging.debug("Webservice failed")
         return "fail"
     else:
         doc = json.loads(dvd_title_info_json.decode())
         if doc['Response'] == "False":
+            logging.debug("Webservice failed with error: " + doc['Error'])
             return "fail"
         else:
             global new_year
             new_year = doc['Year']
+            logging.debug("Webservice successful.  New Year is: " + new_year)
             return doc['Type']
 
 
 def main(disc):
-    # args = entry()
 
     logging.debug("Entering getvideotype module")
     dvd_type, year = getdvdtype(disc)
-    # print(dvd_type)
     return(dvd_type, year)
