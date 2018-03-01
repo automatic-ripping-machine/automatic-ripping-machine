@@ -1,30 +1,30 @@
 #!/usr/bin/python3
 
-import os
-import re
+# import os
+# import re
 import yaml
 
-yamlfile = "/tmp/arm_config.yaml"
-cfgfile = "/etc/arm/arm.conf"
+yamlfile = "/etc/arm/arm.conf.yaml"
+# cfgfile = "/etc/arm/arm.conf"
 
-if os.path.exists(yamlfile):
-    try:
-        os.remove(yamlfile)
-    except OSError:
-        err = "Could not delete .yaml path at:  " + yamlfile + " Probably a permissions error.  Exiting"
-        print(err)
-        raise ValueError(err, "config")
+# if os.path.exists(yamlfile):
+#     try:
+#         os.remove(yamlfile)
+#     except OSError:
+#         err = "Could not delete .yaml path at:  " + yamlfile + " Probably a permissions error.  Exiting"
+#         print(err)
+#         raise ValueError(err, "config")
 
 
-with open(cfgfile, 'r') as f:
-    with open(yamlfile, 'w') as of:
-        for line in f:
-            if '#' not in line and line.strip():
-                # print(line.strip())
-                line = re.sub("true", "\"true\"", line)
-                line = re.sub("false", "\"false\"", line)
-                line = re.sub("=", ": ", line, 1)
-                of.writelines(line)
+# with open(cfgfile, 'r') as f:
+#     with open(yamlfile, 'w') as of:
+#         for line in f:
+#             if '#' not in line and line.strip():
+#                 # print(line.strip())
+#                 line = re.sub("true", "\"true\"", line)
+#                 line = re.sub("false", "\"false\"", line)
+#                 line = re.sub("=", ": ", line, 1)
+#                 of.writelines(line)
 
 with open(yamlfile, "r") as f:
     cfg = yaml.load(f)
