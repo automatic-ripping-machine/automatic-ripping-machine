@@ -16,6 +16,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, disc):
     srcpath = Path to source for HB (dvd or files)\n
     basepath = Path where HB will save trancoded files\n
     logfile = Logfile for HB to redirect output to\n
+    disc = Disc object\n
 
     Returns nothing
     """
@@ -57,7 +58,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, disc):
 
     logging.info("Handbrake processing complete")
     logging.debug(str(disc))
-    utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle, True)
+    utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle + " (" + disc.videoyear + ")", True)
     utils.scan_emby()
 
     try:
@@ -71,6 +72,7 @@ def handbrake_all(srcpath, basepath, logfile, disc):
     srcpath = Path to source for HB (dvd or files)\n
     basepath = Path where HB will save trancoded files\n
     logfile = Logfile for HB to redirect output to\n
+    disc = Disc object\n
 
     Returns nothing
     """
@@ -185,19 +187,70 @@ def handbrake_all(srcpath, basepath, logfile, disc):
             if disc.videotype == "movie":
                 logging.debug("mt_track: " + mt_track + " List track: " + str(title))
                 if mt_track == str(title):
-                    utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle, True)
+                    utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle + " (" + disc.videoyear + ")", True)
                 else:
-                    utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle, False)
+                    utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle + " (" + disc.videoyear + ")", False)
 
     logging.info("Handbrake processing complete")
     logging.debug(str(disc))
-    if disc.videotype == "movie" and disc.hasnicetitle:
+    if disc.videotype == "movie" and cfg['MAINFEATURE'] and disc.hasnicetitle:
         utils.scan_emby()
-        if cfg['MAINFEATURE'] == "true":
-            try:
-                os.rmdir(basepath)
-            except OSError:
-                pass
+        try:
+            os.rmdir(basepath)
+        except OSError:
+            pass
+
+
+def handbrake_mkv(srcpath, basepath, logfile, disc):
+    """process all mkv files in a directory.\n
+    srcpath = Path to source for HB (dvd or files)\n
+    basepath = Path where HB will save trancoded files\n
+    logfile = Logfile for HB to redirect output to\n
+    disc = Disc object\n
+
+    Returns nothing
+    """
+
+    # DVD shouldn't be needed unless we decide to use MakeMKV for DVD processing
+    # So I'm including it to future proof...
+    if disc.disctype == "dvd":
+        hb_args = cfg['HB_ARGS_DVD']
+        hb_preset = cfg['HB_PRESET_DVD']
+    elif disc.disctype == "bluray":
+        hb_args = cfg['HB_ARGS_BD']
+        hb_preset = cfg['HB_PRESET_BD']
+
+    for f in os.listdir(srcpath):
+        srcpathname = os.path.join(srcpath, f)
+        filename = os.path.join(basepath, disc.videotitle + ".mkv")
+        filepathname = os.path.join(basepath, filename)
+
+        logging.info("Transcoding file " + shlex.quote(f) + " to " + shlex.quote(filepathname))
+
+        cmd = 'nice {0} -i {1} -o {2} --preset "{3}" {4}>> {5} 2>&1'.format(
+            cfg['HANDBRAKE_CLI'],
+            shlex.quote(srcpathname),
+            shlex.quote(filepathname),
+            hb_preset,
+            hb_args,
+            logfile
+            )
+
+        logging.debug("Sending command: %s", (cmd))
+
+        try:
+            hb = subprocess.check_output(
+                cmd,
+                shell=True
+            ).decode("utf-8")
+            logging.debug("Handbrake exit code: " + hb)
+        except subprocess.CalledProcessError as hb_error:
+            err = "Handbrake encoding of file " + shlex.quote(f) + " failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
+            logging.error(err)
+            disc.errors.append(f)
+
+    logging.info("Handbrake processing complete")
+    logging.debug(str(disc))
 
 
 def get_title_length(title, srcpath):

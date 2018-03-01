@@ -18,7 +18,6 @@ from config import cfg
 from classes import Disc
 
 
-
 def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Process disc using ARM')
@@ -51,7 +50,8 @@ def log_arm_params(disc):
     logging.info("videotype: " + str(disc.videotype))
     logging.info("hasnicetitle: " + str(disc.hasnicetitle))
     logging.info("disctype: " + str(disc.disctype))
-    logging.info("mainfeature: " + cfg['MAINFEATURE'])
+    logging.info("skip_transcode: " + str(cfg['SKIP_TRANSCODE']))
+    logging.info("mainfeature: " + str(cfg['MAINFEATURE']))
     logging.info("minlength: " + cfg['MINLENGTH'])
     logging.info("maxlength: " + cfg['MAXLENGTH'])
     logging.info("hb_preset_dvd: " + cfg['HB_PRESET_DVD'])
@@ -73,8 +73,6 @@ def main(logfile, disc):
     logging.info("Starting Disc identification")
 
     identify.identify(disc, logfile)
-
-    # sys.exit()
 
     log_arm_params(disc)
 
@@ -106,22 +104,29 @@ def main(logfile, disc):
         hbinpath = str(disc.devpath)
         if disc.disctype == "bluray":
             # send to makemkv for ripping
-            if cfg['RIPMETHOD'] == "backup":
-                # backup method
-                # run MakeMKV and get path to ouput
-                mkvoutpath = makemkv.makemkv(logfile, str(disc.devpath), str(disc.videotitle))
-                if mkvoutpath is None:
-                    logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
-                    sys.exit()
-
-                # point HB to the path MakeMKV ripped to
-                hbinpath = mkvoutpath
-            # else:
-                # currently do nothing
-                # future mkv option?
+            # run MakeMKV and get path to ouput
+            mkvoutpath = makemkv.makemkv(logfile, str(disc.devpath), str(disc.videotitle))
+            if mkvoutpath is None:
+                logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
+                sys.exit()
             utils.notify("ARM notification", str(disc.videotitle + " rip complete.  Starting transcode."))
+            # point HB to the path MakeMKV ripped to
+            hbinpath = mkvoutpath
 
-        if disc.videotype == "movie" and cfg['MAINFEATURE'] == "true":
+            if cfg['SKIP_TRANSCODE'] and cfg['RIPMETHOD'] == "mkv":
+                logging.info("SKIP_TRANSCODE is true.  Moving raw mkv files.")
+                files = os.listdir(mkvoutpath)
+                for f in files:
+                    mkvoutfile = os.path.join(mkvoutpath, f)
+                    logging.debug("Moving file: " + mkvoutfile + " to: " + mkvoutpath + f)
+                    shutil.move(mkvoutfile, hboutpath)
+                utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
+                logging.info("ARM processing comlete")
+                sys.exit()
+
+        if disc.disctype == "bluray" and cfg['RIPMETHOD'] == "mkv":
+            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
+        elif disc.videotype == "movie" and cfg['MAINFEATURE'] == "true":
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
             os.system("eject " + disc.devpath)
         else:
@@ -135,10 +140,10 @@ def main(logfile, disc):
             logging.info("Transcoding comleted with errors.  Title(s) " + errlist + " failed to complete.")
         else:
             utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
-            logging.info("Transcoding comlete")
+            logging.info("ARM processing comlete")
 
         # Clean up bluray backup
-        if disc.disctype == "bluray" and str(cfg["DELRAWFILES"]).lower == "true":
+        if disc.disctype == "bluray" and str(cfg["DELRAWFILES"]):
             shutil.rmtree(mkvoutpath)
 
     elif disc.disctype == "music":
@@ -194,7 +199,7 @@ if __name__ == "__main__":
     #     sys.exit()
 
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
-    
+
     # Log version number
     with open(os.path.join(cfg['INSTALLPATH'], 'VERSION')) as version_file:
         version = version_file.read().strip()
