@@ -4,7 +4,7 @@
 # import re
 import yaml
 
-yamlfile = "/etc/arm/arm.conf.yaml"
+yamlfile = "/etc/arm/arm.yaml"
 # cfgfile = "/etc/arm/arm.conf"
 
 # if os.path.exists(yamlfile):

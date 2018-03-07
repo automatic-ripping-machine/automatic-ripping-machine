@@ -1,2 +1,16 @@
 .vscode/settings.json
 arm.conf.yaml
+logs/*
+test.sh
+archive/
+config
+temp/
+test.py
+*.sh~
+Branch_Scope_Sanatization.txt
+__pycache*
+removed/*
+arm.conf
+*.pyc
+.gitignore
+arm.yaml

@@ -34,17 +34,19 @@ def notify(title, body):
 
 def scan_emby():
     """Trigger a media scan on Emby"""
-    # log = logging.getLogger(__name__)
 
-    logging.info("Sending Emby library scan request")
-    url = "http://" + cfg['EMBY_SERVER'] + ":" + cfg['EMBY_PORT'] + "/Library/Refresh?api_key=" + cfg['EMBY_API_KEY']
-    try:
-        req = requests.post(url)
-        if req.status_code > 299:
-            req.raise_for_status()
-        logging.info("Emby Library Scan request successful")
-    except requests.exceptions.HTTPError:
-        logging.error("Emby Library Scan request failed with status code: " + str(req.status_code))
+    if cfg['EMBY_REFRESH']:
+        logging.info("Sending Emby library scan request")
+        url = "http://" + cfg['EMBY_SERVER'] + ":" + cfg['EMBY_PORT'] + "/Library/Refresh?api_key=" + cfg['EMBY_API_KEY']
+        try:
+            req = requests.post(url)
+            if req.status_code > 299:
+                req.raise_for_status()
+            logging.info("Emby Library Scan request successful")
+        except requests.exceptions.HTTPError:
+            logging.error("Emby Library Scan request failed with status code: " + str(req.status_code))
+    else:
+        logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
 
 
 def move_files(basepath, filename, hasnicetitle, videotitle, ismainfeature=False):
