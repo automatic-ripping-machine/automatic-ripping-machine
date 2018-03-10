@@ -16,6 +16,12 @@ GET_VIDEO_TITLE: true
 # Note: RIPMETHOD must be set to "mkv" for this feature to work
 SKIP_TRANSCODE: false
 
+# Minimum length of track for ARM rip (in seconds)
+MINLENGTH: "600"
+
+# Maximum length of track for ARM rip (in seconds)
+MAXLENGTH: "99999"
+
 #####################
 ## Directory setup ##
 #####################
@@ -68,12 +74,6 @@ CHOWN_GROUP:
 ########################
 ## MakeMKV Parameters ##
 ########################
-
-# Minimum length of track for MakeMKV rip (in seconds)
-MINLENGTH: "600"
-
-# Maximum length of track for MakeMKV rip (in seconds).  Set to 0 to disable
-MAXLENGTH: "0"
 
 # Method of MakeMKV to use for Blu Ray discs.  Options are "mkv" or "backup".
 # backup decrypts the dvd and then copies it to the hard drive.  This allows HandBrake to apply some of it's

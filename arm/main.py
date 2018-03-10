@@ -61,7 +61,7 @@ def log_arm_params(disc):
     logging.info("logfile: " + logfile)
     logging.info("media_dir: " + cfg['MEDIA_DIR'])
     logging.info("extras_sub: " + cfg['EXTRAS_SUB'])
-    logging.info("emby_refresh: " + cfg['EMBY_REFRESH'])
+    logging.info("emby_refresh: " + str(cfg['EMBY_REFRESH']))
     logging.info("emby_server: " + cfg['EMBY_SERVER'])
     logging.info("emby_port: " + cfg['EMBY_PORT'])
     logging.info("**** End of ARM parameters ****")

@@ -193,7 +193,7 @@ def handbrake_all(srcpath, basepath, logfile, disc):
 
     logging.info("Handbrake processing complete")
     logging.debug(str(disc))
-    if disc.videotype == "movie" and cfg['MAINFEATURE'] and disc.hasnicetitle:
+    if disc.videotype == "movie" and disc.hasnicetitle:
         utils.scan_emby()
         try:
             os.rmdir(basepath)
