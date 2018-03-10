@@ -27,7 +27,7 @@ def getdvdtype(disc):
 
     dvd_title = disc.videotitle
     year = disc.videoyear
-    needs_new_year = "false"
+    needs_new_year = False
     omdb_api_key = cfg['OMDB_API_KEY']
 
     logging.debug("Title: " + dvd_title + " | Year: " + year)
@@ -52,7 +52,7 @@ def getdvdtype(disc):
 
         if dvd_type != "fail":
             # that means the year is wrong.
-            needs_new_year = "true"
+            needs_new_year = True
 
         if dvd_type == "fail":
             # second see if there is a hyphen and split it
@@ -70,7 +70,7 @@ def getdvdtype(disc):
                 dvd_type = callwebservice(omdb_api_key, dvd_title_clean, year)
                 logging.debug("dvd_type: " + dvd_type)
 
-    if needs_new_year == "true":
+    if needs_new_year:
         #     #pass the new year back to bash to handle
         #     global new_year
         #     return dvd_type + "#" + new_year

@@ -43,7 +43,7 @@ def identify(disc, logfile):
 
         logging.info("Disc identified as video")
 
-        if str(cfg["GET_VIDEO_TITLE"]).lower() == "true":
+        if cfg["GET_VIDEO_TITLE"]:
 
             logging.info("Getting movie title...")
             disc.videotitle, disc.videoyear = getmovietitle.main(disc)

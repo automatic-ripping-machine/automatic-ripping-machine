@@ -72,15 +72,15 @@ Setup 'arm' user:
     ln -s /opt/arm/setup/.abcde.conf ~/
     cp /opt/arm/setup/arm@.service /etc/systemd/system/
     cp --backup=numbered docs/arm.conf.yaml.sample arm.conf.yaml
-    cp docs/arm.conf.sample arm.conf
+    cp docs/arm.yaml.sample arm.yaml
     mkdir /etc/arm/
-    ln -s /opt/arm/arm.conf.yaml /etc/arm/
+    ln -s /opt/arm/arm.yaml /etc/arm/
 
     Create entries in /etc/fstab to allow non-root to mount dvd-roms
     Example (create for each optical drive you plan on using for ARM:
     /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
 
-- Edit your "config" file (located at /opt/arm/arm.conf.yaml) to determine what options you'd like to use
+- Edit your "config" file (located at /opt/arm/arm.yaml) to determine what options you'd like to use
 - To rip Blu-Rays after the MakeMKV trial is up you will need to purchase a license key or while MakeMKV is in BETA you can get a free key (which you will need to update from time to time) here:  https://www.makemkv.com/forum2/viewtopic.php?f=5&t=1053 and create /root/.MakeMKV/settings.conf with the contents:
 
         app_Key = "insertlicensekeyhere"

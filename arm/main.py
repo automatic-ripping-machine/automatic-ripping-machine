@@ -61,8 +61,7 @@ def log_arm_params(disc):
     logging.info("logfile: " + logfile)
     logging.info("media_dir: " + cfg['MEDIA_DIR'])
     logging.info("extras_sub: " + cfg['EXTRAS_SUB'])
-    logging.info("emby_refresh: " + cfg['EMBY_REFRESH'])
-    logging.info("emby_subfolders: " + cfg['EMBY_SUBFOLDERS'])
+    logging.info("emby_refresh: " + str(cfg['EMBY_REFRESH']))
     logging.info("emby_server: " + cfg['EMBY_SERVER'])
     logging.info("emby_port: " + cfg['EMBY_PORT'])
     logging.info("**** End of ARM parameters ****")
@@ -78,7 +77,7 @@ def main(logfile, disc):
 
     if disc.disctype in ["dvd", "bluray"]:
         utils.notify("ARM notification", "Found disc: " + str(disc.videotitle) + ". Video type is "
-                     + str(disc.videotype) + ". Main Feature is " + cfg['MAINFEATURE'] + ".")
+                     + str(disc.videotype) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
     elif disc.disctype == "music":
         utils.notify("ARM notification", "Found music CD: " + disc.label + ". Ripping all tracks")
     elif disc.disctype == "data":
@@ -109,7 +108,8 @@ def main(logfile, disc):
             if mkvoutpath is None:
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
                 sys.exit()
-            utils.notify("ARM notification", str(disc.videotitle + " rip complete.  Starting transcode."))
+            if cfg['NOTIFY_RIP']:
+                utils.notify("ARM notification", str(disc.videotitle + " rip complete.  Starting transcode."))
             # point HB to the path MakeMKV ripped to
             hbinpath = mkvoutpath
 
@@ -126,7 +126,7 @@ def main(logfile, disc):
 
         if disc.disctype == "bluray" and cfg['RIPMETHOD'] == "mkv":
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
-        elif disc.videotype == "movie" and cfg['MAINFEATURE'] == "true":
+        elif disc.videotype == "movie" and cfg['MAINFEATURE']:
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
             os.system("eject " + disc.devpath)
         else:
@@ -136,14 +136,16 @@ def main(logfile, disc):
         # report errors if any
         if disc.errors:
             errlist = ', '.join(disc.errors)
-            utils.notify("ARM notification", str(disc.videotitle) + " processing completed with errors. Title(s) " + errlist + " failed to complete.")
+            if cfg['NOTIFY_TRANSCODE']:
+                utils.notify("ARM notification", str(disc.videotitle) + " processing completed with errors. Title(s) " + errlist + " failed to complete.")
             logging.info("Transcoding comleted with errors.  Title(s) " + errlist + " failed to complete.")
         else:
-            utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
+            if cfg['NOTIFY_TRANSCODE']:
+                utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
             logging.info("ARM processing comlete")
 
         # Clean up bluray backup
-        if disc.disctype == "bluray" and str(cfg["DELRAWFILES"]):
+        if disc.disctype == "bluray" and cfg["DELRAWFILES"]:
             shutil.rmtree(mkvoutpath)
 
     elif disc.disctype == "music":

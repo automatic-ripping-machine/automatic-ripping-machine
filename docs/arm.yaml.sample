@@ -16,6 +16,12 @@ GET_VIDEO_TITLE: true
 # Note: RIPMETHOD must be set to "mkv" for this feature to work
 SKIP_TRANSCODE: false
 
+# Minimum length of track for ARM rip (in seconds)
+MINLENGTH: "600"
+
+# Maximum length of track for ARM rip (in seconds)
+MAXLENGTH: "99999"
+
 #####################
 ## Directory setup ##
 #####################
@@ -68,12 +74,6 @@ CHOWN_GROUP:
 ########################
 ## MakeMKV Parameters ##
 ########################
-
-# Minimum length of track for MakeMKV rip (in seconds)
-MINLENGTH: "600"
-
-# Maximum length of track for MakeMKV rip (in seconds).  Set to 0 to disable
-MAXLENGTH: "0"
 
 # Method of MakeMKV to use for Blu Ray discs.  Options are "mkv" or "backup".
 # backup decrypts the dvd and then copies it to the hard drive.  This allows HandBrake to apply some of it's
@@ -133,9 +133,6 @@ HB_ARGS_BD: "--subtitle scan -F --subtitle-burned --audio-lang-list eng --all-au
 # Scan emby library after succesful placement of mainfeature (see above)
 EMBY_REFRESH: false
 
-# Use subfolders in Emby as described here: https://github.com/MediaBrowser/Wiki/wiki/Movie%20naming#movie-extras
-EMBY_SUBFOLDERS: true
-
 # Server parameters
 # Server can be ip address or domain name
 EMBY_SERVER: ""
@@ -158,6 +155,10 @@ EMBY_USERID: ""
 # echo -n your-password | sha1sum | awk '{print $1}'
 # or using an online generator like the one located at http://www.sha1-online.com/
 EMBY_PASSWORD: ""
+
+# Emby API key.  This can be found (generated) by going to Advanced/Security in the 
+# Emby dashboard
+EMBY_API_KEY: ""
 
 #############################
 ## Notification Parameters ##
