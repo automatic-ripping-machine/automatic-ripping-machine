@@ -16,6 +16,12 @@ GET_VIDEO_TITLE: true
 # Note: RIPMETHOD must be set to "mkv" for this feature to work
 SKIP_TRANSCODE: false
 
+# Video type identification.  Options are "auto", "series", "movie".
+# If "auto" then ARM will get the video type when quering the movie webservice.  This is default.
+# If the disc is not clearly a movie or series, or if ARM is having difficulty getting the right video type
+# you can overrie the automatic identification with "series" or "movie"
+VIDEOTYPE: "auto"
+
 # Minimum length of track for ARM rip (in seconds)
 MINLENGTH: "600"
 
