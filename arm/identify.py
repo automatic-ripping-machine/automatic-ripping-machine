@@ -51,6 +51,10 @@ def identify(disc, logfile):
             logging.info("Getting video type...")
             disc.videotype, disc.videoyear = getvideotype.main(disc)
 
+            if not cfg['VIDEOTYPE'].lower() == "auto":
+                logging.debug("Overriding videotype with value in VIDEOTYPE config parameter: " + cfg['VIDEOTYPE'].lower())
+                disc.videotype = cfg['VIDEOTYPE'].lower()
+
             logging.info("Disc title: " + str(disc.videotitle) + " : " + str(disc.videoyear) + " : " + str(disc.videotype))
             logging.debug("Identification complete: " + str(disc))
 

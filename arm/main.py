@@ -54,6 +54,7 @@ def log_arm_params(disc):
     logging.info("mainfeature: " + str(cfg['MAINFEATURE']))
     logging.info("minlength: " + cfg['MINLENGTH'])
     logging.info("maxlength: " + cfg['MAXLENGTH'])
+    logging.info("videotype: " + cfg['VIDEOTYPE'])
     logging.info("hb_preset_dvd: " + cfg['HB_PRESET_DVD'])
     logging.info("hb_preset_bd: " + cfg['HB_PRESET_BD'])
     logging.info("hb_args_dvd: " + cfg['HB_ARGS_DVD'])
