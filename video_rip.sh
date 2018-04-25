@@ -4,8 +4,8 @@
 # shellcheck source=config
 # shellcheck disable=SC1091
 source "$ARM_CONFIG"
-# shellcheck disable=SC1090
-while read info_var; do export $info_var; done < "${DISC_INFO}"
+# shellcheck disable=SC2163
+while read -r info_var; do export $info_var; done < "${DISC_INFO}"
 
 VIDEO_TITLE=$1
 HAS_NICE_TITLE=$2
