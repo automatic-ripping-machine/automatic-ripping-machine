@@ -10,6 +10,7 @@ import requests
 
 from config import cfg
 
+
 def notify(title, body):
     # Send notificaions
     # title = title for notification
