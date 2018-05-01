@@ -17,19 +17,28 @@ def notify(title, body):
     # body = body of the notification
 
     if cfg['PB_KEY'] != "":
-        from pushbullet import Pushbullet
-        pb = Pushbullet(cfg['PB_KEY'])
-        pb.push_note(title, body)
+        try:
+            from pushbullet import Pushbullet
+            pb = Pushbullet(cfg['PB_KEY'])
+            pb.push_note(title, body)
+        except:
+            logging.error("Failed sending PushBullet notification.  Continueing processing...")
 
     if cfg['IFTTT_KEY'] != "":
-        import pyfttt as pyfttt
-        event = cfg['IFTTT_EVENT']
-        pyfttt.send_event(cfg['IFTTT_KEY'], event, title, body)
+        try:
+            import pyfttt as pyfttt
+            event = cfg['IFTTT_EVENT']
+            pyfttt.send_event(cfg['IFTTT_KEY'], event, title, body)
+        except:
+            logging.error("Failed sending IFTTT notification.  Continueing processing...")
 
     if cfg['PO_USER_KEY'] != "":
-        from pushover import init, Client
-        init(cfg['PO_APP_KEY'])
-        Client(cfg['PO_USER_KEY']).send_message(body, title=title)
+        try:
+            from pushover import init, Client
+            init(cfg['PO_APP_KEY'])
+            Client(cfg['PO_USER_KEY']).send_message(body, title=title)
+        except:
+            logging.error("Failed sending PushOver notification.  Continueing processing...")
 
 
 def scan_emby():
