@@ -10,7 +10,6 @@ import requests
 
 from config import cfg
 
-
 def notify(title, body):
     # Send notificaions
     # title = title for notification
@@ -21,7 +20,7 @@ def notify(title, body):
             from pushbullet import Pushbullet
             pb = Pushbullet(cfg['PB_KEY'])
             pb.push_note(title, body)
-        except:
+        except:  # noqa: E722
             logging.error("Failed sending PushBullet notification.  Continueing processing...")
 
     if cfg['IFTTT_KEY'] != "":
@@ -29,7 +28,7 @@ def notify(title, body):
             import pyfttt as pyfttt
             event = cfg['IFTTT_EVENT']
             pyfttt.send_event(cfg['IFTTT_KEY'], event, title, body)
-        except:
+        except:  # noqa: E722
             logging.error("Failed sending IFTTT notification.  Continueing processing...")
 
     if cfg['PO_USER_KEY'] != "":
@@ -37,7 +36,7 @@ def notify(title, body):
             from pushover import init, Client
             init(cfg['PO_APP_KEY'])
             Client(cfg['PO_USER_KEY']).send_message(body, title=title)
-        except:
+        except:  # noqa: E722
             logging.error("Failed sending PushOver notification.  Continueing processing...")
 
 
