@@ -83,7 +83,7 @@ To setup the virtual machine (for any OS)
     git clone https://github.com/ahnooie/automatic-ripping-machine.git arm
     cd arm
 
-Copy config.sample to config and configure as desired. The 'arm' directory you just created will be mounted to '/vagrant/' in the virtual machine, so that can be used as a base path to easily access the ripped files. You can also use the CIFS variabels to mount a Windows share where movies are saved. It's recommended to only use it for the MEDIA_DIR setting to avoid network latency when ripping.
+Copy config.sample to config and configure as desired. The `arm` directory you just created will be mounted to `/vagrant/` in the virtual machine, so that can be used as a base path to easily access the ripped files. So at a minimum, it's recommended to change the ARMPATH, RAWPATH and MEDIA_DIR settings to start with `/vagrant/`. You can also use the CIFS variabels to mount a Windows share where movies are saved. It's recommended to only use it for the MEDIA_DIR setting to avoid network latency when ripping.
 
 With the config in place, start the machine. It's also created and provisioned (set up), which takes a long time.
 
