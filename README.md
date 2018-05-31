@@ -28,7 +28,7 @@ See: https://b3n.org/automatic-ripping-machine
 
 ## Requirements
 
-- Ubuntu Server 16.04 (should work with other Linux distros)
+- Ubuntu Server 18.04 (should work with other Linux distros)
 - One or more optical drives to rip Blu-Rays, DVDs, and CDs
 - Lots of drive space (I suggest using a NAS like FreeNAS) to store your movies
 
