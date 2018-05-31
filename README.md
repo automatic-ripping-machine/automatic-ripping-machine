@@ -42,39 +42,42 @@ If you have a new DVD drive that you haven't used before, some require setting t
 Setup 'arm' user:
 
     sudo groupadd arm
-    sudo useradd -m arm -g arm
+    sudo useradd -m arm -g arm -G cdrom
     sudo passwd arm 
       <enter new password>
 
     sudo apt-get install git
     sudo add-apt-repository ppa:heyarje/makemkv-beta
     sudo add-apt-repository ppa:stebbins/handbrake-releases
-    sudo add-apt-repository ppa:mc3man/xerus-media
+    sudo add-apt-repository ppa:mc3man/bionic-prop
     sudo apt update
     sudo apt install makemkv-bin makemkv-oss
     sudo apt install handbrake-cli libavcodec-extra
     sudo apt install abcde flac imagemagick glyrc cdparanoia
-    sudo apt install at
     sudo apt install python3 python3-pip
     sudo apt-get install libcurl4-openssl-dev libssl-dev
     sudo apt-get install libdvd-pkg
     sudo dpkg-reconfigure libdvd-pkg
     sudo apt install default-jre
-    sudo su
     cd /opt
+    sudo mkdir arm
+    sudo chown arm:arm arm
+    sudo chmod 775 arm
     git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
     cd arm
     # TODO: Remove below line before merging to master
     git checkout v2_master
-    pip3 install --upgrade pip
-    pip3 install -r requirements.txt
-    ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
+    pip3 install --upgrade pip # not recommended.  Install through apt
+    pip3 install -r requirements.txt # python3 -m pip install -r requirements.txt
+    sudo ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
     ln -s /opt/arm/setup/.abcde.conf ~/
-    cp /opt/arm/setup/arm@.service /etc/systemd/system/
-    cp --backup=numbered docs/arm.conf.yaml.sample arm.conf.yaml
+    sudo cp /opt/arm/setup/arm@.service /etc/systemd/system/
     cp docs/arm.yaml.sample arm.yaml
-    mkdir /etc/arm/
-    ln -s /opt/arm/arm.yaml /etc/arm/
+    sudo mkdir /etc/arm/
+    sudo ln -s /opt/arm/arm.yaml /etc/arm/
+
+    Create mount point:
+    sudo -p mkdir /mnt/dev/sr0
 
     Create entries in /etc/fstab to allow non-root to mount dvd-roms
     Example (create for each optical drive you plan on using for ARM:
