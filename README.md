@@ -51,8 +51,8 @@ If you have a new DVD drive that you haven't used before, some require setting t
     sudo apt-get install git
     sudo add-apt-repository ppa:heyarje/makemkv-beta
     sudo add-apt-repository ppa:stebbins/handbrake-releases
-    sudo add-apt-repository ppa:mc3man/xerus-media * for Ubuntu 16.04
-    sudo add-apt-repository ppa:mc3man/bionic-prop # for Ubuntu 18.04
+For Ubuntu 16.04 `sudo add-apt-repository ppa:mc3man/xerus-media`
+For Ubuntu 18.04 `sudo add-apt-repository ppa:mc3man/bionic-prop`
     sudo apt update
     sudo apt install makemkv-bin makemkv-oss
     sudo apt install handbrake-cli libavcodec-extra
@@ -132,7 +132,7 @@ When a disc is inserted, udev rules should initiate a service that will launch a
   ```
   cat <logname> | grep ARM:
   ```  
-  This will filter out the MakeMKV and HandBrake entries and only output the arm log entries.
+    This will filter out the MakeMKV and HandBrake entries and only output the arm log entries.
   - You can change the verbosity in the arm.yaml file.  Note: please run a rip in DEBUG mode if you want to post to an issue for assistance.  
   - Ideally, if you are going to post a log for help, please delete the log file, and re-run the disc in DEBUG mode.  This ensures we get the most information possible and don't have to parse the file for multiple rips.
 
