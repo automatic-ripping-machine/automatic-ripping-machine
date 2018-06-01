@@ -86,7 +86,9 @@ Set up drives
   Create mount point for each dvd drive.
   If you don't know the device name try running 'dmesg | grep -i dvd'.  The mountpoint needs to be /mnt/dev/<device name>.
   So if your device name is sr0, set the mountpoint with this command:
-    sudo mkdir -p /mnt/dev/sr0
+  ```bash
+  sudo mkdir -p /mnt/dev/sr0
+  ```
   Repeat this for each device you plan on using with arm.
 
   Create entries in /etc/fstab to allow non-root to mount dvd-roms
