@@ -51,9 +51,8 @@ If you have a new DVD drive that you haven't used before, some require setting t
     sudo apt-get install git
     sudo add-apt-repository ppa:heyarje/makemkv-beta
     sudo add-apt-repository ppa:stebbins/handbrake-releases
-For Ubuntu 16.04 `sudo add-apt-repository ppa:mc3man/xerus-media`
-
-For Ubuntu 18.04 `sudo add-apt-repository ppa:mc3man/bionic-prop`
+For Ubuntu 16.04 `sudo add-apt-repository ppa:mc3man/xerus-media`  
+For Ubuntu 18.04 `sudo add-apt-repository ppa:mc3man/bionic-prop`  
     sudo apt update
     sudo apt install makemkv-bin makemkv-oss
     sudo apt install handbrake-cli libavcodec-extra
