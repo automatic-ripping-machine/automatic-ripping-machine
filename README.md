@@ -129,7 +129,9 @@ When a disc is inserted, udev rules should initiate a service that will launch a
     - Any other errors are probably an issue.  These are most likely permissions errors that keep arm from creating logs or directories.
 - Check arm log files 
   - The default location is /home/arm/logs/ (unless this is changed in your arm.yaml file) and is named after the dvd. These are very verbose.  You can filter them a little by piping the log through grep.  Something like 
-  `cat <logname> | grep ARM:`  
+  ```
+  cat <logname> | grep ARM:
+  ```  
   This will filter out the MakeMKV and HandBrake entries and only output the arm log entries.
   - You can change the verbosity in the arm.yaml file.  Note: please run a rip in DEBUG mode if you want to post to an issue for assistance.  
   - Ideally, if you are going to post a log for help, please delete the log file, and re-run the disc in DEBUG mode.  This ensures we get the most information possible and don't have to parse the file for multiple rips.
