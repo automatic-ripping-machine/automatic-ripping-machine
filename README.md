@@ -97,6 +97,8 @@ If you have a new DVD drive that you haven't used before, some require setting t
   /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
   ```
 
+**Configure arm**
+
 - Edit your "config" file (located at /opt/arm/arm.yaml) to determine what options you'd like to use.  Pay special attention to the 'directory setup' section and make sure the 'arm' user has write access to wherever you define these directories.
 
 - To rip Blu-Rays after the MakeMKV trial is up you will need to purchase a license key or while MakeMKV is in BETA you can get a free key (which you will need to update from time to time) here:  https://www.makemkv.com/forum2/viewtopic.php?f=5&t=1053 and create /root/.MakeMKV/settings.conf with the contents:
@@ -126,7 +128,7 @@ When a disc is inserted, udev rules should initiate a service that will launch a
     - If you see an error that says "WARNING: device write-protected, mounted read-only." you can ignore it.  
     - Any other errors are probably an issue.  These are most likely permissions errors that keep arm from creating logs or directories.
 - Check arm log files 
-  - The default location is /home/arm/logs/ (unless this is changed in your arm.yaml file) and is named after the dvd. These are very verbose.  You can filter them a little by piping the log through grep.  Something like `cat \<logname\> | grep ARM:`.  This will filter out the MakeMKV and HandBrake entries and only output the arm log entries.
+  - The default location is /home/arm/logs/ (unless this is changed in your arm.yaml file) and is named after the dvd. These are very verbose.  You can filter them a little by piping the log through grep.  Something like `cat <logname> | grep ARM:`.  This will filter out the MakeMKV and HandBrake entries and only output the arm log entries.
   - You can change the verbosity in the arm.yaml file.  Note: please run a rip in DEBUG mode if you want to post to an issue for assistance.  
   - Ideally, if you are going to post a log for help, please delete the log file, and re-run the disc in DEBUG mode.  This ensures we get the most information possible and don't have to parse the file for multiple rips.
 
