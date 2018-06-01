@@ -16,7 +16,7 @@ See: https://b3n.org/automatic-ripping-machine
   - If video (Blu-Ray or DVD)
     - Retrieve title from disc or Windows Media MetaServices API to name the folder "movie title (year)" so that Plex or Emby can pick it up
     - Determine if video is Movie or TV using OMDb API
-    - Rip using MakeMKV (can rip all features or main feature)
+    - Rip using MakeMKV or HandBrake (can rip all features or main feature)
     - Eject disc and queue up Handbrake transcoding when done
     - Transcoding jobs are asynchronusly batched from ripping
     - Send notification when done via IFTTT or Pushbullet
@@ -58,7 +58,7 @@ Setup 'arm' user:
     sudo apt-get install libcurl4-openssl-dev libssl-dev
     sudo apt-get install libdvd-pkg
     sudo dpkg-reconfigure libdvd-pkg
-    sudo apt install default-jre
+    sudo apt install default-jre-headless
     cd /opt
     sudo mkdir arm
     sudo chown arm:arm arm
@@ -67,23 +67,26 @@ Setup 'arm' user:
     cd arm
     # TODO: Remove below line before merging to master
     git checkout v2_master
-    pip3 install --upgrade pip # not recommended.  Install through apt
-    pip3 install -r requirements.txt # python3 -m pip install -r requirements.txt
+    sudo pip3 install -r requirements.txt 
     sudo ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
-    ln -s /opt/arm/setup/.abcde.conf ~/
     sudo cp /opt/arm/setup/arm@.service /etc/systemd/system/
+    ln -s /opt/arm/setup/.abcde.conf ~/
     cp docs/arm.yaml.sample arm.yaml
     sudo mkdir /etc/arm/
     sudo ln -s /opt/arm/arm.yaml /etc/arm/
 
-    Create mount point:
-    sudo -p mkdir /mnt/dev/sr0
+    Create mount point for each dvd drive.
+    If you don't know the device name try running 'dmesg | grep -i dvd.  The mountpoint needs to be /mnt/dev/<device name>.
+    So if your device name is sr0, the command is:
+    sudo mkdir -p /mnt/dev/sr0
+    Repeat this for each device you plan on using with arm.
 
     Create entries in /etc/fstab to allow non-root to mount dvd-roms
     Example (create for each optical drive you plan on using for ARM:
     /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
 
-- Edit your "config" file (located at /opt/arm/arm.yaml) to determine what options you'd like to use
+- Edit your "config" file (located at /opt/arm/arm.yaml) to determine what options you'd like to use.  Pay special attention to the 'directory setup' section and make sure the 'arm' user has write access to wherever you define these directories.
+
 - To rip Blu-Rays after the MakeMKV trial is up you will need to purchase a license key or while MakeMKV is in BETA you can get a free key (which you will need to update from time to time) here:  https://www.makemkv.com/forum2/viewtopic.php?f=5&t=1053 and create /root/.MakeMKV/settings.conf with the contents:
 
         app_Key = "insertlicensekeyhere"
@@ -104,7 +107,7 @@ After setup is complete reboot...
 
 ## Troubleshooting
 
-Check /opt/arm/log to see if you can find where the script failed.  If you need any help feel free to open an issue.
+Check log files located /home/arm/logs/ (unless this is changed in your arm.yaml file) to see if you can find where the script failed.  If you need any help feel free to open an issue.
 
 ## Contributing
 
