@@ -36,33 +36,41 @@ See: https://b3n.org/automatic-ripping-machine
 
 If you have a new DVD drive that you haven't used before, some require setting the region before they can play anything.  Be aware most DVD players only let you change the region a handful (4 or 5?) of times then lockout any further changes.  If your region is already set or you have a region free DVD drive you can skip this step.
 
-    sudo apt-get install regionset
-    sudo regionset /dev/sr0
+```bash
+sudo apt-get install regionset
+sudo regionset /dev/sr0
+```
 
 **Setup 'arm' user:**
 
-    sudo groupadd arm
-    sudo useradd -m arm -g arm -G cdrom
-    sudo passwd arm 
-      <enter new password>
+```bash
+sudo groupadd arm
+sudo useradd -m arm -g arm -G cdrom
+sudo passwd arm 
+  <enter new password>
+```
 
 **Set up repos and install dependencies**
 
-    sudo apt-get install git
-    sudo add-apt-repository ppa:heyarje/makemkv-beta
-    sudo add-apt-repository ppa:stebbins/handbrake-releases
+```bash
+sudo apt-get install git
+sudo add-apt-repository ppa:heyarje/makemkv-beta
+sudo add-apt-repository ppa:stebbins/handbrake-releases
+```
 For Ubuntu 16.04 `sudo add-apt-repository ppa:mc3man/xerus-media`  
 For Ubuntu 18.04 `sudo add-apt-repository ppa:mc3man/bionic-prop`  
 
-    sudo apt update
-    sudo apt install makemkv-bin makemkv-oss
-    sudo apt install handbrake-cli libavcodec-extra
-    sudo apt install abcde flac imagemagick glyrc cdparanoia
-    sudo apt install python3 python3-pip
-    sudo apt-get install libcurl4-openssl-dev libssl-dev
-    sudo apt-get install libdvd-pkg
-    sudo dpkg-reconfigure libdvd-pkg
-    sudo apt install default-jre-headless
+```bash
+sudo apt update
+sudo apt install makemkv-bin makemkv-oss
+sudo apt install handbrake-cli libavcodec-extra
+sudo apt install abcde flac imagemagick glyrc cdparanoia
+sudo apt install python3 python3-pip
+sudo apt-get install libcurl4-openssl-dev libssl-dev
+sudo apt-get install libdvd-pkg
+sudo dpkg-reconfigure libdvd-pkg
+sudo apt install default-jre-headless
+```
 
 **Install and setup arm**
 
