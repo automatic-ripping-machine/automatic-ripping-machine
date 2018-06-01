@@ -115,7 +115,17 @@ After setup is complete reboot...
 
 ## Troubleshooting
 
-Check log files located /home/arm/logs/ (unless this is changed in your arm.yaml file) to see if you can find where the script failed.  If you need any help feel free to open an issue.
+When a disc is inserted, udev rules should initiate a service that will launch arm.  Here are some basic troubleshooting steps:
+- Check that the service ran and look for errors
+  - 'journalctl -u arm@*.service'  
+    - If nothing comes back it means the service is not even being started.  Make sure the udev rule above was successfully linked.
+    - If you see an error that says "WARNING: device write-protected, mounted read-only." you can ignore it.  Any other errors are probably an issue.  These are most likely permissions errors that keep arm from creating logs or directories.  
+Check arm log files 
+  - The default location is /home/arm/logs/ (unless this is changed in your arm.yaml file) and is named after the dvd. These are very verbose.  You can filter them a little by piping the log through grep.  Something like 'cat \<logname\> | grep ARM:'  
+  - You can change the verbosity in the arm.yaml file.  Please run it in DEBUG mode if you want to post the file for assistance.  
+  - Ideally, if you are going to post a log for help, please delete the log file, and re-run the disc in DEBUG mode.  This ensures we get the most information possible and don't have to parse the file for multiple rips.
+
+If you need any help feel free to open an issue.
 
 ## Contributing
 
