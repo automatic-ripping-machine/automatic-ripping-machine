@@ -46,10 +46,13 @@ Setup 'arm' user:
     sudo passwd arm 
       <enter new password>
 
+Set up repos and install dependencies
+
     sudo apt-get install git
     sudo add-apt-repository ppa:heyarje/makemkv-beta
     sudo add-apt-repository ppa:stebbins/handbrake-releases
-    sudo add-apt-repository ppa:mc3man/bionic-prop
+    sudo add-apt-repository ppa:mc3man/xerus-media * for Ubuntu 16.04
+    sudo add-apt-repository ppa:mc3man/bionic-prop # for Ubuntu 18.04
     sudo apt update
     sudo apt install makemkv-bin makemkv-oss
     sudo apt install handbrake-cli libavcodec-extra
@@ -59,6 +62,9 @@ Setup 'arm' user:
     sudo apt-get install libdvd-pkg
     sudo dpkg-reconfigure libdvd-pkg
     sudo apt install default-jre-headless
+
+Install and setup arm
+
     cd /opt
     sudo mkdir arm
     sudo chown arm:arm arm
@@ -75,9 +81,11 @@ Setup 'arm' user:
     sudo mkdir /etc/arm/
     sudo ln -s /opt/arm/arm.yaml /etc/arm/
 
+Set up drives
+
     Create mount point for each dvd drive.
-    If you don't know the device name try running 'dmesg | grep -i dvd.  The mountpoint needs to be /mnt/dev/<device name>.
-    So if your device name is sr0, the command is:
+    If you don't know the device name try running 'dmesg | grep -i dvd'.  The mountpoint needs to be /mnt/dev/<device name>.
+    So if your device name is sr0, set the mountpoint with this command:
     sudo mkdir -p /mnt/dev/sr0
     Repeat this for each device you plan on using with arm.
 
