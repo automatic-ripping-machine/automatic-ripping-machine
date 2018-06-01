@@ -66,21 +66,23 @@ For Ubuntu 18.04 `sudo add-apt-repository ppa:mc3man/bionic-prop`
 
 **Install and setup arm**
 
-    cd /opt
-    sudo mkdir arm
-    sudo chown arm:arm arm
-    sudo chmod 775 arm
-    git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
-    cd arm
-    # TODO: Remove below line before merging to master
-    git checkout v2_master
-    sudo pip3 install -r requirements.txt 
-    sudo ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
-    sudo cp /opt/arm/setup/arm@.service /etc/systemd/system/
-    ln -s /opt/arm/setup/.abcde.conf ~/
-    cp docs/arm.yaml.sample arm.yaml
-    sudo mkdir /etc/arm/
-    sudo ln -s /opt/arm/arm.yaml /etc/arm/
+```bash
+cd /opt
+sudo mkdir arm
+sudo chown arm:arm arm
+sudo chmod 775 arm
+git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
+cd arm
+# TODO: Remove below line before merging to master
+git checkout v2_master
+sudo pip3 install -r requirements.txt 
+sudo ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
+sudo cp /opt/arm/setup/arm@.service /etc/systemd/system/
+ln -s /opt/arm/setup/.abcde.conf ~/
+cp docs/arm.yaml.sample arm.yaml
+sudo mkdir /etc/arm/
+sudo ln -s /opt/arm/arm.yaml /etc/arm/
+```
 
 **Set up drives**
 
