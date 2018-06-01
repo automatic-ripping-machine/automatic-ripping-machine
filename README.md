@@ -39,14 +39,14 @@ If you have a new DVD drive that you haven't used before, some require setting t
     sudo apt-get install regionset
     sudo regionset /dev/sr0
 
-Setup 'arm' user:
+**Setup 'arm' user:**
 
     sudo groupadd arm
     sudo useradd -m arm -g arm -G cdrom
     sudo passwd arm 
       <enter new password>
 
-Set up repos and install dependencies
+**Set up repos and install dependencies**
 
     sudo apt-get install git
     sudo add-apt-repository ppa:heyarje/makemkv-beta
@@ -63,7 +63,7 @@ Set up repos and install dependencies
     sudo dpkg-reconfigure libdvd-pkg
     sudo apt install default-jre-headless
 
-Install and setup arm
+**Install and setup arm**
 
     cd /opt
     sudo mkdir arm
@@ -81,7 +81,7 @@ Install and setup arm
     sudo mkdir /etc/arm/
     sudo ln -s /opt/arm/arm.yaml /etc/arm/
 
-Set up drives
+**Set up drives**
 
   Create mount point for each dvd drive.
   If you don't know the device name try running 'dmesg | grep -i dvd'.  The mountpoint needs to be /mnt/dev/<device name>.
@@ -93,7 +93,9 @@ Set up drives
 
   Create entries in /etc/fstab to allow non-root to mount dvd-roms
   Example (create for each optical drive you plan on using for ARM:
-    /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
+  ```
+  /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
+  ```
 
 - Edit your "config" file (located at /opt/arm/arm.yaml) to determine what options you'd like to use.  Pay special attention to the 'directory setup' section and make sure the 'arm' user has write access to wherever you define these directories.
 
