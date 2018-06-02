@@ -105,7 +105,7 @@ def main(logfile, disc):
         if disc.disctype == "bluray":
             # send to makemkv for ripping
             # run MakeMKV and get path to ouput
-            mkvoutpath = makemkv.makemkv(logfile, str(disc.devpath), str(disc.videotitle))
+            mkvoutpath = makemkv.makemkv(logfile, disc)
             if mkvoutpath is None:
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
                 sys.exit()
@@ -129,10 +129,10 @@ def main(logfile, disc):
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
         elif disc.videotype == "movie" and cfg['MAINFEATURE']:
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
-            os.system("eject " + disc.devpath)
+            disc.eject()
         else:
             handbrake.handbrake_all(hbinpath, hboutpath, logfile, disc)
-            os.system("eject " + disc.devpath)
+            disc.eject()
 
         # report errors if any
         if disc.errors:
@@ -169,10 +169,10 @@ def main(logfile, disc):
 
         if utils.rip_data(disc, datapath, logfile):
             utils.notify("ARM notification", "Data disc: " + disc.label + " copying complete.")
-            os.system("eject " + disc.devpath)
+            disc.eject()
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")
-            os.system("eject " + disc.devpath)
+            disc.eject()
 
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")

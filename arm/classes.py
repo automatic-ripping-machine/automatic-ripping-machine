@@ -1,4 +1,5 @@
 import pyudev
+import os
 
 
 class Disc(object):
@@ -14,6 +15,7 @@ class Disc(object):
         hasnicetitle
         label
         disctype
+        ejected
         errors
     """
 
@@ -27,6 +29,7 @@ class Disc(object):
         self.hasnicetitle = False
         self.label = ""
         self.disctype = ""
+        self.ejected = False
         self.errors = []
 
         self.parse_udev()
@@ -34,6 +37,7 @@ class Disc(object):
     def parse_udev(self):
         """Parse udev for properties of current disc"""
 
+        print("Entering disc")
         # isbluray, isdvd, ismusic = False, False, False
         context = pyudev.Context()
         device = pyudev.Devices.from_device_file(context, self.devpath)
@@ -60,3 +64,11 @@ class Disc(object):
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 
         return s
+
+    def eject(self):
+        """Eject disc if it hasn't previously been ejected"""
+
+        print("Value is " + str(self.ejected))
+        if not self.ejected:
+            os.system("eject " + self.devpath)
+            self.ejected = True
