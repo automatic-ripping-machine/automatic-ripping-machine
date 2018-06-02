@@ -191,15 +191,9 @@ if __name__ == "__main__":
 
     logfile = logger.setuplogging(disc)
 
-    logger.cleanuplogs(cfg['LOGPATH'], cfg['LOGLIFE'])
-
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
-
-    # if disc.label == "":
-    #     logging.info("Drive appears to be empty.  Exiting ARM.")
-    #     sys.exit()
 
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
 
@@ -207,6 +201,9 @@ if __name__ == "__main__":
     with open(os.path.join(cfg['INSTALLPATH'], 'VERSION')) as version_file:
         version = version_file.read().strip()
     logging.info("ARM version: " + version)
+    logging.info("Python version: " + sys.version)
+
+    logger.cleanuplogs(cfg['LOGPATH'], cfg['LOGLIFE'])
 
     log_udev_params()
 
