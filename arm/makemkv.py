@@ -70,7 +70,8 @@ def makemkv(logfile, disc):
             shlex.quote(rawpath),
             logfile
         )
-        logging.info("Backing up with the following command: " + cmd)
+        logging.info("Backup up disc")
+        logging.debug("Backing up with the following command: " + cmd)
     elif cfg['RIPMETHOD'] == "mkv":
         cmd = 'makemkvcon mkv {0} -r dev:{1} all {2} --minlength={3}>> {4}'.format(
             cfg['MKV_ARGS'],
@@ -79,7 +80,8 @@ def makemkv(logfile, disc):
             cfg['MINLENGTH'],
             logfile
         )
-        logging.info("Ripping with the following command: " + cmd)
+        logging.info("Ripping disc")
+        logging.debug("Ripping with the following command: " + cmd)
     else:
         logging.info("I'm confused what to do....  Passing on MakeMKV")
 
