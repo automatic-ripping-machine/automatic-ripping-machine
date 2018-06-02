@@ -29,6 +29,8 @@ def identify(disc, logfile):
     # Check to make sure it's not a data disc
     if os.path.isdir(disc.mountpoint + "/VIDEO_TS"):
         logging.debug("Found: " + disc.mountpoint + "/VIDEO_TS")
+    elif os.path.isdir(disc.mountpoint + "/video_ts"):
+        logging.debug("Found: " + disc.mountpoint + "/video_ts")
     elif os.path.isdir(disc.mountpoint + "/BDMV"):
         logging.debug("Found: " + disc.mountpoint + "/BDMV")
     elif os.path.isdir(disc.mountpoint + "/HVDVD_TS"):
