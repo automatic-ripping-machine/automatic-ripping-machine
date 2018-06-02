@@ -10,12 +10,11 @@ import shlex
 from config import cfg
 
 
-def makemkv(logfile, devpath, label):
+def makemkv(logfile, disc):
     """
     Rip Blurays with MakeMKV\n
     logfile = Location of logfile to redirect MakeMKV logs to\n
-    devpath = Path to disc\n
-    label = Name of dvd to create subdirectory\n
+    disc = disc object\n
 
     Returns path to ripped files.
     """
@@ -25,7 +24,7 @@ def makemkv(logfile, devpath, label):
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
     cmd = 'makemkvcon -r info disc:9999  |grep {0} |grep -oP \'(?<=:).*?(?=,)\''.format(
-                devpath
+                disc.devpath
     )
 
     try:
@@ -42,7 +41,7 @@ def makemkv(logfile, devpath, label):
         return
 
     # get filesystem in order
-    rawpath = os.path.join(cfg['RAWPATH'], label)
+    rawpath = os.path.join(cfg['RAWPATH'], disc.videotitle)
     logging.info("Destination is " + rawpath)
 
     if not os.path.exists(rawpath):
@@ -54,7 +53,7 @@ def makemkv(logfile, devpath, label):
     else:
         logging.info(rawpath + " exists.  Adding timestamp.")
         ts = round(time.time() * 100)
-        rawpath = os.path.join(cfg['RAWPATH'], label + "_" + str(ts))
+        rawpath = os.path.join(cfg['RAWPATH'], disc.videotitle + "_" + str(ts))
         logging.info("rawpath is " + rawpath)
         try:
             os.makedirs(rawpath)
@@ -75,7 +74,7 @@ def makemkv(logfile, devpath, label):
     elif cfg['RIPMETHOD'] == "mkv":
         cmd = 'makemkvcon mkv {0} -r dev:{1} all {2} --minlength={3}>> {4}'.format(
             cfg['MKV_ARGS'],
-            devpath,
+            disc.devpath,
             shlex.quote(rawpath),
             cfg['MINLENGTH'],
             logfile
@@ -98,7 +97,7 @@ def makemkv(logfile, devpath, label):
         # print("Error: " + mkv)
         return None
 
-    os.system("eject " + devpath)
+    disc.eject()
 
     logging.info("Exiting MakeMKV processing with return value of: " + rawpath)
     return(rawpath)
