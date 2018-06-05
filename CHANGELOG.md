@@ -1,7 +1,9 @@
 # Changelog
 
 ## v2.0.0
-
+ - Rewritten completely in Python
+ - Run as non-root
+ - Seperate HandBrake arguments and profiles for DVD's and Bluray's
 
 ## v1.3.0
  - Get Title for DVD and Blu-Rays so that media servesr can identify them easily.
