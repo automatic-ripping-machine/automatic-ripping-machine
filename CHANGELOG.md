@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.0.0
+ - Rewritten completely in Python
+ - Run as non-root
+ - Seperate HandBrake arguments and profiles for DVD's and Bluray's
+ - Set video type or automatically identify
+ - Better logging
+
 ## v1.3.0
  - Get Title for DVD and Blu-Rays so that media servesr can identify them easily.
  - Determine if video is Movie or TV-Show from OMDB API query so that different actions can be taken (TV shows usually require manual episode identification)
