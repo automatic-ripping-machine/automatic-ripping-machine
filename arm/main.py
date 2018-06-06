@@ -122,7 +122,7 @@ def main(logfile, disc):
                     logging.debug("Moving file: " + mkvoutfile + " to: " + mkvoutpath + f)
                     shutil.move(mkvoutfile, hboutpath)
                 utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
-                logging.info("ARM processing comlete")
+                logging.info("ARM processing complete")
                 sys.exit()
 
         if disc.disctype == "bluray" and cfg['RIPMETHOD'] == "mkv":
@@ -139,11 +139,11 @@ def main(logfile, disc):
             errlist = ', '.join(disc.errors)
             if cfg['NOTIFY_TRANSCODE']:
                 utils.notify("ARM notification", str(disc.videotitle) + " processing completed with errors. Title(s) " + errlist + " failed to complete.")
-            logging.info("Transcoding comleted with errors.  Title(s) " + errlist + " failed to complete.")
+            logging.info("Transcoding completed with errors.  Title(s) " + errlist + " failed to complete.")
         else:
             if cfg['NOTIFY_TRANSCODE']:
                 utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
-            logging.info("ARM processing comlete")
+            logging.info("ARM processing complete")
 
         # Clean up bluray backup
         if disc.disctype == "bluray" and cfg["DELRAWFILES"]:
