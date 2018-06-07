@@ -63,7 +63,7 @@ def makemkv(logfile, disc):
             sys.exit(err)
 
     # rip bluray
-    if cfg['RIPMETHOD'] == "backup" and disc.disctype = "bluray":
+    if cfg['RIPMETHOD'] == "backup" and disc.disctype == "bluray":
         cmd = 'makemkvcon backup --decrypt {0} -r disc:{1} {2}>> {3}'.format(
             cfg['MKV_ARGS'],
             mdisc.strip(),
