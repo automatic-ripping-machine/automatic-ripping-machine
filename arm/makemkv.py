@@ -72,7 +72,7 @@ def makemkv(logfile, disc):
         )
         logging.info("Backup up disc")
         logging.debug("Backing up with the following command: " + cmd)
-    elif cfg['RIPMETHOD'] == "mkv" or disc.disctype = "dvd":
+    elif cfg['RIPMETHOD'] == "mkv" or disc.disctype == "dvd":
         cmd = 'makemkvcon mkv {0} -r dev:{1} all {2} --minlength={3}>> {4}'.format(
             cfg['MKV_ARGS'],
             disc.devpath,
