@@ -127,6 +127,8 @@ def main(logfile, disc):
 
         if disc.disctype == "bluray" and cfg['RIPMETHOD'] == "mkv":
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
+        elif disc.disctype == "dvd" and not cfg['MAINFEATURE']:
+            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
         elif disc.videotype == "movie" and cfg['MAINFEATURE']:
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
             disc.eject()
