@@ -49,6 +49,7 @@ def log_arm_params(disc):
     logging.info("videoyear: " + str(disc.videoyear))
     logging.info("videotype: " + str(disc.videotype))
     logging.info("hasnicetitle: " + str(disc.hasnicetitle))
+    logging.info("label: " + str(disc.label))
     logging.info("disctype: " + str(disc.disctype))
     logging.info("**** End of ARM variables ****")
     logging.info("**** Logging config parameters ****")
