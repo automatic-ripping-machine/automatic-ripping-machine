@@ -60,7 +60,7 @@ def log_arm_params(disc):
     logging.info("videotype: " + cfg['VIDEOTYPE'])
     logging.info("ripmethod: " + cfg['RIPMETHOD'])
     logging.info("mkv_args: " + cfg['MKV_ARGS'])
-    logging.info("delrawfile: " + cfg['DELRAWFILES'])
+    logging.info("delrawfile: " + str(cfg['DELRAWFILES']))
     logging.info("hb_preset_dvd: " + cfg['HB_PRESET_DVD'])
     logging.info("hb_preset_bd: " + cfg['HB_PRESET_BD'])
     logging.info("hb_args_dvd: " + cfg['HB_ARGS_DVD'])
