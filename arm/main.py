@@ -197,11 +197,12 @@ if __name__ == "__main__":
     print(devpath)
 
     disc = Disc(devpath)
-    print(disc.label)
+    print("Disc: " + disc.label)
 
     # sys.exit()
 
     logfile = logger.setuplogging(disc)
+    print("Log: " + logfile)
 
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
