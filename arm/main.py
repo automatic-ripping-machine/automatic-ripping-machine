@@ -42,30 +42,40 @@ def log_arm_params(disc):
     """log all entry parameters"""
 
     # log arm parameters
-    logging.info("**** Logging ARM paramaters ****")
+    logging.info("**** Logging ARM variables ****")
     logging.info("devpath: " + str(disc.devpath))
     logging.info("mountpoint: " + str(disc.mountpoint))
     logging.info("videotitle: " + str(disc.videotitle))
     logging.info("videoyear: " + str(disc.videoyear))
     logging.info("videotype: " + str(disc.videotype))
     logging.info("hasnicetitle: " + str(disc.hasnicetitle))
+    logging.info("label: " + str(disc.label))
     logging.info("disctype: " + str(disc.disctype))
+    logging.info("**** End of ARM variables ****")
+    logging.info("**** Logging config parameters ****")
     logging.info("skip_transcode: " + str(cfg['SKIP_TRANSCODE']))
     logging.info("mainfeature: " + str(cfg['MAINFEATURE']))
     logging.info("minlength: " + cfg['MINLENGTH'])
     logging.info("maxlength: " + cfg['MAXLENGTH'])
     logging.info("videotype: " + cfg['VIDEOTYPE'])
+    logging.info("ripmethod: " + cfg['RIPMETHOD'])
+    logging.info("mkv_args: " + cfg['MKV_ARGS'])
+    logging.info("delrawfile: " + str(cfg['DELRAWFILES']))
     logging.info("hb_preset_dvd: " + cfg['HB_PRESET_DVD'])
     logging.info("hb_preset_bd: " + cfg['HB_PRESET_BD'])
     logging.info("hb_args_dvd: " + cfg['HB_ARGS_DVD'])
     logging.info("hb_args_bd: " + cfg['HB_ARGS_BD'])
     logging.info("logfile: " + logfile)
+    logging.info("armpath: " + cfg['ARMPATH'])
+    logging.info("rawpath: " + cfg['RAWPATH'])
     logging.info("media_dir: " + cfg['MEDIA_DIR'])
     logging.info("extras_sub: " + cfg['EXTRAS_SUB'])
     logging.info("emby_refresh: " + str(cfg['EMBY_REFRESH']))
     logging.info("emby_server: " + cfg['EMBY_SERVER'])
     logging.info("emby_port: " + cfg['EMBY_PORT'])
-    logging.info("**** End of ARM parameters ****")
+    logging.info("notify_rip: " + str(cfg['NOTIFY_RIP']))
+    logging.info("notify_transcode " + str(cfg['NOTIFY_TRANSCODE']))
+    logging.info("**** End of config parameters ****")
 
 
 def main(logfile, disc):
@@ -102,7 +112,7 @@ def main(logfile, disc):
 
         # Do the work!
         hbinpath = str(disc.devpath)
-        if disc.disctype == "bluray":
+        if disc.disctype == "bluray" or not cfg['MAINFEATURE']:
             # send to makemkv for ripping
             # run MakeMKV and get path to ouput
             mkvoutpath = makemkv.makemkv(logfile, disc)
@@ -126,6 +136,8 @@ def main(logfile, disc):
                 sys.exit()
 
         if disc.disctype == "bluray" and cfg['RIPMETHOD'] == "mkv":
+            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
+        elif disc.disctype == "dvd" and not cfg['MAINFEATURE']:
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
         elif disc.videotype == "movie" and cfg['MAINFEATURE']:
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
@@ -201,7 +213,8 @@ if __name__ == "__main__":
     with open(os.path.join(cfg['INSTALLPATH'], 'VERSION')) as version_file:
         version = version_file.read().strip()
     logging.info("ARM version: " + version)
-    logging.info("Python version: " + sys.version)
+    logging.info(("Python version: " + sys.version).replace('\n', ""))
+    # logging.info("Python version: " + sys.version)
 
     logger.cleanuplogs(cfg['LOGPATH'], cfg['LOGLIFE'])
 
