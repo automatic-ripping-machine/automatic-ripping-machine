@@ -3,7 +3,7 @@
 Thank you for contributing to the Automatic Ripping Machine.
 
 ## Issues, Bugs, and Feature Requests
-If you find a bug, please paste the relevant logfile in /opt/arm/logs/
+If you find a bug, please run in DEBUG mode and attach the log file to an issue on github.
 Also, since ARM relies on software such a HandBrake and MakeMKV try running those programs manually to see if it's an issue there.
 
 When submitting a bug, enhancement, or feature request please indicate if you are able/willing to make the changes yourself in a pull request.
