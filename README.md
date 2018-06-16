@@ -32,7 +32,7 @@ See: https://b3n.org/automatic-ripping-machine
 - One or more optical drives to rip Blu-Rays, DVDs, and CDs
 - Lots of drive space (I suggest using a NAS like FreeNAS) to store your movies
 
-## Install
+## Pre-Install (only if necessary)
 
 If you have a new DVD drive that you haven't used before, some require setting the region before they can play anything.  Be aware most DVD players only let you change the region a handful (4 or 5?) of times then lockout any further changes.  If your region is already set or you have a region free DVD drive you can skip this step.
 
@@ -40,6 +40,8 @@ If you have a new DVD drive that you haven't used before, some require setting t
 sudo apt-get install regionset
 sudo regionset /dev/sr0
 ```
+
+## Install
 
 **Setup 'arm' user:**
 
