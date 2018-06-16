@@ -74,7 +74,7 @@ sudo dpkg-reconfigure libdvd-pkg
 sudo apt install default-jre-headless
 ```
 
-**Install and setup arm**
+**Install and setup ARM**
 
 ```bash
 cd /opt
@@ -88,7 +88,7 @@ git checkout v2_master
 sudo pip3 install -r requirements.txt 
 sudo ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
 sudo cp /opt/arm/setup/arm@.service /etc/systemd/system/
-ln -s /opt/arm/setup/.abcde.conf ~/
+ln -s /opt/arm/setup/.abcde.conf /home/arm/
 cp docs/arm.yaml.sample arm.yaml
 sudo mkdir /etc/arm/
 sudo ln -s /opt/arm/arm.yaml /etc/arm/
@@ -102,15 +102,15 @@ sudo ln -s /opt/arm/arm.yaml /etc/arm/
   ```bash
   sudo mkdir -p /mnt/dev/sr0
   ```
-  Repeat this for each device you plan on using with arm.
+  Repeat this for each device you plan on using with ARM.
 
   Create entries in /etc/fstab to allow non-root to mount dvd-roms
-  Example (create for each optical drive you plan on using for ARM:
+  Example (create for each optical drive you plan on using for ARM):
   ```
   /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
   ```
 
-**Configure arm**
+**Configure ARM**
 
 - Edit your "config" file (located at /opt/arm/arm.yaml) to determine what options you'd like to use.  Pay special attention to the 'directory setup' section and make sure the 'arm' user has write access to wherever you define these directories.
 
@@ -134,18 +134,18 @@ Optionally if you want something more stable than master you can download the la
 
 ## Troubleshooting
 
-When a disc is inserted, udev rules should initiate a service that will launch arm.  Here are some basic troubleshooting steps:
+When a disc is inserted, udev rules should initiate a service that will launch ARM.  Here are some basic troubleshooting steps:
 - Check that the service ran and look for errors
   - `journalctl -u arm@*.service`
     - If nothing comes back it means the service is not even being started.  Make sure the udev rule above was successfully linked.
     - If you see an error that says "WARNING: device write-protected, mounted read-only." you can ignore it.  
-    - Any other errors are probably an issue.  These are most likely permissions errors that keep arm from creating logs or directories.
-- Check arm log files 
+    - Any other errors are probably an issue.  These are most likely permissions errors that keep ARM from creating logs or directories.
+- Check ARM log files 
   - The default location is /home/arm/logs/ (unless this is changed in your arm.yaml file) and is named after the dvd. These are very verbose.  You can filter them a little by piping the log through grep.  Something like 
   ```
   cat <logname> | grep ARM:
   ```  
-    This will filter out the MakeMKV and HandBrake entries and only output the arm log entries.
+    This will filter out the MakeMKV and HandBrake entries and only output the ARM log entries.
   - You can change the verbosity in the arm.yaml file.  Note: please run a rip in DEBUG mode if you want to post to an issue for assistance.  
   - Ideally, if you are going to post a log for help, please delete the log file, and re-run the disc in DEBUG mode.  This ensures we get the most information possible and don't have to parse the file for multiple rips.
 
