@@ -27,7 +27,9 @@ def identify(disc, logfile):
     os.system("mount " + disc.devpath)
 
     # Check to make sure it's not a data disc
-    if os.path.isdir(disc.mountpoint + "/VIDEO_TS"):
+    if disc.disctype == "music":
+        logging.debug("Disc is music.  Skipping identification")
+    elif os.path.isdir(disc.mountpoint + "/VIDEO_TS"):
         logging.debug("Found: " + disc.mountpoint + "/VIDEO_TS")
     elif os.path.isdir(disc.mountpoint + "/video_ts"):
         logging.debug("Found: " + disc.mountpoint + "/video_ts")
