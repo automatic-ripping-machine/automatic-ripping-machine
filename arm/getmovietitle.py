@@ -105,7 +105,7 @@ def main(disc):
             disc.hasnicetitle = True
         return(disc_title, disc_year)
     else:
-        logging.info(disc_title + " : " + disc_year)
+        logging.info(str(disc_title) + " : " + str(disc_year))
         if disc_title:
             disc.hasnicetitle = True
         logging.info("Returning: " + disc_title + ", " + disc_year)
