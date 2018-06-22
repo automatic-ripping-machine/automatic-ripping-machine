@@ -97,6 +97,8 @@ def main(disc):
             logging.info("getmovietitle dvd title found: " + disc_title + " : " + disc_year)
         else:
             logging.warning("DVD title not found")
+            disc_title = disc.label
+            disc_year = "0000"
     except Exception:
         disc_title, disc_year = getbluraytitle(disc)
         disc_title = clean_for_filename(disc_title)
