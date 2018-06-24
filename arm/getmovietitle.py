@@ -32,18 +32,25 @@ def getdvdtitle(disc):
     logging.info("DVD CRC64 hash is: " + str(crc64))
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
     logging.debug(urlstring)
-    dvd_info_xml = urllib.request.urlopen(
-        "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".
-        format(crc64)).read()
 
-    doc = xmltodict.parse(dvd_info_xml)
-    dvd_title = doc['METADATA']['MDR-DVD']['dvdTitle']
-    dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
-    dvd_title = dvd_title.strip()
-    dvd_release_date = dvd_release_date.split()[0]
+    try:
+        dvd_info_xml = urllib.request.urlopen(
+            "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".
+            format(crc64)).read()
+    except OSError as e:
+        logging.error("Failed to reach windowsmedia web service")
+        return[None, None]
 
-    # title + release year
-    # return dvd_title + " (" + dvd_release_date.split()[0] + ")"
+    try:
+        doc = xmltodict.parse(dvd_info_xml)
+        dvd_title = doc['METADATA']['MDR-DVD']['dvdTitle']
+        dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
+        dvd_title = dvd_title.strip()
+        dvd_release_date = dvd_release_date.split()[0]
+    except KeyError:
+        logging.error("Windows Media request returned no result.  Likely the DVD is not in their database.")
+        return[None, None]
+
     return[dvd_title, dvd_release_date]
 
 
@@ -82,12 +89,16 @@ def clean_for_filename(string):
 def main(disc):
     # args = entry()
 
-    # logfile = logger.setuplogging()
     disc.hasnicetitle = False
     try:
         disc_title, disc_year = getdvdtitle(disc)
-        disc_title = clean_for_filename(disc_title)
-        logging.info("getmovietitle dvd title found: " + disc_title + " : " + disc_year)
+        if disc_title:
+            disc_title = clean_for_filename(disc_title)
+            logging.info("getmovietitle dvd title found: " + disc_title + " : " + disc_year)
+        else:
+            logging.warning("DVD title not found")
+            disc_title = disc.label
+            disc_year = "0000"
     except Exception:
         disc_title, disc_year = getbluraytitle(disc)
         disc_title = clean_for_filename(disc_title)
@@ -95,10 +106,9 @@ def main(disc):
         if disc_title:
             disc.hasnicetitle = True
         return(disc_title, disc_year)
-        # print(disc_title)
     else:
-        logging.info(disc_title + " : " + disc_year)
+        logging.info(str(disc_title) + " : " + str(disc_year))
         if disc_title:
             disc.hasnicetitle = True
-        logging.info("Returning: " + disc_title + ", " + disc_year)
+        logging.info("Returning: " + str(disc_title) + ", " + str(disc_year))
         return(disc_title, disc_year)
