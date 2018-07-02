@@ -12,6 +12,7 @@ See: https://b3n.org/automatic-ripping-machine
 ## Features
 
 - Detects insertion of disc using udev
+- Auto downloads keys_hashed.txt and KEYDB.cfg using robobrowser and tinydownloader
 - Determines disc type...
   - If video (Blu-Ray or DVD)
     - Retrieve title from disc or Windows Media MetaServices API to name the folder "movie title (year)" so that Plex or Emby can pick it up
@@ -72,6 +73,7 @@ sudo apt-get install libcurl4-openssl-dev libssl-dev
 sudo apt-get install libdvd-pkg
 sudo dpkg-reconfigure libdvd-pkg
 sudo apt install default-jre-headless
+sudo pip install -U tinydownload
 ```
 
 **Install and setup ARM**
