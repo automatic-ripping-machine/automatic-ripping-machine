@@ -222,7 +222,7 @@ def handbrake_mkv(srcpath, basepath, logfile, disc):
 
     for f in os.listdir(srcpath):
         srcpathname = os.path.join(srcpath, f)
-        filename = os.path.join(basepath, disc.videotitle + ".mkv")
+        filename = os.path.join(basepath, f + ".mkv")
         filepathname = os.path.join(basepath, filename)
 
         logging.info("Transcoding file " + shlex.quote(f) + " to " + shlex.quote(filepathname))
