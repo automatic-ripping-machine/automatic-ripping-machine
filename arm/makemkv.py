@@ -15,6 +15,7 @@ from getmakemkvcode import grabcode
 # TODO: Move this to config i don't know how your config works
 autograbcode = True
 
+
 def makemkv(logfile, disc):
     """
     Rip Blurays with MakeMKV\n
@@ -23,7 +24,7 @@ def makemkv(logfile, disc):
 
     Returns path to ripped files.
     """
-    if autograbcode = True
+    if autograbcode = True:
         logging.info("Auto Grabbing MakeMKV Code")
         grabcode()
     logging.info("Starting MakeMKV rip. Method is " + cfg['RIPMETHOD'])
