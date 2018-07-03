@@ -8,7 +8,7 @@ import time
 import shlex
 
 from config import cfg
-from getmakemkvcode.py import grabcode
+from getmakemkvcode import grabcode
 
 # If you would like to auto grab a MakeMKV key
 # NOTE: this may be provide MakeMKV with a blotched code if you have no internet at the time of ripping.
