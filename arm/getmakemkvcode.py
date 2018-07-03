@@ -1,4 +1,4 @@
-import os 
+import os
 from robobrowser import RoboBrowser
 
 
@@ -14,7 +14,6 @@ def grabcode():
         beg = pageStr.find(base_code)
 
         strLength = len(base_code)
-
 
         while True:
             code = pageStr[beg + strLength:beg + strLength + i]
