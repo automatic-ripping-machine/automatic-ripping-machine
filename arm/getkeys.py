@@ -1,5 +1,7 @@
-import time, random, re, os
+import os
 from robobrowser import RoboBrowser
+
+
 def grabkeys():
     br = RoboBrowser()
     br.open('http://makemkv.com/forum2/viewtopic.php?f=12&t=16959')
@@ -12,7 +14,6 @@ def grabkeys():
         while True:
             link = pageStr[beg : beg + strLength + i]
             print(link)
-            prevlink = ''
             if pageStr[beg + strLength : beg + strLength + i].isnumeric() == False:
                 return link[:-1]
                 i = i + 1
