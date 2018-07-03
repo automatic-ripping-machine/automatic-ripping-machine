@@ -13,6 +13,7 @@ import utils
 import makemkv
 import handbrake
 import identify
+import pickle
 
 from config import cfg
 from classes import Disc
@@ -98,8 +99,10 @@ def main(logfile, disc):
     else:
         utils.notify("ARM Notification", "Could not identify disc.  Exiting.")
         sys.exit()
-
-    if disc.disctype in ["dvd", "bluray"]:
+    lastdisc = pickle.load(open( "prevdisc.p", "rb" ))
+    if lastdisc == str(disc.videotitle): 
+        utils.notify("ARM Notification", "Previous disc was inserted.  Exiting.")
+    elif disc.disctype in ["dvd", "bluray"]:
         # get filesystem in order
         hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle))
 
@@ -190,6 +193,8 @@ def main(logfile, disc):
 
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
+    lastdisc = str(disc.videotitle)
+    pickle.dump(lastdisc, open("prevdisc.p", "wb"))
 
 
 if __name__ == "__main__":
