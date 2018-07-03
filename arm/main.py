@@ -16,7 +16,6 @@ import identify
 
 from config import cfg
 from classes import Disc
-from getkeys import grabkeys
 
 
 def entry():
@@ -80,7 +79,6 @@ def log_arm_params(disc):
 
 
 def main(logfile, disc):
-    grabkeys()
     """main dvd processing function"""
     logging.info("Starting Disc identification")
 

@@ -8,7 +8,12 @@ import time
 import shlex
 
 from config import cfg
+from getmakemkvcode.py import grabcode
 
+# If you would like to auto grab a MakeMKV key
+# NOTE: this may be provide MakeMKV with a blotched code if you have no internet at the time of ripping.
+# TODO: Move this to config i don't know how your config works
+autograbcode = True
 
 def makemkv(logfile, disc):
     """
@@ -18,7 +23,9 @@ def makemkv(logfile, disc):
 
     Returns path to ripped files.
     """
-
+    if autograbcode = True
+        logging.info("Auto Grabbing MakeMKV Code")
+        grabcode()
     logging.info("Starting MakeMKV rip. Method is " + cfg['RIPMETHOD'])
 
     # get MakeMKV disc number
