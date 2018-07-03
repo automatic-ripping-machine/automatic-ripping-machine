@@ -24,7 +24,7 @@ def makemkv(logfile, disc):
 
     Returns path to ripped files.
     """
-    if autograbcode == True:
+    if autograbcode is True:
         logging.info("Auto Grabbing MakeMKV Code")
         grabcode()
     logging.info("Starting MakeMKV rip. Method is " + cfg['RIPMETHOD'])
