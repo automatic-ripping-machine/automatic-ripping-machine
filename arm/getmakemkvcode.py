@@ -1,4 +1,4 @@
-import os
+import os 
 
 from robobrowser import RoboBrowser
 
@@ -27,4 +27,5 @@ def grabcode():
             i = i + 1
     makemkvcode = get_code()
     print(makemkvcode)
-    os.system('echo "{}" >> /home/arm/.MakeMKV/settings.conf'.format(makemkvcode))
+    os.system('rm /home/arm/.MakeMKV/settings.conf')
+    os.system('echo "{}" >> /home/arm/.MakeMKV/settings.conf'.format( app_Key = "makemkvcode"))
