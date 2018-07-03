@@ -15,7 +15,7 @@ See: https://b3n.org/automatic-ripping-machine
 - Auto downloads keys_hashed.txt and KEYDB.cfg using robobrowser and tinydownloader
 - Determines disc type...
   - If video (Blu-Ray or DVD)
-    - Grab Latest MakeMKV key
+    - Grabs Latest MakeMKV key
     - Retrieve title from disc or Windows Media MetaServices API to name the folder "movie title (year)" so that Plex or Emby can pick it up
     - Determine if video is Movie or TV using OMDb API
     - Rip using MakeMKV or HandBrake (can rip all features or main feature)
