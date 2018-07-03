@@ -99,8 +99,8 @@ def main(logfile, disc):
     else:
         utils.notify("ARM Notification", "Could not identify disc.  Exiting.")
         sys.exit()
-    lastdisc = pickle.load(open( "prevdisc.p", "rb" ))
-    if lastdisc == str(disc.videotitle): 
+    lastdisc = pickle.load(open("prevdisc.p", "rb"))
+    if lastdisc == str(disc.videotitle):
         utils.notify("ARM Notification", "Previous disc was inserted.  Exiting.")
     elif disc.disctype in ["dvd", "bluray"]:
         # get filesystem in order
