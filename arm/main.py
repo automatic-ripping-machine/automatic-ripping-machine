@@ -80,7 +80,7 @@ def log_arm_params(disc):
 
 
 def main(logfile, disc):
-    grabkeys()
+
     """main dvd processing function"""
     logging.info("Starting Disc identification")
 
@@ -98,6 +98,10 @@ def main(logfile, disc):
     else:
         utils.notify("ARM Notification", "Could not identify disc.  Exiting.")
         sys.exit()
+
+    if cfg['HASHEDKEYS']:
+        logging.info("Getting MakeMKV hashed keys for UHD rips")
+        grabkeys()
 
     if disc.disctype in ["dvd", "bluray"]:
         # get filesystem in order
