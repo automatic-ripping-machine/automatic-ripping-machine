@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}  
+<div class="container h-100 mx-auto">
+  <div class="row">
+    <div class="col-sm-2"></div>
+    <div class="col-sm-8  rounded bg-secondary text-center">
+        <img src="/static/img/arm80nw.png">
+        <p class="text-center"><b>Welcome to your Automatic Ripping Machine<br>
+                What would you like to do?
+        </b></p>
+    </div>
+    <div class="col-sm-2"></div>
+  </div>
+  </div>
+<div class="h-100 row mx-auto align-items-center">
+        <div class="col-md-3 mx-auto"></div>
+        <!-- <div class="col-md-2 h-100 text-center align-content-center" ><h4>Free Space: {{ freegb }}</h4></div> -->
+        <div class="card mx-auto padd">
+                <div class="card-header">
+                  <strong>Server Specs</strong>
+                </div>
+                <ul class="list-group list-group-flush">
+                        <li class="list-group-item">Free Space: {{ freegb }} GB</li>
+                      </ul>
+              </div>
+        <div class="col-md-2 text-center mx-auto">
+                <a href="rips" title="Active Rips"><img src="{{ url_for('static', filename='img/disc.svg') }}" class="img-responsive" height="75px" width="75px"><br>Active Rips</a>
+        </div>
+        <div class="col-md-2 text-center mx-auto">
+                <a href="listlogs" title="Log Files"><img src="{{ url_for('static', filename='img/file-text.svg') }}" class="img-responsive" height="75px" width="75px"><br>View Log Files</a>
+        </div>
+        <div class="col-sm-3 mx-auto"></div>
+</div>
+</div>
+
+{% endblock %}
+{% block js %}{{ super() }}{% endblock %}
