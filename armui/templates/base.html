@@ -9,7 +9,7 @@
     <title>{% block title %}{% endblock %} - ARM</title>
     {% endblock %}
   </head>
-  <body style="padding-top: 70px; padding-bottom: 50; height: 100%">
+  <body style="padding-top: 70px; padding-bottom: 50;">
     {% block nav %}
     <nav class="navbar navbar-expand-md navbar-dark bg-primary justify-content-center fixed-top my-auto">
         <a class="navbar-brand" href="index.html">
@@ -34,14 +34,12 @@
       </nav> 
     {% endblock %}
     <div id="content" class="h-100">{% block content %}{% endblock %}</div>
-    <div id="footer" class="container navbar-light bg-light">
-        <div class="row h-100">
-            <div class="col-12 my-auto" >
-              <span>
+    <div id="footer" class="container navbar-light bg-light h-100">
+        <div class="row mx-auto align-items-center my-auto" style="height: 30px;">
+            <div class="col-12 h-100 mx-auto my-auto" >
                 {% block footer %}
-                <p class="text-center"> Automatic Ripping Machine.  Find us on <a href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">github</a>.</p>
+                <h6 class="h-100 my-auto mx-auto align-items-center"> Automatic Ripping Machine.  Find us on <a href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">github</a>.</h6>
                 {% endblock %}
-                </span>
             </div>
         </div>
     </div>
