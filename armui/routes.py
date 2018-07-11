@@ -1,6 +1,6 @@
 import os
 from time import sleep
-from flask import Flask, render_template, abort, request, send_file
+from flask import render_template, abort, request, send_file
 import psutil
 from armui import app
 from armui.config import cfg
