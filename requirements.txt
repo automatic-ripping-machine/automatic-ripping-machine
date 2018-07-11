@@ -10,4 +10,5 @@ pyudev>=0.21.0
 pyyaml>=3.12
 flake8>=2.5.0
 flask>=1.0.2
+psutil>=5.4.6
 robobrowser>=0.5.3
