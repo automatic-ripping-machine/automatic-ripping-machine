@@ -170,6 +170,9 @@ LOG=$6
 			else
 				echo "Emby Refresh False.  Skipping library scan" >> "$LOG"
 			fi
+
+			rmdir "$DEST"
+			
 		else	
 			echo "Warning: $MEDIA_DIR/$LABEL/$LABEL.$DEST_EXT File exists! File moving aborted" >> "$LOG"
         fi
