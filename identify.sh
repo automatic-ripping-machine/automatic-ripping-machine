@@ -2,6 +2,33 @@
 
 export ARM_CONFIG=$1
 export DISC_INFO=$2
+DEVNAME=$3
+
+mkdir -p /tmp/arm_locks
+LOCKDIR=/tmp/arm_locks/$DEVNAME
+
+function cleanup {
+    if rmdir $LOCKDIR; then
+        echo "Finished"
+    else
+        echo "Failed to remove lock directory '$LOCKDIR'"
+        exit 1
+    fi
+}
+
+# mkdir is atomic - only one instance of this script can successfully make the
+# directory.n
+if mkdir $LOCKDIR
+then
+    # this ensures that the lockdir is removed whenever this script exits.
+    # normally, sigterm, etc. if it exits via SIGKILL, the lockdir will *not* be
+    # cleaned up.
+    trap "cleanup" EXIT
+    echo "Got lock for $DEVNAME"
+else
+    echo "Exiting early from $DEVNAME because lockdir is already held"
+    exit 1
+fi
 
 echo "$ARM_CONFIG"
 
