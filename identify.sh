@@ -4,9 +4,6 @@ export ARM_CONFIG=$1
 export DISC_INFO=$2
 DEVNAME=$3
 
-mkdir -p /tmp/arm_locks
-LOCKDIR=/tmp/arm_locks/$DEVNAME
-
 function cleanup {
     if rmdir $LOCKDIR; then
         echo "Finished"
@@ -16,19 +13,12 @@ function cleanup {
     fi
 }
 
-# mkdir is atomic - only one instance of this script can successfully make the
-# directory.n
-if mkdir $LOCKDIR
-then
-    # this ensures that the lockdir is removed whenever this script exits.
-    # normally, sigterm, etc. if it exits via SIGKILL, the lockdir will *not* be
-    # cleaned up.
-    trap "cleanup" EXIT
-    echo "Got lock for $DEVNAME"
-else
-    echo "Exiting early from $DEVNAME because lockdir is already held"
-    exit 1
-fi
+# Create log dir if needed
+mkdir -p "$LOGPATH"
+
+# Set full logfile path
+LOG=$LOGPATH$LOGFILE
+
 
 echo "$ARM_CONFIG"
 
@@ -58,14 +48,25 @@ else
 	fi
 fi
 
-# Set full logfile path
-LOG=$LOGPATH$LOGFILE
-
-# Create log dir if needed
-mkdir -p "$LOGPATH"
-
 #shellcheck disable=SC2094
 {
+mkdir -p /tmp/arm_locks
+LOCKDIR=/tmp/arm_locks/$DEVNAME
+
+# mkdir is atomic - only one instance of this script can successfully make the
+# directory.n
+if mkdir $LOCKDIR
+then
+    # this ensures that the lockdir is removed whenever this script exits.
+    # normally, sigterm, etc. if it exits via SIGKILL, the lockdir will *not* be
+    # cleaned up.
+    trap "cleanup" EXIT
+    echo "Got lock for $DEVNAME"
+else
+    echo "Exiting early from $DEVNAME because lockdir is already held"
+    exit 1
+fi
+
 # echo all config parameters to logfile
 # excludes sensative parameters
 # shellcheck disable=SC2129
