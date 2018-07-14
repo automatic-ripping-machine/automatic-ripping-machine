@@ -164,7 +164,8 @@ def main(logfile, disc):
             logging.info("ARM processing complete")
 
         # Clean up bluray backup
-        if disc.disctype == "bluray" and cfg["DELRAWFILES"]:
+        # if disc.disctype == "bluray" and cfg["DELRAWFILES"]:
+        if cfg['DELRAWFILES']:
             shutil.rmtree(mkvoutpath)
 
     elif disc.disctype == "music":
