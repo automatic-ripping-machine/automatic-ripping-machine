@@ -155,7 +155,9 @@ If you need any help feel free to open an issue.  Please see the above note abou
 
 ## Contributing
 
-Pull requests are welcome.
+Pull requests are welcome.  Please see the [Contributing Guide](./CONTRIBUTING.md)
+
+If you set ARM up in a different environment (harware/OS/virtual/etc), please consider submitting a howto to the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).
 
 ## License
 
