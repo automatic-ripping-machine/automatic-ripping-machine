@@ -56,10 +56,18 @@ def getdvdtitle(disc):
 
 def getbluraytitle(disc):
     """ Get's Blu-Ray title by parsing XML in bdmt_eng.xml """
-    with open(disc.mountpoint + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
-        doc = xmltodict.parse(xml_file.read())
+    try:
+        with open(disc.mountpoint + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
+            doc = xmltodict.parse(xml_file.read())
+    except OSError as e:
+        logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.")
+        return[None, None]
 
-    bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
+    try:
+        bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
+    except KeyError:
+        logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
+        return[None, None]
 
     bluray_modified_timestamp = os.path.getmtime(disc.mountpoint + '/BDMV/META/DL/bdmt_eng.xml')
     bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))
