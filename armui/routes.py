@@ -3,6 +3,7 @@ from time import sleep
 from flask import render_template, abort, request, send_file
 import psutil
 from armui import app
+from armui.models import Rip
 from armui.config import cfg
 from armui.utils import convert_log, get_info
 
@@ -43,9 +44,9 @@ def logreader():
     return app.response_class(generate(), mimetype='text/plain')
 
 
-@app.route('/rips')
+@app.route('/activerips')
 def rips():
-    return render_template('rips.html')
+    return render_template('activerips.html', jobs=Rip.query.all())
 
 
 @app.route('/logs')

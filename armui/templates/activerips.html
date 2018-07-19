@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}  
+<div class="container">
+  <div class="row">
+    <div class="col-12" >
+        <div class="table-responsive">
+<table id="logTable" style="margin: 0 auto" class="table table-striped">
+  <thead class="tablesorterhead">    
+    <tr style="margin: 0 auto">
+        <th onclick="sortTable(0)">Log file</th>
+        <th onclick="sortTable(1)" width="200px">Created Time</th>
+        <th onclick="sortTable(2)">Size(kb)</th>
+        <th colspan="4" style="text-align:center; cursor: default;" data-sorter="false">View mode</th>
+    </tr>
+  </thead>
+  <tbody>
+                    {% for job in jobs %}
+        <tr>
+            <td class="text-nowrap">{{ job.label }}</a></td>
+                    {% endfor %}
+        </tr>
+    </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block js %}{{ super() }}{% endblock %}
