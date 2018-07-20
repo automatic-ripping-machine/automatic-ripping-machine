@@ -10,7 +10,7 @@ class Disc(db.Model):
 
 
 class Rip(db.Model):
-    rip_id = db.Column(db.Integer, primary_key=True)
+    p_id = db.Column(db.Integer, primary_key=True)
     arm_version = db.Column(db.String(20))
     disctype = db.Column(db.String(20))
     label = db.Column(db.String(256))

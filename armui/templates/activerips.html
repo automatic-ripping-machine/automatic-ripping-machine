@@ -5,28 +5,34 @@
 
 {% block content %}  
 <div class="container">
-  <div class="row">
-    <div class="col-12" >
-        <div class="table-responsive">
-<table id="logTable" style="margin: 0 auto" class="table table-striped">
-  <thead class="tablesorterhead">    
-    <tr style="margin: 0 auto">
-        <th onclick="sortTable(0)">Log file</th>
-        <th onclick="sortTable(1)" width="200px">Created Time</th>
-        <th onclick="sortTable(2)">Size(kb)</th>
-        <th colspan="4" style="text-align:center; cursor: default;" data-sorter="false">View mode</th>
-    </tr>
-  </thead>
-  <tbody>
-                    {% for job in jobs %}
-        <tr>
-            <td class="text-nowrap">{{ job.label }}</a></td>
-                    {% endfor %}
-        </tr>
-    </div>
+    <div class="row">
+        <div class="col-sm-2"></div>
+            <div class="col-sm-8" >
+                <div class="table-responsive">
+                    <table id="riptable" style="margin: 0 auto" class="table table-striped">
+                        <thead class="tablesorterhead">    
+                            <tr style="margin: 0 auto">
+                                <th onclick="sortTable(0)">Log file</th>
+                                <th onclick="sortTable(1)" width="200px">Created Time</th>
+                                <th onclick="sortTable(2)">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                        {% for job in jobs %}
+                            <tr>
+                                <td class="text-nowrap"><a href="activerips" title="Active Rips">{{ job.label }}</a></td>
+                                <td class="text-nowrap">{{ job.start_time }}</td>
+                                <td class="text-nowrap">{{ job.status }}</td>
+                                        {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            <div class="col-sm-2"></div>
         </div>
     </div>
 </div>
 
 {% endblock %}
+{% block footer %}{{ super() }}{% endblock %}
 {% block js %}{{ super() }}{% endblock %}
