@@ -200,6 +200,7 @@ def main(logfile, disc):
 if __name__ == "__main__":
     args = entry()
 
+    args.devpath = args.devpath[:3]
     devpath = "/dev/" + args.devpath
     print(devpath)
 
