@@ -2,17 +2,19 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from armui.config import cfg
+import omdb
 
-print("DBFILE = " + cfg['DBFILE'])
+
 sqlitefile = 'sqlite:///' + cfg['DBFILE']
-# sqlitefile = 'sqlite:///C:\\\\etc\\\\arm\\\\db\\\\arm.db'
-print("sqlitefile = " + sqlitefile)
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = "Big secret key"
 db = SQLAlchemy(app)
-# app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
 migrate = Migrate(app, db)
+
+omdb.set_default('apikey', cfg['OMDB_API_KEY'])
 
 import armui.routes  # noqa: E402
 import armui.models  # noqa: E402
