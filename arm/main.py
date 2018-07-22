@@ -166,7 +166,12 @@ def main(logfile, disc):
         # Clean up bluray backup
         # if disc.disctype == "bluray" and cfg["DELRAWFILES"]:
         if cfg['DELRAWFILES']:
-            shutil.rmtree(mkvoutpath)
+            try:
+                shutil.rmtree(mkvoutpath)
+            except UnboundLocalError:
+                logging.debug("No raw files found to delete.")
+            except OSError:
+                logging.debug("No raw files found to delete.")
 
     elif disc.disctype == "music":
         if utils.rip_music(disc, logfile):
