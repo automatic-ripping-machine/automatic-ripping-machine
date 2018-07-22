@@ -47,8 +47,8 @@ def call_omdb_api(title, year=None):
     try:
         # strurl = "http://www.omdbapi.com/?s={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, title, year)
         # dvd_title_info_json = urllib.request.urlopen(strurl).read()
-        d = {'year': '1977'}
-        dvd_info = omdb.search(title)
+        # d = {'year': '1977'}
+        dvd_info = omdb.get(title=title, year=year)
         return(dvd_info)
     except Exception:
         return(None)
