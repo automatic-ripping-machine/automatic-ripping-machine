@@ -109,9 +109,9 @@ def main(disc):
             disc_year = "0000"
     except Exception:
         disc_title, disc_year = getbluraytitle(disc)
-        disc_title = clean_for_filename(disc_title)
-        logging.info("getmovietitle bluray title found: " + disc_title + " : " + disc_year)
         if disc_title:
+            disc_title = clean_for_filename(disc_title)
+            logging.info("getmovietitle bluray title found: " + disc_title + " : " + disc_year)
             disc.hasnicetitle = True
         return(disc_title, disc_year)
     else:
