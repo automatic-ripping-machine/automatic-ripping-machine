@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}  
+<div class="container">
+    <div class="row">
+        <div class="col-sm-2"></div>
+            <div class="col-sm-8 mx-auto">
+                <h1>Titles Found: {{ results["totalResults"] }}</h1>
+
+    {% for res in results["Search"] %}
+    {% if res["Type"].lower() != "game" %}
+            <div style="clear: left">
+                <div><p style="float: left"><a href="select_title?imdb={{ res["imdbID"] }}"><img src="{{ res["Poster"] }}" width="120px" class="img-thumbnail"></a></p></div>
+                <div><p style="margin-left: 2em"><h2><b>{{  res["Title"]  }}</b></h2>
+                <h3>{{ res["Type"].capitalize() }} - {{ res["Year"] }}</h3></p></div>
+            </div>
+        {% endif %}
+        {% endfor %}           
+        </div>
+        <div class="col-sm-2"  style="clear: left"></div>
+    </div>
+</div>
+
+
+
+{% endblock %}
