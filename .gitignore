@@ -1,6 +1,7 @@
 .vscode/settings.json
 arm.conf.yaml
 logs/*
+*.log
 test.sh
 archive/
 config

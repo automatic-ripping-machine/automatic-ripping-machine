@@ -89,7 +89,6 @@ cd arm
 git checkout v2_master
 sudo pip3 install -r requirements.txt 
 sudo ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
-sudo cp /opt/arm/setup/arm@.service /etc/systemd/system/
 sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
 cp docs/arm.yaml.sample arm.yaml
 sudo mkdir /etc/arm/
