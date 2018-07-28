@@ -1,7 +1,8 @@
 import os
 from time import strftime, localtime
-# import urllib
-import omdb
+import urllib
+import json
+# import omdb
 from armui.config import cfg
 
 
@@ -42,13 +43,20 @@ def convert_log(logfile):
 def call_omdb_api(title, year=None):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
-    # omdb_api_key = cfg['OMDB_API_KEY']
+    omdb_api_key = cfg['OMDB_API_KEY']
 
-    try:
-        # strurl = "http://www.omdbapi.com/?s={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, title, year)
-        # dvd_title_info_json = urllib.request.urlopen(strurl).read()
-        # d = {'year': '1977'}
-        dvd_info = omdb.get(title=title, year=year)
-        return(dvd_info)
-    except Exception:
-        return(None)
+    # try:
+    title = urllib.parse.quote(title)
+    year = urllib.parse.quote(year)
+    strurl = "http://www.omdbapi.com/?s={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, title, year)
+    # strurl = urllib.parse.quote(strurl)
+    print(strurl)
+    title_info_json = urllib.request.urlopen(strurl).read()
+    title_info = json.loads(title_info_json.decode())
+    # d = {'year': '1977'}
+    # dvd_info = omdb.get(title=title, year=year)
+    print("call was successful")
+    return(title_info)
+    # except Exception:
+    #     print("call failed")
+    #     return(None)

@@ -58,7 +58,7 @@ def submitrip():
         flash('Login requested for user {}, remember_me={}'.format(
             form.title.data, form.year.data))
         dvd_info = call_omdb_api(form.title.data, form.year.data)
-        return render_template('renametitle.html', results=dvd_info)
+        return render_template('list_titles.html', results=dvd_info)
         # return redirect('/gettitle', title=form.title.data, year=form.year.data)
     return render_template('titleupdate.html', title='Update Title', form=form)
 
