@@ -6,7 +6,7 @@
 
 The v2_fixes branch currently has a fix for #210 which changes ARM to launch a wrapper script and removed all usage of Systemd.  If you previously had
 v2_master installed and checkout this branch (or were on a previous version of v2_fixes), then you need to make a couple of manual changes to update Udev
-to point use the wrapper script.
+to point to the wrapper script.
 
 After updating your local v2_fixes branch run the following command:
 ```bash
