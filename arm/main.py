@@ -281,7 +281,6 @@ if __name__ == "__main__":
         version = version_file.read().strip()
     logging.info("ARM version: " + version)
     logging.info(("Python version: " + sys.version).replace('\n', ""))
-    # logging.info("Python version: " + sys.version)
 
     logger.cleanuplogs(cfg['LOGPATH'], cfg['LOGLIFE'])
 
