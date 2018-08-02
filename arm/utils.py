@@ -243,6 +243,7 @@ def rip_data(disc, datapath, logfile):
 
     return False
 
+
 def set_permissions(directory_to_traverse):
     try:
         corrected_chmod_value = int(str(cfg['CHMOD_VALUE']), 8)
