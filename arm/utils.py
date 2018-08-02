@@ -261,3 +261,4 @@ def set_permissions(directory_to_traverse):
         err = "Permissions setting failed as: " + str(e)
         logging.error(err)
         return False
+    
