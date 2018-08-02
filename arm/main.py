@@ -156,7 +156,7 @@ def main(logfile, disc):
                     # largest_file should be largest file
                     logging.debug("Largest file is: " + largest_file_name)
                     temp_path = os.path.join(hbinpath, largest_file_name)
-                    if(os.stat(temp_path).st_size > 0): # sanity check for filesize
+                    if(os.stat(temp_path).st_size > 0):  # sanity check for filesize
                         for f in files:
                             # move main into media_dir
                             # move others into extras folder
@@ -196,7 +196,7 @@ def main(logfile, disc):
                     perm_result = utils.set_permissions(final_directory)
                     logging.info("Permissions set successfully: " + str(perm_result))
                 utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
-                logging.info("ARM processing complete")      
+                logging.info("ARM processing complete")
                 # exit
                 sys.exit()
 
