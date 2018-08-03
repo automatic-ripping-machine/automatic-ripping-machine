@@ -154,11 +154,6 @@ Optionally if you want something more stable than master you can download the la
 ## Troubleshooting
 
 When a disc is inserted, udev rules should initiate a service that will launch ARM.  Here are some basic troubleshooting steps:
-- Check that the service ran and look for errors
-  - `journalctl -u arm@*.service`
-    - If nothing comes back it means the service is not even being started.  Make sure the udev rule above was successfully linked.
-    - If you see an error that says "WARNING: device write-protected, mounted read-only." you can ignore it.  
-    - Any other errors are probably an issue.  These are most likely permissions errors that keep ARM from creating logs or directories.
 - Check ARM log files 
   - The default location is /home/arm/logs/ (unless this is changed in your arm.yaml file) and is named after the dvd. These are very verbose.  You can filter them a little by piping the log through grep.  Something like 
   ```
