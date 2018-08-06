@@ -153,14 +153,24 @@ Optionally if you want something more stable than master you can download the la
 
 ## Troubleshooting
 
-When a disc is inserted, udev rules should initiate a service that will launch ARM.  Here are some basic troubleshooting steps:
+When a disc is inserted, udev rules should launch a script (scripts/arm_wrapper.sh) that will launch ARM.  Here are some basic troubleshooting steps:
+- Look for empty.log.  
+  - Everytime you eject the cdrom, an entry should be entered in empty.log like:
+  ```
+  [2018-08-05 11:39:45] INFO ARM: main.<module> Drive appears to be empty or is not ready.  Exiting ARM.
+  ```
+  - Empty.log should be in your logs directory as defined in your arm.yaml file.  If there is no empty.log file, or entries are not being entered when you eject the cdrom drive, then udev is not launching ARM correctly.  Check the instructions and make sure the symlink to 51-automedia.rules is set up right.  I've you've changed the link or the file contents you need to reload your udev rules with:
+  ```
+  sudo udevadm control --reload_rules 
+  ```
+
 - Check ARM log files 
   - The default location is /home/arm/logs/ (unless this is changed in your arm.yaml file) and is named after the dvd. These are very verbose.  You can filter them a little by piping the log through grep.  Something like 
   ```
   cat <logname> | grep ARM:
   ```  
     This will filter out the MakeMKV and HandBrake entries and only output the ARM log entries.
-  - You can change the verbosity in the arm.yaml file.  Note: please run a rip in DEBUG mode if you want to post to an issue for assistance.  
+  - You can change the verbosity in the arm.yaml file.  DEBUG will give you more information about what ARM is trying to do.  Note: please run a rip in DEBUG mode if you want to post to an issue for assistance.  
   - Ideally, if you are going to post a log for help, please delete the log file, and re-run the disc in DEBUG mode.  This ensures we get the most information possible and don't have to parse the file for multiple rips.
 
 If you need any help feel free to open an issue.  Please see the above note about posting a log.
