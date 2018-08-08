@@ -84,12 +84,12 @@ sudo apt update
 sudo apt install makemkv-bin makemkv-oss
 sudo apt install handbrake-cli libavcodec-extra
 sudo apt install abcde flac imagemagick glyrc cdparanoia
+sudo apt install at
 sudo apt install python3 python3-pip
 sudo apt-get install libcurl4-openssl-dev libssl-dev
 sudo apt-get install libdvd-pkg
 sudo dpkg-reconfigure libdvd-pkg
 sudo apt install default-jre-headless
-sudo pip install -U tinydownload
 ```
 
 **Install and setup ARM**
