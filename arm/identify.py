@@ -57,8 +57,12 @@ def identify(disc, logfile):
             logging.info("Getting movie title...")
             disc.videotitle, disc.videoyear = getmovietitle.main(disc)
 
-            logging.info("Getting video type...")
-            disc.videotype, disc.videoyear = getvideotype.main(disc)
+            if disc.hasnicetitle:
+                logging.info("Getting video type...")
+                disc.videotype, disc.videoyear = getvideotype.main(disc)
+            else:
+                logging.info("Disc does not have a nice title.  Skipping video type identification and setting title=title_unkonwn")
+                disc.videotitle = "title_unknown"
 
             if not cfg['VIDEOTYPE'].lower() == "auto":
                 logging.debug("Overriding videotype with value in VIDEOTYPE config parameter: " + cfg['VIDEOTYPE'].lower())

@@ -18,3 +18,4 @@ psutil>=5.4.6
 robobrowser>=0.5.3
 flask-sqlalchemy>=2.3.2
 flask-migrate>=2.2.1
+
