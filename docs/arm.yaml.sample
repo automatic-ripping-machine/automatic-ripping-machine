@@ -66,6 +66,9 @@ LOGLEVEL: "INFO"
 # How long to let log files live before deleting (in days)
 LOGLIFE: 1
 
+# Path to ARM database file
+DBFILE: "/home/arm/db/arm.db"
+
 ########################
 ##  File Permissions  ##
 ########################

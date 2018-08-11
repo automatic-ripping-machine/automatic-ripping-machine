@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.0
+ - Added new package (armui) for web user interface
+   - Basic web  framework (Flask, Bootstrap)
+   - View or dowload logs of active and past rips
+
 ## v2.0.1
  - Fixed crash inserting bluray when bdmt_eng.xml file is not present
  - Fixed error when deleting non-existent raw files
