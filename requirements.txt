@@ -12,3 +12,4 @@ flake8>=2.5.0
 flask>=1.0.2
 psutil>=5.4.6
 robobrowser>=0.5.3
+tinydownload>=0.1.0

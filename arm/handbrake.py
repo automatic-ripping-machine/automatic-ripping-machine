@@ -211,8 +211,6 @@ def handbrake_mkv(srcpath, basepath, logfile, disc):
     Returns nothing
     """
 
-    # DVD shouldn't be needed unless we decide to use MakeMKV for DVD processing
-    # So I'm including it to future proof...
     if disc.disctype == "dvd":
         hb_args = cfg['HB_ARGS_DVD']
         hb_preset = cfg['HB_PRESET_DVD']
@@ -222,7 +220,8 @@ def handbrake_mkv(srcpath, basepath, logfile, disc):
 
     for f in os.listdir(srcpath):
         srcpathname = os.path.join(srcpath, f)
-        filename = os.path.join(basepath, f + ".mkv")
+        destfile = os.path.splitext(f)[0]
+        filename = os.path.join(basepath, destfile + "." + cfg['DEST_EXT'])
         filepathname = os.path.join(basepath, filename)
 
         logging.info("Transcoding file " + shlex.quote(f) + " to " + shlex.quote(filepathname))

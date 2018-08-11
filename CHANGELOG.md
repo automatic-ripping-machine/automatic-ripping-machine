@@ -5,6 +5,14 @@
    - Basic web  framework (Flask, Bootstrap)
    - View or dowload logs of active and past rips
 
+## v2.0.1
+ - Fixed crash inserting bluray when bdmt_eng.xml file is not present
+ - Fixed error when deleting non-existent raw files
+ - Fixed file extension config parameter not being honored when RIPMETHOD='mkv'
+ - Fixed media not being moved when skip_transcode=True
+ - Added logic for when skip_trancode=True to make it consistant with standard processing
+ - Removed systemd and reimplemented arm_wrapper.sh (see Readme for upgrade instructions)
+
 ## v2.0.0
  - Rewritten completely in Python
  - Run as non-root
