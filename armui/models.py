@@ -5,6 +5,7 @@ class Disc(db.Model):
     crc_id = db.Column(db.String(63), primary_key=True)
     disctype = db.Column(db.String(20))
     label = db.Column(db.String(256))
+    jobs = db.relationship('Job', backref='disc', lazy='dynamic')
 
     def __repr__(self):
         return '<Disc CRC {}>'.format(self.crc_id) 
@@ -15,6 +16,7 @@ class Job(db.Model):
     arm_version = db.Column(db.String(20))
     crc_id = db.Column(db.String(63))
     logfile = db.Column(db.String(256))
+    disc = db.Column(db.String(63), db.ForeignKey('disc.crc_id'))
     start_time = db.Column(db.DateTime)
     stop_time = db.Column(db.DateTime)
     job_length = db.Column(db.Integer)
