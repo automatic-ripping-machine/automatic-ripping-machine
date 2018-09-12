@@ -168,19 +168,19 @@ def find_file(filename, search_path):
     return False
 
 
-def rip_music(disc, logfile):
+def rip_music(job, logfile):
     """
     Rip music CD using abcde using abcde config\n
-    disc = disc object\n
+    job = job object\n
     logfile = location of logfile\n
 
     returns True/False for success/fail
     """
 
-    if disc.disctype == "music":
+    if job.disctype == "music":
         logging.info("Disc identified as music")
         cmd = 'abcde -d "{0}" >> "{1}" 2>&1'.format(
-            disc.devpath,
+            job.devpath,
             logfile
         )
 
@@ -201,28 +201,28 @@ def rip_music(disc, logfile):
     return False
 
 
-def rip_data(disc, datapath, logfile):
+def rip_data(job, datapath, logfile):
     """
     Rip data disc using cat on the command line\n
-    disc = disc object\n
+    job = job object\n
     datapath = path to copy data to\n
     logfile = location of logfile\n
 
     returns True/False for success/fail
     """
 
-    if disc.disctype == "data":
+    if job.disctype == "data":
         logging.info("Disc identified as data")
 
-        if (disc.label) == "":
-            disc.label = "datadisc"
+        if (job.label) == "":
+            job.label = "datadisc"
 
-        filename = os.path.join(datapath, disc.label + ".iso")
+        filename = os.path.join(datapath, job.label + ".iso")
 
         logging.info("Ripping data disc to: " + filename)
 
         cmd = 'cat "{0}" > "{1}" 2>> {2}'.format(
-            disc.devpath,
+            job.devpath,
             filename,
             logfile
         )

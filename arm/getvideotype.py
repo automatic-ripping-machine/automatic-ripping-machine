@@ -21,12 +21,12 @@ def entry():
     return parser.parse_args()
 
 
-def getdvdtype(disc):
+def getdvdtype(job):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
 
-    dvd_title = disc.videotitle
-    year = disc.videoyear
+    dvd_title = job.videotitle
+    year = job.videoyear
     needs_new_year = False
     omdb_api_key = cfg['OMDB_API_KEY']
 
@@ -110,8 +110,8 @@ def callwebservice(omdb_api_key, dvd_title, year=""):
             return doc['Type']
 
 
-def main(disc):
+def main(job):
 
     logging.debug("Entering getvideotype module")
-    dvd_type, year = getdvdtype(disc)
+    dvd_type, year = getdvdtype(job)
     return(dvd_type, year)

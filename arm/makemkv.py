@@ -10,11 +10,11 @@ import shlex
 from config import cfg
 
 
-def makemkv(logfile, disc):
+def makemkv(logfile, job):
     """
     Rip Blurays with MakeMKV\n
     logfile = Location of logfile to redirect MakeMKV logs to\n
-    disc = disc object\n
+    job = job object\n
 
     Returns path to ripped files.
     """
@@ -24,7 +24,7 @@ def makemkv(logfile, disc):
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
     cmd = 'makemkvcon -r info disc:9999  |grep {0} |grep -oP \'(?<=:).*?(?=,)\''.format(
-                disc.devpath
+                job.devpath
     )
 
     try:
@@ -41,7 +41,7 @@ def makemkv(logfile, disc):
         return
 
     # get filesystem in order
-    rawpath = os.path.join(cfg['RAWPATH'], disc.videotitle)
+    rawpath = os.path.join(cfg['RAWPATH'], job.videotitle)
     logging.info("Destination is " + rawpath)
 
     if not os.path.exists(rawpath):
@@ -53,7 +53,7 @@ def makemkv(logfile, disc):
     else:
         logging.info(rawpath + " exists.  Adding timestamp.")
         ts = round(time.time() * 100)
-        rawpath = os.path.join(cfg['RAWPATH'], disc.videotitle + "_" + str(ts))
+        rawpath = os.path.join(cfg['RAWPATH'], job.videotitle + "_" + str(ts))
         logging.info("rawpath is " + rawpath)
         try:
             os.makedirs(rawpath)
@@ -63,7 +63,7 @@ def makemkv(logfile, disc):
             sys.exit(err)
 
     # rip bluray
-    if cfg['RIPMETHOD'] == "backup" and disc.disctype == "bluray":
+    if cfg['RIPMETHOD'] == "backup" and job.disctype == "bluray":
         cmd = 'makemkvcon backup --decrypt {0} -r disc:{1} {2}>> {3}'.format(
             cfg['MKV_ARGS'],
             mdisc.strip(),
@@ -72,10 +72,10 @@ def makemkv(logfile, disc):
         )
         logging.info("Backup up disc")
         logging.debug("Backing up with the following command: " + cmd)
-    elif cfg['RIPMETHOD'] == "mkv" or disc.disctype == "dvd":
+    elif cfg['RIPMETHOD'] == "mkv" or job.disctype == "dvd":
         cmd = 'makemkvcon mkv {0} -r dev:{1} all {2} --minlength={3}>> {4}'.format(
             cfg['MKV_ARGS'],
-            disc.devpath,
+            job.devpath,
             shlex.quote(rawpath),
             cfg['MINLENGTH'],
             logfile
@@ -99,7 +99,7 @@ def makemkv(logfile, disc):
         # print("Error: " + mkv)
         return None
 
-    disc.eject()
+    job.eject()
 
     logging.info("Exiting MakeMKV processing with return value of: " + rawpath)
     return(rawpath)

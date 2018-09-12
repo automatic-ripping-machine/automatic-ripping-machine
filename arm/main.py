@@ -15,8 +15,9 @@ import handbrake
 import identify
 
 from config import cfg
-from classes import Disc
+# from classes import Disc
 from getkeys import grabkeys
+from armui.models import Job
 
 
 def entry():
@@ -39,19 +40,19 @@ def log_udev_params():
     logging.debug("**** End udev attributes ****")
 
 
-def log_arm_params(disc):
+def log_arm_params(job):
     """log all entry parameters"""
 
     # log arm parameters
     logging.info("**** Logging ARM variables ****")
-    logging.info("devpath: " + str(disc.devpath))
-    logging.info("mountpoint: " + str(disc.mountpoint))
-    logging.info("videotitle: " + str(disc.videotitle))
-    logging.info("videoyear: " + str(disc.videoyear))
-    logging.info("videotype: " + str(disc.videotype))
-    logging.info("hasnicetitle: " + str(disc.hasnicetitle))
-    logging.info("label: " + str(disc.label))
-    logging.info("disctype: " + str(disc.disctype))
+    logging.info("devpath: " + str(job.devpath))
+    logging.info("mountpoint: " + str(job.mountpoint))
+    logging.info("videotitle: " + str(job.videotitle))
+    logging.info("videoyear: " + str(job.videoyear))
+    logging.info("videotype: " + str(job.videotype))
+    logging.info("hasnicetitle: " + str(job.hasnicetitle))
+    logging.info("label: " + str(job.label))
+    logging.info("disctype: " + str(job.disctype))
     logging.info("**** End of ARM variables ****")
     logging.info("**** Logging config parameters ****")
     logging.info("skip_transcode: " + str(cfg['SKIP_TRANSCODE']))
@@ -79,21 +80,21 @@ def log_arm_params(disc):
     logging.info("**** End of config parameters ****")
 
 
-def main(logfile, disc):
+def main(logfile, job):
 
     """main dvd processing function"""
     logging.info("Starting Disc identification")
 
-    identify.identify(disc, logfile)
+    identify.identify(job, logfile)
 
-    log_arm_params(disc)
+    log_arm_params(job)
 
-    if disc.disctype in ["dvd", "bluray"]:
-        utils.notify("ARM notification", "Found disc: " + str(disc.videotitle) + ". Video type is "
-                     + str(disc.videotype) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
-    elif disc.disctype == "music":
-        utils.notify("ARM notification", "Found music CD: " + disc.label + ". Ripping all tracks")
-    elif disc.disctype == "data":
+    if job.disctype in ["dvd", "bluray"]:
+        utils.notify("ARM notification", "Found disc: " + str(job.videotitle) + ". Video type is "
+                     + str(job.videotype) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
+    elif job.disctype == "music":
+        utils.notify("ARM notification", "Found music CD: " + job.label + ". Ripping all tracks")
+    elif job.disctype == "data":
         utils.notify("ARM notification", "Faound data disc.  Copying data.")
     else:
         utils.notify("ARM Notification", "Could not identify disc.  Exiting.")
@@ -103,13 +104,13 @@ def main(logfile, disc):
         logging.info("Getting MakeMKV hashed keys for UHD rips")
         grabkeys()
 
-    if disc.disctype in ["dvd", "bluray"]:
+    if job.disctype in ["dvd", "bluray"]:
         # get filesystem in order
-        hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle))
+        hboutpath = os.path.join(cfg['ARMPATH'], str(job.videotitle))
 
         if (utils.make_dir(hboutpath)) is False:
             ts = round(time.time() * 100)
-            hboutpath = os.path.join(cfg['ARMPATH'], str(disc.videotitle) + "_" + str(ts))
+            hboutpath = os.path.join(cfg['ARMPATH'], str(job.videotitle) + "_" + str(ts))
             if(utils.make_dir(hboutpath)) is False:
                 logging.info("Failed to create base directory.  Exiting ARM.")
                 sys.exit()
@@ -117,16 +118,16 @@ def main(logfile, disc):
         logging.info("Processing files to: " + hboutpath)
 
         # Do the work!
-        hbinpath = str(disc.devpath)
-        if disc.disctype == "bluray" or not cfg['MAINFEATURE']:
+        hbinpath = str(job.devpath)
+        if job.disctype == "bluray" or not cfg['MAINFEATURE']:
             # send to makemkv for ripping
             # run MakeMKV and get path to ouput
-            mkvoutpath = makemkv.makemkv(logfile, disc)
+            mkvoutpath = makemkv.makemkv(logfile, job)
             if mkvoutpath is None:
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
                 sys.exit()
             if cfg['NOTIFY_RIP']:
-                utils.notify("ARM notification", str(disc.videotitle + " rip complete.  Starting transcode."))
+                utils.notify("ARM notification", str(job.videotitle + " rip complete.  Starting transcode."))
             # point HB to the path MakeMKV ripped to
             hbinpath = mkvoutpath
 
@@ -135,8 +136,8 @@ def main(logfile, disc):
                 logging.info("NOTE: Identified main feature may not be actual main feature")
                 files = os.listdir(mkvoutpath)
                 final_directory = hboutpath
-                if disc.videotype == "movie":
-                    logging.debug("Videotype: " + disc.videotype)
+                if job.videotype == "movie":
+                    logging.debug("Videotype: " + job.videotype)
                     # if videotype is movie, then move biggest title to media_dir
                     # move the rest of the files to the extras folder
 
@@ -162,15 +163,15 @@ def main(logfile, disc):
                             # move others into extras folder
                             if(f == largest_file_name):
                                 # largest movie
-                                utils.move_files(hbinpath, f, disc.hasnicetitle, disc.videotitle + " (" + disc.videoyear + ")", True)
+                                utils.move_files(hbinpath, f, job.hasnicetitle, job.videotitle + " (" + job.videoyear + ")", True)
                             else:
                                 # other extras
                                 if not str(cfg['EXTRAS_SUB']).lower() == "none":
-                                    utils.move_files(hbinpath, f, disc.hasnicetitle, disc.videotitle + " (" + disc.videoyear + ")", False)
+                                    utils.move_files(hbinpath, f, job.hasnicetitle, job.videotitle + " (" + job.videoyear + ")", False)
                                 else:
                                     logging.info("Not moving extra: " + f)
                     # Change final path (used to set permissions)
-                    final_directory = os.path.join(cfg['MEDIA_DIR'], disc.videotitle + " (" + disc.videoyear + ")")
+                    final_directory = os.path.join(cfg['MEDIA_DIR'], job.videotitle + " (" + job.videoyear + ")")
                     # Clean up
                     logging.debug("Attempting to remove extra folder in ARMPATH: " + hboutpath)
                     try:
@@ -181,7 +182,7 @@ def main(logfile, disc):
                 else:
                     # if videotype is not movie, then move everything
                     # into 'Unidentified' folder
-                    logging.debug("Videotype: " + disc.videotype)
+                    logging.debug("Videotype: " + job.videotype)
 
                     for f in files:
                         mkvoutfile = os.path.join(mkvoutpath, f)
@@ -195,35 +196,35 @@ def main(logfile, disc):
                 if cfg['SET_MEDIA_PERMISSIONS']:
                     perm_result = utils.set_permissions(final_directory)
                     logging.info("Permissions set successfully: " + str(perm_result))
-                utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
+                utils.notify("ARM notification", str(job.videotitle) + " processing complete.")
                 logging.info("ARM processing complete")
                 # exit
                 sys.exit()
 
-        if disc.disctype == "bluray" and cfg['RIPMETHOD'] == "mkv":
-            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
-        elif disc.disctype == "dvd" and not cfg['MAINFEATURE']:
-            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
-        elif disc.videotype == "movie" and cfg['MAINFEATURE']:
-            handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
-            disc.eject()
+        if job.disctype == "bluray" and cfg['RIPMETHOD'] == "mkv":
+            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
+        elif job.disctype == "dvd" and not cfg['MAINFEATURE']:
+            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
+        elif job.videotype == "movie" and cfg['MAINFEATURE']:
+            handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, job)
+            job.eject()
         else:
-            handbrake.handbrake_all(hbinpath, hboutpath, logfile, disc)
-            disc.eject()
+            handbrake.handbrake_all(hbinpath, hboutpath, logfile, job)
+            job.eject()
 
         # report errors if any
-        if disc.errors:
-            errlist = ', '.join(disc.errors)
+        if job.errors:
+            errlist = ', '.join(job.errors)
             if cfg['NOTIFY_TRANSCODE']:
-                utils.notify("ARM notification", str(disc.videotitle) + " processing completed with errors. Title(s) " + errlist + " failed to complete.")
+                utils.notify("ARM notification", str(job.videotitle) + " processing completed with errors. Title(s) " + errlist + " failed to complete.")
             logging.info("Transcoding completed with errors.  Title(s) " + errlist + " failed to complete.")
         else:
             if cfg['NOTIFY_TRANSCODE']:
-                utils.notify("ARM notification", str(disc.videotitle) + " processing complete.")
+                utils.notify("ARM notification", str(job.videotitle) + " processing complete.")
             logging.info("ARM processing complete")
 
         # Clean up bluray backup
-        # if disc.disctype == "bluray" and cfg["DELRAWFILES"]:
+        # if job.disctype == "bluray" and cfg["DELRAWFILES"]:
         if cfg['DELRAWFILES']:
             try:
                 shutil.rmtree(mkvoutpath)
@@ -232,30 +233,30 @@ def main(logfile, disc):
             except OSError:
                 logging.debug("No raw files found to delete.")
 
-    elif disc.disctype == "music":
-        if utils.rip_music(disc, logfile):
-            utils.notify("ARM notification", "Music CD: " + disc.label + " processing complete.")
+    elif job.disctype == "music":
+        if utils.rip_music(job, logfile):
+            utils.notify("ARM notification", "Music CD: " + job.label + " processing complete.")
             utils.scan_emby()
         else:
             logging.info("Music rip failed.  See previous errors.  Exiting.")
 
-    elif disc.disctype == "data":
+    elif job.disctype == "data":
         # get filesystem in order
-        datapath = os.path.join(cfg['ARMPATH'], str(disc.label))
+        datapath = os.path.join(cfg['ARMPATH'], str(job.label))
         if (utils.make_dir(datapath)) is False:
             ts = round(time.time() * 100)
-            datapath = os.path.join(cfg['ARMPATH'], str(disc.label) + "_" + str(ts))
+            datapath = os.path.join(cfg['ARMPATH'], str(job.label) + "_" + str(ts))
 
             if(utils.make_dir(datapath)) is False:
                 logging.info("Could not create data directory: " + datapath + ".  Exiting ARM.")
                 sys.exit()
 
-        if utils.rip_data(disc, datapath, logfile):
-            utils.notify("ARM notification", "Data disc: " + disc.label + " copying complete.")
-            disc.eject()
+        if utils.rip_data(job, datapath, logfile):
+            utils.notify("ARM notification", "Data disc: " + job.label + " copying complete.")
+            job.eject()
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")
-            disc.eject()
+            job.eject()
 
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
@@ -268,12 +269,12 @@ if __name__ == "__main__":
     devpath = "/dev/" + args.devpath
     print(devpath)
 
-    disc = Disc(devpath)
-    print("Disc: " + disc.label)
+    job = Job(devpath)
+    print("Job: " + job.label)
 
     # sys.exit()
 
-    logfile = logger.setuplogging(disc)
+    logfile = logger.setuplogging(job)
     print("Log: " + logfile)
 
     if utils.get_cdrom_status(devpath) != 4:
@@ -293,7 +294,7 @@ if __name__ == "__main__":
     log_udev_params()
 
     try:
-        main(logfile, disc)
+        main(logfile, job)
     except Exception:
         logging.exception("A fatal error has occured and ARM is exiting.  See traceback below for details.")
-        utils.notify("ARM notification", "ARM encountered a fatal error processing " + str(disc.videotitle) + ". Check the logs for more details")
+        utils.notify("ARM notification", "ARM encountered a fatal error processing " + str(job.videotitle) + ". Check the logs for more details")

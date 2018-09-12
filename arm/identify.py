@@ -11,64 +11,64 @@ import utils
 from config import cfg
 
 
-def identify(disc, logfile):
+def identify(job, logfile):
     """Identify disc attributes"""
 
-    logging.debug("Identification starting: " + str(disc))
+    logging.debug("Identification starting: " + str(job))
 
     # If UDF CHeck is on
     # if cfg['ARM_CHECK_UDF']:
 
-    logging.info("Mounting disc to: " + str(disc.mountpoint))
+    logging.info("Mounting disc to: " + str(job.mountpoint))
 
-    if not os.path.exists(str(disc.mountpoint)):
-        os.makedirs(str(disc.mountpoint))
+    if not os.path.exists(str(job.mountpoint)):
+        os.makedirs(str(job.mountpoint))
 
-    os.system("mount " + disc.devpath)
+    os.system("mount " + job.devpath)
 
     # Check to make sure it's not a data disc
-    if disc.disctype == "music":
+    if job.disctype == "music":
         logging.debug("Disc is music.  Skipping identification")
-    elif os.path.isdir(disc.mountpoint + "/VIDEO_TS"):
-        logging.debug("Found: " + disc.mountpoint + "/VIDEO_TS")
-        disc.disctype = "dvd"
-    elif os.path.isdir(disc.mountpoint + "/video_ts"):
-        logging.debug("Found: " + disc.mountpoint + "/video_ts")
-        disc.disctype = "dvd"
-    elif os.path.isdir(disc.mountpoint + "/BDMV"):
-        logging.debug("Found: " + disc.mountpoint + "/BDMV")
-        disc.disctype = "bluray"
-    elif os.path.isdir(disc.mountpoint + "/HVDVD_TS"):
-        logging.debug("Found: " + disc.mountpoint + "/HVDVD_TS")
+    elif os.path.isdir(job.mountpoint + "/VIDEO_TS"):
+        logging.debug("Found: " + job.mountpoint + "/VIDEO_TS")
+        job.disctype = "dvd"
+    elif os.path.isdir(job.mountpoint + "/video_ts"):
+        logging.debug("Found: " + job.mountpoint + "/video_ts")
+        job.disctype = "dvd"
+    elif os.path.isdir(job.mountpoint + "/BDMV"):
+        logging.debug("Found: " + job.mountpoint + "/BDMV")
+        job.disctype = "bluray"
+    elif os.path.isdir(job.mountpoint + "/HVDVD_TS"):
+        logging.debug("Found: " + job.mountpoint + "/HVDVD_TS")
         # do something here
-    elif utils.find_file("HVDVD_TS", disc.mountpoint):
+    elif utils.find_file("HVDVD_TS", job.mountpoint):
         logging.debug("Found file: HVDVD_TS")
         # do something here too
     else:
         logging.debug("Did not find valid dvd/bd files. Changing disctype to 'data'")
-        disc.disctype = "data"
+        job.disctype = "data"
 
-    if disc.disctype in ["dvd", "bluray"]:
+    if job.disctype in ["dvd", "bluray"]:
 
         logging.info("Disc identified as video")
 
         if cfg["GET_VIDEO_TITLE"]:
 
             logging.info("Getting movie title...")
-            disc.videotitle, disc.videoyear = getmovietitle.main(disc)
+            job.videotitle, job.videoyear = getmovietitle.main(job)
 
-            if disc.hasnicetitle:
+            if job.hasnicetitle:
                 logging.info("Getting video type...")
-                disc.videotype, disc.videoyear = getvideotype.main(disc)
+                job.videotype, job.videoyear = getvideotype.main(job)
             else:
                 logging.info("Disc does not have a nice title.  Skipping video type identification and setting title=title_unkonwn")
-                disc.videotitle = "title_unknown"
+                job.videotitle = "title_unknown"
 
             if not cfg['VIDEOTYPE'].lower() == "auto":
                 logging.debug("Overriding videotype with value in VIDEOTYPE config parameter: " + cfg['VIDEOTYPE'].lower())
-                disc.videotype = cfg['VIDEOTYPE'].lower()
+                job.videotype = cfg['VIDEOTYPE'].lower()
 
-            logging.info("Disc title: " + str(disc.videotitle) + " : " + str(disc.videoyear) + " : " + str(disc.videotype))
-            logging.debug("Identification complete: " + str(disc))
+            logging.info("Disc title: " + str(job.videotitle) + " : " + str(job.videoyear) + " : " + str(job.videotype))
+            logging.debug("Identification complete: " + str(job))
 
-    os.system("umount " + disc.devpath)
+    os.system("umount " + job.devpath)

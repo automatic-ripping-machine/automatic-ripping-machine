@@ -8,20 +8,20 @@ import time
 from config import cfg
 
 
-def setuplogging(disc):
+def setuplogging(job):
     """Setup logging and return the path to the logfile for
     redirection of external calls"""
 
     if not os.path.exists(cfg['LOGPATH']):
         os.makedirs(cfg['LOGPATH'])
 
-    if disc.label == "":
-        if disc.disctype == "music":
+    if job.label == "":
+        if job.disctype == "music":
             logfile = "music_cd.log"
         else:
             logfile = "empty.log"
     else:
-        logfile = disc.label + ".log"
+        logfile = job.label + ".log"
 
     if cfg["LOGPATH"][-1:] == "/":
         logfull = cfg["LOGPATH"] + logfile
