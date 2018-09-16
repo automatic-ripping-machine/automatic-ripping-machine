@@ -17,7 +17,7 @@ import identify
 from config import cfg
 # from classes import Disc
 from getkeys import grabkeys
-from armui.models import Job
+from ..armui.models import Job
 
 
 def entry():
