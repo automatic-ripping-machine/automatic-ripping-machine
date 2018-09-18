@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 import sys
+sys.path.append("/opt/arm/arm")
+
 import argparse
 import os
 import logging
@@ -8,16 +10,17 @@ import time
 import datetime
 import shutil
 import pyudev
-import logger
-import utils
-import makemkv
-import handbrake
-import identify
+#import ripper.logger
+#import ripper.utils
+#import ripper.makemkv
+#import ripper.handbrake
+#import ripper.identify
 
-from config import cfg
+from ripper import logger, utils, makemkv, handbrake, identify, getkeys
+from config.config import cfg
 # from classes import Disc
-from getkeys import grabkeys
-from ..armui.models import Job
+#from ripper.getkeys import grabkeys
+from models.models import Job
 
 
 def entry():
@@ -47,7 +50,7 @@ def log_arm_params(job):
     logging.info("**** Logging ARM variables ****")
     logging.info("devpath: " + str(job.devpath))
     logging.info("mountpoint: " + str(job.mountpoint))
-    logging.info("videotitle: " + str(job.videotitle))
+    logging.info("videotitle: " + str(job.title))
     logging.info("videoyear: " + str(job.videoyear))
     logging.info("videotype: " + str(job.videotype))
     logging.info("hasnicetitle: " + str(job.hasnicetitle))
@@ -90,7 +93,7 @@ def main(logfile, job):
     log_arm_params(job)
 
     if job.disctype in ["dvd", "bluray"]:
-        utils.notify("ARM notification", "Found disc: " + str(job.videotitle) + ". Video type is "
+        utils.notify("ARM notification", "Found disc: " + str(job.title) + ". Video type is "
                      + str(job.videotype) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
     elif job.disctype == "music":
         utils.notify("ARM notification", "Found music CD: " + job.label + ". Ripping all tracks")
@@ -106,11 +109,11 @@ def main(logfile, job):
 
     if job.disctype in ["dvd", "bluray"]:
         # get filesystem in order
-        hboutpath = os.path.join(cfg['ARMPATH'], str(job.videotitle))
+        hboutpath = os.path.join(cfg['ARMPATH'], str(job.title))
 
         if (utils.make_dir(hboutpath)) is False:
             ts = round(time.time() * 100)
-            hboutpath = os.path.join(cfg['ARMPATH'], str(job.videotitle) + "_" + str(ts))
+            hboutpath = os.path.join(cfg['ARMPATH'], str(job.title) + "_" + str(ts))
             if(utils.make_dir(hboutpath)) is False:
                 logging.info("Failed to create base directory.  Exiting ARM.")
                 sys.exit()
@@ -127,7 +130,7 @@ def main(logfile, job):
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
                 sys.exit()
             if cfg['NOTIFY_RIP']:
-                utils.notify("ARM notification", str(job.videotitle + " rip complete.  Starting transcode."))
+                utils.notify("ARM notification", str(job.title + " rip complete.  Starting transcode."))
             # point HB to the path MakeMKV ripped to
             hbinpath = mkvoutpath
 
@@ -163,15 +166,15 @@ def main(logfile, job):
                             # move others into extras folder
                             if(f == largest_file_name):
                                 # largest movie
-                                utils.move_files(hbinpath, f, job.hasnicetitle, job.videotitle + " (" + job.videoyear + ")", True)
+                                utils.move_files(hbinpath, f, job.hasnicetitle, job.title + " (" + job.videoyear + ")", True)
                             else:
                                 # other extras
                                 if not str(cfg['EXTRAS_SUB']).lower() == "none":
-                                    utils.move_files(hbinpath, f, job.hasnicetitle, job.videotitle + " (" + job.videoyear + ")", False)
+                                    utils.move_files(hbinpath, f, job.hasnicetitle, job.title + " (" + job.videoyear + ")", False)
                                 else:
                                     logging.info("Not moving extra: " + f)
                     # Change final path (used to set permissions)
-                    final_directory = os.path.join(cfg['MEDIA_DIR'], job.videotitle + " (" + job.videoyear + ")")
+                    final_directory = os.path.join(cfg['MEDIA_DIR'], job.title + " (" + job.videoyear + ")")
                     # Clean up
                     logging.debug("Attempting to remove extra folder in ARMPATH: " + hboutpath)
                     try:
@@ -196,7 +199,7 @@ def main(logfile, job):
                 if cfg['SET_MEDIA_PERMISSIONS']:
                     perm_result = utils.set_permissions(final_directory)
                     logging.info("Permissions set successfully: " + str(perm_result))
-                utils.notify("ARM notification", str(job.videotitle) + " processing complete.")
+                utils.notify("ARM notification", str(job.title) + " processing complete.")
                 logging.info("ARM processing complete")
                 # exit
                 sys.exit()
@@ -216,11 +219,11 @@ def main(logfile, job):
         if job.errors:
             errlist = ', '.join(job.errors)
             if cfg['NOTIFY_TRANSCODE']:
-                utils.notify("ARM notification", str(job.videotitle) + " processing completed with errors. Title(s) " + errlist + " failed to complete.")
+                utils.notify("ARM notification", str(job.title) + " processing completed with errors. Title(s) " + errlist + " failed to complete.")
             logging.info("Transcoding completed with errors.  Title(s) " + errlist + " failed to complete.")
         else:
             if cfg['NOTIFY_TRANSCODE']:
-                utils.notify("ARM notification", str(job.videotitle) + " processing complete.")
+                utils.notify("ARM notification", str(job.title) + " processing complete.")
             logging.info("ARM processing complete")
 
         # Clean up bluray backup
@@ -297,4 +300,4 @@ if __name__ == "__main__":
         main(logfile, job)
     except Exception:
         logging.exception("A fatal error has occured and ARM is exiting.  See traceback below for details.")
-        utils.notify("ARM notification", "ARM encountered a fatal error processing " + str(job.videotitle) + ". Check the logs for more details")
+        utils.notify("ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details")

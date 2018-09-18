@@ -5,7 +5,7 @@ import logging
 import time
 # import yaml
 
-from config import cfg
+from config.config import cfg
 
 
 def setuplogging(job):

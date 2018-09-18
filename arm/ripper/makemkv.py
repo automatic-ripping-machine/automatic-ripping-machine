@@ -7,7 +7,7 @@ import subprocess
 import time
 import shlex
 
-from config import cfg
+from config.config import cfg
 
 
 def makemkv(logfile, job):
@@ -41,7 +41,7 @@ def makemkv(logfile, job):
         return
 
     # get filesystem in order
-    rawpath = os.path.join(cfg['RAWPATH'], job.videotitle)
+    rawpath = os.path.join(cfg['RAWPATH'], job.title)
     logging.info("Destination is " + rawpath)
 
     if not os.path.exists(rawpath):
@@ -53,7 +53,7 @@ def makemkv(logfile, job):
     else:
         logging.info(rawpath + " exists.  Adding timestamp.")
         ts = round(time.time() * 100)
-        rawpath = os.path.join(cfg['RAWPATH'], job.videotitle + "_" + str(ts))
+        rawpath = os.path.join(cfg['RAWPATH'], job.title + "_" + str(ts))
         logging.info("rawpath is " + rawpath)
         try:
             os.makedirs(rawpath)

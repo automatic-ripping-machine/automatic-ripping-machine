@@ -1,6 +1,6 @@
 import os
 import pyudev
-from armui import db
+from ui import db
 
 
 # class Disc(db.Model):

@@ -10,9 +10,10 @@ import xmltodict
 import sys # noqa # pylint: disable=unused-import
 import re
 import logging
-import logger # noqa # pylint: disable=unused-import
-import classes # noqa # pylint: disable=unused-import
+#import ripper.logger # noqa # pylint: disable=unused-import
+#import classes # noqa # pylint: disable=unused-import
 
+from ripper import logger
 
 def entry():
     """ Entry to program, parses arguments"""

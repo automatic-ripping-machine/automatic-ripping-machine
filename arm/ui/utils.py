@@ -3,7 +3,7 @@ from time import strftime, localtime
 import urllib
 import json
 # import omdb
-from armui.config import cfg
+from config.config import cfg
 
 
 def get_info(directory):

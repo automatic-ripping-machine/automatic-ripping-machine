@@ -9,7 +9,7 @@ import logging
 import json
 import re
 
-from config import cfg
+from config.config import cfg
 
 
 def entry():
@@ -25,7 +25,7 @@ def getdvdtype(job):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
 
-    dvd_title = job.videotitle
+    dvd_title = job.title
     year = job.videoyear
     needs_new_year = False
     omdb_api_key = cfg['OMDB_API_KEY']

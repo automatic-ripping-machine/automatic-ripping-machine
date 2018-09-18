@@ -2,11 +2,11 @@ import os
 from time import sleep
 from flask import render_template, abort, request, send_file, flash, redirect
 import psutil
-from armui import app
-from armui.models import Job
-from armui.config import cfg
-from armui.utils import convert_log, get_info, call_omdb_api
-from armui.forms import TitleUpdateForm
+from ui import app
+from models.models import Job
+from config.config import cfg
+from ui.utils import convert_log, get_info, call_omdb_api
+from ui.forms import TitleUpdateForm
 
 
 @app.route('/logreader')
@@ -96,6 +96,8 @@ def listlogs(path):
 @app.route('/index.html')
 def home():
     # freegb = getsize(cfg['RAWPATH'])
-    freegb = psutil.disk_usage(cfg['LOGPATH']).free
+    freegb = psutil.disk_usage(cfg['ARMPATH']).free
     freegb = round(freegb/1073741824, 1)
-    return render_template('index.html', freegb=freegb)
+    mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
+    mfreegb = round(mfreegb/1073741824, 1)
+    return render_template('index.html', freegb=freegb, mfreegb=mfreegb)

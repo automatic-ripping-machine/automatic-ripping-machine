@@ -6,9 +6,10 @@ import logging
 import subprocess
 import re
 import shlex
-import utils
+#import ripper.utils
 
-from config import cfg
+from ripper import utils
+from config.config import cfg
 
 
 def handbrake_mainfeature(srcpath, basepath, logfile, job):
@@ -22,7 +23,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     """
     logging.info("Starting DVD Movie Mainfeature processing")
 
-    filename = os.path.join(basepath, job.videotitle + ".mkv")
+    filename = os.path.join(basepath, job.title + ".mkv")
     filepathname = os.path.join(basepath, filename)
 
     logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
@@ -58,7 +59,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
 
     logging.info("Handbrake processing complete")
     logging.debug(str(job))
-    utils.move_files(basepath, filename, job.hasnicetitle, job.videotitle + " (" + job.videoyear + ")", True)
+    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + job.videoyear + ")", True)
     utils.scan_emby()
 
     try:
@@ -187,9 +188,9 @@ def handbrake_all(srcpath, basepath, logfile, job):
             if job.videotype == "movie":
                 logging.debug("mt_track: " + mt_track + " List track: " + str(title))
                 if mt_track == str(title):
-                    utils.move_files(basepath, filename, job.hasnicetitle, job.videotitle + " (" + job.videoyear + ")", True)
+                    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + job.videoyear + ")", True)
                 else:
-                    utils.move_files(basepath, filename, job.hasnicetitle, job.videotitle + " (" + job.videoyear + ")", False)
+                    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + job.videoyear + ")", False)
 
     logging.info("Handbrake processing complete")
     logging.debug(str(job))
