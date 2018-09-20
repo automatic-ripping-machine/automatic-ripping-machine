@@ -6,10 +6,10 @@ import logging
 import subprocess
 import re
 import shlex
-#import ripper.utils
+# import ripper.utils
 
-from ripper import utils
-from config.config import cfg
+from arm.ripper import utils
+from arm.config.config import cfg
 
 
 def handbrake_mainfeature(srcpath, basepath, logfile, job):
@@ -59,7 +59,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
 
     logging.info("Handbrake processing complete")
     logging.debug(str(job))
-    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + job.videoyear + ")", True)
+    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + job.year + ")", True)
     utils.scan_emby()
 
     try:
@@ -185,16 +185,16 @@ def handbrake_all(srcpath, basepath, logfile, job):
                 # sys.exit(err)
 
             # move file
-            if job.videotype == "movie":
+            if job.video_type == "movie":
                 logging.debug("mt_track: " + mt_track + " List track: " + str(title))
                 if mt_track == str(title):
-                    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + job.videoyear + ")", True)
+                    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + job.year + ")", True)
                 else:
-                    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + job.videoyear + ")", False)
+                    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + job.year + ")", False)
 
     logging.info("Handbrake processing complete")
     logging.debug(str(job))
-    if job.videotype == "movie" and job.hasnicetitle:
+    if job.video_type == "movie" and job.hasnicetitle:
         utils.scan_emby()
         try:
             os.rmdir(basepath)

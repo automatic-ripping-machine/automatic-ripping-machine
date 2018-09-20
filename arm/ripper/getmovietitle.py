@@ -13,7 +13,8 @@ import logging
 #import ripper.logger # noqa # pylint: disable=unused-import
 #import classes # noqa # pylint: disable=unused-import
 
-from ripper import logger
+# from arm.ripper import logger
+
 
 def entry():
     """ Entry to program, parses arguments"""
@@ -31,6 +32,7 @@ def getdvdtitle(job):
     crc64 = pydvdid.compute(str(job.mountpoint))
     # crc64 = pydvdid.compute("/mnt/dev/sr1")
     logging.info("DVD CRC64 hash is: " + str(crc64))
+    job.crc_id = crc64
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
     logging.debug(urlstring)
 

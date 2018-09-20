@@ -1,26 +1,28 @@
 #!/usr/bin/python3
 
 import sys
-sys.path.append("/opt/arm/arm")
+sys.path.append("/opt/arm")
 
-import argparse
-import os
-import logging
-import time
-import datetime
-import shutil
-import pyudev
-#import ripper.logger
-#import ripper.utils
-#import ripper.makemkv
-#import ripper.handbrake
-#import ripper.identify
+import argparse  # noqa: E402
+import os  # noqa: E402
+import logging  # noqa: E402
+import time  # noqa: E402
+import datetime  # noqa: E402
+import shutil  # noqa: E402
+import pyudev  # noqa: E402
 
-from ripper import logger, utils, makemkv, handbrake, identify, getkeys
-from config.config import cfg
+from arm.ripper import logger, utils, makemkv, handbrake, identify  # noqa: E402
+from arm.config.config import cfg  # noqa: E402
 # from classes import Disc
-#from ripper.getkeys import grabkeys
-from models.models import Job
+from arm.ripper.getkeys import grabkeys  # noqa: E402
+from arm.models.models import Job  # noqa: E402
+from arm.ui import app, db # noqa E402
+# from app import db  # noqa E402
+# import ripper.logger
+# import ripper.utils
+# import ripper.makemkv
+# import ripper.handbrake
+# import ripper.identify
 
 
 def entry():
@@ -51,8 +53,8 @@ def log_arm_params(job):
     logging.info("devpath: " + str(job.devpath))
     logging.info("mountpoint: " + str(job.mountpoint))
     logging.info("videotitle: " + str(job.title))
-    logging.info("videoyear: " + str(job.videoyear))
-    logging.info("videotype: " + str(job.videotype))
+    logging.info("videoyear: " + str(job.year))
+    logging.info("videotype: " + str(job.video_type))
     logging.info("hasnicetitle: " + str(job.hasnicetitle))
     logging.info("label: " + str(job.label))
     logging.info("disctype: " + str(job.disctype))
@@ -92,9 +94,16 @@ def main(logfile, job):
 
     log_arm_params(job)
 
+    # put in db
+    job.status = "active"
+    job.start_time = datetime.datetime.now()
+    
+    db.session.add(job)
+    db.session.commit()
+
     if job.disctype in ["dvd", "bluray"]:
         utils.notify("ARM notification", "Found disc: " + str(job.title) + ". Video type is "
-                     + str(job.videotype) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
+                     + str(job.video_type) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
     elif job.disctype == "music":
         utils.notify("ARM notification", "Found music CD: " + job.label + ". Ripping all tracks")
     elif job.disctype == "data":
@@ -139,8 +148,8 @@ def main(logfile, job):
                 logging.info("NOTE: Identified main feature may not be actual main feature")
                 files = os.listdir(mkvoutpath)
                 final_directory = hboutpath
-                if job.videotype == "movie":
-                    logging.debug("Videotype: " + job.videotype)
+                if job.video_type == "movie":
+                    logging.debug("Videotype: " + job.video_type)
                     # if videotype is movie, then move biggest title to media_dir
                     # move the rest of the files to the extras folder
 
@@ -166,15 +175,15 @@ def main(logfile, job):
                             # move others into extras folder
                             if(f == largest_file_name):
                                 # largest movie
-                                utils.move_files(hbinpath, f, job.hasnicetitle, job.title + " (" + job.videoyear + ")", True)
+                                utils.move_files(hbinpath, f, job.hasnicetitle, job.title + " (" + job.year + ")", True)
                             else:
                                 # other extras
                                 if not str(cfg['EXTRAS_SUB']).lower() == "none":
-                                    utils.move_files(hbinpath, f, job.hasnicetitle, job.title + " (" + job.videoyear + ")", False)
+                                    utils.move_files(hbinpath, f, job.hasnicetitle, job.title + " (" + job.year + ")", False)
                                 else:
                                     logging.info("Not moving extra: " + f)
                     # Change final path (used to set permissions)
-                    final_directory = os.path.join(cfg['MEDIA_DIR'], job.title + " (" + job.videoyear + ")")
+                    final_directory = os.path.join(cfg['MEDIA_DIR'], job.title + " (" + job.year + ")")
                     # Clean up
                     logging.debug("Attempting to remove extra folder in ARMPATH: " + hboutpath)
                     try:
@@ -185,7 +194,7 @@ def main(logfile, job):
                 else:
                     # if videotype is not movie, then move everything
                     # into 'Unidentified' folder
-                    logging.debug("Videotype: " + job.videotype)
+                    logging.debug("Videotype: " + job.video_type)
 
                     for f in files:
                         mkvoutfile = os.path.join(mkvoutpath, f)
@@ -208,7 +217,7 @@ def main(logfile, job):
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
         elif job.disctype == "dvd" and not cfg['MAINFEATURE']:
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
-        elif job.videotype == "movie" and cfg['MAINFEATURE']:
+        elif job.video_type == "movie" and cfg['MAINFEATURE']:
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, job)
             job.eject()
         else:
@@ -273,7 +282,7 @@ if __name__ == "__main__":
     print(devpath)
 
     job = Job(devpath)
-    print("Job: " + job.label)
+    print("Job: " + str(job.label))
 
     # sys.exit()
 
@@ -290,6 +299,7 @@ if __name__ == "__main__":
     with open(os.path.join(cfg['INSTALLPATH'], 'VERSION')) as version_file:
         version = version_file.read().strip()
     logging.info("ARM version: " + version)
+    job.arm_version = version
     logging.info(("Python version: " + sys.version).replace('\n', ""))
 
     logger.cleanuplogs(cfg['LOGPATH'], cfg['LOGLIFE'])

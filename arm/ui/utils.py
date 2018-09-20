@@ -3,7 +3,7 @@ from time import strftime, localtime
 import urllib
 import json
 # import omdb
-from config.config import cfg
+from arm.config.config import cfg
 
 
 def get_info(directory):

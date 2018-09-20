@@ -9,7 +9,7 @@ import logging
 import json
 import re
 
-from config.config import cfg
+from arm.config.config import cfg
 
 
 def entry():
@@ -26,7 +26,7 @@ def getdvdtype(job):
         or a tv series """
 
     dvd_title = job.title
-    year = job.videoyear
+    year = job.year
     needs_new_year = False
     omdb_api_key = cfg['OMDB_API_KEY']
 

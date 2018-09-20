@@ -1,6 +1,6 @@
 import os
 import pyudev
-from ui import db
+from arm.ui import db
 
 
 # class Disc(db.Model):
@@ -44,7 +44,8 @@ class Job(db.Model):
     arm_version = db.Column(db.String(20))
     crc_id = db.Column(db.String(63))
     logfile = db.Column(db.String(256))
-    disc = db.Column(db.String(63), db.ForeignKey('disc.crc_id'))
+    # disc = db.Column(db.String(63), db.ForeignKey('disc.crc_id'))
+    disc = db.Column(db.String(63))
     start_time = db.Column(db.DateTime)
     stop_time = db.Column(db.DateTime)
     job_length = db.Column(db.Integer)

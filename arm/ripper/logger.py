@@ -5,7 +5,7 @@ import logging
 import time
 # import yaml
 
-from config.config import cfg
+from arm.config.config import cfg
 
 
 def setuplogging(job):
@@ -15,7 +15,7 @@ def setuplogging(job):
     if not os.path.exists(cfg['LOGPATH']):
         os.makedirs(cfg['LOGPATH'])
 
-    if job.label == "":
+    if job.label == "" or job.label is None:
         if job.disctype == "music":
             logfile = "music_cd.log"
         else:
@@ -34,6 +34,8 @@ def setuplogging(job):
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=cfg["LOGLEVEL"])
+
+    job.logfile = logfile
 
     return logfull
 

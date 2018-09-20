@@ -1,12 +1,12 @@
 import os
 from time import sleep
-from flask import render_template, abort, request, send_file, flash, redirect
+from flask import render_template, abort, request, send_file, flash
 import psutil
-from ui import app
-from models.models import Job
-from config.config import cfg
-from ui.utils import convert_log, get_info, call_omdb_api
-from ui.forms import TitleUpdateForm
+from arm.ui import app
+from arm.models.models import Job
+from arm.config.config import cfg
+from arm.ui.utils import convert_log, get_info, call_omdb_api
+from arm.ui.forms import TitleUpdateForm
 
 
 @app.route('/logreader')
@@ -47,7 +47,7 @@ def logreader():
 
 @app.route('/activerips')
 def rips():
-    return render_template('activerips.html', jobs=Job.query.all())
+    return render_template('activerips.html', jobs=Job.query.filter_by(status="active"))
 
 
 @app.route('/titleupdate', methods=['GET', 'POST'])

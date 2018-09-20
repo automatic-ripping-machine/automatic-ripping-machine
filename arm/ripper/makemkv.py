@@ -7,7 +7,7 @@ import subprocess
 import time
 import shlex
 
-from config.config import cfg
+from arm.config.config import cfg
 
 
 def makemkv(logfile, job):

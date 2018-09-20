@@ -12,15 +12,15 @@
                     <table id="riptable" style="margin: 0 auto" class="table table-striped">
                         <thead class="tablesorterhead">    
                             <tr style="margin: 0 auto">
-                                <th onclick="sortTable(0)">Log file</th>
-                                <th onclick="sortTable(1)" width="200px">Created Time</th>
+                                <th onclick="sortTable(0)">Title</th>
+                                <th onclick="sortTable(1)" width="200px">Start Time</th>
                                 <th onclick="sortTable(2)">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                                         {% for job in jobs %}
                             <tr>
-                                <td class="text-nowrap"><a href="titleupdate" title="Active Rips">{{ job.crc_id }}</a></td>
+                                <td class="text-nowrap"><a href="titleupdate" title="Active Rips">{{ job.title }}</a></td>
                                 <td class="text-nowrap">{{ job.start_time }}</td>
                                 <td class="text-nowrap">{{ job.status }}</td>
                                         {% endfor %}

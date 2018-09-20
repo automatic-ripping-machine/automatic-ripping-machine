@@ -8,7 +8,7 @@ import subprocess
 import shutil
 import requests
 
-from config.config import cfg
+from arm.config.config import cfg
 
 
 def notify(title, body):

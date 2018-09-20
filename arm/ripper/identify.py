@@ -3,13 +3,13 @@
 import os
 import sys # noqa # pylint: disable=unused-import
 import logging
-#import classes # noqa # pylint: disable=unused-import
-#import ripper.getmovietitle
-#import ripper.getvideotype
-#import ripper.utils
+# import classes # noqa # pylint: disable=unused-import
+# import ripper.getmovietitle
+# import ripper.getvideotype
+# import ripper.utils
 
-from ripper import getmovietitle, getvideotype, utils
-from config.config import cfg
+from arm.ripper import getmovietitle, getvideotype, utils
+from arm.config.config import cfg
 
 
 def identify(job, logfile):
@@ -56,20 +56,20 @@ def identify(job, logfile):
         if cfg["GET_VIDEO_TITLE"]:
 
             logging.info("Getting movie title...")
-            job.title, job.videoyear = getmovietitle.main(job)
+            job.title, job.year = getmovietitle.main(job)
 
             if job.hasnicetitle:
                 logging.info("Getting video type...")
-                job.videotype, job.videoyear = getvideotype.main(job)
+                job.video_type, job.year = getvideotype.main(job)
             else:
                 logging.info("Disc does not have a nice title.  Skipping video type identification and setting title=title_unkonwn")
                 job.title = "title_unknown"
 
             if not cfg['VIDEOTYPE'].lower() == "auto":
                 logging.debug("Overriding videotype with value in VIDEOTYPE config parameter: " + cfg['VIDEOTYPE'].lower())
-                job.videotype = cfg['VIDEOTYPE'].lower()
+                job.video_type = cfg['VIDEOTYPE'].lower()
 
-            logging.info("Disc title: " + str(job.title) + " : " + str(job.videoyear) + " : " + str(job.videotype))
+            logging.info("Disc title: " + str(job.title) + " : " + str(job.year) + " : " + str(job.video_type))
             logging.debug("Identification complete: " + str(job))
 
     os.system("umount " + job.devpath)
