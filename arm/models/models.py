@@ -1,5 +1,5 @@
 import os
-import pyudev
+# import pyudev
 from arm.ui import db
 
 
