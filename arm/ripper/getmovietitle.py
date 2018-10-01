@@ -10,8 +10,10 @@ import xmltodict
 import sys # noqa # pylint: disable=unused-import
 import re
 import logging
-import logger # noqa # pylint: disable=unused-import
-import classes # noqa # pylint: disable=unused-import
+#import ripper.logger # noqa # pylint: disable=unused-import
+#import classes # noqa # pylint: disable=unused-import
+
+# from arm.ripper import logger
 
 
 def entry():
@@ -22,14 +24,15 @@ def entry():
     return parser.parse_args()
 
 
-def getdvdtitle(disc):
+def getdvdtitle(job):
     """ Calculates CRC64 for the DVD and calls Windows Media
         Metaservices and returns the Title and year of DVD """
-    logging.debug(str(disc))
+    logging.debug(str(job))
 
-    crc64 = pydvdid.compute(str(disc.mountpoint))
+    crc64 = pydvdid.compute(str(job.mountpoint))
     # crc64 = pydvdid.compute("/mnt/dev/sr1")
     logging.info("DVD CRC64 hash is: " + str(crc64))
+    job.crc_id = str(crc64)
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
     logging.debug(urlstring)
 
@@ -54,10 +57,10 @@ def getdvdtitle(disc):
     return[dvd_title, dvd_release_date]
 
 
-def getbluraytitle(disc):
+def getbluraytitle(job):
     """ Get's Blu-Ray title by parsing XML in bdmt_eng.xml """
     try:
-        with open(disc.mountpoint + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
+        with open(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
             doc = xmltodict.parse(xml_file.read())
     except OSError as e:
         logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.")
@@ -69,7 +72,7 @@ def getbluraytitle(disc):
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
         return[None, None]
 
-    bluray_modified_timestamp = os.path.getmtime(disc.mountpoint + '/BDMV/META/DL/bdmt_eng.xml')
+    bluray_modified_timestamp = os.path.getmtime(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml')
     bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))
 
     bluray_title = unicodedata.normalize('NFKD', bluray_title).encode('ascii', 'ignore').decode()
@@ -94,29 +97,29 @@ def clean_for_filename(string):
 # pylint: disable=C0103
 
 
-def main(disc):
+def main(job):
     # args = entry()
 
-    disc.hasnicetitle = False
+    job.hasnicetitle = False
     try:
-        disc_title, disc_year = getdvdtitle(disc)
+        disc_title, disc_year = getdvdtitle(job)
         if disc_title:
             disc_title = clean_for_filename(disc_title)
             logging.info("getmovietitle dvd title found: " + disc_title + " : " + disc_year)
         else:
             logging.warning("DVD title not found")
-            disc_title = disc.label
-            disc_year = "0000"
+            disc_title = job.label
+            disc_year = ""
     except Exception:
-        disc_title, disc_year = getbluraytitle(disc)
+        disc_title, disc_year = getbluraytitle(job)
         if disc_title:
             disc_title = clean_for_filename(disc_title)
             logging.info("getmovietitle bluray title found: " + disc_title + " : " + disc_year)
-            disc.hasnicetitle = True
+            job.hasnicetitle = True
         return(disc_title, disc_year)
     else:
         logging.info(str(disc_title) + " : " + str(disc_year))
         if disc_title:
-            disc.hasnicetitle = True
+            job.hasnicetitle = True
         logging.info("Returning: " + str(disc_title) + ", " + str(disc_year))
         return(disc_title, disc_year)

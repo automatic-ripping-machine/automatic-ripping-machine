@@ -1,36 +1,40 @@
-import pyudev
 import os
+import pyudev
+from arm.ui import db
 
 
-class Disc(object):
-    """A disc class
-
-
-    Attributes:
-        devpath
-        mountpoint
-        videotitle
-        videoyear
-        videotype
-        hasnicetitle
-        label
-        disctype
-        ejected
-        errors
-    """
+class Job(db.Model):
+    job_id = db.Column(db.Integer, primary_key=True)
+    arm_version = db.Column(db.String(20))
+    crc_id = db.Column(db.String(63))
+    logfile = db.Column(db.String(256))
+    # disc = db.Column(db.String(63), db.ForeignKey('disc.crc_id'))
+    disc = db.Column(db.String(63))
+    start_time = db.Column(db.DateTime)
+    stop_time = db.Column(db.DateTime)
+    job_length = db.Column(db.Integer)
+    status = db.Column(db.String(32))
+    video_type = db.Column(db.String(20))
+    title = db.Column(db.String(256))
+    year = db.Column(db.String(4))
+    imdb_id = db.Column(db.String(15))
+    poster_url = db.Column(db.String(256))
+    new_title = db.Column(db.String(256))
+    new_year = db.Column(db.Integer)
+    devpath = db.Column(db.String(15))
+    mountpoint = db.Column(db.String(20))
+    hasnicetitle = db.Column(db.Boolean)
+    errors = db.Column(db.Text)
+    disctype = db.Column(db.String(20))  # dvd/bluray/data/music/unknown
+    label = db.Column(db.String(256))
+    ejected = db.Column(db.Boolean)
 
     def __init__(self, devpath):
         """Return a disc object"""
         self.devpath = devpath
         self.mountpoint = "/mnt" + devpath
-        self.videotitle = ""
-        self.videoyear = ""
-        self.videotype = ""
         self.hasnicetitle = False
-        self.label = ""
-        self.disctype = ""
         self.ejected = False
-        self.errors = []
 
         self.parse_udev()
 
@@ -63,6 +67,9 @@ class Disc(object):
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 
         return s
+
+    def __repr__(self):
+        return '<Job {}>'.format(self.label)
 
     def eject(self):
         """Eject disc if it hasn't previously been ejected"""

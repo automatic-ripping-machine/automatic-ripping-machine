@@ -6,31 +6,32 @@ import logging
 import subprocess
 import re
 import shlex
-import utils
+# import ripper.utils
 
-from config import cfg
+from arm.ripper import utils
+from arm.config.config import cfg
 
 
-def handbrake_mainfeature(srcpath, basepath, logfile, disc):
+def handbrake_mainfeature(srcpath, basepath, logfile, job):
     """process dvd with mainfeature enabled.\n
     srcpath = Path to source for HB (dvd or files)\n
     basepath = Path where HB will save trancoded files\n
     logfile = Logfile for HB to redirect output to\n
-    disc = Disc object\n
+    job = Job object\n
 
     Returns nothing
     """
     logging.info("Starting DVD Movie Mainfeature processing")
 
-    filename = os.path.join(basepath, disc.videotitle + ".mkv")
+    filename = os.path.join(basepath, job.title + ".mkv")
     filepathname = os.path.join(basepath, filename)
 
     logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
 
-    if disc.disctype == "dvd":
+    if job.disctype == "dvd":
         hb_args = cfg['HB_ARGS_DVD']
         hb_preset = cfg['HB_PRESET_DVD']
-    elif disc.disctype == "bluray":
+    elif job.disctype == "bluray":
         hb_args = cfg['HB_ARGS_BD']
         hb_preset = cfg['HB_PRESET_BD']
 
@@ -57,8 +58,8 @@ def handbrake_mainfeature(srcpath, basepath, logfile, disc):
         sys.exit(err)
 
     logging.info("Handbrake processing complete")
-    logging.debug(str(disc))
-    utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle + " (" + disc.videoyear + ")", True)
+    logging.debug(str(job))
+    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + str(job.year) + ")", True)
     utils.scan_emby()
 
     try:
@@ -67,12 +68,12 @@ def handbrake_mainfeature(srcpath, basepath, logfile, disc):
         pass
 
 
-def handbrake_all(srcpath, basepath, logfile, disc):
+def handbrake_all(srcpath, basepath, logfile, job):
     """Process all titles on the dvd\n
     srcpath = Path to source for HB (dvd or files)\n
     basepath = Path where HB will save trancoded files\n
     logfile = Logfile for HB to redirect output to\n
-    disc = Disc object\n
+    job = Disc object\n
 
     Returns nothing
     """
@@ -105,7 +106,7 @@ def handbrake_all(srcpath, basepath, logfile, disc):
         # get number of titles on disc
         # pattern = re.compile(r'\bscan\:.*\btitle\(s\)')
 
-        if disc.disctype == "bluray":
+        if job.disctype == "bluray":
             result = re.search('scan: BD has (.*) title\(s\)', line)
         else:
             result = re.search('scan: DVD has (.*) title\(s\)', line)
@@ -129,10 +130,10 @@ def handbrake_all(srcpath, basepath, logfile, disc):
 
     mt_track = str(mt_track).strip()
 
-    if disc.disctype == "dvd":
+    if job.disctype == "dvd":
         hb_args = cfg['HB_ARGS_DVD']
         hb_preset = cfg['HB_PRESET_DVD']
-    elif disc.disctype == "bluray":
+    elif job.disctype == "bluray":
         hb_args = cfg['HB_ARGS_BD']
         hb_preset = cfg['HB_PRESET_BD']
 
@@ -179,21 +180,21 @@ def handbrake_all(srcpath, basepath, logfile, disc):
             except subprocess.CalledProcessError as hb_error:
                 err = "Handbrake encoding of title " + str(title) + " failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
                 logging.error(err)
-                disc.errors.append(str(title))
+                job.errors.append(str(title))
                 # return
                 # sys.exit(err)
 
             # move file
-            if disc.videotype == "movie":
+            if job.video_type == "movie":
                 logging.debug("mt_track: " + mt_track + " List track: " + str(title))
                 if mt_track == str(title):
-                    utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle + " (" + disc.videoyear + ")", True)
+                    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + str(job.year) + ")", True)
                 else:
-                    utils.move_files(basepath, filename, disc.hasnicetitle, disc.videotitle + " (" + disc.videoyear + ")", False)
+                    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + str(job.year) + ")", False)
 
     logging.info("Handbrake processing complete")
-    logging.debug(str(disc))
-    if disc.videotype == "movie" and disc.hasnicetitle:
+    logging.debug(str(job))
+    if job.video_type == "movie" and job.hasnicetitle:
         utils.scan_emby()
         try:
             os.rmdir(basepath)
@@ -201,20 +202,20 @@ def handbrake_all(srcpath, basepath, logfile, disc):
             pass
 
 
-def handbrake_mkv(srcpath, basepath, logfile, disc):
+def handbrake_mkv(srcpath, basepath, logfile, job):
     """process all mkv files in a directory.\n
     srcpath = Path to source for HB (dvd or files)\n
     basepath = Path where HB will save trancoded files\n
     logfile = Logfile for HB to redirect output to\n
-    disc = Disc object\n
+    job = Disc object\n
 
     Returns nothing
     """
 
-    if disc.disctype == "dvd":
+    if job.disctype == "dvd":
         hb_args = cfg['HB_ARGS_DVD']
         hb_preset = cfg['HB_PRESET_DVD']
-    elif disc.disctype == "bluray":
+    elif job.disctype == "bluray":
         hb_args = cfg['HB_ARGS_BD']
         hb_preset = cfg['HB_PRESET_BD']
 
@@ -246,10 +247,10 @@ def handbrake_mkv(srcpath, basepath, logfile, disc):
         except subprocess.CalledProcessError as hb_error:
             err = "Handbrake encoding of file " + shlex.quote(f) + " failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
             logging.error(err)
-            disc.errors.append(f)
+            job.errors.append(f)
 
     logging.info("Handbrake processing complete")
-    logging.debug(str(disc))
+    logging.debug(str(job))
 
 
 def get_title_length(title, srcpath):
