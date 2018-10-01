@@ -80,6 +80,17 @@ def log_arm_params(disc):
     logging.info("**** End of config parameters ****")
 
 
+def check_fstab():
+    logging.info("Checking for fstab entry.")
+    with open('/etc/fstab', 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            if re.search(disc.devpath, line):
+                logging.info("fstab entry is: " + line)
+                return
+    logging.error("No fstab entry found.  ARM will likely fail.")
+
+
 def main(logfile, disc):
 
     """main dvd processing function"""
@@ -89,14 +100,7 @@ def main(logfile, disc):
 
     log_arm_params(disc)
 
-    logging.info("Checking for fstab entry.")
-    with open('/etc/fstab', 'r') as f:
-        lines = f.readlines()
-        for line in lines:
-            if re.search(disc.devpath, line):
-                logging.info("fstab entry is: " + line)
-                break
-            logging.error("No fstab entry found.  ARM will likely fail.")
+    check_fstab()
 
     if disc.disctype in ["dvd", "bluray"]:
         utils.notify("ARM notification", "Found disc: " + str(disc.videotitle) + ". Video type is "
