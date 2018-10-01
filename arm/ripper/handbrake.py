@@ -59,7 +59,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
 
     logging.info("Handbrake processing complete")
     logging.debug(str(job))
-    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + job.year + ")", True)
+    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + str(job.year) + ")", True)
     utils.scan_emby()
 
     try:
@@ -188,9 +188,9 @@ def handbrake_all(srcpath, basepath, logfile, job):
             if job.video_type == "movie":
                 logging.debug("mt_track: " + mt_track + " List track: " + str(title))
                 if mt_track == str(title):
-                    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + job.year + ")", True)
+                    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + str(job.year) + ")", True)
                 else:
-                    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + job.year + ")", False)
+                    utils.move_files(basepath, filename, job.hasnicetitle, job.title + " (" + str(job.year) + ")", False)
 
     logging.info("Handbrake processing complete")
     logging.debug(str(job))

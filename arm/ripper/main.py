@@ -10,6 +10,7 @@ import time  # noqa: E402
 import datetime  # noqa: E402
 import shutil  # noqa: E402
 import pyudev  # noqa: E402
+import getpass  # noqa E402
 
 from arm.ripper import logger, utils, makemkv, handbrake, identify  # noqa: E402
 from arm.config.config import cfg  # noqa: E402
@@ -52,8 +53,8 @@ def log_arm_params(job):
     logging.info("**** Logging ARM variables ****")
     logging.info("devpath: " + str(job.devpath))
     logging.info("mountpoint: " + str(job.mountpoint))
-    logging.info("videotitle: " + str(job.title))
-    logging.info("videoyear: " + str(job.year))
+    logging.info("title: " + str(job.title))
+    logging.info("year: " + str(job.year))
     logging.info("videotype: " + str(job.video_type))
     logging.info("hasnicetitle: " + str(job.hasnicetitle))
     logging.info("label: " + str(job.label))
@@ -92,20 +93,19 @@ def main(logfile, job):
 
     identify.identify(job, logfile)
 
-    log_arm_params(job)
-
     # put in db
     job.status = "active"
     job.start_time = datetime.datetime.now()
-    
     db.session.add(job)
     db.session.commit()
+
+    log_arm_params(job)
 
     if job.disctype in ["dvd", "bluray"]:
         utils.notify("ARM notification", "Found disc: " + str(job.title) + ". Video type is "
                      + str(job.video_type) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
     elif job.disctype == "music":
-        utils.notify("ARM notification", "Found music CD: " + job.label + ". Ripping all tracks")
+        utils.notify("ARM notification", "Found music CD: " + str(job.label) + ". Ripping all tracks")
     elif job.disctype == "data":
         utils.notify("ARM notification", "Faound data disc.  Copying data.")
     else:
@@ -175,15 +175,15 @@ def main(logfile, job):
                             # move others into extras folder
                             if(f == largest_file_name):
                                 # largest movie
-                                utils.move_files(hbinpath, f, job.hasnicetitle, job.title + " (" + job.year + ")", True)
+                                utils.move_files(hbinpath, f, job.hasnicetitle, job.title + " (" + str(job.year) + ")", True)
                             else:
                                 # other extras
                                 if not str(cfg['EXTRAS_SUB']).lower() == "none":
-                                    utils.move_files(hbinpath, f, job.hasnicetitle, job.title + " (" + job.year + ")", False)
+                                    utils.move_files(hbinpath, f, job.hasnicetitle, job.title + " (" + str(job.year) + ")", False)
                                 else:
                                     logging.info("Not moving extra: " + f)
                     # Change final path (used to set permissions)
-                    final_directory = os.path.join(cfg['MEDIA_DIR'], job.title + " (" + job.year + ")")
+                    final_directory = os.path.join(cfg['MEDIA_DIR'], job.title + " (" + str(job.year) + ")")
                     # Clean up
                     logging.debug("Attempting to remove extra folder in ARMPATH: " + hboutpath)
                     try:
@@ -273,6 +273,11 @@ def main(logfile, job):
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
 
+    job.status = "success"
+    job.stop_time = datetime.datetime.now()
+    db.session.add(job)
+    db.session.commit()
+
 
 if __name__ == "__main__":
     args = entry()
@@ -301,6 +306,7 @@ if __name__ == "__main__":
     logging.info("ARM version: " + version)
     job.arm_version = version
     logging.info(("Python version: " + sys.version).replace('\n', ""))
+    logging.info("User is: " + getpass.getuser())
 
     logger.cleanuplogs(cfg['LOGPATH'], cfg['LOGLIFE'])
 
@@ -311,3 +317,7 @@ if __name__ == "__main__":
     except Exception:
         logging.exception("A fatal error has occured and ARM is exiting.  See traceback below for details.")
         utils.notify("ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details")
+        job.status = "fail"
+        job.stop_time = datetime.datetime.now()
+        db.session.add(job)
+        db.session.commit()

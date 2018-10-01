@@ -32,7 +32,7 @@ def getdvdtitle(job):
     crc64 = pydvdid.compute(str(job.mountpoint))
     # crc64 = pydvdid.compute("/mnt/dev/sr1")
     logging.info("DVD CRC64 hash is: " + str(crc64))
-    job.crc_id = crc64
+    job.crc_id = str(crc64)
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
     logging.debug(urlstring)
 
@@ -109,7 +109,7 @@ def main(job):
         else:
             logging.warning("DVD title not found")
             disc_title = job.label
-            disc_year = "0000"
+            disc_year = ""
     except Exception:
         disc_title, disc_year = getbluraytitle(job)
         if disc_title:

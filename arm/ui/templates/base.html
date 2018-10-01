@@ -11,6 +11,7 @@
   </head>
   <body style="padding-top: 70px; padding-bottom: 50;">
     {% block nav %}
+    <div class="container h-100 mx-auto">
     <nav class="navbar navbar-expand-md navbar-dark bg-primary justify-content-center fixed-top my-auto">
         <a class="navbar-brand" href="index.html">
             <img src="/static/img/arm40nw.png" width="114" height="40" alt="">
@@ -32,17 +33,30 @@
             </ul>
           </div>
       </nav> 
+      </div>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <!-- <strong>Title</strong> --> {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
     {% endblock %}
     <div id="content" class="h-100">{% block content %}{% endblock %}</div>
-    <div id="footer" class="container h-100">
-        <div class="row" style="height: 30px;">
-            <div class="col-sm-2"></div>
-              <div class="col-sm-8 h-100 navbar-light bg-light mx-auto my-auto" >
+    <div id="footer" class="container-fluid h-100">
+        <div class="row" style="height: 30px;"></div>
+        <div class="row h-100" style="height: 40px;">
+            <!-- <div class="col-sm-4"></div> -->
+              <div class="col-sm-12 h-100 navbar-light bg-light">
                   {% block footer %}
-                  <p class="text-center"> Automatic Ripping Machine.  Find us on <a href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">github</a>.</p>
+                  <p class="text-center h-100" style="margin-bottom: auto; margin-top: auto"> Automatic Ripping Machine.  Find us on <a href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">github</a>.
                   {% endblock %}
               </div>
-            <div class="col-sm-2"></div>
+            <!-- <div class="col-sm-4"></div> -->
         </div>
     </div>
     {% block js %}

@@ -4,22 +4,51 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}  
-<div class="container h-100 mx-auto">
+<div class="container-fluid h-100 mx-auto">
   <div class="row">
-    <div class="col-sm-2"></div>
-    <div class="col-sm-8  rounded bg-secondary text-center">
+    <!-- <div class="col-sm-2"></div> -->
+    <div class="col-sm-12  rounded bg-secondary text-center">
         <img src="/static/img/arm80.png">
         <p class="text-center"><b>Welcome to your Automatic Ripping Machine<br>
-                What would you like to do?
+                <!-- What would you like to do? -->
         </b></p>
     </div>
-    <div class="col-sm-2"></div>
+    <!-- <div class="col-sm-2"></div> -->
   </div>
+
+<div class="row h-100 mx-auto align-items-center">
+        <div class="col-sm-12 mx-auto">
+                <p class="text-center"><h5 class="text-center"><b>Active Rips</b></h5></p>
+        </div>
 </div>
+<!-- <div class="container-fluid h-100 mx-auto"> -->
+<div class="row h-100 align-items-center">
+        <!-- <div class="col-sm-4 mx-auto"></div> -->
+        <div class="col-sm-12 mx-auto">
+            <div class="card-deck">
+                {% for job in jobs %}
+                <div class="card mx-auto text-center" style="max-width: 300px">
+                    <div class="card-header"><a href="gettitle?imdbID={{ job["imdb_id"] }}&job_id={{ job["job_id"] }}"><img src="{{ job["poster_url"] }}" width="120px" class="img-thumbnail"></a></div>
+                    <div class="card-body">
+                        <b>{{  job["title"]  }}</b><br>
+                        <b>Type: </b> {{ job["video_type"].capitalize() }} <br>
+                        <b>Year: </b>({{ job["year"] }})<br>
+                        <b>Device: </b>{{ job.devpath }}<br>
+                        <b>Status: </b>{{ job.status }} <br>
+                        <a href="titlesearch?job_id={{ job["job_id"] }}" class="btn btn-primary">Change Title</a>
+                    </div>
+                </div>
+                {% endfor %} 
+            </div>
+        </div>
+        <!-- <div class="col-sm-4 mx-auto"></div> -->
+<!-- </div> -->
+</div>
+<div class="row" style="height: 30px;"></div>
 <div class="row h-100 mx-auto align-items-center">
         <div class="col-sm-4 mx-auto"></div>
         <!-- <div class="col-md-2 h-100 text-center align-content-center" ><h4>Free Space: {{ freegb }}</h4></div> -->
-        <div class="col-sm-2 text-center mx-auto">
+        <div class="col-sm-4 text-center mx-auto">
                 <div class="card mx-auto">
                         <div class="card-header">
                         <strong>Server Specs</strong>
@@ -29,15 +58,15 @@
                         </ul>
                 </div>
         </div>
-        <div class="col-sm-1 text-center mx-auto">
+        <!-- <div class="col-sm-1 text-center mx-auto">
                 <a href="activerips" title="Active Rips"><img src="{{ url_for('static', filename='img/disc.svg') }}" class="img-responsive" height="75px" width="75px"><br>Active Rips</a>
         </div>
         <div class="col-sm-1 text-center mx-auto">
                 <a href="listlogs" title="Log Files"><img src="{{ url_for('static', filename='img/file-text.svg') }}" class="img-responsive" height="75px" width="75px"><br>View Log Files</a>
-        </div>
+        </div> -->
         <div class="col-sm-4 mx-auto"></div>
 </div>
-
+</div>
 
 {% endblock %}
 {% block js %}{{ super() }}{% endblock %}

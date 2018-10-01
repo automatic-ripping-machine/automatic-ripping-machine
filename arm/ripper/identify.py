@@ -60,7 +60,7 @@ def identify(job, logfile):
 
             if job.hasnicetitle:
                 logging.info("Getting video type...")
-                job.video_type, job.year = getvideotype.main(job)
+                getvideotype.main(job)
             else:
                 logging.info("Disc does not have a nice title.  Skipping video type identification and setting title=title_unkonwn")
                 job.title = "title_unknown"

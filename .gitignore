@@ -18,3 +18,4 @@ arm.yaml
 *.db
 *.log
 *.json
+.abdce.conf

@@ -1,12 +1,12 @@
 import os
 from time import sleep
-from flask import render_template, abort, request, send_file, flash
+from flask import render_template, abort, request, send_file, flash, redirect, url_for
 import psutil
-from arm.ui import app
+from arm.ui import app, db
 from arm.models.models import Job
 from arm.config.config import cfg
 from arm.ui.utils import convert_log, get_info, call_omdb_api
-from arm.ui.forms import TitleUpdateForm
+from arm.ui.forms import TitleSearchForm
 
 
 @app.route('/logreader')
@@ -50,23 +50,56 @@ def rips():
     return render_template('activerips.html', jobs=Job.query.filter_by(status="active"))
 
 
-@app.route('/titleupdate', methods=['GET', 'POST'])
+@app.route('/titlesearch', methods=['GET', 'POST'])
 def submitrip():
-    job = Job.query.get(1)
-    form = TitleUpdateForm(obj=job)
+    job_id = request.args.get('job_id')
+    job = Job.query.get(job_id)
+    form = TitleSearchForm(obj=job)
     if form.validate_on_submit():
-        flash('Login requested for user {}, remember_me={}'.format(
-            form.title.data, form.year.data))
-        dvd_info = call_omdb_api(form.title.data, form.year.data)
-        return render_template('list_titles.html', results=dvd_info)
+        form.populate_obj(job)
+        flash('Search for {}, year={}'.format(form.title.data, form.year.data), category='success')
+        # dvd_info = call_omdb_api(form.title.data, form.year.data)
+        return redirect(url_for('list_titles', title=form.title.data, year=form.year.data, job_id=job_id))
+        # return render_template('list_titles.html', results=dvd_info, job_id=job_id)
         # return redirect('/gettitle', title=form.title.data, year=form.year.data)
-    return render_template('titleupdate.html', title='Update Title', form=form)
+    return render_template('titlesearch.html', title='Update Title', form=form)
 
 
-@app.route('/gettitle')
-def gettitle(title, year):
+@app.route('/list_titles')
+def list_titles():
+    title = request.args.get('title')
+    year = request.args.get('year')
+    job_id = request.args.get('job_id')
     dvd_info = call_omdb_api(title, year)
-    return render_template('renametitle.html', results=dvd_info)
+    return render_template('list_titles.html', results=dvd_info, job_id=job_id)
+
+
+# @app.route('/list_titles/<title>/<year>/<job_id>')
+# def list_titles(title, year, job_id):
+#     dvd_info = call_omdb_api(title, year)
+#     return render_template('list_titles.html', results=dvd_info, job_id=job_id)
+
+
+@app.route('/gettitle', methods=['GET', 'POST'])
+def gettitle():
+    imdbID = request.args.get('imdbID')
+    job_id = request.args.get('job_id')
+    dvd_info = call_omdb_api(None, None, imdbID, "full")
+    return render_template('showtitle.html', results=dvd_info, job_id=job_id)
+
+
+@app.route('/updatetitle', methods=['GET', 'POST'])
+def updatetitle():
+    new_title = request.args.get('title')
+    new_year = request.args.get('year')
+    job_id = request.args.get('job_id')
+    job = Job.query.get(job_id)
+    job.new_title = new_title
+    job.new_year = new_year
+    db.session.add(job)
+    db.session.commit()
+    flash('Title: {} ({}) was updated to {} ({})'.format(job.title, job.year, new_title, new_year), category='success')
+    return redirect(url_for('home'))
 
 
 @app.route('/logs')
@@ -100,4 +133,8 @@ def home():
     freegb = round(freegb/1073741824, 1)
     mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
     mfreegb = round(mfreegb/1073741824, 1)
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb)
+    jobs = Job.query.filter_by(status="active")
+    # for job in jobs:
+    #     job.omdb_info = call_omdb_api(title=job.title, year=job.year)
+
+    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs)
