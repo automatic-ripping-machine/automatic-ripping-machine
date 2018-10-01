@@ -27,8 +27,11 @@ def getdvdtitle(disc):
         Metaservices and returns the Title and year of DVD """
     logging.debug(str(disc))
 
-    crc64 = pydvdid.compute(str(disc.mountpoint))
-    # crc64 = pydvdid.compute("/mnt/dev/sr1")
+    try:
+        crc64 = pydvdid.compute(str(disc.mountpoint))
+    except pydvdid.exceptions.PydvdidException as e:
+        logging.error("Pydvdid failed with the error: " + str(e))
+
     logging.info("DVD CRC64 hash is: " + str(crc64))
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
     logging.debug(urlstring)

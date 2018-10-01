@@ -7,6 +7,7 @@ import logging
 import time
 import datetime
 import shutil
+import re
 import pyudev
 import logger
 import utils
@@ -87,6 +88,15 @@ def main(logfile, disc):
     identify.identify(disc, logfile)
 
     log_arm_params(disc)
+
+    logging.info("Checking for fstab entry.")
+    with open('/etc/fstab', 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            if re.search(disc.devpath, line):
+                logging.info("fstab entry is: " + line)
+                break
+            logging.error("No fstab entry found.  ARM will likely fail.")
 
     if disc.disctype in ["dvd", "bluray"]:
         utils.notify("ARM notification", "Found disc: " + str(disc.videotitle) + ". Video type is "
