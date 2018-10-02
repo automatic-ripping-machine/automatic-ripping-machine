@@ -132,7 +132,7 @@ def main(logfile, disc):
 
         # Do the work!
         hbinpath = str(disc.devpath)
-        if disc.disctype == "bluray" or not cfg['MAINFEATURE']:
+        if disc.disctype == "bluray" or (not cfg['MAINFEATURE'] and cfg['RIPMETHOD'] == "mkv"):
             # send to makemkv for ripping
             # run MakeMKV and get path to ouput
             mkvoutpath = makemkv.makemkv(logfile, disc)
