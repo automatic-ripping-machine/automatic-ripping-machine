@@ -86,7 +86,7 @@ def check_fstab():
         lines = f.readlines()
         for line in lines:
             if re.search(disc.devpath, line):
-                logging.info("fstab entry is: " + line)
+                logging.info("fstab entry is: " + line.rstrip())
                 return
     logging.error("No fstab entry found.  ARM will likely fail.")
 
