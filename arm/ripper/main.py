@@ -56,7 +56,7 @@ def log_arm_params(job):
     logging.info("mountpoint: " + str(job.mountpoint))
     logging.info("title: " + str(job.title))
     logging.info("year: " + str(job.year))
-    logging.info("videotype: " + str(job.video_type))
+    logging.info("video_type: " + str(job.video_type))
     logging.info("hasnicetitle: " + str(job.hasnicetitle))
     logging.info("label: " + str(job.label))
     logging.info("disctype: " + str(job.disctype))
@@ -116,8 +116,8 @@ def main(logfile, disc):
     check_fstab()
 
     if job.disctype in ["dvd", "bluray"]:
-        utils.notify("ARM notification", "Found disc: " + str(job.videotitle) + ". Video type is "
-                     + str(job.videotype) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
+        utils.notify("ARM notification", "Found disc: " + str(job.title) + ". Video type is "
+                     + str(job.video_type) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
     elif job.disctype == "music":
         utils.notify("ARM notification", "Found music CD: " + job.label + ". Ripping all tracks")
     elif job.disctype == "data":
@@ -231,7 +231,7 @@ def main(logfile, disc):
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
         elif job.disctype == "dvd" and (not cfg['MAINFEATURE'] and cfg['RIPMETHOD'] == "mkv"):
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
-        elif job.videotype == "movie" and cfg['MAINFEATURE']:
+        elif job.video_type == "movie" and cfg['MAINFEATURE']:
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
             job.eject()
         else:
