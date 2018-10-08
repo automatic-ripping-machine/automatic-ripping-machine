@@ -9,6 +9,7 @@ import shutil
 import requests
 
 from arm.config.config import cfg
+from arm.models.models import Job
 
 
 def notify(title, body):
@@ -58,12 +59,19 @@ def scan_emby():
         logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
 
 
-def move_files(basepath, filename, hasnicetitle, videotitle, ismainfeature=False):
+def move_files(basepath, filename, job, ismainfeature=False):
     """Move files into final media directory
     basepath = path to source directory
     filename = name of file to be moved
-    hasnicetitle = hasnicetitle value
+    job = instance of Job class
     ismainfeature = True/False"""
+
+    if job.new_title:
+        videotitle = job.new_title + " (" + str(job.new_year) + ")"
+        hasnicetitle = True
+    else:
+        videotitle = job.title + " (" + str(job.year) + ")"
+        hasnicetitle = job.hasnicetitle
 
     logging.debug("Arguments: " + basepath + " : " + filename + " : " + str(hasnicetitle) + " : " + videotitle + " : " + str(ismainfeature))
 

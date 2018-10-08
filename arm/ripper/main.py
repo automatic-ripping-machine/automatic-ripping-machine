@@ -189,11 +189,11 @@ def main(logfile, disc):
                             # move others into extras folder
                             if(f == largest_file_name):
                                 # largest movie
-                                utils.move_files(hbinpath, f, job.hasnicetitle, job.title + " (" + str(job.year) + ")", True)
+                                utils.move_files(hbinpath, f, job.hasnicetitle, job, True)
                             else:
                                 # other extras
                                 if not str(cfg['EXTRAS_SUB']).lower() == "none":
-                                    utils.move_files(hbinpath, f, job.hasnicetitle, job.title + " (" + str(job.year) + ")", False)
+                                    utils.move_files(hbinpath, f, job.hasnicetitle, job, False)
                                 else:
                                     logging.info("Not moving extra: " + f)
                     # Change final path (used to set permissions)
