@@ -9,7 +9,6 @@ import shutil
 import requests
 
 from arm.config.config import cfg
-from arm.models.models import Job
 
 
 def notify(title, body):
