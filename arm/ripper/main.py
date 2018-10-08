@@ -8,6 +8,7 @@ import os  # noqa: E402
 import logging  # noqa: E402
 import time  # noqa: E402
 import datetime  # noqa: E402
+import re
 import shutil  # noqa: E402
 import pyudev  # noqa: E402
 import getpass  # noqa E402
@@ -86,7 +87,18 @@ def log_arm_params(job):
     logging.info("**** End of config parameters ****")
 
 
-def main(logfile, job):
+def check_fstab():
+    logging.info("Checking for fstab entry.")
+    with open('/etc/fstab', 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            if re.search(disc.devpath, line):
+                logging.info("fstab entry is: " + line.rstrip())
+                return
+    logging.error("No fstab entry found.  ARM will likely fail.")
+
+
+def main(logfile, disc):
 
     """main dvd processing function"""
     logging.info("Starting Disc identification")
@@ -101,12 +113,14 @@ def main(logfile, job):
 
     log_arm_params(job)
 
-    if job.disctype in ["dvd", "bluray"]:
-        utils.notify("ARM notification", "Found disc: " + str(job.title) + ". Video type is "
-                     + str(job.video_type) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
-    elif job.disctype == "music":
-        utils.notify("ARM notification", "Found music CD: " + str(job.label) + ". Ripping all tracks")
-    elif job.disctype == "data":
+    check_fstab()
+
+    if disc.disctype in ["dvd", "bluray"]:
+        utils.notify("ARM notification", "Found disc: " + str(disc.videotitle) + ". Video type is "
+                     + str(disc.videotype) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
+    elif disc.disctype == "music":
+        utils.notify("ARM notification", "Found music CD: " + disc.label + ". Ripping all tracks")
+    elif disc.disctype == "data":
         utils.notify("ARM notification", "Faound data disc.  Copying data.")
     else:
         utils.notify("ARM Notification", "Could not identify disc.  Exiting.")
@@ -131,7 +145,7 @@ def main(logfile, job):
 
         # Do the work!
         hbinpath = str(job.devpath)
-        if job.disctype == "bluray" or not cfg['MAINFEATURE']:
+        if disc.disctype == "bluray" or (not cfg['MAINFEATURE'] and cfg['RIPMETHOD'] == "mkv"):
             # send to makemkv for ripping
             # run MakeMKV and get path to ouput
             mkvoutpath = makemkv.makemkv(logfile, job)
@@ -214,11 +228,11 @@ def main(logfile, job):
                 sys.exit()
 
         if job.disctype == "bluray" and cfg['RIPMETHOD'] == "mkv":
-            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
-        elif job.disctype == "dvd" and not cfg['MAINFEATURE']:
-            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
-        elif job.video_type == "movie" and cfg['MAINFEATURE']:
-            handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, job)
+            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
+        elif job.disctype == "dvd" and (not cfg['MAINFEATURE'] and cfg['RIPMETHOD'] == "mkv"):
+            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
+        elif job.videotype == "movie" and cfg['MAINFEATURE']:
+            handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
             job.eject()
         else:
             handbrake.handbrake_all(hbinpath, hboutpath, logfile, job)
