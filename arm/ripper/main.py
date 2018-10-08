@@ -8,7 +8,7 @@ import os  # noqa: E402
 import logging  # noqa: E402
 import time  # noqa: E402
 import datetime  # noqa: E402
-import re
+import re  # noqa: E402
 import shutil  # noqa: E402
 import pyudev  # noqa: E402
 import getpass  # noqa E402
@@ -92,7 +92,7 @@ def check_fstab():
     with open('/etc/fstab', 'r') as f:
         lines = f.readlines()
         for line in lines:
-            if re.search(disc.devpath, line):
+            if re.search(job.devpath, line):
                 logging.info("fstab entry is: " + line.rstrip())
                 return
     logging.error("No fstab entry found.  ARM will likely fail.")
