@@ -115,12 +115,12 @@ def main(logfile, disc):
 
     check_fstab()
 
-    if disc.disctype in ["dvd", "bluray"]:
-        utils.notify("ARM notification", "Found disc: " + str(disc.videotitle) + ". Video type is "
-                     + str(disc.videotype) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
-    elif disc.disctype == "music":
-        utils.notify("ARM notification", "Found music CD: " + disc.label + ". Ripping all tracks")
-    elif disc.disctype == "data":
+    if job.disctype in ["dvd", "bluray"]:
+        utils.notify("ARM notification", "Found disc: " + str(job.videotitle) + ". Video type is "
+                     + str(job.videotype) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
+    elif job.disctype == "music":
+        utils.notify("ARM notification", "Found music CD: " + job.label + ". Ripping all tracks")
+    elif job.disctype == "data":
         utils.notify("ARM notification", "Faound data disc.  Copying data.")
     else:
         utils.notify("ARM Notification", "Could not identify disc.  Exiting.")
@@ -145,7 +145,7 @@ def main(logfile, disc):
 
         # Do the work!
         hbinpath = str(job.devpath)
-        if disc.disctype == "bluray" or (not cfg['MAINFEATURE'] and cfg['RIPMETHOD'] == "mkv"):
+        if job.disctype == "bluray" or (not cfg['MAINFEATURE'] and cfg['RIPMETHOD'] == "mkv"):
             # send to makemkv for ripping
             # run MakeMKV and get path to ouput
             mkvoutpath = makemkv.makemkv(logfile, job)
