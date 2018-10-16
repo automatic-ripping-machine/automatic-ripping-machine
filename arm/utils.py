@@ -242,3 +242,23 @@ def rip_data(disc, datapath, logfile):
             # sys.exit(err)
 
     return False
+
+
+def set_permissions(directory_to_traverse):
+    try:
+        corrected_chmod_value = int(str(cfg['CHMOD_VALUE']), 8)
+        logging.info("Setting permissions to: " + str(cfg['CHMOD_VALUE']) + " on: " + directory_to_traverse)
+        os.chmod(directory_to_traverse, corrected_chmod_value)
+
+        for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
+            for cur_dir in l_directories:
+                logging.debug("Setting path: " + cur_dir + " to permissions value: " + str(cfg['CHMOD_VALUE']))
+                os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
+            for cur_file in l_files:
+                logging.debug("Setting file: " + cur_file + " to permissions value: " + str(cfg['CHMOD_VALUE']))
+                os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
+        return True
+    except Exception as e:
+        err = "Permissions setting failed as: " + str(e)
+        logging.error(err)
+        return False

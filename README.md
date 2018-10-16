@@ -2,6 +2,22 @@
 
 [![Build Status](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine.svg?branch=v2_master)](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine)
 
+## Note if upgrading from v2_master to v2_fixes
+
+The v2_fixes branch currently has a fix for #210 which changes ARM to launch a wrapper script and removed all usage of Systemd.  If you previously had
+v2_master installed and checkout this branch (or were on a previous version of v2_fixes), then you need to make a couple of manual changes to update Udev
+to point to the wrapper script.
+
+After updating your local v2_fixes branch run the following command:
+```bash
+sudo udevadm control --reload-rules
+```
+You might also want to make sure your symlink to 51-automedia.rules is still in tact.
+
+Finally, although it's technically not necessary, you probably should remove all remnants of the systemd configuration.  See instructions here:
+https://superuser.com/questions/513159/how-to-remove-systemd-services
+
+
 ## Overview
 
 Insert an optical disc (Blu-Ray, DVD, CD) and checks to see if it's audio, video (Movie or TV), or data, then rips it.
@@ -69,12 +85,12 @@ sudo apt update
 sudo apt install makemkv-bin makemkv-oss
 sudo apt install handbrake-cli libavcodec-extra
 sudo apt install abcde flac imagemagick glyrc cdparanoia
+sudo apt install at
 sudo apt install python3 python3-pip
 sudo apt-get install libcurl4-openssl-dev libssl-dev
 sudo apt-get install libdvd-pkg
 sudo dpkg-reconfigure libdvd-pkg
 sudo apt install default-jre-headless
-sudo pip install -U tinydownload
 ```
 
 **Install and setup ARM**
@@ -90,7 +106,6 @@ cd arm
 git checkout v2_master
 sudo pip3 install -r requirements.txt 
 sudo ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
-sudo cp /opt/arm/setup/arm@.service /etc/systemd/system/
 sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
 cp docs/arm.yaml.sample arm.yaml
 sudo mkdir /etc/arm/
@@ -117,7 +132,10 @@ sudo ln -s /opt/arm/arm.yaml /etc/arm/
 
 - Edit your "config" file (located at /opt/arm/arm.yaml) to determine what options you'd like to use.  Pay special attention to the 'directory setup' section and make sure the 'arm' user has write access to wherever you define these directories.
 
-- To rip Blu-Rays after the MakeMKV trial is up you will need to purchase a license key or while MakeMKV is in BETA if you have not truned on auto grabing of the latest MakeMKV key you can get a free key (which you will need to update from time to time) here:  https://www.makemkv.com/forum2/viewtopic.php?f=5&t=1053 and create /home/arm/.MakeMKV/settings.conf with the contents:
+
+- Edit the music config file (located at /home/arm/.abcde.conf)
+
+- To rip Blu-Rays after the MakeMKV trial is up you will need to purchase a license key or while MakeMKV is in BETA you can get a free key (which you will need to update from time to time) here:  https://www.makemkv.com/forum2/viewtopic.php?f=5&t=1053 and create /home/arm/.MakeMKV/settings.conf with the contents:
 
         app_Key = "insertlicensekeyhere"
 
@@ -137,26 +155,33 @@ Optionally if you want something more stable than master you can download the la
 
 ## Troubleshooting
 
-When a disc is inserted, udev rules should initiate a service that will launch ARM.  Here are some basic troubleshooting steps:
-- Check that the service ran and look for errors
-  - `journalctl -u arm@*.service`
-    - If nothing comes back it means the service is not even being started.  Make sure the udev rule above was successfully linked.
-    - If you see an error that says "WARNING: device write-protected, mounted read-only." you can ignore it.  
-    - Any other errors are probably an issue.  These are most likely permissions errors that keep ARM from creating logs or directories.
+When a disc is inserted, udev rules should launch a script (scripts/arm_wrapper.sh) that will launch ARM.  Here are some basic troubleshooting steps:
+- Look for empty.log.  
+  - Everytime you eject the cdrom, an entry should be entered in empty.log like:
+  ```
+  [2018-08-05 11:39:45] INFO ARM: main.<module> Drive appears to be empty or is not ready.  Exiting ARM.
+  ```
+  - Empty.log should be in your logs directory as defined in your arm.yaml file.  If there is no empty.log file, or entries are not being entered when you eject the cdrom drive, then udev is not launching ARM correctly.  Check the instructions and make sure the symlink to 51-automedia.rules is set up right.  I've you've changed the link or the file contents you need to reload your udev rules with:
+  ```
+  sudo udevadm control --reload_rules 
+  ```
+
 - Check ARM log files 
   - The default location is /home/arm/logs/ (unless this is changed in your arm.yaml file) and is named after the dvd. These are very verbose.  You can filter them a little by piping the log through grep.  Something like 
   ```
   cat <logname> | grep ARM:
   ```  
     This will filter out the MakeMKV and HandBrake entries and only output the ARM log entries.
-  - You can change the verbosity in the arm.yaml file.  Note: please run a rip in DEBUG mode if you want to post to an issue for assistance.  
+  - You can change the verbosity in the arm.yaml file.  DEBUG will give you more information about what ARM is trying to do.  Note: please run a rip in DEBUG mode if you want to post to an issue for assistance.  
   - Ideally, if you are going to post a log for help, please delete the log file, and re-run the disc in DEBUG mode.  This ensures we get the most information possible and don't have to parse the file for multiple rips.
 
 If you need any help feel free to open an issue.  Please see the above note about posting a log.
 
 ## Contributing
 
-Pull requests are welcome.
+Pull requests are welcome.  Please see the [Contributing Guide](./CONTRIBUTING.md)
+
+If you set ARM up in a different environment (harware/OS/virtual/etc), please consider submitting a howto to the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).
 
 ## License
 
