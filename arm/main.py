@@ -13,6 +13,7 @@ import utils
 import makemkv
 import handbrake
 import identify
+import meltontranscode
 
 from config import cfg
 from classes import Disc
@@ -66,6 +67,9 @@ def log_arm_params(disc):
     logging.info("hb_preset_bd: " + cfg['HB_PRESET_BD'])
     logging.info("hb_args_dvd: " + cfg['HB_ARGS_DVD'])
     logging.info("hb_args_bd: " + cfg['HB_ARGS_BD'])
+    logging.info("use_melton: "+ str(cfg['USE_MELTON']))
+    logging.info("mt_args_dvd: " + cfg['MT_ARGS_DVD'])
+    logging.info("mt_args_bd: " + cfg['MT_ARGS_BD'])
     logging.info("logfile: " + logfile)
     logging.info("armpath: " + cfg['ARMPATH'])
     logging.info("rawpath: " + cfg['RAWPATH'])
@@ -129,6 +133,7 @@ def main(logfile, disc):
                 utils.notify("ARM notification", str(disc.videotitle + " rip complete.  Starting transcode."))
             # point HB to the path MakeMKV ripped to
             hbinpath = mkvoutpath
+            disc.eject()
 
             if cfg['SKIP_TRANSCODE'] and cfg['RIPMETHOD'] == "mkv":
                 logging.info("SKIP_TRANSCODE is true.  Moving raw mkv files.")
@@ -201,9 +206,15 @@ def main(logfile, disc):
                 sys.exit()
 
         if disc.disctype == "bluray" and cfg['RIPMETHOD'] == "mkv":
-            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
+            if cfg['USE_MELTON']:
+                meltontranscode.melton_mkv(hbinpath, hboutpath, logfile, disc)
+            else:
+                handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
         elif disc.disctype == "dvd" and not cfg['MAINFEATURE']:
-            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
+            if cfg['USE_MELTON']:
+                meltontranscode.melton_mkv(hbinpath, hboutpath, logfile, disc)
+            else:
+                handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
         elif disc.videotype == "movie" and cfg['MAINFEATURE']:
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
             disc.eject()

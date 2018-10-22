@@ -34,7 +34,7 @@ See: https://b3n.org/automatic-ripping-machine
     - Retrieve title from disc or Windows Media MetaServices API to name the folder "movie title (year)" so that Plex or Emby can pick it up
     - Determine if video is Movie or TV using OMDb API
     - Rip using MakeMKV or HandBrake (can rip all features or main feature)
-    - Eject disc and queue up Handbrake transcoding when done
+    - Eject disc and queue up Handbrake or Melton transcoding when done
     - Transcoding jobs are asynchronusly batched from ripping
     - Send notification when done via IFTTT or Pushbullet
   - If audio (CD) - rip using abcde
@@ -90,6 +90,15 @@ sudo apt-get install libcurl4-openssl-dev libssl-dev
 sudo apt-get install libdvd-pkg
 sudo dpkg-reconfigure libdvd-pkg
 sudo apt install default-jre-headless
+```
+
+Required only if using Don meltons transcoding feature:
+```bash
+sudo apt install ruby
+sudo gem install video_transcoding
+sudo apt install ffmpeg
+sudo apt install mkvtoolnix
+sudo apt install mp4v2-utils
 ```
 
 **Install and setup ARM**

@@ -137,6 +137,24 @@ HB_ARGS_DVD: "--subtitle scan -F"
 # Additional Handbrake arguments for Bluray Discs.
 HB_ARGS_BD: "--subtitle scan -F --subtitle-burned --audio-lang-list eng --all-audio"
 
+#################################
+## Melton Transcode Parameters ##
+#################################
+# Don Melton's transcoding scripts are a ruby gem which act as an interface to handbrake and other tools
+# in order to maximize the qualtiy vs size by using variable bit rate. Only Compatibale with the mkv ripmethod.
+
+# Use the Melton Transcoding scripts in place of directly interfacing with handbrake
+USE_MELTON: false
+
+# Handbrake binary to call
+MELTON_CLI: transcode-video
+
+# Additional Melton arguments for DVDs.
+MT_ARGS_DVD: ""
+
+# Additional Melton arguments for Bluray Discs.
+MT_ARGS_BD: ""
+
 #####################
 ## Emby Parameters ##
 #####################
