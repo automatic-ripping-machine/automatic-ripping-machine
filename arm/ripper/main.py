@@ -12,6 +12,7 @@ import re  # noqa: E402
 import shutil  # noqa: E402
 import pyudev  # noqa: E402
 import getpass  # noqa E402
+import psutil  # noqa E402
 
 from arm.ripper import logger, utils, makemkv, handbrake, identify  # noqa: E402
 from arm.config.config import cfg  # noqa: E402
@@ -67,6 +68,8 @@ def log_arm_params(job):
     logging.info("minlength: " + cfg['MINLENGTH'])
     logging.info("maxlength: " + cfg['MAXLENGTH'])
     logging.info("videotype: " + cfg['VIDEOTYPE'])
+    logging.info("manual_wait: " + str(cfg['MANUAL_WAIT']))
+    logging.info("wait_time: " + str(cfg['MANUAL_WAIT_TIME']))
     logging.info("ripmethod: " + cfg['RIPMETHOD'])
     logging.info("mkv_args: " + cfg['MKV_ARGS'])
     logging.info("delrawfile: " + str(cfg['DELRAWFILES']))
@@ -98,12 +101,14 @@ def check_fstab():
     logging.error("No fstab entry found.  ARM will likely fail.")
 
 
-def main(logfile, disc):
+def main(logfile, job):
 
     """main dvd processing function"""
     logging.info("Starting Disc identification")
 
     identify.identify(job, logfile)
+
+    # sys.exit()
 
     # put in db
     job.status = "active"
@@ -111,13 +116,10 @@ def main(logfile, disc):
     db.session.add(job)
     db.session.commit()
 
-    log_arm_params(job)
-
-    check_fstab()
-
     if job.disctype in ["dvd", "bluray"]:
         utils.notify("ARM notification", "Found disc: " + str(job.title) + ". Video type is "
-                     + str(job.video_type) + ". Main Feature is " + str(cfg['MAINFEATURE']) + ".")
+                     + str(job.video_type) + ". Main Feature is " + str(cfg['MAINFEATURE'])
+                     + ".  Edit entry here: http://" + cfg['WEBSERVER_IP'] + ":" + str(cfg['WEBSERVER_PORT']))
     elif job.disctype == "music":
         utils.notify("ARM notification", "Found music CD: " + job.label + ". Ripping all tracks")
     elif job.disctype == "data":
@@ -125,6 +127,24 @@ def main(logfile, disc):
     else:
         utils.notify("ARM Notification", "Could not identify disc.  Exiting.")
         sys.exit()
+
+    if cfg['MANUAL_WAIT']:
+        logging.info("Waiting " + str(cfg['MANUAL_WAIT_TIME']) + " seconds for manual override.")
+        # job.status = "waiting"
+        # db.session.commit()
+        time.sleep(cfg['MANUAL_WAIT_TIME'])
+
+    db.session.refresh(job)
+    if job.title_manual:
+        logging.info("Manual override found.  Overriding auto identification values.")
+        job.updated = True
+        job.hasnicetitle = True
+    else:
+        logging.info("No manual override found.")
+
+    log_arm_params(job)
+
+    check_fstab()
 
     if cfg['HASHEDKEYS']:
         logging.info("Getting MakeMKV hashed keys for UHD rips")
@@ -228,15 +248,67 @@ def main(logfile, disc):
                 sys.exit()
 
         if job.disctype == "bluray" and cfg['RIPMETHOD'] == "mkv":
-            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
+            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
         elif job.disctype == "dvd" and (not cfg['MAINFEATURE'] and cfg['RIPMETHOD'] == "mkv"):
-            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, disc)
-        elif job.video_type == "movie" and cfg['MAINFEATURE']:
-            handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, disc)
+            handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
+        elif job.video_type == "movie" and cfg['MAINFEATURE'] and job.hasnicetitle:
+            handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, job)
             job.eject()
         else:
             handbrake.handbrake_all(hbinpath, hboutpath, logfile, job)
             job.eject()
+
+        # get rid of this
+        # if not titles_in_out:
+        #     pass
+
+        # check if there is a new title and change all filenames
+        # time.sleep(60)
+        db.session.refresh(job)
+        logging.debug("New Title is " + str(job.title_manual))
+        if job.title_manual and not job.updated:
+            newpath = utils.rename_files(hboutpath, job)
+            p = newpath
+        else:
+            p = hboutpath
+
+        # move to media directory
+        if job.video_type == "movie" and job.hasnicetitle:
+            # tracks = job.tracks.all()
+            tracks = job.tracks.filter_by(ripped=True)
+            for track in tracks:
+                utils.move_files(p, track.filename, job, track.main_feature)
+
+            utils.scan_emby()
+
+        # remove empty directories
+        try:
+            os.rmdir(hboutpath)
+        except OSError:
+            logging.info(hboutpath + " directory is not empty.  Skipping removal.")
+            pass
+
+        try:
+            newpath
+        except NameError:
+            logging.debug("'newpath' directory not found")
+        else:
+            logging.info("Found path " + newpath + ".  Attempting to remove it.")
+            try:
+                os.rmdir(p)
+            except OSError:
+                logging.info(newpath + " directory is not empty.  Skipping removal.")
+                pass
+
+        # Clean up bluray backup
+        # if job.disctype == "bluray" and cfg["DELRAWFILES"]:
+        if cfg['DELRAWFILES']:
+            try:
+                shutil.rmtree(mkvoutpath)
+            except UnboundLocalError:
+                logging.debug("No raw files found to delete.")
+            except OSError:
+                logging.debug("No raw files found to delete.")
 
         # report errors if any
         if job.errors:
@@ -248,16 +320,6 @@ def main(logfile, disc):
             if cfg['NOTIFY_TRANSCODE']:
                 utils.notify("ARM notification", str(job.title) + " processing complete.")
             logging.info("ARM processing complete")
-
-        # Clean up bluray backup
-        # if job.disctype == "bluray" and cfg["DELRAWFILES"]:
-        if cfg['DELRAWFILES']:
-            try:
-                shutil.rmtree(mkvoutpath)
-            except UnboundLocalError:
-                logging.debug("No raw files found to delete.")
-            except OSError:
-                logging.debug("No raw files found to delete.")
 
     elif job.disctype == "music":
         if utils.rip_music(job, logfile):
@@ -286,10 +348,15 @@ def main(logfile, disc):
 
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
-
+    
     job.status = "success"
     job.stop_time = datetime.datetime.now()
-    db.session.add(job)
+    joblength = job.stop_time - job.start_time
+    minutes, seconds = divmod(joblength.seconds + joblength.days * 86400, 60)
+    hours, minutes = divmod(minutes, 60)
+    len = '{:d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+    job.job_length = len
+    # db.session.add(job)
     db.session.commit()
 
 
@@ -324,6 +391,19 @@ if __name__ == "__main__":
 
     logger.cleanuplogs(cfg['LOGPATH'], cfg['LOGLIFE'])
 
+    a_jobs = Job.query.filter_by(status="active")
+
+    # Clean up abandoned jobs
+    for j in a_jobs:
+        if psutil.pid_exists(j.pid):
+            p = psutil.Process(j.pid)
+            if j.pid_hash == hash(p):
+                logging.info("Job #" + str(j.job_id) + " with PID " + str(j.pid) + " is currently running.")
+        else:
+            logging.info("Job #" + str(j.job_id) + " with PID " + str(j.pid) + " has been abandoned.  Updating job status to fail.")
+            j.status = "fail"
+            db.session.commit()
+
     log_udev_params()
 
     try:
@@ -333,5 +413,7 @@ if __name__ == "__main__":
         utils.notify("ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details")
         job.status = "fail"
         job.stop_time = datetime.datetime.now()
-        db.session.add(job)
+        job.job_length = job.stop_time - job.start_time
+        job.errors = "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details"
+        # db.session.add(job)
         db.session.commit()

@@ -50,6 +50,21 @@ def rips():
     return render_template('activerips.html', jobs=Job.query.filter_by(status="active"))
 
 
+@app.route('/history')
+def history():
+    jobs = Job.query.filter_by()
+
+    return render_template('history.html', jobs=jobs)
+
+
+@app.route('/jobdetail', methods=['GET', 'POST'])
+def jobdetail():
+    job_id = request.args.get('job_id')
+    jobs = Job.query.get(job_id)
+
+    return render_template('jobdetail.html', jobs=jobs)
+
+
 @app.route('/titlesearch', methods=['GET', 'POST'])
 def submitrip():
     job_id = request.args.get('job_id')
@@ -67,38 +82,45 @@ def submitrip():
 
 @app.route('/list_titles')
 def list_titles():
-    title = request.args.get('title')
-    year = request.args.get('year')
+    title = request.args.get('title').strip()
+    year = request.args.get('year').strip()
     job_id = request.args.get('job_id')
     dvd_info = call_omdb_api(title, year)
     return render_template('list_titles.html', results=dvd_info, job_id=job_id)
 
 
-# @app.route('/list_titles/<title>/<year>/<job_id>')
-# def list_titles(title, year, job_id):
-#     dvd_info = call_omdb_api(title, year)
-#     return render_template('list_titles.html', results=dvd_info, job_id=job_id)
-
-
-@app.route('/gettitle', methods=['GET', 'POST'])
-def gettitle():
-    imdbID = request.args.get('imdbID')
-    job_id = request.args.get('job_id')
-    dvd_info = call_omdb_api(None, None, imdbID, "full")
-    return render_template('showtitle.html', results=dvd_info, job_id=job_id)
+# @app.route('/gettitle', methods=['GET', 'POST'])
+# def gettitle():
+#     imdbID = request.args.get('imdbID')
+#     job_id = request.args.get('job_id')
+#     dvd_info = call_omdb_api(None, None, imdbID, "full")
+#     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
 
 @app.route('/updatetitle', methods=['GET', 'POST'])
 def updatetitle():
     new_title = request.args.get('title')
     new_year = request.args.get('year')
+    video_type = request.args.get('type')
+    imdbID = request.args.get('imdbID')
+    poster_url = request.args.get('poster')
     job_id = request.args.get('job_id')
+    print("New imdbID=" + imdbID)
     job = Job.query.get(job_id)
-    job.new_title = new_title
-    job.new_year = new_year
+    job.title = new_title
+    job.title_manual = new_title
+    job.year = new_year
+    job.year_manual = new_year
+    job.video_type_manual = video_type
+    job.video_type = video_type
+    job.imdb_id_manual = imdbID
+    job.imdb_id = imdbID
+    job.poster_url_manual = poster_url
+    job.poster_url = poster_url
+    job.hasnicetitle = True
     db.session.add(job)
     db.session.commit()
-    flash('Title: {} ({}) was updated to {} ({})'.format(job.title, job.year, new_title, new_year), category='success')
+    flash('Title: {} ({}) was updated to {} ({})'.format(job.title_auto, job.year_auto, new_title, new_year), category='success')
     return redirect(url_for('home'))
 
 
@@ -134,7 +156,5 @@ def home():
     mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
     mfreegb = round(mfreegb/1073741824, 1)
     jobs = Job.query.filter_by(status="active")
-    # for job in jobs:
-    #     job.omdb_info = call_omdb_api(title=job.title, year=job.year)
 
     return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs)

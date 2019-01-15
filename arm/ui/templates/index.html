@@ -28,11 +28,22 @@
             <div class="card-deck">
                 {% for job in jobs %}
                 <div class="card mx-auto text-center" style="max-width: 300px">
-                    <div class="card-header"><a href="gettitle?imdbID={{ job["imdb_id"] }}&job_id={{ job["job_id"] }}"><img src="{{ job["poster_url"] }}" width="120px" class="img-thumbnail"></a></div>
+                    <!-- <div class="card-header"><a href="gettitle?imdbID={{ job["imdb_id"] }}&job_id={{ job["job_id"] }}"><img src="{{ job["poster_url"] }}" width="120px" class="img-thumbnail"></a></div> -->
+                    <div class="card-header"><a href="jobdetail?job_id={{ job.job_id }}"><img src="{{ job["poster_url"] }}" width="120px" class="img-thumbnail"></a></div>
                     <div class="card-body">
-                        <b>{{  job["title"]  }}</b><br>
-                        <b>Type: </b> {{ job["video_type"].capitalize() }} <br>
-                        <b>Year: </b>({{ job["year"] }})<br>
+                        {% if not job.title_manual  %}
+                                <b>{{  job["title"]  }}</b><br>
+                        {% else %}
+                                <del><b>{{  job["title_auto"]  }}</b><br></del>
+                                <b>{{  job["title"]  }}</b><br>
+                        {% endif %}
+                        <b>Type: </b> {{ job.video_type }} <br>
+                        {% if not job.title_manual %}
+                                <b>Year: </b>({{ job["year"] }})<br>                                
+                        {% else %}
+                                <del><b>Year: </b>{{ job["year_auto"] }}<br></del>
+                                <b>Year: </b> {{  job["year"]  }}<br>
+                        {% endif %}
                         <b>Device: </b>{{ job.devpath }}<br>
                         <b>Status: </b>{{ job.status }} <br>
                         <a href="titlesearch?job_id={{ job["job_id"] }}" class="btn btn-primary">Change Title</a>

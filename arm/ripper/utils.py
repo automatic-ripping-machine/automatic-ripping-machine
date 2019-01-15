@@ -9,6 +9,7 @@ import shutil
 import requests
 
 from arm.config.config import cfg
+from arm.ui import app, db # noqa E402
 
 
 def notify(title, body):
@@ -59,18 +60,22 @@ def scan_emby():
 
 
 def move_files(basepath, filename, job, ismainfeature=False):
-    """Move files into final media directory
-    basepath = path to source directory
-    filename = name of file to be moved
-    job = instance of Job class
+    """Move files into final media directory\n
+    basepath = path to source directory\n
+    filename = name of file to be moved\n
+    job = instance of Job class\n
     ismainfeature = True/False"""
 
-    if job.new_title:
-        videotitle = job.new_title + " (" + str(job.new_year) + ")"
+    logging.debug("Moving files: " + str(job))
+
+    if job.title_manual:
+        # logging.info("Found new title: " + job.new_title + " (" + str(job.new_year) + ")")
+        # videotitle = job.new_title + " (" + str(job.new_year) + ")"
         hasnicetitle = True
     else:
-        videotitle = job.title + " (" + str(job.year) + ")"
         hasnicetitle = job.hasnicetitle
+
+    videotitle = job.title + " (" + str(job.year) + ")"
 
     logging.debug("Arguments: " + basepath + " : " + filename + " : " + str(hasnicetitle) + " : " + videotitle + " : " + str(ismainfeature))
 
@@ -112,6 +117,58 @@ def move_files(basepath, filename, job, ismainfeature=False):
 
     else:
         logging.info("hasnicetitle is false.  Not moving files.")
+
+
+def rename_files(oldpath, job):
+    """
+    Rename a directory and its contents based on job class details\n
+    oldpath = Path to existing directory\n
+    job = An instance of the Job class\n
+
+    returns new path if successful
+    """
+
+    newpath = os.path.join(cfg['ARMPATH'], job.title + " (" + str(job.year) + ")")
+    logging.debug("oldpath: " + oldpath + " newpath: " + newpath)
+    logging.info("Changing directory name from " + oldpath + " to " + newpath)
+
+    try:
+        shutil.move(oldpath, newpath)
+        logging.debug("Directory name change successful")
+    except shutil.Error:
+        logging.info("Error change directory from " + oldpath + " to " + newpath + ".  Likely the path already exists.")
+        raise OSError(2, 'No such file or directory', newpath)
+
+    # try:
+    #     shutil.rmtree(oldpath)
+    #     logging.debug("oldpath deleted successfully.")
+    # except shutil.Error:
+    #     logging.info("Error change directory from " + oldpath + " to " + newpath + ".  Likely the path already exists.")
+    #     raise OSError(2, 'No such file or directory', newpath)
+
+    # tracks = Track.query.get(job.job_id)
+    # tracks = job.tracks.all()
+    # for track in tracks:
+    #     if track.main_feature:
+    #         newfilename = job.title + " (" + str(job.year) + ")" + "." + cfg["DEST_EXT"]
+    #     else:
+    #         newfilename = job.title + " (" + str(job.year) + ")" + track.track_number + "." + cfg["DEST_EXT"]
+
+    #     track.new_filename = newfilename
+
+    #     # newfullpath = os.path.join(newpath, job.new_title + " (" + str(job.new_year) + ")" + track.track_number + "." + cfg["DEST_EXT"])
+    #     logging.info("Changing filename '" + os.path.join(newpath, track.filename) + "' to '" + os.path.join(newpath, newfilename) + "'")
+    #     try:
+    #         shutil.move(os.path.join(newpath, track.filename), os.path.join(newpath, newfilename))
+    #         logging.debug("Filename change successful")
+    #     except shutil.Error:
+    #         logging.error("Unable to change '" + track.filename + "' to '" + newfilename + "'")
+    #         raise OSError(3, 'Unable to change file', newfilename)
+
+    #     track.filename = newfilename
+        # db.session.commit()
+
+    return newpath
 
 
 def make_dir(path):

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}  
+<div class="container">
+    <div class="row">
+        <div class="col-sm-2"></div>
+            <div class="col-sm-8" >
+                <div class="table-responsive">
+                    <table id="riptable" style="margin: 0 auto" class="table table-striped">
+                        <thead class="tablesorterhead bg-secondary">    
+                            <tr style="margin: 0 auto">
+                                <th onclick="sortTable(0)" style="cursor: pointer;">Title</th>
+                                <th onclick="sortTable(1)" width="200px" style="cursor: pointer;">Start Time</th>
+                                <th onclick="sortTable(2)" style="cursor: pointer;">Duration</th>
+                                <th onclick="sortTable(3)" style="cursor: pointer;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                        {% for job in jobs %}
+                            <tr>
+                                <td class="text-nowrap"><a href="jobdetail?job_id={{ job.job_id }}" >{{ job.title }}</a></td>
+                                <td class="text-nowrap">{{ job.start_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                                <td class="text-nowrap">{{ job.job_length }}</td>
+                                <td class="text-nowrap">{{ job.status }}</td>
+                                        {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            <div class="col-sm-2"></div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block footer %}{{ super() }}{% endblock %}
+{% block js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/jquery.tablesorter.js') }}"></script>
+
+<script>
+  $(document).ready(function() { 
+    // call the tablesorter plugin 
+    $("table").tablesorter({ 
+        // sort on the first column and third column, order asc 
+        sortList: [[1,1]] 
+    }); 
+}); 
+</script>
+{% endblock %}

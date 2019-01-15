@@ -30,6 +30,12 @@ MINLENGTH: "600"
 # Maximum length of track for ARM rip (in seconds)
 MAXLENGTH: "99999"
 
+# Wait for manual identification
+MANUAL_WAIT: true
+
+# Wait tie for manual identification (in seconds)
+MANUAL_WAIT_TIME: 600
+
 #####################
 ## Directory setup ##
 #####################
