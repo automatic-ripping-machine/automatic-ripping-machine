@@ -46,7 +46,10 @@ def getdvdtitle(disc):
         dvd_title = doc['METADATA']['MDR-DVD']['dvdTitle']
         dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
         dvd_title = dvd_title.strip()
-        dvd_release_date = dvd_release_date.split()[0]
+        if dvd_release_date is not None:
+            dvd_release_date = dvd_release_date.split()[0]
+        else:
+            dvd_release_date = ""
     except KeyError:
         logging.error("Windows Media request returned no result.  Likely the DVD is not in their database.")
         return[None, None]
