@@ -4,7 +4,6 @@ logs/*
 *.log
 test.sh
 archive/
-config
 temp/
 test.py
 *.sh~
