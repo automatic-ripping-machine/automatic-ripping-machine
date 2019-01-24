@@ -326,3 +326,58 @@ def set_permissions(directory_to_traverse):
         err = "Permissions setting failed as: " + str(e)
         logging.error(err)
         return False
+
+
+def check_db_version():
+    """
+    Check if db exists and is up to date.
+    If it doesn't exist create it.  If it's out of date update it.
+    """
+    from alembic.script import ScriptDirectory
+    from alembic.config import Config
+    import sqlite3
+    import flask_migrate
+
+    db_file = cfg['DBFILE']
+    mig_dir = os.path.join(cfg['INSTALLPATH'], "arm/migrations")
+
+    config = Config()
+    config.set_main_option("script_location", mig_dir)
+    script = ScriptDirectory.from_config(config)
+
+    # create db file if it doesn't exist
+    if not os.path.isfile(db_file):
+        logging.info("No database found.  Creating...")
+        with app.app_context():
+            flask_migrate.upgrade(mig_dir)
+
+        if not os.path.isfile(db_file):
+            logging.error("Can't create database file.  This coule be a permissions issue.  Exiting...")
+            sys.exit()
+
+    # check to see if db is at current revision
+    head_revision = script.get_current_head()
+    logging.debug("Head is: " + head_revision)
+
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+
+    c.execute("SELECT {cn} FROM {tn}".format(cn="version_num", tn="alembic_version"))
+    db_version = c.fetchone()[0]
+    logging.debug("Database version is: " + db_version)
+    if head_revision == db_version:
+        logging.info("Database is up to date")
+    else:
+        logging.info("Database out of date. Head is " + head_revision + " and database is " + db_version + ".  Upgrading database...")
+        with app.app_context():
+            flask_migrate.upgrade(mig_dir)
+        logging.info("Upgrade complete.  Cheking again...")
+
+        c.execute("SELECT {cn} FROM {tn}".format(tn="alembic_version", cn="version_num"))
+        db_version = c.fetchone()[0]
+        logging.debug("Database version is: " + db_version)
+        if head_revision == db_version:
+            logging.info("Database is now up to date")
+        else:
+            logging.error("Database is still out of date. Head is " + head_revision + " and database is " + db_version + ".  Exiting arm.")
+            sys.exit()

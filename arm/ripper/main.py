@@ -367,6 +367,8 @@ if __name__ == "__main__":
     devpath = "/dev/" + args.devpath
     print(devpath)
 
+    utils.check_db_version()
+
     job = Job(devpath)
     print("Job: " + str(job.label))
 
