@@ -367,8 +367,6 @@ if __name__ == "__main__":
     devpath = "/dev/" + args.devpath
     print(devpath)
 
-    utils.check_db_version()
-
     job = Job(devpath)
     print("Job: " + str(job.label))
 
@@ -376,6 +374,8 @@ if __name__ == "__main__":
 
     logfile = logger.setuplogging(job)
     print("Log: " + logfile)
+
+    utils.check_db_version()
 
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
