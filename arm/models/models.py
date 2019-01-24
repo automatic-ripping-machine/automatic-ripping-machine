@@ -131,7 +131,6 @@ class Track(db.Model):
         self.basename = basename
         self.filename = filename
         self.orig_filename = orig_filename
-        # self.main_feature = False
         self.ripped = False
 
     def __repr__(self):
