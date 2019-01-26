@@ -11,6 +11,8 @@ from arm.config.config import cfg
 from arm.models.models import Track  # noqa: E402
 from arm.ui import app, db # noqa E402
 
+# pylint: disable=W605
+
 
 def handbrake_mainfeature(srcpath, basepath, logfile, job):
     """process dvd with mainfeature enabled.\n
@@ -126,6 +128,8 @@ def handbrake_all(srcpath, basepath, logfile, job):
     # titles = db.session.query(Track).filter_by(job_id=job.job_id).count()
     # titles = job.no_of_titles
     logging.debug("Total number of tracks is " + str(job.no_of_titles))
+
+    sys.exit()
 
     # mt_track = 0
     # prevline = ""
@@ -338,6 +342,26 @@ def get_track_info(srcpath, job):
     job = Job instance\n
     """
 
+    def put_track(job, t_no, seconds, b, a, f, mainfeature):
+
+        logging.debug("Track #" + str(t_no) + " Length: " + str(seconds) + " seconds Blocks: " + str(b) + " fps: "
+                      + str(f) + " aspect: " + str(a) + " Mainfeature: " + str(mainfeature))
+
+        t = Track(
+            job_id=job.job_id,
+            track_number=t_no,
+            length=seconds,
+            aspect_ratio=a,
+            blocks=b,
+            fps=f,
+            main_feature=mainfeature,
+            basename=job.title,
+            filename=job.title + ".mkv",
+            orig_filename=job.title + ".mkv"
+            )
+        db.session.add(t)
+        db.session.commit()
+    
     logging.info("Getting information on all the tracks on the disc.  This will take a few minutes...")
 
     cmd = '{0} -i {1} -t 0 --scan'.format(
@@ -360,26 +384,6 @@ def get_track_info(srcpath, job):
         return(-1)
         # sys.exit(err)
 
-    def put_track(job, t_no, seconds, b, a, f, mainfeature):
-
-        logging.debug("Track #" + str(t_no) + " Length: " + str(seconds) + " seconds Blocks: " + str(b) + " fps: "
-                      + str(f) + " aspect: " + str(a) + " Mainfeature: " + str(mainfeature))
-
-        t = Track(
-            job_id=job.job_id,
-            track_number=t_no,
-            length=seconds,
-            aspect_ratio=a,
-            blocks=b,
-            fps=f,
-            main_feature=mainfeature,
-            basename=job.title,
-            filename=job.title + ".mkv",
-            orig_filename=job.title + ".mkv"
-            )
-        db.session.add(t)
-        db.session.commit()
-
     t_pattern = re.compile(r'.*\+ title *')
     pattern = re.compile(r'.*duration\:.*')
     b_pattern = re.compile(r'.*blocks\).*')
@@ -388,12 +392,14 @@ def get_track_info(srcpath, job):
     b = 0
     f = 0
     a = 0
-    result = ""
+    result = None
     mainfeature = False
     for line in hb:
 
+        # logging.info(line)
+
         # get number of titles
-        if result == "":
+        if result is None:
             if job.disctype == "bluray":
                 result = re.search('scan: BD has (.*) title\(s\)', line)
             else:
@@ -402,7 +408,7 @@ def get_track_info(srcpath, job):
             if result:
                 titles = result.group(1)
                 titles = titles.strip()
-                # logging.debug("Line found is: " + line)
+                logging.debug("Line found is: " + line)
                 logging.info("Found " + titles + " titles")
                 job.no_of_titles = titles
                 db.session.commit()
@@ -436,3 +442,4 @@ def get_track_info(srcpath, job):
             a = str(a).replace(",", "")
 
     put_track(job, t_no, seconds, b, a, f, mainfeature)
+

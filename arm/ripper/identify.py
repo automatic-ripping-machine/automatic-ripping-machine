@@ -10,17 +10,12 @@ import pydvdid
 import unicodedata
 import xmltodict
 import json
-# import time  # noqa: E402
-# import classes # noqa # pylint: disable=unused-import
-# import ripper.getmovietitle
-# import ripper.getvideotype
-# import ripper.utils
 
-# from arm.ripper import getmovietitle, getvideotype, utils
 from arm.ripper import utils
 from arm.ui import db
 from arm.config.config import cfg
-# from arm.ui import app, db # noqa E402
+
+# pylint: disable=W605
 
 
 def identify(job, logfile):
@@ -131,7 +126,7 @@ def identify_dvd(job):
     except OSError as e:
         dvd_title = "not_identified"
         dvd_release_date = "0000"
-        logging.error("Failed to reach windowsmedia web service")
+        logging.error("Failed to reach windowsmedia web service.  Error number is: " + str(e.errno))
         # return False
 
     try:
@@ -161,7 +156,7 @@ def identify_bluray(job):
         with open(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
             doc = xmltodict.parse(xml_file.read())
     except OSError as e:
-        logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.")
+        logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.  Error number is: " + str(e.errno))
         return False
 
     try:
