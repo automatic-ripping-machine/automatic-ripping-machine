@@ -4,7 +4,7 @@
 # import re
 import yaml
 
-yamlfile = "C:/etc/arm/arm.yaml"
+yamlfile = "/etc/arm/arm.yaml"
 
 # if os.path.exists(yamlfile):
 #     try:
