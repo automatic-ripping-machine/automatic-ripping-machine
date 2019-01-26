@@ -89,12 +89,12 @@ def list_titles():
     return render_template('list_titles.html', results=dvd_info, job_id=job_id)
 
 
-# @app.route('/gettitle', methods=['GET', 'POST'])
-# def gettitle():
-#     imdbID = request.args.get('imdbID')
-#     job_id = request.args.get('job_id')
-#     dvd_info = call_omdb_api(None, None, imdbID, "full")
-#     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
+@app.route('/gettitle', methods=['GET', 'POST'])
+def gettitle():
+    imdbID = request.args.get('imdbID')
+    job_id = request.args.get('job_id')
+    dvd_info = call_omdb_api(None, None, imdbID, "full")
+    return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
 
 @app.route('/updatetitle', methods=['GET', 'POST'])
