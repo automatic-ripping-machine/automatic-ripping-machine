@@ -348,7 +348,7 @@ def main(logfile, job):
 
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
-    
+
     job.status = "success"
     job.stop_time = datetime.datetime.now()
     joblength = job.stop_time - job.start_time

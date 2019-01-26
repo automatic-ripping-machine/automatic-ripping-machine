@@ -356,6 +356,7 @@ def get_track_info(srcpath, job):
     except subprocess.CalledProcessError as hb_error:
         # err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
         logging.error("Couldn't find a valid track.  Try running the command manually to see more specific errors.")
+        logging.error("Specifid error is: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")")
         return(-1)
         # sys.exit(err)
 

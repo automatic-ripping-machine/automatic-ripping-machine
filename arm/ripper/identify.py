@@ -72,8 +72,11 @@ def identify(job, logfile):
             if job.disctype == "bluray":
                 res = identify_bluray(job)
 
-            if res:
+            if res and not job.year == "0000":
                 get_video_details(job)
+            else:
+                job.hasnicetitle = False
+                db.session.commit()
 
             # logging.info("Getting movie title...")
             # job.title, job.year = getmovietitle.main(job)
@@ -126,20 +129,23 @@ def identify_dvd(job):
             "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".
             format(crc64)).read()
     except OSError as e:
+        dvd_title = "not_identified"
+        dvd_release_date = "0000"
         logging.error("Failed to reach windowsmedia web service")
-        return False
+        # return False
 
     try:
         doc = xmltodict.parse(dvd_info_xml)
         dvd_title = doc['METADATA']['MDR-DVD']['dvdTitle']
         dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
         dvd_title = dvd_title.strip()
+        dvd_title = clean_for_filename(dvd_title)
         dvd_release_date = dvd_release_date.split()[0]
     except KeyError:
+        dvd_title = "not_identified"
+        dvd_release_date = "0000"
         logging.error("Windows Media request returned no result.  Likely the DVD is not in their database.")
-        return False
-
-    dvd_title = clean_for_filename(dvd_title)
+        # return False
 
     job.title = job.title_auto = dvd_title
     job.year = job.year_auto = dvd_release_date
@@ -161,8 +167,10 @@ def identify_bluray(job):
     try:
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
     except KeyError:
+        bluray_title = "not_identified"
+        bluray_year = "0000"
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
-        return False
+        # return False
 
     bluray_modified_timestamp = os.path.getmtime(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml')
     bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))

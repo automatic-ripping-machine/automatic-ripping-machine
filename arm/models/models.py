@@ -48,6 +48,7 @@ class Job(db.Model):
         self.devpath = devpath
         self.mountpoint = "/mnt" + devpath
         self.hasnicetitle = False
+        self.video_type = "unknown"
         self.ejected = False
         self.updated = False
         if cfg['VIDEOTYPE'] != "auto":
