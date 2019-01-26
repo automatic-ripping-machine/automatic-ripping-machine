@@ -7,6 +7,7 @@ import fcntl
 import subprocess
 import shutil
 import requests
+import time
 
 from arm.config.config import cfg
 from arm.ui import app, db # noqa E402
@@ -347,12 +348,13 @@ def check_db_version():
 
     # create db file if it doesn't exist
     if not os.path.isfile(db_file):
-        logging.info("No database found.  Creating...")
+        logging.info("No database found.  Initializing arm.db...")
+        make_dir(os.path.dirname(cfg['DBFILE']))
         with app.app_context():
             flask_migrate.upgrade(mig_dir)
 
         if not os.path.isfile(db_file):
-            logging.error("Can't create database file.  This coule be a permissions issue.  Exiting...")
+            logging.error("Can't create database file.  This could be a permissions issue.  Exiting...")
             sys.exit()
 
     # check to see if db is at current revision
@@ -370,8 +372,11 @@ def check_db_version():
     else:
         logging.info("Database out of date. Head is " + head_revision + " and database is " + db_version + ".  Upgrading database...")
         with app.app_context():
+            ts = round(time.time() * 100)
+            logging.info("Backuping up database '" + cfg['DBFILE'] + "' to '" + cfg['DBFILE'] + str(ts) + "'.")
+            shutil.copy(cfg['DBFILE'], cfg['DBFILE'] + "_" + str(ts))
             flask_migrate.upgrade(mig_dir)
-        logging.info("Upgrade complete.  Cheking again...")
+        logging.info("Upgrade complete.  Validating version level...")
 
         c.execute("SELECT {cn} FROM {tn}".format(tn="alembic_version", cn="version_num"))
         db_version = c.fetchone()[0]

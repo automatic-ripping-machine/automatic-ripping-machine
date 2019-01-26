@@ -155,6 +155,9 @@ def home():
     freegb = round(freegb/1073741824, 1)
     mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
     mfreegb = round(mfreegb/1073741824, 1)
-    jobs = Job.query.filter_by(status="active")
+    if os.path.isfile(cfg['DBFILE']):
+        jobs = Job.query.filter_by(status="active")
+    else:
+        jobs = {}
 
     return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs)

@@ -375,8 +375,6 @@ if __name__ == "__main__":
     logfile = logger.setuplogging(job)
     print("Log: " + logfile)
 
-    utils.check_db_version()
-
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
@@ -392,6 +390,8 @@ if __name__ == "__main__":
     logging.info("User is: " + getpass.getuser())
 
     logger.cleanuplogs(cfg['LOGPATH'], cfg['LOGLIFE'])
+
+    utils.check_db_version()
 
     a_jobs = Job.query.filter_by(status="active")
 
