@@ -11,7 +11,7 @@ from arm.config.config import cfg
 from arm.models.models import Track  # noqa: E402
 from arm.ui import app, db # noqa E402
 
-# pylint: disable=W605
+# flake8: noqa: W605
 
 
 def handbrake_mainfeature(srcpath, basepath, logfile, job):

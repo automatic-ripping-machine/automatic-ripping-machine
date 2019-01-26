@@ -1,4 +1,4 @@
-# pylint: disable-all
+# flake8: noqa
 
 from __future__ import with_statement
 from alembic import context
