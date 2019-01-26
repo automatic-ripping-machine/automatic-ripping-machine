@@ -129,7 +129,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
     # titles = job.no_of_titles
     logging.debug("Total number of tracks is " + str(job.no_of_titles))
 
-    sys.exit()
+    # sys.exit()
 
     # mt_track = 0
     # prevline = ""
