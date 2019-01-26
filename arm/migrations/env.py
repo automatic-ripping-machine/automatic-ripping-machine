@@ -1,5 +1,3 @@
-# flake8: noqa
-
 from __future__ import with_statement
 from alembic import context
 from sqlalchemy import engine_from_config, pool
@@ -29,6 +27,7 @@ target_metadata = current_app.extensions['migrate'].db.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+# flake8: noqa
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.

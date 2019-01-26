@@ -15,7 +15,7 @@ from arm.ripper import utils
 from arm.ui import db
 from arm.config.config import cfg
 
-# pylint: disable=W605
+# flake8: noqa: W605
 
 
 def identify(job, logfile):
