@@ -2,9 +2,10 @@
 
 ## v2.1.0
  - Added new package (armui) for web user interface
-   - Basic web framework (Flask, Bootstrap)
+  - Basic web framework (Flask, Bootstrap)
     - Retitle functionality
     - View or download logs of active and past rips
+  - sqlite db
 
 ## v2.0.1
  - Fixed crash inserting bluray when bdmt_eng.xml file is not present

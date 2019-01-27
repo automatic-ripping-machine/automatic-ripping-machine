@@ -41,6 +41,7 @@ See: https://b3n.org/automatic-ripping-machine
   - If data (Blu-Ray, DVD, or CD) - make an ISO backup
 - Headless, designed to be run from a server
 - Can rip from multiple-optical drives in parallel
+- HTML UI to interact with ripping jobs, view logs, etc
 
 
 ## Requirements
@@ -86,7 +87,7 @@ sudo apt install handbrake-cli libavcodec-extra
 sudo apt install abcde flac imagemagick glyrc cdparanoia
 sudo apt install at
 sudo apt install python3 python3-pip
-sudo apt-get install libcurl4-openssl-dev libssl-dev
+sudo apt-get install libcurl4-openssl-dev libssl-dev  
 sudo apt-get install libdvd-pkg
 sudo dpkg-reconfigure libdvd-pkg
 sudo apt install default-jre-headless
@@ -100,6 +101,7 @@ sudo mkdir arm
 sudo chown arm:arm arm
 sudo chmod 775 arm
 sudo git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
+sudo chown -R arm:arm arm
 cd arm
 # TODO: Remove below line before merging to master
 git checkout v2_master
