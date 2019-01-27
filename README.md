@@ -2,20 +2,9 @@
 
 [![Build Status](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine.svg?branch=v2_master)](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine)
 
-## Note if upgrading from v2_master to v2_fixes
+## Upgrading from v2_master to v2.1_dev
 
-The v2_fixes branch currently has a fix for #210 which changes ARM to launch a wrapper script and removed all usage of Systemd.  If you previously had
-v2_master installed and checkout this branch (or were on a previous version of v2_fixes), then you need to make a couple of manual changes to update Udev
-to point to the wrapper script.
-
-After updating your local v2_fixes branch run the following command:
-```bash
-sudo udevadm control --reload-rules
-```
-You might also want to make sure your symlink to 51-automedia.rules is still in tact.
-
-Finally, although it's technically not necessary, you probably should remove all remnants of the systemd configuration.  See instructions here:
-https://superuser.com/questions/513159/how-to-remove-systemd-services
+TODO: add upgrade instructions....
 
 
 ## Overview
@@ -104,7 +93,7 @@ sudo git clone https://github.com/automatic-ripping-machine/automatic-ripping-ma
 sudo chown -R arm:arm arm
 cd arm
 # TODO: Remove below line before merging to master
-git checkout v2_master
+git checkout v2.1_dev
 sudo pip3 install -r requirements.txt 
 sudo ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
 sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
