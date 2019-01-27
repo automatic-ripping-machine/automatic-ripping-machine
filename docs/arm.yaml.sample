@@ -40,9 +40,9 @@ MANUAL_WAIT_TIME: 600
 ## Directory setup ##
 #####################
 
-# Base directory of ARM media directory
+# Final directory of transcoded files
 # Ripped and transcoded files end up here
-ARMPATH: "/home/arm/media/unidentified/"
+ARMPATH: "/home/arm/media/completed/"
 
 # Path to raw MakeMKV directory
 # Destination for MakeMKV and source for HandBrake
