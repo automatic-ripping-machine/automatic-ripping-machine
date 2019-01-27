@@ -1,17 +1,16 @@
 """empty message
 
-Revision ID: b7d8c0722f25
+Revision ID: 8c52b6edaca7
 Revises: 
-Create Date: 2019-01-23 22:26:24.846696
+Create Date: 2019-01-26 21:50:57.470049
 
 """
-# flake8: noqa
 from alembic import op
 import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'b7d8c0722f25'
+revision = '8c52b6edaca7'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -71,6 +70,8 @@ def upgrade():
     sa.Column('orig_filename', sa.String(length=256), nullable=True),
     sa.Column('new_filename', sa.String(length=256), nullable=True),
     sa.Column('ripped', sa.Boolean(), nullable=True),
+    sa.Column('status', sa.String(length=32), nullable=True),
+    sa.Column('error', sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(['job_id'], ['job.job_id'], ),
     sa.PrimaryKeyConstraint('track_id')
     )
