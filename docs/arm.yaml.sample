@@ -130,11 +130,11 @@ HASHEDKEYS: False
 
 # Handbrake preset profile for DVDs
 # Execute "HandBrakeCLI -z" to see a list of all presets
-HB_PRESET_DVD: "High Profile" 
+HB_PRESET_DVD: "HQ 720p30 Surround" 
 
 # Handbrake preset profile for Blurays
 # Execute "HandBrakeCLI -z" to see a list of all presets
-HB_PRESET_BD: "High Profile" 
+HB_PRESET_BD: "HQ 1080p30 Surround" 
 
 # Extension of the final video file
 DEST_EXT: mkv
