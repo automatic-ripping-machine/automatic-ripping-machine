@@ -4,7 +4,29 @@
 
 ## Upgrading from v2_master to v2.1_dev
 
-TODO: add upgrade instructions....
+If you wish to upgrade from v2_master to v2.1_dev instead of a clean install, these directions should get you there.  
+
+```bash
+cd /opt/arm
+sudo git checkout v2.1_dev
+sudo pip3 install -r requirements.txt
+```
+Backup config file and replace it with the updated config
+```bash
+mv arm.yaml arm.yaml.old
+cp docs/arm.yaml.sample arm.yaml
+```
+
+There are new config parameters so review the new arm.yaml file
+
+Make sure the 'arm' user has write permissions to the db directory (see your arm.yaml file for locaton). is writeable by the arm user.  A db will be created when you first run ARM.
+
+There is not yet a proper web server set up, so you can serve up the web UI through the flask development web server.  You can start is by:
+```bash
+python3 /opt/arm/arm/runui.py
+```
+
+Please log any issues you find.  Don't forget to run in DEBUG mode if you need to submit an issue (and log files).  Also, please note that you are running 2.1_dev in your issue.
 
 
 ## Overview
