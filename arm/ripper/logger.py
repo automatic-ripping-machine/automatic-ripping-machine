@@ -3,7 +3,6 @@
 import os
 import logging
 import time
-# import yaml
 
 from arm.config.config import cfg
 

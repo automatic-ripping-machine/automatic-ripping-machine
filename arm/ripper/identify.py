@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+# Identification of dvd/bluray
 
 import os
 import sys # noqa # pylint: disable=unused-import
@@ -72,20 +72,6 @@ def identify(job, logfile):
             else:
                 job.hasnicetitle = False
                 db.session.commit()
-
-            # logging.info("Getting movie title...")
-            # job.title, job.year = getmovietitle.main(job)
-
-            # if job.hasnicetitle:
-            #     logging.info("Getting video type...")
-            #     getvideotype.main(job)
-            # else:
-            #     logging.info("Disc does not have a nice title.  Skipping video type identification and setting title=title_unkonwn")
-            #     job.title = "title_unknown"
-
-            # if not cfg['VIDEOTYPE'].lower() == "auto":
-            #     logging.debug("Overriding videotype with value in VIDEOTYPE config parameter: " + cfg['VIDEOTYPE'].lower())
-            #     job.video_type = cfg['VIDEOTYPE'].lower()
 
             logging.info("Disc title: " + str(job.title) + " : " + str(job.year) + " : " + str(job.video_type))
             logging.debug("Identification complete: " + str(job))
@@ -251,15 +237,6 @@ def get_video_details(job):
                 logging.debug("Trying title: " + title)
                 response = callwebservice(job, omdb_api_key, title, year)
                 logging.debug("response: " + response)
-
-    # if needs_new_year:
-    #     #     #pass the new year back to bash to handle
-    #     #     global new_year
-    #     #     return dvd_type + "#" + new_year
-    #     return (dvd_type, new_year)
-    # else:
-    #     #     return dvd_type
-    #     return (dvd_type, year)
 
 
 def callwebservice(job, omdb_api_key, dvd_title, year=""):

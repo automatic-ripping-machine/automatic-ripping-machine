@@ -16,16 +16,10 @@ import psutil  # noqa E402
 
 from arm.ripper import logger, utils, makemkv, handbrake, identify  # noqa: E402
 from arm.config.config import cfg  # noqa: E402
-# from classes import Disc
+
 from arm.ripper.getkeys import grabkeys  # noqa: E402
 from arm.models.models import Job  # noqa: E402
 from arm.ui import app, db # noqa E402
-# from app import db  # noqa E402
-# import ripper.logger
-# import ripper.utils
-# import ripper.makemkv
-# import ripper.handbrake
-# import ripper.identify
 
 
 def entry():
@@ -349,15 +343,14 @@ def main(logfile, job):
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
 
-    job.status = "success"
-    job.stop_time = datetime.datetime.now()
-    joblength = job.stop_time - job.start_time
-    minutes, seconds = divmod(joblength.seconds + joblength.days * 86400, 60)
-    hours, minutes = divmod(minutes, 60)
-    len = '{:d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
-    job.job_length = len
-    # db.session.add(job)
-    db.session.commit()
+    # job.status = "success"
+    # job.stop_time = datetime.datetime.now()
+    # joblength = job.stop_time - job.start_time
+    # minutes, seconds = divmod(joblength.seconds + joblength.days * 86400, 60)
+    # hours, minutes = divmod(minutes, 60)
+    # len = '{:d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+    # job.job_length = len
+    # db.session.commit()
 
 
 if __name__ == "__main__":
@@ -368,7 +361,7 @@ if __name__ == "__main__":
     print(devpath)
 
     job = Job(devpath)
-    print("Job: " + str(job.label))
+    db.session.commit()
 
     # sys.exit()
 
@@ -393,6 +386,8 @@ if __name__ == "__main__":
 
     utils.check_db_version()
 
+    logging.info("Job: " + str(job.label))
+
     a_jobs = Job.query.filter_by(status="active")
 
     # Clean up abandoned jobs
@@ -414,8 +409,18 @@ if __name__ == "__main__":
         logging.exception("A fatal error has occured and ARM is exiting.  See traceback below for details.")
         utils.notify("ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details")
         job.status = "fail"
+        # job.stop_time = datetime.datetime.now()
+        # job.job_length = job.stop_time - job.start_time
+        # job.errors = "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details"
+        # # db.session.add(job)
+        # db.session.commit()
+    else:
+        job.status = "success"
+    finally:
         job.stop_time = datetime.datetime.now()
-        job.job_length = job.stop_time - job.start_time
-        job.errors = "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details"
-        # db.session.add(job)
+        joblength = job.stop_time - job.start_time
+        minutes, seconds = divmod(joblength.seconds + joblength.days * 86400, 60)
+        hours, minutes = divmod(minutes, 60)
+        len = '{:d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+        job.job_length = len
         db.session.commit()
