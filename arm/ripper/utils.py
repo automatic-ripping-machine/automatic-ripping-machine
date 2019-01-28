@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+# Collection of utility functions
 
 import os
 import sys
@@ -11,6 +11,7 @@ import time
 
 from arm.config.config import cfg
 from arm.ui import app, db # noqa E402
+from arm.models.models import Track  # noqa: E402
 
 
 def notify(title, body):
@@ -386,3 +387,37 @@ def check_db_version():
         else:
             logging.error("Database is still out of date. Head is " + head_revision + " and database is " + db_version + ".  Exiting arm.")
             sys.exit()
+
+
+def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename=""):
+    """
+    Put data into a track instance\n
+
+
+    job = job ID\n
+    t_no = track number\n
+    seconds = lenght of track in seconds\n
+    aspect = aspect ratio (ie '16:9')\n
+    fps = frames per second (float)\n
+    mainfeature = True/False\n
+    source = Source of information\n
+    filename = filename of track\n
+    """
+
+    logging.debug("Track #" + str(t_no) + " Length: " + str(seconds) + " fps: " + str(fps) + " aspect: " + str(aspect) + " Mainfeature: " +
+                  str(mainfeature) + " Source: " + source)
+
+    t = Track(
+        job_id=job.job_id,
+        track_number=t_no,
+        length=seconds,
+        aspect_ratio=aspect,
+        # blocks=b,
+        fps=fps,
+        main_feature=mainfeature,
+        source=source,
+        basename=job.title,
+        filename=filename
+        )
+    db.session.add(t)
+    db.session.commit()

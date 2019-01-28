@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+# Handbrake processing of dvd/bluray
 
 import sys
 import os
@@ -218,26 +218,8 @@ def get_track_info(srcpath, job):
     srcpath = Path to disc\n
     job = Job instance\n
     """
-
-    def put_track(job, t_no, seconds, b, a, f, mainfeature):
-
-        logging.debug("Track #" + str(t_no) + " Length: " + str(seconds) + " seconds Blocks: " + str(b) + " fps: "
-                      + str(f) + " aspect: " + str(a) + " Mainfeature: " + str(mainfeature))
-
-        t = Track(
-            job_id=job.job_id,
-            track_number=t_no,
-            length=seconds,
-            aspect_ratio=a,
-            blocks=b,
-            fps=f,
-            main_feature=mainfeature,
-            basename=job.title,
-            )
-        db.session.add(t)
-        db.session.commit()
     
-    logging.info("Getting information on all the tracks on the disc.  This will take a few minutes...")
+    logging.info("Using HandBrake to get information on all the tracks on the disc.  This will take a few minutes...")
 
     cmd = '{0} -i {1} -t 0 --scan'.format(
         cfg['HANDBRAKE_CLI'],
@@ -261,10 +243,10 @@ def get_track_info(srcpath, job):
 
     t_pattern = re.compile(r'.*\+ title *')
     pattern = re.compile(r'.*duration\:.*')
-    b_pattern = re.compile(r'.*blocks\).*')
+    # b_pattern = re.compile(r'.*blocks\).*')
     seconds = 0
     t_no = 0
-    b = 0
+    # b = 0
     f = 0
     a = 0
     result = None
@@ -290,7 +272,7 @@ def get_track_info(srcpath, job):
             if t_no == 0:
                 pass
             else:
-                put_track(job, t_no, seconds, b, a, f, mainfeature)
+                utils.put_track(job, t_no, seconds, a, f, mainfeature, "handbrake")
 
             mainfeature = False
             t_no = line.rsplit(' ', 1)[-1]
@@ -304,14 +286,14 @@ def get_track_info(srcpath, job):
         if(re.search("Main Feature", line)) is not None:
             mainfeature = True
 
-        if(re.search(b_pattern, line)) is not None:
-            b = line.rsplit(' ', 2)[-2]
-            b = b.replace("(", "")
+        # if(re.search(b_pattern, line)) is not None:
+        #     b = line.rsplit(' ', 2)[-2]
+        #     b = b.replace("(", "")
 
         if(re.search(" fps", line)) is not None:
             f = line.rsplit(' ', 2)[-2]
             a = line.rsplit(' ', 3)[-3]
             a = str(a).replace(",", "")
 
-    put_track(job, t_no, seconds, b, a, f, mainfeature)
+    utils.put_track(job, t_no, seconds, a, f, mainfeature, "handbrake")
 

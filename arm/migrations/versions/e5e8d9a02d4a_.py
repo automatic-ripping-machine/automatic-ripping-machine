@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 8c52b6edaca7
+Revision ID: e5e8d9a02d4a
 Revises: 
-Create Date: 2019-01-26 21:50:57.470049
+Create Date: 2019-01-27 21:57:49.789541
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '8c52b6edaca7'
+revision = 'e5e8d9a02d4a'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -62,7 +62,6 @@ def upgrade():
     sa.Column('track_number', sa.String(length=4), nullable=True),
     sa.Column('length', sa.Integer(), nullable=True),
     sa.Column('aspect_ratio', sa.String(length=20), nullable=True),
-    sa.Column('blocks', sa.Integer(), nullable=True),
     sa.Column('fps', sa.Float(), nullable=True),
     sa.Column('main_feature', sa.Boolean(), nullable=True),
     sa.Column('basename', sa.String(length=256), nullable=True),
@@ -72,6 +71,7 @@ def upgrade():
     sa.Column('ripped', sa.Boolean(), nullable=True),
     sa.Column('status', sa.String(length=32), nullable=True),
     sa.Column('error', sa.Text(), nullable=True),
+    sa.Column('source', sa.String(length=32), nullable=True),
     sa.ForeignKeyConstraint(['job_id'], ['job.job_id'], ),
     sa.PrimaryKeyConstraint('track_id')
     )

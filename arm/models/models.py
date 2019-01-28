@@ -111,7 +111,7 @@ class Track(db.Model):
     track_number = db.Column(db.String(4))
     length = db.Column(db.Integer)
     aspect_ratio = db.Column(db.String(20))
-    blocks = db.Column(db.Integer)
+    # blocks = db.Column(db.Integer)
     fps = db.Column(db.Float)
     main_feature = db.Column(db.Boolean)
     basename = db.Column(db.String(256))
@@ -121,17 +121,20 @@ class Track(db.Model):
     ripped = db.Column(db.Boolean)
     status = db.Column(db.String(32))
     error = db.Column(db.Text)
+    source = db.Column(db.String(32))
 
-    def __init__(self, job_id, track_number, length, aspect_ratio, blocks, fps, main_feature, basename):
+    def __init__(self, job_id, track_number, length, aspect_ratio, fps, main_feature, source, basename, filename):
         """Return a track object"""
         self.job_id = job_id
         self.track_number = track_number
         self.length = length
         self.aspect_ratio = aspect_ratio
-        self.blocks = blocks
+        # self.blocks = blocks
         self.fps = fps
         self.main_feature = main_feature
+        self.source = source
         self.basename = basename
+        self.filename = filename
         self.ripped = False
 
     def __repr__(self):
