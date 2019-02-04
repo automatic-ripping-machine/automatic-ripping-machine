@@ -66,6 +66,7 @@ def makemkv(logfile, job):
 
     # rip bluray
     if cfg['RIPMETHOD'] == "backup" and job.disctype == "bluray":
+        # backup method
         cmd = 'makemkvcon backup --decrypt {0} -r disc:{1} {2}>> {3}'.format(
             cfg['MKV_ARGS'],
             mdisc.strip(),
@@ -90,54 +91,82 @@ def makemkv(logfile, job):
             return None
 
     elif cfg['RIPMETHOD'] == "mkv" or job.disctype == "dvd":
+        # mkv method
         get_track_info(mdisc, job)
 
-        for track in job.tracks:
-            if track.length < int(cfg['MINLENGTH']):
-                # too short
-                logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length (" + str(track.length) +
-                             ") is less than minimum length (" + cfg['MINLENGTH'] + ").  Skipping")
-            elif track.length > int(cfg['MAXLENGTH']):
-                # too long
-                logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length (" + str(track.length) +
-                             ") is greater than maximum length (" + cfg['MAXLENGTH'] + ").  Skipping")
-            else:
-                # just right
-                logging.info("Processing track #" + str(track.track_number) + " of " + str(job.no_of_titles - 1) + ". Length is " +
-                             str(track.length) + " seconds.")
+        # if no maximum length, process the whold disc in one command
+        if int(cfg['MAXLENGTH']) > 99998:
+            cmd = 'makemkvcon mkv {0} -r dev:{1} {2} {3} --minlength={4}>> {5}'.format(
+                cfg['MKV_ARGS'],
+                job.devpath,
+                "all",
+                shlex.quote(rawpath),
+                cfg['MINLENGTH'],
+                logfile
+            )
+            logging.debug("Ripping with the following command: " + cmd)
 
-                # filename = "title_" + str.zfill(str(track.track_number), 2) + "." + cfg['DEST_EXT']
-                # filename = track.filename
-                filepathname = os.path.join(rawpath, track.filename)
-
-                logging.info("Ripping title " + str(track.track_number) + " to " + shlex.quote(filepathname))
-
-                # track.filename = track.orig_filename = filename
-                # db.session.commit()
-
-                cmd = 'makemkvcon mkv {0} -r dev:{1} {2} {3} --minlength={4}>> {5}'.format(
-                    cfg['MKV_ARGS'],
-                    job.devpath,
-                    str(track.track_number),
-                    shlex.quote(rawpath),
-                    cfg['MINLENGTH'],
-                    logfile
+            try:
+                mkv = subprocess.run(
+                    cmd,
+                    shell=True
                 )
-                logging.debug("Ripping with the following command: " + cmd)
+                # ).decode("utf-8")
+                # print("mkv is: " + mkv)
+                logging.debug("The exit code for MakeMKV is: " + str(mkv.returncode))
+            except subprocess.CalledProcessError as mdisc_error:
+                err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
+                logging.error(err)
+                # print("Error: " + mkv)
+                return None
+        else:
+            # process one track at a time based on track length
+            for track in job.tracks:
+                if track.length < int(cfg['MINLENGTH']):
+                    # too short
+                    logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length (" + str(track.length) +
+                                 ") is less than minimum length (" + cfg['MINLENGTH'] + ").  Skipping")
+                elif track.length > int(cfg['MAXLENGTH']):
+                    # too long
+                    logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length (" + str(track.length) +
+                                 ") is greater than maximum length (" + cfg['MAXLENGTH'] + ").  Skipping")
+                else:
+                    # just right
+                    logging.info("Processing track #" + str(track.track_number) + " of " + str(job.no_of_titles - 1) + ". Length is " +
+                                 str(track.length) + " seconds.")
 
-                try:
-                    mkv = subprocess.run(
-                        cmd,
-                        shell=True
+                    # filename = "title_" + str.zfill(str(track.track_number), 2) + "." + cfg['DEST_EXT']
+                    # filename = track.filename
+                    filepathname = os.path.join(rawpath, track.filename)
+
+                    logging.info("Ripping title " + str(track.track_number) + " to " + shlex.quote(filepathname))
+
+                    # track.filename = track.orig_filename = filename
+                    # db.session.commit()
+
+                    cmd = 'makemkvcon mkv {0} -r dev:{1} {2} {3} --minlength={4}>> {5}'.format(
+                        cfg['MKV_ARGS'],
+                        job.devpath,
+                        str(track.track_number),
+                        shlex.quote(rawpath),
+                        cfg['MINLENGTH'],
+                        logfile
                     )
-                    # ).decode("utf-8")
-                    # print("mkv is: " + mkv)
-                    logging.debug("The exit code for MakeMKV is: " + str(mkv.returncode))
-                except subprocess.CalledProcessError as mdisc_error:
-                    err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
-                    logging.error(err)
-                    # print("Error: " + mkv)
-                    return None
+                    logging.debug("Ripping with the following command: " + cmd)
+
+                    try:
+                        mkv = subprocess.run(
+                            cmd,
+                            shell=True
+                        )
+                        # ).decode("utf-8")
+                        # print("mkv is: " + mkv)
+                        logging.debug("The exit code for MakeMKV is: " + str(mkv.returncode))
+                    except subprocess.CalledProcessError as mdisc_error:
+                        err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
+                        logging.error(err)
+                        # print("Error: " + mkv)
+                        return None
 
     else:
         logging.info("I'm confused what to do....  Passing on MakeMKV")

@@ -28,6 +28,7 @@ VIDEOTYPE: "auto"
 MINLENGTH: "600"
 
 # Maximum length of track for ARM rip (in seconds)
+# Use "99999" to indicate no maximum length
 MAXLENGTH: "99999"
 
 # Wait for manual identification
