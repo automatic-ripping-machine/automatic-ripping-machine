@@ -100,15 +100,13 @@ def main(logfile, job):
     """main dvd processing function"""
     logging.info("Starting Disc identification")
 
-    identify.identify(job, logfile)
-
-    # sys.exit()
-
     # put in db
     job.status = "active"
     job.start_time = datetime.datetime.now()
     db.session.add(job)
     db.session.commit()
+
+    identify.identify(job, logfile)
 
     if job.disctype in ["dvd", "bluray"]:
         utils.notify("ARM notification", "Found disc: " + str(job.title) + ". Video type is "
@@ -162,7 +160,11 @@ def main(logfile, job):
         if job.disctype == "bluray" or (not cfg['MAINFEATURE'] and cfg['RIPMETHOD'] == "mkv"):
             # send to makemkv for ripping
             # run MakeMKV and get path to ouput
-            mkvoutpath = makemkv.makemkv(logfile, job)
+            try:
+                mkvoutpath = makemkv.makemkv(logfile, job)
+            except:  # noqa: E772
+                raise
+
             if mkvoutpath is None:
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
                 sys.exit()
@@ -409,6 +411,7 @@ if __name__ == "__main__":
         logging.exception("A fatal error has occured and ARM is exiting.  See traceback below for details.")
         utils.notify("ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details")
         job.status = "fail"
+        job.eject()
         # job.stop_time = datetime.datetime.now()
         # job.job_length = job.stop_time - job.start_time
         # job.errors = "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details"
