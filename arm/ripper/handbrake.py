@@ -7,6 +7,7 @@ import subprocess
 import re
 import shlex
 
+from arm.ripper import utils
 from arm.config.config import cfg
 from arm.models.models import Track  # noqa: E402
 from arm.ui import app, db # noqa E402
@@ -226,7 +227,7 @@ def get_track_info(srcpath, job):
         shlex.quote(srcpath)
         )
 
-    # logging.debug("Sending command: %s", (cmd))
+    logging.debug("Sending command: %s", (cmd))
 
     try:
         hb = subprocess.check_output(
@@ -235,7 +236,6 @@ def get_track_info(srcpath, job):
             shell=True
         ).decode("utf-8").splitlines()
     except subprocess.CalledProcessError as hb_error:
-        # err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
         logging.error("Couldn't find a valid track.  Try running the command manually to see more specific errors.")
         logging.error("Specifid error is: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")")
         return(-1)
@@ -243,12 +243,10 @@ def get_track_info(srcpath, job):
 
     t_pattern = re.compile(r'.*\+ title *')
     pattern = re.compile(r'.*duration\:.*')
-    # b_pattern = re.compile(r'.*blocks\).*')
     seconds = 0
     t_no = 0
-    # b = 0
-    f = 0
-    a = 0
+    fps = float(0)
+    aspect = 0
     result = None
     mainfeature = False
     for line in hb:
@@ -272,7 +270,7 @@ def get_track_info(srcpath, job):
             if t_no == 0:
                 pass
             else:
-                utils.put_track(job, t_no, seconds, a, f, mainfeature, "handbrake")
+                utils.put_track(job, t_no, seconds, aspect, fps, mainfeature, "handbrake")
 
             mainfeature = False
             t_no = line.rsplit(' ', 1)[-1]
@@ -286,14 +284,10 @@ def get_track_info(srcpath, job):
         if(re.search("Main Feature", line)) is not None:
             mainfeature = True
 
-        # if(re.search(b_pattern, line)) is not None:
-        #     b = line.rsplit(' ', 2)[-2]
-        #     b = b.replace("(", "")
-
         if(re.search(" fps", line)) is not None:
-            f = line.rsplit(' ', 2)[-2]
-            a = line.rsplit(' ', 3)[-3]
-            a = str(a).replace(",", "")
+            fps = line.rsplit(' ', 2)[-2]
+            aspect = line.rsplit(' ', 3)[-3]
+            aspect = str(aspect).replace(",", "")
 
-    utils.put_track(job, t_no, seconds, a, f, mainfeature, "handbrake")
+    utils.put_track(job, t_no, seconds, aspect, fps, mainfeature, "handbrake")
 
