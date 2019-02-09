@@ -189,7 +189,8 @@ def get_track_info(mdisc, job):
     cmd = 'makemkvcon -r --cache=1 info disc:{0}'.format(
         mdisc
     )
-    logging.debug("Sending the command: " + cmd)
+
+    logging.debug("Sending command: %s", (cmd))
 
     try:
         mkv = subprocess.check_output(
@@ -209,12 +210,23 @@ def get_track_info(mdisc, job):
     filename = ""
 
     for line in mkv:
-        if line.split(":")[0] in ("TCOUNT", "CINFO", "TINFO", "SINFO"):
+        if line.split(":")[0] in ("MSG", "TCOUNT", "CINFO", "TINFO", "SINFO"):
             # print(line.rstrip())
             line_split = line.split(":", 1)
             msg_type = line_split[0]
             msg = line_split[1].split(",")
             line_track = int(msg[0])
+
+            if msg_type == "MSG":
+                if msg[0] == "5055":
+                    job.errors = "MakeMKV evaluation period has expired.  DVD processing will continus.  Bluray processing will exit."
+                    if job.disctype == "bluray":
+                        err = "MakeMKV evaluation period has expired.  Disc is a Bluray so ARM is exiting"
+                        logging.error(err)
+                        raise ValueError(err, "makemkv")
+                    else:
+                        logging.error("MakeMKV evaluation perios has ecpires.  Disc is dvd so ARM will continue")
+                    db.session.commit()
 
             if msg_type == "TCOUNT":
                 titles = int(line_split[1].strip())
