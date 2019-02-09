@@ -61,8 +61,9 @@ def history():
 def jobdetail():
     job_id = request.args.get('job_id')
     jobs = Job.query.get(job_id)
+    tracks = jobs.tracks.all()
 
-    return render_template('jobdetail.html', jobs=jobs)
+    return render_template('jobdetail.html', jobs=jobs, tracks=tracks)
 
 
 @app.route('/titlesearch', methods=['GET', 'POST'])
