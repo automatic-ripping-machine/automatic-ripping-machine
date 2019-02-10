@@ -9,47 +9,47 @@ import shutil
 import requests
 import time
 
-from arm.config.config import cfg
+# from arm.config.config import cfg
 from arm.ui import app, db # noqa E402
 from arm.models.models import Track  # noqa: E402
 
 
-def notify(title, body):
+def notify(job, title, body):
     # Send notificaions
     # title = title for notification
     # body = body of the notification
 
-    if cfg['PB_KEY'] != "":
+    if job.config.PB_KEY != "":
         try:
             from pushbullet import Pushbullet
-            pb = Pushbullet(cfg['PB_KEY'])
+            pb = Pushbullet(job.config.PB_KEY)
             pb.push_note(title, body)
         except:  # noqa: E722
             logging.error("Failed sending PushBullet notification.  Continueing processing...")
 
-    if cfg['IFTTT_KEY'] != "":
+    if job.config.IFTTT_KEY != "":
         try:
             import pyfttt as pyfttt
-            event = cfg['IFTTT_EVENT']
-            pyfttt.send_event(cfg['IFTTT_KEY'], event, title, body)
+            event = job.config.IFTTT_EVENT
+            pyfttt.send_event(job.config.IFTTT_KEY, event, title, body)
         except:  # noqa: E722
             logging.error("Failed sending IFTTT notification.  Continueing processing...")
 
-    if cfg['PO_USER_KEY'] != "":
+    if job.config.PO_USER_KEY != "":
         try:
             from pushover import init, Client
-            init(cfg['PO_APP_KEY'])
-            Client(cfg['PO_USER_KEY']).send_message(body, title=title)
+            init(job.config.PO_APP_KEY)
+            Client(job.config.PO_USER_KEY).send_message(body, title=title)
         except:  # noqa: E722
             logging.error("Failed sending PushOver notification.  Continueing processing...")
 
 
-def scan_emby():
+def scan_emby(job):
     """Trigger a media scan on Emby"""
 
-    if cfg['EMBY_REFRESH']:
+    if job.config.EMBY_REFRESH:
         logging.info("Sending Emby library scan request")
-        url = "http://" + cfg['EMBY_SERVER'] + ":" + cfg['EMBY_PORT'] + "/Library/Refresh?api_key=" + cfg['EMBY_API_KEY']
+        url = "http://" + job.config.EMBY_SERVER + ":" + job.config.EMBY_PORT + "/Library/Refresh?api_key=" + job.config.EMBY_API_KEY
         try:
             req = requests.post(url)
             if req.status_code > 299:
@@ -82,7 +82,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
     logging.debug("Arguments: " + basepath + " : " + filename + " : " + str(hasnicetitle) + " : " + videotitle + " : " + str(ismainfeature))
 
     if hasnicetitle:
-        m_path = os.path.join(cfg['MEDIA_DIR'] + videotitle)
+        m_path = os.path.join(job.config.MEDIA_DIR + videotitle)
 
         if not os.path.exists(m_path):
             logging.info("Creating base title directory: " + m_path)
@@ -91,7 +91,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
         if ismainfeature is True:
             logging.info("Track is the Main Title.  Moving '" + filename + "' to " + m_path)
 
-            m_file = os.path.join(m_path, videotitle + "." + cfg['DEST_EXT'])
+            m_file = os.path.join(m_path, videotitle + "." + job.config.DEST_EXT)
             if not os.path.isfile(m_file):
                 try:
                     shutil.move(os.path.join(basepath, filename), m_file)
@@ -100,7 +100,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
             else:
                 logging.info("File: " + m_file + " already exists.  Not moving.")
         else:
-            e_path = os.path.join(m_path, cfg['EXTRAS_SUB'])
+            e_path = os.path.join(m_path, job.config.EXTRAS_SUB)
 
             if not os.path.exists(e_path):
                 logging.info("Creating extras directory " + e_path)
@@ -108,7 +108,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
 
             logging.info("Moving '" + filename + "' to " + e_path)
 
-            e_file = os.path.join(e_path, videotitle + "." + cfg['DEST_EXT'])
+            e_file = os.path.join(e_path, videotitle + "." + job.config.DEST_EXT)
             if not os.path.isfile(e_file):
                 try:
                     shutil.move(os.path.join(basepath, filename), os.path.join(e_path, filename))
@@ -130,7 +130,7 @@ def rename_files(oldpath, job):
     returns new path if successful
     """
 
-    newpath = os.path.join(cfg['ARMPATH'], job.title + " (" + str(job.year) + ")")
+    newpath = os.path.join(job.config.ARMPATH, job.title + " (" + str(job.year) + ")")
     logging.debug("oldpath: " + oldpath + " newpath: " + newpath)
     logging.info("Changing directory name from " + oldpath + " to " + newpath)
 
@@ -310,18 +310,18 @@ def rip_data(job, datapath, logfile):
     return False
 
 
-def set_permissions(directory_to_traverse):
+def set_permissions(job, directory_to_traverse):
     try:
-        corrected_chmod_value = int(str(cfg['CHMOD_VALUE']), 8)
-        logging.info("Setting permissions to: " + str(cfg['CHMOD_VALUE']) + " on: " + directory_to_traverse)
+        corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
+        logging.info("Setting permissions to: " + str(job.config.CHMOD_VALUE) + " on: " + directory_to_traverse)
         os.chmod(directory_to_traverse, corrected_chmod_value)
 
         for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
             for cur_dir in l_directories:
-                logging.debug("Setting path: " + cur_dir + " to permissions value: " + str(cfg['CHMOD_VALUE']))
+                logging.debug("Setting path: " + cur_dir + " to permissions value: " + str(job.config.CHMOD_VALUE))
                 os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
             for cur_file in l_files:
-                logging.debug("Setting file: " + cur_file + " to permissions value: " + str(cfg['CHMOD_VALUE']))
+                logging.debug("Setting file: " + cur_file + " to permissions value: " + str(job.config.CHMOD_VALUE))
                 os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
         return True
     except Exception as e:
@@ -330,7 +330,7 @@ def set_permissions(directory_to_traverse):
         return False
 
 
-def check_db_version():
+def check_db_version(job):
     """
     Check if db exists and is up to date.
     If it doesn't exist create it.  If it's out of date update it.
@@ -340,8 +340,8 @@ def check_db_version():
     import sqlite3
     import flask_migrate
 
-    db_file = cfg['DBFILE']
-    mig_dir = os.path.join(cfg['INSTALLPATH'], "arm/migrations")
+    db_file = job.config.DBFILE
+    mig_dir = os.path.join(job.config.INSTALLPATH, "arm/migrations")
 
     config = Config()
     config.set_main_option("script_location", mig_dir)
@@ -350,7 +350,7 @@ def check_db_version():
     # create db file if it doesn't exist
     if not os.path.isfile(db_file):
         logging.info("No database found.  Initializing arm.db...")
-        make_dir(os.path.dirname(cfg['DBFILE']))
+        make_dir(os.path.dirname(job.config.DBFILE))
         with app.app_context():
             flask_migrate.upgrade(mig_dir)
 
@@ -374,8 +374,8 @@ def check_db_version():
         logging.info("Database out of date. Head is " + head_revision + " and database is " + db_version + ".  Upgrading database...")
         with app.app_context():
             ts = round(time.time() * 100)
-            logging.info("Backuping up database '" + cfg['DBFILE'] + "' to '" + cfg['DBFILE'] + str(ts) + "'.")
-            shutil.copy(cfg['DBFILE'], cfg['DBFILE'] + "_" + str(ts))
+            logging.info("Backuping up database '" + job.config.DBFILE + "' to '" + job.config.DBFILE + str(ts) + "'.")
+            shutil.copy(job.config.DBFILE, job.config.DBFILE + "_" + str(ts))
             flask_migrate.upgrade(mig_dir)
         logging.info("Upgrade complete.  Validating version level...")
 

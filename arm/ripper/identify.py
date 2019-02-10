@@ -13,7 +13,7 @@ import json
 
 from arm.ripper import utils
 from arm.ui import db
-from arm.config.config import cfg
+# from arm.config.config import cfg
 
 # flake8: noqa: W605
 
@@ -22,9 +22,6 @@ def identify(job, logfile):
     """Identify disc attributes"""
 
     logging.debug("Identification starting: " + str(job))
-
-    # If UDF CHeck is on
-    # if cfg['ARM_CHECK_UDF']:
 
     logging.info("Mounting disc to: " + str(job.mountpoint))
 
@@ -59,7 +56,7 @@ def identify(job, logfile):
 
         logging.info("Disc identified as video")
 
-        if cfg["GET_VIDEO_TITLE"]:
+        if job.config.GET_VIDEO_TITLE:
 
             # get crc_id (dvd only), title, year
             if job.disctype == "dvd":
@@ -186,7 +183,7 @@ def get_video_details(job):
         year = ""
 
     # needs_new_year = False
-    omdb_api_key = cfg['OMDB_API_KEY']
+    omdb_api_key = job.config.OMDB_API_KEY
 
     logging.debug("Title: " + title + " | Year: " + year)
 
@@ -243,12 +240,12 @@ def callwebservice(job, omdb_api_key, dvd_title, year=""):
     """ Queries OMDbapi.org for title information and parses type, imdb, and poster info
     """
 
-    if cfg['VIDEOTYPE'] == "auto":
+    if job.config.VIDEOTYPE == "auto":
         strurl = "http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year)
         logging.debug("http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format("key_hidden", dvd_title, year))
     else:
-        strurl = "http://www.omdbapi.com/?t={1}&y={2}&type={3}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year, cfg['VIDEOTYPE'])
-        logging.debug("http://www.omdbapi.com/?t={1}&y={2}&type={3}&plot=short&r=json&apikey={0}".format("key_hidden", dvd_title, year, cfg['VIDEOTYPE']))
+        strurl = "http://www.omdbapi.com/?t={1}&y={2}&type={3}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year, job.config.VIDEOTYPE)
+        logging.debug("http://www.omdbapi.com/?t={1}&y={2}&type={3}&plot=short&r=json&apikey={0}".format("key_hidden", dvd_title, year, job.config.VIDEOTYPE))
 
     logging.debug("***Calling webservice with Title: " + dvd_title + " and Year: " + year)
     try:
