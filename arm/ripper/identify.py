@@ -118,7 +118,10 @@ def identify_dvd(job):
         dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
         dvd_title = dvd_title.strip()
         dvd_title = clean_for_filename(dvd_title)
-        dvd_release_date = dvd_release_date.split()[0]
+        if dvd_release_date is not None:
+            dvd_release_date = dvd_release_date.split()[0]
+        else:
+            dvd_release_date = ""
     except KeyError:
         dvd_title = "not_identified"
         dvd_release_date = "0000"
