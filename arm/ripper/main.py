@@ -109,7 +109,7 @@ def main(logfile, job):
     elif job.disctype == "music":
         utils.notify(job, "ARM notification", "Found music CD: " + job.label + ". Ripping all tracks")
     elif job.disctype == "data":
-        utils.notify(job, "ARM notification", "Faound data disc.  Copying data.")
+        utils.notify(job, "ARM notification", "Found data disc.  Copying data.")
     else:
         utils.notify(job, "ARM Notification", "Could not identify disc.  Exiting.")
         sys.exit()
