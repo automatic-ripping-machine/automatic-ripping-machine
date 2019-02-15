@@ -4,15 +4,15 @@ import os
 import logging
 import time
 
-# from arm.config.config import cfg
+from arm.config.config import cfg
 
 
 def setuplogging(job):
     """Setup logging and return the path to the logfile for
     redirection of external calls"""
 
-    if not os.path.exists(job.config.LOGPATH):
-        os.makedirs(job.config.LOGPATH)
+    if not os.path.exists(cfg['LOGPATH']):
+        os.makedirs(cfg['LOGPATH'])
 
     if job.label == "" or job.label is None:
         if job.disctype == "music":
@@ -22,17 +22,17 @@ def setuplogging(job):
     else:
         logfile = job.label + ".log"
 
-    if job.config.LOGPATH[-1:] == "/":
-        logfull = job.config.LOGPATH + logfile
+    if cfg['LOGPATH'][-1:] == "/":
+        logfull = cfg['LOGPATH'] + logfile
     else:
-        logfull = job.config.LOGPATH + "/" + logfile
+        logfull = cfg['LOGPATH'] + "/" + logfile
 
-    if job.config.LOGLEVEL == "DEBUG":
+    if cfg['LOGLEVEL'] == "DEBUG":
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', level=job.config.LOGLEVEL)
+                            datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', level=job.config.LOGLEVEL)
+                            datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
 
     job.logfile = logfile
 

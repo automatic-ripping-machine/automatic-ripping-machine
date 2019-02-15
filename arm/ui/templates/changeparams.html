@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}  
+<div class="container">
+    <div class="row h-100 mx-auto align-items-center">
+            <div class="col-sm-4 mx-auto"></div>
+                <div class="col-sm-4 mx-auto">
+                    <form action="" method="post" novalidate>
+                        {{ form.hidden_tag() }}
+                        <p>
+                            <strong></strong>
+                            <strong>{{ form.RIPMETHOD.label }}</strong>
+                            {{ form.RIPMETHOD }}
+                        </p>
+                        <p>
+                            <strong>{{ form.MAINFEATURE.label }}</strong>
+                            {{ form.MAINFEATURE }}
+                        </p>
+                        <p>
+                                <strong>{{ form.MINLENGTH.label }}</strong>
+                                {{ form.MINLENGTH(size=5) }}
+                        </p>
+                        <p>
+                                <strong>{{ form.MAXLENGTH.label }}</strong>
+                                {{ form.MAXLENGTH(size=5) }}
+                            </p>
+                        <p>{{ form.submit() }}</p>
+                    </form>        
+                </div>
+            <div class="col-sm-4 mx-auto"></div>
+    </div>
+</div>
+
+
+
+{% endblock %}

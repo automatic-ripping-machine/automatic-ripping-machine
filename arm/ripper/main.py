@@ -116,11 +116,14 @@ def main(logfile, job):
 
     if job.config.MANUAL_WAIT:
         logging.info("Waiting " + str(job.config.MANUAL_WAIT_TIME) + " seconds for manual override.")
-        # job.status = "waiting"
-        # db.session.commit()
+        job.status = "waiting"
+        db.session.commit()
         time.sleep(job.config.MANUAL_WAIT_TIME)
+        db.session.refresh(job)
+        db.session.refresh(config)
+        job.status = "active"
+        db.session.commit()
 
-    db.session.refresh(job)
     if job.title_manual:
         logging.info("Manual override found.  Overriding auto identification values.")
         job.updated = True
@@ -154,6 +157,8 @@ def main(logfile, job):
         if job.disctype == "bluray" or (not job.config.MAINFEATURE and job.config.RIPMETHOD == "mkv"):
             # send to makemkv for ripping
             # run MakeMKV and get path to ouput
+            job.status = "ripping"
+            db.session.commit()
             try:
                 mkvoutpath = makemkv.makemkv(logfile, job)
             except:  # noqa: E772
@@ -237,6 +242,8 @@ def main(logfile, job):
                 # exit
                 sys.exit()
 
+        job.status = "transcoding"
+        db.session.commit()
         if job.disctype == "bluray" and job.config.RIPMETHOD == "mkv":
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
         elif job.disctype == "dvd" and (not job.config.MAINFEATURE and job.config.RIPMETHOD == "mkv"):
@@ -357,25 +364,23 @@ if __name__ == "__main__":
 
     job = Job(devpath)
 
-    # put in db
-    job.status = "active"
-    job.start_time = datetime.datetime.now()
-    db.session.add(job)
-    db.session.commit()
-    # logging.debug("Job is: " + str(job.job_id))
-    config = Config(cfg, job_id=job.job_id)
-    db.session.add(config)
-    db.session.commit()
-
     logfile = logger.setuplogging(job)
     print("Log: " + logfile)
-    print(job.config.LOGPATH)
 
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
 
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
+
+    # put in db
+    job.status = "active"
+    job.start_time = datetime.datetime.now()
+    db.session.add(job)
+    db.session.commit()
+    config = Config(cfg, job_id=job.job_id)
+    db.session.add(config)
+    db.session.commit()
 
     # Log version number
     with open(os.path.join(job.config.INSTALLPATH, 'VERSION')) as version_file:

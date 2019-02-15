@@ -3,10 +3,10 @@ from time import sleep
 from flask import render_template, abort, request, send_file, flash, redirect, url_for
 import psutil
 from arm.ui import app, db
-from arm.models.models import Job
+from arm.models.models import Job, Config
 from arm.config.config import cfg
 from arm.ui.utils import convert_log, get_info, call_omdb_api
-from arm.ui.forms import TitleSearchForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm
 
 
 @app.route('/logreader')
@@ -79,6 +79,21 @@ def submitrip():
         # return render_template('list_titles.html', results=dvd_info, job_id=job_id)
         # return redirect('/gettitle', title=form.title.data, year=form.year.data)
     return render_template('titlesearch.html', title='Update Title', form=form)
+
+
+@app.route('/changeparams', methods=['GET', 'POST'])
+def changeparams():
+    config_id = request.args.get('config_id')
+    config = Config.query.get(config_id)
+    form = ChangeParamsForm(obj=config)
+    if form.validate_on_submit():
+        form.populate_obj(config)
+        db.session.commit()
+        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}'.format(form.RIPMETHOD.data, form.MAINFEATURE.data,
+              form.MINLENGTH.data, form.MAXLENGTH.data), category='success')
+        # return redirect(url_for('list_titles', title=form.title.data, year=form.year.data, job_id=job_id))
+        return redirect(url_for('home'))
+    return render_template('changeparams.html', title='Change Parameters', form=form)
 
 
 @app.route('/list_titles')
@@ -157,7 +172,8 @@ def home():
     mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
     mfreegb = round(mfreegb/1073741824, 1)
     if os.path.isfile(cfg['DBFILE']):
-        jobs = Job.query.filter_by(status="active")
+        # jobs = Job.query.filter_by(status="active")
+        jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
     else:
         jobs = {}
 

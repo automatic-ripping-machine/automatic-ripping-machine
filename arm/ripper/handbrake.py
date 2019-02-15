@@ -27,7 +27,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     logging.info("Starting DVD Movie Mainfeature processing")
     logging.debug("Handbrake starting: " + str(job))
 
-    filename = os.path.join(basepath, job.title + job.config.DEST_EXT)
+    filename = os.path.join(basepath, job.title + "." + job.config.DEST_EXT)
     filepathname = os.path.join(basepath, filename)
 
     get_track_info(srcpath, job)
