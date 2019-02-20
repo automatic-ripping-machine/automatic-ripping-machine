@@ -373,6 +373,8 @@ if __name__ == "__main__":
 
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
 
+    utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
+
     # put in db
     job.status = "active"
     job.start_time = datetime.datetime.now()
@@ -391,8 +393,6 @@ if __name__ == "__main__":
     logging.info("User is: " + getpass.getuser())
 
     logger.cleanuplogs(job.config.LOGPATH, job.config.LOGLIFE)
-
-    utils.check_db_version(job)
 
     logging.info("Job: " + str(job.label))
 

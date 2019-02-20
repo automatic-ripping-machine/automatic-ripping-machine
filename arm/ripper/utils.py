@@ -330,7 +330,7 @@ def set_permissions(job, directory_to_traverse):
         return False
 
 
-def check_db_version(job):
+def check_db_version(install_path, db_file):
     """
     Check if db exists and is up to date.
     If it doesn't exist create it.  If it's out of date update it.
@@ -340,8 +340,8 @@ def check_db_version(job):
     import sqlite3
     import flask_migrate
 
-    db_file = job.config.DBFILE
-    mig_dir = os.path.join(job.config.INSTALLPATH, "arm/migrations")
+    # db_file = job.config.DBFILE
+    mig_dir = os.path.join(install_path, "arm/migrations")
 
     config = Config()
     config.set_main_option("script_location", mig_dir)
@@ -350,7 +350,7 @@ def check_db_version(job):
     # create db file if it doesn't exist
     if not os.path.isfile(db_file):
         logging.info("No database found.  Initializing arm.db...")
-        make_dir(os.path.dirname(job.config.DBFILE))
+        make_dir(os.path.dirname(db_file))
         with app.app_context():
             flask_migrate.upgrade(mig_dir)
 
@@ -374,8 +374,8 @@ def check_db_version(job):
         logging.info("Database out of date. Head is " + head_revision + " and database is " + db_version + ".  Upgrading database...")
         with app.app_context():
             ts = round(time.time() * 100)
-            logging.info("Backuping up database '" + job.config.DBFILE + "' to '" + job.config.DBFILE + str(ts) + "'.")
-            shutil.copy(job.config.DBFILE, job.config.DBFILE + "_" + str(ts))
+            logging.info("Backuping up database '" + db_file + "' to '" + db_file + str(ts) + "'.")
+            shutil.copy(db_file, db_file + "_" + str(ts))
             flask_migrate.upgrade(mig_dir)
         logging.info("Upgrade complete.  Validating version level...")
 
