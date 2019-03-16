@@ -8,7 +8,7 @@
     <div class="row">
     {% for res in results["Search"] %}
     {% if res["Type"].lower() != "game" %}
-    <div class="col-md-3">
+    <div class="col-md-3 text-center">
             <div class="card text-center">
                 <div class="card-header"><a href="gettitle?imdbID={{ res["imdbID"] }}&job_id={{ job_id }}"><img src="{{ res["Poster"] }}" width="120px" class="img-thumbnail"></a></div>
                 <div class="card-body"><b>{{  res["Title"]  }}</b> - {{ res["Type"].capitalize() }} ({{ res["Year"] }})</div>

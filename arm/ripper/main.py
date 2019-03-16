@@ -396,7 +396,8 @@ if __name__ == "__main__":
 
     logging.info("Job: " + str(job.label))
 
-    a_jobs = Job.query.filter_by(status="active")
+    # a_jobs = Job.query.filter_by(status="active")
+    a_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
 
     # Clean up abandoned jobs
     for j in a_jobs:
