@@ -234,7 +234,7 @@ def get_track_info(srcpath, job):
             cmd,
             stderr=subprocess.STDOUT,
             shell=True
-        ).decode("utf-8").splitlines()
+        ).decode('cp437').splitlines()
     except subprocess.CalledProcessError as hb_error:
         logging.error("Couldn't find a valid track.  Try running the command manually to see more specific errors.")
         logging.error("Specifid error is: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")")
