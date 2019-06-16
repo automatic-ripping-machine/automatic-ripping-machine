@@ -107,21 +107,25 @@ def identify_dvd(job):
             "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".
             format(crc64)).read()
     except OSError as e:
+        dvd_info_xml = False
         dvd_title = "not_identified"
         dvd_release_date = "0000"
         logging.error("Failed to reach windowsmedia web service.  Error number is: " + str(e.errno))
         # return False
 
     try:
-        doc = xmltodict.parse(dvd_info_xml)
-        dvd_title = doc['METADATA']['MDR-DVD']['dvdTitle']
-        dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
-        dvd_title = dvd_title.strip()
-        dvd_title = clean_for_filename(dvd_title)
-        if dvd_release_date is not None:
-            dvd_release_date = dvd_release_date.split()[0]
+        if not dvd_info_xml:
+            pass
         else:
-            dvd_release_date = ""
+            doc = xmltodict.parse(dvd_info_xml)
+            dvd_title = doc['METADATA']['MDR-DVD']['dvdTitle']
+            dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
+            dvd_title = dvd_title.strip()
+            dvd_title = clean_for_filename(dvd_title)
+            if dvd_release_date is not None:
+                dvd_release_date = dvd_release_date.split()[0]
+            else:
+                dvd_release_date = ""
     except KeyError:
         dvd_title = "not_identified"
         dvd_release_date = "0000"
