@@ -37,8 +37,7 @@ def makemkv(logfile, job):
     except subprocess.CalledProcessError as mdisc_error:
         err = "Call to makemkv failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
         logging.error(err)
-        # print("Error: " + err)
-        return
+        raise RuntimeError(err)
 
     # get filesystem in order
     rawpath = os.path.join(job.config.RAWPATH, job.title)
@@ -82,6 +81,11 @@ def makemkv(logfile, job):
             # ).decode("utf-8")
             # print("mkv is: " + mkv)
             logging.debug("The exit code for MakeMKV is: " + str(mkv.returncode))
+            if mkv.returncode == 253:
+                # Makemkv is out of date
+                err = "MakeMKV version is too old.  Upgrade and try again.  MakeMKV returncode is '253'."
+                logging.error(err)
+                raise RuntimeError(err)
         except subprocess.CalledProcessError as mdisc_error:
             err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
             logging.error(err)
@@ -92,7 +96,7 @@ def makemkv(logfile, job):
         # mkv method
         get_track_info(mdisc, job)
 
-        # if no maximum length, process the whold disc in one command
+        # if no maximum length, process the whole disc in one command
         if int(job.config.MAXLENGTH) > 99998:
             cmd = 'makemkvcon mkv {0} -r dev:{1} {2} {3} --minlength={4}>> {5}'.format(
                 job.config.MKV_ARGS,
@@ -112,6 +116,11 @@ def makemkv(logfile, job):
                 # ).decode("utf-8")
                 # print("mkv is: " + mkv)
                 logging.debug("The exit code for MakeMKV is: " + str(mkv.returncode))
+                if mkv.returncode == 253:
+                    # Makemkv is out of date
+                    err = "MakeMKV version is too old.  Upgrade and try again.  MakeMKV returncode is '253'."
+                    logging.error(err)
+                    raise RuntimeError(err)
             except subprocess.CalledProcessError as mdisc_error:
                 err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
                 logging.error(err)
@@ -160,6 +169,11 @@ def makemkv(logfile, job):
                         # ).decode("utf-8")
                         # print("mkv is: " + mkv)
                         logging.debug("The exit code for MakeMKV is: " + str(mkv.returncode))
+                        if mkv.returncode == 253:
+                            # Makemkv is out of date
+                            err = "MakeMKV version is too old.  Upgrade and try again.  MakeMKV returncode is '253'."
+                            logging.error(err)
+                            raise RuntimeError(err)
                     except subprocess.CalledProcessError as mdisc_error:
                         err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
                         logging.error(err)

@@ -81,7 +81,7 @@ def clean_for_filename(string):
     string = re.sub('\[(.*?)\]', '', string)
     string = re.sub('\s+', ' ', string)
     string = string.replace(' : ', ' - ')
-    string = string.replace(': ', ' - ')
+    string = string.replace(':', '-')
     string = string.strip()
     return re.sub('[^\w\-_\.\(\) ]', '', string)
 
