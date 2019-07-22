@@ -161,7 +161,7 @@ When a disc is inserted, udev rules should launch a script (scripts/arm_wrapper.
   ```
   - Empty.log should be in your logs directory as defined in your arm.yaml file.  If there is no empty.log file, or entries are not being entered when you eject the cdrom drive, then udev is not launching ARM correctly.  Check the instructions and make sure the symlink to 51-automedia.rules is set up right.  I've you've changed the link or the file contents you need to reload your udev rules with:
   ```
-  sudo udevadm control --reload_rules 
+  sudo udevadm control --reload-rules 
   ```
 
 - Check ARM log files 
