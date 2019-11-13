@@ -75,7 +75,8 @@ def log_arm_params(disc):
     logging.info("emby_server: " + cfg['EMBY_SERVER'])
     logging.info("emby_port: " + cfg['EMBY_PORT'])
     logging.info("notify_rip: " + str(cfg['NOTIFY_RIP']))
-    logging.info("notify_transcode " + str(cfg['NOTIFY_TRANSCODE']))
+    logging.info("notify_transcode: " + str(cfg['NOTIFY_TRANSCODE']))
+    logging.info("eject: " + str(cfg['EJECT']))
     logging.info("**** End of config parameters ****")
 
 

@@ -5,5 +5,3 @@
 # ACTION=="change", SUBSYSTEM=="block", RUN+="/opt/arm/arm/main.py -l '%E{ID_FS_LABEL}' -d '%E{DEVNAME}'"
 # ACTION=="change", SUBSYSTEM=="block", TAG+="systemd", KERNEL=="sr[0-9]*|vdisk*|xvd*", ENV{DEVTYPE}=="disk", RUN+="/bin/systemctl start arm@%k.service"
 ACTION=="change", SUBSYSTEM=="block", RUN+="/opt/arm/scripts/arm_wrapper.sh %k"
-
-

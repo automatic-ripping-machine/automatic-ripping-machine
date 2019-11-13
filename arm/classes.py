@@ -65,9 +65,11 @@ class Disc(object):
         return s
 
     def eject(self):
-        """Eject disc if it hasn't previously been ejected"""
-
-        # print("Value is " + str(self.ejected))
-        if not self.ejected:
-            os.system("eject " + self.devpath)
-            self.ejected = True
+        if cfg['EJECT']:
+            logging.debug("Eject disc")
+            # print("Value is " + str(self.ejected))
+            if not self.ejected:
+                os.system("eject " + self.devpath)
+                self.ejected = True
+        else:
+            logging.debug("Do not eject disc")
