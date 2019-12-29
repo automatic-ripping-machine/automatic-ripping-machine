@@ -30,6 +30,9 @@ MINLENGTH: "600"
 # Maximum length of track for ARM rip (in seconds)
 MAXLENGTH: "99999"
 
+# Actual identified disc type is replaced. Options are "music", "dvd", "bluray" and "data"
+# OVERRIDE_DISC_TYPE: "data"
+
 #####################
 ## Directory setup ##
 #####################

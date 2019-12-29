@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
 import os
-import sys # noqa # pylint: disable=unused-import
+import sys  # noqa # pylint: disable=unused-import
 import logging
-import classes # noqa # pylint: disable=unused-import
+import classes  # noqa # pylint: disable=unused-import
 import getmovietitle
 import getvideotype
 import utils
@@ -72,3 +72,7 @@ def identify(disc, logfile):
             logging.debug("Identification complete: " + str(disc))
 
     os.system("umount " + disc.devpath)
+
+    if cfg["OVERRIDE_DISC_TYPE"]:
+        logging.debug("OVERRIDE_DISC_TYPE setting is set. Changing disctype to '" + cfg["OVERRIDE_DISC_TYPE"] + "'")
+        disc.disctype = cfg["OVERRIDE_DISC_TYPE"]
