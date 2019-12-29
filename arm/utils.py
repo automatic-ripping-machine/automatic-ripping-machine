@@ -239,6 +239,7 @@ def rip_data(disc, datapath, logfile):
         except subprocess.CalledProcessError as dd_error:
             err = "Data rip failed with code: " + str(dd_error.returncode) + "(" + str(dd_error.output) + ")"
             logging.error(err)
+            os.unlink(filename)
             # sys.exit(err)
 
     return False

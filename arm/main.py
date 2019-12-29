@@ -254,7 +254,6 @@ def main(logfile, disc):
             disc.eject()
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")
-            os.unlink(datapath)
             disc.eject()
 
     else:
