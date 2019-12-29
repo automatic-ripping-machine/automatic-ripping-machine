@@ -30,6 +30,9 @@ MINLENGTH: "600"
 # Maximum length of track for ARM rip (in seconds)
 MAXLENGTH: "99999"
 
+# Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
+DATA_RIP_PARAMETERS: ""
+
 #####################
 ## Directory setup ##
 #####################

@@ -203,7 +203,7 @@ def rip_music(disc, logfile):
 
 def rip_data(disc, datapath, logfile):
     """
-    Rip data disc using cat on the command line\n
+    Rip data disc using dd on the command line\n
     disc = disc object\n
     datapath = path to copy data to\n
     logfile = location of logfile\n
@@ -221,9 +221,10 @@ def rip_data(disc, datapath, logfile):
 
         logging.info("Ripping data disc to: " + filename)
 
-        cmd = 'cat "{0}" > "{1}" 2>> {2}'.format(
+        cmd = 'dd if="{0}" of="{1}" {2} 2>> {3}'.format(
             disc.devpath,
             filename,
+            cfg["DATA_RIP_PARAMETERS"],
             logfile
         )
 
