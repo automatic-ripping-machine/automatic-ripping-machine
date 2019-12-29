@@ -80,7 +80,6 @@ def log_arm_params(disc):
 
 
 def main(logfile, disc):
-
     """main dvd processing function"""
     logging.info("Starting Disc identification")
 
@@ -255,6 +254,7 @@ def main(logfile, disc):
             disc.eject()
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")
+            os.unlink(datapath)
             disc.eject()
 
     else:
