@@ -87,50 +87,18 @@ def clean_for_filename(string):
 
 
 def identify_dvd(job):
-    """ Calculates CRC64 for the DVD and calls Windows Media
-        Metaservices and returns the Title and year of DVD """
+    """ Manipulates the DVD title and calls OMDB
+        to try and lookup the title """
     logging.debug(str(job))
 
-    try:
-        crc64 = pydvdid.compute(str(job.mountpoint))
-    except pydvdid.exceptions.PydvdidException as e:
-        logging.error("Pydvdid failed with the error: " + str(e))
-        return False
+    #  Some older DVDs aren't actually labelled
+    if not job.label:
+      job.label = "not identified"
 
-    logging.info("DVD CRC64 hash is: " + str(crc64))
-    job.crc_id = str(crc64)
-    urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
-    logging.debug(urlstring)
-
-    try:
-        dvd_info_xml = urllib.request.urlopen(
-            "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".
-            format(crc64)).read()
-    except OSError as e:
-        dvd_info_xml = False
-        dvd_title = "not_identified"
-        dvd_release_date = "0000"
-        logging.error("Failed to reach windowsmedia web service.  Error number is: " + str(e.errno))
-        # return False
-
-    try:
-        if not dvd_info_xml:
-            pass
-        else:
-            doc = xmltodict.parse(dvd_info_xml)
-            dvd_title = doc['METADATA']['MDR-DVD']['dvdTitle']
-            dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
-            dvd_title = dvd_title.strip()
-            dvd_title = clean_for_filename(dvd_title)
-            if dvd_release_date is not None:
-                dvd_release_date = dvd_release_date.split()[0]
-            else:
-                dvd_release_date = ""
-    except KeyError:
-        dvd_title = "not_identified"
-        dvd_release_date = "0000"
-        logging.error("Windows Media request returned no result.  Likely the DVD is not in their database.")
-        # return False
+    # TODO: split this out to another file/function and loop depending how many replacements
+    #       need to be done
+    dvd_title = job.label.replace("_", " ").replace("16X9", "")
+    dvd_release_date = ""
 
     job.title = job.title_auto = dvd_title
     job.year = job.year_auto = dvd_release_date
@@ -185,6 +153,10 @@ def get_video_details(job):
     """
 
     title = job.title
+
+    if title == "not identified":
+      return
+
     year = job.year
     if year is None:
         year = ""
@@ -206,18 +178,19 @@ def get_video_details(job):
     # this is a little kludgy, but it kind of works...
     if (response == "fail"):
 
-        # first try subtracting one year.  This accounts for when
-        # the dvd release date is the year following the movie release date
-        logging.debug("Subtracting 1 year...")
-        response = callwebservice(job, omdb_api_key, title, str(int(year) - 1))
-        logging.debug("response: " + response)
+        if year:
+          # first try subtracting one year.  This accounts for when
+          # the dvd release date is the year following the movie release date
+          logging.debug("Subtracting 1 year...")
+          response = callwebservice(job, omdb_api_key, title, str(int(year) - 1))
+          logging.debug("response: " + response)
 
-        # try submitting without the year
-        if response == "fail":
-            # year needs to be changed
-            logging.debug("Removing year...")
-            response = callwebservice(job, omdb_api_key, title, "")
-            logging.debug("response: " + response)
+          # try submitting without the year
+          if response == "fail":
+              # year needs to be changed
+              logging.debug("Removing year...")
+              response = callwebservice(job, omdb_api_key, title, "")
+              logging.debug("response: " + response)
 
         # if response != "fail":
         #     # that means the year is wrong.

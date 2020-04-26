@@ -17,5 +17,4 @@ omdb>=0.10.0
 psutil>=5.4.6
 robobrowser>=0.5.3
 tinydownload>=0.1.0
-
-
+werkzeug==0.16.0
