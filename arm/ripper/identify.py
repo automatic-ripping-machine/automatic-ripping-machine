@@ -92,7 +92,8 @@ def identify_dvd(job):
     logging.debug(str(job))
 
     #  Some older DVDs aren't actually labelled
-    if not job.label:
+    #  or are labelled generically DVD_VIDEO
+    if not job.label or job.label.casefold() == "dvd_video":
       job.label = "not identified"
 
     # TODO: split this out to another file/function and loop depending how many replacements
