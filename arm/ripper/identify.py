@@ -98,7 +98,7 @@ def identify_dvd(job):
 
     # TODO: split this out to another file/function and loop depending how many replacements
     #       need to be done
-    dvd_title = job.label.replace("_", " ").replace("16X9", "").replace("4X3", "").replace("_SE", "")
+    dvd_title = job.label.replace("_", " ").replace("16X9", "").replace("4X3", "").replace("_SE", "").replace("THX", "").replace("DTS", "")
     dvd_release_date = ""
 
     job.title = job.title_auto = dvd_title
