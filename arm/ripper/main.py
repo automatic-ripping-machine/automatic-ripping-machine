@@ -107,7 +107,7 @@ def main(logfile, job):
                      + str(job.video_type) + ". Main Feature is " + str(job.config.MAINFEATURE)
                      + ".  Edit entry here: http://" + job.config.WEBSERVER_IP + ":" + str(job.config.WEBSERVER_PORT))
     elif job.disctype == "music":
-        utils.notify(job, "ARM notification", "Found music CD: " + job.label + ". Ripping all tracks")
+        utils.notify(job, "ARM notification", "Found music CD: " + str(job.label) + ". Ripping all tracks")
     elif job.disctype == "data":
         utils.notify(job, "ARM notification", "Found data disc.  Copying data.")
     else:
@@ -141,11 +141,27 @@ def main(logfile, job):
 
     if job.disctype in ["dvd", "bluray"]:
         # get filesystem in order
-        hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
+        if job.hasnicetitle:
+            if job.year != "0000":
+                hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title + " (" + job.year + ")"))
+            else:
+                hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title))
+        else:
+            hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
 
+        #TODO : ENABLE/DISABLED RE-RIPS
+        #reverts to default directory
+        h2 = hboutpath
         if (utils.make_dir(hboutpath)) is False:
+            logging.info("Directory exist.")
             ts = round(time.time() * 100)
-            hboutpath = os.path.join(job.config.ARMPATH, str(job.title) + "_" + str(ts))
+            if job.hasnicetitle:
+                if job.year != "0000":
+                    hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title + " (" + job.year + ") " + str(ts)))
+                else:
+                    hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title + " " +str(ts)))
+            else:
+                hboutpath = os.path.join(job.config.ARMPATH, str(job.title) + "_" + str(ts))
             if(utils.make_dir(hboutpath)) is False:
                 logging.info("Failed to create base directory.  Exiting ARM.")
                 sys.exit()
@@ -320,7 +336,7 @@ def main(logfile, job):
 
     elif job.disctype == "music":
         if utils.rip_music(job, logfile):
-            utils.notify(job, "ARM notification", "Music CD: " + job.label + " processing complete.")
+            utils.notify(job, "ARM notification", "Music CD: " + str(job.label) + " processing complete.")
             utils.scan_emby(job)
         else:
             logging.info("Music rip failed.  See previous errors.  Exiting.")
