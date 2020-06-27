@@ -84,12 +84,57 @@ def clean_for_filename(string):
     string = string.replace(':', '-')
     string = string.strip()
     return re.sub('[^\w\-_\.\(\) ]', '', string)
-
+def cleanupstring2(string):
+    # clean up title string to pass to OMDbapi.org
+    string = string.strip()
+    return re.sub('[_ ]', "+", string)
 
 def identify_dvd(job):
     """ Calculates CRC64 for the DVD and calls Windows Media
         Metaservices and returns the Title and year of DVD """
-    logging.debug(str(job))
+    logging.debug("####### --- job ----"+ str(job))
+    dvd_title = job.label
+    year = job.year
+    omdb_api_key = job.config.OMDB_API_KEY
+    dvd_title_clean = cleanupstring2(dvd_title)
+    logging.info("DVD title: " + str(dvd_title))
+
+    # try to contact omdb
+    try:
+        dvd_info_xml = callwebservice2(omdb_api_key, dvd_title_clean, year)
+        logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
+    except OSError as e:
+        # we couldnt reach omdb
+        logging.error("Failed to reach OMDB")
+        return [None, None]
+    # couldnt be found
+    if dvd_info_xml == "fail":
+        logging.debug("We found ERROR IN DVD_INFO_XML")
+        # second see if there is a hyphen and split it
+        if dvd_title.find("-") > -1:
+            dvd_title_slice = dvd_title[:dvd_title.find("-")]
+            dvd_title_slice = cleanupstring2(dvd_title_slice)
+            logging.debug("Trying title: " + dvd_title_slice)
+            dvd_info_xml = callwebservice2(omdb_api_key, dvd_title_slice, year)
+            logging.debug("DVD STUFF: " + str(dvd_info_xml))
+            # if still fail, then try slicing off the last word in a loop
+        while dvd_info_xml == "fail" and dvd_title_clean.count('+') > 0:
+            dvd_title_clean = dvd_title_clean.rsplit('+', 1)[0]
+            logging.debug("Trying title: " + dvd_title_clean)
+            dvd_info_xml = callwebservice2(omdb_api_key, dvd_title_clean, year)
+
+    ##try to set our new title
+    try:
+        dvd_title2 = dvd_info_xml['Title']
+        dvd_release_date = dvd_info_xml['Year']
+        logging.debug("disk has nice title before : " + str(job.hasnicetitle))
+        job.hasnicetitle = True
+        logging.debug("disk has nice title after : " + str(job.hasnicetitle))
+    except KeyError:
+        # couldnt get our title
+        logging.error("key Error")
+        return [None, None]
+    #return [dvd_title2, dvd_release_date]
 
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
@@ -101,36 +146,6 @@ def identify_dvd(job):
     job.crc_id = str(crc64)
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
     logging.debug(urlstring)
-
-    try:
-        dvd_info_xml = urllib.request.urlopen(
-            "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".
-            format(crc64)).read()
-    except OSError as e:
-        dvd_info_xml = False
-        dvd_title = "not_identified"
-        dvd_release_date = "0000"
-        logging.error("Failed to reach windowsmedia web service.  Error number is: " + str(e.errno))
-        # return False
-
-    try:
-        if not dvd_info_xml:
-            pass
-        else:
-            doc = xmltodict.parse(dvd_info_xml)
-            dvd_title = doc['METADATA']['MDR-DVD']['dvdTitle']
-            dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
-            dvd_title = dvd_title.strip()
-            dvd_title = clean_for_filename(dvd_title)
-            if dvd_release_date is not None:
-                dvd_release_date = dvd_release_date.split()[0]
-            else:
-                dvd_release_date = ""
-    except KeyError:
-        dvd_title = "not_identified"
-        dvd_release_date = "0000"
-        logging.error("Windows Media request returned no result.  Likely the DVD is not in their database.")
-        # return False
 
     job.title = job.title_auto = dvd_title
     job.year = job.year_auto = dvd_release_date
@@ -285,3 +300,31 @@ def callwebservice(job, omdb_api_key, dvd_title, year=""):
             job.hasnicetitle = True
             db.session.commit()
             return doc['Response']
+
+def callwebservice2(omdb_api_key, dvd_title, year=""):
+    """ Queries OMDbapi.org for title information and parses if it's a movie
+        or a tv series """
+
+    logging.debug("***Calling webservice with Title: " + str(dvd_title) + " and Year: " + str(year))
+    try:
+        strurl = "http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title,
+                                                                                           year)
+        logging.debug(
+            "http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format("key_hidden", dvd_title, year))
+        dvd_title_info_json = urllib.request.urlopen(strurl).read()
+        logging.debug("Webservice works")
+    except Exception as w:
+        logging.debug("Webservice failed" + str(w))
+        return "fail"
+    else:
+        doc = json.loads(dvd_title_info_json.decode())
+        logging.debug(str(doc))
+        if doc['Response'] == "False":
+            logging.debug("Webservice failed with error: " + doc['Error'])
+            return "fail"
+        else:
+            new_year = doc['Year']
+            new_title = doc['Title']
+            logging.debug("Webservice successful.  New Year is: " + new_year)
+            logging.debug("Webservice successful.  New Title is: " + new_title)
+            return doc
