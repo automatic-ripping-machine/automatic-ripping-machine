@@ -63,8 +63,8 @@ def identify(job, logfile):
                 res = identify_dvd(job)
             if job.disctype == "bluray":
                 res = identify_bluray(job)
-
-            if res and not job.year == "0000":
+               # Changing below from "0000" to "" to make gui easier to use.
+            if res and not job.year == "":
                 get_video_details(job)
             else:
                 job.hasnicetitle = False
@@ -109,7 +109,8 @@ def identify_dvd(job):
     except OSError as e:
         dvd_info_xml = False
         dvd_title = "not_identified"
-        dvd_release_date = "0000"
+        # Changing below from "0000" to "" to make gui easier to use.
+        dvd_release_date = ""
         logging.error("Failed to reach windowsmedia web service.  Error number is: " + str(e.errno))
         # return False
 
@@ -128,7 +129,8 @@ def identify_dvd(job):
                 dvd_release_date = ""
     except KeyError:
         dvd_title = "not_identified"
-        dvd_release_date = "0000"
+        # Changing below from "0000" to "" to make gui easier to use.
+        dvd_release_date = ""
         logging.error("Windows Media request returned no result.  Likely the DVD is not in their database.")
         # return False
 
