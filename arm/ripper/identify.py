@@ -63,7 +63,7 @@ def identify(job, logfile):
                 res = identify_dvd(job)
             if job.disctype == "bluray":
                 res = identify_bluray(job)
-               # Changing below from "0000" to "" to make gui easier to use.
+
             if res and not job.year == "":
                 get_video_details(job)
             else:
@@ -83,8 +83,9 @@ def clean_for_filename(string):
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
     string = string.strip()
-    #return re.sub('[^\w\-_\.\(\) ]', '', string)
-    return string
+    # testing why the return function isn't cleaning
+    return re.sub('[^\w\-_\.\(\) ]', '', string)
+    #return string
 
 
 def identify_dvd(job):
@@ -110,7 +111,6 @@ def identify_dvd(job):
     except OSError as e:
         dvd_info_xml = False
         dvd_title = "not_identified"
-        # Changing below from "0000" to "" to make gui easier to use.
         dvd_release_date = ""
         logging.error("Failed to reach windowsmedia web service.  Error number is: " + str(e.errno))
         # return False
@@ -130,7 +130,6 @@ def identify_dvd(job):
                 dvd_release_date = ""
     except KeyError:
         dvd_title = "not_identified"
-        # Changing below from "0000" to "" to make gui easier to use.
         dvd_release_date = ""
         logging.error("Windows Media request returned no result.  Likely the DVD is not in their database.")
         # return False
@@ -156,7 +155,7 @@ def identify_bluray(job):
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
     except KeyError:
         bluray_title = "not_identified"
-        bluray_year = "0000"
+        bluray_year = ""
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
         # return False
 
