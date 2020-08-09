@@ -168,7 +168,8 @@ def main(logfile, job):
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
                 sys.exit()
             if job.config.NOTIFY_RIP:
-                utils.notify(job, "ARM notification", str(job.title + " rip complete.  Starting transcode."))
+                # Fixed bug line below
+                utils.notify(job, "ARM notification", str(job.title) + " rip complete.  Starting transcode.")
             # point HB to the path MakeMKV ripped to
             hbinpath = mkvoutpath
 
