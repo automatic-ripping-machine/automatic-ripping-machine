@@ -11,7 +11,11 @@
             <div class="table-responsive">
                     <div class="card text-center">
                             <div class="card-header"><a href="select_title?imdbID={{ jobs.imdb_id }}"><img src="{{ jobs.poster_url }}" width="240px" class="img-thumbnail"></a></div>
-                            <div class="card-body"><b>{{  jobs.title  }}</b> - {{ jobs.video_type.capitalize() }} ({{ jobs.year }})</div>
+			    <!-- GF Comment -->
+			    <div class="card-body"><b>{{  jobs.title  }}</b> - {{ jobs.video_type.capitalize() }} ({{ jobs.year }}) </br>
+                                                        <a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title Search</a></li>
+                                                        <a href="customTitle?job_id={{ jobs.job_id }}" class="btn btn-primary">Custom Title</a>
+				</div>
                             <div class="card-body">
                 <table id="jobtable" class="table table-striped">
                     <thead class="bg-secondary">    
@@ -54,6 +58,11 @@
                             <tr><td style="text-align:left"><b>ejected</b></td><td style="text-align:left">{{ jobs.ejected }}</td></tr>
                             <tr><td style="text-align:left"><b>pid</b></td><td style="text-align:left">{{ jobs.pid }}</td></tr>
                             <tr><td style="text-align:left"><b>pid hash</b></td><td style="text-align:left">{{ jobs.pid_hash }}</td></tr>
+                            <tr><td style="text-align:left"><b>Config ID</b></td><td style="text-align:left"> {{ jobs.config.CONFIG_ID }}</td></tr>
+                            <tr><td style="text-align:left"><b>HB_PRESET_DVD</b></td><td style="text-align:left"> {{ jobs.config.HB_PRESET_DVD }}</td></tr>
+                            <tr><td style="text-align:left"><b>HB_ARGS_DVD</b></td><td style="text-align:left"> {{ jobs.config.HB_ARGS_DVD }}</td></tr>
+			    <tr><td style="text-align:left"><b>HB_PRESET_BD</b></td><td style="text-align:left">{{ jobs.config.HB_PRESET_BD }} </td></tr> 
+			    <tr><td style="text-align:left"><b>HB_ARGS_BD</b></td><td style="text-align:left">{{ jobs.config.HB_ARGS_BD }} </td></tr> 
                                                        
                     </tbody>
                     </table>
