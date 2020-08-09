@@ -105,9 +105,11 @@ def main(logfile, job):
     if job.disctype in ["dvd", "bluray"]:
         utils.notify(job, "ARM notification", "Found disc: " + str(job.title) + ". Video type is "
                      + str(job.video_type) + ". Main Feature is " + str(job.config.MAINFEATURE)
-                     + ".  Edit entry here: http://" + job.config.WEBSERVER_IP + ":" + str(job.config.WEBSERVER_PORT))
+                     + ".  Edit entry here: http://" + str(job.config.WEBSERVER_IP) + ":" + str(job.config.WEBSERVER_PORT))
+                     #+ ".  Edit entry here: http://" + job.config.WEBSERVER_IP + ":" + str(job.config.WEBSERVER_PORT))
     elif job.disctype == "music":
-        utils.notify(job, "ARM notification", "Found music CD: " + job.label + ". Ripping all tracks")
+        #Fixed bug next line
+        utils.notify(job, "ARM notification", "Found music CD: " + str(job.label) + ". Ripping all tracks")
     elif job.disctype == "data":
         utils.notify(job, "ARM notification", "Found data disc.  Copying data.")
     else:
@@ -272,15 +274,22 @@ def main(logfile, job):
             p = hboutpath
 
         # move to media directory
-        if job.video_type in ["movie" , "series" ] and job.hasnicetitle:
+        if job.video_type == "movie" and job.hasnicetitle:
             # tracks = job.tracks.all()
             tracks = job.tracks.filter_by(ripped=True)
             for track in tracks:
                 utils.move_files(p, track.filename, job, track.main_feature)
 
             utils.scan_emby(job)
-        # Look into backup method.
-        # move to tv directory if series
+
+        # move to media directory
+        if job.video_type == "series" and job.hasnicetitle:
+            # tracks = job.tracks.all()
+            tracks = job.tracks.filter_by(ripped=True)
+            for track in tracks:
+                utils.move_files(p, track.filename, job, False)
+
+            utils.scan_emby(job)
 
         # remove empty directories
         try:
@@ -324,7 +333,7 @@ def main(logfile, job):
 
     elif job.disctype == "music":
         if utils.rip_music(job, logfile):
-            utils.notify(job, "ARM notification", "Music CD: " + job.label + " processing complete.")
+            utils.notify(job, "ARM notification", "Music CD: " + str(job.label) + " processing complete.")
             utils.scan_emby(job)
         else:
             logging.info("Music rip failed.  See previous errors.  Exiting.")
@@ -337,11 +346,11 @@ def main(logfile, job):
             datapath = os.path.join(job.config.ARMPATH, str(job.label) + "_" + str(ts))
 
             if(utils.make_dir(datapath)) is False:
-                logging.info("Could not create data directory: " + datapath + ".  Exiting ARM.")
+                logging.info("Could not create data directory: " + str(datapath) + ".  Exiting ARM.")
                 sys.exit()
 
         if utils.rip_data(job, datapath, logfile):
-            utils.notify(job, "ARM notification", "Data disc: " + job.label + " copying complete.")
+            utils.notify(job, "ARM notification", "Data disc: " + str(job.label)+ " copying complete.")
             job.eject()
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")
