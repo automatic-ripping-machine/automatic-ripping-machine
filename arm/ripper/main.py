@@ -204,11 +204,12 @@ def main(logfile, job):
                             # move others into extras folder
                             if(f == largest_file_name):
                                 # largest movie
-                                utils.move_files(hbinpath, f, job.hasnicetitle, job, True)
+                                # Encorporating Rajlaud's fix #349
+                                utils.move_files(hbinpath, f, job, True)
                             else:
                                 # other extras
                                 if not str(job.config.EXTRAS_SUB).lower() == "none":
-                                    utils.move_files(hbinpath, f, job.hasnicetitle, job, False)
+                                    utils.move_files(hbinpath, f, job, False)
                                 else:
                                     logging.info("Not moving extra: " + f)
                     # Change final path (used to set permissions)
@@ -270,13 +271,15 @@ def main(logfile, job):
             p = hboutpath
 
         # move to media directory
-        if job.video_type == "movie" and job.hasnicetitle:
+        if job.video_type in ["movie" , "series" ] and job.hasnicetitle:
             # tracks = job.tracks.all()
             tracks = job.tracks.filter_by(ripped=True)
             for track in tracks:
                 utils.move_files(p, track.filename, job, track.main_feature)
 
             utils.scan_emby(job)
+        # Look into backup method.
+        # move to tv directory if series
 
         # remove empty directories
         try:

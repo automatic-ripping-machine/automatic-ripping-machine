@@ -83,7 +83,8 @@ def clean_for_filename(string):
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
     string = string.strip()
-    return re.sub('[^\w\-_\.\(\) ]', '', string)
+    #return re.sub('[^\w\-_\.\(\) ]', '', string)
+    return string
 
 
 def identify_dvd(job):

@@ -87,13 +87,14 @@ def changeparams():
     config = Config.query.get(config_id)
     form = ChangeParamsForm(obj=config)
     if form.validate_on_submit():
-        form.populate_obj(config)
+        config.MINLENGTH = format(form.MINLENGTH.data)
+        config.MAXLENGTH = format(form.MAXLENGTH.data)
+        config.RIPMETHOD = format(form.RIPMETHOD.data)
         db.session.commit()
-        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}'.format(form.RIPMETHOD.data, form.MAINFEATURE.data,
-              form.MINLENGTH.data, form.MAXLENGTH.data), category='success')
-        # return redirect(url_for('list_titles', title=form.title.data, year=form.year.data, job_id=job_id))
+        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}'.format(form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data))
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
+
 
 
 @app.route('/list_titles')
@@ -123,8 +124,8 @@ def updatetitle():
     job_id = request.args.get('job_id')
     print("New imdbID=" + imdbID)
     job = Job.query.get(job_id)
-    job.title = new_title
-    job.title_manual = new_title
+    job.title = clean_for_filename(new_title)
+    job.title_manual = clean_for_filename(new_title)
     job.year = new_year
     job.year_manual = new_year
     job.video_type_manual = video_type
