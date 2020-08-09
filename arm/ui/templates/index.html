@@ -50,7 +50,7 @@
                                                 {% endif %}
                                                 <b>Device: </b>{{ job.devpath }}<br>
                                                 <b>Status: </b>{{ job.status }} <br>                    
-                                                        <a href="titlesearch?job_id={{ job["job_id"] }}" class="btn btn-primary">Change Title</a></li>
+                                                        <a href="titlesearch?job_id={{ job["job_id"] }}" class="btn btn-primary">Title Search</a></li>
                                                 </div>
                                         </div>
                                         <div class="col-lg-4">
@@ -61,6 +61,9 @@
                                                         <b>Min Length: </b>{{ job.config.MAXLENGTH }}<br>
                                                         <a href="changeparams?config_id={{ job.config.CONFIG_ID }}" class="btn btn-primary">Change Settings</a>
                                                 </div>
+						<div class="card-body px-1 py-1">
+                                                        <a href="customTitle?job_id={{ job["job_id"] }}" class="btn btn-primary">Custom Title</a>
+						</div>
                                         </div>
 
                                 </div>
