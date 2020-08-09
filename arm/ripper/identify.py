@@ -243,6 +243,9 @@ def get_video_details(job):
                 logging.debug("Trying title: " + title)
                 response = callwebservice(job, omdb_api_key, title, year)
                 logging.debug("response: " + response)
+                if response == "fail":
+                    logging.debug("Removing year...")
+                    response = callwebservice(job, omdb_api_key, title, "")
 
 
 def callwebservice(job, omdb_api_key, dvd_title, year=""):
