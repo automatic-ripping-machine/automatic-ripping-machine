@@ -2,13 +2,13 @@
 
 [![Build Status](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine.svg?branch=v2_master)](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine)
 
-## Upgrading from v2_master to v2.1_dev
+## Upgrading from v2_master to v2.2_dev
 
-If you wish to upgrade from v2_master to v2.1_dev instead of a clean install, these directions should get you there.  
+If you wish to upgrade from v2_master to v2.2_dev instead of a clean install, these directions should get you there.  
 
 ```bash
 cd /opt/arm
-sudo git checkout v2.1_dev
+sudo git checkout v2.2_dev
 sudo pip3 install -r requirements.txt
 ```
 Backup config file and replace it with the updated config
