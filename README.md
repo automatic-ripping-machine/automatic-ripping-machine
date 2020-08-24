@@ -118,7 +118,7 @@ cd arm
 # TODO: Remove below line before merging to master
 git checkout v2.1_dev
 sudo pip3 install -r requirements.txt 
-sudo ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
+sudo ln -s /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
 sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
 cp docs/arm.yaml.sample arm.yaml
 sudo mkdir /etc/arm/
