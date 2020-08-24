@@ -90,6 +90,7 @@ sudo add-apt-repository ppa:stebbins/handbrake-releases
 ```
 For Ubuntu 16.04 `sudo add-apt-repository ppa:mc3man/xerus-media`  
 For Ubuntu 18.04 `sudo add-apt-repository ppa:mc3man/bionic-prop`  
+For Ubuntu 20.04 `sudo add-apt-repository ppa:mc3man/focal6`
 
 ```bash
 sudo apt update
@@ -127,8 +128,8 @@ sudo ln -s /opt/arm/arm.yaml /etc/arm/
 **Set up drives**
 
   Create mount point for each dvd drive.
-  If you don't know the device name try running 'dmesg | grep -i dvd'.  The mountpoint needs to be /mnt/dev/<device name>.
-  So if your device name is sr0, set the mountpoint with this command:
+  If you don't know the device name try running `dmesg | grep -i -E '\b(dvd|cd)\b'`.  The mountpoint needs to be /mnt/dev/<device name>.
+  So if your device name is `sr0`, set the mountpoint with this command:
   ```bash
   sudo mkdir -p /mnt/dev/sr0
   ```
