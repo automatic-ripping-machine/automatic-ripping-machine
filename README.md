@@ -21,12 +21,15 @@ There are new config parameters so review the new arm.yaml file
 
 Make sure the 'arm' user has write permissions to the db directory (see your arm.yaml file for locaton). is writeable by the arm user.  A db will be created when you first run ARM.
 
-There is not yet a proper web server set up, so you can serve up the web UI through the flask development web server.  You can start is by:
-```bash
-python3 /opt/arm/arm/runui.py
+Make sure that your rules file is properly **copied** instead of linked:
 ```
+sudo rm /usr/lib/udev/rules.d/51-automedia.rules
+sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
+```
+Otherwise you may not get the auto-launching of ARM when a disc is inserted behavior
+on Ubuntu 20.04.
 
-Please log any issues you find.  Don't forget to run in DEBUG mode if you need to submit an issue (and log files).  Also, please note that you are running 2.1_dev in your issue.
+Please log any issues you find.  Don't forget to run in DEBUG mode if you need to submit an issue (and log files).  Also, please note that you are running 2.2_dev in your issue.
 
 
 ## Overview
@@ -118,7 +121,7 @@ cd arm
 # TODO: Remove below line before merging to master
 git checkout v2.1_dev
 sudo pip3 install -r requirements.txt 
-sudo ln -s /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
+sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
 sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
 cp docs/arm.yaml.sample arm.yaml
 sudo mkdir /etc/arm/
