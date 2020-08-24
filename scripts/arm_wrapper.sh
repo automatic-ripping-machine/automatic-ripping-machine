@@ -2,6 +2,8 @@
 
 DEVNAME=$1
 
+sleep 5 # allow the system enough time to load disc information such as title
+
 echo "[ARM] Starting ARM on ${DEVNAME}" | logger -t ARM -s
 /bin/su -l -c "echo /usr/bin/python3 /opt/arm/arm/ripper/main.py -d ${DEVNAME} | at now" -s /bin/bash arm
 
