@@ -91,7 +91,7 @@ def clean_for_filename(string):
 def identify_dvd(job):
     """ Calculates CRC64 for the DVD and calls Windows Media
         Metaservices and returns the Title and year of DVD """
-    logging.debug(str(job))
+    logging.debug(str(job))    
 
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
@@ -101,16 +101,16 @@ def identify_dvd(job):
 
     logging.info("DVD CRC64 hash is: " + str(crc64))
     job.crc_id = str(crc64)
+    fallback_title = "{0}_{1}".format(str(job.label), str(crc64))
+    logging.info("Fallback title is: " + str(fallback_title))
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
     logging.debug(urlstring)
 
     try:
-        dvd_info_xml = urllib.request.urlopen(
-            "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".
-            format(crc64)).read()
+        dvd_info_xml = urllib.request.urlopen(urlstring).read()
     except OSError as e:
         dvd_info_xml = False
-        dvd_title = "not_identified"
+        dvd_title = str(fallback_title)
         dvd_release_date = ""
         logging.error("Failed to reach windowsmedia web service.  Error number is: " + str(e.errno))
         # return False
@@ -129,7 +129,7 @@ def identify_dvd(job):
             else:
                 dvd_release_date = ""
     except KeyError:
-        dvd_title = "not_identified"
+        dvd_title = str(fallback_title)
         dvd_release_date = ""
         logging.error("Windows Media request returned no result.  Likely the DVD is not in their database.")
         # return False
@@ -154,7 +154,7 @@ def identify_bluray(job):
     try:
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
     except KeyError:
-        bluray_title = "not_identified"
+        bluray_title = str(fallback_title)
         bluray_year = ""
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
         # return False
