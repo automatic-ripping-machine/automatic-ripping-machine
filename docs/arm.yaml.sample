@@ -81,6 +81,7 @@ DBFILE: "/home/arm/db/arm.db"
 ##################
 
 # IP address of web server (this machine)
+# Use x.x.x.x to autodetect the IP address to use
 WEBSERVER_IP: x.x.x.x
 
 # Port for web server
