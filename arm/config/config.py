@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
-# import os
+import os
 # import re
 import yaml
 
-yamlfile = "/etc/arm/arm.yaml"
+yamlfile = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
 
 with open(yamlfile, "r") as f:
     cfg = yaml.load(f)
