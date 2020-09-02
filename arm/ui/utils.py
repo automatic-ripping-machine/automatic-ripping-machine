@@ -3,6 +3,7 @@ from time import strftime, localtime
 import urllib
 import json
 import re
+#import logging
 # import omdb
 from arm.config.config import cfg
 
@@ -26,6 +27,8 @@ def clean_for_filename(string):
     string = re.sub('\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
+    string = string.replace('&', 'and')
+    string = string.replace("\\", " - ")
     string = string.strip()
     #return re.sub('[^\w\-_\.\(\) ]', '', string)
     return string
@@ -67,10 +70,12 @@ def call_omdb_api(title=None, year=None, imdbID=None, plot="short"):
         return(None)
 
     # strurl = urllib.parse.quote(strurl)
+    #logging.info("OMDB string query"+str(strurl))
     print(strurl)
     title_info_json = urllib.request.urlopen(strurl).read()
     title_info = json.loads(title_info_json.decode())
     print(title_info)
+    #logging.info("Response from Title Info command"+str(title_info))
     # d = {'year': '1977'}
     # dvd_info = omdb.get(title=title, year=year)
     print("call was successful")
