@@ -82,6 +82,8 @@ def clean_for_filename(string):
     string = re.sub('\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
+    string = string.replace('&', 'and')
+    string = string.replace("\\", " - ")
     string = string.strip()
     # testing why the return function isn't cleaning
     return re.sub('[^\w\-_\.\(\) ]', '', string)
