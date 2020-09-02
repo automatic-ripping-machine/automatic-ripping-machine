@@ -52,7 +52,11 @@ def rips():
 
 @app.route('/history')
 def history():
-    jobs = Job.query.filter_by()
+    if os.path.isfile(cfg['DBFILE']):
+        # jobs = Job.query.filter_by(status="active")
+        jobs = Job.query.filter_by()
+    else:
+        jobs = {}
 
     return render_template('history.html', jobs=jobs)
 

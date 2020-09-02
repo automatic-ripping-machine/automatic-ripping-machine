@@ -21,12 +21,15 @@ There are new config parameters so review the new arm.yaml file
 
 Make sure the 'arm' user has write permissions to the db directory (see your arm.yaml file for locaton). is writeable by the arm user.  A db will be created when you first run ARM.
 
-There is not yet a proper web server set up, so you can serve up the web UI through the flask development web server.  You can start is by:
-```bash
-python3 /opt/arm/arm/runui.py
+Make sure that your rules file is properly **copied** instead of linked:
 ```
+sudo rm /usr/lib/udev/rules.d/51-automedia.rules
+sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
+```
+Otherwise you may not get the auto-launching of ARM when a disc is inserted behavior
+on Ubuntu 20.04.
 
-Please log any issues you find.  Don't forget to run in DEBUG mode if you need to submit an issue (and log files).  Also, please note that you are running 2.1_dev in your issue.
+Please log any issues you find.  Don't forget to run in DEBUG mode if you need to submit an issue (and log files).  Also, please note that you are running 2.2_dev in your issue.
 
 
 ## Overview
@@ -90,6 +93,7 @@ sudo add-apt-repository ppa:stebbins/handbrake-releases
 ```
 For Ubuntu 16.04 `sudo add-apt-repository ppa:mc3man/xerus-media`  
 For Ubuntu 18.04 `sudo add-apt-repository ppa:mc3man/bionic-prop`  
+For Ubuntu 20.04 `sudo add-apt-repository ppa:mc3man/focal6`
 
 ```bash
 sudo apt update
@@ -117,7 +121,7 @@ cd arm
 # TODO: Remove below line before merging to master
 git checkout v2.1_dev
 sudo pip3 install -r requirements.txt 
-sudo ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
+sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
 sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
 cp docs/arm.yaml.sample arm.yaml
 sudo mkdir /etc/arm/
@@ -127,8 +131,8 @@ sudo ln -s /opt/arm/arm.yaml /etc/arm/
 **Set up drives**
 
   Create mount point for each dvd drive.
-  If you don't know the device name try running 'dmesg | grep -i dvd'.  The mountpoint needs to be /mnt/dev/<device name>.
-  So if your device name is sr0, set the mountpoint with this command:
+  If you don't know the device name try running `dmesg | grep -i -E '\b(dvd|cd)\b'`.  The mountpoint needs to be /mnt/dev/<device name>.
+  So if your device name is `sr0`, set the mountpoint with this command:
   ```bash
   sudo mkdir -p /mnt/dev/sr0
   ```
