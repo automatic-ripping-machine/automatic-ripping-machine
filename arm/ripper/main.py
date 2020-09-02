@@ -105,7 +105,7 @@ def main(logfile, job):
     if job.disctype in ["dvd", "bluray"]:
         utils.notify(job, "ARM notification", "Found disc: " + str(job.title) + ". Video type is "
                      + str(job.video_type) + ". Main Feature is " + str(job.config.MAINFEATURE)
-                     + ".  Edit entry here: http://" + str(job.config.WEBSERVER_IP) + ":" + str(job.config.WEBSERVER_PORT))
+                     + ".  Edit entry here: http://" + str(job.config.WEBSERVER_IP) + ":" + str(job.config.WEBSERVER_PORT) + "/jobdetail?job_id=" + str(job.job_id))
                      #+ ".  Edit entry here: http://" + job.config.WEBSERVER_IP + ":" + str(job.config.WEBSERVER_PORT))
     elif job.disctype == "music":
         #Fixed bug next line
@@ -278,17 +278,19 @@ def main(logfile, job):
             # tracks = job.tracks.all()
             tracks = job.tracks.filter_by(ripped=True)
             for track in tracks:
+                logging.info("Moving Movie " + str(track.filename) + " to " + str(p))
                 utils.move_files(p, track.filename, job, track.main_feature)
 
-            utils.scan_emby(job)
 
         # move to media directory
-        if job.video_type == "series" and job.hasnicetitle:
+        elif job.video_type == "series" and job.hasnicetitle:
             # tracks = job.tracks.all()
             tracks = job.tracks.filter_by(ripped=True)
             for track in tracks:
+                logging.info("Moving Series " + str(track.filename) + " to " + str(p))
                 utils.move_files(p, track.filename, job, False)
-
+        else:
+            logging.info("job type is " + str(job.video_type) + "not movie or series, not moving.")
             utils.scan_emby(job)
 
         # remove empty directories
