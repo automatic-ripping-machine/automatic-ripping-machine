@@ -93,6 +93,8 @@ def clean_for_filename(string):
 def identify_dvd(job):
     """ Calculates CRC64 for the DVD and calls Windows Media
         Metaservices and returns the Title and year of DVD """
+    """ Manipulates the DVD title and calls OMDB to try and 
+        lookup the title """
     logging.debug(str(job))    
 
     try:
@@ -117,6 +119,10 @@ def identify_dvd(job):
         logging.error("Failed to reach windowsmedia web service.  Error number is: " + str(e.errno))
         # return False
 
+    # Some older DVDs aren't actually labelled
+    if not job.label:
+        job.label = "not identified"
+        
     try:
         if not dvd_info_xml:
             pass
@@ -133,8 +139,13 @@ def identify_dvd(job):
     except KeyError:
         dvd_title = str(fallback_title)
         dvd_release_date = ""
-        logging.error("Windows Media request returned no result.  Likely the DVD is not in their database.")
+        logging.error("Windows Media request returned no result.Probably because the service is discontinued.")
         # return False
+ 
+    # TODO: split this out to another file/function and loop depending how many replacements
+    # need to be done
+    dvd_title = job.label.replace"_", " ").replace("16x9", "")
+    dvd_release_date = ""
 
     job.title = job.title_auto = dvd_title
     job.year = job.year_auto = dvd_release_date
@@ -189,6 +200,10 @@ def get_video_details(job):
     """
 
     title = job.title
+    
+    if title == "not identified":
+        return
+    
     year = job.year
     if year is None:
         year = ""
@@ -210,19 +225,20 @@ def get_video_details(job):
     # this is a little kludgy, but it kind of works...
     if (response == "fail"):
 
-        # first try subtracting one year.  This accounts for when
-        # the dvd release date is the year following the movie release date
-        logging.debug("Subtracting 1 year...")
-        response = callwebservice(job, omdb_api_key, title, str(int(year) - 1))
-        logging.debug("response: " + response)
+        if year:
+          # first try subtracting one year.  This accounts for when
+          # the dvd release date is the year following the movie release date
+          logging.debug("Subtracting 1 year...")
+          response = callwebservice(job, omdb_api_key, title, str(int(year) - 1))
+          logging.debug("response: " + response)
 
-        # try submitting without the year
-        if response == "fail":
-            # year needs to be changed
-            logging.debug("Removing year...")
-            response = callwebservice(job, omdb_api_key, title, "")
-            logging.debug("response: " + response)
-
+          # try submitting without the year
+          if response == "fail":
+              # year needs to be changed
+              logging.debug("Removing year...")
+              response = callwebservice(job, omdb_api_key, title, "")
+              logging.debug("response: " + response)
+            
         # if response != "fail":
         #     # that means the year is wrong.
         #     needs_new_year = True
