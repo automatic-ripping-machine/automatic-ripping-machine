@@ -78,6 +78,7 @@ sudo regionset /dev/sr0
 **Setup 'arm' user:**
 
 ```bash
+sudo apt upgrade -y && sudo apt update -y && sudo ubuntu-drivers autoinstall && sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
 sudo groupadd arm
 sudo useradd -m arm -g arm -G cdrom
 sudo passwd arm 
@@ -91,21 +92,22 @@ sudo apt-get install git
 sudo add-apt-repository ppa:heyarje/makemkv-beta
 sudo add-apt-repository ppa:stebbins/handbrake-releases
 ```
+(Copy and paste the previous 3 lines before proceeding)
 For Ubuntu 16.04 `sudo add-apt-repository ppa:mc3man/xerus-media`  
 For Ubuntu 18.04 `sudo add-apt-repository ppa:mc3man/bionic-prop`  
 For Ubuntu 20.04 `sudo add-apt-repository ppa:mc3man/focal6`
 
 ```bash
-sudo apt update
-sudo apt install makemkv-bin makemkv-oss
-sudo apt install handbrake-cli libavcodec-extra
-sudo apt install abcde flac imagemagick glyrc cdparanoia
-sudo apt install at
-sudo apt install python3 python3-pip
-sudo apt-get install libcurl4-openssl-dev libssl-dev  
-sudo apt-get install libdvd-pkg
-sudo dpkg-reconfigure libdvd-pkg
-sudo apt install default-jre-headless
+sudo apt update -y && \
+sudo apt install makemkv-bin makemkv-oss -y && \
+sudo apt install handbrake-cli libavcodec-extra -y && \
+sudo apt install abcde flac imagemagick glyrc cdparanoia -y && \
+sudo apt install at -y && \
+sudo apt install python3 python3-pip -y && \
+sudo apt-get install libcurl4-openssl-dev libssl-dev -y && \
+sudo apt-get install libdvd-pkg -y && \
+sudo dpkg-reconfigure libdvd-pkg && \
+sudo apt install default-jre-headless -y
 ```
 
 **Install and setup ARM**
@@ -115,15 +117,16 @@ cd /opt
 sudo mkdir arm
 sudo chown arm:arm arm
 sudo chmod 775 arm
-sudo git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
+# TODO: Uncomment next line
+# sudo git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
+# TODO: Remove below line before merging to master
+sudo git clone https://github.com/flammableliquids/automatic-ripping-machine arm
 sudo chown -R arm:arm arm
 cd arm
-# TODO: Remove below line before merging to master
-git checkout v2.1_dev
 sudo pip3 install -r requirements.txt 
 sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
 sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
-cp docs/arm.yaml.sample arm.yaml
+sudo cp docs/arm.yaml.sample arm.yaml
 sudo mkdir /etc/arm/
 sudo ln -s /opt/arm/arm.yaml /etc/arm/
 ```
