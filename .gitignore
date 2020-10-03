@@ -15,3 +15,10 @@ arm.conf
 *.pyc
 .gitignore
 arm.yaml
+
+# PEP 582 
+__pypackages__
+
+# JetBrains tools
+.idea/
+
