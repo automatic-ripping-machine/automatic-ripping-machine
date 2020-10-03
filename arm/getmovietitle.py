@@ -7,11 +7,11 @@ import datetime
 import pydvdid
 import unicodedata
 import xmltodict
-import sys # noqa # pylint: disable=unused-import
+import sys  # noqa # pylint: disable=unused-import
 import re
 import logging
-import logger # noqa # pylint: disable=unused-import
-import classes # noqa # pylint: disable=unused-import
+import logger  # noqa # pylint: disable=unused-import
+import classes  # noqa # pylint: disable=unused-import
 
 
 def entry():
@@ -42,7 +42,7 @@ def getdvdtitle(disc):
             format(crc64)).read()
     except OSError:
         logging.error("Failed to reach windowsmedia web service")
-        return[None, None]
+        return [None, None]
 
     try:
         doc = xmltodict.parse(dvd_info_xml)
@@ -52,9 +52,9 @@ def getdvdtitle(disc):
         dvd_release_date = dvd_release_date.split()[0]
     except KeyError:
         logging.error("Windows Media request returned no result.  Likely the DVD is not in their database.")
-        return[None, None]
+        return [None, None]
 
-    return[dvd_title, dvd_release_date]
+    return [dvd_title, dvd_release_date]
 
 
 def getbluraytitle(disc):
@@ -64,13 +64,13 @@ def getbluraytitle(disc):
             doc = xmltodict.parse(xml_file.read())
     except OSError:
         logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.")
-        return[None, None]
+        return [None, None]
 
     try:
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
     except KeyError:
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
-        return[None, None]
+        return [None, None]
 
     bluray_modified_timestamp = os.path.getmtime(disc.mountpoint + '/BDMV/META/DL/bdmt_eng.xml')
     bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))
@@ -87,12 +87,12 @@ def getbluraytitle(disc):
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
-    string = re.sub('\[(.*?)\]', '', string)
-    string = re.sub('\s+', ' ', string)
+    string = re.sub(r'\[(.*?)\]', '', string)
+    string = re.sub(r'\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(': ', ' - ')
     string = string.strip()
-    return re.sub('[^\w\-_\.\(\) ]', '', string)
+    return re.sub(r'[^\w\-_\.\(\) ]', '', string)
 
 # pylint: disable=C0103
 
@@ -116,10 +116,10 @@ def main(disc):
             disc_title = clean_for_filename(disc_title)
             logging.info("getmovietitle bluray title found: " + disc_title + " : " + disc_year)
             disc.hasnicetitle = True
-        return(disc_title, disc_year)
+        return (disc_title, disc_year)
     else:
         logging.info(str(disc_title) + " : " + str(disc_year))
         if disc_title:
             disc.hasnicetitle = True
         logging.info("Returning: " + str(disc_title) + ", " + str(disc_year))
-        return(disc_title, disc_year)
+        return (disc_title, disc_year)
