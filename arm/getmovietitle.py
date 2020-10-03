@@ -40,7 +40,7 @@ def getdvdtitle(disc):
         dvd_info_xml = urllib.request.urlopen(
             "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".
             format(crc64)).read()
-    except OSError as e:
+    except OSError:
         logging.error("Failed to reach windowsmedia web service")
         return[None, None]
 
@@ -62,7 +62,7 @@ def getbluraytitle(disc):
     try:
         with open(disc.mountpoint + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
             doc = xmltodict.parse(xml_file.read())
-    except OSError as e:
+    except OSError:
         logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.")
         return[None, None]
 

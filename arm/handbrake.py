@@ -275,7 +275,7 @@ def get_title_length(title, srcpath):
             stderr=subprocess.STDOUT,
             shell=True
         ).decode("utf-8").splitlines()
-    except subprocess.CalledProcessError as hb_error:
+    except subprocess.CalledProcessError:
         # err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
         logging.debug("Couldn't find a valid track.  Try running the command manually to see more specific errors.")
         return(-1)
