@@ -7,11 +7,11 @@ import datetime
 import pydvdid
 import unicodedata
 import xmltodict
-import sys  # noqa # pylint: disable=unused-import
+import sys # noqa # pylint: disable=unused-import
 import re
 import logging
-import logger  # noqa # pylint: disable=unused-import
-import classes  # noqa # pylint: disable=unused-import
+import logger # noqa # pylint: disable=unused-import
+import classes # noqa # pylint: disable=unused-import
 
 
 def entry():
@@ -42,7 +42,7 @@ def getdvdtitle(disc):
             format(crc64)).read()
     except OSError:
         logging.error("Failed to reach windowsmedia web service")
-        return [None, None]
+        return[None, None]
 
     try:
         doc = xmltodict.parse(dvd_info_xml)
@@ -52,9 +52,9 @@ def getdvdtitle(disc):
         dvd_release_date = dvd_release_date.split()[0]
     except KeyError:
         logging.error("Windows Media request returned no result.  Likely the DVD is not in their database.")
-        return [None, None]
+        return[None, None]
 
-    return [dvd_title, dvd_release_date]
+    return[dvd_title, dvd_release_date]
 
 
 def getbluraytitle(disc):
@@ -116,10 +116,10 @@ def main(disc):
             disc_title = clean_for_filename(disc_title)
             logging.info("getmovietitle bluray title found: " + disc_title + " : " + disc_year)
             disc.hasnicetitle = True
-        return (disc_title, disc_year)
+        return(disc_title, disc_year)
     else:
         logging.info(str(disc_title) + " : " + str(disc_year))
         if disc_title:
             disc.hasnicetitle = True
         logging.info("Returning: " + str(disc_title) + ", " + str(disc_year))
-        return (disc_title, disc_year)
+        return(disc_title, disc_year)
