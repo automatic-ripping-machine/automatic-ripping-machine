@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}  
+<div class="container">
+  <!-- <div class="bheader"><h4 style="margin-bottom: 0px">Automatic Ripping Machine</h4></div> -->
+  <div class="row">
+    <div class="col-12" >
+        <div class="table-responsive">
+<table id="logTable" style="margin: 0 auto" class="table table-striped">
+  <thead class="tablesorterhead bg-secondary">    
+    <tr style="margin: 0 auto">
+        <th onclick="sortTable(0)" style="cursor: pointer;">Log file</th>
+        <th onclick="sortTable(1)" width="200px" style="cursor: pointer;">Created Time</th>
+        <th onclick="sortTable(2)" style="cursor: pointer;">Size(kb)</th>
+        <th colspan="4" style="text-align:center; cursor: default;" data-sorter="false">View mode</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for file in files %}
+    <tr>
+        <td class="text-nowrap">{{ file[0] }}</a></td>
+        <td class="text-nowrap">{{ file[2] }}</a></td>
+        <td style="text-align:right">{{ file[3] }}</a></td>
+        <td style="text-align:center"><a href="logs?logfile={{ file[0] }}&mode=tail">tail</a></td>
+        <td><a href="logs?logfile={{ file[0] }}&mode=armcat">arm</a></td>
+        <td><a href="logs?logfile={{ file[0] }}&mode=full">full</a></td>
+        <td><a href="/logreader?logfile={{ file[0] }}&mode=download">download</a></td>
+        <!-- <td><a href="logreader?logfile={{ file[0] }}&mode=armcat">arm</a></td>
+        <td><a href="logreader?logfile={{ file[0] }}&mode=full">full</a></td>
+        <td><a href="logreader?logfile={{ file[0] }}&mode=download">download</a></td> -->
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+<table id="descTable" style="margin: 0 auto">
+  <tr style="margin: 0 auto">
+    <th colspan="2" style="border-bottom: 0px; padding: 6px 15px; padding-top: 15px; padding-bottom: 0px;">
+        <h5 style="margin-bottom: 0px">View Modes:</h5>
+    </th>
+  </tr>
+  <tr><td valign="top"><b>tail:</b></td><td> Output to browser in real time.  Similar to 'tail -f'</td></tr>
+  <tr><td valign="top"><b>arm:</b></td><td> Static output of just the ARM log entries</td></tr>
+  <tr><td valign="top"><b>full:</b></td><td> Static output of all of the log including MakeMKV and HandBrake</td></tr>
+  <tr><td width="80px" valign="top"><b>download:</b></td><td> Download the full log file</td></tr>
+</table>
+</div>
+</div>
+</div>
+{% endblock %}
+{% block footer %}{{ super() }}{% endblock %}
+{% block js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/jquery.tablesorter.js') }}"></script>
+
+<script>
+  $(document).ready(function() { 
+    // call the tablesorter plugin 
+    $("table").tablesorter({ 
+        // sort on the first column and third column, order asc 
+        sortList: [[1,1]] 
+    }); 
+}); 
+</script>
+{% endblock %}

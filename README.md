@@ -2,20 +2,34 @@
 
 [![Build Status](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine.svg?branch=v2_master)](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine)
 
-## Note if upgrading from v2_master to v2_fixes
+## Upgrading from v2_master to v2.2_dev
 
-The v2_fixes branch currently has a fix for #210 which changes ARM to launch a wrapper script and removed all usage of Systemd.  If you previously had
-v2_master installed and checkout this branch (or were on a previous version of v2_fixes), then you need to make a couple of manual changes to update Udev
-to point to the wrapper script.
+If you wish to upgrade from v2_master to v2.2_dev instead of a clean install, these directions should get you there.  
 
-After updating your local v2_fixes branch run the following command:
 ```bash
-sudo udevadm control --reload-rules
+cd /opt/arm
+sudo git checkout v2.2_dev
+sudo pip3 install -r requirements.txt
 ```
-You might also want to make sure your symlink to 51-automedia.rules is still in tact.
+Backup config file and replace it with the updated config
+```bash
+mv arm.yaml arm.yaml.old
+cp docs/arm.yaml.sample arm.yaml
+```
 
-Finally, although it's technically not necessary, you probably should remove all remnants of the systemd configuration.  See instructions here:
-https://superuser.com/questions/513159/how-to-remove-systemd-services
+There are new config parameters so review the new arm.yaml file
+
+Make sure the 'arm' user has write permissions to the db directory (see your arm.yaml file for locaton). is writeable by the arm user.  A db will be created when you first run ARM.
+
+Make sure that your rules file is properly **copied** instead of linked:
+```
+sudo rm /usr/lib/udev/rules.d/51-automedia.rules
+sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
+```
+Otherwise you may not get the auto-launching of ARM when a disc is inserted behavior
+on Ubuntu 20.04.
+
+Please log any issues you find.  Don't forget to run in DEBUG mode if you need to submit an issue (and log files).  Also, please note that you are running 2.2_dev in your issue.
 
 
 ## Overview
@@ -41,6 +55,7 @@ See: https://b3n.org/automatic-ripping-machine
   - If data (Blu-Ray, DVD, or CD) - make an ISO backup
 - Headless, designed to be run from a server
 - Can rip from multiple-optical drives in parallel
+- HTML UI to interact with ripping jobs, view logs, etc
 
 
 ## Requirements
@@ -63,6 +78,7 @@ sudo regionset /dev/sr0
 **Setup 'arm' user:**
 
 ```bash
+sudo apt upgrade -y && sudo apt update -y && sudo ubuntu-drivers autoinstall && sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
 sudo groupadd arm
 sudo useradd -m arm -g arm -G cdrom
 sudo passwd arm 
@@ -76,20 +92,22 @@ sudo apt-get install git
 sudo add-apt-repository ppa:heyarje/makemkv-beta
 sudo add-apt-repository ppa:stebbins/handbrake-releases
 ```
+(Copy and paste the previous 3 lines before proceeding)
 For Ubuntu 16.04 `sudo add-apt-repository ppa:mc3man/xerus-media`  
 For Ubuntu 18.04 `sudo add-apt-repository ppa:mc3man/bionic-prop`  
+For Ubuntu 20.04 `sudo add-apt-repository ppa:mc3man/focal6`
 
 ```bash
-sudo apt update
-sudo apt install makemkv-bin makemkv-oss
-sudo apt install handbrake-cli libavcodec-extra
-sudo apt install abcde flac imagemagick glyrc cdparanoia
-sudo apt install at
-sudo apt install python3 python3-pip
-sudo apt-get install libcurl4-openssl-dev libssl-dev
-sudo apt-get install libdvd-pkg
-sudo dpkg-reconfigure libdvd-pkg
-sudo apt install default-jre-headless
+sudo apt update -y && \
+sudo apt install makemkv-bin makemkv-oss -y && \
+sudo apt install handbrake-cli libavcodec-extra -y && \
+sudo apt install abcde flac imagemagick glyrc cdparanoia -y && \
+sudo apt install at -y && \
+sudo apt install python3 python3-pip -y && \
+sudo apt-get install libcurl4-openssl-dev libssl-dev -y && \
+sudo apt-get install libdvd-pkg -y && \
+sudo dpkg-reconfigure libdvd-pkg && \
+sudo apt install default-jre-headless -y
 ```
 
 **Install and setup ARM**
@@ -99,14 +117,16 @@ cd /opt
 sudo mkdir arm
 sudo chown arm:arm arm
 sudo chmod 775 arm
-sudo git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
-cd arm
+# TODO: Uncomment next line
+# sudo git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
 # TODO: Remove below line before merging to master
-git checkout v2_master
+sudo git clone https://github.com/flammableliquids/automatic-ripping-machine arm
+sudo chown -R arm:arm arm
+cd arm
 sudo pip3 install -r requirements.txt 
-sudo ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
+sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
 sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
-cp docs/arm.yaml.sample arm.yaml
+sudo cp docs/arm.yaml.sample arm.yaml
 sudo mkdir /etc/arm/
 sudo ln -s /opt/arm/arm.yaml /etc/arm/
 ```
@@ -114,8 +134,8 @@ sudo ln -s /opt/arm/arm.yaml /etc/arm/
 **Set up drives**
 
   Create mount point for each dvd drive.
-  If you don't know the device name try running 'dmesg | grep -i dvd'.  The mountpoint needs to be /mnt/dev/<device name>.
-  So if your device name is sr0, set the mountpoint with this command:
+  If you don't know the device name try running `dmesg | grep -i -E '\b(dvd|cd)\b'`.  The mountpoint needs to be /mnt/dev/<device name>.
+  So if your device name is `sr0`, set the mountpoint with this command:
   ```bash
   sudo mkdir -p /mnt/dev/sr0
   ```

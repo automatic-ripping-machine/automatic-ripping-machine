@@ -28,15 +28,22 @@ VIDEOTYPE: "auto"
 MINLENGTH: "600"
 
 # Maximum length of track for ARM rip (in seconds)
+# Use "99999" to indicate no maximum length
 MAXLENGTH: "99999"
+
+# Wait for manual identification
+MANUAL_WAIT: true
+
+# Wait tie for manual identification (in seconds)
+MANUAL_WAIT_TIME: 600
 
 #####################
 ## Directory setup ##
 #####################
 
-# Base directory of ARM media directory
+# Final directory of transcoded files
 # Ripped and transcoded files end up here
-ARMPATH: "/home/arm/media/unidentified/"
+ARMPATH: "/home/arm/media/completed/"
 
 # Path to raw MakeMKV directory
 # Destination for MakeMKV and source for HandBrake
@@ -65,6 +72,20 @@ LOGLEVEL: "INFO"
 
 # How long to let log files live before deleting (in days)
 LOGLIFE: 1
+
+# Path to ARM database file
+DBFILE: "/home/arm/db/arm.db"
+
+##################
+##  Web Server  ##
+##################
+
+# IP address of web server (this machine)
+# Use x.x.x.x to autodetect the IP address to use
+WEBSERVER_IP: x.x.x.x
+
+# Port for web server
+WEBSERVER_PORT: 8080
 
 ########################
 ##  File Permissions  ##
@@ -111,11 +132,11 @@ HASHEDKEYS: False
 
 # Handbrake preset profile for DVDs
 # Execute "HandBrakeCLI -z" to see a list of all presets
-HB_PRESET_DVD: "High Profile" 
+HB_PRESET_DVD: "HQ 720p30 Surround" 
 
 # Handbrake preset profile for Blurays
 # Execute "HandBrakeCLI -z" to see a list of all presets
-HB_PRESET_BD: "High Profile" 
+HB_PRESET_BD: "HQ 1080p30 Surround" 
 
 # Extension of the final video file
 DEST_EXT: mkv

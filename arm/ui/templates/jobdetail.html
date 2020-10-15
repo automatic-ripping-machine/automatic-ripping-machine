@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}  
+<div class="container">
+    <div class="row">
+        <!-- <div class="col-sm-1"></div> -->
+        <div class="col-sm-12" >
+            <div class="table-responsive">
+                    <div class="card text-center">
+                            <div class="card-header"><a href="select_title?imdbID={{ jobs.imdb_id }}"><img src="{{ jobs.poster_url }}" width="240px" class="img-thumbnail"></a></div>
+			    <!-- GF Comment -->
+			    <div class="card-body"><b>{{  jobs.title  }}</b> - {{ jobs.video_type.capitalize() }} ({{ jobs.year }}) </br>
+                                                        <a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title Search</a></li>
+                                                        <a href="customTitle?job_id={{ jobs.job_id }}" class="btn btn-primary">Custom Title</a>
+				</div>
+                            <div class="card-body">
+                <table id="jobtable" class="table table-striped">
+                    <thead class="bg-secondary">    
+                        <tr>
+                            <th scope="col" style="text-align:left">Field</th>
+                            <th scope="col" style="text-align:left">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                            <tr><td style="text-align:left"><b>job_id</b></td><td style="text-align:left">{{ jobs.job_id }}</td></tr>
+                            <tr><td style="text-align:left"><b>arm_version</b></td><td style="text-align:left">{{ jobs.arm_version }}</td></tr>
+                            <tr><td style="text-align:left"><b>crc_id</b></td><td style="text-align:left">{{ jobs.crc_id }}</td></tr>
+                            <tr><td style="text-align:left"><b>logfile</b></td><td style="text-align:left">{{ jobs.logfile }}</td></tr>
+                            <tr><td style="text-align:left"><b>disc</b></td><td style="text-align:left">{{ jobs.disc }}</td></tr>
+                            <tr><td style="text-align:left"><b>start_time</b></td><td style="text-align:left">{{ jobs.start_time }}</td></tr>
+                            <tr><td style="text-align:left"><b>stop_time</b></td><td style="text-align:left">{{ jobs.stop_time }}</td></tr>
+                            <tr><td style="text-align:left"><b>job_length</b></td><td style="text-align:left">{{ jobs.job_length }}</td></tr>
+                            <tr><td style="text-align:left"><b>status</b></td><td style="text-align:left">{{ jobs.status }}</td></tr>
+                            <tr><td style="text-align:left"><b>video_type</b></td><td style="text-align:left">{{ jobs.video_type }}</td></tr>
+                            <tr><td style="text-align:left"><b>video_type_auto</b></td><td style="text-align:left">{{ jobs.video_type_auto }}</td></tr>
+                            <tr><td style="text-align:left"><b>video_type_manual</b></td><td style="text-align:left">{{ jobs.video_type_manual }}</td></tr>
+                            <tr><td style="text-align:left"><b>title</b></td><td style="text-align:left">{{ jobs.title }}</td></tr>
+                            <tr><td style="text-align:left"><b>title_auto</b></td><td style="text-align:left">{{ jobs.title_auto }}</td></tr>
+                            <tr><td style="text-align:left"><b>title_manual</b></td><td style="text-align:left">{{ jobs.title_manual }}</td></tr>
+                            <tr><td style="text-align:left"><b>year</b></td><td style="text-align:left">{{ jobs.year }}</td></tr>
+                            <tr><td style="text-align:left"><b>year_auto</b></td><td style="text-align:left">{{ jobs.year_auto }}</td></tr>
+                            <tr><td style="text-align:left"><b>year_manual</b></td><td style="text-align:left">{{ jobs.year_manual }}</td></tr>
+                            <tr><td style="text-align:left"><b>imdb_id</b></td><td style="text-align:left">{{ jobs.imdb_id }}</td></tr>
+                            <tr><td style="text-align:left"><b>imdb_id_auto</b></td><td style="text-align:left">{{ jobs.imdb_id_auto }}</td></tr>
+                            <tr><td style="text-align:left"><b>imdb_id_manual</b></td><td style="text-align:left">{{ jobs.imdb_id_manual }}</td></tr>
+                            <tr><td style="text-align:left"><b>poster_url</b></td><td style="text-align:left"><a href="{{ jobs.poster_url }}"><img src="{{ jobs.poster_url }}" width=50></a></td></tr>
+                            <tr><td style="text-align:left"><b>poster_url_auto</b></td><td style="text-align:left"><a href="{{ jobs.poster_url_auto }}"><img src="{{ jobs.poster_url_auto }}" width=50></a></td></tr>
+                            <tr><td style="text-align:left"><b>poster_url_manual</b></td><td style="text-align:left">{{ jobs.poster_url_manual }}</td></tr>
+                            <tr><td style="text-align:left"><b>devpath</b></td><td style="text-align:left">{{ jobs.devpath }}</td></tr>
+                            <tr><td style="text-align:left"><b>mountpoint</b></td><td style="text-align:left">{{ jobs.mountpoint }}</td></tr>
+                            <tr><td style="text-align:left"><b>hasnicetitle</b></td><td style="text-align:left">{{ jobs.hasnicetitle }}</td></tr>
+                            <tr><td style="text-align:left"><b>errors</b></td><td style="text-align:left">{{ jobs.errors }}</td></tr>
+                            <tr><td style="text-align:left"><b>disctype</b></td><td style="text-align:left">{{ jobs.disctype }}</td></tr>
+                            <tr><td style="text-align:left"><b>label</b></td><td style="text-align:left">{{ jobs.label }}</td></tr>
+                            <tr><td style="text-align:left"><b>ejected</b></td><td style="text-align:left">{{ jobs.ejected }}</td></tr>
+                            <tr><td style="text-align:left"><b>pid</b></td><td style="text-align:left">{{ jobs.pid }}</td></tr>
+                            <tr><td style="text-align:left"><b>pid hash</b></td><td style="text-align:left">{{ jobs.pid_hash }}</td></tr>
+                            <tr><td style="text-align:left"><b>Config ID</b></td><td style="text-align:left"> {{ jobs.config.CONFIG_ID }}</td></tr>
+                            <tr><td style="text-align:left"><b>HB_PRESET_DVD</b></td><td style="text-align:left"> {{ jobs.config.HB_PRESET_DVD }}</td></tr>
+                            <tr><td style="text-align:left"><b>HB_ARGS_DVD</b></td><td style="text-align:left"> {{ jobs.config.HB_ARGS_DVD }}</td></tr>
+			    <tr><td style="text-align:left"><b>HB_PRESET_BD</b></td><td style="text-align:left">{{ jobs.config.HB_PRESET_BD }} </td></tr> 
+			    <tr><td style="text-align:left"><b>HB_ARGS_BD</b></td><td style="text-align:left">{{ jobs.config.HB_ARGS_BD }} </td></tr> 
+                                                       
+                    </tbody>
+                    </table>
+                    <table id="tracktable" class="table table-striped">
+                        <thead class="bg-secondary">    
+                            <tr>
+                                <th scope="col" style="text-align:left">Track #</th>
+                                <th scope="col" style="text-align:left">Length (sec)</th>
+                                <th scope="col" style="text-align:left">FPS</th>
+                                <th scope="col" style="text-align:left">Aspect Ratio</th>
+                                <th scope="col" style="text-align:left">Main Feature</th>
+                                <th scope="col" style="text-align:left">Ripped</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for track in tracks %}
+                        <tr><td style="text-align:left"><b>{{ track.track_number }}</b></td><td style="text-align:left">{{ track.length }}</td><td style="text-align:left">{{ track.fps }}</td><td style="text-align:left">{{ track.aspect_ratio }}</td><td style="text-align:left">{{ track.main_feature }}</td><td style="text-align:left">{{ track.ripped }}</td></tr>
+                        <!-- <tr><td style="text-align:left"><b>2</b></td><td style="text-align:left">135</td><td style="text-align:left">29.30</td><td style="text-align:left">1.33</td><td style="text-align:left">False</td><td style="text-align:left">False</td></tr> -->
+                        {% endfor %}
+                        </tbody>
+
+                </table>
+                </div>
+                <!-- <div class="card-footer"><a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">New Search</a> </div> -->
+            </div>
+            </div>
+            <!-- <div class="col-sm-1"></div> -->
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block footer %}{{ super() }}{% endblock %}
+{% block js %}
+{{ super() }}
+
+{% endblock %}
