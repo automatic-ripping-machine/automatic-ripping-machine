@@ -105,9 +105,11 @@ def main(logfile, job):
     if job.disctype in ["dvd", "bluray"]:
         utils.notify(job, "ARM notification", "Found disc: " + str(job.title) + ". Video type is "
                      + str(job.video_type) + ". Main Feature is " + str(job.config.MAINFEATURE)
-                     + ".  Edit entry here: http://" + job.config.WEBSERVER_IP + ":" + str(job.config.WEBSERVER_PORT))
+                     + ".  Edit entry here: http://" + str(job.config.WEBSERVER_IP) + ":" + str(job.config.WEBSERVER_PORT) + "/jobdetail?job_id=" + str(job.job_id))
+                     #+ ".  Edit entry here: http://" + job.config.WEBSERVER_IP + ":" + str(job.config.WEBSERVER_PORT))
     elif job.disctype == "music":
-        utils.notify(job, "ARM notification", "Found music CD: " + job.label + ". Ripping all tracks")
+        #Fixed bug next line
+        utils.notify(job, "ARM notification", "Found music CD: " + str(job.label) + ". Ripping all tracks")
     elif job.disctype == "data":
         utils.notify(job, "ARM notification", "Found data disc.  Copying data.")
     else:
@@ -168,7 +170,8 @@ def main(logfile, job):
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
                 sys.exit()
             if job.config.NOTIFY_RIP:
-                utils.notify(job, "ARM notification", str(job.title + " rip complete.  Starting transcode."))
+                # Fixed bug line below
+                utils.notify(job, "ARM notification", str(job.title) + " rip complete.  Starting transcode.")
             # point HB to the path MakeMKV ripped to
             hbinpath = mkvoutpath
 
@@ -204,11 +207,12 @@ def main(logfile, job):
                             # move others into extras folder
                             if(f == largest_file_name):
                                 # largest movie
-                                utils.move_files(hbinpath, f, job.hasnicetitle, job, True)
+                                # Encorporating Rajlaud's fix #349
+                                utils.move_files(hbinpath, f, job, True)
                             else:
                                 # other extras
                                 if not str(job.config.EXTRAS_SUB).lower() == "none":
-                                    utils.move_files(hbinpath, f, job.hasnicetitle, job, False)
+                                    utils.move_files(hbinpath, f, job, False)
                                 else:
                                     logging.info("Not moving extra: " + f)
                     # Change final path (used to set permissions)
@@ -274,8 +278,19 @@ def main(logfile, job):
             # tracks = job.tracks.all()
             tracks = job.tracks.filter_by(ripped=True)
             for track in tracks:
+                logging.info("Moving Movie " + str(track.filename) + " to " + str(p))
                 utils.move_files(p, track.filename, job, track.main_feature)
 
+
+        # move to media directory
+        elif job.video_type == "series" and job.hasnicetitle:
+            # tracks = job.tracks.all()
+            tracks = job.tracks.filter_by(ripped=True)
+            for track in tracks:
+                logging.info("Moving Series " + str(track.filename) + " to " + str(p))
+                utils.move_files(p, track.filename, job, False)
+        else:
+            logging.info("job type is " + str(job.video_type) + "not movie or series, not moving.")
             utils.scan_emby(job)
 
         # remove empty directories
@@ -320,7 +335,7 @@ def main(logfile, job):
 
     elif job.disctype == "music":
         if utils.rip_music(job, logfile):
-            utils.notify(job, "ARM notification", "Music CD: " + job.label + " processing complete.")
+            utils.notify(job, "ARM notification", "Music CD: " + str(job.label) + " processing complete.")
             utils.scan_emby(job)
         else:
             logging.info("Music rip failed.  See previous errors.  Exiting.")
@@ -333,11 +348,11 @@ def main(logfile, job):
             datapath = os.path.join(job.config.ARMPATH, str(job.label) + "_" + str(ts))
 
             if(utils.make_dir(datapath)) is False:
-                logging.info("Could not create data directory: " + datapath + ".  Exiting ARM.")
+                logging.info("Could not create data directory: " + str(datapath) + ".  Exiting ARM.")
                 sys.exit()
 
         if utils.rip_data(job, datapath, logfile):
-            utils.notify(job, "ARM notification", "Data disc: " + job.label + " copying complete.")
+            utils.notify(job, "ARM notification", "Data disc: " + str(job.label)+ " copying complete.")
             job.eject()
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")

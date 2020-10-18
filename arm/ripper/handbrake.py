@@ -29,12 +29,17 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
 
     filename = os.path.join(basepath, job.title + "." + job.config.DEST_EXT)
     filepathname = os.path.join(basepath, filename)
+    logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
 
     get_track_info(srcpath, job)
 
     track = job.tracks.filter_by(main_feature=True).first()
 
-    logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
+    
+    if track is None:
+        msg = "No main feature found by Handbrake. Turn MAINFEATURE to false in arm.yml and try again."
+        logging.error(msg)
+        raise RuntimeError(msg)
 
     track.filename = track.orig_filename = filename
     db.session.commit()
