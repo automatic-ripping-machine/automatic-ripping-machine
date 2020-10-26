@@ -6,6 +6,9 @@ import logging
 import subprocess
 import re
 import shlex
+import time
+import datetime
+import psutil
 
 from arm.ripper import utils
 # from arm.config.config import cfg
@@ -26,6 +29,22 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     """
     logging.info("Starting DVD Movie Mainfeature processing")
     logging.debug("Handbrake starting: " + str(job))
+    
+    # Wait until there is a spot to transcode
+    job.status = "waiting_transcode"
+    logging.info("Setting job status to 'waiting_transcode' and checking to see if there is a slot")
+    transcode_number = 9999999
+    while transcode_number >= job.config.MAX_CONCURRENT_TRANSCODES:
+        #Count how many times handbrake is currently running
+        #procs = subprocess.check_output(['ps', '-a', '-c', '-ocomm=']).splitlines()
+        #TRANSCODE-NUMBER = procs.count('HandBrakeCLI')
+        transcode_number = sum(1 for proc in psutil.process_iter() if proc.name() == 'HandBrakeCLI')
+        logging.info("Number of HandBrakeCLI Processes running is:" + str(transcode_number) + " going to waiting 12 seconds.")
+        time.sleep(12)
+    
+    logging.debug("Setting job status to 'transcoding'")
+    job.status = "transcoding"
+    
 
     filename = os.path.join(basepath, job.title + "." + job.config.DEST_EXT)
     filepathname = os.path.join(basepath, filename)
@@ -94,6 +113,19 @@ def handbrake_all(srcpath, basepath, logfile, job):
 
     Returns nothing
     """
+    # Wait until there is a spot to transcode
+    job.status = "waiting_transcode"
+    logging.info("Setting job status to 'waiting_transcode' and checking to see if there is a slot")
+    transcode_number = 9999999
+    while transcode_number >= job.config.MAX_CONCURRENT_TRANSCODES:
+        #Count how many times handbrake is currently running
+        #procs = subprocess.check_output(['ps', '-a', '-c', '-ocomm=']).splitlines()
+        #TRANSCODE-NUMBER = procs.count('HandBrakeCLI')
+        transcode_number = sum(1 for proc in psutil.process_iter() if proc.name() == 'HandBrakeCLI')
+        logging.info("Number of HandBrakeCLI Processes running is:" + str(transcode_number) + " going to waiting 12 seconds.")
+        time.sleep(12)
+    
+    job.status = "transcoding"
     logging.info("Starting BluRay/DVD transcoding - All titles")
 
     if job.disctype == "dvd":
