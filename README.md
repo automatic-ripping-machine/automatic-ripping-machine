@@ -60,7 +60,7 @@ See: https://b3n.org/automatic-ripping-machine
 
 ## Requirements
 
-- Ubuntu Server 18.04 (should work with other Linux distros)
+- Ubuntu Server 18.04 or greater (should work with other Linux distros)
 - One or more optical drives to rip Blu-Rays, DVDs, and CDs
 - Lots of drive space (I suggest using a NAS like FreeNAS) to store your movies
 
@@ -75,10 +75,17 @@ sudo regionset /dev/sr0
 
 ## Install
 
-**Setup 'arm' user:**
-
+**Setup 'arm' user and ubuntu basics:**
+# Sets up graphics drivers, does Ubuntu update & Upgrade, gets Ubuntu to auto set up driver, and finally installs and setups up avahi-daemon
 ```bash
-sudo apt upgrade -y && sudo apt update -y && sudo ubuntu-drivers autoinstall && sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
+sudo apt upgrade -y && sudo apt update -y 
+***optional: sudo add-apt-repository ppa:graphics-drivers/ppa
+sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
+sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install 
+sudo reboot
+# Installation of drivers seems to install a full gnome desktop, and it seems to set up hibernation modes.
+# It is optional to run the below line (Hibernation may be something you want.)
+	sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 sudo groupadd arm
 sudo useradd -m arm -g arm -G cdrom
 sudo passwd arm 
@@ -88,16 +95,12 @@ sudo passwd arm
 **Set up repos and install dependencies**
 
 ```bash
-sudo apt-get install git
+sudo apt-get install git -y
 sudo add-apt-repository ppa:heyarje/makemkv-beta
 sudo add-apt-repository ppa:stebbins/handbrake-releases
-```
-(Copy and paste the previous 3 lines before proceeding)
-For Ubuntu 16.04 `sudo add-apt-repository ppa:mc3man/xerus-media`  
-For Ubuntu 18.04 `sudo add-apt-repository ppa:mc3man/bionic-prop`  
-For Ubuntu 20.04 `sudo add-apt-repository ppa:mc3man/focal6`
 
-```bash
+NumOnly=$(cut -f2 <<< `lsb_release -r`) && case $NumOnly in "16.04" ) sudo add-apt-repository ppa:mc3man/xerus-media;; "18.04" ) sudo add-apt-repository ppa:mc3man/bionic-prop;; "20.04" ) sudo add-apt-repository ppa:mc3man/focal6;; *) echo "error in finding release version";; esac
+
 sudo apt update -y && \
 sudo apt install makemkv-bin makemkv-oss -y && \
 sudo apt install handbrake-cli libavcodec-extra -y && \
@@ -109,7 +112,10 @@ sudo apt-get install libdvd-pkg -y && \
 sudo dpkg-reconfigure libdvd-pkg && \
 sudo apt install default-jre-headless -y
 ```
+```
+*** Set up postfix mail service because it's realyl sueful wfor when things don't work.
 
+```
 **Install and setup ARM**
 
 ```bash
@@ -164,6 +170,21 @@ After setup is complete reboot...
     reboot
 
 Optionally if you want something more stable than master you can download the latest release from the releases page.
+
+**Email notifcations**
+
+- A lot of random problems are found in the sysmail, email alerting is a most effective method for debugging and monitoring.
+- I recommend you install postfix from the instructions below:
+	http://mhawthorne.net/posts/2011-postfix-configuring-gmail-as-relay/
+- Then configure /etc/aliases 
+	e.g.: 
+	root: my_email@gmail.com
+	arm: my_email@gmail.com
+	userAccount: my_email@gmail.com
+- Run below to pick up the aliases
+	```
+	sudo newaliases
+	```
 
 ## Usage
 
