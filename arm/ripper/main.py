@@ -81,6 +81,7 @@ def log_arm_params(job):
     logging.info("emby_port: " + job.config.EMBY_PORT)
     logging.info("notify_rip: " + str(job.config.NOTIFY_RIP))
     logging.info("notify_transcode " + str(job.config.NOTIFY_TRANSCODE))
+    logging.info("max_concurrent_transcodes " + str(job.config.MAX_CONCURRENT_TRANSCODES))
     logging.info("**** End of config parameters ****")
 
 
@@ -344,8 +345,8 @@ def main(logfile, job):
         # get filesystem in order
         datapath = os.path.join(job.config.ARMPATH, str(job.label))
         if (utils.make_dir(datapath)) is False:
-            ts = round(time.time() * 100)
-            datapath = os.path.join(job.config.ARMPATH, str(job.label) + "_" + str(ts))
+            ts = str(round(time.time() * 100))
+            datapath = os.path.join(job.config.ARMPATH, str(job.label) + "_" + ts)
 
             if(utils.make_dir(datapath)) is False:
                 logging.info("Could not create data directory: " + str(datapath) + ".  Exiting ARM.")
