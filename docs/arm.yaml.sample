@@ -42,6 +42,9 @@ MANUAL_WAIT_TIME: 600
 # Also useful for deminishing returns on CPU based encodes.
 MAX_CONCURRENT_TRANSCODES: 3
 
+# Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
+DATA_RIP_PARAMETERS: ""
+
 #####################
 ## Directory setup ##
 #####################
