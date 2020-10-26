@@ -134,6 +134,15 @@ def rename_files(oldpath, job):
     logging.debug("oldpath: " + oldpath + " newpath: " + newpath)
     logging.info("Changing directory name from " + oldpath + " to " + newpath)
 
+    # Sometimes a job fails, after the rip, but before move of the tracks into the folder, at which point the below command
+    # will move the newly ripped folder inside the old correctly named folder.
+    # This can be a problem as the job when it tries to move the files, won't find them.
+    # other than putting in an error message, I'm not sure how to perminently fix this problem.
+    # Maybe I could add a configurable option for deletion of crashed job files?
+
+    if os.path.isdir(newpath):
+        logging.info("Error: The 'new' directory already exists, ARM will probably copy the newly ripped folder into the old-new folder.")
+
     try:
         shutil.move(oldpath, newpath)
         logging.debug("Directory name change successful")
