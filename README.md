@@ -123,10 +123,7 @@ cd /opt
 sudo mkdir arm
 sudo chown arm:arm arm
 sudo chmod 775 arm
-# TODO: Uncomment next line
-# sudo git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
-# TODO: Remove below line before merging to master
-sudo git clone https://github.com/flammableliquids/automatic-ripping-machine arm
+sudo git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
 sudo chown -R arm:arm arm
 cd arm
 sudo pip3 install -r requirements.txt 
