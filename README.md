@@ -113,10 +113,7 @@ sudo apt-get install libdvd-pkg -y && \
 sudo dpkg-reconfigure libdvd-pkg && \
 sudo apt install default-jre-headless -y
 ```
-```
-*** Set up postfix mail service because it's realyl sueful wfor when things don't work.
 
-```
 **Install and setup ARM**
 
 ```bash
