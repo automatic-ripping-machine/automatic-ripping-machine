@@ -76,10 +76,11 @@ sudo regionset /dev/sr0
 ## Install
 
 **Setup 'arm' user and ubuntu basics:**
-# Sets up graphics drivers, does Ubuntu update & Upgrade, gets Ubuntu to auto set up driver, and finally installs and setups up avahi-daemon
+
+Sets up graphics drivers, does Ubuntu update & Upgrade, gets Ubuntu to auto set up driver, and finally installs and setups up avahi-daemon
 ```bash
 sudo apt upgrade -y && sudo apt update -y 
-***optional: sudo add-apt-repository ppa:graphics-drivers/ppa
+***optional (was not required for me): sudo add-apt-repository ppa:graphics-drivers/ppa
 sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
 sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install 
 sudo reboot
@@ -170,15 +171,21 @@ Optionally if you want something more stable than master you can download the la
 
 **Email notifcations**
 
-- A lot of random problems are found in the sysmail, email alerting is a most effective method for debugging and monitoring.
-- I recommend you install postfix from the instructions below:
-	http://mhawthorne.net/posts/2011-postfix-configuring-gmail-as-relay/
-- Then configure /etc/aliases 
+A lot of random problems are found in the sysmail, email alerting is a most effective method for debugging and monitoring.
+
+I recommend you install postfix from here:http://mhawthorne.net/posts/2011-postfix-configuring-gmail-as-relay/
+
+Then configure /etc/aliases 
 	e.g.: 
+	
+	```	
 	root: my_email@gmail.com
 	arm: my_email@gmail.com
 	userAccount: my_email@gmail.com
-- Run below to pick up the aliases
+	```
+	
+Run below to pick up the aliases
+
 	```
 	sudo newaliases
 	```
