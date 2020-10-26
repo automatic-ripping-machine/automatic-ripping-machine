@@ -328,7 +328,7 @@ def main(logfile, job):
             errlist = ', '.join(job.errors)
             if job.config.NOTIFY_TRANSCODE:
                 utils.notify(job, "ARM notification", str(job.title) + " processing completed with errors. Title(s) " + errlist + " failed to complete.")
-            logging.info("Transcoding completed with errors.  Title(s) " + errlist + " failed to complete.")
+            logging.info("Transcoding completed with errors.  Title(s) " + str(errlist) + " failed to complete.")
         else:
             if job.config.NOTIFY_TRANSCODE:
                 utils.notify(job, "ARM notification", str(job.title) + " processing complete.")
