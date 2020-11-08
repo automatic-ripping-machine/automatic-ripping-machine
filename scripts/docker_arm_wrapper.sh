@@ -1,20 +1,14 @@
-#!/bin/bash -x
+#!/bin/bash
 #
 #
 set -euo pipefail
 
-DOCKER_NAME=arm
 DOCKER_IMAGE=arm:latest
-DOCKER_VOLUME="/srv/docker/arm:/home/arm"
-DOCKER_RESTART="on-failure:3"
-ARM_UID="$(id -u plex)"
-ARM_GID="$(id -g plex)"
-
-# only run as root
-if [[ "$(id -u)" -ne 0 ]] ; then
-  echo "$(basename -- "$0") must be run as root" | logger -t ARM -s
-  exit 2
-fi
+CONTAINER_NAME=arm
+CONTAINER_VOLUME="/srv/docker/arm:/home/arm"
+CONTAINER_RESTART="on-failure:3"
+ARM_UID="115" # "$(id -u plex)"
+ARM_GID="120" # "$(id -g plex)"
 
 # fork to let udev keep running
 if [[ "${1:-}" != "fork" ]] ; then
@@ -26,11 +20,13 @@ else
   shift
 fi
 
-# TODO handle "/dev/sr0" vs "sr0"
 DEVNAME="$1"
-if [[ -z "${DEVNAME}" || ! -b "${DEVNAME}" ]] ; then
-  echo "Device '${DEVNAME}' not found" | logger -t ARM -s
+if [[ -z "${DEVNAME}" ]] ; then
+  echo "Usage: $(basename -- "$0") <device>" | logger -t ARM -s
   exit 1
+fi
+if [[ ! -b "${DEVNAME}" && -b "/dev/${DEVNAME}" ]] ; then
+  DEVNAME="/dev/${DEVNAME}"
 fi
 
 function findGenericDevice {
@@ -55,35 +51,45 @@ function runArmContainer {
   docker run -d \
     --device="${DEVNAME}:/dev/sr0" ${SG_DEV_ARG} \
     -e UID="${ARM_UID}" -e GID="${ARM_GID}" \
-    -v "${DOCKER_VOLUME}" \
+    -v "${CONTAINER_VOLUME}" \
     --cap-add SYS_ADMIN \
     --security-opt apparmor:unconfined \
-    --restart "${DOCKER_RESTART}" \
-    --name "${DOCKER_NAME}" \
+    --restart "${CONTAINER_RESTART}" \
+    --name "${CONTAINER_NAME}" \
     "${DOCKER_IMAGE}" \
     | logger -t ARM
 }
 
 function startArmContainer {
-  echo "Starting stopped container ${DOCKER_NAME}" | logger -t ARM
-  docker start "${DOCKER_NAME}" | logger -t ARM
+  echo "Starting stopped container ${CONTAINER_NAME}" | logger -t ARM
+  docker start "${CONTAINER_NAME}" | logger -t ARM
 }
 
 function startArmRip {
+  # get info from udev to pass into the Docker container
+  local disctype="$(udevadm info --query=env --export "${DEVNAME}" \
+      | sed -nE '/^(ID_CDROM_MEDIA_(BD|DVD|TRACK_COUNT_AUDIO))=(.*)/ s//\1=\3/p' )"
+  local label="$(udevadm info --query=env --export "${DEVNAME}" \
+      | sed -nE '/^(ID_FS_LABEL)=(.*)/ s//\1=\2/p' )"
+  if [[ -z "${disctype}" ]] ; then 
+    echo "disctype not detected from udev, not ripping" | logger -t ARM -s
+    exit 1
+  fi
   echo "Starting rip" | logger -t ARM
   docker exec \
     -u "${ARM_UID}" \
     -w /home/arm \
-    "${DOCKER_NAME}" \
-    python3 /opt/arm/arm/ripper/main.py -d sr0 \
+    "${CONTAINER_NAME}" \
+    python3 /opt/arm/arm/ripper/main.py \
+      -d sr0 -t ${disctype} ${label:+-l ${label}} \
     | logger -t ARM
 }
 
 # start ARM container, if not running, for WebUI
-container_status="$(docker container ls -l -f name="${DOCKER_NAME}" --format '{{json .Status}}')"
+container_status="$(docker container ls -l -f name="${CONTAINER_NAME}" --format '{{json .Status}}')"
 case "${container_status//\"}" in
   Up*)
-    echo "container '${DOCKER_NAME}' status: ${container_status}" | logger -t ARM
+    echo "container '${CONTAINER_NAME}' status: ${container_status}" | logger -t ARM
     ;;
   Exited*)
     startArmContainer
