@@ -1,3 +1,4 @@
+# TODO separate containers for ui vs rip
 FROM ubuntu:20.04 as base
 
 # override at runtime to match user that ARM runs as to local user
@@ -69,8 +70,6 @@ RUN \
   bash /root/add-ppa.sh ppa:heyarje/makemkv-beta && \
   bash /root/add-ppa.sh ppa:stebbins/handbrake-releases && \
   apt update -y && \
-  DEBIAN_FRONTEND=noninteractive apt purge -y software-properties-common && \
-  DEBIAN_FRONTEND=noninteractive apt upgrade -y && \
   DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
     abcde \
     cdparanoia \
@@ -94,8 +93,10 @@ RUN \
   ln -sv /home/arm/arm.yaml /opt/arm/arm.yaml && \
   echo "/dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8,ro  0  0" >> /etc/fstab 
 
-# copy just the .deb from libdvd build stage and install it
+# copy just the .deb from libdvd build stage
 COPY --from=libdvd /usr/src/libdvd-pkg/libdvdcss2_*.deb /opt/arm
+# installing with --ignore-depends to avoid all it's deps
+# leaves apt in a broken state so do package install last
 RUN DEBIAN_FRONTEND=noninteractive dpkg -i --ignore-depends=libdvd-pkg /opt/arm/libdvdcss2_*.deb
 
 # copy pip reqs from build stage
