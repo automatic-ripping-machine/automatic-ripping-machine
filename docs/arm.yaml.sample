@@ -47,7 +47,7 @@ ARMPATH: "/home/arm/media/completed/"
 
 # Path to raw MakeMKV directory
 # Destination for MakeMKV and source for HandBrake
-RAWPATH: "/home/arm/media/raw/"
+RAWPATH: "/home/arm/encode/"
 
 # Path to final media directory
 # Destination for final file.  Only used for movies that are positively identified

@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 #
 # set up a user and switch to that user
 
@@ -21,7 +21,7 @@ if ! id -u "${USER}" ; then
 fi
 
 # setup needed/expected dirs if not found
-SUBDIRS="media media/completed media/raw media/movies encode logs db Music"
+SUBDIRS="media media/completed media/music media/movies encode logs db"
 for dir in $SUBDIRS ; do
   thisDir="${HOME}/${dir}"
   if [[ ! -d "${thisDir}" ]] ; then
