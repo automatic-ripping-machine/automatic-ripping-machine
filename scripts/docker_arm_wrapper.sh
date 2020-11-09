@@ -3,17 +3,24 @@
 #
 set -euo pipefail
 
-DOCKER_IMAGE=arm:latest
-CONTAINER_NAME=arm
+DOCKER_IMAGE="arm:latest"
+CONTAINER_NAME="arm"
 CONTAINER_VOLUME="/srv/docker/arm:/home/arm"
 CONTAINER_RESTART="on-failure:3"
 ARM_UID="115" # "$(id -u plex)"
 ARM_GID="120" # "$(id -g plex)"
 
+# exit if udev ID_CDROM_MEDIA properties not available yet
+# avoid running too early
+if [[ -z "${!ID_CDROM_MEDIA_*}" ]] ; then
+  #echo "$(date) disk not ready/identified yet" >> /tmp/docker_arm_wrapper.log
+  exit 0
+fi
+
 # fork to let udev keep running
 if [[ "${1:-}" != "fork" ]] ; then
   #{ "$0" fork "$*" > /dev/null 2>&1 < /dev/null & } &
-  { "$0" fork "$*" >> /tmp/arm.log 2>&1 < /dev/null & } &
+  echo "$0 fork $@" | at -M now # systemd udev hates children
   exit 0
 else
   # get rid of "fork" arg
@@ -67,21 +74,24 @@ function startArmContainer {
 
 function startArmRip {
   # get info from udev to pass into the Docker container
-  local disctype="$(udevadm info --query=env --export "${DEVNAME}" \
-      | sed -nE '/^(ID_CDROM_MEDIA_(BD|DVD|TRACK_COUNT_AUDIO))=(.*)/ s//\1=\3/p' )"
-  local label="$(udevadm info --query=env --export "${DEVNAME}" \
-      | sed -nE '/^(ID_FS_LABEL)=(.*)/ s//\1=\2/p' )"
+  if [[ -z "${!ID_CDROM_MEDIA_*}" ]] ; then
+    eval "$(udevadm info --query=env --export "${DEVNAME}")"
+  fi
+  local disctype="$(echo ${!ID_CDROM_MEDIA_*} \
+    | sed -nE '/.*(ID_CDROM_MEDIA_(BD|DVD|TRACK_COUNT_AUDIO)).*/ s//\1=1/p' )"
+  local label_flag="${ID_FS_LABEL:+-l ID_FS_LABEL=${ID_FS_LABEL}}"
   if [[ -z "${disctype}" ]] ; then 
-    echo "disctype not detected from udev, not ripping" | logger -t ARM -s
+    echo "disctype not detected from udev, not ripping" >&2
     exit 1
   fi
+
   echo "Starting rip" | logger -t ARM
-  docker exec \
+  docker exec -i \
     -u "${ARM_UID}" \
     -w /home/arm \
     "${CONTAINER_NAME}" \
     python3 /opt/arm/arm/ripper/main.py \
-      -d sr0 -t ${disctype} ${label:+-l ${label}} \
+      -d sr0 -t ${disctype} ${label_flag}  \
     | logger -t ARM
 }
 
@@ -99,7 +109,5 @@ case "${container_status//\"}" in
     ;;  
 esac
 
-echo "Sleeping while disc spins up" | logger -t ARM
-sleep 5 # allow the system enough time to load disc information such as title
-
+# start the rip inside the same container
 startArmRip
