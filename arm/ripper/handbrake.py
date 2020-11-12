@@ -29,19 +29,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     """
     logging.info("Starting DVD Movie Mainfeature processing")
     logging.debug("Handbrake starting: " + str(job))
-    
-    # Wait until there is a spot to transcode
-    job.status = "waiting_transcode"
-    logging.info("Setting job status to 'waiting_transcode' and checking to see if there is a slot")
-    transcode_number = 9999999
-    while transcode_number >= job.config.MAX_CONCURRENT_TRANSCODES:
-        #Count how many times handbrake is currently running
-        #procs = subprocess.check_output(['ps', '-a', '-c', '-ocomm=']).splitlines()
-        #TRANSCODE-NUMBER = procs.count('HandBrakeCLI')
-        transcode_number = sum(1 for proc in psutil.process_iter() if proc.name() == 'HandBrakeCLI')
-        logging.info("Number of HandBrakeCLI Processes running is:" + str(transcode_number) + " going to waiting 12 seconds.")
-        time.sleep(12)
-    
+    utils.SleepCheckProcess("HandBrakeCLI",int(job.config.MAX_CONCURRENT_TRANSCODES))
     logging.debug("Setting job status to 'transcoding'")
     job.status = "transcoding"
     
@@ -115,17 +103,9 @@ def handbrake_all(srcpath, basepath, logfile, job):
     """
     # Wait until there is a spot to transcode
     job.status = "waiting_transcode"
-    logging.info("Setting job status to 'waiting_transcode' and checking to see if there is a slot")
-    transcode_number = 9999999
-    while transcode_number >= job.config.MAX_CONCURRENT_TRANSCODES:
-        #Count how many times handbrake is currently running
-        #procs = subprocess.check_output(['ps', '-a', '-c', '-ocomm=']).splitlines()
-        #TRANSCODE-NUMBER = procs.count('HandBrakeCLI')
-        transcode_number = sum(1 for proc in psutil.process_iter() if proc.name() == 'HandBrakeCLI')
-        logging.info("Number of HandBrakeCLI Processes running is:" + str(transcode_number) + " going to waiting 12 seconds.")
-        time.sleep(12)
-    
+    utils.SleepCheckProcess("HandBrakeCLI",int(job.config.MAX_CONCURRENT_TRANSCODES))
     job.status = "transcoding"
+
     logging.info("Starting BluRay/DVD transcoding - All titles")
 
     if job.disctype == "dvd":
@@ -206,6 +186,10 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
 
     Returns nothing
     """
+
+    job.status = "waiting_transcode"
+    utils.SleepCheckProcess("HandBrakeCLI",int(job.config.MAX_CONCURRENT_TRANSCODES))
+    job.status = "transcoding"
 
     if job.disctype == "dvd":
         hb_args = job.config.HB_ARGS_DVD
