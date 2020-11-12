@@ -8,6 +8,8 @@ import subprocess
 import shutil
 import requests
 import time
+import datetime  # noqa: E402
+import psutil  # noqa E402
 
 # from arm.config.config import cfg
 from arm.ui import app, db # noqa E402
@@ -60,6 +62,18 @@ def scan_emby(job):
     else:
         logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
 
+def SleepCheckProcess(ProcessStr, Proc_Count):
+
+    if Proc_Count != 0:
+        Loop_Count = Proc_Count + 1
+        logging.debug("Loop_Count " + str(Loop_Count))
+        logging.info("Starting A sleep check of " + str(ProcessStr))
+        while Loop_Count >= Proc_Count:
+            Loop_Count = sum(1 for proc in psutil.process_iter() if proc.name() == ProcessStr)
+            logging.debug("Number of Processes running is:" + str(Loop_Count) + " going to waiting 12 seconds.")
+            time.sleep(10)
+    else:
+        logging.info("Number of processes to count is: " + str(Proc_Count))
 
 def move_files(basepath, filename, job, ismainfeature=False):
     """Move files into final media directory\n
