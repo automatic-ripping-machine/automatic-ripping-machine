@@ -24,16 +24,16 @@ def setuplogging(job):
 
     if cfg['LOGPATH'][-1:] == "/":
         #Check to see if file already exists, if so, create a new file
-        ilogfull = cfg['LOGPATH'] + logfile
-        if os.path.isfile(ilogfull):
+        TmpLogFull = cfg['LOGPATH'] + logfile
+        if os.path.isfile(TmpLogFull):
             logfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
             logfull = cfg['LOGPATH'] + logfile
         else:
             logfull = cfg['LOGPATH'] + logfile       
     else:
         #Check to see if file already exists, if so, create a new file
-        iilogfull = cfg['LOGPATH'] + "/" + logfile
-        if os.path.isfile(iilogfull):
+        TmpLogFull = cfg['LOGPATH'] + "/" + logfile
+        if os.path.isfile(TmpLogFull):
             #CTime = round(time.time() * 100)
             logfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
             logfull = cfg['LOGPATH'] + "/" + logfile
