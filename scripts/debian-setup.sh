@@ -40,6 +40,7 @@ make install
 echo "${RED}Installing ffmpeg${NC}"
 apt-get install ffmpeg
 
+echo "${RED}Installing ARM requirments{NC}"
 apt install handbrake-cli libavcodec-extra
 apt install libdvdcss2
 apt install abcde flac imagemagick glyrc cdparanoia
@@ -91,10 +92,10 @@ echo -e "/dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0 \n" >>
 #####run the ui , set as cron or service
 ###add as service
 # python3 /opt/arm/arm/runui.py
-
+echo "${RED}Installing ARM service${NC}"
 cat > /etc/systemd/system/armui.service <<- EOM
 [Unit]
-Description=arm service
+Description=Arm service
 After=network.target
 StartLimitIntervalSec=0
 [Service]
