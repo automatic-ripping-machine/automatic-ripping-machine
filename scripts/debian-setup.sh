@@ -1,27 +1,28 @@
 #!/bin/bash
-
+echo "Adding arm user"
 groupadd arm
 useradd -m arm -g arm -G cdrom
-passwd arm 
-  <enter new password>
+passwd arm
+echo "installing git"
+apt-get install git
+echo "installing required build tools"
+apt-get install build-essential pkg-config libc6-dev libssl-dev libexpat1-dev libavcodec-dev libgl1-mesa-dev qtbase5-dev zlib1g-dev
+echo "installing wget"
+apt-get install wget
 
-sudo apt-get install git
-
-sudo apt-get install build-essential pkg-config libc6-dev libssl-dev libexpat1-dev libavcodec-dev libgl1-mesa-dev qtbase5-dev zlib1g-dev
-
-sudo apt-get install wget
-
+echo "setting up directories and getting makeMKV files"
 mkdir /makeMKV
-
 cd /makeMKV
 
 wget https://www.makemkv.com/download/makemkv-bin-1.15.3.tar.gz
 wget https://www.makemkv.com/download/makemkv-oss-1.15.3.tar.gz
 
+echo "Extracting MakeMKV"
 tar xvzf makemkv-oss-1.15.3.tar.gz
 tar xvzf makemkv-bin-1.15.3.tar.gz
 
 cd makemkv-oss-1.15.3
+echo "Installing MakeMKV"
 ./configure
 make
 make install
@@ -33,7 +34,7 @@ make install
 #cd ../..
 #mkdir ffmpeg
 #cd ffmpeg
-
+echo "Installing ffmpeg"
 apt-get install ffmpeg
 
 apt install handbrake-cli libavcodec-extra
@@ -53,6 +54,7 @@ dpkg-reconfigure libdvd-pkg
 apt install default-jre-headless
 apt install eject
 
+echo "Installing ARM:Automatic Ripping Machine"
 cd /opt
 mkdir arm
 chown arm:arm arm
@@ -77,9 +79,12 @@ ln -s /opt/arm/arm.yaml /etc/arm/
 
 mkdir -p /mnt/dev/sr0
 
-nano /etc/fstab
+#nano /etc/fstab
+#/dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0 
 ########
-/dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
+echo "Adding fstab entry"
+echo -e "/dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0 \n" >> /etc/fstab
 
 #####run the ui , set as cron or service
+###add as service
  python3 /opt/arm/arm/runui.py
