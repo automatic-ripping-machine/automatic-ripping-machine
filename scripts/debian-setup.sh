@@ -101,7 +101,6 @@ StartLimitIntervalSec=0
 Type=simple
 Restart=always
 RestartSec=1
-#User=centos
 ExecStart=python3 /opt/arm/arm/runui.py
 
 [Install]
