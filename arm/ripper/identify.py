@@ -10,6 +10,7 @@ import pydvdid
 import unicodedata
 import xmltodict
 import json
+import re
 
 from arm.ripper import utils
 from arm.ui import db
@@ -201,6 +202,8 @@ def get_video_details(job):
 
     title = job.title
     year = job.year
+    #strip all non-numeric chars and use that for year
+    year = re.sub("[^0-9]", "", job.year)
     if year is None:
         year = ""
 
