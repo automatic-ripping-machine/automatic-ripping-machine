@@ -101,4 +101,6 @@ ExecStart=python3 /opt/arm/arm/runui.py
 WantedBy=multi-user.target
 EOM
 #echo -e "" >> /etc/systemd/system/armui.service
+systemctl enable armui
 systemctl start armui
+
