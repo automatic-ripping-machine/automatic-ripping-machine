@@ -61,7 +61,22 @@ RUN \
     --prefer-binary \
     -r /requirements.txt
 
-FROM base as finalimage
+FROM base as pip-ui
+COPY requirements.ui.txt /requirements.txt
+RUN \
+  apt update -y && \
+  DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
+    build-essential \
+    python3 \
+    python3-dev \
+    python3-pip \
+    && \
+  pip3 install \
+    --ignore-installed \
+    --prefer-binary \
+    -r /requirements.txt
+
+FROM base as ripper
 
 RUN mkdir /opt/arm
 WORKDIR /opt/arm
