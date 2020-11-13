@@ -28,13 +28,11 @@ cd makemkv-oss-1.15.3
 echo -e "${RED}Installing MakeMKV${NC}"
 ./configure 2>&1 >/dev/null
 make -s
-#make
-make -s install
+make install
 
 cd ../makemkv-bin-1.15.3
 make -s
-#make
-make -s install
+make install
 
 echo -e "${RED}Installing ffmpeg${NC}"
 apt -qq install ffmpeg -y
@@ -64,12 +62,12 @@ chown arm:arm arm
 chmod 775 arm
 ##my updated version
 git clone https://github.com/1337-server/automatic-ripping-machine.git arm
-###stock
+##stock
 #git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
 chown -R arm:arm arm
 cd arm
 # TODO: Remove below line before merging to master
-git checkout v2.1_dev
+git checkout v2.1_dev &> /dev/nul
 pip3 install setuptools
 apt -qq install python3-dev python3-pip python3-venv python3-wheel -y
 pip3 install wheel
@@ -102,5 +100,6 @@ ExecStart=python3 /opt/arm/arm/runui.py
 [Install]
 WantedBy=multi-user.target
 EOM
-#echo -e "" >> /etc/systemd/system/armui.service
+#reload the daemon and then start ui
+systemctl daemon-reload
 systemctl start armui
