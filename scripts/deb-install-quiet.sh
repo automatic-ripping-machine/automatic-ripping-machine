@@ -100,7 +100,8 @@ ExecStart=python3 /opt/arm/arm/runui.py
 [Install]
 WantedBy=multi-user.target
 EOM
+
 #reload the daemon and then start ui
-systemctl daemon-reload
 systemctl enable armui
 systemctl start armui
+systemctl daemon-reload
