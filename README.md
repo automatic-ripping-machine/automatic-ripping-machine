@@ -1,13 +1,5 @@
 # Automatic Ripping Machine (ARM)
 
-## Unofficial Docker Build
-
-run this if you're impatient or fond of yelling 'YOLO!'
-
-```curl -fsSL https://raw.githubusercontent.com/deekue/automatic-ripping-machine/docker/setup/docker-setup.sh | sudo bash -```
-
-requires Docker, git and udev...oh, and a CD/DVD drive.
-
 [![Build Status](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine.svg?branch=v2_master)](https://travis-ci.org/automatic-ripping-machine/automatic-ripping-machine)
 
 ## Upgrading from v2_master to v2.2_dev
