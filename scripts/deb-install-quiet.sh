@@ -89,8 +89,6 @@ echo -e "${RED}Installing ARM service${NC}"
 cat > /etc/systemd/system/armui.service <<- EOM
 [Unit]
 Description=Arm service
-After=network.target
-StartLimitIntervalSec=0
 [Service]
 Type=simple
 Restart=always
