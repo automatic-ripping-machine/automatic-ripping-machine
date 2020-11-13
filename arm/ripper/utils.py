@@ -8,6 +8,8 @@ import subprocess
 import shutil
 import requests
 import time
+import datetime  # noqa: E402
+import psutil  # noqa E402
 
 # from arm.config.config import cfg
 from arm.ui import app, db # noqa E402
@@ -60,6 +62,18 @@ def scan_emby(job):
     else:
         logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
 
+def SleepCheckProcess(ProcessStr, Proc_Count):
+
+    if Proc_Count != 0:
+        Loop_Count = Proc_Count + 1
+        logging.debug("Loop_Count " + str(Loop_Count))
+        logging.info("Starting A sleep check of " + str(ProcessStr))
+        while Loop_Count >= Proc_Count:
+            Loop_Count = sum(1 for proc in psutil.process_iter() if proc.name() == ProcessStr)
+            logging.debug("Number of Processes running is:" + str(Loop_Count) + " going to waiting 12 seconds.")
+            time.sleep(10)
+    else:
+        logging.info("Number of processes to count is: " + str(Proc_Count))
 
 def move_files(basepath, filename, job, ismainfeature=False):
     """Move files into final media directory\n
@@ -133,6 +147,15 @@ def rename_files(oldpath, job):
     newpath = os.path.join(job.config.ARMPATH, job.title + " (" + str(job.year) + ")")
     logging.debug("oldpath: " + oldpath + " newpath: " + newpath)
     logging.info("Changing directory name from " + oldpath + " to " + newpath)
+
+    # Sometimes a job fails, after the rip, but before move of the tracks into the folder, at which point the below command
+    # will move the newly ripped folder inside the old correctly named folder.
+    # This can be a problem as the job when it tries to move the files, won't find them.
+    # other than putting in an error message, I'm not sure how to perminently fix this problem.
+    # Maybe I could add a configurable option for deletion of crashed job files?
+
+    if os.path.isdir(newpath):
+        logging.info("Error: The 'new' directory already exists, ARM will probably copy the newly ripped folder into the old-new folder.")
 
     try:
         shutil.move(oldpath, newpath)
@@ -269,7 +292,7 @@ def rip_music(job, logfile):
 
 def rip_data(job, datapath, logfile):
     """
-    Rip data disc using cat on the command line\n
+    Rip data disc using dd on the command line\n
     job = job object\n
     datapath = path to copy data to\n
     logfile = location of logfile\n
@@ -287,9 +310,10 @@ def rip_data(job, datapath, logfile):
 
         logging.info("Ripping data disc to: " + filename)
 
-        cmd = 'cat "{0}" > "{1}" 2>> {2}'.format(
+        cmd = 'dd if="{0}" of="{1}" {2} 2>> {3}'.format(
             job.devpath,
             filename,
+            cfg["DATA_RIP_PARAMETERS"],
             logfile
         )
 

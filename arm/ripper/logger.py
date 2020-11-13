@@ -3,7 +3,9 @@
 import os
 import logging
 import time
+import os.path
 
+from os import path
 from arm.config.config import cfg
 
 
@@ -23,9 +25,22 @@ def setuplogging(job):
         logfile = job.label + ".log"
 
     if cfg['LOGPATH'][-1:] == "/":
-        logfull = cfg['LOGPATH'] + logfile
+        #Check to see if file already exists, if so, create a new file
+        TmpLogFull = cfg['LOGPATH'] + logfile
+        if os.path.isfile(TmpLogFull):
+            logfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
+            logfull = cfg['LOGPATH'] + logfile
+        else:
+            logfull = cfg['LOGPATH'] + logfile       
     else:
-        logfull = cfg['LOGPATH'] + "/" + logfile
+        #Check to see if file already exists, if so, create a new file
+        TmpLogFull = cfg['LOGPATH'] + "/" + logfile
+        if os.path.isfile(TmpLogFull):
+            #CTime = round(time.time() * 100)
+            logfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
+            logfull = cfg['LOGPATH'] + "/" + logfile
+        else:
+            logfull = cfg['LOGPATH'] + "/" + logfile
 
     if cfg['LOGLEVEL'] == "DEBUG":
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',

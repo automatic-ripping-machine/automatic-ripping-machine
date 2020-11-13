@@ -6,6 +6,9 @@ import logging
 import subprocess
 import re
 import shlex
+import time
+import datetime
+import psutil
 
 from arm.ripper import utils
 # from arm.config.config import cfg
@@ -26,6 +29,10 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     """
     logging.info("Starting DVD Movie Mainfeature processing")
     logging.debug("Handbrake starting: " + str(job))
+    utils.SleepCheckProcess("HandBrakeCLI",int(job.config.MAX_CONCURRENT_TRANSCODES))
+    logging.debug("Setting job status to 'transcoding'")
+    job.status = "transcoding"
+    
 
     filename = os.path.join(basepath, job.title + "." + job.config.DEST_EXT)
     filepathname = os.path.join(basepath, filename)
@@ -94,6 +101,11 @@ def handbrake_all(srcpath, basepath, logfile, job):
 
     Returns nothing
     """
+    # Wait until there is a spot to transcode
+    job.status = "waiting_transcode"
+    utils.SleepCheckProcess("HandBrakeCLI",int(job.config.MAX_CONCURRENT_TRANSCODES))
+    job.status = "transcoding"
+
     logging.info("Starting BluRay/DVD transcoding - All titles")
 
     if job.disctype == "dvd":
@@ -174,6 +186,10 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
 
     Returns nothing
     """
+
+    job.status = "waiting_transcode"
+    utils.SleepCheckProcess("HandBrakeCLI",int(job.config.MAX_CONCURRENT_TRANSCODES))
+    job.status = "transcoding"
 
     if job.disctype == "dvd":
         hb_args = job.config.HB_ARGS_DVD
