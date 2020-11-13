@@ -1,28 +1,31 @@
 #!/bin/bash
-echo "Adding arm user"
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo -e "${RED} Adding arm user${NC}"
 groupadd arm
 useradd -m arm -g arm -G cdrom
 passwd arm
-echo "installing git"
+echo -e "${RED}Installing git${NC}"
 apt-get install git
-echo "installing required build tools"
+echo "${RED}installing required build tools${NC}"
 apt-get install build-essential pkg-config libc6-dev libssl-dev libexpat1-dev libavcodec-dev libgl1-mesa-dev qtbase5-dev zlib1g-dev
-echo "installing wget"
+echo "${RED}installing wget${NC}"
 apt-get install wget
 
-echo "setting up directories and getting makeMKV files"
+echo "${RED}setting up directories and getting makeMKV files${NC}"
 mkdir /makeMKV
 cd /makeMKV
 
 wget https://www.makemkv.com/download/makemkv-bin-1.15.3.tar.gz
 wget https://www.makemkv.com/download/makemkv-oss-1.15.3.tar.gz
 
-echo "Extracting MakeMKV"
+echo "${RED}Extracting MakeMKV${NC}"
 tar xvzf makemkv-oss-1.15.3.tar.gz
 tar xvzf makemkv-bin-1.15.3.tar.gz
 
 cd makemkv-oss-1.15.3
-echo "Installing MakeMKV"
+echo "${RED}Installing MakeMKV${NC}"
 ./configure
 make
 make install
@@ -34,7 +37,7 @@ make install
 #cd ../..
 #mkdir ffmpeg
 #cd ffmpeg
-echo "Installing ffmpeg"
+echo "${RED}Installing ffmpeg${NC}"
 apt-get install ffmpeg
 
 apt install handbrake-cli libavcodec-extra
@@ -54,7 +57,7 @@ dpkg-reconfigure libdvd-pkg
 apt install default-jre-headless
 apt install eject
 
-echo "Installing ARM:Automatic Ripping Machine"
+echo "${RED}Installing ARM:Automatic Ripping Machine${NC}"
 cd /opt
 mkdir arm
 chown arm:arm arm
@@ -82,9 +85,27 @@ mkdir -p /mnt/dev/sr0
 #nano /etc/fstab
 #/dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0 
 ########
-echo "Adding fstab entry"
+echo -e "${RED}Adding fstab entry${NC}"
 echo -e "/dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0 \n" >> /etc/fstab
 
 #####run the ui , set as cron or service
 ###add as service
- python3 /opt/arm/arm/runui.py
+# python3 /opt/arm/arm/runui.py
+
+cat > /etc/systemd/system/armui.service <<- EOM
+[Unit]
+Description=arm service
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+#User=centos
+ExecStart=python3 /opt/arm/arm/runui.py
+
+[Install]
+WantedBy=multi-user.target
+EOM
+#echo -e "" >> /etc/systemd/system/armui.service
+echo systemctl start armui
