@@ -139,7 +139,7 @@ sudo ln -s /opt/arm/arm.yaml /etc/arm/
   ```
   /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
   ```
-**Alternative Auto Install Script For OpenMediaVault/Debian**
+## Alternative Auto Install Script For OpenMediaVault/Debian
 This MUST be run as root!
 For the attended install use:
  ```
