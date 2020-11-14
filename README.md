@@ -143,6 +143,7 @@ sudo ln -s /opt/arm/arm.yaml /etc/arm/
 This MUST be run as root!
 For the attended install use:
  ```
+ apt install wget
  wget https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/v2.1_dev/scripts/debian-setup.sh
  chmod +x debian-setup.sh
  ./debian-setup.sh
@@ -150,6 +151,7 @@ For the attended install use:
  
  For the silent install use
   ```
+ apt -qqy install wget
  wget https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/v2.1_dev/scripts/deb-install-quiet.sh
  chmod +x deb-install-quiet.sh
  ./deb-install-quiet.sh
