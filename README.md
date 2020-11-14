@@ -139,7 +139,22 @@ sudo ln -s /opt/arm/arm.yaml /etc/arm/
   ```
   /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
   ```
-
+**Alternative Auto Install Script For OpenMediaVault/Debian**
+This MUST be run as root!
+For the attended install use:
+ ```
+ wget https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/v2.1_dev/scripts/debian-setup.sh
+ chmod +x debian-setup.sh
+ ./debian-setup.sh
+ ```
+ 
+ For the silent install use
+  ```
+ wget https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/v2.1_dev/scripts/deb-install-quiet.sh
+ chmod +x deb-install-quiet.sh
+ ./deb-install-quiet.sh
+ ```
+ The script installs all dependencies, a service for the ARMui and the fstab entry for sr0, if you have more than one drive you will need to make the mount folder and insert any additional fstab entries.
 **Configure ARM**
 
 - Edit your "config" file (located at /opt/arm/arm.yaml) to determine what options you'd like to use.  Pay special attention to the 'directory setup' section and make sure the 'arm' user has write access to wherever you define these directories.
