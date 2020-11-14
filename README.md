@@ -139,6 +139,24 @@ sudo ln -s /opt/arm/arm.yaml /etc/arm/
   ```
   /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
   ```
+**Configure ARM**
+
+- Edit your "config" file (located at /opt/arm/arm.yaml) to determine what options you'd like to use.  Pay special attention to the 'directory setup' section and make sure the 'arm' user has write access to wherever you define these directories.
+
+- Edit the music config file (located at /home/arm/.abcde.conf)
+
+- To rip Blu-Rays after the MakeMKV trial is up you will need to purchase a license key or while MakeMKV is in BETA you can get a free key (which you will need to update from time to time) here:  https://www.makemkv.com/forum2/viewtopic.php?f=5&t=1053 and create /home/arm/.MakeMKV/settings.conf with the contents:
+
+        app_Key = "insertlicensekeyhere"
+
+- For ARM to identify movie/tv titles register for an API key at OMDb API: http://www.omdbapi.com/apikey.aspx and set the OMDB_API_KEY parameter in the config file.
+
+After setup is complete reboot...
+    
+    reboot
+
+Optionally if you want something more stable than master you can download the latest release from the releases page.
+
 ## Alternative Auto Install Script For OpenMediaVault/Debian
 This MUST be run as root!
 For the attended install use:
@@ -157,23 +175,8 @@ For the attended install use:
  ./deb-install-quiet.sh
  ```
  The script installs all dependencies, a service for the ARMui and the fstab entry for sr0, if you have more than one drive you will need to make the mount folder and insert any additional fstab entries.
-**Configure ARM**
-
-- Edit your "config" file (located at /opt/arm/arm.yaml) to determine what options you'd like to use.  Pay special attention to the 'directory setup' section and make sure the 'arm' user has write access to wherever you define these directories.
-
-- Edit the music config file (located at /home/arm/.abcde.conf)
-
-- To rip Blu-Rays after the MakeMKV trial is up you will need to purchase a license key or while MakeMKV is in BETA you can get a free key (which you will need to update from time to time) here:  https://www.makemkv.com/forum2/viewtopic.php?f=5&t=1053 and create /home/arm/.MakeMKV/settings.conf with the contents:
-
-        app_Key = "insertlicensekeyhere"
-
-- For ARM to identify movie/tv titles register for an API key at OMDb API: http://www.omdbapi.com/apikey.aspx and set the OMDB_API_KEY parameter in the config file.
-
-After setup is complete reboot...
-    
-    reboot
-
-Optionally if you want something more stable than master you can download the latest release from the releases page.
+ 
+ reboot to complete installation.
 
 ## Usage
 
