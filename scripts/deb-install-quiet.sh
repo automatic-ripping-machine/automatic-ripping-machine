@@ -2,6 +2,7 @@
 RED='\033[1;31m'
 NC='\033[0m' # No Color
 
+export DEBIAN_FRONTEND=noninteractiveexport
 echo -e "${RED}Adding arm user${NC}"
 groupadd arm
 useradd -m arm -g arm -G cdrom
