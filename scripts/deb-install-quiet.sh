@@ -33,6 +33,7 @@ make -s
 make install
 
 cd ../makemkv-bin-1.15.3
+mkdir /makeMKV/makemkv-bin-1.15.3/tmp
 touch /makeMKV/makemkv-bin-1.15.3/tmp/eula_accepted
 make -s
 make install
