@@ -7,11 +7,12 @@ groupadd arm
 useradd -m arm -g arm -G cdrom
 passwd arm
 echo -e "${RED}Installing git${NC}"
-apt -qq install git
+apt -qqy install git
 echo -e "${RED}Installing required build tools${NC}"
-apt -qq install build-essential pkg-config libc6-dev libssl-dev libexpat1-dev libavcodec-dev libgl1-mesa-dev qtbase5-dev zlib1g-dev
+apt -qqy install build-essential pkg-config libc6-dev libssl-dev libexpat1-dev libavcodec-dev libgl1-mesa-dev qtbase5-dev zlib1g-dev
 echo -e "${RED}Installing wget${NC}"
-apt -qq install wget
+#no longer needed, we install it first
+#apt -qqy install wget
 
 echo -e "${RED}Setting up directories and getting makeMKV files${NC}"
 mkdir /makeMKV
