@@ -233,35 +233,54 @@ OMDB_API_KEY: ""
 BOXCAR_KEY: ""
 BOXCAR_SECRET: ""
 
+## Discord bot
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_discord
+## Leave DISCORD_WEBHOOK_ID blank to disable
 DISCORD_WEBHOOK_ID: ""
 DISCORD_TOKEN: ""
 
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_emby
 ## EMBY
 
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_faast
 FAAST_TOKEN: ""
 
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_flock
 FLOCK_TOKEN: ""
 
+## Gitter
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_gitter
 GITTER_TOKEN: ""
+GITTER_ROOM: ""
 
-## Might need hostname
+## Gotify
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_gotify
 GOTIFY_TOKEN: ""
 GOTIFY_HOST: ""
 
+## Growl
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_growl
 GROWL_HOST: ""
 GROWL_PASS: ""
 
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_join
 JOIN_API: ""
 JOIN_DEVICE: ""
 
+## Kodi
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_kodi
+## Leave KODI_HOST blank to disable
 KODI_HOST: ""
-KODI_USER: ""
+KODI_PORT: "8080"
+KODI_USER: "kodi"
 KODI_PASS: ""
 
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_kumulos
 KUMULOS_API: ""
 KUMULOS_SERVERKEY: ""
 
-##LAMETRIC MODE
+## LaMetric time Full info @ https://github.com/caronc/apprise/wiki/Notify_lametric
+## LAMETRIC MODE
 ## Valid entries are "device" or "cloud" and "" to disable
 ## remember to fill out the correct entries for the mode you choose
 LAMETRIC_MODE: ""
@@ -274,6 +293,7 @@ LAMETRIC_HOST: ""
 LAMETRIC_APP_ID: ""
 LAMETRIC_TOKEN: ""
 
+## Mailgun
 MAILGUN_DOMAIN: ""
 MAILGUN_USER: ""
 MAILGUN_APIKEY: ""
@@ -286,6 +306,7 @@ MATRIX_PASS: ""
 ## MATRIX t2bot.io notification
 MATRIX_TOKEN: ""
 
+## Microsoft teams
 MSTEAMS_TOKENA: ""
 MSTEAMS_TOKENB: ""
 MSTEAMS_TOKENC: ""
