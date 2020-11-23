@@ -20,9 +20,8 @@ def notify(job, title, body):
     # title = title for notification
     # body = body of the notification
 
-    ## Apprise Pushbullet
-    ##  New way of using notifications
-    ##
+    ## Pushbullet
+    ## pbul://{accesstoken}
     if job.config.PB_KEY != "":
         try:
             # Create an Apprise instance
@@ -37,7 +36,8 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending Pushbullet apprise notification.  Continueing processing...")
-    ##APPRISE boxcar
+    ## boxcar
+    ## boxcar://{access_key}/{secret_key}
     if job.config.BOXCAR_KEY != "":
         try:
             # Create an Apprise instance
@@ -53,8 +53,10 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending boxcar apprise notification.  Continueing processing...")
-    ##APPRISE discord
+    ## discord
+    ## discord://{WebhookID}/{WebhookToken}/
     if job.config.DISCORD_WEBHOOK_ID != "":
+        ## TODO: add userid to this and config
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
@@ -70,6 +72,7 @@ def notify(job, title, body):
         except:  # noqa: E722
             logging.error("Failed sending discord apprise notification.  Continueing processing...")
     ## Faast
+    ## faast://{authorizationtoken}
     if job.config.FAAST_TOKEN != "":
         try:
             # Create an Apprise instance
@@ -86,6 +89,7 @@ def notify(job, title, body):
         except:  # noqa: E722
             logging.error("Failed sending faast apprise notification.  Continueing processing...")
     ## FLOCK
+    ## flock://{token}/
     if job.config.FLOCK_TOKEN != "":
         try:
             # Create an Apprise instance
@@ -102,12 +106,13 @@ def notify(job, title, body):
         except:  # noqa: E722
             logging.error("Failed sending flock apprise notification.  Continueing processing...")
     ## GITTER
+    ## gitter: // {token} / {room} /
     if job.config.GITTER_TOKEN != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
             # A sample pushbullet notification
-            apobj.add('gitter://' + str(job.config.GITTER_TOKEN) + "/apprise")
+            apobj.add('gitter://' + str(job.config.GITTER_TOKEN) + "/" + str(job.config.GITTER_ROOM))
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -118,12 +123,13 @@ def notify(job, title, body):
         except:  # noqa: E722
             logging.error("Failed sending gitter apprise notification.  Continueing processing...")
     ## Gotify
+    ## gotify://{hostname}/{token}
     if job.config.GOTIFY_TOKEN != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
             # A sample pushbullet notification
-            apobj.add('gotifys://' + str(job.config.GOTIFY_HOST) + "/" + str(job.config.GOTIFY_TOKEN))
+            apobj.add('gotify://' + str(job.config.GOTIFY_HOST) + "/" + str(job.config.GOTIFY_TOKEN))
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -134,6 +140,7 @@ def notify(job, title, body):
         except:  # noqa: E722
             logging.error("Failed sending gitter apprise notification.  Continueing processing...")
     ## Growl
+    ## growl://{hostname} || growl://{password}@{hostname}
     if job.config.GROWL_HOST != "":
         try:
             # Create an Apprise instance
@@ -154,6 +161,7 @@ def notify(job, title, body):
         except:  # noqa: E722
             logging.error("Failed sending growl apprise notification.  Continueing processing...")
     ## IFTTT
+    ## ifttt://{WebhookID}@{Event}/
     if job.config.IFTTT_KEY != "":
         try:
             # Create an Apprise instance
@@ -170,6 +178,7 @@ def notify(job, title, body):
         except:  # noqa: E722
             logging.error("Failed sending IFTTT apprise notification.  Continueing processing...")
     ## JOIN
+    ## join://{apikey}/ ||  join://{apikey}/{device_id}
     if job.config.JOIN_API != "":
         try:
             # Create an Apprise instance
@@ -190,16 +199,23 @@ def notify(job, title, body):
         except:  # noqa: E722
             logging.error("Failed sending growl apprise notification.  Continueing processing...")
     ## Kodi
+    ## kodi://{hostname}:{port} || kodi: // {userid}: {password} @ {hostname}:{port}
     if job.config.KODI_HOST != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
             # check if we have login details, if so use them
-            if job.config.KODI_USER != "" and job.config.KODI_PASS != "":
-                apobj.add('kodi://' + str(job.config.KODI_USER) + ":" + str(job.config.KODI_PASS) + "@"+ str(job.config.KODI_HOST) + "80")
+            if job.config.KODI_USER != "":
+                apobj.add('kodi://' + str(job.config.KODI_USER) + ":" + str(job.config.KODI_PASS) + "@"+ str(job.config.KODI_HOST) + ":" + str(job.config.KODI_PORT))
             else:
-                apobj.add('kodi://' + str(job.config.KODI_HOST))
-
+                if job.config.KODI_PORT != "":
+                    ## we need to check if they are using secure or this will fail
+                    if job.config.KODI_PORT == "443":
+                        apobj.add('kodis://' + str(job.config.KODI_HOST) + ":" + str(job.config.KODI_PORT))
+                    else:
+                        apobj.add('kodi://' + str(job.config.KODI_HOST) + ":" + str(job.config.KODI_PORT))
+                else:
+                    apobj.add('kodi://' + str(job.config.KODI_HOST))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
