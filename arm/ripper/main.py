@@ -85,6 +85,7 @@ def log_arm_params(job):
 
 
 def check_fstab():
+    ## TODO: correct this to find only uncommented fstabs
     logging.info("Checking for fstab entry.")
     with open('/etc/fstab', 'r') as f:
         lines = f.readlines()
@@ -102,7 +103,9 @@ def main(logfile, job):
 
     identify.identify(job, logfile)
 
+    ## DVD disk entry
     if job.disctype in ["dvd", "bluray"]:
+        ## Send the notifications
         utils.notify(job, "ARM notification", "Found disc: " + str(job.title) + ". Video type is "
                      + str(job.video_type) + ". Main Feature is " + str(job.config.MAINFEATURE)
                      + ".  Edit entry here: http://" + job.config.WEBSERVER_IP + ":" + str(job.config.WEBSERVER_PORT))
@@ -127,6 +130,7 @@ def main(logfile, job):
     if job.title_manual:
         logging.info("Manual override found.  Overriding auto identification values.")
         job.updated = True
+        ## We need to let arm know we have a nice title so it can use the MEDIA folder and not the ARM folder
         job.hasnicetitle = True
     else:
         logging.info("No manual override found.")
@@ -141,7 +145,9 @@ def main(logfile, job):
 
     if job.disctype in ["dvd", "bluray"]:
         # get filesystem in order
+        ## If we have a nice title/confirmed name user the MEDIA_DIR and not the ARM unidentified folder
         if job.hasnicetitle:
+            ## Make sure we dont use 0000 in our folder name
             if job.year != "0000":
                 hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title + " (" + job.year + ")"))
             else:
@@ -149,9 +155,10 @@ def main(logfile, job):
         else:
             hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
 
-        #TODO : ENABLE/DISABLED RE-RIPS
+        ## TODO: ENABLE/DISABLED RE-RIPS
         #reverts to default directory
         h2 = hboutpath
+        ## The dvd directory already exists - Lets make a new one using random numbers
         if (utils.make_dir(hboutpath)) is False:
             logging.info("Directory exist.")
             ts = round(time.time() * 100)
@@ -168,7 +175,7 @@ def main(logfile, job):
 
         logging.info("Processing files to: " + hboutpath)
 
-        # Do the work!
+        # BLURAY entry point
         hbinpath = str(job.devpath)
         if job.disctype == "bluray" or (not job.config.MAINFEATURE and job.config.RIPMETHOD == "mkv"):
             # send to makemkv for ripping
