@@ -8,6 +8,9 @@ If you wish to upgrade from v2_master to v2.1_dev instead of a clean install, th
 
 ```bash
 cd /opt/arm
+## only need to checkout 2.1dev on my own fork. 
+## everyone else can use 
+## sudo git checkout v2_master
 sudo git checkout v2.1_dev
 sudo pip3 install -r requirements.txt
 ```
@@ -20,11 +23,16 @@ cp docs/arm.yaml.sample arm.yaml
 There are new config parameters so review the new arm.yaml file
 
 Make sure the 'arm' user has write permissions to the db directory (see your arm.yaml file for locaton). is writeable by the arm user.  A db will be created when you first run ARM.
-
-There is not yet a proper web server set up, so you can serve up the web UI through the flask development web server.  You can start is by:
-```bash
-python3 /opt/arm/arm/runui.py
+Make sure that your rules file is properly **copied** instead of linked:	
+```	
+sudo rm /usr/lib/udev/rules.d/51-automedia.rules	
+sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/	
 ```
+
+Otherwise you may not get the auto-launching of ARM when a disc is inserted behavior	
+on Ubuntu 20.04.	
+Please log any issues you find.  Don't forget to run in DEBUG mode if you need to submit an issue (and log files).  Also, please note that you are running 2.2_dev in your issue.
+
 
 Please log any issues you find.  Don't forget to run in DEBUG mode if you need to submit an issue (and log files).  Also, please note that you are running 2.1_dev in your issue.
 
@@ -57,7 +65,7 @@ See: https://b3n.org/automatic-ripping-machine
 
 ## Requirements
 
-- Ubuntu Server 18.04 (should work with other Linux distros)
+- Ubuntu Server 18.04 (should work with other Linux distros) - Needs Multiverse and Universe repositories
 - One or more optical drives to rip Blu-Rays, DVDs, and CDs
 - Lots of drive space (I suggest using a NAS like FreeNAS) to store your movies
 
@@ -72,73 +80,74 @@ sudo regionset /dev/sr0
 
 ## Install
 
-**Setup 'arm' user:**
-
-```bash
-sudo groupadd arm
-sudo useradd -m arm -g arm -G cdrom
-sudo passwd arm 
-  <enter new password>
+		
+**Setup 'arm' user and ubuntu basics:**	
+Sets up graphics drivers, does Ubuntu update & Upgrade, gets Ubuntu to auto set up driver, and finally installs and setups up avahi-daemon	
+```bash	
+sudo apt upgrade -y && sudo apt update -y 	
+***optional (was not required for me): sudo add-apt-repository ppa:graphics-drivers/ppa	
+sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon	
+sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install 	
+sudo reboot	
+# Installation of drivers seems to install a full gnome desktop, and it seems to set up hibernation modes.	
+# It is optional to run the below line (Hibernation may be something you want.)	
+	sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target	
+sudo groupadd arm	
+sudo useradd -m arm -g arm -G cdrom	
+sudo passwd arm 	
+  <enter new password>	
 ```
 
-**Set up repos and install dependencies**
-
-```bash
-sudo apt-get install git
-sudo add-apt-repository ppa:heyarje/makemkv-beta
-sudo add-apt-repository ppa:stebbins/handbrake-releases
-```
-For Ubuntu 16.04 `sudo add-apt-repository ppa:mc3man/xerus-media`  
-For Ubuntu 18.04 `sudo add-apt-repository ppa:mc3man/bionic-prop`  
-
-```bash
-sudo apt update
-sudo apt install makemkv-bin makemkv-oss
-sudo apt install handbrake-cli libavcodec-extra
-sudo apt install abcde flac imagemagick glyrc cdparanoia
-sudo apt install at
-sudo apt install python3 python3-pip
-sudo apt-get install libcurl4-openssl-dev libssl-dev  
-sudo apt-get install libdvd-pkg
-sudo dpkg-reconfigure libdvd-pkg
-sudo apt install default-jre-headless
+**Set up repos and install dependencies**	
+```bash	
+sudo apt-get install git -y	
+sudo add-apt-repository ppa:heyarje/makemkv-beta	
+sudo add-apt-repository ppa:stebbins/handbrake-releases	
+NumOnly=$(cut -f2 <<< `lsb_release -r`) && case $NumOnly in "16.04" ) sudo add-apt-repository ppa:mc3man/xerus-media;; "18.04" ) sudo add-apt-repository ppa:mc3man/bionic-prop;; "20.04" ) sudo add-apt-repository ppa:mc3man/focal6;; *) echo "error in finding release version";; esac	
+sudo apt update -y && \	
+sudo apt install makemkv-bin makemkv-oss -y && \	
+sudo apt install handbrake-cli libavcodec-extra -y && \	
+sudo apt install abcde flac imagemagick glyrc cdparanoia -y && \	
+sudo apt install at -y && \	
+sudo apt install python3 python3-pip -y && \	
+sudo apt-get install libcurl4-openssl-dev libssl-dev -y && \	
+sudo apt-get install libdvd-pkg -y && \	
+sudo dpkg-reconfigure libdvd-pkg && \	
+sudo apt install default-jre-headless -y	
 ```
 
-**Install and setup ARM**
-
-```bash
-cd /opt
-sudo mkdir arm
-sudo chown arm:arm arm
-sudo chmod 775 arm
-sudo git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
-sudo chown -R arm:arm arm
+**Install and setup ARM**	
+```bash	
+cd /opt	
+sudo mkdir arm	
+sudo chown arm:arm arm	
+sudo chmod 775 arm	
+sudo git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm	
+sudo chown -R arm:arm arm	
 cd arm
-# TODO: Remove below line before merging to master
-git checkout v2.1_dev
-sudo pip3 install -r requirements.txt 
-sudo ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
-sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
-cp docs/arm.yaml.sample arm.yaml
-sudo mkdir /etc/arm/
-sudo ln -s /opt/arm/arm.yaml /etc/arm/
-```
 
+sudo pip3 install -r requirements.txt 	
+sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/	
+sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/	
+sudo cp docs/arm.yaml.sample arm.yaml	
+sudo mkdir /etc/arm/	
+sudo ln -s /opt/arm/arm.yaml /etc/arm/	
+```
 **Set up drives**
 
-  Create mount point for each dvd drive.
-  If you don't know the device name try running 'dmesg | grep -i dvd'.  The mountpoint needs to be /mnt/dev/<device name>.
-  So if your device name is sr0, set the mountpoint with this command:
-  ```bash
-  sudo mkdir -p /mnt/dev/sr0
-  ```
-  Repeat this for each device you plan on using with ARM.
+	Create mount point for each dvd drive.	
+  If you don't know the device name try running `dmesg | grep -i -E '\b(dvd|cd)\b'`.  The mountpoint needs to be /mnt/dev/<device name>.	
+  So if your device name is `sr0`, set the mountpoint with this command:	
+  ```bash	
+  sudo mkdir -p /mnt/dev/sr0	
+  ```	
+  Repeat this for each device you plan on using with ARM.	
+  Create entries in /etc/fstab to allow non-root to mount dvd-roms	
+  Example (create for each optical drive you plan on using for ARM):	
+  ```	
+  /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0	
+  ```	
 
-  Create entries in /etc/fstab to allow non-root to mount dvd-roms
-  Example (create for each optical drive you plan on using for ARM):
-  ```
-  /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
-  ```
 **Configure ARM**
 
 - Edit your "config" file (located at /opt/arm/arm.yaml) to determine what options you'd like to use.  Pay special attention to the 'directory setup' section and make sure the 'arm' user has write access to wherever you define these directories.
@@ -156,6 +165,24 @@ After setup is complete reboot...
     reboot
 
 Optionally if you want something more stable than master you can download the latest release from the releases page.
+
+		
+**Email notifcations**	
+A lot of random problems are found in the sysmail, email alerting is a most effective method for debugging and monitoring.	
+I recommend you install postfix from here:http://mhawthorne.net/posts/2011-postfix-configuring-gmail-as-relay/	
+Then configure /etc/aliases 	
+	e.g.: 	
+		
+	```		
+	root: my_email@gmail.com	
+	arm: my_email@gmail.com	
+	userAccount: my_email@gmail.com	
+	```	
+		
+Run below to pick up the aliases	
+	```	
+	sudo newaliases	
+	```
 
 ## Alternative Auto Install Script For OpenMediaVault/Debian
 This MUST be run as root!
