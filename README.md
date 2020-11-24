@@ -210,11 +210,14 @@ Run below to pick up the aliases
  to complete installation.
 
  **Details about this script**
+ 
  The script installs all dependencies, a service for the ARMui and the fstab entry for sr0, if you have more than one drive you will need to make the mount folder and insert any additional fstab entries.
  The attended installer will do all of the necessary installs and deal with dependencies but will need user input.
  The silent install will remove the need for the user to interact with the screen after intering the arm userpassword.
  
+ 
  **The reason for the installer script ?**
+ 
  The debian installer script has different commands than the ubuntu follow along commands. The reason being is that some of the commands that work on ubunutu dont work.
  You can also run each line of the script in a console or ssh terminal.
 
