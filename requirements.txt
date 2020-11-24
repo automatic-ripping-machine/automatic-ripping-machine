@@ -20,3 +20,4 @@ tinydownload>=0.1.0
 werkzeug==0.16.0
 musicbrainzngs==0.6
 discid==1.1.1
+apprise==0.8.9
