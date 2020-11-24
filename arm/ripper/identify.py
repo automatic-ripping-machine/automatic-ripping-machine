@@ -93,6 +93,16 @@ def cleanupstring2(string):
 def identify_dvd(job):
     """ Calculates CRC64 for the DVD and calls Windows Media
         Metaservices and returns the Title and year of DVD """
+    try:
+        crc64 = pydvdid.compute(str(job.mountpoint))
+    except pydvdid.exceptions.PydvdidException as e:
+        logging.error("Pydvdid failed with the error: " + str(e))
+        return False
+
+    logging.info("DVD CRC64 hash is: " + str(crc64))
+    job.crc_id = str(crc64)
+    urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
+    logging.debug(urlstring)
     logging.debug("####### --- job ----"+ str(job))
     dvd_title = job.label
     year = job.year
@@ -136,17 +146,6 @@ def identify_dvd(job):
         logging.error("key Error")
         return [None, None]
     #return [dvd_title2, dvd_release_date]
-
-    try:
-        crc64 = pydvdid.compute(str(job.mountpoint))
-    except pydvdid.exceptions.PydvdidException as e:
-        logging.error("Pydvdid failed with the error: " + str(e))
-        return False
-
-    logging.info("DVD CRC64 hash is: " + str(crc64))
-    job.crc_id = str(crc64)
-    urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
-    logging.debug(urlstring)
 
     job.title = job.title_auto = dvd_title
     job.year = job.year_auto = dvd_release_date
