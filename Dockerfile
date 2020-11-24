@@ -8,9 +8,9 @@ ENV GID=1000
 
 # local apt/deb proxy for builds
 ARG APT_PROXY=
-RUN [ -n "${APT_PROXY}" ] \
-  && printf 'Acquire::http::Proxy "%s";' "${APT_PROXY}" \
-  > /etc/apt/apt.conf.d/30proxy
+RUN if [ -n "${APT_PROXY}" ] ; then \
+  printf 'Acquire::http::Proxy "%s";' "${APT_PROXY}" \
+  > /etc/apt/apt.conf.d/30proxy ; fi
 
 COPY scripts/add-ppa.sh /root/add-ppa.sh
 
@@ -110,4 +110,13 @@ WORKDIR /home/arm
 
 ENTRYPOINT ["/opt/arm/scripts/docker-entrypoint.sh"]
 CMD ["python3", "/opt/arm/arm/runui.py"]
+
+# pass build args for labeling
+ARG image_revision=
+ARG image_created=
+
+LABEL org.opencontainers.image.source https://github.com/automatic-ripping-machine/automatic-ripping-machine
+LABEL org.opencontainers.image.revision ${image_revision}
+LABEL org.opencontainers.image.created ${image_created}
+LABEL org.opencontainers.image.license MIT
 
