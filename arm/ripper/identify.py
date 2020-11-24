@@ -64,7 +64,7 @@ def identify(job, logfile):
                 res = identify_dvd(job)
             if job.disctype == "bluray":
                 res = identify_bluray(job)
-
+            ## Need to check if year is "0000"  or ""
             if res and not job.year == "0000":
                 get_video_details(job)
             else:
@@ -83,8 +83,18 @@ def clean_for_filename(string):
     string = re.sub('\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
+    ## Added from pull 366
+    string = string.replace('&', 'and')	
+    string = string.replace("\\", " - ")
+    
     string = string.strip()
+    
+    ## Added from pull 366
+    # testing why the return function isn't cleaning	
     return re.sub('[^\w\-_\.\(\) ]', '', string)
+    #return string
+
+## New function so we didnt touch the old functions
 def cleanupstring2(string):
     # clean up title string to pass to OMDbapi.org
     string = string.strip()
@@ -93,6 +103,12 @@ def cleanupstring2(string):
 def identify_dvd(job):
     """ Calculates CRC64 for the DVD and calls Windows Media
         Metaservices and returns the Title and year of DVD """
+    ## Added from pull 366
+    """ Manipulates the DVD title and calls OMDB to try and 	
+    lookup the title """	
+    logging.debug(str(job))    
+    
+    ## TODO: remove this because its pointless keeping when it can never work
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
     except pydvdid.exceptions.PydvdidException as e:
@@ -101,6 +117,10 @@ def identify_dvd(job):
 
     logging.info("DVD CRC64 hash is: " + str(crc64))
     job.crc_id = str(crc64)
+    ## Added from pull 366 
+    fallback_title = "{0}_{1}".format(str(job.label), str(crc64))	
+    logging.info("Fallback title is: " + str(fallback_title))
+    
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
     logging.debug(urlstring)
     logging.debug("####### --- job ----"+ str(job))
@@ -167,8 +187,9 @@ def identify_bluray(job):
     try:
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
     except KeyError:
-        bluray_title = "not_identified"
-        bluray_year = "0000"
+        ## Changed from pull 366
+	    bluray_title = str(fallback_title)	
+        bluray_year = ""
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
         # return False
 
@@ -198,10 +219,12 @@ def get_video_details(job):
 
     job = Instance of Job class\n
     """
-
+    
     title = job.title
+    ## added the year to make requests more sucessfull
     year = job.year
-    #strip all non-numeric chars and use that for year
+    
+    ## strip all non-numeric chars and use that for year
     year = re.sub("[^0-9]", "", job.year)
     if year is None:
         year = ""
@@ -258,6 +281,10 @@ def get_video_details(job):
                 logging.debug("Trying title: " + title)
                 response = callwebservice(job, omdb_api_key, title, year)
                 logging.debug("response: " + response)
+                ## Added from pull 366 but we already try without the year. Possible bad/increased rate of false positives
+                if response == "fail":	
+                    logging.debug("Removing year...")	
+                    response = callwebservice(job, omdb_api_key, title, "")
 
 
 def callwebservice(job, omdb_api_key, dvd_title, year=""):
@@ -303,6 +330,7 @@ def callwebservice(job, omdb_api_key, dvd_title, year=""):
             db.session.commit()
             return doc['Response']
 
+## Added this function so we could change the function without messing with the origonal
 def callwebservice2(omdb_api_key, dvd_title, year=""):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
