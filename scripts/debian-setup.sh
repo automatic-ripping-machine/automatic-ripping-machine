@@ -89,10 +89,18 @@ echo -e "${RED}Installing ARM service${NC}"
 cat > /etc/systemd/system/armui.service <<- EOM
 [Unit]
 Description=Arm service
+## Added to force armui to wait for network
+After=network-online.target
+Wants=network-online.target
+
 [Service]
 Type=simple
+## Add your path to your logfiles if you want to enable logging
+## Remember to remove the # at the start of the line
+#StandardOutput=append:/PATH-TO-MY-LOGFILES/WebUI.log
+#StandardError=append:/PATH-TO-MY-LOGFILES/WebUI.log
 Restart=always
-RestartSec=1
+RestartSec=3
 ExecStart=python3 /opt/arm/arm/runui.py
 
 [Install]
