@@ -20,11 +20,10 @@ from arm.ui import db
 
 def identify(job, logfile):
     """Identify disc attributes"""
-    ## NEVER ALLOW THE NEXT LINE TO GO INTO PRODUCTION
-    ## YOU HAVE BEEN WARNED!!!
-    ## logging.debug("Identification starting: " + str(job))
-    ##^^^ WARNING DANGER
-    ## THIS THROWS OUT ALL SECRET KEYS INTO THE LOG
+    ## Safe way of dealing with log files if the users need to post it online
+    cleanlog = makecleanlogfile(job)
+    logging.debug("####### --- job ----"+ str(cleanlog))
+
     logging.info("Mounting disc to: " + str(job.mountpoint))
 
     if not os.path.exists(str(job.mountpoint)):
@@ -73,11 +72,10 @@ def identify(job, logfile):
                 db.session.commit()
 
             logging.info("Disc title: " + str(job.title) + " : " + str(job.year) + " : " + str(job.video_type))
-            ## NEVER ALLOW THE NEXT LINE TO GO INTO PRODUCTION
-            ## YOU HAVE BEEN WARNED!!!
-            ## logging.debug("Identification complete: " + str(job))
-            ##^^^ WARNING DANGER
-            ## THIS THROWS OUT ALL SECRET KEYS INTO THE LOG
+            ## Safe way of dealing with log files if the users need to post it online
+            cleanlog = makecleanlogfile(job)
+            logging.debug("####### --- job ----" + str(cleanlog))
+
     os.system("umount " + job.devpath)
 
 
@@ -110,11 +108,10 @@ def identify_dvd(job):
     ## Added from pull 366
     """ Manipulates the DVD title and calls OMDB to try and 	
     lookup the title """
-    ## NEVER ALLOW THE NEXT LINE TO GO INTO PRODUCTION
-    ## YOU HAVE BEEN WARNED!!!
-    ## logging.debug(str(job))
-    ##^^^ WARNING DANGER
-    ## THIS THROWS OUT ALL SECRET KEYS INTO THE LOG
+    ## Safe way of dealing with log files if the users need to post it online
+    cleanlog = makecleanlogfile(job)
+    logging.debug("####### --- job ----"+ str(cleanlog))
+
     ## TODO: remove this because its pointless keeping when it can never work
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
@@ -130,11 +127,11 @@ def identify_dvd(job):
     
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
     logging.debug(urlstring)
-    ## NEVER ALLOW THE NEXT LINE TO GO INTO PRODUCTION
-    ## YOU HAVE BEEN WARNED!!!
+
+    ## Safe way of dealing with log files if the users need to post it online
     cleanlog = makecleanlogfile(job)
     logging.debug("####### --- job ----"+ str(cleanlog))
-    ##^^^ WARNING DANGER
+
     dvd_title = job.label
     year = job.year
     omdb_api_key = job.config.OMDB_API_KEY
