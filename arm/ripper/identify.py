@@ -21,9 +21,11 @@ from arm.ui import db
 
 def identify(job, logfile):
     """Identify disc attributes"""
-
-    logging.debug("Identification starting: " + str(job))
-
+    ## NEVER ALLOW THE NEXT LINE TO GO INTO PRODUCTION
+    ## YOU HAVE BEEN WARNED!!!
+    ## logging.debug("Identification starting: " + str(job))
+    ##^^^ WARNING DANGER
+    ## THIS THROWS OUT ALL SECRET KEYS INTO THE LOG
     logging.info("Mounting disc to: " + str(job.mountpoint))
 
     if not os.path.exists(str(job.mountpoint)):
@@ -72,8 +74,11 @@ def identify(job, logfile):
                 db.session.commit()
 
             logging.info("Disc title: " + str(job.title) + " : " + str(job.year) + " : " + str(job.video_type))
-            logging.debug("Identification complete: " + str(job))
-
+            ## NEVER ALLOW THE NEXT LINE TO GO INTO PRODUCTION
+            ## YOU HAVE BEEN WARNED!!!
+            ## logging.debug("Identification complete: " + str(job))
+            ##^^^ WARNING DANGER
+            ## THIS THROWS OUT ALL SECRET KEYS INTO THE LOG
     os.system("umount " + job.devpath)
 
 
@@ -105,9 +110,12 @@ def identify_dvd(job):
         Metaservices and returns the Title and year of DVD """
     ## Added from pull 366
     """ Manipulates the DVD title and calls OMDB to try and 	
-    lookup the title """	
-    logging.debug(str(job))    
-    
+    lookup the title """
+    ## NEVER ALLOW THE NEXT LINE TO GO INTO PRODUCTION
+    ## YOU HAVE BEEN WARNED!!!
+    ## logging.debug(str(job))
+    ##^^^ WARNING DANGER
+    ## THIS THROWS OUT ALL SECRET KEYS INTO THE LOG
     ## TODO: remove this because its pointless keeping when it can never work
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
@@ -123,7 +131,10 @@ def identify_dvd(job):
     
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
     logging.debug(urlstring)
-    logging.debug("####### --- job ----"+ str(job))
+    ## NEVER ALLOW THE NEXT LINE TO GO INTO PRODUCTION
+    ## YOU HAVE BEEN WARNED!!!
+    ## logging.debug("####### --- job ----"+ str(job))
+    ##^^^ WARNING DANGER
     dvd_title = job.label
     year = job.year
     omdb_api_key = job.config.OMDB_API_KEY
