@@ -197,6 +197,12 @@ def home():
     freegb = round(freegb/1073741824, 1)
     mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
     mfreegb = round(mfreegb/1073741824, 1)
+    ## RAM memory
+    mem_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')  # e.g. 4015976448
+    mem_gib = mem_bytes / (1024. ** 3)  # e.g. 3.74
+    ## lets make sure we only give back small numbers
+    mem_gib = round(mem_gib, 2)
+    ## get out cpu info
     ourcpu = get_processor_name()
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
@@ -204,7 +210,7 @@ def home():
     else:
         jobs = {}
 
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu)
+    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu,ram=mem_gib)
 
 ## Lets show some cpu info
 ## only tested on OMV
