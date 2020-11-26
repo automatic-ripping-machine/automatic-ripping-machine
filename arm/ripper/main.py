@@ -320,16 +320,22 @@ def main(logfile, job):
 
         ## This is possible regression error
         # move to media directory
-        if job.video_type in ["movie" , "series" ] and job.hasnicetitle:
+        if job.video_type in == "movie" and job.hasnicetitle:
             # tracks = job.tracks.all()
             tracks = job.tracks.filter_by(ripped=True)
             for track in tracks:
                 utils.move_files(p, track.filename, job, track.main_feature)
-
+                logging.info("Moving Movie " + str(track.filename) + " to " + str(p))
+        # move to media directory
+        elif job.video_type == "series" and job.hasnicetitle:
+            # tracks = job.tracks.all()
+            tracks = job.tracks.filter_by(ripped=True)
+            for track in tracks:
+                logging.info("Moving Series " + str(track.filename) + " to " + str(p))
+                utils.move_files(p, track.filename, job, False)
+        else:
+            logging.info("job type is " + str(job.video_type) + "not movie or series, not moving.")
             utils.scan_emby(job)
-        # ***Look into backup method.
-        # move to tv directory if series
-        ## ***This is already handled
         
         
         # remove empty directories
@@ -366,7 +372,7 @@ def main(logfile, job):
             errlist = ', '.join(job.errors)
             if job.config.NOTIFY_TRANSCODE:
                 utils.notify(job, "ARM notification", str(job.title) + " processing completed with errors. Title(s) " + str(errlist) + " failed to complete.")
-            logging.info("Transcoding completed with errors.  Title(s) " + errlist + " failed to complete.")
+            logging.info("Transcoding completed with errors.  Title(s) " + str(errlist) + " failed to complete.")
         else:
             if job.config.NOTIFY_TRANSCODE:
                 utils.notify(job, "ARM notification", str(job.title) + " processing complete.")
@@ -383,7 +389,7 @@ def main(logfile, job):
         # get filesystem in order
         datapath = os.path.join(job.config.ARMPATH, str(job.label))
         if (utils.make_dir(datapath)) is False:
-            ts = str(round(time.time() * 100))	
+            ts = str(round(time.time() * 100))
             datapath = os.path.join(job.config.ARMPATH, str(job.label) + "_" + ts)
 
             if(utils.make_dir(datapath)) is False:
