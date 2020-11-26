@@ -256,10 +256,10 @@ def main(logfile, job):
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
         elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, job)
-            job.eject()
+            utils.eject(job.devpath)
         else:
             handbrake.handbrake_all(hbinpath, hboutpath, logfile, job)
-            job.eject()
+            utils.eject(job.devpath)
 
         # get rid of this
         # if not titles_in_out:
@@ -355,10 +355,10 @@ def main(logfile, job):
 
         if utils.rip_data(job, datapath, logfile):
             utils.notify(job, "ARM notification", "Data disc: " + str(job.label)+ " copying complete.")
-            job.eject()
+            utils.eject(job.devpath)
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")
-            job.eject()
+            utils.eject(job.devpath)
 
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
@@ -439,7 +439,7 @@ if __name__ == "__main__":
         logging.exception("A fatal error has occured and ARM is exiting.  See traceback below for details.")
         utils.notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details")
         job.status = "fail"
-        job.eject()
+        utils.eject(job.devpath)
         # job.stop_time = datetime.datetime.now()
         # job.job_length = job.stop_time - job.start_time
         # job.errors = "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details"

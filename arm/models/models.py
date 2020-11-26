@@ -76,14 +76,6 @@ class Job(db.Model):
     def __repr__(self):
         return '<Job {}>'.format(self.label)
 
-    def eject(self):
-        """Eject disc if it hasn't previously been ejected"""
-
-        # print("Value is " + str(self.ejected))
-        if not self.ejected:
-            os.system("eject " + self.devpath)
-            self.ejected = True
-
 
 class Track(db.Model):
     track_id = db.Column(db.Integer, primary_key=True)

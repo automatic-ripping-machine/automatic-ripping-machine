@@ -233,7 +233,7 @@ def parse_udev(udev_dict):
                 break
     return (disctype, label)
 
-def eject_cdrom(devpath):
+def eject(devpath):
     """Eject disc on devpath."""
     logging.info("ejecting disc on %s" % devpath)
     os.system("eject %s" % devpath)
