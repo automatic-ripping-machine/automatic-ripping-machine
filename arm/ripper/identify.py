@@ -65,7 +65,7 @@ def identify(job, logfile):
             if job.disctype == "bluray":
                 res = identify_bluray(job)
             ## Need to check if year is "0000"  or ""
-            if res and not job.year == "0000":
+            if res and not job.year == "0000" or res and not job.year == "":
                 get_video_details(job)
             else:
                 job.hasnicetitle = False
@@ -262,7 +262,14 @@ def get_video_details(job):
     # handle failures
     # this is a little kludgy, but it kind of works...
     if (response == "fail"):
-
+        
+	    if year:
+            # first try subtracting one year.  This accounts for when	
+            # the dvd release date is the year following the movie release date	
+            logging.debug("Subtracting 1 year...")	
+            response = callwebservice(job, omdb_api_key, title, str(int(year) - 1))	
+            logging.debug("response: " + response)
+        
         # first try subtracting one year.  This accounts for when
         # the dvd release date is the year following the movie release date
         logging.debug("Subtracting 1 year...")

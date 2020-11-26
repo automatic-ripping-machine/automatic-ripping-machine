@@ -318,6 +318,7 @@ def main(logfile, job):
         else:
             p = hboutpath
 
+        ## This is possible regression error
         # move to media directory
         if job.video_type in ["movie" , "series" ] and job.hasnicetitle:
             # tracks = job.tracks.all()
@@ -382,8 +383,8 @@ def main(logfile, job):
         # get filesystem in order
         datapath = os.path.join(job.config.ARMPATH, str(job.label))
         if (utils.make_dir(datapath)) is False:
-            ts = round(time.time() * 100)
-            datapath = os.path.join(job.config.ARMPATH, str(job.label) + "_" + str(ts))
+            ts = str(round(time.time() * 100))	
+            datapath = os.path.join(job.config.ARMPATH, str(job.label) + "_" + ts)
 
             if(utils.make_dir(datapath)) is False:
                 logging.info("Could not create data directory: " + str(datapath) + ".  Exiting ARM.")

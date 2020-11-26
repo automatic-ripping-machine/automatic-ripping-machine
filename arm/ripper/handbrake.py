@@ -10,6 +10,8 @@ import shlex
 import time
 import datetime
 
+import psutil
+
 from arm.ripper import utils
 # from arm.config.config import cfg
 from arm.models.models import Track  # noqa: E402
@@ -41,9 +43,15 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     get_track_info(srcpath, job)
 
     track = job.tracks.filter_by(main_feature=True).first()
-
+    
     logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
-
+    
+	if track is None:	
+        msg = "No main feature found by Handbrake. Turn MAINFEATURE to false in arm.yml and try again."	
+        logging.error(msg)	
+        raise RuntimeError(msg)
+        
+    
     track.filename = track.orig_filename = filename
     db.session.commit()
 
