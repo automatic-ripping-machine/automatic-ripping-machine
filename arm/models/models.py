@@ -1,5 +1,4 @@
 import os
-import pyudev
 import psutil
 from arm.ui import db
 from arm.config.config import cfg  # noqa: E402
@@ -55,29 +54,9 @@ class Job(db.Model):
         if cfg['VIDEOTYPE'] != "auto":
             self.video_type = cfg['VIDEOTYPE']
 
-        self.parse_udev()
-        self.get_pid()
-
-    def parse_udev(self):
-        """Parse udev for properties of current disc"""
-
-        # print("Entering disc")
-        context = pyudev.Context()
-        device = pyudev.Devices.from_device_file(context, self.devpath)
         self.disctype = "unknown"
-        for key, value in device.items():
-            if key == "ID_FS_LABEL":
-                self.label = value
-                if value == "iso9660":
-                    self.disctype = "data"
-            elif key == "ID_CDROM_MEDIA_BD":
-                self.disctype = "bluray"
-            elif key == "ID_CDROM_MEDIA_DVD":
-                self.disctype = "dvd"
-            elif key == "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO":
-                self.disctype = "music"
-            else:
-                pass
+        self.label = ""
+        self.get_pid()
 
     def get_pid(self):
         pid = os.getpid()

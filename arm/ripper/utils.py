@@ -8,6 +8,7 @@ import subprocess
 import shutil
 import requests
 import time
+import pyudev
 
 # from arm.config.config import cfg
 from arm.ui import app, db # noqa E402
@@ -194,6 +195,48 @@ Make a directory\n
     else:
         return False
 
+def detect_disctype(devpath):
+    """Parse udev for properties of current disc"""
+    disctype = "unknown"
+    label = "unknown"
+    context = pyudev.Context()
+    device = pyudev.Devices.from_device_file(context, devpath)
+    return parse_udev(device.items())
+
+def parse_udev_cmdline(args):
+    udev = {}
+    if args.disctype:
+        (k, v) = args.disctype.split('=', 1)
+        udev[k] = v
+    if args.label:
+        (k, v) = args.label.split('=', 1)
+        udev[k] = v
+    return parse_udev(udev)
+
+def parse_udev(udev_dict):
+    map_udev_disctype = {
+            "ID_CDROM_MEDIA_BD": "bluray",
+            "ID_CDROM_MEDIA_DVD": "dvd",
+            "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO": "music"
+            }
+    disctype == "unknown"
+    label = udev_dict.get("ID_FS_LABEL", None)
+    if label is None:
+        label == "unknown"
+    elif label == "iso9660":
+        disctype = "data"
+    else:
+        # check for known disctypes
+        for key in map_udev_disctype.keys():
+            if key in udev_dict:
+                disctype = map_udev_disctype.get(key)
+                break
+    return (disctype, label)
+
+def eject_cdrom(devpath):
+    """Eject disc on devpath."""
+    logging.info("ejecting disc on %s" % devpath)
+    os.system("eject %s" % devpath)
 
 def get_cdrom_status(devpath):
     """get the status of the cdrom drive\n
@@ -209,15 +252,16 @@ def get_cdrom_status(devpath):
     see linux/cdrom.h for specifics\n
     """
 
+    result = -1 # unknown
     try:
         fd = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
-    except Exception:
-        logging.info("Failed to open device " + devpath + " to check status.")
-        exit(2)
-    result = fcntl.ioctl(fd, 0x5326, 0)
-
+        result = fcntl.ioctl(fd, 0x5326, 0)
+    except Exception as e:
+        logging.error("Failed to check status of device %s: %s" % (devpath, e))
     return result
 
+def is_cdrom_ready(devpath):
+    return get_cdrom_status(devpath) == 4
 
 def find_file(filename, search_path):
     """

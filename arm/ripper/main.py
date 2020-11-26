@@ -26,17 +26,19 @@ def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Process disc using ARM')
     parser.add_argument('-d', '--devpath', help='Devpath', required=True)
+    parser.add_argument('-t', '--disctype', help='udev: one of ID_CDROM_MEDIA_*', required=False)
+    parser.add_argument('-l', '--label', help='udev: ID_FS_LABEL', required=False)
 
     return parser.parse_args()
 
 
-def log_udev_params():
+def log_udev_params(devpath):
     """log all udev paramaters"""
 
     logging.debug("**** Logging udev attributes ****")
     # logging.info("**** Start udev attributes ****")
     context = pyudev.Context()
-    device = pyudev.Devices.from_device_file(context, '/dev/sr0')
+    device = pyudev.Devices.from_device_file(context, devpath)
     for key, value in device.items():
         logging.debug(key + ":" + value)
     logging.debug("**** End udev attributes ****")
@@ -375,16 +377,20 @@ if __name__ == "__main__":
     args = entry()
 
     devpath = "/dev/" + args.devpath
-    print(devpath)
+
+    if not utils.is_cdrom_ready(devpath):
+        print("Drive empty or is not ready. Exiting ARM Ripper.",
+                file=sys.stderr)
+        sys.exit(1)
 
     job = Job(devpath)
-
     logfile = logger.setuplogging(job)
     print("Log: " + logfile)
 
-    if utils.get_cdrom_status(devpath) != 4:
-        logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
-        sys.exit()
+    if args.disctype:
+        (job.disctype, job.label) = utils.parse_udev_cmdline(args)
+    else:
+        (job.disctype, job.label) = utils.detect_disctype(devpath)
 
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
 
@@ -425,7 +431,7 @@ if __name__ == "__main__":
             j.status = "fail"
             db.session.commit()
 
-    log_udev_params()
+    log_udev_params(devpath)
 
     try:
         main(logfile, job)
