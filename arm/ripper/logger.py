@@ -4,10 +4,6 @@ import os
 import logging
 import time
 
-## Log file  pull 366
-import os.path
-from os import path
-
 from arm.config.config import cfg
 
 
@@ -27,11 +23,7 @@ def setuplogging(job):
     else:
         logfile = job.label + ".log"
 
-    ## ternary statement
-    ## For empty.log we need to set logfull
-    logfull = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" else cfg['LOGPATH'] + "/" + logfile
-
-    ## TODO: this causes issue with empty.log
+    ## TODO: fix the database is getting the wrong log file
     ## Added from pull 366 But added if statement so we dont touch the empty.log
     if logfile != "empty.log":
         ## Does the logpath have a / add it if we dont
@@ -43,15 +35,21 @@ def setuplogging(job):
             #Check to see if file already exists, if so, create a new file
             TmpLogFull = cfg['LOGPATH'] + "/" + logfile
             logfull = cfg['LOGPATH'] + "/" + str(job.label) + "_" + str(round(time.time() * 100)) + ".log" if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + "/" + logfile
+    else:
+        ## For empty.log we need to set logfull
+        logfull = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" else cfg['LOGPATH'] + "/" + logfile
 
+    ## Debug formatting
     if cfg['LOGLEVEL'] == "DEBUG":
+        ## TODO: make secret keys safe
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
 
-    job.logfile = logfile
+    ## we need to give the right logfile to database
+    job.logfile = logfull
 
     return logfull
 
