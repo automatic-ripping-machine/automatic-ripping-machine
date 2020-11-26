@@ -124,10 +124,15 @@ def identify_dvd(job):
     ## Added from pull 366 
     fallback_title = "{0}_{1}".format(str(job.label), str(crc64))	
     logging.info("Fallback title is: " + str(fallback_title))
+    ## Added from #338
+    # Some older DVDs aren't actually labelled
+    if not job.label:
+        job.label = "not identified"
     
+    ## Dead needs removing
     urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
     logging.debug(urlstring)
-
+    
     ## Safe way of dealing with log files if the users need to post it online
     cleanlog = makecleanlogfile(job)
     logging.debug("####### --- job ----"+ str(cleanlog))
@@ -227,25 +232,29 @@ def get_video_details(job):
 
     job = Instance of Job class\n
     """
-    
+    ## Set out title from the job
+    ## return if not identified
     title = job.title
-    ## added the year to make requests more sucessfull
-    year = job.year
+    if title == "not identified":
+        return
     
     ## strip all non-numeric chars and use that for year
+    ## TODO: possible need for making sure year is a str
     year = re.sub("[^0-9]", "", job.year)
     if year is None:
         year = ""
 
     # needs_new_year = False
     omdb_api_key = job.config.OMDB_API_KEY
-
+    
+    ## TODO: possible need for making sure str
     logging.debug("Title: " + title + " | Year: " + year)
 
     # dvd_title_clean = cleanupstring(dvd_title)
     title = title.strip()
     title = re.sub('[_ ]', "+", title)
-
+    
+    ## TODO: possible need for making sure is a str
     logging.debug("Calling webservice with title: " + title + " and year: " + year)
     response = callwebservice(job, omdb_api_key, title, year)
     logging.debug("response: " + response)
@@ -338,7 +347,7 @@ def callwebservice(job, omdb_api_key, dvd_title, year=""):
             db.session.commit()
             return doc['Response']
 
-## Added this function so we could change the function without messing with the origonal
+## Added this function so we could change the function without messing with the orig
 def callwebservice2(omdb_api_key, dvd_title, year=""):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
@@ -381,7 +390,7 @@ def makecleanlogfile(logfile):
 
     ##lets make sure we are using a string
     logfile=str(logfile)
-    ## maybe check if the ip is local, if its not strip it from log or add some part protection eg: 89.89.xx.xx
+    ## TODO: maybe check if the ip is local, if its not strip it from log or add some part protection eg: 89.89.xx.xx
     ## WEBSERVER_IP: x.x.x.x
     ## logging.debug("inside makecleanlogfile: " + str(logfile) + "\n\r")
     out = re.sub("\(PB_KEY=.*?\)", '(PB_KEY=** REMOVED **)', logfile)
@@ -427,7 +436,6 @@ def makecleanlogfile(logfile):
     out = re.sub("\(OFFICE365_TENANTID=.*?\)", '(OFFICE365_TENANTID=** REMOVED **)', out)
     out = re.sub("\(OFFICE365_CLIENT_ID=.*?\)", '(OFFICE365_CLIENT_ID=** REMOVED **)', out)
     out = re.sub("\(OFFICE365_CLIENT_SECRET=.*?\)", '(OFFICE365_CLIENT_SECRET=** REMOVED **)', out)
-
     out = re.sub("\(POPCORN_API=.*?\)", '(POPCORN_API=** REMOVED **)', out)
     out = re.sub("\(POPCORN_EMAIL=.*?\)", '(POPCORN_EMAIL=** REMOVED **)', out)
     out = re.sub("\(POPCORN_PHONENO=.*?\)", '(POPCORN_PHONENO=** REMOVED **)', out)
@@ -437,7 +445,6 @@ def makecleanlogfile(logfile):
     out = re.sub("\(PUSHED_APP_KEY=.*?\)", '(PUSHED_APP_KEY=** REMOVED **)', out)
     out = re.sub("\(PUSHED_APP_SECRET=.*?\)", '(PUSHED_APP_SECRET=** REMOVED **)', out)
     out = re.sub("\(PUSHSAFER_KEY=.*?\)", '(PUSHSAFER_KEY=** REMOVED **)', out)
-
     out = re.sub("\(ROCKETCHAT_HOST=.*?\)", '(ROCKETCHAT_HOST=** REMOVED **)', out)
     out = re.sub("\(ROCKETCHAT_PASS=.*?\)", '(ROCKETCHAT_PASS=** REMOVED **)', out)
     out = re.sub("\(ROCKETCHAT_WEBHOOK=.*?\)", '(ROCKETCHAT_WEBHOOK=** REMOVED **)', out)
