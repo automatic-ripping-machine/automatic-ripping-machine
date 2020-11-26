@@ -25,18 +25,21 @@ def setuplogging(job):
 
     ## TODO: fix the database is getting the wrong log file
     ## Added from pull 366 But added if statement so we dont touch the empty.log
-    if logfile != "empty.log":
+    if logfile != "empty.log" or logfile != "NAS.log":
+        ## lets create a temp var to hold our log name
+        tmplogfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
+
         ## Does the logpath have a / add it if we dont
         if cfg['LOGPATH'][-1:] == "/":
             #Check to see if file already exists, if so, create a new file
-            TmpLogFull = cfg['LOGPATH'] + logfile
-            logfull = cfg['LOGPATH'] + str(job.label) + "_" + str(round(time.time() * 100)) + ".log" if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + logfile
+            TmpLogFull = cfg['LOGPATH'] + str(logfile)
+            logfull = cfg['LOGPATH'] + tmplogfile if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + tmplogfile
         else:
             #Check to see if file already exists, if so, create a new file
             TmpLogFull = cfg['LOGPATH'] + "/" + logfile
-            logfull = cfg['LOGPATH'] + "/" + str(job.label) + "_" + str(round(time.time() * 100)) + ".log" if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + "/" + logfile
+            logfull = cfg['LOGPATH'] + "/" + tmplogfile + ".log" if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + "/" + logfile
     else:
-        ## For empty.log we need to set logfull
+        ## For empty.log and NAS.log we need to set logfull
         logfull = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" else cfg['LOGPATH'] + "/" + logfile
 
     ## Debug formatting
@@ -48,9 +51,9 @@ def setuplogging(job):
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
 
-    ## we need to give the right logfile to database
-    job.logfile = logfull
-
+    ## We need to give the right logfile to database
+    job.logfile = tmplogfile
+    ## Return the full logfile location to the logs
     return logfull
 
 
