@@ -215,7 +215,8 @@ def main(logfile, job):
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
                 sys.exit()
             if job.config.NOTIFY_RIP:
-                utils.notify(job, "ARM notification", str(job.title + " rip complete.  Starting transcode."))
+                # Fixed bug line below
+                utils.notify(job, "ARM notification", str(job.title) + " rip complete.  Starting transcode.")
             # point HB to the path MakeMKV ripped to
             hbinpath = mkvoutpath
 
@@ -320,12 +321,12 @@ def main(logfile, job):
 
         ## This is possible regression error
         # move to media directory
-        if job.video_type in == "movie" and job.hasnicetitle:
+        if job.video_type == "movie" and job.hasnicetitle:
             # tracks = job.tracks.all()
             tracks = job.tracks.filter_by(ripped=True)
             for track in tracks:
-                utils.move_files(p, track.filename, job, track.main_feature)
                 logging.info("Moving Movie " + str(track.filename) + " to " + str(p))
+                utils.move_files(p, track.filename, job, track.main_feature)
         # move to media directory
         elif job.video_type == "series" and job.hasnicetitle:
             # tracks = job.tracks.all()
