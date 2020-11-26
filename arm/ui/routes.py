@@ -7,18 +7,24 @@ from arm.models.models import Job, Config
 from arm.config.config import cfg
 from arm.ui.utils import convert_log, get_info, call_omdb_api, clean_for_filename
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm
-
+from pathlib import Path
 
 @app.route('/logreader')
 def logreader():
-
+    ## TODO: check if logfile exist, if not error out
     logpath = cfg['LOGPATH']
     mode = request.args['mode']
     logfile = request.args['logfile']
 
     # Assemble full path
     fullpath = os.path.join(logpath, logfile)
-
+    ## Check if the logfile exists
+    my_file = Path(fullpath)
+    if not my_file.is_file():
+        # file exists
+        #clogfile = convert_log(logfile)
+        return render_template('error.html')
+        #return send_file("templates/error.html")
     if mode == "armcat":
         def generate():
             f = open(fullpath)
@@ -114,7 +120,6 @@ def customtitle():
         return redirect(url_for('home'))
     return render_template('customTitle.html', title='Change Title', form=form)
 
-
 @app.route('/list_titles')
 def list_titles():
     title = request.args.get('title').strip()
@@ -142,8 +147,8 @@ def updatetitle():
     job_id = request.args.get('job_id')
     print("New imdbID=" + imdbID)
     job = Job.query.get(job_id)
-    job.title = clean_for_filename(new_title)
-    job.title_manual = clean_for_filename(new_title)
+    job.title = new_title
+    job.title_manual = new_title
     job.year = new_year
     job.year_manual = new_year
     job.video_type_manual = video_type

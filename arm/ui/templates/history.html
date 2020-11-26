@@ -16,6 +16,7 @@
                                 <th onclick="sortTable(1)" width="200px" style="cursor: pointer;">Start Time</th>
                                 <th onclick="sortTable(2)" style="cursor: pointer;">Duration</th>
                                 <th onclick="sortTable(3)" style="cursor: pointer;">Status</th>
+								<th onclick="sortTable(3)" style="cursor: pointer;">Logfile</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -24,7 +25,8 @@
                                 <td class="text-nowrap"><a href="jobdetail?job_id={{ job.job_id }}" >{{ job.title }}</a></td>
                                 <td class="text-nowrap">{{ job.start_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
                                 <td class="text-nowrap">{{ job.job_length }}</td>
-                                <td class="text-nowrap">{{ job.status }}</td>
+                                <td class="text-nowrap {{ job.status }}"><img src="static/img/{{ job.status }}.png" height="30px" alt="{{ job.status }}" title="{{ job.status }}"></td>
+                                <td class="text-nowrap"><a href="logs?logfile={{ job.logfile }}&mode=full">{{ job.logfile }}</a></td>
                                         {% endfor %}
                             </tr>
                         </tbody>

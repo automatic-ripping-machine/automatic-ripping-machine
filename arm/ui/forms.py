@@ -16,8 +16,7 @@ class CustomTitleForm(FlaskForm):
 
 class ChangeParamsForm(FlaskForm):
     RIPMETHOD = SelectField('Rip Method', choices=[('mkv', 'mkv'), ('backup', 'backup')])
-    #MAINFEATURE = BooleanField('Main Feature', validators=[DataRequired()])
-    MAINFEATURE = BooleanField('Main Feature')
+    MAINFEATURE = BooleanField('Main Feature', validators=[DataRequired()])
     MINLENGTH = IntegerField('Minimum Length')
     MAXLENGTH = IntegerField('Maximum Length')
     submit = SubmitField('Submit')
