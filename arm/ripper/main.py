@@ -110,7 +110,7 @@ def main(logfile, job):
         ## Send the notifications
         utils.notify(job, "ARM notification", "Found disc: " + str(job.title) + ". Video type is "
                      + str(job.video_type) + ". Main Feature is " + str(job.config.MAINFEATURE)
-                     + ".  Edit entry here: http://" + str(job.config.WEBSERVER_IP) + ":" + str(job.config.WEBSERVER_PORT))
+                     + ".  Edit entry here: http://" + str(job.config.WEBSERVER_IP) + ":" + str(job.config.WEBSERVER_PORT)+ "/jobdetail?job_id=" + str(job.job_id))
     elif job.disctype == "music":
         utils.notify(job, "ARM notification", "Found music CD: " + str(job.label) + ". Ripping all tracks")
     elif job.disctype == "data":
