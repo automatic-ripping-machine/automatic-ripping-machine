@@ -15,17 +15,21 @@ def setuplogging(job):
     if not os.path.exists(cfg['LOGPATH']):
         os.makedirs(cfg['LOGPATH'])
 
+    ## This isnt catching all of them
     if job.label == "" or job.label is None:
         if job.disctype == "music":
-            logfile = "music_cd.log"
+            logfile = tmplogfile = "music_cd.log"
         else:
-            logfile = "empty.log"
+            logfile = tmplogfile = "empty.log"
     else:
         logfile = job.label + ".log"
 
-    ## TODO: fix the database is getting the wrong log file
+    ## this stops log files created with Nono_42342342.log
+    ## for some reason we need to convert None to a string to compare
+    if str(logfile) == "None":
+        return None
     ## Added from pull 366 But added if statement so we dont touch the empty.log
-    if logfile != "empty.log" or logfile != "NAS.log":
+    if logfile != "empty.log" and logfile != "NAS.log":
         ## lets create a temp var to hold our log name
         tmplogfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
 
@@ -39,6 +43,7 @@ def setuplogging(job):
             TmpLogFull = cfg['LOGPATH'] + "/" + logfile
             logfull = cfg['LOGPATH'] + "/" + tmplogfile + ".log" if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + "/" + logfile
     else:
+        tmplogfile = "empty.log"
         ## For empty.log and NAS.log we need to set logfull
         logfull = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" else cfg['LOGPATH'] + "/" + logfile
 
