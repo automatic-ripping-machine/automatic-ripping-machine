@@ -1,5 +1,4 @@
 import os
-import psutil
 from arm.ui import db
 from arm.config.config import cfg  # noqa: E402
 
@@ -56,13 +55,6 @@ class Job(db.Model):
 
         self.disctype = "unknown"
         self.label = ""
-        self.get_pid()
-
-    def get_pid(self):
-        pid = os.getpid()
-        p = psutil.Process(pid)
-        self.pid = pid
-        self.pid_hash = hash(p)
 
     def __str__(self):
         """Returns a string of the object"""

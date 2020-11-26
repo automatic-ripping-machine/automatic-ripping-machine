@@ -9,6 +9,7 @@ import shutil
 import requests
 import time
 import pyudev
+import psutil
 
 # from arm.config.config import cfg
 from arm.ui import app, db # noqa E402
@@ -237,6 +238,11 @@ def eject(devpath):
     """Eject disc on devpath."""
     logging.info("ejecting disc on %s" % devpath)
     os.system("eject %s" % devpath)
+
+def get_pid():
+    pid = os.getpid()
+    p = psutil.Process(pid)
+    return (pid, hash(p))
 
 def get_cdrom_status(devpath):
     """get the status of the cdrom drive\n

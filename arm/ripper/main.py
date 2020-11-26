@@ -384,6 +384,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     job = Job(devpath)
+    (job.pid, job.pid_hash) = utils.get_pid()
     logfile = logger.setuplogging(job)
     print("Log: " + logfile)
 
