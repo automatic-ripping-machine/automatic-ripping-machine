@@ -3,75 +3,92 @@
 
 {% block nav %}{{ super() }}{% endblock %}
 
-{% block content %}  
+{% block content %}
 <div class="container-fluid h-100 mx-auto">
-  <div class="row">
-    <!-- <div class="col-sm-2"></div> -->
-    <div class="col-sm-12  rounded bg-secondary text-center">
-        <img src="/static/img/arm80.png">
-        <p class="text-center"><b>Welcome to your Automatic Ripping Machine<br>
-                <!-- What would you like to do? -->
-        </b></p>
-    </div>
-    <!-- <div class="col-sm-2"></div> -->
-  </div>
-
-<div class="row h-100 mx-auto align-items-center">
-        <div class="col-sm-12 mx-auto">
-                <p class="text-center"><h5 class="text-center"><b>Active Rips</b></h5></p>
+        <div class="row">
+                <!-- <div class="col-sm-2"></div> -->
+                <div class="col-sm-12  rounded bg-secondary text-center">
+                        <img src="/static/img/arm80.png">
+                        <p class="text-center"><b>Welcome to your Automatic Ripping Machine<br>
+                                        <!-- What would you like to do? -->
+                                </b></p>
+                </div>
+                <!-- <div class="col-sm-2"></div> -->
         </div>
-</div>
-<!-- <div class="container-fluid h-100 mx-auto"> -->
-<div class="row h-100 align-items-center">
-        <!-- <div class="col-sm-4 mx-auto"></div> -->
-        <div class="col-md-12 mx-auto">
-                <div class="card-deck">
-                        {% for job in jobs %}
-                        <div class="col-md-4">
-                        <div class="card mb-3  mx-auto" style="max-width: 600px">
-                                <div class="row no-gutters">
-                                        <div class="col-lg-4">
-                                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="{{ job["poster_url"] }}" width="240px" class="img-thumbnail"></a>
-                                        </div>
-                                        <div class="col-lg-4">
-                                                <div class="card-body px-1 py-1">
-                                                {% if not job.title_manual  %}
-                                                        <b>{{  job["title"]  }}</b><br>
-                                                {% else %}
-                                                        <del><b>{{  job["title_auto"]  }}</b><br></del>
-                                                        <b>{{  job["title"]  }}</b><br>
-                                                {% endif %}
-                                                <b>Type: </b> {{ job.video_type }} <br>
-                                                {% if not job.title_manual %}
-                                                        <b>Year: </b>({{ job["year"] }})<br>                                
-                                                {% else %}
-                                                        <del><b>Year: </b>{{ job["year_auto"] }}<br></del>
-                                                        <b>Year: </b> {{  job["year"]  }}<br>
-                                                {% endif %}
-                                                <b>Device: </b>{{ job.devpath }}<br>
-                                                <b>Status: </b>{{ job.status }} <br>                    
-                                                        <a href="titlesearch?job_id={{ job["job_id"] }}" class="btn btn-primary">Change Title</a></li>
-                                                </div>
-                                        </div>
-                                        <div class="col-lg-4">
-                                                <div class="card-body px-1 py-1">
-                                                        <b>Rip Method: </b>{{ job.config.RIPMETHOD }} <br>
-                                                        <b>Main Feature: </b>{{ job.config.MAINFEATURE }} <br>
-                                                        <b>Max Length: </b>{{ job.config.MINLENGTH }}<br>
-                                                        <b>Min Length: </b>{{ job.config.MAXLENGTH }}<br>
-                                                        <a href="changeparams?config_id={{ job.config.CONFIG_ID }}" class="btn btn-primary">Change Settings</a>
-                                                </div>
-                                        </div>
 
-                                </div>
-                        </div>
-                        </div>  
-                        {% endfor %} 
+        <div class="row h-100 mx-auto align-items-center">
+                <div class="col-sm-12 mx-auto">
+                        <p class="text-center">
+                        <h5 class="text-center"><b>Active Rips</b></h5>
+                        </p>
                 </div>
         </div>
-</div>
+        <!-- <div class="container-fluid h-100 mx-auto"> -->
+        <div class="row h-100 align-items-center">
+                <!-- <div class="col-sm-4 mx-auto"></div> -->
+                <div class="col-md-12 mx-auto">
+                        <div class="card-deck">
+                                {% for job in jobs %}
+                                <div class="col-md-4">
+                                        <div class="card mb-3  mx-auto" style="max-width: 600px">
+                                                <div class="row no-gutters">
+                                                        <div class="col-lg-4">
+                                                                <a href="jobdetail?job_id={{ job.job_id }}"><img
+                                                                                src="{{ job["poster_url"] }}"
+                                                                                width="240px" class="img-thumbnail"></a>
+                                                        </div>
+                                                        <div class="col-lg-4">
+                                                                <div class="card-body px-1 py-1">
+                                                                        {% if not job.title_manual  %}
+                                                                        <b>{{  job["title"]  }}</b><br>
+                                                                        {% else %}
+                                                                        <del><b>{{  job["title_auto"]  }}</b><br></del>
+                                                                        <b>{{  job["title"]  }}</b><br>
+                                                                        {% endif %}
+                                                                        <b>Type: </b> {{ job.video_type }} <br>
+                                                                        {% if not job.title_manual %}
+                                                                        <b>Year: </b>({{ job["year"] }})<br>
+                                                                        {% else %}
+                                                                        <del><b>Year:
+                                                                                </b>{{ job["year_auto"] }}<br></del>
+                                                                        <b>Year: </b> {{  job["year"]  }}<br>
+                                                                        {% endif %}
+                                                                        <b>Device: </b>{{ job.devpath }}<br>
+                                                                        <b>Status: </b>{{ job.status }} <br>
+                                                                        <a href="titlesearch?job_id={{ job["job_id"] }}"
+                                                                                class="btn btn-primary">Title Search</a>
+                                                                        </li>
+                                                                </div>
+                                                        </div>
+                                                        <div class="col-lg-4">
+                                                                <div class="card-body px-1 py-1">
+                                                                        <b>Rip Method: </b>{{ job.config.RIPMETHOD }}
+                                                                        <br>
+                                                                        <b>Main Feature:
+                                                                        </b>{{ job.config.MAINFEATURE }} <br>
+                                                                        <b>Min Length:
+                                                                        </b>{{ job.config.MINLENGTH }}<br>
+                                                                        <b>Max Length:
+                                                                        </b>{{ job.config.MAXLENGTH }}<br>
+                                                                        <a href="changeparams?config_id={{ job.config.CONFIG_ID }}"
+                                                                                class="btn btn-primary">Change
+                                                                                Settings</a>
+                                                                </div>
+                                                                <div class="card-body px-1 py-1">
+                                                                        <a href="customTitle?job_id={{ job["job_id"] }}"
+                                                                                class="btn btn-primary">Custom Title</a>
+                                                                </div>
+                                                        </div>
+
+                                                </div>
+                                        </div>
+                                </div>
+                                {% endfor %}
+                        </div>
+                </div>
+        </div>
         <!-- <div class="col-sm-4 mx-auto"></div> -->
-<!-- </div> -->
+        <!-- </div> -->
 </div>
 <div class="row" style="height: 30px;"></div>
 <div class="row h-100 mx-auto align-items-center">
@@ -80,7 +97,7 @@
         <div class="col-sm-4 text-center mx-auto">
                 <div class="card mx-auto">
                         <div class="card-header">
-                        <strong>Server Specs</strong>
+                                <strong>Server Specs</strong>
                         </div>
                         <ul class="list-group list-group-flush">
                                 <li class="list-group-item">Free Space: {{ freegb }} GB</li>
