@@ -147,8 +147,8 @@ def updatetitle():
     job_id = request.args.get('job_id')
     print("New imdbID=" + imdbID)
     job = Job.query.get(job_id)
-    job.title = new_title
-    job.title_manual = new_title
+    job.title = clean_for_filename(new_title)
+    job.title_manual = clean_for_filename(new_title)
     job.year = new_year
     job.year_manual = new_year
     job.video_type_manual = video_type
