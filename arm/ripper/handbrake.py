@@ -6,8 +6,10 @@ import logging
 import subprocess
 import re
 import shlex
+## Added for sleep check/ transcode limits
 import time
 import datetime
+
 import psutil
 
 from arm.ripper import utils
@@ -29,25 +31,27 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     """
     logging.info("Starting DVD Movie Mainfeature processing")
     logging.debug("Handbrake starting: " + str(job))
+
+    ## Added for transcode limits
     utils.SleepCheckProcess("HandBrakeCLI",int(job.config.MAX_CONCURRENT_TRANSCODES))
     logging.debug("Setting job status to 'transcoding'")
     job.status = "transcoding"
-    
 
     filename = os.path.join(basepath, job.title + "." + job.config.DEST_EXT)
     filepathname = os.path.join(basepath, filename)
-    logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
 
     get_track_info(srcpath, job)
 
     track = job.tracks.filter_by(main_feature=True).first()
-
     
+    logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
+
     if track is None:
         msg = "No main feature found by Handbrake. Turn MAINFEATURE to false in arm.yml and try again."
         logging.error(msg)
         raise RuntimeError(msg)
-
+        
+    
     track.filename = track.orig_filename = filename
     db.session.commit()
 
@@ -101,6 +105,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
 
     Returns nothing
     """
+
     # Wait until there is a spot to transcode
     job.status = "waiting_transcode"
     utils.SleepCheckProcess("HandBrakeCLI",int(job.config.MAX_CONCURRENT_TRANSCODES))
@@ -186,7 +191,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
 
     Returns nothing
     """
-
+    ## Added to limit number of transcodes
     job.status = "waiting_transcode"
     utils.SleepCheckProcess("HandBrakeCLI",int(job.config.MAX_CONCURRENT_TRANSCODES))
     job.status = "transcoding"

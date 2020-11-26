@@ -3,9 +3,11 @@
 import os
 import logging
 import time
-import os.path
 
+## Log file  pull 366
+import os.path
 from os import path
+
 from arm.config.config import cfg
 
 
@@ -13,6 +15,7 @@ def setuplogging(job):
     """Setup logging and return the path to the logfile for
     redirection of external calls"""
 
+    ##Make the log dir if it doesnt exist
     if not os.path.exists(cfg['LOGPATH']):
         os.makedirs(cfg['LOGPATH'])
 
@@ -24,23 +27,22 @@ def setuplogging(job):
     else:
         logfile = job.label + ".log"
 
-    if cfg['LOGPATH'][-1:] == "/":
-        #Check to see if file already exists, if so, create a new file
-        TmpLogFull = cfg['LOGPATH'] + logfile
-        if os.path.isfile(TmpLogFull):
-            logfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
-            logfull = cfg['LOGPATH'] + logfile
+    ## ternary statement
+    ## For empty.log we need to set logfull
+    logfull = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" else cfg['LOGPATH'] + "/" + logfile
+
+    ## TODO: this causes issue with empty.log
+    ## Added from pull 366 But added if statement so we dont touch the empty.log
+    if logfile != "empty.log":
+        ## Does the logpath have a / add it if we dont
+        if cfg['LOGPATH'][-1:] == "/":
+            #Check to see if file already exists, if so, create a new file
+            TmpLogFull = cfg['LOGPATH'] + logfile
+            logfull = cfg['LOGPATH'] + str(job.label) + "_" + str(round(time.time() * 100)) + ".log" if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + logfile
         else:
-            logfull = cfg['LOGPATH'] + logfile       
-    else:
-        #Check to see if file already exists, if so, create a new file
-        TmpLogFull = cfg['LOGPATH'] + "/" + logfile
-        if os.path.isfile(TmpLogFull):
-            #CTime = round(time.time() * 100)
-            logfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
-            logfull = cfg['LOGPATH'] + "/" + logfile
-        else:
-            logfull = cfg['LOGPATH'] + "/" + logfile
+            #Check to see if file already exists, if so, create a new file
+            TmpLogFull = cfg['LOGPATH'] + "/" + logfile
+            logfull = cfg['LOGPATH'] + "/" + str(job.label) + "_" + str(round(time.time() * 100)) + ".log" if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + "/" + logfile
 
     if cfg['LOGLEVEL'] == "DEBUG":
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
