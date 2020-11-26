@@ -8,6 +8,7 @@ from arm.config.config import cfg
 from arm.ui.utils import convert_log, get_info, call_omdb_api, clean_for_filename
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm
 from pathlib import Path
+import platform, subprocess, re
 
 @app.route('/logreader')
 def logreader():
@@ -190,15 +191,38 @@ def listlogs(path):
 @app.route('/')
 @app.route('/index.html')
 def home():
+
     # freegb = getsize(cfg['RAWPATH'])
     freegb = psutil.disk_usage(cfg['ARMPATH']).free
     freegb = round(freegb/1073741824, 1)
     mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
     mfreegb = round(mfreegb/1073741824, 1)
+    ourcpu = get_processor_name()
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
         jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
     else:
         jobs = {}
 
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs)
+    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu)
+
+## Lets show some cpu info
+## only tested on OMV
+def get_processor_name():
+    if platform.system() == "Windows":
+        return platform.processor()
+    elif platform.system() == "Darwin":
+        return subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
+    elif platform.system() == "Linux":
+        command = "cat /proc/cpuinfo"
+        #return \
+        fulldump = str(subprocess.check_output(command, shell=True).strip())
+        # Take any float trailing "MHz", some whitespace, and a colon.
+        speeds = re.search(r"\\nmodel name\\t:.*?GHz\\n", fulldump)
+        #return str(fulldump)
+        speeds = str(speeds.group())
+        speeds = speeds.replace('\\n', ' ')
+        speeds = speeds.replace('\\t', ' ')
+        speeds = speeds.replace('model name :' , '')
+        return speeds
+    return ""
