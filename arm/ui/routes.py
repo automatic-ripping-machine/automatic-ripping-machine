@@ -28,9 +28,9 @@ def database():
         mode = request.args['mode']
         jobid = request.args['jobid']
 
+        ## TODO: give the user feedback to let them know delete happened successfully
         ## Find the job the user wants to delete
         if mode == 'delete' and jobid is not None:
-            print('')
             Job.query.filter_by(job_id=jobid).delete()
             db.session.commit()
         elif jobid == 'all':
