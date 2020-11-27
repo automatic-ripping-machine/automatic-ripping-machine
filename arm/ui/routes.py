@@ -3,7 +3,7 @@ import psutil
 from time import sleep
 from flask import Flask, render_template, abort, request, send_file , flash, redirect, url_for
 from arm.ui import app, db
-from arm.models.models import Job, Config
+from arm.models.models import Job, Config, Track
 from arm.config.config import cfg
 from arm.ui.utils import get_info, call_omdb_api, clean_for_filename
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm
@@ -19,7 +19,7 @@ def database():
         # jobs = Job.query.filter_by(status="active")
         jobs = Job.query.filter_by()
     else:
-        app.logger.error('ERROR: /database not database file doesnt exist')
+        app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
     ## Try to see if we have the arg set, if not ignore the error
     try:
@@ -29,16 +29,27 @@ def database():
         jobid = request.args['jobid']
 
         ## TODO: give the user feedback to let them know delete happened successfully
+        ## TODO: bacl up the database file
         ## Find the job the user wants to delete
         if mode == 'delete' and jobid is not None:
-            Job.query.filter_by(job_id=jobid).delete()
-            db.session.commit()
-        elif jobid == 'all':
-            Job.query.filter_by(job_id=jobid).delete()
-            db.session.commit()
-    except:
+            if jobid == 'all':
+                if os.path.isfile(cfg['DBFILE']):
+                    ## Make a backup of the database file
+                    cmd = 'cp ' + str(cfg['DBFILE']) + ' ' + str(cfg['DBFILE']) + '.bak'
+                    app.logger.info("cmd  -  {0}".format(cmd))
+                    os.system(cmd)
+                Track.query.delete()
+                Job.query.delete()
+                Config.query.delete()
+                db.session.commit()
+            else:
+                Track.query.filter_by(job_id=jobid).delete()
+                Job.query.filter_by(job_id=jobid).delete()
+                Config.query.filter_by(job_id=jobid).delete()
+                db.session.commit()
+    except Exception as err:
         db.session.rollback()
-        print("oof")
+        app.logger.error("Error:  {0}".format(err))
 
     return render_template('database.html', jobs=jobs)
 
