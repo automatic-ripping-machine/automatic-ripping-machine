@@ -15,7 +15,7 @@
         <th onclick="sortTable(0)" style="cursor: pointer;">Log file</th>
         <th onclick="sortTable(1)" width="200px" style="cursor: pointer;">Created Time</th>
         <th onclick="sortTable(2)" style="cursor: pointer;">Size(kb)</th>
-        <th colspan="4" style="text-align:center; cursor: default;" data-sorter="false">View mode</th>
+        <th colspan="4" style="text-align:center; cursor: default;" data-sorter="false">View modes</th>
     </tr>
   </thead>
   <tbody>
@@ -23,7 +23,7 @@
     <tr>
         <td class="text-nowrap">{{ file[0] }}</a></td>
         <td class="text-nowrap">{{ file[2] }}</a></td>
-        <td style="text-align:right">{{ file[3] }}</a></td>
+        <td style="text-align:center">{{ file[3] }}</a></td>
         <td style="text-align:center"><a href="logs?logfile={{ file[0] }}&mode=tail">tail</a></td>
         <td><a href="logs?logfile={{ file[0] }}&mode=armcat">arm</a></td>
         <td><a href="logs?logfile={{ file[0] }}&mode=full">full</a></td>

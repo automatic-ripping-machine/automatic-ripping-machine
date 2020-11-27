@@ -75,7 +75,7 @@
    line-height: 1.5;
    /* color: #777; */
    color: rgb(44, 44, 44);
-   text-align: left;
+   text-align: center;
    background-color: #fff;
  }
  
@@ -201,8 +201,9 @@
  code,
  kbd,
  samp {
-   font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-   font-size: 1em;
+     text-align: initial;
+     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+     font-size: 1em;
  }
  
  pre {
@@ -583,13 +584,13 @@
 */
  @media (min-width: 992px) {
    .container {
-     max-width: 960px;
+     max-width: fit-content;
    }
  }
  
  @media (min-width: 1200px) {
    .container {
-     max-width: 1140px;
+     max-width: fit-content;
    }
  }
  
@@ -1691,6 +1692,7 @@
  .table thead th {
    vertical-align: bottom;
    border-bottom: 2px solid #dee2e6;
+     text-align: center;
  }
  
  .table tbody + tbody {
@@ -1960,7 +1962,7 @@
  .table-responsive {
    display: block;
    width: 100%;
-   overflow-x: auto;
+   /*overflow-x: auto;*/
    -webkit-overflow-scrolling: touch;
    -ms-overflow-style: -ms-autohiding-scrollbar;
  }
@@ -9160,6 +9162,7 @@
  
  .text-nowrap {
    white-space: nowrap !important;
+     text-align: center;
  }
  
  .text-truncate {
@@ -9399,10 +9402,10 @@
      size: a3;
    }
    body {
-     min-width: 992px !important;
+     max-width: fit-content;
    }
    .container {
-     min-width: 992px !important;
+     max-width: fit-content;
    }
    .navbar {
      display: none;

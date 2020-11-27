@@ -1,18 +1,55 @@
 import os
-from time import sleep
-from flask import render_template, abort, request, send_file, flash, redirect, url_for
 import psutil
+from time import sleep
+from flask import Flask, render_template, abort, request, send_file , flash, redirect, url_for
 from arm.ui import app, db
 from arm.models.models import Job, Config
 from arm.config.config import cfg
-from arm.ui.utils import convert_log, get_info, call_omdb_api, clean_for_filename
+from arm.ui.utils import get_info, call_omdb_api, clean_for_filename
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm
 from pathlib import Path
 import platform, subprocess, re
+from flask.logging import default_handler
+
+## New page for editing/deleting/trundicating the database
+@app.route('/database')
+def database():
+
+    if os.path.isfile(cfg['DBFILE']):
+        # jobs = Job.query.filter_by(status="active")
+        jobs = Job.query.filter_by()
+    else:
+        app.logger.error('ERROR: /database not database file doesnt exist')
+        jobs = {}
+    ## Try to see if we have the arg set, if not ignore the error
+    try:
+        ## Mode to make sure the users has confirmed
+        ## jobid if they one to only delete 1 job
+        mode = request.args['mode']
+        jobid = request.args['jobid']
+
+        ## Find the job the user wants to delete
+        if mode == 'delete' and jobid is not None:
+            print('')
+            Job.query.filter_by(job_id=jobid).delete()
+            db.session.commit()
+        elif jobid == 'all':
+            Job.query.filter_by(job_id=jobid).delete()
+            db.session.commit()
+    except:
+        db.session.rollback()
+        print("oof")
+
+    return render_template('database.html', jobs=jobs)
 
 @app.route('/logreader')
 def logreader():
-    ## TODO: check if logfile exist, if not error out
+    ### use logger
+    #app.logger.info('Processing default request')
+    #app.logger.debug('DEBUGGING')
+    #app.logger.error('ERROR Inside /logreader')
+
+    ## Setup our vars
     logpath = cfg['LOGPATH']
     mode = request.args['mode']
     logfile = request.args['logfile']
@@ -22,10 +59,10 @@ def logreader():
     ## Check if the logfile exists
     my_file = Path(fullpath)
     if not my_file.is_file():
-        # file exists
-        #clogfile = convert_log(logfile)
+        # logfile doesnt exist throw out error template
         return render_template('error.html')
-        #return send_file("templates/error.html")
+
+    ## Only ARM logs
     if mode == "armcat":
         def generate():
             f = open(fullpath)
@@ -36,6 +73,7 @@ def logreader():
                         yield new
                 else:
                     sleep(1)
+    ## Give everything / Tail
     elif mode == "full":
         def generate():
             with open(fullpath) as f:
@@ -43,11 +81,12 @@ def logreader():
                     yield f.read()
                     sleep(1)
     elif mode == "download":
-        clogfile = convert_log(logfile)
-        return send_file(clogfile, as_attachment=True)
+        app.logger.debug('fullpath: ' + fullpath)
+        return send_file(fullpath, as_attachment=True)
     else:
-        # do nothing
-        exit()
+        # do nothing/ or error out
+        return render_template('error.html')
+        #exit()
 
     return app.response_class(generate(), mimetype='text/plain')
 
@@ -63,6 +102,7 @@ def history():
         # jobs = Job.query.filter_by(status="active")
         jobs = Job.query.filter_by()
     else:
+        app.logger.error('ERROR: /history not database file doesnt exist')
         jobs = {}
 
     return render_template('history.html', jobs=jobs)
@@ -198,7 +238,7 @@ def home():
     mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
     mfreegb = round(mfreegb/1073741824, 1)
 
-    ## RAM memory
+    ## RAM
     meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1])) for i in open('/proc/meminfo').readlines())
     mem_kib = meminfo['MemTotal']  # e.g. 3921852
     mem_gib = mem_kib / (1024.0 * 1024.0)

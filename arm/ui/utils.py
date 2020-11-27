@@ -3,10 +3,10 @@ from time import strftime, localtime
 import urllib
 import json
 import re
+
 #import logging
 # import omdb
 from arm.config.config import cfg
-
 
 def get_info(directory):
     file_list = []
@@ -38,20 +38,6 @@ def getsize(path):
     free = (st.f_bavail * st.f_frsize)
     freegb = free/1073741824
     return freegb
-
-
-def convert_log(logfile):
-    logpath = cfg['LOGPATH']
-    fullpath = os.path.join(logpath, logfile)
-
-    output_log = os.path.join('static/tmp/', logfile)
-
-    with open(fullpath) as infile, open(output_log, 'w') as outfile:
-        txt = infile.read()
-        txt = txt.replace('\n', '\r\n')
-        outfile.write(txt)
-    return(output_log)
-
 
 def call_omdb_api(title=None, year=None, imdbID=None, plot="short"):
     """ Queries OMDbapi.org for title information and parses if it's a movie

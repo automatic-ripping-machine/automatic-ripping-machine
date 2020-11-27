@@ -109,8 +109,8 @@ def identify_dvd(job):
     """ Manipulates the DVD title and calls OMDB to try and 	
     lookup the title """
     ## Safe way of dealing with log files if the users need to post it online
-    cleanlog = makecleanlogfile(job)
-    logging.debug("####### --- job ----"+ str(cleanlog))
+    ##cleanlog = makecleanlogfile(job)
+    ##logging.debug("####### --- job ----"+ str(cleanlog))
 
     ## TODO: remove this because its pointless keeping when it can never work
     try:
@@ -124,6 +124,7 @@ def identify_dvd(job):
     ## Added from pull 366 
     fallback_title = "{0}_{1}".format(str(job.label), str(crc64))	
     logging.info("Fallback title is: " + str(fallback_title))
+
     ## Added from #338
     # Some older DVDs aren't actually labelled
     if not job.label:
@@ -134,8 +135,8 @@ def identify_dvd(job):
     logging.debug(urlstring)
     
     ## Safe way of dealing with log files if the users need to post it online
-    cleanlog = makecleanlogfile(job)
-    logging.debug("####### --- job ----"+ str(cleanlog))
+    ##cleanlog = makecleanlogfile(job)
+    ##logging.debug("####### --- job ----"+ str(cleanlog))
 
     dvd_title = job.label
     year = job.year
@@ -157,6 +158,11 @@ def identify_dvd(job):
         # second see if there is a hyphen and split it
         if dvd_title.find("-") > -1:
             dvd_title_slice = dvd_title[:dvd_title.find("-")]
+            ## TODO: Remove cleanupstring2
+            # dvd_title_clean = cleanupstring(dvd_title)
+            #title = dvd_title_slice.strip()
+            #title = re.sub('[_ ]', "+", title)
+
             dvd_title_slice = cleanupstring2(dvd_title_slice)
             logging.debug("Trying title: " + dvd_title_slice)
             dvd_info_xml = callwebservice2(omdb_api_key, dvd_title_slice, year)

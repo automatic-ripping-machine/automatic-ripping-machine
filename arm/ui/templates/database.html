@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}  
+<div class="container">
+    <div class="row">
+        <!--<div class="col-sm-2"></div>-->
+            <div class="col-sm-8" >
+                <div class="table-responsive">
+                    <table id="riptable" style="margin: 0 auto" class="table table-striped">
+                        <thead class="tablesorterhead bg-secondary">
+                            <tr style="margin: 0 auto">
+                                <th onclick="sortTable(0)" style="cursor: pointer;">Title</th>
+                                <th onclick="sortTable(1)" width="200px" style="cursor: pointer;">Start Time</th>
+                                <th onclick="sortTable(2)" style="cursor: pointer;">Duration</th>
+								<th onclick="sortTable(4)" style="cursor: pointer;">Logfile</th>
+                                <th>Delete Entry</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                        {% for job in jobs %}
+                            <tr>
+                                <td class="text-nowrap"><a href="jobdetail?job_id={{ job.job_id }}" >{{ job.title }}</a></td>
+                                <td class="text-nowrap">{{ job.start_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                                <td class="text-nowrap">{{ job.job_length }}</td>
+                                <td class="text-nowrap">{{ job.logfile }}</td>
+                                <td class="text-nowrap"><a class="dialog-confirm" href="database?jobid={{ job.job_id }}&mode=delete"><img src="static/img/delete.png" height="30px" alt="delete" title="delete"></a></td>
+                                        {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            <!--<div class="col-sm-2"></div>-->
+        </div>
+    </div>
+</div>
+<div id="dialog" title="Delete this job forever ??">
+  <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>These items will be permanently deleted and cannot be recovered. Are you sure?</p>
+</div>
+{% endblock %}
+{% block footer %}{{ super() }}{% endblock %}
+{% block js %}
+{{ super() }}
+  <link rel="stylesheet" href="/static/js/jquery-ui/jquery-ui.css">
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script>
+      var hrrref = "";
+      $(document).ready(function() {
+          $("#dialog").dialog({
+              autoOpen: false,
+              modal: true,
+              buttons : {
+                  "Confirm" : function() {
+                      //window.location = hrrref
+                      window.location.href = hrrref;
+                      return false;
+                      alert(hrrref);
+                      },
+                  "Cancel" : function() {
+                      hrrref = ""
+                      $(this).dialog("close");
+                  }
+              }
+          });
+          $('.dialog-confirm').click(function () {
+              event.preventDefault();
+              // works
+              hrrref  = $(this).attr('href');
+              $("#dialog").dialog("open");
+              //alert($(this).attr('href'));
+          });
+      });
+  </script>
+{% endblock %}

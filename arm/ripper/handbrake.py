@@ -39,12 +39,13 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
 
     filename = os.path.join(basepath, job.title + "." + job.config.DEST_EXT)
     filepathname = os.path.join(basepath, filename)
+    logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
 
     get_track_info(srcpath, job)
 
     track = job.tracks.filter_by(main_feature=True).first()
     
-    logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
+
 
     if track is None:
         msg = "No main feature found by Handbrake. Turn MAINFEATURE to false in arm.yml and try again."
@@ -203,6 +204,8 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
         hb_args = job.config.HB_ARGS_BD
         hb_preset = job.config.HB_PRESET_BD
 
+
+    ## This will fail if the directory raw gets deleted
     for f in os.listdir(srcpath):
         srcpathname = os.path.join(srcpath, f)
         destfile = os.path.splitext(f)[0]

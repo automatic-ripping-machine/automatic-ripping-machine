@@ -1,7 +1,8 @@
-from flask import Flask
+from flask import Flask, logging
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from arm.config.config import cfg
+from flask.logging import default_handler
 # import omdb
 
 

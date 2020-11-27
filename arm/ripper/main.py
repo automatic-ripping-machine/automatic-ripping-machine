@@ -87,12 +87,12 @@ def log_arm_params(job):
 
 
 def check_fstab():
-    ## TODO: correct this to find only uncommented fstabs
     logging.info("Checking for fstab entry.")
     with open('/etc/fstab', 'r') as f:
         lines = f.readlines()
         for line in lines:
-            if re.search(job.devpath, line):
+            ## Now grabs the real uncommented fstab entry
+            if re.search("^" + job.devpath, line):
                 logging.info("fstab entry is: " + line.rstrip())
                 return
     logging.error("No fstab entry found.  ARM will likely fail.")
@@ -153,15 +153,11 @@ def main(logfile, job):
         if job.hasnicetitle:
             ## Make sure we dont use 0000 in our folder name
             if job.year != "0000":
-                hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title + " (" + job.year + ")"))
+                hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
             else:
                 hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title))
         else:
             hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
-
-
-        #reverts to default directory
-        h2 = hboutpath
 
         ## The dvd directory already exists - Lets make a new one using random numbers
         if (utils.make_dir(hboutpath)) is False:
@@ -173,9 +169,9 @@ def main(logfile, job):
                 if job.hasnicetitle:
                     ## Dont use the year if its  0000
                     if job.year != "0000":
-                        hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title + " (" + job.year + ") " + str(ts)))
+                        hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ") " + str(ts))
                     else:
-                        hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title + " " +str(ts)))
+                        hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " " +str(ts))
                 else:
                     ## No nice title, use the unidentified path
                     hboutpath = os.path.join(job.config.ARMPATH, str(job.title) + "_" + str(ts))
@@ -220,6 +216,7 @@ def main(logfile, job):
             # point HB to the path MakeMKV ripped to
             hbinpath = mkvoutpath
 
+            ##Entry point for not transcoding
             if job.config.SKIP_TRANSCODE and job.config.RIPMETHOD == "mkv":
                 logging.info("SKIP_TRANSCODE is true.  Moving raw mkv files.")
                 logging.info("NOTE: Identified main feature may not be actual main feature")
@@ -262,7 +259,7 @@ def main(logfile, job):
                                 else:
                                     logging.info("Not moving extra: " + f)
                     # Change final path (used to set permissions)
-                    final_directory = os.path.join(job.config.MEDIA_DIR, job.title + " (" + str(job.year) + ")")
+                    final_directory = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
                     # Clean up
                     logging.debug("Attempting to remove extra folder in ARMPATH: " + hboutpath)
                     try:
@@ -305,10 +302,6 @@ def main(logfile, job):
             handbrake.handbrake_all(hbinpath, hboutpath, logfile, job)
             job.eject()
 
-        # get rid of this
-        # if not titles_in_out:
-        #     pass
-
         # check if there is a new title and change all filenames
         # time.sleep(60)
         db.session.refresh(job)
@@ -319,7 +312,6 @@ def main(logfile, job):
         else:
             p = hboutpath
 
-        ## This is possible regression error
         # move to media directory
         if job.video_type == "movie" and job.hasnicetitle:
             # tracks = job.tracks.all()
@@ -337,8 +329,13 @@ def main(logfile, job):
         else:
             logging.info("job type is " + str(job.video_type) + "not movie or series, not moving.")
             utils.scan_emby(job)
-        
-        
+
+        # set file to default permissions '777'
+        ## Test for dvd permissions
+        #if job.config.SET_MEDIA_PERMISSIONS:
+        #    perm_result = utils.set_permissions(job, final_directory)
+        #    logging.info("Permissions set successfully: " + str(perm_result))
+
         # remove empty directories
         try:
             os.rmdir(hboutpath)
@@ -407,15 +404,6 @@ def main(logfile, job):
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
 
-    # job.status = "success"
-    # job.stop_time = datetime.datetime.now()
-    # joblength = job.stop_time - job.start_time
-    # minutes, seconds = divmod(joblength.seconds + joblength.days * 86400, 60)
-    # hours, minutes = divmod(minutes, 60)
-    # len = '{:d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
-    # job.job_length = len
-    # db.session.commit()
-
 
 if __name__ == "__main__":
     args = entry()
@@ -426,7 +414,7 @@ if __name__ == "__main__":
     job = Job(devpath)
 
     logfile = logger.setuplogging(job)
-    print("Log: " + logfile)
+    logging.info("Log: " + logfile)
 
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
@@ -448,7 +436,7 @@ if __name__ == "__main__":
     # Log version number
     with open(os.path.join(job.config.INSTALLPATH, 'VERSION')) as version_file:
         version = version_file.read().strip()
-    logging.info("ARM version: " + version)
+    logging.info("ARM version: " + str(version))
     job.arm_version = version
     logging.info(("Python version: " + sys.version).replace('\n', ""))
     logging.info("User is: " + getpass.getuser())
