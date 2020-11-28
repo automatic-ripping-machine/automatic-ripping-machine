@@ -14,7 +14,10 @@ from flask.logging import default_handler
 ## New page for editing/deleting/trundicating the database
 @app.route('/database')
 def database():
+    ##Success gives the user feedback to let them know if the delete worked
+    success = False
 
+    ## Check for database file
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
         jobs = Job.query.filter_by()
@@ -29,9 +32,11 @@ def database():
         jobid = request.args['jobid']
 
         ## TODO: give the user feedback to let them know delete happened successfully
-        ## TODO: bacl up the database file
+        ## TODO: Also check for the user agreement cookie
         ## Find the job the user wants to delete
         if mode == 'delete' and jobid is not None:
+            ## User wants to wipe the whole database
+            ## Make a backup and everything
             if jobid == 'all':
                 if os.path.isfile(cfg['DBFILE']):
                     ## Make a backup of the database file
@@ -42,16 +47,22 @@ def database():
                 Job.query.delete()
                 Config.query.delete()
                 db.session.commit()
+                success = True
+            ## Not sure this is the greatest way of handling this
+            ## TODO: make sure we have an int on jobid
             else:
                 Track.query.filter_by(job_id=jobid).delete()
                 Job.query.filter_by(job_id=jobid).delete()
                 Config.query.filter_by(job_id=jobid).delete()
                 db.session.commit()
+                success = True
+    ## If we run into problems with the datebase changes
+    ## error out to the log and roll back
     except Exception as err:
         db.session.rollback()
         app.logger.error("Error:  {0}".format(err))
 
-    return render_template('database.html', jobs=jobs)
+    return render_template('database.html', jobs=jobs,success=success)
 
 @app.route('/logreader')
 def logreader():

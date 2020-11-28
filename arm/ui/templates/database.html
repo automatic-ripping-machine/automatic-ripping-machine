@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="../static/css/bootstrap.spacelab.css">
 {% extends "base.html" %}
 {% block title %}Logs{% endblock %}
 
@@ -5,18 +6,20 @@
 
 {% block content %}
 <div id="message2" class="ui-state-error ui-corner-all">WARNING! <br/>Be careful! There is no undo  here!</div>
+<div style="display: none" id="message1" class="green-for-go ui-corner-all">Job was deleted succefully</div>
+<div style="display: none" id="floatcont" title="Warning!" class="ui-corner-all">This can be dangerous if you dont know what you're doing. <br/> You could delete all your of your database entries if you're not careful!!! <br/> Be careful!<br/></div>
 <div class="container">
     <div class="row">
-        <!--<div class="col-sm-2"></div>-->
             <div class="col-sm-8" >
                 <div class="table-responsive">
-                    <table id="riptable" style="margin: 0 auto" class="table table-striped">
+                                        <table id="riptable" style="margin: 0 auto" class="table table-striped">
                         <thead class="tablesorterhead bg-secondary">
                             <tr style="margin: 0 auto">
-                                <th onclick="sortTable(0)" style="cursor: pointer;">Title</th>
-                                <th onclick="sortTable(1)" width="200px" style="cursor: pointer;">Start Time</th>
-                                <th onclick="sortTable(2)" style="cursor: pointer;">Duration</th>
-								<th onclick="sortTable(4)" style="cursor: pointer;">Logfile</th>
+                                <th >Title</th>
+                                <th width="200px">Start Time</th>
+                                <th >Duration</th>
+                                <th >Status</th>
+								<th >Logfile</th>
                                 <th>Delete Entry</th>
                             </tr>
                         </thead>
@@ -26,6 +29,7 @@
                                 <td class="text-nowrap"><a href="jobdetail?job_id={{ job.job_id }}" >{{ job.title }}</a></td>
                                 <td class="text-nowrap">{{ job.start_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
                                 <td class="text-nowrap">{{ job.job_length }}</td>
+                                <td class="text-nowrap {{ job.status }}"><img src="static/img/{{ job.status }}.png" height="30px" alt="{{ job.status }}" title="{{ job.status }}"></td>
                                 <td class="text-nowrap">{{ job.logfile }}</td>
                                 <td class="text-nowrap"><a class="dialog-confirm" href="database?jobid={{ job.job_id }}&mode=delete"><img src="static/img/delete.png" height="30px" alt="delete" title="delete"></a></td>
                                         {% endfor %}
@@ -33,9 +37,8 @@
                         </tbody>
                     </table>
                 </div>
-            <!--<div class="col-sm-2"></div>-->
+            </div>
         </div>
-    </div>
 </div>
 <div id="dialog" title="Delete this job forever ??">
   <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>These items will be permanently deleted and cannot be recovered. Are you sure?</p>
@@ -47,18 +50,17 @@
   <link rel="stylesheet" href="/static/js/jquery-ui/jquery-ui.css">
   <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-  <script>
+  <script type="application/javascript">
       var hrrref = "";
+      var wedeleted = "{{ success }}";
       $(document).ready(function() {
           $("#dialog").dialog({
               autoOpen: false,
               modal: true,
               buttons : {
                   "Confirm" : function() {
-                      //window.location = hrrref
                       window.location.href = hrrref;
                       return false;
-                      alert(hrrref);
                       },
                   "Cancel" : function() {
                       hrrref = ""
@@ -73,6 +75,89 @@
               $("#dialog").dialog("open");
               //alert($(this).attr('href'));
           });
+          //get the value
+          var seen = checkCookie();
+          if(seen == null) {
+              /*have not agreed to understanding the risks, show modal*/
+              $("#floatcont").dialog({
+                  autoOpen: true,
+                  modal: true,
+                  resizable: false,
+                  minWidth: 400,
+                  width: "70%",
+                  show: {
+                      effect: "blind",
+                      duration: 1000
+                  },
+                  hide: {
+                      effect: "none",
+                      duration: 10
+                  },
+                  close: function () {
+                      // Check if user has accepted
+                      var unders = checkCookie();
+                      if (unders === null){
+                          hrrref = "/"
+                          window.location.href = hrrref;
+                          return false
+                      }
+                      else{
+                          $(this).dialog("close");
+                          return false;
+                      }
+                },
+                  buttons: {
+                      "I Understand": function () {
+                          setCookie("understands", "yes", 66)
+                          $(this).dialog("close");
+                          return false;
+                      },
+                      "Take me to safety": function () {
+                          hrrref = "/"
+                          window.location.href = hrrref;
+                          $(this).dialog("close");
+                          return false
+                      }
+                  }
+              });
+          }else{
+              if (wedeleted == "True"){
+                  $( "#message2" ).hide( );
+                  $( "#message1" ).show( "shake", {}, 500 );
+                  //alert("Deleting entry was " + wedeleted);
+              }
+          }
       });
+      //Simple function to check if we have already agreed
+      function checkCookie() {
+          var understands = getCookie("understands");
+          if (understands != "" && understands != null) {
+              return true
+          } else {
+              return null
+          }
+      }
+      //Get only the understands cookie
+      function getCookie(cname) {
+          var name = cname + "=";
+          var decodedCookie = decodeURIComponent(document.cookie);
+          var ca = decodedCookie.split(';');
+          for (var i = 0; i < ca.length; i++) {
+              var c = ca[i];
+              while (c.charAt(0) == ' ') {
+                  c = c.substring(1);
+              }
+              if (c.indexOf(name) == 0) {
+                  return c.substring(name.length, c.length);
+              }
+          }
+      }
+      //Set out cookie so we dont need the dialog popping up
+      function setCookie(cname, cvalue, exdays) {
+          var d = new Date();
+          d.setTime(d.getTime() + (exdays*24*60*60*1000));
+          var expires = "expires="+ d.toUTCString();
+          document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+      }
   </script>
 {% endblock %}
