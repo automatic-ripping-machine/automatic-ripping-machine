@@ -1,14 +1,15 @@
 import os
 import psutil
+import platform, subprocess, re
+
 from time import sleep
-from flask import Flask, render_template, abort, request, send_file , flash, redirect, url_for
+from flask import Flask, render_template,make_response ,abort, request, send_file , flash, redirect, url_for, Markup
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track
 from arm.config.config import cfg
 from arm.ui.utils import get_info, call_omdb_api, clean_for_filename
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm
 from pathlib import Path
-import platform, subprocess, re
 from flask.logging import default_handler
 
 ## New page for editing/deleting/trundicating the database
@@ -63,6 +64,31 @@ def database():
         app.logger.error("Error:  {0}".format(err))
 
     return render_template('database.html', jobs=jobs,success=success)
+
+## New page for editing the ARM config
+@app.route('/settings')
+def settings():
+
+    ## This loop syntax accesses the whole dict by looping
+    ## over the .items() tuple list, accessing one (key, value)
+    raw_html = '<form id="form1" name="form1" method="get" action="">'
+    ## pair on each iteration.
+    for k, v in cfg.items():
+       raw_html +=  '<tr> <td><label for="' + str(k) + '"> ' + str(k) + '</label></td> <td><input type="text" name="' + str(k) + '" id="' + str(k) + '" value="' + str(v) + '"/></td></tr>'
+       app.logger.info(str(k) + str(' > ')+ str( v))
+       app.logger.info(str(raw_html))
+    raw_html += " </form>"
+    """
+    ## Try to see if we have the arg set, if not ignore the error
+    try:
+        app
+    ## error out to the log
+    except Exception as err:
+        app.logger.error("Error:  {0}".format(err))
+    """
+    #app.logger.error("Error:  {0}".format(str(cfg)))
+    return render_template('settings.html', html=Markup(raw_html),success="")
+
 
 @app.route('/logreader')
 def logreader():

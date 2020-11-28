@@ -5,7 +5,7 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-<div id="message2" class="ui-state-error ui-corner-all">WARNING! <br/>Be careful! There is no undo  here!</div>
+<div id="message2" class="ui-state-error ui-corner-all"><b>WARNING:  </b>There is no undo  here! <br/>Be careful!</div>
 <div style="display: none" id="message1" class="green-for-go ui-corner-all">Job was deleted succefully</div>
 <div style="display: none" id="floatcont" title="Warning!" class="ui-corner-all">This can be dangerous if you dont know what you're doing. <br/> You could delete all your of your database entries if you're not careful!!! <br/> Be careful!<br/></div>
 <div class="container">
@@ -24,7 +24,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                                        {% for job in jobs %}
+                        {% for job in jobs %}
                             <tr>
                                 <td class="text-nowrap"><a href="jobdetail?job_id={{ job.job_id }}" >{{ job.title }}</a></td>
                                 <td class="text-nowrap">{{ job.start_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
@@ -32,8 +32,8 @@
                                 <td class="text-nowrap {{ job.status }}"><img src="static/img/{{ job.status }}.png" height="30px" alt="{{ job.status }}" title="{{ job.status }}"></td>
                                 <td class="text-nowrap">{{ job.logfile }}</td>
                                 <td class="text-nowrap"><a class="dialog-confirm" href="database?jobid={{ job.job_id }}&mode=delete"><img src="static/img/delete.png" height="30px" alt="delete" title="delete"></a></td>
-                                        {% endfor %}
                             </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                 </div>
