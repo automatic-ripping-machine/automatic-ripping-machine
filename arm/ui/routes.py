@@ -74,7 +74,7 @@ def settings():
     raw_html = '<form id="form1" name="form1" method="get" action="">'
     ## pair on each iteration.
     for k, v in cfg.items():
-       raw_html +=  '<tr> <td><label for="' + str(k) + '"> ' + str(k) + '</label></td> <td><input type="text" name="' + str(k) + '" id="' + str(k) + '" value="' + str(v) + '"/></td></tr>'
+       raw_html +=  '<tr> <td><label for="' + str(k) + '"> ' + str(k) + ': </label></td> <td><input type="text" name="' + str(k) + '" id="' + str(k) + '" value="' + str(v) + '"/></td></tr>'
        app.logger.info(str(k) + str(' > ')+ str( v))
        app.logger.info(str(raw_html))
     raw_html += " </form>"
