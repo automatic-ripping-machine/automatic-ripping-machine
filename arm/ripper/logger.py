@@ -68,7 +68,10 @@ def cleanuplogs(logpath, loglife):
     loglife = days to let logs live\n
 
     """
-
+    ## TODO: disable log cleaning if set to 0
+    if loglife <1:
+        logging.info("logging is set to 0. Disabled")
+        return False
     now = time.time()
     logging.info("Looking for log files older than " + str(loglife) + " days old.")
 
