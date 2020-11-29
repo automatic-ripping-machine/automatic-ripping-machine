@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, IntegerField, BooleanField
+from wtforms import StringField, SubmitField, SelectField, IntegerField, BooleanField, PasswordField, validators
 from wtforms.validators import DataRequired
 
 
@@ -20,4 +20,9 @@ class ChangeParamsForm(FlaskForm):
     MAINFEATURE = BooleanField('Main Feature')
     MINLENGTH = IntegerField('Minimum Length')
     MAXLENGTH = IntegerField('Maximum Length')
+    submit = SubmitField('Submit')
+
+class LoginForm(FlaskForm):
+    username = StringField('Username')
+    password = PasswordField('Password')
     submit = SubmitField('Submit')

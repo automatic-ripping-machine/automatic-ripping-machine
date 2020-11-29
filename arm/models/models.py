@@ -1,8 +1,10 @@
 import os
 import pyudev
 import psutil
+import bcrypt
 from arm.ui import db
 from arm.config.config import cfg  # noqa: E402
+from flask_login import LoginManager, current_user, login_user,UserMixin
 
 
 class Job(db.Model):
@@ -226,3 +228,27 @@ class Config(db.Model):
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 
         return s
+
+
+class User(db.Model, UserMixin):
+    user_id = db.Column(db.Integer,index=True, primary_key=True)
+    email = db.Column(db.String(64))
+    password = db.Column(db.String(128))
+    hash = db.Column(db.String(256))
+
+    def __init__(self, email=None, password=None, hashed=None):
+        self.email = email
+        self.password = password
+        self.hash = hashed
+
+    def __repr__(self):
+        return '<User %r>' % (self.email)
+    
+    def get_id(self):
+        return (self.user_id)
+
+
+class Alembic_version(db.Model):
+    version_num = db.Column(db.String(36), autoincrement=False,primary_key=True)
+    def __init__(self,version=None):
+        self.version_num = version

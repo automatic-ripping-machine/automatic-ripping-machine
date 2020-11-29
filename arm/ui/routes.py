@@ -5,15 +5,123 @@ import platform, subprocess, re
 from time import sleep
 from flask import Flask, render_template,make_response ,abort, request, send_file , flash, redirect, url_for, Markup
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track
+from arm.models.models import Job, Config, Track, User
 from arm.config.config import cfg
 from arm.ui.utils import get_info, call_omdb_api, clean_for_filename
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, LoginForm
 from pathlib import Path
 from flask.logging import default_handler
 
+from flask_login import LoginManager, login_required , current_user, login_user,UserMixin
+
+import sys
+import bcrypt
+import hashlib
+## the login manager
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+## Redirect to login if we arent auth
+@login_manager.unauthorized_handler
+def unauthorized():
+    # do stuff
+    return redirect('/login')
+
+@app.route('/setup')
+def setup():
+    ## TODO Verify this with a secret key in the config for set up
+    ## So not just anyone can wipe the database
+    if setupdatabase():
+        return redirect('/setup-stage2')
+    else:
+        ## error out
+        return redirect("/error")
+
+
+@app.route('/setup-stage2', methods=['GET', 'POST'])
+def setup_stage2():
+
+    ##if there is no user in the database
+    if User.query.all():
+        return redirect('/index')
+
+    #import logging
+    #logging.basicConfig()
+    #logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
+
+    ## if user is logged in
+    #if current_user.is_authenticated:
+    #    return redirect('/index')
+    form = LoginForm()
+
+    ## After a login for is submited
+    if form.validate_on_submit():
+        username =  str(form.username.data).strip()
+        pass1 = str(form.password.data).strip().encode('utf-8')
+        hash = bcrypt.gensalt(12)
+
+        if form.username.data != "" and form.password.data != "":
+            hashedpassword = bcrypt.hashpw(pass1,hash)
+            user = User(email=username, password=hashedpassword, hashed=hash)
+            app.logger.debug("user: " + str(username) + " Pass:" + str(pass1))
+            app.logger.debug("user db " + str(user) )
+            db.session.add(user)
+            try:
+                db.session.commit()
+            except Exception as e:
+                flash(str(e))
+                return redirect('/setup-stage2')
+        else:
+            ##app.logger.debug("user: "+ str(username) + " Pass:" + pass1 )
+            flash("error something was blank")
+            return redirect('/setup-stage2')
+    return render_template('setup.html', title='setup', form=form)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+
+    ##if there is no user in the database
+    if not User.query.all():
+        return redirect('/setup-stage2')
+
+    ## if user is logged in
+    if current_user.is_authenticated:
+        return redirect('/index')
+
+    form = LoginForm()
+
+    ## After a login for is submited
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=str(form.username.data).strip()).first()
+        app.logger.debug("user= "+ str(user))
+        ## our previous pass
+        password = user.password
+        hashed = user.hash
+        ## our new one
+        loginhashed = bcrypt.hashpw(str(form.password.data).strip().encode('utf-8'), hashed)
+        app.logger.debug(loginhashed)
+        app.logger.debug(password)
+
+        if loginhashed == password:
+            login_user(user)
+            flash('Logged in')
+        elif user is None:
+            flash('Invalid username')
+            return redirect(url_for('login'))
+        else:
+            flash('Invalid pass')
+            return redirect(url_for('login'))
+        return redirect('/index')
+    return render_template('login.html', title='Sign In', form=form)
+
 ## New page for editing/deleting/trundicating the database
 @app.route('/database')
+@login_required
 def database():
     ##Success gives the user feedback to let them know if the delete worked
     success = False
@@ -67,6 +175,7 @@ def database():
 
 ## New page for editing the ARM config
 @app.route('/settings')
+@login_required
 def settings():
 
     ## This loop syntax accesses the whole dict by looping
@@ -75,22 +184,23 @@ def settings():
     ## pair on each iteration.
     for k, v in cfg.items():
        raw_html +=  '<tr> <td><label for="' + str(k) + '"> ' + str(k) + ': </label></td> <td><input type="text" name="' + str(k) + '" id="' + str(k) + '" value="' + str(v) + '"/></td></tr>'
-       app.logger.info(str(k) + str(' > ')+ str( v))
-       app.logger.info(str(raw_html))
+       app.logger.info(str(k) + str(' > ')+ str( v)+ "\n")
+       #app.logger.info(str(raw_html))
     raw_html += " </form>"
-    """
-    ## Try to see if we have the arg set, if not ignore the error
-    try:
-        app
-    ## error out to the log
-    except Exception as err:
-        app.logger.error("Error:  {0}".format(err))
-    """
+
+    ## TODO: Check if the users is posting data
+    ## TODO: create login make make things safe!!! This needs done before we allow editing. For security reasons
+    ## For now it only shows the config
+    path1 = os.path.dirname(os.path.abspath(__file__))
+    with open(str(path1) + '/test.json', 'w') as f:
+        f.write(raw_html + "\n")
+
     #app.logger.error("Error:  {0}".format(str(cfg)))
     return render_template('settings.html', html=Markup(raw_html),success="")
 
 
 @app.route('/logreader')
+@login_required
 def logreader():
     ### use logger
     #app.logger.info('Processing default request')
@@ -140,11 +250,13 @@ def logreader():
 
 
 @app.route('/activerips')
+@login_required
 def rips():
     return render_template('activerips.html', jobs=Job.query.filter_by(status="active"))
 
 
 @app.route('/history')
+@login_required
 def history():
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
@@ -157,6 +269,7 @@ def history():
 
 
 @app.route('/jobdetail', methods=['GET', 'POST'])
+@login_required
 def jobdetail():
     job_id = request.args.get('job_id')
     jobs = Job.query.get(job_id)
@@ -166,6 +279,7 @@ def jobdetail():
 
 
 @app.route('/titlesearch', methods=['GET', 'POST'])
+@login_required
 def submitrip():
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
@@ -181,6 +295,7 @@ def submitrip():
 
 
 @app.route('/changeparams', methods=['GET', 'POST'])
+@login_required
 def changeparams():
     config_id = request.args.get('config_id')
     config = Config.query.get(config_id)
@@ -196,6 +311,7 @@ def changeparams():
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
 @app.route('/customTitle', methods=['GET', 'POST'])
+@login_required
 def customtitle():
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
@@ -210,6 +326,7 @@ def customtitle():
     return render_template('customTitle.html', title='Change Title', form=form)
 
 @app.route('/list_titles')
+@login_required
 def list_titles():
     title = request.args.get('title').strip()
     year = request.args.get('year').strip()
@@ -219,6 +336,7 @@ def list_titles():
 
 
 @app.route('/gettitle', methods=['GET', 'POST'])
+@login_required
 def gettitle():
     imdbID = request.args.get('imdbID')
     job_id = request.args.get('job_id')
@@ -227,6 +345,7 @@ def gettitle():
 
 
 @app.route('/updatetitle', methods=['GET', 'POST'])
+@login_required
 def updatetitle():
     new_title = request.args.get('title')
     new_year = request.args.get('year')
@@ -254,6 +373,7 @@ def updatetitle():
 
 
 @app.route('/logs')
+@login_required
 def logs():
     mode = request.args['mode']
     logfile = request.args['logfile']
@@ -262,6 +382,7 @@ def logs():
 
 
 @app.route('/listlogs', defaults={'path': ''})
+@login_required
 def listlogs(path):
 
     basepath = cfg['LOGPATH']
@@ -278,6 +399,7 @@ def listlogs(path):
 
 @app.route('/')
 @app.route('/index.html')
+@app.route('/index')
 def home():
 
     # Hard drive space
@@ -331,3 +453,24 @@ def get_processor_name():
         speeds = speeds.replace('model name :' , '')
         return speeds
     return ""
+
+def setupdatabase():
+    ## Try to get the db. User if not we nuke everything
+    try:
+        User.query.all()
+        return True
+    except Exception as err:
+        ## We only need this on first run
+        ## Wipe everything
+        db.drop_all()
+        ## Recreate everything
+        db.metadata.create_all(db.engine)
+        # See important note below
+        from arm.models.models import User, Job, Track, Config, Alembic_version
+        db.create_all()
+        db.session.commit()
+        ## push the database version arm is looking for
+        user = Alembic_version('c3a3fa694636')
+        db.session.add(user)
+        db.session.commit()
+        return True

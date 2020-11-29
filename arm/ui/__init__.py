@@ -5,16 +5,26 @@ from arm.config.config import cfg
 from flask.logging import default_handler
 # import omdb
 
+from flask_login import LoginManager
 
 sqlitefile = 'sqlite:///' + cfg['DBFILE']
 
+
+
 app = Flask(__name__)
+login_manager = LoginManager()
+login_manager.init_app(app)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = "Big secret key"
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)
 
+migrate = Migrate(app, db)
+from getpass import getpass
+import sys
+import bcrypt
+from flask import current_app
 # omdb.set_default('apikey', cfg['OMDB_API_KEY'])
 
 # import arm.ui.routes  # noqa: E402,F401

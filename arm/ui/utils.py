@@ -3,6 +3,7 @@ from time import strftime, localtime
 import urllib
 import json
 import re
+import bcrypt
 
 #import logging
 # import omdb
@@ -69,3 +70,6 @@ def call_omdb_api(title=None, year=None, imdbID=None, plot="short"):
     # except Exception:
     #     print("call failed")
     #     return(None)
+
+def check_password_hash (password):
+    return True

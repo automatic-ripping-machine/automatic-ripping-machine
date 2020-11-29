@@ -377,6 +377,11 @@
    display: none !important;
  }
 
+ .alert, .alert-message, .alert-dismissible {
+    border: 1px solid #cd0a0a;
+    background: #cd0a0a;
+    color: #ffffff;
+}
  h1, h2, h3, h4, h5, h6,
  .h1, .h2, .h3, .h4, .h5, .h6 {
    margin-bottom: 0.5rem;
