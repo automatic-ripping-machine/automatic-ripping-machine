@@ -147,7 +147,8 @@ def get_video_details(job):
 
     title = ""
 
-    ## Make sure we have a title. if we do its bluray use job.title not job.label
+    ## Make sure we have a title.
+    ## if we do its bluray use job.title not job.label
     try:
         if job.title is not None and job.title != "":
             title = str(job.title)
@@ -189,12 +190,6 @@ def get_video_details(job):
             logging.debug("Subtracting 1 year...")	
             response = callwebservice(job, omdb_api_key, title, str(int(year) - 1))	
             logging.debug("response: " + str(response))
-        
-        # first try subtracting one year.  This accounts for when
-        # the dvd release date is the year following the movie release date
-        logging.debug("Subtracting 1 year...")
-        response = callwebservice(job, omdb_api_key, title, str(int(year) - 1))
-        logging.debug("response: " + str(response))
 
         # try submitting without the year
         if response == "fail":
