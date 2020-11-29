@@ -22,7 +22,7 @@ def identify(job, logfile):
     """Identify disc attributes"""
     ## Safe way of dealing with log files if the users need to post it online
     cleanlog = makecleanlogfile(job)
-    logging.debug("####### --- job ----"+ str(cleanlog))
+    logging.debug("Identify Entry point --- job ----"+ str(cleanlog))
 
     logging.info("Mounting disc to: " + str(job.mountpoint))
 
@@ -61,15 +61,14 @@ def identify(job, logfile):
 
             # get crc_id (dvd only), title, year
             if job.disctype == "dvd":
-                ## res = identify_dvd(job)
                 res = get_video_details(job)
+                ## return after this so we dont reset our job.hasnicetitle
+                return
             if job.disctype == "bluray":
                 res = identify_bluray(job)
             ## Need to check if year is "0000"  or ""
-            if res and not job.year == "0000" or res and not job.year == "":
-                ##If we already have a nice title return
-                if job.hasnicetitle:
-                    return
+            if res and not job.year == "0000":
+                ## only get video details if its a bluray
                 get_video_details(job)
             else:
                 job.hasnicetitle = False
@@ -78,7 +77,7 @@ def identify(job, logfile):
             logging.info("Disc title Post ident: " + str(job.title) + " : " + str(job.year) + " : " + str(job.video_type))
             ## Safe way of dealing with log files if the users need to post it online
             cleanlog = makecleanlogfile(job)
-            logging.debug("####### --- job ----" + str(cleanlog))
+            logging.debug("identify.job.end ----" + str(cleanlog))
 
     os.system("umount " + job.devpath)
 
@@ -173,12 +172,11 @@ def get_video_details(job):
 
     # needs_new_year = False
     omdb_api_key = job.config.OMDB_API_KEY
-    
-    ## TODO: possible need for making sure str
+
     logging.debug("Title: " + title + " | Year: " + year)
 
     logging.debug("Calling webservice with title: " + title  + " and year: " + year)
-    ## Callwenservice already handles commiting to database, no need for identify_dvd()
+    ## Callwebservice already handles commiting to database, no need for identify_dvd()
     response = callwebservice(job, omdb_api_key, title, year)
     logging.debug("response: " + str(response))
 
@@ -254,6 +252,7 @@ def callwebservice(job, omdb_api_key, dvd_title, year=""):
         else:
             # global new_year
             new_year = doc['Year']
+            ##new_year = job.year_auto = job.year = str(doc['Year'])
             title = clean_for_filename(doc['Title'])
             logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
             job.year_auto = str(new_year)

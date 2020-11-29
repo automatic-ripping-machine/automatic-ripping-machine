@@ -332,9 +332,10 @@ def main(logfile, job):
 
         # set file to default permissions '777'
         ## Test for dvd permissions
-        #if job.config.SET_MEDIA_PERMISSIONS:
-        #    perm_result = utils.set_permissions(job, final_directory)
-        #    logging.info("Permissions set successfully: " + str(perm_result))
+        final_directory = hboutpath
+        if job.config.SET_MEDIA_PERMISSIONS:
+            perm_result = utils.set_permissions(job, final_directory)
+            logging.info("Permissions set successfully: " + str(perm_result))
 
         # remove empty directories
         try:
