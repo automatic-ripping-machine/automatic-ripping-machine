@@ -63,7 +63,7 @@ def identify(job, logfile):
             if job.disctype == "dvd":
                 res = get_video_details(job)
                 ## return after this so we dont reset our job.hasnicetitle
-                return
+                #return
             if job.disctype == "bluray":
                 res = identify_bluray(job)
             ## Need to check if year is "0000"  or ""

@@ -130,6 +130,7 @@ def main(logfile, job):
         db.session.refresh(config)
         job.status = "active"
         db.session.commit()
+
     ## If the user has set info manually update database and hasnicetitle
     if job.title_manual:
         logging.info("Manual override found.  Overriding auto identification values.")
@@ -140,14 +141,13 @@ def main(logfile, job):
         logging.info("No manual override found.")
 
     log_arm_params(job)
-
     check_fstab()
 
     if job.config.HASHEDKEYS:
         logging.info("Getting MakeMKV hashed keys for UHD rips")
         grabkeys()
 
-    ## Entry point for dvd
+    ## Entry point for dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
         # get filesystem in order
         ## If we have a nice title/confirmed name use the MEDIA_DIR and not the ARM unidentified folder
@@ -178,8 +178,9 @@ def main(logfile, job):
                     hboutpath = os.path.join(job.config.ARMPATH, str(job.title) + "_" + str(ts))
 
                 ## We failed to make a random directory, most likely a permission issue
-                if(utils.make_dir(hboutpath)) is False:
-                    logging.exception("A fatal error has occured and ARM is exiting.  Couldnt create filesystem. Possible permission error")
+                if (utils.make_dir(hboutpath)) is False:
+                    logging.exception(
+                        "A fatal error has occured and ARM is exiting.  Couldnt create filesystem. Possible permission error")
                     utils.notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(
                         job.title) + ".  Couldnt create filesystem. Possible permission error")
                     job.status = "fail"
@@ -285,7 +286,7 @@ def main(logfile, job):
                 if job.config.SET_MEDIA_PERMISSIONS:
                     perm_result = utils.set_permissions(job, final_directory)
                     logging.info("Permissions set successfully: " + str(perm_result))
-                utils.notify(job, "ARM notification", str(job.title) + " processing complete.")
+                utils.notify(job, "ARM notification", str(job.title) + " processing complete. ")
                 logging.info("ARM processing complete")
                 # exit
                 sys.exit()
