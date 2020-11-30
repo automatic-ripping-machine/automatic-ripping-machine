@@ -111,7 +111,7 @@ def main(logfile, job):
         ## Send the notifications
         utils.notify(job, "ARM notification", "Found disc: " + str(job.title) + ". Video type is "
                      + str(job.video_type) + ". Main Feature is " + str(job.config.MAINFEATURE)
-                     + ".  Edit entry here: http://" + str(job.config.WEBSERVER_IP) + ":" + str(job.config.WEBSERVER_PORT) + "/jobdetail?job_id=" + str(job.job_id))
+                     + ".  Edit entry here: http://" + str(job.config.WEBSERVER_IP) + ":" + str(job.config.WEBSERVER_PORT) + "/jobdetail?job_id=" + str(job.job_id) + " ")
     elif job.disctype == "music":
         utils.notify(job, "ARM notification", "Found music CD: " + str(job.label) + ". Ripping all tracks")
     elif job.disctype == "data":
@@ -182,7 +182,7 @@ def main(logfile, job):
                     logging.exception(
                         "A fatal error has occured and ARM is exiting.  Couldnt create filesystem. Possible permission error")
                     utils.notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(
-                        job.title) + ".  Couldnt create filesystem. Possible permission error")
+                        job.title) + ".  Couldnt create filesystem. Possible permission error. ")
                     job.status = "fail"
                     db.session.commit()
                     sys.exit()
@@ -190,7 +190,7 @@ def main(logfile, job):
                 ## We arent allowed to rip dupes, notifiy and exit
                 logging.info("Duplicate rips are disabled.")
                 utils.notify(job, "ARM notification", "ARM Detected a duplicate disc. For " + str(
-                    job.title) + ".  Duplicate rips are disabled. You can reenable them from your config file.")
+                    job.title) + ".  Duplicate rips are disabled. You can reenable them from your config file. ")
                 job.status = "fail"
                 db.session.commit()
                 sys.exit()
@@ -214,7 +214,7 @@ def main(logfile, job):
                 sys.exit()
             if job.config.NOTIFY_RIP:
                 # Fixed bug line below
-                utils.notify(job, "ARM notification", str(job.title) + " rip complete.  Starting transcode.")
+                utils.notify(job, "ARM notification", str(job.title) + " rip complete.  Starting transcode. ")
             # point HB to the path MakeMKV ripped to
             hbinpath = mkvoutpath
 
@@ -342,7 +342,7 @@ def main(logfile, job):
         try:
             os.rmdir(hboutpath)
         except OSError:
-            logging.info(hboutpath + " directory is not empty.  Skipping removal.")
+            logging.info(hboutpath + " directory is not empty.  Skipping removal. ")
             pass
 
         try:
@@ -350,11 +350,11 @@ def main(logfile, job):
         except NameError:
             logging.debug("'newpath' directory not found")
         else:
-            logging.info("Found path " + newpath + ".  Attempting to remove it.")
+            logging.info("Found path " + newpath + ".  Attempting to remove it. ")
             try:
                 os.rmdir(p)
             except OSError:
-                logging.info(newpath + " directory is not empty.  Skipping removal.")
+                logging.info(newpath + " directory is not empty.  Skipping removal. ")
                 pass
 
         # Clean up bluray backup
@@ -363,9 +363,9 @@ def main(logfile, job):
             try:
                 shutil.rmtree(mkvoutpath)
             except UnboundLocalError:
-                logging.debug("No raw files found to delete.")
+                logging.debug("No raw files found to delete. ")
             except OSError:
-                logging.debug("No raw files found to delete.")
+                logging.debug("No raw files found to delete. ")
 
         # report errors if any
         if job.errors:

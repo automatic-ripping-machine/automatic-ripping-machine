@@ -25,28 +25,19 @@ def setuplogging(job):
     else:
         logfile = job.label + ".log"
 
-    ## this stops log files created with Nono_42342342.log
-    ## for some reason we need to convert None to a string to compare
-    if str(logfile) == "None":
-        return None
     ## Added from pull 366 But added if statement so we dont touch the empty.log
     if logfile != "empty.log" and logfile != "NAS.log":
         ## lets create a temp var to hold our log name
-        tmplogfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
 
         ## Does the logpath have a / add it if we dont
         if cfg['LOGPATH'][-1:] == "/":
             #Check to see if file already exists, if so, create a new file
             TmpLogFull = cfg['LOGPATH'] + str(logfile)
-            logfull = cfg['LOGPATH'] + tmplogfile if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + tmplogfile
+            logfull = cfg['LOGPATH'] + logfile if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + logfile
         else:
             #Check to see if file already exists, if so, create a new file
             TmpLogFull = cfg['LOGPATH'] + "/" + logfile
-            logfull = cfg['LOGPATH'] + "/" + tmplogfile + ".log" if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + "/" + logfile
-    else:
-        tmplogfile = "empty.log"
-        ## For empty.log and NAS.log we need to set logfull
-        logfull = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" else cfg['LOGPATH'] + "/" + logfile
+            logfull = cfg['LOGPATH'] + "/" + logfile + ".log" if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + "/" + logfile
 
     ## Debug formatting
     if cfg['LOGLEVEL'] == "DEBUG":
@@ -58,7 +49,7 @@ def setuplogging(job):
                             datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
 
     ## We need to give the right logfile to database
-    job.logfile = tmplogfile
+    job.logfile = logfile
     ## Return the full logfile location to the logs
     return logfull
 

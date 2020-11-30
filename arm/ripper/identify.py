@@ -58,12 +58,9 @@ def identify(job, logfile):
         logging.info("Disc identified as video")
 
         if job.config.GET_VIDEO_TITLE:
-
             # get crc_id (dvd only), title, year
             if job.disctype == "dvd":
-                res = get_video_details(job)
-                ## return after this so we dont reset our job.hasnicetitle
-                #return
+                res = identify_dvd(job)
             if job.disctype == "bluray":
                 res = identify_bluray(job)
             ## Need to check if year is "0000"  or ""
@@ -89,12 +86,12 @@ def clean_for_filename(string):
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
     ## Added from pull 366
-    string = string.replace('&', 'and')	
+    string = string.replace('&', 'and')
     string = string.replace("\\", " - ")
     string = string.strip()
-    
+
     ## Added from pull 366
-    # testing why the return function isn't cleaning	
+    # testing why the return function isn't cleaning
     return re.sub('[^\w\-_\.\(\) ]', '', string)
     #return string
 
@@ -136,6 +133,60 @@ def identify_bluray(job):
 
     return True
 
+
+def identify_dvd(job):
+    """ Calculates CRC64 for the DVD and calls Windows Media
+        Metaservices and returns the Title and year of DVD """
+    ## Added from pull 366
+    """ Manipulates the DVD title and calls OMDB to try and 	
+    lookup the title """
+
+    ## Safe way of dealing with log files if the users need to post it online
+    cleanlog = makecleanlogfile(job)
+    logging.debug("####### --- job ----" + str(cleanlog))
+
+    ## Added from #338
+    # Some older DVDs aren't actually labelled
+    if not job.label or job.label == "":
+        job.label = "not identified"
+
+    dvd_info_xml = False
+    dvd_release_date = ""
+
+    ## TODO: remove this because its pointless keeping when it can never work
+    try:
+        crc64 = pydvdid.compute(str(job.mountpoint))
+        fallback_title = "{0}_{1}".format(str(job.label), str(crc64))
+        dvd_title = str(fallback_title)
+    except pydvdid.exceptions.PydvdidException as e:
+        logging.error("Pydvdid failed with the error: " + str(e))
+        dvd_title = fallback_title = str(job.label)
+
+
+    logging.info("DVD CRC64 hash is: " + str(crc64))
+    job.crc_id = str(crc64)
+
+    ## Dead needs removing
+    urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
+    logging.debug(urlstring)
+
+    dvd_title = job.label
+    ## strip all non-numeric chars and use that for year
+    year = re.sub("[^0-9]", "", str(job.year))
+    # next line is waste of time
+    #dvd_title = job.label.replace("_", " ").replace("16x9", "")
+    ## Rip out any not alpha chars
+    dvd_title = re.sub("[^a-z]", "", dvd_title)
+    ## rip out any SKU's
+    dvd_title = re.sub("SKU$", "", dvd_title)
+
+    # try to contact omdb
+    try:
+        dvd_info_xml = callwebservice(job, job.config.OMDB_API_KEY , dvd_title, year)
+        logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
+    except OSError as e:
+        # we couldnt reach omdb
+        logging.error("Failed to reach OMDB")
 
 def get_video_details(job):
     """ Clean up title and year.  Get video_type, imdb_id, poster_url from
@@ -185,9 +236,9 @@ def get_video_details(job):
     if (response == "fail"):
         if year:
             # first try subtracting one year.  This accounts for when
-            # the dvd release date is the year following the movie release date	
-            logging.debug("Subtracting 1 year...")	
-            response = callwebservice(job, omdb_api_key, title, str(int(year) - 1))	
+            # the dvd release date is the year following the movie release date
+            logging.debug("Subtracting 1 year...")
+            response = callwebservice(job, omdb_api_key, title, str(int(year) - 1))
             logging.debug("response: " + str(response))
 
         # try submitting without the year
@@ -215,8 +266,8 @@ def get_video_details(job):
                 response = callwebservice(job, omdb_api_key, title, year)
                 logging.debug("response: " + str(response))
                 ## Added from pull 366 but we already try without the year. Possible bad/increased rate of false positives
-                if response == "fail":	
-                    logging.debug("Removing year...")	
+                if response == "fail":
+                    logging.debug("Removing year...")
                     response = callwebservice(job, omdb_api_key, title, "")
 
     ## If after everything we dont have a nice title. lets make sure we revert to using job.label
