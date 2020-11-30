@@ -126,8 +126,6 @@ FROM base as deps-ui
 # copy pip reqs from build stage
 COPY --from=pip-ui /opt/venv /opt/venv
 
-CMD ["python3", "/opt/arm/arm/runui.py"]
-
 ###########################################################
 # combined image=ripper+ui
 FROM deps-ripper as deps-combined
@@ -135,8 +133,6 @@ FROM deps-ripper as deps-combined
 # copy pip reqs from build stage
 COPY --from=pip-ui /opt/venv /opt/venv
 COPY --from=pip-ripper /opt/venv /opt/venv
-
-CMD ["python3", "/opt/arm/arm/runui.py"]
 
 ###########################################################
 # build final image
@@ -156,6 +152,7 @@ VOLUME /home/arm
 WORKDIR /home/arm
 
 ENTRYPOINT ["/opt/arm/scripts/docker-entrypoint.sh"]
+CMD ["python3", "/opt/arm/arm/runui.py"]
 
 # pass build args for labeling
 ARG image_revision=

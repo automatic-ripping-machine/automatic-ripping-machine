@@ -3,7 +3,7 @@
 #
 set -euo pipefail
 
-DOCKER_IMAGE="arm:latest"
+DOCKER_IMAGE="arm-combined:latest"
 CONTAINER_NAME="arm"
 CONTAINER_VOLUME="/srv/docker/arm:/home/arm"
 CONTAINER_RESTART="on-failure:3"
