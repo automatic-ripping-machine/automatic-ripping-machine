@@ -81,8 +81,7 @@ function startArmRip {
     | sed -nE '/.*(ID_CDROM_MEDIA_(BD|DVD|TRACK_COUNT_AUDIO)).*/ s//\1=1/p' )"
   local label_flag="${ID_FS_LABEL:+-l ID_FS_LABEL=${ID_FS_LABEL}}"
   if [[ -z "${disctype}" ]] ; then 
-    echo "disctype not detected from udev, not ripping" >&2
-    exit 1
+    disctype="unknown=1"
   fi
 
   echo "Starting rip" | logger -t ARM
