@@ -331,9 +331,8 @@ def main(logfile, job):
             logging.info("job type is " + str(job.video_type) + "not movie or series, not moving.")
             utils.scan_emby(job)
 
-        # set file to default permissions '777'
-        ## Test for dvd permissions
-        final_directory = hboutpath
+        ## Test for dvd fail permissions
+        final_directory = p
         if job.config.SET_MEDIA_PERMISSIONS:
             perm_result = utils.set_permissions(job, final_directory)
             logging.info("Permissions set successfully: " + str(perm_result))
@@ -371,19 +370,19 @@ def main(logfile, job):
         if job.errors:
             errlist = ', '.join(job.errors)
             if job.config.NOTIFY_TRANSCODE:
-                utils.notify(job, "ARM notification", str(job.title) + " processing completed with errors. Title(s) " + str(errlist) + " failed to complete.")
-            logging.info("Transcoding completed with errors.  Title(s) " + str(errlist) + " failed to complete.")
+                utils.notify(job, "ARM notification", str(job.title) + " processing completed with errors. Title(s) " + str(errlist) + " failed to complete. ")
+            logging.info("Transcoding completed with errors.  Title(s) " + str(errlist) + " failed to complete. ")
         else:
             if job.config.NOTIFY_TRANSCODE:
-                utils.notify(job, "ARM notification", str(job.title) + " processing complete.")
+                utils.notify(job, "ARM notification", str(job.title) + " processing complete. ")
             logging.info("ARM processing complete")
 
     elif job.disctype == "music":
         if utils.rip_music(job, logfile):
-            utils.notify(job, "ARM notification", "Music CD: " + str(job.label) + " processing complete.")
+            utils.notify(job, "ARM notification", "Music CD: " + str(job.label) + " processing complete. ")
             utils.scan_emby(job)
         else:
-            logging.info("Music rip failed.  See previous errors.  Exiting.")
+            logging.info("Music rip failed.  See previous errors.  Exiting. ")
 
     elif job.disctype == "data":
         # get filesystem in order
@@ -393,11 +392,11 @@ def main(logfile, job):
             datapath = os.path.join(job.config.ARMPATH, str(job.label) + "_" + ts)
 
             if(utils.make_dir(datapath)) is False:
-                logging.info("Could not create data directory: " + str(datapath) + ".  Exiting ARM.")
+                logging.info("Could not create data directory: " + str(datapath) + ".  Exiting ARM. ")
                 sys.exit()
 
         if utils.rip_data(job, datapath, logfile):
-            utils.notify(job, "ARM notification", "Data disc: " + str(job.label) + " copying complete.")
+            utils.notify(job, "ARM notification", "Data disc: " + str(job.label) + " copying complete. ")
             job.eject()
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")

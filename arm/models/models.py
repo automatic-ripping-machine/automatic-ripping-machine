@@ -243,7 +243,7 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return '<User %r>' % (self.email)
-    
+
     def get_id(self):
         return (self.user_id)
 

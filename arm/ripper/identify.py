@@ -91,7 +91,6 @@ def clean_for_filename(string):
     ## Added from pull 366
     string = string.replace('&', 'and')	
     string = string.replace("\\", " - ")
-    
     string = string.strip()
     
     ## Added from pull 366
@@ -144,7 +143,7 @@ def get_video_details(job):
 
     job = Instance of Job class\n
     """
-
+    ## TODO: fix dvd using None instead of label like it should
     title = ""
 
     ## Make sure we have a title.
@@ -156,10 +155,11 @@ def get_video_details(job):
             title = str(job.label)
     except TypeError:
         title = str(job.label)
+
     ## Set out title from the job.label
     ## return if not identified
     logging.debug(title)
-    if title == "not identified":
+    if title == "not identified" or title is None:
         return
     # dvd_title_clean = cleanupstring(dvd_title)
     title = title.strip()
@@ -171,12 +171,11 @@ def get_video_details(job):
     if year is None:
         year = ""
 
-    # needs_new_year = False
     omdb_api_key = job.config.OMDB_API_KEY
 
     logging.debug("Title: " + title + " | Year: " + year)
-
     logging.debug("Calling webservice with title: " + title  + " and year: " + year)
+
     ## Callwebservice already handles commiting to database, no need for identify_dvd()
     response = callwebservice(job, omdb_api_key, title, year)
     logging.debug("response: " + str(response))
@@ -219,6 +218,11 @@ def get_video_details(job):
                 if response == "fail":	
                     logging.debug("Removing year...")	
                     response = callwebservice(job, omdb_api_key, title, "")
+
+    ## If after everything we dont have a nice title. lets make sure we revert to using job.label
+    if not job.hasnicetitle:
+        job.title = job.label
+        db.session.commit()
 
 
 def callwebservice(job, omdb_api_key, dvd_title, year=""):

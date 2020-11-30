@@ -808,8 +808,13 @@ def rename_files(oldpath, job):
 
     returns new path if successful
     """
+    ## Check if the job has a nice title after rip is complete, if so use the media dir not the arm
+    ## This is for media that was recognited after the wait period/disk started ripping
+    if job.hasnicetitle:
+        newpath = os.path.join(job.config.MEDIA_DIR, job.title + " (" + str(job.year) + ")")
+    else:
+        newpath = os.path.join(job.config.ARMPATH, job.title + " (" + str(job.year) + ")")
 
-    newpath = os.path.join(job.config.ARMPATH, job.title + " (" + str(job.year) + ")")
     logging.debug("oldpath: " + oldpath + " newpath: " + newpath)
     logging.info("Changing directory name from " + oldpath + " to " + newpath)
 
@@ -828,35 +833,6 @@ def rename_files(oldpath, job):
     except shutil.Error:
         logging.info("Error change directory from " + oldpath + " to " + newpath + ".  Likely the path already exists.")
         raise OSError(2, 'No such file or directory', newpath)
-
-    # try:
-    #     shutil.rmtree(oldpath)
-    #     logging.debug("oldpath deleted successfully.")
-    # except shutil.Error:
-    #     logging.info("Error change directory from " + oldpath + " to " + newpath + ".  Likely the path already exists.")
-    #     raise OSError(2, 'No such file or directory', newpath)
-
-    # tracks = Track.query.get(job.job_id)
-    # tracks = job.tracks.all()
-    # for track in tracks:
-    #     if track.main_feature:
-    #         newfilename = job.title + " (" + str(job.year) + ")" + "." + cfg["DEST_EXT"]
-    #     else:
-    #         newfilename = job.title + " (" + str(job.year) + ")" + track.track_number + "." + cfg["DEST_EXT"]
-
-    #     track.new_filename = newfilename
-
-    #     # newfullpath = os.path.join(newpath, job.new_title + " (" + str(job.new_year) + ")" + track.track_number + "." + cfg["DEST_EXT"])
-    #     logging.info("Changing filename '" + os.path.join(newpath, track.filename) + "' to '" + os.path.join(newpath, newfilename) + "'")
-    #     try:
-    #         shutil.move(os.path.join(newpath, track.filename), os.path.join(newpath, newfilename))
-    #         logging.debug("Filename change successful")
-    #     except shutil.Error:
-    #         logging.error("Unable to change '" + track.filename + "' to '" + newfilename + "'")
-    #         raise OSError(3, 'Unable to change file', newfilename)
-
-    #     track.filename = newfilename
-        # db.session.commit()
 
     return newpath
 

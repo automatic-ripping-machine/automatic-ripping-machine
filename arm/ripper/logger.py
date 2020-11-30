@@ -15,6 +15,7 @@ def setuplogging(job):
     if not os.path.exists(cfg['LOGPATH']):
         os.makedirs(cfg['LOGPATH'])
 
+    ## The logger isnt checking for a valid log file
     ## This isnt catching all of them
     if job.label == "" or job.label is None:
         if job.disctype == "music":
