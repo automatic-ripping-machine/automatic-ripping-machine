@@ -183,7 +183,7 @@ def makemkv(logfile, job):
     else:
         logging.info("I'm confused what to do....  Passing on MakeMKV")
 
-    job.eject()
+    utils.eject(job.devpath)
 
     logging.info("Exiting MakeMKV processing with return value of: " + rawpath)
     return(rawpath)

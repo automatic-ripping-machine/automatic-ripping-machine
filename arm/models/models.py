@@ -1,6 +1,4 @@
 import os
-import pyudev
-import psutil
 from arm.ui import db
 from arm.config.config import cfg  # noqa: E402
 
@@ -55,36 +53,8 @@ class Job(db.Model):
         if cfg['VIDEOTYPE'] != "auto":
             self.video_type = cfg['VIDEOTYPE']
 
-        self.parse_udev()
-        self.get_pid()
-
-    def parse_udev(self):
-        """Parse udev for properties of current disc"""
-
-        # print("Entering disc")
-        context = pyudev.Context()
-        device = pyudev.Devices.from_device_file(context, self.devpath)
-        self.set_disctype(device.items())
-
-    def set_disctype(self, iterable):
         self.disctype = "unknown"
-        for key, value in iterable:
-            if key == "ID_FS_LABEL":
-                self.label = value
-                if value == "iso9660":
-                    self.disctype = "data"
-            elif key == "ID_CDROM_MEDIA_BD":
-                self.disctype = "bluray"
-            elif key == "ID_CDROM_MEDIA_DVD":
-                self.disctype = "dvd"
-            elif key == "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO":
-                self.disctype = "music"
-
-    def get_pid(self):
-        pid = os.getpid()
-        p = psutil.Process(pid)
-        self.pid = pid
-        self.pid_hash = hash(p)
+        self.label = ""
 
     def __str__(self):
         """Returns a string of the object"""
@@ -97,14 +67,6 @@ class Job(db.Model):
 
     def __repr__(self):
         return '<Job {}>'.format(self.label)
-
-    def eject(self):
-        """Eject disc if it hasn't previously been ejected"""
-
-        # print("Value is " + str(self.ejected))
-        if not self.ejected:
-            os.system("eject " + self.devpath)
-            self.ejected = True
 
 
 class Track(db.Model):

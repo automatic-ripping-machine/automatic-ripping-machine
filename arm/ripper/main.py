@@ -26,19 +26,19 @@ def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Process disc using ARM')
     parser.add_argument('-d', '--devpath', help='Devpath', required=True)
-    parser.add_argument('-t', '--disctype', help='udev disctype', required=False)
-    parser.add_argument('-l', '--label', help='udev label', required=False)
+    parser.add_argument('-t', '--disctype', help='udev: one of ID_CDROM_MEDIA_*', required=False)
+    parser.add_argument('-l', '--label', help='udev: ID_FS_LABEL', required=False)
 
     return parser.parse_args()
 
 
-def log_udev_params():
+def log_udev_params(devpath):
     """log all udev paramaters"""
 
     logging.debug("**** Logging udev attributes ****")
     # logging.info("**** Start udev attributes ****")
     context = pyudev.Context()
-    device = pyudev.Devices.from_device_file(context, '/dev/sr0')
+    device = pyudev.Devices.from_device_file(context, devpath)
     for key, value in device.items():
         logging.debug(key + ":" + value)
     logging.debug("**** End udev attributes ****")
@@ -256,10 +256,10 @@ def main(logfile, job):
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
         elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, job)
-            job.eject()
+            utils.eject(job.devpath)
         else:
             handbrake.handbrake_all(hbinpath, hboutpath, logfile, job)
-            job.eject()
+            utils.eject(job.devpath)
 
         # get rid of this
         # if not titles_in_out:
@@ -355,10 +355,10 @@ def main(logfile, job):
 
         if utils.rip_data(job, datapath, logfile):
             utils.notify(job, "ARM notification", "Data disc: " + str(job.label)+ " copying complete.")
-            job.eject()
+            utils.eject(job.devpath)
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")
-            job.eject()
+            utils.eject(job.devpath)
 
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
@@ -377,27 +377,21 @@ if __name__ == "__main__":
     args = entry()
 
     devpath = "/dev/" + args.devpath
-    print(devpath)
+
+    if not utils.is_cdrom_ready(devpath):
+        print("Drive empty or is not ready. Exiting ARM Ripper.",
+                file=sys.stderr)
+        sys.exit(1)
 
     job = Job(devpath)
-
-    # override disctype from commandline (required in Docker, no udev)
-    udev = {}
-    if args.disctype:
-        (k, v) = args.disctype.split('=', 1)
-        udev[k] = v
-    if args.label:
-        (k, v) = args.label.split('=', 1)
-        udev[k] = v
-    if args.disctype or args.label:
-        job.set_disctype(udev.items())
-
+    (job.pid, job.pid_hash) = utils.get_pid()
     logfile = logger.setuplogging(job)
     print("Log: " + logfile)
 
-    if utils.get_cdrom_status(devpath) != 4:
-        logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
-        sys.exit()
+    if args.disctype:
+        (job.disctype, job.label) = utils.parse_udev_cmdline(args)
+    else:
+        (job.disctype, job.label) = utils.detect_disctype(devpath)
 
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
 
@@ -438,7 +432,7 @@ if __name__ == "__main__":
             j.status = "fail"
             db.session.commit()
 
-    log_udev_params()
+    log_udev_params(devpath)
 
     try:
         main(logfile, job)
@@ -446,7 +440,7 @@ if __name__ == "__main__":
         logging.exception("A fatal error has occured and ARM is exiting.  See traceback below for details.")
         utils.notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details")
         job.status = "fail"
-        job.eject()
+        utils.eject(job.devpath)
         # job.stop_time = datetime.datetime.now()
         # job.job_length = job.stop_time - job.start_time
         # job.errors = "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details"
