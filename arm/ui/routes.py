@@ -274,6 +274,13 @@ def jobdetail():
     job_id = request.args.get('job_id')
     jobs = Job.query.get(job_id)
     tracks = jobs.tracks.all()
+    try:
+        if not jobs.poster_url_auto or jobs.poster_url_auto == "None":
+            jobs.poster_url_auto = "static/img/none.png"
+    except Exception as e:
+        jobs.poster_url_auto = "static/img/none.png"
+        app.logger.error('ERROR:' + e)
+        #return redirect('/setup-stage2')
 
     return render_template('jobdetail.html', jobs=jobs, tracks=tracks)
 

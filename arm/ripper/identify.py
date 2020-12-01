@@ -171,14 +171,17 @@ def identify_dvd(job):
     logging.debug(urlstring)
 
     dvd_title = job.label
+    logging.debug("dvd_title_label= " + str(dvd_title))
     ## strip all non-numeric chars and use that for year
     year = re.sub("[^0-9]", "", str(job.year))
     # next line is waste of time
     #dvd_title = job.label.replace("_", " ").replace("16x9", "")
     ## Rip out any not alpha chars
-    dvd_title = re.sub("[^a-z]", "", dvd_title)
+    dvd_title = re.sub("[^a-zA-Z ]", "", dvd_title)
+    logging.debug("dvd_title ^a-z= " + str(dvd_title))
     ## rip out any SKU's
     dvd_title = re.sub("SKU$", "", dvd_title)
+    logging.debug("dvd_title SKU$= " + str(dvd_title))
 
     # try to contact omdb
     try:
@@ -187,6 +190,12 @@ def identify_dvd(job):
     except OSError as e:
         # we couldnt reach omdb
         logging.error("Failed to reach OMDB")
+        return False
+
+    job.year = year
+    job.title = dvd_title
+    db.session.commit()
+    return True
 
 def get_video_details(job):
     """ Clean up title and year.  Get video_type, imdb_id, poster_url from
@@ -194,9 +203,6 @@ def get_video_details(job):
 
     job = Instance of Job class\n
     """
-    ## TODO: fix dvd using None instead of label like it should
-    title = ""
-
     ## Make sure we have a title.
     ## if we do its bluray use job.title not job.label
     try:
@@ -209,7 +215,7 @@ def get_video_details(job):
 
     ## Set out title from the job.label
     ## return if not identified
-    logging.debug(title)
+    logging.debug("Title = " + title)
     if title == "not identified" or title is None:
         return
     # dvd_title_clean = cleanupstring(dvd_title)
@@ -217,10 +223,11 @@ def get_video_details(job):
     title = re.sub('[_ ]', "+", title)
 
     ## strip all non-numeric chars and use that for year
-    year = str(job.year)
-    year = re.sub("[^0-9]", "", year)
-    if year is None:
+    if job.year is None:
         year = ""
+    else:
+        year = str(job.year)
+        year = re.sub("[^0-9]", "", year)
 
     omdb_api_key = job.config.OMDB_API_KEY
 

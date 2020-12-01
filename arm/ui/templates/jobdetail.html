@@ -28,7 +28,8 @@
                             <tr><td style="text-align:left"><b>job_id</b></td><td style="text-align:left">{{ jobs.job_id }}</td></tr>
                             <tr><td style="text-align:left"><b>arm_version</b></td><td style="text-align:left">{{ jobs.arm_version }}</td></tr>
                             <tr><td style="text-align:left"><b>crc_id</b></td><td style="text-align:left">{{ jobs.crc_id }}</td></tr>
-                            <tr><td style="text-align:left"><b>logfile</b></td><td style="text-align:left">{{ jobs.logfile }}</td></tr>
+                            <tr><td style="text-align:left"><b>logfile</b></td><td style="text-align:left"><a href="logs?logfile={{ jobs.logfile }}&mode=full">{{ jobs.logfile }}</a>
+                            </td></tr>
                             <tr><td style="text-align:left"><b>disc</b></td><td style="text-align:left">{{ jobs.disc }}</td></tr>
                             <tr><td style="text-align:left"><b>start_time</b></td><td style="text-align:left">{{ jobs.start_time }}</td></tr>
                             <tr><td style="text-align:left"><b>stop_time</b></td><td style="text-align:left">{{ jobs.stop_time }}</td></tr>
@@ -46,9 +47,9 @@
                             <tr><td style="text-align:left"><b>imdb_id</b></td><td style="text-align:left">{{ jobs.imdb_id }}</td></tr>
                             <tr><td style="text-align:left"><b>imdb_id_auto</b></td><td style="text-align:left">{{ jobs.imdb_id_auto }}</td></tr>
                             <tr><td style="text-align:left"><b>imdb_id_manual</b></td><td style="text-align:left">{{ jobs.imdb_id_manual }}</td></tr>
-                            <tr><td style="text-align:left"><b>poster_url</b></td><td style="text-align:left"><a href="{{ jobs.poster_url }}"><img src="{{ jobs.poster_url }}" width=50></a></td></tr>
-                            <tr><td style="text-align:left"><b>poster_url_auto</b></td><td style="text-align:left"><a href="{{ jobs.poster_url_auto }}"><img src="{{ jobs.poster_url_auto }}" width=50></a></td></tr>
-                            <tr><td style="text-align:left"><b>poster_url_manual</b></td><td style="text-align:left">{{ jobs.poster_url_manual }}</td></tr>
+                            <tr><td style="text-align:left"><b>poster_url</b></td><td style="text-align:left"><a href="{{ jobs.poster_url }}"><img src="{{ jobs.poster_url }}" title ="{{ jobs.poster_url }}" width=50></a><br/>{{ jobs.poster_url }}</td></tr>
+                            <tr><td style="text-align:left"><b>poster_url_auto</b></td><td style="text-align:left"><a href="{{ jobs.poster_url_auto }}"><img src="{{ jobs.poster_url_auto }}" title ="{{ jobs.poster_url_auto }}" width=50></a><br/>{{ jobs.poster_url_auto }}</td></tr>
+                            <tr><td style="text-align:left"><b>poster_url_manual</b></td><td style="text-align:left"><a href="{{ jobs.poster_url_manual }}"><img src="{{ jobs.poster_url_manual }}" title ="{{ jobs.poster_url_manual }}" width=50> </a><br/>{{ jobs.poster_url_manual }}</td></tr>
                             <tr><td style="text-align:left"><b>devpath</b></td><td style="text-align:left">{{ jobs.devpath }}</td></tr>
                             <tr><td style="text-align:left"><b>mountpoint</b></td><td style="text-align:left">{{ jobs.mountpoint }}</td></tr>
                             <tr><td style="text-align:left"><b>hasnicetitle</b></td><td style="text-align:left">{{ jobs.hasnicetitle }}</td></tr>

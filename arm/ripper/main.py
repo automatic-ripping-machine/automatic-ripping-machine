@@ -100,6 +100,17 @@ def check_fstab():
 
 def main(logfile, job):
 
+    ##Make the ARM dir if it doesnt exist
+    if not os.path.exists(cfg['ARMPATH']):
+        os.makedirs(cfg['ARMPATH'])
+    ##Make the RAW dir if it doesnt exist
+    if not os.path.exists(cfg['RAWPATH']):
+        os.makedirs(cfg['RAWPATH'])
+    ##Make the Media dir if it doesnt exist
+    if not os.path.exists(cfg['MEDIA_DIR']):
+        os.makedirs(cfg['MEDIA_DIR'])
+
+
     """main dvd processing function"""
     logging.info("Starting Disc identification")
 
@@ -109,8 +120,8 @@ def main(logfile, job):
     ## DVD disk entry
     if job.disctype in ["dvd", "bluray"]:
         ## Send the notifications
-        utils.notify(job, "ARM notification", "Found disc: " + str(job.title) + ". Video type is "
-                     + str(job.video_type) + ". Main Feature is " + str(job.config.MAINFEATURE)
+        utils.notify(job, "ARM notification", "Found disc: " + str(job.title) + ". Disc type is "
+                     + str(job.disctype) + ". Main Feature is " + str(job.config.MAINFEATURE)
                      + ".  Edit entry here: http://" + str(job.config.WEBSERVER_IP) + ":" + str(job.config.WEBSERVER_PORT) + "/jobdetail?job_id=" + str(job.job_id) + " ")
     elif job.disctype == "music":
         utils.notify(job, "ARM notification", "Found music CD: " + str(job.label) + ". Ripping all tracks")
@@ -169,7 +180,7 @@ def main(logfile, job):
                 ## if we have a nice title, set the folder to MEDIA_DIR and not the unidentified ARMPATH
                 if job.hasnicetitle:
                     ## Dont use the year if its  0000
-                    if job.year != "0000":
+                    if job.year != "0000" or job.year != "":
                         hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ") " + str(ts))
                     else:
                         hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " " +str(ts))
@@ -422,6 +433,7 @@ if __name__ == "__main__":
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
 
+
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
 
     utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
@@ -465,16 +477,11 @@ if __name__ == "__main__":
 
     try:
         main(logfile, job)
-    except Exception:
+    except Exception as e:
         logging.exception("A fatal error has occured and ARM is exiting.  See traceback below for details.")
-        utils.notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details")
+        utils.notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details. " + str(e))
         job.status = "fail"
         job.eject()
-        # job.stop_time = datetime.datetime.now()
-        # job.job_length = job.stop_time - job.start_time
-        # job.errors = "ARM encountered a fatal error processing " + str(job.title) + ". Check the logs for more details"
-        # # db.session.add(job)
-        # db.session.commit()
     else:
         job.status = "success"
     finally:
