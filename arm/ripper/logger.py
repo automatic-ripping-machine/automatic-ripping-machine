@@ -15,7 +15,6 @@ def setuplogging(job):
     if not os.path.exists(cfg['LOGPATH']):
         os.makedirs(cfg['LOGPATH'])
 
-    ## The logger isnt checking for a valid log file
     ## This isnt catching all of them
     if job.label == "" or job.label is None:
         if job.disctype == "music":
@@ -53,7 +52,7 @@ def setuplogging(job):
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
-    logging.debug("Logfull = " + logfull)
+    ## logging.debug("Logfull = " + logfull)
     ## Return the full logfile location to the logs
     return logfull
 
@@ -65,7 +64,7 @@ def cleanuplogs(logpath, loglife):
 
     """
     if loglife <1:
-        logging.info("loglife is set to 0. Disabled")
+        logging.info("loglife is set to 0. Removal of logs is disabled")
         return False
     now = time.time()
     logging.info("Looking for log files older than " + str(loglife) + " days old.")

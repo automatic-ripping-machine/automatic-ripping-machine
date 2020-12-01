@@ -174,13 +174,13 @@ def identify_dvd(job):
     logging.debug("dvd_title_label= " + str(dvd_title))
     ## strip all non-numeric chars and use that for year
     year = re.sub("[^0-9]", "", str(job.year))
-    # next line is waste of time
-    #dvd_title = job.label.replace("_", " ").replace("16x9", "")
-    ## Rip out any not alpha chars
-    dvd_title = re.sub("[^a-zA-Z ]", "", dvd_title)
+    # next line is not really needed, but we dont want to leave an x somewhere
+    dvd_title = job.label.replace("16x9", "")
+    ## Rip out any not alpha chars replace with
+    dvd_title = re.sub("[^a-zA-Z \_]", " ", dvd_title)
     logging.debug("dvd_title ^a-z= " + str(dvd_title))
-    ## rip out any SKU's
-    dvd_title = re.sub("SKU$", "", dvd_title)
+    ## rip out any SKU's at the end of the line
+    dvd_title = re.sub("SKU$", " ", dvd_title)
     logging.debug("dvd_title SKU$= " + str(dvd_title))
 
     # try to contact omdb

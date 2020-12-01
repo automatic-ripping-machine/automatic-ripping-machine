@@ -99,18 +99,6 @@ def check_fstab():
 
 
 def main(logfile, job):
-
-    ##Make the ARM dir if it doesnt exist
-    if not os.path.exists(cfg['ARMPATH']):
-        os.makedirs(cfg['ARMPATH'])
-    ##Make the RAW dir if it doesnt exist
-    if not os.path.exists(cfg['RAWPATH']):
-        os.makedirs(cfg['RAWPATH'])
-    ##Make the Media dir if it doesnt exist
-    if not os.path.exists(cfg['MEDIA_DIR']):
-        os.makedirs(cfg['MEDIA_DIR'])
-
-
     """main dvd processing function"""
     logging.info("Starting Disc identification")
 
@@ -426,8 +414,20 @@ if __name__ == "__main__":
 
     job = Job(devpath)
 
+    ##Make the ARM dir if it doesnt exist
+    if not os.path.exists(cfg['ARMPATH']):
+        os.makedirs(cfg['ARMPATH'])
+    ##Make the RAW dir if it doesnt exist
+    if not os.path.exists(cfg['RAWPATH']):
+        os.makedirs(cfg['RAWPATH'])
+    ##Make the Media dir if it doesnt exist
+    if not os.path.exists(cfg['MEDIA_DIR']):
+        os.makedirs(cfg['MEDIA_DIR'])
+
     logfile = logger.setuplogging(job)
-    logging.info("Log: " + logfile)
+
+    if logfile.find("empty.log") == -1 :
+        logging.info("Log: " + logfile)
 
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
