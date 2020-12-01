@@ -209,6 +209,8 @@ Run below to pick up the aliases
  ```
 ```reboot``` 
  to complete installation.
+ 
+ 
  **Details about this script**
  
  The script installs all dependencies, a service for the ARMui and the fstab entry for sr0, if you have more than one drive you will need to make the mount folder and insert any additional fstab entries.
