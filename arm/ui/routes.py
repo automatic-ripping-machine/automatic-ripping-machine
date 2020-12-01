@@ -202,6 +202,7 @@ def settings():
 @app.route('/logreader')
 @login_required
 def logreader():
+
     ### use logger
     #app.logger.info('Processing default request')
     #app.logger.debug('DEBUGGING')
@@ -240,6 +241,10 @@ def logreader():
                     sleep(1)
     elif mode == "download":
         app.logger.debug('fullpath: ' + fullpath)
+        ### TODO: strip all keys/secrets
+        return send_file(fullpath, as_attachment=True)
+    ## Give a version thats safe to post online
+    elif mode == "onlinepost":
         return send_file(fullpath, as_attachment=True)
     else:
         # do nothing/ or error out
@@ -280,7 +285,6 @@ def jobdetail():
     except Exception as e:
         jobs.poster_url_auto = "static/img/none.png"
         app.logger.error('ERROR:' + e)
-        #return redirect('/setup-stage2')
 
     return render_template('jobdetail.html', jobs=jobs, tracks=tracks)
 
@@ -397,7 +401,7 @@ def listlogs(path):
 
     # Deal with bad data
     if not os.path.exists(fullpath):
-        return abort(404)
+        return render_template('error.html')
 
     # Get all files in directory
     files = get_info(fullpath)

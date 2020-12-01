@@ -70,6 +70,3 @@ def call_omdb_api(title=None, year=None, imdbID=None, plot="short"):
     # except Exception:
     #     print("call failed")
     #     return(None)
-
-def check_password_hash (password):
-    return True
