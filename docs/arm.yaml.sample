@@ -50,6 +50,12 @@ MAX_CONCURRENT_TRANSCODES: 3
 # Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
 DATA_RIP_PARAMETERS: ""
 
+# Set to one of "none", "musicbrainz", "freecddb"
+# if "musicbrainz" is used the disc information are asked from musicbrainz.org
+# if "freecddb" is used the disc information are asked from freedb.org
+# if "none" is used no label is identified
+GET_AUDIO_TITLE: "musicbrainz"
+
 #####################
 ## Directory setup ##
 #####################
