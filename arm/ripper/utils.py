@@ -16,7 +16,7 @@ import psutil  # noqa E402
 # from arm.config.config import cfg
 from arm.ui import app, db # noqa E402
 from arm.models.models import Track  # noqa: E402
-
+from arm.config.config import cfg
 
 def notify(job, title, body):
     # Send notificaions
@@ -906,12 +906,21 @@ def rip_music(job, logfile):
 
     returns True/False for success/fail
     """
+    cfgfile = cfg['ABCDE_CONFIG_FILE']
     if job.disctype == "music":
         logging.info("Disc identified as music")
-        cmd = 'abcde -d "{0}" >> "{1}" 2>&1'.format(
-            job.devpath,
-            logfile
-        )
+        ## If user has set a cfg file with ARM use it
+        if os.path.isfile(cfgfile):
+            cmd = 'abcde -d "{0}" -c {1} >> "{2}" 2>&1'.format(
+                job.devpath,
+                cfgfile,
+                logfile
+            )
+        else:
+            cmd = 'abcde -d "{0}" >> "{1}" 2>&1'.format(
+                job.devpath,
+                logfile
+            )
 
         logging.debug("Sending command: " + cmd)
 

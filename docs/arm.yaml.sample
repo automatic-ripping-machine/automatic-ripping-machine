@@ -56,6 +56,10 @@ DATA_RIP_PARAMETERS: ""
 # if "none" is used no label is identified
 GET_AUDIO_TITLE: "musicbrainz"
 
+## Location of your ABCDE config file
+## This over-rides any other abcde.conf files 
+ABCDE_CONFIG_FILE: "/etc/abcde.conf"
+
 #####################
 ## Directory setup ##
 #####################
