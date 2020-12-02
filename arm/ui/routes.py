@@ -8,7 +8,7 @@ import bcrypt
 import hashlib
 
 from time import sleep
-from flask import Flask, render_template,make_response ,abort, request, send_file , flash, redirect, url_for, Markup
+from flask import Flask, render_template, make_response, abort, request, send_file, flash, redirect, url_for, Markup
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User
 from arm.config.config import cfg
@@ -17,7 +17,7 @@ from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, Log
 from pathlib import Path
 from flask.logging import default_handler
 
-from flask_login import LoginManager, login_required , current_user, login_user,UserMixin
+from flask_login import LoginManager, login_required, current_user, login_user, UserMixin
 
 ## the login manager
 login_manager = LoginManager()
@@ -28,11 +28,13 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
 ## Redirect to login if we arent auth
 @login_manager.unauthorized_handler
 def unauthorized():
     # do stuff
     return redirect('/login')
+
 
 @app.route('/setup')
 def setup():
@@ -47,31 +49,30 @@ def setup():
 
 @app.route('/setup-stage2', methods=['GET', 'POST'])
 def setup_stage2():
-
     ##if there is no user in the database
     if User.query.all():
         return redirect('/index')
 
-    #import logging
-    #logging.basicConfig()
-    #logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
+    # import logging
+    # logging.basicConfig()
+    # logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
 
     ## if user is logged in
-    #if current_user.is_authenticated:
+    # if current_user.is_authenticated:
     #    return redirect('/index')
     form = LoginForm()
 
     ## After a login for is submited
     if form.validate_on_submit():
-        username =  str(form.username.data).strip()
+        username = str(form.username.data).strip()
         pass1 = str(form.password.data).strip().encode('utf-8')
         hash = bcrypt.gensalt(12)
 
         if form.username.data != "" and form.password.data != "":
-            hashedpassword = bcrypt.hashpw(pass1,hash)
+            hashedpassword = bcrypt.hashpw(pass1, hash)
             user = User(email=username, password=hashedpassword, hashed=hash)
             app.logger.debug("user: " + str(username) + " Pass:" + str(pass1))
-            app.logger.debug("user db " + str(user) )
+            app.logger.debug("user db " + str(user))
             db.session.add(user)
             try:
                 db.session.commit()
@@ -84,9 +85,9 @@ def setup_stage2():
             return redirect('/setup-stage2')
     return render_template('setup.html', title='setup', form=form)
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-
     ##if there is no user in the database
     if not User.query.all():
         return redirect('/setup-stage2')
@@ -100,7 +101,7 @@ def login():
     ## After a login for is submited
     if form.validate_on_submit():
         user = User.query.filter_by(email=str(form.username.data).strip()).first()
-        app.logger.debug("user= "+ str(user))
+        app.logger.debug("user= " + str(user))
         ## our previous pass
         password = user.password
         hashed = user.hash
@@ -120,6 +121,7 @@ def login():
             return redirect(url_for('login'))
         return redirect('/index')
     return render_template('login.html', title='Sign In', form=form)
+
 
 ## New page for editing/deleting/trundicating the database
 @app.route('/database')
@@ -173,21 +175,21 @@ def database():
         db.session.rollback()
         app.logger.error("Error:  {0}".format(err))
 
-    return render_template('database.html', jobs=jobs,success=success)
+    return render_template('database.html', jobs=jobs, success=success)
+
 
 ## New page for editing the ARM config
 @app.route('/settings')
 @login_required
 def settings():
-
     ## This loop syntax accesses the whole dict by looping
     ## over the .items() tuple list, accessing one (key, value)
     raw_html = '<form id="form1" name="form1" method="get" action="">'
     ## pair on each iteration.
     for k, v in cfg.items():
-       raw_html +=  '<tr> <td><label for="' + str(k) + '"> ' + str(k) + ': </label></td> <td><input type="text" name="' + str(k) + '" id="' + str(k) + '" value="' + str(v) + '"/></td></tr>'
-       app.logger.info(str(k) + str(' > ')+ str( v)+ "\n")
-       #app.logger.info(str(raw_html))
+        raw_html += '<tr> <td><label for="' + str(k) + '"> ' + str(k) + ': </label></td> <td><input type="text" name="' + str(k) + '" id="' + str(k) + '" value="' + str(v) + '"/></td></tr>'
+        app.logger.info(str(k) + str(' > ') + str(v) + "\n")
+        # app.logger.info(str(raw_html))
     raw_html += " </form>"
 
     ## TODO: Check if the users is posting data
@@ -197,18 +199,17 @@ def settings():
     with open(str(path1) + '/test.json', 'w') as f:
         f.write(raw_html + "\n")
 
-    #app.logger.error("Error:  {0}".format(str(cfg)))
-    return render_template('settings.html', html=Markup(raw_html),success="")
+    # app.logger.error("Error:  {0}".format(str(cfg)))
+    return render_template('settings.html', html=Markup(raw_html), success="")
 
 
 @app.route('/logreader')
 @login_required
 def logreader():
-
     ### use logger
-    #app.logger.info('Processing default request')
-    #app.logger.debug('DEBUGGING')
-    #app.logger.error('ERROR Inside /logreader')
+    # app.logger.info('Processing default request')
+    # app.logger.debug('DEBUGGING')
+    # app.logger.error('ERROR Inside /logreader')
 
     ## Setup our vars
     logpath = cfg['LOGPATH']
@@ -251,7 +252,7 @@ def logreader():
     else:
         # do nothing/ or error out
         return render_template('error.html')
-        #exit()
+        # exit()
 
     return app.response_class(generate(), mimetype='text/plain')
 
@@ -281,12 +282,14 @@ def jobdetail():
     job_id = request.args.get('job_id')
     jobs = Job.query.get(job_id)
     tracks = jobs.tracks.all()
-    try:
+    """try:
         if not jobs.poster_url_auto or jobs.poster_url_auto == "None":
-            jobs.poster_url_auto = "static/img/none.png"
+            jobs.poster_url_auto = jobs.poster_url = "static/img/none.png"
+            db.session.commit()
     except Exception as e:
-        jobs.poster_url_auto = "static/img/none.png"
-        app.logger.error('ERROR:' + e)
+        jobs.poster_url_auto = jobs.poster_url = "static/img/none.png"
+        app.logger.error('ERROR:' + str(e))
+        db.session.commit()"""
 
     return render_template('jobdetail.html', jobs=jobs, tracks=tracks)
 
@@ -317,11 +320,12 @@ def changeparams():
         config.MINLENGTH = format(form.MINLENGTH.data)
         config.MAXLENGTH = format(form.MAXLENGTH.data)
         config.RIPMETHOD = format(form.RIPMETHOD.data)
-        #config.MAINFEATURE = format(form.MAINFEATURE.data)
+        # config.MAINFEATURE = format(form.MAINFEATURE.data)
         db.session.commit()
         flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}'.format(form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data))
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
+
 
 @app.route('/customTitle', methods=['GET', 'POST'])
 @login_required
@@ -337,6 +341,7 @@ def customtitle():
         flash('custom title changed. Title={}, Year={}, '.format(form.title, form.year))
         return redirect(url_for('home'))
     return render_template('customTitle.html', title='Change Title', form=form)
+
 
 @app.route('/list_titles')
 @login_required
@@ -397,7 +402,6 @@ def logs():
 @app.route('/listlogs', defaults={'path': ''})
 @login_required
 def listlogs(path):
-
     basepath = cfg['LOGPATH']
     fullpath = os.path.join(basepath, path)
 
@@ -414,12 +418,11 @@ def listlogs(path):
 @app.route('/index.html')
 @app.route('/index')
 def home():
-
     # Hard drive space
     freegb = psutil.disk_usage(cfg['ARMPATH']).free
-    freegb = round(freegb/1073741824, 1)
+    freegb = round(freegb / 1073741824, 1)
     mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
-    mfreegb = round(mfreegb/1073741824, 1)
+    mfreegb = round(mfreegb / 1073741824, 1)
 
     ## RAM
     meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1])) for i in open('/proc/meminfo').readlines())
@@ -432,8 +435,7 @@ def home():
     memused_gib = memused_kib / (1024.0 * 1024.0)
     ## lets make sure we only give back small numbers
     memused_gib = round(memused_gib, 2)
-    memused_gibs = round(mem_gib - memused_gib,2)
-
+    memused_gibs = round(mem_gib - memused_gib, 2)
 
     ## get out cpu info
     ourcpu = get_processor_name()
@@ -444,7 +446,8 @@ def home():
     else:
         jobs = {}
 
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu,ram=mem_gib, ramused=memused_gibs ,ramfree=memused_gib, ramdump=meminfo)
+    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu, ram=mem_gib, ramused=memused_gibs, ramfree=memused_gib, ramdump=meminfo)
+
 
 ## Lets show some cpu info
 ## only tested on OMV
@@ -455,17 +458,18 @@ def get_processor_name():
         return subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
     elif platform.system() == "Linux":
         command = "cat /proc/cpuinfo"
-        #return \
+        # return \
         fulldump = str(subprocess.check_output(command, shell=True).strip())
         # Take any float trailing "MHz", some whitespace, and a colon.
         speeds = re.search(r"\\nmodel name\\t:.*?GHz\\n", fulldump)
-        #return str(fulldump)
+        # return str(fulldump)
         speeds = str(speeds.group())
         speeds = speeds.replace('\\n', ' ')
         speeds = speeds.replace('\\t', ' ')
-        speeds = speeds.replace('model name :' , '')
+        speeds = speeds.replace('model name :', '')
         return speeds
     return ""
+
 
 def setupdatabase():
     ## Try to get the db. User if not we nuke everything

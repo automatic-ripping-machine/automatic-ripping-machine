@@ -14,9 +14,10 @@ import datetime  # noqa: E402
 import psutil  # noqa E402
 
 # from arm.config.config import cfg
-from arm.ui import app, db # noqa E402
+from arm.ui import app, db  # noqa E402
 from arm.models.models import Track  # noqa: E402
 from arm.config.config import cfg
+
 
 def notify(job, title, body):
     # Send notificaions
@@ -209,7 +210,7 @@ def notify(job, title, body):
             apobj = apprise.Apprise()
             # check if we have login details, if so use them
             if job.config.KODI_USER != "":
-                apobj.add('kodi://' + str(job.config.KODI_USER) + ":" + str(job.config.KODI_PASS) + "@"+ str(job.config.KODI_HOST) + ":" + str(job.config.KODI_PORT))
+                apobj.add('kodi://' + str(job.config.KODI_USER) + ":" + str(job.config.KODI_PASS) + "@" + str(job.config.KODI_HOST) + ":" + str(job.config.KODI_PORT))
             else:
                 if job.config.KODI_PORT != "":
                     ## we need to check if they are using secure or this will fail
@@ -270,7 +271,7 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
             # A sample pushbullet notification
-            apobj.add('mailgun://' + str(job.config.MAILGUN_USER) + "@" + str(job.config.MAILGUN_DOMAIN) + "/"+ str(job.config.MAILGUN_APIKEY))
+            apobj.add('mailgun://' + str(job.config.MAILGUN_USER) + "@" + str(job.config.MAILGUN_DOMAIN) + "/" + str(job.config.MAILGUN_APIKEY))
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -286,9 +287,9 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
             if job.config.MATRIX_HOST != "":
-                apobj.add('matrixs://' + str(job.config.MATRIX_USER) + ":" + str(job.config.MATRIX_PASS) + "@"+ str(job.config.MATRIX_HOST)) # + "/#general/#apprise")
+                apobj.add('matrixs://' + str(job.config.MATRIX_USER) + ":" + str(job.config.MATRIX_PASS) + "@" + str(job.config.MATRIX_HOST))  # + "/#general/#apprise")
             else:
-                apobj.add('matrix://' + str(job.config.MATRIX_TOKEN) )
+                apobj.add('matrix://' + str(job.config.MATRIX_TOKEN))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -304,7 +305,7 @@ def notify(job, title, body):
             apobj = apprise.Apprise()
 
             # msteams://{tokenA}/{tokenB}/{tokenC}/
-            apobj.add('msteams://' + str(job.config.MSTEAMS_TOKENA) + "/" + str(job.config.MSTEAMS_TOKENB) + "/"+ str(job.config.MSTEAMS_TOKENC) + "/")
+            apobj.add('msteams://' + str(job.config.MSTEAMS_TOKENA) + "/" + str(job.config.MSTEAMS_TOKENB) + "/" + str(job.config.MSTEAMS_TOKENC) + "/")
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -320,7 +321,7 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('nclouds://' + str(job.config.NEXTCLOUD_ADMINUSER) + ":" + str(job.config.NEXTCLOUD_ADMINPASS) + "@"+ str(job.config.NEXTCLOUD_HOST) + "/"+ str(job.config.NEXTCLOUD_NOTIFY_USER))
+            apobj.add('nclouds://' + str(job.config.NEXTCLOUD_ADMINUSER) + ":" + str(job.config.NEXTCLOUD_ADMINPASS) + "@" + str(job.config.NEXTCLOUD_HOST) + "/" + str(job.config.NEXTCLOUD_NOTIFY_USER))
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -336,7 +337,7 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('notica://' + str(job.config.NOTICA_TOKEN) )
+            apobj.add('notica://' + str(job.config.NOTICA_TOKEN))
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -352,7 +353,7 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('notica://' + str(job.config.NOTIFICO_PROJECTID) + "/" + str(job.config.NOTIFICO_MESSAGEHOOK) )
+            apobj.add('notica://' + str(job.config.NOTIFICO_PROJECTID) + "/" + str(job.config.NOTIFICO_MESSAGEHOOK))
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -368,10 +369,10 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            #o365://{tenant_id}:{account_email}/{client_id}/{client_secret}/
+            # o365://{tenant_id}:{account_email}/{client_id}/{client_secret}/
             # TODO: we might need to escape/encode the client_secret
             # Replace ? with %3F and  @ with %40
-            apobj.add('o365://' + str(job.config.OFFICE365_TENANTID) + ":" + str(job.config.OFFICE365_ACCOUNTEMAIL) + "/" +str(job.config.OFFICE365_CLIENT_ID) + "/" + str(job.config.OFFICE365_CLIENT_SECRET))
+            apobj.add('o365://' + str(job.config.OFFICE365_TENANTID) + ":" + str(job.config.OFFICE365_ACCOUNTEMAIL) + "/" + str(job.config.OFFICE365_CLIENT_ID) + "/" + str(job.config.OFFICE365_CLIENT_SECRET))
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -387,7 +388,7 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
             if job.config.POPCORN_EMAIL != "":
-                apobj.add('popcorn://' + str(job.config.POPCORN_API) + "/" + str(job.config.POPCORN_EMAIL) )
+                apobj.add('popcorn://' + str(job.config.POPCORN_API) + "/" + str(job.config.POPCORN_EMAIL))
             if job.config.POPCORN_PHONENO != "":
                 apobj.add('popcorn://' + str(job.config.POPCORN_API) + "/" + str(job.config.POPCORN_PHONENO))
             # Then notify these services any time you desire. The below would
@@ -404,9 +405,9 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
             if job.config.PROWL_PROVIDERKEY != "":
-                apobj.add('prowl://' + str(job.config.PROWL_API) + "/" + str(job.config.PROWL_PROVIDERKEY) )
+                apobj.add('prowl://' + str(job.config.PROWL_API) + "/" + str(job.config.PROWL_PROVIDERKEY))
             else:
-                apobj.add('prowl://' + str(job.config.PROWL_API) )
+                apobj.add('prowl://' + str(job.config.PROWL_API))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -422,7 +423,7 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('pjet://' + str(job.config.PUSHJET_HOST) )
+            apobj.add('pjet://' + str(job.config.PUSHJET_HOST))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -437,7 +438,7 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('push://' + str(job.config.PUSH_API) )
+            apobj.add('push://' + str(job.config.PUSH_API))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -452,7 +453,7 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('pushed://' + str(job.config.PUSHED_APP_KEY) + "/" +  str(job.config.PUSHED_APP_SECRET) )
+            apobj.add('pushed://' + str(job.config.PUSHED_APP_KEY) + "/" + str(job.config.PUSHED_APP_SECRET))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -467,7 +468,7 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('pover://' + str(job.config.PO_USER_KEY) + "@" +  str(job.config.PO_APP_KEY) )
+            apobj.add('pover://' + str(job.config.PO_USER_KEY) + "@" + str(job.config.PO_APP_KEY))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -482,7 +483,7 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('psafers://' + str(job.config.PUSHSAFER_KEY) )
+            apobj.add('psafers://' + str(job.config.PUSHSAFER_KEY))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -499,7 +500,7 @@ def notify(job, title, body):
             apobj = apprise.Apprise()
             ## TODO: Add checks for webhook or default modes
             ## for now only the webhook will work
-            apobj.add('rocket://' + str(job.config.ROCKETCHAT_WEBHOOK) + "@" + str(job.config.ROCKETCHAT_HOST) )
+            apobj.add('rocket://' + str(job.config.ROCKETCHAT_WEBHOOK) + "@" + str(job.config.ROCKETCHAT_HOST))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -547,7 +548,7 @@ def notify(job, title, body):
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            apobj.add('spush://' + str(job.config.SIMPLEPUSH_API) )
+            apobj.add('spush://' + str(job.config.SIMPLEPUSH_API))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -562,7 +563,7 @@ def notify(job, title, body):
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            apobj.add('slack://' + str(job.config.SLACK_TOKENA) + "/" + str(job.config.SLACK_TOKENB) + "/"  + str(job.config.SLACK_TOKENC) + "/" + str(job.config.SLACK_CHANNEL))
+            apobj.add('slack://' + str(job.config.SLACK_TOKENA) + "/" + str(job.config.SLACK_TOKENB) + "/" + str(job.config.SLACK_TOKENC) + "/" + str(job.config.SLACK_CHANNEL))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -577,7 +578,7 @@ def notify(job, title, body):
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            apobj.add('sparkpost://' + str(job.config.SPARKPOST_USER) + "@" + str(job.config.SPARKPOST_HOST) + "/"  + str(job.config.SPARKPOST_API) + "/" + str(job.config.SPARKPOST_EMAIL))
+            apobj.add('sparkpost://' + str(job.config.SPARKPOST_USER) + "@" + str(job.config.SPARKPOST_HOST) + "/" + str(job.config.SPARKPOST_API) + "/" + str(job.config.SPARKPOST_EMAIL))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -660,10 +661,10 @@ def notify(job, title, body):
             apobj = apprise.Apprise()
             ## Is the user var filled
             if job.config.XMPP_USER != "":
-                #xmpps://{userid}:{password}@{hostname}
-                apobj.add('xmpps://' + str(job.config.XMPP_USER) + ":" + str(job.config.XMPP_PASS) + "@" + str(job.config.XMPP_HOST) )
+                # xmpps://{userid}:{password}@{hostname}
+                apobj.add('xmpps://' + str(job.config.XMPP_USER) + ":" + str(job.config.XMPP_PASS) + "@" + str(job.config.XMPP_HOST))
             else:
-                #xmpp: // {password} @ {hostname}: {port}
+                # xmpp: // {password} @ {hostname}: {port}
                 apobj.add('xmpp://' + str(job.config.XMPP_PASS) + "@" + str(job.config.XMPP_HOST))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -680,7 +681,7 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('wxteams://' + str(job.config.WEBEX_TEAMS_TOKEN) )
+            apobj.add('wxteams://' + str(job.config.WEBEX_TEAMS_TOKEN))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -696,7 +697,7 @@ def notify(job, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('zulip://' + str(job.config.ZILUP_CHAT_BOTNAME) + "@" +  str(job.config.ZILUP_CHAT_ORG) + "/" + str(job.config.ZILUP_CHAT_TOKEN))
+            apobj.add('zulip://' + str(job.config.ZILUP_CHAT_BOTNAME) + "@" + str(job.config.ZILUP_CHAT_ORG) + "/" + str(job.config.ZILUP_CHAT_TOKEN))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -705,7 +706,6 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending Zulip apprise notification.  continuing  processing...")
-
 
 
 def scan_emby(job):
@@ -724,11 +724,11 @@ def scan_emby(job):
     else:
         logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
 
+
 ## New function from pull 366
 ## Adds max number of transcodes
 ## Need to add user config variables
 def SleepCheckProcess(ProcessStr, Proc_Count):
-
     if Proc_Count != 0:
         Loop_Count = Proc_Count + 1
         logging.debug("Loop_Count " + str(Loop_Count))
@@ -739,6 +739,7 @@ def SleepCheckProcess(ProcessStr, Proc_Count):
             time.sleep(10)
     else:
         logging.info("Number of processes to count is: " + str(Proc_Count))
+
 
 def move_files(basepath, filename, job, ismainfeature=False):
     """Move files into final media directory\n
@@ -911,13 +912,13 @@ def rip_music(job, logfile):
         logging.info("Disc identified as music")
         ## If user has set a cfg file with ARM use it
         if os.path.isfile(cfgfile):
-            cmd = 'abcde -d "{0}" -c {1} >> "{2}" 2>&1'.format(
+            cmd = 'abcde -d "{0}" -x -c {1} >> "{2}" 2>&1'.format(
                 job.devpath,
                 cfgfile,
                 logfile
             )
         else:
-            cmd = 'abcde -d "{0}" >> "{1}" 2>&1'.format(
+            cmd = 'abcde -d "{0}" -x >> "{1}" 2>&1'.format(
                 job.devpath,
                 logfile
             )
@@ -1092,6 +1093,6 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         source=source,
         basename=job.title,
         filename=filename
-        )
+    )
     db.session.add(t)
     db.session.commit()
