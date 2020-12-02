@@ -103,7 +103,6 @@ def main(logfile, job):
     logging.info("Starting Disc identification")
 
     identify.identify(job, logfile)
-    ##TODO: Make sure ALL arm folders exists
 
     ## DVD disk entry
     if job.disctype in ["dvd", "bluray"]:
@@ -378,6 +377,7 @@ def main(logfile, job):
             logging.info("ARM processing complete")
 
     elif job.disctype == "music":
+        ## TODO: make logfile use label if hasnicetitle
         if utils.rip_music(job, logfile):
             utils.notify(job, "ARM notification", "Music CD: " + str(job.label) + " processing complete. ")
             utils.scan_emby(job)
@@ -426,6 +426,7 @@ if __name__ == "__main__":
 
     logfile = logger.setuplogging(job)
 
+    ## Dont put out anything if we are using the empty.log
     if logfile.find("empty.log") == -1 :
         logging.info("Log: " + logfile)
 

@@ -906,7 +906,6 @@ def rip_music(job, logfile):
 
     returns True/False for success/fail
     """
-
     if job.disctype == "music":
         logging.info("Disc identified as music")
         cmd = 'abcde -d "{0}" >> "{1}" 2>&1'.format(

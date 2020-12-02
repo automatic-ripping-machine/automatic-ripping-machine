@@ -1,6 +1,11 @@
 import os
 import psutil
-import platform, subprocess, re
+import platform
+import subprocess
+import re
+import sys
+import bcrypt
+import hashlib
 
 from time import sleep
 from flask import Flask, render_template,make_response ,abort, request, send_file , flash, redirect, url_for, Markup
@@ -14,9 +19,6 @@ from flask.logging import default_handler
 
 from flask_login import LoginManager, login_required , current_user, login_user,UserMixin
 
-import sys
-import bcrypt
-import hashlib
 ## the login manager
 login_manager = LoginManager()
 login_manager.init_app(app)

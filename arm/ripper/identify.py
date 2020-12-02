@@ -11,6 +11,8 @@ import unicodedata
 import xmltodict
 import json
 
+#import getmusictitle
+from arm.ripper import getmusictitle
 from arm.ripper import utils
 from arm.ui import db
 # from arm.config.config import cfg
@@ -33,7 +35,8 @@ def identify(job, logfile):
 
     # Check to make sure it's not a data disc
     if job.disctype == "music":
-        logging.debug("Disc is music.  Skipping identification")
+        logging.debug("Disc is music.")
+        job.label = getmusictitle.main(job)
     elif os.path.isdir(job.mountpoint + "/VIDEO_TS"):
         logging.debug("Found: " + job.mountpoint + "/VIDEO_TS")
         job.disctype = "dvd"
@@ -177,7 +180,7 @@ def identify_dvd(job):
     # next line is not really needed, but we dont want to leave an x somewhere
     dvd_title = job.label.replace("16x9", "")
     ## Rip out any not alpha chars replace with
-    dvd_title = re.sub("[^a-zA-Z \_]", " ", dvd_title)
+    dvd_title = re.sub("[^a-zA-Z ]", " ", dvd_title)
     logging.debug("dvd_title ^a-z= " + str(dvd_title))
     ## rip out any SKU's at the end of the line
     dvd_title = re.sub("SKU$", " ", dvd_title)

@@ -18,6 +18,7 @@ def setuplogging(job):
     ## This isnt catching all of them
     if job.label == "" or job.label is None:
         if job.disctype == "music":
+            ##Maybe fire
             logfile = "music_cd.log"
         else:
             logfile = "empty.log"
