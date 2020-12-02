@@ -65,13 +65,12 @@ def musicbrainz(discid, job):
 
         ## Get our front cover
         artlist = mb.get_image_list(job.crc_id)
-        #data = mb.get_cover_art_list("46a48e90-819b-4bed-81fa-5ca8aa33fbf3")
         for image in artlist["images"]:
             if "Front" in image["types"] and image["approved"]:
                 job.poster_url_auto = str(image["thumbnails"]["large"])
                 job.poster_url = str(image["thumbnails"]["large"])
                 break
-        job.logfile = "music_cd.log"
+        job.logfile = cleanforlog(artist) + "_" + cleanforlog(infos['disc']['release-list'][0]['title']) + ".log"
         job.year = job.year_auto = str(new_year)
         job.title = job.title_auto = artist + " " + title
         job.hasnicetitle = True
@@ -117,6 +116,29 @@ def cddb(discid):
             title = ""
         return title
     else:
+        return ""
+
+def cleanforlog(s):
+    a =  str(s).replace(" ", "_")
+    return a
+
+def gettitle(discid, job):
+
+    mb.set_useragent("arm", "v1.0")
+    try:
+        infos = mb.get_releases_by_discid(discid,includes=['artist-credits'])
+        title = str(infos['disc']['release-list'][0]['title'])
+        ##Start setting our db stuff
+        job.crc_id = infos['disc']['release-list'][0]['id']
+        artist = infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name']
+        job.logfile = cleanforlog(artist) + "_" + cleanforlog(infos['disc']['release-list'][0]['title']) + ".log"
+        job.title = job.title_auto = artist + " " + title
+        db.session.commit()
+        return job.title
+    except mb.WebServiceError as exc:
+        logging.error("######### ERROR: " + str(exc))
+        if str(infos['disc']['release-list'][0]['title']) != "":
+           return infos['disc']['release-list'][0]['title']
         return ""
 
 

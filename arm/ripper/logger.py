@@ -5,7 +5,7 @@ import logging
 import time
 
 from arm.config.config import cfg
-
+from arm.ripper import getmusictitle
 
 def setuplogging(job):
     """Setup logging and return the path to the logfile for
@@ -18,8 +18,15 @@ def setuplogging(job):
     ## This isnt catching all of them
     if job.label == "" or job.label is None:
         if job.disctype == "music":
-            ##Maybe fire
-            logfile = "music_cd.log"
+            ## Use the muscis label if we can find it - defaults toi music_cd.log
+            discid = getmusictitle.get_discid(job)
+            job.label = getmusictitle.gettitle(discid, job)
+            if job.label != "":
+                logfile1 = str(job.label) + ".log"
+                logfile =  str(logfile1).replace(" ", "_")
+                #logging.debug("Label =========: " + job.label)
+            else:
+                logfile = "music_cd.log"
         else:
             logfile = "empty.log"
         #set a logfull for empty.log and music_cd.log
