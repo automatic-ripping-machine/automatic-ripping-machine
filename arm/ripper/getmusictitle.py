@@ -4,6 +4,7 @@ import logging
 import re
 import musicbrainzngs as mb
 from subprocess import run, PIPE
+
 from arm.config.config import cfg
 from arm.ui import app, db  # noqa E402
 from robobrowser import RoboBrowser
@@ -191,7 +192,6 @@ def get_cd_art(job,infos):
             job.poster_url_auto = job.poster_url
             #logging.debug("img =====  " + str(img))
             #logging.debug("img stripped =====" + str(job.poster_url))
-
             if job.poster_url != "":
                 return True
             else:

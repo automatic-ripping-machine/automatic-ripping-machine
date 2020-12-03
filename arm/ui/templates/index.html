@@ -60,8 +60,10 @@
                                     {% endif %}
                                     <b>Device: </b>{{ job.devpath }}<br>
                                     <b>Status: </b>{{ job.status }} <br>
+                                   {% if job.video_type != "Music" %}
                                     <a href="titlesearch?job_id={{ job[" job_id"] }}"
                                     class="btn btn-primary">Title Search</a>
+                                    {% endif %}
                                     </li>
                                 </div>
                             </div>
@@ -75,13 +77,16 @@
                                     </b>{{ job.config.MINLENGTH }}<br>
                                     <b>Max Length:
                                     </b>{{ job.config.MAXLENGTH }}<br>
+                                    {% if job.video_type != "Music" %}
                                     <a href="changeparams?config_id={{ job.config.CONFIG_ID }}"
                                        class="btn btn-primary">Change
                                         Settings</a>
+                                    {% endif %}
                                 </div>
                                 <div class="card-body px-1 py-1">
+                                    {% if job.video_type != "Music" %}
                                     <a href="customTitle?job_id={{ job[" job_id"] }}"
-                                    class="btn btn-primary">Custom Title</a>
+                                    class="btn btn-primary">Custom Title</a>{% endif %}
                                 </div>
                             </div>
 
