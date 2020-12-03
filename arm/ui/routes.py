@@ -182,7 +182,7 @@ def database():
     return render_template('database.html', jobs=jobs, success=success)
 
 
-## New page for editing the ARM config
+## New page for editing/Viewing the ARM config
 @app.route('/settings')
 @login_required
 def settings():
@@ -197,11 +197,10 @@ def settings():
     raw_html += " </form>"
 
     ## TODO: Check if the users is posting data
-    ## TODO: create login make make things safe!!! This needs done before we allow editing. For security reasons
     ## For now it only shows the config
-    path1 = os.path.dirname(os.path.abspath(__file__))
-    with open(str(path1) + '/test.json', 'w') as f:
-        f.write(raw_html + "\n")
+    #path1 = os.path.dirname(os.path.abspath(__file__))
+    #with open(str(path1) + '/test.json', 'w') as f:
+    #    f.write(raw_html + "\n")
 
     # app.logger.error("Error:  {0}".format(str(cfg)))
     return render_template('settings.html', html=Markup(raw_html), success="")
