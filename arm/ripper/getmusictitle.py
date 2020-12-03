@@ -6,7 +6,7 @@ import musicbrainzngs as mb
 from subprocess import run, PIPE
 from arm.config.config import cfg
 from arm.ui import app, db  # noqa E402
-
+from robobrowser import RoboBrowser
 
 # from classes import Disc
 
@@ -65,21 +65,17 @@ def musicbrainz(discid, job):
         logging.error("Cant reach MB ? - ERROR: " + str(exc))
         db.session.commit()
         return ""
-    db.session.commit()
     try:
         ## We never make it to here if the mb fails
         artist = infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name']
         logging.debug("artist=====" + str(artist))
-        logging.debug("we have artwork======" + infos['disc']['release-list'][0]['cover-art-archive']['artwork'])
+        logging.debug("do have artwork?======" + str(infos['disc']['release-list'][0]['cover-art-archive']['artwork']))
 
         ## Get our front cover if it exists
-        if infos['disc']['release-list'][0]['cover-art-archive']['artwork'] != "false":
-            artlist = mb.get_image_list(job.crc_id)
-            for image in artlist["images"]:
-                if "Front" in image["types"] and image["approved"]:
-                    job.poster_url_auto = str(image["thumbnails"]["large"])
-                    job.poster_url = str(image["thumbnails"]["large"])
-                    break
+        if get_cd_art(job,infos):
+            logging.debug("we got an art image")
+        else:
+            logging.debug("we didnt get art image")
         ## Set up the database properly for music cd's
         job.logfile = cleanforlog(artist) + "_" + cleanforlog(infos['disc']['release-list'][0]['title']) + ".log"
         job.year = job.year_auto = str(new_year)
@@ -136,6 +132,17 @@ def cleanforlog(s):
 
 
 def gettitle(discid, job):
+    """
+    Ask musicbrainz.org for the release of the disc
+    only gets the title of the album and artist
+
+    arguments:
+    discid - identification object from discid package
+    job - the job object for the database entry
+
+    return:
+    the label of the disc as a string or "" if nothing was found
+    """
     mb.set_useragent("arm", "v1.0")
     try:
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits'])
@@ -152,6 +159,46 @@ def gettitle(discid, job):
         if str(infos['disc']['release-list'][0]['title']) != "":
             return infos['disc']['release-list'][0]['title']
         return ""
+
+def get_cd_art(job,infos):
+    """
+    Ask musicbrainz.org for the art of the disc
+
+    arguments:
+    job - the job object for the database entry
+    infos - object/json returned from musicbrainz.org api
+
+    return:
+    True if we find the cd art
+    False if we didnt find the art
+    """
+    try:
+        ## Use the build-in images from coverartarchive if available
+        if infos['disc']['release-list'][0]['cover-art-archive']['artwork'] != "false":
+            artlist = mb.get_image_list(job.crc_id)
+            for image in artlist["images"]:
+                if "Front" in image["types"] and image["approved"]:
+                    job.poster_url_auto = str(image["thumbnails"]["large"])
+                    job.poster_url = str(image["thumbnails"]["large"])
+                    return True
+        else:
+            ## This uses roboBrowser to grab the amazon/3rd party image if it exists
+            browser = RoboBrowser(user_agent='a python robot')
+            browser.open('https://musicbrainz.org/release/' + job.crc_id)
+            img = browser.select('.cover-art img')
+            # [<img src="https://images-eu.ssl-images-amazon.com/images/I/41SN9FK5ATL.jpg"/>]
+            job.poster_url = re.search(r'<img src="(.*)"', str(img)).group(1)
+            job.poster_url_auto = job.poster_url
+            #logging.debug("img =====  " + str(img))
+            #logging.debug("img stripped =====" + str(job.poster_url))
+
+            if job.poster_url != "":
+                return True
+            else:
+                return False
+    except mb.WebServiceError as exc:
+        logging.error("get_cd_art ERROR: " + str(exc))
+        return False
 
 
 if __name__ == "__main__":

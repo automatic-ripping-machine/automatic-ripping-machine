@@ -144,12 +144,11 @@ def database():
         mode = request.args['mode']
         jobid = request.args['jobid']
 
-        ## TODO: give the user feedback to let them know delete happened successfully
-        ## TODO: Also check for the user agreement cookie
         ## Find the job the user wants to delete
         if mode == 'delete' and jobid is not None:
             ## User wants to wipe the whole database
             ## Make a backup and everything
+            ## The user can only access this by typing it manually
             if jobid == 'all':
                 if os.path.isfile(cfg['DBFILE']):
                     ## Make a backup of the database file
@@ -161,8 +160,13 @@ def database():
                 Config.query.delete()
                 db.session.commit()
                 success = True
-            ## Not sure this is the greatest way of handling this
-            ## TODO: make sure we have an int on jobid
+                """elif jobid == "logfile":
+                ## The user can only access this by typing it manually
+                ## This shouldnt be left on when on a full server
+                logfile = request.args['file']
+                Job.query.filter_by(title=logfile).delete()
+                db.session.commit()
+                """## Not sure this is the greatest way of handling this
             else:
                 Track.query.filter_by(job_id=jobid).delete()
                 Job.query.filter_by(job_id=jobid).delete()

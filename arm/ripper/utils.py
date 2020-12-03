@@ -912,13 +912,13 @@ def rip_music(job, logfile):
         logging.info("Disc identified as music")
         ## If user has set a cfg file with ARM use it
         if os.path.isfile(cfgfile):
-            cmd = 'abcde -d "{0}" -x -c {1} >> "{2}" 2>&1'.format(
+            cmd = 'abcde -d "{0}" -c {1} >> "{2}" 2>&1'.format(
                 job.devpath,
                 cfgfile,
                 logfile
             )
         else:
-            cmd = 'abcde -d "{0}" -x >> "{1}" 2>&1'.format(
+            cmd = 'abcde -d "{0}" >> "{1}" 2>&1'.format(
                 job.devpath,
                 logfile
             )

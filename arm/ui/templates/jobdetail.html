@@ -19,9 +19,11 @@
                     {% endif %}
                     <!-- GF Comment -->
                     <div class="card-body"><b>{{ jobs.title }}</b> - {{ jobs.video_type.capitalize() }} ({{ jobs.year
-                        }}) </br>
+                        }}) <br/> <br/>
+                        {% if jobs.video_type != "Music" %}
                         <a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title Search</a></li>
                         <a href="customTitle?job_id={{ jobs.job_id }}" class="btn btn-primary">Custom Title</a>
+                        {% endif %}
                     </div>
                     <div class="card-body">
                         <table id="jobtable" class="table table-striped">
