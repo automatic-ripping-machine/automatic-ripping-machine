@@ -31,6 +31,13 @@ on Ubuntu 20.04.
 
 Please log any issues you find.  Don't forget to run in DEBUG mode if you need to submit an issue (and log files).  Also, please note that you are running 2.2_dev in your issue.
 
+You will also need to visit your http://WEBSERVER_IP:WEBSERVER_PORT/setup  
+							&#x26A0; &#x26A0; **!!!WARNING!!!** &#x26A0; &#x26A0;  					
+
+Visiting this page will delete your current database and create a new db file. You WILL lose jobs/tracks/etc from your database
+This will setup the new database, and ask you to make an admin account. Because of the changes to the armui its not possible to view/change/delete entries without logging in. 
+Due to these large number of changes to the database its not currently possible to upgrade without creating a new database
+
 
 ## Overview
 
@@ -242,6 +249,11 @@ When a disc is inserted, udev rules should launch a script (scripts/arm_wrapper.
   ```
   sudo udevadm control --reload-rules 
   ```
+
+- Sometimes running the following command can help track down what is stopping arm (remember to replace sr0 with the name of your own device) 
+```
+/usr/bin/python3 /opt/arm/arm/ripper/main.py -d sr0 | at now
+```
 
 - Check ARM log files 
   - The default location is /home/arm/logs/ (unless this is changed in your arm.yaml file) and is named after the dvd. These are very verbose.  You can filter them a little by piping the log through grep.  Something like 
