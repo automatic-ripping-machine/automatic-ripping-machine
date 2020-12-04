@@ -7,6 +7,7 @@ import time
 from arm.config.config import cfg
 
 
+
 def setuplogging(job):
     """Setup logging and return the path to the logfile for
     redirection of external calls"""
@@ -18,34 +19,39 @@ def setuplogging(job):
     ## This isnt catching all of them
     if job.label == "" or job.label is None:
         if job.disctype == "music":
-            logfile = tmplogfile = "music_cd.log"
+            ## Use the muscis label if we can find it - defaults toi music_cd.log
+            discid = getmusictitle.get_discid(job)
+            title = getmusictitle.gettitle(discid, job)
+            if title != "not identified":
+                logfile1 = str(title) + ".log"
+                logfile =  logfile1.replace(" ", "_")
+            else:
+                job.title = "not identified"
+                job.label = "not identified"
+                job.logfile = "music_cd.log"
+                logfile = "music_cd.log"
         else:
-            logfile = tmplogfile = "empty.log"
+            logfile = "empty.log"
+        #set a logfull for empty.log and music_cd.log
+        logfull = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" else cfg['LOGPATH'] + "/" + logfile
     else:
         logfile = job.label + ".log"
-
-    ## this stops log files created with Nono_42342342.log
-    ## for some reason we need to convert None to a string to compare
-    if str(logfile) == "None":
-        return None
-    ## Added from pull 366 But added if statement so we dont touch the empty.log
-    if logfile != "empty.log" and logfile != "NAS.log":
-        ## lets create a temp var to hold our log name
-        tmplogfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
-
-        ## Does the logpath have a / add it if we dont
         if cfg['LOGPATH'][-1:] == "/":
+            ##This really needs to be cleaned up, but it works for now
             #Check to see if file already exists, if so, create a new file
-            TmpLogFull = cfg['LOGPATH'] + str(logfile)
-            logfull = cfg['LOGPATH'] + tmplogfile if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + tmplogfile
+            newlogfile =  str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
+            TmpLogFull = cfg['LOGPATH'] + logfile
+            logfile = newlogfile if os.path.isfile(TmpLogFull) else logfile
+            logfull = cfg['LOGPATH'] + newlogfile if os.path.isfile(TmpLogFull) else cfg['LOGPATH']  + str(job.label) + ".log"
         else:
             #Check to see if file already exists, if so, create a new file
+            newlogfile =  str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
             TmpLogFull = cfg['LOGPATH'] + "/" + logfile
-            logfull = cfg['LOGPATH'] + "/" + tmplogfile + ".log" if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + "/" + logfile
-    else:
-        tmplogfile = "empty.log"
-        ## For empty.log and NAS.log we need to set logfull
-        logfull = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" else cfg['LOGPATH'] + "/" + logfile
+            logfile = newlogfile if os.path.isfile(TmpLogFull) else str(job.label)
+            logfull = cfg['LOGPATH'] + "/" + newlogfile if os.path.isfile(TmpLogFull) else cfg['LOGPATH'] + "/" + str(job.label) + ".log"
+
+        ## We need to give the logfile only to database
+        job.logfile = logfile
 
     ## Debug formatting
     if cfg['LOGLEVEL'] == "DEBUG":
@@ -55,9 +61,7 @@ def setuplogging(job):
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
-
-    ## We need to give the right logfile to database
-    job.logfile = tmplogfile
+    ## logging.debug("Logfull = " + logfull)
     ## Return the full logfile location to the logs
     return logfull
 
