@@ -23,32 +23,36 @@ def notify(job, title, body):
     # title = title for notification
     # body = body of the notification
     ################### Lets try the desktop notifications first ###############################
-    try:
-    	cmd = 'apprise -vv -t "' + title + '" -b "' + body + '" \ gnome:// ' 
-    	#logging.debug("#################cmd = " + cmd)
-    	os.system(cmd) 
-    except:  # noqa: E722
-    	logging.error("Failed sending DBUS apprise notification.  Continueing processing...")
-    try:
-    	cmd = 'apprise -vv -t "' + title + '" -b "' + body + '" \ kde://' 
-    	#logging.debug("#################cmd = " + cmd)
-    	os.system(cmd) 
-    except:  # noqa: E722
-    	logging.error("Failed sending KDE apprise notification.  Continueing processing...")
-    try:
-    	cmd = 'apprise -vv -t "' + title + '" -b "' + body + '" \ dbus://' 
-    	#logging.debug("#################cmd = " + cmd)
-    	os.system(cmd) 
-    except:  # noqa: E722
-    	logging.error("Failed sending DBUS apprise notification.  Continueing processing...")
-    try:
-    	cmd = 'apprise -vv -t "' + title + '" -b "' + body + '" \ windows://' 
-    	#logging.debug("#################cmd = " + cmd)
-    	os.system(cmd) 
-    except:  # noqa: E722
-    	logging.error("Failed sending windows apprise notification.  Continueing processing...")
+    cmd = "apprise -vv -t \"{0}\" -b \"{1}\" dbus://".format(title, body)
+    cmd1 = "apprise -vv -t \"{0}\" -b \"{1}\" kde://".format(title, body) 
+    cmd2 = "apprise -vv -t \"{0}\" -b \"{1}\" gnome://".format(title, body)
+    cmd3 = "apprise -vv -t \"{0}\" -b \"{1}\" windows://".format(title, body)
     #############################################################################################
-
+    try:
+    	logging.debug( "Trying ##########"+ cmd)
+    	os.system(cmd)
+    	#subprocess.call(cmd)
+    except Exception as e:  # noqa: E722
+    	logging.error("Failed sending desktops apprise notification. ################ " + str(e))
+    try:
+    	logging.debug( "Trying ##########"+ cmd1)
+    	os.system(cmd1)
+    	#subprocess.call(cmd)
+    except Exception as e:  # noqa: E722
+    	logging.error("Failed sending desktops apprise notification. ################ " + str(e))
+    try:
+    	logging.debug( "Trying ##########"+ cmd2)
+    	os.system(cmd2)
+    	#subprocess.call(cmd)
+    except Exception as e:  # noqa: E722
+    	logging.error("Failed sending desktops apprise notification. ################ " + str(e))
+    try:
+    	logging.debug( "Trying ##########"+ cmd3)
+    	os.system(cmd3)
+    	#subprocess.call(cmd)
+    except Exception as e:  # noqa: E722
+    	logging.error("Failed sending desktops apprise notification. ################ " + str(e))
+    	    
     ## Pushbullet
     ## pbul://{accesstoken}
     if job.config.PB_KEY != "":
