@@ -21,8 +21,6 @@ def main(disc):
     discid = get_discid(disc)
     if cfg['GET_AUDIO_TITLE'] == 'musicbrainz':
         return musicbrainz(discid, disc)
-    elif cfg['GET_AUDIO_TITLE'] == 'freecddb':
-        return cddb(discid)
     elif cfg['GET_AUDIO_TITLE'] == 'none':
         return ""
     else:
@@ -55,6 +53,7 @@ def musicbrainz(discid, job):
     try:
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits'])
         logging.debug("Infos: %s", infos)
+        logging.error("discid = " + str(discid))
         ## Clean up the date and the tiotle
         new_year = str(infos['disc']['release-list'][0]['date'])
         new_year = re.sub("-[0-9]{2}-[0-9]{2}$", "", new_year)
@@ -63,7 +62,8 @@ def musicbrainz(discid, job):
         job.crc_id = infos['disc']['release-list'][0]['id']
         logging.debug("musicbrain works -  New title is " + title + ".  New Year is: " + new_year)
     except mb.WebServiceError as exc:
-        logging.error("Cant reach MB ? - ERROR: " + str(exc))
+        logging.error("Cant reach MB or cd not found ? - ERROR: " + str(exc))
+        job.video_type = "Music"
         db.session.commit()
         return ""
     try:
@@ -92,7 +92,16 @@ def musicbrainz(discid, job):
         return artist + " " + str(infos['disc']['release-list'][0]['title'])
 
 
+"""
+This is now dead, it wont work since it has now closed down!
+
+https://audiophilestyle.com/forums/topic/59650-freedb-cddb-shutdown-alternatives-setting-up-your-own-mirror/
+https://developers.slashdot.org/story/20/03/02/2245216/freedborg-is-shutting-down
+
+http://www.gnudb.org/index.php might be an alternative, but they have no docs and i have no interest in coding for a defunct method
+"""
 def cddb(discid):
+
     """
     Ask freedb.org for the label of the disc and uses the command line tool
     cddb-tool from abcde
@@ -143,6 +152,8 @@ def gettitle(discid, job):
 
     return:
     the label of the disc as a string or "" if nothing was found
+
+    Notes: dont try to use logging here -  doing so will break the arm setuplogging() function
     """
     mb.set_useragent("arm", "v1.0")
     try:
@@ -153,13 +164,12 @@ def gettitle(discid, job):
         artist = infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name']
         job.logfile = cleanforlog(artist) + "_" + cleanforlog(infos['disc']['release-list'][0]['title']) + ".log"
         job.title = job.title_auto = artist + " " + title
+        job.video_type = "Music"
         db.session.commit()
-        return job.title
+        return artist + " " + title
     except mb.WebServiceError as exc:
-        logging.error("######### ERROR: " + str(exc))
-        if str(infos['disc']['release-list'][0]['title']) != "":
-            return infos['disc']['release-list'][0]['title']
-        return ""
+        #logging.error("mb.gettitle -  ERROR: " + str(exc))
+        return "not identified"
 
 def get_cd_art(job,infos):
     """
@@ -178,9 +188,15 @@ def get_cd_art(job,infos):
         if infos['disc']['release-list'][0]['cover-art-archive']['artwork'] != "false":
             artlist = mb.get_image_list(job.crc_id)
             for image in artlist["images"]:
-                if "Front" in image["types"] and image["approved"]:
+                ## For verified images only
+                """if "Front" in image["types"] and image["approved"]:
                     job.poster_url_auto = str(image["thumbnails"]["large"])
                     job.poster_url = str(image["thumbnails"]["large"])
+                    return True"""
+                ## We dont care if its verified ?
+                if "image" in image:
+                    job.poster_url_auto = str(image["image"])
+                    job.poster_url = str(image["image"])
                     return True
         else:
             ## This uses roboBrowser to grab the amazon/3rd party image if it exists
@@ -202,7 +218,7 @@ def get_cd_art(job,infos):
 
 
 if __name__ == "__main__":
-    # test code
+    ## this will break our logging if it ever triggers for arm
     logging.basicConfig(level=logging.DEBUG)
     disc = Disc("/dev/cdrom")
     myid = get_discid(disc)

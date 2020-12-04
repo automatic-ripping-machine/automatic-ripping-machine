@@ -20,12 +20,14 @@ def setuplogging(job):
         if job.disctype == "music":
             ## Use the muscis label if we can find it - defaults toi music_cd.log
             discid = getmusictitle.get_discid(job)
-            job.label = getmusictitle.gettitle(discid, job)
-            if job.label != "":
-                logfile1 = str(job.label) + ".log"
-                logfile =  str(logfile1).replace(" ", "_")
-                #logging.debug("Label =========: " + job.label)
+            title = getmusictitle.gettitle(discid, job)
+            if title != "not identified":
+                logfile1 = str(title) + ".log"
+                logfile =  logfile1.replace(" ", "_")
             else:
+                job.title = "not identified"
+                job.label = "not identified"
+                job.logfile = "music_cd.log"
                 logfile = "music_cd.log"
         else:
             logfile = "empty.log"
@@ -46,8 +48,6 @@ def setuplogging(job):
             TmpLogFull = cfg['LOGPATH'] + "/" + logfile
             logfile = newlogfile if os.path.isfile(TmpLogFull) else str(job.label)
             logfull = cfg['LOGPATH'] + "/" + newlogfile if os.path.isfile(TmpLogFull) else cfg['LOGPATH'] + "/" + str(job.label) + ".log"
-        ## TmpLogFull = cfg['LOGPATH'] + str(logfile)
-        ## logfull = cfg['LOGPATH'] + logfile if os.path.isfile(TmpLogFull) else  cfg['LOGPATH'] + logfile
 
         ## We need to give the logfile only to database
         job.logfile = logfile
