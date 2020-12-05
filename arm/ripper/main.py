@@ -339,11 +339,14 @@ def main(logfile, job):
             logging.info("Permissions set successfully: " + str(perm_result))
 
         # remove empty directories
-        try:
-            os.rmdir(hboutpath)
-        except OSError:
-            logging.info(hboutpath + " directory is not empty.  Skipping removal. ")
-            pass
+        ## Same issue of removing files that have already been identified
+        ## TODO: fully fix this, this is only a temp fix
+        if hboutpath != final_directory:
+            try:
+                os.rmdir(hboutpath)
+            except OSError:
+                logging.info(hboutpath + " directory is not empty.  Skipping removal. ")
+                pass
 
         try:
             newpath
