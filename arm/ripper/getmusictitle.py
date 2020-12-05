@@ -7,6 +7,8 @@ from subprocess import run, PIPE
 
 from arm.config.config import cfg
 from arm.ui import app, db  # noqa E402
+import werkzeug
+werkzeug.cached_property = werkzeug.utils.cached_property
 from robobrowser import RoboBrowser
 
 # from classes import Disc
