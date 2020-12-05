@@ -261,12 +261,14 @@ def main(logfile, job):
                     # Change final path (used to set permissions)
                     final_directory = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
                     # Clean up
+                    ## TODO: fix this so it doesnt remove everything
                     logging.debug("Attempting to remove extra folder in ARMPATH: " + hboutpath)
-                    try:
-                        shutil.rmtree(hboutpath)
-                        logging.debug("Removed sucessfully: " + hboutpath)
-                    except Exception:
-                        logging.debug("Failed to remove: " + hboutpath)
+                    if hboutpath != final_directory:
+                        try:
+                            shutil.rmtree(hboutpath)
+                            logging.debug("Removed sucessfully: " + hboutpath)
+                        except Exception:
+                            logging.debug("Failed to remove: " + hboutpath)
                 else:
                     # if videotype is not movie, then move everything
                     # into 'Unidentified' folder
