@@ -199,7 +199,7 @@ Run below to pick up the aliases
 **For the attended install use:**
  ```
  apt install wget
- wget https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/v2.1_dev/scripts/debian-setup.sh
+ wget https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/2.2_dev/scripts/debian-setup.sh
  chmod +x debian-setup.sh
  ./debian-setup.sh
  ```
@@ -210,7 +210,7 @@ Run below to pick up the aliases
  **For the silent install use**
   ```
  apt -qqy install wget
- wget https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/v2.1_dev/scripts/deb-install-quiet.sh
+ wget https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/2.2_dev/scripts/deb-install-quiet.sh
  chmod +x deb-install-quiet.sh
  ./deb-install-quiet.sh
  ```
