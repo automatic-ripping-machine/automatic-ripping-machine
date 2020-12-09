@@ -468,7 +468,7 @@ if __name__ == "__main__":
     if logfile.find("empty.log") == -1 :
         logging.info("Log: " + logfile)
 
-    if utils.get_cdrom_status(devpath) != 4:
+    if utils.get_cdrom_status(devpath) != 4 or job is None:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
 
