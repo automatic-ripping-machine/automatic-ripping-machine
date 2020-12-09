@@ -1624,7 +1624,7 @@ def rip_data(job, datapath, logfile):
         if (job.label) == "":
             job.label = "datadisc"
 
-        filename = os.path.join(datapath, job.label + ".iso")
+        filename = os.path.join(datapath, str(job.label) + ".iso")
 
         logging.info("Ripping data disc to: " + filename)
 
