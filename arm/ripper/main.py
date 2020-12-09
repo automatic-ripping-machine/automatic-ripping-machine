@@ -98,6 +98,34 @@ def check_fstab():
     logging.error("No fstab entry found.  ARM will likely fail.")
 
 
+
+def check_ip():
+    """
+        Check if user has set an ip in the config file
+        if not gets the most likely ip
+        arguments:
+        none
+        return:
+        the ip of the host or 127.0.0.1
+    """
+
+    host = cfg['WEBSERVER_IP']
+    if host == 'x.x.x.x':
+        # autodetect host IP address
+        from netifaces import interfaces, ifaddresses, AF_INET
+        ip_list = []
+        for interface in interfaces():
+            inet_links = ifaddresses(interface).get(AF_INET, [])
+            for link in inet_links:
+                ip = link['addr']
+                if ip != '127.0.0.1':
+                    ip_list.append(ip)
+        if len(ip_list) > 0:
+            return ip_list[0]
+        else:
+            return '127.0.0.1'
+
+
 def main(logfile, job):
     """main dvd processing function"""
     logging.info("Starting Disc identification")
@@ -109,7 +137,7 @@ def main(logfile, job):
         ## Send the notifications
         utils.notify(job, "ARM notification", "Found disc: " + str(job.title) + ". Disc type is "
                      + str(job.disctype) + ". Main Feature is " + str(job.config.MAINFEATURE)
-                     + ".  Edit entry here: http://" + str(job.config.WEBSERVER_IP) + ":" + str(job.config.WEBSERVER_PORT) + "/jobdetail?job_id=" + str(job.job_id) + " ")
+                     + ".  Edit entry here: http://" + str(check_ip()) + ":" + str(job.config.WEBSERVER_PORT) + "/jobdetail?job_id=" + str(job.job_id) + " ")
     elif job.disctype == "music":
         utils.notify(job, "ARM notification", "Found music CD: " + str(job.label) + ". Ripping all tracks")
     elif job.disctype == "data":
