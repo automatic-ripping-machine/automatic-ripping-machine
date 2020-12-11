@@ -317,7 +317,11 @@ def main(logfile, job):
                     logging.info("Permissions set successfully: " + str(perm_result))
                 utils.notify(job, "ARM notification", str(job.title) + " processing complete.")
                 logging.info("ARM processing complete")
-                # exit
+                # WARN  : might cause issues
+                # We need to update our job before we quit
+                # It should be safe to do this as we arent waiting for transcode
+                job.status = "success"
+                db.session.commit()
                 sys.exit()
 
         job.status = "transcoding"
