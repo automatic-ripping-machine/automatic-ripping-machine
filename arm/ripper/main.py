@@ -452,28 +452,15 @@ if __name__ == "__main__":
     print(devpath)
 
     job = Job(devpath)
-
-    ##Make the ARM dir if it doesnt exist
-    if not os.path.exists(cfg['ARMPATH']):
-        os.makedirs(cfg['ARMPATH'])
-    ##Make the RAW dir if it doesnt exist
-    if not os.path.exists(cfg['RAWPATH']):
-        os.makedirs(cfg['RAWPATH'])
-    ##Make the Media dir if it doesnt exist
-    if not os.path.exists(cfg['MEDIA_DIR']):
-        os.makedirs(cfg['MEDIA_DIR'])
-
-    logfile = logger.setuplogging(job)
-
-    ## Dont put out anything if we are using the empty.log
-    if logfile.find("empty.log") == -1 :
-        logging.info("Log: " + logfile)
-        
+    #utils.armsetup()
+    logfile = logger.setuplogging(job)  
     #if utils.get_cdrom_status(devpath) != 4 or job is None:
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
-
+    ## Dont put out anything if we are using the empty.log This kills multiple runs. it stops the same job triggering more than once
+    if not logfile.find("empty.log") == -1:
+        sys.exit()
 
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
 
