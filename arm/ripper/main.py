@@ -108,7 +108,6 @@ def check_ip():
         return:
         the ip of the host or 127.0.0.1
     """
-
     host = cfg['WEBSERVER_IP']
     if host == 'x.x.x.x':
         # autodetect host IP address
@@ -118,8 +117,10 @@ def check_ip():
             inet_links = ifaddresses(interface).get(AF_INET, [])
             for link in inet_links:
                 ip = link['addr']
-                if ip != '127.0.0.1':
+                #print(str(ip))
+                if ip != '127.0.0.1' and not(ip.startswith('172')):
                     ip_list.append(ip)
+                    print(str(ip))
         if len(ip_list) > 0:
             return ip_list[0]
         else:
