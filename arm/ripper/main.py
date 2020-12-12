@@ -120,12 +120,13 @@ def check_ip():
                 #print(str(ip))
                 if ip != '127.0.0.1' and not(ip.startswith('172')):
                     ip_list.append(ip)
-                    print(str(ip))
+                    #print(str(ip))
         if len(ip_list) > 0:
             return ip_list[0]
         else:
             return '127.0.0.1'
-
+    else:
+        return host
 
 def main(logfile, job):
     """main dvd processing function"""
@@ -238,6 +239,8 @@ def main(logfile, job):
 
             if mkvoutpath is None:
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
+                job.status = "fail"
+                db.session.commit()
                 sys.exit()
             if job.config.NOTIFY_RIP:
                 # Fixed bug line below
@@ -447,14 +450,11 @@ def main(logfile, job):
 
 if __name__ == "__main__":
     args = entry()
-
     devpath = "/dev/" + args.devpath
-    print(devpath)
-
+    #print(devpath)
     job = Job(devpath)
     #utils.armsetup()
-    logfile = logger.setuplogging(job)  
-    #if utils.get_cdrom_status(devpath) != 4 or job is None:
+    logfile = logger.setuplogging(job)
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
@@ -482,9 +482,7 @@ if __name__ == "__main__":
     job.arm_version = version
     logging.info(("Python version: " + sys.version).replace('\n', ""))
     logging.info("User is: " + getpass.getuser())
-
     logger.cleanuplogs(job.config.LOGPATH, job.config.LOGLIFE)
-
     logging.info("Job: " + str(job.label))
 
     # a_jobs = Job.query.filter_by(status="active")
