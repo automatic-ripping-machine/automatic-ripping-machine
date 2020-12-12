@@ -15,11 +15,13 @@ class CustomTitleForm(FlaskForm):
 
 
 class ChangeParamsForm(FlaskForm):
-    RIPMETHOD = SelectField('Rip Method', choices=[('mkv', 'mkv'), ('backup', 'backup')])
-    #MAINFEATURE = BooleanField('Main Feature', validators=[DataRequired()])
+    RIPMETHOD = SelectField('Rip Method: ', choices=[('mkv', 'mkv'), ('backup', 'backup')])
+    DISCTYPE = SelectField('Disc Type: ', choices=[('dvd', 'DVD'), ('bluray', 'Bluray'), ('music', 'Music'), ('data', 'Data')])
+    # "music", "dvd", "bluray" and "data"
     MAINFEATURE = BooleanField('Main Feature')
-    MINLENGTH = IntegerField('Minimum Length')
-    MAXLENGTH = IntegerField('Maximum Length')
+    #MAINFEATURE = SelectField('Main Feature: ', choices=[(1, 'Yes'), (0, 'No')])
+    MINLENGTH = IntegerField('Minimum Length: ')
+    MAXLENGTH = IntegerField('Maximum Length: ')
     submit = SubmitField('Submit')
 
 class LoginForm(FlaskForm):
