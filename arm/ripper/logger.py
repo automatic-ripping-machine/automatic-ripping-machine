@@ -29,6 +29,8 @@ def setuplogging(job):
                 job.label = "not identified"
                 job.logfile = "music_cd.log"
                 logfile = "music_cd.log"
+            ## We need to give the logfile only to database
+            job.logfile = logfile
         else:
             logfile = "empty.log"
         #set a logfull for empty.log and music_cd.log
@@ -48,7 +50,6 @@ def setuplogging(job):
             TmpLogFull = cfg['LOGPATH'] + "/" + logfile
             logfile = newlogfile if os.path.isfile(TmpLogFull) else str(job.label)
             logfull = cfg['LOGPATH'] + "/" + newlogfile if os.path.isfile(TmpLogFull) else cfg['LOGPATH'] + "/" + str(job.label) + ".log"
-
         ## We need to give the logfile only to database
         job.logfile = logfile
 
