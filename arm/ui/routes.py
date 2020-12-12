@@ -318,14 +318,17 @@ def submitrip():
 def changeparams():
     config_id = request.args.get('config_id')
     config = Config.query.get(config_id)
+    job = Job.query.get(config_id)
     form = ChangeParamsForm(obj=config)
     if form.validate_on_submit():
         config.MINLENGTH = format(form.MINLENGTH.data)
         config.MAXLENGTH = format(form.MAXLENGTH.data)
         config.RIPMETHOD = format(form.RIPMETHOD.data)
-        # config.MAINFEATURE = format(form.MAINFEATURE.data)
+        config.MAINFEATURE = int(format(form.MAINFEATURE.data) == 'true')
+        #config.MAINFEATURE = int(format(form.MAINFEATURE.data)) ## must be 1 for True 0 for False
+        job.disctype = format(form.DISCTYPE.data)
         db.session.commit()
-        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}'.format(form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data))
+        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}, Disctype={}'.format(form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data,form.DISCTYPE.data))
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
@@ -390,7 +393,6 @@ def updatetitle():
     db.session.commit()
     flash('Title: {} ({}) was updated to {} ({})'.format(job.title_auto, job.year_auto, new_title, new_year), category='success')
     return redirect(url_for('home'))
-
 
 @app.route('/logs')
 @login_required
