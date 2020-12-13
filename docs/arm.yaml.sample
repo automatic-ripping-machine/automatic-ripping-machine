@@ -45,7 +45,8 @@ ALLOW_DUPLICATES: false
 # Number of Transcodes that runs at the same time.
 # Certain Video cards are limited to how many encodes they can run at the same time.
 # Also useful for deminishing returns on CPU based encodes.
-MAX_CONCURRENT_TRANSCODES: 3
+# 0 to disable
+MAX_CONCURRENT_TRANSCODES: 0
 
 # Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
 DATA_RIP_PARAMETERS: ""
