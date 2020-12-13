@@ -18,5 +18,5 @@ netifaces>=0.10.9
 flask-login>=0.5.0
 apprise>=0.8.9
 bcrypt>=3.2.0
-musicbrainzngs==0.7.1
+musicbrainzngs>=0.7.1
 discid>=1.1.1
