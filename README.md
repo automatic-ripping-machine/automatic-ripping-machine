@@ -42,16 +42,18 @@ See: https://b3n.org/automatic-ripping-machine
 
 
 ## Install
- Please see the wiki  https://github.com/1337-server/automatic-ripping-machine/wiki
+ Please see the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/).
+
  
 ## Troubleshooting
- Please see the wiki  https://github.com/1337-server/automatic-ripping-machine/wiki 
+ Please see the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/).
+
 
 ## Contributing
 
-Pull requests are welcome.  Please see the [Contributing Guide](./CONTRIBUTING.md)
+Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/1337-server/automatic-ripping-machine/wiki/Contributing-Guide)
 
-If you set ARM up in a different environment (harware/OS/virtual/etc), please consider submitting a howto to the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).
+If you set ARM up in a different environment (harware/OS/virtual/etc), please consider submitting a howto to the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/).
 
 ## License
 
