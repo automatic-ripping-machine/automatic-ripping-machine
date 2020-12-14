@@ -124,7 +124,8 @@ def check_ip():
             return ip_list[0]
         else:
             return '127.0.0.1'
-
+    else:
+        return host
     
 def main(logfile, job):
 
