@@ -1162,6 +1162,7 @@ def armsetup():
     None
     """
     try:
+        from arm.config.config import cfg
         ##Make the ARM dir if it doesnt exist
         if not os.path.exists(cfg['ARMPATH']):
             os.makedirs(cfg['ARMPATH'])
