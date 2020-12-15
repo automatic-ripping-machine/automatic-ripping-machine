@@ -1,4 +1,28 @@
 # Changelog
+## v2.2.0
+ - Added Apprise notifications
+  - Added more to the Basic web framework (flask_login)
+    - Added login/admin account
+    - Added dynamic websever ip to notifications
+    - Allow Deleting entries from the db (also warning for both the page and every delete)
+    - Added music CD covers (provied by musicbrainz & coverartarchive.org)
+    - Added CPU/RAM info on index page
+    - Added some clearer display for the listlogs page 
+    - Bugfix (Mainfeature now works when updating in the ui) 
+    - Bugfix (Job is no longer added twice when updated in ui) 
+    - ALPHA: Added ARM settings page (This only shows settings for the moment, no editing)
+  - Added Intel QuickSync Video support
+  - Added AMD VCE support
+  - Added desktop notifications
+  - Added user table to the sqlite db
+  - Added Debian Installer Script
+  - Added Ubuntu Installer Script
+  - Added Auto Identfy of music CD's
+  - Made changes to the setup logging to allow music CD's to use the their artist name and album name as the log file 
+  - Added abcde config file overide (This lets you give a custom config file to abcde from anywhere)
+  - Added log cleaner function to strip out secret keys (This isnt complete yet)
+  - Bugfix (datadiscs with no label no longer fail) 
+  - Bugfix (NONE_(timestamp).log will no longer be generated ) 
 
 ## v2.1.0
  - Added new package (armui) for web user interface
