@@ -21,8 +21,8 @@ from arm.ui import db
 def identify(job, logfile):
     """Identify disc attributes"""
     ## Safe way of dealing with log files if the users need to post it online
-    cleanlog = makecleanlogfile(job)
-    logging.debug("####### --- job ----"+ str(cleanlog))
+    #cleanlog = makecleanlogfile(job)
+    #logging.debug("####### --- job ----"+ str(cleanlog))
 
     logging.info("Mounting disc to: " + str(job.mountpoint))
 
@@ -73,8 +73,8 @@ def identify(job, logfile):
 
             logging.info("Disc title: " + str(job.title) + " : " + str(job.year) + " : " + str(job.video_type))
             ## Safe way of dealing with log files if the users need to post it online
-            #cleanlog = makecleanlogfile(job)
-            #logging.debug("####### --- job ----" + str(cleanlog))
+            cleanlog = makecleanlogfile(job)
+            logging.debug("####### --- job ----" + str(cleanlog))
 
     os.system("umount " + job.devpath)
 
@@ -142,8 +142,8 @@ def identify_dvd(job):
     lookup the title """
 
     ## Safe way of dealing with log files if the users need to post it online
-    cleanlog = makecleanlogfile(job)
-    logging.debug("####### --- job ----" + str(cleanlog))
+    #cleanlog = makecleanlogfile(job)
+    #logging.debug("####### --- job ----" + str(cleanlog))
 
     ## Added from #338
     # Some older DVDs aren't actually labelled
