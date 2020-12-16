@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 ## Added for newer werkzeug versions
 import werkzeug
