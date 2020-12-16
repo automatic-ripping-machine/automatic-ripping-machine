@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Identification of dvd/bluray
 
 import os
