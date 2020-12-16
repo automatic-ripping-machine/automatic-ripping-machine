@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Collection of utility functions
 
 import os
