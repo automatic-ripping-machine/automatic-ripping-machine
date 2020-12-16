@@ -61,6 +61,13 @@ def setuplogging(job):
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
+    
+    # This stops apprise spitting our secret keys when users posts online
+    apprise_logger = logging.getLogger('apprise')
+    apprise_logger.setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    
     ## logging.debug("Logfull = " + logfull)
     ## Return the full logfile location to the logs
     return logfull
