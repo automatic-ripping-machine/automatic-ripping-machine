@@ -55,12 +55,19 @@ def setuplogging(job):
 
     ## Debug formatting
     if cfg['LOGLEVEL'] == "DEBUG":
-        ## TODO: make secret keys safe
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
+    
+    # This stops apprise spitting our secret keys when users posts online
+    apprise_logger = logging.getLogger('apprise')
+    apprise_logger.setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+
     ## logging.debug("Logfull = " + logfull)
     ## Return the full logfile location to the logs
     return logfull
