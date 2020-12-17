@@ -785,7 +785,7 @@ def scan_emby(job):
 def SleepCheckProcess(process_str: str, transcode_limit: int):
     """ New function to check for max_transcode from cfg file and force obey limits\n
     arguments:
-    process_st - The process string from arm.yaml
+    process_str - The process string from arm.yaml
     transcode_limit - The user defined limit for maximum transcodes\n\n
 
     returns:
@@ -794,10 +794,10 @@ def SleepCheckProcess(process_str: str, transcode_limit: int):
     if transcode_limit > 0:
         Loop_Count = transcode_limit + 1
         logging.debug("Loop_Count " + str(transcode_limit))
-        logging.info("Starting A sleep check of " + str(process_st))
+        logging.info("Starting A sleep check of " + str(process_str))
         while Loop_Count >= transcode_limit:
-            Loop_Count = sum(1 for proc in psutil.process_iter() if proc.name() == process_st)
-            logging.debug("Number of Processes running is:" + str(transcode_limit) + " going to waiting 12 seconds.")
+            Loop_Count = sum(1 for proc in psutil.process_iter() if proc.name() == process_str)
+            logging.debug("Number of Processes running is:" + str(Loop_Count) + " going to waiting 12 seconds.")
             if transcode_limit > Loop_Count:
                 return True
             # Try to make each check at different times
@@ -805,7 +805,7 @@ def SleepCheckProcess(process_str: str, transcode_limit: int):
             logging.debug("sleeping for " + str(x) + " seconds")
             time.sleep(x)
     else:
-        logging.info("Number of processes to count is: " + str(Proc_Count))
+        logging.info("Transcode limit is disabled!")
 
 
 
