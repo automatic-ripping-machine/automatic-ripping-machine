@@ -118,7 +118,9 @@ def identify_bluray(job):
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
     except KeyError:
         ## Changed from pull 366
-        bluray_title = str(fallback_title)
+        # Fallback title isnt declared ?
+        #bluray_title = str(fallback_title)
+        bluray_ttitle = "not identified"
         bluray_year = ""
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
         # return False
