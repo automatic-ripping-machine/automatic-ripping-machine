@@ -108,6 +108,10 @@ def identify_bluray(job):
             doc = xmltodict.parse(xml_file.read())
     except OSError as e:
         logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.  Error number is: " + str(e.errno))
+        # Fix for blurays with no label causing crashes
+        job.title = "not identified"
+        job.year = ""
+        db.session.commit()
         return False
 
     try:
