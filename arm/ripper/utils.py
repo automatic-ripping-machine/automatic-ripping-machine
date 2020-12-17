@@ -12,6 +12,7 @@ import requests
 import time
 import apprise
 import random
+import re
 # Added from pull 366
 import datetime  # noqa: E402
 import psutil  # noqa E402
