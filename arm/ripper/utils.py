@@ -799,7 +799,7 @@ def SleepCheckProcess(process_str: str, transcode_limit: int):
     transcode_limit - The user defined limit for maximum transcodes\n\n
 
     returns:
-    True when we have space in the transcode queue
+    True - when we have space in the transcode queue
     """
     if transcode_limit > 0:
         loop_count = transcode_limit + 1
@@ -1220,16 +1220,13 @@ def makecleanlogfile(logfile):
     Clean the log of secret keys and return the removed string
 
     arguments:
-    logfile - the job/log as string
+    logfile - the log as string
 
     returns - a clean string with all keys and api secrets removed
     """
     ## TODO: make this cleaner/smaller
-
     # lets make sure we are using a string
     logfile = str(logfile)
-    # TODO: check if the ip is local, if its not strip it from log or add some part protection eg: 89.89.xx.xx
-    # WEBSERVER_IP: x.x.x.x
     # logging.debug("inside makecleanlogfile: " + str(logfile) + "\n\r")
     out = re.sub("\(PB_KEY=.*?\)", '(PB_KEY=** REMOVED **)', logfile)
     out = re.sub("\(EMBY_PASSWORD=.*?\)", '(EMBY_PASSWORD=** REMOVED **)', out)
@@ -1239,6 +1236,11 @@ def makecleanlogfile(logfile):
     out = re.sub("\(OMDB_API_KEY=.*?\)", '(OMDB_API_KEY=** REMOVED **)', out)
     out = re.sub("\(PO_APP_KEY=.*?\)", '(PO_APP_KEY=** REMOVED **)', out)
     out = re.sub("\(PO_USER_KEY=.*?\)", '(PO_USER_KEY=** REMOVED **)', out)
+    # \(WEBSERVER_IP=(.*?)\.3[0-9]{1,3}\.[0-9]{1,3}\)
+    ips = re.search('\(WEBSERVER_IP=(.*?)\.[0-9]{1,3}\.[0-9]{1,3}\)', out)
+    if ips:
+        ip = ips.group(1)
+        out = re.sub("\(WEBSERVER_IP=.*?\)", '(WEBSERVER_IP=' + str(ip) + '.xx.xx)', out)
 
     # Apprise notifications
     out = re.sub("\(DISCORD_WEBHOOK_ID=.*?\)", '(DISCORD_WEBHOOK_ID=** REMOVED **)', out)
