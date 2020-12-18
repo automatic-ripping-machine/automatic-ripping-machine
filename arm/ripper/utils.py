@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Collection of utility functions
-
 import os
 import sys
 import yaml
@@ -79,14 +78,12 @@ def notify(job, title, body):
         try:
             apprise_notify(job.config.APPRISE, title, body)
             logging.debug("apprise-config: " + str(job.config.APPRISE))
-            # subprocess.call(cmd)
         except Exception as e:  # noqa: E722
             logging.error("Failed sending apprise notification. " + str(e))
 
 
 def apprise_notify(apprisecfg, title, body):
-    """
-        APPRISE NOTIFICATIONS
+    """APPRISE NOTIFICATIONS
 
     :argument
     apprisecfg - The full path to the apprisecfg file
@@ -261,7 +258,7 @@ def apprise_notify(apprisecfg, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
             # Check if we have a pass, use it if we do
-            if job.config.JOIN_DEVICE != "":
+            if cfg['JOIN_DEVICE'] != "":
                 # A sample pushbullet notification
                 apobj.add('join://' + str(cfg['JOIN_API']) + "/" + str(cfg['JOIN_DEVICE']))
             else:
@@ -282,13 +279,13 @@ def apprise_notify(apprisecfg, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
             # check if we have login details, if so use them
-            if job.config.KODI_USER != "":
+            if cfg['KODI_USER'] != "":
                 apobj.add('kodi://' + str(cfg['KODI_USER']) + ":" + str(cfg['KODI_PASS']) + "@" + str(
                     cfg['KODI_HOST']) + ":" + str(cfg['KODI_PORT']))
             else:
-                if job.config.KODI_PORT != "":
+                if cfg['KODI_PORT'] != "":
                     # we need to check if they are using secure or this will fail
-                    if job.config.KODI_PORT == "443":
+                    if cfg['KODI_PORT'] == "443":
                         apobj.add('kodis://' + str(cfg['KODI_HOST']) + ":" + str(cfg['KODI_PORT']))
                     else:
                         apobj.add('kodi://' + str(cfg['KODI_HOST']) + ":" + str(cfg['KODI_PORT']))
@@ -361,7 +358,7 @@ def apprise_notify(apprisecfg, title, body):
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            if job.config.MATRIX_HOST != "":
+            if cfg['MATRIX_HOST'] != "":
                 apobj.add('matrixs://' + str(cfg['MATRIX_USER']) + ":" + str(cfg['MATRIX_PASS']) + "@" + str(
                     cfg['MATRIX_HOST']))  # + "/#general/#apprise")
             else:
@@ -502,7 +499,7 @@ def apprise_notify(apprisecfg, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('pjet://' + str(job.config.PUSHJET_HOST))
+            apobj.add('pjet://' + str(cfg['PUSHJET_HOST']))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -707,7 +704,7 @@ def apprise_notify(apprisecfg, title, body):
             # TODO: add channel var and check if its blank
             apobj = apprise.Apprise()
             # if we get user we use the username and pass
-            if job.config.XBMC_USER != "":
+            if cfg['XBMC_USER'] != "":
                 apobj.add('xbmc://' + str(cfg['XBMC_USER']) + ":" + str(cfg['XBMC_PASS']) + "@" + str(
                     cfg['XBMC_HOST']) + ":" + str(cfg['XBMC_PORT']))
             else:
@@ -727,7 +724,7 @@ def apprise_notify(apprisecfg, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
             # Is the user var filled
-            if job.config.XMPP_USER != "":
+            if cfg['XMPP_USER'] != "":
                 # xmpps://{userid}:{password}@{hostname}
                 apobj.add(
                     'xmpps://' + str(cfg['XMPP_USER']) + ":" + str(cfg['XMPP_PASS']) + "@" + str(cfg['XMPP_HOST']))
@@ -990,7 +987,7 @@ def rip_music(job, logfile):
     returns True/False for success/fail
     """
 
-    abcfile = cfg['ABCDE_CONFIG_FILE']
+    abcfile = job.config.ABCDE_CONFIG_FILE #cfg['ABCDE_CONFIG_FILE']
     if job.disctype == "music":
         logging.info("Disc identified as music")
         # If user has set a cfg file with ARM use it
@@ -1036,18 +1033,19 @@ def rip_data(job, datapath, logfile):
     if job.disctype == "data":
         logging.info("Disc identified as data")
 
-        if (job.label) == "":
+        if job.label == "" or job.label is None:
             job.label = "datadisc"
 
-        filename = os.path.join(datapath, str(job.label) + ".iso")
+        incomplete_filename = os.path.join(datapath, job.label + ".part")
+        final_filename = os.path.join(datapath, job.label + ".iso")
 
-        logging.info("Ripping data disc to: " + filename)
+        logging.info("Ripping data disc to: " + incomplete_filename)
 
         # Added from pull 366
         cmd = 'dd if="{0}" of="{1}" {2} 2>> {3}'.format(
             job.devpath,
-            filename,
-            cfg["DATA_RIP_PARAMETERS"],
+            incomplete_filename,
+            job.config.DATA_RIP_PARAMETERS,
             logfile
         )
 
@@ -1059,10 +1057,12 @@ def rip_data(job, datapath, logfile):
                 shell=True
             ).decode("utf-8")
             logging.info("Data rip call successful")
+            os.rename(incomplete_filename, final_filename)
             return True
         except subprocess.CalledProcessError as dd_error:
             err = "Data rip failed with code: " + str(dd_error.returncode) + "(" + str(dd_error.output) + ")"
             logging.error(err)
+            os.unlink(incomplete_filename)
             # sys.exit(err)
 
     return False
@@ -1208,8 +1208,8 @@ def armsetup(job):
         # Make the log dir if it doesnt exist
         if not os.path.exists(cfg['LOGPATH']):
             os.makedirs(cfg['LOGPATH'])
-    except Exception as e:
-        print("A fatal error has occured.  Cant find or create the folders from arm.yaml")
+    except IOError as e:
+        print("A fatal error has occurred.  Cant find/create the folders from arm.yaml")
         # notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the
         # logs for more details. " + str(e))
         sys.exit()
@@ -1220,7 +1220,7 @@ def makecleanlogfile(logfile):
     Clean the log of secret keys and return the removed string
 
     arguments:
-    logfile - the log as string
+    logfile - the job/log as string
 
     returns - a clean string with all keys and api secrets removed
     """
@@ -1228,7 +1228,7 @@ def makecleanlogfile(logfile):
 
     # lets make sure we are using a string
     logfile = str(logfile)
-    # TODO: maybe check if the ip is local, if its not strip it from log or add some part protection eg: 89.89.xx.xx
+    # TODO: check if the ip is local, if its not strip it from log or add some part protection eg: 89.89.xx.xx
     # WEBSERVER_IP: x.x.x.x
     # logging.debug("inside makecleanlogfile: " + str(logfile) + "\n\r")
     out = re.sub("\(PB_KEY=.*?\)", '(PB_KEY=** REMOVED **)', logfile)
