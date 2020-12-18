@@ -1,6 +1,7 @@
 import os
 import pyudev
 import psutil
+import logging
 from arm.ui import db
 from arm.config.config import cfg  # noqa: E402
 
@@ -99,13 +100,19 @@ class Job(db.Model):
 
     def eject(self):
         """Eject disc if it hasn't previously been ejected"""
+        try:
+            if os.system("umount " + self.devpath):
+                logging.debug("we unmounted disc" + self.devpath)
+            if os.system("eject " + self.devpath):
+                logging.debug("we ejected disc" + self.devpath)
+                self.ejected = True
+            else:
+                logging.debug("failed to eject" + self.devpath)
+        except Exception as e:
+            self.ejected = False
+            logging.debug(self.devpath + " couldn't be ejected " + str(e))
 
-        # print("Value is " + str(self.ejected))
-        if not self.ejected:
-            os.system("eject " + self.devpath)
-            self.ejected = True
-
-
+            
 class Track(db.Model):
     track_id = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('job.job_id'))
