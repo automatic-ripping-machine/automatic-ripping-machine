@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Collection of utility functions
 import os
 import sys
@@ -987,18 +987,18 @@ def rip_music(job, logfile):
     returns True/False for success/fail
     """
 
-    abcfile = job.config.ABCDE_CONFIG_FILE #cfg['ABCDE_CONFIG_FILE']
+    abcfile = job.config.ABCDE_CONFIG_FILE  # cfg['ABCDE_CONFIG_FILE']
     if job.disctype == "music":
         logging.info("Disc identified as music")
         # If user has set a cfg file with ARM use it
         if os.path.isfile(abcfile):
-            cmd = 'abcde -d "{0}" -c {1} -x >> "{2}" 2>&1'.format(
+            cmd = 'abcde -d "{0}" -c {1} >> "{2}" 2>&1'.format(
                 job.devpath,
                 abcfile,
                 logfile
             )
         else:
-            cmd = 'abcde -d "{0}" -x >> "{1}" 2>&1'.format(
+            cmd = 'abcde -d "{0}" >> "{1}" 2>&1'.format(
                 job.devpath,
                 logfile
             )

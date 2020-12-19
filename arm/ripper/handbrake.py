@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Handbrake processing of dvd/bluray
 
 import sys

@@ -5,7 +5,7 @@ import bcrypt
 import logging
 from arm.ui import db
 from arm.config.config import cfg  # noqa: E402
-from flask_login import LoginManager, current_user, login_user,UserMixin
+from flask_login import LoginManager, current_user, login_user, UserMixin
 
 
 class Job(db.Model):
@@ -102,7 +102,6 @@ class Job(db.Model):
 
     def eject(self):
         """Eject disc if it hasn't previously been ejected"""
-        """Eject disc if it hasn't previously been ejected"""
         try:
             if os.system("umount " + self.devpath):
                 logging.debug("we unmounted disc" + self.devpath)
@@ -114,7 +113,6 @@ class Job(db.Model):
         except Exception as e:
             self.ejected = False
             logging.debug(self.devpath + " couldn't be ejected " + str(e))
-
 
 
 class Track(db.Model):
@@ -209,6 +207,7 @@ class Config(db.Model):
     PO_USER_KEY = db.Column(db.String(64))
     PO_APP_KEY = db.Column(db.String(64))
     OMDB_API_KEY = db.Column(db.String(64))
+
     # job = db.relationship("Job", backref="config")
 
     def __init__(self, c, job_id):
@@ -222,8 +221,9 @@ class Config(db.Model):
         for attr, value in self.__dict__.items():
             if s:
                 s = s + "\n"
-            if str(attr) in ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
-                             "PO_USER_KEY", "PO_APP_KEY") and value:
+            if str(attr) in (
+                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                    "PO_USER_KEY", "PO_APP_KEY") and value:
                 value = "<hidden>"
             s = s + str(attr) + ":" + str(value)
 
@@ -240,7 +240,7 @@ class Config(db.Model):
 
 
 class User(db.Model, UserMixin):
-    user_id = db.Column(db.Integer,index=True, primary_key=True)
+    user_id = db.Column(db.Integer, index=True, primary_key=True)
     email = db.Column(db.String(64))
     password = db.Column(db.String(128))
     hash = db.Column(db.String(256))
@@ -258,6 +258,7 @@ class User(db.Model, UserMixin):
 
 
 class Alembic_version(db.Model):
-    version_num = db.Column(db.String(36), autoincrement=False,primary_key=True)
-    def __init__(self,version=None):
+    version_num = db.Column(db.String(36), autoincrement=False, primary_key=True)
+
+    def __init__(self, version=None):
         self.version_num = version

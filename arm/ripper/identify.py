@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Identification of dvd/bluray
 
 import os
@@ -27,8 +27,8 @@ def identify(job, logfile):
     """Identify disc attributes"""
 
     # Safe way of dealing with log files if the users need to post it online
-    # cleanlog = utils.makecleanlogfile(job)
-    # logging.debug("Identify Entry point --- job ----"+ str(cleanlog))
+    cleanlog = utils.makecleanlogfile(job)
+    logging.debug("Identify Entry point --- job ----"+ str(cleanlog))
 
     logging.info("Mounting disc to: " + str(job.mountpoint))
 
