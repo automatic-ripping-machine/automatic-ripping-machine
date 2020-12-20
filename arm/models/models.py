@@ -8,7 +8,6 @@ from arm.config.config import cfg  # noqa: E402
 from flask_login import LoginManager, current_user, login_user, UserMixin
 from prettytable import PrettyTable
 
-
 class Job(db.Model):
     job_id = db.Column(db.Integer, primary_key=True)
     arm_version = db.Column(db.String(20))
@@ -104,7 +103,10 @@ class Job(db.Model):
         x.field_names = ["Config", "Value"]
         x._max_width = {"Config": 50, "Value": 60}
         for attr, value in self.__dict__.items():
-            x.add_row([str(attr), str(value)])
+            if attr == "config":
+                x.add_row([str(attr), str(value.pretty_table())])
+            else:
+                x.add_row([str(attr), str(value)])
         return str(x.get_string())
 
     def __repr__(self):
@@ -244,6 +246,10 @@ class Config(db.Model):
 
         s = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
+            if str(attr) in (
+                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                    "PO_USER_KEY", "PO_APP_KEY") and value:
+                value = "<hidden>"
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 
         return s
@@ -252,8 +258,12 @@ class Config(db.Model):
         """Returns a string of the prettytable"""
         x = PrettyTable()
         x.field_names = ["Config", "Value"]
-        x._max_width = {"Config": 50, "Value": 60}
+        x._max_width = {"Config": 20, "Value": 30}
         for attr, value in self.__dict__.items():
+            if str(attr) in (
+                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                    "PO_USER_KEY", "PO_APP_KEY") and value:
+                value = "<hidden>"
             x.add_row([str(attr), str(value)])
         return str(x.get_string())
 
