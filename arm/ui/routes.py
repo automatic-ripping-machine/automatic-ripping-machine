@@ -101,6 +101,9 @@ def login():
     ## After a login for is submited
     if form.validate_on_submit():
         user = User.query.filter_by(email=str(form.username.data).strip()).first()
+        if user is None:
+            flash('Invalid username')
+            return redirect(url_for('login'))
         app.logger.debug("user= " + str(user))
         ## our previous pass
         password = user.password
