@@ -92,9 +92,8 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
         sys.exit(err)
 
     logging.info("Handbrake processing complete")
-    #logging.debug(str(job))
-    cleanlog = utils.makecleanlogfile(job)
-    logging.debug(str(cleanlog))
+    logging.debug("\n\r" + job.pretty_table())
+    
 
     track.ripped = True
     db.session.commit()
@@ -189,9 +188,8 @@ def handbrake_all(srcpath, basepath, logfile, job):
             db.session.commit()
 
     logging.info("Handbrake processing complete")
-    #logging.debug(str(job))
-    cleanlog = utils.makecleanlogfile(job)
-    logging.debug(str(cleanlog))
+    logging.debug("\n\r" + job.pretty_table())
+    
 
     return
 
@@ -251,9 +249,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
             # job.errors.append(f)
 
     logging.info("Handbrake processing complete")
-    # logging.debug(str(job))
-    cleanlog = utils.makecleanlogfile(job)
-    logging.debug(str(cleanlog))
+    logging.debug("\n\r" + job.pretty_table())
     return
 
 
