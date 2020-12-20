@@ -24,10 +24,7 @@ from arm.ui import db
 def identify(job, logfile):
     """Identify disc attributes"""
 
-    # Safe way of dealing with log files if the users need to post it online
-    cleanlog = utils.makecleanlogfile(job)
-    logging.debug("Identify Entry point --- job ----"+ str(cleanlog))
-
+    logging.debug("Identify Entry point --- job ---- \n\r" + job.pretty_table())
     logging.info("Mounting disc to: " + str(job.mountpoint))
 
     if not os.path.exists(str(job.mountpoint)):
@@ -77,10 +74,8 @@ def identify(job, logfile):
 
             logging.info(
                 "Disc title Post ident: " + str(job.title) + " : " + str(job.year) + " : " + str(job.video_type))
-            ## Safe way of dealing with log files if the users need to post it online
-            # cleanlog = utils.makecleanlogfile(job)
-            # logging.debug("identify.job.end ----" + str(cleanlog))
-
+            logging.debug("identify.job.end ---- \n\r" + job.pretty_table())
+            
     os.system("umount " + job.devpath)
 
 
@@ -110,7 +105,8 @@ def identify_bluray(job):
     except OSError as e:
         logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.  Error "
                       "number is: " + str(e.errno))
-        job.title = "not identified"
+        #job.title = "not identified"
+        job.title = str(job.label)
         job.year = ""
         db.session.commit()
         return False
@@ -119,7 +115,8 @@ def identify_bluray(job):
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
     except KeyError:
         ## Changed from pull 366
-        bluray_title = "not identified"
+        #bluray_title = "not identified"
+        bluray_title = str(job.label)
         bluray_year = ""
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
         # return False
@@ -148,9 +145,6 @@ def identify_dvd(job):
     """ Manipulates the DVD title and calls OMDB to try and 	
     lookup the title """
 
-    ## Safe way of dealing with log files if the users need to post it online
-    # cleanlog = utils.makecleanlogfile(job)
-    # logging.debug("####### --- job ----" + str(cleanlog))
     logging.debug("\n\r" + job.pretty_table())
     ## Added from #338
     # Some older DVDs aren't actually labelled
