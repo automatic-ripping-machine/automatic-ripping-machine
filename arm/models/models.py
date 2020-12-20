@@ -230,6 +230,10 @@ class Config(db.Model):
 
         s = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
+            if str(attr) in (
+                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                    "PO_USER_KEY", "PO_APP_KEY") and value:
+                value = "<hidden>"
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 
         return s
