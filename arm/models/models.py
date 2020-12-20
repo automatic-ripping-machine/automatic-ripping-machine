@@ -6,6 +6,7 @@ import logging
 from arm.ui import db
 from arm.config.config import cfg  # noqa: E402
 from flask_login import LoginManager, current_user, login_user, UserMixin
+from prettytable import PrettyTable
 
 
 class Job(db.Model):
@@ -96,6 +97,15 @@ class Job(db.Model):
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 
         return s
+
+    def pretty_table(self):
+        """Returns a string of the prettytable"""
+        x = PrettyTable()
+        x.field_names = ["Config", "Value"]
+        x._max_width = {"Config": 50, "Value": 60}
+        for attr, value in self.__dict__.items():
+            x.add_row([str(attr), str(value)])
+        return str(x.get_string())
 
     def __repr__(self):
         return '<Job {}>'.format(self.label)
@@ -238,6 +248,14 @@ class Config(db.Model):
 
         return s
 
+    def pretty_table(self):
+        """Returns a string of the prettytable"""
+        x = PrettyTable()
+        x.field_names = ["Config", "Value"]
+        x._max_width = {"Config": 50, "Value": 60}
+        for attr, value in self.__dict__.items():
+            x.add_row([str(attr), str(value)])
+        return str(x.get_string())
 
 class User(db.Model, UserMixin):
     user_id = db.Column(db.Integer, index=True, primary_key=True)

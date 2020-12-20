@@ -12,11 +12,9 @@ import unicodedata
 import xmltodict
 import json
 
-# import getmusictitle
 from arm.ripper import getmusictitle
 from arm.ripper import utils
 from arm.ui import db
-
 
 # from arm.config.config import cfg
 
@@ -153,7 +151,7 @@ def identify_dvd(job):
     ## Safe way of dealing with log files if the users need to post it online
     # cleanlog = utils.makecleanlogfile(job)
     # logging.debug("####### --- job ----" + str(cleanlog))
-
+    logging.debug("\n\r" + job.pretty_table())
     ## Added from #338
     # Some older DVDs aren't actually labelled
     if not job.label or job.label == "":
