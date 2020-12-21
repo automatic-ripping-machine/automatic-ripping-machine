@@ -329,11 +329,11 @@ def main(logfile, job):
                 job.status = "success"
                 db.session.commit()
                 # exit
+                job.eject()
                 sys.exit()
 
         job.status = "transcoding"
         db.session.commit()
-        job.eject()
         if job.disctype == "bluray" and job.config.RIPMETHOD == "mkv":
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
         elif job.disctype == "dvd" and (not job.config.MAINFEATURE and job.config.RIPMETHOD == "mkv"):
