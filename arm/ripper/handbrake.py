@@ -268,18 +268,29 @@ def get_track_info(srcpath, job):
     )
 
     logging.debug("Sending command: %s", cmd)
-
     try:
         hb = subprocess.check_output(
             cmd,
             stderr=subprocess.STDOUT,
             shell=True
-        ).decode('cp437').splitlines()
+        ).decode('utf-8').splitlines()
     except subprocess.CalledProcessError as hb_error:
         logging.error("Couldn't find a valid track.  Try running the command manually to see more specific errors.")
-        logging.error("Specifid error is: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")")
-        return -1
-        # sys.exit(err)
+        logging.error("Specific error is: " + str(hb_error))
+    else:
+        charset_found = True
+    if not charset_found:
+        try:
+            hb = subprocess.check_output(
+                cmd,
+                stderr=subprocess.STDOUT,
+                shell=True
+            ).decode('cp437').splitlines()
+        except subprocess.CalledProcessError as hb_error:
+            logging.error("Couldn't find a valid track.  Try running the command manually to see more specific errors.")
+            logging.error("Specific error is: " + str(hb_error))
+            # If it doesnt work now we either have bad encoding or HB has ran into issues
+            return -1
 
     t_pattern = re.compile(r'.*\+ title *')
     pattern = re.compile(r'.*duration\:.*')
