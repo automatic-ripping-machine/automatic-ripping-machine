@@ -8,3 +8,4 @@ yamlfile = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "ar
 
 with open(yamlfile, "r") as f:
     cfg = yaml.load(f,Loader=yaml.FullLoader)
+    #cfg = yaml.safe_load(f) # For older versions use this
