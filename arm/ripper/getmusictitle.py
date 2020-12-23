@@ -57,6 +57,7 @@ def musicbrainz(discid, job):
         title = str(infos['disc']['release-list'][0]['title'])
         ##Set out release id as the CRC_ID
         job.crc_id = infos['disc']['release-list'][0]['id']
+        job.hasnicetitle = True
         db.session.commit()
         logging.debug("musicbrain works -  New title is " + title + ".  New Year is: " + new_year)
     except mb.WebServiceError as exc:
@@ -80,7 +81,6 @@ def musicbrainz(discid, job):
 
         job.year = job.year_auto = str(new_year)
         job.title = job.title_auto = artist + " " + title
-        job.hasnicetitle = True
         job.no_of_titles = infos['disc']['offset-count']
         job.video_type = "Music"
         db.session.commit()
