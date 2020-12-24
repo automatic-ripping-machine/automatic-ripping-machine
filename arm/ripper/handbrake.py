@@ -31,9 +31,8 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     Returns nothing
     """
     logging.info("Starting DVD Movie Mainfeature processing")
-    cleanlog = utils.makecleanlogfile(job)
-    # logging.debug(str(cleanlog))
-    logging.debug("Handbrake starting: " + str(cleanlog))
+    logging.debug("Handbrake starting: ")
+    logging.debug("\n\r" + job.pretty_table())
 
     # Added for transcode limits
     job.status = "waiting_transcode"
@@ -50,6 +49,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     get_track_info(srcpath, job)
 
     track = job.tracks.filter_by(main_feature=True).first()
+    # track = job.tracks.order_by(Track.length.desc()).first()
 
     if track is None:
         msg = "No main feature found by Handbrake. Turn MAINFEATURE to false in arm.yml and try again."
@@ -89,6 +89,8 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
         logging.error(err)
         track.status = "fail"
         track.error = err
+        job.status = "fail"
+        db.session.commit()
         sys.exit(err)
 
     logging.info("Handbrake processing complete")
