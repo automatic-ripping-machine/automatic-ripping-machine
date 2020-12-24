@@ -1,4 +1,5 @@
 # Automatic Ripping Machine (ARM)
+[![Build Status](https://travis-ci.com/1337-server/automatic-ripping-machine.svg?branch=v2.3_dev)](https://travis-ci.com/1337-server/automatic-ripping-machine)
 
 ## Overview
 
