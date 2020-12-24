@@ -80,7 +80,6 @@ def musicbrainz(discid, job):
 
         job.year = job.year_auto = str(new_year)
         job.title = job.title_auto = artist + " " + title
-        job.hasnicetitle = True
         job.no_of_titles = infos['disc']['offset-count']
         job.video_type = "Music"
         db.session.commit()
