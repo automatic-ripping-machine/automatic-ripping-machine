@@ -2,14 +2,13 @@
 import logging
 import re
 import musicbrainzngs as mb
-import werkzeug
-from robobrowser import RoboBrowser
 from discid import read, Disc
 from subprocess import run, PIPE
 from arm.config.config import cfg
 from arm.ui import app, db  # noqa E402
+import werkzeug
 werkzeug.cached_property = werkzeug.utils.cached_property
-
+from robobrowser import RoboBrowser  # noqa E402
 
 def main(disc):
     """
