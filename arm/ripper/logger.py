@@ -51,17 +51,15 @@ def setuplogging(job):
             logfull = cfg['LOGPATH'] + newlogfile if os.path.isfile(TmpLogFull) else cfg['LOGPATH'] + str(job.label) + ".log"
         else:
             # Check to see if file already exists, if so, create a new file
-            newlogfile =  str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
+            newlogfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
             TmpLogFull = cfg['LOGPATH'] + "/" + logfile
             logfile = newlogfile if os.path.isfile(TmpLogFull) else str(job.label)
             logfull = cfg['LOGPATH'] + "/" + newlogfile if os.path.isfile(TmpLogFull) else cfg['LOGPATH'] + "/" + str(job.label) + ".log"
         # We need to give the logfile only to database
         job.logfile = logfile
-    
     # Remove all handlers associated with the root logger object.
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
-    
     # Debug formatting
     if cfg['LOGLEVEL'] == "DEBUG":
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',

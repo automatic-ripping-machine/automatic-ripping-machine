@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 import os
-## Added for newer werkzeug versions
+# Added for newer werkzeug versions
 import werkzeug
-werkzeug.cached_property = werkzeug.utils.cached_property
-
 from robobrowser import RoboBrowser
+werkzeug.cached_property = werkzeug.utils.cached_property
 
 
 def grabkeys():

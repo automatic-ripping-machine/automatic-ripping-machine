@@ -1,12 +1,12 @@
 import os
 import pyudev
 import psutil
-import bcrypt
 import logging
 from arm.ui import db
 from arm.config.config import cfg  # noqa: E402
-from flask_login import LoginManager, current_user, login_user, UserMixin
+from flask_login import LoginManager, current_user, login_user, UserMixin  # noqa: F401
 from prettytable import PrettyTable
+
 
 class Job(db.Model):
     job_id = db.Column(db.Integer, primary_key=True)
@@ -266,6 +266,7 @@ class Config(db.Model):
                 value = "<hidden>"
             x.add_row([str(attr), str(value)])
         return str(x.get_string())
+
 
 class User(db.Model, UserMixin):
     user_id = db.Column(db.Integer, index=True, primary_key=True)
