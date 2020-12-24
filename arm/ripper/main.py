@@ -82,7 +82,7 @@ def log_arm_params(job):
     logging.info("emby_port: " + job.config.EMBY_PORT)
     logging.info("notify_rip: " + str(job.config.NOTIFY_RIP))
     logging.info("notify_transcode " + str(job.config.NOTIFY_TRANSCODE))
-    ## Added from pull 366
+    #  Added from pull 366
     logging.info("max_concurrent_transcodes " + str(job.config.MAX_CONCURRENT_TRANSCODES))
     logging.info("**** End of config parameters ****")
 
@@ -92,7 +92,7 @@ def check_fstab():
     with open('/etc/fstab', 'r') as f:
         lines = f.readlines()
         for line in lines:
-            ## Now grabs the real uncommented fstab entry
+            #  Now grabs the real uncommented fstab entry
             if re.search("^" + job.devpath, line):
                 logging.info("fstab entry is: " + line.rstrip())
                 return
@@ -135,9 +135,9 @@ def main(logfile, job):
 
     identify.identify(job, logfile)
 
-    ## DVD disk entry
+    #  DVD disk entry
     if job.disctype in ["dvd", "bluray"]:
-        ## Send the notifications
+        #  Send the notifications
         utils.notify(job, "ARM notification", "Found disc: " + str(job.title) + ". Disc type is "
                      + str(job.disctype) + ". Main Feature is " + str(job.config.MAINFEATURE)
                      + ".  Edit entry here: http://" + str(check_ip()) + ":" + str(
@@ -150,7 +150,7 @@ def main(logfile, job):
         utils.notify(job, "ARM Notification", "Could not identify disc.  Exiting.")
         sys.exit()
 
-    ## If we have have waiting for user input enabled
+    #  If we have have waiting for user input enabled
     if job.config.MANUAL_WAIT:
         logging.info("Waiting " + str(job.config.MANUAL_WAIT_TIME) + " seconds for manual override.")
         job.status = "waiting"
@@ -161,11 +161,11 @@ def main(logfile, job):
         job.status = "active"
         db.session.commit()
 
-    ## If the user has set info manually update database and hasnicetitle
+    #  If the user has set info manually update database and hasnicetitle
     if job.title_manual:
         logging.info("Manual override found.  Overriding auto identification values.")
         job.updated = True
-        ## We need to let arm know we have a nice title so it can use the MEDIA folder and not the ARM folder
+        #  We need to let arm know we have a nice title so it can use the MEDIA folder and not the ARM folder
         job.hasnicetitle = True
     else:
         logging.info("No manual override found.")
@@ -177,12 +177,12 @@ def main(logfile, job):
         logging.info("Getting MakeMKV hashed keys for UHD rips")
         grabkeys()
 
-    ## Entry point for dvd/bluray
+    #  Entry point for dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
         # get filesystem in order
-        ## If we have a nice title/confirmed name use the MEDIA_DIR and not the ARM unidentified folder
+        #  If we have a nice title/confirmed name use the MEDIA_DIR and not the ARM unidentified folder
         if job.hasnicetitle:
-            ## Make sure we dont use 0000 in our folder name
+            #  Make sure we dont use 0000 in our folder name
             if job.year != "0000":
                 hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
             else:
@@ -190,25 +190,25 @@ def main(logfile, job):
         else:
             hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
 
-        ## The dvd directory already exists - Lets make a new one using random numbers
+        #  The dvd directory already exists - Lets make a new one using random numbers
         if (utils.make_dir(hboutpath)) is False:
             logging.info("Directory exist.")
-            ## Only begin ripping if we are allowed to make dupiclates
+            #  Only begin ripping if we are allowed to make dupiclates
             if job.config.ALLOW_DUPLICATES:
                 ts = round(time.time() * 100)
-                ## if we have a nice title, set the folder to MEDIA_DIR and not the unidentified ARMPATH
+                #  if we have a nice title, set the folder to MEDIA_DIR and not the unidentified ARMPATH
                 if job.hasnicetitle:
-                    ## Dont use the year if its  0000
+                    #  Dont use the year if its  0000
                     if job.year != "0000" or job.year != "":
                         hboutpath = os.path.join(job.config.MEDIA_DIR,
                                                  str(job.title) + " (" + str(job.year) + ") " + str(ts))
                     else:
                         hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " " + str(ts))
                 else:
-                    ## No nice title, use the unidentified path
+                    #  No nice title, use the unidentified path
                     hboutpath = os.path.join(job.config.ARMPATH, str(job.title) + "_" + str(ts))
 
-                ## We failed to make a random directory, most likely a permission issue
+                #  We failed to make a random directory, most likely a permission issue
                 if (utils.make_dir(hboutpath)) is False:
                     logging.exception(
                         "A fatal error has occured and ARM is exiting.  Couldnt create filesystem. Possible permission error")
@@ -218,7 +218,7 @@ def main(logfile, job):
                     db.session.commit()
                     sys.exit()
             else:
-                ## We arent allowed to rip dupes, notifiy and exit
+                #  We arent allowed to rip dupes, notifiy and exit
                 logging.info("Duplicate rips are disabled.")
                 utils.notify(job, "ARM notification", "ARM Detected a duplicate disc. For " + str(
                     job.title) + ".  Duplicate rips are disabled. You can reenable them from your config file. ")
@@ -228,7 +228,7 @@ def main(logfile, job):
 
         logging.info("Processing files to: " + hboutpath)
 
-        ## entry point for bluray or dvd with MAINFEATURE off and RIPMETHOD mkv
+        #  entry point for bluray or dvd with MAINFEATURE off and RIPMETHOD mkv
         hbinpath = str(job.devpath)
         if job.disctype == "bluray" or (not job.config.MAINFEATURE and job.config.RIPMETHOD == "mkv"):
             # send to makemkv for ripping
@@ -237,7 +237,7 @@ def main(logfile, job):
             db.session.commit()
             try:
                 mkvoutpath = makemkv.makemkv(logfile, job)
-            except:  # noqa: E772
+            except:  # noqa: E722
                 raise
 
             if mkvoutpath is None:
@@ -251,7 +251,7 @@ def main(logfile, job):
             # point HB to the path MakeMKV ripped to
             hbinpath = mkvoutpath
 
-            ##Entry point for not transcoding
+            # Entry point for not transcoding
             if job.config.SKIP_TRANSCODE and job.config.RIPMETHOD == "mkv":
                 logging.info("SKIP_TRANSCODE is true.  Moving raw mkv files.")
                 logging.info("NOTE: Identified main feature may not be actual main feature")
@@ -296,7 +296,7 @@ def main(logfile, job):
                     # Change final path (used to set permissions)
                     final_directory = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
                     # Clean up
-                    ## TODO: fix this so it doesnt remove everything
+                    #  TODO: fix this so it doesnt remove everything
                     logging.debug("Attempting to remove extra folder in ARMPATH: " + hboutpath)
                     if hboutpath != final_directory:
                         try:
@@ -373,15 +373,15 @@ def main(logfile, job):
             logging.info("job type is " + str(job.video_type) + "not movie or series, not moving.")
             utils.scan_emby(job)
 
-        ## Test for dvd fail permissions
+        #  Test for dvd fail permissions
         final_directory = p
         if job.config.SET_MEDIA_PERMISSIONS:
             perm_result = utils.set_permissions(job, final_directory)
             logging.info("Permissions set successfully: " + str(perm_result))
 
         # remove empty directories
-        ## Same issue of removing files that have already been identified
-        ## TODO: fully fix this, this is only a temp fix
+        #  Same issue of removing files that have already been identified
+        #  TODO: fully fix this, this is only a temp fix
         if hboutpath != final_directory:
             try:
                 os.rmdir(hboutpath)
@@ -428,7 +428,7 @@ def main(logfile, job):
         if utils.rip_music(job, logfile):
             utils.notify(job, "ARM notification", "Music CD: " + str(job.label) + " processing complete. ")
             utils.scan_emby(job)
-            ## This shouldnt be needed. but to be safe
+            #  This shouldnt be needed. but to be safe
             job.status = "success"
             db.session.commit()
         else:
@@ -460,20 +460,17 @@ def main(logfile, job):
 
 
 if __name__ == "__main__":
-    
-    logging.basicConfig(filename="/home/arm/logs/NAS.log", format='[%(asctime)s] %(levelname)s ARM: %(message)s',datefmt='%Y-%m-%d %H:%M:%S', level="DEBUG")    
-    
+    logging.basicConfig(filename="/home/arm/logs/NAS.log", format='[%(asctime)s] %(levelname)s ARM: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level="DEBUG")
     args = entry()
     devpath = "/dev/" + args.devpath
     # print(devpath)
     job = Job(devpath)
     # utils.armsetup(job)
     logfile = logger.setuplogging(job)
-    
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
-    ## Dont put out anything if we are using the empty.log This kills multiple runs. it stops the same job triggering more than once
+    #  Dont put out anything if we are using the empty.log This kills multiple runs. it stops the same job triggering more than once
     if not logfile.find("empty.log") == -1:
         sys.exit()
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))

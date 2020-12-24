@@ -3,23 +3,22 @@ import psutil
 import platform
 import subprocess
 import re
-import sys
+import sys  # noqa: F401
 import bcrypt
-import hashlib
-
+import hashlib  # noqa: F401
 from time import sleep
-from flask import Flask, render_template, make_response, abort, request, send_file, flash, redirect, url_for, Markup
+from flask import Flask, render_template, make_response, abort, request, send_file, flash, redirect, url_for, Markup  # noqa: F401
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track, User
+from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
 from arm.config.config import cfg
 from arm.ui.utils import get_info, call_omdb_api, clean_for_filename
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, LoginForm
 from pathlib import Path
-from flask.logging import default_handler
+from flask.logging import default_handler  # noqa: F401
 
-from flask_login import LoginManager, login_required, current_user, login_user, UserMixin
+from flask_login import LoginManager, login_required, current_user, login_user, UserMixin  # noqa: F401
 
-## the login manager
+#  the login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
 
@@ -29,7 +28,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-## Redirect to login if we arent auth
+#  Redirect to login if we arent auth
 @login_manager.unauthorized_handler
 def unauthorized():
     # do stuff
@@ -38,18 +37,18 @@ def unauthorized():
 
 @app.route('/setup')
 def setup():
-    ## TODO Verify this with a secret key in the config for set up
-    ## So not just anyone can wipe the database
+    # TODO Verify this with a secret key in the config for set up
+    # So not just anyone can wipe the database
     if setupdatabase():
         return redirect('/setup-stage2')
     else:
-        ## error out
+        #  error out
         return redirect("/error")
 
 
 @app.route('/setup-stage2', methods=['GET', 'POST'])
 def setup_stage2():
-    ##if there is no user in the database
+    # if there is no user in the database
     if User.query.all():
         return redirect('/index')
 
@@ -57,12 +56,12 @@ def setup_stage2():
     # logging.basicConfig()
     # logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
 
-    ## if user is logged in
+    # if user is logged in
     # if current_user.is_authenticated:
     #    return redirect('/index')
     form = LoginForm()
 
-    ## After a login for is submited
+    # After a login for is submited
     if form.validate_on_submit():
         username = str(form.username.data).strip()
         pass1 = str(form.password.data).strip().encode('utf-8')
@@ -80,7 +79,7 @@ def setup_stage2():
                 flash(str(e))
                 return redirect('/setup-stage2')
         else:
-            ##app.logger.debug("user: "+ str(username) + " Pass:" + pass1 )
+            # app.logger.debug("user: "+ str(username) + " Pass:" + pass1 )
             flash("error something was blank")
             return redirect('/setup-stage2')
     return render_template('setup.html', title='setup', form=form)
@@ -88,27 +87,27 @@ def setup_stage2():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    ##if there is no user in the database
+    # if there is no user in the database
     if not User.query.all():
         return redirect('/setup-stage2')
 
-    ## if user is logged in
+    # if user is logged in
     if current_user.is_authenticated:
         return redirect('/index')
 
     form = LoginForm()
 
-    ## After a login for is submited
+    # After a login for is submited
     if form.validate_on_submit():
         user = User.query.filter_by(email=str(form.username.data).strip()).first()
         if user is None:
             flash('Invalid username')
             return redirect(url_for('login'))
         app.logger.debug("user= " + str(user))
-        ## our previous pass
+        # our previous pass
         password = user.password
         hashed = user.hash
-        ## our new one
+        # our new one
         loginhashed = bcrypt.hashpw(str(form.password.data).strip().encode('utf-8'), hashed)
         app.logger.debug(loginhashed)
         app.logger.debug(password)
@@ -126,35 +125,34 @@ def login():
     return render_template('login.html', title='Sign In', form=form)
 
 
-## New page for editing/deleting/trundicating the database
 @app.route('/database')
 @login_required
 def database():
-    ##Success gives the user feedback to let them know if the delete worked
+    # Success gives the user feedback to let them know if the delete worked
     success = False
 
-    ## Check for database file
+    # Check for database file
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
         jobs = Job.query.filter_by()
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
-    ## Try to see if we have the arg set, if not ignore the error
+    # Try to see if we have the arg set, if not ignore the error
     try:
-        ## Mode to make sure the users has confirmed
-        ## jobid if they one to only delete 1 job
+        # Mode to make sure the users has confirmed
+        # jobid if they one to only delete 1 job
         mode = request.args['mode']
         jobid = request.args['jobid']
 
-        ## Find the job the user wants to delete
+        # Find the job the user wants to delete
         if mode == 'delete' and jobid is not None:
-            ## User wants to wipe the whole database
-            ## Make a backup and everything
-            ## The user can only access this by typing it manually
+            # User wants to wipe the whole database
+            # Make a backup and everything
+            # The user can only access this by typing it manually
             if jobid == 'all':
                 if os.path.isfile(cfg['DBFILE']):
-                    ## Make a backup of the database file
+                    # Make a backup of the database file
                     cmd = 'cp ' + str(cfg['DBFILE']) + ' ' + str(cfg['DBFILE']) + '.bak'
                     app.logger.info("cmd  -  {0}".format(cmd))
                     os.system(cmd)
@@ -164,20 +162,21 @@ def database():
                 db.session.commit()
                 success = True
                 """elif jobid == "logfile":
-                ## The user can only access this by typing it manually
-                ## This shouldnt be left on when on a full server
+                #  The user can only access this by typing it manually
+                #  This shouldnt be left on when on a full server
                 logfile = request.args['file']
                 Job.query.filter_by(title=logfile).delete()
                 db.session.commit()
-                """## Not sure this is the greatest way of handling this
+                """
+                # Not sure this is the greatest way of handling this
             else:
                 Track.query.filter_by(job_id=jobid).delete()
                 Job.query.filter_by(job_id=jobid).delete()
                 Config.query.filter_by(job_id=jobid).delete()
                 db.session.commit()
                 success = True
-    ## If we run into problems with the datebase changes
-    ## error out to the log and roll back
+    # If we run into problems with the datebase changes
+    # error out to the log and roll back
     except Exception as err:
         db.session.rollback()
         app.logger.error("Error:  {0}".format(err))
@@ -185,24 +184,24 @@ def database():
     return render_template('database.html', jobs=jobs, success=success)
 
 
-## New page for editing/Viewing the ARM config
+# New page for editing/Viewing the ARM config
 @app.route('/settings')
 @login_required
 def settings():
-    ## This loop syntax accesses the whole dict by looping
-    ## over the .items() tuple list, accessing one (key, value)
+    # This loop syntax accesses the whole dict by looping
+    # over the .items() tuple list, accessing one (key, value)
     raw_html = '<form id="form1" name="form1" method="get" action="">'
-    ## pair on each iteration.
+    # pair on each iteration.
     for k, v in cfg.items():
-        raw_html += '<tr> <td><label for="' + str(k) + '"> ' + str(k) + ': </label></td> <td><input type="text" name="' + str(k) + '" id="' + str(k) + '" value="' + str(v) + '"/></td></tr>'
+        raw_html += '<tr> <td><label for="' + str(k) + '"> ' + str(k) + ': </label></td> <td><input type="text" name="' + str(k) + '" id="' + str(k) + '" value="' + str(v) + '"/></td></tr>'   # noqa: E501
         app.logger.info(str(k) + str(' > ') + str(v) + "\n")
         # app.logger.info(str(raw_html))
     raw_html += " </form>"
 
-    ## TODO: Check if the users is posting data
-    ## For now it only shows the config
-    #path1 = os.path.dirname(os.path.abspath(__file__))
-    #with open(str(path1) + '/test.json', 'w') as f:
+    # TODO: Check if the users is posting data
+    # For now it only shows the config
+    # path1 = os.path.dirname(os.path.abspath(__file__))
+    # with open(str(path1) + '/test.json', 'w') as f:
     #    f.write(raw_html + "\n")
 
     # app.logger.error("Error:  {0}".format(str(cfg)))
@@ -212,25 +211,25 @@ def settings():
 @app.route('/logreader')
 @login_required
 def logreader():
-    ### use logger
+    # use logger
     # app.logger.info('Processing default request')
     # app.logger.debug('DEBUGGING')
     # app.logger.error('ERROR Inside /logreader')
 
-    ## Setup our vars
+    # Setup our vars
     logpath = cfg['LOGPATH']
     mode = request.args['mode']
     logfile = request.args['logfile']
 
     # Assemble full path
     fullpath = os.path.join(logpath, logfile)
-    ## Check if the logfile exists
+    # Check if the logfile exists
     my_file = Path(fullpath)
     if not my_file.is_file():
         # logfile doesnt exist throw out error template
         return render_template('error.html')
 
-    ## Only ARM logs
+    # Only ARM logs
     if mode == "armcat":
         def generate():
             f = open(fullpath)
@@ -241,7 +240,7 @@ def logreader():
                         yield new
                 else:
                     sleep(1)
-    ## Give everything / Tail
+    # Give everything / Tail
     elif mode == "full":
         def generate():
             with open(fullpath) as f:
@@ -250,9 +249,9 @@ def logreader():
                     sleep(1)
     elif mode == "download":
         app.logger.debug('fullpath: ' + fullpath)
-        ### TODO: strip all keys/secrets
+        # TODO: strip all keys/secrets
         return send_file(fullpath, as_attachment=True)
-    ## Give a version thats safe to post online
+    # Give a version thats safe to post online
     elif mode == "onlinepost":
         return send_file(fullpath, as_attachment=True)
     else:
@@ -328,10 +327,10 @@ def changeparams():
         config.MAXLENGTH = format(form.MAXLENGTH.data)
         config.RIPMETHOD = format(form.RIPMETHOD.data)
         config.MAINFEATURE = int(format(form.MAINFEATURE.data) == 'true')
-        #config.MAINFEATURE = int(format(form.MAINFEATURE.data)) ## must be 1 for True 0 for False
+        # config.MAINFEATURE = int(format(form.MAINFEATURE.data)) #  must be 1 for True 0 for False
         job.disctype = format(form.DISCTYPE.data)
         db.session.commit()
-        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}, Disctype={}'.format(form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data,form.DISCTYPE.data))
+        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}, Disctype={}'.format(form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data, form.DISCTYPE.data))   # noqa: E501
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
@@ -397,6 +396,7 @@ def updatetitle():
     flash('Title: {} ({}) was updated to {} ({})'.format(job.title_auto, job.year_auto, new_title, new_year), category='success')
     return redirect(url_for('home'))
 
+
 @app.route('/logs')
 @login_required
 def logs():
@@ -431,20 +431,20 @@ def home():
     mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
     mfreegb = round(mfreegb / 1073741824, 1)
 
-    ## RAM
+    #  RAM
     meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1])) for i in open('/proc/meminfo').readlines())
     mem_kib = meminfo['MemTotal']  # e.g. 3921852
     mem_gib = mem_kib / (1024.0 * 1024.0)
-    ## lets make sure we only give back small numbers
+    #  lets make sure we only give back small numbers
     mem_gib = round(mem_gib, 2)
 
     memused_kib = meminfo['MemFree']  # e.g. 3921852
     memused_gib = memused_kib / (1024.0 * 1024.0)
-    ## lets make sure we only give back small numbers
+    #  lets make sure we only give back small numbers
     memused_gib = round(memused_gib, 2)
     memused_gibs = round(mem_gib - memused_gib, 2)
 
-    ## get out cpu info
+    #  get out cpu info
     ourcpu = get_processor_name()
 
     if os.path.isfile(cfg['DBFILE']):
@@ -453,11 +453,11 @@ def home():
     else:
         jobs = {}
 
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu, ram=mem_gib, ramused=memused_gibs, ramfree=memused_gib, ramdump=meminfo)
+    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu, ram=mem_gib, ramused=memused_gibs, ramfree=memused_gib, ramdump=meminfo)   # noqa: E501
 
 
-## Lets show some cpu info
-## only tested on OMV
+#  Lets show some cpu info
+#  only tested on OMV
 def get_processor_name():
     if platform.system() == "Windows":
         return platform.processor()
@@ -479,21 +479,22 @@ def get_processor_name():
 
 
 def setupdatabase():
-    ## Try to get the db. User if not we nuke everything
+    #  Try to get the db. User if not we nuke everything
     try:
         User.query.all()
         return True
     except Exception as err:
-        ## We only need this on first run
-        ## Wipe everything
+        #  We only need this on first run
+        #  Wipe everything
+        flash(str(err))
         db.drop_all()
-        ## Recreate everything
+        #  Recreate everything
         db.metadata.create_all(db.engine)
         # See important note below
-        from arm.models.models import User, Job, Track, Config, Alembic_version
+        # from arm.models.models import User, Job, Track, Config, Alembic_version
         db.create_all()
         db.session.commit()
-        ## push the database version arm is looking for
+        #  push the database version arm is looking for
         user = Alembic_version('c3a3fa694636')
         db.session.add(user)
         db.session.commit()

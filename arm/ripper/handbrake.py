@@ -49,7 +49,8 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     get_track_info(srcpath, job)
 
     track = job.tracks.filter_by(main_feature=True).first()
-    #track = job.tracks.order_by(Track.length.desc()).first()
+    # track = job.tracks.order_by(Track.length.desc()).first()
+
     if track is None:
         msg = "No main feature found by Handbrake. Turn MAINFEATURE to false in arm.yml and try again."
         logging.error(msg)

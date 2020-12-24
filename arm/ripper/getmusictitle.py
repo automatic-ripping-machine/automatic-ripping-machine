@@ -3,13 +3,12 @@ import logging
 import re
 import musicbrainzngs as mb
 import werkzeug
-
-werkzeug.cached_property = werkzeug.utils.cached_property
 from robobrowser import RoboBrowser
 from discid import read, Disc
 from subprocess import run, PIPE
 from arm.config.config import cfg
 from arm.ui import app, db  # noqa E402
+werkzeug.cached_property = werkzeug.utils.cached_property
 
 
 def main(disc):
@@ -46,16 +45,16 @@ def musicbrainz(discid, job):
     the label of the disc as a string or "" if nothing was found
     """
     mb.set_useragent("arm", "v1.0")
-    ## TODO: Split this into smaller groups of tries so we dont lose everything if a single thing fails
+    # TODO: Split this into smaller groups of tries so we dont lose everything if a single thing fails
     try:
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits'])
         logging.debug("Infos: %s", infos)
         logging.debug("discid = " + str(discid))
-        ## Clean up the date and the title
+        # Clean up the date and the title
         new_year = str(infos['disc']['release-list'][0]['date'])
         new_year = re.sub("-[0-9]{2}-[0-9]{2}$", "", new_year)
         title = str(infos['disc']['release-list'][0]['title'])
-        ##Set out release id as the CRC_ID
+        # Set out release id as the CRC_ID
         job.crc_id = infos['disc']['release-list'][0]['id']
         job.hasnicetitle = True
         db.session.commit()
@@ -66,17 +65,17 @@ def musicbrainz(discid, job):
         db.session.commit()
         return ""
     try:
-        ## We never make it to here if the mb fails
+        # We never make it to here if the mb fails
         artist = infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name']
         logging.debug("artist=====" + str(artist))
         logging.debug("do have artwork?======" + str(infos['disc']['release-list'][0]['cover-art-archive']['artwork']))
 
-        ## Get our front cover if it exists
+        # Get our front cover if it exists
         if get_cd_art(job, infos):
             logging.debug("we got an art image")
         else:
             logging.debug("we didnt get art image")
-        ## Set up the database properly for music cd's
+        # Set up the database properly for music cd's
         # job.logfile = cleanforlog(artist) + "_" + cleanforlog(infos['disc']['release-list'][0]['title']) + ".log"
 
         job.year = job.year_auto = str(new_year)
@@ -157,7 +156,7 @@ def gettitle(discid, job):
         logging.debug('mb info = %s', infos)
         title = str(infos['disc']['release-list'][0]['title'])
         logging.debug('title = %s', title)
-        ##Start setting our db stuff
+        # Start setting our db stuff
         job.crc_id = str(infos['disc']['release-list'][0]['id'])
         logging.debug('crc = %s', job.crc_id)
         artist = str(infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name'])
@@ -173,7 +172,7 @@ def gettitle(discid, job):
         # return artist + "_" + title
     except mb.WebServiceError as exc:
         logging.error("mb.gettitle -  ERROR: " + str(exc))
-        logging.debug('error = %s',str(exc))
+        logging.debug('error = %s', str(exc))
         return "not identified"
 
 
@@ -190,16 +189,16 @@ def get_cd_art(job, infos):
     False if we didnt find the art
     """
     try:
-        ## Use the build-in images from coverartarchive if available
+        # Use the build-in images from coverartarchive if available
         if infos['disc']['release-list'][0]['cover-art-archive']['artwork'] != "false":
             artlist = mb.get_image_list(job.crc_id)
             for image in artlist["images"]:
-                ## For verified images only
+                # For verified images only
                 """if "Front" in image["types"] and image["approved"]:
                     job.poster_url_auto = str(image["thumbnails"]["large"])
                     job.poster_url = str(image["thumbnails"]["large"])
                     return True"""
-                ## We dont care if its verified ?
+                # We dont care if its verified ?
                 if "image" in image:
                     job.poster_url_auto = str(image["image"])
                     job.poster_url = str(image["image"])
@@ -208,7 +207,7 @@ def get_cd_art(job, infos):
     except mb.WebServiceError as exc:
         logging.error("get_cd_art ERROR: " + str(exc))
     try:
-        ## This uses roboBrowser to grab the amazon/3rd party image if it exists
+        # This uses roboBrowser to grab the amazon/3rd party image if it exists
         browser = RoboBrowser(user_agent='a python robot')
         browser.open('https://musicbrainz.org/release/' + job.crc_id)
         img = browser.select('.cover-art img')
@@ -227,7 +226,7 @@ def get_cd_art(job, infos):
 
 
 if __name__ == "__main__":
-    ## this will break our logging if it ever triggers for arm
+    # this will break our logging if it ever triggers for arm
     # logging.basicConfig(level=logging.DEBUG)
     disc = Disc("/dev/cdrom")
     myid = get_discid(disc)
