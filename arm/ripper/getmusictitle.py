@@ -56,6 +56,7 @@ def musicbrainz(discid, job):
         title = str(infos['disc']['release-list'][0]['title'])
         # Set out release id as the CRC_ID
         job.crc_id = infos['disc']['release-list'][0]['id']
+        job.hasnicetitle = True
         db.session.commit()
         logging.debug("musicbrain works -  New title is " + title + ".  New Year is: " + new_year)
     except mb.WebServiceError as exc:
