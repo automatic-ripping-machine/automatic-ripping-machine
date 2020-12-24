@@ -1,31 +1,35 @@
 import os
+import platform
+import subprocess
+import re
+import psutil
+
 from time import sleep
 from flask import render_template, abort, request, send_file, flash, redirect, url_for
-import psutil
 from arm.ui import app, db
 from arm.models.models import Job, Config
 from arm.config.config import cfg
 from arm.ui.utils import convert_log, get_info, call_omdb_api, clean_for_filename
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm
 from pathlib import Path
-import platform, subprocess, re
+
 
 @app.route('/logreader')
 def logreader():
-    ## TODO: check if logfile exist, if not error out
+    #  TODO: check if logfile exist, if not error out
     logpath = cfg['LOGPATH']
     mode = request.args['mode']
     logfile = request.args['logfile']
 
     # Assemble full path
     fullpath = os.path.join(logpath, logfile)
-    ## Check if the logfile exists
+    #  Check if the logfile exists
     my_file = Path(fullpath)
     if not my_file.is_file():
         # file exists
-        #clogfile = convert_log(logfile)
+        # clogfile = convert_log(logfile)
         return render_template('error.html')
-        #return send_file("templates/error.html")
+        # return send_file("templates/error.html")
     if mode == "armcat":
         def generate():
             f = open(fullpath)
@@ -103,12 +107,16 @@ def changeparams():
         config.MAXLENGTH = format(form.MAXLENGTH.data)
         config.RIPMETHOD = format(form.RIPMETHOD.data)
         config.MAINFEATURE = int(format(form.MAINFEATURE.data) == 'true')
-        #config.MAINFEATURE = int(format(form.MAINFEATURE.data)) ## must be 1 for True 0 for False
+        # config.MAINFEATURE = int(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False
         job.disctype = format(form.DISCTYPE.data)
         db.session.commit()
-        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}, Disctype={}'.format(form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data,form.DISCTYPE.data))
+        flash(
+            'Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}, Disctype={}'.format(
+                form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data,
+                form.DISCTYPE.data))
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
+
 
 @app.route('/customTitle', methods=['GET', 'POST'])
 def customtitle():
@@ -123,6 +131,7 @@ def customtitle():
         flash('custom title changed. Title={}, Year={}, '.format(form.title, form.year))
         return redirect(url_for('home'))
     return render_template('customTitle.html', title='Change Title', form=form)
+
 
 @app.route('/list_titles')
 def list_titles():
@@ -163,7 +172,8 @@ def updatetitle():
     job.poster_url = poster_url
     job.hasnicetitle = True
     db.session.commit()
-    flash('Title: {} ({}) was updated to {} ({})'.format(job.title_auto, job.year_auto, new_title, new_year), category='success')
+    flash('Title: {} ({}) was updated to {} ({})'.format(job.title_auto, job.year_auto, new_title, new_year),
+          category='success')
     return redirect(url_for('home'))
 
 
@@ -177,7 +187,6 @@ def logs():
 
 @app.route('/listlogs', defaults={'path': ''})
 def listlogs(path):
-
     basepath = cfg['LOGPATH']
     fullpath = os.path.join(basepath, path)
 
@@ -193,28 +202,26 @@ def listlogs(path):
 @app.route('/')
 @app.route('/index.html')
 def home():
-
     # Hard drive space
     freegb = psutil.disk_usage(cfg['ARMPATH']).free
-    freegb = round(freegb/1073741824, 1)
+    freegb = round(freegb / 1073741824, 1)
     mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
-    mfreegb = round(mfreegb/1073741824, 1)
+    mfreegb = round(mfreegb / 1073741824, 1)
 
-    ## RAM memory
+    # RAM memory
     meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1])) for i in open('/proc/meminfo').readlines())
     mem_kib = meminfo['MemTotal']  # e.g. 3921852
     mem_gib = mem_kib / (1024.0 * 1024.0)
-    ## lets make sure we only give back small numbers
+    # lets make sure we only give back small numbers
     mem_gib = round(mem_gib, 2)
 
     memused_kib = meminfo['MemFree']  # e.g. 3921852
     memused_gib = memused_kib / (1024.0 * 1024.0)
-    ## lets make sure we only give back small numbers
+    # lets make sure we only give back small numbers
     memused_gib = round(memused_gib, 2)
-    memused_gibs = round(mem_gib - memused_gib,2)
+    memused_gibs = round(mem_gib - memused_gib, 2)
 
-
-    ## get out cpu info
+    # get out cpu info
     ourcpu = get_processor_name()
 
     if os.path.isfile(cfg['DBFILE']):
@@ -223,10 +230,10 @@ def home():
     else:
         jobs = {}
 
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu,ram=mem_gib, ramused=memused_gibs ,ramfree=memused_gib, ramdump=meminfo)
+    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu, ram=mem_gib,
+                           ramused=memused_gibs, ramfree=memused_gib, ramdump=meminfo)
 
-## Lets show some cpu info
-## only tested on OMV
+
 def get_processor_name():
     if platform.system() == "Windows":
         return platform.processor()
@@ -234,14 +241,14 @@ def get_processor_name():
         return subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
     elif platform.system() == "Linux":
         command = "cat /proc/cpuinfo"
-        #return \
+        # return \
         fulldump = str(subprocess.check_output(command, shell=True).strip())
         # Take any float trailing "MHz", some whitespace, and a colon.
         speeds = re.search(r"\\nmodel name\\t:.*?GHz\\n", fulldump)
-        #return str(fulldump)
+        # return str(fulldump)
         speeds = str(speeds.group())
         speeds = speeds.replace('\\n', ' ')
         speeds = speeds.replace('\\t', ' ')
-        speeds = speeds.replace('model name :' , '')
+        speeds = speeds.replace('model name :', '')
         return speeds
     return ""

@@ -112,7 +112,7 @@ class Job(db.Model):
             self.ejected = False
             logging.debug(self.devpath + " couldn't be ejected " + str(e))
 
-            
+
 class Track(db.Model):
     track_id = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('job.job_id'))

@@ -9,8 +9,8 @@ import shutil
 import requests
 import time
 import apprise
-## Added from pull 366
-import datetime  # noqa: E402
+# Added from pull 366
+import datetime  # noqa: F401
 import psutil  # noqa E402
 
 # from arm.config.config import cfg
@@ -22,39 +22,37 @@ def notify(job, title, body):
     # Send notificaions
     # title = title for notification
     # body = body of the notification
-    ################### Lets try the desktop notifications first ###############################
     cmd = "apprise -vv -t \"{0}\" -b \"{1}\" dbus://".format(title, body)
-    cmd1 = "apprise -vv -t \"{0}\" -b \"{1}\" kde://".format(title, body) 
+    cmd1 = "apprise -vv -t \"{0}\" -b \"{1}\" kde://".format(title, body)
     cmd2 = "apprise -vv -t \"{0}\" -b \"{1}\" gnome://".format(title, body)
     cmd3 = "apprise -vv -t \"{0}\" -b \"{1}\" windows://".format(title, body)
-    #############################################################################################
     try:
-    	logging.debug( "Trying ##########"+ cmd)
-    	os.system(cmd)
-    	#subprocess.call(cmd)
+        logging.debug("Trying ##########" + cmd)
+        os.system(cmd)
+        # subprocess.call(cmd)
     except Exception as e:  # noqa: E722
-    	logging.error("Failed sending desktops apprise notification. ################ " + str(e))
+        logging.error("Failed sending desktops apprise notification. ################ " + str(e))
     try:
-    	logging.debug( "Trying ##########"+ cmd1)
-    	os.system(cmd1)
-    	#subprocess.call(cmd)
+        logging.debug("Trying ##########" + cmd1)
+        os.system(cmd1)
+        # subprocess.call(cmd)
     except Exception as e:  # noqa: E722
-    	logging.error("Failed sending desktops apprise notification. ################ " + str(e))
+        logging.error("Failed sending desktops apprise notification. ################ " + str(e))
     try:
-    	logging.debug( "Trying ##########"+ cmd2)
-    	os.system(cmd2)
-    	#subprocess.call(cmd)
+        logging.debug("Trying ##########" + cmd2)
+        os.system(cmd2)
+        # subprocess.call(cmd)
     except Exception as e:  # noqa: E722
-    	logging.error("Failed sending desktops apprise notification. ################ " + str(e))
+        logging.error("Failed sending desktops apprise notification. ### # # # # # #  " + str(e))
     try:
-    	logging.debug( "Trying ##########"+ cmd3)
-    	os.system(cmd3)
-    	#subprocess.call(cmd)
+        logging.debug("Trying # # # # # " + cmd3)
+        os.system(cmd3)
+        # subprocess.call(cmd)
     except Exception as e:  # noqa: E722
-    	logging.error("Failed sending desktops apprise notification. ################ " + str(e))
-    	    
-    ## Pushbullet
-    ## pbul://{accesstoken}
+        logging.error("Failed sending desktops apprise notification. # # # # # # # #  " + str(e))
+
+    #  Pushbullet
+    #  pbul://{accesstoken}
     if job.config.PB_KEY != "":
         try:
             # Create an Apprise instance
@@ -69,8 +67,8 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending Pushbullet apprise notification.  Continueing processing...")
-    ## boxcar
-    ## boxcar://{access_key}/{secret_key}
+    #  boxcar
+    #  boxcar://{access_key}/{secret_key}
     if job.config.BOXCAR_KEY != "":
         try:
             # Create an Apprise instance
@@ -86,10 +84,9 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending boxcar apprise notification.  Continueing processing...")
-    ## discord
-    ## discord://{WebhookID}/{WebhookToken}/
+    #  discord
+    #  discord://{WebhookID}/{WebhookToken}/
     if job.config.DISCORD_WEBHOOK_ID != "":
-        ## TODO: add userid to this and config
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
@@ -104,8 +101,8 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending discord apprise notification.  Continueing processing...")
-    ## Faast
-    ## faast://{authorizationtoken}
+    #  Faast
+    #  faast://{authorizationtoken}
     if job.config.FAAST_TOKEN != "":
         try:
             # Create an Apprise instance
@@ -121,8 +118,8 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending faast apprise notification.  Continueing processing...")
-    ## FLOCK
-    ## flock://{token}/
+    #  FLOCK
+    #  flock://{token}/
     if job.config.FLOCK_TOKEN != "":
         try:
             # Create an Apprise instance
@@ -138,8 +135,8 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending flock apprise notification.  Continueing processing...")
-    ## GITTER
-    ## gitter: // {token} / {room} /
+    #  GITTER
+    #  gitter: // {token} / {room} /
     if job.config.GITTER_TOKEN != "":
         try:
             # Create an Apprise instance
@@ -155,8 +152,8 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending gitter apprise notification.  Continueing processing...")
-    ## Gotify
-    ## gotify://{hostname}/{token}
+    #  Gotify
+    #  gotify://{hostname}/{token}
     if job.config.GOTIFY_TOKEN != "":
         try:
             # Create an Apprise instance
@@ -172,13 +169,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending gitter apprise notification.  Continueing processing...")
-    ## Growl
-    ## growl://{hostname} || growl://{password}@{hostname}
+    #  Growl
+    #  growl://{hostname} || growl://{password}@{hostname}
     if job.config.GROWL_HOST != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            ## Check if we have a pass, use it if we do
+            #  Check if we have a pass, use it if we do
             if job.config.GROWL_PASS != "":
                 # A sample pushbullet notification
                 apobj.add('growl://' + str(job.config.GROWL_PASS) + "@" + str(job.config.GROWL_HOST))
@@ -193,8 +190,8 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending growl apprise notification.  Continueing processing...")
-    ## IFTTT
-    ## ifttt://{WebhookID}@{Event}/
+    #  IFTTT
+    #  ifttt://{WebhookID}@{Event}/
     if job.config.IFTTT_KEY != "":
         try:
             # Create an Apprise instance
@@ -210,13 +207,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending IFTTT apprise notification.  Continueing processing...")
-    ## JOIN
-    ## join://{apikey}/ ||  join://{apikey}/{device_id}
+    #  JOIN
+    #  join://{apikey}/ ||  join://{apikey}/{device_id}
     if job.config.JOIN_API != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            ## Check if we have a pass, use it if we do
+            #  Check if we have a pass, use it if we do
             if job.config.JOIN_DEVICE != "":
                 # A sample pushbullet notification
                 apobj.add('join://' + str(job.config.JOIN_API) + "/" + str(job.config.JOIN_DEVICE))
@@ -231,18 +228,18 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending growl apprise notification.  Continueing processing...")
-    ## Kodi
-    ## kodi://{hostname}:{port} || kodi: // {userid}: {password} @ {hostname}:{port}
+    #  Kodi
+    #  kodi://{hostname}:{port} || kodi: // {userid}: {password} @ {hostname}:{port}
     if job.config.KODI_HOST != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
             # check if we have login details, if so use them
             if job.config.KODI_USER != "":
-                apobj.add('kodi://' + str(job.config.KODI_USER) + ":" + str(job.config.KODI_PASS) + "@"+ str(job.config.KODI_HOST) + ":" + str(job.config.KODI_PORT))
+                apobj.add('kodi://' + str(job.config.KODI_USER) + ":" + str(job.config.KODI_PASS) + "@" + str(job.config.KODI_HOST) + ":" + str(job.config.KODI_PORT))  # noqa: E501
             else:
                 if job.config.KODI_PORT != "":
-                    ## we need to check if they are using secure or this will fail
+                    #  we need to check if they are using secure or this will fail
                     if job.config.KODI_PORT == "443":
                         apobj.add('kodis://' + str(job.config.KODI_HOST) + ":" + str(job.config.KODI_PORT))
                     else:
@@ -257,7 +254,7 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending KODI apprise notification.  Continueing processing...")
-    ## KUMULOS
+    #  KUMULOS
     if job.config.KUMULOS_API != "":
         try:
             # Create an Apprise instance
@@ -273,13 +270,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending KUMULOS apprise notification.  Continueing processing...")
-    ## LEMETRIC
+    #  LEMETRIC
     if job.config.LAMETRIC_MODE != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            ## find the correct mode
+            #  find the correct mode
             if job.config.LAMETRIC_MODE == "device":
                 apobj.add('lametric://' + str(job.config.LAMETRIC_API) + "@" + str(job.config.LAMETRIC_HOST))
             elif job.config.LAMETRIC_MODE == "cloud":
@@ -294,13 +291,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending LAMETRIC apprise notification.  Continueing processing...")
-    ## MAILGUN
+    #  MAILGUN
     if job.config.MAILGUN_DOMAIN != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
             # A sample pushbullet notification
-            apobj.add('mailgun://' + str(job.config.MAILGUN_USER) + "@" + str(job.config.MAILGUN_DOMAIN) + "/"+ str(job.config.MAILGUN_APIKEY))
+            apobj.add('mailgun://' + str(job.config.MAILGUN_USER) + "@" + str(job.config.MAILGUN_DOMAIN) + "/" + str(job.config.MAILGUN_APIKEY))
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -310,15 +307,15 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending mailgun apprise notification.  Continueing processing...")
-    ## MATRIX
+    #  MATRIX
     if job.config.MATRIX_HOST != "" or job.config.MATRIX_TOKEN != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
             if job.config.MATRIX_HOST != "":
-                apobj.add('matrixs://' + str(job.config.MATRIX_USER) + ":" + str(job.config.MATRIX_PASS) + "@"+ str(job.config.MATRIX_HOST)) # + "/#general/#apprise")
+                apobj.add('matrixs://' + str(job.config.MATRIX_USER) + ":" + str(job.config.MATRIX_PASS) + "@" + str(job.config.MATRIX_HOST))  # + "/#general/#apprise")  # noqa: E501
             else:
-                apobj.add('matrix://' + str(job.config.MATRIX_TOKEN) )
+                apobj.add('matrix://' + str(job.config.MATRIX_TOKEN))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -327,14 +324,14 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending Matrix apprise notification.  Continueing processing...")
-    ## Microsoft teams
+    #  Microsoft teams
     if job.config.MSTEAMS_TOKENA != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
             # msteams://{tokenA}/{tokenB}/{tokenC}/
-            apobj.add('msteams://' + str(job.config.MSTEAMS_TOKENA) + "/" + str(job.config.MSTEAMS_TOKENB) + "/"+ str(job.config.MSTEAMS_TOKENC) + "/")
+            apobj.add('msteams://' + str(job.config.MSTEAMS_TOKENA) + "/" + str(job.config.MSTEAMS_TOKENB) + "/" + str(job.config.MSTEAMS_TOKENC) + "/")
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -344,13 +341,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending Microsoft teams apprise notification.  Continueing processing...")
-    ## Nextcloud
+    #  Nextcloud
     if job.config.NEXTCLOUD_HOST != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('nclouds://' + str(job.config.NEXTCLOUD_ADMINUSER) + ":" + str(job.config.NEXTCLOUD_ADMINPASS) + "@"+ str(job.config.NEXTCLOUD_HOST) + "/"+ str(job.config.NEXTCLOUD_NOTIFY_USER))
+            apobj.add('nclouds://' + str(job.config.NEXTCLOUD_ADMINUSER) + ":" + str(job.config.NEXTCLOUD_ADMINPASS) + "@" + str(job.config.NEXTCLOUD_HOST) + "/" + str(job.config.NEXTCLOUD_NOTIFY_USER))  # noqa: E501
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -360,13 +357,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending nextcloud apprise notification.  Continueing processing...")
-    ## Notica
+    #  Notica
     if job.config.NOTICA_TOKEN != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('notica://' + str(job.config.NOTICA_TOKEN) )
+            apobj.add('notica://' + str(job.config.NOTICA_TOKEN))
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -376,14 +373,12 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending notica apprise notification.  Continueing processing...")
-    ## Notifico
+    #  Notifico
     if job.config.NOTIFICO_PROJECTID != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-
-            apobj.add('notica://' + str(job.config.NOTIFICO_PROJECTID) + "/" + str(job.config.NOTIFICO_MESSAGEHOOK) )
-
+            apobj.add('notica://' + str(job.config.NOTIFICO_PROJECTID) + "/" + str(job.config.NOTIFICO_MESSAGEHOOK))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -392,16 +387,16 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending notifico apprise notification.  continuing  processing...")
-    ## Office365
+    #  Office365
     if job.config.OFFICE365_TENANTID != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            #o365://{tenant_id}:{account_email}/{client_id}/{client_secret}/
+            # o365://{tenant_id}:{account_email}/{client_id}/{client_secret}/
             # TODO: we might need to escape/encode the client_secret
             # Replace ? with %3F and  @ with %40
-            apobj.add('o365://' + str(job.config.OFFICE365_TENANTID) + ":" + str(job.config.OFFICE365_ACCOUNTEMAIL) + "/" +str(job.config.OFFICE365_CLIENT_ID) + "/" + str(job.config.OFFICE365_CLIENT_SECRET))
+            apobj.add('o365://' + str(job.config.OFFICE365_TENANTID) + ":" + str(job.config.OFFICE365_ACCOUNTEMAIL) + "/" + str(job.config.OFFICE365_CLIENT_ID) + "/" + str(job.config.OFFICE365_CLIENT_SECRET))  # noqa: E501
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -411,13 +406,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending Office365 apprise notification.  continuing processing...")
-    ## Popcorn
+    #  Popcorn
     if job.config.POPCORN_API != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
             if job.config.POPCORN_EMAIL != "":
-                apobj.add('popcorn://' + str(job.config.POPCORN_API) + "/" + str(job.config.POPCORN_EMAIL) )
+                apobj.add('popcorn://' + str(job.config.POPCORN_API) + "/" + str(job.config.POPCORN_EMAIL))
             if job.config.POPCORN_PHONENO != "":
                 apobj.add('popcorn://' + str(job.config.POPCORN_API) + "/" + str(job.config.POPCORN_PHONENO))
             # Then notify these services any time you desire. The below would
@@ -428,15 +423,15 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending popcorn apprise notification.  Continueing processing...")
-    ## PROWL
+    #  PROWL
     if job.config.PROWL_API != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
             if job.config.PROWL_PROVIDERKEY != "":
-                apobj.add('prowl://' + str(job.config.PROWL_API) + "/" + str(job.config.PROWL_PROVIDERKEY) )
+                apobj.add('prowl://' + str(job.config.PROWL_API) + "/" + str(job.config.PROWL_PROVIDERKEY))
             else:
-                apobj.add('prowl://' + str(job.config.PROWL_API) )
+                apobj.add('prowl://' + str(job.config.PROWL_API))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -445,14 +440,14 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending notifico apprise notification.  continuing  processing...")
-    ## Pushjet
-    ## project is dead not worth coding fully
+    #  Pushjet
+    #  project is dead not worth coding fully
     if job.config.PUSHJET_HOST != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('pjet://' + str(job.config.PUSHJET_HOST) )
+            apobj.add('pjet://' + str(job.config.PUSHJET_HOST))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -461,13 +456,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending pushjet apprise notification.  continuing  processing...")
-    ## techulus push
+    #  techulus push
     if job.config.PUSH_API != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('push://' + str(job.config.PUSH_API) )
+            apobj.add('push://' + str(job.config.PUSH_API))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -476,13 +471,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending techulus push apprise notification.  continuing  processing...")
-    ## PUSHED
+    #  PUSHED
     if job.config.PUSHED_APP_KEY != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('pushed://' + str(job.config.PUSHED_APP_KEY) + "/" +  str(job.config.PUSHED_APP_SECRET) )
+            apobj.add('pushed://' + str(job.config.PUSHED_APP_KEY) + "/" + str(job.config.PUSHED_APP_SECRET))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -491,13 +486,12 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending PUSHED apprise notification.  continuing  processing...")
-    ## PUSHOVER
+    #  PUSHOVER
     if job.config.PO_USER_KEY != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-
-            apobj.add('pover://' + str(job.config.PO_USER_KEY) + "@" +  str(job.config.PO_APP_KEY) )
+            apobj.add('pover://' + str(job.config.PO_USER_KEY) + "@" + str(job.config.PO_APP_KEY))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -506,13 +500,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending PUSHOVER apprise notification.  continuing  processing...")
-    ## PUSHSAFER
+    #  PUSHSAFER
     if job.config.PUSHSAFER_KEY != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('psafers://' + str(job.config.PUSHSAFER_KEY) )
+            apobj.add('psafers://' + str(job.config.PUSHSAFER_KEY))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -521,15 +515,15 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending pushsafer apprise notification.  continuing  processing...")
-    ## ROCKETCHAT
-    ## rocket://{webhook}@{hostname}/{@user}
+    #  ROCKETCHAT
+    #  rocket://{webhook}@{hostname}/{@user}
     if job.config.ROCKETCHAT_HOST != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            ## TODO: Add checks for webhook or default modes
-            ## for now only the webhook will work
-            apobj.add('rocket://' + str(job.config.ROCKETCHAT_WEBHOOK) + "@" + str(job.config.ROCKETCHAT_HOST) )
+            #  TODO: Add checks for webhook or default modes
+            #  for now only the webhook will work
+            apobj.add('rocket://' + str(job.config.ROCKETCHAT_WEBHOOK) + "@" + str(job.config.ROCKETCHAT_HOST))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -538,14 +532,14 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending rocketchat apprise notification.  continuing  processing...")
-    ## ryver
-    ## ryver://{organization}/{token}/
+    #  ryver
+    #  ryver://{organization}/{token}/
     if job.config.RYVER_ORG != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            ## TODO: Add checks for webhook or default modes
-            ## for now only the webhook will work
+            #  TODO: Add checks for webhook or default modes
+            #  for now only the webhook will work
             apobj.add('ryver://' + str(job.config.RYVER_ORG) + "/" + str(job.config.RYVER_TOKEN) + "/")
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -555,13 +549,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending RYVER apprise notification.  continuing  processing...")
-    ## Sendgrid
-    ## sendgrid://{apikey}:{from_email}
+    #  Sendgrid
+    #  sendgrid://{apikey}:{from_email}
     if job.config.SENDGRID_API != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            ## TODO: Add tomail
+            #  TODO: Add tomail
             apobj.add('sendgrid://' + str(job.config.SENDGRID_API) + ":" + str(job.config.SENDGRID_FROMMAIL))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -571,13 +565,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending sendgrid apprise notification.  continuing  processing...")
-    ## simplepush
-    ## spush://{apikey}/
+    #  simplepush
+    #  spush://{apikey}/
     if job.config.SIMPLEPUSH_API != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            apobj.add('spush://' + str(job.config.SIMPLEPUSH_API) )
+            apobj.add('spush://' + str(job.config.SIMPLEPUSH_API))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -586,13 +580,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending simplepush apprise notification.  continuing  processing...")
-    ## slacks
-    ## slack://{tokenA}/{tokenB}/{tokenC}
+    #  slacks
+    #  slack://{tokenA}/{tokenB}/{tokenC}
     if job.config.SLACK_TOKENA != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            apobj.add('slack://' + str(job.config.SLACK_TOKENA) + "/" + str(job.config.SLACK_TOKENB) + "/"  + str(job.config.SLACK_TOKENC) + "/" + str(job.config.SLACK_CHANNEL))
+            apobj.add('slack://' + str(job.config.SLACK_TOKENA) + "/" + str(job.config.SLACK_TOKENB) + "/" + str(job.config.SLACK_TOKENC) + "/" + str(job.config.SLACK_CHANNEL))  # noqa: E501
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -601,13 +595,13 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending slacks apprise notification.  continuing  processing...")
-    ## SPARKPOST
-    ## sparkpost://{user}@{domain}/{apikey}/ || sparkpost://{user}@{domain}/{apikey}/{email}/
+    #  SPARKPOST
+    #  sparkpost://{user}@{domain}/{apikey}/ || sparkpost://{user}@{domain}/{apikey}/{email}/
     if job.config.SPARKPOST_API != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            apobj.add('sparkpost://' + str(job.config.SPARKPOST_USER) + "@" + str(job.config.SPARKPOST_HOST) + "/"  + str(job.config.SPARKPOST_API) + "/" + str(job.config.SPARKPOST_EMAIL))
+            apobj.add('sparkpost://' + str(job.config.SPARKPOST_USER) + "@" + str(job.config.SPARKPOST_HOST) + "/" + str(job.config.SPARKPOST_API) + "/" + str(job.config.SPARKPOST_EMAIL))  # noqa: E501
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -616,8 +610,8 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending SparkPost apprise notification.  continuing  processing...")
-    ## spontit
-    ## spontit://{user}@{apikey}
+    #  spontit
+    #  spontit://{user}@{apikey}
     if job.config.SPONTIT_API != "":
         try:
             # Create an Apprise instance
@@ -631,8 +625,8 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending Spontit apprise notification.  continuing  processing...")
-    ## Telegram
-    ## tgram://{bot_token}/{chat_id}/ || tgram://{bot_token}/
+    #  Telegram
+    #  tgram://{bot_token}/{chat_id}/ || tgram://{bot_token}/
     if job.config.TELEGRAM_BOT_TOKEN != "":
         try:
             # Create an Apprise instance
@@ -646,12 +640,12 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending Telegram apprise notification.  continuing  processing...")
-    ## Twist
-    ## twist://{email}/{password} || twist://{password}:{email}
+    #  Twist
+    #  twist://{email}/{password} || twist://{password}:{email}
     if job.config.TWIST_EMAIL != "":
         try:
             # Create an Apprise instance
-            ## TODO: add channel var and check if its blank
+            #  TODO: add channel var and check if its blank
             apobj = apprise.Apprise()
             apobj.add('twist://' + str(job.config.TWIST_EMAIL) + "/" + str(job.config.TWIST_PASS))
             # Then notify these services any time you desire. The below would
@@ -662,16 +656,16 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending Twist apprise notification.  continuing  processing...")
-    ## XBMC
-    ## xbmc://{userid}:{password}@{hostname}:{port} ||  xbmc://{hostname}:{port}
+    #  XBMC
+    #  xbmc://{userid}:{password}@{hostname}:{port} ||  xbmc://{hostname}:{port}
     if job.config.XBMC_HOST != "":
         try:
             # Create an Apprise instance
-            ## TODO: add channel var and check if its blank
+            #  TODO: add channel var and check if its blank
             apobj = apprise.Apprise()
-            ## if we get user we use the username and pass
+            #  if we get user we use the username and pass
             if job.config.XBMC_USER != "":
-                apobj.add('xbmc://' + str(job.config.XBMC_USER) + ":" + str(job.config.XBMC_PASS) + "@" + str(job.config.XBMC_HOST) + ":" + str(job.config.XBMC_PORT))
+                apobj.add('xbmc://' + str(job.config.XBMC_USER) + ":" + str(job.config.XBMC_PASS) + "@" + str(job.config.XBMC_HOST) + ":" + str(job.config.XBMC_PORT))  # noqa: E501
             else:
                 apobj.add('xbmc://' + str(job.config.XBMC_HOST) + ":" + str(job.config.XBMC_PORT))
             # Then notify these services any time you desire. The below would
@@ -682,18 +676,18 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending XBMC apprise notification.  continuing  processing...")
-    ## XMPP
-    ## xmpp://{password}@{hostname}:{port} || xmpps://{userid}:{password}@{hostname}
+    #  XMPP
+    #  xmpp://{password}@{hostname}:{port} || xmpps://{userid}:{password}@{hostname}
     if job.config.XMPP_HOST != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
-            ## Is the user var filled
+            #  Is the user var filled
             if job.config.XMPP_USER != "":
-                #xmpps://{userid}:{password}@{hostname}
-                apobj.add('xmpps://' + str(job.config.XMPP_USER) + ":" + str(job.config.XMPP_PASS) + "@" + str(job.config.XMPP_HOST) )
+                # xmpps://{userid}:{password}@{hostname}
+                apobj.add('xmpps://' + str(job.config.XMPP_USER) + ":" + str(job.config.XMPP_PASS) + "@" + str(job.config.XMPP_HOST))
             else:
-                #xmpp: // {password} @ {hostname}: {port}
+                # xmpp: // {password} @ {hostname}: {port}
                 apobj.add('xmpp://' + str(job.config.XMPP_PASS) + "@" + str(job.config.XMPP_HOST))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -703,14 +697,14 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending XMPP apprise notification.  continuing  processing...")
-    ## Webex teams
-    ## wxteams://{token}/
+    #  Webex teams
+    #  wxteams://{token}/
     if job.config.WEBEX_TEAMS_TOKEN != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('wxteams://' + str(job.config.WEBEX_TEAMS_TOKEN) )
+            apobj.add('wxteams://' + str(job.config.WEBEX_TEAMS_TOKEN))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -719,14 +713,14 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending Webex teams apprise notification.  continuing  processing...")
-    ## Zulip
-    ## zulip://{botname}@{organization}/{token}/
+    #  Zulip
+    #  zulip://{botname}@{organization}/{token}/
     if job.config.ZILUP_CHAT_TOKEN != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('zulip://' + str(job.config.ZILUP_CHAT_BOTNAME) + "@" +  str(job.config.ZILUP_CHAT_ORG) + "/" + str(job.config.ZILUP_CHAT_TOKEN))
+            apobj.add('zulip://' + str(job.config.ZILUP_CHAT_BOTNAME) + "@" + str(job.config.ZILUP_CHAT_ORG) + "/" + str(job.config.ZILUP_CHAT_TOKEN))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -735,7 +729,6 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending Zulip apprise notification.  continuing  processing...")
-
 
 
 def scan_emby(job):
@@ -754,9 +747,10 @@ def scan_emby(job):
     else:
         logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
 
-## New function from pull 366
-## Adds max number of transcodes
-## Need to add user config variables
+
+#  New function from pull 366
+#  Adds max number of transcodes
+#  Need to add user config variables
 def SleepCheckProcess(ProcessStr, Proc_Count):
 
     if Proc_Count != 0:
@@ -769,6 +763,7 @@ def SleepCheckProcess(ProcessStr, Proc_Count):
             time.sleep(10)
     else:
         logging.info("Number of processes to count is: " + str(Proc_Count))
+
 
 def move_files(basepath, filename, job, ismainfeature=False):
     """Move files into final media directory\n
@@ -843,14 +838,16 @@ def rename_files(oldpath, job):
     logging.debug("oldpath: " + oldpath + " newpath: " + newpath)
     logging.info("Changing directory name from " + oldpath + " to " + newpath)
 
-    ## Added from pull 366
-    # Sometimes a job fails, after the rip, but before move of the tracks into the folder, at which point the below command
+    #  Added from pull 366
+    # Sometimes a job fails, after the rip, but before move of the tracks into the folder,
+    # at which point the below command
     # will move the newly ripped folder inside the old correctly named folder.
     # This can be a problem as the job when it tries to move the files, won't find them.
     # other than putting in an error message, I'm not sure how to perminently fix this problem.
     # Maybe I could add a configurable option for deletion of crashed job files?
     if os.path.isdir(newpath):
-        logging.info("Error: The 'new' directory already exists, ARM will probably copy the newly ripped folder into the old-new folder.")
+        logging.info("Error: The 'new' directory already exists,"
+                     " ARM will probably copy the newly ripped folder into the old-new folder.")
 
     try:
         shutil.move(oldpath, newpath)
@@ -858,36 +855,6 @@ def rename_files(oldpath, job):
     except shutil.Error:
         logging.info("Error change directory from " + oldpath + " to " + newpath + ".  Likely the path already exists.")
         raise OSError(2, 'No such file or directory', newpath)
-
-    # try:
-    #     shutil.rmtree(oldpath)
-    #     logging.debug("oldpath deleted successfully.")
-    # except shutil.Error:
-    #     logging.info("Error change directory from " + oldpath + " to " + newpath + ".  Likely the path already exists.")
-    #     raise OSError(2, 'No such file or directory', newpath)
-
-    # tracks = Track.query.get(job.job_id)
-    # tracks = job.tracks.all()
-    # for track in tracks:
-    #     if track.main_feature:
-    #         newfilename = job.title + " (" + str(job.year) + ")" + "." + cfg["DEST_EXT"]
-    #     else:
-    #         newfilename = job.title + " (" + str(job.year) + ")" + track.track_number + "." + cfg["DEST_EXT"]
-
-    #     track.new_filename = newfilename
-
-    #     # newfullpath = os.path.join(newpath, job.new_title + " (" + str(job.new_year) + ")" + track.track_number + "." + cfg["DEST_EXT"])
-    #     logging.info("Changing filename '" + os.path.join(newpath, track.filename) + "' to '" + os.path.join(newpath, newfilename) + "'")
-    #     try:
-    #         shutil.move(os.path.join(newpath, track.filename), os.path.join(newpath, newfilename))
-    #         logging.debug("Filename change successful")
-    #     except shutil.Error:
-    #         logging.error("Unable to change '" + track.filename + "' to '" + newfilename + "'")
-    #         raise OSError(3, 'Unable to change file', newfilename)
-
-    #     track.filename = newfilename
-        # db.session.commit()
-
     return newpath
 
 
@@ -1005,11 +972,11 @@ def rip_data(job, datapath, logfile):
 
         logging.info("Ripping data disc to: " + filename)
 
-        ## Added from pull 366
+        #  Added from pull 366
         cmd = 'dd if="{0}" of="{1}" {2} 2>> {3}'.format(
             job.devpath,
             filename,
-            cfg["DATA_RIP_PARAMETERS"],
+            job.config.DATA_RIP_PARAMETERS,
             logfile
         )
 
