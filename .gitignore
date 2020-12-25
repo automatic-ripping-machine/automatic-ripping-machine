@@ -21,4 +21,4 @@ arm.yaml
 *.old
 *.xml
 *.iml
-venv*
+venv/*
