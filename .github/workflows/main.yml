@@ -4,6 +4,10 @@ on:
   push:
     paths:
       - '*.py'
+  pull_request:
+    branches: v2.3_dev
+    paths: 
+      - 'arm'
 
 jobs:
   flake8_py3:
