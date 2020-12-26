@@ -5,8 +5,13 @@ python:
 before_install:
   - sudo apt-get install libgnutls28-dev
 install: "pip install -r requirements.txt"
+install:
+  - pip install codecov
+script:
+  - flake8 arm
+  - coverage run tests.py
 script:
   - flake8 arm
 after_success:
   - bash <(curl -s https://codecov.io/bash)
-  
+  - codecov
