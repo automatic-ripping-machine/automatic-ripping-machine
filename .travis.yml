@@ -7,7 +7,8 @@ before_install:
 install: "pip install -r requirements.txt"
 script:
   - flake8 arm
-  - coverage run arm
+  - coverage run arm/ripper/main.py
+  - coverage run arm/runui.py
 script:
   - flake8 arm
 after_success:
