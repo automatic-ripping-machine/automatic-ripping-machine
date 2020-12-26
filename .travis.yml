@@ -7,7 +7,8 @@ before_install:
 install: "pip install -r requirements.txt"
 script:
   - flake8 arm
-  - coverage run tests.py
+  - coverage run arm
+  - pytest --cov=./
 script:
   - flake8 arm
 after_success:
