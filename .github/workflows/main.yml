@@ -32,10 +32,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-  codecov:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - uses: codecov/codecov-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
