@@ -1,0 +1,24 @@
+name: Python Pull Request Workflow
+on: [pull_request]
+jobs:
+
+  qa:
+    name: Quality check
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python
+        uses: actions/setup-python@master
+        with:
+          python-version: 3.8
+      - name: Run unit tests
+        run: |
+          pip install pytest
+          pytest
+      - name: Wemake Python Stylguide
+        uses: wemake-services/wemake-python-styleguide@0.13.4
+        continue-on-error: true
+        with:
+          reporter: 'github-pr-review'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
