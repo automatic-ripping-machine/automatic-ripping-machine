@@ -9,8 +9,6 @@ script:
   - flake8 arm
   - coverage run arm/ripper/main.py
   - coverage run arm/runui.py
-script:
-  - flake8 arm
 after_success:
   - bash <(curl -s https://codecov.io/bash)
   - codecov
