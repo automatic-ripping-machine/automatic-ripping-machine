@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: 3.7
       - name: Checkout PyTorch
-        uses: actions/checkout@v2.3_dev
+        uses: actions/checkout@master
       - name: Install flake8
         run: pip install flake8
       - name: Run flake8
@@ -32,3 +32,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      - name: "Upload coverage to Codecov"
+        uses: codecov/codecov-action@v1.0.5
+        with:
+          fail_ci_if_error: true
