@@ -22,3 +22,4 @@ musicbrainzngs>=0.7.1
 discid>=1.1.1
 prettytable>=2.0.0
 codecov
+pytest-cov
