@@ -12,7 +12,7 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-
+  
 jobs:
   flake8_py3:
     runs-on: ubuntu-latest
@@ -31,3 +31,8 @@ jobs:
           checkName: 'flake8_py3'   # NOTE: this needs to be the same as the job name
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # (Other steps go here)
+      - name: "Upload coverage to Codecov"
+        uses: codecov/codecov-action@v1
+        with:
+           fail_ci_if_error: true
