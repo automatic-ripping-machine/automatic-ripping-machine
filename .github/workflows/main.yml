@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: 3.7
       - name: Checkout PyTorch
-        uses: actions/checkout@master
+        uses: actions/checkout@v2.3_dev
       - name: Install flake8
         run: pip install flake8
       - name: Run flake8
@@ -39,9 +39,3 @@ jobs:
       - uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          file: ./coverage.xml # optional
-          files: ./coverage1.xml,./coverage2.xml # optional
-          flags: unittests # optional
-          name: codecov-umbrella # optional
-          fail_ci_if_error: true # optional (default = false)
-          verbose: true # optional (default = false)
