@@ -31,10 +31,7 @@ jobs:
           checkName: 'flake8_py3'   # NOTE: this needs to be the same as the job name
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1.0.5
+      - name: "Upload coverage to Codecov"
+        uses: codecov/codecov-action@v1
         with:
           fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./tests/reports/coverage.xml
-          flags: ${{ matrix.python-version }}
