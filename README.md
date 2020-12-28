@@ -9,11 +9,12 @@
 ![GitHub contributors](https://img.shields.io/github/contributors/1337-server/automatic-ripping-machine?style=plastic)
 ![GitHub last commit](https://img.shields.io/github/last-commit/1337-server/automatic-ripping-machine?&style=plastic)
 
-![GitHub release Date](https://img.shields.io/github/release-date/1337-server/automatic-ripping-machine?label=Latest%20Stable%20Released&style=plastic)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/1337-server/automatic-ripping-machine?label=Latest%20Stable%20Version&style=plastic) ![GitHub release Date](https://img.shields.io/github/release-date/1337-server/automatic-ripping-machine?label=Latest%20Stable%20Released&style=plastic) 
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/1337-server/automatic-ripping-machine?label=Latest%20Stable%20Version&style=plastic)
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/django?style=plastic)
+
+
 
 ## Overview
 
