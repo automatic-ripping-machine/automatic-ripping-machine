@@ -1,5 +1,19 @@
 # Automatic Ripping Machine (ARM)
 [![Build Status](https://travis-ci.com/1337-server/automatic-ripping-machine.svg?branch=v2.3_dev)](https://travis-ci.com/1337-server/automatic-ripping-machine)
+[![GitHub license](https://img.shields.io/github/license/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/blob/v2.3_dev/LICENSE)
+[![GitHub forks](https://img.shields.io/github/forks/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/network)
+[![GitHub stars](https://img.shields.io/github/stars/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/issues)
+[![Wiki](https://img.shields.io/badge/Wiki-Get%20Help-brightgreen?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/wiki)
+![GitHub contributors](https://img.shields.io/github/contributors/1337-server/automatic-ripping-machine?style=plastic)
+
+
+![GitHub last commit](https://img.shields.io/github/last-commit/1337-server/automatic-ripping-machine)
+![GitHub (Pre-)Release Date](https://img.shields.io/github/release-date-pre/1337-server/automatic-ripping-machine)
+
+
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/django?style=plastic)
 
 ## Overview
 
@@ -49,6 +63,9 @@ See: https://b3n.org/automatic-ripping-machine
 ## Troubleshooting
  Please see the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/).
 
+[![Discord](https://img.shields.io/badge/discord-chat-7289DA.svg?maxAge=60)](https://discord.gg/rkEXY2Rbgn)
+[![GitHub](https://img.shields.io/badge/github-issues-red.svg?maxAge=60)](https://github.com/Readarr/Readarr/issues)
+[![Wiki](https://img.shields.io/badge/servarr-wiki-181717.svg?maxAge=60)](https://wiki.servarr.com/Readarr)
 
 ## Contributing
 
