@@ -460,7 +460,8 @@ def main(logfile, job):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename="/home/arm/logs/NAS.log", format='[%(asctime)s] %(levelname)s ARM: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level="DEBUG")
+    logging.basicConfig(filename="/home/arm/logs/NAS.log", format='[%(asctime)s] %(levelname)s ARM: %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S', level="DEBUG")
     args = entry()
     devpath = "/dev/" + args.devpath
     # print(devpath)
@@ -470,7 +471,8 @@ if __name__ == "__main__":
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
-    #  Dont put out anything if we are using the empty.log This kills multiple runs. it stops the same job triggering more than once
+    #  Dont put out anything if we are using the empty.log
+    #  This kills multiple runs. it stops the same job triggering more than once
     if not logfile.find("empty.log") == -1:
         sys.exit()
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
