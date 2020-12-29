@@ -211,7 +211,8 @@ def main(logfile, job):
                 #  We failed to make a random directory, most likely a permission issue
                 if (utils.make_dir(hboutpath)) is False:
                     logging.exception(
-                        "A fatal error has occured and ARM is exiting.  Couldnt create filesystem. Possible permission error")
+                        "A fatal error has occured and ARM is exiting.  "
+                        "Couldnt create filesystem. Possible permission error")
                     utils.notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(
                         job.title) + ".  Couldnt create filesystem. Possible permission error. ")
                     job.status = "fail"
