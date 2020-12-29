@@ -1182,7 +1182,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
     db.session.commit()
 
 
-def armsetup(job):
+def arm_setup(job):
     """
     setup arm - make sure everything is fully setup and ready and there are no errors. This is still in dev. ATM
 
@@ -1314,3 +1314,25 @@ def makecleanlogfile(logfile):
 
     # logging.debug("our clean log string" + str(out))
     return out
+
+
+def database_updater(db, args, wait_time=90):
+    """
+    Try to update our db for x seconds and handle it nicely if we cant
+
+    :param db:
+    :param args:
+    :param wait_time:
+    :return:
+    """
+    for i in range(wait_time):  # give up after the users wait period in seconds
+        try:
+            db.session.commit()
+        except sqlite3.OperationalError as e:
+            if "locked" in str(e):
+                time.sleep(1)
+                logging.debug("database is locked - trying in 1 second")
+            else:
+                raise
+        else:
+            logging.debug("successfully written to the database")

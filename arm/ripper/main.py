@@ -467,7 +467,7 @@ if __name__ == "__main__":
     devpath = "/dev/" + args.devpath
     # print(devpath)
     job = Job(devpath)
-    # utils.armsetup(job)
+    # utils.arm_setup(job)
     logfile = logger.setuplogging(job)
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
