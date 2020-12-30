@@ -1,5 +1,5 @@
 import sys  # noqa: F401
-import os
+import os  # noqa: F401
 import bcrypt  # noqa: F401
 
 from flask import Flask, logging, current_app  # noqa: F401
