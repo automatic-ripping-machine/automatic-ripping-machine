@@ -300,9 +300,9 @@ def get_track_info(srcpath, job):
         # get number of titles
         if result is None:
             if job.disctype == "bluray":
-                result = re.search('scan: BD has (.*) title\(s\)', line)  # noqa: W601
+                result = re.search('scan: BD has (.*) title\(s\)', line)  # noqa: W605
             else:
-                result = re.search('scan: DVD has (.*) title\(s\)', line)  # noqa: W601
+                result = re.search('scan: DVD has (.*) title\(s\)', line)  # noqa: W605
 
             if result:
                 titles = result.group(1)
