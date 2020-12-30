@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 import logging
 import re
+import time
 import musicbrainzngs as mb
 from discid import read, Disc
 from subprocess import run, PIPE
+
+from flask_sqlalchemy import SQLAlchemy
+
 from arm.config.config import cfg
 from arm.ui import app, db  # noqa E402
 import werkzeug
@@ -40,6 +44,7 @@ def musicbrainz(discid, job):
 
     arguments:
     discid - identification object from discid package
+    job - the job class/obj
 
     return:
     the label of the disc as a string or "" if nothing was found
@@ -55,13 +60,23 @@ def musicbrainz(discid, job):
         new_year = re.sub("-[0-9]{2}-[0-9]{2}$", "", new_year)
         title = str(infos['disc']['release-list'][0]['title'])
         # Set out release id as the CRC_ID
-        job.crc_id = infos['disc']['release-list'][0]['id']
-        job.hasnicetitle = True
-        db.session.commit()
+        # job.crc_id = infos['disc']['release-list'][0]['id']
+        # job.hasnicetitle = True
+        args = {
+            'job_id': str(job.job_id),
+            'crc_id': infos['disc']['release-list'][0]['id'],
+            'hasnicetitle': True,
+            'year': str(new_year),
+            'year_auto': str(new_year),
+            'title': title,
+            'title_auto': title
+        }
+        database_updater(args, job)
+        # db.session.commit()
+        # time.sleep(1)
         logging.debug("musicbrain works -  New title is " + title + ".  New Year is: " + new_year)
     except mb.WebServiceError as exc:
         logging.error("Cant reach MB or cd not found ? - ERROR: " + str(exc))
-        job.video_type = "Music"
         db.session.rollback()
         return ""
     try:
@@ -76,11 +91,16 @@ def musicbrainz(discid, job):
             logging.debug("we didnt get art image")
         # Set up the database properly for music cd's
         # job.logfile = cleanforlog(artist) + "_" + cleanforlog(infos['disc']['release-list'][0]['title']) + ".log"
-        job.year = job.year_auto = str(new_year)
-        job.title = job.title_auto = artist + " " + title
-        job.no_of_titles = infos['disc']['offset-count']
-        job.video_type = "Music"
-        db.session.commit()
+        args = {
+            'job_id': str(job.job_id),
+            'year': str(new_year),
+            'year_auto': str(new_year),
+            'title': str(artist + " " + title),
+            'title_auto': str(artist + " " + title),
+            'no_of_titles': infos['disc']['offset-count']
+        }
+        database_updater(args, job)
+        # db.session.commit()
         return artist + " " + str(infos['disc']['release-list'][0]['title'])
     except Exception as exc:
         logging.error("Try 2 -  ERROR: " + str(exc))
@@ -224,6 +244,73 @@ def get_cd_art(job, infos):
         logging.error("get_cd_art ERROR: " + str(exc))
         db.session.rollback()
         return False
+
+
+def database_updater(args, job, wait_time=90):
+    """
+    Try to update our db for x seconds and handle it nicely if we cant
+
+    :param args:
+    :param job:
+    :param wait_time:
+    :return:
+    """
+    # Loop through our args and try to set any of our job variables
+    for (key, value) in args.items():
+        logging.debug(str(key) + "= " + str(value))
+        logging.debug("key = " + str(key))
+        if key == "job_id":
+            job.job_id = value
+        elif key == "crc_id":
+            job.crc_id = value
+        elif key == "year":
+            job.year = value
+        elif key == "year_auto":
+            job.year_auto = value
+        elif key == "year_manual":
+            job.year_manual = value
+        elif key == "no_of_titles":
+            job.no_of_titles = value
+        elif key == "title":
+            job.title = value
+        elif key == "title_auto":
+            job.title_auto = value
+        elif key == "title_manual":
+            job.title_manual = value
+        elif key == "video_type":
+            job.video_type = value
+        elif key == "video_type_auto":
+            job.video_type_auto = value
+        elif key == "video_type_manual":
+            job.video_type_manual = value
+        elif key == "imdb_id":
+            job.imdb_id = value
+        elif key == "imdb_id_auto":
+            job.poster_url = value
+        elif key == "imdb_id_manual":
+            job.imdb_id_manual = value
+        elif key == "poster_url":
+            job.poster_url = value
+        elif key == "poster_url_auto":
+            job.poster_url_auto = value
+        elif key == "poster_url_manual":
+            job.poster_url_manual = value
+        elif key == "hasnicetitle":
+            job.hasnicetitle = value
+
+    for i in range(wait_time):  # give up after the users wait period in seconds
+        try:
+            db.session.commit()
+        except SQLAlchemy.OperationalError as e:
+            if "locked" in str(e):
+                time.sleep(1)
+                logging.debug("database is locked - trying in 1 second")
+            else:
+                logging.debug("Error: " + str(e))
+                raise
+        else:
+            logging.debug("successfully written to the database")
+            return True
 
 
 if __name__ == "__main__":
