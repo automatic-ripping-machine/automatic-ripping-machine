@@ -65,7 +65,7 @@ def identify(job, logfile):
                 res = identify_dvd(job)
             if job.disctype == "bluray":
                 res = identify_bluray(job)
-            ## Need to check if year is "0000"  or ""
+            # Need to check if year is "0000"  or ""
             if res and job.year != "0000":
                 get_video_details(job)
             else:
@@ -85,12 +85,12 @@ def clean_for_filename(string):
     string = re.sub('\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
-    ## Added from pull 366
+    # Added from pull 366
     string = string.replace('&', 'and')
     string = string.replace("\\", " - ")
     string = string.strip()
 
-    ## Added from pull 366
+    # Added from pull 366
     # testing why the return function isn't cleaning
     return re.sub('[^\w\-_\.\(\) ]', '', string)
     # return string
@@ -105,7 +105,7 @@ def identify_bluray(job):
     except OSError as e:
         logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.  Error "
                       "number is: " + str(e.errno))
-        #job.title = "not identified"
+        # job.title = "not identified"
         job.title = str(job.label)
         job.year = ""
         db.session.commit()
@@ -114,8 +114,8 @@ def identify_bluray(job):
     try:
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
     except KeyError:
-        ## Changed from pull 366
-        #bluray_title = "not identified"
+        # Changed from pull 366
+        # bluray_title = "not identified"
         bluray_title = str(job.label)
         bluray_year = ""
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
@@ -146,7 +146,7 @@ def identify_dvd(job):
     lookup the title """
 
     logging.debug("\n\r" + job.pretty_table())
-    ## Added from #338
+    # Added from #338
     # Some older DVDs aren't actually labelled
     if not job.label or job.label == "":
         job.label = "not identified"
@@ -154,14 +154,14 @@ def identify_dvd(job):
     dvd_info_xml = False
     dvd_release_date = ""
 
-    ## TODO: remove this because its pointless keeping when it can never work
+    # TODO: remove this because its pointless keeping when it can never work
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
         fallback_title = "{0}_{1}".format(str(job.label), str(crc64))
         dvd_title = str(fallback_title)
         logging.info("DVD CRC64 hash is: " + str(crc64))
         job.crc_id = str(crc64)
-        ## Dead needs removing
+        # Dead needs removing
         urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(
             str(crc64))
         logging.debug(urlstring)
@@ -171,14 +171,14 @@ def identify_dvd(job):
 
     dvd_title = job.label
     logging.debug("dvd_title_label= " + str(dvd_title))
-    ## strip all non-numeric chars and use that for year
+    # strip all non-numeric chars and use that for year
     year = re.sub("[^0-9]", "", str(job.year))
     # next line is not really needed, but we dont want to leave an x somewhere
     dvd_title = job.label.replace("16x9", "")
-    ## Rip out any not alpha chars replace with
+    # Rip out any not alpha chars replace with
     dvd_title = re.sub("[^a-zA-Z ]", " ", dvd_title)
     logging.debug("dvd_title ^a-z= " + str(dvd_title))
-    ## rip out any SKU's at the end of the line
+    # rip out any SKU's at the end of the line
     dvd_title = re.sub("SKU$", " ", dvd_title)
     logging.debug("dvd_title SKU$= " + str(dvd_title))
 
@@ -203,8 +203,8 @@ def get_video_details(job):
 
     job = Instance of Job class\n
     """
-    ## Make sure we have a title.
-    ## if we do its bluray use job.title not job.label
+    # Make sure we have a title.
+    # if we do its bluray use job.title not job.label
     try:
         if job.title is not None and job.title != "":
             title = str(job.title)
@@ -213,8 +213,8 @@ def get_video_details(job):
     except TypeError:
         title = str(job.label)
 
-    ## Set out title from the job.label
-    ## return if not identified
+    # Set out title from the job.label
+    # return if not identified
     logging.debug("Title = " + title)
     if title == "not identified" or title is None:
         return
@@ -222,7 +222,7 @@ def get_video_details(job):
     title = title.strip()
     title = re.sub('[_ ]', "+", title)
 
-    ## strip all non-numeric chars and use that for year
+    # strip all non-numeric chars and use that for year
     if job.year is None:
         year = ""
     else:
@@ -234,7 +234,7 @@ def get_video_details(job):
     logging.debug("Title: " + title + " | Year: " + year)
     logging.debug("Calling webservice with title: " + title + " and year: " + year)
 
-    ## Callwebservice already handles commiting to database, no need for identify_dvd()
+    # Callwebservice already handles commiting to database, no need for identify_dvd()
     response = callwebservice(job, omdb_api_key, title, year)
     logging.debug("response: " + str(response))
 
@@ -272,12 +272,13 @@ def get_video_details(job):
                 logging.debug("Trying title: " + title)
                 response = callwebservice(job, omdb_api_key, title, year)
                 logging.debug("response: " + str(response))
-                ## Added from pull 366 but we already try without the year. Possible bad/increased rate of false positives
+                # Added from pull 366 but we already try without the year.
+                # Possible bad/increased rate of false positives
                 if response == "fail":
                     logging.debug("Removing year...")
                     response = callwebservice(job, omdb_api_key, title, "")
 
-    ## If after everything we dont have a nice title. lets make sure we revert to using job.label
+    # If after everything we dont have a nice title. lets make sure we revert to using job.label
     if not job.hasnicetitle:
         job.title = job.label
         db.session.commit()
@@ -292,9 +293,8 @@ def callwebservice(job, omdb_api_key, dvd_title, year=""):
         logging.debug(
             "http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format("key_hidden", dvd_title, year))
     else:
-        strurl = "http://www.omdbapi.com/?t={1}&y={2}&type={3}&plot=short&r=json&apikey={0}".format(omdb_api_key,
-                                                                                                    dvd_title, year,
-                                                                                                    job.config.VIDEOTYPE)
+        strurl = "http://www.omdbapi.com/?t={1}&y={2}&" \
+                 "type={3}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year, job.config.VIDEOTYPE)
         logging.debug(
             "http://www.omdbapi.com/?t={1}&y={2}&type={3}&plot=short&r=json&apikey={0}".format("key_hidden", dvd_title,
                                                                                                year,
@@ -302,8 +302,11 @@ def callwebservice(job, omdb_api_key, dvd_title, year=""):
 
     logging.debug("***Calling webservice with Title: " + str(dvd_title) + " and Year: " + str(year))
     try:
-        # strurl = "http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year)
-        # logging.debug("http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format("key_hidden", dvd_title, year))
+        # strurl = "http://www.omdbapi.com/?t={1}&y={2}&plot=short&
+        # r=json&apikey={0}".format(omdb_api_key, dvd_title, year)
+        #
+        # logging.debug("http://www.omdbapi.com/?t={1}&y={2}&plot=short&
+        # r=json&apikey={0}".format("key_hidden", dvd_title, year))
         dvd_title_info_json = urllib.request.urlopen(strurl).read()
     except Exception:
         logging.debug("Webservice failed")
@@ -316,7 +319,7 @@ def callwebservice(job, omdb_api_key, dvd_title, year=""):
         else:
             # global new_year
             new_year = doc['Year']
-            ##new_year = job.year_auto = job.year = str(doc['Year'])
+            # new_year = job.year_auto = job.year = str(doc['Year'])
             title = clean_for_filename(doc['Title'])
             logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
             job.year_auto = str(new_year)

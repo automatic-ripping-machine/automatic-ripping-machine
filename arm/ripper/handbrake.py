@@ -18,9 +18,6 @@ from arm.models.models import Track  # noqa: E402
 from arm.ui import app, db  # noqa E402
 
 
-# flake8: noqa: W605
-
-
 def handbrake_mainfeature(srcpath, basepath, logfile, job):
     """process dvd with mainfeature enabled.\n
     srcpath = Path to source for HB (dvd or files)\n
@@ -37,8 +34,8 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     # Added for transcode limits
     job.status = "waiting_transcode"
     db.session.commit()
-    ## TODO: send a notification that jobs are waiting ?
-    utils.SleepCheckProcess("HandBrakeCLI", int(job.config.MAX_CONCURRENT_TRANSCODES))
+    # TODO: send a notification that jobs are waiting ?
+    utils.sleep_check_process("HandBrakeCLI", int(job.config.MAX_CONCURRENT_TRANSCODES))
     logging.debug("Setting job status to 'transcoding'")
     job.status = "transcoding"
     db.session.commit()
@@ -95,8 +92,6 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
 
     logging.info("Handbrake processing complete")
     logging.debug("\n\r" + job.pretty_table())
-    
-
     track.ripped = True
     db.session.commit()
 
@@ -116,7 +111,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
     # Wait until there is a spot to transcode
     job.status = "waiting_transcode"
     db.session.commit()
-    utils.SleepCheckProcess("HandBrakeCLI", int(job.config.MAX_CONCURRENT_TRANSCODES))
+    utils.sleep_check_process("HandBrakeCLI", int(job.config.MAX_CONCURRENT_TRANSCODES))
     job.status = "transcoding"
     db.session.commit()
     logging.info("Starting BluRay/DVD transcoding - All titles")
@@ -191,8 +186,6 @@ def handbrake_all(srcpath, basepath, logfile, job):
 
     logging.info("Handbrake processing complete")
     logging.debug("\n\r" + job.pretty_table())
-    
-
     return
 
 
@@ -208,7 +201,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
     # Added to limit number of transcodes
     job.status = "waiting_transcode"
     db.session.commit()
-    utils.SleepCheckProcess("HandBrakeCLI", int(job.config.MAX_CONCURRENT_TRANSCODES))
+    utils.sleep_check_process("HandBrakeCLI", int(job.config.MAX_CONCURRENT_TRANSCODES))
     job.status = "transcoding"
     db.session.commit()
     if job.disctype == "dvd":
@@ -261,7 +254,7 @@ def get_track_info(srcpath, job):
     srcpath = Path to disc\n
     job = Job instance\n
     """
-
+    charset_found = False
     logging.info("Using HandBrake to get information on all the tracks on the disc.  This will take a few minutes...")
 
     cmd = '{0} -i {1} -t 0 --scan'.format(

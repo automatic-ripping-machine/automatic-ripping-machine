@@ -790,7 +790,7 @@ def scan_emby(job):
 
 
 # New function from pull 366
-def SleepCheckProcess(process_str: str, transcode_limit: int):
+def sleep_check_process(process_str: str, transcode_limit: int):
     """ New function to check for max_transcode from cfg file and force obey limits\n
     arguments:
     process_st - The process string from arm.yaml
@@ -903,7 +903,8 @@ def rename_files(oldpath, job):
     # of crashed job files?
     if os.path.isdir(newpath):
         logging.info(
-            "Error: The 'new' directory already exists, ARM will probably copy the newly ripped folder into the old-new folder.")
+            "Error: The 'new' directory already exists, "
+            "ARM will probably copy the newly ripped folder into the old-new folder.")
 
     try:
         shutil.move(oldpath, newpath)
@@ -1316,11 +1317,10 @@ def makecleanlogfile(logfile):
     return out
 
 
-def database_updater(db, args, wait_time=90):
+def database_updater(args, wait_time=90):
     """
     Try to update our db for x seconds and handle it nicely if we cant
 
-    :param db:
     :param args:
     :param wait_time:
     :return:
@@ -1328,7 +1328,7 @@ def database_updater(db, args, wait_time=90):
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
             db.session.commit()
-        except sqlite3.OperationalError as e:
+        except sqlalchemy.exc.OperationalError as e:
             if "locked" in str(e):
                 time.sleep(1)
                 logging.debug("database is locked - trying in 1 second")

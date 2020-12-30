@@ -31,13 +31,3 @@ migrate = Migrate(app, db)
 # import models.models  # noqa: E402
 # import ui.config  # noqa: E402
 # import ui.utils  # noqa: E402,F401
-
-# Make the ARM dir if it doesnt exist
-if not os.path.exists(cfg['ARMPATH']):
-    os.makedirs(cfg['ARMPATH'])
-# Make the RAW dir if it doesnt exist
-if not os.path.exists(cfg['RAWPATH']):
-    os.makedirs(cfg['RAWPATH'])
-# Make the Media dir if it doesnt exist
-if not os.path.exists(cfg['MEDIA_DIR']):
-    os.makedirs(cfg['MEDIA_DIR'])

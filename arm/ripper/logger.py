@@ -24,15 +24,16 @@ def setuplogging(job):
                 job.label = job.title = "not identified"
                 logfile = "music_cd.log"
                 new_log_file = "music_cd_" + str(round(time.time() * 100)) + ".log"
-                temp_log_full = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" else cfg['LOGPATH'] + "/" + logfile
+                temp_log_full = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" \
+                    else cfg['LOGPATH'] + "/" + logfile
                 logfile = new_log_file if os.path.isfile(temp_log_full) else str(logfile) + ".log"
                 # job.logfile = "music_cd.log"
                 # logfile = "music_cd.log"
             else:
                 orig_logfile = str(mb_title) + ".log"
                 new_log_file = str(mb_title) + "_" + str(round(time.time() * 100)) + ".log"
-                temp_log_full = cfg['LOGPATH'] + orig_logfile if cfg['LOGPATH'][-1:] == "/" else cfg[
-                                                                                                     'LOGPATH'] + "/" + orig_logfile
+                temp_log_full = cfg['LOGPATH'] + orig_logfile if cfg['LOGPATH'][-1:] == "/" \
+                    else cfg['LOGPATH'] + "/" + orig_logfile
                 logfile = new_log_file if os.path.isfile(temp_log_full) else orig_logfile
             # We need to give the logfile only to database
             job.logfile = logfile
@@ -48,13 +49,15 @@ def setuplogging(job):
             newlogfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
             TmpLogFull = cfg['LOGPATH'] + logfile
             logfile = newlogfile if os.path.isfile(TmpLogFull) else logfile
-            logfull = cfg['LOGPATH'] + newlogfile if os.path.isfile(TmpLogFull) else cfg['LOGPATH'] + str(job.label) + ".log"
+            logfull = cfg['LOGPATH'] + newlogfile if os.path.isfile(TmpLogFull) \
+                else cfg['LOGPATH'] + str(job.label) + ".log"
         else:
             # Check to see if file already exists, if so, create a new file
             newlogfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
             TmpLogFull = cfg['LOGPATH'] + "/" + logfile
             logfile = newlogfile if os.path.isfile(TmpLogFull) else str(job.label)
-            logfull = cfg['LOGPATH'] + "/" + newlogfile if os.path.isfile(TmpLogFull) else cfg['LOGPATH'] + "/" + str(job.label) + ".log"
+            logfull = cfg['LOGPATH'] + "/" + newlogfile if os.path.isfile(TmpLogFull) \
+                else cfg['LOGPATH'] + "/" + str(job.label) + ".log"
         # We need to give the logfile only to database
         job.logfile = logfile
     # Remove all handlers associated with the root logger object.
@@ -62,7 +65,8 @@ def setuplogging(job):
         logging.root.removeHandler(handler)
     # Debug formatting
     if cfg['LOGLEVEL'] == "DEBUG":
-        logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
+        logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s '
+                                                     'ARM: %(module)s.%(funcName)s %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
