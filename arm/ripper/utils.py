@@ -1328,7 +1328,7 @@ def database_updater(args, wait_time=90):
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
             db.session.commit()
-        except sqlalchemy.exc.OperationalError as e:
+        except db.exc.OperationalError as e:
             if "locked" in str(e):
                 time.sleep(1)
                 logging.debug("database is locked - trying in 1 second")

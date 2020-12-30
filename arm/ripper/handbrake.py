@@ -8,13 +8,13 @@ import subprocess
 import re
 import shlex
 # Added for sleep check/ transcode limits
-import time
-import datetime
-import psutil
+import time  # noqa: F401
+import datetime  # noqa: F401
+import psutil  # noqa: F401
 
 from arm.ripper import utils
 # from arm.config.config import cfg
-from arm.models.models import Track  # noqa: E402
+from arm.models.models import Track  # noqa: F401
 from arm.ui import app, db  # noqa E402
 
 
@@ -300,9 +300,9 @@ def get_track_info(srcpath, job):
         # get number of titles
         if result is None:
             if job.disctype == "bluray":
-                result = re.search('scan: BD has (.*) title\(s\)', line)
+                result = re.search('scan: BD has (.*) title\(s\)', line)  # noqa: W601
             else:
-                result = re.search('scan: DVD has (.*) title\(s\)', line)
+                result = re.search('scan: DVD has (.*) title\(s\)', line)  # noqa: W601
 
             if result:
                 titles = result.group(1)
