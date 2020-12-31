@@ -71,7 +71,7 @@ def setup():
             flash("Setup database")
             return redirect('/setup-stage2')
         else:
-            flash("Couldnt setup database")
+            flash("Couldn't setup database")
             return redirect("/error")
     except Exception as e:
         flash(str(e))
@@ -288,9 +288,6 @@ def logreader():
         app.logger.debug('fullpath: ' + fullpath)
         # TODO: strip all keys/secrets
         return send_file(fullpath, as_attachment=True)
-    # Give a version thats safe to post online
-    elif mode == "onlinepost":
-        return send_file(fullpath, as_attachment=True)
     else:
         # do nothing/ or error out
         return render_template('error.html')
@@ -376,9 +373,10 @@ def changeparams():
         job.disctype = format(form.DISCTYPE.data)
         db.session.commit()
         flash(
-            'Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}, Disctype={}'.format(
+            'Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, '
+            'Maximum Length={}, Disctype={}'.format(
                 form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data,
-                form.DISCTYPE.data))  # noqa: E501
+                form.DISCTYPE.data))
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
@@ -412,9 +410,9 @@ def list_titles():
 @app.route('/gettitle', methods=['GET', 'POST'])
 @login_required
 def gettitle():
-    imdbID = request.args.get('imdbID')
+    imdb_id = request.args.get('imdbID')
     job_id = request.args.get('job_id')
-    dvd_info = call_omdb_api(None, None, imdbID, "full")
+    dvd_info = call_omdb_api(None, None, imdb_id, "full")
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
 
@@ -424,10 +422,10 @@ def updatetitle():
     new_title = request.args.get('title')
     new_year = request.args.get('year')
     video_type = request.args.get('type')
-    imdbID = request.args.get('imdbID')
+    imdb_id = request.args.get('imdbID')
     poster_url = request.args.get('poster')
     job_id = request.args.get('job_id')
-    print("New imdbID=" + imdbID)
+    print("New imdbID=" + imdb_id)
     job = Job.query.get(job_id)
     job.title = clean_for_filename(new_title)
     job.title_manual = clean_for_filename(new_title)
@@ -435,8 +433,8 @@ def updatetitle():
     job.year_manual = new_year
     job.video_type_manual = video_type
     job.video_type = video_type
-    job.imdb_id_manual = imdbID
-    job.imdb_id = imdbID
+    job.imdb_id_manual = imdb_id
+    job.imdb_id = imdb_id
     job.poster_url_manual = poster_url
     job.poster_url = poster_url
     job.hasnicetitle = True
@@ -485,20 +483,13 @@ def home():
     mfreegb = round(mfreegb / 1073741824, 1)
 
     #  RAM
-    meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1])) for i in open('/proc/meminfo').readlines())
-    mem_kib = meminfo['MemTotal']  # e.g. 3921852
-    mem_gib = mem_kib / (1024.0 * 1024.0)
-    #  lets make sure we only give back small numbers
-    mem_gib = round(mem_gib, 2)
-
-    memused_kib = meminfo['MemFree']  # e.g. 3921852
-    memused_gib = memused_kib / (1024.0 * 1024.0)
-    #  lets make sure we only give back small numbers
-    memused_gib = round(memused_gib, 2)
-    memused_gibs = round(mem_gib - memused_gib, 2)
+    memory = psutil.virtual_memory()
+    mem_total = round(memory.total / (1024*1024*1024), 3)
+    ram_free = round(memory.available / (1024*1024*1024), 3)
+    mem_used = round(memory.used / (1024*1024*1024), 3)
 
     #  get out cpu info
-    ourcpu = get_processor_name()
+    our_cpu = get_processor_name()
 
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
@@ -506,8 +497,8 @@ def home():
     else:
         jobs = {}
 
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu, ram=mem_gib,
-                           ramused=memused_gibs, ramfree=memused_gib, ramdump=meminfo)  # noqa: E501
+    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=our_cpu, ram=mem_total,
+                           ramused=mem_used, ramfree=ram_free, ramdump=str(memory))  # noqa: E501
 
 
 #  Lets show some cpu info
@@ -548,7 +539,7 @@ def setupdatabase():
         try:
             db.drop_all()
         except Exception:
-            app.logger.debug("couldnt drop all")
+            app.logger.debug("couldn't drop all")
         try:
             #  Recreate everything
             db.metadata.create_all(db.engine)
@@ -562,5 +553,5 @@ def setupdatabase():
             db.session.commit()
             return True
         except Exception:
-            app.logger.debug("couldnt create all")
+            app.logger.debug("couldn't create all")
             return False
