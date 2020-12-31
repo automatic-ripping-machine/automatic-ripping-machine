@@ -7,7 +7,8 @@ import sys  # noqa: F401
 import bcrypt
 import hashlib  # noqa: F401
 from time import sleep
-from flask import Flask, render_template, make_response, abort, request, send_file, flash, redirect, url_for, Markup  # noqa: F401
+from flask import Flask, render_template, make_response, abort, request, send_file, flash, redirect, url_for, \
+    Markup  # noqa: F401
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
 from arm.config.config import cfg
@@ -39,26 +40,26 @@ def unauthorized():
 def setup():
     # TODO Verify this with a secret key in the config for set up
     # So not just anyone can wipe the database
-    if setupdatabase():
-        return redirect('/setup-stage2')
-    else:
-        #  error out
-        return redirect("/error")
+    try:
+        if setupdatabase():
+            return redirect('/setup-stage2')
+        else:
+            return redirect("/error")
+    except Exception as e:
+        flash(str(e))
+        return redirect('/index')
 
 
 @app.route('/setup-stage2', methods=['GET', 'POST'])
 def setup_stage2():
     # if there is no user in the database
-    if User.query.all():
-        return redirect('/index')
-
-    # import logging
-    # logging.basicConfig()
-    # logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
-
-    # if user is logged in
-    # if current_user.is_authenticated:
-    #    return redirect('/index')
+    try:
+        # Return the user to login screen if we dont error when calling for any users
+        User.query.all()
+        # return redirect('/login')
+    except Exception:
+        # return redirect('/index')
+        app.logger.debug("No admin account found")
     form = LoginForm()
 
     # After a login for is submited
@@ -88,7 +89,10 @@ def setup_stage2():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     # if there is no user in the database
-    if not User.query.all():
+    try:
+        User.query.all()
+    except Exception:
+        flash("No admin account found")
         return redirect('/setup-stage2')
 
     # if user is logged in
@@ -193,7 +197,9 @@ def settings():
     raw_html = '<form id="form1" name="form1" method="get" action="">'
     # pair on each iteration.
     for k, v in cfg.items():
-        raw_html += '<tr> <td><label for="' + str(k) + '"> ' + str(k) + ': </label></td> <td><input type="text" name="' + str(k) + '" id="' + str(k) + '" value="' + str(v) + '"/></td></tr>'   # noqa: E501
+        raw_html += '<tr> <td><label for="' + str(k) + '"> ' + str(
+            k) + ': </label></td> <td><input type="text" name="' + str(k) + '" id="' + str(k) + '" value="' + str(
+            v) + '"/></td></tr>'  # noqa: E501
         app.logger.info(str(k) + str(' > ') + str(v) + "\n")
         # app.logger.info(str(raw_html))
     raw_html += " </form>"
@@ -347,7 +353,10 @@ def changeparams():
         # config.MAINFEATURE = int(format(form.MAINFEATURE.data)) #  must be 1 for True 0 for False
         job.disctype = format(form.DISCTYPE.data)
         db.session.commit()
-        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}, Disctype={}'.format(form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data, form.DISCTYPE.data))   # noqa: E501
+        flash(
+            'Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}, Disctype={}'.format(
+                form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data,
+                form.DISCTYPE.data))  # noqa: E501
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
@@ -410,7 +419,8 @@ def updatetitle():
     job.poster_url = poster_url
     job.hasnicetitle = True
     db.session.commit()
-    flash('Title: {} ({}) was updated to {} ({})'.format(job.title_auto, job.year_auto, new_title, new_year), category='success')
+    flash('Title: {} ({}) was updated to {} ({})'.format(job.title_auto, job.year_auto, new_title, new_year),
+          category='success')
     return redirect(url_for('home'))
 
 
@@ -470,7 +480,8 @@ def home():
     else:
         jobs = {}
 
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu, ram=mem_gib, ramused=memused_gibs, ramfree=memused_gib, ramdump=meminfo)   # noqa: E501
+    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu, ram=mem_gib,
+                           ramused=memused_gibs, ramfree=memused_gib, ramdump=meminfo)  # noqa: E501
 
 
 #  Lets show some cpu info
@@ -496,7 +507,11 @@ def get_processor_name():
 
 
 def setupdatabase():
-    #  Try to get the db. User if not we nuke everything
+    """
+    Try to get the db. User if not we nuke everything
+    """
+    # TODO need to check if all the arm directories have been made
+    # logs, media, db
     try:
         User.query.all()
         return True
@@ -504,15 +519,21 @@ def setupdatabase():
         #  We only need this on first run
         #  Wipe everything
         flash(str(err))
-        db.drop_all()
-        #  Recreate everything
-        db.metadata.create_all(db.engine)
-        # See important note below
-        # from arm.models.models import User, Job, Track, Config, Alembic_version
-        db.create_all()
-        db.session.commit()
-        #  push the database version arm is looking for
-        user = Alembic_version('c3a3fa694636')
-        db.session.add(user)
-        db.session.commit()
-        return True
+        try:
+            db.drop_all()
+        except Exception:
+            app.logger.debug("couldnt drop all")
+        try:
+            #  Recreate everything
+            db.metadata.create_all(db.engine)
+            # See important note below
+            # from arm.models.models import User, Job, Track, Config, Alembic_version
+            db.create_all()
+            db.session.commit()
+            #  push the database version arm is looking for
+            user = Alembic_version('c3a3fa694636')
+            db.session.add(user)
+            db.session.commit()
+            return True
+        except Exception:
+            app.logger.debug("couldnt create all")
