@@ -19,8 +19,6 @@ import psutil  # noqa E402
 # from arm.config.config import cfg
 from arm.ui import app, db  # noqa E402
 from arm.models.models import Track  # noqa: E402
-# This is for the new database updater
-from flask_sqlalchemy import SQLAlchemy
 
 
 def notify(job, title, body):
@@ -956,7 +954,7 @@ def get_cdrom_status(devpath):
 
     try:
         fd = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
-    except OSError as e:
+    except OSError:
         # Sometimes ARM will log errors opening hard drives. this check should stop it
         if not re.search(r'hd[a-j]|sd[a-j]', devpath):
             logging.info("Failed to open device " + devpath + " to check status.")
