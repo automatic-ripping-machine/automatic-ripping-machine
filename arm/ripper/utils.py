@@ -956,8 +956,10 @@ def get_cdrom_status(devpath):
 
     try:
         fd = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
-    except Exception:
-        logging.info("Failed to open device " + devpath + " to check status.")
+    except OSError as e:
+        # Sometimes ARM will log errors opening hard drives. this check should stop it
+        if not re.search(r'hd[a-j]|sd[a-j]', devpath):
+            logging.info("Failed to open device " + devpath + " to check status.")
         exit(2)
     result = fcntl.ioctl(fd, 0x5326, 0)
 
@@ -1146,7 +1148,8 @@ def check_db_version(install_path, db_file):
             logging.info("Database is now up to date")
         else:
             logging.error(
-                "Database is still out of date. Head is " + head_revision + " and database is " + db_version + ".  Exiting arm.")
+                "Database is still out of date. Head is " + head_revision + " and database is " + db_version
+                + ".  Exiting arm.")
             sys.exit()
 
 
@@ -1334,6 +1337,14 @@ def database_updater(args, job, wait_time=90):
         logging.debug("key = " + str(key))
         if key == "job_id":
             job.job_id = value
+        elif key == "logfile":
+            job.logfile = key
+        elif key == "status":
+            job.status = key
+        elif key == "no_of_titles":
+            job.no_of_titles = key
+        elif key == "job_length":
+            job.job_length = key
         elif key == "crc_id":
             job.crc_id = value
         elif key == "year":
@@ -1370,17 +1381,19 @@ def database_updater(args, job, wait_time=90):
             job.poster_url_manual = value
         elif key == "hasnicetitle":
             job.hasnicetitle = value
+        elif key == "errors":
+            job.errors = value
 
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
             db.session.commit()
-        except SQLAlchemy.OperationalError as e:
+        except Exception as e:
             if "locked" in str(e):
                 time.sleep(1)
                 logging.debug("database is locked - trying in 1 second")
             else:
                 logging.debug("Error: " + str(e))
-                raise
+                raise RuntimeError(str(e))
         else:
             logging.debug("successfully written to the database")
             return True

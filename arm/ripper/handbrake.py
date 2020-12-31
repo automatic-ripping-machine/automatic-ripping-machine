@@ -32,13 +32,15 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     logging.debug("\n\r" + job.pretty_table())
 
     # Added for transcode limits
-    job.status = "waiting_transcode"
-    db.session.commit()
+    # job.status = "waiting_transcode"
+    # db.session.commit()
+    utils.database_updater({'status': "waiting_transcode"}, job)
     # TODO: send a notification that jobs are waiting ?
     utils.sleep_check_process("HandBrakeCLI", int(job.config.MAX_CONCURRENT_TRANSCODES))
     logging.debug("Setting job status to 'transcoding'")
-    job.status = "transcoding"
-    db.session.commit()
+    # job.status = "transcoding"
+    # db.session.commit()
+    utils.database_updater({'status': "transcoding"}, job)
     filename = os.path.join(basepath, job.title + "." + job.config.DEST_EXT)
     filepathname = os.path.join(basepath, filename)
     logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
