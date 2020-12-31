@@ -303,6 +303,8 @@ def jobdetail():
 @login_required
 def abandon_job():
     job_id = request.args.get('job_id')
+    # TODO add a confirm and then
+    #  delete the raw folder (this will cause ARM to bail)
     try:
         job = Job.query.get(job_id)
         job.status = "fail"
