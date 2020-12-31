@@ -8,7 +8,7 @@ import shlex
 
 # from arm.config.config import cfg
 from arm.ripper import utils  # noqa: E402
-from arm.ui import db  # noqa: E401
+from arm.ui import db  # noqa: E401, E402
 
 
 def makemkv(logfile, job):
