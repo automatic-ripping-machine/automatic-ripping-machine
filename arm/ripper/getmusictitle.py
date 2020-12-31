@@ -301,12 +301,14 @@ def database_updater(args, job, wait_time=90):
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
             db.session.commit()
-        except SQLAlchemy.OperationalError as e:
+        except Exception as e:
+            # logging.debug("Exception = " + str(e) + "\n")
             if "locked" in str(e):
                 time.sleep(1)
                 logging.debug("database is locked - trying in 1 second")
             else:
                 logging.debug("Error: " + str(e))
+                db.session.rollback()  # We can rollback and/or update the job to failed.
                 raise
         else:
             logging.debug("successfully written to the database")
