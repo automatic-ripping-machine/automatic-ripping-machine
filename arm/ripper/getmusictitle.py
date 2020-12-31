@@ -6,8 +6,6 @@ import musicbrainzngs as mb
 from discid import read, Disc
 from subprocess import run, PIPE
 
-from flask_sqlalchemy import SQLAlchemy
-
 from arm.config.config import cfg
 from arm.ui import app, db  # noqa E402
 import werkzeug
@@ -308,7 +306,10 @@ def database_updater(args, job, wait_time=90):
                 logging.debug("database is locked - trying in 1 second")
             else:
                 logging.debug("Error: " + str(e))
-                db.session.rollback()  # We can rollback and/or update the job to failed.
+                db.session.rollback()
+                time.sleep(1)
+                job.status = "fail"
+                db.session.commit()
                 raise
         else:
             logging.debug("successfully written to the database")
