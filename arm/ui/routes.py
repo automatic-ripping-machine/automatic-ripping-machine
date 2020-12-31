@@ -14,7 +14,7 @@ from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa:
 from arm.config.config import cfg
 from arm.ui.utils import get_info, call_omdb_api, clean_for_filename
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, LoginForm
-from pathlib import Path
+from pathlib import Path, PurePath
 from flask.logging import default_handler  # noqa: F401
 
 from flask_login import LoginManager, login_required, current_user, login_user, UserMixin  # noqa: F401
@@ -39,11 +39,39 @@ def unauthorized():
 @app.route('/setup')
 def setup():
     # TODO Verify this with a secret key in the config for set up
-    # So not just anyone can wipe the database
+    #  So not just anyone can wipe the database
+    dir0 = Path(PurePath(cfg['DBFILE']).parent)
+    dir1 = Path(cfg['ARMPATH'])
+    dir2 = Path(cfg['RAWPATH'])
+    dir3 = Path(cfg['MEDIA_DIR'])
+    dir4 = Path(cfg['LOGPATH'])
+    app.logger.debug("dir0 " + str(dir0))
+    app.logger.debug("dir1 " + str(dir1))
+    app.logger.debug("dir2 " + str(dir2))
+    app.logger.debug("dir3 " + str(dir3))
+    app.logger.debug("dir4 " + str(dir4))
+    try:
+        if not Path.exists(dir0):
+            os.mkdir(dir0)
+        if not Path.exists(dir1):
+            os.mkdir(dir1)
+        if not Path.exists(dir2):
+            os.mkdir(dir2)
+        if not Path.exists(dir3):
+            os.mkdir(dir3)
+        if not Path.exists(dir4):
+            os.mkdir(dir4)
+    except OSError as e:
+        app.logger.debug("Creation of the directory {} failed {}".format(dir0, e))
+    else:
+        app.logger.debug("Successfully created all of the ARM directories")
+
     try:
         if setupdatabase():
+            flash("Setup database")
             return redirect('/setup-stage2')
         else:
+            flash("Couldnt setup database")
             return redirect("/error")
     except Exception as e:
         flash(str(e))
@@ -55,14 +83,17 @@ def setup_stage2():
     # if there is no user in the database
     try:
         # Return the user to login screen if we dont error when calling for any users
-        User.query.all()
+        users = User.query.all()
+        if users is not None:
+            flash('You cannot create more than 1 admin account')
+            return redirect(url_for('login'))
         # return redirect('/login')
     except Exception:
         # return redirect('/index')
         app.logger.debug("No admin account found")
     form = LoginForm()
 
-    # After a login for is submited
+    # After a login for is submitted
     if form.validate_on_submit():
         username = str(form.username.data).strip()
         pass1 = str(form.password.data).strip().encode('utf-8')
@@ -71,8 +102,8 @@ def setup_stage2():
         if form.username.data != "" and form.password.data != "":
             hashedpassword = bcrypt.hashpw(pass1, hash)
             user = User(email=username, password=hashedpassword, hashed=hash)
-            app.logger.debug("user: " + str(username) + " Pass:" + str(pass1))
-            app.logger.debug("user db " + str(user))
+            # app.logger.debug("user: " + str(username) + " Pass:" + str(pass1))
+            # app.logger.debug("user db " + str(user))
             db.session.add(user)
             try:
                 db.session.commit()
@@ -101,7 +132,7 @@ def login():
 
     form = LoginForm()
 
-    # After a login for is submited
+    # After a login for is submitted
     if form.validate_on_submit():
         user = User.query.filter_by(email=str(form.username.data).strip()).first()
         if user is None:
@@ -113,8 +144,8 @@ def login():
         hashed = user.hash
         # our new one
         loginhashed = bcrypt.hashpw(str(form.password.data).strip().encode('utf-8'), hashed)
-        app.logger.debug(loginhashed)
-        app.logger.debug(password)
+        # app.logger.debug(loginhashed)
+        # app.logger.debug(password)
 
         if loginhashed == password:
             login_user(user)
@@ -293,15 +324,6 @@ def jobdetail():
     job_id = request.args.get('job_id')
     jobs = Job.query.get(job_id)
     tracks = jobs.tracks.all()
-    """try:
-        if not jobs.poster_url_auto or jobs.poster_url_auto == "None":
-            jobs.poster_url_auto = jobs.poster_url = "static/img/none.png"
-            db.session.commit()
-    except Exception as e:
-        jobs.poster_url_auto = jobs.poster_url = "static/img/none.png"
-        app.logger.error('ERROR:' + str(e))
-        db.session.commit()"""
-
     return render_template('jobdetail.html', jobs=jobs, tracks=tracks)
 
 
@@ -452,6 +474,10 @@ def listlogs(path):
 @app.route('/index.html')
 @app.route('/index')
 def home():
+    # app.logger.info('Processing default request')
+    # app.logger.debug('DEBUGGING')
+    # app.logger.error('ERROR Inside /logreader')
+
     # Hard drive space
     freegb = psutil.disk_usage(cfg['ARMPATH']).free
     freegb = round(freegb / 1073741824, 1)
@@ -537,3 +563,4 @@ def setupdatabase():
             return True
         except Exception:
             app.logger.debug("couldnt create all")
+            return False
