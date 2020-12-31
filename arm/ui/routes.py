@@ -299,6 +299,21 @@ def jobdetail():
     return render_template('jobdetail.html', jobs=jobs, tracks=tracks)
 
 
+@app.route('/abandon', methods=['GET', 'POST'])
+@login_required
+def abandon_job():
+    job_id = request.args.get('job_id')
+    try:
+        job = Job.query.get(job_id)
+        job.status = "fail"
+        db.session.commit()
+        flash("Job was abandoned!")
+        return render_template('jobdetail.html', jobs=job)
+    except Exception as e:
+        flash("Failed to update job" + str(e))
+        return render_template('error.html')
+
+
 @app.route('/titlesearch', methods=['GET', 'POST'])
 @login_required
 def submitrip():

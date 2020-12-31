@@ -86,7 +86,10 @@
                                 <div class="card-body px-1 py-1">
                                     {% if job.video_type != "Music" %}
                                     <a href="customTitle?job_id={{ job.job_id }}"
-                                    class="btn btn-primary">Custom Title</a>{% endif %}
+                                    class="btn btn-primary">Custom Title</a>
+                                    {% endif %}
+                                    <a href="abandon?job_id={{ job.job_id }}"
+                                    class="btn btn-primary">Abandon Job</a>
                                 </div>
                             </div>
 
