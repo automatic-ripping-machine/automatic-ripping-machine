@@ -1,4 +1,38 @@
 # Changelog
+## Current pre-release v2.4
+ - Adding bypass for db.session.commit() error for movies (WIP only MakeMKV and part of handbrake is coded)
+ - Abandon job option added to main ARM ui page (for now this only sets job to failed no processes are cancelled)
+ - Typo fixes (ARM ui images has some typos these have been updated and corrected)
+ - ARM ui now shows CPU temps
+ - ARM ui now uses percentage bars to more clearly display storage and RAM usage 
+ - ARM ui now correclty deals with setup (it should now create all necessary folders and do so without errors) 
+ - Bugfix (ARM ui will not correctly display ram usage)
+ - Bugfix (ARM will no longer log failures when opening sdx or hdx devices)
+
+## v2.3.4
+ - Travisci/flake8 code fixes
+ - github actions added
+ - Bugfix(small bugfix for datadiscs)
+ - Bugfix (old versions of yaml would cause Exceptions)
+ - Bugfix (db connections are now closed properly for CD's)
+ - added bypass for music CD's erroring when trying to commit to the db at the same time
+
+## v2.3.3
+
+ - A smaller more manageable update this time 
+ - Early changes for cleaner looking log output
+  - Security (HandBrake.py outputs the new prettytable format)
+  - Bugfix (Transcode limit is now respected) 
+  - Bugfix (Bluray disc with no titles will now be handled correctly and will not throw an exception )
+  - Bugfix (abcde.config now correctly uses musicbrainz)
+
+## v2.3.2
+ - Added prettytables for logging
+ - Remove api/keys from the Config class string printout 
+  - Security (HandBrake.py was still outputting all api key and secrets to log file. This has now been fixed)
+  - Bugfix (Transcode limit is now respected) 
+  - Bugfix (Bluray disc with no titles will now be handled correctly and will not throw an exception ) 
+
 ## v2.2.0
  - Added Apprise notifications
   - Added more to the Basic web framework (flask_login)
