@@ -1210,7 +1210,7 @@ def arm_setup():
         # Make the log dir if it doesnt exist
         if not os.path.exists(cfg['LOGPATH']):
             os.makedirs(cfg['LOGPATH'])
-    except IOError as e:
+    except IOError as e:  # noqa: F841
         # logging.error("A fatal error has occurred.  Cant find/create the folders from arm.yaml " + str(e))
         # notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the
         # logs for more details. " + str(e))
