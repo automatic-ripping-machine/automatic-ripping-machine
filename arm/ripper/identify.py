@@ -335,6 +335,6 @@ def callwebservice(job, omdb_api_key, dvd_title, year=""):
             job.poster_url_auto = doc['Poster']
             job.poster_url = doc['Poster']
             job.hasnicetitle = True
-            utils.database_updater(db, job)
-            # db.session.commit()
+            # utils.database_updater(db, job)
+            db.session.commit()
             return doc['Response']
