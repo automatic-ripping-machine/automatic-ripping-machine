@@ -62,8 +62,8 @@
                                     <b>Device: </b>{{ job.devpath }}<br>
                                     <b>Status: </b>{{ job.status }} <br>
                                     {%  if job.status == "transcoding" %}
-                                    <b>Progress: </b>{{ job.progress }} <br>
-                                    <b>ETA: </b>{{ job.eta }} <br>
+                                        <b>Progress: </b>{{ job.progress }} <br>
+                                        <b>ETA: </b>{{ job.eta }} <br>
                                     {% endif %}
                                    {% if job.video_type != "Music" %}
                                     <a href="titlesearch?job_id={{ job.job_id }}"
@@ -93,6 +93,7 @@
                                     <a href="customTitle?job_id={{ job.job_id }}"
                                     class="btn btn-primary">Custom Title</a>
                                     {% endif %}
+									<br><br>
                                     <a href="abandon?job_id={{ job.job_id }}"
                                     class="btn btn-primary">Abandon Job</a>
                                 </div>

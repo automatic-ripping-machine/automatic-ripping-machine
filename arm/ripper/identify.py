@@ -108,6 +108,7 @@ def identify_bluray(job):
         logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.  Error "
                       "number is: " + str(e.errno))
         # job.title = "not identified"
+        # Maybe call OMdb with label when we cant find any ident on disc ?
         job.title = str(job.label)
         job.year = ""
         db.session.commit()
@@ -192,7 +193,7 @@ def identify_dvd(job):
         # we couldn't reach OMdb
         logging.error("Failed to reach OMdb")
         return False
-
+    # Not sure this is needed anymore because of CWS()
     job.year = year
     job.title = dvd_title
     db.session.commit()
@@ -236,7 +237,7 @@ def get_video_details(job):
     logging.debug("Title: " + title + " | Year: " + year)
     logging.debug("Calling webservice with title: " + title + " and year: " + year)
 
-    # Callwebservice already handles commiting to database, no need for identify_dvd()
+    # Callwebservice already handles committing to database, no need for identify_dvd()
     response = callwebservice(job, omdb_api_key, title, year)
     logging.debug("response: " + str(response))
 
@@ -324,17 +325,19 @@ def callwebservice(job, omdb_api_key, dvd_title, year=""):
             # new_year = job.year_auto = job.year = str(doc['Year'])
             title = clean_for_filename(doc['Title'])
             logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
-            job.year_auto = str(new_year)
-            job.year = str(new_year)
-            job.title_auto = title
-            job.title = title
-            job.video_type_auto = doc['Type']
-            job.video_type = doc['Type']
-            job.imdb_id_auto = doc['imdbID']
-            job.imdb_id = doc['imdbID']
-            job.poster_url_auto = doc['Poster']
-            job.poster_url = doc['Poster']
-            job.hasnicetitle = True
-            # utils.database_updater(db, job)
-            db.session.commit()
+            args = {
+                'year_auto': str(new_year),
+                'year': str(new_year),
+                'title_auto': title,
+                'title': title,
+                'video_type_auto': doc['Type'],
+                'video_type': doc['Type'],
+                'imdb_id_auto': doc['imdbID'],
+                'imdb_id': doc['imdbID'],
+                'poster_url_auto': doc['Poster'],
+                'poster_url': doc['Poster'],
+                'hasnicetitle': True
+            }
+            utils.database_updater(args, job)
+            # db.session.commit()
             return doc['Response']
