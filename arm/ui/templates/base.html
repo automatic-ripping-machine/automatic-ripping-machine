@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.spacelab.css') }}">
     <link rel="icon" type="image/png" href="/static/img/favicon.png">
     <title>{% block title %}{% endblock %} - ARM</title>
+    {%  block head_extra %}{% endblock %}
     {% endblock %}
   </head>
   <body style="padding-top: 70px; padding-bottom: 50;">
@@ -38,7 +39,7 @@
               </li>
             </ul>
           </div>
-      </nav> 
+      </nav>
       </div>
       {% with messages = get_flashed_messages(with_categories=true) %}
         <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
