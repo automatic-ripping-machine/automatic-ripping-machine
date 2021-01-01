@@ -72,7 +72,7 @@ def call_omdb_api(title=None, year=None, imdbID=None, plot="short"):
     # d = {'year': '1977'}
     # dvd_info = omdb.get(title=title, year=year)
     print("call was successful")
-    return(title_info)
+    return title_info
     # except Exception:
     #     print("call failed")
     #     return(None)

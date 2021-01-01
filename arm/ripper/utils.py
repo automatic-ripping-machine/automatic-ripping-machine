@@ -82,20 +82,19 @@ def notify(job, title, body):
             logging.error("Failed sending apprise notification. " + str(e))
 
 
-def apprise_notify(apprisecfg, title, body):
+def apprise_notify(apprise_cfg, title, body):
     """APPRISE NOTIFICATIONS
 
     :argument
-    apprisecfg - The full path to the apprisecfg file
+    apprise_cfg - The full path to the apprise.yaml file
     title - the message title
     body - the main body of the message
 
     :returns
     nothing
     """
-    cfg = ""
-    yamlfile = apprisecfg
-    with open(yamlfile, "r") as f:
+    yaml_file = apprise_cfg
+    with open(yaml_file, "r") as f:
         cfg = yaml.load(f)
 
     cmd = "apprise -vv -t \"{0}\" -b \"{1}\" dbus://".format(title, body)
@@ -777,7 +776,8 @@ def scan_emby(job):
 
     if job.config.EMBY_REFRESH:
         logging.info("Sending Emby library scan request")
-        url = "http://" + job.config.EMBY_SERVER + ":" + job.config.EMBY_PORT + "/Library/Refresh?api_key=" + job.config.EMBY_API_KEY
+        url = "http://" + job.config.EMBY_SERVER + ":" + job.config.EMBY_PORT + "/Library/Refresh?api_key=" \
+              + job.config.EMBY_API_KEY
         try:
             req = requests.post(url)
             if req.status_code > 299:
@@ -789,8 +789,7 @@ def scan_emby(job):
         logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
 
 
-# New function from pull 366
-def sleep_check_process(process_str: str, transcode_limit: int):
+def sleep_check_process(process_str, transcode_limit):
     """ New function to check for max_transcode from cfg file and force obey limits\n
     arguments:
     process_st - The process string from arm.yaml
@@ -801,7 +800,7 @@ def sleep_check_process(process_str: str, transcode_limit: int):
     """
     if transcode_limit > 0:
         loop_count = transcode_limit + 1
-        logging.debug("Loop_Count " + str(loop_count))
+        logging.debug("loop_count " + str(loop_count))
         logging.info("Starting A sleep check of " + str(process_str))
         while loop_count >= transcode_limit:
             loop_count = sum(1 for proc in psutil.process_iter() if proc.name() == process_str)
@@ -813,7 +812,7 @@ def sleep_check_process(process_str: str, transcode_limit: int):
             logging.debug("sleeping for " + str(x) + " seconds")
             time.sleep(x)
     else:
-        logging.info("Transcode limit is disabled!")
+        logging.info("Transcode limit is disabled")
 
 
 def move_files(basepath, filename, job, ismainfeature=False):
@@ -1131,7 +1130,8 @@ def check_db_version(install_path, db_file):
         logging.info("Database is up to date")
     else:
         logging.info(
-            "Database out of date. Head is " + head_revision + " and database is " + db_version + ".  Upgrading database...")
+            "Database out of date. Head is " + head_revision + " and database is " + db_version
+            + ".  Upgrading database...")
         with app.app_context():
             ts = round(time.time() * 100)
             logging.info("Backuping up database '" + db_file + "' to '" + db_file + str(ts) + "'.")
@@ -1211,7 +1211,7 @@ def arm_setup(job):
         if not os.path.exists(cfg['LOGPATH']):
             os.makedirs(cfg['LOGPATH'])
     except IOError as e:
-        print("A fatal error has occurred.  Cant find/create the folders from arm.yaml " + str(e))
+        logging.error("A fatal error has occurred.  Cant find/create the folders from arm.yaml " + str(e))
         # notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the
         # logs for more details. " + str(e))
         sys.exit()

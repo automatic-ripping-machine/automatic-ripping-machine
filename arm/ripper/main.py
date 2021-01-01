@@ -461,13 +461,22 @@ def main(logfile, job):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename="/home/arm/logs/NAS.log", format='[%(asctime)s] %(levelname)s ARM: %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S', level="DEBUG")
+    # Make sure all directories are fully setup
+    utils.arm_setup(job)
+    log_path = PurePath(cfg['LOGPATH'], "NAS.log")
+    log_file = Path(log_path)
+    if log_file.is_file():
+        logging.basicConfig(filename=log_file,
+                            format='[%(asctime)s] %(levelname)s ARM: %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S', level="DEBUG")
+    else:
+        logging.basicConfig(filename=cfg['INSTALLPATH'] + "NAS.log",
+                            format='[%(asctime)s] %(levelname)s ARM: %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S', level="DEBUG")
     args = entry()
     devpath = "/dev/" + args.devpath
     # print(devpath)
     job = Job(devpath)
-    # utils.arm_setup(job)
     logfile = logger.setuplogging(job)
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
@@ -519,7 +528,7 @@ if __name__ == "__main__":
     try:
         main(logfile, job)
     except Exception as e:
-        logging.exception("A fatal error has occured and ARM is exiting.  See traceback below for details.")
+        logging.exception("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
         utils.notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(
             job.title) + ". Check the logs for more details. " + str(e))
         job.status = "fail"

@@ -12,7 +12,7 @@ import unicodedata
 import xmltodict
 import json
 
-from arm.ripper import getmusictitle
+from arm.ripper import music_brainz
 from arm.ripper import utils
 from arm.ui import db
 
@@ -35,7 +35,7 @@ def identify(job, logfile):
     # Check to make sure it's not a data disc
     if job.disctype == "music":
         logging.debug("Disc is music.")
-        job.label = getmusictitle.main(job)
+        job.label = music_brainz.main(job)
     elif os.path.isdir(job.mountpoint + "/VIDEO_TS"):
         logging.debug("Found: " + job.mountpoint + "/VIDEO_TS")
         job.disctype = "dvd"
@@ -92,7 +92,9 @@ def clean_for_filename(string):
 
     # Added from pull 366
     # testing why the return function isn't cleaning
-    return re.sub('[^\w\-_\.\(\) ]', '', string)
+    # [^\w_.() -]  # New without errors
+    # [^\w\-_\.\(\)]  #  Gives warning of extra escapes
+    return re.sub('[^\w_.() -]', '', string)
     # return string
 
 
@@ -179,7 +181,7 @@ def identify_dvd(job):
     dvd_title = re.sub("[^a-zA-Z ]", " ", dvd_title)
     logging.debug("dvd_title ^a-z= " + str(dvd_title))
     # rip out any SKU's at the end of the line
-    dvd_title = re.sub("SKU$", " ", dvd_title)
+    dvd_title = re.sub("SKU$", "", dvd_title)
     logging.debug("dvd_title SKU$= " + str(dvd_title))
 
     # try to contact omdb
@@ -187,8 +189,8 @@ def identify_dvd(job):
         dvd_info_xml = callwebservice(job, job.config.OMDB_API_KEY, dvd_title, year)
         logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
     except OSError as e:
-        # we couldnt reach omdb
-        logging.error("Failed to reach OMDB")
+        # we couldn't reach OMdb
+        logging.error("Failed to reach OMdb")
         return False
 
     job.year = year

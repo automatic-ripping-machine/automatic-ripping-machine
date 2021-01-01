@@ -7,7 +7,7 @@ import logging
 import time
 
 from arm.config.config import cfg
-from arm.ripper import getmusictitle
+from arm.ripper import music_brainz
 
 
 def setuplogging(job):
@@ -17,9 +17,9 @@ def setuplogging(job):
     if job.label == "" or job.label is None:
         if job.disctype == "music":
             # Use the music label if we can find it - defaults to music_cd.log
-            disc_id = getmusictitle.get_discid(job)
-            mb_title = getmusictitle.gettitle(disc_id, job)
-            # mb_title = getmusictitle.main(job)
+            disc_id = music_brainz.get_disc_id(job)
+            mb_title = music_brainz.get_title(disc_id, job)
+            # mb_title = music_brainz.main(job)
             if mb_title == "not identified":
                 job.label = job.title = "not identified"
                 logfile = "music_cd.log"
@@ -46,17 +46,17 @@ def setuplogging(job):
         if cfg['LOGPATH'][-1:] == "/":
             # #This really needs to be cleaned up, but it works for now
             # Check to see if file already exists, if so, create a new file
-            newlogfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
-            TmpLogFull = cfg['LOGPATH'] + logfile
-            logfile = newlogfile if os.path.isfile(TmpLogFull) else logfile
-            logfull = cfg['LOGPATH'] + newlogfile if os.path.isfile(TmpLogFull) \
+            new_log_file = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
+            temp_log_full = cfg['LOGPATH'] + logfile
+            logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
+            logfull = cfg['LOGPATH'] + new_log_file if os.path.isfile(temp_log_full) \
                 else cfg['LOGPATH'] + str(job.label) + ".log"
         else:
             # Check to see if file already exists, if so, create a new file
-            newlogfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
-            TmpLogFull = cfg['LOGPATH'] + "/" + logfile
-            logfile = newlogfile if os.path.isfile(TmpLogFull) else str(job.label)
-            logfull = cfg['LOGPATH'] + "/" + newlogfile if os.path.isfile(TmpLogFull) \
+            new_log_file = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
+            temp_log_full = cfg['LOGPATH'] + "/" + logfile
+            logfile = new_log_file if os.path.isfile(temp_log_full) else str(job.label)
+            logfull = cfg['LOGPATH'] + "/" + new_log_file if os.path.isfile(temp_log_full) \
                 else cfg['LOGPATH'] + "/" + str(job.label) + ".log"
         # We need to give the logfile only to database
         job.logfile = logfile

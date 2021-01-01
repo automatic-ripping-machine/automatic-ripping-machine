@@ -17,7 +17,8 @@ class CustomTitleForm(FlaskForm):
 
 class ChangeParamsForm(FlaskForm):
     RIPMETHOD = SelectField('Rip Method: ', choices=[('mkv', 'mkv'), ('backup', 'backup')])
-    DISCTYPE = SelectField('Disc Type: ', choices=[('dvd', 'DVD'), ('bluray', 'Bluray'), ('music', 'Music'), ('data', 'Data')])
+    DISCTYPE = SelectField('Disc Type: ', choices=[('dvd', 'DVD'), ('bluray', 'Bluray'),
+                                                   ('music', 'Music'), ('data', 'Data')])
     # "music", "dvd", "bluray" and "data"
     MAINFEATURE = BooleanField('Main Feature')
     # MAINFEATURE = SelectField('Main Feature: ', choices=[(1, 'Yes'), (0, 'No')])
