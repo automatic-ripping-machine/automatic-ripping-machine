@@ -1214,7 +1214,7 @@ def arm_setup():
         # logging.error("A fatal error has occurred.  Cant find/create the folders from arm.yaml " + str(e))
         # notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the
         # logs for more details. " + str(e))
-        sys.exit()
+        sys.exit(e)
 
 
 def makecleanlogfile(logfile):
