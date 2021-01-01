@@ -490,7 +490,10 @@ def home():
     mem_used = round(memory.used / 1073741824, 1)
     ram_percent = memory.percent
     #  get out cpu info
-    our_cpu = get_processor_name()
+    try:
+        our_cpu = get_processor_name()
+    except EnvironmentError:
+        our_cpu = "Not found"
 
     temps = psutil.sensors_temperatures()
     try:
@@ -524,13 +527,26 @@ def get_processor_name():
         fulldump = str(subprocess.check_output(command, shell=True).strip())
         # Take any float trailing "MHz", some whitespace, and a colon.
         speeds = re.search(r"\\nmodel name\\t:.*?GHz\\n", fulldump)
-        # return str(fulldump)
-        speeds = str(speeds.group())
-        speeds = speeds.replace('\\n', ' ')
-        speeds = speeds.replace('\\t', ' ')
-        speeds = speeds.replace('model name :', '')
-        return speeds
-    return ""
+        if speeds:
+            # We have intel CPU
+            speeds = str(speeds.group())
+            speeds = speeds.replace('\\n', ' ')
+            speeds = speeds.replace('\\t', ' ')
+            speeds = speeds.replace('model name :', '')
+            return speeds
+
+        # AMD CPU
+        # model name.*?:(.*?)\n
+        # matches = re.search(regex, test_str)
+        amd_name_full = re.search(r"vendor_id\s:(.*?)\n", test_str)
+        if amd_name_full:
+            amd_name = amd_name_full.group(1)
+            amd_hz = re.search("cpu\sMHz\s.*?([.0-9]*?)\n", test_str)
+            if amd_hz:
+                amd_ghz = re.sub('[^.0-9]', '', amd_hz.group())
+                amd_ghz = int(float(amd_ghz))  # Not sure this is a good idea
+                return str(amd_name) + " @" + str(amd_ghz) + " GHz"
+    return None  # We didnt find our cpu
 
 
 def setupdatabase():
