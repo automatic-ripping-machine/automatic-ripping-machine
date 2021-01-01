@@ -113,12 +113,35 @@
                 <strong>Server Specs</strong>
             </div>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item">Free Space: {{ freegb }} GB</li>
-                <li class="list-group-item">CPU: {{ cpu }}</li>
-                <li class="list-group-item">RAM Info: </br>{{ ram }} GB total </br> {{ ramfree }} GB free </br> {{
-                    ramused }} GB Used
+                {% if mfreegb != freegb %}
+                    <li class="list-group-item">Free Space
+                        <br>ARM: {{ freegb }} GB
+                        <br>Media: {{ mfreegb }} GB
+                    </li>
+                {% else %}
+                    <li class="list-group-item">
+                        <label for="drive">Storage Used:</label>
+                            <progress id="drive" value="{{ arm_percent }}" max="100"> {{ arm_percent }}% </progress>
+                            {{ arm_percent }}%
+                        <br>Free Space: {{ mfreegb }} GB
+                    </li>
+                {% endif %}
+
+                <li class="list-group-item">CPU: {{ cpu }}
+                    {% if cputemp is not none %}
+                        <br>CPU Temp: {{ cputemp }}&#176;C
+                    {% endif %}
                 </li>
-                <!--<li class="list-group-item">RAM Info: {{ ramused }} GB</li>-->
+                <li class="list-group-item">
+                    <label for="ram">RAM Usage: </label>
+                    <progress id="ram" value="{{ ram_percent }}" max="100"> {{ ram_percent }}% </progress>
+                    {{ ram_percent }}%
+                    <br>{{ ram }} GB total
+                    <br> {{ ramfree }} GB free
+                    <br> {{ ramused }} GB Used
+                </li>
+                <!--<li class="list-group-item">DUMP Info: {{ ramdump }} GB</li>-->
+
             </ul>
         </div>
     </div>

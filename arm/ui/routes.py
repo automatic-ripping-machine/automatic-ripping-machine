@@ -479,17 +479,24 @@ def home():
     # Hard drive space
     freegb = psutil.disk_usage(cfg['ARMPATH']).free
     freegb = round(freegb / 1073741824, 1)
+    arm_percent = psutil.disk_usage(cfg['ARMPATH']).percent
     mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
     mfreegb = round(mfreegb / 1073741824, 1)
-
+    media_percent = psutil.disk_usage(cfg['MEDIA_DIR']).percent
     #  RAM
     memory = psutil.virtual_memory()
-    mem_total = round(memory.total / (1024*1024*1024), 3)
-    ram_free = round(memory.available / (1024*1024*1024), 3)
-    mem_used = round(memory.used / (1024*1024*1024), 3)
-
+    mem_total = round(memory.total / 1073741824, 1)
+    mem_free = round(memory.available / 1073741824, 1)
+    mem_used = round(memory.used / 1073741824, 1)
+    ram_percent = memory.percent
     #  get out cpu info
     our_cpu = get_processor_name()
+
+    temps = psutil.sensors_temperatures()
+    try:
+        temp = temps['coretemp'][0][1]
+    except KeyError:
+        temp = None
 
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
@@ -497,8 +504,11 @@ def home():
     else:
         jobs = {}
 
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=our_cpu, ram=mem_total,
-                           ramused=mem_used, ramfree=ram_free, ramdump=str(memory))  # noqa: E501
+    return render_template('index.html', freegb=freegb, mfreegb=mfreegb,
+                           arm_percent=arm_percent, media_percent=media_percent,
+                           jobs=jobs, cpu=our_cpu, cputemp=temp,
+                           ram=mem_total, ramused=mem_used, ramfree=mem_free, ram_percent=ram_percent,
+                           ramdump=str(temps))
 
 
 #  Lets show some cpu info

@@ -26,7 +26,8 @@ def get_info(directory):
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
-    string = re.sub('\[(.*?)\]', '', string)  # noqa: W605
+    string = re.sub(r'\[.*?\]', '', string)  # noqa: W605
+
     string = re.sub('\s+', ' ', string)  # noqa: W605
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
@@ -55,10 +56,11 @@ def call_omdb_api(title=None, year=None, imdbID=None, plot="short"):
         # try:
         title = urllib.parse.quote(title)
         year = urllib.parse.quote(year)
-        strurl = "http://www.omdbapi.com/?s={1}&y={2}&plot={3}&r=json&apikey={0}".format(omdb_api_key, title, year, plot)
+        strurl = "http://www.omdbapi.com/?s={1}&y={2}&plot={3}&r=json&apikey={0}".format(omdb_api_key,
+                                                                                         title, year, plot)
     else:
         print("no params")
-        return(None)
+        return None
 
     # strurl = urllib.parse.quote(strurl)
     # logging.info("OMDB string query"+str(strurl))
