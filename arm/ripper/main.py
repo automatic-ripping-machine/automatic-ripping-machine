@@ -14,7 +14,7 @@ import shutil  # noqa: E402
 import pyudev  # noqa: E402
 import getpass  # noqa E402
 import psutil  # noqa E402
-
+from pathlib import Path, PurePath  # noqa: E402
 from arm.ripper import logger, utils, makemkv, handbrake, identify  # noqa: E402
 from arm.config.config import cfg  # noqa: E402
 
@@ -462,7 +462,7 @@ def main(logfile, job):
 
 if __name__ == "__main__":
     # Make sure all directories are fully setup
-    utils.arm_setup(job)
+    utils.arm_setup()
     log_path = PurePath(cfg['LOGPATH'], "NAS.log")
     log_file = Path(log_path)
     if log_file.is_file():

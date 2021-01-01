@@ -4,7 +4,6 @@ import re
 import time
 import musicbrainzngs as mb
 from discid import read, Disc
-from subprocess import run, PIPE
 
 from arm.config.config import cfg
 from arm.ui import app, db  # noqa E402

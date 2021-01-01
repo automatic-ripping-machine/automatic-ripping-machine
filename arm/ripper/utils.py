@@ -1186,7 +1186,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
     db.session.commit()
 
 
-def arm_setup(job):
+def arm_setup():
     """
     setup arm - make sure everything is fully setup and ready and there are no errors. This is still in dev. ATM
 
@@ -1211,7 +1211,7 @@ def arm_setup(job):
         if not os.path.exists(cfg['LOGPATH']):
             os.makedirs(cfg['LOGPATH'])
     except IOError as e:
-        logging.error("A fatal error has occurred.  Cant find/create the folders from arm.yaml " + str(e))
+        # logging.error("A fatal error has occurred.  Cant find/create the folders from arm.yaml " + str(e))
         # notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the
         # logs for more details. " + str(e))
         sys.exit()
