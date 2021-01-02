@@ -62,7 +62,11 @@
                                     <b>Device: </b>{{ job.devpath }}<br>
                                     <b>Status: </b>{{ job.status }} <br>
                                     {%  if job.status == "transcoding" %}
-                                        <b>Progress: </b>{{ job.progress }} <br>
+										<div class="progress">
+											<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="{{ job.progress_round }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ job.progress_round }}%">
+											 </div>
+										</div>
+                                        <b>Progress: </b>{{ job.progress }}%<br>
                                         <b>ETA: </b>{{ job.eta }} <br>
                                     {% endif %}
                                    {% if job.video_type != "Music" %}

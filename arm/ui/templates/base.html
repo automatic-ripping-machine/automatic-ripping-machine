@@ -1,16 +1,21 @@
 <!doctype html>
-<html>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="en">
   <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
     {% block head %}
     <!-- <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.spacelab.css') }}">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="icon" type="image/png" href="/static/img/favicon.png">
     <title>{% block title %}{% endblock %} - ARM</title>
     {%  block head_extra %}{% endblock %}
     {% endblock %}
   </head>
-  <body style="padding-top: 70px; padding-bottom: 50;">
+  <body style="padding-top: 70px; padding-bottom: 50;padding-left: 15px;padding-right: 15px;">
     {% block nav %}
     <div class="container h-100 mx-auto">
     <nav class="navbar navbar-expand-md navbar-dark bg-primary justify-content-center fixed-top my-auto">
@@ -53,12 +58,12 @@
         {% endif %}
       {% endwith %}
     {% endblock %}
-    <div id="content" class="h-100" style="width: 99%;">{% block content %}{% endblock %}</div>
+    <div id="content" class="h-100" style="width: 99%;padding-top: 51px;padding-left: 15px;">{% block content %}{% endblock %}</div>
     <div id="footer" class="container-fluid h-100">
         <div class="row" style="height: 30px;"></div>
         <div class="row h-100" style="height: 40px;">
             <!-- <div class="col-sm-4"></div> -->
-              <div class="col-sm-12 h-100 navbar-light bg-light">
+              <div class="col-sm-12 h-100">
                   {% block footer %}
                   <p class="text-center h-100" style="margin-bottom: auto; margin-top: auto"> Automatic Ripping Machine.  Find us on <a href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">github</a>.
                   {% endblock %}
@@ -69,6 +74,9 @@
     {% block js %}
     <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
+	<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
     {% endblock %}
   </body>
 </html>

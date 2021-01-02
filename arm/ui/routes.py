@@ -505,13 +505,14 @@ def home():
         # jobs = Job.query.filter_by(status="active")
         jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
         for job in jobs:
-            job_log = cfg['LOGPATH']+job.logfile
+            job_log = cfg['LOGPATH'] + job.logfile
             line = subprocess.check_output(['tail', '-n', '1', job_log])
             job_status = re.search(r"([0-9]{1,2}\.[0-9]{2}) %.*ETA ([0-9]{2})h([0-9]{2})m([0-9]{2})s", str(line))
             if job_status:
-                job.progress = job_status.group(1)+"%"
+                job.progress = job_status.group(1)
+                app.logger.debug("job.progress = " + str(job.progress))
+                job.progress_round = int(float(job.progress))
                 job.eta = job_status.group(2)+":"+job_status.group(3)+":"+job_status.group(4)
-
     else:
         jobs = {}
 
