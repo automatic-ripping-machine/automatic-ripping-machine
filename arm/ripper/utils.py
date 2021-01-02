@@ -1336,13 +1336,13 @@ def database_updater(args, job, wait_time=90):
         if key == "job_id":
             job.job_id = value
         elif key == "logfile":
-            job.logfile = key
+            job.logfile = value
         elif key == "status":
-            job.status = key
+            job.status = value
         elif key == "no_of_titles":
-            job.no_of_titles = key
+            job.no_of_titles = value
         elif key == "job_length":
-            job.job_length = key
+            job.job_length = value
         elif key == "crc_id":
             job.crc_id = value
         elif key == "year":

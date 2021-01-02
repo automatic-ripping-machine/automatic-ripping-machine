@@ -4,17 +4,17 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}  
-<div class="container">
+<div class="jumbotron">
     <div class="row">
                 <div class="table-responsive">
                     <table id="riptable" style="margin: 0 auto" class="table table-striped">
-                        <thead class="tablesorterhead bg-secondary">    
+                        <thead class="tablesorterhead bg-secondary">
                             <tr style="margin: 0 auto">
                                 <th onclick="sortTable(0)" style="cursor: pointer;">Title</th>
                                 <th onclick="sortTable(1)" width="200px" style="cursor: pointer;">Start Time</th>
                                 <th onclick="sortTable(2)" style="cursor: pointer;">Duration</th>
                                 <th onclick="sortTable(3)" style="cursor: pointer;">Status</th>
-								<th onclick="sortTable(3)" style="cursor: pointer;">Logfile</th>
+								<th onclick="sortTable(4)" style="cursor: pointer;">Logfile</th>
                             </tr>
                         </thead>
                         <tbody>

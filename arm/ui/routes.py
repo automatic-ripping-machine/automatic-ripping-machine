@@ -231,7 +231,7 @@ def settings():
         raw_html += '<tr> <td><label for="' + str(k) + '"> ' + str(
             k) + ': </label></td> <td><input type="text" name="' + str(k) + '" id="' + str(k) + '" value="' + str(
             v) + '"/></td></tr>'  # noqa: E501
-        app.logger.info(str(k) + str(' > ') + str(v) + "\n")
+        # app.logger.info(str(k) + str(' > ') + str(v) + "\n")
         # app.logger.info(str(raw_html))
     raw_html += " </form>"
 
@@ -280,13 +280,21 @@ def logreader():
     # Give everything / Tail
     elif mode == "full":
         def generate():
-            with open(fullpath) as f:
-                while True:
-                    yield f.read()
-                    sleep(1)
+            try:
+                with open(fullpath) as f:
+                    while True:
+                        yield f.read()
+                        sleep(1)
+            except Exception:
+                try:
+                    with open(fullpath, encoding="utf8", errors='ignore') as f:
+                        while True:
+                            yield f.read()
+                            sleep(1)
+                except Exception:
+                    return render_template('error.html')
     elif mode == "download":
         app.logger.debug('fullpath: ' + fullpath)
-        # TODO: strip all keys/secrets
         return send_file(fullpath, as_attachment=True)
     else:
         # do nothing/ or error out
@@ -507,12 +515,20 @@ def home():
         for job in jobs:
             job_log = cfg['LOGPATH'] + job.logfile
             line = subprocess.check_output(['tail', '-n', '1', job_log])
-            job_status = re.search(r"([0-9]{1,2}\.[0-9]{2}) %.*ETA ([0-9]{2})h([0-9]{2})m([0-9]{2})s", str(line))
+            # job_status = re.search("([0-9]{1,2}\.[0-9]{2}) %.*ETA ([0-9]{2})h([0-9]{2})m([0-9]{2})s", str(line))
+            # ([0-9]{1,3}\.[0-9]{2}) %.*(?!ETA) ([0-9hms]*?)\)  # This is more dumb but it returns with the h m s
+            # job_status = re.search(r"([0-9]{1,2}\.[0-9]{2}) %.*ETA\s([0-9hms]*?)\)", str(line))
+            
+            # This correctly get the very last ETA and %
+            job_status = re.search(r"([0-9]{1,3}\.[0-9]{2}) %.{0,40}ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))            
             if job_status:
                 job.progress = job_status.group(1)
-                app.logger.debug("job.progress = " + str(job.progress))
-                job.progress_round = int(float(job.progress))
-                job.eta = job_status.group(2)+":"+job_status.group(3)+":"+job_status.group(4)
+                # job.eta = job_status.group(2)+":"+job_status.group(3)+":"+job_status.group(4)
+                job.eta = job_status.group(2)
+                app.logger.debug("job.progress = " + job.progress)
+                x = job.progress
+                job.progress_round = int(float(x))
+                app.logger.debug("Job.round = " + str(job.progress_round))
     else:
         jobs = {}
 
