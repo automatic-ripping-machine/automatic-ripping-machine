@@ -1,20 +1,49 @@
 {% extends "base.html" %}
-{% block title %}Logs{% endblock %}
+{% block title %}Setup - Stage 2{% endblock %}
 
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}  
 <div class="container">
     <div class="row h-100 mx-auto align-items-center">
-sign up!
+<div class="alert alert-danger d-none" role="alert" id="fail">
+  <h4 class="alert-heading">There was an error logging you in</h4>
+  <hr>
+  <h3>{{ raw }}</h3>
+</div>
                 <div class="col-sm-4 mx-auto" style="flex-wrap: nowrap">
-                    <form action="" method="post" novalidate>
-                        {{ form.hidden_tag() }}
-                        <div>{{ form.username.label }}:{{ form.username(size=32) }} </div>
-                        <div>{{ form.password.label }}:{{ form.password(size=32) }}</div>
-                        {{ form.submit() }}
+                    <form id="form1" name="form1" method="post" action="/login">
+						<div class="input-group mb-3">
+							<div class="input-group-prepend">
+								<span class="input-group-text" id="usr">Username:</span>
+							</div>
+							<input type="text" class="form-control" aria-label="username" name="username" placeholder="username" value="" aria-describedby="usr">
+						</div>
+						<div class="input-group mb-3">
+							<div class="input-group-prepend">
+								<span class="input-group-text" id="basic-addon1">Password:</span>
+							</div>
+							<input type="password" class="form-control" name="password" aria-label="password" aria-describedby="basic-addon1">
+						</div>
+						<input class="form-control" name="save" value="save" hidden>
+						<button class="btn btn-secondary btn-lg btn-block" form="form1" type="submit">Submit</button>
                     </form>
                 </div>
     </div>
 </div>
+
+ <script type="application/javascript">
+      $(function () {
+		x = {{ success }};
+		
+		if(typeof (x) === "boolean"){
+			if (x === true ){
+				$('#success').removeClass("d-none");
+			}else{
+				$('#fail').removeClass("d-none");
+			}
+		}
+      });
+
+ </script>
 {% endblock %}

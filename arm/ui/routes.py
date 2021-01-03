@@ -86,21 +86,27 @@ def setup_stage2():
         # Return the user to login screen if we dont error when calling for any users
         users = User.query.all()
         if users is not None:
+            # TODO remove all flash() and use the nicer ui
             flash('You cannot create more than 1 admin account')
             return redirect(url_for('login'))
         # return redirect('/login')
     except Exception:
         # return redirect('/index')
         app.logger.debug("No admin account found")
-    form = LoginForm()
+    # form = LoginForm()
+    save = False
+    try:
+        save = request.form['save']
+    except KeyError:
+        app.logger.debug("no post")
 
     # After a login for is submitted
-    if form.validate_on_submit():
-        username = str(form.username.data).strip()
-        pass1 = str(form.password.data).strip().encode('utf-8')
+    if save:
+        username = str(request.form['username']).strip()
+        pass1 = str(request.form['password']).strip().encode('utf-8')
         hash = bcrypt.gensalt(12)
 
-        if form.username.data != "" and form.password.data != "":
+        if request.form['username'] != "" and request.form['password'] != "":
             hashedpassword = bcrypt.hashpw(pass1, hash)
             user = User(email=username, password=hashedpassword, hashed=hash)
             # app.logger.debug("user: " + str(username) + " Pass:" + str(pass1))
@@ -115,7 +121,7 @@ def setup_stage2():
             # app.logger.debug("user: "+ str(username) + " Pass:" + pass1 )
             flash("error something was blank")
             return redirect('/setup-stage2')
-    return render_template('setup.html', title='setup', form=form)
+    return render_template('setup.html', title='setup')
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -182,7 +188,7 @@ def database():
         mode = request.args['mode']
         jobid = request.args['jobid']
         saved = True
-    except Exception as err:
+    except Exception:
         app.logger.debug("/database - no vars set")
 
     if saved:
