@@ -6,6 +6,7 @@ import re
 import sys  # noqa: F401
 import bcrypt
 import hashlib  # noqa: F401
+import json
 from time import sleep
 from flask import Flask, render_template, make_response, abort, request, send_file, flash, redirect, url_for, \
     Markup  # noqa: F401
@@ -219,30 +220,103 @@ def database():
     return render_template('database.html', jobs=jobs, success=success)
 
 
+@app.route('/json', methods=['GET', 'POST'])
+@login_required
+def feed_json():
+    def generate():
+        comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
+        try:
+            with open(comments_file, "r") as f:
+                try:
+                    comments = json.load(f)
+                    return comments
+                except Exception as e:
+                    comments = None
+                    app.logger.debug("Error with comments file. {}".format(str(e)))
+                    return "{'error':'" + str(e) + "'}"
+        except FileNotFoundError:
+            return "{'error':'" + str(e) + "'}"
+
+    return app.response_class(response=json.dumps(generate(), indent=4, sort_keys=True),
+                              status=200,
+                              mimetype='application/json')
+
+
 # New page for editing/Viewing the ARM config
-@app.route('/settings')
+@app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
-    # This loop syntax accesses the whole dict by looping
-    # over the .items() tuple list, accessing one (key, value)
-    raw_html = '<form id="form1" name="form1" method="get" action="">'
-    # pair on each iteration.
-    for k, v in cfg.items():
-        raw_html += '<tr> <td><label for="' + str(k) + '"> ' + str(
-            k) + ': </label></td> <td><input type="text" name="' + str(k) + '" id="' + str(k) + '" value="' + str(
-            v) + '"/></td></tr>'  # noqa: E501
-        # app.logger.info(str(k) + str(' > ') + str(v) + "\n")
-        # app.logger.info(str(raw_html))
-    raw_html += " </form>"
+    x = ""
+    save = False
+    try:
+        save = request.form['save']
+    except KeyError:
+        app.logger.debug("no post")
 
-    # TODO: Check if the users is posting data
-    # For now it only shows the config
-    # path1 = os.path.dirname(os.path.abspath(__file__))
-    # with open(str(path1) + '/test.json', 'w') as f:
-    #    f.write(raw_html + "\n")
+    comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
+    try:
+        with open(comments_file, "r") as f:
+            try:
+                comments = json.load(f)
+            except Exception as e:
+                comments = None
+                app.logger.debug("Error with comments file. {}".format(str(e)))
+                return render_template("error.html", error=str(e))
+    except FileNotFoundError:
+        return render_template("error.html", error="Couldn't find the comment.json file")
 
-    # app.logger.error("Error:  {0}".format(str(cfg)))
-    return render_template('settings.html', html=Markup(raw_html), success="")
+    if save:
+        success = "false"
+        # For testing
+        x = request.form.to_dict()
+        arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
+        for k, v in x.items():
+            if k != "save":
+                if k == "ARMPATH":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP']
+                elif k == "WEBSERVER_IP":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['WEB_SERVER']
+                elif k == "SET_MEDIA_PERMISSIONS":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['FILE_PERMS']
+                elif k == "RIPMETHOD":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['MAKE_MKV']
+                elif k == "HB_PRESET_DVD":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['HANDBRAKE']
+                elif k == "EMBY_REFRESH":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['EMBY']
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['EMBY_ADDITIONAL']
+                elif k == "NOTIFY_RIP":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['NOTIFY_PERMS']
+                elif k == "APPRISE":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['APPRISE']
+
+                arm_cfg += "\n" + comments[str(k)]+"\n" if comments[str(k)] != "" else ""
+                # arm_cfg += "{}: \"{}\"\n".format(k, v)
+                try:
+                    post_value = int(v)
+                    arm_cfg += "{}: {}\n".format(k, post_value)
+                except ValueError:
+                    v_low = v.lower()
+                    if v_low == 'false' or v_low == "true":
+                        arm_cfg += "{}: {}\n".format(k, v_low)
+                    else:
+                        if k == "WEBSERVER_IP":
+                            arm_cfg += "{}: {}\n".format(k, v_low)
+                        else:
+                            arm_cfg += "{}: \"{}\"\n".format(k, v)
+                app.logger.debug("\n{} = {} ".format(k, v))
+
+        app.logger.debug("arm_cfg= {}".format(arm_cfg))
+        arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
+        with open(arm_cfg_file, "w") as f:
+            f.write(arm_cfg)
+            f.close()
+        success = "true"
+        return render_template('settings.html', success=success, settings=cfg,
+                               raw=x, jsoncomments=comments)
+
+    # If we get to here there was no post data
+    return render_template('settings.html', success="null", settings=cfg, raw=x, jsoncomments=comments)
 
 
 @app.route('/logreader')
@@ -264,7 +338,7 @@ def logreader():
     my_file = Path(fullpath)
     if not my_file.is_file():
         # logfile doesnt exist throw out error template
-        return render_template('error.html')
+        return render_template('simple_error.html')
 
     # Only ARM logs
     if mode == "armcat":
@@ -292,7 +366,7 @@ def logreader():
                             yield f.read()
                             sleep(1)
                 except Exception:
-                    return render_template('error.html')
+                    return render_template('simple_error.html')
     elif mode == "download":
         app.logger.debug('fullpath: ' + fullpath)
         return send_file(fullpath, as_attachment=True)
@@ -317,7 +391,7 @@ def history():
         # jobs = Job.query.filter_by(status="active")
         jobs = Job.query.filter_by()
     else:
-        app.logger.error('ERROR: /history not database file doesnt exist')
+        app.logger.error('ERROR: /history database file doesnt exist')
         jobs = {}
 
     return render_template('history.html', jobs=jobs)
