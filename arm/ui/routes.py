@@ -235,7 +235,7 @@ def feed_json():
                     app.logger.debug("Error with comments file. {}".format(str(e)))
                     return "{'error':'" + str(e) + "'}"
         except FileNotFoundError:
-            return "{'error':'" + str(e) + "'}"
+            return "{'error':'File not found'}"
 
     return app.response_class(response=json.dumps(generate(), indent=4, sort_keys=True),
                               status=200,
