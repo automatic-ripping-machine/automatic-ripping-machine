@@ -4,11 +4,24 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}  
-<div class="container">
-  <!-- <div class="bheader"><h4 style="margin-bottom: 0px">Automatic Ripping Machine</h4></div> -->
+<div class="container"> 
   <div class="row">
     <div class="col-12" >
         <div class="table-responsive">
+		<div class="jumbotron">
+
+			<div class="row">
+				<!-- <div class="col-sm-2"></div> -->
+				<div class="col-sm-12  rounded bg-secondary text-center">
+					<img src="/static/img/arm80.png">
+						<p><b>Welcome to your Automatic Ripping Machine<br>
+						<!-- What would you like to do? -->
+						</b></p>
+				</div>
+				<!-- <div class="col-sm-2"></div> -->
+			</div>
+		<br>
+		
 <table id="logTable" style="margin: 0 auto" class="table table-striped">
   <thead class="tablesorterhead bg-secondary">    
     <tr style="margin: 0 auto">
@@ -28,14 +41,11 @@
         <td><a href="logs?logfile={{ file[0] }}&mode=armcat">arm</a></td>
         <td><a href="logs?logfile={{ file[0] }}&mode=full">full</a></td>
         <td><a href="/logreader?logfile={{ file[0] }}&mode=download">download</a></td>
-        <!-- <td><a href="logreader?logfile={{ file[0] }}&mode=armcat">arm</a></td>
-        <td><a href="logreader?logfile={{ file[0] }}&mode=full">full</a></td>
-        <td><a href="logreader?logfile={{ file[0] }}&mode=download">download</a></td> -->
     </tr>
     {% endfor %}
   </tbody>
 </table>
-</div>
+</div></div>
         <div class="row" style="height: 30px;"></div>
 <div class="align-items-center">
         <div>

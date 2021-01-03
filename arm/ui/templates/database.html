@@ -16,13 +16,18 @@
         </div>
         <!-- <div class="col-sm-2"></div> -->
     </div>
-
+	
+	<div class="d-flex float-right">
+		<div class="p-2">
+			<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="search" data-href="/json?s=">Search Database</button>
+		</div>
+	</div>
     <div class="row h-100 mx-auto align-items-center">
         <div class="col-sm-12 mx-auto">
             <p class="text-center">
             <h5 class="text-center"><b>Database Entries</b></h5>
             </p>
-        </div>
+        </div>							
     </div>
 	
 	<div id="message2" class="ui-state-error ui-corner-all" align="center"><b>WARNING:  </b>There is no undo  here! <br/>Be careful!</div>
@@ -110,7 +115,7 @@
                                 <div class="card-body px-2 py-1">
 									<div class="btn-group-vertical" role="group" aria-label="buttons">
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-href="/abandon?job_id={{ job.job_id }}">Abandon Job</button>
-										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-href="/database?jobid={{ job.job_id }}&mode=delete">Delete</button>
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-href="/database?jobid={{ job.job_id }}&mode=delete">Delete Job</button>
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-href="/logs?logfile={{ job.logfile }}&mode=full">View Logfile</button>
 									</div>
 									<!--<a href="abandon?job_id={{ job.job_id }}" class="btn btn-primary">Abandon Job</a>
