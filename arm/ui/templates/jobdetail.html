@@ -4,6 +4,15 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
+<!-- We keep this here incase we need it later -->
+<div class="alert alert-success d-none" role="alert" id="success">
+  <h4 class="alert-heading">{{ jobmessage }}</h4>
+</div>
+<div class="alert alert-danger d-none" role="alert" id="fail">
+  <h4 class="alert-heading">{{ jobmessage }}</h4>
+  <hr>
+  <h3> {{ raw }}</h3>
+</div>
 <div class="container">
     <div class="row">
         <!-- <div class="col-sm-1"></div> -->
@@ -259,7 +268,26 @@
         </div>
     </div>
 </div>
+  <script type="application/javascript">
+      $(function () {
+		{% if success is not none %}
+			x = {{ success }}
+		{% else %}
+			x = null
+		{% endif %}
+		if(typeof (x) === "boolean"){
+			if (x === true ){
+				$('#success').removeClass("d-none");
+			}else{
+				$('#fail').removeClass("d-none");
+			}
+		}
+		$(".popovers").popover({ 
+			trigger: "hover",
+		});
+      });
 
+  </script>
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}

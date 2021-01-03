@@ -5,76 +5,146 @@
 
 {% block content %}
 
-<div id="message2" class="ui-state-error ui-corner-all" align="center"><b>WARNING:  </b>There is no undo  here! <br/>Be careful!</div>
-<div class="jumbotron" style="padding-left: 15px;padding-right:15px;">
-                <div class="table-responsive">
-                      <table id="riptable" style="margin: 0 auto" class="table table-striped">
-                        <thead class="tablesorterhead bg-secondary">
-                            <tr style="margin: 0 auto">
-                                <th >Title</th>
-                                <th width="200px">Start Time</th>
-                                <th >Duration</th>
-                                <th >Status</th>
-								<th >Logfile</th>
-                                <th>Delete Entry</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {% for job in jobs %}
-                            <tr>
-                                <td class="text-nowrap"><a href="jobdetail?job_id={{ job.job_id }}" >{{ job.title }}</a></td>
-                                <td class="text-nowrap">{{ job.start_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
-                                <td class="text-nowrap">{{ job.job_length }}</td>
-                                <td class="text-nowrap {{ job.status }}"><img src="static/img/{{ job.status }}.png" height="30px" alt="{{ job.status }}" title="{{ job.status }}"></td>
-                                <td class="text-nowrap">{{ job.logfile }}</td>
-                                <td class="text-nowrap"><a class="dialog-confirm" href="database?jobid={{ job.job_id }}&mode=delete"><img src="static/img/delete.png" height="30px" alt="delete" title="delete"></a></td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
+<div class="container-fluid h-100 mx-auto">
+    <div class="row">
+        <!-- <div class="col-sm-2"></div> -->
+        <div class="col-sm-12  rounded bg-secondary text-center">
+            <img src="/static/img/arm80.png">
+            <p class="text-center"><b>Welcome to your Automatic Ripping Machine<br>
+                <!-- What would you like to do? -->
+            </b></p>
+        </div>
+        <!-- <div class="col-sm-2"></div> -->
+    </div>
+
+    <div class="row h-100 mx-auto align-items-center">
+        <div class="col-sm-12 mx-auto">
+            <p class="text-center">
+            <h5 class="text-center"><b>Database Entries</b></h5>
+            </p>
+        </div>
+    </div>
+	
+	<div id="message2" class="ui-state-error ui-corner-all" align="center"><b>WARNING:  </b>There is no undo  here! <br/>Be careful!</div>
+
+	
+	<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLongTitle">Delete this job forever ??</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p><span class="ui-icon ui-icon-alert" style="margin:12px 12px 20px 0;"></span>
+		<span id="m-body">These items will be permanently deleted and cannot be recovered. Are you sure?</span></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+        <button id="save-yes" type="button" class="btn btn-primary">Yes</button>
+      </div>
+    </div>
+  </div>
+</div>
+	
+	<div id="message1" class="green-for-go ui-corner-all d-none">Job was deleted succefully</div>
+	
+	<div id="floatcont" title="Warning!" class="ui-corner-all d-none">This can be dangerous if you dont know what you're doing. <br/> You could delete all your of your database entries if you're not careful!!! <br/> Be careful!<br/></div>
+
+    <!-- <div class="container-fluid h-100 mx-auto"> -->
+    <div class="row h-100 align-items-center">
+        <!-- <div class="col-sm-4 mx-auto"></div> -->
+        <div class="col-md-12 mx-auto">
+            <div class="card-deck">
+                {% for job in jobs %}
+                <div class="col-md-4">
+                    <div class="card mb-3  mx-auto" style="max-width: 600px">
+                        <div class="row no-gutters">
+                            <div class="col-lg-4">
+                                {% if not job.poster_url %}
+                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="static/img/none.png" width="240px"
+                                                                                 class="img-thumbnail"></a>
+                                {% else %}
+                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="{{ job.poster_url }}"
+                                                                                 width="240px"
+                                                                                 class="img-thumbnail"></a>
+                                {% endif %}
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="card-body px-1 py-1">
+                                    {% if not job.title_manual %}
+                                    <b>{{ job["title"] }}</b><br>
+                                    {% else %}
+                                    <del><b>{{ job["title_auto"] }}</b><br></del>
+                                    <b>{{ job["title"] }}</b><br>
+                                    {% endif %}
+                                    <b>Type: </b> {{ job.video_type }} <br>
+                                    {% if not job.title_manual %}
+                                    <b>Year: </b>({{ job["year"] }})<br>
+                                    {% else %}
+                                    <del><b>Year:
+                                    </b>{{ job["year_auto"] }}<br></del>
+                                    <b>Year: </b> {{ job["year"] }}<br>
+                                    {% endif %}
+                                    <b>Device: </b>{{ job.devpath }}<br>
+                                    <b>Status: </b><img src="static/img/{{ job.status }}.png" height="20px" alt="{{ job.status }}" title="{{ job.status }}"><br>
+                                    <b>Start Date:</b>{{ job.start_time.strftime("%d-%m-%Y") }}<br>
+									<b>Start Time:</b>{{ job.start_time.strftime("%H:%M:%S") }}<br>
+									<b>Job Time:</b>{{ job.job_length }}<br>
+									{%  if job.status == "transcoding" %}
+										<div class="progress">
+											<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="{{ job.progress_round }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ job.progress_round }}%">
+											<small class="justify-content-center d-flex position-absolute w-100"><b>Progress: </b>{{ job.progress }}%</small>
+                                            </div>
+										</div>
+                                        <b>ETA: </b>{{ job.eta }} <br>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="card-body px-1 py-1">
+                                </div>
+                                <div class="card-body px-2 py-1">
+									<div class="btn-group-vertical" role="group" aria-label="buttons">
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-href="/abandon?job_id={{ job.job_id }}">Abandon Job</button>
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-href="/database?jobid={{ job.job_id }}&mode=delete">Delete</button>
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-href="/logs?logfile={{ job.logfile }}&mode=full">View Logfile</button>
+									</div>
+									<!--<a href="abandon?job_id={{ job.job_id }}" class="btn btn-primary">Abandon Job</a>
+									<a class="dialog-confirm btn btn-primary" href="database?jobid={{ job.job_id }}&mode=delete">Delete</a>
+									<br>
+									<a href="/logs?logfile={{ job.logfile }}&mode=full{{ job.logfile }}" class="btn btn-primary">Logfile</a>
+									-->
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
+        </div>
+    </div>
+    <!-- <div class="col-sm-4 mx-auto"></div> -->
+    <!-- </div> -->
 </div>
-<div id="dialog" title="Delete this job forever ??">
-  <p><span class="ui-icon ui-icon-alert" style="margin:12px 12px 20px 0;"></span>These items will be permanently deleted and cannot be recovered. Are you sure?</p>
-</div>
-<div style="display: none" id="message1" class="green-for-go ui-corner-all">Job was deleted succefully</div>
-<div style="display: none" id="floatcont" title="Warning!" class="ui-corner-all">This can be dangerous if you dont know what you're doing. <br/> You could delete all your of your database entries if you're not careful!!! <br/> Be careful!<br/></div>
 
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
 {{ super() }}
   <link rel="stylesheet" href="/static/js/jquery-ui/jquery-ui.css">
-  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
   <script type="application/javascript">
-      var hrrref = "";
-      var wedeleted = "{{ success }}";
-      $(document).ready(function() {
-          $("#dialog").dialog({
-              autoOpen: false,
-              modal: true,
-              buttons : {
-                  "Confirm" : function() {
-                      window.location.href = hrrref;
-                      return false;
-                      },
-                  "Cancel" : function() {
-                      hrrref = ""
-                      $(this).dialog("close");
-                  }
-              }
-          });
-          $('.dialog-confirm').click(function () {
-              event.preventDefault();
-              // works
-              hrrref  = $(this).attr('href');
-              $("#dialog").dialog("open");
-              //alert($(this).attr('href'));
-          });
-          //get the value
-          var seen = checkCookie();
-          if(seen == null) {
+        var hrrref = "";
+        var wedeleted = "{{ success }}";
+        $(document).ready(function() {
+			//get the value
+			var seen = checkCookie();
+			if(seen == null) {
               /*have not agreed to understanding the risks, show modal*/
               $("#floatcont").dialog({
                   autoOpen: true,
@@ -124,7 +194,18 @@
                   //alert("Deleting entry was " + wedeleted);
               }
           }
-      });
+      
+			$("#save-yes").bind('click', function() {
+				console.log(hrrref)
+				if(hrrref == ""){
+					alert("href is blank")
+				}else{
+					window.location.href = hrrref;
+					return false;
+				}
+			});
+		});
+	  
       //Simple function to check if we have already agreed
       function checkCookie() {
           var understands = getCookie("understands");
@@ -156,5 +237,27 @@
           var expires = "expires="+ d.toUTCString();
           document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
       }
+	  $('#exampleModal').on('show.bs.modal', function (event) {
+		    var button = $(event.relatedTarget) // Button that triggered the modal
+		    var actionType = button.data('type') // Extract info from data-* attributes
+			hrrref  = button.data('href')
+			console.log(hrrref)
+			
+			if(actionType == "abandon"){
+				var modalTitle = "Abandon This Job ?"
+				var modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?"
+			}else if (actionType == "delete"){
+				var modalTitle = "Delete this job forever ?"
+				var modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?"
+			}else{
+				var modalTitle = "Do you want to leave this page ?"
+				var modalBody = "To view the log file you need to leave this page. Would you like to leave ?"
+			}
+		    // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+		    // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+            var modal = $(this)
+            modal.find('.modal-title').text(modalTitle)
+            modal.find('#m-body').html(modalBody)
+		})
   </script>
 {% endblock %}

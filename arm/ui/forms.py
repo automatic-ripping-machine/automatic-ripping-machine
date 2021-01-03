@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, IntegerField, BooleanField, PasswordField, validators  # noqa: F401
+from wtforms import StringField, SubmitField, SelectField, IntegerField, BooleanField, validators  # noqa: F401
 from wtforms.validators import DataRequired  # noqa: F401
 
 
@@ -24,10 +24,4 @@ class ChangeParamsForm(FlaskForm):
     # MAINFEATURE = SelectField('Main Feature: ', choices=[(1, 'Yes'), (0, 'No')])
     MINLENGTH = IntegerField('Minimum Length: ')
     MAXLENGTH = IntegerField('Maximum Length: ')
-    submit = SubmitField('Submit')
-
-
-class LoginForm(FlaskForm):
-    username = StringField('Username')
-    password = PasswordField('Password')
     submit = SubmitField('Submit')

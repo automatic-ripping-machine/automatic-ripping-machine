@@ -14,7 +14,7 @@ from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
 from arm.config.config import cfg
 from arm.ui.utils import get_info, call_omdb_api, clean_for_filename
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, LoginForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm
 from pathlib import Path, PurePath
 from flask.logging import default_handler  # noqa: F401
 
@@ -131,34 +131,37 @@ def login():
     if current_user.is_authenticated:
         return redirect('/index')
 
-    form = LoginForm()
+    # form = LoginForm()
+    save = False
+    try:
+        save = request.form['save']
+    except KeyError:
+        app.logger.debug("no post")
 
     # After a login for is submitted
-    if form.validate_on_submit():
-        user = User.query.filter_by(email=str(form.username.data).strip()).first()
+    if save:
+        email = request.form['username']
+        user = User.query.filter_by(email=str(email).strip()).first()
         if user is None:
-            flash('Invalid username')
-            return redirect(url_for('login'))
+            return render_template('login.html', success="false", raw='Invalid username')
         app.logger.debug("user= " + str(user))
         # our previous pass
         password = user.password
         hashed = user.hash
         # our new one
-        loginhashed = bcrypt.hashpw(str(form.password.data).strip().encode('utf-8'), hashed)
+        loginhashed = bcrypt.hashpw(str(request.form['password']).strip().encode('utf-8'), hashed)
         # app.logger.debug(loginhashed)
         # app.logger.debug(password)
 
         if loginhashed == password:
             login_user(user)
-            flash('Logged in')
+            return redirect('/index')
         elif user is None:
-            flash('Invalid username')
-            return redirect(url_for('login'))
+            return render_template('login.html', success="false", raw='Invalid username')
         else:
-            flash('Invalid pass')
-            return redirect(url_for('login'))
+            return render_template('login.html', success="false", raw='Invalid Password')
         return redirect('/index')
-    return render_template('login.html', title='Sign In', form=form)
+    return render_template('login.html', title='Sign In')
 
 
 @app.route('/database')
@@ -166,7 +169,7 @@ def login():
 def database():
     # Success gives the user feedback to let them know if the delete worked
     success = False
-
+    saved = False
     # Check for database file
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
@@ -176,46 +179,50 @@ def database():
         jobs = {}
     # Try to see if we have the arg set, if not ignore the error
     try:
-        # Mode to make sure the users has confirmed
-        # jobid if they one to only delete 1 job
         mode = request.args['mode']
         jobid = request.args['jobid']
-
-        # Find the job the user wants to delete
-        if mode == 'delete' and jobid is not None:
-            # User wants to wipe the whole database
-            # Make a backup and everything
-            # The user can only access this by typing it manually
-            if jobid == 'all':
-                if os.path.isfile(cfg['DBFILE']):
-                    # Make a backup of the database file
-                    cmd = 'cp ' + str(cfg['DBFILE']) + ' ' + str(cfg['DBFILE']) + '.bak'
-                    app.logger.info("cmd  -  {0}".format(cmd))
-                    os.system(cmd)
-                Track.query.delete()
-                Job.query.delete()
-                Config.query.delete()
-                db.session.commit()
-                success = True
-                """elif jobid == "logfile":
-                #  The user can only access this by typing it manually
-                #  This shouldnt be left on when on a full server
-                logfile = request.args['file']
-                Job.query.filter_by(title=logfile).delete()
-                db.session.commit()
-                """
-                # Not sure this is the greatest way of handling this
-            else:
-                Track.query.filter_by(job_id=jobid).delete()
-                Job.query.filter_by(job_id=jobid).delete()
-                Config.query.filter_by(job_id=jobid).delete()
-                db.session.commit()
-                success = True
-    # If we run into problems with the datebase changes
-    # error out to the log and roll back
+        saved = True
     except Exception as err:
-        db.session.rollback()
-        app.logger.error("Error:  {0}".format(err))
+        app.logger.debug("/database - no vars set")
+
+    if saved:
+        try:
+            # Find the job the user wants to delete
+            if mode == 'delete' and jobid is not None:
+                # User wants to wipe the whole database
+                # Make a backup and everything
+                # The user can only access this by typing it manually
+                if jobid == 'all':
+                    if os.path.isfile(cfg['DBFILE']):
+                        # Make a backup of the database file
+                        cmd = 'cp ' + str(cfg['DBFILE']) + ' ' + str(cfg['DBFILE']) + '.bak'
+                        app.logger.info("cmd  -  {0}".format(cmd))
+                        os.system(cmd)
+                    Track.query.delete()
+                    Job.query.delete()
+                    Config.query.delete()
+                    db.session.commit()
+                    success = True
+                    """elif jobid == "logfile":
+                    #  The user can only access this by typing it manually
+                    #  This shouldnt be left on when on a full server
+                    logfile = request.args['file']
+                    Job.query.filter_by(title=logfile).delete()
+                    db.session.commit()
+                    """
+                    # Not sure this is the greatest way of handling this
+                else:
+                    Track.query.filter_by(job_id=jobid).delete()
+                    Job.query.filter_by(job_id=jobid).delete()
+                    Config.query.filter_by(job_id=jobid).delete()
+                    db.session.commit()
+                    success = True
+        # If we run into problems with the datebase changes
+        # error out to the log and roll back
+        except Exception as err:
+            db.session.rollback()
+            app.logger.error("Error:db-1 {0}".format(err))
+            success = False
 
     return render_template('database.html', jobs=jobs, success=success)
 
@@ -403,7 +410,7 @@ def jobdetail():
     job_id = request.args.get('job_id')
     jobs = Job.query.get(job_id)
     tracks = jobs.tracks.all()
-    return render_template('jobdetail.html', jobs=jobs, tracks=tracks)
+    return render_template('jobdetail.html', jobs=jobs, tracks=tracks, success="null")
 
 
 @app.route('/abandon', methods=['GET', 'POST'])
@@ -416,8 +423,7 @@ def abandon_job():
         job = Job.query.get(job_id)
         job.status = "fail"
         db.session.commit()
-        flash("Job was abandoned!")
-        return render_template('jobdetail.html', jobs=job)
+        return render_template('jobdetail.html', success="true", jobmessage="Job was abandoned!", jobs=job)
     except Exception as e:
         flash("Failed to update job" + str(e))
         return render_template('error.html')
