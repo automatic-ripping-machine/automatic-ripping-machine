@@ -80,6 +80,11 @@ def setup():
         return redirect('/index')
 
 
+@app.route('/error')
+def was_error():
+    return render_template('error.html', title='error')
+
+
 @app.route('/setup-stage2', methods=['GET', 'POST'])
 def setup_stage2():
     # if there is no user in the database
