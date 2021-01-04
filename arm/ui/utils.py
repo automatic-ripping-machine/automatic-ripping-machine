@@ -12,7 +12,8 @@ from arm.config.config import cfg
 from flask.logging import default_handler  # noqa: F401
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
-from flask import Flask, render_template
+from flask import Flask, render_template  # noqa: F401
+
 
 def get_info(directory):
     file_list = []
@@ -130,7 +131,7 @@ def abandon_job(job_id):
         job.status = "fail"
         db.session.commit()
         t = {'success': True, 'job': job_id, 'mode': 'abandon'}
-    except Exception as e:
+    except Exception:
         # flash("Failed to update job" + str(e))
         db.session.rollback()
         t = {'success': False, 'job': job_id, 'mode': 'abandon'}
@@ -171,7 +172,7 @@ def delete_job(job_id, mode):
                 except ValueError:
                     return {'success': False, 'job': 'invalid', 'mode': mode, 'error': 'Not a valid job'}
                 else:
-                    app.logger.debug("No errors")
+                    app.logger.debug("No errors: job_id=" + str(post_value))
                     # TODO maybe/ re.sub('[^0-9]{1,10}', '', job_id)
                     Track.query.filter_by(job_id=job_id).delete()
                     Job.query.filter_by(job_id=job_id).delete()
