@@ -34,8 +34,12 @@ def load_user(user_id):
 #  Redirect to login if we arent auth
 @login_manager.unauthorized_handler
 def unauthorized():
-    # do stuff
-    return redirect('/login')
+    # This errors if user deletes db
+    try:
+        return User.query.get(int(user_id))
+    except Exception:
+        app.logger.debug("error getting user")
+        # return redirect('/login')
 
 
 @app.route('/setup')
@@ -586,12 +590,20 @@ def home():
     # app.logger.error('ERROR Inside /logreader')
 
     # Hard drive space
-    freegb = psutil.disk_usage(cfg['ARMPATH']).free
-    freegb = round(freegb / 1073741824, 1)
-    arm_percent = psutil.disk_usage(cfg['ARMPATH']).percent
-    mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
-    mfreegb = round(mfreegb / 1073741824, 1)
-    media_percent = psutil.disk_usage(cfg['MEDIA_DIR']).percent
+    try:
+        freegb = psutil.disk_usage(cfg['ARMPATH']).free
+        freegb = round(freegb / 1073741824, 1)
+        arm_percent = psutil.disk_usage(cfg['ARMPATH']).percent
+        mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
+        mfreegb = round(mfreegb / 1073741824, 1)
+        media_percent = psutil.disk_usage(cfg['MEDIA_DIR']).percent
+    except FileNotFoundError:
+        freegb = 0
+        arm_percent = 0
+        mfreegb = 0
+        media_percent = 0
+        app.logger.debug("ARM folders not setup")
+
     #  RAM
     memory = psutil.virtual_memory()
     mem_total = round(memory.total / 1073741824, 1)
