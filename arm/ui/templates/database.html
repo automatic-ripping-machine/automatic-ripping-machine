@@ -30,12 +30,9 @@
         </div>							
     </div>
 	
-	<div id="message2" class="ui-state-error ui-corner-all" align="center"><b>WARNING:  </b>There is no undo  here! <br/>Be careful!</div>
-
-	
 	<!-- Modal -->
 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" role="document">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="exampleModalLongTitle">Delete this job forever ??</h5>
@@ -55,8 +52,19 @@
   </div>
 </div>
 	
-	<div id="message1" class="green-for-go ui-corner-all d-none">Job was deleted succefully</div>
+	<div id="message1" class="alert alert-success d-none" role="alert">
+		<h4 class="alert-heading">Job was deleted successfully</h4>
+	</div>
 	
+	<div id="message2" class="ui-state-error ui-corner-all" align="center">
+		<b>WARNING:  </b>There is no undo  here! 
+		<br>Be careful!
+	</div>
+
+	<div  id="message3" class="alert alert-danger d-none" role="alert">
+		<h4 class="alert-heading">There was a problem with your request</h4>
+		<p>There was a problem with your request. Check the ARMui log for more details.</p>
+	</div>
 	<div id="floatcont" title="Warning!" class="ui-corner-all d-none">This can be dangerous if you dont know what you're doing. <br/> You could delete all your of your database entries if you're not careful!!! <br/> Be careful!<br/></div>
 
     <!-- <div class="container-fluid h-100 mx-auto"> -->
@@ -65,7 +73,7 @@
         <div class="col-md-12 mx-auto">
             <div class="card-deck">
                 {% for job in jobs %}
-                <div class="col-md-4">
+                <div class="col-md-4" id="jobId{{ job.job_id }}">
                     <div class="card mb-3  mx-auto" style="max-width: 600px">
                         <div class="row no-gutters">
                             <div class="col-lg-4">
@@ -95,7 +103,7 @@
                                     <b>Year: </b> {{ job["year"] }}<br>
                                     {% endif %}
                                     <b>Device: </b>{{ job.devpath }}<br>
-                                    <b>Status: </b><img src="static/img/{{ job.status }}.png" height="20px" alt="{{ job.status }}" title="{{ job.status }}"><br>
+                                    <b>Status: </b><img id="status{{ job.job_id }}" src="static/img/{{ job.status }}.png" height="20px" alt="{{ job.status }}" title="{{ job.status }}"><br>
                                     <b>Start Date:</b>{{ job.start_time.strftime("%d-%m-%Y") }}<br>
 									<b>Start Time:</b>{{ job.start_time.strftime("%H:%M:%S") }}<br>
 									<b>Job Time:</b>{{ job.job_length }}<br>
@@ -114,9 +122,9 @@
                                 </div>
                                 <div class="card-body px-2 py-1">
 									<div class="btn-group-vertical" role="group" aria-label="buttons">
-										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-href="/abandon?job_id={{ job.job_id }}">Abandon Job</button>
-										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-href="/database?jobid={{ job.job_id }}&mode=delete">Delete Job</button>
-										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-href="/logs?logfile={{ job.logfile }}&mode=full">View Logfile</button>
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="{{ job.job_id }}" data-href="/json?job={{ job.job_id }}&mode=abandon">Abandon Job</button>
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-jobid="{{ job.job_id }}" data-href="/json?job={{ job.job_id }}&mode=delete">Delete Job</button>
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="{{ job.job_id }}" data-href="/json?logfile={{ job.logfile }}&mode=full">View Logfile</button>
 									</div>
 									<!--<a href="abandon?job_id={{ job.job_id }}" class="btn btn-primary">Abandon Job</a>
 									<a class="dialog-confirm btn btn-primary" href="database?jobid={{ job.job_id }}&mode=delete">Delete</a>
@@ -146,6 +154,8 @@
   <script type="application/javascript">
         var hrrref = "";
         var wedeleted = "{{ success }}";
+		var activeJob = null;
+		var actionType = null;
         $(document).ready(function() {
 			//get the value
 			var seen = checkCookie();
@@ -202,11 +212,62 @@
       
 			$("#save-yes").bind('click', function() {
 				console.log(hrrref)
-				if(hrrref == ""){
-					alert("href is blank")
-				}else{
-					window.location.href = hrrref;
-					return false;
+				if(hrrref != ""){
+					$.get( hrrref, function( data ) {
+						console.log( data['success'] ); // John	
+						console.log("#jobId"+activeJob)
+						if (data['success'] === true){
+							if (data['mode'] === "delete"){
+								$( "#jobId"+activeJob ).remove();
+								$("#message1 .alert-heading").html("Job was successfully deleted")
+								$('#exampleModal').modal('toggle');
+								$('#message1').removeClass('d-none');
+								$('#message2').addClass('d-none');
+								$('#message3').addClass('d-none');
+								setTimeout(
+									function(){$('#message1').addClass('d-none');},
+										5000
+								);
+							}
+							if (data['mode'] === "abandon"){
+								$("#status"+activeJob).attr("src","static/img/fail.png")
+								$("#message1 .alert-heading").html("Job was successfully abandoned")
+								$('#exampleModal').modal('toggle');
+								$('#message1').removeClass('d-none');
+								$('#message2').addClass('d-none');
+								$('#message3').addClass('d-none');
+								setTimeout(
+									function(){$('#message1').addClass('d-none');},
+										5000
+								);
+							}
+							if (data['mode'] === "logfile"){
+								// This might be better
+								//window.location.href = hrrref;
+								//return false;
+							    // var modal = $(this)
+								$(this).find('.modal-title').text("Logfile")
+								$('#m-body').html(data['log'])
+								$('#m-body').addClass('bd-example-modal-lg')
+								$('#m-body').modal('handleUpdate')
+								//$('#exampleModal').modal('toggle');
+								$('#message1').removeClass('d-none');
+								$('#message2').addClass('d-none');
+								$('#message3').addClass('d-none');
+							}
+						}else{
+							$('#message3').removeClass('d-none');
+							$('#message1').addClass('d-none');
+							$('#message2').addClass('d-none');
+							$('#exampleModal').modal('toggle');
+							setTimeout(
+								function(){$('#message3').addClass('d-none');},
+									5000
+							);
+						}
+					}, "json");
+					//window.location.href = hrrref;
+					//return false;
 				}
 			});
 		});
@@ -244,9 +305,12 @@
       }
 	  $('#exampleModal').on('show.bs.modal', function (event) {
 		    var button = $(event.relatedTarget) // Button that triggered the modal
-		    var actionType = button.data('type') // Extract info from data-* attributes
+		    actionType = button.data('type') // Extract info from data-* attributes
 			hrrref  = button.data('href')
+			activeJob = button.data('jobid')
+			//jobId = job.job_id 
 			console.log(hrrref)
+			console.log(activeJob)
 			
 			if(actionType == "abandon"){
 				var modalTitle = "Abandon This Job ?"

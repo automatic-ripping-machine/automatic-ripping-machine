@@ -7,13 +7,14 @@ import sys  # noqa: F401
 import bcrypt
 import hashlib  # noqa: F401
 import json
+import arm.ui.utils as utils
 from time import sleep
 from flask import Flask, render_template, make_response, abort, request, send_file, flash, redirect, url_for, \
     Markup  # noqa: F401
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
 from arm.config.config import cfg
-from arm.ui.utils import get_info, call_omdb_api, clean_for_filename
+# from arm.ui.utils import get_info, call_omdb_api, clean_for_filename, generate_comments
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm
 from pathlib import Path, PurePath
 from flask.logging import default_handler  # noqa: F401
@@ -236,21 +237,22 @@ def database():
 @app.route('/json', methods=['GET', 'POST'])
 @login_required
 def feed_json():
-    def generate():
-        comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
-        try:
-            with open(comments_file, "r") as f:
-                try:
-                    comments = json.load(f)
-                    return comments
-                except Exception as e:
-                    comments = None
-                    app.logger.debug("Error with comments file. {}".format(str(e)))
-                    return "{'error':'" + str(e) + "'}"
-        except FileNotFoundError:
-            return "{'error':'File not found'}"
-
-    return app.response_class(response=json.dumps(generate(), indent=4, sort_keys=True),
+    x = request.args.get('mode')
+    j_id = request.args.get('job')
+    logfile = request.args.get('logfile')
+    logpath = cfg['LOGPATH']
+    if x is None:
+        j = utils.generate_comments()
+    elif x == "delete":
+        j = utils.delete_job(j_id, x)
+        # app.logger.debug("delete")
+    elif x == "abandon":
+        j = utils.abandon_job(j_id)
+        # app.logger.debug("abandon")
+    elif x == "full":
+        app.logger.debug("getlog")
+        j = utils.generate_log(logfile, logpath, j_id)
+    return app.response_class(response=json.dumps(j, indent=4, sort_keys=True),
                               status=200,
                               mimetype='application/json')
 
@@ -303,7 +305,7 @@ def settings():
                 elif k == "APPRISE":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['APPRISE']
 
-                arm_cfg += "\n" + comments[str(k)]+"\n" if comments[str(k)] != "" else ""
+                arm_cfg += "\n" + comments[str(k)] + "\n" if comments[str(k)] != "" else ""
                 # arm_cfg += "{}: \"{}\"\n".format(k, v)
                 try:
                     post_value = int(v)
@@ -344,7 +346,8 @@ def logreader():
     logpath = cfg['LOGPATH']
     mode = request.args['mode']
     logfile = request.args['logfile']
-
+    if "../" in logfile:
+        return render_template('simple_error.html')
     # Assemble full path
     fullpath = os.path.join(logpath, logfile)
     # Check if the logfile exists
@@ -426,6 +429,7 @@ def abandon_job():
     # TODO add a confirm and then
     #  delete the raw folder (this will cause ARM to bail)
     try:
+        # This should be none if we aren't set
         job = Job.query.get(job_id)
         job.status = "fail"
         db.session.commit()
@@ -497,7 +501,7 @@ def list_titles():
     title = request.args.get('title').strip()
     year = request.args.get('year').strip()
     job_id = request.args.get('job_id')
-    dvd_info = call_omdb_api(title, year)
+    dvd_info = utils.call_omdb_api(title, year)
     return render_template('list_titles.html', results=dvd_info, job_id=job_id)
 
 
@@ -506,7 +510,7 @@ def list_titles():
 def gettitle():
     imdb_id = request.args.get('imdbID')
     job_id = request.args.get('job_id')
-    dvd_info = call_omdb_api(None, None, imdb_id, "full")
+    dvd_info = utils.call_omdb_api(None, None, imdb_id, "full")
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
 
@@ -521,8 +525,8 @@ def updatetitle():
     job_id = request.args.get('job_id')
     print("New imdbID=" + imdb_id)
     job = Job.query.get(job_id)
-    job.title = clean_for_filename(new_title)
-    job.title_manual = clean_for_filename(new_title)
+    job.title = utils.clean_for_filename(new_title)
+    job.title_manual = utils.clean_for_filename(new_title)
     job.year = new_year
     job.year_manual = new_year
     job.video_type_manual = video_type
@@ -558,7 +562,7 @@ def listlogs(path):
         return render_template('error.html')
 
     # Get all files in directory
-    files = get_info(fullpath)
+    files = utils.get_info(fullpath)
     return render_template('logfiles.html', files=files)
 
 
