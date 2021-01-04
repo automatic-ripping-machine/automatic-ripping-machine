@@ -66,8 +66,6 @@ git clone https://github.com/1337-server/automatic-ripping-machine.git arm
 #git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
 chown -R arm:arm arm
 cd arm
-# TODO: Ask user to confirm what version they want
-git checkout v2.2_dev
 pip3 install setuptools
 apt-get install python3-dev python3-pip python3-venv python3-wheel -y
 pip3 install wheel
