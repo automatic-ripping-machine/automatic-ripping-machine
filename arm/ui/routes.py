@@ -54,15 +54,15 @@ def setup():
     app.logger.debug("dir4 " + str(dir4))
     try:
         if not Path.exists(dir0):
-            os.makedir(dir0)
+            os.makedirs(dir0)
         if not Path.exists(dir1):
-            os.makedir(dir1)
+            os.makedirs(dir1)
         if not Path.exists(dir2):
-            os.makedir(dir2)
+            os.makedirs(dir2)
         if not Path.exists(dir3):
-            os.makedir(dir3)
+            os.makedirs(dir3)
         if not Path.exists(dir4):
-            os.makedir(dir4)
+            os.makedirs(dir4)
     except FileNotFoundError as e:
         app.logger.debug("Creation of the directory {} failed {}".format(dir0, e))
     else:
