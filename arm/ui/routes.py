@@ -28,18 +28,17 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
-
-
-#  Redirect to login if we arent auth
-@login_manager.unauthorized_handler
-def unauthorized():
-    # This errors if user deletes db
     try:
         return User.query.get(int(user_id))
     except Exception:
         app.logger.debug("error getting user")
         # return redirect('/login')
+
+
+#  Redirect to login if we arent auth
+@login_manager.unauthorized_handler
+def unauthorized():
+    return redirect('/login')
 
 
 @app.route('/setup')
