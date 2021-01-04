@@ -63,7 +63,7 @@ def setup():
             os.mkdir(dir3)
         if not Path.exists(dir4):
             os.mkdir(dir4)
-    except OSError as e:
+    except FileNotFoundError as e:
         app.logger.debug("Creation of the directory {} failed {}".format(dir0, e))
     else:
         app.logger.debug("Successfully created all of the ARM directories")
