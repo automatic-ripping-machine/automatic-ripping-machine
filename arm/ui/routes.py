@@ -86,7 +86,7 @@ def setup_stage2():
     try:
         # Return the user to login screen if we dont error when calling for any users
         users = User.query.all()
-        if users is not None:
+        if users:
             # TODO remove all flash() and use the nicer ui
             flash('You cannot create more than 1 admin account')
             return redirect(url_for('login'))
@@ -94,7 +94,7 @@ def setup_stage2():
     except Exception:
         # return redirect('/index')
         app.logger.debug("No admin account found")
-    # form = LoginForm()
+
     save = False
     try:
         save = request.form['save']
@@ -118,6 +118,8 @@ def setup_stage2():
             except Exception as e:
                 flash(str(e))
                 return redirect('/setup-stage2')
+            else:
+                return redirect(url_for('login'))
         else:
             # app.logger.debug("user: "+ str(username) + " Pass:" + pass1 )
             flash("error something was blank")
@@ -129,16 +131,18 @@ def setup_stage2():
 def login():
     # if there is no user in the database
     try:
-        User.query.all()
+        x = User.query.all()
+        # If we dont raise an exception but the usr table is empty
+        if not x:
+            return redirect('/setup-stage2')
     except Exception:
         flash("No admin account found")
+        app.logger.debug("No admin account found")
         return redirect('/setup-stage2')
 
     # if user is logged in
     if current_user.is_authenticated:
         return redirect('/index')
-
-    # form = LoginForm()
     save = False
     try:
         save = request.form['save']
@@ -162,12 +166,14 @@ def login():
 
         if loginhashed == password:
             login_user(user)
+            app.logger.debug("user was logged in - redirecting")
             return redirect('/index')
         elif user is None:
             return render_template('login.html', success="false", raw='Invalid username')
         else:
             return render_template('login.html', success="false", raw='Invalid Password')
-        return redirect('/index')
+
+        # return redirect(url_for('home'))
     return render_template('login.html', title='Sign In')
 
 
@@ -601,7 +607,11 @@ def home():
 
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
-        jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+        try:
+            jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+        except Exception:
+            # db isnt setup
+            return redirect(url_for('setup'))
         for job in jobs:
             job_log = cfg['LOGPATH'] + job.logfile
             line = subprocess.check_output(['tail', '-n', '1', job_log])
