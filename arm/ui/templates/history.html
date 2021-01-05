@@ -4,7 +4,15 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}  
-<div class="jumbotron">
+<div class="jumbotron" style="padding-top: 1rem;">
+					<div class="col-sm-12  rounded bg-secondary text-center">
+						<img src="/static/img/arm80.png">
+						<p class="text-center">
+						<!--<b>Welcome to your Automatic Ripping Machine</b>
+						<br>-->
+						<h2> Rip History </h2>
+						</p>
+					</div>
     <div class="row">
                 <div class="table-responsive">
                     <table id="riptable" style="margin: 0 auto" class="table table-striped">

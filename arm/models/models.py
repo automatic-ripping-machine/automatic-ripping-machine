@@ -57,7 +57,6 @@ class Job(db.Model):
         self.updated = False
         if cfg['VIDEOTYPE'] != "auto":
             self.video_type = cfg['VIDEOTYPE']
-
         self.parse_udev()
         self.get_pid()
 
@@ -108,6 +107,13 @@ class Job(db.Model):
             else:
                 x.add_row([str(attr), str(value)])
         return str(x.get_string())
+
+    def get_d(self):
+        r = {}
+        for key, value in self.__dict__.items():
+            if '_sa_instance_state' not in key:
+                r[str(key)] = str(value)
+        return r
 
     def __repr__(self):
         return '<Job {}>'.format(self.label)
@@ -228,7 +234,6 @@ class Config(db.Model):
 
     def list_params(self):
         """Returns a string of the object"""
-
         s = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
             if s:
@@ -243,7 +248,6 @@ class Config(db.Model):
 
     def __str__(self):
         """Returns a string of the object"""
-
         s = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
             if str(attr) in (
@@ -283,7 +287,7 @@ class User(db.Model, UserMixin):
         return '<User %r>' % (self.email)
 
     def get_id(self):
-        return (self.user_id)
+        return self.user_id
 
 
 class Alembic_version(db.Model):

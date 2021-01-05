@@ -17,19 +17,17 @@
 <div class="container" style="max-width: initial!important;">
     <div class="row">
             <div class="col">
-			    <div class="row">
-					<!-- <div class="col-sm-2"></div> -->
+                <div class="jumbotron" style="padding-top: 1rem;">
 					<div class="col-sm-12  rounded bg-secondary text-center">
 						<img src="/static/img/arm80.png">
-						<p class="text-center"><b>Welcome to your Automatic Ripping Machine</b>
-						<br>
-						<!-- What would you like to do? -->
+						<p class="text-center">
+						<!--<b>Welcome to your Automatic Ripping Machine</b>
+						<br>-->
+						<h2> ARMui - Settings </h2>
 						</p>
 					</div>
-					<!-- <div class="col-sm-2"></div> -->
-				</div>
-                <div class="jumbotron">
-					<div class="container">
+				
+					<div class="container" style="padding-top: 4rem;">
 						<form id="form1" name="form1" method="post" action="/settings">
 							{% for k, v in settings.items() %}
 							<!--<div class="form-group row">
