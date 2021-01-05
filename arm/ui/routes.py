@@ -86,6 +86,10 @@ def setup():
         if utils.setupdatabase():
             flash("Setup of the database was successful.")
             app.logger.debug("Setup of the database was successful.")
+            perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
+            f = open(perm_file, "w")
+            f.write("boop!")
+            f.close()
             return redirect('/setup-stage2')
         else:
             flash("Couldn't setup database")
