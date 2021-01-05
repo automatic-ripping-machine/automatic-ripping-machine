@@ -77,7 +77,7 @@ def setup():
             flash("{} was created successfully.".format(str(dir4)))
     except FileNotFoundError as e:
         flash("Creation of the directory {} failed {}".format(str(dir0), e))
-        app.logger.debug("Creation of the directory failed - {}".format(str(dir0), e))
+        app.logger.debug("Creation of the directory failed - {}".format(str(e)))
     else:
         flash("Successfully created all of the ARM directories")
         app.logger.debug("Successfully created all of the ARM directories")
