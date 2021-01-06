@@ -4,8 +4,16 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}  
-<div class="jumbotron">
-    <div class="row">
+<div class="jumbotron" style="padding-top: 1rem;">
+					<div class="col-sm-12  rounded bg-secondary text-center">
+						<img src="/static/img/arm80.png">
+						<p class="text-center">
+						<!--<b>Welcome to your Automatic Ripping Machine</b>
+						<br>-->
+						<h2> Rip History </h2>
+						</p>
+					</div>
+
                 <div class="table-responsive">
                     <table id="riptable" style="margin: 0 auto" class="table table-striped">
                         <thead class="tablesorterhead bg-secondary">
@@ -20,18 +28,17 @@
                         <tbody>
                                         {% for job in jobs %}
                             <tr>
-                                <td class="text-nowrap"><a href="jobdetail?job_id={{ job.job_id }}" >{{ job.title }}</a></td>
-                                <td class="text-nowrap">{{ job.start_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                                <td class="text-nowrap"><a href="jobdetail?job_id={{ job.job_id }}" >{{ job.title|truncate(50, True) }}</a></td>
+                                <td class="text-nowrap">{{ job.start_time.strftime(date_format) }}</td>
                                 <td class="text-nowrap">{{ job.job_length }}</td>
                                 <td class="text-nowrap {{ job.status }}"><img src="static/img/{{ job.status }}.png" height="30px" alt="{{ job.status }}" title="{{ job.status }}"></td>
-                                <td class="text-nowrap"><a href="logs?logfile={{ job.logfile }}&mode=full">{{ job.logfile }}</a></td>
+                                <td class="text-nowrap"><a href="logs?logfile={{ job.logfile }}&mode=full">{{ job.logfile|truncate(50, True) }}</a></td>
                                         {% endfor %}
                             </tr>
                         </tbody>
                     </table>
             </div>
     </div>
-</div>
 
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}

@@ -43,8 +43,12 @@ def unauthorized():
 
 @app.route('/setup')
 def setup():
-    # TODO Verify this with a secret key in the config for set up
-    #  So not just anyone can wipe the database
+    perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
+    app.logger.debug("perm " + str(perm_file))
+    if perm_file.exists():
+        flash(str(perm_file) + " exists, setup cannot continue. To re-install please delete this file.")
+        app.logger.debug("perm exist GTFO")
+        return redirect('/setup-stage2')  # We push to setup-stage2 and let it decide where the user needs to go
     dir0 = Path(PurePath(cfg['DBFILE']).parent)
     dir1 = Path(cfg['ARMPATH'])
     dir2 = Path(cfg['RAWPATH'])
@@ -58,28 +62,42 @@ def setup():
     try:
         if not Path.exists(dir0):
             os.makedirs(dir0)
+            flash("{} was created successfully.".format(str(dir0)))
         if not Path.exists(dir1):
             os.makedirs(dir1)
+            flash("{} was created successfully.".format(str(dir1)))
         if not Path.exists(dir2):
             os.makedirs(dir2)
+            flash("{} was created successfully.".format(str(dir2)))
         if not Path.exists(dir3):
             os.makedirs(dir3)
+            flash("{} was created successfully.".format(str(dir3)))
         if not Path.exists(dir4):
             os.makedirs(dir4)
+            flash("{} was created successfully.".format(str(dir4)))
     except FileNotFoundError as e:
-        app.logger.debug("Creation of the directory {} failed {}".format(dir0, e))
+        flash("Creation of the directory {} failed {}".format(str(dir0), e))
+        app.logger.debug("Creation of the directory failed - {}".format(str(e)))
     else:
+        flash("Successfully created all of the ARM directories")
         app.logger.debug("Successfully created all of the ARM directories")
 
     try:
-        if setupdatabase():
-            flash("Setup database")
+        if utils.setupdatabase():
+            flash("Setup of the database was successful.")
+            app.logger.debug("Setup of the database was successful.")
+            perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
+            f = open(perm_file, "w")
+            f.write("boop!")
+            f.close()
             return redirect('/setup-stage2')
         else:
             flash("Couldn't setup database")
+            app.logger.debug("Couldn't setup database")
             return redirect("/error")
     except Exception as e:
         flash(str(e))
+        app.logger.debug("Setup - " + str(e))
         return redirect('/index')
 
 
@@ -245,7 +263,7 @@ def database():
             app.logger.error("Error:db-1 {0}".format(err))
             success = False
 
-    return render_template('database.html', jobs=jobs, success=success)
+    return render_template('database.html', jobs=jobs, success=success, date_format=cfg['DATE_FORMAT'])
 
 
 @app.route('/json', methods=['GET', 'POST'])
@@ -254,6 +272,7 @@ def feed_json():
     x = request.args.get('mode')
     j_id = request.args.get('job')
     logfile = request.args.get('logfile')
+    searchq = request.args.get('q')
     logpath = cfg['LOGPATH']
     if x is None:
         j = utils.generate_comments()
@@ -266,6 +285,10 @@ def feed_json():
     elif x == "full":
         app.logger.debug("getlog")
         j = utils.generate_log(logfile, logpath, j_id)
+    elif x == "search":
+        app.logger.debug("search")
+        j = utils.search(searchq)
+
     return app.response_class(response=json.dumps(j, indent=4, sort_keys=True),
                               status=200,
                               mimetype='application/json')
@@ -358,10 +381,10 @@ def logreader():
 
     # Setup our vars
     logpath = cfg['LOGPATH']
-    mode = request.args['mode']
-    logfile = request.args['logfile']
-    if "../" in logfile:
-        return render_template('simple_error.html')
+    mode = request.args.get('mode')
+    logfile = request.args.get('logfile')
+    if logfile is None or "../" in logfile or mode is None:
+        return render_template('error.html')
     # Assemble full path
     fullpath = os.path.join(logpath, logfile)
     # Check if the logfile exists
@@ -423,8 +446,9 @@ def history():
     else:
         app.logger.error('ERROR: /history database file doesnt exist')
         jobs = {}
+    app.logger.debug(cfg['DATE_FORMAT'])
 
-    return render_template('history.html', jobs=jobs)
+    return render_template('history.html', jobs=jobs, date_format=cfg['DATE_FORMAT'])
 
 
 @app.route('/jobdetail', methods=['GET', 'POST'])
@@ -462,10 +486,7 @@ def submitrip():
     if form.validate_on_submit():
         form.populate_obj(job)
         flash('Search for {}, year={}'.format(form.title.data, form.year.data), category='success')
-        # dvd_info = call_omdb_api(form.title.data, form.year.data)
         return redirect(url_for('list_titles', title=form.title.data, year=form.year.data, job_id=job_id))
-        # return render_template('list_titles.html', results=dvd_info, job_id=job_id)
-        # return redirect('/gettitle', title=form.title.data, year=form.year.data)
     return render_template('titlesearch.html', title='Update Title', form=form)
 
 
@@ -504,7 +525,7 @@ def customtitle():
         job.title = format(form.title.data)
         job.year = format(form.year.data)
         db.session.commit()
-        flash('custom title changed. Title={}, Year={}, '.format(form.title, form.year))
+        flash('custom title changed. Title={}, Year={}.'.format(form.title.data, form.year.data))
         return redirect(url_for('home'))
     return render_template('customTitle.html', title='Change Title', form=form)
 
@@ -512,9 +533,13 @@ def customtitle():
 @app.route('/list_titles')
 @login_required
 def list_titles():
-    title = request.args.get('title').strip()
-    year = request.args.get('year').strip()
-    job_id = request.args.get('job_id')
+    title = request.args.get('title').strip() if request.args.get('title') else ''
+    year = request.args.get('year').strip() if request.args.get('year') else ''
+    job_id = request.args.get('job_id').strip() if request.args.get('job_id') else ''
+    if job_id == "":
+        app.logger.debug("list_titles - no job supplied")
+        flash("No job supplied")
+        return redirect('/error')
     dvd_info = utils.call_omdb_api(title, year)
     return render_template('list_titles.html', results=dvd_info, job_id=job_id)
 
@@ -522,8 +547,12 @@ def list_titles():
 @app.route('/gettitle', methods=['GET', 'POST'])
 @login_required
 def gettitle():
-    imdb_id = request.args.get('imdbID')
-    job_id = request.args.get('job_id')
+    imdb_id = request.args.get('imdbID').strip() if request.args.get('imdbID') else ''
+    job_id = request.args.get('job_id').strip() if request.args.get('job_id') else ''
+    if job_id == "":
+        app.logger.debug("gettitle - no job supplied")
+        flash("No job supplied")
+        return redirect('/error')
     dvd_info = utils.call_omdb_api(None, None, imdb_id, "full")
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
@@ -537,7 +566,7 @@ def updatetitle():
     imdb_id = request.args.get('imdbID')
     poster_url = request.args.get('poster')
     job_id = request.args.get('job_id')
-    print("New imdbID=" + imdb_id)
+    app.logger.debug("New imdbID=" + str(imdb_id))
     job = Job.query.get(job_id)
     job.title = utils.clean_for_filename(new_title)
     job.title_manual = utils.clean_for_filename(new_title)
@@ -577,7 +606,7 @@ def listlogs(path):
 
     # Get all files in directory
     files = utils.get_info(fullpath)
-    return render_template('logfiles.html', files=files)
+    return render_template('logfiles.html', files=files, date_format=cfg['DATE_FORMAT'])
 
 
 @app.route('/')
@@ -601,8 +630,9 @@ def home():
         arm_percent = 0
         mfreegb = 0
         media_percent = 0
-        app.logger.debug("ARM folders not setup")
-
+        app.logger.debug("ARM folders not found")
+        flash("There was a problem accessing the ARM folders. Please make sure you have setup the ARMui")
+        # We could check for the install file here  and then error out if we want
     #  RAM
     memory = psutil.virtual_memory()
     mem_total = round(memory.total / 1073741824, 1)
@@ -615,8 +645,8 @@ def home():
     except EnvironmentError:
         our_cpu = "Not found"
 
-    temps = psutil.sensors_temperatures()
     try:
+        temps = psutil.sensors_temperatures()
         temp = temps['coretemp'][0][1]
     except KeyError:
         temp = None
@@ -640,7 +670,7 @@ def home():
                 job.progress = job_status.group(1)
                 # job.eta = job_status.group(2)+":"+job_status.group(3)+":"+job_status.group(4)
                 job.eta = job_status.group(2)
-                app.logger.debug("job.progress = " + job.progress)
+                app.logger.debug("job.progress = " + str(job.progress))
                 x = job.progress
                 job.progress_round = int(float(x))
                 app.logger.debug("Job.round = " + str(job.progress_round))
@@ -687,37 +717,3 @@ def get_processor_name():
                 amd_ghz = int(float(amd_ghz))  # Not sure this is a good idea
                 return str(amd_name) + " @" + str(amd_ghz) + " GHz"
     return None  # We didnt find our cpu
-
-
-def setupdatabase():
-    """
-    Try to get the db. User if not we nuke everything
-    """
-    # TODO need to check if all the arm directories have been made
-    # logs, media, db
-    try:
-        User.query.all()
-        return True
-    except Exception as err:
-        #  We only need this on first run
-        #  Wipe everything
-        flash(str(err))
-        try:
-            db.drop_all()
-        except Exception:
-            app.logger.debug("couldn't drop all")
-        try:
-            #  Recreate everything
-            db.metadata.create_all(db.engine)
-            # See important note below
-            # from arm.models.models import User, Job, Track, Config, Alembic_version
-            db.create_all()
-            db.session.commit()
-            #  push the database version arm is looking for
-            user = Alembic_version('c3a3fa694636')
-            db.session.add(user)
-            db.session.commit()
-            return True
-        except Exception:
-            app.logger.debug("couldn't create all")
-            return False

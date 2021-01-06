@@ -43,6 +43,7 @@ def setuplogging(job):
         logfull = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" else cfg['LOGPATH'] + "/" + logfile
     else:
         logfile = job.label + ".log"
+        # REGRESSION - NAS is created multi times with (ts)
         if cfg['LOGPATH'][-1:] == "/":
             # #This really needs to be cleaned up, but it works for now
             # Check to see if file already exists, if so, create a new file

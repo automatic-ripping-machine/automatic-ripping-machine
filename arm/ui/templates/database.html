@@ -19,7 +19,7 @@
 	
 	<div class="d-flex float-right">
 		<div class="p-2">
-			<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="search" data-href="/json?s=">Search Database</button>
+			<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="search" data-href="/json?mode=search&q=">Search Database</button>
 		</div>
 	</div>
     <div class="row h-100 mx-auto align-items-center">
@@ -104,7 +104,7 @@
                                     {% endif %}
                                     <b>Device: </b>{{ job.devpath }}<br>
                                     <b>Status: </b><img id="status{{ job.job_id }}" src="static/img/{{ job.status }}.png" height="20px" alt="{{ job.status }}" title="{{ job.status }}"><br>
-                                    <b>Start Date:</b>{{ job.start_time.strftime("%d-%m-%Y") }}<br>
+                                    <b>Start Date:</b>{{ job.start_time.strftime(date_format) }}<br>
 									<b>Start Time:</b>{{ job.start_time.strftime("%H:%M:%S") }}<br>
 									<b>Job Time:</b>{{ job.job_length }}<br>
 									{%  if job.status == "transcoding" %}
@@ -213,6 +213,12 @@
 			$("#save-yes").bind('click', function() {
 				console.log(hrrref)
 				if(hrrref != ""){
+					if (actionType == "search"){
+						console.log("searching")
+						console.log("q="+$('#searchquery').val());
+						hrrref = hrrref + $('#searchquery').val()
+						console.log("href=" + hrrref)
+					}
 					$.get( hrrref, function( data ) {
 						console.log( data['success'] ); // John	
 						console.log("#jobId"+activeJob)
@@ -251,6 +257,21 @@
 								$('#m-body').addClass('bd-example-modal-lg')
 								$('#m-body').modal('handleUpdate')
 								//$('#exampleModal').modal('toggle');
+								$('#message1').removeClass('d-none');
+								$('#message2').addClass('d-none');
+								$('#message3').addClass('d-none');
+							}
+							if (data['mode'] === "search"){
+								$(this).find('.modal-title').text("searching....")
+								$('.card-deck').html('')
+								$.each(data['results'] , function( index, value ) {
+									z = addJobItem(value)
+									$( '.card-deck' ).append( z );
+								});
+								console.log(data)
+								$('#m-body').addClass('bd-example-modal-lg')
+								$('#m-body').modal('handleUpdate')
+								$('#exampleModal').modal('toggle');
 								$('#message1').removeClass('d-none');
 								$('#message2').addClass('d-none');
 								$('#message3').addClass('d-none');
@@ -311,6 +332,7 @@
 			//jobId = job.job_id 
 			console.log(hrrref)
 			console.log(activeJob)
+			console.log(actionType)
 			
 			if(actionType == "abandon"){
 				var modalTitle = "Abandon This Job ?"
@@ -318,6 +340,9 @@
 			}else if (actionType == "delete"){
 				var modalTitle = "Delete this job forever ?"
 				var modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?"
+			}else if (actionType == "search"){
+				var modalTitle = "Search the database"
+				var modalBody = '<input type="email" class="form-control" id="searchquery" placeholder="Search titles">'
 			}else{
 				var modalTitle = "Do you want to leave this page ?"
 				var modalBody = "To view the log file you need to leave this page. Would you like to leave ?"
@@ -328,5 +353,57 @@
             modal.find('.modal-title').text(modalTitle)
             modal.find('#m-body').html(modalBody)
 		})
+		function addJobItem(job){
+		var x = '<div class="col-md-4" id="jobId'+ job["job_id"] +'">\
+            <div class="card mb-3  mx-auto" style="max-width: 600px">\
+            <div class="row no-gutters">\
+                            <div class="col-lg-4">\
+							<a href="jobdetail?job_id='+ job["job_id"] +'"><img src="' + job["poster_url"] +'\
+                                                                                 width="240px"\
+                                                                                 class="img-thumbnail"></a>\
+																				 </div>\
+                            <div class="col-lg-4">\
+                                <div class="card-body px-1 py-1">'
+								 if (job['title_manual'] !=''){
+                                    x+= '<b>'+ job["title"] +'</b><br>\
+									<b>Year: </b>' + job["year"] + '<br>'
+                                 }else{
+                                    x+= '<del><b>' + job["title_auto"] +'</b><br></del>\
+                                    <b>'+ job["title"]+'</b><br>\
+									<del><b>Year:\
+                                    </b>' + job["year_auto"] + '<br></del>\
+                                    <b>Year: </b> '+ job["year"]+'<br>';
+                                 }
+                                    x+='<b>Type: </b>' + job['video_type']+ '<br>\
+                                    <b>Device: </b>'+ job['devpath'] +'<br>\
+                                    <b>Status: </b><img id="status'+ job["job_id"] +'" src="static/img/'+job['status']+'.png" height="20px" alt="'+job['status']+'" title="'+job['status']+'"><br>\
+                                    <b>Start time:</b>'+job['start_time']+'<br>\
+									<b>Job Time:</b>'+job['job_length']+'<br>';
+									if (job['status'] === "transcoding"){
+										x+='<div class="progress">\
+											<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="'+job['progress_round']+'" aria-valuemin="0" aria-valuemax="100" style="width: '+job['progress_round']+'%">\
+											<small class="justify-content-center d-flex position-absolute w-100"><b>Progress: </b>'+job.progress +'%</small>\
+                                            </div>\
+										</div>\
+                                        <b>ETA: </b>'+ job["eta"] + '<br>';
+									}
+                               x+='</div>\
+                            </div>\
+                            <div class="col-lg-4">\
+                                <div class="card-body px-1 py-1">\
+                                </div>\
+                                <div class="card-body px-2 py-1">\
+									<div class="btn-group-vertical" role="group" aria-label="buttons">\
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="'+ job["job_id"] +'" data-href="/json?job='+ job["job_id"] +'&mode=abandon">Abandon Job</button>\
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-jobid="'+ job["job_id"] +'" data-href="/json?job='+ job["job_id"] +'&mode=delete">Delete Job</button>\
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="'+ job["job_id"] +'" data-href="/json?logfile='+ job["job_id"] +'&mode=full">View Logfile</button>\
+									</div>\
+                                </div>\
+                            </div>\
+                        </div>\
+                    </div>\
+                </div>';
+		return x
+		}
   </script>
 {% endblock %}
