@@ -642,8 +642,10 @@ def home():
     #  get out cpu info
     try:
         our_cpu = get_processor_name()
+        cpu_usage = psutil.cpu_percent()
     except EnvironmentError:
         our_cpu = "Not found"
+        cpu_usage = "0"
 
     try:
         temps = psutil.sensors_temperatures()
@@ -679,7 +681,7 @@ def home():
 
     return render_template('index.html', freegb=freegb, mfreegb=mfreegb,
                            arm_percent=arm_percent, media_percent=media_percent,
-                           jobs=jobs, cpu=our_cpu, cputemp=temp,
+                           jobs=jobs, cpu=our_cpu, cputemp=temp,cpu_usage=cpu_usage,
                            ram=mem_total, ramused=mem_used, ramfree=mem_free, ram_percent=ram_percent,
                            ramdump=str(temps))
 

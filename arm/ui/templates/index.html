@@ -131,22 +131,30 @@
                     </li>
                 {% else %}
                     <li class="list-group-item">
-                        <label for="drive">Storage Used:</label>
-                            <progress id="drive" value="{{ arm_percent }}" max="100"> {{ arm_percent }}% </progress>
-                            {{ arm_percent }}%
-                        <br>Free Space: {{ mfreegb }} GB
+					<h6 class="progress-label" style="float: left;margin-right: 1em;">Storage Used: </h6>
+					<div class="progress">
+						<div class="progress-bar{{' bg-danger' if arm_percent > 80 }}" role="progressbar" style="width: {{ arm_percent }}%;" aria-valuenow="{{ arm_percent }}" aria-valuemin="0" aria-valuemax="100">{{ arm_percent }}%</div>
+					</div>
+                    <br>
+					<p>Free Space: {{ freegb }} GB</p>
                     </li>
                 {% endif %}
 
                 <li class="list-group-item">CPU: {{ cpu }}
                     {% if cputemp is not none %}
-                        <br>CPU Temp: {{ cputemp }}&#176;C
+                        <br>
+						<p class="{{' bg-danger' if cputemp > 70 }}">CPU Temp: {{ cputemp }}&#176;C</p>
                     {% endif %}
+					<h6 class="progress-label" style="float: left;margin-right: 1em;">CPU Usage: </h6>
+					<div class="progress">
+						<div class="progress-bar{{' bg-danger' if cpu_usage > 80 }}" role="progressbar" style="width: {{' 10' if cpu_usage < 10 else cpu_usage}}%;" aria-valuenow="{{ cpu_usage }}" aria-valuemin="10" aria-valuemax="100">{{ cpu_usage }}%</div>
+					</div>
                 </li>
-                <li class="list-group-item">
-                    <label for="ram">RAM Usage: </label>
-                    <progress id="ram" value="{{ ram_percent }}" max="100"> {{ ram_percent }}% </progress>
-                    {{ ram_percent }}%
+                <li class="list-group-item">       
+					<h6 class="progress-label" style="float: left;margin-right: 1em;">RAM Usage: </h6>
+					<div class="progress">
+						<div class="progress-bar{{' bg-danger' if ram_percent > 80 }}" role="progressbar" style="width: {{ ram_percent }}%;" aria-valuenow="{{ ram_percent }}" aria-valuemin="0" aria-valuemax="100">{{ ram_percent }}%</div>
+					</div>
                     <br>{{ ram }} GB total
                     <br> {{ ramfree }} GB free
                     <br> {{ ramused }} GB Used
