@@ -161,6 +161,7 @@
 			var seen = checkCookie();
 			if(seen == null) {
               /*have not agreed to understanding the risks, show modal*/
+			  // This needs updated to bootstrap for removal of jQuery-ui
               $("#floatcont").dialog({
                   autoOpen: true,
                   modal: true,
@@ -211,6 +212,7 @@
           }
       
 			$("#save-yes").bind('click', function() {
+				// TODO need to check this has a min num of chars
 				console.log(hrrref)
 				if(hrrref != ""){
 					if (actionType == "search"){
@@ -264,18 +266,26 @@
 							if (data['mode'] === "search"){
 								$(this).find('.modal-title').text("searching....")
 								$('.card-deck').html('')
-								$.each(data['results'] , function( index, value ) {
-									z = addJobItem(value)
-									$( '.card-deck' ).append( z );
-								});
-								console.log(data)
-								$("#message1 .alert-heading").html("Here are the jobs i found matching your query")
-								$('#m-body').addClass('bd-example-modal-lg')
-								$('#m-body').modal('handleUpdate')
-								$('#exampleModal').modal('toggle');
-								$('#message1').removeClass('d-none');
-								$('#message2').addClass('d-none');
-								$('#message3').addClass('d-none');
+								var size = Object.keys(data['results']).length;
+								console.log("length = " + size);
+								if (size > 0){
+									$.each(data['results'] , function( index, value ) {
+										z = addJobItem(value)
+										$( '.card-deck' ).append( z );
+									});
+									console.log(data)
+									$("#message1 .alert-heading").html("Here are the jobs i found matching your query")
+									$('#m-body').addClass('bd-example-modal-lg')
+									$('#m-body').modal('handleUpdate')
+									$('#exampleModal').modal('toggle');
+									$('#message1').removeClass('d-none');
+									$('#message2').addClass('d-none');
+									$('#message3').addClass('d-none');
+								}else{
+									$("#message1 .alert-heading").html("I couldnt find any results matching that title")
+									$('#message1').removeClass('d-none');
+									$('#exampleModal').modal('toggle');
+								}
 							}
 						}else{
 							$('#message3').removeClass('d-none');

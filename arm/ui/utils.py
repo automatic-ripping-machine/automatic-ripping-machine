@@ -229,7 +229,9 @@ def setupdatabase():
 
 
 def search(search_query):
-    search = "%{}%".format(search_query)
+    search = re.sub('[^a-zA-Z0-9]', '', search_query)
+    search = "%{}%".format(search)
+    app.logger.debug("search - q=" + str(search))
     posts = db.session.query(Job).filter(Job.title.like(search)).all()
     app.logger.debug("search - posts=" + str(posts))
     r = {}
