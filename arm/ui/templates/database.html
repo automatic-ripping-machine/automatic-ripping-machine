@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+{% block title %}Database{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid h-100 mx-auto">
+    <div class="row">
+        <!-- <div class="col-sm-2"></div> -->
+        <div class="col-sm-12  rounded bg-secondary text-center">
+            <img src="/static/img/arm80.png">
+            <p class="text-center"><b>Welcome to your Automatic Ripping Machine<br>
+                <!-- What would you like to do? -->
+            </b></p>
+        </div>
+        <!-- <div class="col-sm-2"></div> -->
+    </div>
+	
+	<div class="d-flex float-right">
+		<div class="p-2">
+			<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="search" data-href="/json?mode=search&q=">Search Database</button>
+		</div>
+	</div>
+    <div class="row h-100 mx-auto align-items-center">
+        <div class="col-sm-12 mx-auto">
+            <p class="text-center">
+            <h5 class="text-center"><b>Database Entries</b></h5>
+            </p>
+        </div>							
+    </div>
+	
+	<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLongTitle">Delete this job forever ??</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p><span class="ui-icon ui-icon-alert" style="margin:12px 12px 20px 0;"></span>
+		<span id="m-body">These items will be permanently deleted and cannot be recovered. Are you sure?</span></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+        <button id="save-yes" type="button" class="btn btn-primary">Yes</button>
+      </div>
+    </div>
+  </div>
+</div>
+	
+	<div id="message1" class="alert alert-success d-none" role="alert">
+		<h4 class="alert-heading">Job was deleted successfully</h4>
+	</div>
+	
+	<div id="message2" class="ui-state-error ui-corner-all" align="center">
+		<b>WARNING:  </b>There is no undo  here! 
+		<br>Be careful!
+	</div>
+
+	<div  id="message3" class="alert alert-danger d-none" role="alert">
+		<h4 class="alert-heading">There was a problem with your request</h4>
+		<p>There was a problem with your request. Check the ARMui log for more details.</p>
+	</div>
+	<div id="floatcont" title="Warning!" class="ui-corner-all d-none">This can be dangerous if you dont know what you're doing. <br/> You could delete all your of your database entries if you're not careful!!! <br/> Be careful!<br/></div>
+
+    <!-- <div class="container-fluid h-100 mx-auto"> -->
+    <div class="row h-100 align-items-center">
+        <!-- <div class="col-sm-4 mx-auto"></div> -->
+        <div class="col-md-12 mx-auto">
+            <div class="card-deck">
+                {% for job in jobs %}
+                <div class="col-md-4" id="jobId{{ job.job_id }}">
+                    <div class="card mb-3  mx-auto" style="max-width: 600px">
+                        <div class="row no-gutters">
+                            <div class="col-lg-4">
+                                {% if not job.poster_url %}
+                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="static/img/none.png" width="240px"
+                                                                                 class="img-thumbnail"></a>
+                                {% else %}
+                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="{{ job.poster_url }}"
+                                                                                 width="240px"
+                                                                                 class="img-thumbnail"></a>
+                                {% endif %}
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="card-body px-1 py-1">
+                                    {% if not job.title_manual %}
+                                    <b>{{ job["title"] }}</b><br>
+                                    {% else %}
+                                    <del><b>{{ job["title_auto"] }}</b><br></del>
+                                    <b>{{ job["title"] }}</b><br>
+                                    {% endif %}
+                                    <b>Type: </b> {{ job.video_type }} <br>
+                                    {% if not job.title_manual %}
+                                    <b>Year: </b>({{ job["year"] }})<br>
+                                    {% else %}
+                                    <del><b>Year:
+                                    </b>{{ job["year_auto"] }}<br></del>
+                                    <b>Year: </b> {{ job["year"] }}<br>
+                                    {% endif %}
+                                    <b>Device: </b>{{ job.devpath }}<br>
+                                    <b>Status: </b><img id="status{{ job.job_id }}" src="static/img/{{ job.status }}.png" height="20px" alt="{{ job.status }}" title="{{ job.status }}"><br>
+                                    <b>Start Date:</b>{{ job.start_time.strftime(date_format) }}<br>
+									<b>Start Time:</b>{{ job.start_time.strftime("%H:%M:%S") }}<br>
+									<b>Job Time:</b>{{ job.job_length }}<br>
+									{%  if job.status == "transcoding" %}
+										<div class="progress">
+											<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="{{ job.progress_round }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ job.progress_round }}%">
+											<small class="justify-content-center d-flex position-absolute w-100"><b>Progress: </b>{{ job.progress }}%</small>
+                                            </div>
+										</div>
+                                        <b>ETA: </b>{{ job.eta }} <br>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="card-body px-1 py-1">
+                                </div>
+                                <div class="card-body px-2 py-1">
+									<div class="btn-group-vertical" role="group" aria-label="buttons">
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="{{ job.job_id }}" data-href="/json?job={{ job.job_id }}&mode=abandon">Abandon Job</button>
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-jobid="{{ job.job_id }}" data-href="/json?job={{ job.job_id }}&mode=delete">Delete Job</button>
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="{{ job.job_id }}" data-href="/json?logfile={{ job.logfile }}&mode=full">View Logfile</button>
+									</div>
+									<!--<a href="abandon?job_id={{ job.job_id }}" class="btn btn-primary">Abandon Job</a>
+									<a class="dialog-confirm btn btn-primary" href="database?jobid={{ job.job_id }}&mode=delete">Delete</a>
+									<br>
+									<a href="/logs?logfile={{ job.logfile }}&mode=full{{ job.logfile }}" class="btn btn-primary">Logfile</a>
+									-->
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <!-- <div class="col-sm-4 mx-auto"></div> -->
+    <!-- </div> -->
+</div>
+
+{% endblock %}
+{% block footer %}{{ super() }}{% endblock %}
+{% block js %}
+{{ super() }}
+  <link rel="stylesheet" href="/static/js/jquery-ui/jquery-ui.css">
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script type="application/javascript">
+        var hrrref = "";
+        var wedeleted = "{{ success }}";
+		var activeJob = null;
+		var actionType = null;
+        $(document).ready(function() {
+			//get the value
+			var seen = checkCookie();
+			if(seen == null) {
+              /*have not agreed to understanding the risks, show modal*/
+              $("#floatcont").dialog({
+                  autoOpen: true,
+                  modal: true,
+                  resizable: false,
+                  minWidth: 400,
+                  width: "70%",
+                  show: {
+                      effect: "blind",
+                      duration: 1000
+                  },
+                  hide: {
+                      effect: "none",
+                      duration: 10
+                  },
+                  close: function () {
+                      // Check if user has accepted
+                      var unders = checkCookie();
+                      if (unders === null){
+                          hrrref = "/"
+                          window.location.href = hrrref;
+                          return false
+                      }
+                      else{
+                          $(this).dialog("close");
+                          return false;
+                      }
+                },
+                  buttons: {
+                      "I Understand": function () {
+                          setCookie("understands", "yes", 66)
+                          $(this).dialog("close");
+                          return false;
+                      },
+                      "Take me to safety": function () {
+                          hrrref = "/"
+                          window.location.href = hrrref;
+                          $(this).dialog("close");
+                          return false
+                      }
+                  }
+              });
+          }else{
+              if (wedeleted == "True"){
+                  $( "#message2" ).hide( );
+                  $( "#message1" ).show( "shake", {}, 500 );
+                  //alert("Deleting entry was " + wedeleted);
+              }
+          }
+      
+			$("#save-yes").bind('click', function() {
+				console.log(hrrref)
+				if(hrrref != ""){
+					if (actionType == "search"){
+						console.log("searching")
+						console.log("q="+$('#searchquery').val());
+						hrrref = hrrref + $('#searchquery').val()
+						console.log("href=" + hrrref)
+					}
+					$.get( hrrref, function( data ) {
+						console.log( data['success'] ); // John	
+						console.log("#jobId"+activeJob)
+						if (data['success'] === true){
+							if (data['mode'] === "delete"){
+								$( "#jobId"+activeJob ).remove();
+								$("#message1 .alert-heading").html("Job was successfully deleted")
+								$('#exampleModal').modal('toggle');
+								$('#message1').removeClass('d-none');
+								$('#message2').addClass('d-none');
+								$('#message3').addClass('d-none');
+								setTimeout(
+									function(){$('#message1').addClass('d-none');},
+										5000
+								);
+							}
+							if (data['mode'] === "abandon"){
+								$("#status"+activeJob).attr("src","static/img/fail.png")
+								$("#message1 .alert-heading").html("Job was successfully abandoned")
+								$('#exampleModal').modal('toggle');
+								$('#message1').removeClass('d-none');
+								$('#message2').addClass('d-none');
+								$('#message3').addClass('d-none');
+								setTimeout(
+									function(){$('#message1').addClass('d-none');},
+										5000
+								);
+							}
+							if (data['mode'] === "logfile"){
+								// This might be better
+								//window.location.href = hrrref;
+								//return false;
+							    // var modal = $(this)
+								$(this).find('.modal-title').text("Logfile")
+								$('#m-body').html(data['log'])
+								$('#m-body').addClass('bd-example-modal-lg')
+								$('#m-body').modal('handleUpdate')
+								//$('#exampleModal').modal('toggle');
+								$('#message1').removeClass('d-none');
+								$('#message2').addClass('d-none');
+								$('#message3').addClass('d-none');
+							}
+							if (data['mode'] === "search"){
+								$(this).find('.modal-title').text("searching....")
+								$('.card-deck').html('')
+								$.each(data['results'] , function( index, value ) {
+									z = addJobItem(value)
+									$( '.card-deck' ).append( z );
+								});
+								console.log(data)
+								$("#message1 .alert-heading").html("Here are the jobs i found matching your query")
+								$('#m-body').addClass('bd-example-modal-lg')
+								$('#m-body').modal('handleUpdate')
+								$('#exampleModal').modal('toggle');
+								$('#message1').removeClass('d-none');
+								$('#message2').addClass('d-none');
+								$('#message3').addClass('d-none');
+							}
+						}else{
+							$('#message3').removeClass('d-none');
+							$('#message1').addClass('d-none');
+							$('#message2').addClass('d-none');
+							$('#exampleModal').modal('toggle');
+							setTimeout(
+								function(){$('#message3').addClass('d-none');},
+									5000
+							);
+						}
+					}, "json");
+					//window.location.href = hrrref;
+					//return false;
+				}
+			});
+		});
+	  
+      //Simple function to check if we have already agreed
+      function checkCookie() {
+          var understands = getCookie("understands");
+          if (understands != "" && understands != null) {
+              return true
+          } else {
+              return null
+          }
+      }
+      //Get only the understands cookie
+      function getCookie(cname) {
+          var name = cname + "=";
+          var decodedCookie = decodeURIComponent(document.cookie);
+          var ca = decodedCookie.split(';');
+          for (var i = 0; i < ca.length; i++) {
+              var c = ca[i];
+              while (c.charAt(0) == ' ') {
+                  c = c.substring(1);
+              }
+              if (c.indexOf(name) == 0) {
+                  return c.substring(name.length, c.length);
+              }
+          }
+      }
+      //Set out cookie so we dont need the dialog popping up
+      function setCookie(cname, cvalue, exdays) {
+          var d = new Date();
+          d.setTime(d.getTime() + (exdays*24*60*60*1000));
+          var expires = "expires="+ d.toUTCString();
+          document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+      }
+	  $('#exampleModal').on('show.bs.modal', function (event) {
+		    var button = $(event.relatedTarget) // Button that triggered the modal
+		    actionType = button.data('type') // Extract info from data-* attributes
+			hrrref  = button.data('href')
+			activeJob = button.data('jobid')
+			//jobId = job.job_id 
+			console.log(hrrref)
+			console.log(activeJob)
+			console.log(actionType)
+			
+			if(actionType == "abandon"){
+				var modalTitle = "Abandon This Job ?"
+				var modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?"
+			}else if (actionType == "delete"){
+				var modalTitle = "Delete this job forever ?"
+				var modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?"
+			}else if (actionType == "search"){
+				var modalTitle = "Search the database"
+				var modalBody = '<input type="email" class="form-control" id="searchquery" placeholder="Search titles">'
+			}else{
+				var modalTitle = "Do you want to leave this page ?"
+				var modalBody = "To view the log file you need to leave this page. Would you like to leave ?"
+			}
+		    // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+		    // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+            var modal = $(this)
+            modal.find('.modal-title').text(modalTitle)
+            modal.find('#m-body').html(modalBody)
+		})
+		function addJobItem(job){
+		var x = '<div class="col-md-4" id="jobId'+ job["job_id"] +'">\
+            <div class="card mb-3  mx-auto" style="max-width: 600px">\
+            <div class="row no-gutters">\
+                            <div class="col-lg-4">\
+							<a href="jobdetail?job_id='+ job["job_id"] +'"><img src="' + job["poster_url"] +'\
+                                                                                 width="240px"\
+                                                                                 class="img-thumbnail"></a>\
+																				 </div>\
+                            <div class="col-lg-4">\
+                                <div class="card-body px-1 py-1">'
+								 if (job['title_manual'] !=''){
+                                    x+= '<b>'+ job["title"] +'</b><br>\
+									<b>Year: </b>' + job["year"] + '<br>'
+                                 }else{
+                                    x+= '<del><b>' + job["title_auto"] +'</b><br></del>\
+                                    <b>'+ job["title"]+'</b><br>\
+									<del><b>Year:\
+                                    </b>' + job["year_auto"] + '<br></del>\
+                                    <b>Year: </b> '+ job["year"]+'<br>';
+                                 }
+                                    x+='<b>Type: </b>' + job['video_type']+ '<br>\
+                                    <b>Device: </b>'+ job['devpath'] +'<br>\
+                                    <b>Status: </b><img id="status'+ job["job_id"] +'" src="static/img/'+job['status']+'.png" height="20px" alt="'+job['status']+'" title="'+job['status']+'"><br>\
+                                    <b>Start time:</b>'+job['start_time']+'<br>\
+									<b>Job Time:</b>'+job['job_length']+'<br>';
+									if (job['status'] === "transcoding"){
+										x+='<div class="progress">\
+											<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="'+job['progress_round']+'" aria-valuemin="0" aria-valuemax="100" style="width: '+job['progress_round']+'%">\
+											<small class="justify-content-center d-flex position-absolute w-100"><b>Progress: </b>'+job.progress +'%</small>\
+                                            </div>\
+										</div>\
+                                        <b>ETA: </b>'+ job["eta"] + '<br>';
+									}
+                               x+='</div>\
+                            </div>\
+                            <div class="col-lg-4">\
+                                <div class="card-body px-1 py-1">\
+                                </div>\
+                                <div class="card-body px-2 py-1">\
+									<div class="btn-group-vertical" role="group" aria-label="buttons">\
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="'+ job["job_id"] +'" data-href="/json?job='+ job["job_id"] +'&mode=abandon">Abandon Job</button>\
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-jobid="'+ job["job_id"] +'" data-href="/json?job='+ job["job_id"] +'&mode=delete">Delete Job</button>\
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="'+ job["job_id"] +'" data-href="/json?logfile='+ job["job_id"] +'&mode=full">View Logfile</button>\
+									</div>\
+                                </div>\
+                            </div>\
+                        </div>\
+                    </div>\
+                </div>';
+		return x
+		}
+  </script>
+{% endblock %}
