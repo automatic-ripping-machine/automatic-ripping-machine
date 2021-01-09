@@ -797,8 +797,6 @@ def parse_udev_cmdline(args):
 
 
 def parse_udev(udev_dict):
-    map_udev_disctype = {"ID_CDROM_MEDIA_BD": "bluray", "ID_CDROM_MEDIA_DVD": "dvd",
-                         "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO": "music"}
     disctype = None
     print("udev_dict = " + str(udev_dict))
     label = udev_dict.get("ID_FS_LABEL", None)
