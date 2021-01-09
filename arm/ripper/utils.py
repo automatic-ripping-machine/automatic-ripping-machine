@@ -797,15 +797,12 @@ def parse_udev_cmdline(args):
 
 
 def parse_udev(udev_dict):
-    map_udev_disctype = {
-            "ID_CDROM_MEDIA_BD": "bluray",
-            "ID_CDROM_MEDIA_DVD": "dvd",
-            "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO": "music"
-            }
+    map_udev_disctype = {"ID_CDROM_MEDIA_BD": "bluray", "ID_CDROM_MEDIA_DVD": "dvd",
+                         "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO": "music"}
     disctype = None
-    print("udev_dict = "+ str(udev_dict))
+    print("udev_dict = " + str(udev_dict))
     label = udev_dict.get("ID_FS_LABEL", None)
-    logging.debug("udev_dict = "+str(udev_dict))
+    logging.debug("udev_dict = " + str(udev_dict))
     if label is None:
         label == "unknown"
     elif label == "iso9660":
@@ -817,24 +814,24 @@ def parse_udev(udev_dict):
             disctype = "dvd"
             print("disc is dvd")
         except Exception as e:
-            print("dvd - e - "+str(e))
+            print("dvd - e - " + str(e))
             try:
                 udev_dict['ID_CDROM_MEDIA_BD']
                 disctype = "bluray"
                 print("disc is bluray")
             except Exception as e:
-                print("bluray - e - "+str(e))
+                print("bluray - e - " + str(e))
                 try:
                     udev_dict['ID_CDROM_MEDIA_TRACK_COUNT_AUDIO']
                     disctype = "music"
                     print("disc is music")
                 except Exception as e:
-                    print("Music cd - e - "+str(e))
+                    print("Music cd - e - " + str(e))
                     disctype = "unknown"
                     print("disc is unknown")
         # check for known disctypes
         # This wont pick up music discs
-        #for key in map_udev_disctype.keys():
+        # for key in map_udev_disctype.keys():
         #    if key in udev_dict:
         #        disctype = map_udev_disctype.get(key)
         #        break
