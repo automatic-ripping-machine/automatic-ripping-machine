@@ -192,6 +192,7 @@ WORKDIR /home/arm
 ENTRYPOINT ["/opt/arm/scripts/docker-entrypoint.sh"]
 CMD ["python3", "/opt/arm/arm/runui.py"]
 
+
 # pass build args for labeling
 ARG image_revision=
 ARG image_created=

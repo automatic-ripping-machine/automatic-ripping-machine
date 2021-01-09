@@ -462,7 +462,7 @@ def main(logfile, job):
 
 if __name__ == "__main__":
     args = entry()
-    devpath = "/dev/" + args.devpath
+    devpath = args.devpath
     # print(devpath)
     if not utils.is_cdrom_ready(devpath):
         print("Drive empty or is not ready. Exiting ARM Ripper.", file=sys.stderr)

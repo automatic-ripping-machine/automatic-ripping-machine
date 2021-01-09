@@ -791,6 +791,8 @@ def parse_udev_cmdline(args):
     if args.label:
         (k, v) = args.label.split('=', 1)
         udev[k] = v
+    # if args.musicbrainz:
+    #    (k, v) = args.musicbrainz.split('=', 1)
     return parse_udev(udev)
 
 
@@ -800,20 +802,45 @@ def parse_udev(udev_dict):
             "ID_CDROM_MEDIA_DVD": "dvd",
             "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO": "music"
             }
-    disctype = "unknown"
-    print(str(udev_dict))
+    disctype = None
+    print("udev_dict = "+ str(udev_dict))
     label = udev_dict.get("ID_FS_LABEL", None)
-    logging.debug(str(udev_dict))
+    logging.debug("udev_dict = "+str(udev_dict))
     if label is None:
         label == "unknown"
     elif label == "iso9660":
         disctype = "data"
-    else:
+    # We always want this to run but i dont wanna fix indents
+    if True:
+        try:
+            udev_dict['ID_CDROM_MEDIA_DVD']
+            disctype = "dvd"
+            print("disc is dvd")
+        except Exception as e:
+            print("dvd - e - "+str(e))
+            try:
+                udev_dict['ID_CDROM_MEDIA_BD']
+                disctype = "bluray"
+                print("disc is bluray")
+            except Exception as e:
+                print("bluray - e - "+str(e))
+                try:
+                    udev_dict['ID_CDROM_MEDIA_TRACK_COUNT_AUDIO']
+                    disctype = "music"
+                    print("disc is music")
+                except Exception as e:
+                    print("Music cd - e - "+str(e))
+                    disctype = "unknown"
+                    print("disc is unknown")
         # check for known disctypes
-        for key in map_udev_disctype.keys():
-            if key in udev_dict:
-                disctype = map_udev_disctype.get(key)
-                break
+        # This wont pick up music discs
+        #for key in map_udev_disctype.keys():
+        #    if key in udev_dict:
+        #        disctype = map_udev_disctype.get(key)
+        #        break
+    # If we have no disctype set it to data
+    if disctype is None or disctype == "":
+        disctype = "data"
     return (disctype, label)
 
 

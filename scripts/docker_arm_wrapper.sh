@@ -4,16 +4,16 @@
 set -euo pipefail
 
 DOCKER_IMAGE="arm-combined:latest"
-CONTAINER_NAME="arm"
-CONTAINER_VOLUME="/srv/docker/arm:/home/arm"
+CONTAINER_NAME="arm-rippers"
+CONTAINER_VOLUME="/home/arm:/home/arm"
 CONTAINER_RESTART="on-failure:3"
-ARM_UID="115" # "$(id -u plex)"
-ARM_GID="120" # "$(id -g plex)"
+ARM_UID="1000" # "$(id -u plex)"
+ARM_GID="1000" # "$(id -g plex)"
 
 # exit if udev ID_CDROM_MEDIA properties not available yet
 # avoid running too early
 if [[ -z "${!ID_CDROM_MEDIA_*}" ]] ; then
-  #echo "$(date) disk not ready/identified yet" >> /tmp/docker_arm_wrapper.log
+  # echo "$(date) disk not ready/identified yet" >> /tmp/docker_arm_wrapper.log
   exit 0
 fi
 
@@ -52,6 +52,7 @@ function runArmContainer {
     SG_DEV_ARG="--device=${SG_DEV}:/dev/sg0"
   fi
   echo "Starting on ${DEVNAME} ${SG_DEV}" | logger -t ARM
+  echo "yeet ${SG_DEV_ARG}" | logger -t ARM
   # mounting a device in a container requires:
   #  capability: SYS_ADMIN
   #  security option: apparmor:unconfined
@@ -83,14 +84,26 @@ function startArmRip {
   if [[ -z "${disctype}" ]] ; then 
     disctype="unknown=1"
   fi
-
+  
+  # This lets us get all of udev perams
+  echo "Starting udev in ${CONTAINER_NAME}" | logger -t ARM
+  #docker exec -i -w /home/arm \
+    #"${CONTAINER_NAME}" \
+    #/bin/bash /etc/init.d/udev start | logger -t ARM
+  
   echo "Starting rip" | logger -t ARM
+  echo "trying - docker exec -i -u ${ARM_UID} \
+    -w /home/arm \
+    ${CONTAINER_NAME} \
+    python3 /opt/arm/arm/ripper/main.py \
+      -d ${DEVNAME} -t ${disctype} ${label_flag} " | logger -t ARM
+   
   docker exec -i \
     -u "${ARM_UID}" \
     -w /home/arm \
     "${CONTAINER_NAME}" \
     python3 /opt/arm/arm/ripper/main.py \
-      -d sr0 -t ${disctype} ${label_flag}  \
+      -d ${DEVNAME} -t ${disctype} ${label_flag} \
     | logger -t ARM
 }
 
@@ -110,3 +123,4 @@ esac
 
 # start the rip inside the same container
 startArmRip
+

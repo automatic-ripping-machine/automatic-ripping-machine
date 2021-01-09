@@ -252,7 +252,7 @@ PO_APP_KEY: ""
 # See README-OMDBAPI for background and info
 # This is the API key for omdbapi.com queries.
 # More info at http://omdbapi.com/
-OMDB_API_KEY: ""
+OMDB_API_KEY: "7907236f"
 
 #################################################
 ##            APPRISE NOTIFICATIONS            ##

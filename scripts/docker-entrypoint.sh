@@ -52,3 +52,4 @@ if [[ "${RUN_AS_USER:-true}" == "true" ]] ; then
 else
   exec "$@"
 fi
+

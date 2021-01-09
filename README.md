@@ -57,11 +57,6 @@ See: https://b3n.org/automatic-ripping-machine
 
 
 ## Install
-You will need to setup a dev rule on the host machine that triggers the docker to run a command to start the rip.
- - On the **host machine** Copy [udev rule](https://github.com/1337-server/automatic-ripping-machine/blob/docker/setup/docker-arm.rules) to /etc/udev/rules.d/docker-arm.rules
- - On the **host machine**  Make sure [/opt/arm/scripts/docker_arm_wrapper.sh ](https://github.com/1337-server/automatic-ripping-machine/blob/docker/scripts/docker_arm_wrapper.sh) exists in this path.
-
-Now create the container with.
  ```
  docker run -d \
     -p "8080:8080" \
@@ -73,7 +68,6 @@ Now create the container with.
     --name "arm-rippers" \
     1337server/automatic-ripping-machine:latest
 ```
- 
  
 ## Troubleshooting
  Please see the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/).

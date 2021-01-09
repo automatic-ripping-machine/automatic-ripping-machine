@@ -33,7 +33,7 @@ cd /opt
 sudo mkdir arm
 sudo chown arm:arm arm
 sudo chmod 775 arm
-sudo git clone https://github.com/1337-server/automatic-ripping-machine.git arm
+sudo git clone --branch  v2.2_dev_ubuntu https://github.com/1337-server/automatic-ripping-machine.git arm
 sudo chown -R arm:arm arm
 cd arm
 sudo pip3 install -r requirements.txt 
