@@ -4,6 +4,7 @@ import urllib
 import json
 import re
 import bcrypt  # noqa: F401
+import html
 from pathlib import Path
 from arm.config.config import cfg
 from flask.logging import default_handler  # noqa: F401
@@ -118,8 +119,11 @@ def generate_log(log_file, logpath, job_id):
         except Exception:
             app.logger.debug("Cant read logfile. Possibly encoding issue")
             return {'success': False, 'job': job_id, 'log': 'Cant read logfile'}
-
-    return {'success': True, 'job': job_id, 'mode': 'logfile', 'log': r}
+    r = html.escape(r)
+    job = Job.query.get(job_id)
+    title_year = str(job.title) + " (" + str(job.year) + ") - file: " + str(job.logfile)
+    return {'success': True, 'job': job_id, 'mode': 'logfile', 'log': r,
+            'escaped': True, 'job_title': title_year}
 
 
 def abandon_job(job_id):
