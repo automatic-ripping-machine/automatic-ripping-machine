@@ -4,11 +4,10 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-
 <div class="container-fluid h-100 mx-auto">
     <div class="row">
         <!-- <div class="col-sm-2"></div> -->
-        <div class="col-sm-12  rounded bg-secondary text-center">
+        <div class="col-sm-12  rounded text-center">
             <img src="/static/img/arm80.png">
             <p class="text-center"><b>Welcome to your Automatic Ripping Machine<br>
                 <!-- What would you like to do? -->
@@ -45,7 +44,7 @@
 		<span id="m-body">These items will be permanently deleted and cannot be recovered. Are you sure?</span></p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+        <button id="save-no" type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
         <button id="save-yes" type="button" class="btn btn-primary">Yes</button>
       </div>
     </div>
@@ -56,7 +55,7 @@
 		<h4 class="alert-heading">Job was deleted successfully</h4>
 	</div>
 	
-	<div id="message2" class="ui-state-error ui-corner-all" align="center">
+	<div id="message2" class="alert alert-danger" align="center">
 		<b>WARNING:  </b>There is no undo  here! 
 		<br>Be careful!
 	</div>
@@ -65,7 +64,6 @@
 		<h4 class="alert-heading">There was a problem with your request</h4>
 		<p>There was a problem with your request. Check the ARMui log for more details.</p>
 	</div>
-	<div id="floatcont" title="Warning!" class="ui-corner-all d-none">This can be dangerous if you dont know what you're doing. <br/> You could delete all your of your database entries if you're not careful!!! <br/> Be careful!<br/></div>
 
     <!-- <div class="container-fluid h-100 mx-auto"> -->
     <div class="row h-100 align-items-center">
@@ -74,26 +72,35 @@
             <div class="card-deck">
                 {% for job in jobs %}
                 <div class="col-md-4" id="jobId{{ job.job_id }}">
-                    <div class="card mb-3  mx-auto" style="max-width: 600px">
-                        <div class="row no-gutters">
+                    <div class="card mb-3  mx-auto">
+                        <div class="card-header row no-gutters justify-content-center">
+								<strong>{% if not job.title_manual %}
+											{{ job["title"] }} {{ '('+job['year']+')' if job["year"] is not none }}
+										{% else %}
+											{{ job["title_manual"] }} {{ '('+job['year']+')' if job["year"] is not none }}
+										{% endif %}
+								</strong>
+							</div>
+						<div class="row no-gutters">
                             <div class="col-lg-4">
                                 {% if not job.poster_url %}
                                 <a href="jobdetail?job_id={{ job.job_id }}"><img src="static/img/none.png" width="240px"
                                                                                  class="img-thumbnail"></a>
                                 {% else %}
-                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="{{'static/img/none.png' if job.poster_url is none else job.poster_url }}"
+                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="{{ job.poster_url }}"
                                                                                  width="240px"
                                                                                  class="img-thumbnail"></a>
                                 {% endif %}
                             </div>
                             <div class="col-lg-4">
                                 <div class="card-body px-1 py-1">
-                                    {% if not job.title_manual %}
+                                    <!--{% if not job.title_manual %}
                                     <b>{{ job["title"] }}</b><br>
                                     {% else %}
                                     <del><b>{{ job["title_auto"] }}</b><br></del>
                                     <b>{{ job["title"] }}</b><br>
                                     {% endif %}
+									-->
                                     <b>Type: </b> {{ job.video_type }} <br>
                                     {% if not job.title_manual %}
                                     <b>Year: </b>({{ job["year"] }})<br>
@@ -124,7 +131,7 @@
 									<div class="btn-group-vertical" role="group" aria-label="buttons">
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="{{ job.job_id }}" data-href="/json?job={{ job.job_id }}&mode=abandon">Abandon Job</button>
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-jobid="{{ job.job_id }}" data-href="/json?job={{ job.job_id }}&mode=delete">Delete Job</button>
-										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="{{ job.job_id }}" data-href="/json?logfile={{ job.logfile }}&mode=full">View Logfile</button>
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="{{ job.job_id }}" data-href="/json?logfile={{ job.logfile }}&mode=full&job={{ job.job_id }}">View Logfile</button>
 									</div>
 									<!--<a href="abandon?job_id={{ job.job_id }}" class="btn btn-primary">Abandon Job</a>
 									<a class="dialog-confirm btn btn-primary" href="database?jobid={{ job.job_id }}&mode=delete">Delete</a>
@@ -149,75 +156,42 @@
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
 {{ super() }}
-  <link rel="stylesheet" href="/static/js/jquery-ui/jquery-ui.css">
-  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-  <script type="application/javascript">
+
+<script type="application/javascript">
         var hrrref = "";
         var wedeleted = "{{ success }}";
 		var activeJob = null;
 		var actionType = null;
-        $(document).ready(function() {
+        $(document).ready(function(){
 			//get the value
 			var seen = checkCookie();
 			if(seen == null) {
-              /*have not agreed to understanding the risks, show modal*/
-              $("#floatcont").dialog({
-                  autoOpen: true,
-                  modal: true,
-                  resizable: false,
-                  minWidth: 400,
-                  width: "70%",
-                  show: {
-                      effect: "blind",
-                      duration: 1000
-                  },
-                  hide: {
-                      effect: "none",
-                      duration: 10
-                  },
-                  close: function () {
-                      // Check if user has accepted
-                      var unders = checkCookie();
-                      if (unders === null){
-                          hrrref = "/"
-                          window.location.href = hrrref;
-                          return false
-                      }
-                      else{
-                          $(this).dialog("close");
-                          return false;
-                      }
-                },
-                  buttons: {
-                      "I Understand": function () {
-                          setCookie("understands", "yes", 66)
-                          $(this).dialog("close");
-                          return false;
-                      },
-                      "Take me to safety": function () {
-                          hrrref = "/"
-                          window.location.href = hrrref;
-                          $(this).dialog("close");
-                          return false
-                      }
-                  }
-              });
-          }else{
-              if (wedeleted == "True"){
-                  $( "#message2" ).hide( );
-                  $( "#message1" ).show( "shake", {}, 500 );
-                  //alert("Deleting entry was " + wedeleted);
-              }
+                /*have not agreed to understanding the risks, show modal*/
+				hrrref = "entryWarn";
+				$('div .modal-title').html("<p class=\"text-center text-danger\">WARNING");
+			    $('#m-body').html('<p class="text-center bg-danger">This can be dangerous if you don\'t know what you\'re doing. <br> \
+									You could delete all your of your database entries if you\'re not careful!!! <br> \
+									Be careful!<br><br> Are you sure you want to continue ?</p>');
+			    $('#exampleModal').modal('show');
+				//$('#message1').addClass('d-none');
+				$('#message2').addClass('d-none');
+				$('#message3').addClass('d-none');
           }
       
 			$("#save-yes").bind('click', function() {
+				// TODO need to check this has a min num of chars
 				console.log(hrrref)
 				if(hrrref != ""){
 					if (actionType == "search"){
-						console.log("searching")
+						console.log("searching");
 						console.log("q="+$('#searchquery').val());
-						hrrref = hrrref + $('#searchquery').val()
-						console.log("href=" + hrrref)
+						hrrref = hrrref + $('#searchquery').val();
+						console.log("href=" + hrrref);
+					}
+					if (hrrref == "entryWarn"){
+						setCookie("understands", "yes", 66);
+						$('#exampleModal').modal('toggle');
+						hrrref = "";
 					}
 					$.get( hrrref, function( data ) {
 						console.log( data['success'] ); // John	
@@ -248,15 +222,12 @@
 								);
 							}
 							if (data['mode'] === "logfile"){
-								// This might be better
-								//window.location.href = hrrref;
-								//return false;
-							    // var modal = $(this)
 								$(this).find('.modal-title').text("Logfile")
-								$('#m-body').html(data['log'])
-								$('#m-body').addClass('bd-example-modal-lg')
-								$('#m-body').modal('handleUpdate')
-								//$('#exampleModal').modal('toggle');
+								$("#message1 .alert-heading").html("Here is the logfile you requested")
+								$('div .card-deck').html('<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">\
+								<strong>'+data['job_title']+'</strong></div><pre class="text-white bg-secondary"><code>' + data['log'] +'</code></pre>')
+								window.scrollTo({ top: 0, behavior: 'smooth' });
+								$('#exampleModal').modal('toggle');
 								$('#message1').removeClass('d-none');
 								$('#message2').addClass('d-none');
 								$('#message3').addClass('d-none');
@@ -264,18 +235,26 @@
 							if (data['mode'] === "search"){
 								$(this).find('.modal-title').text("searching....")
 								$('.card-deck').html('')
-								$.each(data['results'] , function( index, value ) {
-									z = addJobItem(value)
-									$( '.card-deck' ).append( z );
-								});
-								console.log(data)
-								$("#message1 .alert-heading").html("Here are the jobs i found matching your query")
-								$('#m-body').addClass('bd-example-modal-lg')
-								$('#m-body').modal('handleUpdate')
-								$('#exampleModal').modal('toggle');
-								$('#message1').removeClass('d-none');
-								$('#message2').addClass('d-none');
-								$('#message3').addClass('d-none');
+								var size = Object.keys(data['results']).length;
+								console.log("length = " + size);
+								if (size > 0){
+									$.each(data['results'] , function( index, value ) {
+										z = addJobItem(value)
+										$( '.card-deck' ).append( z );
+									});
+									console.log(data)
+									$("#message1 .alert-heading").html("Here are the jobs i found matching your query")
+									$('#m-body').addClass('bd-example-modal-lg')
+									$('#m-body').modal('handleUpdate')
+									$('#exampleModal').modal('toggle');
+									$('#message1').removeClass('d-none');
+									$('#message2').addClass('d-none');
+									$('#message3').addClass('d-none');
+								}else{
+									$("#message1 .alert-heading").html("I couldnt find any results matching that title")
+									$('#message1').removeClass('d-none');
+									$('#exampleModal').modal('toggle');
+								}
 							}
 						}else{
 							$('#message3').removeClass('d-none');
@@ -288,19 +267,27 @@
 							);
 						}
 					}, "json");
-					//window.location.href = hrrref;
-					//return false;
 				}
 			});
-		});
+			$("#save-no").bind('click', function(){
+				if (hrrref == "entryWarn"){
+					console.log("use wants to go away");
+					window.location.href = "/";
+					return false;
+				}else{
+				
+					console.log("user shouldnt be here...");
+					$('#exampleModal').modal('toggle');
+				}
+			});
 	  
       //Simple function to check if we have already agreed
       function checkCookie() {
           var understands = getCookie("understands");
           if (understands != "" && understands != null) {
-              return true
+              return true;
           } else {
-              return null
+              return null;
           }
       }
       //Get only the understands cookie
@@ -406,5 +393,7 @@
                 </div>';
 		return x
 		}
+		activeTab("database");
+	});
   </script>
 {% endblock %}
