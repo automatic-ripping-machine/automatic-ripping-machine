@@ -6,14 +6,12 @@
 {% block content %}
 <div class="container-fluid h-100 mx-auto">
     <div class="row">
-        <!-- <div class="col-sm-2"></div> -->
         <div class="col-sm-12  rounded text-center">
             <img src="/static/img/arm80.png">
-            <p class="text-center"><b>Welcome to your Automatic Ripping Machine<br>
-                <!-- What would you like to do? -->
-            </b></p>
+			<p class="text-center">
+				<b>Welcome to your Automatic Ripping Machine<br></b>
+			</p>
         </div>
-        <!-- <div class="col-sm-2"></div> -->
     </div>
 	
 	<div class="d-flex float-right">
@@ -64,10 +62,7 @@
 		<h4 class="alert-heading">There was a problem with your request</h4>
 		<p>There was a problem with your request. Check the ARMui log for more details.</p>
 	</div>
-
-    <!-- <div class="container-fluid h-100 mx-auto"> -->
     <div class="row h-100 align-items-center">
-        <!-- <div class="col-sm-4 mx-auto"></div> -->
         <div class="col-md-12 mx-auto">
             <div class="card-deck">
                 {% for job in jobs %}
@@ -94,13 +89,6 @@
                             </div>
                             <div class="col-lg-4">
                                 <div class="card-body px-1 py-1">
-                                    <!--{% if not job.title_manual %}
-                                    <b>{{ job["title"] }}</b><br>
-                                    {% else %}
-                                    <del><b>{{ job["title_auto"] }}</b><br></del>
-                                    <b>{{ job["title"] }}</b><br>
-                                    {% endif %}
-									-->
                                     <b>Type: </b> {{ job.video_type }} <br>
                                     {% if not job.title_manual %}
                                     <b>Year: </b>({{ job["year"] }})<br>
@@ -133,11 +121,6 @@
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-jobid="{{ job.job_id }}" data-href="/json?job={{ job.job_id }}&mode=delete">Delete Job</button>
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="{{ job.job_id }}" data-href="/json?logfile={{ job.logfile }}&mode=full&job={{ job.job_id }}">View Logfile</button>
 									</div>
-									<!--<a href="abandon?job_id={{ job.job_id }}" class="btn btn-primary">Abandon Job</a>
-									<a class="dialog-confirm btn btn-primary" href="database?jobid={{ job.job_id }}&mode=delete">Delete</a>
-									<br>
-									<a href="/logs?logfile={{ job.logfile }}&mode=full{{ job.logfile }}" class="btn btn-primary">Logfile</a>
-									-->
                                 </div>
                             </div>
 
@@ -148,8 +131,6 @@
             </div>
         </div>
     </div>
-    <!-- <div class="col-sm-4 mx-auto"></div> -->
-    <!-- </div> -->
 </div>
 
 {% endblock %}

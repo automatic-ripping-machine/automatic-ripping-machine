@@ -30,12 +30,7 @@
 					<div class="container" style="padding-top: 4rem;">
 						<form id="form1" name="form1" method="post" action="/settings">
 							{% for k, v in settings.items() %}
-							<!--<div class="form-group row">
-								<label for="{{ k }}" class="col-sm-2 col-form-label">{{ k }}</label>
-									<div class="col-sm-10">
-										<input type="text" class="form-control" name="{{ k }}" placeholder="{{ v }}" value="{{ v }}">
-									</div>
-							</div>-->
+
 							<div class="input-group mb-3">
 								<div class="input-group-prepend">
 									<span class="input-group-text" id="{{ k }}">{{ k }}: </span>
