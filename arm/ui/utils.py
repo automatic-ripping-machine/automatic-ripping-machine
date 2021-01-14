@@ -96,13 +96,20 @@ def generate_comments():
         return "{'error':'File not found'}"
 
 
-def generate_log(log_file, logpath, job_id):
+def generate_log(logpath, job_id):
+
+    try:
+        job = Job.query.get(job_id)
+    except Exception:
+        app.logger.debug(f"Cant find job {job_id} ")
+        job = None
+
     app.logger.debug("in logging")
-    if "../" in log_file:
-        app.logger.debug("Someone tried to use ../ in the logfile path")
-        return {'success': False, 'job': job_id, 'log': 'Not Allowed'}
+    if job is None:
+        app.logger.debug(f"Cant find the job {job_id}")
+        return {'success': False, 'job': job_id, 'log': 'Not found'}
     # Assemble full path
-    fullpath = os.path.join(logpath, log_file)
+    fullpath = os.path.join(logpath, job.logfile)
     # Check if the logfile exists
     my_file = Path(fullpath)
     if not my_file.is_file():
@@ -120,7 +127,6 @@ def generate_log(log_file, logpath, job_id):
             app.logger.debug("Cant read logfile. Possibly encoding issue")
             return {'success': False, 'job': job_id, 'log': 'Cant read logfile'}
     r = html.escape(r)
-    job = Job.query.get(job_id)
     title_year = str(job.title) + " (" + str(job.year) + ") - file: " + str(job.logfile)
     return {'success': True, 'job': job_id, 'mode': 'logfile', 'log': r,
             'escaped': True, 'job_title': title_year}

@@ -271,6 +271,7 @@ def database():
 def feed_json():
     x = request.args.get('mode')
     j_id = request.args.get('job')
+    # We should never let the user pick the log file
     logfile = request.args.get('logfile')
     searchq = request.args.get('q')
     logpath = cfg['LOGPATH']
@@ -284,7 +285,7 @@ def feed_json():
         # app.logger.debug("abandon")
     elif x == "full":
         app.logger.debug("getlog")
-        j = utils.generate_log(logfile, logpath, j_id)
+        j = utils.generate_log(logpath, j_id)
     elif x == "search":
         app.logger.debug("search")
         j = utils.search(searchq)
