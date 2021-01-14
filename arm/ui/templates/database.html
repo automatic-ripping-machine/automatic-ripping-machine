@@ -13,12 +13,6 @@
 			</p>
         </div>
     </div>
-	
-	<div class="d-flex float-right">
-		<div class="p-2">
-			<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="search" data-href="/json?mode=search&q=">Search Database</button>
-		</div>
-	</div>
     <div class="row h-100 mx-auto align-items-center">
         <div class="col-sm-12 mx-auto">
             <p class="text-center">
@@ -26,7 +20,6 @@
             </p>
         </div>							
     </div>
-	
 	<!-- Modal -->
 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
@@ -62,7 +55,12 @@
 		<h4 class="alert-heading">There was a problem with your request</h4>
 		<p>There was a problem with your request. Check the ARMui log for more details.</p>
 	</div>
-    <div class="row h-100 align-items-center">
+	<div class="row d-flex justify-content-end">
+		<div class="p-4">
+			<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="search" data-href="/json?mode=search&q=">Search Database</button>
+		</div>
+	</div>
+    <div class="row">
         <div class="col-md-12 mx-auto">
             <div class="card-deck">
                 {% for job in jobs %}
@@ -365,7 +363,7 @@
 									<div class="btn-group-vertical" role="group" aria-label="buttons">\
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="'+ job["job_id"] +'" data-href="/json?job='+ job["job_id"] +'&mode=abandon">Abandon Job</button>\
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-jobid="'+ job["job_id"] +'" data-href="/json?job='+ job["job_id"] +'&mode=delete">Delete Job</button>\
-										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="'+ job["job_id"] +'" data-href="/json?logfile='+ job["job_id"] +'&mode=full">View Logfile</button>\
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="'+ job["job_id"] +'" data-href="/json?job='+ job["job_id"] +'&mode=full">View Logfile</button>\
 									</div>\
                                 </div>\
                             </div>\
