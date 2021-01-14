@@ -4,6 +4,15 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
+
+<style>
+.popover {
+    white-space: pre-line;    
+}
+.popover-content {
+    white-space: pre-wrap;
+}
+</style>
 <!-- We keep this here incase we need it later -->
 <div class="alert alert-success d-none" role="alert" id="success">
   <h4 class="alert-heading">Settings were saved successfully</h4>
