@@ -502,7 +502,7 @@ def changeparams():
         config.MINLENGTH = format(form.MINLENGTH.data)
         config.MAXLENGTH = format(form.MAXLENGTH.data)
         config.RIPMETHOD = format(form.RIPMETHOD.data)
-        config.MAINFEATURE = int(format(form.MAINFEATURE.data) == 'true')
+        config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False 
         # config.MAINFEATURE = int(format(form.MAINFEATURE.data)) #  must be 1 for True 0 for False
         job.disctype = format(form.DISCTYPE.data)
         db.session.commit()
@@ -511,6 +511,8 @@ def changeparams():
             'Maximum Length={}, Disctype={}'.format(
                 form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data,
                 form.DISCTYPE.data))
+        db.session.refresh(job)
+        db.session.refresh(config)
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
