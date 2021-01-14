@@ -383,6 +383,8 @@ def logreader():
     # Setup our vars
     logpath = cfg['LOGPATH']
     mode = request.args.get('mode')
+    # TODO 
+    # We should use the job id and not get the raw logfile from the user
     logfile = request.args.get('logfile')
     if logfile is None or "../" in logfile or mode is None:
         return render_template('error.html')
