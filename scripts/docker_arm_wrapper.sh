@@ -123,4 +123,3 @@ esac
 
 # start the rip inside the same container
 startArmRip
-
