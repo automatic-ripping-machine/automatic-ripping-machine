@@ -272,7 +272,7 @@ def feed_json():
     x = request.args.get('mode')
     j_id = request.args.get('job')
     # We should never let the user pick the log file
-    logfile = request.args.get('logfile')
+    # logfile = request.args.get('logfile')
     searchq = request.args.get('q')
     logpath = cfg['LOGPATH']
     if x is None:
