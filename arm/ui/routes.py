@@ -97,7 +97,6 @@ def submitrip():
 
 
 @app.route('/changeparams', methods=['GET', 'POST'])
-@login_required
 def changeparams():
     config_id = request.args.get('config_id')
     config = Config.query.get(config_id)
