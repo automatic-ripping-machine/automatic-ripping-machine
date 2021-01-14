@@ -158,9 +158,22 @@
           }
       
 			$("#save-yes").bind('click', function() {
-				// TODO need to check this has a min num of chars
 				console.log(hrrref)
+				// Check we have the searchquery element & it must be more than 3 chars
+				if ($("input#searchquery").length){
+					var search_query = $("input#searchquery").val().length;
+					if(search_query <3){
+						$("#searchquery").addClass("is-invalid");
+						return false;
+					}
+				}
 				if(hrrref != ""){
+					// Add the spinner to let them know we are loading
+					$("#m-body").append('<div class="d-flex justify-content-center">\
+										<div class="spinner-border" role="status">\
+										<span class="sr-only">Loading...</span>\
+										</div>\
+										</div>');
 					if (actionType == "search"){
 						console.log("searching");
 						console.log("q="+$('#searchquery').val());
@@ -309,7 +322,16 @@
 				var modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?"
 			}else if (actionType == "search"){
 				var modalTitle = "Search the database"
-				var modalBody = '<input type="email" class="form-control" id="searchquery" placeholder="Search titles">'
+				//var modalBody = '<input type="email" class="form-control" id="searchquery" placeholder="Search titles">'
+				var modalBody = '<div class="input-group mb-3">\
+								<div class="input-group-prepend">\
+									<span class="input-group-text" id="searchlabel">Search </span>\
+								</div>\
+								<input type="text" class="form-control" id="searchquery" aria-label="searchquery" name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">\
+								      <div id="validationServer03Feedback" class="invalid-feedback">\
+										Search string too short.\
+									  </div>\
+								</div>';
 			}else{
 				var modalTitle = "Do you want to leave this page ?"
 				var modalBody = "To view the log file you need to leave this page. Would you like to leave ?"
