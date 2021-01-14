@@ -62,14 +62,13 @@ def musicbrainz(discid, job):
     except mb.WebServiceError as exc:
         logging.error("Cant reach MB or cd not found ? - ERROR: " + str(exc))
         job.video_type = "Music"
-        db.session.commit()
+        db.session.rollback()
         return ""
     try:
         # We never make it to here if the mb fails
         artist = infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name']
         logging.debug("artist=====" + str(artist))
         logging.debug("do have artwork?======" + str(infos['disc']['release-list'][0]['cover-art-archive']['artwork']))
-
         # Get our front cover if it exists
         if get_cd_art(job, infos):
             logging.debug("we got an art image")
@@ -77,7 +76,6 @@ def musicbrainz(discid, job):
             logging.debug("we didnt get art image")
         # Set up the database properly for music cd's
         # job.logfile = cleanforlog(artist) + "_" + cleanforlog(infos['disc']['release-list'][0]['title']) + ".log"
-
         job.year = job.year_auto = str(new_year)
         job.title = job.title_auto = artist + " " + title
         job.no_of_titles = infos['disc']['offset-count']
@@ -86,7 +84,7 @@ def musicbrainz(discid, job):
         return artist + " " + str(infos['disc']['release-list'][0]['title'])
     except Exception as exc:
         logging.error("Try 2 -  ERROR: " + str(exc))
-        db.session.commit()
+        db.session.rollback()
         return artist + " " + str(infos['disc']['release-list'][0]['title'])
 
 
@@ -173,6 +171,7 @@ def gettitle(discid, job):
     except mb.WebServiceError as exc:
         logging.error("mb.gettitle -  ERROR: " + str(exc))
         logging.debug('error = %s', str(exc))
+        db.session.rollback()
         return "not identified"
 
 
@@ -203,8 +202,8 @@ def get_cd_art(job, infos):
                     job.poster_url_auto = str(image["image"])
                     job.poster_url = str(image["image"])
                     return True
-
     except mb.WebServiceError as exc:
+        db.session.rollback()
         logging.error("get_cd_art ERROR: " + str(exc))
     try:
         # This uses roboBrowser to grab the amazon/3rd party image if it exists
@@ -216,12 +215,14 @@ def get_cd_art(job, infos):
         job.poster_url_auto = job.poster_url
         # logging.debug("img =====  " + str(img))
         # logging.debug("img stripped =====" + str(job.poster_url))
+        db.session.commit()
         if job.poster_url != "":
             return True
         else:
             return False
     except mb.WebServiceError as exc:
         logging.error("get_cd_art ERROR: " + str(exc))
+        db.session.rollback()
         return False
 
 
