@@ -112,13 +112,12 @@ def changeparams():
         app.logger.debug(f"main={config.MAINFEATURE}")
         job.disctype = format(form.DISCTYPE.data)
         db.session.commit()
-        flash(
-            'Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, '
-            'Maximum Length={}, Disctype={}'.format(
-                form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data,
-                form.DISCTYPE.data))
         db.session.refresh(job)
         db.session.refresh(config)
+        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, '
+              'Maximum Length={}, Disctype={}'.format(
+                config.RIPMETHOD, config.MAINFEATURE, config.MINLENGTH, config.MAXLENGTH,
+                job.disctype))
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
