@@ -1395,3 +1395,36 @@ def database_updater(args, job, wait_time=90):
         else:
             logging.debug("successfully written to the database")
             return True
+
+
+def job_dupe_check(job):
+    """
+    function for checking the database to look for jobs that have completed
+    successfully with the same crc
+
+    :param job: The job obj so we can use the crc/title etc
+    :return: True if we have found dupes with the same crc
+             False if we didnt find any with the same crc
+    """
+    from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
+    jobs = Job.query.filter_by(crc_id=job.crc_id, status="success")
+    logging.debug("search - posts=" + str(jobs))
+    r = {}
+    i = 0
+    for j in jobs:
+        logging.debug("job obj= " + str(j.get_d()))
+        x = j.get_d().items()
+        r[i] = {}
+        for key, value in iter(x):
+            r[i][str(key)] = str(value)
+            # logging.debug(str(key) + "= " + str(value))
+        i += 1
+
+    logging.debug(r)
+    logging.debug("r len=" + str(len(r)))
+    if jobs is not None and len(r) > 0:
+        logging.debug("jobs is none or len(r) - we have jobs")
+        return True
+    else:
+        logging.debug("jobs is none or len(r) is 0 - we have no jobs")
+        return False
