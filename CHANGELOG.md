@@ -1,13 +1,31 @@
 # Changelog
-## Current pre-release v2.4
+## Current pre-release v2.4.6
+ - Updated jquery tablesorter, old version was vulnerable to XSS 
+ - Removed all unused versions of CSS 
+ - Smalls validation checks when searching the database page. (searching now requires min 3 chars)
+ - Small changes to index.html (home for arm ui) to warn before abandoning jobs
+ - Jquery ui now fully removed. Now uses only bootstrap for theming
+ - ARM ui database no longer needs logfiles in url (potentially dangerous), it checks the database instead for the logfile matching the job.
+
+## v2.3.4 - v2.4.5
  - Adding bypass for db.session.commit() error for movies (WIP only MakeMKV and part of handbrake is coded)
  - Abandon job option added to main ARM ui page (for now this only sets job to failed no processes are cancelled)
- - Typo fixes (ARM ui images has some typos these have been updated and corrected)
+ - Typo fixes (ARM ui images has/had some typos these have been updated and corrected)
  - ARM ui now shows CPU temps
  - ARM ui now uses percentage bars to more clearly display storage and RAM usage 
- - ARM ui now correclty deals with setup (it should now create all necessary folders and do so without errors) 
- - Bugfix (ARM ui will not correctly display ram usage)
+ - ARM ui database page is now fully functional with updated ui that looks clearer and with more details
+ - ARM ui database is now searchable
+ - ARM ui settings page now fully works and saves your settings to the arm.yaml
+ - ARM ui now prevents logfiles that contain "../"
+ - ARM ui login page updated to look smoother look
  - Bugfix (ARM will no longer log failures when opening sdx or hdx devices)
+ - Bugfix (ARM will no longer crash when dealing with non utf-8 chars)
+ - Bugfix (ARM database_updater() was setting incorrect values into the database)
+ - Bugfix (ARM ui will no longer crash when trying to read logs with non utf-8 chars)
+ - Bugfix (ARM ui will now get the latest % of encode, this was buggy as it was getting the very first % it could find)
+ - Bugfix (ARM ui will now correctly display ram usage)
+ - Bugfix (ARM ui now correctly deals with setup (it should now create all necessary folders and do so without errors) )
+ - Bugfix (ARM ui update title no longer shows html on update)
 
 ## v2.3.4
  - Travisci/flake8 code fixes
