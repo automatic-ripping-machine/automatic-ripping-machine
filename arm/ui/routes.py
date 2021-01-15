@@ -510,13 +510,11 @@ def changeparams():
         app.logger.debug(f"main={config.MAINFEATURE}")
         job.disctype = format(form.DISCTYPE.data)
         db.session.commit()
-        flash(
-            'Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, '
-            'Maximum Length={}, Disctype={}'.format(
-                form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data,
-                form.DISCTYPE.data))
         db.session.refresh(job)
         db.session.refresh(config)
+        flash(f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},'
+              f'Minimum Length={config.MINLENGTH}, '
+              f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}')
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
@@ -532,7 +530,7 @@ def customtitle():
         job.title = format(form.title.data)
         job.year = format(form.year.data)
         db.session.commit()
-        flash('custom title changed. Title={}, Year={}.'.format(form.title.data, form.year.data))
+        flash(f'custom title changed. Title={form.title.data}, Year={form.year.data}.')
         return redirect(url_for('home'))
     return render_template('customTitle.html', title='Change Title', form=form)
 
