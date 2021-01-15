@@ -502,7 +502,7 @@ def changeparams():
         config.MINLENGTH = format(form.MINLENGTH.data)
         config.MAXLENGTH = format(form.MAXLENGTH.data)
         config.RIPMETHOD = format(form.RIPMETHOD.data)
-        config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False 
+        config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False
         # config.MAINFEATURE = int(format(form.MAINFEATURE.data)) #  must be 1 for True 0 for False
         job.disctype = format(form.DISCTYPE.data)
         db.session.commit()
