@@ -7,7 +7,29 @@
 {% block content %}
 
 <div class="container-fluid h-100 mx-auto">
-    <div class="row">
+    	<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLongTitle">Abandon this job ??</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p><span class="ui-icon ui-icon-alert" style="margin:12px 12px 20px 0;"></span>
+		<span id="m-body">This job will be abandoned. Are you sure?</span></p>
+      </div>
+      <div class="modal-footer">
+        <button id="save-no" type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+        <button id="save-yes" type="button" class="btn btn-primary">Yes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+	<div class="row">
         <!-- <div class="col-sm-2"></div> -->
         <div class="col-sm-12  rounded text-center">
             <img src="/static/img/arm80.png">
@@ -99,8 +121,7 @@
                                     class="btn btn-primary">Custom Title</a>
                                     {% endif %}
 									<br><br>
-                                    <a href="abandon?job_id={{ job.job_id }}"
-                                    class="btn btn-primary">Abandon Job</a>
+                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="{{ job.job_id }}" data-href="/json?job={{ job.job_id }}&mode=abandon">Abandon Job</button>
                                 </div>
                             </div>
 
@@ -173,6 +194,148 @@
     <div class="col-sm-4 mx-auto"></div>
 </div>
 </div>
-<script type="application/javascript">activeTab("home");</script>
+<script type="application/javascript">
+        var hrrref = "";
+        var wedeleted = "{{ success }}";
+		var activeJob = null;
+		var actionType = null;
+        $(document).ready(function(){
+
+      
+			$("#save-yes").bind('click', function() {
+				console.log(hrrref)
+				if(hrrref != ""){
+					// Add the spinner to let them know we are loading
+					$("#m-body").append('<div class="d-flex justify-content-center">\
+										<div class="spinner-border" role="status">\
+										<span class="sr-only">Loading...</span>\
+										</div>\
+										</div>');
+
+					$.get( hrrref, function( data ) {
+						console.log( data['success'] ); // John	
+						console.log("#jobId"+activeJob)
+						if (data['success'] === true){
+							if (data['mode'] === "abandon"){
+								$("#status"+activeJob).attr("src","static/img/fail.png")
+								$("#message1 .alert-heading").html("Job was successfully abandoned")
+								$('#exampleModal').modal('toggle');
+								$('#message1').removeClass('d-none');
+								$('#message2').addClass('d-none');
+								$('#message3').addClass('d-none');
+								setTimeout(
+									function(){$('#message1').addClass('d-none');},
+										5000
+								);
+							}
+							if (data['mode'] === "logfile"){
+								$(this).find('.modal-title').text("Logfile")
+								$("#message1 .alert-heading").html("Here is the logfile you requested")
+								$('div .card-deck').html('<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">\
+								<strong>'+data['job_title']+'</strong></div><pre class="text-white bg-secondary"><code>' + data['log'] +'</code></pre>')
+								window.scrollTo({ top: 0, behavior: 'smooth' });
+								$('#exampleModal').modal('toggle');
+								$('#message1').removeClass('d-none');
+								$('#message2').addClass('d-none');
+								$('#message3').addClass('d-none');
+							}
+						}else{
+							$('#message3').removeClass('d-none');
+							$('#message1').addClass('d-none');
+							$('#message2').addClass('d-none');
+							$('#exampleModal').modal('toggle');
+							setTimeout(
+								function(){$('#message3').addClass('d-none');},
+									5000
+							);
+						}
+					}, "json");
+				}
+			});
+			$("#save-no").bind('click', function(){
+				if (hrrref == "entryWarn"){
+					console.log("use wants to go away");
+					window.location.href = "/";
+					return false;
+				}else{
+				
+					console.log("user shouldnt be here...");
+					$('#exampleModal').modal('toggle');
+				}
+			});
+	  
+      //Simple function to check if we have already agreed
+      function checkCookie() {
+          var understands = getCookie("understands");
+          if (understands != "" && understands != null) {
+              return true;
+          } else {
+              return null;
+          }
+      }
+      //Get only the understands cookie
+      function getCookie(cname) {
+          var name = cname + "=";
+          var decodedCookie = decodeURIComponent(document.cookie);
+          var ca = decodedCookie.split(';');
+          for (var i = 0; i < ca.length; i++) {
+              var c = ca[i];
+              while (c.charAt(0) == ' ') {
+                  c = c.substring(1);
+              }
+              if (c.indexOf(name) == 0) {
+                  return c.substring(name.length, c.length);
+              }
+          }
+      }
+      //Set out cookie so we dont need the dialog popping up
+      function setCookie(cname, cvalue, exdays) {
+          var d = new Date();
+          d.setTime(d.getTime() + (exdays*24*60*60*1000));
+          var expires = "expires="+ d.toUTCString();
+          document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+      }
+	  $('#exampleModal').on('show.bs.modal', function (event) {
+		    var button = $(event.relatedTarget) // Button that triggered the modal
+		    actionType = button.data('type') // Extract info from data-* attributes
+			hrrref  = button.data('href')
+			activeJob = button.data('jobid')
+			//jobId = job.job_id 
+			console.log(hrrref)
+			console.log(activeJob)
+			console.log(actionType)
+			
+			if(actionType == "abandon"){
+				var modalTitle = "Abandon This Job ?"
+				var modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?"
+			}else if (actionType == "delete"){
+				var modalTitle = "Delete this job forever ?"
+				var modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?"
+			}else if (actionType == "search"){
+				var modalTitle = "Search the database"
+				//var modalBody = '<input type="email" class="form-control" id="searchquery" placeholder="Search titles">'
+				var modalBody = '<div class="input-group mb-3">\
+								<div class="input-group-prepend">\
+									<span class="input-group-text" id="searchlabel">Search </span>\
+								</div>\
+								<input type="text" class="form-control" id="searchquery" aria-label="searchquery" name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">\
+								      <div id="validationServer03Feedback" class="invalid-feedback">\
+										Search string too short.\
+									  </div>\
+								</div>';
+			}else{
+				var modalTitle = "Do you want to leave this page ?"
+				var modalBody = "To view the log file you need to leave this page. Would you like to leave ?"
+			}
+		    // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+		    // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+            var modal = $(this)
+            modal.find('.modal-title').text(modalTitle)
+            modal.find('#m-body').html(modalBody)
+		})
+	});
+
+
+activeTab("home");</script>
 {% endblock %}
 {% block js %}{{ super() }}{% endblock %}

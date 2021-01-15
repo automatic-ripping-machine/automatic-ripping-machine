@@ -68,10 +68,10 @@ def setuplogging(job):
     if cfg['LOGLEVEL'] == "DEBUG":
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s '
                                                      'ARM: %(module)s.%(funcName)s %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
+                            datefmt=cfg['DATE_FORMAT'], level=cfg['LOGLEVEL'])
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
+                            datefmt=cfg['DATE_FORMAT'], level=cfg['LOGLEVEL'])
     # logging.debug("Logfull = " + logfull)
 
     # This stops apprise spitting our secret keys when users posts online

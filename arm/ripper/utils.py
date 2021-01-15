@@ -1408,7 +1408,7 @@ def job_dupe_check(job):
     """
     from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
     jobs = Job.query.filter_by(crc_id=job.crc_id, status="success")
-    logging.debug("search - posts=" + str(jobs))
+    # logging.debug("search - posts=" + str(jobs))
     r = {}
     i = 0
     for j in jobs:
@@ -1424,7 +1424,7 @@ def job_dupe_check(job):
     logging.debug("r len=" + str(len(r)))
     if jobs is not None and len(r) > 0:
         logging.debug("jobs is none or len(r) - we have jobs")
-        return True
+        return True, r
     else:
         logging.debug("jobs is none or len(r) is 0 - we have no jobs")
-        return False
+        return False, None

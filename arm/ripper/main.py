@@ -179,47 +179,69 @@ def main(logfile, job):
 
     #  Entry point for dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
+        # Check db for entries matching the crc and successful
+        have_dupes, crc_jobs = utils.job_dupe_check(job)
         # get filesystem in order
         #  If we have a nice title/confirmed name use the MEDIA_DIR and not the ARM unidentified folder
         if job.hasnicetitle:
-            #  Make sure we dont use 0000 in our folder name
-            if job.year != "0000":
+            if job.year != "0000" or job.year != "":
                 hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
             else:
                 hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title))
         else:
-            hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
+            if crc_jobs is not None:
+                # This might need some tweaks to because of title/year manual
+                job.title = crc_jobs[0]['title']
+                job.year = crc_jobs[0]['year']
+                hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
+            else:
+                hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
 
         #  The dvd directory already exists - Lets make a new one using random numbers
         if (utils.make_dir(hboutpath)) is False:
             logging.info("Directory exist.")
-            #  Only begin ripping if we are allowed to make dupiclates
-            if job.config.ALLOW_DUPLICATES:
+            #  Only begin ripping if we are allowed to make duplicates
+            # Or the successful rip of the disc is not found in our database
+            if job.config.ALLOW_DUPLICATES or not have_dupes:
                 ts = round(time.time() * 100)
                 #  if we have a nice title, set the folder to MEDIA_DIR and not the unidentified ARMPATH
                 if job.hasnicetitle:
                     #  Dont use the year if its  0000
                     if job.year != "0000" or job.year != "":
                         hboutpath = os.path.join(job.config.MEDIA_DIR,
-                                                 str(job.title) + " (" + str(job.year) + ") " + str(ts))
+                                                 f"{job.title} ({job.year}) {ts}")
                     else:
-                        hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " " + str(ts))
+                        # This might need some tweaks to because of title/year manual
+                        if crc_jobs is not None:
+                            job.title = crc_jobs[0]['title']
+                            job.year = crc_jobs[0]['year']
+                            hboutpath = os.path.join(job.config.MEDIA_DIR,
+                                                     f"{job.title} ({job.year}) {ts}")
+                        else:
+                            hboutpath = os.path.join(job.config.MEDIA_DIR, f"{job.title} {ts}")
                 else:
-                    #  No nice title, use the unidentified path
-                    hboutpath = os.path.join(job.config.ARMPATH, str(job.title) + "_" + str(ts))
+                    # This might need some tweaks to because of title/year manual
+                    if crc_jobs is not None:
+                        job.title = crc_jobs[0]['title']
+                        job.year = crc_jobs[0]['year']
+                        hboutpath = os.path.join(job.config.MEDIA_DIR,
+                                                 f"{job.title} ({job.year}) {ts}")
+                    else:
+                        #  No nice title, use the unidentified path
+                        hboutpath = os.path.join(job.config.ARMPATH, str(job.title) + "_" + str(ts))
 
                 #  We failed to make a random directory, most likely a permission issue
                 if (utils.make_dir(hboutpath)) is False:
                     logging.exception(
-                        "A fatal error has occured and ARM is exiting.  "
-                        "Couldnt create filesystem. Possible permission error")
+                        "A fatal error has occurred and ARM is exiting.  "
+                        "Couldn't create filesystem. Possible permission error")
                     utils.notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(
-                        job.title) + ".  Couldnt create filesystem. Possible permission error. ")
+                        job.title) + ".  Couldn't create filesystem. Possible permission error. ")
                     job.status = "fail"
                     db.session.commit()
                     sys.exit()
             else:
-                #  We arent allowed to rip dupes, notifiy and exit
+                #  We arent allowed to rip dupes, notify and exit
                 logging.info("Duplicate rips are disabled.")
                 utils.notify(job, "ARM notification", "ARM Detected a duplicate disc. For " + str(
                     job.title) + ".  Duplicate rips are disabled. You can reenable them from your config file. ")
@@ -468,11 +490,11 @@ if __name__ == "__main__":
     if log_file.is_file():
         logging.basicConfig(filename=log_file,
                             format='[%(asctime)s] %(levelname)s ARM: %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', level="DEBUG")
+                            datefmt=cfg['DATE_FORMAT'], level="DEBUG")
     else:
         logging.basicConfig(filename=cfg['INSTALLPATH'] + "NAS.log",
                             format='[%(asctime)s] %(levelname)s ARM: %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', level="DEBUG")
+                            datefmt=cfg['DATE_FORMAT'], level="DEBUG")
     args = entry()
     devpath = "/dev/" + args.devpath
     # print(devpath)
@@ -485,6 +507,7 @@ if __name__ == "__main__":
     #  This kills multiple runs. it stops the same job triggering more than once
     if not logfile.find("empty.log") == -1:
         sys.exit()
+
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
 
     utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
