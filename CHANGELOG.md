@@ -6,6 +6,8 @@
  - Small changes to index.html (home for arm ui) to warn before abandoning jobs
  - Jquery ui now fully removed. Now uses only bootstrap for theming
  - ARM ui database no longer needs logfiles in url (potentially dangerous), it checks the database instead for the logfile matching the job.
+ - Some progress on converting all string types to fstrings where possible
+ - ARM will now break out of wait if the user inputs/searches for movie/series.
 
 ## v2.3.4 - v2.4.5
  - Adding bypass for db.session.commit() error for movies (WIP only MakeMKV and part of handbrake is coded)
