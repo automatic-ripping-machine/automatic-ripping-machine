@@ -151,13 +151,29 @@ def main(logfile, job):
         sys.exit()
 
     #  If we have have waiting for user input enabled
-    if job.config.MANUAL_WAIT:
+    """if job.config.MANUAL_WAIT:
         logging.info("Waiting " + str(job.config.MANUAL_WAIT_TIME) + " seconds for manual override.")
         job.status = "waiting"
         db.session.commit()
         time.sleep(job.config.MANUAL_WAIT_TIME)
         db.session.refresh(job)
         db.session.refresh(config)
+        job.status = "active"
+        db.session.commit()
+    """
+    #  If we have have waiting for user input enabled
+    if job.config.MANUAL_WAIT:
+        logging.info(f"Waiting {job.config.MANUAL_WAIT_TIME} seconds for manual override.")
+        job.status = "waiting"
+        db.session.commit()
+        sleep_time = 0
+        while sleep_time < job.config.MANUAL_WAIT_TIME:
+            time.sleep(5)
+            sleep_time += 5
+            db.session.refresh(job)
+            db.session.refresh(config)
+            if job.title_manual:
+                break
         job.status = "active"
         db.session.commit()
 
@@ -195,6 +211,7 @@ def main(logfile, job):
                 job.title = crc_jobs[0]['title'] if crc_jobs[0]['title'] != "" else job.label
                 job.year = crc_jobs[0]['year'] if crc_jobs[0]['year'] != "" else ""
                 job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else None
+                crc_jobs[0]['hasnicetitle'] = bool(crc_jobs[0]['hasnicetitle'])
                 job.hasnicetitle = crc_jobs[0]['hasnicetitle'] if crc_jobs[0]['hasnicetitle'] else False
                 hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
             else:
@@ -220,6 +237,7 @@ def main(logfile, job):
                         job.title = crc_jobs[0]['title'] if crc_jobs[0]['title'] != "" else job.label
                         job.year = crc_jobs[0]['year'] if crc_jobs[0]['year'] != "" else ""
                         job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else None
+                        crc_jobs[0]['hasnicetitle'] = bool(crc_jobs[0]['hasnicetitle'])
                         job.hasnicetitle = crc_jobs[0]['hasnicetitle'] if crc_jobs[0]['hasnicetitle'] else False
                         hboutpath = os.path.join(job.config.MEDIA_DIR, f"{job.title} ({job.year}) {ts}")
                     else:
