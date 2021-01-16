@@ -134,16 +134,26 @@ def main(logfile, job):
     logging.info("Starting Disc identification")
 
     identify.identify(job, logfile)
-
+    # Check db for entries matching the crc and successful
+    have_dupes, crc_jobs = utils.job_dupe_check(job)
+    if crc_jobs is not None:
+        # This might need some tweaks to because of title/year manual
+        job.title = crc_jobs[0]['title'] if crc_jobs[0]['title'] != "" else job.label
+        job.year = crc_jobs[0]['year'] if crc_jobs[0]['year'] != "" else ""
+        job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else None
+        crc_jobs[0]['hasnicetitle'] = bool(crc_jobs[0]['hasnicetitle'])
+        job.hasnicetitle = crc_jobs[0]['hasnicetitle'] if crc_jobs[0]['hasnicetitle'] else False
+        job.video_type = crc_jobs[0]['video_type'] if crc_jobs[0]['hasnicetitle'] != "" else "unknown"
+        db.session.commit()
     #  DVD disk entry
     if job.disctype in ["dvd", "bluray"]:
         #  Send the notifications
-        utils.notify(job, "ARM notification", "Found disc: " + str(job.title) + ". Disc type is "
-                     + str(job.disctype) + ". Main Feature is " + str(job.config.MAINFEATURE)
-                     + ".  Edit entry here: http://" + str(check_ip()) + ":" + str(
-            job.config.WEBSERVER_PORT) + "/jobdetail?job_id=" + str(job.job_id) + " ")
+        utils.notify(job, "ARM notification",
+                     f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {job.config.MAINFEATURE}"
+                     f".  Edit entry here: http://" + str(check_ip()) + ":"
+                     f"{job.config.WEBSERVER_PORT}/jobdetail?job_id={job.job_id}")
     elif job.disctype == "music":
-        utils.notify(job, "ARM notification", "Found music CD: " + str(job.label) + ". Ripping all tracks")
+        utils.notify(job, "ARM notification", f"Found music CD: {job.label}. Ripping all tracks")
     elif job.disctype == "data":
         utils.notify(job, "ARM notification", "Found data disc.  Copying data.")
     else:
@@ -161,6 +171,8 @@ def main(logfile, job):
         job.status = "active"
         db.session.commit()
     """
+
+    # TODO: Update function that will look for the best match with most data
     #  If we have have waiting for user input enabled
     if job.config.MANUAL_WAIT:
         logging.info(f"Waiting {job.config.MANUAL_WAIT_TIME} seconds for manual override.")
@@ -195,9 +207,6 @@ def main(logfile, job):
 
     #  Entry point for dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
-        # Check db for entries matching the crc and successful
-        have_dupes, crc_jobs = utils.job_dupe_check(job)
-        # TODO: Update function that will look for the best match with most data
         # get filesystem in order
         #  If we have a nice title/confirmed name use the MEDIA_DIR and not the ARM unidentified folder
         if job.hasnicetitle:
@@ -206,16 +215,7 @@ def main(logfile, job):
             else:
                 hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title))
         else:
-            if crc_jobs is not None:
-                # This might need some tweaks to because of title/year manual
-                job.title = crc_jobs[0]['title'] if crc_jobs[0]['title'] != "" else job.label
-                job.year = crc_jobs[0]['year'] if crc_jobs[0]['year'] != "" else ""
-                job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else None
-                crc_jobs[0]['hasnicetitle'] = bool(crc_jobs[0]['hasnicetitle'])
-                job.hasnicetitle = crc_jobs[0]['hasnicetitle'] if crc_jobs[0]['hasnicetitle'] else False
-                hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
-            else:
-                hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
+            hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
 
         #  The dvd directory already exists - Lets make a new one using random numbers
         if (utils.make_dir(hboutpath)) is False:
@@ -232,17 +232,7 @@ def main(logfile, job):
                     else:
                         hboutpath = os.path.join(job.config.MEDIA_DIR, f"{job.title} {ts}")
                 else:
-                    # This might need some tweaks to because of title/year manual
-                    if crc_jobs is not None:
-                        job.title = crc_jobs[0]['title'] if crc_jobs[0]['title'] != "" else job.label
-                        job.year = crc_jobs[0]['year'] if crc_jobs[0]['year'] != "" else ""
-                        job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else None
-                        crc_jobs[0]['hasnicetitle'] = bool(crc_jobs[0]['hasnicetitle'])
-                        job.hasnicetitle = crc_jobs[0]['hasnicetitle'] if crc_jobs[0]['hasnicetitle'] else False
-                        hboutpath = os.path.join(job.config.MEDIA_DIR, f"{job.title} ({job.year}) {ts}")
-                    else:
-                        #  No nice title, use the unidentified path
-                        hboutpath = os.path.join(job.config.ARMPATH, str(job.title) + "_" + str(ts))
+                    hboutpath = os.path.join(job.config.ARMPATH, str(job.title) + "_" + str(ts))
 
                 #  We failed to make a random directory, most likely a permission issue
                 if (utils.make_dir(hboutpath)) is False:
@@ -577,6 +567,6 @@ if __name__ == "__main__":
         joblength = job.stop_time - job.start_time
         minutes, seconds = divmod(joblength.seconds + joblength.days * 86400, 60)
         hours, minutes = divmod(minutes, 60)
-        len = '{:d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
-        job.job_length = len
+        total_len = '{:d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+        job.job_length = total_len
         db.session.commit()

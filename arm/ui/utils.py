@@ -29,8 +29,7 @@ def get_info(directory):
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
-    string = re.sub(r'\[.*?\]', '', string)  # noqa: W605
-
+    string = re.sub(r"\[.*?]", "", string)  # noqa: W605
     string = re.sub('\s+', ' ', string)  # noqa: W605
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
@@ -215,7 +214,7 @@ def setupdatabase():
     try:
         User.query.all()
         return True
-    except Exception as err:
+    except Exception:
         #  We only need this on first run
         #  Wipe everything
         # flash(str(err))

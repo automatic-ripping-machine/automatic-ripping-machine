@@ -1397,6 +1397,7 @@ def job_dupe_check(job):
              False if we didnt find any with the same crc
               - Will also return None as a secondary param
     """
+    # TODO possibly only grab hasnicetitles ?
     jobs = Job.query.filter_by(crc_id=job.crc_id, status="success")
     # logging.debug("search - posts=" + str(jobs))
     r = {}

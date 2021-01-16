@@ -669,7 +669,12 @@ def home():
             return redirect(url_for('setup'))
         for job in jobs:
             job_log = cfg['LOGPATH'] + job.logfile
-            line = subprocess.check_output(['tail', '-n', '1', job_log])
+            # Try to catch if the logfile gets delete before the job is finished
+            try:
+                line = subprocess.check_output(['tail', '-n', '1', job_log])
+            except subprocess.CalledProcessError:
+                app.logger.debug("Error while reading logfile for ETA")
+                line = ""
             # job_status = re.search("([0-9]{1,2}\.[0-9]{2}) %.*ETA ([0-9]{2})h([0-9]{2})m([0-9]{2})s", str(line))
             # ([0-9]{1,3}\.[0-9]{2}) %.*(?!ETA) ([0-9hms]*?)\)  # This is more dumb but it returns with the h m s
             # job_status = re.search(r"([0-9]{1,2}\.[0-9]{2}) %.*ETA\s([0-9hms]*?)\)", str(line))
