@@ -22,7 +22,7 @@ from arm.models.models import Track  # noqa: E402
 
 
 def notify(job, title, body):
-    """Send notificaions
+    """Send notifications
      title = title for notification
     body = body of the notification
     """
@@ -41,7 +41,7 @@ def notify(job, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending Pushbullet apprise notification.  Continueing processing...")
+            logging.error("Failed sending Pushbullet apprise notification.  Continuing processing...")
     # IFTTT
     # ifttt://{WebhookID}@{Event}/
     if job.config.IFTTT_KEY != "":
@@ -58,7 +58,7 @@ def notify(job, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending IFTTT apprise notification.  Continueing processing...")
+            logging.error("Failed sending IFTTT apprise notification.  Continuing processing...")
     # PUSHOVER
     if job.config.PO_USER_KEY != "":
         try:
@@ -141,7 +141,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending boxcar apprise notification.  Continueing processing...")
+            logging.error("Failed sending boxcar apprise notification.  Continuing processing...")
     # discord
     # discord://{WebhookID}/{WebhookToken}/
     if cfg['DISCORD_WEBHOOK_ID'] != "":
@@ -158,7 +158,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending discord apprise notification.  Continueing processing...")
+            logging.error("Failed sending discord apprise notification.  Continuing processing...")
     # Faast
     # faast://{authorizationtoken}
     if cfg['FAAST_TOKEN'] != "":
@@ -175,7 +175,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending faast apprise notification.  Continueing processing...")
+            logging.error("Failed sending faast apprise notification.  Continuing processing...")
     # FLOCK
     # flock://{token}/
     if cfg['FLOCK_TOKEN'] != "":
@@ -192,7 +192,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending flock apprise notification.  Continueing processing...")
+            logging.error("Failed sending flock apprise notification.  Continuing processing...")
     # GITTER
     # gitter: // {token} / {room} /
     if cfg['GITTER_TOKEN'] != "":
@@ -209,7 +209,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending gitter apprise notification.  Continueing processing...")
+            logging.error("Failed sending gitter apprise notification.  Continuing processing...")
     # Gotify
     # gotify://{hostname}/{token}
     if cfg['GOTIFY_TOKEN'] != "":
@@ -226,7 +226,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending gitter apprise notification.  Continueing processing...")
+            logging.error("Failed sending gitter apprise notification.  Continuing processing...")
     # Growl
     # growl://{hostname} || growl://{password}@{hostname}
     if cfg['GROWL_HOST'] != "":
@@ -247,7 +247,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending growl apprise notification.  Continueing processing...")
+            logging.error("Failed sending growl apprise notification.  Continuing processing...")
     # JOIN
     # join://{apikey}/ ||  join://{apikey}/{device_id}
     if cfg['JOIN_API'] != "":
@@ -268,7 +268,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending growl apprise notification.  Continueing processing...")
+            logging.error("Failed sending growl apprise notification.  Continuing processing...")
     # Kodi
     # kodi://{hostname}:{port} || kodi: // {userid}: {password} @ {hostname}:{port}
     if cfg['KODI_HOST'] != "":
@@ -295,7 +295,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending KODI apprise notification.  Continueing processing...")
+            logging.error("Failed sending KODI apprise notification.  Continuing processing...")
     # KUMULOS
     if cfg['KUMULOS_API'] != "":
         try:
@@ -311,7 +311,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending KUMULOS apprise notification.  Continueing processing...")
+            logging.error("Failed sending KUMULOS apprise notification.  Continuing processing...")
     # LEMETRIC
     if cfg['LAMETRIC_MODE'] != "":
         try:
@@ -332,7 +332,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending LAMETRIC apprise notification.  Continueing processing...")
+            logging.error("Failed sending LAMETRIC apprise notification.  Continuing processing...")
     # MAILGUN
     if cfg['MAILGUN_DOMAIN'] != "":
         try:
@@ -349,7 +349,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending mailgun apprise notification.  Continueing processing...")
+            logging.error("Failed sending mailgun apprise notification.  Continuing processing...")
     # MATRIX
     if cfg['MATRIX_HOST'] != "" or cfg['MATRIX_TOKEN'] != "":
         try:
@@ -367,7 +367,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending Matrix apprise notification.  Continueing processing...")
+            logging.error("Failed sending Matrix apprise notification.  Continuing processing...")
     # Microsoft teams
     if cfg['MSTEAMS_TOKENA'] != "":
         try:
@@ -385,7 +385,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending Microsoft teams apprise notification.  Continueing processing...")
+            logging.error("Failed sending Microsoft teams apprise notification.  Continuing processing...")
     # Nextcloud
     if cfg['NEXTCLOUD_HOST'] != "":
         try:
@@ -403,7 +403,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending nextcloud apprise notification.  Continueing processing...")
+            logging.error("Failed sending nextcloud apprise notification.  Continuing processing...")
     # Notica
     if cfg['NOTICA_TOKEN'] != "":
         try:
@@ -419,7 +419,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending notica apprise notification.  Continueing processing...")
+            logging.error("Failed sending notica apprise notification.  Continuing processing...")
     # Notifico
     if cfg['NOTIFICO_PROJECTID'] != "":
         try:
@@ -471,7 +471,7 @@ def apprise_notify(apprise_cfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending popcorn apprise notification.  Continueing processing...")
+            logging.error("Failed sending popcorn apprise notification.  Continuing processing...")
     # PROWL
     if cfg['PROWL_API'] != "":
         try:
@@ -1166,9 +1166,8 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
     filename = filename of track\n
     """
 
-    logging.debug("Track #" + str(t_no) + " Length: " + str(seconds) + " fps: " + str(fps) + " aspect: " + str(
-        aspect) + " Mainfeature: " +
-                  str(mainfeature) + " Source: " + source)
+    logging.debug(
+        f"Track #{t_no} Length: {seconds} fps: {fps} aspect: {aspect} Mainfeature: {mainfeature} Source:  {source}")
 
     t = Track(
         job_id=job.job_id,
@@ -1230,91 +1229,91 @@ def makecleanlogfile(logfile):
     # lets make sure we are using a string
     logfile = str(logfile)
     # logging.debug("inside makecleanlogfile: " + str(logfile) + "\n\r")
-    out = re.sub("\(PB_KEY=.*?\)", '(PB_KEY=** REMOVED **)', logfile)  # noqa W605
-    out = re.sub("\(EMBY_PASSWORD=.*?\)", '(EMBY_PASSWORD=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(EMBY_API_KEY=.*?\)", '(EMBY_API_KEY=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(EMBY_SERVER=.*?\)", '(EMBY_SERVER=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(IFTTT_KEY=.*?\)", '(IFTTT_KEY=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(OMDB_API_KEY=.*?\)", '(OMDB_API_KEY=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(PO_APP_KEY=.*?\)", '(PO_APP_KEY=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(PO_USER_KEY=.*?\)", '(PO_USER_KEY=** REMOVED **)', out)  # noqa W605
+    out = re.sub(r"(PB_KEY=.*?)", '(PB_KEY=** REMOVED **)', logfile)  # noqa W605
+    out = re.sub(r"(EMBY_PASSWORD=.*?)", '(EMBY_PASSWORD=** REMOVED **)', out)
+    out = re.sub(r"(EMBY_API_KEY=.*?)", '(EMBY_API_KEY=** REMOVED **)', out)
+    out = re.sub(r"(EMBY_SERVER=.*?)", '(EMBY_SERVER=** REMOVED **)', out)
+    out = re.sub(r"(IFTTT_KEY=.*?)", '(IFTTT_KEY=** REMOVED **)', out)
+    out = re.sub(r"(OMDB_API_KEY=.*?)", '(OMDB_API_KEY=** REMOVED **)', out)
+    out = re.sub(r"(PO_APP_KEY=.*?)", '(PO_APP_KEY=** REMOVED **)', out)
+    out = re.sub(r"(PO_USER_KEY=.*?)", '(PO_USER_KEY=** REMOVED **)', out)
     # \(WEBSERVER_IP=(.*?)\.3[0-9]{1,3}\.[0-9]{1,3}\)
-    ips = re.search('\(WEBSERVER_IP=(.*?)\.[0-9]{1,3}\.[0-9]{1,3}\)', out)  # noqa W605
+    ips = re.search(r'(WEBSERVER_IP=(.*?)\.[0-9]{1,3}\.[0-9]{1,3})', out)
     if ips:
         ip = ips.group(1)
-        out = re.sub("\(WEBSERVER_IP=.*?\)", '(WEBSERVER_IP=' + str(ip) + '.xx.xx)', out)  # noqa W605
+        out = re.sub(r"(WEBSERVER_IP=.*?)", '(WEBSERVER_IP=' + str(ip) + '.xx.xx)', out)
 
     # Apprise notifications
-    out = re.sub("\(DISCORD_WEBHOOK_ID=.*?\)", '(DISCORD_WEBHOOK_ID=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(DISCORD_TOKEN=.*?\)", '(DISCORD_TOKEN=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(FAAST_TOKEN=.*?\)", '(FAAST_TOKEN=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(FLOCK_TOKEN=.*?\)", '(FLOCK_TOKEN=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(GITTER_TOKEN=.*?\)", '(GITTER_TOKEN=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(GOTIFY_HOST=.*?\)", '(GOTIFY_HOST=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(GROWL_HOST=.*?\)", '(GROWL_HOST=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(GROWL_PASS=.*?\)", '(GROWL_PASS=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(JOIN_API=.*?\)", '(JOIN_API=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(JOIN_DEVICE=.*?\)", '(JOIN_DEVICE=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(KODI_HOST=.*?\)", '(KODI_HOST=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(KODI_PASS=.*?\)", '(KODI_PASS=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(KUMULOS_API=.*?\)", '(KUMULOS_API=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(LAMETRIC_API=.*?\)", '(LAMETRIC_API=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(LAMETRIC_HOST=.*?\)", '(LAMETRIC_HOST=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(LAMETRIC_APP_ID=.*?\)", '(LAMETRIC_APP_ID=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(LAMETRIC_TOKEN=.*?\)", '(LAMETRIC_TOKEN=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(MAILGUN_DOMAIN=.*?\)", '(MAILGUN_DOMAIN=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(MAILGUN_APIKEY=.*?\)", '(MAILGUN_APIKEY=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(MATRIX_HOST=.*?\)", '(MATRIX_HOST=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(MATRIX_PASS=.*?\)", '(MATRIX_PASS=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(MATRIX_TOKEN=.*?\)", '(MATRIX_TOKEN=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(MSTEAMS_TOKENA=.*?\)", '(MSTEAMS_TOKENA=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(MSTEAMS_TOKENB=.*?\)", '(MSTEAMS_TOKENB=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(MSTEAMS_TOKENC=.*?\)", '(MSTEAMS_TOKENC=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(NEXTCLOUD_HOST=.*?\)", '(NEXTCLOUD_HOST=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(NEXTCLOUD_ADMINPASS=.*?\)", '(NEXTCLOUD_ADMINPASS=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(NOTICA_TOKEN=.*?\)", '(NOTICA_TOKEN=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(NOTIFICO_PROJECTID=.*?\)", '(NOTIFICO_PROJECTID=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(NOTIFICO_MESSAGEHOOK=.*?\)", '(NOTIFICO_MESSAGEHOOK=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(OFFICE365_TENANTID=.*?\)", '(OFFICE365_TENANTID=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(OFFICE365_CLIENT_ID=.*?\)", '(OFFICE365_CLIENT_ID=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(OFFICE365_CLIENT_SECRET=.*?\)", '(OFFICE365_CLIENT_SECRET=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(POPCORN_API=.*?\)", '(POPCORN_API=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(POPCORN_EMAIL=.*?\)", '(POPCORN_EMAIL=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(POPCORN_PHONENO=.*?\)", '(POPCORN_PHONENO=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(PROWL_API=.*?\)", '(PROWL_API=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(PROWL_PROVIDERKEY=.*?\)", '(PROWL_PROVIDERKEY=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(PUSH_API=.*?\)", '(PUSH_API=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(PUSHED_APP_KEY=.*?\)", '(PUSHED_APP_KEY=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(PUSHED_APP_SECRET=.*?\)", '(PUSHED_APP_SECRET=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(PUSHSAFER_KEY=.*?\)", '(PUSHSAFER_KEY=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(ROCKETCHAT_HOST=.*?\)", '(ROCKETCHAT_HOST=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(ROCKETCHAT_PASS=.*?\)", '(ROCKETCHAT_PASS=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(ROCKETCHAT_WEBHOOK=.*?\)", '(ROCKETCHAT_WEBHOOK=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(RYVER_ORG=.*?\)", '(RYVER_ORG=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(RYVER_TOKEN=.*?\)", '(RYVER_TOKEN=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(SENDGRID_API=.*?\)", '(SENDGRID_API=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(SENDGRID_FROMMAIL=.*?\)", '(SENDGRID_FROMMAIL=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(SIMPLEPUSH_API=.*?\)", '(SIMPLEPUSH_API=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(SLACK_TOKENA=.*?\)", '(SLACK_TOKENA=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(SLACK_TOKENB=.*?\)", '(SLACK_TOKENB=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(SLACK_TOKENC=.*?\)", '(SLACK_TOKENC=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(SPARKPOST_API=.*?\)", '(SPARKPOST_API=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(SPARKPOST_HOST=.*?\)", '(SPARKPOST_HOST=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(SPONTIT_API=.*?\)", '(SPONTIT_API=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(SPONTIT_USER_ID=.*?\)", '(SPONTIT_USER_ID=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(TELEGRAM_BOT_TOKEN=.*?\)", '(TELEGRAM_BOT_TOKEN=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(TELEGRAM_CHAT_ID=.*?\)", '(TELEGRAM_CHAT_ID=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(TWIST_EMAIL=.*?\)", '(TWIST_EMAIL=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(TWIST_PASS=.*?\)", '(TWIST_PASS=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(XBMC_HOST=.*?\)", '(XBMC_HOST=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(XBMC_PASS=.*?\)", '(XBMC_PASS=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(XMPP_HOST=.*?\)", '(XMPP_HOST=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(XMPP_PASS=.*?\)", '(XMPP_PASS=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(WEBEX_TEAMS_TOKEN=.*?\)", '(WEBEX_TEAMS_TOKEN=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(ZILUP_CHAT_TOKEN=.*?\)", '(ZILUP_CHAT_TOKEN=** REMOVED **)', out)  # noqa W605
-    out = re.sub("\(ZILUP_CHAT_ORG=.*?\)", '(ZILUP_CHAT_ORG=** REMOVED **)', out)  # noqa W605
+    out = re.sub("(DISCORD_WEBHOOK_ID=.*?)", '(DISCORD_WEBHOOK_ID=** REMOVED **)', out)
+    out = re.sub("(DISCORD_TOKEN=.*?)", '(DISCORD_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(FAAST_TOKEN=.*?)", '(FAAST_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(FLOCK_TOKEN=.*?)", '(FLOCK_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(GITTER_TOKEN=.*?)", '(GITTER_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(GOTIFY_HOST=.*?)", '(GOTIFY_HOST=** REMOVED **)', out)
+    out = re.sub(r"(GROWL_HOST=.*?)", '(GROWL_HOST=** REMOVED **)', out)
+    out = re.sub(r"(GROWL_PASS=.*?)", '(GROWL_PASS=** REMOVED **)', out)
+    out = re.sub(r"(JOIN_API=.*?)", '(JOIN_API=** REMOVED **)', out)
+    out = re.sub(r"(JOIN_DEVICE=.*?)", '(JOIN_DEVICE=** REMOVED **)', out)
+    out = re.sub(r"(KODI_HOST=.*?)", '(KODI_HOST=** REMOVED **)', out)
+    out = re.sub(r"(KODI_PASS=.*?)", '(KODI_PASS=** REMOVED **)', out)
+    out = re.sub(r"(KUMULOS_API=.*?)", '(KUMULOS_API=** REMOVED **)', out)
+    out = re.sub(r"(LAMETRIC_API=.*?)", '(LAMETRIC_API=** REMOVED **)', out)
+    out = re.sub(r"(LAMETRIC_HOST=.*?)", '(LAMETRIC_HOST=** REMOVED **)', out)
+    out = re.sub(r"(LAMETRIC_APP_ID=.*?)", '(LAMETRIC_APP_ID=** REMOVED **)', out)
+    out = re.sub(r"(LAMETRIC_TOKEN=.*?)", '(LAMETRIC_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(MAILGUN_DOMAIN=.*?)", '(MAILGUN_DOMAIN=** REMOVED **)', out)
+    out = re.sub(r"(MAILGUN_APIKEY=.*?)", '(MAILGUN_APIKEY=** REMOVED **)', out)
+    out = re.sub(r"(MATRIX_HOST=.*?)", '(MATRIX_HOST=** REMOVED **)', out)
+    out = re.sub(r"(MATRIX_PASS=.*?)", '(MATRIX_PASS=** REMOVED **)', out)
+    out = re.sub(r"(MATRIX_TOKEN=.*?)", '(MATRIX_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(MSTEAMS_TOKENA=.*?)", '(MSTEAMS_TOKENA=** REMOVED **)', out)
+    out = re.sub(r"(MSTEAMS_TOKENB=.*?)", '(MSTEAMS_TOKENB=** REMOVED **)', out)
+    out = re.sub(r"(MSTEAMS_TOKENC=.*?)", '(MSTEAMS_TOKENC=** REMOVED **)', out)
+    out = re.sub(r"(NEXTCLOUD_HOST=.*?)", '(NEXTCLOUD_HOST=** REMOVED **)', out)
+    out = re.sub(r"(NEXTCLOUD_ADMINPASS=.*?)", '(NEXTCLOUD_ADMINPASS=** REMOVED **)', out)
+    out = re.sub(r"(NOTICA_TOKEN=.*?)", '(NOTICA_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(NOTIFICO_PROJECTID=.*?)", '(NOTIFICO_PROJECTID=** REMOVED **)', out)
+    out = re.sub(r"(NOTIFICO_MESSAGEHOOK=.*?)", '(NOTIFICO_MESSAGEHOOK=** REMOVED **)', out)
+    out = re.sub(r"(OFFICE365_TENANTID=.*?)", '(OFFICE365_TENANTID=** REMOVED **)', out)
+    out = re.sub(r"(OFFICE365_CLIENT_ID=.*?)", '(OFFICE365_CLIENT_ID=** REMOVED **)', out)
+    out = re.sub(r"(OFFICE365_CLIENT_SECRET=.*?)", '(OFFICE365_CLIENT_SECRET=** REMOVED **)', out)
+    out = re.sub(r"(POPCORN_API=.*?)", '(POPCORN_API=** REMOVED **)', out)
+    out = re.sub(r"(POPCORN_EMAIL=.*?)", '(POPCORN_EMAIL=** REMOVED **)', out)
+    out = re.sub(r"(POPCORN_PHONENO=.*?)", '(POPCORN_PHONENO=** REMOVED **)', out)
+    out = re.sub(r"(PROWL_API=.*?)", '(PROWL_API=** REMOVED **)', out)
+    out = re.sub(r"(PROWL_PROVIDERKEY=.*?)", '(PROWL_PROVIDERKEY=** REMOVED **)', out)
+    out = re.sub(r"(PUSH_API=.*?)", '(PUSH_API=** REMOVED **)', out)
+    out = re.sub(r"(PUSHED_APP_KEY=.*?)", '(PUSHED_APP_KEY=** REMOVED **)', out)
+    out = re.sub(r"(PUSHED_APP_SECRET=.*?)", '(PUSHED_APP_SECRET=** REMOVED **)', out)
+    out = re.sub(r"(PUSHSAFER_KEY=.*?)", '(PUSHSAFER_KEY=** REMOVED **)', out)
+    out = re.sub(r"(ROCKETCHAT_HOST=.*?)", '(ROCKETCHAT_HOST=** REMOVED **)', out)
+    out = re.sub(r"(ROCKETCHAT_PASS=.*?)", '(ROCKETCHAT_PASS=** REMOVED **)', out)
+    out = re.sub(r"(ROCKETCHAT_WEBHOOK=.*?)", '(ROCKETCHAT_WEBHOOK=** REMOVED **)', out)
+    out = re.sub(r"(RYVER_ORG=.*?)", '(RYVER_ORG=** REMOVED **)', out)
+    out = re.sub(r"(RYVER_TOKEN=.*?)", '(RYVER_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(SENDGRID_API=.*?)", '(SENDGRID_API=** REMOVED **)', out)
+    out = re.sub(r"(SENDGRID_FROMMAIL=.*?)", '(SENDGRID_FROMMAIL=** REMOVED **)', out)
+    out = re.sub(r"(SIMPLEPUSH_API=.*?)", '(SIMPLEPUSH_API=** REMOVED **)', out)
+    out = re.sub(r"(SLACK_TOKENA=.*?)", '(SLACK_TOKENA=** REMOVED **)', out)
+    out = re.sub(r"(SLACK_TOKENB=.*?)", '(SLACK_TOKENB=** REMOVED **)', out)
+    out = re.sub(r"(SLACK_TOKENC=.*?)", '(SLACK_TOKENC=** REMOVED **)', out)
+    out = re.sub(r"(SPARKPOST_API=.*?)", '(SPARKPOST_API=** REMOVED **)', out)
+    out = re.sub(r"(SPARKPOST_HOST=.*?)", '(SPARKPOST_HOST=** REMOVED **)', out)
+    out = re.sub(r"(SPONTIT_API=.*?)", '(SPONTIT_API=** REMOVED **)', out)
+    out = re.sub(r"(SPONTIT_USER_ID=.*?)", '(SPONTIT_USER_ID=** REMOVED **)', out)
+    out = re.sub(r"(TELEGRAM_BOT_TOKEN=.*?)", '(TELEGRAM_BOT_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(TELEGRAM_CHAT_ID=.*?)", '(TELEGRAM_CHAT_ID=** REMOVED **)', out)
+    out = re.sub(r"(TWIST_EMAIL=.*?)", '(TWIST_EMAIL=** REMOVED **)', out)
+    out = re.sub(r"(TWIST_PASS=.*?)", '(TWIST_PASS=** REMOVED **)', out)
+    out = re.sub(r"(XBMC_HOST=.*?)", '(XBMC_HOST=** REMOVED **)', out)
+    out = re.sub(r"(XBMC_PASS=.*?)", '(XBMC_PASS=** REMOVED **)', out)
+    out = re.sub(r"(XMPP_HOST=.*?)", '(XMPP_HOST=** REMOVED **)', out)
+    out = re.sub(r"(XMPP_PASS=.*?)", '(XMPP_PASS=** REMOVED **)', out)
+    out = re.sub(r"(WEBEX_TEAMS_TOKEN=.*?)", '(WEBEX_TEAMS_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(ZILUP_CHAT_TOKEN=.*?)", '(ZILUP_CHAT_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(ZILUP_CHAT_ORG=.*?)", '(ZILUP_CHAT_ORG=** REMOVED **)', out)
     # format for more entries
-    # out = re.sub("\(CONFIG_ID=.*?\)", '(CONFIG_ID=** REMOVED **)', out)
+    # out = re.sub("\(CONFIG_ID=.*?)", '(CONFIG_ID=** REMOVED **)', out)
 
     # logging.debug("our clean log string" + str(out))
     return out
@@ -1324,10 +1323,12 @@ def database_updater(args, job, wait_time=90):
     """
     Try to update our db for x seconds and handle it nicely if we cant
 
-    :param args:
-    :param job:
-    :param wait_time:
-    :return:
+    :param args: This needs to be a Dict with the key being the job.method you want to change and the value being
+    the new value.
+
+    :param job: This is the job object
+    :param wait_time: The time to wait in seconds
+    :return: Nothing
     """
     # Loop through our args and try to set any of our job variables
     for (key, value) in args.items():
@@ -1404,7 +1405,9 @@ def job_dupe_check(job):
 
     :param job: The job obj so we can use the crc/title etc
     :return: True if we have found dupes with the same crc
+              - Will also return a dict of all the jobs found.
              False if we didnt find any with the same crc
+              - Will also return None as a secondary param
     """
     from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
     jobs = Job.query.filter_by(crc_id=job.crc_id, status="success")

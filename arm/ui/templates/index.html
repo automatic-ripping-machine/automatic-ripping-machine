@@ -53,7 +53,7 @@
         <div class="col-md-12 mx-auto">
             <div class="card-deck">
                 {% for job in jobs %}
-                <div class="col-md-4">
+                <div id="id{{ job.job_id }}" class="col-md-4">
                     <div class="card mb-3  mx-auto" style="max-width: 600px">
                         <div class="row no-gutters">
                             <div class="col-lg-4">
@@ -211,13 +211,12 @@
 										<span class="sr-only">Loading...</span>\
 										</div>\
 										</div>');
-
 					$.get( hrrref, function( data ) {
 						console.log( data['success'] ); // John	
 						console.log("#jobId"+activeJob)
 						if (data['success'] === true){
 							if (data['mode'] === "abandon"){
-								$("#status"+activeJob).attr("src","static/img/fail.png")
+								$("#id"+activeJob).remove()
 								$("#message1 .alert-heading").html("Job was successfully abandoned")
 								$('#exampleModal').modal('toggle');
 								$('#message1').removeClass('d-none');

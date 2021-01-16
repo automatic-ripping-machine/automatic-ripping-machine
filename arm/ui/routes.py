@@ -62,22 +62,22 @@ def setup():
     try:
         if not Path.exists(dir0):
             os.makedirs(dir0)
-            flash("{} was created successfully.".format(str(dir0)))
+            flash(f"{dir0} was created successfully.")
         if not Path.exists(dir1):
             os.makedirs(dir1)
-            flash("{} was created successfully.".format(str(dir1)))
+            flash(f"{dir1} was created successfully.")
         if not Path.exists(dir2):
             os.makedirs(dir2)
-            flash("{} was created successfully.".format(str(dir2)))
+            flash(f"{dir2} was created successfully.")
         if not Path.exists(dir3):
             os.makedirs(dir3)
-            flash("{} was created successfully.".format(str(dir3)))
+            flash(f"{dir3} was created successfully.")
         if not Path.exists(dir4):
             os.makedirs(dir4)
-            flash("{} was created successfully.".format(str(dir4)))
+            flash(f"{dir4} was created successfully.")
     except FileNotFoundError as e:
-        flash("Creation of the directory {} failed {}".format(str(dir0), e))
-        app.logger.debug("Creation of the directory failed - {}".format(str(e)))
+        flash(f"Creation of the directory {dir0} failed {e}")
+        app.logger.debug(f"Creation of the directory failed - {e}")
     else:
         flash("Successfully created all of the ARM directories")
         app.logger.debug("Successfully created all of the ARM directories")
@@ -178,6 +178,8 @@ def login():
     # After a login for is submitted
     if save:
         email = request.form['username']
+        # TODO: we know there is only ever 1 admin account,
+        #  so we can pull it and check against it locally
         user = User.query.filter_by(email=str(email).strip()).first()
         if user is None:
             return render_template('login.html', success="false", raw='Invalid username')
@@ -234,8 +236,8 @@ def database():
                 if jobid == 'all':
                     if os.path.isfile(cfg['DBFILE']):
                         # Make a backup of the database file
-                        cmd = 'cp ' + str(cfg['DBFILE']) + ' ' + str(cfg['DBFILE']) + '.bak'
-                        app.logger.info("cmd  -  {0}".format(cmd))
+                        cmd = f'cp {cfg["DBFILE"]} {cfg["DBFILE"]}.bak'
+                        app.logger.info(f"cmd  -  {cmd}")
                         os.system(cmd)
                     Track.query.delete()
                     Job.query.delete()
@@ -260,7 +262,7 @@ def database():
         # error out to the log and roll back
         except Exception as err:
             db.session.rollback()
-            app.logger.error("Error:db-1 {0}".format(err))
+            app.logger.error(f"Error:db-1 {err}")
             success = False
 
     return render_template('database.html', jobs=jobs, success=success, date_format=cfg['DATE_FORMAT'])
@@ -313,7 +315,7 @@ def settings():
                 comments = json.load(f)
             except Exception as e:
                 comments = None
-                app.logger.debug("Error with comments file. {}".format(str(e)))
+                app.logger.debug(f"Error with comments file. {e}")
                 return render_template("error.html", error=str(e))
     except FileNotFoundError:
         return render_template("error.html", error="Couldn't find the comment.json file")
@@ -344,22 +346,22 @@ def settings():
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['APPRISE']
 
                 arm_cfg += "\n" + comments[str(k)] + "\n" if comments[str(k)] != "" else ""
-                # arm_cfg += "{}: \"{}\"\n".format(k, v)
+
                 try:
                     post_value = int(v)
-                    arm_cfg += "{}: {}\n".format(k, post_value)
+                    arm_cfg += f"{k}: {post_value}\n"
                 except ValueError:
                     v_low = v.lower()
                     if v_low == 'false' or v_low == "true":
-                        arm_cfg += "{}: {}\n".format(k, v_low)
+                        arm_cfg += f"{k}: {v_low}\n"
                     else:
                         if k == "WEBSERVER_IP":
-                            arm_cfg += "{}: {}\n".format(k, v_low)
+                            arm_cfg += f"{k}: {v_low}\n"
                         else:
-                            arm_cfg += "{}: \"{}\"\n".format(k, v)
-                app.logger.debug("\n{} = {} ".format(k, v))
+                            arm_cfg += f"{k}: \"{v}\"\n"
+                app.logger.debug(f"\n{k} = {v} ")
 
-        app.logger.debug("arm_cfg= {}".format(arm_cfg))
+        app.logger.debug(f"arm_cfg= {arm_cfg}")
         arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
         with open(arm_cfg_file, "w") as f:
             f.write(arm_cfg)
@@ -476,7 +478,7 @@ def abandon_job():
         db.session.commit()
         return render_template('jobdetail.html', success="true", jobmessage="Job was abandoned!", jobs=job)
     except Exception as e:
-        flash("Failed to update job" + str(e))
+        flash(f"Failed to update job {e}")
         return render_template('error.html')
 
 
@@ -488,7 +490,7 @@ def submitrip():
     form = TitleSearchForm(obj=job)
     if form.validate_on_submit():
         form.populate_obj(job)
-        flash('Search for {}, year={}'.format(form.title.data, form.year.data), category='success')
+        flash(f'Search for {form.title.data}, year={form.year.data}', category='success')
         return redirect(url_for('list_titles', title=form.title.data, year=form.year.data, job_id=job_id))
     return render_template('titlesearch.html', title='Update Title', form=form)
 
@@ -585,7 +587,7 @@ def updatetitle():
     job.poster_url = poster_url
     job.hasnicetitle = True
     db.session.commit()
-    flash('Title: {} ({}) was updated to {} ({})'.format(job.title_auto, job.year_auto, new_title, new_year),
+    flash(f'Title: {job.title_auto} ({job.year_auto}) was updated to {new_title} ({new_year})',
           category='success')
     return redirect(url_for('home'))
 
@@ -656,7 +658,7 @@ def home():
         temps = psutil.sensors_temperatures()
         temp = temps['coretemp'][0][1]
     except KeyError:
-        temp = None
+        temp = temps = None
 
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
@@ -718,7 +720,7 @@ def get_processor_name():
         amd_name_full = re.search(r"vendor_id\\t:(.*?)\\n", fulldump)
         if amd_name_full:
             amd_name = amd_name_full.group(1)
-            amd_hz = re.search(r"cpu\sMHz\\t.*?([.0-9]*?)\\n", fulldump)  # noqa: W605
+            amd_hz = re.search(r"cpu\\sMHz\\t.*?([.0-9]*?)\\n", fulldump)  # noqa: W605
             if amd_hz:
                 amd_ghz = re.sub('[^.0-9]', '', amd_hz.group())
                 amd_ghz = int(float(amd_ghz))  # Not sure this is a good idea

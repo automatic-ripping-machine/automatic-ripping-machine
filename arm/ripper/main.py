@@ -32,7 +32,7 @@ def entry():
 
 
 def log_udev_params():
-    """log all udev paramaters"""
+    """log all udev parameters"""
 
     logging.debug("**** Logging udev attributes ****")
     # logging.info("**** Start udev attributes ****")
@@ -191,8 +191,9 @@ def main(logfile, job):
         else:
             if crc_jobs is not None:
                 # This might need some tweaks to because of title/year manual
-                job.title = crc_jobs[0]['title']
-                job.year = crc_jobs[0]['year']
+                job.title = crc_jobs[0]['title'] if crc_jobs[0]['title'] != "" else job.label
+                job.year = crc_jobs[0]['year'] if crc_jobs[0]['year'] != "" else ""
+                job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else ""
                 hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
             else:
                 hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
@@ -208,13 +209,13 @@ def main(logfile, job):
                 if job.hasnicetitle:
                     #  Dont use the year if its  0000
                     if job.year != "0000" or job.year != "":
-                        hboutpath = os.path.join(job.config.MEDIA_DIR,
-                                                 f"{job.title} ({job.year}) {ts}")
+                        hboutpath = os.path.join(job.config.MEDIA_DIR, f"{job.title} ({job.year}) {ts}")
                     else:
                         # This might need some tweaks to because of title/year manual
                         if crc_jobs is not None:
-                            job.title = crc_jobs[0]['title']
-                            job.year = crc_jobs[0]['year']
+                            job.title = crc_jobs[0]['title'] if crc_jobs[0]['title'] != "" else job.label
+                            job.year = crc_jobs[0]['year'] if crc_jobs[0]['year'] != "" else ""
+                            job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else ""
                             hboutpath = os.path.join(job.config.MEDIA_DIR,
                                                      f"{job.title} ({job.year}) {ts}")
                         else:
@@ -222,8 +223,9 @@ def main(logfile, job):
                 else:
                     # This might need some tweaks to because of title/year manual
                     if crc_jobs is not None:
-                        job.title = crc_jobs[0]['title']
-                        job.year = crc_jobs[0]['year']
+                        job.title = crc_jobs[0]['title'] if crc_jobs[0]['title'] != "" else job.label
+                        job.year = crc_jobs[0]['year'] if crc_jobs[0]['year'] != "" else ""
+                        job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else ""
                         hboutpath = os.path.join(job.config.MEDIA_DIR,
                                                  f"{job.title} ({job.year}) {ts}")
                     else:
@@ -244,7 +246,7 @@ def main(logfile, job):
                 #  We arent allowed to rip dupes, notify and exit
                 logging.info("Duplicate rips are disabled.")
                 utils.notify(job, "ARM notification", "ARM Detected a duplicate disc. For " + str(
-                    job.title) + ".  Duplicate rips are disabled. You can reenable them from your config file. ")
+                    job.title) + ".  Duplicate rips are disabled. You can re-enable them from your config file. ")
                 job.status = "fail"
                 db.session.commit()
                 sys.exit()
@@ -255,7 +257,7 @@ def main(logfile, job):
         hbinpath = str(job.devpath)
         if job.disctype == "bluray" or (not job.config.MAINFEATURE and job.config.RIPMETHOD == "mkv"):
             # send to makemkv for ripping
-            # run MakeMKV and get path to ouput
+            # run MakeMKV and get path to output
             job.status = "ripping"
             db.session.commit()
             try:
@@ -312,7 +314,7 @@ def main(logfile, job):
                             else:
                                 # other extras
                                 if not str(job.config.EXTRAS_SUB).lower() == "none":
-                                    # Encorporating Rajlaud's fix #349
+                                    # Incorporating Rajlaud's fix #349
                                     utils.move_files(hbinpath, f, job, False)
                                 else:
                                     logging.info("Not moving extra: " + f)
@@ -505,7 +507,7 @@ if __name__ == "__main__":
         sys.exit()
     #  Dont put out anything if we are using the empty.log
     #  This kills multiple runs. it stops the same job triggering more than once
-    if not logfile.find("empty.log") == -1:
+    if logfile.find("empty.log") != -1:
         sys.exit()
 
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
