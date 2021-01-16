@@ -218,7 +218,7 @@ def setupdatabase():
     except Exception as err:
         #  We only need this on first run
         #  Wipe everything
-        flash(str(err))
+        # flash(str(err))
         try:
             db.drop_all()
         except Exception:
@@ -229,7 +229,7 @@ def setupdatabase():
             db.create_all()
             db.session.commit()
             #  push the database version arm is looking for
-            user = Alembic_version('c3a3fa694636')
+            user = Alembic_version('e688fe04d305')
             db.session.add(user)
             db.session.commit()
             return True

@@ -12,13 +12,11 @@ import time
 import apprise
 import random
 import re
-# Added from pull 366
-import datetime  # noqa: F401
-import psutil  # noqa E402
+import psutil
 
 # from arm.config.config import cfg
-from arm.ui import app, db  # noqa E402
-from arm.models.models import Track  # noqa: E402
+from arm.ui import app, db
+from arm.models.models import Track, Job
 
 
 def notify(job, title, body):
@@ -776,15 +774,14 @@ def scan_emby(job):
 
     if job.config.EMBY_REFRESH:
         logging.info("Sending Emby library scan request")
-        url = "http://" + job.config.EMBY_SERVER + ":" + job.config.EMBY_PORT + "/Library/Refresh?api_key=" \
-              + job.config.EMBY_API_KEY
+        url = f"http://{job.config.EMBY_SERVER}:{job.config.EMBY_PORT}/Library/Refresh?api_key={job.config.EMBY_API_KEY}"
         try:
             req = requests.post(url)
             if req.status_code > 299:
                 req.raise_for_status()
             logging.info("Emby Library Scan request successful")
         except requests.exceptions.HTTPError:
-            logging.error("Emby Library Scan request failed with status code: " + str(req.status_code))
+            logging.error(f"Emby Library Scan request failed with status code: {req.status_code}")
     else:
         logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
 
@@ -804,12 +801,12 @@ def sleep_check_process(process_str, transcode_limit):
         logging.info("Starting A sleep check of " + str(process_str))
         while loop_count >= transcode_limit:
             loop_count = sum(1 for proc in psutil.process_iter() if proc.name() == process_str)
-            logging.debug("Number of Processes running is:" + str(loop_count) + " going to waiting 12 seconds.")
+            logging.debug(f"Number of Processes running is: {loop_count} going to waiting 12 seconds.")
             if transcode_limit > loop_count:
                 return True
             # Try to make each check at different times
             x = random.randrange(20, 120, 10)
-            logging.debug("sleeping for " + str(x) + " seconds")
+            logging.debug(f"sleeping for {x} seconds")
             time.sleep(x)
     else:
         logging.info("Transcode limit is disabled")
@@ -833,9 +830,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
 
     videotitle = job.title + " (" + str(job.year) + ")"
 
-    logging.debug(
-        "Arguments: " + basepath + " : " + filename + " : " + str(hasnicetitle) + " : " + videotitle + " : " + str(
-            ismainfeature))
+    logging.debug(f"Arguments: {basepath} : {filename} : {hasnicetitle} : {videotitle} : {ismainfeature}")
 
     if hasnicetitle:
         m_path = os.path.join(job.config.MEDIA_DIR + videotitle)
@@ -987,23 +982,16 @@ def rip_music(job, logfile):
     returns True/False for success/fail
     """
 
-    abcfile = job.config.ABCDE_CONFIG_FILE  # cfg['ABCDE_CONFIG_FILE']
+    abcfile = job.config.ABCDE_CONFIG_FILE
     if job.disctype == "music":
         logging.info("Disc identified as music")
         # If user has set a cfg file with ARM use it
         if os.path.isfile(abcfile):
-            cmd = 'abcde -d "{0}" -c {1} >> "{2}" 2>&1'.format(
-                job.devpath,
-                abcfile,
-                logfile
-            )
+            cmd = f'abcde -d "{job.devpath}" -c {abcfile} >> "{logfile}" 2>&1'
         else:
-            cmd = 'abcde -d "{0}" >> "{1}" 2>&1'.format(
-                job.devpath,
-                logfile
-            )
+            cmd = f'abcde -d "{job.devpath}" >> "{logfile}" 2>&1'
 
-        logging.debug("Sending command: " + cmd)
+        logging.debug(f"Sending command: {cmd}")
 
         try:
             subprocess.check_output(
@@ -1013,7 +1001,7 @@ def rip_music(job, logfile):
             logging.info("abcde call successful")
             return True
         except subprocess.CalledProcessError as ab_error:
-            err = "Call to abcde failed with code: " + str(ab_error.returncode) + "(" + str(ab_error.output) + ")"
+            err = f"Call to abcde failed with code: {ab_error.returncode} ({ab_error.output})"
             logging.error(err)
             # sys.exit(err)
 
@@ -1409,7 +1397,6 @@ def job_dupe_check(job):
              False if we didnt find any with the same crc
               - Will also return None as a secondary param
     """
-    from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
     jobs = Job.query.filter_by(crc_id=job.crc_id, status="success")
     # logging.debug("search - posts=" + str(jobs))
     r = {}
