@@ -181,6 +181,7 @@ def main(logfile, job):
     if job.disctype in ["dvd", "bluray"]:
         # Check db for entries matching the crc and successful
         have_dupes, crc_jobs = utils.job_dupe_check(job)
+        # TODO: Update function that will look for the best match with most data
         # get filesystem in order
         #  If we have a nice title/confirmed name use the MEDIA_DIR and not the ARM unidentified folder
         if job.hasnicetitle:
@@ -193,7 +194,8 @@ def main(logfile, job):
                 # This might need some tweaks to because of title/year manual
                 job.title = crc_jobs[0]['title'] if crc_jobs[0]['title'] != "" else job.label
                 job.year = crc_jobs[0]['year'] if crc_jobs[0]['year'] != "" else ""
-                job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else ""
+                job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else None
+                job.hasnicetitle = crc_jobs[0]['hasnicetitle'] if crc_jobs[0]['hasnicetitle'] else False
                 hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
             else:
                 hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
@@ -211,23 +213,15 @@ def main(logfile, job):
                     if job.year != "0000" or job.year != "":
                         hboutpath = os.path.join(job.config.MEDIA_DIR, f"{job.title} ({job.year}) {ts}")
                     else:
-                        # This might need some tweaks to because of title/year manual
-                        if crc_jobs is not None:
-                            job.title = crc_jobs[0]['title'] if crc_jobs[0]['title'] != "" else job.label
-                            job.year = crc_jobs[0]['year'] if crc_jobs[0]['year'] != "" else ""
-                            job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else ""
-                            hboutpath = os.path.join(job.config.MEDIA_DIR,
-                                                     f"{job.title} ({job.year}) {ts}")
-                        else:
-                            hboutpath = os.path.join(job.config.MEDIA_DIR, f"{job.title} {ts}")
+                        hboutpath = os.path.join(job.config.MEDIA_DIR, f"{job.title} {ts}")
                 else:
                     # This might need some tweaks to because of title/year manual
                     if crc_jobs is not None:
                         job.title = crc_jobs[0]['title'] if crc_jobs[0]['title'] != "" else job.label
                         job.year = crc_jobs[0]['year'] if crc_jobs[0]['year'] != "" else ""
-                        job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else ""
-                        hboutpath = os.path.join(job.config.MEDIA_DIR,
-                                                 f"{job.title} ({job.year}) {ts}")
+                        job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else None
+                        job.hasnicetitle = crc_jobs[0]['hasnicetitle'] if crc_jobs[0]['hasnicetitle'] else False
+                        hboutpath = os.path.join(job.config.MEDIA_DIR, f"{job.title} ({job.year}) {ts}")
                     else:
                         #  No nice title, use the unidentified path
                         hboutpath = os.path.join(job.config.ARMPATH, str(job.title) + "_" + str(ts))
