@@ -5,9 +5,13 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-
+<style>
+div.card-body button,div.card-body a{
+	margin: 0.1rem;
+}
+</style>
 <div class="container-fluid h-100 mx-auto">
-    	<!-- Modal -->
+<!-- Modal -->
 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
     <div class="modal-content">
@@ -30,14 +34,12 @@
 </div>
 
 	<div class="row">
-        <!-- <div class="col-sm-2"></div> -->
-        <div class="col-sm-12  rounded text-center">
+        <div class="col-sm-12 rounded text-center">
             <img src="/static/img/arm80.png">
             <p class="text-center">
 				<h2>Welcome to your Automatic Ripping Machine</h2>
             </p>
         </div>
-        <!-- <div class="col-sm-2"></div> -->
     </div>
 
     <div class="row h-100 mx-auto align-items-center">
@@ -47,9 +49,7 @@
             </p>
         </div>
     </div>
-    <!-- <div class="container-fluid h-100 mx-auto"> -->
     <div class="row h-100 align-items-center">
-        <!-- <div class="col-sm-4 mx-auto"></div> -->
         <div class="col-md-12 mx-auto">
             <div class="card-deck">
                 {% for job in jobs %}
@@ -120,7 +120,7 @@
                                     <a href="customTitle?job_id={{ job.job_id }}"
                                     class="btn btn-primary">Custom Title</a>
                                     {% endif %}
-									<br><br>
+									<br>
                                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="{{ job.job_id }}" data-href="/json?job={{ job.job_id }}&mode=abandon">Abandon Job</button>
                                 </div>
                             </div>
@@ -132,13 +132,10 @@
             </div>
         </div>
     </div>
-    <!-- <div class="col-sm-4 mx-auto"></div> -->
-    <!-- </div> -->
 </div>
 <div class="row" style="height: 30px;"></div>
 <div class="row h-100 mx-auto align-items-center">
     <div class="col-sm-4 mx-auto"></div>
-    <!-- <div class="col-md-2 h-100 text-center align-content-center" ><h4>Free Space: {{ freegb }}</h4></div> -->
     <div class="col-sm-4 text-center mx-auto">
         <div class="card mx-auto">
             <div class="card-header">

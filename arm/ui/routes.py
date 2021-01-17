@@ -5,7 +5,7 @@ import subprocess
 import re
 import sys  # noqa: F401
 import bcrypt
-import hashlib  # noqa: F401
+import hashlib
 import json
 import arm.ui.utils as utils
 from time import sleep
@@ -552,11 +552,12 @@ def list_titles():
 
 
 @app.route('/gettitle', methods=['GET', 'POST'])
+@app.route('/select_title', methods=['GET', 'POST'])
 @login_required
 def gettitle():
     imdb_id = request.args.get('imdbID').strip() if request.args.get('imdbID') else ''
     job_id = request.args.get('job_id').strip() if request.args.get('job_id') else ''
-    if job_id == "":
+    if job_id == "" and imdb_id == "":
         app.logger.debug("gettitle - no job supplied")
         flash("No job supplied")
         return redirect('/error')
@@ -696,6 +697,137 @@ def home():
                            jobs=jobs, cpu=our_cpu, cputemp=temp, cpu_usage=cpu_usage,
                            ram=mem_total, ramused=mem_used, ramfree=mem_free, ram_percent=ram_percent,
                            ramdump=str(temps))
+
+
+@app.route('/import_movies')
+@login_required
+def import_movies():
+    """
+    Function for finding all movies not currently tracked by ARM
+    This should not be run frequently - this causes a HUGE number of requests to OMdb
+    :return: Outputs json - contains a dict/json of movies added and a notfound list
+             that doesnt match ARM identified folder format.
+    """
+    import time
+    from os import listdir
+    from os.path import isfile, join, isdir
+    t0 = time.time()
+
+    my_path = cfg['MEDIA_DIR']
+    movies = {0: {'notfound': {}}}
+    dest_ext = cfg['DEST_EXT']
+    i = 1
+    movie_dirs = [f for f in listdir(my_path) if isfile(join(my_path, f)) and not f.startswith(".")
+                  or isdir(join(my_path, f)) and not f.startswith(".")]
+
+    app.logger.debug(movie_dirs)
+    if len(movie_dirs) < 1:
+        app.logger.debug("movie_dirs found none")
+
+    for movie in movie_dirs:
+        mystring = f"{movie}"
+        regex = r"([\w\ \'\.\-\&\,]*?) \(([0-9]{2,4})\)"
+        matched = re.match(regex, movie)
+        if matched:
+            # This is only for pycharm
+            movie_name = re.sub(" ", "%20", matched.group(1).strip())  # movie
+            p1 = utils.get_omdb_poster(movie_name, matched.group(2))
+            # ['poster.jpg', 'title_t00.mkv', 'title_t00.xml', 'fanart.jpg',
+            #  'title_t00.nfo-orig', 'title_t00.nfo', 'title_t00.xml-orig', 'folder.jpg']
+            app.logger.debug(str(listdir(join(my_path, str(movie)))))
+            movie_files = [f for f in listdir(join(my_path, str(movie))) if isfile(join(my_path, str(movie), f))
+                           and f.endswith("." + dest_ext)]
+            app.logger.debug("movie files = " + str(movie_files))
+
+            hash_object = hashlib.md5(mystring.encode())
+            dupe_found, x = utils.job_dupe_check(hash_object.hexdigest())
+            if dupe_found:
+                app.logger.debug("We found dupes breaking loop")
+                continue
+            # app.logger.debug(hash_object.hexdigest())
+            # app.logger.debug(movie)
+
+            movies[i] = {
+                'title': matched.group(1),
+                'year': matched.group(2),
+                'crc_id': hash_object.hexdigest(),
+                'poster': p1,
+                'status': 'success' if len(movie_files) > 0 else 'fail',
+                'video_type': 'movie',
+                'disctype': 'unknown',
+                'hasnicetitle': True,
+                'no_of_titles': len(movie_files)
+            }
+
+            new_movie = Job("/dev/sr0")
+            new_movie.title = movies[i]['title']
+            new_movie.year = movies[i]['year']
+            new_movie.crc_id = hash_object.hexdigest()
+            new_movie.poster_url = movies[i]['poster']
+            new_movie.status = movies[i]['status']
+            new_movie.video_type = movies[i]['video_type']
+            new_movie.disctype = movies[i]['disctype']
+            new_movie.hasnicetitle = movies[i]['hasnicetitle']
+            new_movie.no_of_titles = movies[i]['no_of_titles']
+            db.session.add(new_movie)
+            i += 1
+        else:
+            sub_path = join(my_path, str(movie))
+            # go through each folder and treat it as a subfolder of movie folder
+            subfiles = [f for f in listdir(sub_path) if isfile(join(sub_path, f)) and not f.startswith(".")
+                        or isdir(join(sub_path, f)) and not f.startswith(".")]
+            for sub_movie in subfiles:
+                mystring = f"{sub_movie}"
+                sub_matched = re.match(regex, sub_movie)
+                if sub_matched:
+                    # This is only for pycharm
+                    sub_movie_name = re.sub(" ", "%20", sub_matched.group(1).strip())  # movie
+                    sub_movie_name = re.sub("&", "%26", sub_movie_name)
+                    p2 = utils.get_omdb_poster(sub_movie_name, sub_matched.group(2))
+                    app.logger.debug(listdir(join(sub_path, str(sub_movie))))
+                    sub_movie_files = [f for f in listdir(join(sub_path, str(sub_movie)))
+                                       if isfile(join(sub_path, str(sub_movie), f)) and f.endswith("." + dest_ext)
+                                       or isfile(join(sub_path, str(sub_movie), f)) and f.endswith(".mp4")]
+                    app.logger.debug("movie files = " + str(sub_movie_files))
+                    hash_object = hashlib.md5(mystring.encode())
+                    dupe_found, x = utils.job_dupe_check(hash_object.hexdigest())
+                    if dupe_found:
+                        app.logger.debug("We found dupes breaking loop")
+                        continue
+                    movies[i] = {
+                        'title': sub_matched.group(1),
+                        'year': sub_matched.group(2),
+                        'poster': p2,
+                        'status': 'success' if len(sub_movie_files) > 0 else 'fail',
+                        'video_type': 'movie',
+                        'disctype': 'unknown',
+                        'hasnicetitle': True,
+                        'no_of_titles': len(sub_movie_files)
+                    }
+                    new_movie = Job("/dev/sr0")  # .from_dict(m)
+                    new_movie.title = movies[i]['title']
+                    new_movie.year = movies[i]['year']
+                    new_movie.crc_id = hash_object.hexdigest()
+                    new_movie.poster_url = p2
+                    new_movie.status = movies[i]['status']
+                    new_movie.video_type = movies[i]['video_type']
+                    new_movie.disctype = movies[i]['disctype']
+                    new_movie.hasnicetitle = movies[i]['hasnicetitle']
+                    new_movie.no_of_titles = movies[i]['no_of_titles']
+                    db.session.add(new_movie)
+                    i += 1
+                else:
+                    movies[0]['notfound'][str(i)] = str(sub_movie)
+            print(subfiles)
+    # app.logger.debug(movies)
+
+    t1 = time.time()
+    total = round(t1 - t0, 3)
+    app.logger.debug(str(total) + " sec")
+    db.session.commit()
+    return app.response_class(response=json.dumps(movies, indent=4, sort_keys=True),
+                              status=200,
+                              mimetype='application/json')
 
 
 #  Lets show some cpu info

@@ -98,8 +98,8 @@
                                     {% endif %}
                                     <b>Device: </b>{{ job.devpath }}<br>
                                     <b>Status: </b><img id="status{{ job.job_id }}" src="static/img/{{ job.status }}.png" height="20px" alt="{{ job.status }}" title="{{ job.status }}"><br>
-                                    <b>Start Date:</b>{{ job.start_time.strftime(date_format) }}<br>
-									<b>Start Time:</b>{{ job.start_time.strftime("%H:%M:%S") }}<br>
+                                    <b>Start Date:</b>{{ job.start_time.strftime(date_format) if job.start_time is not none }}<br>
+									<b>Start Time:</b>{{ job.start_time.strftime("%H:%M:%S") if job.start_time is not none }}<br>
 									<b>Job Time:</b>{{ job.job_length }}<br>
 									{%  if job.status == "transcoding" %}
 										<div class="progress">
