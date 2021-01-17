@@ -330,3 +330,32 @@ def job_dupe_check(crc_id):
     else:
         app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
         return False, None
+
+
+def get_x_jobs(job_status):
+    """
+    function for getting all failed or successful jobs from the database
+
+    :return: True if we have found dupes with the same crc
+              - Will also return a dict of all the jobs found.
+             False if we didnt find any with the same crc
+              - Will also return None as a secondary param
+    """
+    jobs = Job.query.filter_by(status=job_status)
+    r = {}
+    i = 0
+    for j in jobs:
+        app.logger.debug("job obj= " + str(j.get_d()))
+        x = j.get_d().items()
+        r[i] = {}
+        for key, value in iter(x):
+            r[i][str(key)] = str(value)
+            # logging.debug(str(key) + "= " + str(value))
+        i += 1
+
+    if jobs is not None and len(r) > 0:
+        app.logger.debug("jobs is none or len(r)>0 - we have jobs")
+        return {'success': True, 'mode': job_status, 'results': r}
+    else:
+        app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
+        return {'success': False, 'mode': job_status, 'results': {}}

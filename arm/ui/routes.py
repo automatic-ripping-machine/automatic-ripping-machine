@@ -291,7 +291,12 @@ def feed_json():
     elif x == "search":
         app.logger.debug("search")
         j = utils.search(searchq)
-
+    elif x == "getfailed":
+        app.logger.debug("getfailed")
+        j = utils.get_x_jobs("fail")
+    elif x == "getsuccessful":
+        app.logger.debug("getsucessful")
+        j = utils.get_x_jobs("success")
     return app.response_class(response=json.dumps(j, indent=4, sort_keys=True),
                               status=200,
                               mimetype='application/json')
@@ -714,6 +719,7 @@ def import_movies():
     t0 = time.time()
 
     my_path = cfg['MEDIA_DIR']
+    # my_path = "/srv/dev-disk-by-label-NAS/Main/downloads"
     movies = {0: {'notfound': {}}}
     dest_ext = cfg['DEST_EXT']
     i = 1
@@ -735,8 +741,9 @@ def import_movies():
             # ['poster.jpg', 'title_t00.mkv', 'title_t00.xml', 'fanart.jpg',
             #  'title_t00.nfo-orig', 'title_t00.nfo', 'title_t00.xml-orig', 'folder.jpg']
             app.logger.debug(str(listdir(join(my_path, str(movie)))))
-            movie_files = [f for f in listdir(join(my_path, str(movie))) if isfile(join(my_path, str(movie), f))
-                           and f.endswith("." + dest_ext)]
+            movie_files = [f for f in listdir(join(my_path, str(movie)))
+                           if isfile(join(my_path, str(movie), f)) and f.endswith("." + dest_ext)
+                           or isfile(join(my_path, str(movie), f)) and f.endswith(".mp4")]
             app.logger.debug("movie files = " + str(movie_files))
 
             hash_object = hashlib.md5(mystring.encode())

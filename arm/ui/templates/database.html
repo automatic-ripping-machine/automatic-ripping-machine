@@ -36,6 +36,8 @@
 		<span id="m-body">These items will be permanently deleted and cannot be recovered. Are you sure?</span></p>
       </div>
       <div class="modal-footer">
+	    <button id="save-get-success" type="button" class="btn btn-secondary btn-success">Get all successful jobs</button>
+	    <button id="save-get-failed" type="button" class="btn btn-secondary btn-danger">Get all failed jobs</button>
         <button id="save-no" type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
         <button id="save-yes" type="button" class="btn btn-primary">Yes</button>
       </div>
@@ -156,9 +158,78 @@
 				//$('#message1').addClass('d-none');
 				$('#message2').addClass('d-none');
 				$('#message3').addClass('d-none');
-          }
-      
-			$("#save-yes").bind('click', function() {
+			}
+			$("#save-get-success").bind('click', function(){
+				// Add the spinner to let them know we are loading
+				$("#m-body").append('<div class="d-flex justify-content-center">\
+									<div class="spinner-border" role="status">\
+									<span class="sr-only">Loading...</span>\
+									</div>\
+									</div>');
+                hrrref = '/json?mode=getsuccessful';
+				$.get( hrrref, function( data ) {
+				    //console.log(data)
+					if (data['success'] === true){
+						$(this).find('.modal-title').text("Finding failed jobs....")
+						$('.card-deck').html('')
+						var size = Object.keys(data['results']).length;
+						console.log("length = " + size);
+						if (size > 0){
+							$.each(data['results'] , function( index, value ) {
+								z = addJobItem(value)
+								$( '.card-deck' ).append( z );
+							});
+							console.log(data)
+						}else{
+							$("#message1 .alert-heading").html("I couldnt find any results matching that title")
+							$('#message1').removeClass('d-none');
+							$('#exampleModal').modal('toggle');
+						}
+						$('#exampleModal').modal('toggle');						
+					}else{
+						alert("Fucked btw")
+						$('#message3').removeClass('d-none');
+						$('#message1').addClass('d-none');
+						$('#message2').addClass('d-none');
+						$('#exampleModal').modal('toggle');
+					}
+				}, "json");
+			});
+			$("#save-get-failed").bind('click', function(){
+				// Add the spinner to let them know we are loading
+				$("#m-body").append('<div class="d-flex justify-content-center">\
+									<div class="spinner-border" role="status">\
+									<span class="sr-only">Loading...</span>\
+									</div>\
+									</div>');
+                hrrref = '/json?mode=getfailed';
+				$.get( hrrref, function( data ) {
+					if (data['success'] === true){
+						$(this).find('.modal-title').text("Finding failed jobs....")
+						$('.card-deck').html('')
+						var size = Object.keys(data['results']).length;
+						console.log("length = " + size);
+						if (size > 0){
+							$.each(data['results'] , function( index, value ) {
+								z = addJobItem(value)
+								$('.card-deck').append(z);
+							});
+							console.log(data)
+						}else{
+							$("#message1 .alert-heading").html("I couldnt find any results matching that title")
+							$('#message1').removeClass('d-none');
+						}
+						$('#exampleModal').modal('toggle');						
+					}else{
+						alert("Fucked btw")
+						$('#message3').removeClass('d-none');
+						$('#message1').addClass('d-none');
+						$('#message2').addClass('d-none');
+						$('#exampleModal').modal('toggle');
+					}
+				}, "json");
+			});
+			$("#save-yes").bind('click', function(){
 				console.log(hrrref)
 				// Check we have the searchquery element & it must be more than 3 chars
 				if ($("input#searchquery").length){
