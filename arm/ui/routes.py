@@ -5,8 +5,9 @@ import subprocess
 import re
 import sys  # noqa: F401
 import bcrypt
-import hashlib  # noqa: F401
+import hashlib
 import json
+import yaml
 import arm.ui.utils as utils
 from time import sleep
 from flask import Flask, render_template, make_response, abort, request, send_file, flash, redirect, url_for, \
@@ -62,22 +63,22 @@ def setup():
     try:
         if not Path.exists(dir0):
             os.makedirs(dir0)
-            flash("{} was created successfully.".format(str(dir0)))
+            flash(f"{dir0} was created successfully.")
         if not Path.exists(dir1):
             os.makedirs(dir1)
-            flash("{} was created successfully.".format(str(dir1)))
+            flash(f"{dir1} was created successfully.")
         if not Path.exists(dir2):
             os.makedirs(dir2)
-            flash("{} was created successfully.".format(str(dir2)))
+            flash(f"{dir2} was created successfully.")
         if not Path.exists(dir3):
             os.makedirs(dir3)
-            flash("{} was created successfully.".format(str(dir3)))
+            flash(f"{dir3} was created successfully.")
         if not Path.exists(dir4):
             os.makedirs(dir4)
-            flash("{} was created successfully.".format(str(dir4)))
+            flash(f"{dir4} was created successfully.")
     except FileNotFoundError as e:
-        flash("Creation of the directory {} failed {}".format(str(dir0), e))
-        app.logger.debug("Creation of the directory failed - {}".format(str(e)))
+        flash(f"Creation of the directory {dir0} failed {e}")
+        app.logger.debug(f"Creation of the directory failed - {e}")
     else:
         flash("Successfully created all of the ARM directories")
         app.logger.debug("Successfully created all of the ARM directories")
@@ -178,6 +179,8 @@ def login():
     # After a login for is submitted
     if save:
         email = request.form['username']
+        # TODO: we know there is only ever 1 admin account,
+        #  so we can pull it and check against it locally
         user = User.query.filter_by(email=str(email).strip()).first()
         if user is None:
             return render_template('login.html', success="false", raw='Invalid username')
@@ -234,8 +237,8 @@ def database():
                 if jobid == 'all':
                     if os.path.isfile(cfg['DBFILE']):
                         # Make a backup of the database file
-                        cmd = 'cp ' + str(cfg['DBFILE']) + ' ' + str(cfg['DBFILE']) + '.bak'
-                        app.logger.info("cmd  -  {0}".format(cmd))
+                        cmd = f'cp {cfg["DBFILE"]} {cfg["DBFILE"]}.bak'
+                        app.logger.info(f"cmd  -  {cmd}")
                         os.system(cmd)
                     Track.query.delete()
                     Job.query.delete()
@@ -260,7 +263,7 @@ def database():
         # error out to the log and roll back
         except Exception as err:
             db.session.rollback()
-            app.logger.error("Error:db-1 {0}".format(err))
+            app.logger.error(f"Error:db-1 {err}")
             success = False
 
     return render_template('database.html', jobs=jobs, success=success, date_format=cfg['DATE_FORMAT'])
@@ -271,7 +274,8 @@ def database():
 def feed_json():
     x = request.args.get('mode')
     j_id = request.args.get('job')
-    logfile = request.args.get('logfile')
+    # We should never let the user pick the log file
+    # logfile = request.args.get('logfile')
     searchq = request.args.get('q')
     logpath = cfg['LOGPATH']
     if x is None:
@@ -284,11 +288,16 @@ def feed_json():
         # app.logger.debug("abandon")
     elif x == "full":
         app.logger.debug("getlog")
-        j = utils.generate_log(logfile, logpath, j_id)
+        j = utils.generate_log(logpath, j_id)
     elif x == "search":
         app.logger.debug("search")
         j = utils.search(searchq)
-
+    elif x == "getfailed":
+        app.logger.debug("getfailed")
+        j = utils.get_x_jobs("fail")
+    elif x == "getsuccessful":
+        app.logger.debug("getsucessful")
+        j = utils.get_x_jobs("success")
     return app.response_class(response=json.dumps(j, indent=4, sort_keys=True),
                               status=200,
                               mimetype='application/json')
@@ -304,21 +313,28 @@ def settings():
         save = request.form['save']
     except KeyError:
         app.logger.debug("no post")
-
+    arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
     try:
         with open(comments_file, "r") as f:
             try:
                 comments = json.load(f)
             except Exception as e:
-                comments = None
-                app.logger.debug("Error with comments file. {}".format(str(e)))
+                app.logger.debug(f"Error with comments file. {e}")
                 return render_template("error.html", error=str(e))
     except FileNotFoundError:
         return render_template("error.html", error="Couldn't find the comment.json file")
+    # Import the cfg again as we want the latest values, not stale.
+    try:
+        with open(arm_cfg_file, "r") as f:
+            try:
+                cfg = yaml.load(f, Loader=yaml.FullLoader)
+            except Exception:
+                cfg = yaml.safe_load(f)  # For older versions use this
+    except FileNotFoundError:
+        return render_template("error.html", error="Couldn't find the arm.yaml file")
 
     if save:
-        success = "false"
         # For testing
         x = request.form.to_dict()
         arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
@@ -343,33 +359,30 @@ def settings():
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['APPRISE']
 
                 arm_cfg += "\n" + comments[str(k)] + "\n" if comments[str(k)] != "" else ""
-                # arm_cfg += "{}: \"{}\"\n".format(k, v)
+
                 try:
                     post_value = int(v)
-                    arm_cfg += "{}: {}\n".format(k, post_value)
+                    arm_cfg += f"{k}: {post_value}\n"
                 except ValueError:
                     v_low = v.lower()
                     if v_low == 'false' or v_low == "true":
-                        arm_cfg += "{}: {}\n".format(k, v_low)
+                        arm_cfg += f"{k}: {v_low}\n"
                     else:
                         if k == "WEBSERVER_IP":
-                            arm_cfg += "{}: {}\n".format(k, v_low)
+                            arm_cfg += f"{k}: {v_low}\n"
                         else:
-                            arm_cfg += "{}: \"{}\"\n".format(k, v)
-                app.logger.debug("\n{} = {} ".format(k, v))
+                            arm_cfg += f"{k}: \"{v}\"\n"
+                app.logger.debug(f"\n{k} = {v} ")
 
-        # app.logger.debug("arm_cfg= {}".format(arm_cfg))
-        arm_cfg_file = "/opt/arm/arm.yaml"
-        app.logger.debug(str(arm_cfg_file))
+        app.logger.debug(f"arm_cfg= {arm_cfg}")
         with open(arm_cfg_file, "w") as f:
             f.write(arm_cfg)
             f.close()
-        success = "true"
-        return render_template('settings.html', success=success, settings=cfg,
-                               raw=x, jsoncomments=comments)
+        flash("Setting saved successfully!")
+        return redirect(url_for('settings'))
 
     # If we get to here there was no post data
-    return render_template('settings.html', success="null", settings=cfg, raw=x, jsoncomments=comments)
+    return render_template('settings.html', settings=cfg, raw=x, jsoncomments=comments)
 
 
 @app.route('/logreader')
@@ -383,6 +396,8 @@ def logreader():
     # Setup our vars
     logpath = cfg['LOGPATH']
     mode = request.args.get('mode')
+    # TODO
+    # We should use the job id and not get the raw logfile from the user
     logfile = request.args.get('logfile')
     if logfile is None or "../" in logfile or mode is None:
         return render_template('error.html')
@@ -474,7 +489,7 @@ def abandon_job():
         db.session.commit()
         return render_template('jobdetail.html', success="true", jobmessage="Job was abandoned!", jobs=job)
     except Exception as e:
-        flash("Failed to update job" + str(e))
+        flash(f"Failed to update job {e}")
         return render_template('error.html')
 
 
@@ -486,7 +501,7 @@ def submitrip():
     form = TitleSearchForm(obj=job)
     if form.validate_on_submit():
         form.populate_obj(job)
-        flash('Search for {}, year={}'.format(form.title.data, form.year.data), category='success')
+        flash(f'Search for {form.title.data}, year={form.year.data}', category='success')
         return redirect(url_for('list_titles', title=form.title.data, year=form.year.data, job_id=job_id))
     return render_template('titlesearch.html', title='Update Title', form=form)
 
@@ -496,23 +511,23 @@ def submitrip():
 def changeparams():
     config_id = request.args.get('config_id')
     config = Config.query.get(config_id)
+    # app.logger.debug(config.pretty_table())
     job = Job.query.get(config_id)
     form = ChangeParamsForm(obj=config)
     if form.validate_on_submit():
         config.MINLENGTH = format(form.MINLENGTH.data)
         config.MAXLENGTH = format(form.MAXLENGTH.data)
         config.RIPMETHOD = format(form.RIPMETHOD.data)
+        # config.MAINFEATURE = int(format(form.MAINFEATURE.data) == 'true')
         config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False
-        # config.MAINFEATURE = int(format(form.MAINFEATURE.data)) #  must be 1 for True 0 for False
+        app.logger.debug(f"main={config.MAINFEATURE}")
         job.disctype = format(form.DISCTYPE.data)
         db.session.commit()
-        flash(
-            'Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, '
-            'Maximum Length={}, Disctype={}'.format(
-                form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data,
-                form.DISCTYPE.data))
         db.session.refresh(job)
         db.session.refresh(config)
+        flash(f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},'
+              f'Minimum Length={config.MINLENGTH}, '
+              f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}')
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
@@ -528,7 +543,7 @@ def customtitle():
         job.title = format(form.title.data)
         job.year = format(form.year.data)
         db.session.commit()
-        flash('custom title changed. Title={}, Year={}.'.format(form.title.data, form.year.data))
+        flash(f'custom title changed. Title={form.title.data}, Year={form.year.data}.')
         return redirect(url_for('home'))
     return render_template('customTitle.html', title='Change Title', form=form)
 
@@ -548,11 +563,16 @@ def list_titles():
 
 
 @app.route('/gettitle', methods=['GET', 'POST'])
+@app.route('/select_title', methods=['GET', 'POST'])
 @login_required
 def gettitle():
-    imdb_id = request.args.get('imdbID').strip() if request.args.get('imdbID') else ''
-    job_id = request.args.get('job_id').strip() if request.args.get('job_id') else ''
-    if job_id == "":
+    imdb_id = request.args.get('imdbID').strip() if request.args.get('imdbID') else None
+    job_id = request.args.get('job_id').strip() if request.args.get('job_id') else None
+    if imdb_id == "" or imdb_id is None:
+        app.logger.debug("gettitle - no job supplied")
+        flash("No job supplied")
+        return redirect('/error')
+    if job_id == "" or job_id is None:
         app.logger.debug("gettitle - no job supplied")
         flash("No job supplied")
         return redirect('/error')
@@ -583,7 +603,7 @@ def updatetitle():
     job.poster_url = poster_url
     job.hasnicetitle = True
     db.session.commit()
-    flash('Title: {} ({}) was updated to {} ({})'.format(job.title_auto, job.year_auto, new_title, new_year),
+    flash(f'Title: {job.title_auto} ({job.year_auto}) was updated to {new_title} ({new_year})',
           category='success')
     return redirect(url_for('home'))
 
@@ -654,7 +674,7 @@ def home():
         temps = psutil.sensors_temperatures()
         temp = temps['coretemp'][0][1]
     except KeyError:
-        temp = None
+        temp = temps = None
 
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
@@ -664,22 +684,26 @@ def home():
             # db isnt setup
             return redirect(url_for('setup'))
         for job in jobs:
-            if job.logfile is not None:
-                job_log = cfg['LOGPATH'] + str(job.logfile)
-                line = subprocess.check_output(['tail', '-n', '1', str(job_log)])
-                # job_status = re.search("([0-9]{1,2}\.[0-9]{2}) %.*ETA ([0-9]{2})h([0-9]{2})m([0-9]{2})s", str(line))
-                # ([0-9]{1,3}\.[0-9]{2}) %.*(?!ETA) ([0-9hms]*?)\)  # This is more dumb but it returns with the h m s
-                # job_status = re.search(r"([0-9]{1,2}\.[0-9]{2}) %.*ETA\s([0-9hms]*?)\)", str(line))
-                # This correctly get the very last ETA and %
-                job_status = re.search(r"([0-9]{1,3}\.[0-9]{2}) %.{0,40}ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
-                if job_status:
-                    job.progress = job_status.group(1)
-                    # job.eta = job_status.group(2)+":"+job_status.group(3)+":"+job_status.group(4)
-                    job.eta = job_status.group(2)
-                    app.logger.debug("job.progress = " + str(job.progress))
-                    x = job.progress
-                    job.progress_round = int(float(x))
-                    app.logger.debug("Job.round = " + str(job.progress_round))
+            job_log = cfg['LOGPATH'] + job.logfile
+            # Try to catch if the logfile gets delete before the job is finished
+            try:
+                line = subprocess.check_output(['tail', '-n', '1', job_log])
+            except subprocess.CalledProcessError:
+                app.logger.debug("Error while reading logfile for ETA")
+                line = ""
+            # job_status = re.search("([0-9]{1,2}\.[0-9]{2}) %.*ETA ([0-9]{2})h([0-9]{2})m([0-9]{2})s", str(line))
+            # ([0-9]{1,3}\.[0-9]{2}) %.*(?!ETA) ([0-9hms]*?)\)  # This is more dumb but it returns with the h m s
+            # job_status = re.search(r"([0-9]{1,2}\.[0-9]{2}) %.*ETA\s([0-9hms]*?)\)", str(line))
+            # This correctly get the very last ETA and %
+            job_status = re.search(r"([0-9]{1,3}\.[0-9]{2}) %.{0,40}ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
+            if job_status:
+                job.progress = job_status.group(1)
+                # job.eta = job_status.group(2)+":"+job_status.group(3)+":"+job_status.group(4)
+                job.eta = job_status.group(2)
+                app.logger.debug("job.progress = " + str(job.progress))
+                x = job.progress
+                job.progress_round = int(float(x))
+                app.logger.debug("Job.round = " + str(job.progress_round))
     else:
         jobs = {}
 
@@ -688,6 +712,146 @@ def home():
                            jobs=jobs, cpu=our_cpu, cputemp=temp, cpu_usage=cpu_usage,
                            ram=mem_total, ramused=mem_used, ramfree=mem_free, ram_percent=ram_percent,
                            ramdump=str(temps))
+
+
+@app.route('/import_movies')
+@login_required
+def import_movies():
+    """
+    Function for finding all movies not currently tracked by ARM
+    This should not be run frequently - Re-runs are fine.
+    This causes a HUGE number of requests to OMdb
+    :return: Outputs json - contains a dict/json of movies added and a notfound list
+             that doesnt match ARM identified folder format.
+    """
+    import time
+    from os import listdir
+    from os.path import isfile, join, isdir
+    t0 = time.time()
+
+    my_path = cfg['MEDIA_DIR']
+    movies = {0: {'notfound': {}}}
+    dest_ext = cfg['DEST_EXT']
+    i = 1
+    movie_dirs = [f for f in listdir(my_path) if isfile(join(my_path, f)) and not f.startswith(".")
+                  or isdir(join(my_path, f)) and not f.startswith(".")]
+
+    app.logger.debug(movie_dirs)
+    if len(movie_dirs) < 1:
+        app.logger.debug("movie_dirs found none")
+
+    for movie in movie_dirs:
+        mystring = f"{movie}"
+        regex = r"([\w\ \'\.\-\&\,]*?) \(([0-9]{2,4})\)"
+        matched = re.match(regex, movie)
+        if matched:
+            # This is only for pycharm
+            movie_name = re.sub(" ", "%20", matched.group(1).strip())  # movie
+
+            p1, imdb_id = utils.get_omdb_poster(movie_name, matched.group(2))
+            # ['poster.jpg', 'title_t00.mkv', 'title_t00.xml', 'fanart.jpg',
+            #  'title_t00.nfo-orig', 'title_t00.nfo', 'title_t00.xml-orig', 'folder.jpg']
+            app.logger.debug(str(listdir(join(my_path, str(movie)))))
+            movie_files = [f for f in listdir(join(my_path, str(movie)))
+                           if isfile(join(my_path, str(movie), f)) and f.endswith("." + dest_ext)
+                           or isfile(join(my_path, str(movie), f)) and f.endswith(".mp4")
+                           or isfile(join(my_path, str(movie), f)) and f.endswith(".avi")]
+            app.logger.debug("movie files = " + str(movie_files))
+
+            hash_object = hashlib.md5(mystring.encode())
+            dupe_found, x = utils.job_dupe_check(hash_object.hexdigest())
+            if dupe_found:
+                app.logger.debug("We found dupes breaking loop")
+                continue
+
+            movies[i] = {
+                'title': matched.group(1),
+                'year': matched.group(2),
+                'crc_id': hash_object.hexdigest(),
+                'imdb_id': imdb_id,
+                'poster': p1,
+                'status': 'success' if len(movie_files) > 0 else 'fail',
+                'video_type': 'movie',
+                'disctype': 'unknown',
+                'hasnicetitle': True,
+                'no_of_titles': len(movie_files)
+            }
+
+            new_movie = Job("/dev/sr0")
+            new_movie.title = movies[i]['title']
+            new_movie.year = movies[i]['year']
+            new_movie.crc_id = hash_object.hexdigest()
+            new_movie.imdb_id = imdb_id
+            new_movie.poster_url = movies[i]['poster']
+            new_movie.status = movies[i]['status']
+            new_movie.video_type = movies[i]['video_type']
+            new_movie.disctype = movies[i]['disctype']
+            new_movie.hasnicetitle = movies[i]['hasnicetitle']
+            new_movie.no_of_titles = movies[i]['no_of_titles']
+            db.session.add(new_movie)
+            i += 1
+        else:
+            sub_path = join(my_path, str(movie))
+            # go through each folder and treat it as a subfolder of movie folder
+            subfiles = [f for f in listdir(sub_path) if isfile(join(sub_path, f)) and not f.startswith(".")
+                        or isdir(join(sub_path, f)) and not f.startswith(".")]
+            for sub_movie in subfiles:
+                mystring = f"{sub_movie}"
+                sub_matched = re.match(regex, sub_movie)
+                if sub_matched:
+                    # This is only for pycharm
+                    sub_movie_name = re.sub(" ", "%20", sub_matched.group(1).strip())  # movie
+                    sub_movie_name = re.sub("&", "%26", sub_movie_name)
+                    p2, imdb_id = utils.get_omdb_poster(sub_movie_name, sub_matched.group(2))
+                    app.logger.debug(listdir(join(sub_path, str(sub_movie))))
+                    # If the user selects another ext thats not mkv we are f
+                    sub_movie_files = [f for f in listdir(join(sub_path, str(sub_movie)))
+                                       if isfile(join(sub_path, str(sub_movie), f)) and f.endswith("." + dest_ext)
+                                       or isfile(join(sub_path, str(sub_movie), f)) and f.endswith(".mp4")
+                                       or isfile(join(my_path, str(movie), f)) and f.endswith(".avi")]
+                    app.logger.debug("movie files = " + str(sub_movie_files))
+                    hash_object = hashlib.md5(mystring.encode())
+                    dupe_found, x = utils.job_dupe_check(hash_object.hexdigest())
+                    if dupe_found:
+                        app.logger.debug("We found dupes breaking loop")
+                        continue
+                    movies[i] = {
+                        'title': sub_matched.group(1),
+                        'year': sub_matched.group(2),
+                        'crc_id': hash_object.hexdigest(),
+                        'imdb_id': imdb_id,
+                        'poster': p2,
+                        'status': 'success' if len(sub_movie_files) > 0 else 'fail',
+                        'video_type': 'movie',
+                        'disctype': 'unknown',
+                        'hasnicetitle': True,
+                        'no_of_titles': len(sub_movie_files)
+                    }
+                    new_movie = Job("/dev/sr0")
+                    new_movie.title = movies[i]['title']
+                    new_movie.year = movies[i]['year']
+                    new_movie.crc_id = hash_object.hexdigest()
+                    new_movie.imdb_id = imdb_id
+                    new_movie.poster_url = p2
+                    new_movie.status = movies[i]['status']
+                    new_movie.video_type = movies[i]['video_type']
+                    new_movie.disctype = movies[i]['disctype']
+                    new_movie.hasnicetitle = movies[i]['hasnicetitle']
+                    new_movie.no_of_titles = movies[i]['no_of_titles']
+                    db.session.add(new_movie)
+                    i += 1
+                else:
+                    movies[0]['notfound'][str(i)] = str(sub_movie)
+            print(subfiles)
+    # app.logger.debug(movies)
+
+    t1 = time.time()
+    total = round(t1 - t0, 3)
+    app.logger.debug(str(total) + " sec")
+    db.session.commit()
+    return app.response_class(response=json.dumps(movies, indent=4, sort_keys=True),
+                              status=200,
+                              mimetype='application/json')
 
 
 #  Lets show some cpu info
@@ -717,7 +881,7 @@ def get_processor_name():
         amd_name_full = re.search(r"vendor_id\\t:(.*?)\\n", fulldump)
         if amd_name_full:
             amd_name = amd_name_full.group(1)
-            amd_hz = re.search(r"cpu\sMHz\\t.*?([.0-9]*?)\\n", fulldump)  # noqa: W605
+            amd_hz = re.search(r"cpu\\sMHz\\t.*?([.0-9]*?)\\n", fulldump)  # noqa: W605
             if amd_hz:
                 amd_ghz = re.sub('[^.0-9]', '', amd_hz.group())
                 amd_ghz = int(float(amd_ghz))  # Not sure this is a good idea

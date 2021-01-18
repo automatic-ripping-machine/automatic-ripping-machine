@@ -29,8 +29,7 @@ def get_info(directory):
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
-    string = re.sub(r'\[.*?\]', '', string)  # noqa: W605
-
+    string = re.sub(r"\[.*?]", "", string)  # noqa: W605
     string = re.sub('\s+', ' ', string)  # noqa: W605
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
@@ -96,13 +95,20 @@ def generate_comments():
         return "{'error':'File not found'}"
 
 
-def generate_log(log_file, logpath, job_id):
+def generate_log(logpath, job_id):
+
+    try:
+        job = Job.query.get(job_id)
+    except Exception:
+        app.logger.debug(f"Cant find job {job_id} ")
+        job = None
+
     app.logger.debug("in logging")
-    if "../" in log_file:
-        app.logger.debug("Someone tried to use ../ in the logfile path")
-        return {'success': False, 'job': job_id, 'log': 'Not Allowed'}
+    if job is None:
+        app.logger.debug(f"Cant find the job {job_id}")
+        return {'success': False, 'job': job_id, 'log': 'Not found'}
     # Assemble full path
-    fullpath = os.path.join(logpath, log_file)
+    fullpath = os.path.join(logpath, job.logfile)
     # Check if the logfile exists
     my_file = Path(fullpath)
     if not my_file.is_file():
@@ -120,7 +126,6 @@ def generate_log(log_file, logpath, job_id):
             app.logger.debug("Cant read logfile. Possibly encoding issue")
             return {'success': False, 'job': job_id, 'log': 'Cant read logfile'}
     r = html.escape(r)
-    job = Job.query.get(job_id)
     title_year = str(job.title) + " (" + str(job.year) + ") - file: " + str(job.logfile)
     return {'success': True, 'job': job_id, 'mode': 'logfile', 'log': r,
             'escaped': True, 'job_title': title_year}
@@ -202,17 +207,15 @@ def delete_job(job_id, mode):
 
 def setupdatabase():
     """
-    Try to get the db. User if not we nuke everything
+    Try to get the db.User if not we nuke everything
     """
-    # TODO need to check if all the arm directories have been made
-    # logs, media, db
     try:
         User.query.all()
         return True
-    except Exception as err:
+    except Exception:
         #  We only need this on first run
         #  Wipe everything
-        flash(str(err))
+        # flash(str(err))
         try:
             db.drop_all()
         except Exception:
@@ -223,7 +226,7 @@ def setupdatabase():
             db.create_all()
             db.session.commit()
             #  push the database version arm is looking for
-            user = Alembic_version('c3a3fa694636')
+            user = Alembic_version('e688fe04d305')
             db.session.add(user)
             db.session.commit()
             return True
@@ -233,13 +236,16 @@ def setupdatabase():
 
 
 def search(search_query):
-    search = "%{}%".format(search_query)
+    """ Queries ARMui db for the movie/show matching the query"""
+    search = re.sub('[^a-zA-Z0-9]', '', search_query)
+    search = "%{}%".format(search)
+    app.logger.debug("search - q=" + str(search))
     posts = db.session.query(Job).filter(Job.title.like(search)).all()
     app.logger.debug("search - posts=" + str(posts))
     r = {}
     i = 0
     for p in posts:
-        app.logger.debug("job obj= "+str(p.get_d()))
+        app.logger.debug("job obj = " + str(p.get_d()))
         x = p.get_d().items()
         r[i] = {}
         for key, value in iter(x):
@@ -247,3 +253,109 @@ def search(search_query):
             app.logger.debug(str(key) + "= " + str(value))
         i += 1
     return {'success': True, 'mode': 'search', 'results': r}
+
+
+def get_omdb_poster(title=None, year=None, imdbID=None, plot="short"):
+    """ Queries OMDbapi.org for the poster for movie/show """
+    omdb_api_key = cfg['OMDB_API_KEY']
+    title_info = {}
+    if imdbID:
+        strurl = f"http://www.omdbapi.com/?i={imdbID}&plot={plot}&r=json&apikey={omdb_api_key}"
+    elif title:
+        strurl = f"http://www.omdbapi.com/?s={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
+        strurl2 = f"http://www.omdbapi.com/?t={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
+    else:
+        app.logger.debug("no params")
+        return None, None
+    from requests.utils import requote_uri
+    r = requote_uri(strurl)
+    r2 = requote_uri(strurl2)
+    # app.logger.info("OMDB string query - " + str(r))
+    # app.logger.debug("omdb - " + str(f))
+    try:
+        title_info_json = urllib.request.urlopen(r).read()
+    except Exception as e:
+        app.logger.debug(f"Failed to reach OMdb - {e}")
+        return None, None
+    else:
+        title_info = json.loads(title_info_json.decode())
+        # app.logger.debug("omdb - " + str(title_info))
+        if 'Error' not in title_info:
+            return title_info['Search'][0]['Poster'], title_info['Search'][0]['imdbID']
+        else:
+            try:
+                title_info_json2 = urllib.request.urlopen(r2).read()
+            except Exception as e:
+                app.logger.debug(f"Failed to reach OMdb - {e}")
+                return None, None
+            else:
+                title_info2 = json.loads(title_info_json2.decode())
+                # app.logger.debug("omdb - " + str(title_info2))
+                if 'Error' not in title_info2:
+                    return title_info2['Poster'], title_info2['imdbID']
+
+    return None,None
+
+
+def job_dupe_check(crc_id):
+    """
+    function for checking the database to look for jobs that have completed
+    successfully with the same crc
+
+    :param crc_id: The job obj so we can use the crc/title etc
+    :return: True if we have found dupes with the same crc
+              - Will also return a dict of all the jobs found.
+             False if we didnt find any with the same crc
+              - Will also return None as a secondary param
+    """
+    # TODO possibly only grab hasnicetitles ?
+    jobs = Job.query.filter_by(crc_id=crc_id, status="success")
+    # app.logger.debug("search - posts=" + str(jobs))
+    r = {}
+    i = 0
+    for j in jobs:
+        app.logger.debug("job obj= " + str(j.get_d()))
+        x = j.get_d().items()
+        r[i] = {}
+        for key, value in iter(x):
+            r[i][str(key)] = str(value)
+            # logging.debug(str(key) + "= " + str(value))
+        i += 1
+
+    app.logger.debug(r)
+    app.logger.debug("r len=" + str(len(r)))
+    if jobs is not None and len(r) > 0:
+        app.logger.debug("jobs is none or len(r) - we have jobs")
+        return True, r
+    else:
+        app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
+        return False, None
+
+
+def get_x_jobs(job_status):
+    """
+    function for getting all failed or successful jobs from the database
+
+    :return: True if we have found dupes with the same crc
+              - Will also return a dict of all the jobs found.
+             False if we didnt find any with the same crc
+              - Will also return None as a secondary param
+    """
+    jobs = Job.query.filter_by(status=job_status)
+    r = {}
+    i = 0
+    for j in jobs:
+        app.logger.debug("job obj= " + str(j.get_d()))
+        x = j.get_d().items()
+        r[i] = {}
+        for key, value in iter(x):
+            r[i][str(key)] = str(value)
+            # logging.debug(str(key) + "= " + str(value))
+        i += 1
+
+    if jobs is not None and len(r) > 0:
+        app.logger.debug("jobs is none or len(r)>0 - we have jobs")
+        return {'success': True, 'mode': job_status, 'results': r}
+    else:
+        app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
+        return {'success': False, 'mode': job_status, 'results': {}}

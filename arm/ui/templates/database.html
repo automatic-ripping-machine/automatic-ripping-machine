@@ -4,23 +4,16 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
+
 <div class="container-fluid h-100 mx-auto">
     <div class="row">
-        <!-- <div class="col-sm-2"></div> -->
         <div class="col-sm-12  rounded text-center">
             <img src="/static/img/arm80.png">
-            <p class="text-center"><b>Welcome to your Automatic Ripping Machine<br>
-                <!-- What would you like to do? -->
-            </b></p>
+			<p class="text-center">
+				<b>Welcome to your Automatic Ripping Machine<br></b>
+			</p>
         </div>
-        <!-- <div class="col-sm-2"></div> -->
     </div>
-	
-	<div class="d-flex float-right">
-		<div class="p-2">
-			<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="search" data-href="/json?mode=search&q=">Search Database</button>
-		</div>
-	</div>
     <div class="row h-100 mx-auto align-items-center">
         <div class="col-sm-12 mx-auto">
             <p class="text-center">
@@ -28,7 +21,6 @@
             </p>
         </div>							
     </div>
-	
 	<!-- Modal -->
 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
@@ -44,6 +36,8 @@
 		<span id="m-body">These items will be permanently deleted and cannot be recovered. Are you sure?</span></p>
       </div>
       <div class="modal-footer">
+	    <button id="save-get-success" type="button" class="btn btn-secondary btn-success">Get all successful jobs</button>
+	    <button id="save-get-failed" type="button" class="btn btn-secondary btn-danger">Get all failed jobs</button>
         <button id="save-no" type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
         <button id="save-yes" type="button" class="btn btn-primary">Yes</button>
       </div>
@@ -55,7 +49,7 @@
 		<h4 class="alert-heading">Job was deleted successfully</h4>
 	</div>
 	
-	<div id="message2" class="alert alert-danger" align="center">
+	<div id="message2" class="alert alert-danger text-center">
 		<b>WARNING:  </b>There is no undo  here! 
 		<br>Be careful!
 	</div>
@@ -64,10 +58,12 @@
 		<h4 class="alert-heading">There was a problem with your request</h4>
 		<p>There was a problem with your request. Check the ARMui log for more details.</p>
 	</div>
-
-    <!-- <div class="container-fluid h-100 mx-auto"> -->
-    <div class="row h-100 align-items-center">
-        <!-- <div class="col-sm-4 mx-auto"></div> -->
+	<div class="row d-flex justify-content-end">
+		<div class="p-4">
+			<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="search" data-href="/json?mode=search&q=">Search Database</button>
+		</div>
+	</div>
+    <div class="row">
         <div class="col-md-12 mx-auto">
             <div class="card-deck">
                 {% for job in jobs %}
@@ -94,13 +90,6 @@
                             </div>
                             <div class="col-lg-4">
                                 <div class="card-body px-1 py-1">
-                                    <!--{% if not job.title_manual %}
-                                    <b>{{ job["title"] }}</b><br>
-                                    {% else %}
-                                    <del><b>{{ job["title_auto"] }}</b><br></del>
-                                    <b>{{ job["title"] }}</b><br>
-                                    {% endif %}
-									-->
                                     <b>Type: </b> {{ job.video_type }} <br>
                                     {% if not job.title_manual %}
                                     <b>Year: </b>({{ job["year"] }})<br>
@@ -111,12 +100,12 @@
                                     {% endif %}
                                     <b>Device: </b>{{ job.devpath }}<br>
                                     <b>Status: </b><img id="status{{ job.job_id }}" src="static/img/{{ job.status }}.png" height="20px" alt="{{ job.status }}" title="{{ job.status }}"><br>
-                                    <b>Start Date:</b>{{ job.start_time.strftime(date_format) }}<br>
-									<b>Start Time:</b>{{ job.start_time.strftime("%H:%M:%S") }}<br>
+                                    <b>Start Date:</b>{{ job.start_time.strftime(date_format) if job.start_time is not none }}<br>
+									<b>Start Time:</b>{{ job.start_time.strftime("%H:%M:%S") if job.start_time is not none }}<br>
 									<b>Job Time:</b>{{ job.job_length }}<br>
 									{%  if job.status == "transcoding" %}
 										<div class="progress">
-											<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="{{ job.progress_round }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ job.progress_round }}%">
+											<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="{{ job.progress_round }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ job.progress_round }}%;">
 											<small class="justify-content-center d-flex position-absolute w-100"><b>Progress: </b>{{ job.progress }}%</small>
                                             </div>
 										</div>
@@ -133,11 +122,6 @@
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-jobid="{{ job.job_id }}" data-href="/json?job={{ job.job_id }}&mode=delete">Delete Job</button>
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="{{ job.job_id }}" data-href="/json?logfile={{ job.logfile }}&mode=full&job={{ job.job_id }}">View Logfile</button>
 									</div>
-									<!--<a href="abandon?job_id={{ job.job_id }}" class="btn btn-primary">Abandon Job</a>
-									<a class="dialog-confirm btn btn-primary" href="database?jobid={{ job.job_id }}&mode=delete">Delete</a>
-									<br>
-									<a href="/logs?logfile={{ job.logfile }}&mode=full{{ job.logfile }}" class="btn btn-primary">Logfile</a>
-									-->
                                 </div>
                             </div>
 
@@ -148,8 +132,6 @@
             </div>
         </div>
     </div>
-    <!-- <div class="col-sm-4 mx-auto"></div> -->
-    <!-- </div> -->
 </div>
 
 {% endblock %}
@@ -169,19 +151,102 @@
                 /*have not agreed to understanding the risks, show modal*/
 				hrrref = "entryWarn";
 				$('div .modal-title').html("<p class=\"text-center text-danger\">WARNING");
-			    $('#m-body').html('<p class="text-center bg-danger">This can be dangerous if you don\'t know what you\'re doing. <br> \
+			    $('#m-body').html('<p class="text-center bg-danger text-white">This can be dangerous if you don\'t know what you\'re doing. <br> \
 									You could delete all your of your database entries if you\'re not careful!!! <br> \
 									Be careful!<br><br> Are you sure you want to continue ?</p>');
 			    $('#exampleModal').modal('show');
-				//$('#message1').addClass('d-none');
+				$('#save-get-success').addClass('d-none');
+				$('#save-get-failed').addClass('d-none');
 				$('#message2').addClass('d-none');
 				$('#message3').addClass('d-none');
-          }
-      
-			$("#save-yes").bind('click', function() {
-				// TODO need to check this has a min num of chars
+			}
+			$("#save-get-success").bind('click', function(){
+				// Add the spinner to let them know we are loading
+				$("#m-body").append('<div class="d-flex justify-content-center">\
+									<div class="spinner-border" role="status">\
+									<span class="sr-only">Loading...</span>\
+									</div>\
+									</div>');
+                hrrref = '/json?mode=getsuccessful';
+				$.get( hrrref, function( data ) {
+				    //console.log(data)
+					if (data['success'] === true){
+						$(this).find('.modal-title').text("Finding failed jobs....")
+						$('.card-deck').html('')
+						var size = Object.keys(data['results']).length;
+						console.log("length = " + size);
+						if (size > 0){
+							$.each(data['results'] , function( index, value ) {
+								z = addJobItem(value)
+								$( '.card-deck' ).append( z );
+							});
+							console.log(data)
+						}else{
+							$("#message1 .alert-heading").html("I couldnt find any results matching that title")
+							$('#message1').removeClass('d-none');
+							$('#exampleModal').modal('toggle');
+						}
+						$('#exampleModal').modal('toggle');						
+					}else{
+						alert("Fucked btw")
+						$('#message3').removeClass('d-none');
+						$('#message1').addClass('d-none');
+						$('#message2').addClass('d-none');
+						$('#exampleModal').modal('toggle');
+					}
+				}, "json");
+			});
+			$("#save-get-failed").bind('click', function(){
+				// Add the spinner to let them know we are loading
+				$("#m-body").append('<div class="d-flex justify-content-center">\
+									<div class="spinner-border" role="status">\
+									<span class="sr-only">Loading...</span>\
+									</div>\
+									</div>');
+                hrrref = '/json?mode=getfailed';
+				$.get( hrrref, function( data ) {
+					if (data['success'] === true){
+						$(this).find('.modal-title').text("Finding failed jobs....")
+						$('.card-deck').html('')
+						var size = Object.keys(data['results']).length;
+						console.log("length = " + size);
+						if (size > 0){
+							$.each(data['results'] , function( index, value ) {
+								z = addJobItem(value)
+								$('.card-deck').append(z);
+							});
+							console.log(data)
+						}else{
+							$("#message1 .alert-heading").html("I couldnt find any results matching that title")
+							$('#message1').removeClass('d-none');
+						}
+						$('#exampleModal').modal('toggle');						
+					}else{
+						alert("Fucked btw")
+						$('#message3').removeClass('d-none');
+						$('#message1').addClass('d-none');
+						$('#message2').addClass('d-none');
+						$('#exampleModal').modal('toggle');
+					}
+				}, "json");
+			});
+			$("#save-yes").bind('click', function(){
 				console.log(hrrref)
+				// Check we have the searchquery element & it must be more than 3 chars
+				if ($("input#searchquery").length){
+					var search_query = $("input#searchquery").val().length;
+					if(search_query <3){
+						$("#searchquery").addClass("is-invalid");
+						return false;
+					}
+				}
 				if(hrrref != ""){
+					// Add the spinner to let them know we are loading
+					$("#m-body").append('<div class="d-flex justify-content-center">\
+										<div class="spinner-border" role="status">\
+										<span class="sr-only">Loading...</span>\
+										</div>\
+										</div>');
 					if (actionType == "search"){
 						console.log("searching");
 						console.log("q="+$('#searchquery').val());
@@ -191,6 +256,8 @@
 					if (hrrref == "entryWarn"){
 						setCookie("understands", "yes", 66);
 						$('#exampleModal').modal('toggle');
+						$('#save-get-success').removeClass('d-none');
+						$('#save-get-failed').removeClass('d-none');
 						hrrref = "";
 					}
 					$.get( hrrref, function( data ) {
@@ -330,7 +397,16 @@
 				var modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?"
 			}else if (actionType == "search"){
 				var modalTitle = "Search the database"
-				var modalBody = '<input type="email" class="form-control" id="searchquery" placeholder="Search titles">'
+				//var modalBody = '<input type="email" class="form-control" id="searchquery" placeholder="Search titles">'
+				var modalBody = '<div class="input-group mb-3">\
+								<div class="input-group-prepend">\
+									<span class="input-group-text" id="searchlabel">Search </span>\
+								</div>\
+								<input type="text" class="form-control" id="searchquery" aria-label="searchquery" name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">\
+								      <div id="validationServer03Feedback" class="invalid-feedback">\
+										Search string too short.\
+									  </div>\
+								</div>';
 			}else{
 				var modalTitle = "Do you want to leave this page ?"
 				var modalBody = "To view the log file you need to leave this page. Would you like to leave ?"
@@ -384,7 +460,7 @@
 									<div class="btn-group-vertical" role="group" aria-label="buttons">\
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="'+ job["job_id"] +'" data-href="/json?job='+ job["job_id"] +'&mode=abandon">Abandon Job</button>\
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-jobid="'+ job["job_id"] +'" data-href="/json?job='+ job["job_id"] +'&mode=delete">Delete Job</button>\
-										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="'+ job["job_id"] +'" data-href="/json?logfile='+ job["job_id"] +'&mode=full">View Logfile</button>\
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="'+ job["job_id"] +'" data-href="/json?job='+ job["job_id"] +'&mode=full">View Logfile</button>\
 									</div>\
                                 </div>\
                             </div>\
