@@ -7,6 +7,7 @@ import sys  # noqa: F401
 import bcrypt
 import hashlib
 import json
+import yaml
 import arm.ui.utils as utils
 from time import sleep
 from flask import Flask, render_template, make_response, abort, request, send_file, flash, redirect, url_for, \
@@ -312,21 +313,28 @@ def settings():
         save = request.form['save']
     except KeyError:
         app.logger.debug("no post")
-
+    arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
     try:
         with open(comments_file, "r") as f:
             try:
                 comments = json.load(f)
             except Exception as e:
-                comments = None
                 app.logger.debug(f"Error with comments file. {e}")
                 return render_template("error.html", error=str(e))
     except FileNotFoundError:
         return render_template("error.html", error="Couldn't find the comment.json file")
+    # Import the cfg again as we want the latest values, not stale.
+    try:
+        with open(arm_cfg_file, "r") as f:
+            try:
+                cfg = yaml.load(f, Loader=yaml.FullLoader)
+            except Exception:
+                cfg = yaml.safe_load(f)  # For older versions use this
+    except FileNotFoundError:
+        return render_template("error.html", error="Couldn't find the arm.yaml file")
 
     if save:
-        success = "false"
         # For testing
         x = request.form.to_dict()
         arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
@@ -367,16 +375,14 @@ def settings():
                 app.logger.debug(f"\n{k} = {v} ")
 
         app.logger.debug(f"arm_cfg= {arm_cfg}")
-        arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
         with open(arm_cfg_file, "w") as f:
             f.write(arm_cfg)
             f.close()
-        success = "true"
-        return render_template('settings.html', success=success, settings=cfg,
-                               raw=x, jsoncomments=comments)
+        flash("Setting saved successfully!")
+        return redirect(url_for('settings'))
 
     # If we get to here there was no post data
-    return render_template('settings.html', success="null", settings=cfg, raw=x, jsoncomments=comments)
+    return render_template('settings.html', settings=cfg, raw=x, jsoncomments=comments)
 
 
 @app.route('/logreader')
