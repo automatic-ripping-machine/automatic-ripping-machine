@@ -266,7 +266,7 @@ def get_omdb_poster(title=None, year=None, imdbID=None, plot="short"):
         strurl2 = f"http://www.omdbapi.com/?t={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
     else:
         app.logger.debug("no params")
-        return None
+        return None, None
     from requests.utils import requote_uri
     r = requote_uri(strurl)
     r2 = requote_uri(strurl2)
@@ -276,25 +276,25 @@ def get_omdb_poster(title=None, year=None, imdbID=None, plot="short"):
         title_info_json = urllib.request.urlopen(r).read()
     except Exception as e:
         app.logger.debug(f"Failed to reach OMdb - {e}")
-        return None
+        return None, None
     else:
         title_info = json.loads(title_info_json.decode())
         # app.logger.debug("omdb - " + str(title_info))
         if 'Error' not in title_info:
-            return title_info['Search'][0]['Poster']
+            return title_info['Search'][0]['Poster'], title_info['Search'][0]['imdbID']
         else:
             try:
                 title_info_json2 = urllib.request.urlopen(r2).read()
             except Exception as e:
                 app.logger.debug(f"Failed to reach OMdb - {e}")
-                return None
+                return None, None
             else:
                 title_info2 = json.loads(title_info_json2.decode())
                 # app.logger.debug("omdb - " + str(title_info2))
                 if 'Error' not in title_info2:
-                    return title_info2['Poster']
+                    return title_info2['Poster'], title_info2['imdbID']
 
-    return None
+    return None,None
 
 
 def job_dupe_check(crc_id):

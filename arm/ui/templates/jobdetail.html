@@ -20,10 +20,10 @@
             <div class="table-responsive">
                 <div class="card text-center">
                     {% if not jobs.poster_url %}
-                    <div class="card-header"><a href="select_title?imdbID={{ jobs.imdb_id }}"><img
-                            src="static/img/none.png" width="240px" class="img-thumbnail"></a></div>
+                    <div class="card-header"><a href="select_title?imdbID={{ jobs.imdb_id }}&job_id={{ jobs.job_id }}">
+						<img src="static/img/none.png" width="240px" class="img-thumbnail"></a></div>
                     {% else %}
-                    <div class="card-header"><a href="select_title?imdbID={{ jobs.imdb_id }}"><img
+                    <div class="card-header"><a href="select_title?imdbID={{ jobs.imdb_id }}&job_id={{ jobs.job_id }}"><img
                             src="{{ jobs.poster_url }}" width="240px" class="img-thumbnail"></a></div>
                     {% endif %}
                     <!-- GF Comment -->
