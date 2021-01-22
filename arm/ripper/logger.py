@@ -13,7 +13,7 @@ from arm.ripper import music_brainz
 def setuplogging(job):
     """Setup logging and return the path to the logfile for
     redirection of external calls"""
-    # This isnt catching all of them
+    # This isn't catching all of them
     if job.label == "" or job.label is None:
         if job.disctype == "music":
             # Use the music label if we can find it - defaults to music_cd.log
@@ -68,10 +68,10 @@ def setuplogging(job):
     if cfg['LOGLEVEL'] == "DEBUG":
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s '
                                                      'ARM: %(module)s.%(funcName)s %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
+                            datefmt=cfg['DATE_FORMAT'], level=cfg['LOGLEVEL'])
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', level=cfg['LOGLEVEL'])
+                            datefmt=cfg['DATE_FORMAT'], level=cfg['LOGLEVEL'])
     # logging.debug("Logfull = " + logfull)
 
     # This stops apprise spitting our secret keys when users posts online

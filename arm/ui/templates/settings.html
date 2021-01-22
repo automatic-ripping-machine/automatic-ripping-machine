@@ -65,15 +65,6 @@
 {{ super() }}
   <script type="application/javascript">
       $(function () {
-		x = {{ success }};
-		
-		if(typeof (x) === "boolean"){
-			if (x === true ){
-				$('#success').removeClass("d-none");
-			}else{
-				$('#fail').removeClass("d-none");
-			}
-		}
 		$(".popovers").popover({ 
 			trigger: "hover",
 		});

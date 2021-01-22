@@ -5,8 +5,8 @@
 build_target="${1:-combined}"
 image_name="arm-${build_target}"
 image_label="${2:-latest}"
-image_created="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-image_revision="$(git rev-parse --short HEAD)"
+image_created="$(date -u +'%Y-%m-%d T%H:%M:%SZ')"
+image_revision="2.4.6_dev"
 apt_proxy="${APT_PROXY:+--build-arg APT_PROXY=${APT_PROXY}}"
 
 cd "$(dirname -- "${BASH_SOURCE[0]}")/.."

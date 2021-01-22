@@ -294,7 +294,7 @@ def get_omdb_poster(title=None, year=None, imdbID=None, plot="short"):
                 if 'Error' not in title_info2:
                     return title_info2['Poster'], title_info2['imdbID']
 
-    return None,None
+    return None, None
 
 
 def job_dupe_check(crc_id):

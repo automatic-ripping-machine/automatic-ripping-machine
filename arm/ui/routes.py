@@ -47,7 +47,7 @@ def setup():
     perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
     app.logger.debug("perm " + str(perm_file))
     if perm_file.exists():
-        flash(str(perm_file) + " exists, setup cannot continue. To re-install please delete this file.")
+        flash(str(perm_file) + " exists, setup cannot continue. To re-install please delete this file.", "danger")
         app.logger.debug("perm exist GTFO")
         return redirect('/setup-stage2')  # We push to setup-stage2 and let it decide where the user needs to go
     dir0 = Path(PurePath(cfg['DBFILE']).parent)
@@ -80,12 +80,12 @@ def setup():
         flash(f"Creation of the directory {dir0} failed {e}")
         app.logger.debug(f"Creation of the directory failed - {e}")
     else:
-        flash("Successfully created all of the ARM directories")
+        flash("Successfully created all of the ARM directories", "success")
         app.logger.debug("Successfully created all of the ARM directories")
 
     try:
         if utils.setupdatabase():
-            flash("Setup of the database was successful.")
+            flash("Setup of the database was successful.", "success")
             app.logger.debug("Setup of the database was successful.")
             perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
             f = open(perm_file, "w")
@@ -93,7 +93,7 @@ def setup():
             f.close()
             return redirect('/setup-stage2')
         else:
-            flash("Couldn't setup database")
+            flash("Couldn't setup database", "danger")
             app.logger.debug("Couldn't setup database")
             return redirect("/error")
     except Exception as e:
@@ -114,7 +114,6 @@ def setup_stage2():
         # Return the user to login screen if we dont error when calling for any users
         users = User.query.all()
         if users:
-            # TODO remove all flash() and use the nicer ui
             flash('You cannot create more than 1 admin account')
             return redirect(url_for('login'))
         # return redirect('/login')
@@ -143,7 +142,7 @@ def setup_stage2():
             try:
                 db.session.commit()
             except Exception as e:
-                flash(str(e))
+                flash(str(e), "danger")
                 return redirect('/setup-stage2')
             else:
                 return redirect(url_for('login'))
@@ -313,8 +312,8 @@ def settings():
         save = request.form['save']
     except KeyError:
         app.logger.debug("no post")
-    arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
-    comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
+    arm_cfg_file = "/opt/arm/arm.yaml"
+    comments_file = "/opt/arm/arm/ui/comments.json"
     try:
         with open(comments_file, "r") as f:
             try:
@@ -378,7 +377,7 @@ def settings():
         with open(arm_cfg_file, "w") as f:
             f.write(arm_cfg)
             f.close()
-        flash("Setting saved successfully!")
+        flash("Setting saved successfully!", "success")
         return redirect(url_for('settings'))
 
     # If we get to here there was no post data
@@ -489,7 +488,7 @@ def abandon_job():
         db.session.commit()
         return render_template('jobdetail.html', success="true", jobmessage="Job was abandoned!", jobs=job)
     except Exception as e:
-        flash(f"Failed to update job {e}")
+        flash(f"Failed to update job {e}", "danger")
         return render_template('error.html')
 
 
@@ -501,7 +500,7 @@ def submitrip():
     form = TitleSearchForm(obj=job)
     if form.validate_on_submit():
         form.populate_obj(job)
-        flash(f'Search for {form.title.data}, year={form.year.data}', category='success')
+        flash(f'Search for {form.title.data}, year={form.year.data}', 'success')
         return redirect(url_for('list_titles', title=form.title.data, year=form.year.data, job_id=job_id))
     return render_template('titlesearch.html', title='Update Title', form=form)
 
@@ -527,7 +526,7 @@ def changeparams():
         db.session.refresh(config)
         flash(f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},'
               f'Minimum Length={config.MINLENGTH}, '
-              f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}')
+              f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}', "success")
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
@@ -543,7 +542,7 @@ def customtitle():
         job.title = format(form.title.data)
         job.year = format(form.year.data)
         db.session.commit()
-        flash(f'custom title changed. Title={form.title.data}, Year={form.year.data}.')
+        flash(f'custom title changed. Title={form.title.data}, Year={form.year.data}.', "success")
         return redirect(url_for('home'))
     return render_template('customTitle.html', title='Change Title', form=form)
 
@@ -556,7 +555,7 @@ def list_titles():
     job_id = request.args.get('job_id').strip() if request.args.get('job_id') else ''
     if job_id == "":
         app.logger.debug("list_titles - no job supplied")
-        flash("No job supplied")
+        flash("No job supplied", "danger")
         return redirect('/error')
     dvd_info = utils.call_omdb_api(title, year)
     return render_template('list_titles.html', results=dvd_info, job_id=job_id)
@@ -570,11 +569,11 @@ def gettitle():
     job_id = request.args.get('job_id').strip() if request.args.get('job_id') else None
     if imdb_id == "" or imdb_id is None:
         app.logger.debug("gettitle - no job supplied")
-        flash("No job supplied")
+        flash("No job supplied", "danger")
         return redirect('/error')
     if job_id == "" or job_id is None:
         app.logger.debug("gettitle - no job supplied")
-        flash("No job supplied")
+        flash("No job supplied", "danger")
         return redirect('/error')
     dvd_info = utils.call_omdb_api(None, None, imdb_id, "full")
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
@@ -603,8 +602,7 @@ def updatetitle():
     job.poster_url = poster_url
     job.hasnicetitle = True
     db.session.commit()
-    flash(f'Title: {job.title_auto} ({job.year_auto}) was updated to {new_title} ({new_year})',
-          category='success')
+    flash(f'Title: {job.title_auto} ({job.year_auto}) was updated to {new_title} ({new_year})', "success")
     return redirect(url_for('home'))
 
 
@@ -654,7 +652,7 @@ def home():
         mfreegb = 0
         media_percent = 0
         app.logger.debug("ARM folders not found")
-        flash("There was a problem accessing the ARM folders. Please make sure you have setup the ARMui")
+        flash("There was a problem accessing the ARM folders. Please make sure you have setup the ARMui", "danger")
         # We could check for the install file here  and then error out if we want
     #  RAM
     memory = psutil.virtual_memory()

@@ -21,7 +21,7 @@ if ! id -u "${USER}" ; then
 fi
 
 # setup needed/expected dirs if not found
-SUBDIRS="media media/completed media/raw media/movies encode logs db Music .MakeMKV"
+SUBDIRS="config media media/completed media/raw media/movies encode logs db Music .MakeMKV"
 for dir in $SUBDIRS ; do
   thisDir="${HOME}/${dir}"
   if [[ ! -d "${thisDir}" ]] ; then
@@ -30,14 +30,20 @@ for dir in $SUBDIRS ; do
     chown "${USER}.${USER}" "${thisDir}"
   fi
 done
-if [[ ! -f "${HOME}/arm.yaml" ]] ; then
-  echo "creating example ARM config ${HOME}/arm.yaml"
-  cp /opt/arm/docs/arm.yaml.sample "${HOME}/arm.yaml"
-  chown "${USER}.${USER}" "${HOME}/arm.yaml"
+if [[ ! -f "${HOME}/config/arm.yaml" ]] ; then
+  echo "creating example ARM config ${HOME}/config/arm.yaml"
+  cp /opt/arm/docs/arm.yaml.sample "${HOME}/config/arm.yaml"
+  chown "${USER}.${USER}" "${HOME}/config/arm.yaml"
+fi
+if [[ ! -f "${HOME}/config/apprise.yaml" ]] ; then
+  echo "creating example ARM config ${HOME}/config/apprise.yaml"
+  cp /opt/arm/docs/apprise.yaml "${HOME}/config/apprise.yaml"
+  chown "${USER}.${USER}" "${HOME}/config/apprise.yaml"
 fi
 if [[ ! -f "${HOME}/.abcde.conf" ]] ; then
   echo "creating example abcde config ${HOME}/.abcde.conf"
   cp /opt/arm/setup/.abcde.conf "${HOME}/.abcde.conf"
+  ln -sv "${HOME}/.abcde.conf" "${HOME}/config/.abcde.conf"
   chown "${USER}.${USER}" "${HOME}/.abcde.conf"
 fi
 echo "setting makemkv app-Key"

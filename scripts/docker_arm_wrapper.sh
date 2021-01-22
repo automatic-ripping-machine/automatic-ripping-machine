@@ -7,21 +7,29 @@ DOCKER_IMAGE="arm-combined:latest"
 CONTAINER_NAME="arm-rippers"
 CONTAINER_VOLUME="/home/arm:/home/arm"
 CONTAINER_RESTART="on-failure:3"
-ARM_UID="1000" # "$(id -u plex)"
-ARM_GID="1000" # "$(id -g plex)"
+ARM_UID="0" # "$(id -u plex)"
+ARM_GID="0" # "$(id -g plex)"
+
+sleep 5 # allow the system enough time to load disc information such as title
+
+echo "Enterting docker wrapper" | logger -t ARM -s
 
 # exit if udev ID_CDROM_MEDIA properties not available yet
 # avoid running too early
 if [[ -z "${!ID_CDROM_MEDIA_*}" ]] ; then
+  echo "No ID_s" | logger -t ARM -s
   # echo "$(date) disk not ready/identified yet" >> /tmp/docker_arm_wrapper.log
+echo "xxx" | logger -t ARM -s
+
   exit 0
 fi
 
 # fork to let udev keep running
 if [[ "${1:-}" != "fork" ]] ; then
   #{ "$0" fork "$*" > /dev/null 2>&1 < /dev/null & } &
-  echo "$0 fork $@" | at -M now # systemd udev hates children
-  exit 0
+  echo "$0 xxx1 $@" | logger -t ARM -s
+  #echo "$0 fork $@" | at -M now # systemd udev hates children
+  #exit 0
 else
   # get rid of "fork" arg
   shift
@@ -29,17 +37,28 @@ fi
 
 DEVNAME="$1"
 if [[ -z "${DEVNAME}" ]] ; then
+echo "xxx2" | logger -t ARM -s
+
   echo "Usage: $(basename -- "$0") <device>" | logger -t ARM -s
+  echo "devname messed up" | logger -t ARM -s
   exit 1
 fi
 if [[ ! -b "${DEVNAME}" && -b "/dev/${DEVNAME}" ]] ; then
+echo "xxx3" | logger -t ARM -s
+
+  echo "fixing devname" | logger -t ARM -s
   DEVNAME="/dev/${DEVNAME}"
 fi
 
 function findGenericDevice {
+echo "xxx4" | logger -t ARM -s
+
   if command -v lsscsi > /dev/null ; then
     SG_DEV="$(lsscsi -g | sed -ne '/\/dev\/sr[0-9]/ s#.*\(/dev/sg[0-9]*\) *#\1#p')"
+    echo "xxx5" | logger -t ARM -s
+
     if [[ -n "${SG_DEV}" ]] ; then
+      echo "xxx6" | logger -t ARM -s
       echo "Found generic device for ${DEVNAME}: ${SG_DEV}" | logger -t ARM
       echo "${SG_DEV}"
     fi
@@ -49,6 +68,7 @@ function findGenericDevice {
 function runArmContainer {
   SG_DEV="$(findGenericDevice)"
   if [[ -n "${SG_DEV}" ]] ; then
+    echo "xxx7" | logger -t ARM -s
     SG_DEV_ARG="--device=${SG_DEV}:/dev/sg0"
   fi
   echo "Starting on ${DEVNAME} ${SG_DEV}" | logger -t ARM
@@ -81,23 +101,20 @@ function startArmRip {
   local disctype="$(echo ${!ID_CDROM_MEDIA_*} \
     | sed -nE '/.*(ID_CDROM_MEDIA_(BD|DVD|TRACK_COUNT_AUDIO)).*/ s//\1=1/p' )"
   local label_flag="${ID_FS_LABEL:+-l ID_FS_LABEL=${ID_FS_LABEL}}"
-  if [[ -z "${disctype}" ]] ; then 
+  if [[ -z "${disctype}" ]] ; then
     disctype="unknown=1"
   fi
-  
   # This lets us get all of udev perams
   echo "Starting udev in ${CONTAINER_NAME}" | logger -t ARM
   #docker exec -i -w /home/arm \
     #"${CONTAINER_NAME}" \
     #/bin/bash /etc/init.d/udev start | logger -t ARM
-  
   echo "Starting rip" | logger -t ARM
   echo "trying - docker exec -i -u ${ARM_UID} \
     -w /home/arm \
     ${CONTAINER_NAME} \
     python3 /opt/arm/arm/ripper/main.py \
       -d ${DEVNAME} -t ${disctype} ${label_flag} " | logger -t ARM
-   
   docker exec -i \
     -u "${ARM_UID}" \
     -w /home/arm \
@@ -118,8 +135,11 @@ case "${container_status//\"}" in
     ;;
   *)
     runArmContainer
-    ;;  
+    ;;
 esac
 
 # start the rip inside the same container
+
+echo "xxx0" | logger -t ARM -s
 startArmRip
+

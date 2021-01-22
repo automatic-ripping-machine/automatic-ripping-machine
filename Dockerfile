@@ -24,7 +24,6 @@ RUN mkdir /opt/arm
 WORKDIR /opt/arm
 
 COPY ./scripts/add-ppa.sh /root/add-ppa.sh
-
 # setup Python virtualenv and gnupg/wget for add-ppa.sh
 RUN \
   apt update -y && \
@@ -171,22 +170,24 @@ COPY --from=pip-ripper /opt/venv /opt/venv
 FROM deps-${target} AS install
 # default directories and configs
 RUN \
-  mkdir -m 0777 -p /home/arm /mnt/dev/sr0 /mnt/dev/sr1 /mnt/dev/sr2 /mnt/dev/sr3 /mnt/dev/sr4 && \
-  ln -sv /home/arm/arm.yaml /opt/arm/arm.yaml && \
-  echo "/dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8,ro  0  0" >> /etc/fstab  && \
-  echo "/dev/sr1  /mnt/dev/sr1  udf,iso9660  user,noauto,exec,utf8,ro  0  0" >> /etc/fstab  && \
-  echo "/dev/sr2  /mnt/dev/sr2  udf,iso9660  user,noauto,exec,utf8,ro  0  0" >> /etc/fstab  && \
-  echo "/dev/sr3  /mnt/dev/sr3  udf,iso9660  user,noauto,exec,utf8,ro  0  0" >> /etc/fstab  && \
-  echo "/dev/sr4  /mnt/dev/sr4  udf,iso9660  user,noauto,exec,utf8,ro  0  0" >> /etc/fstab
+  mkdir -m 0777 -p /home/arm /home/arm/config /mnt/dev/sr0 /mnt/dev/sr1 /mnt/dev/sr2 /mnt/dev/sr3 /mnt/dev/sr4 && \
+  ln -sv /home/arm/config/arm.yaml /opt/arm/arm.yaml && \
+  ln -sv /opt/arm/apprise.yaml /home/arm/config/apprise.yaml && \
+  echo "/dev/sr0  /mnt/dev/sr0  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab  && \
+  echo "/dev/sr1  /mnt/dev/sr1  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab  && \
+  echo "/dev/sr2  /mnt/dev/sr2  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab  && \
+  echo "/dev/sr3  /mnt/dev/sr3  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab  && \
+  echo "/dev/sr4  /mnt/dev/sr4  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab
 
 # copy ARM source last, helps with Docker build caching
 COPY . /opt/arm/ 
 
 EXPOSE 8080
-VOLUME /home/arm
-#VOLUME /home/arm/Music
-#VOLUME /home/arm/logs
-#VOLUME /home/arm/media
+#VOLUME /home/arm
+VOLUME /home/arm/Music
+VOLUME /home/arm/logs
+VOLUME /home/arm/media
+VOLUME /home/arm/config
 WORKDIR /home/arm
 
 ENTRYPOINT ["/opt/arm/scripts/docker-entrypoint.sh"]
@@ -194,10 +195,10 @@ CMD ["python3", "/opt/arm/arm/runui.py"]
 
 
 # pass build args for labeling
-ARG image_revision=
-ARG image_created=
+ARG image_revision=1.1
+ARG image_created
 
-LABEL org.opencontainers.image.source https://github.com/automatic-ripping-machine/automatic-ripping-machine
-LABEL org.opencontainers.image.revision ${image_revision}
-LABEL org.opencontainers.image.created ${image_created}
-LABEL org.opencontainers.image.license MIT
+LABEL org.opencontainers.image.source=https://github.com/1337-server/automatic-ripping-machine
+LABEL org.opencontainers.image.revision="2.4.6"
+LABEL org.opencontainers.image.created=${image_created}
+LABEL org.opencontainers.image.license=MIT

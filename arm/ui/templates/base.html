@@ -72,10 +72,10 @@
       </div>
     {% endblock %}
     <div id="content" class="h-100" style="width: 99%;padding-top: 51px;padding-left: 15px;">
-	{% with messages = get_flashed_messages() %}
+	{% with messages = get_flashed_messages(with_categories=true) %}
 		{% if messages %}
-			{% for message in messages %}
-				<div id="message1" class="alert alert-warning" role="alert">
+			{% for category, message in messages %}
+				<div id="message1" class="alert alert-{{ category if category !="message" else 'info' }}" role="alert">
 					<h4 class="alert-heading">{{ message }}</h4>
 				</div>
 			{% endfor %}
