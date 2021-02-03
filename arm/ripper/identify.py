@@ -173,10 +173,12 @@ def identify_dvd(job):
         urlstring = f"http://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
         logging.debug(urlstring)
         dvd_info_xml = urllib.request.urlopen(urlstring).read()
+        logging.debug("dvd xml - " + str(dvd_info_xml))
     except pydvdid.exceptions.PydvdidException as e:
         logging.error("Pydvdid failed with the error: " + str(e))
         dvd_title = fallback_title = str(job.label)
-
+    # TODO: make use of dvd_info_xml again if found
+    
     logging.debug("dvd_title_label= " + str(dvd_title))
     # strip all non-numeric chars and use that for year
     year = re.sub(r"[^0-9]", "", str(job.year))
@@ -195,7 +197,6 @@ def identify_dvd(job):
         logging.debug("using tmdb")
         tmdb_api_key = cfg['TMDB_API_KEY']
         dvd_info_xml = call_tmdb_service(job, tmdb_api_key, dvd_title, year)
-        logging.debug("dvD_info_xml" + str(dvd_info_xml))
     elif cfg['METADATA_PROVIDER'].lower() == "omdb":
         logging.debug("using omdb")
         dvd_info_xml = callwebservice(job, job.config.OMDB_API_KEY, dvd_title, year)
@@ -256,7 +257,7 @@ def get_video_details(job):
     logging.debug("Calling webservice with title: " + title + " and year: " + year)
 
     response = call_web_service(job, omdb_api_key, title, year)
-    logging.debug("response: " + str(response))
+    # logging.debug("response: " + str(response))
 
     # handle failures
     # this is a little kludgy, but it kind of works...
@@ -379,8 +380,6 @@ def call_tmdb_service(job, tmdb_api_key, dvd_title, year=""):
     logging.debug(f"url = {clean_url}")
     response = requests.get(url)
     p = json.loads(response.text)
-    v = json.dumps(response.json(), indent=4, sort_keys=True)
-    logging.debug(v)
     x = {}
     # Check for movies
     if p['total_results'] > 0:
@@ -429,8 +428,8 @@ def call_tmdb_service(job, tmdb_api_key, dvd_title, year=""):
         url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={dvd_title}"
         response = requests.get(url)
         p = json.loads(response.text)
-        v = json.dumps(response.json(), indent=4, sort_keys=True)
-        logging.debug(v)
+        # v = json.dumps(response.json(), indent=4, sort_keys=True)
+        # logging.debug(v)
         x = {}
         if p['total_results'] > 0:
             logging.debug(p['total_results'])
@@ -518,7 +517,7 @@ def tmdb_get_media_type(job):
     logging.debug("Title: " + title + " | Year: " + year)
     logging.debug("Calling webservice with title: " + title + " and year: " + year)
     response = call_tmdb_service(job, tmdb_api_key, title, year)
-    logging.debug("response: " + str(response))
+    # logging.debug("response: " + str(response))
 
     # handle failures
     # this is a little kludgy, but it kind of works...
@@ -581,7 +580,6 @@ def tmdb_get_imdb(tmdb_id, tmdb_api_key):
     logging.debug(clean_url)
     response = requests.get(url)
     p = json.loads(response.text)
-    logging.debug(p)
     if 'status_code' not in p:
         p['imdbID'] = p['external_ids']['imdb_id']
     else:
