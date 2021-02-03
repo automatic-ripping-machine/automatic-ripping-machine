@@ -173,12 +173,21 @@ def identify_dvd(job):
         urlstring = f"http://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
         logging.debug(urlstring)
         dvd_info_xml = urllib.request.urlopen(urlstring).read()
-        logging.debug("dvd xml - " + str(dvd_info_xml))
+        x = json.loads(dvd_info_xml)
+        logging.debug("dvd xml - " + str(x))
+        logging.debug(f"results = {x['results']}")
+        if bool(x['success']):
+            job.title = x['results']['0']['title']
+            job.year = x['results']['0']['year']
+            job.imdb_id = x['results']['0']['imdb_id']
+            job.video_type = x['results']['0']['video_type']
+            db.session.commit()
+            return True
     except pydvdid.exceptions.PydvdidException as e:
         logging.error("Pydvdid failed with the error: " + str(e))
         dvd_title = fallback_title = str(job.label)
     # TODO: make use of dvd_info_xml again if found
-    
+
     logging.debug("dvd_title_label= " + str(dvd_title))
     # strip all non-numeric chars and use that for year
     year = re.sub(r"[^0-9]", "", str(job.year))
