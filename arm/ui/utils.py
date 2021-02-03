@@ -547,7 +547,9 @@ def tmdb_get_imdb(tmdb_id):
     response = requests.get(url)
     p = json.loads(response.text)
     app.logger.debug(f"tmdb_get_imdb - {p}")
+    # 'status_code' means id wasn't found
     if 'status_code' in p:
+        # Try tv series
         response = requests.get(url_tv)
         tv = json.loads(response.text)
         app.logger.debug(tv)

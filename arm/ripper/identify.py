@@ -582,7 +582,7 @@ def tmdb_get_imdb(tmdb_id, tmdb_api_key):
     response = requests.get(url)
     p = json.loads(response.text)
     logging.debug(p)
-    if 'status_code' not in p and p['status_code'] != 34:
+    if 'status_code' not in p:
         p['imdbID'] = p['external_ids']['imdb_id']
     else:
         p['imdbID'] = "NA"
