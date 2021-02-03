@@ -1,5 +1,18 @@
 # Changelog
-## Current pre-release v2.4.6
+
+
+## Current pre-release v2.5.0
+  - Only one large item for this version.
+
+    Now added the possibility for users to use [TMDB](https://developers.themoviedb.org/3/getting-started/introduction) as their metadata provider, this only works for movies at the moment. 
+    In time this will have the same functionality as OMDB (movies and tv shows)
+    The idea driving this is that users should be able to choose their metadata provider.
+    I also think this is safer route in the long term, its better to have multiple options than only focus on one provider.
+    
+    - Added method to let users send/submit their correctly identified movies to a new crc64 API (an api key required)
+    - Added check for crc64 from remote database
+
+## v2.4.6
  - Updated jquery tablesorter, old version was vulnerable to XSS 
  - Removed all unused versions of CSS 
  - Smalls validation checks when searching the database page. (searching now requires min 3 chars)

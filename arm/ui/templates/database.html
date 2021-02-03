@@ -26,14 +26,14 @@
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLongTitle">Delete this job forever ??</h5>
+        <h5 class="modal-title" id="exampleModalLongTitle"></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
       <div class="modal-body">
         <p><span class="ui-icon ui-icon-alert" style="margin:12px 12px 20px 0;"></span>
-		<span id="m-body">These items will be permanently deleted and cannot be recovered. Are you sure?</span></p>
+		<span id="m-body"></span></p>
       </div>
       <div class="modal-footer">
 	    <button id="save-get-success" type="button" class="btn btn-secondary btn-success">Get all successful jobs</button>
@@ -314,12 +314,12 @@
 									$('#m-body').addClass('bd-example-modal-lg')
 									$('#m-body').modal('handleUpdate')
 									$('#exampleModal').modal('toggle');
-									$('#message1').removeClass('d-none');
+									$('#message1').removeClass('d-none').removeClass('alert-danger').addClass('alert-success');;
 									$('#message2').addClass('d-none');
 									$('#message3').addClass('d-none');
 								}else{
 									$("#message1 .alert-heading").html("I couldnt find any results matching that title")
-									$('#message1').removeClass('d-none');
+									$('#message1').removeClass('d-none').removeClass('alert-success').addClass('alert-danger');
 									$('#exampleModal').modal('toggle');
 								}
 							}
@@ -422,7 +422,7 @@
             <div class="card mb-3  mx-auto" style="max-width: 600px">\
             <div class="row no-gutters">\
                             <div class="col-lg-4">\
-							<a href="jobdetail?job_id='+ job["job_id"] +'"><img src="' + job["poster_url"] +'\
+							<a href="jobdetail?job_id='+ job["job_id"] +'"><img src="' + job["poster_url"] +'" \
                                                                                  width="240px"\
                                                                                  class="img-thumbnail"></a>\
 																				 </div>\

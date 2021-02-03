@@ -1,40 +1,108 @@
 {% extends "base.html" %}
-{% block title %}Logs{% endblock %}
+{% block title %}Job details{% endblock %}
 
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-<!-- We keep this here incase we need it later -->
-<div class="alert alert-success d-none" role="alert" id="success">
-  <h4 class="alert-heading">{{ jobmessage }}</h4>
-</div>
-<div class="alert alert-danger d-none" role="alert" id="fail">
-  <h4 class="alert-heading">{{ jobmessage }}</h4>
-  <hr>
-  <h3> {{ raw }}</h3>
-</div>
+<style>
+div.card div.background-poster{
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+	/*
+	background-size: 100% 100%;
+	*/
+    background-image: url({{ jobs.background }});
+}
+div.metacritic{
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+	/*
+	background-size: 100% 100%;
+	*/
+	background-color: #fc3;
+	border-radius: 50% !important;
+}
+div.internet-movie-database{
+    background: url("https://m.media-amazon.com/images/S/sash/7n0KRCHny73GkBG.png") no-repeat 0 -80px;
+    padding-left: 20px;
+	font-weight: bolder;
+}
+div.rotten-tomatoes{
+    background: url("https://www.rottentomatoes.com/assets/pizza-pie/images/icons/tomatometer/tomatometer-fresh.149b5e8adc3.svg") no-repeat 0 0;
+    padding-left: 23px;
+	font-weight: bolder;
+	background-size: 33% 100%;
+	background-position: left; 
+}
+div.rotten-tomatoes-rotten{
+	background: url("https://www.rottentomatoes.com/assets/pizza-pie/images/icons/tomatometer/tomatometer-rotten.f1ef4f02ce3.svg") no-repeat 0 0;
+    padding-left: 23px;
+	font-weight: bolder;
+	background-size: 33% 100%;
+	background-position: left; 
+
+}
+div.ratings{
+	margin-top: -50px !important;
+}
+</style>
+<!--{{s}}
+<br>
+<br>
+{{jobs}}
+-->
 <div class="container">
     <div class="row">
         <!-- <div class="col-sm-1"></div> -->
         <div class="col-sm-12">
             <div class="table-responsive">
-                <div class="card text-center">
-                    {% if not jobs.poster_url %}
-                    <div class="card-header"><a href="select_title?imdbID={{ jobs.imdb_id }}&job_id={{ jobs.job_id }}">
-						<img src="static/img/none.png" width="240px" class="img-thumbnail"></a></div>
-                    {% else %}
-                    <div class="card-header"><a href="select_title?imdbID={{ jobs.imdb_id }}&job_id={{ jobs.job_id }}"><img
-                            src="{{ jobs.poster_url }}" width="240px" class="img-thumbnail"></a></div>
-                    {% endif %}
-                    <!-- GF Comment -->
-                    <div class="card-body"><b>{{ jobs.title }}</b> - {{ jobs.video_type.capitalize() }} ({{ jobs.year
-                        }}) <br/> <br/>
-                        {% if jobs.video_type != "Music" %}
-                        <a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title Search</a></li>
-                        <a href="customTitle?job_id={{ jobs.job_id }}" class="btn btn-primary">Custom Title</a>
-                        {% endif %}
+                <div class="card{{ ' text-center' if jobs.background is none  else '' }}">
+				                    <!-- GF Comment -->
+                    <div class="card-header text-center">
+						<h4>{{ jobs.title }} - {{ jobs.video_type.capitalize() }} ({{ jobs.year }})</h4> 
+						<div class="ratings float-right mt-0">
+						<!-- Proof that just because you CAN doesnt mean you should! -->
+						{% for ratings in s['Ratings'] %}
+							<div class="{{ ratings['Source']|replace(' ', '-')|lower }}{{'-rotten' if ratings['Source'] == 'Rotten Tomatoes' and ratings['Value']|replace('%','')| int < 60 else '' }}">
+								{{ ratings['Value'].split('/')[0] if '/' in ratings['Value'] else ratings['Value']}}
+							</div>
+						{% endfor %}
+						</div>
                     </div>
-                    <div class="card-body">
+                    {% if not jobs.poster_url %}
+                    <div class="card-header background-poster">
+					
+						<a id="posterClick" href="#">
+							<img src="static/img/none.png" width="240px" class="img-thumbnail"></a>
+							{% if jobs.video_type != "Music" %}
+							<div class="btn-group float-right mt-2" role="group">
+								<a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title Search</a>
+								<a href="customTitle?job_id={{ jobs.job_id }}" class="btn btn-primary">Custom Title</a>
+							    <a id="plot" class="btn btn-primary">Plot</a>
+							</div>
+							{% endif %}
+					</div>
+                    {% else %}
+                    <div class="card-header background-poster">
+						<a id="posterClick" href="#">
+							<img src="{{ jobs.poster_url }}" width="240px" class="img-thumbnail"></a>
+							{% if jobs.video_type != "Music" %}
+							<div class="btn-group float-right mt-2"  role="group">
+								<a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title Search</a>
+								<a href="customTitle?job_id={{ jobs.job_id }}" class="btn btn-primary">Custom Title</a>
+							    <a id="plot" class="btn btn-primary">Plot</a>
+							</div>
+							{% endif %}
+					</div>
+                    {% endif %}
+          			<div id="plotInfo" class="alert alert-info text-center" style="display: none;" role="alert">
+						<h4 class="alert-heading">Plot for {{ jobs.title }}</h4>
+						<hr>
+						<p class="mb-0">{{jobs.plot}}</p>
+					</div>
+					<div class="card-body">
                         <table id="jobtable" class="table table-striped">
                             <thead class="bg-secondary">
                             <tr>
@@ -263,26 +331,17 @@
                     <!-- <div class="card-footer"><a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">New Search</a> </div> -->
                 </div>
             </div>
-            <!-- <div class="col-sm-1"></div> -->
+        <!-- <div class="col-sm-1"></div> -->
         </div>
     </div>
 </div>
   <script type="application/javascript">
       $(function () {
-		{% if success is not none %}
-			x = {{ success }}
-		{% else %}
-			x = null
-		{% endif %}
-		if(typeof (x) === "boolean"){
-			if (x === true ){
-				$('#success').removeClass("d-none");
-			}else{
-				$('#fail').removeClass("d-none");
-			}
-		}
-		$(".popovers").popover({ 
-			trigger: "hover",
+		$("#plot").click(function() {
+			$("#plotInfo").slideToggle(1000);
+		});
+		$("#posterClick").click(function(){
+			$("#plotInfo").slideToggle(1000);
 		});
       });
 

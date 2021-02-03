@@ -3,6 +3,7 @@ from time import strftime, localtime
 import urllib
 import json
 import re
+import requests
 import bcrypt  # noqa: F401
 import html
 from pathlib import Path
@@ -96,7 +97,6 @@ def generate_comments():
 
 
 def generate_log(logpath, job_id):
-
     try:
         job = Job.query.get(job_id)
     except Exception:
@@ -104,7 +104,7 @@ def generate_log(logpath, job_id):
         job = None
 
     app.logger.debug("in logging")
-    if job is None:
+    if job is None or job.logfile is None or job.logfile == "":
         app.logger.debug(f"Cant find the job {job_id}")
         return {'success': False, 'job': job_id, 'log': 'Not found'}
     # Assemble full path
@@ -261,6 +261,7 @@ def get_omdb_poster(title=None, year=None, imdbID=None, plot="short"):
     title_info = {}
     if imdbID:
         strurl = f"http://www.omdbapi.com/?i={imdbID}&plot={plot}&r=json&apikey={omdb_api_key}"
+        strurl2 = ""
     elif title:
         strurl = f"http://www.omdbapi.com/?s={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
         strurl2 = f"http://www.omdbapi.com/?t={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
@@ -359,3 +360,267 @@ def get_x_jobs(job_status):
     else:
         app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
         return {'success': False, 'mode': job_status, 'results': {}}
+
+
+def get_tmdb_poster(search_query=None, year=None):
+    """ Queries api.themoviedb.org for the poster/backdrop for movie """
+    tmdb_api_key = cfg['TMDB_API_KEY']
+    if year:
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}&year={year}"
+        # url_clean = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={search_query}&year={year}"
+    else:
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}"
+        # url_clean = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={search_query}"
+    # Valid poster sizes
+    # "w92", "w154", "w185", "w342", "w500", "w780", "original"
+    poster_size = "original"
+    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
+    response = requests.get(url)
+    p = json.loads(response.text)
+
+    # x = json.dumps(response.json(), indent=4, sort_keys=True)
+    # print(x)
+    if p['total_results'] > 0:
+        app.logger.debug(p['total_results'])
+        for s in p['results']:
+            if s['poster_path'] is not None:
+                if 'release_date' in s:
+                    x = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['release_date'])
+                    app.logger.debug(f"{s['title']} ({x})- {poster_base}{s['poster_path']}")
+                    s['poster_url'] = f"{poster_base}{s['poster_path']}"
+                    s["Plot"] = s['overview']
+                    # print(poster_url)
+                    s['background_url'] = f"{poster_base}{s['backdrop_path']}"
+                    s['Type'] = "movie"
+                    app.logger.debug(s['background_url'])
+                    return s
+    else:
+        url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={search_query}"
+        response = requests.get(url)
+        p = json.loads(response.text)
+        v = json.dumps(response.json(), indent=4, sort_keys=True)
+        app.logger.debug(v)
+        x = {}
+        if p['total_results'] > 0:
+            app.logger.debug(p['total_results'])
+            for s in p['results']:
+                app.logger.debug(s)
+                s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
+                s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
+                s['imdbID'] = tmdb_get_imdb(s['id'])
+                reg = "-[0-9]{0,2}-[0-9]{0,2}"
+                s['Year'] = re.sub(reg, "", s['first_air_date']) if 'first_air_date' in s else \
+                    re.sub(reg, "", s['release_date'])
+                s['Title'] = s['title'] if 'title' in s else s['name']  # This isnt great
+                s['Type'] = "movie"
+                app.logger.debug(f"{s['Title']} ({s['Year']})- {poster_base}{s['poster_path']}")
+                s['Poster'] = f"{poster_base}{s['poster_path']}"  # print(poster_url)
+                s['background_url'] = f"{poster_base}{s['backdrop_path']}"
+                s["Plot"] = s['overview']
+                app.logger.debug(s['background_url'])
+                search_query_pretty = re.sub(r"\+", " ", search_query)
+                app.logger.debug(f"trying {search_query.capitalize()} == {s['Title'].capitalize()}")
+                if search_query_pretty.capitalize() == s['Title'].capitalize():
+                    s['Search'] = s
+                    app.logger.debug("x=" + str(x))
+                    s['Response'] = True
+                    return s
+            x['Search'] = p['results']
+            return x
+        app.logger.debug("no results found")
+        return None
+
+
+def tmdb_search(search_query=None, year=None):
+    """
+        Queries api.themoviedb.org for movies close to the query
+
+    """
+    # https://api.themoviedb.org/3/movie/78?api_key=
+    # &append_to_response=alternative_titles,changes,credits,images,keywords,lists,releases,reviews,similar,videos
+    tmdb_api_key = cfg['TMDB_API_KEY']
+    if year:
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}&year={year}"
+        # url_clean = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={search_query}&year={year}"
+    else:
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}"
+        # url_clean = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={search_query}"
+    # Valid poster sizes
+    # "w92", "w154", "w185", "w342", "w500", "w780", "original"
+    poster_size = "original"
+    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
+    # Making a get request
+    response = requests.get(url)
+    p = json.loads(response.text)
+
+    # x = json.dumps(response.json(), indent=4, sort_keys=True)
+    # print(x)
+    x = {}
+    if p['total_results'] > 0:
+        app.logger.debug(f"tmdb_search - found {p['total_results']} movies")
+        for s in p['results']:
+            s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
+            s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
+            s['imdbID'] = tmdb_get_imdb(s['id'])
+            s['Year'] = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['release_date'])
+            s['Title'] = s['title']
+            s['Type'] = "movie"
+            app.logger.debug(f"{s['title']} ({s['Year']})- {poster_base}{s['poster_path']}")
+            s['Poster'] = f"{poster_base}{s['poster_path']}"
+            s['background_url'] = f"{poster_base}{s['backdrop_path']}"
+            app.logger.debug(s['background_url'])
+        x['Search'] = p['results']
+        return x
+    else:
+        # Search for tv series
+        app.logger.debug("tmdb_search - movie not found, trying tv series ")
+        url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={search_query}"
+        response = requests.get(url)
+        p = json.loads(response.text)
+        # v = json.dumps(response.json(), indent=4, sort_keys=True)
+        # app.logger.debug(v)
+        x = {}
+        if p['total_results'] > 0:
+            app.logger.debug(p['total_results'])
+            for s in p['results']:
+                app.logger.debug(s)
+                s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
+                s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
+                s['imdbID'] = tmdb_get_imdb(s['id'])
+                reg = "-[0-9]{0,2}-[0-9]{0,2}"
+                s['Year'] = re.sub(reg, "", s['first_air_date']) if 'first_air_date' in s else \
+                    re.sub(reg, "", s['release_date'])
+                s['Title'] = s['title'] if 'title' in s else s['name']  # This isnt great
+                s['Type'] = "series"
+                app.logger.debug(f"{s['Title']} ({s['Year']})- {poster_base}{s['poster_path']}")
+                s['Poster'] = f"{poster_base}{s['poster_path']}"  # print(poster_url)
+                s['background_url'] = f"{poster_base}{s['backdrop_path']}"
+                s["Plot"] = s['overview']
+                app.logger.debug(s['background_url'])
+                search_query_pretty = re.sub(r"\+", " ", search_query)
+                app.logger.debug(f"trying {search_query_pretty.capitalize()} == {s['Title'].capitalize()}")
+                """if search_query_pretty.capitalize() == s['Title'].capitalize():
+                    s['Search'] = s
+                    app.logger.debug("x=" + str(x))
+                    s['Response'] = True
+                    # global new_year
+                    new_year = s['Year']
+                    # new_year = job.year_auto = job.year = str(x['Year'])
+                    title = clean_for_filename(s['Title'])
+                    app.logger.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
+                    args = {
+                        'year_auto': str(new_year),
+                        'year': str(new_year),
+                        'title_auto': title,
+                        'title': title,
+                        'video_type_auto': s['Type'],
+                        'video_type': s['Type'],
+                        'imdb_id_auto': s['imdbID'],
+                        'imdb_id': s['imdbID'],
+                        'poster_url_auto': s['Poster'],
+                        'poster_url': s['Poster'],
+                        'hasnicetitle': True
+                    }
+                    # database_updater(args, job)
+                    return s
+                """
+            x['Search'] = p['results']
+            return x
+
+    # We got to here with no results give nothing back
+    app.logger.debug("tmdb_search - no results found")
+    return None
+
+
+def tmdb_get_imdb(tmdb_id):
+    """
+        Queries api.themoviedb.org for imdb_id by TMDB id
+
+    """
+    # https://api.themoviedb.org/3/movie/78?api_key=
+    # &append_to_response=alternative_titles,changes,credits,images,keywords,lists,releases,reviews,similar,videos
+    tmdb_api_key = cfg['TMDB_API_KEY']
+    url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={tmdb_api_key}&" \
+          f"append_to_response=alternative_titles,credits,images,keywords,releases,reviews,similar,videos,external_ids"
+    url_tv = f"https://api.themoviedb.org/3/tv/{tmdb_id}/external_ids?api_key={tmdb_api_key}"
+    # Making a get request
+    response = requests.get(url)
+    p = json.loads(response.text)
+    app.logger.debug(f"tmdb_get_imdb - {p}")
+    if 'status_code' in p:
+        response = requests.get(url_tv)
+        tv = json.loads(response.text)
+        app.logger.debug(tv)
+        if 'status_code' not in tv:
+            return tv['imdb_id']
+    else:
+        return p['external_ids']['imdb_id']
+
+
+def tmdb_find(imdb_id):
+    """
+    basic function to return an object from tmdb from only the imdb id
+    :param imdb_id: the imdb id to lookup
+    :return: dict in the standard 'arm' format
+    """
+    tmdb_api_key = cfg['TMDB_API_KEY']
+    url = f"https://api.themoviedb.org/3/find/{imdb_id}?api_key={tmdb_api_key}&external_source=imdb_id"
+    poster_size = "original"
+    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
+    # Making a get request
+    response = requests.get(url)
+    p = json.loads(response.text)
+    app.logger.debug(f"tmdb_find = {p}")
+    if len(p['movie_results']) > 0:
+        # We want to push out everything even if we dont use it right now, it may be used later.
+        s = {'results': p['movie_results']}
+        x = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['results'][0]['release_date'])
+        app.logger.debug(f"{s['results'][0]['title']} ({x})- {poster_base}{s['results'][0]['poster_path']}")
+        s['poster_url'] = f"{poster_base}{s['results'][0]['poster_path']}"
+        s["Plot"] = s['results'][0]['overview']
+        s['background_url'] = f"{poster_base}{s['results'][0]['backdrop_path']}"
+        s['Type'] = "movie"
+        s['imdbID'] = imdb_id
+        s['Type'] = "movie"
+        s['Poster'] = s['poster_url']
+        s['Year'] = x
+        s['Title'] = s['results'][0]['title']
+    else:
+        # We want to push out everything even if we dont use it right now, it may be used later.
+        s = {'results': p['tv_results']}
+        x = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['results'][0]['first_air_date'])
+        app.logger.debug(f"{s['results'][0]['name']} ({x})- {poster_base}{s['results'][0]['poster_path']}")
+        s['poster_url'] = f"{poster_base}{s['results'][0]['poster_path']}"
+        s["Plot"] = s['results'][0]['overview']
+        s['background_url'] = f"{poster_base}{s['results'][0]['backdrop_path']}"
+        s['Type'] = "movie"
+        s['imdbID'] = imdb_id
+        s['Type'] = "series"
+        s['Poster'] = s['poster_url']
+        s['Year'] = x
+        s['Title'] = s['results'][0]['name']
+    return s
+
+
+def metadata_selector(func, query=None, year=None, imdb_id=None):
+    if cfg['METADATA_PROVIDER'].lower() == "tmdb":
+        app.logger.debug("provider tmdb")
+        if func == "search":
+            return tmdb_search(query, year)
+        elif func == "get_details":
+            if query:
+                return get_tmdb_poster(query) if year is None else get_tmdb_poster(query, year)
+            elif imdb_id:
+                return tmdb_find(imdb_id)
+
+    elif cfg['METADATA_PROVIDER'].lower() == "omdb":
+        app.logger.debug("provider omdb")
+        if func == "search":
+            return call_omdb_api(query, year)
+        elif func == "get_details":
+            s = call_omdb_api(title=query, year=year, imdbID=imdb_id, plot="full")
+            s['background_url'] = None
+            return s
+    else:
+        app.logger.debug(cfg['METADATA_PROVIDER'])
+        app.logger.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")

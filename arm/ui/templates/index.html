@@ -161,7 +161,7 @@ div.card-body button,div.card-body a{
                 <li class="list-group-item">CPU: {{ cpu }}
                     {% if cputemp is not none %}
                         <br>
-						<p class="{{' bg-danger' if cputemp > 70 }}">CPU Temp: {{ cputemp }}&#176;C</p>
+						<p class="{{' bg-danger text-white' if cputemp > 70 }}">CPU Temp: {{ cputemp }}&#176;C</p>
                     {% endif %}
 					<h6 class="progress-label" style="float: left;margin-right: 1em;">CPU Usage: </h6>
 					<div class="progress">
