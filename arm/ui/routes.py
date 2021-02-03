@@ -481,8 +481,8 @@ def jobdetail():
     tracks = job.tracks.all()
     s = utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
     if s and 'Error' not in s:
-        job.plot = s['Plot'] if 'Error' not in s else None
-        job.background = s['background_url'] if 'Error' not in s else None
+        job.plot = s['Plot'] if 'Plot' in s else "There was a problem getting the plot"
+        job.background = s['background_url'] if 'background_url' in s else None
     return render_template('jobdetail.html', jobs=job, tracks=tracks, s=s)
 
 

@@ -68,9 +68,13 @@ def call_omdb_api(title=None, year=None, imdbID=None, plot="short"):
     # strurl = urllib.parse.quote(strurl)
     # app.logger.info("OMDB string query"+str(strurl))
     app.logger.debug("omdb - " + str(strurl))
-    title_info_json = urllib.request.urlopen(strurl).read()
-    title_info = json.loads(title_info_json.decode())
-    app.logger.debug("omdb - " + str(title_info))
+    try:
+        title_info_json = urllib.request.urlopen(strurl).read()
+        title_info = json.loads(title_info_json.decode())
+        app.logger.debug("omdb - " + str(title_info))
+    except urllib.error.HTTPError as e:
+        app.logger.debug(f"omdb call failed with error - {e}")
+        return {}
     # logging.info("Response from Title Info command"+str(title_info))
     # d = {'year': '1977'}
     # dvd_info = omdb.get(title=title, year=year)
@@ -377,9 +381,12 @@ def get_tmdb_poster(search_query=None, year=None):
     poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
     response = requests.get(url)
     p = json.loads(response.text)
-
-    # x = json.dumps(response.json(), indent=4, sort_keys=True)
-    # print(x)
+    # if status_code is in p we know there was an error
+    if 'status_code' in p:
+        app.logger.debug(f"get_tmdb_poster failed with error -  {p['status_message']}")
+        return {}
+    x = json.dumps(response.json(), indent=4, sort_keys=True)
+    print(x)
     if p['total_results'] > 0:
         app.logger.debug(p['total_results'])
         for s in p['results']:
