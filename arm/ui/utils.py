@@ -459,7 +459,10 @@ def tmdb_search(search_query=None, year=None):
     # Making a get request
     response = requests.get(url)
     p = json.loads(response.text)
-
+    # if status_code is in p we know there was an error
+    if 'status_code' in p:
+        app.logger.debug(f"get_tmdb_poster failed with error -  {p['status_message']}")
+        return {}
     # x = json.dumps(response.json(), indent=4, sort_keys=True)
     # print(x)
     x = {}
