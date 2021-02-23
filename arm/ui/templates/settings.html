@@ -1,0 +1,51 @@
+<link rel="stylesheet" href="../static/css/bootstrap.spacelab.css">
+  <link rel="stylesheet" href="/static/js/jquery-ui/jquery-ui.css">
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}
+<!-- We keep this here incase we need it later -->
+<div style="display: none" id="message2" class="ui-state-error ui-corner-all"><b>WARNING:  </b>There is no undo  here! <br/>Be careful!</div>
+<div style="display: none" id="message1" class="green-for-go ui-corner-all">Job was deleted succefully</div>
+<div style="display: none" id="floatcont" title="Warning!" class="ui-corner-all">This can be dangerous if you dont know what you're doing. <br/> You could delete all your of your database entries if you're not careful!!! <br/> Be careful!<br/></div>
+<div style="display: none" id="dialog" title="Delete this job forever ??">
+  <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>These items will be permanently deleted and cannot be recovered. Are you sure?</p>
+</div>
+<!-- END - We keep this here incase we need it later -->
+<div class="container" style="max-width: initial!important;">
+    <div class="row">
+            <div class="col-sm-8" style="min-width: 100%!important;">
+                <div class="table-responsive">
+                    <table id="riptable" style="margin: 0 auto;width: 50%!important;" class="table table-striped">
+                        <thead class="tablesorterhead bg-secondary">
+                            <tr style="margin: 0 auto">
+                                <th >Name</th>
+                                <th width="200px">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                {{ html }}
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+</div>
+{% endblock %}
+{% block footer %}{{ super() }}{% endblock %}
+{% block js %}
+{{ super() }}
+  <script type="application/javascript">
+      $(document).ready(function() {
+
+      });
+
+  </script>
+{% endblock %}

@@ -40,25 +40,25 @@ def makemkv(logfile, job):
         raise RuntimeError(err)
 
     # get filesystem in order
-    rawpath = os.path.join(job.config.RAWPATH, job.title)
-    logging.info("Destination is " + rawpath)
+    rawpath = os.path.join(str(job.config.RAWPATH), str(job.title))
+    logging.info("Destination is " + str(rawpath))
 
     if not os.path.exists(rawpath):
         try:
             os.makedirs(rawpath)
         except OSError:
             # logging.error("Couldn't create the base file path: " + rawpath + " Probably a permissions error")
-            err = "Couldn't create the base file path: " + rawpath + " Probably a permissions error"
+            err = "Couldn't create the base file path: " + str(rawpath) + " Probably a permissions error"
     else:
         logging.info(rawpath + " exists.  Adding timestamp.")
         ts = round(time.time() * 100)
-        rawpath = os.path.join(job.config.RAWPATH, job.title + "_" + str(ts))
-        logging.info("rawpath is " + rawpath)
+        rawpath = os.path.join(str(job.config.RAWPATH), str(job.title) + "_" + str(ts))
+        logging.info("rawpath is " + str(rawpath))
         try:
             os.makedirs(rawpath)
         except OSError:
             # logging.error("Couldn't create the base file path: " + rawpath + " Probably a permissions error")
-            err = "Couldn't create the base file path: " + rawpath + " Probably a permissions error"
+            err = "Couldn't create the base file path: " + str(rawpath) + " Probably a permissions error"
             sys.exit(err)
 
     # rip bluray

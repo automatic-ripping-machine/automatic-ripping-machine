@@ -3,50 +3,59 @@
 
 {% block nav %}{{ super() }}{% endblock %}
 
-{% block content %}  
+{% block content %}
 <div class="container">
     <div class="row h-100 mx-auto align-items-center">
-            <div class="col-sm-4 mx-auto"></div>
-                <div class="col-sm-4 mx-auto">
-                    <form action="" method="post" novalidate>
-                        {{ form.hidden_tag() }}
-                        <p>
-                            <strong></strong>
-                            <strong>{{ form.RIPMETHOD.label }}</strong>
-                            {{ form.RIPMETHOD }}
-			    {% for error in form.RIPMETHOD.errors %}
-			    <span style="color: red;">[{{ error }}]</span>
-			    {% endfor %}
-                        </p>
-			<p>
-				<p> I don't know flask well enough to fix the error, but tick the box below if you want this form to execute. I disabled it in the db update. </p>
-                            <strong>{{ form.MAINFEATURE.label }}</strong>
-                            {{ form.MAINFEATURE }}
-			    	{% for error in form.MAINFEATURE.errors %}
-			    	<span style="color: red;">[{{ error }}]</span>
-			    	{% endfor %}
-                        </p>
-                        <p>
-                                <strong>{{ form.MINLENGTH.label }}</strong>
-                                {{ form.MINLENGTH(size=5) }}
-			    	{% for error in form.MINLENGTH.errors %}
-			    	<span style="color: red;">[{{ error }}]</span>
-			    	{% endfor %}
-                        </p>
-                        <p>
-                                <strong>{{ form.MAXLENGTH.label }}</strong>
-                                {{ form.MAXLENGTH(size=5) }}
-			    	{% for error in form.MAXLENGTH.errors %}
-			    	<span style="color: red;">[{{ error }}]</span>
-			    	{% endfor %}
-                            </p>
-                        <p>{{ form.submit() }}</p>
-			{% if form.errors %}
-			<span style="color: red;">{{ form.errors }}</span>
-			{% endif %}
-                    </form>        
-                </div>
-            <div class="col-sm-4 mx-auto"></div>
+        <div class="col-sm-4 mx-auto"></div>
+        <div class="col-sm-4 mx-auto">
+            <form action="" method="post" novalidate>
+                {{ form.hidden_tag() }}
+                <p>
+                    <strong></strong>
+                    <strong>{{ form.RIPMETHOD.label }}</strong>
+                    {{ form.RIPMETHOD }}
+                    {% for error in form.RIPMETHOD.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>
+
+
+
+                <p>
+                    <strong></strong>
+                    <strong>{{ form.DISCTYPE.label }}</strong>
+                    {{ form.DISCTYPE }}
+                    {% for error in form.DISCTYPE.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>
+                <strong>{{ form.MAINFEATURE.label }}</strong>
+                {{ form.MAINFEATURE }}
+                {% for error in form.MAINFEATURE.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+                </p>
+                <p>
+                    <strong>{{ form.MINLENGTH.label }}</strong>
+                    {{ form.MINLENGTH(size=5) }}
+                    {% for error in form.MINLENGTH.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>
+                <p>
+                    <strong>{{ form.MAXLENGTH.label }}</strong>
+                    {{ form.MAXLENGTH(size=5) }}
+                    {% for error in form.MAXLENGTH.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>
+                <p>{{ form.submit() }}</p>
+                {% if form.errors %}
+                <span style="color: red;">{{ form.errors }}</span>
+                {% endif %}
+            </form>
+        </div>
+        <div class="col-sm-4 mx-auto"></div>
     </div>
 </div>
 

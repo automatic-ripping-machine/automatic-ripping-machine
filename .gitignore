@@ -19,3 +19,6 @@ arm.yaml
 *.json
 .abdce.conf
 *.old
+*.xml
+*.iml
+venv/*

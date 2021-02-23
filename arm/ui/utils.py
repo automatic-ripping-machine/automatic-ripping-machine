@@ -3,7 +3,7 @@ from time import strftime, localtime
 import urllib
 import json
 import re
-#import logging
+# import logging
 # import omdb
 from arm.config.config import cfg
 
@@ -21,17 +21,19 @@ def get_info(directory):
             file_list.append([i, access_time, create_time, fsize])  # [file,most_recent_access,created]
     return file_list
 
+
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
-    string = re.sub('\[(.*?)\]', '', string)
-    string = re.sub('\s+', ' ', string)
+    string = re.sub('\[(.*?)\]', '', string)  # noqa: W605
+    string = re.sub('\s+', ' ', string)  # noqa: W605
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
     string = string.replace('&', 'and')
     string = string.replace("\\", " - ")
     string = string.strip()
-    #return re.sub('[^\w\-_\.\(\) ]', '', string)
+    # return re.sub('[^\w\-_\.\(\) ]', '', string)
     return string
+
 
 def getsize(path):
     st = os.statvfs(path)
@@ -70,12 +72,12 @@ def call_omdb_api(title=None, year=None, imdbID=None, plot="short"):
         return(None)
 
     # strurl = urllib.parse.quote(strurl)
-    #logging.info("OMDB string query"+str(strurl))
+    # logging.info("OMDB string query"+str(strurl))
     print(strurl)
     title_info_json = urllib.request.urlopen(strurl).read()
     title_info = json.loads(title_info_json.decode())
     print(title_info)
-    #logging.info("Response from Title Info command"+str(title_info))
+    # logging.info("Response from Title Info command"+str(title_info))
     # d = {'year': '1977'}
     # dvd_info = omdb.get(title=title, year=year)
     print("call was successful")

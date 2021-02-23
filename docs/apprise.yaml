@@ -1,0 +1,203 @@
+#####################################
+## Apprise Notification Parameters ##
+#####################################
+BOXCAR_KEY: ""
+BOXCAR_SECRET: ""
+
+## Discord bot
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_discord
+## Leave DISCORD_WEBHOOK_ID blank to disable
+DISCORD_WEBHOOK_ID: ""
+DISCORD_TOKEN: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_emby
+## EMBY
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_faast
+FAAST_TOKEN: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_flock
+FLOCK_TOKEN: ""
+
+## Gitter
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_gitter
+GITTER_TOKEN: ""
+GITTER_ROOM: ""
+
+## Gotify
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_gotify
+GOTIFY_TOKEN: ""
+GOTIFY_HOST: ""
+
+## Growl
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_growl
+GROWL_HOST: ""
+GROWL_PASS: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_join
+JOIN_API: ""
+JOIN_DEVICE: ""
+
+## Kodi
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_kodi
+## Leave KODI_HOST blank to disable
+KODI_HOST: ""
+KODI_PORT: "8080"
+KODI_USER: "kodi"
+KODI_PASS: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_kumulos
+KUMULOS_API: ""
+KUMULOS_SERVERKEY: ""
+
+## LaMetric time Full info @ https://github.com/caronc/apprise/wiki/Notify_lametric
+## LAMETRIC MODE
+## Valid entries are "device" or "cloud" and "" to disable
+## remember to fill out the correct entries for the mode you choose
+LAMETRIC_MODE: ""
+
+## DEVICE MODE
+LAMETRIC_API: ""
+LAMETRIC_HOST: ""
+
+## CLOUD MODE
+LAMETRIC_APP_ID: ""
+LAMETRIC_TOKEN: ""
+
+## Mailgun
+MAILGUN_DOMAIN: ""
+MAILGUN_USER: ""
+MAILGUN_APIKEY: ""
+
+## MATRIX.ORG NOTIFICATION
+MATRIX_HOST: ""
+MATRIX_USER: ""
+MATRIX_PASS: ""
+
+## MATRIX t2bot.io notification
+MATRIX_TOKEN: ""
+
+## Microsoft teams
+MSTEAMS_TOKENA: ""
+MSTEAMS_TOKENB: ""
+MSTEAMS_TOKENC: ""
+
+## NEXTCLOUD SETTINGS
+## All of these are required || leave NEXTCLOUD_HOST blank to disable
+## TODO: This might need  X-Token headers set. Append "?-X-Token=key" to utils.py
+NEXTCLOUD_HOST: ""
+NEXTCLOUD_ADMINUSER: ""
+NEXTCLOUD_ADMINPASS: ""
+NEXTCLOUD_NOTIFY_USER: ""
+
+## Self hosted wont work
+NOTICA_TOKEN: ""
+
+NOTIFICO_PROJECTID: ""
+NOTIFICO_MESSAGEHOOK: ""
+
+## All of these are required || leave OFFICE365_TENANTID blank to disable
+OFFICE365_TENANTID: ""
+OFFICE365_ACCOUNTEMAIL: ""
+OFFICE365_CLIENT_ID: ""
+OFFICE365_CLIENT_SECRET: ""
+
+## Leave POPCORN_API blank to disable
+## To add more than one
+POPCORN_API: ""
+POPCORN_EMAIL: ""
+POPCORN_PHONENO: ""
+
+## maybe dont need PROVIDERKEY
+PROWL_API: ""
+PROWL_PROVIDERKEY: ""
+
+## DONT NEED ATM
+#PUSHBULLET_TOKEN: ""
+
+## Project is dead  not worth doing
+PUSHJET_HOST: ""
+PUSHJET_SECRET: ""
+
+# techullus pusjh
+PUSH_API: ""
+
+PUSHED_APP_KEY: ""
+PUSHED_APP_SECRET: ""
+
+## DONT NEED YET
+#PUSHOVER_USER: ""
+#PUSHOVER_TOKEN: ""
+
+##
+PUSHSAFER_KEY: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_rocketchat
+## webhook version
+ROCKETCHAT_HOST: ""
+ROCKETCHAT_USER: ""
+ROCKETCHAT_PASS: ""
+ROCKETCHAT_WEBHOOK: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_ryver
+RYVER_ORG: ""
+RYVER_TOKEN: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_sendgrid
+SENDGRID_API: ""
+SENDGRID_FROMMAIL: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_simplepush
+## Salt:password/double encryption not coded
+SIMPLEPUSH_API: ""
+
+## Slack Webhook
+## channel must start with #
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_slack
+SLACK_TOKENA: ""
+SLACK_TOKENB: ""
+SLACK_TOKENC: ""
+SLACK_CHANNEL: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_sparkpost
+SPARKPOST_API: ""
+SPARKPOST_HOST: ""
+SPARKPOST_USER: ""
+## Send to email
+SPARKPOST_EMAIL: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_spontit
+SPONTIT_API: ""
+SPONTIT_USER_ID: ""
+
+## SYSLOG
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_telegram
+TELEGRAM_BOT_TOKEN: ""
+TELEGRAM_CHAT_ID: ""
+
+## TWITTER
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_twist
+TWIST_EMAIL: ""
+TWIST_PASS: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_xbmc
+XBMC_HOST: ""
+XBMC_PORT: ""
+XBMC_USER: ""
+XBMC_PASS: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_xmpp
+XMPP_HOST: ""
+XMPP_PASS: ""
+## Depending on your setup you might not need this
+XMPP_USER: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_wxteams
+WEBEX_TEAMS_TOKEN: ""
+
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_zulip
+ZILUP_CHAT_TOKEN: ""
+ZILUP_CHAT_BOTNAME: ""
+ZILUP_CHAT_ORG: ""

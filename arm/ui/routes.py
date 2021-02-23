@@ -1,24 +1,35 @@
 import os
+import platform
+import subprocess
+import re
+import psutil
+
 from time import sleep
 from flask import render_template, abort, request, send_file, flash, redirect, url_for
-import psutil
 from arm.ui import app, db
 from arm.models.models import Job, Config
 from arm.config.config import cfg
 from arm.ui.utils import convert_log, get_info, call_omdb_api, clean_for_filename
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm
+from pathlib import Path
 
 
 @app.route('/logreader')
 def logreader():
-
+    #  TODO: check if logfile exist, if not error out
     logpath = cfg['LOGPATH']
     mode = request.args['mode']
     logfile = request.args['logfile']
 
     # Assemble full path
     fullpath = os.path.join(logpath, logfile)
-
+    #  Check if the logfile exists
+    my_file = Path(fullpath)
+    if not my_file.is_file():
+        # file exists
+        # clogfile = convert_log(logfile)
+        return render_template('error.html')
+        # return send_file("templates/error.html")
     if mode == "armcat":
         def generate():
             f = open(fullpath)
@@ -89,16 +100,27 @@ def submitrip():
 def changeparams():
     config_id = request.args.get('config_id')
     config = Config.query.get(config_id)
+    app.logger.debug(config.pretty_table())
+    job = Job.query.get(config_id)
     form = ChangeParamsForm(obj=config)
     if form.validate_on_submit():
         config.MINLENGTH = format(form.MINLENGTH.data)
         config.MAXLENGTH = format(form.MAXLENGTH.data)
         config.RIPMETHOD = format(form.RIPMETHOD.data)
-        #config.MAINFEATURE = format(form.MAINFEATURE.data)
+        # config.MAINFEATURE = int(format(form.MAINFEATURE.data) == 'true')
+        config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False
+        app.logger.debug(f"main={config.MAINFEATURE}")
+        job.disctype = format(form.DISCTYPE.data)
         db.session.commit()
-        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, Maximum Length={}'.format(form.RIPMETHOD.data, form.MAINFEATURE.data, form.MINLENGTH.data, form.MAXLENGTH.data))
+        db.session.refresh(job)
+        db.session.refresh(config)
+        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, '
+              'Maximum Length={}, Disctype={}'.format(
+                config.RIPMETHOD, config.MAINFEATURE, config.MINLENGTH, config.MAXLENGTH,
+                job.disctype))
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
+
 
 @app.route('/customTitle', methods=['GET', 'POST'])
 def customtitle():
@@ -153,9 +175,9 @@ def updatetitle():
     job.poster_url_manual = poster_url
     job.poster_url = poster_url
     job.hasnicetitle = True
-    db.session.add(job)
     db.session.commit()
-    flash('Title: {} ({}) was updated to {} ({})'.format(job.title_auto, job.year_auto, new_title, new_year), category='success')
+    flash('Title: {} ({}) was updated to {} ({})'.format(job.title_auto, job.year_auto, new_title, new_year),
+          category='success')
     return redirect(url_for('home'))
 
 
@@ -169,7 +191,6 @@ def logs():
 
 @app.route('/listlogs', defaults={'path': ''})
 def listlogs(path):
-
     basepath = cfg['LOGPATH']
     fullpath = os.path.join(basepath, path)
 
@@ -185,15 +206,53 @@ def listlogs(path):
 @app.route('/')
 @app.route('/index.html')
 def home():
-    # freegb = getsize(cfg['RAWPATH'])
+    # Hard drive space
     freegb = psutil.disk_usage(cfg['ARMPATH']).free
-    freegb = round(freegb/1073741824, 1)
+    freegb = round(freegb / 1073741824, 1)
     mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
-    mfreegb = round(mfreegb/1073741824, 1)
+    mfreegb = round(mfreegb / 1073741824, 1)
+
+    # RAM memory
+    meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1])) for i in open('/proc/meminfo').readlines())
+    mem_kib = meminfo['MemTotal']  # e.g. 3921852
+    mem_gib = mem_kib / (1024.0 * 1024.0)
+    # lets make sure we only give back small numbers
+    mem_gib = round(mem_gib, 2)
+
+    memused_kib = meminfo['MemFree']  # e.g. 3921852
+    memused_gib = memused_kib / (1024.0 * 1024.0)
+    # lets make sure we only give back small numbers
+    memused_gib = round(memused_gib, 2)
+    memused_gibs = round(mem_gib - memused_gib, 2)
+
+    # get out cpu info
+    ourcpu = get_processor_name()
+
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
         jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
     else:
         jobs = {}
 
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs)
+    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu, ram=mem_gib,
+                           ramused=memused_gibs, ramfree=memused_gib, ramdump=meminfo)
+
+
+def get_processor_name():
+    if platform.system() == "Windows":
+        return platform.processor()
+    elif platform.system() == "Darwin":
+        return subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
+    elif platform.system() == "Linux":
+        command = "cat /proc/cpuinfo"
+        # return \
+        fulldump = str(subprocess.check_output(command, shell=True).strip())
+        # Take any float trailing "MHz", some whitespace, and a colon.
+        speeds = re.search(r"\\nmodel name\\t:.*?GHz\\n", fulldump)
+        # return str(fulldump)
+        speeds = str(speeds.group())
+        speeds = speeds.replace('\\n', ' ')
+        speeds = speeds.replace('\\t', ' ')
+        speeds = speeds.replace('model name :', '')
+        return speeds
+    return ""

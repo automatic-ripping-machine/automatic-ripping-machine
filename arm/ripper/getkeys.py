@@ -1,9 +1,8 @@
 import os
-
+# Added for newer werkzeug versions
 import werkzeug
 werkzeug.cached_property = werkzeug.utils.cached_property
-
-from robobrowser import RoboBrowser
+from robobrowser import RoboBrowser  # noqa E402
 
 
 def grabkeys():

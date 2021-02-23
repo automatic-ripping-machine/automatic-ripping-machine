@@ -145,7 +145,7 @@ sudo ln -s /opt/arm/arm.yaml /etc/arm/
   Create entries in /etc/fstab to allow non-root to mount dvd-roms
   Example (create for each optical drive you plan on using for ARM):
   ```
-  /dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0
+  /dev/sr0  /mnt/dev/sr0  udf,iso9660  users,noauto,exec,utf8  0  0
   ```
 
 **Configure ARM**
@@ -186,6 +186,41 @@ Run below to pick up the aliases
 	```
 	sudo newaliases
 	```
+
+## Alternative Auto Install Script For OpenMediaVault/Debian
+**This MUST be run as root!**
+**For the attended install use:**
+ ```
+ apt install wget
+ wget https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/v2.1_dev/scripts/debian-setup.sh
+ chmod +x debian-setup.sh
+ ./debian-setup.sh
+ ```
+ ```reboot``` 
+ to complete installation.
+ 
+ 
+ **For the silent install use**
+  ```
+ apt -qqy install wget
+ wget https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/v2.1_dev/scripts/deb-install-quiet.sh
+ chmod +x deb-install-quiet.sh
+ ./deb-install-quiet.sh
+ ```
+```reboot``` 
+ to complete installation.
+ **Details about this script**
+ 
+ The script installs all dependencies, a service for the ARMui and the fstab entry for sr0, if you have more than one drive you will need to make the mount folder and insert any additional fstab entries.
+ The attended installer will do all of the necessary installs and deal with dependencies but will need user input.
+ The silent install will remove the need for the user to interact with the screen after intering the arm userpassword.
+ 
+ 
+ **The reason for the installer script ?**
+ 
+ The debian installer script has different commands than the ubuntu follow along commands. The reason being is that some of the commands that work on ubunutu dont work.
+ You can also run each line of the script in a console or ssh terminal.
+
 
 ## Usage
 

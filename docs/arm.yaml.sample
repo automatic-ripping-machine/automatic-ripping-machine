@@ -35,7 +35,12 @@ MAXLENGTH: "99999"
 MANUAL_WAIT: true
 
 # Wait tie for manual identification (in seconds)
-MANUAL_WAIT_TIME: 600
+MANUAL_WAIT_TIME: 60
+
+## Do you want to allow Rips of the same disk multiple times
+## With this set as false the task will exit if it recongnises the same movie being ripped
+## recommended to set to false for series 
+ALLOW_DUPLICATES: false
 
 # Number of Transcodes that runs at the same time.
 # Certain Video cards are limited to how many encodes they can run at the same time.
@@ -235,3 +240,8 @@ PO_APP_KEY: ""
 # More info at http://omdbapi.com/
 OMDB_API_KEY: ""
 
+#################################################
+##            APPRISE NOTIFICATIONS            ##
+#################################################
+## File location of your apprise.yaml file
+APPRISE: ""

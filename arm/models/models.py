@@ -1,6 +1,7 @@
 import os
 import pyudev
 import psutil
+import logging
 from arm.ui import db
 from arm.config.config import cfg  # noqa: E402
 
@@ -99,11 +100,17 @@ class Job(db.Model):
 
     def eject(self):
         """Eject disc if it hasn't previously been ejected"""
-
-        # print("Value is " + str(self.ejected))
-        if not self.ejected:
-            os.system("eject " + self.devpath)
-            self.ejected = True
+        try:
+            if os.system("umount " + self.devpath):
+                logging.debug("we unmounted disc" + self.devpath)
+            if os.system("eject " + self.devpath):
+                logging.debug("we ejected disc" + self.devpath)
+                self.ejected = True
+            else:
+                logging.debug("failed to eject" + self.devpath)
+        except Exception as e:
+            self.ejected = False
+            logging.debug(self.devpath + " couldn't be ejected " + str(e))
 
 
 class Track(db.Model):
@@ -223,8 +230,9 @@ class Config(db.Model):
 
         s = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
-            if str(attr) in ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
-                             "PO_USER_KEY", "PO_APP_KEY") and value:
+            if str(attr) in (
+                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                    "PO_USER_KEY", "PO_APP_KEY") and value:
                 value = "<hidden>"
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 

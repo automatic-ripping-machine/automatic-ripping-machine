@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}  
+<div class="container">
+    <div class="row h-100 mx-auto align-items-center">
+
+                <div class="col-sm-4 mx-auto" style="flex-wrap: nowrap">
+                    <form action="" method="post" novalidate>
+                        {{ form.hidden_tag() }}
+                        <div>{{ form.username.label }}:{{ form.username(size=32) }} </div>
+                        <div>{{ form.password.label }}:{{ form.password(size=32) }}</div>
+                        {{ form.submit() }}
+                    </form>
+                </div>
+    </div>
+</div>
+{% endblock %}
