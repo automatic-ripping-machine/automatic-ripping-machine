@@ -61,7 +61,7 @@ DATA_RIP_PARAMETERS: ""
 # OMDB for movies and shows 
 # TMDB for movies only
 # You will still need to provide an api key for the provider you have selected
-METADATA_PROVIDER: "tmdb"
+METADATA_PROVIDER: "omdb"
 
 # Set to one of "none", "musicbrainz", "freecddb"
 # if "musicbrainz" is used the disc information are asked from musicbrainz.org
