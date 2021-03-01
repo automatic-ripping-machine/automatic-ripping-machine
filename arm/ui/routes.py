@@ -45,6 +45,13 @@ def unauthorized():
 
 @app.route('/setup')
 def setup():
+    """
+    This is the initial setup page for fresh installs
+    This is no longer recommended for upgrades
+
+    This function will do various checks to make sure everything can be setup for ARM
+    Directory ups, create the db, etc
+    """
     perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
     app.logger.debug("perm " + str(perm_file))
     if perm_file.exists():
@@ -110,6 +117,10 @@ def was_error():
 
 @app.route('/setup-stage2', methods=['GET', 'POST'])
 def setup_stage2():
+    """
+    This is the second stage of setup this will allow the user to create an admin account
+    this will also be the page for resetting the admin account password
+    """
     # if there is no user in the database
     try:
         # Return the user to login screen if we dont error when calling for any users
@@ -272,6 +283,13 @@ def database():
 @app.route('/json', methods=['GET', 'POST'])
 @login_required
 def feed_json():
+    """
+    json mini API
+    This is used for all api/ajax calls this makes thing easier to read/code for
+    Adding a new function to the api is as simple as adding a new elif where GET[mode]
+    is your call
+    You can then add a function inside utils to deal with the request
+    """
     x = request.args.get('mode')
     j_id = request.args.get('job')
     # We should never let the user pick the log file
@@ -402,7 +420,6 @@ def logreader():
     # Setup our vars
     logpath = cfg['LOGPATH']
     mode = request.args.get('mode')
-    # TODO
     # We should use the job id and not get the raw logfile from the user
     logfile = request.args.get('logfile')
     if logfile is None or "../" in logfile or mode is None:
@@ -600,9 +617,7 @@ def updatetitle():
     db.session.commit()
     # TODO: show the previous values that were set, not just assume it was _auto
     flash(f'Title: {job.title_auto} ({job.year_auto}) was updated to {new_title} ({new_year})', "success")
-    # TODO: Check where they came from and send them back there.
-    #  I hate being redirected to home when i didnt come from there
-    return redirect(url_for('home'))
+    return redirect(request.referrer)
 
 
 @app.route('/logs')
@@ -633,6 +648,9 @@ def listlogs(path):
 @app.route('/index.html')
 @app.route('/index')
 def home():
+    """
+    The main homepage showing current rips and server stats
+    """
     # app.logger.info('Processing default request')
     # app.logger.debug('DEBUGGING')
     # app.logger.error('ERROR Inside /logreader')
@@ -854,6 +872,10 @@ def import_movies():
 @app.route('/send_movies', methods=['GET', 'POST'])
 @login_required
 def send_movies():
+    """
+    function for sending all dvd crc64 ids to off-site api
+    This isn't very optimised and can be slow and causes a huge number of requests
+    """
     if request.args.get('s') is None:
         return render_template('send_movies_form.html')
 
@@ -891,9 +913,11 @@ def send_movies():
     return render_template('send_movies.html', sent=r['sent'], failed=r['failed'], full=r)
 
 
-#  Lets show some cpu info
-#  only tested on OMV
 def get_processor_name():
+    """
+    function to collect and return some cpu info
+    ideally want to return {name} @ {speed} Ghz
+    """
     if platform.system() == "Windows":
         return platform.processor()
     elif platform.system() == "Darwin":
