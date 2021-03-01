@@ -38,8 +38,8 @@
 				
 					<div class="container" style="padding-top: 4rem;">
 						<form id="form1" name="form1" method="post" action="/settings">
+						    {{ form.hidden_tag() }}
 							{% for k, v in settings.items() %}
-
 							<div class="input-group mb-3">
 								<div class="input-group-prepend">
 									<span class="input-group-text" id="{{ k }}">{{ k }}: </span>
@@ -50,8 +50,6 @@
 								</a>
 							</div>
 							{% endfor %}
-                                <!--{{ html }}-->
-								<input class="form-control" name="save" value="save" hidden>
 								<button class="btn btn-secondary btn-lg btn-block" form="form1" type="submit">Submit</button>
                         </form>
 					</div>
@@ -63,12 +61,17 @@
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
 {{ super() }}
-  <script type="application/javascript">
-      $(function () {
+<script type="application/javascript">
+	$(function () {
 		$(".popovers").popover({ 
 			trigger: "hover",
 		});
-      });
-activeTab("armsettings");
-  </script>
+	{% if form.errors %}
+		{% for k in form.errors %}
+			$("[name='{{k}}']").addClass("is-invalid");
+		{% endfor %}
+	{% endif %}
+	activeTab("armsettings");
+	});
+</script>
 {% endblock %}

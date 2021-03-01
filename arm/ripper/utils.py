@@ -846,8 +846,8 @@ def move_files(basepath, filename, job, ismainfeature=False):
             if not os.path.isfile(m_file):
                 try:
                     shutil.move(os.path.join(basepath, filename), m_file)
-                except shutil.Error:
-                    logging.error("Unable to move '" + filename + "' to " + m_path)
+                except Exception as e:
+                    logging.error("Unable to move '" + filename + "' to " + m_path + " - " + str(e))
             else:
                 logging.info("File: " + m_file + " already exists.  Not moving.")
         else:
@@ -1398,7 +1398,8 @@ def job_dupe_check(job):
               - Will also return None as a secondary param
     """
     # TODO possibly only grab hasnicetitles ?
-    jobs = Job.query.filter_by(crc_id=job.crc_id, status="success")
+    logging.debug(f"trying to find jobs with crc64 = {job.crc_id}")
+    jobs = Job.query.filter_by(crc_id=job.crc_id, status="success", hasnicetitle=True)
     # logging.debug("search - posts=" + str(jobs))
     r = {}
     i = 0
@@ -1414,7 +1415,7 @@ def job_dupe_check(job):
     logging.debug(r)
     logging.debug("r len=" + str(len(r)))
     if jobs is not None and len(r) > 0:
-        logging.debug("jobs is none or len(r) - we have jobs")
+        logging.debug("jobs is not none or len(r) - we have jobs")
         return True, r
     else:
         logging.debug("jobs is none or len(r) is 0 - we have no jobs")

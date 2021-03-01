@@ -8,15 +8,16 @@ import bcrypt
 import hashlib
 import json
 import yaml
+import requests
 import arm.ui.utils as utils
+
 from time import sleep
-from flask import Flask, render_template, make_response, abort, request, send_file, flash, redirect, url_for, \
-    Markup  # noqa: F401
+from flask import Flask, render_template, make_response, abort, request, send_file, flash, \
+    redirect, url_for  # noqa: F401
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
 from arm.config.config import cfg
-# from arm.ui.utils import get_info, call_omdb_api, clean_for_filename, generate_comments
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, SettingsForm
 from pathlib import Path, PurePath
 from flask.logging import default_handler  # noqa: F401
 
@@ -307,11 +308,6 @@ def feed_json():
 @login_required
 def settings():
     x = ""
-    save = False
-    try:
-        save = request.form['save']
-    except KeyError:
-        app.logger.debug("no post")
     arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
     try:
@@ -332,13 +328,15 @@ def settings():
                 cfg = yaml.safe_load(f)  # For older versions use this
     except FileNotFoundError:
         return render_template("error.html", error="Couldn't find the arm.yaml file")
-
-    if save:
+    form = SettingsForm()
+    if form.validate_on_submit():
         # For testing
         x = request.form.to_dict()
         arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
+        # TODO: This is not the safest way to do things. It assumes the user isn't trying to mess with us.
+        # This really should be hard coded.
         for k, v in x.items():
-            if k != "save":
+            if k != "csrf_token":
                 if k == "ARMPATH":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP']
                 elif k == "WEBSERVER_IP":
@@ -371,17 +369,26 @@ def settings():
                             arm_cfg += f"{k}: {v_low}\n"
                         else:
                             arm_cfg += f"{k}: \"{v}\"\n"
-                app.logger.debug(f"\n{k} = {v} ")
+                # app.logger.debug(f"\n{k} = {v} ")
 
-        app.logger.debug(f"arm_cfg= {arm_cfg}")
+        # app.logger.debug(f"arm_cfg= {arm_cfg}")
         with open(arm_cfg_file, "w") as f:
             f.write(arm_cfg)
             f.close()
+        # Now we update the file modified time to get flask to restart
+        import datetime
+
+        def set_file_last_modified(file_path, dt):
+            dt_epoch = dt.timestamp()
+            os.utime(file_path, (dt_epoch, dt_epoch))
+        now = datetime.datetime.now()
+        arm_main = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routes.py")
+        set_file_last_modified(arm_main, now)
+
         flash("Setting saved successfully!", "success")
         return redirect(url_for('settings'))
-
     # If we get to here there was no post data
-    return render_template('settings.html', settings=cfg, raw=x, jsoncomments=comments)
+    return render_template('settings.html', settings=cfg, form=form, raw=x, jsoncomments=comments)
 
 
 @app.route('/logreader')
@@ -470,26 +477,13 @@ def history():
 @login_required
 def jobdetail():
     job_id = request.args.get('job_id')
-    jobs = Job.query.get(job_id)
-    tracks = jobs.tracks.all()
-    return render_template('jobdetail.html', jobs=jobs, tracks=tracks, success="null")
-
-
-@app.route('/abandon', methods=['GET', 'POST'])
-@login_required
-def abandon_job():
-    job_id = request.args.get('job_id')
-    # TODO add a confirm and then
-    #  delete the raw folder (this will cause ARM to bail)
-    try:
-        # This should be none if we aren't set
-        job = Job.query.get(job_id)
-        job.status = "fail"
-        db.session.commit()
-        return render_template('jobdetail.html', success="true", jobmessage="Job was abandoned!", jobs=job)
-    except Exception as e:
-        flash(f"Failed to update job {e}", "danger")
-        return render_template('error.html')
+    job = Job.query.get(job_id)
+    tracks = job.tracks.all()
+    s = utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
+    if s and 'Error' not in s:
+        job.plot = s['Plot'] if 'Plot' in s else "There was a problem getting the plot"
+        job.background = s['background_url'] if 'background_url' in s else None
+    return render_template('jobdetail.html', jobs=job, tracks=tracks, s=s)
 
 
 @app.route('/titlesearch', methods=['GET', 'POST'])
@@ -502,7 +496,7 @@ def submitrip():
         form.populate_obj(job)
         flash(f'Search for {form.title.data}, year={form.year.data}', 'success')
         return redirect(url_for('list_titles', title=form.title.data, year=form.year.data, job_id=job_id))
-    return render_template('titlesearch.html', title='Update Title', form=form)
+    return render_template('titlesearch.html', title='Update Title', form=form, job=job)
 
 
 @app.route('/changeparams', methods=['GET', 'POST'])
@@ -517,7 +511,6 @@ def changeparams():
         config.MINLENGTH = format(form.MINLENGTH.data)
         config.MAXLENGTH = format(form.MAXLENGTH.data)
         config.RIPMETHOD = format(form.RIPMETHOD.data)
-        # config.MAINFEATURE = int(format(form.MAINFEATURE.data) == 'true')
         config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False
         app.logger.debug(f"main={config.MAINFEATURE}")
         job.disctype = format(form.DISCTYPE.data)
@@ -544,7 +537,7 @@ def customtitle():
         db.session.commit()
         flash(f'custom title changed. Title={form.title.data}, Year={form.year.data}.', "success")
         return redirect(url_for('home'))
-    return render_template('customTitle.html', title='Change Title', form=form)
+    return render_template('customTitle.html', title='Change Title', form=form, job=job)
 
 
 @app.route('/list_titles')
@@ -557,8 +550,9 @@ def list_titles():
         app.logger.debug("list_titles - no job supplied")
         flash("No job supplied", "danger")
         return redirect('/error')
-    dvd_info = utils.call_omdb_api(title, year)
-    return render_template('list_titles.html', results=dvd_info, job_id=job_id)
+
+    search_results = utils.metadata_selector("search", title, year)
+    return render_template('list_titles.html', results=search_results, job_id=job_id)
 
 
 @app.route('/gettitle', methods=['GET', 'POST'])
@@ -568,20 +562,22 @@ def gettitle():
     imdb_id = request.args.get('imdbID').strip() if request.args.get('imdbID') else None
     job_id = request.args.get('job_id').strip() if request.args.get('job_id') else None
     if imdb_id == "" or imdb_id is None:
-        app.logger.debug("gettitle - no job supplied")
-        flash("No job supplied", "danger")
+        app.logger.debug("gettitle - no imdb supplied")
+        flash("No imdb supplied", "danger")
         return redirect('/error')
     if job_id == "" or job_id is None:
         app.logger.debug("gettitle - no job supplied")
         flash("No job supplied", "danger")
         return redirect('/error')
-    dvd_info = utils.call_omdb_api(None, None, imdb_id, "full")
+    dvd_info = utils.metadata_selector("get_details", None, None, imdb_id)
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
 
 @app.route('/updatetitle', methods=['GET', 'POST'])
 @login_required
 def updatetitle():
+    # updatetitle?title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
+    #  poster=http://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
     new_title = request.args.get('title')
     new_year = request.args.get('year')
     video_type = request.args.get('type')
@@ -602,7 +598,10 @@ def updatetitle():
     job.poster_url = poster_url
     job.hasnicetitle = True
     db.session.commit()
+    # TODO: show the previous values that were set, not just assume it was _auto
     flash(f'Title: {job.title_auto} ({job.year_auto}) was updated to {new_title} ({new_year})', "success")
+    # TODO: Check where they came from and send them back there.
+    #  I hate being redirected to home when i didnt come from there
     return redirect(url_for('home'))
 
 
@@ -850,6 +849,46 @@ def import_movies():
     return app.response_class(response=json.dumps(movies, indent=4, sort_keys=True),
                               status=200,
                               mimetype='application/json')
+
+
+@app.route('/send_movies', methods=['GET', 'POST'])
+@login_required
+def send_movies():
+    if request.args.get('s') is None:
+        return render_template('send_movies_form.html')
+
+    posts = db.session.query(Job).filter_by(hasnicetitle=True, disctype="dvd").all()
+    app.logger.debug("search - posts=" + str(posts))
+    r = {'failed': {}, 'sent': {}}
+    i = 0
+    api_key = cfg['ARM_API_KEY']
+
+    for p in posts:
+        # if i>5:break
+        base_url = "https://1337server.pythonanywhere.com"  # This allows easy updates to the API url
+        url = f"{base_url}/api/v1/?mode=p&api_key={api_key}&crc64={p.crc_id}&t={p.title}&y={p.year}&imdb={p.imdb_id}" \
+              f"&hnt={p.hasnicetitle}&l={p.label}"
+        app.logger.debug(url)
+        response = requests.get(url)
+        req = json.loads(response.text)
+        app.logger.debug("req= " + str(req))
+        if bool(req['success']):
+            x = p.get_d().items()
+            r['sent'][i] = {}
+            for key, value in iter(x):
+                r['sent'][i][str(key)] = str(value)
+                # app.logger.debug(str(key) + "= " + str(value))
+            i += 1
+        else:
+            x = p.get_d().items()
+            r['failed'][i] = {}
+            r['failed'][i]['Error'] = req['Error']
+            for key, value in iter(x):
+                r['failed'][i][str(key)] = str(value)
+                # app.logger.debug(str(key) + "= " + str(value))
+            i += 1
+    # return {'success': True, 'mode': 'search', 'results': r}
+    return render_template('send_movies.html', sent=r['sent'], failed=r['failed'], full=r)
 
 
 #  Lets show some cpu info
