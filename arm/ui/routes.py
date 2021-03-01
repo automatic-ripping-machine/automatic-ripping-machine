@@ -915,12 +915,12 @@ def get_processor_name():
         # AMD CPU
         # model name.*?:(.*?)\n
         # matches = re.search(regex, test_str)
-        amd_name_full = re.search(r"vendor_id\\t:(.*?)\\n", fulldump)
+        amd_name_full = re.search(r"model name\\t: (.*?)\\n", fulldump)
         if amd_name_full:
             amd_name = amd_name_full.group(1)
-            amd_hz = re.search(r"cpu\\sMHz\\t.*?([.0-9]*?)\\n", fulldump)  # noqa: W605
-            if amd_hz:
-                amd_ghz = re.sub('[^.0-9]', '', amd_hz.group())
-                amd_ghz = int(float(amd_ghz))  # Not sure this is a good idea
-                return str(amd_name) + " @" + str(amd_ghz) + " GHz"
+            amd_mhz = re.search(r"cpu MHz(?:\\t)*: ([.0-9]*)\\n", fulldump)  # noqa: W605
+            if amd_mhz:
+                # amd_ghz = re.sub('[^.0-9]', '', amd_mhz.group())
+                amd_ghz = round(float(amd_mhz.group(1))/1000, 2)  # this is a good idea
+                return str(amd_name) + " @ " + str(amd_ghz) + " GHz"
     return None  # We didnt find our cpu
