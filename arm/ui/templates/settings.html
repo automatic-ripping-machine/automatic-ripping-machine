@@ -28,7 +28,7 @@
             <div class="col">
                 <div class="jumbotron" style="padding-top: 1rem;">
 					<div class="col-sm-12  rounded text-center">
-						<img src="/static/img/arm80.png">
+						<img src="static/img/arm80.png">
 						<p class="text-center">
 						<!--<b>Welcome to your Automatic Ripping Machine</b>
 						<br>-->
@@ -37,7 +37,7 @@
 					</div>
 				
 					<div class="container" style="padding-top: 4rem;">
-						<form id="form1" name="form1" method="post" action="/settings">
+						<form id="form1" name="form1" method="post" action="settings">
 						    {{ form.hidden_tag() }}
 							{% for k, v in settings.items() %}
 							<div class="input-group mb-3">
@@ -46,7 +46,7 @@
 								</div>
 								<input type="text" class="form-control" aria-label="{{ k }}" name={{ k }} placeholder="{{ v}}" value="{{ v }}" aria-describedby="{{ k }}">
 								 <a class="popovers" onClick='return false;' href="" data-content="{{ jsoncomments[k] }}" rel="popover" data-placement="top" data-original-title="{{ k }}">
-									<img title="More information" src="/static/img/info.png" width="30px" height="35px">
+									<img title="More information" src="static/img/info.png" width="30px" height="35px">
 								</a>
 							</div>
 							{% endfor %}
