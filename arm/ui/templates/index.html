@@ -87,7 +87,7 @@ div.card-body button,div.card-body a{
                                     {%  if job.status == "transcoding" %}
 										<div class="progress">
 											<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="{{ job.progress_round }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ job.progress_round }}%">
-											<small class="justify-content-center d-flex position-absolute w-100"><b>Progress: </b>{{ job.progress }}%</small>
+											<small class="justify-content-center d-flex position-absolute w-100"><b>Stage: {{ job.stage }} - </b>{{ job.progress }}%</small>
                                             </div>
 										</div>
                                         <b>ETA: </b>{{ job.eta }} <br>

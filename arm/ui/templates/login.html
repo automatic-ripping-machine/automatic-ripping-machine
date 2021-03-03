@@ -6,11 +6,13 @@
 {% block content %} 
 <div class="container">
     <div class="row h-100 mx-auto align-items-center">
-<div class="alert alert-danger d-none" role="alert" id="fail">
-  <h4 class="alert-heading">There was an error logging you in</h4>
-  <hr>
-  <h3>{{ raw }}</h3>
-</div>
+		<div class="alert alert-danger d-none" role="alert" id="fail">
+			<h4 class="alert-heading">There was an error logging you in</h4>
+			<hr>
+			<h3>{{ raw }}</h3>
+			<br><br>
+			<h6 class="text-center"><a href="/setup-stage2?override=1">Forgot password</a></h6>
+		</div>
                 <div class="col-sm-4 mx-auto" style="flex-wrap: nowrap">
                     <form id="form1" name="form1" method="post" action="/login">
 						<div class="input-group mb-3">

@@ -21,7 +21,7 @@ from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, Set
 from pathlib import Path, PurePath
 from flask.logging import default_handler  # noqa: F401
 
-from flask_login import LoginManager, login_required, current_user, login_user, UserMixin  # noqa: F401
+from flask_login import LoginManager, login_required, current_user, login_user, UserMixin, logout_user  # noqa: F401
 
 #  the login manager
 login_manager = LoginManager()
@@ -115,20 +115,27 @@ def was_error():
     return render_template('error.html', title='error')
 
 
+@app.route("/logout")
+def logout():
+    logout_user()
+    flash("logged out", "success")
+    return redirect('/')
+
+
 @app.route('/setup-stage2', methods=['GET', 'POST'])
 def setup_stage2():
     """
     This is the second stage of setup this will allow the user to create an admin account
     this will also be the page for resetting the admin account password
     """
-    # if there is no user in the database
+    over = request.values.get('override') if request.method == 'POST' else request.args.get('override')
     try:
         # Return the user to login screen if we dont error when calling for any users
         users = User.query.all()
-        if users:
+        if users and over is None:
+            flash("over = " + over)
             flash('You cannot create more than 1 admin account')
             return redirect(url_for('login'))
-        # return redirect('/login')
     except Exception:
         # return redirect('/index')
         app.logger.debug("No admin account found")
@@ -145,12 +152,19 @@ def setup_stage2():
         pass1 = str(request.form['password']).strip().encode('utf-8')
         hash = bcrypt.gensalt(12)
 
-        if request.form['username'] != "" and request.form['password'] != "":
+        if username and pass1:
+            user = User.query.filter_by(email=username).first()
             hashedpassword = bcrypt.hashpw(pass1, hash)
-            user = User(email=username, password=hashedpassword, hashed=hash)
-            # app.logger.debug("user: " + str(username) + " Pass:" + str(pass1))
-            # app.logger.debug("user db " + str(user))
-            db.session.add(user)
+            if user is None:
+                user = User(email=username, password=hashedpassword, hashed=hash)
+                db.session.add(user)
+            else:
+                user.password = hashedpassword
+                user.hash = hash
+                app.logger.debug("hashedpass = " + str(hashedpassword))
+            app.logger.debug("user: " + username + " Pass:" + pass1.decode('utf-8'))
+            app.logger.debug("user db " + str(user))
+
             try:
                 db.session.commit()
             except Exception as e:
@@ -159,10 +173,10 @@ def setup_stage2():
             else:
                 return redirect(url_for('login'))
         else:
-            # app.logger.debug("user: "+ str(username) + " Pass:" + pass1 )
+            app.logger.debug("user: " + str(username) + " Pass:" + pass1)
             flash("error something was blank")
             return redirect('/setup-stage2')
-    return render_template('setup.html', title='setup')
+    return render_template('setup.html', title='setup', override=over)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -399,6 +413,7 @@ def settings():
         def set_file_last_modified(file_path, dt):
             dt_epoch = dt.timestamp()
             os.utime(file_path, (dt_epoch, dt_epoch))
+
         now = datetime.datetime.now()
         arm_main = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routes.py")
         set_file_last_modified(arm_main, now)
@@ -710,11 +725,14 @@ def home():
             # ([0-9]{1,3}\.[0-9]{2}) %.*(?!ETA) ([0-9hms]*?)\)  # This is more dumb but it returns with the h m s
             # job_status = re.search(r"([0-9]{1,2}\.[0-9]{2}) %.*ETA\s([0-9hms]*?)\)", str(line))
             # This correctly get the very last ETA and %
-            job_status = re.search(r"([0-9]{1,3}\.[0-9]{2}) %.{0,40}ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
+            job_status = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
+                                   r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
+            app.logger.debug(str(job_status.group(1)))
             if job_status:
-                job.progress = job_status.group(1)
+                job.stage = job_status.group(1)
+                job.progress = job_status.group(2)
                 # job.eta = job_status.group(2)+":"+job_status.group(3)+":"+job_status.group(4)
-                job.eta = job_status.group(2)
+                job.eta = job_status.group(3)
                 app.logger.debug("job.progress = " + str(job.progress))
                 x = job.progress
                 job.progress_round = int(float(x))
@@ -945,6 +963,6 @@ def get_processor_name():
             amd_mhz = re.search(r"cpu MHz(?:\\t)*: ([.0-9]*)\\n", fulldump)  # noqa: W605
             if amd_mhz:
                 # amd_ghz = re.sub('[^.0-9]', '', amd_mhz.group())
-                amd_ghz = round(float(amd_mhz.group(1))/1000, 2)  # this is a good idea
+                amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
                 return str(amd_name) + " @ " + str(amd_ghz) + " GHz"
     return None  # We didnt find our cpu
