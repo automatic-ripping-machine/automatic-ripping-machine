@@ -68,27 +68,9 @@ class Job(db.Model):
         device = pyudev.Devices.from_device_file(context, self.devpath)
         self.disctype = "unknown"
 
-        if "ID_FS_LABEL" in device:
-            self.label = device["ID_FS_LABEL"]
-        else:
-            import subprocess
-            try:
-                handbrake_out = subprocess.getoutput("HandBrakeCLI -t 0 -i " + self.devpath)
-            except Exception as e:
-                handbrake_out = ""
-            if len(handbrake_out) > 1:
-                for line in handbrake_out.splitlines():
-                    if len(line.strip()) == 0:
-                        # blank line
-                        continue
-                    if 'DVD Title:' in line:
-                        # example:
-                        # libdvdnav: DVD Title: AMADEUS_SIDE_A_16X9_LB
-                        self.label = line.rsplit(":", 1)[1].strip()
-
         for key, value in device.items():
             if key == "ID_FS_LABEL":
-                # self.label = value
+                self.label = value
                 if value == "iso9660":
                     self.disctype = "data"
             elif key == "ID_CDROM_MEDIA_BD":
