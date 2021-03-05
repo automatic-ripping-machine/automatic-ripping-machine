@@ -727,8 +727,8 @@ def home():
             # This correctly get the very last ETA and %
             job_status = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
                                    r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
-            app.logger.debug(str(job_status.group(1)))
             if job_status:
+                app.logger.debug(str(job_status.group(1)))
                 job.stage = job_status.group(1)
                 job.progress = job_status.group(2)
                 # job.eta = job_status.group(2)+":"+job_status.group(3)+":"+job_status.group(4)
