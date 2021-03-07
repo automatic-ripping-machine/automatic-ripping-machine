@@ -304,12 +304,14 @@ def feed_json():
     is your call
     You can then add a function inside utils to deal with the request
     """
+    j = {}
     x = request.args.get('mode')
     j_id = request.args.get('job')
     # We should never let the user pick the log file
     # logfile = request.args.get('logfile')
     searchq = request.args.get('q')
     logpath = cfg['LOGPATH']
+
     if x is None:
         j = utils.generate_comments()
     elif x == "delete":
@@ -330,6 +332,9 @@ def feed_json():
     elif x == "getsuccessful":
         app.logger.debug("getsucessful")
         j = utils.get_x_jobs("success")
+    elif x == "joblist":
+        app.logger.debug("joblist")
+        j = utils.get_x_jobs("joblist")
     return app.response_class(response=json.dumps(j, indent=4, sort_keys=True),
                               status=200,
                               mimetype='application/json')

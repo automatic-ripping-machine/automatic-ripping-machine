@@ -1,319 +1,216 @@
 {% extends "base.html" %}
 {% block title %}Home{% endblock %}
-{% block head_extra %}<meta http-equiv="refresh" content="30">{% endblock %}
 
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-<style>
-div.card-body button,div.card-body a{
-	margin: 0.1rem;
-}
-.progress-bar {
-    color: #020202ba!important;
-}
-</style>
-<div class="container-fluid h-100 mx-auto">
-<!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLongTitle">Abandon this job ??</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p><span class="ui-icon ui-icon-alert" style="margin:12px 12px 20px 0;"></span>
-		<span id="m-body">This job will be abandoned. Are you sure?</span></p>
-      </div>
-      <div class="modal-footer">
-        <button id="save-no" type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
-        <button id="save-yes" type="button" class="btn btn-primary">Yes</button>
-      </div>
-    </div>
-  </div>
-</div>
+    <style>
+        div.card-body button, div.card-body a {
+            margin: 0.1rem;
+        }
 
-	<div class="row">
-        <div class="col-sm-12 rounded text-center">
-            <img src="static/img/arm80.png">
-            <p class="text-center">
-				<h2>Welcome to your Automatic Ripping Machine</h2>
-            </p>
-        </div>
-    </div>
-
-    <div class="row h-100 mx-auto align-items-center">
-        <div class="col-sm-12 mx-auto">
-            <p class="text-center">
-            <h5 class="text-center"><b>Active Rips</b></h5>
-            </p>
-        </div>
-    </div>
-    <div class="row h-100 align-items-center">
-        <div class="col-md-12 mx-auto">
-            <div class="card-deck">
-                {% for job in jobs %}
-                <div id="id{{ job.job_id }}" class="col-md-4">
-                    <div class="card mb-3  mx-auto" style="max-width: 600px">
-                        <div class="row no-gutters">
-                            <div class="col-lg-4">
-                                {% if not job.poster_url %}
-                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="static/img/none.png" width="240px"
-                                                                                 class="img-thumbnail"></a>
-                                {% else %}
-                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="{{ job.poster_url }}"
-                                                                                 width="240px"
-                                                                                 class="img-thumbnail"></a>
-                                {% endif %}
-                            </div>
-                            <div class="col-lg-4">
-                                <div class="card-body px-1 py-1">
-                                    {% if not job.title_manual %}
-                                    <b>{{ job["title"] }}</b><br>
-                                    {% else %}
-                                    <del><b>{{ job["title_auto"] }}</b><br></del>
-                                    <b>{{ job["title"] }}</b><br>
-                                    {% endif %}
-                                    <b>Type: </b> {{ job.video_type }} <br>
-                                    {% if not job.title_manual %}
-                                    <b>Year: </b>({{ job["year"] }})<br>
-                                    {% else %}
-                                    <del><b>Year:
-                                    </b>{{ job["year_auto"] }}<br></del>
-                                    <b>Year: </b> {{ job["year"] }}<br>
-                                    {% endif %}
-                                    <b>Device: </b>{{ job.devpath }}<br>
-                                    <b>Status: </b>{{ job.status }} <br>
-                                    {%  if job.status == "transcoding" %}
-										<div class="progress">
-											<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="{{ job.progress_round }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ job.progress_round }}%">
-											<small class="justify-content-center d-flex position-absolute w-100"><b>Stage: {{ job.stage }} - </b>{{ job.progress }}%</small>
-                                            </div>
-										</div>
-                                        <b>ETA: </b>{{ job.eta }} <br>
-                                    {% endif %}
-                                   {% if job.video_type != "Music" %}
-                                    <a href="titlesearch?job_id={{ job.job_id }}"
-                                    class="btn btn-primary">Title Search</a>
-                                    {% endif %}
-                                    </li>
-                                </div>
-                            </div>
-                            <div class="col-lg-4">
-                                <div class="card-body px-1 py-1">
-                                    <b>Rip Method: </b>{{ job.config.RIPMETHOD }}
-                                    <br>
-                                    <b>Main Feature:
-                                    </b>{{ job.config.MAINFEATURE }} <br>
-                                    <b>Min Length:
-                                    </b>{{ job.config.MINLENGTH }}<br>
-                                    <b>Max Length:
-                                    </b>{{ job.config.MAXLENGTH }}<br>
-                                    {% if job.video_type != "Music" %}
-                                    <a href="changeparams?config_id={{ job.job_id }}"
-                                       class="btn btn-primary">Change
-                                        Settings</a>
-                                    {% endif %}
-                                </div>
-                                <div class="card-body px-1 py-1">
-                                    {% if job.video_type != "Music" %}
-                                    <a href="customTitle?job_id={{ job.job_id }}"
-                                    class="btn btn-primary">Custom Title</a>
-                                    {% endif %}
-									<br>
-                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="{{ job.job_id }}" data-href="/json?job={{ job.job_id }}&mode=abandon">Abandon Job</button>
-                                </div>
-                            </div>
-
-                        </div>
+        .progress-bar {
+            color: #020202ba !important;
+        }
+    </style>
+    <div class="container-fluid h-100 mx-auto">
+        <!-- Modal -->
+        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle"
+             aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLongTitle">Abandon this job ??</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p><span class="ui-icon ui-icon-alert" style="margin:12px 12px 20px 0;"></span>
+                            <span id="m-body">This job will be abandoned. Are you sure?</span></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="save-no" type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                        <button id="save-yes" type="button" class="btn btn-primary">Yes</button>
                     </div>
                 </div>
-                {% endfor %}
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12 rounded text-center">
+                <img src="static/img/arm80.png">
+                <p class="text-center">
+                <h2>Welcome to your Automatic Ripping Machine</h2>
+                </p>
+            </div>
+        </div>
+
+        <div class="row h-100 mx-auto align-items-center">
+            <div class="col-sm-12 mx-auto">
+                <p class="text-center">
+                <h5 class="text-center"><b>Active Rips</b></h5>
+                </p>
+            </div>
+        </div>
+        <div class="row h-100 align-items-center">
+            <div class="col-md-12 mx-auto">
+                <div id="joblist" class="card-deck"></div>
+                <div id="tempjoblist" style="display: none" class="card-deck"></div>
             </div>
         </div>
     </div>
-</div>
-<div class="row" style="height: 30px;"></div>
-<div class="row h-100 mx-auto align-items-center">
-    <div class="col-sm-4 mx-auto"></div>
-    <div class="col-sm-4 text-center mx-auto">
-        <div class="card mx-auto">
-            <div class="card-header">
-                <strong>Server Specs</strong>
-            </div>
-            <ul class="list-group list-group-flush">
-                {% if mfreegb != freegb %}
-                    <li class="list-group-item">Free Space
-                        <br>ARM: {{ freegb }} GB
-                        <br>Media: {{ mfreegb }} GB
-                    </li>
-                {% else %}
-                    <li class="list-group-item">
-					<h6 class="progress-label" style="float: left;margin-right: 1em;">Storage Used: </h6>
-					<div class="progress">
-						<div class="progress-bar{{' bg-danger' if arm_percent > 80 }}" role="progressbar" style="width: {{ arm_percent }}%;" aria-valuenow="{{ arm_percent }}" aria-valuemin="0" aria-valuemax="100">{{ arm_percent }}%</div>
-					</div>
-                    <br>
-					<p>Free Space: {{ freegb }} GB</p>
-                    </li>
-                {% endif %}
-
-                <li class="list-group-item">CPU: {{ cpu }}
-                    {% if cputemp is not none %}
-                        <br>
-						<p class="{{' bg-danger text-white' if cputemp > 70 }}">CPU Temp: {{ cputemp }}&#176;C</p>
+    <div class="row" style="height: 30px;"></div>
+    <div class="row h-100 mx-auto align-items-center">
+        <div class="col-sm-4 mx-auto"></div>
+        <div class="col-sm-4 text-center mx-auto">
+            <div class="card mx-auto">
+                <div class="card-header">
+                    <strong>Server Specs</strong>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% if mfreegb != freegb %}
+                        <li class="list-group-item">Free Space
+                            <br>ARM: {{ freegb }} GB
+                            <br>Media: {{ mfreegb }} GB
+                        </li>
+                    {% else %}
+                        <li class="list-group-item">
+                            <h6 class="progress-label" style="float: left;margin-right: 1em;">Storage Used: </h6>
+                            <div class="progress">
+                                <div class="progress-bar{{ ' bg-danger' if arm_percent > 80 }}" role="progressbar"
+                                     style="width: {{ arm_percent }}%;" aria-valuenow="{{ arm_percent }}"
+                                     aria-valuemin="0" aria-valuemax="100">{{ arm_percent }}%
+                                </div>
+                            </div>
+                            <br>
+                            <p>Free Space: {{ freegb }} GB</p>
+                        </li>
                     {% endif %}
-					<h6 class="progress-label" style="float: left;margin-right: 1em;">CPU Usage: </h6>
-					<div class="progress">
-						<div class="progress-bar{{' bg-danger' if cpu_usage > 80 }}" role="progressbar" style="width: {{' 10' if cpu_usage < 10 else cpu_usage}}%;" aria-valuenow="{{ cpu_usage }}" aria-valuemin="10" aria-valuemax="100">{{ cpu_usage }}%</div>
-					</div>
-                </li>
-                <li class="list-group-item">       
-					<h6 class="progress-label" style="float: left;margin-right: 1em;">RAM Usage: </h6>
-					<div class="progress">
-						<div class="progress-bar{{' bg-danger' if ram_percent > 80 }}" role="progressbar" style="width: {{ ram_percent }}%;" aria-valuenow="{{ ram_percent }}" aria-valuemin="0" aria-valuemax="100">{{ ram_percent }}%</div>
-					</div>
-                    <br>{{ ram }} GB total
-                    <br> {{ ramfree }} GB free
-                    <br> {{ ramused }} GB Used
-                </li>
-                <!--<li class="list-group-item">DUMP Info: {{ ramdump }} GB</li>-->
 
-            </ul>
+                    <li class="list-group-item">CPU: {{ cpu }}
+                        {% if cputemp is not none %}
+                            <br>
+                            <p class="{{ ' bg-danger text-white' if cputemp > 70 }}">CPU Temp: {{ cputemp }}&#176;C</p>
+                        {% endif %}
+                        <h6 class="progress-label" style="float: left;margin-right: 1em;">CPU Usage: </h6>
+                        <div class="progress">
+                            <div class="progress-bar{{ ' bg-danger' if cpu_usage > 80 }}" role="progressbar"
+                                 style="width: {{ ' 10' if cpu_usage < 10 else cpu_usage }}%;"
+                                 aria-valuenow="{{ cpu_usage }}" aria-valuemin="10" aria-valuemax="100">{{ cpu_usage }}%
+                            </div>
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <h6 class="progress-label" style="float: left;margin-right: 1em;">RAM Usage: </h6>
+                        <div class="progress">
+                            <div class="progress-bar{{ ' bg-danger' if ram_percent > 80 }}" role="progressbar"
+                                 style="width: {{ ram_percent }}%;" aria-valuenow="{{ ram_percent }}" aria-valuemin="0"
+                                 aria-valuemax="100">{{ ram_percent }}%
+                            </div>
+                        </div>
+                        <br>{{ ram }} GB total
+                        <br> {{ ramfree }} GB free
+                        <br> {{ ramused }} GB Used
+                    </li>
+                    <!--<li class="list-group-item">DUMP Info: {{ ramdump }} GB</li>-->
+
+                </ul>
+            </div>
         </div>
+        <div class="col-sm-4 mx-auto"></div>
     </div>
-    <!-- <div class="col-sm-1 text-center mx-auto">
-            <a href="activerips" title="Active Rips"><img src="{{ url_for('static', filename='img/disc.svg') }}" class="img-responsive" height="75px" width="75px"><br>Active Rips</a>
     </div>
-    <div class="col-sm-1 text-center mx-auto">
-            <a href="listlogs" title="Log Files"><img src="{{ url_for('static', filename='img/file-text.svg') }}" class="img-responsive" height="75px" width="75px"><br>View Log Files</a>
-    </div> -->
-    <div class="col-sm-4 mx-auto"></div>
-</div>
-</div>
-<script type="application/javascript">
+    <script type="application/javascript">
         var hrrref = "";
         var wedeleted = "{{ success }}";
-		var activeJob = null;
-		var actionType = null;
-        $(document).ready(function(){
-
-      
-			$("#save-yes").bind('click', function() {
-				console.log(hrrref)
-				if(hrrref != ""){
-					// Add the spinner to let them know we are loading
-					$("#m-body").append('<div class="d-flex justify-content-center">\
+        var activeJob = null;
+        var actionType = null;
+        $(document).ready(function () {
+            $("#save-yes").bind('click', function () {
+                console.log(hrrref)
+                if (hrrref != "") {
+                    // Add the spinner to let them know we are loading
+                    $("#m-body").append('<div class="d-flex justify-content-center">\
 										<div class="spinner-border" role="status">\
 										<span class="sr-only">Loading...</span>\
 										</div>\
 										</div>');
-					$.get( hrrref, function( data ) {
-						console.log( data['success'] ); // John	
-						console.log("#jobId"+activeJob)
-						if (data['success'] === true){
-							if (data['mode'] === "abandon"){
-								$("#id"+activeJob).remove()
-								$("#message1 .alert-heading").html("Job was successfully abandoned")
-								$('#exampleModal').modal('toggle');
-								$('#message1').removeClass('d-none');
-								$('#message2').addClass('d-none');
-								$('#message3').addClass('d-none');
-								setTimeout(
-									function(){$('#message1').addClass('d-none');},
-										5000
-								);
-							}
-							if (data['mode'] === "logfile"){
-								$(this).find('.modal-title').text("Logfile")
-								$("#message1 .alert-heading").html("Here is the logfile you requested")
-								$('div .card-deck').html('<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">\
-								<strong>'+data['job_title']+'</strong></div><pre class="text-white bg-secondary"><code>' + data['log'] +'</code></pre>')
-								window.scrollTo({ top: 0, behavior: 'smooth' });
-								$('#exampleModal').modal('toggle');
-								$('#message1').removeClass('d-none');
-								$('#message2').addClass('d-none');
-								$('#message3').addClass('d-none');
-							}
-						}else{
-							$('#message3').removeClass('d-none');
-							$('#message1').addClass('d-none');
-							$('#message2').addClass('d-none');
-							$('#exampleModal').modal('toggle');
-							setTimeout(
-								function(){$('#message3').addClass('d-none');},
-									5000
-							);
-						}
-					}, "json");
-				}
-			});
-			$("#save-no").bind('click', function(){
-				if (hrrref == "entryWarn"){
-					console.log("use wants to go away");
-					window.location.href = "/";
-					return false;
-				}else{
-				
-					console.log("user shouldnt be here...");
-					$('#exampleModal').modal('toggle');
-				}
-			});
-	  
-      //Simple function to check if we have already agreed
-      function checkCookie() {
-          var understands = getCookie("understands");
-          if (understands != "" && understands != null) {
-              return true;
-          } else {
-              return null;
-          }
-      }
-      //Get only the understands cookie
-      function getCookie(cname) {
-          var name = cname + "=";
-          var decodedCookie = decodeURIComponent(document.cookie);
-          var ca = decodedCookie.split(';');
-          for (var i = 0; i < ca.length; i++) {
-              var c = ca[i];
-              while (c.charAt(0) == ' ') {
-                  c = c.substring(1);
-              }
-              if (c.indexOf(name) == 0) {
-                  return c.substring(name.length, c.length);
-              }
-          }
-      }
-      //Set out cookie so we dont need the dialog popping up
-      function setCookie(cname, cvalue, exdays) {
-          var d = new Date();
-          d.setTime(d.getTime() + (exdays*24*60*60*1000));
-          var expires = "expires="+ d.toUTCString();
-          document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-      }
-	  $('#exampleModal').on('show.bs.modal', function (event) {
-		    var button = $(event.relatedTarget) // Button that triggered the modal
-		    actionType = button.data('type') // Extract info from data-* attributes
-			hrrref  = button.data('href')
-			activeJob = button.data('jobid')
-			//jobId = job.job_id 
-			console.log(hrrref)
-			console.log(activeJob)
-			console.log(actionType)
-			
-			if(actionType == "abandon"){
-				var modalTitle = "Abandon This Job ?"
-				var modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?"
-			}else if (actionType == "delete"){
-				var modalTitle = "Delete this job forever ?"
-				var modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?"
-			}else if (actionType == "search"){
-				var modalTitle = "Search the database"
-				//var modalBody = '<input type="email" class="form-control" id="searchquery" placeholder="Search titles">'
-				var modalBody = '<div class="input-group mb-3">\
+                    $.get(hrrref, function (data) {
+                        console.log(data['success']); // John	
+                        console.log("#jobId" + activeJob)
+                        if (data['success'] === true) {
+                            if (data['mode'] === "abandon") {
+                                $("#id" + activeJob).remove()
+                                $("#message1 .alert-heading").html("Job was successfully abandoned")
+                                $('#exampleModal').modal('toggle');
+                                $('#message1').removeClass('d-none');
+                                $('#message2').addClass('d-none');
+                                $('#message3').addClass('d-none');
+                                setTimeout(
+                                    function () {
+                                        $('#message1').addClass('d-none');
+                                    },
+                                    5000
+                                );
+                            }
+                            if (data['mode'] === "logfile") {
+                                $(this).find('.modal-title').text("Logfile")
+                                $("#message1 .alert-heading").html("Here is the logfile you requested")
+                                $('div .card-deck').html('<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">\
+								<strong>' + data['job_title'] + '</strong></div><pre class="text-white bg-secondary"><code>' + data['log'] + '</code></pre>')
+                                window.scrollTo({top: 0, behavior: 'smooth'});
+                                $('#exampleModal').modal('toggle');
+                                $('#message1').removeClass('d-none');
+                                $('#message2').addClass('d-none');
+                                $('#message3').addClass('d-none');
+                            }
+                        } else {
+                            $('#message3').removeClass('d-none');
+                            $('#message1').addClass('d-none');
+                            $('#message2').addClass('d-none');
+                            $('#exampleModal').modal('toggle');
+                            setTimeout(
+                                function () {
+                                    $('#message3').addClass('d-none');
+                                },
+                                5000
+                            );
+                        }
+                    }, "json");
+                }
+            });
+            $("#save-no").bind('click', function () {
+                if (hrrref == "entryWarn") {
+                    console.log("use wants to go away");
+                    window.location.href = "/";
+                    return false;
+                } else {
+
+                    console.log("user shouldnt be here...");
+                    $('#exampleModal').modal('toggle');
+                }
+            });
+            $('#exampleModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget) // Button that triggered the modal
+                actionType = button.data('type') // Extract info from data-* attributes
+                hrrref = button.data('href')
+                activeJob = button.data('jobid')
+                //jobId = job.job_id 
+                console.log(hrrref)
+                console.log(activeJob)
+                console.log(actionType)
+
+                if (actionType == "abandon") {
+                    var modalTitle = "Abandon This Job ?"
+                    var modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?"
+                } else if (actionType == "delete") {
+                    var modalTitle = "Delete this job forever ?"
+                    var modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?"
+                } else if (actionType == "search") {
+                    var modalTitle = "Search the database"
+                    //var modalBody = '<input type="email" class="form-control" id="searchquery" placeholder="Search titles">'
+                    var modalBody = '<div class="input-group mb-3">\
 								<div class="input-group-prepend">\
 									<span class="input-group-text" id="searchlabel">Search </span>\
 								</div>\
@@ -322,19 +219,98 @@ div.card-body button,div.card-body a{
 										Search string too short.\
 									  </div>\
 								</div>';
-			}else{
-				var modalTitle = "Do you want to leave this page ?"
-				var modalBody = "To view the log file you need to leave this page. Would you like to leave ?"
-			}
-		    // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
-		    // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
-            var modal = $(this)
-            modal.find('.modal-title').text(modalTitle)
-            modal.find('#m-body').html(modalBody)
-		})
-	});
+                } else {
+                    var modalTitle = "Do you want to leave this page ?"
+                    var modalBody = "To view the log file you need to leave this page. Would you like to leave ?"
+                }
+                // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+                // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+                var modal = $(this)
+                modal.find('.modal-title').text(modalTitle)
+                modal.find('#m-body').html(modalBody)
+            })
+        });
 
+        function addJobItem(job) {
+            var x = '<div class="col-md-4" id="jobId' + job["job_id"] + '">\
+            <div class="card mb-3  mx-auto" style="max-width: 600px">\
+            <div class="row no-gutters">\
+                            <div class="col-lg-4">\
+							<a href="jobdetail?job_id=' + job["job_id"] + '"><img src="' + job["poster_url"] + '" \
+                                                                                 width="240px"\
+                                                                                 class="img-thumbnail"></a>\
+																				 </div>\
+                            <div class="col-lg-4">\
+                                <div class="card-body px-1 py-1">'
+            if (job['title_manual'] != '') {
+                x += '<b>' + job["title"] + '</b><br>\
+									<b>Year: </b>' + job["year"] + '<br>'
+            } else {
+                x += '<del><b>' + job["title_auto"] + '</b><br></del>\
+                                    <b>' + job["title"] + '</b><br>\
+									<del><b>Year:\
+                                    </b>' + job["year_auto"] + '<br></del>\
+                                    <b>Year: </b> ' + job["year"] + '<br>';
+            }
+            x += '<b>Type: </b>' + job['video_type'] + '<br>\
+                                    <b>Device: </b>' + job['devpath'] + '<br>\
+                                    <b>Status: </b><img id="status' + job["job_id"] + '" src="static/img/' + job['status'] + '.png" height="20px" alt="' + job['status'] + '" title="' + job['status'] + '"><br>';
+            if (job['status'] === "transcoding") {
+                x += '<div class="progress">\
+											<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job['progress_round'] + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job['progress_round'] + '%">\
+											<small class="justify-content-center d-flex position-absolute w-100"><b>Stage: </b>' + job.stage + " " + job.progress + '%</small>\
+                                            </div>\
+										</div>\
+                                        <b>ETA: </b>' + job["eta"] + '<br>';
+            }
+            x += '</div>\
+                            </div>\
+                            <div class="col-lg-4">\
+                                <div class="card-body px-1 py-1">\
+                                </div>\
+                                <div class="card-body px-2 py-1">\
+									<div class="btn-group-vertical" role="group" aria-label="buttons">\
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="' + job["job_id"] + '" data-href="json?job=' + job["job_id"] + '&mode=abandon">Abandon Job</button>\
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-jobid="' + job["job_id"] + '" data-href="json?job=' + job["job_id"] + '&mode=delete">Delete Job</button>\
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="' + job["job_id"] + '" data-href="json?job=' + job["job_id"] + '&mode=full">View Logfile</button>\
+									</div>\
+                                </div>\
+                            </div>\
+                        </div>\
+                    </div>\
+                </div>';
+            return x
+        }
 
-activeTab("home");</script>
+        function refreshJobs() {
+            $.ajax({
+                url: "/json?mode=joblist",
+                type: "get",
+                success: function (data) {
+                    $('.card-deck').html('')
+                    var size = Object.keys(data['results']).length;
+                    console.log("length = " + size);
+                    if (size > 0) {
+                        $.each(data['results'], function (index, value) {
+                            z = addJobItem(value)
+                            $('.card-deck').append(z);
+                        });
+                        //console.log($("#joblist").html());
+                        //console.log($("#tempjoblist").html());
+                        //console.log($("#joblist").html() !== $("#tempjoblist").html());
+
+                        if ($("#joblist").html() !== $("#tempjoblist").html()) {
+                            $("#joblist").html($("#tempjoblist").html());
+                        }
+                    }
+                }
+            });
+        }
+
+        refreshJobs();
+        var intervalId = window.setInterval(refreshJobs, 25000);
+
+        activeTab("home");
+    </script>
 {% endblock %}
 {% block js %}{{ super() }}{% endblock %}

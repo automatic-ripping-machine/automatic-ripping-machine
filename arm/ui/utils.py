@@ -1,4 +1,5 @@
 import os
+import subprocess
 from time import strftime, localtime
 import urllib
 import json
@@ -6,12 +7,13 @@ import re
 import requests
 import bcrypt  # noqa: F401
 import html
+
 from pathlib import Path
 from arm.config.config import cfg
 from flask.logging import default_handler  # noqa: F401
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
-from flask import Flask, render_template, flash  # noqa: F401
+from flask import Flask, render_template, flash, jsonify  # noqa: F401
 
 
 def get_info(directory):
@@ -346,24 +348,46 @@ def get_x_jobs(job_status):
              False if we didnt find any with the same crc
               - Will also return None as a secondary param
     """
-    jobs = Job.query.filter_by(status=job_status)
+    if job_status == "success" or job_status == "fail":
+        jobs = Job.query.filter_by(status=job_status)
+    else:
+        jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+
     r = {}
     i = 0
     for j in jobs:
+        r[i] = {}
+        job_log = cfg['LOGPATH'] + j.logfile
+        # Try to catch if the logfile gets delete before the job is finished
+        try:
+            line = subprocess.check_output(['tail', '-n', '1', job_log])
+        except subprocess.CalledProcessError:
+            app.logger.debug("Error while reading logfile for ETA")
+            line = ""
+        app.logger.debug(line)
+        job_status_bar = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
+                                   r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
+        if job_status_bar:
+            app.logger.debug(job_status_bar.group())
+            r[i]['stage'] = job_status_bar.group(1)
+            r[i]['progress'] = job_status_bar.group(2)
+            r[i]['eta'] = job_status_bar.group(3)
+            r[i]['progress_round'] = int(float(r[i]['progress']))
+
         app.logger.debug("job obj= " + str(j.get_d()))
         x = j.get_d().items()
-        r[i] = {}
-        for key, value in iter(x):
+        app.logger.debug("job obj.items= " + str(j.get_d().items()))
+        for key, value in x:
             r[i][str(key)] = str(value)
             # logging.debug(str(key) + "= " + str(value))
         i += 1
-
-    if jobs is not None and len(r) > 0:
-        app.logger.debug("jobs is none or len(r)>0 - we have jobs")
-        return {'success': True, 'mode': job_status, 'results': r}
+    app.logger.debug("Stuff = " + str(r))
+    if jobs:
+        app.logger.debug("jobs  - we have jobs")
+        return {"success": True, "mode": job_status, "results": r}
     else:
         app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
-        return {'success': False, 'mode': job_status, 'results': {}}
+        return {"success": False, "mode": job_status, "results": {}}
 
 
 def get_tmdb_poster(search_query=None, year=None):
