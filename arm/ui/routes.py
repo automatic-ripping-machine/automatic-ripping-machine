@@ -239,6 +239,10 @@ def home():
 
 
 def get_processor_name():
+    """
+    function to collect and return some cpu info
+    ideally want to return {name} @ {speed} Ghz
+    """
     if platform.system() == "Windows":
         return platform.processor()
     elif platform.system() == "Darwin":
@@ -249,10 +253,23 @@ def get_processor_name():
         fulldump = str(subprocess.check_output(command, shell=True).strip())
         # Take any float trailing "MHz", some whitespace, and a colon.
         speeds = re.search(r"\\nmodel name\\t:.*?GHz\\n", fulldump)
-        # return str(fulldump)
-        speeds = str(speeds.group())
-        speeds = speeds.replace('\\n', ' ')
-        speeds = speeds.replace('\\t', ' ')
-        speeds = speeds.replace('model name :', '')
-        return speeds
-    return ""
+        if speeds:
+            # We have intel CPU
+            speeds = str(speeds.group())
+            speeds = speeds.replace('\\n', ' ')
+            speeds = speeds.replace('\\t', ' ')
+            speeds = speeds.replace('model name :', '')
+            return speeds
+
+        # AMD CPU
+        # model name.*?:(.*?)\n
+        # matches = re.search(regex, test_str)
+        amd_name_full = re.search(r"model name\\t: (.*?)\\n", fulldump)
+        if amd_name_full:
+            amd_name = amd_name_full.group(1)
+            amd_mhz = re.search(r"cpu MHz(?:\\t)*: ([.0-9]*)\\n", fulldump)  # noqa: W605
+            if amd_mhz:
+                # amd_ghz = re.sub('[^.0-9]', '', amd_mhz.group())
+                amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
+                return str(amd_name) + " @ " + str(amd_ghz) + " GHz"
+    return None  # We didnt find our cpu
