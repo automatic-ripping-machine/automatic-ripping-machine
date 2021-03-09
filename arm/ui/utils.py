@@ -341,7 +341,7 @@ def job_dupe_check(crc_id):
 
 def get_x_jobs(job_status):
     """
-    function for getting all failed or successful jobs from the database
+    function for getting all Failed/Successful jobs or currently active jobs from the database
 
     :return: True if we have found dupes with the same crc
               - Will also return a dict of all the jobs found.
@@ -358,7 +358,10 @@ def get_x_jobs(job_status):
     for j in jobs:
         r[i] = {}
         job_log = cfg['LOGPATH'] + j.logfile
-        r[i]['config'] = j.config.get_d()
+        try:
+            r[i]['config'] = j.config.get_d()
+        except AttributeError:
+            app.logger.debug("couldn't get config")
         # Try to catch if the logfile gets delete before the job is finished
         try:
             line = subprocess.check_output(['tail', '-n', '1', job_log])
@@ -641,6 +644,17 @@ def tmdb_find(imdb_id):
 
 
 def metadata_selector(func, query=None, year=None, imdb_id=None):
+    """
+    Used to switch between OMDB or TMDB as the metadata provider
+    - TMDB returned queries are converted into the OMDB format
+
+    :param func: the function that is being called - allows for more dynamic results
+    :param query: this can either be a search string or movie/show title
+    :param year: the year of movie/show release
+    :param imdb_id: the imdb id to lookup
+
+    :return: json/dict object
+    """
     if cfg['METADATA_PROVIDER'].lower() == "tmdb":
         app.logger.debug("provider tmdb")
         if func == "search":

@@ -20,10 +20,8 @@ from arm.config.config import cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, SettingsForm
 from pathlib import Path, PurePath
 from flask.logging import default_handler  # noqa: F401
-
 from flask_login import LoginManager, login_required, current_user, login_user, UserMixin, logout_user  # noqa: F401
 
-#  the login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
 
