@@ -43,6 +43,18 @@ def unauthorized():
     return redirect('/login')
 
 
+@app.route('/error')
+def was_error():
+    return render_template('error.html', title='error')
+
+
+@app.route("/logout")
+def logout():
+    logout_user()
+    flash("logged out", "success")
+    return redirect('/')
+
+
 @app.route('/setup')
 def setup():
     """
@@ -85,7 +97,7 @@ def setup():
             os.makedirs(dir4)
             flash(f"{dir4} was created successfully.")
     except FileNotFoundError as e:
-        flash(f"Creation of the directory {dir0} failed {e}")
+        flash(f"Creation of the directory {dir0} failed {e}", "danger")
         app.logger.debug(f"Creation of the directory failed - {e}")
     else:
         flash("Successfully created all of the ARM directories", "success")
@@ -108,18 +120,6 @@ def setup():
         flash(str(e))
         app.logger.debug("Setup - " + str(e))
         return redirect('/index')
-
-
-@app.route('/error')
-def was_error():
-    return render_template('error.html', title='error')
-
-
-@app.route("/logout")
-def logout():
-    logout_user()
-    flash("logged out", "success")
-    return redirect('/')
 
 
 @app.route('/setup-stage2', methods=['GET', 'POST'])
@@ -234,6 +234,12 @@ def login():
 @app.route('/database')
 @login_required
 def database():
+    """
+    The main database page
+
+    Currently outputs every job from the databse - this can cause serious slow downs with + 3/4000 entries
+    Pagination is needed!
+    """
     # Success gives the user feedback to let them know if the delete worked
     success = False
     saved = False
@@ -340,10 +346,16 @@ def feed_json():
                               mimetype='application/json')
 
 
-# New page for editing/Viewing the ARM config
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
+    """
+    The settings page - allows the user to update the arm.yaml without needing to open a text editor
+    Also triggers a restart of flask for debugging.
+    This wont work well if flask isnt run in debug mode
+
+    This needs rewritten to be static
+    """
     x = ""
     arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
@@ -429,9 +441,48 @@ def settings():
     return render_template('settings.html', settings=cfg, form=form, raw=x, jsoncomments=comments)
 
 
+@app.route('/logs')
+@login_required
+def logs():
+    """
+    This is the main page for viewing a logfile
+
+    this holds the XHR request that sends to other routes for the data
+    """
+    mode = request.args['mode']
+    logfile = request.args['logfile']
+
+    return render_template('logview.html', file=logfile, mode=mode)
+
+
+@app.route('/listlogs', defaults={'path': ''})
+@login_required
+def listlogs(path):
+    """
+    The 'View logs' page - show a list of logfiles in the log folder with creation time and size
+    Gives the user links to tail/arm/Full/download
+    """
+    basepath = cfg['LOGPATH']
+    fullpath = os.path.join(basepath, path)
+
+    # Deal with bad data
+    if not os.path.exists(fullpath):
+        return render_template('error.html')
+
+    # Get all files in directory
+    files = utils.get_info(fullpath)
+    return render_template('logfiles.html', files=files, date_format=cfg['DATE_FORMAT'])
+
+
 @app.route('/logreader')
 @login_required
 def logreader():
+    """
+    The default logreader output function
+
+    This will display or allow downloading the requested logfile
+    This is where the XHR requests are sent when viewing /logs?=logfile
+    """
     # use logger
     # app.logger.info('Processing default request')
     # app.logger.debug('DEBUGGING')
@@ -485,7 +536,6 @@ def logreader():
     else:
         # do nothing/ or error out
         return render_template('error.html')
-        # exit()
 
     return app.response_class(generate(), mimetype='text/plain')
 
@@ -493,12 +543,19 @@ def logreader():
 @app.route('/activerips')
 @login_required
 def rips():
+    """
+    This no longer works properly because of the 'transcoding' status
+    """
     return render_template('activerips.html', jobs=Job.query.filter_by(status="active"))
 
 
 @app.route('/history')
 @login_required
 def history():
+    """
+    Smaller much simpler output of previously run jobs
+
+    """
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
         jobs = Job.query.filter_by()
@@ -513,6 +570,12 @@ def history():
 @app.route('/jobdetail', methods=['GET', 'POST'])
 @login_required
 def jobdetail():
+    """
+    Page for showing in-depth details about a job
+
+    Shows Job/Config/Track class details
+    displays them in a clear and easy to ready format
+    """
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
     tracks = job.tracks.all()
@@ -526,6 +589,9 @@ def jobdetail():
 @app.route('/titlesearch', methods=['GET', 'POST'])
 @login_required
 def submitrip():
+    """
+    ...
+    """
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
@@ -539,6 +605,9 @@ def submitrip():
 @app.route('/changeparams', methods=['GET', 'POST'])
 @login_required
 def changeparams():
+    """
+    For updating Config params or changing/correcting disctype manually
+    """
     config_id = request.args.get('config_id')
     # app.logger.debug(config.pretty_table())
     job = Job.query.get(config_id)
@@ -564,6 +633,9 @@ def changeparams():
 @app.route('/customTitle', methods=['GET', 'POST'])
 @login_required
 def customtitle():
+    """
+    For setting custom title for series with multiple discs
+    """
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
     form = CustomTitleForm(obj=job)
@@ -580,6 +652,11 @@ def customtitle():
 @app.route('/list_titles')
 @login_required
 def list_titles():
+    """
+    The search results page
+
+    This will display the returned search results from OMDB or TMDB from the users input search
+    """
     title = request.args.get('title').strip() if request.args.get('title') else ''
     year = request.args.get('year').strip() if request.args.get('year') else ''
     job_id = request.args.get('job_id').strip() if request.args.get('job_id') else ''
@@ -596,6 +673,12 @@ def list_titles():
 @app.route('/select_title', methods=['GET', 'POST'])
 @login_required
 def gettitle():
+    """
+    Used to display plot info from the search result page when the user clicks the title
+    and to forward the user to save the selected details
+
+    This was also used previously for the getdetails page but it no longer needed there
+    """
     imdb_id = request.args.get('imdbID').strip() if request.args.get('imdbID') else None
     job_id = request.args.get('job_id').strip() if request.args.get('job_id') else None
     if imdb_id == "" or imdb_id is None:
@@ -613,6 +696,9 @@ def gettitle():
 @app.route('/updatetitle', methods=['GET', 'POST'])
 @login_required
 def updatetitle():
+    """
+    ...
+    """
     # updatetitle?title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
     #  poster=http://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
     new_title = request.args.get('title')
@@ -638,30 +724,6 @@ def updatetitle():
     # TODO: show the previous values that were set, not just assume it was _auto
     flash(f'Title: {job.title_auto} ({job.year_auto}) was updated to {new_title} ({new_year})', "success")
     return redirect(request.referrer)
-
-
-@app.route('/logs')
-@login_required
-def logs():
-    mode = request.args['mode']
-    logfile = request.args['logfile']
-
-    return render_template('logview.html', file=logfile, mode=mode)
-
-
-@app.route('/listlogs', defaults={'path': ''})
-@login_required
-def listlogs(path):
-    basepath = cfg['LOGPATH']
-    fullpath = os.path.join(basepath, path)
-
-    # Deal with bad data
-    if not os.path.exists(fullpath):
-        return render_template('error.html')
-
-    # Get all files in directory
-    files = utils.get_info(fullpath)
-    return render_template('logfiles.html', files=files, date_format=cfg['DATE_FORMAT'])
 
 
 @app.route('/')
@@ -756,8 +818,8 @@ def home():
 @login_required
 def import_movies():
     """
-    Function for finding all movies not currently tracked by ARM
-    This should not be run frequently - Re-runs are fine.
+    Function for finding all movies not currently tracked by ARM in the MEDIA_DIR
+    This should not be run frequently
     This causes a HUGE number of requests to OMdb
     :return: Outputs json - contains a dict/json of movies added and a notfound list
              that doesnt match ARM identified folder format.

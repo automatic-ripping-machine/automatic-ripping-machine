@@ -5,10 +5,6 @@
 
 {% block content %}
     <style>
-        div.card-body button, div.card-body a {
-            margin: 0.1rem;
-        }
-
         .progress-bar {
             color: #020202ba !important;
         }
@@ -154,17 +150,6 @@
                                     5000
                                 );
                             }
-                            if (data['mode'] === "logfile") {
-                                $(this).find('.modal-title').text("Logfile")
-                                $("#message1 .alert-heading").html("Here is the logfile you requested")
-                                $('div .card-deck').html('<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">\
-								<strong>' + data['job_title'] + '</strong></div><pre class="text-white bg-secondary"><code>' + data['log'] + '</code></pre>')
-                                window.scrollTo({top: 0, behavior: 'smooth'});
-                                $('#exampleModal').modal('toggle');
-                                $('#message1').removeClass('d-none');
-                                $('#message2').addClass('d-none');
-                                $('#message3').addClass('d-none');
-                            }
                         } else {
                             $('#message3').removeClass('d-none');
                             $('#message1').addClass('d-none');
@@ -223,8 +208,6 @@
                     var modalTitle = "Do you want to leave this page ?"
                     var modalBody = "To view the log file you need to leave this page. Would you like to leave ?"
                 }
-                // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
-                // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
                 var modal = $(this)
                 modal.find('.modal-title').text(modalTitle)
                 modal.find('#m-body').html(modalBody)
@@ -278,7 +261,7 @@
                                 <div class="card-body px-2 py-1">\
 									<div class="btn-group-vertical" role="group" aria-label="buttons">\
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="' + job["job_id"] + '" data-href="json?job=' + job["job_id"] + '&mode=abandon">Abandon Job</button>\
-										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="' + job["job_id"] + '" data-href="json?job=' + job["job_id"] + '&mode=full">View Logfile</button>';
+										<a href="logs?logfile=' + job['logfile'] + '&mode=full" class="btn btn-primary">View logfile</a>';
             if (job['video_type'] !== "Music"){
                 x += '<a href="titlesearch?job_id=' + job['job_id'] + '" class="btn btn-primary">Title Search</a>\
                       <a href="customTitle?job_id=' + job['job_id'] + '" class="btn btn-primary">Custom Title</a>\
