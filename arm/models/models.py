@@ -272,6 +272,15 @@ class Config(db.Model):
             x.add_row([str(attr), str(value)])
         return str(x.get_string())
 
+    def get_d(self):
+        r = {}
+        for key, value in self.__dict__.items():
+            if str(key) not in (
+                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                    "PO_USER_KEY", "PO_APP_KEY", "_sa_instance_state"):
+                r[str(key)] = str(value)
+        return r
+
 
 class User(db.Model, UserMixin):
     user_id = db.Column(db.Integer, index=True, primary_key=True)

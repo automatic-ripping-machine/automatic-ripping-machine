@@ -267,13 +267,24 @@
                             </div>\
                             <div class="col-lg-4">\
                                 <div class="card-body px-1 py-1">\
+                                    <b>Rip Method: </b>'+ job['config']['RIPMETHOD'] + '<br>\
+                                    <b>Main Feature:\
+                                    </b>'+ job['config']['MAINFEATURE'] + '<br>\
+                                    <b>Min Length:\
+                                    </b>'+ job['config']['MINLENGTH'] + '<br>\
+                                    <b>Max Length:\
+                                    </b>'+ job['config']['MAXLENGTH'] + '<br>\
                                 </div>\
                                 <div class="card-body px-2 py-1">\
 									<div class="btn-group-vertical" role="group" aria-label="buttons">\
 										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="' + job["job_id"] + '" data-href="json?job=' + job["job_id"] + '&mode=abandon">Abandon Job</button>\
-										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-jobid="' + job["job_id"] + '" data-href="json?job=' + job["job_id"] + '&mode=delete">Delete Job</button>\
-										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="' + job["job_id"] + '" data-href="json?job=' + job["job_id"] + '&mode=full">View Logfile</button>\
-									</div>\
+										<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="' + job["job_id"] + '" data-href="json?job=' + job["job_id"] + '&mode=full">View Logfile</button>';
+            if (job['video_type'] !== "Music"){
+                x += '<a href="titlesearch?job_id=' + job['job_id'] + '" class="btn btn-primary">Title Search</a>\
+                      <a href="customTitle?job_id=' + job['job_id'] + '" class="btn btn-primary">Custom Title</a>\
+                      <a href="changeparams?config_id=' + job['job_id'] + '" class="btn btn-primary">Change Settings</a>';
+            }
+        x += '</div>\
                                 </div>\
                             </div>\
                         </div>\
@@ -308,9 +319,8 @@
         }
 
         refreshJobs();
-        var intervalId = window.setInterval(refreshJobs, 25000);
-
         activeTab("home");
+        var intervalId = window.setInterval(refreshJobs, 25000);
     </script>
 {% endblock %}
 {% block js %}{{ super() }}{% endblock %}

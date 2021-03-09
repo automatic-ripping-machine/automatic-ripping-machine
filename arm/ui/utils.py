@@ -358,6 +358,7 @@ def get_x_jobs(job_status):
     for j in jobs:
         r[i] = {}
         job_log = cfg['LOGPATH'] + j.logfile
+        r[i]['config'] = j.config.get_d()
         # Try to catch if the logfile gets delete before the job is finished
         try:
             line = subprocess.check_output(['tail', '-n', '1', job_log])
@@ -378,7 +379,8 @@ def get_x_jobs(job_status):
         x = j.get_d().items()
         app.logger.debug("job obj.items= " + str(j.get_d().items()))
         for key, value in x:
-            r[i][str(key)] = str(value)
+            if key != "config":
+                r[i][str(key)] = str(value)
             # logging.debug(str(key) + "= " + str(value))
         i += 1
     app.logger.debug("Stuff = " + str(r))
