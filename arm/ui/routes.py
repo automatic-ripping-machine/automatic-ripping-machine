@@ -540,9 +540,9 @@ def submitrip():
 @login_required
 def changeparams():
     config_id = request.args.get('config_id')
-    config = Config.query.get(config_id)
     # app.logger.debug(config.pretty_table())
     job = Job.query.get(config_id)
+    config = job.config
     form = ChangeParamsForm(obj=config)
     if form.validate_on_submit():
         config.MINLENGTH = format(form.MINLENGTH.data)
