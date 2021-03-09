@@ -52,16 +52,21 @@ def music_brainz(discid, job):
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits'])
         logging.debug("Infos: %s", infos)
         logging.debug("discid = " + str(discid))
+        release = infos['disc']['release-list'][0]
         # Clean up the date and the title
-        new_year = str(infos['disc']['release-list'][0]['date'])
-        new_year = re.sub("-[0-9]{2}-[0-9]{2}$", "", new_year)
-        title = str(infos['disc']['release-list'][0]['title'])
+        if 'date' in release:
+            new_year = str(release['date'])
+            new_year = re.sub("-[0-9]{2}-[0-9]{2}$", "", new_year)
+        else:
+            # sometimes there is no date in a release
+            new_year = ""
+        title = str(release.get('title', 'no title'))
         # Set out release id as the CRC_ID
-        # job.crc_id = infos['disc']['release-list'][0]['id']
+        # job.crc_id = release['id']
         # job.hasnicetitle = True
         args = {
             'job_id': str(job.job_id),
-            'crc_id': infos['disc']['release-list'][0]['id'],
+            'crc_id': release['id'],
             'hasnicetitle': True,
             'year': str(new_year),
             'year_auto': str(new_year),
@@ -78,31 +83,31 @@ def music_brainz(discid, job):
         return ""
     try:
         # We never make it to here if the mb fails
-        artist = infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name']
+        artist = release['artist-credit'][0]['artist']['name']
         logging.debug("artist=====" + str(artist))
-        logging.debug("do have artwork?======" + str(infos['disc']['release-list'][0]['cover-art-archive']['artwork']))
+        logging.debug("do have artwork?======" + str(release['cover-art-archive']['artwork']))
         # Get our front cover if it exists
         if get_cd_art(job, infos):
             logging.debug("we got an art image")
         else:
             logging.debug("we didnt get art image")
         # Set up the database properly for music cd's
-        # job.logfile = clean_for_log(artist) + "_" + clean_for_log(infos['disc']['release-list'][0]['title']) + ".log"
+        # job.logfile = clean_for_log(artist) + "_" + clean_for_log(release['title']) + ".log"
+        artist_title = artist + " " + title
         args = {
             'job_id': str(job.job_id),
-            'year': str(new_year),
-            'year_auto': str(new_year),
-            'title': str(artist + " " + title),
-            'title_auto': str(artist + " " + title),
+            'year': new_year,
+            'year_auto': new_year,
+            'title': artist_title,
+            'title_auto': artist_title,
             'no_of_titles': infos['disc']['offset-count']
         }
         database_updater(args, job)
         # db.session.commit()
-        return artist + " " + str(infos['disc']['release-list'][0]['title'])
     except Exception as exc:
         logging.error("Try 2 -  ERROR: " + str(exc))
         db.session.rollback()
-        return artist + " " + str(infos['disc']['release-list'][0]['title'])
+    return artist_title
 
 
 def clean_for_log(s):
