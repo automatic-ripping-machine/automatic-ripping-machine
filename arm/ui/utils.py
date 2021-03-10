@@ -140,24 +140,22 @@ def generate_log(logpath, job_id):
 
 def abandon_job(job_id):
     # job_id = request.args.get('job_id')
-    # TODO add a confirm and then
-    #  delete the raw folder (this will cause ARM to bail)
     try:
         job = Job.query.get(job_id)
-        p = psutil.Process(job.pid)
-        p.terminate()  # or p.kill()
         job.status = "fail"
         db.session.commit()
         app.logger.debug("Job {} was abandoned successfully".format(job_id))
         t = {'success': True, 'job': job_id, 'mode': 'abandon'}
     except Exception as e:
-        if "NoSuchProcess" in str(e):
-            t = {'success': True, 'job': job_id, 'mode': 'abandon', "Error": str(e)}
-        else:
-            # flash("Failed to update job" + str(e))
-            db.session.rollback()
-            app.logger.debug("Job {} couldn't be abandoned ".format(job_id))
-            t = {'success': False, 'job': job_id, 'mode': 'abandon', "Error": str(e)}
+        db.session.rollback()
+        app.logger.debug("Job {} couldn't be abandoned ".format(job_id))
+        return {'success': False, 'job': job_id, 'mode': 'abandon', "Error": str(e)}
+    try:
+        p = psutil.Process(job.pid)
+        p.terminate()  # or p.kill()
+    except psutil.NoSuchProcess:
+        t['Error'] = f"couldnt find job.pid - {job.pid}"  # This is a soft error db changes still went through
+        app.logger.debug(f"couldnt find job.pid - {job.pid}")
     return t
 
 
@@ -367,6 +365,7 @@ def get_x_jobs(job_status):
         try:
             r[i]['config'] = j.config.get_d()
         except AttributeError:
+            r[i]['config'] = "config not found"
             app.logger.debug("couldn't get config")
         # Try to catch if the logfile gets delete before the job is finished
         try:
