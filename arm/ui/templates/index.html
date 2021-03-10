@@ -133,7 +133,7 @@
 										</div>\
 										</div>');
                     $.get(hrrref, function (data) {
-                        console.log(data['success']); // John	
+                        console.log(data['success']);
                         console.log("#jobId" + activeJob)
                         if (data['success'] === true) {
                             if (data['mode'] === "abandon") {
@@ -267,7 +267,7 @@
                       <a href="customTitle?job_id=' + job['job_id'] + '" class="btn btn-primary">Custom Title</a>\
                       <a href="changeparams?config_id=' + job['job_id'] + '" class="btn btn-primary">Change Settings</a>';
             }
-        x += '</div>\
+			x += '</div>\
                                 </div>\
                             </div>\
                         </div>\

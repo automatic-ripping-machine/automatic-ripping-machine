@@ -423,7 +423,11 @@
                 }
                 var modal = $(this)
                 modal.find('.modal-title').text(modalTitle)
-                modal.find('#m-body').html(modalBody)
+                modal.find('.modal-body').html(modalBody)
+                $( "#searchquery" ).on( "keydown", function(event) {
+                if(event.which == 13)
+                    $("#save-yes").click();
+            });
             })
             function addJobItem(job){
                 var x = '<div class="col-md-4" id="jobId'+ job["job_id"] +'">\

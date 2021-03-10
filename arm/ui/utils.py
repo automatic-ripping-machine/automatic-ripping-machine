@@ -151,10 +151,13 @@ def abandon_job(job_id):
         app.logger.debug("Job {} was abandoned successfully".format(job_id))
         t = {'success': True, 'job': job_id, 'mode': 'abandon'}
     except Exception as e:
-        # flash("Failed to update job" + str(e))
-        db.session.rollback()
-        app.logger.debug("Job {} couldn't be abandoned ".format(job_id))
-        t = {'success': False, 'job': job_id, 'mode': 'abandon', "Error": str(e)}
+        if "NoSuchProcess" in str(e):
+            t = {'success': True, 'job': job_id, 'mode': 'abandon', "Error": str(e)}
+        else:
+            # flash("Failed to update job" + str(e))
+            db.session.rollback()
+            app.logger.debug("Job {} couldn't be abandoned ".format(job_id))
+            t = {'success': False, 'job': job_id, 'mode': 'abandon', "Error": str(e)}
     return t
 
 

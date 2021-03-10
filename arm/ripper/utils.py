@@ -818,8 +818,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
     filename = name of file to be moved\n
     job = instance of Job class\n
     ismainfeature = True/False"""
-    # TODO update this to use prettytables
-    logging.debug("Moving files: " + str(job))
+    logging.debug("Moving files: " + str(job.pretty_table()))
 
     if job.title_manual:
         # logging.info("Found new title: " + job.new_title + " (" + str(job.new_year) + ")")
