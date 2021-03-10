@@ -1061,14 +1061,24 @@ def set_permissions(job, directory_to_traverse):
         corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
         logging.info("Setting permissions to: " + str(job.config.CHMOD_VALUE) + " on: " + directory_to_traverse)
         os.chmod(directory_to_traverse, corrected_chmod_value)
+        if job.config.SET_MEDIA_OWNER and job.config.CHOWN_USER and job.config.CHOWN_GROUP:
+            import pwd
+            import grp
+            uid = pwd.getpwnam(job.config.CHOWN_USER).pw_uid
+            gid = grp.getgrnam(job.config.CHOWN_GROUP).gr_gid
+            os.chown(directory_to_traverse, uid, gid)
 
         for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
             for cur_dir in l_directories:
                 logging.debug("Setting path: " + cur_dir + " to permissions value: " + str(job.config.CHMOD_VALUE))
                 os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
+                if job.config.SET_MEDIA_OWNER:
+                    os.chown(os.path.join(dirpath, cur_dir), uid, gid)
             for cur_file in l_files:
                 logging.debug("Setting file: " + cur_file + " to permissions value: " + str(job.config.CHMOD_VALUE))
                 os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
+                if job.config.SET_MEDIA_OWNER:
+                    os.chown(os.path.join(dirpath, cur_file), uid, gid)
         return True
     except Exception as e:
         err = "Permissions setting failed as: " + str(e)
@@ -1397,7 +1407,6 @@ def job_dupe_check(job):
              False if we didnt find any with the same crc
               - Will also return None as a secondary param
     """
-    # TODO possibly only grab hasnicetitles ?
     logging.debug(f"trying to find jobs with crc64 = {job.crc_id}")
     jobs = Job.query.filter_by(crc_id=job.crc_id, status="success", hasnicetitle=True)
     # logging.debug("search - posts=" + str(jobs))

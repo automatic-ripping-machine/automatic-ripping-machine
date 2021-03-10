@@ -20,10 +20,8 @@ from arm.config.config import cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, SettingsForm
 from pathlib import Path, PurePath
 from flask.logging import default_handler  # noqa: F401
-
 from flask_login import LoginManager, login_required, current_user, login_user, UserMixin, logout_user  # noqa: F401
 
-#  the login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
 
@@ -1033,3 +1031,61 @@ def get_processor_name():
                 amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
                 return str(amd_name) + " @ " + str(amd_ghz) + " GHz"
     return None  # We didnt find our cpu
+
+
+@app.route('/fix_perms', methods=['GET', 'POST'])
+@login_required
+def set_permissions():
+    """
+    ARM can sometimes have issues with changing the file owner, we can use the fact ARMui is run
+    as a service to fix permissions.
+    """
+    job_id = int(request.args.get('job_id').strip())
+    job = Job.query.get(job_id)
+    job_log = cfg['LOGPATH'] + job.logfile
+    # This is kind of hacky way to get around the fact we dont save the ts variable
+    with open(job_log, 'r') as reader:
+        for line in reader.readlines():
+            ts = re.search("Operation not permitted: '([0-9a-zA-Z()/ -]*?)'", str(line))
+            if ts:
+                break
+            # app.logger.debug(ts)
+            # Operation not permitted: '([0-9a-zA-Z\(\)/ -]*?)'
+    if ts:
+        app.logger.debug(str(ts.group(1)))
+        directory_to_traverse = ts.group(1)
+    else:
+        app.logger.debug("not found")
+        directory_to_traverse = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
+    # folder_clean = re.sub("_", " ", job.logfile)
+    # directory_to_traverse = str(os.path.join(folder_clean))
+    try:
+        corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
+        app.logger.info("Setting permissions to: " + str(job.config.CHMOD_VALUE) + " on: " + directory_to_traverse)
+        os.chmod(directory_to_traverse, corrected_chmod_value)
+        if job.config.SET_MEDIA_OWNER and job.config.CHOWN_USER and job.config.CHOWN_GROUP:
+            import pwd
+            import grp
+            uid = pwd.getpwnam(job.config.CHOWN_USER).pw_uid
+            gid = grp.getgrnam(job.config.CHOWN_GROUP).gr_gid
+            os.chown(directory_to_traverse, uid, gid)
+
+        for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
+            for cur_dir in l_directories:
+                app.logger.debug("Setting path: " + cur_dir + " to permissions value: " + str(job.config.CHMOD_VALUE))
+                os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
+                if job.config.SET_MEDIA_OWNER:
+                    os.chown(os.path.join(dirpath, cur_dir), uid, gid)
+            for cur_file in l_files:
+                app.logger.debug("Setting file: " + cur_file + " to permissions value: " + str(job.config.CHMOD_VALUE))
+                os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
+                if job.config.SET_MEDIA_OWNER:
+                    os.chown(os.path.join(dirpath, cur_file), uid, gid)
+        d = {"worked": True, "folder": str(directory_to_traverse)}
+    except Exception as e:
+        err = "Permissions setting failed as: " + str(e)
+        app.logger.error(err)
+        d = {"worked": False, "Error": str(err), "ts": str(ts)}
+    return app.response_class(response=json.dumps(d, indent=4, sort_keys=True),
+                              status=200,
+                              mimetype='application/json')
