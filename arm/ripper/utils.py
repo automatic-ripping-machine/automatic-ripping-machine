@@ -26,7 +26,7 @@ def notify(job, title, body):
     """
     # Pushbullet
     # pbul://{accesstoken}
-    if job.config.PB_KEY != "":
+    if getattr(job.config, "PB_KEY", ""):
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
@@ -42,7 +42,7 @@ def notify(job, title, body):
             logging.error("Failed sending Pushbullet apprise notification.  Continuing processing...")
     # IFTTT
     # ifttt://{WebhookID}@{Event}/
-    if job.config.IFTTT_KEY != "":
+    if getattr(job.config, "IFTTT_KEY", ""):
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
@@ -58,7 +58,7 @@ def notify(job, title, body):
         except:  # noqa: E722
             logging.error("Failed sending IFTTT apprise notification.  Continuing processing...")
     # PUSHOVER
-    if job.config.PO_USER_KEY != "":
+    if getattr(job.config, "PO_USER_KEY", ""):
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
@@ -72,7 +72,7 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending PUSHOVER apprise notification.  continuing  processing...")
-    if job.config.APPRISE != "":
+    if getattr(job.config, "APPRISE", ""):
         try:
             apprise_notify(job.config.APPRISE, title, body)
             logging.debug("apprise-config: " + str(job.config.APPRISE))
