@@ -105,8 +105,7 @@ def check_ip():
         if not gets the most likely ip
         arguments:
         none
-        return:
-        the ip of the host or 127.0.0.1
+        return: the ip of the host or 127.0.0.1
     """
     host = cfg['WEBSERVER_IP']
     if host == 'x.x.x.x':

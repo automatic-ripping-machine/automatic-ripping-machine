@@ -4,6 +4,7 @@ from time import strftime, localtime
 import urllib
 import json
 import re
+import psutil
 import requests
 import bcrypt  # noqa: F401
 import html
@@ -143,15 +144,17 @@ def abandon_job(job_id):
     #  delete the raw folder (this will cause ARM to bail)
     try:
         job = Job.query.get(job_id)
+        p = psutil.Process(job.pid)
+        p.terminate()  # or p.kill()
         job.status = "fail"
         db.session.commit()
         app.logger.debug("Job {} was abandoned successfully".format(job_id))
         t = {'success': True, 'job': job_id, 'mode': 'abandon'}
-    except Exception:
+    except Exception as e:
         # flash("Failed to update job" + str(e))
         db.session.rollback()
         app.logger.debug("Job {} couldn't be abandoned ".format(job_id))
-        t = {'success': False, 'job': job_id, 'mode': 'abandon'}
+        t = {'success': False, 'job': job_id, 'mode': 'abandon', "Error": str(e)}
     return t
 
 
@@ -204,7 +207,7 @@ def delete_job(job_id, mode):
     # If we run into problems with the datebase changes
     # error out to the log and roll back
     except Exception as err:
-        # db.session.rollback()
+        db.session.rollback()
         app.logger.error("Error:db-1 {0}".format(err))
         t = {'success': False}
 
