@@ -697,7 +697,7 @@ def fix_permissions(j_id):
                 "PrettyError": "No Valid Job Id Supplied"}
     job = Job.query.get(job_id)
     if not job:
-        return {"success": False, "mode": "fixperms","Error": "JobDeleted",
+        return {"success": False, "mode": "fixperms", "Error": "JobDeleted",
                 "PrettyError": "Job Has Been Deleted From The Database"}
     job_log = cfg['LOGPATH'] + job.logfile
     if not os.path.isfile(job_log):
