@@ -48,42 +48,23 @@ def log_arm_params(job):
 
     # log arm parameters
     logging.info("**** Logging ARM variables ****")
-    logging.info("devpath: " + str(job.devpath))
-    logging.info("mountpoint: " + str(job.mountpoint))
-    logging.info("title: " + str(job.title))
-    logging.info("year: " + str(job.year))
-    logging.info("video_type: " + str(job.video_type))
-    logging.info("hasnicetitle: " + str(job.hasnicetitle))
-    logging.info("label: " + str(job.label))
-    logging.info("disctype: " + str(job.disctype))
+    for key in ("devpath", "mountpoint", "title", "year", "video_type",
+                "hasnicetitle", "label", "disctype"):
+        logging.info(
+            key + ": " + str(getattr(job, key)))
     logging.info("**** End of ARM variables ****")
+
     logging.info("**** Logging config parameters ****")
-    logging.info("skip_transcode: " + str(job.config.SKIP_TRANSCODE))
-    logging.info("mainfeature: " + str(job.config.MAINFEATURE))
-    logging.info("minlength: " + job.config.MINLENGTH)
-    logging.info("maxlength: " + job.config.MAXLENGTH)
-    logging.info("videotype: " + job.config.VIDEOTYPE)
-    logging.info("manual_wait: " + str(job.config.MANUAL_WAIT))
-    logging.info("wait_time: " + str(job.config.MANUAL_WAIT_TIME))
-    logging.info("ripmethod: " + job.config.RIPMETHOD)
-    logging.info("mkv_args: " + job.config.MKV_ARGS)
-    logging.info("delrawfile: " + str(job.config.DELRAWFILES))
-    logging.info("hb_preset_dvd: " + job.config.HB_PRESET_DVD)
-    logging.info("hb_preset_bd: " + job.config.HB_PRESET_BD)
-    logging.info("hb_args_dvd: " + job.config.HB_ARGS_DVD)
-    logging.info("hb_args_bd: " + job.config.HB_ARGS_BD)
-    logging.info("logfile: " + logfile)
-    logging.info("armpath: " + job.config.ARMPATH)
-    logging.info("rawpath: " + job.config.RAWPATH)
-    logging.info("media_dir: " + job.config.MEDIA_DIR)
-    logging.info("extras_sub: " + job.config.EXTRAS_SUB)
-    logging.info("emby_refresh: " + str(job.config.EMBY_REFRESH))
-    logging.info("emby_server: " + job.config.EMBY_SERVER)
-    logging.info("emby_port: " + job.config.EMBY_PORT)
-    logging.info("notify_rip: " + str(job.config.NOTIFY_RIP))
-    logging.info("notify_transcode " + str(job.config.NOTIFY_TRANSCODE))
-    #  Added from pull 366
-    logging.info("max_concurrent_transcodes " + str(job.config.MAX_CONCURRENT_TRANSCODES))
+    for key in ("SKIP_TRANSCODE", "MAINFEATURE", "MINLENGTH", "MAXLENGTH",
+                "VIDEOTYPE", "MANUAL_WAIT", "MANUAL_WAIT_TIME", "RIPMETHOD",
+                "MKV_ARGS", "DELRAWFILES", "HB_PRESET_DVD", "HB_PRESET_BD",
+                "HB_ARGS_DVD", "HB_ARGS_BD", "ARMPATH", "RAWPATH",
+                "MEDIA_DIR", "EXTRAS_SUB", "EMBY_REFRESH", "EMBY_SERVER",
+                "EMBY_PORT", "NOTIFY_RIP", "NOTIFY_TRANSCODE",
+                "MAX_CONCURRENT_TRANSCODES"):
+        logging.info(key.lower() +
+                     ": " +
+                     str(getattr(job.config, key, '<not given>')))
     logging.info("**** End of config parameters ****")
 
 
