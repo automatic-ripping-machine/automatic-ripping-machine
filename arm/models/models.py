@@ -3,7 +3,7 @@ import pyudev
 import psutil
 import logging
 from arm.ui import db
-from arm.config.config import cfg  # noqa: E402
+from arm.config.config import cfg
 from flask_login import LoginManager, current_user, login_user, UserMixin  # noqa: F401
 from prettytable import PrettyTable
 
