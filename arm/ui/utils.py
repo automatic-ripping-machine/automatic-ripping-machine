@@ -14,7 +14,7 @@ from arm.config.config import cfg
 from flask.logging import default_handler  # noqa: F401
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
-from flask import Flask, render_template, flash, jsonify  # noqa: F401
+from flask import Flask, render_template, flash, request  # noqa: F401
 
 
 def get_info(directory):
@@ -681,3 +681,70 @@ def metadata_selector(func, query=None, year=None, imdb_id=None):
     else:
         app.logger.debug(cfg['METADATA_PROVIDER'])
         app.logger.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
+
+
+def fix_permissions(j_id):
+    """
+    Json api
+
+    ARM can sometimes have issues with changing the file owner, we can use the fact ARMui is run
+    as a service to fix permissions.
+    """
+    try:
+        job_id = int(j_id.strip())
+    except AttributeError:
+        return {"success": False, "mode": "fixperms", "Error": "AttributeError",
+                "PrettyError": "No Valid Job Id Supplied"}
+    job = Job.query.get(job_id)
+    if not job:
+        return {"success": False, "mode": "fixperms","Error": "JobDeleted",
+                "PrettyError": "Job Has Been Deleted From The Database"}
+    job_log = cfg['LOGPATH'] + job.logfile
+    if not os.path.isfile(job_log):
+        return {"success": False, "mode": "fixperms", "Error": "FileNotFoundError",
+                "PrettyError": "Logfile Has Been Deleted Or Moved"}
+
+    # This is kind of hacky way to get around the fact we dont save the ts variable
+    with open(job_log, 'r') as reader:
+        for line in reader.readlines():
+            ts = re.search("Operation not permitted: '([0-9a-zA-Z()/ -]*?)'", str(line))
+            if ts:
+                break
+            # app.logger.debug(ts)
+            # Operation not permitted: '([0-9a-zA-Z\(\)/ -]*?)'
+    if ts:
+        app.logger.debug(str(ts.group(1)))
+        directory_to_traverse = ts.group(1)
+    else:
+        app.logger.debug("not found")
+        directory_to_traverse = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
+    # folder_clean = re.sub("_", " ", job.logfile)
+    # directory_to_traverse = str(os.path.join(folder_clean))
+    try:
+        corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
+        app.logger.info("Setting permissions to: " + str(job.config.CHMOD_VALUE) + " on: " + directory_to_traverse)
+        os.chmod(directory_to_traverse, corrected_chmod_value)
+        if job.config.SET_MEDIA_OWNER and job.config.CHOWN_USER and job.config.CHOWN_GROUP:
+            import pwd
+            import grp
+            uid = pwd.getpwnam(job.config.CHOWN_USER).pw_uid
+            gid = grp.getgrnam(job.config.CHOWN_GROUP).gr_gid
+            os.chown(directory_to_traverse, uid, gid)
+
+        for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
+            for cur_dir in l_directories:
+                app.logger.debug("Setting path: " + cur_dir + " to permissions value: " + str(job.config.CHMOD_VALUE))
+                os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
+                if job.config.SET_MEDIA_OWNER:
+                    os.chown(os.path.join(dirpath, cur_dir), uid, gid)
+            for cur_file in l_files:
+                app.logger.debug("Setting file: " + cur_file + " to permissions value: " + str(job.config.CHMOD_VALUE))
+                os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
+                if job.config.SET_MEDIA_OWNER:
+                    os.chown(os.path.join(dirpath, cur_file), uid, gid)
+        d = {"success": True, "mode": "fixperms", "folder": str(directory_to_traverse)}
+    except Exception as e:
+        err = "Permissions setting failed as: " + str(e)
+        app.logger.error(err)
+        d = {"success": False, "mode": "fixperms", "Error": str(err), "ts": str(ts)}
+    return d

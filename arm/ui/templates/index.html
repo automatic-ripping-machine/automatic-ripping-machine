@@ -210,11 +210,12 @@
                 }
                 var modal = $(this)
                 modal.find('.modal-title').text(modalTitle)
-                modal.find('#m-body').html(modalBody)
+                modal.find('.modal-body').html(modalBody)
             })
         });
 
         function addJobItem(job) {
+            // TODO: this needs converted to the new format seen on database page
             var x = '<div class="col-md-4" id="jobId' + job["job_id"] + '">\
             <div class="card mb-3  mx-auto" style="max-width: 600px">\
             <div class="row no-gutters">\
