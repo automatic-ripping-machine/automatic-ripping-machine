@@ -105,6 +105,7 @@ def music_brainz(discid, job):
         database_updater(args, job)
         # db.session.commit()
     except Exception as exc:
+        artist_title = "Not identified" if not title else title
         logging.error("Try 2 -  ERROR: " + str(exc))
         db.session.rollback()
     return artist_title
