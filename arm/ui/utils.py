@@ -393,7 +393,7 @@ def get_x_jobs(job_status):
         i += 1
     app.logger.debug("Stuff = " + str(r))
     if jobs:
-        app.logger.debug("jobs  - we have jobs")
+        app.logger.debug("jobs  - we have " + str(len(r)) + " jobs")
         return {"success": True, "mode": job_status, "results": r}
     else:
         app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
