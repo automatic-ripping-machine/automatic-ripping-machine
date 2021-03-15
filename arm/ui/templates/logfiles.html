@@ -32,9 +32,9 @@
   <tbody>
     {% for file in files %}
     <tr>
-        <td class="text-nowrap">{{ file[0] }}</a></td>
-        <td class="text-nowrap">{{ file[2] }}</a></td>
-        <td style="text-align:center">{{ file[3] }}</a></td>
+        <td class="text-nowrap">{{ file[0]|truncate(30, True) }}</td>
+        <td class="text-nowrap">{{ file[2] }}</td>
+        <td style="text-align:center">{{ file[3] }}</td>
         <td style="text-align:center"><a href="logs?logfile={{ file[0] }}&mode=tail">tail</a></td>
         <td><a href="logs?logfile={{ file[0] }}&mode=armcat">arm</a></td>
         <td><a href="logs?logfile={{ file[0] }}&mode=full">full</a></td>
