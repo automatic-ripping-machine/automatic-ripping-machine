@@ -244,7 +244,7 @@ def database():
     # Check for database file
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
-        jobs = Job.query.filter_by()
+        jobs = Job.query.filter_by().order_by(db.desc(Job.job_id))
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}

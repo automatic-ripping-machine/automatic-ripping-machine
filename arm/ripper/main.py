@@ -357,7 +357,7 @@ def main(logfile, job):
                 # exit
                 job.eject()
                 sys.exit()
-
+        job.path = hboutpath
         job.status = "transcoding"
         db.session.commit()
         if job.disctype == "bluray" and job.config.RIPMETHOD == "mkv":

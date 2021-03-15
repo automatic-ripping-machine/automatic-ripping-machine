@@ -40,6 +40,7 @@ class Job(db.Model):
     errors = db.Column(db.Text)
     disctype = db.Column(db.String(20))  # dvd/bluray/data/music/unknown
     label = db.Column(db.String(256))
+    path = db.Column(db.String(256))
     ejected = db.Column(db.Boolean)
     updated = db.Column(db.Boolean)
     pid = db.Column(db.Integer)
@@ -305,3 +306,41 @@ class Alembic_version(db.Model):
 
     def __init__(self, version=None):
         self.version_num = version
+
+
+class UISettings(db.Model):
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    use_icons = db.Column(db.Integer)
+    save_remote_images = db.Column(db.Integer)
+    boostrap_skin = db.Column(db.String(64))
+    language = db.Column(db.String(4))
+    index_refresh = db.Column(db.Integer)
+    database_limit = db.Column(db.Integer)
+
+    def __init__(self, use_icons=None, save_remote_images=None, boostrap_skin=None, language=None, index_refresh=None,
+                 database_limit=None):
+        self.use_icons = use_icons
+        self.save_remote_images = save_remote_images
+        self.boostrap_skin = boostrap_skin
+        self.language = language
+        self.index_refresh = index_refresh
+        self.database_limit = database_limit
+
+    def __repr__(self):
+        return '<UISettings %r>' % self.id
+
+    def __str__(self):
+        """Returns a string of the object"""
+
+        s = self.__class__.__name__ + ": "
+        for attr, value in self.__dict__.items():
+            s = s + "(" + str(attr) + "=" + str(value) + ") "
+
+        return s
+
+    def get_d(self):
+        r = {}
+        for key, value in self.__dict__.items():
+            if '_sa_instance_state' not in key:
+                r[str(key)] = str(value)
+        return r

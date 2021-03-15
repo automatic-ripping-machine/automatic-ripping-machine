@@ -210,7 +210,7 @@ def identify_dvd(job):
         logging.debug("using omdb")
         dvd_info_xml = callwebservice(job, job.config.OMDB_API_KEY, dvd_title, year)
     else:
-        raise InputError("Error with metadata provider - Not supported")
+        raise Exception("Error with metadata provider - Not supported")
     logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
     # Not sure this is needed anymore because of CWS()
     job.year = year
@@ -389,9 +389,10 @@ def call_tmdb_service(job, tmdb_api_key, dvd_title, year=""):
     logging.debug(f"url = {clean_url}")
     response = requests.get(url)
     p = json.loads(response.text)
+    logging.debug(p)
     x = {}
     # Check for movies
-    if p['total_results'] > 0:
+    if 'total_results' in p and p['total_results'] > 0:
         logging.debug(p['total_results'])
         for s in p['results']:
             s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
@@ -438,9 +439,9 @@ def call_tmdb_service(job, tmdb_api_key, dvd_title, year=""):
         response = requests.get(url)
         p = json.loads(response.text)
         # v = json.dumps(response.json(), indent=4, sort_keys=True)
-        # logging.debug(v)
+        logging.debug(p)
         x = {}
-        if p['total_results'] > 0:
+        if 'total_results' in p and p['total_results'] > 0:
             logging.debug(p['total_results'])
             for s in p['results']:
                 logging.debug(s)
