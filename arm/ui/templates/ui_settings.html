@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Ui Settings{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}
+
+<style>
+.popover {
+    white-space: pre-line;
+}
+.popover-content {
+    white-space: pre-wrap;
+}
+</style>
+<!-- We keep this here incase we need it later -->
+<div class="alert alert-success d-none" role="alert" id="success">
+  <h4 class="alert-heading">Settings were saved successfully</h4>
+</div>
+<div class="alert alert-danger d-none" role="alert" id="fail">
+  <h4 class="alert-heading">There was an error saving settings</h4>
+  <hr>
+  <h3> {{ raw }}</h3>
+</div>
+<!-- END - We keep this here incase we need it later -->
+<div class="container" style="max-width: initial!important;">
+    <div class="row">
+            <div class="col">
+                <div class="jumbotron" style="padding-top: 1rem;">
+					<div class="col-sm-12  rounded text-center">
+						<img src="static/img/arm80.png">
+						<p class="text-center">
+						<!--<b>Welcome to your Automatic Ripping Machine</b>
+						<br>-->
+						<h2> ARMUi - Settings </h2>
+						</p>
+					</div>
+
+					<div class="container" style="padding-top: 4rem;">
+						<form id="form1" name="form1" method="post" action="settings">
+						    {{ form.hidden_tag() }}
+							{% for k, v in settings.get_d().items() %}
+                                {% if k != "id" %}
+							<div class="input-group mb-3">
+								<div class="input-group-prepend">
+									<span class="input-group-text" id="{{ k }}">{{ k }}: </span>
+								</div>
+								<input type="text" class="form-control" aria-label="{{ k }}" name={{ k }} placeholder="{{ v}}" value="{{ v }}" aria-describedby="{{ k }}">
+								 <a class="popovers" onClick='return false;' href="" data-content="" rel="popover" data-placement="top" data-original-title="{{ k }}">
+									<img title="More information" src="static/img/info.png" width="30px" height="35px">
+								</a>
+							</div>
+                                                       {% endif %}
+							{% endfor %}
+								<button class="btn btn-secondary btn-lg btn-block" form="form1" type="submit">Submit</button>
+                        </form>
+					</div>
+                </div>
+            </div>
+        </div>
+</div>
+{% endblock %}
+{% block footer %}{{ super() }}{% endblock %}
+{% block js %}
+{{ super() }}
+<script type="application/javascript">
+	$(function () {
+		$(".popovers").popover({
+			trigger: "hover",
+		});
+	{% if form.errors %}
+		{% for k in form.errors %}
+			$("[name='{{k}}']").addClass("is-invalid");
+		{% endfor %}
+	{% endif %}
+	activeTab("ui_settings");
+	});
+</script>
+{% endblock %}
