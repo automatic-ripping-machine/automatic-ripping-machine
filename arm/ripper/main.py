@@ -327,7 +327,9 @@ def main(logfile, job):
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
         elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, job)
-            job.eject()
+            # disc was already ejected after makemkv rip finished for blu-ray discs
+            if job.disctype != "bluray":
+                job.eject()
         else:
             handbrake.handbrake_all(hbinpath, hboutpath, logfile, job)
             job.eject()
