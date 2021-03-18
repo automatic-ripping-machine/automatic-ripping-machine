@@ -92,7 +92,7 @@ def check_fstab():
     with open('/etc/fstab', 'r') as f:
         lines = f.readlines()
         for line in lines:
-            if re.search(job.devpath, line):
+            if re.search(job.devpath, line) and not line.startswith('#'):
                 logging.info("fstab entry is: " + line.rstrip())
                 return
     logging.error("No fstab entry found.  ARM will likely fail.")
