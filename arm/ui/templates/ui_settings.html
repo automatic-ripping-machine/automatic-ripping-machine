@@ -37,7 +37,7 @@
 					</div>
 
 					<div class="container" style="padding-top: 4rem;">
-						<form id="form1" name="form1" method="post" action="settings">
+						<form id="form1" name="form1" method="post" action="ui_settings">
 						    {{ form.hidden_tag() }}
 							{% for k, v in settings.get_d().items() %}
                                 {% if k != "id" %}
