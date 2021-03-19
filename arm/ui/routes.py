@@ -626,12 +626,14 @@ def changeparams():
     # app.logger.debug(config.pretty_table())
     job = Job.query.get(config_id)
     config = job.config
+    for key, value in cfg.items():
+        setattr(config, key, value)
     form = ChangeParamsForm(obj=config)
     if form.validate_on_submit():
-        config.MINLENGTH = format(form.MINLENGTH.data)
-        config.MAXLENGTH = format(form.MAXLENGTH.data)
-        config.RIPMETHOD = format(form.RIPMETHOD.data)
-        config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False
+        cfg["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
+        cfg["MAXLENGTH"] = config.MAXLENGTH = format(form.MAXLENGTH.data)
+        cfg["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
+        cfg["MAINFEATURE"] = config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False
         app.logger.debug(f"main={config.MAINFEATURE}")
         job.disctype = format(form.DISCTYPE.data)
         db.session.commit()

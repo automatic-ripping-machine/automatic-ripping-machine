@@ -48,42 +48,23 @@ def log_arm_params(job):
 
     # log arm parameters
     logging.info("**** Logging ARM variables ****")
-    logging.info("devpath: " + str(job.devpath))
-    logging.info("mountpoint: " + str(job.mountpoint))
-    logging.info("title: " + str(job.title))
-    logging.info("year: " + str(job.year))
-    logging.info("video_type: " + str(job.video_type))
-    logging.info("hasnicetitle: " + str(job.hasnicetitle))
-    logging.info("label: " + str(job.label))
-    logging.info("disctype: " + str(job.disctype))
+    for key in ("devpath", "mountpoint", "title", "year", "video_type",
+                "hasnicetitle", "label", "disctype"):
+        logging.info(
+            key + ": " + str(getattr(job, key)))
     logging.info("**** End of ARM variables ****")
+
     logging.info("**** Logging config parameters ****")
-    logging.info("skip_transcode: " + str(job.config.SKIP_TRANSCODE))
-    logging.info("mainfeature: " + str(job.config.MAINFEATURE))
-    logging.info("minlength: " + job.config.MINLENGTH)
-    logging.info("maxlength: " + job.config.MAXLENGTH)
-    logging.info("videotype: " + job.config.VIDEOTYPE)
-    logging.info("manual_wait: " + str(job.config.MANUAL_WAIT))
-    logging.info("wait_time: " + str(job.config.MANUAL_WAIT_TIME))
-    logging.info("ripmethod: " + job.config.RIPMETHOD)
-    logging.info("mkv_args: " + job.config.MKV_ARGS)
-    logging.info("delrawfile: " + str(job.config.DELRAWFILES))
-    logging.info("hb_preset_dvd: " + job.config.HB_PRESET_DVD)
-    logging.info("hb_preset_bd: " + job.config.HB_PRESET_BD)
-    logging.info("hb_args_dvd: " + job.config.HB_ARGS_DVD)
-    logging.info("hb_args_bd: " + job.config.HB_ARGS_BD)
-    logging.info("logfile: " + logfile)
-    logging.info("armpath: " + job.config.ARMPATH)
-    logging.info("rawpath: " + job.config.RAWPATH)
-    logging.info("media_dir: " + job.config.MEDIA_DIR)
-    logging.info("extras_sub: " + job.config.EXTRAS_SUB)
-    logging.info("emby_refresh: " + str(job.config.EMBY_REFRESH))
-    logging.info("emby_server: " + job.config.EMBY_SERVER)
-    logging.info("emby_port: " + job.config.EMBY_PORT)
-    logging.info("notify_rip: " + str(job.config.NOTIFY_RIP))
-    logging.info("notify_transcode " + str(job.config.NOTIFY_TRANSCODE))
-    #  Added from pull 366
-    logging.info("max_concurrent_transcodes " + str(job.config.MAX_CONCURRENT_TRANSCODES))
+    for key in ("SKIP_TRANSCODE", "MAINFEATURE", "MINLENGTH", "MAXLENGTH",
+                "VIDEOTYPE", "MANUAL_WAIT", "MANUAL_WAIT_TIME", "RIPMETHOD",
+                "MKV_ARGS", "DELRAWFILES", "HB_PRESET_DVD", "HB_PRESET_BD",
+                "HB_ARGS_DVD", "HB_ARGS_BD", "ARMPATH", "RAWPATH",
+                "MEDIA_DIR", "EXTRAS_SUB", "EMBY_REFRESH", "EMBY_SERVER",
+                "EMBY_PORT", "NOTIFY_RIP", "NOTIFY_TRANSCODE",
+                "MAX_CONCURRENT_TRANSCODES"):
+        logging.info(key.lower() +
+                     ": " +
+                     str(cfg.get(key, '<not given>')))
     logging.info("**** End of config parameters ****")
 
 
@@ -148,9 +129,9 @@ def main(logfile, job):
     if job.disctype in ["dvd", "bluray"]:
         #  Send the notifications
         utils.notify(job, "ARM notification",
-                     f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {job.config.MAINFEATURE}"
+                     f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {cfg['MAINFEATURE']}"
                      f".  Edit entry here: http://" + str(check_ip()) + ":"
-                     f"{job.config.WEBSERVER_PORT}/jobdetail?job_id={job.job_id}")
+                     f"{cfg['WEBSERVER_PORT']}/jobdetail?job_id={job.job_id}")
     elif job.disctype == "music":
         utils.notify(job, "ARM notification", f"Found music CD: {job.label}. Ripping all tracks")
     elif job.disctype == "data":
@@ -159,26 +140,14 @@ def main(logfile, job):
         utils.notify(job, "ARM Notification", "Could not identify disc.  Exiting.")
         sys.exit()
 
-    #  If we have have waiting for user input enabled
-    """if job.config.MANUAL_WAIT:
-        logging.info("Waiting " + str(job.config.MANUAL_WAIT_TIME) + " seconds for manual override.")
-        job.status = "waiting"
-        db.session.commit()
-        time.sleep(job.config.MANUAL_WAIT_TIME)
-        db.session.refresh(job)
-        db.session.refresh(config)
-        job.status = "active"
-        db.session.commit()
-    """
-
     # TODO: Update function that will look for the best match with most data
     #  If we have have waiting for user input enabled
-    if job.config.MANUAL_WAIT:
-        logging.info(f"Waiting {job.config.MANUAL_WAIT_TIME} seconds for manual override.")
+    if cfg["MANUAL_WAIT"]:
+        logging.info(f"Waiting {cfg['MANUAL_WAIT_TIME']} seconds for manual override.")
         job.status = "waiting"
         db.session.commit()
         sleep_time = 0
-        while sleep_time < job.config.MANUAL_WAIT_TIME:
+        while sleep_time < cfg["MANUAL_WAIT_TIME"]:
             time.sleep(5)
             sleep_time += 5
             db.session.refresh(job)
@@ -200,7 +169,7 @@ def main(logfile, job):
     log_arm_params(job)
     check_fstab()
 
-    if job.config.HASHEDKEYS:
+    if cfg["HASHEDKEYS"]:
         logging.info("Getting MakeMKV hashed keys for UHD rips")
         grabkeys()
 
@@ -210,28 +179,28 @@ def main(logfile, job):
         #  If we have a nice title/confirmed name use the MEDIA_DIR and not the ARM unidentified folder
         if job.hasnicetitle:
             if job.year != "0000" or job.year != "":
-                hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
+                hboutpath = os.path.join(cfg["MEDIA_DIR"], str(job.title) + " (" + str(job.year) + ")")
             else:
-                hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title))
+                hboutpath = os.path.join(cfg["MEDIA_DIR"], str(job.title))
         else:
-            hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
+            hboutpath = os.path.join(cfg["ARMPATH"], str(job.title))
 
         #  The dvd directory already exists - Lets make a new one using random numbers
         if (utils.make_dir(hboutpath)) is False:
             logging.info("Directory exist.")
             #  Only begin ripping if we are allowed to make duplicates
             # Or the successful rip of the disc is not found in our database
-            if job.config.ALLOW_DUPLICATES or not have_dupes:
+            if cfg["ALLOW_DUPLICATES"] or not have_dupes:
                 ts = round(time.time() * 100)
                 #  if we have a nice title, set the folder to MEDIA_DIR and not the unidentified ARMPATH
                 if job.hasnicetitle:
                     #  Dont use the year if its  0000
                     if job.year != "0000" or job.year != "":
-                        hboutpath = os.path.join(job.config.MEDIA_DIR, f"{job.title} ({job.year}) {ts}")
+                        hboutpath = os.path.join(cfg["MEDIA_DIR"], f"{job.title} ({job.year}) {ts}")
                     else:
-                        hboutpath = os.path.join(job.config.MEDIA_DIR, f"{job.title} {ts}")
+                        hboutpath = os.path.join(cfg["MEDIA_DIR"], f"{job.title} {ts}")
                 else:
-                    hboutpath = os.path.join(job.config.ARMPATH, str(job.title) + "_" + str(ts))
+                    hboutpath = os.path.join(cfg["ARMPATH"], str(job.title) + "_" + str(ts))
 
                 #  We failed to make a random directory, most likely a permission issue
                 if (utils.make_dir(hboutpath)) is False:
@@ -256,7 +225,7 @@ def main(logfile, job):
 
         #  entry point for bluray or dvd with MAINFEATURE off and RIPMETHOD mkv
         hbinpath = str(job.devpath)
-        if job.disctype == "bluray" or (not job.config.MAINFEATURE and job.config.RIPMETHOD == "mkv"):
+        if job.disctype == "bluray" or (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv"):
             # send to makemkv for ripping
             # run MakeMKV and get path to output
             job.status = "ripping"
@@ -271,14 +240,14 @@ def main(logfile, job):
                 job.status = "fail"
                 db.session.commit()
                 sys.exit()
-            if job.config.NOTIFY_RIP:
+            if cfg["NOTIFY_RIP"]:
                 # Fixed bug line below
                 utils.notify(job, "ARM notification", str(job.title) + " rip complete.  Starting transcode. ")
             # point HB to the path MakeMKV ripped to
             hbinpath = mkvoutpath
 
             # Entry point for not transcoding
-            if job.config.SKIP_TRANSCODE and job.config.RIPMETHOD == "mkv":
+            if cfg["SKIP_TRANSCODE"] and cfg["RIPMETHOD"] == "mkv":
                 logging.info("SKIP_TRANSCODE is true.  Moving raw mkv files.")
                 logging.info("NOTE: Identified main feature may not be actual main feature")
                 files = os.listdir(mkvoutpath)
@@ -314,13 +283,13 @@ def main(logfile, job):
                                 utils.move_files(hbinpath, f, job, True)
                             else:
                                 # other extras
-                                if not str(job.config.EXTRAS_SUB).lower() == "none":
+                                if not str(cfg["EXTRAS_SUB"]).lower() == "none":
                                     # Incorporating Rajlaud's fix #349
                                     utils.move_files(hbinpath, f, job, False)
                                 else:
                                     logging.info("Not moving extra: " + f)
                     # Change final path (used to set permissions)
-                    final_directory = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
+                    final_directory = os.path.join(cfg["MEDIA_DIR"], str(job.title) + " (" + str(job.year) + ")")
                     # Clean up
                     #  TODO: fix this so it doesnt remove everything
                     logging.debug("Attempting to remove extra folder in ARMPATH: " + hboutpath)
@@ -340,11 +309,11 @@ def main(logfile, job):
                         logging.debug("Moving file: " + mkvoutfile + " to: " + mkvoutpath + f)
                         shutil.move(mkvoutfile, hboutpath)
                 # remove raw files, if specified in config
-                if job.config.DELRAWFILES:
+                if cfg["DELRAWFILES"]:
                     logging.info("Removing raw files")
                     shutil.rmtree(mkvoutpath)
                 # set file to default permissions '777'
-                if job.config.SET_MEDIA_PERMISSIONS:
+                if cfg["SET_MEDIA_PERMISSIONS"]:
                     perm_result = utils.set_permissions(job, final_directory)
                     logging.info("Permissions set successfully: " + str(perm_result))
                 utils.notify(job, "ARM notification", str(job.title) + " processing complete. ")
@@ -360,11 +329,11 @@ def main(logfile, job):
         job.path = hboutpath
         job.status = "transcoding"
         db.session.commit()
-        if job.disctype == "bluray" and job.config.RIPMETHOD == "mkv":
+        if job.disctype == "bluray" and cfg["RIPMETHOD"] == "mkv":
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
-        elif job.disctype == "dvd" and (not job.config.MAINFEATURE and job.config.RIPMETHOD == "mkv"):
+        elif job.disctype == "dvd" and (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv"):
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
-        elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
+        elif job.video_type == "movie" and cfg["MAINFEATURE"] and job.hasnicetitle:
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, job)
             job.eject()
         else:
@@ -401,7 +370,7 @@ def main(logfile, job):
 
         #  Test for dvd fail permissions
         final_directory = p
-        if job.config.SET_MEDIA_PERMISSIONS:
+        if cfg["SET_MEDIA_PERMISSIONS"]:
             perm_result = utils.set_permissions(job, final_directory)
             logging.info("Permissions set successfully: " + str(perm_result))
 
@@ -429,7 +398,7 @@ def main(logfile, job):
 
         # Clean up bluray backup
         # if job.disctype == "bluray" and cfg["DELRAWFILES"]:
-        if job.config.DELRAWFILES:
+        if cfg["DELRAWFILES"]:
             try:
                 shutil.rmtree(mkvoutpath)
             except UnboundLocalError:
@@ -440,13 +409,13 @@ def main(logfile, job):
         # report errors if any
         if job.errors:
             errlist = ', '.join(job.errors)
-            if job.config.NOTIFY_TRANSCODE:
+            if cfg["NOTIFY_TRANSCODE"]:
                 utils.notify(job, "ARM notification",
                              str(job.title) + " processing completed with errors. Title(s) " + str(
                                  errlist) + " failed to complete. ")
             logging.info("Transcoding completed with errors.  Title(s) " + str(errlist) + " failed to complete. ")
         else:
-            if job.config.NOTIFY_TRANSCODE:
+            if cfg["NOTIFY_TRANSCODE"]:
                 utils.notify(job, "ARM notification", str(job.title) + " processing complete. ")
             logging.info("ARM processing complete")
 
@@ -465,10 +434,10 @@ def main(logfile, job):
 
     elif job.disctype == "data":
         # get filesystem in order
-        datapath = os.path.join(job.config.ARMPATH, str(job.label))
+        datapath = os.path.join(cfg["ARMPATH"], str(job.label))
         if (utils.make_dir(datapath)) is False:
             ts = str(round(time.time() * 100))
-            datapath = os.path.join(job.config.ARMPATH, str(job.label) + "_" + ts)
+            datapath = os.path.join(cfg["ARMPATH"], str(job.label) + "_" + ts)
 
             if (utils.make_dir(datapath)) is False:
                 logging.info("Could not create data directory: " + str(datapath) + ".  Exiting ARM. ")
@@ -525,13 +494,13 @@ if __name__ == "__main__":
     db.session.commit()
 
     # Log version number
-    with open(os.path.join(job.config.INSTALLPATH, 'VERSION')) as version_file:
+    with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
     logging.info("ARM version: " + str(version))
     job.arm_version = version
     logging.info(("Python version: " + sys.version).replace('\n', ""))
     logging.info("User is: " + getpass.getuser())
-    logger.cleanuplogs(job.config.LOGPATH, job.config.LOGLIFE)
+    logger.cleanuplogs(cfg["LOGPATH"], cfg["LOGLIFE"])
     logging.info("Job: " + str(job.label))
 
     # a_jobs = Job.query.filter_by(status="active")

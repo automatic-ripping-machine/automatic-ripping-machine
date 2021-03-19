@@ -16,9 +16,8 @@ import requests
 from arm.ripper import music_brainz
 from arm.ripper import utils
 from arm.ui import db
+from arm.config.config import cfg
 
-
-# from arm.config.config import cfg
 
 # flake8: noqa: W605
 
@@ -61,7 +60,7 @@ def identify(job, logfile):
 
         logging.info("Disc identified as video")
 
-        if job.config.GET_VIDEO_TITLE:
+        if cfg["GET_VIDEO_TITLE"]:
             # get crc_id (dvd only), title, year
             if job.disctype == "dvd":
                 res = identify_dvd(job)
@@ -69,7 +68,6 @@ def identify(job, logfile):
                 res = identify_bluray(job)
             # Need to check if year is "0000"  or ""
             if res and job.year != "0000":
-                from arm.config.config import cfg
                 if cfg['METADATA_PROVIDER'].lower() == "tmdb":
                     tmdb_get_media_type(job)
                 elif cfg['METADATA_PROVIDER'].lower() == "omdb":
@@ -201,14 +199,13 @@ def identify_dvd(job):
     logging.debug("dvd_title SKU$= " + str(dvd_title))
 
     # try to contact omdb/tmdb
-    from arm.config.config import cfg
     if cfg['METADATA_PROVIDER'].lower() == "tmdb":
         logging.debug("using tmdb")
         tmdb_api_key = cfg['TMDB_API_KEY']
         dvd_info_xml = call_tmdb_service(job, tmdb_api_key, dvd_title, year)
     elif cfg['METADATA_PROVIDER'].lower() == "omdb":
         logging.debug("using omdb")
-        dvd_info_xml = callwebservice(job, job.config.OMDB_API_KEY, dvd_title, year)
+        dvd_info_xml = callwebservice(job, cfg["OMDB_API_KEY"], dvd_title, year)
     else:
         raise Exception("Error with metadata provider - Not supported")
     logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
@@ -251,8 +248,7 @@ def get_video_details(job):
         year = str(job.year)
         year = re.sub("[^0-9]", "", year)
 
-    omdb_api_key = job.config.OMDB_API_KEY
-    from arm.config.config import cfg
+    omdb_api_key = cfg["OMDB_API_KEY"]
     tmdb_api_key = cfg['TMDB_API_KEY']
     if cfg['METADATA_PROVIDER'].lower() == "tmdb":
         def call_web_service(j, api_key, dvd_title, y, tmdb_api=tmdb_api_key):
@@ -317,14 +313,14 @@ def get_video_details(job):
 def callwebservice(job, omdb_api_key, dvd_title, year=""):
     """ Queries OMDbapi.org for title information and parses type, imdb, and poster info
     """
-    if job.config.VIDEOTYPE == "auto":
+    if cfg["VIDEOTYPE"] == "auto":
         strurl = f"http://www.omdbapi.com/?t={dvd_title}&y={year}&plot=short&r=json&apikey={omdb_api_key}"
         logging.debug(f"http://www.omdbapi.com/?t={dvd_title}&y={year}&plot=short&r=json&apikey=key_hidden")
     else:
-        strurl = f"http://www.omdbapi.com/?t={dvd_title}&y={year}&type={job.config.VIDEOTYPE}" \
+        strurl = f"http://www.omdbapi.com/?t={dvd_title}&y={year}&type={cfg['VIDEOTYPE']}" \
                  f"&plot=short&r=json&apikey={omdb_api_key}"
         logging.debug(
-            f"http://www.omdbapi.com/?t={dvd_title}&y={year}&type={job.config.VIDEOTYPE}"
+            f"http://www.omdbapi.com/?t={dvd_title}&y={year}&type={cfg['VIDEOTYPE']}"
             f"&plot=short&r=json&apikey=key_hidden")
 
     logging.debug("***Calling webservice with Title: " + str(dvd_title) + " and Year: " + str(year))
@@ -521,7 +517,6 @@ def tmdb_get_media_type(job):
         year = str(job.year)
         year = re.sub("[^0-9]", "", year)
 
-    from arm.config.config import cfg
     tmdb_api_key = cfg['TMDB_API_KEY']
 
     logging.debug("Title: " + title + " | Year: " + year)

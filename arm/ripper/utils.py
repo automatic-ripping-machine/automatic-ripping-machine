@@ -14,7 +14,7 @@ import random
 import re
 import psutil
 
-# from arm.config.config import cfg
+from arm.config.config import cfg
 from arm.ui import app, db
 from arm.models.models import Track, Job
 
@@ -26,12 +26,12 @@ def notify(job, title, body):
     """
     # Pushbullet
     # pbul://{accesstoken}
-    if getattr(job.config, "PB_KEY", ""):
+    if cfg["PB_KEY"] != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
             # A sample pushbullet notification
-            apobj.add('pbul://' + str(job.config.PB_KEY))
+            apobj.add('pbul://' + str(cfg["PB_KEY"]))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -42,12 +42,12 @@ def notify(job, title, body):
             logging.error("Failed sending Pushbullet apprise notification.  Continuing processing...")
     # IFTTT
     # ifttt://{WebhookID}@{Event}/
-    if getattr(job.config, "IFTTT_KEY", ""):
+    if cfg["IFTTT_KEY"] != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
             # A sample pushbullet notification
-            apobj.add('ifttt://' + str(job.config.IFTTT_KEY) + "@" + str(job.config.IFTTT_EVENT))
+            apobj.add('ifttt://' + str(cfg["IFTTT_KEY"]) + "@" + str(cfg["IFTTT_EVENT"]))
 
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
@@ -58,12 +58,12 @@ def notify(job, title, body):
         except:  # noqa: E722
             logging.error("Failed sending IFTTT apprise notification.  Continuing processing...")
     # PUSHOVER
-    if getattr(job.config, "PO_USER_KEY", ""):
+    if cfg["PO_USER_KEY"] != "":
         try:
             # Create an Apprise instance
             apobj = apprise.Apprise()
 
-            apobj.add('pover://' + str(job.config.PO_USER_KEY) + "@" + str(job.config.PO_APP_KEY))
+            apobj.add('pover://' + str(cfg["PO_USER_KEY"]) + "@" + str(cfg["PO_APP_KEY"]))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
@@ -72,10 +72,10 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending PUSHOVER apprise notification.  continuing  processing...")
-    if getattr(job.config, "APPRISE", ""):
+    if cfg["APPRISE"] != "":
         try:
-            apprise_notify(job.config.APPRISE, title, body)
-            logging.debug("apprise-config: " + str(job.config.APPRISE))
+            apprise_notify(cfg["APPRISE"], title, body)
+            logging.debug("apprise-config: " + str(cfg["APPRISE"]))
         except Exception as e:  # noqa: E722
             logging.error("Failed sending apprise notification. " + str(e))
 
@@ -772,9 +772,9 @@ def apprise_notify(apprise_cfg, title, body):
 def scan_emby(job):
     """Trigger a media scan on Emby"""
 
-    if job.config.EMBY_REFRESH:
+    if cfg["EMBY_REFRESH"]:
         logging.info("Sending Emby library scan request")
-        url = f"http://{job.config.EMBY_SERVER}:{job.config.EMBY_PORT}/Library/Refresh?api_key={job.config.EMBY_API_KEY}"
+        url = f"http://{cfg['EMBY_SERVER']}:{cfg['EMBY_PORT']}/Library/Refresh?api_key={cfg['EMBY_API_KEY']}"
         try:
             req = requests.post(url)
             if req.status_code > 299:
@@ -832,7 +832,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
     logging.debug(f"Arguments: {basepath} : {filename} : {hasnicetitle} : {videotitle} : {ismainfeature}")
 
     if hasnicetitle:
-        m_path = os.path.join(job.config.MEDIA_DIR + videotitle)
+        m_path = os.path.join(cfg["MEDIA_DIR"] + videotitle)
 
         if not os.path.exists(m_path):
             logging.info("Creating base title directory: " + m_path)
@@ -841,7 +841,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
         if ismainfeature is True:
             logging.info("Track is the Main Title.  Moving '" + filename + "' to " + m_path)
 
-            m_file = os.path.join(m_path, videotitle + "." + job.config.DEST_EXT)
+            m_file = os.path.join(m_path, videotitle + "." + cfg["DEST_EXT"])
             if not os.path.isfile(m_file):
                 try:
                     shutil.move(os.path.join(basepath, filename), m_file)
@@ -850,7 +850,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
             else:
                 logging.info("File: " + m_file + " already exists.  Not moving.")
         else:
-            e_path = os.path.join(m_path, job.config.EXTRAS_SUB)
+            e_path = os.path.join(m_path, cfg["EXTRAS_SUB"])
 
             if not os.path.exists(e_path):
                 logging.info("Creating extras directory " + e_path)
@@ -858,7 +858,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
 
             logging.info("Moving '" + filename + "' to " + e_path)
 
-            e_file = os.path.join(e_path, videotitle + "." + job.config.DEST_EXT)
+            e_file = os.path.join(e_path, videotitle + "." + cfg["DEST_EXT"])
             if not os.path.isfile(e_file):
                 try:
                     shutil.move(os.path.join(basepath, filename), os.path.join(e_path, filename))
@@ -882,9 +882,9 @@ def rename_files(oldpath, job):
     # Check if the job has a nice title after rip is complete, if so use the media dir not the arm
     # This is for media that was recognised after the wait period/disk started ripping
     if job.hasnicetitle:
-        newpath = os.path.join(job.config.MEDIA_DIR, job.title + " (" + str(job.year) + ")")
+        newpath = os.path.join(cfg["MEDIA_DIR"], job.title + " (" + str(job.year) + ")")
     else:
-        newpath = os.path.join(job.config.ARMPATH, job.title + " (" + str(job.year) + ")")
+        newpath = os.path.join(cfg["ARMPATH"], job.title + " (" + str(job.year) + ")")
 
     logging.debug("oldpath: " + oldpath + " newpath: " + newpath)
     logging.info("Changing directory name from " + oldpath + " to " + newpath)
@@ -981,7 +981,7 @@ def rip_music(job, logfile):
     returns True/False for success/fail
     """
 
-    abcfile = job.config.ABCDE_CONFIG_FILE
+    abcfile = cfg["ABCDE_CONFIG_FILE"]
     if job.disctype == "music":
         logging.info("Disc identified as music")
         # If user has set a cfg file with ARM use it
@@ -1032,7 +1032,7 @@ def rip_data(job, datapath, logfile):
         cmd = 'dd if="{0}" of="{1}" {2} 2>> {3}'.format(
             job.devpath,
             incomplete_filename,
-            job.config.DATA_RIP_PARAMETERS,
+            cfg["DATA_RIP_PARAMETERS"],
             logfile
         )
 
@@ -1057,8 +1057,8 @@ def rip_data(job, datapath, logfile):
 
 def set_permissions(job, directory_to_traverse):
     try:
-        corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
-        logging.info("Setting permissions to: " + str(job.config.CHMOD_VALUE) + " on: " + directory_to_traverse)
+        corrected_chmod_value = int(str(cfg["CHMOD_VALUE"]), 8)
+        logging.info("Setting permissions to: " + str(cfg["CHMOD_VALUE"]) + " on: " + directory_to_traverse)
         os.chmod(directory_to_traverse, corrected_chmod_value)
         if job.config.SET_MEDIA_OWNER and job.config.CHOWN_USER and job.config.CHOWN_GROUP:
             import pwd
@@ -1069,12 +1069,12 @@ def set_permissions(job, directory_to_traverse):
 
         for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
             for cur_dir in l_directories:
-                logging.debug("Setting path: " + cur_dir + " to permissions value: " + str(job.config.CHMOD_VALUE))
+                logging.debug("Setting path: " + cur_dir + " to permissions value: " + str(cfg["CHMOD_VALUE"]))
                 os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
                 if job.config.SET_MEDIA_OWNER:
                     os.chown(os.path.join(dirpath, cur_dir), uid, gid)
             for cur_file in l_files:
-                logging.debug("Setting file: " + cur_file + " to permissions value: " + str(job.config.CHMOD_VALUE))
+                logging.debug("Setting file: " + cur_file + " to permissions value: " + str(cfg["CHMOD_VALUE"]))
                 os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
                 if job.config.SET_MEDIA_OWNER:
                     os.chown(os.path.join(dirpath, cur_file), uid, gid)
@@ -1095,7 +1095,7 @@ def check_db_version(install_path, db_file):
     import sqlite3
     import flask_migrate
 
-    # db_file = job.config.DBFILE
+    # db_file = cfg["DBFILE"]
     mig_dir = os.path.join(install_path, "arm/migrations")
 
     config = Config()
@@ -1192,7 +1192,6 @@ def arm_setup():
     :return
     None
     """
-    from arm.config.config import cfg
     try:
         # Make the ARM dir if it doesnt exist
         if not os.path.exists(cfg['ARMPATH']):
