@@ -1010,7 +1010,6 @@ def send_movies():
                 r['failed'][i][str(key)] = str(value)
                 # app.logger.debug(str(key) + "= " + str(value))
             i += 1
-    # return {'success': True, 'mode': 'search', 'results': r}
     return render_template('send_movies.html', sent=r['sent'], failed=r['failed'], full=r)
 
 
@@ -1019,10 +1018,11 @@ def get_processor_name():
     function to collect and return some cpu info
     ideally want to return {name} @ {speed} Ghz
     """
+    cpu_info = None
     if platform.system() == "Windows":
-        return platform.processor()
+        cpu_info = platform.processor()
     elif platform.system() == "Darwin":
-        return subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
+        cpu_info = subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
     elif platform.system() == "Linux":
         command = "cat /proc/cpuinfo"
         # return \
@@ -1035,11 +1035,9 @@ def get_processor_name():
             speeds = speeds.replace('\\n', ' ')
             speeds = speeds.replace('\\t', ' ')
             speeds = speeds.replace('model name :', '')
-            return speeds
+            cpu_info = speeds
 
         # AMD CPU
-        # model name.*?:(.*?)\n
-        # matches = re.search(regex, test_str)
         amd_name_full = re.search(r"model name\\t: (.*?)\\n", fulldump)
         if amd_name_full:
             amd_name = amd_name_full.group(1)
@@ -1047,5 +1045,5 @@ def get_processor_name():
             if amd_mhz:
                 # amd_ghz = re.sub('[^.0-9]', '', amd_mhz.group())
                 amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
-                return str(amd_name) + " @ " + str(amd_ghz) + " GHz"
-    return None  # We didnt find our cpu
+                cpu_info = str(amd_name) + " @ " + str(amd_ghz) + " GHz"
+    return cpu_info
