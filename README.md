@@ -1,5 +1,5 @@
 # Automatic Ripping Machine (ARM)
-[![Build Status](https://travis-ci.com/1337-server/automatic-ripping-machine.svg?branch=v2.5.0_dev)](https://travis-ci.com/1337-server/automatic-ripping-machine)[![GitHub license](https://img.shields.io/github/license/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/blob/v2.3_dev/LICENSE)
+[![CI](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/main.yml/badge.svg)](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/main.yml)[![GitHub license](https://img.shields.io/github/license/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/blob/v2.3_dev/LICENSE)
 [![GitHub forks](https://img.shields.io/github/forks/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/network)
 [![GitHub stars](https://img.shields.io/github/stars/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/issues)

@@ -236,7 +236,7 @@ def setupdatabase():
             db.create_all()
             db.session.commit()
             #  push the database version arm is looking for
-            user = Alembic_version('e688fe04d305')
+            user = Alembic_version('9cae4aa05dd7')
             db.session.add(user)
             db.session.commit()
             return True

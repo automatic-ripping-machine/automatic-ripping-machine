@@ -6,7 +6,7 @@ import subprocess
 import time
 import shlex
 
-# from arm.config.config import cfg
+from arm.config.config import cfg
 from arm.ripper import utils  # noqa: E402
 from arm.ui import db  # noqa: F401, E402
 
@@ -20,7 +20,7 @@ def makemkv(logfile, job):
     Returns path to ripped files.
     """
 
-    logging.info("Starting MakeMKV rip. Method is " + job.config.RIPMETHOD)
+    logging.info("Starting MakeMKV rip. Method is " + cfg["RIPMETHOD"])
 
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
@@ -41,7 +41,7 @@ def makemkv(logfile, job):
         raise RuntimeError(err)
 
     # get filesystem in order
-    rawpath = os.path.join(str(job.config.RAWPATH), str(job.title))
+    rawpath = os.path.join(str(cfg["RAWPATH"]), str(job.title))
     logging.info("Destination is " + str(rawpath))
 
     if not os.path.exists(rawpath):
@@ -54,7 +54,7 @@ def makemkv(logfile, job):
     else:
         logging.info(rawpath + " exists.  Adding timestamp.")
         ts = round(time.time() * 100)
-        rawpath = os.path.join(str(job.config.RAWPATH), str(job.title) + "_" + str(ts))
+        rawpath = os.path.join(str(cfg["RAWPATH"]), str(job.title) + "_" + str(ts))
         logging.info("rawpath is " + str(rawpath))
         try:
             os.makedirs(rawpath)
@@ -64,10 +64,10 @@ def makemkv(logfile, job):
             sys.exit(err)
 
     # rip bluray
-    if job.config.RIPMETHOD == "backup" and job.disctype == "bluray":
+    if cfg["RIPMETHOD"] == "backup" and job.disctype == "bluray":
         # backup method
         cmd = 'makemkvcon backup --decrypt {0} -r disc:{1} {2}>> {3}'.format(
-            job.config.MKV_ARGS,
+            cfg["MKV_ARGS"],
             mdisc.strip(),
             shlex.quote(rawpath),
             logfile
@@ -95,18 +95,18 @@ def makemkv(logfile, job):
             # print("Error: " + mkv)
             return None
 
-    elif job.config.RIPMETHOD == "mkv" or job.disctype == "dvd":
+    elif cfg["RIPMETHOD"] == "mkv" or job.disctype == "dvd":
         # mkv method
         get_track_info(mdisc, job)
 
         # if no maximum length, process the whole disc in one command
-        if int(job.config.MAXLENGTH) > 99998:
+        if int(cfg["MAXLENGTH"]) > 99998:
             cmd = 'makemkvcon mkv {0} -r dev:{1} {2} {3} --minlength={4}>> {5}'.format(
-                job.config.MKV_ARGS,
+                cfg["MKV_ARGS"],
                 job.devpath,
                 "all",
                 shlex.quote(rawpath),
-                job.config.MINLENGTH,
+                cfg["MINLENGTH"],
                 logfile
             )
             logging.debug("Ripping with the following command: " + cmd)
@@ -133,16 +133,16 @@ def makemkv(logfile, job):
         else:
             # process one track at a time based on track length
             for track in job.tracks:
-                if track.length < int(job.config.MINLENGTH):
+                if track.length < int(cfg["MINLENGTH"]):
                     # too short
                     logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length ("
                                  + str(track.length)
-                                 + ") is less than minimum length (" + job.config.MINLENGTH + ").  Skipping")
-                elif track.length > int(job.config.MAXLENGTH):
+                                 + ") is less than minimum length (" + cfg["MINLENGTH"] + ").  Skipping")
+                elif track.length > int(cfg["MAXLENGTH"]):
                     # too long
                     logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles)
                                  + ". Length (" + str(track.length) +
-                                 ") is greater than maximum length (" + job.config.MAXLENGTH + ").  Skipping")
+                                 ") is greater than maximum length (" + cfg["MAXLENGTH"] + ").  Skipping")
                 else:
                     # just right
                     logging.info("Processing track #" + str(track.track_number) + " of " + str(job.no_of_titles - 1)
@@ -158,11 +158,11 @@ def makemkv(logfile, job):
                     # db.session.commit()
 
                     cmd = 'makemkvcon mkv {0} -r dev:{1} {2} {3} --minlength={4}>> {5}'.format(
-                        job.config.MKV_ARGS,
+                        cfg["MKV_ARGS"],
                         job.devpath,
                         str(track.track_number),
                         shlex.quote(rawpath),
-                        job.config.MINLENGTH,
+                        cfg["MINLENGTH"],
                         logfile
                     )
                     logging.debug("Ripping with the following command: " + cmd)
