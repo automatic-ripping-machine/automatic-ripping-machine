@@ -1,16 +1,20 @@
 import os
+import subprocess
 from time import strftime, localtime
 import urllib
 import json
 import re
+import psutil
+import requests
 import bcrypt  # noqa: F401
 import html
+
 from pathlib import Path
 from arm.config.config import cfg
 from flask.logging import default_handler  # noqa: F401
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
-from flask import Flask, render_template, flash  # noqa: F401
+from flask import Flask, render_template, flash, request  # noqa: F401
 
 
 def get_info(directory):
@@ -67,9 +71,13 @@ def call_omdb_api(title=None, year=None, imdbID=None, plot="short"):
     # strurl = urllib.parse.quote(strurl)
     # app.logger.info("OMDB string query"+str(strurl))
     app.logger.debug("omdb - " + str(strurl))
-    title_info_json = urllib.request.urlopen(strurl).read()
-    title_info = json.loads(title_info_json.decode())
-    app.logger.debug("omdb - " + str(title_info))
+    try:
+        title_info_json = urllib.request.urlopen(strurl).read()
+        title_info = json.loads(title_info_json.decode())
+        app.logger.debug("omdb - " + str(title_info))
+    except urllib.error.HTTPError as e:
+        app.logger.debug(f"omdb call failed with error - {e}")
+        return {}
     # logging.info("Response from Title Info command"+str(title_info))
     # d = {'year': '1977'}
     # dvd_info = omdb.get(title=title, year=year)
@@ -96,7 +104,6 @@ def generate_comments():
 
 
 def generate_log(logpath, job_id):
-
     try:
         job = Job.query.get(job_id)
     except Exception:
@@ -104,7 +111,7 @@ def generate_log(logpath, job_id):
         job = None
 
     app.logger.debug("in logging")
-    if job is None:
+    if job is None or job.logfile is None or job.logfile == "":
         app.logger.debug(f"Cant find the job {job_id}")
         return {'success': False, 'job': job_id, 'log': 'Not found'}
     # Assemble full path
@@ -133,19 +140,22 @@ def generate_log(logpath, job_id):
 
 def abandon_job(job_id):
     # job_id = request.args.get('job_id')
-    # TODO add a confirm and then
-    #  delete the raw folder (this will cause ARM to bail)
     try:
         job = Job.query.get(job_id)
         job.status = "fail"
         db.session.commit()
         app.logger.debug("Job {} was abandoned successfully".format(job_id))
         t = {'success': True, 'job': job_id, 'mode': 'abandon'}
-    except Exception:
-        # flash("Failed to update job" + str(e))
+    except Exception as e:
         db.session.rollback()
         app.logger.debug("Job {} couldn't be abandoned ".format(job_id))
-        t = {'success': False, 'job': job_id, 'mode': 'abandon'}
+        return {'success': False, 'job': job_id, 'mode': 'abandon', "Error": str(e)}
+    try:
+        p = psutil.Process(job.pid)
+        p.terminate()  # or p.kill()
+    except psutil.NoSuchProcess:
+        t['Error'] = f"couldnt find job.pid - {job.pid}"  # This is a soft error db changes still went through
+        app.logger.debug(f"couldnt find job.pid - {job.pid}")
     return t
 
 
@@ -198,7 +208,7 @@ def delete_job(job_id, mode):
     # If we run into problems with the datebase changes
     # error out to the log and roll back
     except Exception as err:
-        # db.session.rollback()
+        db.session.rollback()
         app.logger.error("Error:db-1 {0}".format(err))
         t = {'success': False}
 
@@ -261,6 +271,7 @@ def get_omdb_poster(title=None, year=None, imdbID=None, plot="short"):
     title_info = {}
     if imdbID:
         strurl = f"http://www.omdbapi.com/?i={imdbID}&plot={plot}&r=json&apikey={omdb_api_key}"
+        strurl2 = ""
     elif title:
         strurl = f"http://www.omdbapi.com/?s={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
         strurl2 = f"http://www.omdbapi.com/?t={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
@@ -334,28 +345,406 @@ def job_dupe_check(crc_id):
 
 def get_x_jobs(job_status):
     """
-    function for getting all failed or successful jobs from the database
+    function for getting all Failed/Successful jobs or currently active jobs from the database
 
     :return: True if we have found dupes with the same crc
               - Will also return a dict of all the jobs found.
              False if we didnt find any with the same crc
               - Will also return None as a secondary param
     """
-    jobs = Job.query.filter_by(status=job_status)
+    if job_status == "success" or job_status == "fail":
+        jobs = Job.query.filter_by(status=job_status)
+    else:
+        jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+
     r = {}
     i = 0
     for j in jobs:
+        r[i] = {}
+        job_log = cfg['LOGPATH'] + j.logfile
+        try:
+            r[i]['config'] = j.config.get_d()
+        except AttributeError:
+            r[i]['config'] = "config not found"
+            app.logger.debug("couldn't get config")
+        # Try to catch if the logfile gets delete before the job is finished
+        try:
+            line = subprocess.check_output(['tail', '-n', '1', job_log])
+        except subprocess.CalledProcessError:
+            app.logger.debug("Error while reading logfile for ETA")
+            line = ""
+        app.logger.debug(line)
+        job_status_bar = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
+                                   r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
+        if job_status_bar:
+            app.logger.debug(job_status_bar.group())
+            r[i]['stage'] = job_status_bar.group(1)
+            r[i]['progress'] = job_status_bar.group(2)
+            r[i]['eta'] = job_status_bar.group(3)
+            r[i]['progress_round'] = int(float(r[i]['progress']))
+
         app.logger.debug("job obj= " + str(j.get_d()))
         x = j.get_d().items()
-        r[i] = {}
-        for key, value in iter(x):
-            r[i][str(key)] = str(value)
+        app.logger.debug("job obj.items= " + str(j.get_d().items()))
+        for key, value in x:
+            if key != "config":
+                r[i][str(key)] = str(value)
             # logging.debug(str(key) + "= " + str(value))
         i += 1
-
-    if jobs is not None and len(r) > 0:
-        app.logger.debug("jobs is none or len(r)>0 - we have jobs")
-        return {'success': True, 'mode': job_status, 'results': r}
+    app.logger.debug("Stuff = " + str(r))
+    if jobs:
+        app.logger.debug("jobs  - we have " + str(len(r)) + " jobs")
+        return {"success": True, "mode": job_status, "results": r}
     else:
         app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
-        return {'success': False, 'mode': job_status, 'results': {}}
+        return {"success": False, "mode": job_status, "results": {}}
+
+
+def get_tmdb_poster(search_query=None, year=None):
+    """ Queries api.themoviedb.org for the poster/backdrop for movie """
+    tmdb_api_key = cfg['TMDB_API_KEY']
+    if year:
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}&year={year}"
+        # url_clean = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={search_query}&year={year}"
+    else:
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}"
+        # url_clean = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={search_query}"
+    # Valid poster sizes
+    # "w92", "w154", "w185", "w342", "w500", "w780", "original"
+    poster_size = "original"
+    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
+    response = requests.get(url)
+    p = json.loads(response.text)
+    # if status_code is in p we know there was an error
+    if 'status_code' in p:
+        app.logger.debug(f"get_tmdb_poster failed with error -  {p['status_message']}")
+        return {}
+    x = json.dumps(response.json(), indent=4, sort_keys=True)
+    print(x)
+    if p['total_results'] > 0:
+        app.logger.debug(p['total_results'])
+        for s in p['results']:
+            if s['poster_path'] is not None:
+                if 'release_date' in s:
+                    x = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['release_date'])
+                    app.logger.debug(f"{s['title']} ({x})- {poster_base}{s['poster_path']}")
+                    s['poster_url'] = f"{poster_base}{s['poster_path']}"
+                    s["Plot"] = s['overview']
+                    # print(poster_url)
+                    s['background_url'] = f"{poster_base}{s['backdrop_path']}"
+                    s['Type'] = "movie"
+                    app.logger.debug(s['background_url'])
+                    return s
+    else:
+        url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={search_query}"
+        response = requests.get(url)
+        p = json.loads(response.text)
+        v = json.dumps(response.json(), indent=4, sort_keys=True)
+        app.logger.debug(v)
+        x = {}
+        if p['total_results'] > 0:
+            app.logger.debug(p['total_results'])
+            for s in p['results']:
+                app.logger.debug(s)
+                s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
+                s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
+                s['imdbID'] = tmdb_get_imdb(s['id'])
+                reg = "-[0-9]{0,2}-[0-9]{0,2}"
+                s['Year'] = re.sub(reg, "", s['first_air_date']) if 'first_air_date' in s else \
+                    re.sub(reg, "", s['release_date'])
+                s['Title'] = s['title'] if 'title' in s else s['name']  # This isnt great
+                s['Type'] = "movie"
+                app.logger.debug(f"{s['Title']} ({s['Year']})- {poster_base}{s['poster_path']}")
+                s['Poster'] = f"{poster_base}{s['poster_path']}"  # print(poster_url)
+                s['background_url'] = f"{poster_base}{s['backdrop_path']}"
+                s["Plot"] = s['overview']
+                app.logger.debug(s['background_url'])
+                search_query_pretty = re.sub(r"\+", " ", search_query)
+                app.logger.debug(f"trying {search_query.capitalize()} == {s['Title'].capitalize()}")
+                if search_query_pretty.capitalize() == s['Title'].capitalize():
+                    s['Search'] = s
+                    app.logger.debug("x=" + str(x))
+                    s['Response'] = True
+                    return s
+            x['Search'] = p['results']
+            return x
+        app.logger.debug("no results found")
+        return None
+
+
+def tmdb_search(search_query=None, year=None):
+    """
+        Queries api.themoviedb.org for movies close to the query
+
+    """
+    # https://api.themoviedb.org/3/movie/78?api_key=
+    # &append_to_response=alternative_titles,changes,credits,images,keywords,lists,releases,reviews,similar,videos
+    tmdb_api_key = cfg['TMDB_API_KEY']
+    if year:
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}&year={year}"
+        # url_clean = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={search_query}&year={year}"
+    else:
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}"
+        # url_clean = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={search_query}"
+    # Valid poster sizes
+    # "w92", "w154", "w185", "w342", "w500", "w780", "original"
+    poster_size = "original"
+    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
+    # Making a get request
+    response = requests.get(url)
+    p = json.loads(response.text)
+    # if status_code is in p we know there was an error
+    if 'status_code' in p:
+        app.logger.debug(f"get_tmdb_poster failed with error -  {p['status_message']}")
+        return {}
+    # x = json.dumps(response.json(), indent=4, sort_keys=True)
+    # print(x)
+    x = {}
+    if p['total_results'] > 0:
+        app.logger.debug(f"tmdb_search - found {p['total_results']} movies")
+        for s in p['results']:
+            s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
+            s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
+            s['imdbID'] = tmdb_get_imdb(s['id'])
+            s['Year'] = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['release_date'])
+            s['Title'] = s['title']
+            s['Type'] = "movie"
+            app.logger.debug(f"{s['title']} ({s['Year']})- {poster_base}{s['poster_path']}")
+            s['Poster'] = f"{poster_base}{s['poster_path']}"
+            s['background_url'] = f"{poster_base}{s['backdrop_path']}"
+            app.logger.debug(s['background_url'])
+        x['Search'] = p['results']
+        return x
+    else:
+        # Search for tv series
+        app.logger.debug("tmdb_search - movie not found, trying tv series ")
+        url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={search_query}"
+        response = requests.get(url)
+        p = json.loads(response.text)
+        # v = json.dumps(response.json(), indent=4, sort_keys=True)
+        # app.logger.debug(v)
+        x = {}
+        if p['total_results'] > 0:
+            app.logger.debug(p['total_results'])
+            for s in p['results']:
+                app.logger.debug(s)
+                s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
+                s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
+                s['imdbID'] = tmdb_get_imdb(s['id'])
+                reg = "-[0-9]{0,2}-[0-9]{0,2}"
+                s['Year'] = re.sub(reg, "", s['first_air_date']) if 'first_air_date' in s else \
+                    re.sub(reg, "", s['release_date'])
+                s['Title'] = s['title'] if 'title' in s else s['name']  # This isnt great
+                s['Type'] = "series"
+                app.logger.debug(f"{s['Title']} ({s['Year']})- {poster_base}{s['poster_path']}")
+                s['Poster'] = f"{poster_base}{s['poster_path']}"  # print(poster_url)
+                s['background_url'] = f"{poster_base}{s['backdrop_path']}"
+                s["Plot"] = s['overview']
+                app.logger.debug(s['background_url'])
+                search_query_pretty = re.sub(r"\+", " ", search_query)
+                app.logger.debug(f"trying {search_query_pretty.capitalize()} == {s['Title'].capitalize()}")
+                """if search_query_pretty.capitalize() == s['Title'].capitalize():
+                    s['Search'] = s
+                    app.logger.debug("x=" + str(x))
+                    s['Response'] = True
+                    # global new_year
+                    new_year = s['Year']
+                    # new_year = job.year_auto = job.year = str(x['Year'])
+                    title = clean_for_filename(s['Title'])
+                    app.logger.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
+                    args = {
+                        'year_auto': str(new_year),
+                        'year': str(new_year),
+                        'title_auto': title,
+                        'title': title,
+                        'video_type_auto': s['Type'],
+                        'video_type': s['Type'],
+                        'imdb_id_auto': s['imdbID'],
+                        'imdb_id': s['imdbID'],
+                        'poster_url_auto': s['Poster'],
+                        'poster_url': s['Poster'],
+                        'hasnicetitle': True
+                    }
+                    # database_updater(args, job)
+                    return s
+                """
+            x['Search'] = p['results']
+            return x
+
+    # We got to here with no results give nothing back
+    app.logger.debug("tmdb_search - no results found")
+    return None
+
+
+def tmdb_get_imdb(tmdb_id):
+    """
+        Queries api.themoviedb.org for imdb_id by TMDB id
+
+    """
+    # https://api.themoviedb.org/3/movie/78?api_key=
+    # &append_to_response=alternative_titles,changes,credits,images,keywords,lists,releases,reviews,similar,videos
+    tmdb_api_key = cfg['TMDB_API_KEY']
+    url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={tmdb_api_key}&" \
+          f"append_to_response=alternative_titles,credits,images,keywords,releases,reviews,similar,videos,external_ids"
+    url_tv = f"https://api.themoviedb.org/3/tv/{tmdb_id}/external_ids?api_key={tmdb_api_key}"
+    # Making a get request
+    response = requests.get(url)
+    p = json.loads(response.text)
+    app.logger.debug(f"tmdb_get_imdb - {p}")
+    # 'status_code' means id wasn't found
+    if 'status_code' in p:
+        # Try tv series
+        response = requests.get(url_tv)
+        tv = json.loads(response.text)
+        app.logger.debug(tv)
+        if 'status_code' not in tv:
+            return tv['imdb_id']
+    else:
+        return p['external_ids']['imdb_id']
+
+
+def tmdb_find(imdb_id):
+    """
+    basic function to return an object from tmdb from only the imdb id
+    :param imdb_id: the imdb id to lookup
+    :return: dict in the standard 'arm' format
+    """
+    tmdb_api_key = cfg['TMDB_API_KEY']
+    url = f"https://api.themoviedb.org/3/find/{imdb_id}?api_key={tmdb_api_key}&external_source=imdb_id"
+    poster_size = "original"
+    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
+    # Making a get request
+    response = requests.get(url)
+    p = json.loads(response.text)
+    app.logger.debug(f"tmdb_find = {p}")
+    if len(p['movie_results']) > 0:
+        # We want to push out everything even if we dont use it right now, it may be used later.
+        s = {'results': p['movie_results']}
+        x = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['results'][0]['release_date'])
+        app.logger.debug(f"{s['results'][0]['title']} ({x})- {poster_base}{s['results'][0]['poster_path']}")
+        s['poster_url'] = f"{poster_base}{s['results'][0]['poster_path']}"
+        s["Plot"] = s['results'][0]['overview']
+        s['background_url'] = f"{poster_base}{s['results'][0]['backdrop_path']}"
+        s['Type'] = "movie"
+        s['imdbID'] = imdb_id
+        s['Type'] = "movie"
+        s['Poster'] = s['poster_url']
+        s['Year'] = x
+        s['Title'] = s['results'][0]['title']
+    else:
+        # We want to push out everything even if we dont use it right now, it may be used later.
+        s = {'results': p['tv_results']}
+        x = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['results'][0]['first_air_date'])
+        app.logger.debug(f"{s['results'][0]['name']} ({x})- {poster_base}{s['results'][0]['poster_path']}")
+        s['poster_url'] = f"{poster_base}{s['results'][0]['poster_path']}"
+        s["Plot"] = s['results'][0]['overview']
+        s['background_url'] = f"{poster_base}{s['results'][0]['backdrop_path']}"
+        s['Type'] = "movie"
+        s['imdbID'] = imdb_id
+        s['Type'] = "series"
+        s['Poster'] = s['poster_url']
+        s['Year'] = x
+        s['Title'] = s['results'][0]['name']
+    return s
+
+
+def metadata_selector(func, query=None, year=None, imdb_id=None):
+    """
+    Used to switch between OMDB or TMDB as the metadata provider
+    - TMDB returned queries are converted into the OMDB format
+
+    :param func: the function that is being called - allows for more dynamic results
+    :param query: this can either be a search string or movie/show title
+    :param year: the year of movie/show release
+    :param imdb_id: the imdb id to lookup
+
+    :return: json/dict object
+    """
+    if cfg['METADATA_PROVIDER'].lower() == "tmdb":
+        app.logger.debug("provider tmdb")
+        if func == "search":
+            return tmdb_search(query, year)
+        elif func == "get_details":
+            if query:
+                return get_tmdb_poster(query) if year is None else get_tmdb_poster(query, year)
+            elif imdb_id:
+                return tmdb_find(imdb_id)
+
+    elif cfg['METADATA_PROVIDER'].lower() == "omdb":
+        app.logger.debug("provider omdb")
+        if func == "search":
+            return call_omdb_api(query, year)
+        elif func == "get_details":
+            s = call_omdb_api(title=query, year=year, imdbID=imdb_id, plot="full")
+            s['background_url'] = None
+            return s
+    else:
+        app.logger.debug(cfg['METADATA_PROVIDER'])
+        app.logger.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
+
+
+def fix_permissions(j_id):
+    """
+    Json api
+
+    ARM can sometimes have issues with changing the file owner, we can use the fact ARMui is run
+    as a service to fix permissions.
+    """
+    try:
+        job_id = int(j_id.strip())
+    except AttributeError:
+        return {"success": False, "mode": "fixperms", "Error": "AttributeError",
+                "PrettyError": "No Valid Job Id Supplied"}
+    job = Job.query.get(job_id)
+    if not job:
+        return {"success": False, "mode": "fixperms", "Error": "JobDeleted",
+                "PrettyError": "Job Has Been Deleted From The Database"}
+    job_log = cfg['LOGPATH'] + job.logfile
+    if not os.path.isfile(job_log):
+        return {"success": False, "mode": "fixperms", "Error": "FileNotFoundError",
+                "PrettyError": "Logfile Has Been Deleted Or Moved"}
+
+    # This is kind of hacky way to get around the fact we dont save the ts variable
+    with open(job_log, 'r') as reader:
+        for line in reader.readlines():
+            ts = re.search("Operation not permitted: '([0-9a-zA-Z()/ -]*?)'", str(line))
+            if ts:
+                break
+            # app.logger.debug(ts)
+            # Operation not permitted: '([0-9a-zA-Z\(\)/ -]*?)'
+    if ts:
+        app.logger.debug(str(ts.group(1)))
+        directory_to_traverse = ts.group(1)
+    else:
+        app.logger.debug("not found")
+        directory_to_traverse = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
+    # folder_clean = re.sub("_", " ", job.logfile)
+    # directory_to_traverse = str(os.path.join(folder_clean))
+    try:
+        corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
+        app.logger.info("Setting permissions to: " + str(job.config.CHMOD_VALUE) + " on: " + directory_to_traverse)
+        os.chmod(directory_to_traverse, corrected_chmod_value)
+        if job.config.SET_MEDIA_OWNER and job.config.CHOWN_USER and job.config.CHOWN_GROUP:
+            import pwd
+            import grp
+            uid = pwd.getpwnam(job.config.CHOWN_USER).pw_uid
+            gid = grp.getgrnam(job.config.CHOWN_GROUP).gr_gid
+            os.chown(directory_to_traverse, uid, gid)
+
+        for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
+            for cur_dir in l_directories:
+                app.logger.debug("Setting path: " + cur_dir + " to permissions value: " + str(job.config.CHMOD_VALUE))
+                os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
+                if job.config.SET_MEDIA_OWNER:
+                    os.chown(os.path.join(dirpath, cur_dir), uid, gid)
+            for cur_file in l_files:
+                app.logger.debug("Setting file: " + cur_file + " to permissions value: " + str(job.config.CHMOD_VALUE))
+                os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
+                if job.config.SET_MEDIA_OWNER:
+                    os.chown(os.path.join(dirpath, cur_file), uid, gid)
+        d = {"success": True, "mode": "fixperms", "folder": str(directory_to_traverse)}
+    except Exception as e:
+        err = "Permissions setting failed as: " + str(e)
+        app.logger.error(err)
+        d = {"success": False, "mode": "fixperms", "Error": str(err), "ts": str(ts)}
+    return d

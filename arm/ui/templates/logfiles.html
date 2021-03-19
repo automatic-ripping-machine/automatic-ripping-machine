@@ -12,7 +12,7 @@
 
 			<div class="row">
 				<div class="col-sm-12  rounded text-center">
-					<img src="/static/img/arm80.png">
+					<img src="static/img/arm80.png">
 						<p>
 							<b>Welcome to your Automatic Ripping Machine<br></b>
 						</p>
@@ -32,13 +32,13 @@
   <tbody>
     {% for file in files %}
     <tr>
-        <td class="text-nowrap">{{ file[0] }}</a></td>
-        <td class="text-nowrap">{{ file[2] }}</a></td>
-        <td style="text-align:center">{{ file[3] }}</a></td>
+        <td class="text-nowrap">{{ file[0]|truncate(30, True) }}</td>
+        <td class="text-nowrap">{{ file[2] }}</td>
+        <td style="text-align:center">{{ file[3] }}</td>
         <td style="text-align:center"><a href="logs?logfile={{ file[0] }}&mode=tail">tail</a></td>
         <td><a href="logs?logfile={{ file[0] }}&mode=armcat">arm</a></td>
         <td><a href="logs?logfile={{ file[0] }}&mode=full">full</a></td>
-        <td><a href="/logreader?logfile={{ file[0] }}&mode=download">download</a></td>
+        <td><a href="logreader?logfile={{ file[0] }}&mode=download">download</a></td>
     </tr>
     {% endfor %}
   </tbody>

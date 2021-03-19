@@ -12,10 +12,10 @@ ENV UID=1000
 ENV GID=1000
 
 # override at runtime to change makemkv key
-ENV MAKEMKV_APP_KEY=
+ENV MAKEMKV_APP_KEY=""
 
 # local apt/deb proxy for builds
-ARG APT_PROXY=
+ARG APT_PROXY=""
 RUN if [ -n "${APT_PROXY}" ] ; then \
   printf 'Acquire::http::Proxy "%s";' "${APT_PROXY}" \
   > /etc/apt/apt.conf.d/30proxy ; fi
@@ -167,7 +167,7 @@ COPY --from=pip-ui /opt/venv /opt/venv
 COPY --from=pip-ripper /opt/venv /opt/venv
 ###########################################################
 # build final image
-FROM deps-${target} AS install
+FROM deps-combined AS install
 # default directories and configs
 RUN \
   mkdir -m 0777 -p /home/arm /home/arm/config /mnt/dev/sr0 /mnt/dev/sr1 /mnt/dev/sr2 /mnt/dev/sr3 /mnt/dev/sr4 && \
@@ -199,6 +199,6 @@ ARG image_revision=1.1
 ARG image_created
 
 LABEL org.opencontainers.image.source=https://github.com/1337-server/automatic-ripping-machine
-LABEL org.opencontainers.image.revision="2.4.6"
+LABEL org.opencontainers.image.revision="2.5.0"
 LABEL org.opencontainers.image.created=${image_created}
 LABEL org.opencontainers.image.license=MIT

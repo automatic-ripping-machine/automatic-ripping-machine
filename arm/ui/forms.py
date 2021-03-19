@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, IntegerField, BooleanField, validators  # noqa: F401
-from wtforms.validators import DataRequired  # noqa: F401
+from wtforms.validators import DataRequired
 
 
 class TitleSearchForm(FlaskForm):
@@ -24,4 +24,19 @@ class ChangeParamsForm(FlaskForm):
     # MAINFEATURE = SelectField('Main Feature: ', choices=[(1, 'Yes'), (0, 'No')])
     MINLENGTH = IntegerField('Minimum Length: ')
     MAXLENGTH = IntegerField('Maximum Length: ')
+    submit = SubmitField('Submit')
+
+
+class SettingsForm(FlaskForm):
+    MANUAL_WAIT = StringField('MANUAL_WAIT', validators=[DataRequired()])
+    DATE_FORMAT = StringField('DATE_FORMAT', validators=[DataRequired()])
+    HB_PRESET_DVD = StringField('HB_PRESET_DVD', validators=[DataRequired()])
+    HB_PRESET_BD = StringField('HB_PRESET_BD', validators=[DataRequired()])
+    HANDBRAKE_CLI = StringField('HANDBRAKE_CLI', validators=[DataRequired()])
+    DBFILE = StringField('DBFILE', validators=[DataRequired()])
+    LOGPATH = StringField('LOGPATH', validators=[DataRequired()])
+    INSTALLPATH = StringField('INSTALLPATH', validators=[DataRequired()])
+    ARMPATH = StringField('ARMPATH', validators=[DataRequired()])
+    RAWPATH = StringField('RAWPATH', validators=[DataRequired()])
+    MEDIA_DIR = StringField('MEDIA_DIR', validators=[DataRequired()])
     submit = SubmitField('Submit')

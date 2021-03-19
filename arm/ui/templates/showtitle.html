@@ -3,13 +3,13 @@
 
 {% block nav %}{{ super() }}{% endblock %}
 
-{% block content %}  
+{% block content %}
 <div class="container">
     <div class="row">
         <div class="col-sm-3"></div>
             <div class="col-sm-6 text-center">
                 <div class="card text-center">
-                    <div class="card-header"><a href="select_title?imdbID={{ results["imdbID"] }}"><img src="{{ results["Poster"] }}" width="240px" class="img-thumbnail"></a></div>
+                    <div class="card-header"><a href="select_title?imdbID={{ results["imdbID"] }}&job_id={{ job_id }}"><img src="{{ results["Poster"] }}" width="240px" class="img-thumbnail"></a></div>
                     <div class="card-body"><b>{{  results["Title"]  }}</b> - {{ results["Type"].capitalize() }} ({{ results["Year"] }})</div>
                     <div class="card-body"><strong>Full Plot:</strong> {{ results["Plot"] }}</div>
                     <div class="card-footer">

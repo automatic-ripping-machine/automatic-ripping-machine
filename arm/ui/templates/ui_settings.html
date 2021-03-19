@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Settings{% endblock %}
+{% block title %}Ui Settings{% endblock %}
 
 {% block nav %}{{ super() }}{% endblock %}
 
@@ -7,7 +7,7 @@
 
 <style>
 .popover {
-    white-space: pre-line;    
+    white-space: pre-line;
 }
 .popover-content {
     white-space: pre-wrap;
@@ -32,23 +32,25 @@
 						<p class="text-center">
 						<!--<b>Welcome to your Automatic Ripping Machine</b>
 						<br>-->
-						<h2> ARM - Settings </h2>
+						<h2> ARMUi - Settings </h2>
 						</p>
 					</div>
-				
+
 					<div class="container" style="padding-top: 4rem;">
 						<form id="form1" name="form1" method="post" action="settings">
 						    {{ form.hidden_tag() }}
-							{% for k, v in settings.items() %}
+							{% for k, v in settings.get_d().items() %}
+                                {% if k != "id" %}
 							<div class="input-group mb-3">
 								<div class="input-group-prepend">
 									<span class="input-group-text" id="{{ k }}">{{ k }}: </span>
 								</div>
 								<input type="text" class="form-control" aria-label="{{ k }}" name={{ k }} placeholder="{{ v}}" value="{{ v }}" aria-describedby="{{ k }}">
-								 <a class="popovers" onClick='return false;' href="" data-content="{{ jsoncomments[k] }}" rel="popover" data-placement="top" data-original-title="{{ k }}">
+								 <a class="popovers" onClick='return false;' href="" data-content="" rel="popover" data-placement="top" data-original-title="{{ k }}">
 									<img title="More information" src="static/img/info.png" width="30px" height="35px">
 								</a>
 							</div>
+                                                       {% endif %}
 							{% endfor %}
 								<button class="btn btn-secondary btn-lg btn-block" form="form1" type="submit">Submit</button>
                         </form>
@@ -63,7 +65,7 @@
 {{ super() }}
 <script type="application/javascript">
 	$(function () {
-		$(".popovers").popover({ 
+		$(".popovers").popover({
 			trigger: "hover",
 		});
 	{% if form.errors %}
@@ -71,7 +73,7 @@
 			$("[name='{{k}}']").addClass("is-invalid");
 		{% endfor %}
 	{% endif %}
-	activeTab("armsettings");
+	activeTab("ui_settings");
 	});
 </script>
 {% endblock %}
