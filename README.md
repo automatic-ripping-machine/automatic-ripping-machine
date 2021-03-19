@@ -1,5 +1,4 @@
 # Automatic Ripping Machine (ARM)
-[![Build Status](https://travis-ci.com/1337-server/automatic-ripping-machine.svg?branch=v2.3_dev)](https://travis-ci.com/1337-server/automatic-ripping-machine)
 [![GitHub license](https://img.shields.io/github/license/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/blob/v2.3_dev/LICENSE)
 [![GitHub forks](https://img.shields.io/github/forks/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/network)
 [![GitHub stars](https://img.shields.io/github/stars/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/stargazers)
@@ -63,15 +62,19 @@ You will need to setup a dev rule on the host machine that triggers the docker t
 
 Now create the container with.
  ```
- docker run -d \
-    -p "8080:8080" \
-    -e UID="1000" -e GID="1000" \
-    -v "/home/arm:/home/arm" \
-    --device="/dev/sr0:/dev/sr0" \
-    --privileged \
-    --restart "always" \
-    --name "arm-rippers" \
-    1337server/automatic-ripping-machine:latest
+docker run -d \
+   -p "8080:8080" \
+   -e UID="1000" -e GID="1000" \
+   -v "/home/arm:/home/arm" \
+   -v "/home/arm/music:/home/arm/music" \
+   -v "/home/arm/config:/home/arm/config" \
+   -v "/home/arm/logs:/home/arm/logs" \
+   -v "/home/arm/media:/home/arm/media" \
+   --device="/dev/sr0:/dev/sr0" \
+   --privileged \
+   --restart "always" \
+   --name "arm-rippers" \
+   1337server/automatic-ripping-machine:latest
 ```
 
 for more details please use [the wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/docker)
