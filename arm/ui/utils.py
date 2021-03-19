@@ -13,7 +13,7 @@ from pathlib import Path
 from arm.config.config import cfg
 from flask.logging import default_handler  # noqa: F401
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
+from arm.models.models import Job, Config, Track, User, Alembic_version, UISettings  # noqa: F401
 from flask import Flask, render_template, flash, request  # noqa: F401
 
 
@@ -221,6 +221,7 @@ def setupdatabase():
     """
     try:
         User.query.all()
+        UISettings.query.all().first()
         return True
     except Exception:
         #  We only need this on first run
@@ -236,7 +237,7 @@ def setupdatabase():
             db.create_all()
             db.session.commit()
             #  push the database version arm is looking for
-            user = Alembic_version('e688fe04d305')
+            user = Alembic_version('9cae4aa05dd7')
             db.session.add(user)
             db.session.commit()
             return True
