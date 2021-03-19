@@ -64,28 +64,28 @@ def apprise_notify(apprise_cfg, title, body):
     # boxcar
     # boxcar://{access_key}/{secret_key}
     if cfg['BOXCAR_KEY'] != "":
-            apobj.add('boxcar://' + str(cfg['BOXCAR_KEY']) + "/" + str(cfg['BOXCAR_SECRET']))
+        apobj.add('boxcar://' + str(cfg['BOXCAR_KEY']) + "/" + str(cfg['BOXCAR_SECRET']))
     # discord
     # discord://{WebhookID}/{WebhookToken}/
     if cfg['DISCORD_WEBHOOK_ID'] != "":
         # TODO: add userid to this and config
-            apobj.add('discord://' + str(cfg['DISCORD_WEBHOOK_ID']) + "/" + str(cfg['DISCORD_TOKEN']))
+        apobj.add('discord://' + str(cfg['DISCORD_WEBHOOK_ID']) + "/" + str(cfg['DISCORD_TOKEN']))
     # Faast
     # faast://{authorizationtoken}
     if cfg['FAAST_TOKEN'] != "":
-            apobj.add('faast://' + str(cfg['FAAST_TOKEN']))
+        apobj.add('faast://' + str(cfg['FAAST_TOKEN']))
     # FLOCK
     # flock://{token}/
     if cfg['FLOCK_TOKEN'] != "":
-            apobj.add('flock://' + str(cfg['FLOCK_TOKEN']))
+        apobj.add('flock://' + str(cfg['FLOCK_TOKEN']))
     # GITTER
     # gitter: // {token} / {room} /
     if cfg['GITTER_TOKEN'] != "":
-            apobj.add('gitter://' + str(cfg['GITTER_TOKEN']) + "/" + str(cfg['GITTER_ROOM']))
+        apobj.add('gitter://' + str(cfg['GITTER_TOKEN']) + "/" + str(cfg['GITTER_ROOM']))
     # Gotify
     # gotify://{hostname}/{token}
     if cfg['GOTIFY_TOKEN'] != "":
-            apobj.add('gotify://' + str(cfg['GOTIFY_HOST']) + "/" + str(cfg['GOTIFY_TOKEN']))
+        apobj.add('gotify://' + str(cfg['GOTIFY_HOST']) + "/" + str(cfg['GOTIFY_TOKEN']))
     # Growl
     # growl://{hostname} || growl://{password}@{hostname}
     if cfg['GROWL_HOST'] != "":
