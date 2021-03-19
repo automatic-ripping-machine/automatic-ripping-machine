@@ -91,3 +91,6 @@ If you set ARM up in a different environment (harware/OS/virtual/etc), please co
 ## License
 
 [MIT License](LICENSE)
+
+
+### This docker is possible thanks to [Deekue's Repo](https://github.com/deekue/automatic-ripping-machine/tree/docker) & [Automatic Ripping Machine](https://github.com/automatic-ripping-machine/automatic-ripping-machine)
