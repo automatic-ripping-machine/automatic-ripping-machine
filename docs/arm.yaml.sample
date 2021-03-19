@@ -37,6 +37,12 @@ MANUAL_WAIT: true
 # Wait tie for manual identification (in seconds)
 MANUAL_WAIT_TIME: 60
 
+# This selects the metadata provider, Each provider has their own ups and downs
+# But a general rule would be 
+# OMDB for movies and shows 
+# TMDB for movies only
+# You will still need to provide an api key for the provider you have selected
+METADATA_PROVIDER: "omdb"
 
 # Allows you to format the date/time to your own liking
 # This will be used throughout ARM and ARMui
@@ -253,6 +259,14 @@ PO_APP_KEY: ""
 # This is the API key for omdbapi.com queries.
 # More info at http://omdbapi.com/
 OMDB_API_KEY: "7907236f"
+
+
+# TMDB_API_KEY
+# https://www.themoviedb.org/ API Key
+# See README-OMDBAPI for background and info
+# This is the API key for https://www.themoviedb.org/ queries.
+# More info at https://www.themoviedb.org/documentation/api
+TMDB_API_KEY: ""
 
 #################################################
 ##            APPRISE NOTIFICATIONS            ##
