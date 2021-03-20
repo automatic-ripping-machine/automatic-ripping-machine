@@ -24,6 +24,9 @@ from flask_login import LoginManager, login_required, current_user, login_user, 
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+# This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
+armui_cfg = UISettings.query.filter_by().first()
+app.jinja_env.globals.update(armui_cfg=armui_cfg)
 
 
 @login_manager.user_loader
@@ -445,13 +448,11 @@ def settings():
 @login_required
 def ui_settings():
     """
-    The settings page - allows the user to update the arm.yaml without needing to open a text editor
-    Also triggers a restart of flask for debugging.
-    This wont work well if flask isnt run in debug mode
+    The ARMui settings page - allows the user to update the armui_settings
+    This function needs to trigger a restart of flask for debugging to update the values
 
-    This needs rewritten to be static
+    This wont work well if flask isnt run in debug mode
     """
-    armui_cfg = UISettings.query.filter_by().first()
     return render_template('ui_settings.html', form=SettingsForm(), settings=armui_cfg)
 
 

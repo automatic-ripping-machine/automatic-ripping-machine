@@ -477,7 +477,7 @@ if __name__ == "__main__":
         sys.exit()
     #  Dont put out anything if we are using the empty.log
     #  This kills multiple runs. it stops the same job triggering more than once
-    if logfile.find("empty.log") != -1:
+    if logfile.find("empty.log") != -1 or logfile.find("NAS_") != -1:
         sys.exit()
 
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
