@@ -219,47 +219,8 @@ def database_updater(args, job, wait_time=90):
     """
     # Loop through our args and try to set any of our job variables
     for (key, value) in args.items():
+        setattr(job, key, value)
         logging.debug(str(key) + "= " + str(value))
-        logging.debug("key = " + str(key))
-        if key == "job_id":
-            job.job_id = value
-        elif key == "crc_id":
-            job.crc_id = value
-        elif key == "year":
-            job.year = value
-        elif key == "year_auto":
-            job.year_auto = value
-        elif key == "year_manual":
-            job.year_manual = value
-        elif key == "no_of_titles":
-            job.no_of_titles = value
-        elif key == "title":
-            job.title = value
-        elif key == "title_auto":
-            job.title_auto = value
-        elif key == "title_manual":
-            job.title_manual = value
-        elif key == "video_type":
-            job.video_type = value
-        elif key == "video_type_auto":
-            job.video_type_auto = value
-        elif key == "video_type_manual":
-            job.video_type_manual = value
-        elif key == "imdb_id":
-            job.imdb_id = value
-        elif key == "imdb_id_auto":
-            job.poster_url = value
-        elif key == "imdb_id_manual":
-            job.imdb_id_manual = value
-        elif key == "poster_url":
-            job.poster_url = value
-        elif key == "poster_url_auto":
-            job.poster_url_auto = value
-        elif key == "poster_url_manual":
-            job.poster_url_manual = value
-        elif key == "hasnicetitle":
-            job.hasnicetitle = value
-
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
             db.session.commit()
