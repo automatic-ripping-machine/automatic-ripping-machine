@@ -25,7 +25,6 @@ app.config['SECRET_KEY'] = "Big secret key"
 db = SQLAlchemy(app)
 
 migrate = Migrate(app, db)
-# omdb.set_default('apikey', cfg['OMDB_API_KEY'])
 
 # import arm.ui.routes  # noqa: E402,F401
 # import models.models  # noqa: E402
