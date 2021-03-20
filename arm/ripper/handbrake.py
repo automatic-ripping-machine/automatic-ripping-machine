@@ -136,12 +136,12 @@ def handbrake_all(srcpath, basepath, logfile, job):
             # too short
             logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length (" + str(
                 track.length) +
-                         ") is less than minimum length (" + cfg["MINLENGTH"] + ").  Skipping")
+                         ") is less than minimum length (" + str(cfg["MINLENGTH"]) + ").  Skipping")
         elif track.length > int(cfg["MAXLENGTH"]):
             # too long
             logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length (" + str(
                 track.length) +
-                         ") is greater than maximum length (" + cfg["MAXLENGTH"] + ").  Skipping")
+                         ") is greater than maximum length (" + str(cfg["MAXLENGTH"]) + ").  Skipping")
         else:
             # just right
             logging.info(

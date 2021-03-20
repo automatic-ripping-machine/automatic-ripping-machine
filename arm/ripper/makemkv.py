@@ -41,7 +41,7 @@ def makemkv(logfile, job):
         raise RuntimeError(err)
 
     # get filesystem in order
-    rawpath = os.path.join(str(cfg["RAWPATH"]), str(job.title))
+    rawpath = os.path.join(str(cfg["RAW_PATH"]), str(job.title))
     logging.info("Destination is " + str(rawpath))
 
     if not os.path.exists(rawpath):
@@ -54,7 +54,7 @@ def makemkv(logfile, job):
     else:
         logging.info(rawpath + " exists.  Adding timestamp.")
         ts = round(time.time() * 100)
-        rawpath = os.path.join(str(cfg["RAWPATH"]), str(job.title) + "_" + str(ts))
+        rawpath = os.path.join(str(cfg["RAW_PATH"]), str(job.title) + "_" + str(ts))
         logging.info("rawpath is " + str(rawpath))
         try:
             os.makedirs(rawpath)
