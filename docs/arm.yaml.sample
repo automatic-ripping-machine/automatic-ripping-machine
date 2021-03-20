@@ -75,18 +75,26 @@ ABCDE_CONFIG_FILE: "/etc/abcde.conf"
 #####################
 ## Directory setup ##
 #####################
-
-# Final directory of transcoded files
-# Ripped and transcoded files end up here
-ARMPATH: "/home/arm/media/completed/"
-
 # Path to raw MakeMKV directory
 # Destination for MakeMKV and source for HandBrake
 RAWPATH: "/home/arm/media/raw/"
 
+# Intermediary directory for transcoding files
+# Destination for HandBrake
+TRANSCODEPATH: "/home/arm/media/transcode/"
+
+# Final directory of transcoded files
+# Ripped and transcoded files end up here
+COMPLEATEDPATH: "/home/arm/media/completed/"
+
+
+# Final directory of transcoded files
+# Ripped and transcoded files end up here
+#ARMPATH: "/home/arm/media/completed/"
+
 # Path to final media directory
 # Destination for final file.  Only used for movies that are positively identified
-MEDIA_DIR: "/home/arm/media/movies/"
+#MEDIA_DIR: "/home/arm/media/movies/"
 
 # Movie subdirectory name for "extras"
 # Valid names are dependent on your media server

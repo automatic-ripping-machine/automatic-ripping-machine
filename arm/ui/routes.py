@@ -69,9 +69,9 @@ def setup():
         app.logger.debug("perm exist GTFO")
         return redirect('/setup-stage2')  # We push to setup-stage2 and let it decide where the user needs to go
     dir0 = Path(PurePath(cfg['DBFILE']).parent)
-    dir1 = Path(cfg['ARMPATH'])
-    dir2 = Path(cfg['RAWPATH'])
-    dir3 = Path(cfg['MEDIA_DIR'])
+    dir1 = Path(cfg['RAW_PATH'])
+    dir2 = Path(cfg['TRANSCODE_PATH'])
+    dir3 = Path(cfg['COMPLETED_PATH'])
     dir4 = Path(cfg['LOGPATH'])
     app.logger.debug("dir0 " + str(dir0))
     app.logger.debug("dir1 " + str(dir1))
@@ -131,7 +131,7 @@ def setup_stage2():
         # Return the user to login screen if we dont error when calling for any users
         users = User.query.all()
         if users and over is None:
-            flash("over = " + over)
+            flash("over = " + str(over))
             flash('You cannot create more than 1 admin account')
             return redirect(url_for('login'))
     except Exception:
@@ -315,9 +315,7 @@ def feed_json():
     # logfile = request.args.get('logfile')
     searchq = request.args.get('q')
     logpath = cfg['LOGPATH']
-    if x is None:
-        j = utils.generate_comments()
-    elif x == "delete":
+    if x == "delete":
         j = utils.delete_job(j_id, x)
         # app.logger.debug("delete")
     elif x == "abandon":
@@ -386,7 +384,7 @@ def settings():
         # This really should be hard coded.
         for k, v in x.items():
             if k != "csrf_token":
-                if k == "ARMPATH":
+                if k == "COMPLETED_PATH":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP']
                 elif k == "WEBSERVER_IP":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['WEB_SERVER']
@@ -755,12 +753,12 @@ def home():
 
     # Hard drive space
     try:
-        freegb = psutil.disk_usage(cfg['ARMPATH']).free
+        freegb = psutil.disk_usage(cfg['TRANSCODE_PATH']).free
         freegb = round(freegb / 1073741824, 1)
-        arm_percent = psutil.disk_usage(cfg['ARMPATH']).percent
-        mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
+        arm_percent = psutil.disk_usage(cfg['TRANSCODE_PATH']).percent
+        mfreegb = psutil.disk_usage(cfg['COMPLETED_PATH']).free
         mfreegb = round(mfreegb / 1073741824, 1)
-        media_percent = psutil.disk_usage(cfg['MEDIA_DIR']).percent
+        media_percent = psutil.disk_usage(cfg['COMPLETED_PATH']).percent
     except FileNotFoundError:
         freegb = 0
         arm_percent = 0
@@ -810,6 +808,7 @@ def home():
             # This correctly get the very last ETA and %
             job_status = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
                                    r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
+
             if job_status:
                 app.logger.debug(str(job_status.group(1)))
                 job.stage = job_status.group(1)
@@ -845,7 +844,7 @@ def import_movies():
     from os.path import isfile, join, isdir
     t0 = time.time()
 
-    my_path = cfg['MEDIA_DIR']
+    my_path = cfg['COMPLETED_PATH']
     movies = {0: {'notfound': {}}}
     dest_ext = cfg['DEST_EXT']
     i = 1
