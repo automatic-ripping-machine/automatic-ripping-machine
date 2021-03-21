@@ -448,6 +448,7 @@ def ui_settings():
 
     This wont work well if flask isnt run in debug mode
     """
+    armui_cfg = UISettings.query.filter_by().first()
     return render_template('ui_settings.html', form=SettingsForm(), settings=armui_cfg)
 
 
