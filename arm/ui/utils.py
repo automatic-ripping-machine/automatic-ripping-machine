@@ -237,6 +237,8 @@ def setupdatabase():
             db.session.commit()
             #  push the database version arm is looking for
             user = Alembic_version('6dfe7244b18e')
+            ui_config = UISettings(1, 1, "spacelab", "en", 10, 200)
+            db.session.add(ui_config)
             db.session.add(user)
             db.session.commit()
             return True
