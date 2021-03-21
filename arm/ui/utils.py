@@ -13,7 +13,7 @@ from pathlib import Path
 from arm.config.config import cfg
 from flask.logging import default_handler  # noqa: F401
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
+from arm.models.models import Job, Config, Track, User, Alembic_version, UISettings  # noqa: F401
 from flask import Flask, render_template, flash, request  # noqa: F401
 
 
