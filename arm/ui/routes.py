@@ -24,9 +24,6 @@ from flask_login import LoginManager, login_required, current_user, login_user, 
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-# This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
-armui_cfg = UISettings.query.filter_by().first()
-app.jinja_env.globals.update(armui_cfg=armui_cfg)
 
 
 @login_manager.user_loader
