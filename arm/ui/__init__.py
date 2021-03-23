@@ -22,6 +22,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # We should really gen a key for each system
 app.config['SECRET_KEY'] = "Big secret key"
+app.config['LOGIN_DISABLED'] = cfg['DISABLE_LOGIN']
+
 db = SQLAlchemy(app)
 
 migrate = Migrate(app, db)

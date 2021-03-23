@@ -63,8 +63,6 @@ class Job(db.Model):
 
     def parse_udev(self):
         """Parse udev for properties of current disc"""
-
-        # print("Entering disc")
         context = pyudev.Context()
         device = pyudev.Devices.from_device_file(context, self.devpath)
         self.disctype = "unknown"
@@ -227,8 +225,6 @@ class Config(db.Model):
     PO_USER_KEY = db.Column(db.String(64))
     PO_APP_KEY = db.Column(db.String(64))
     OMDB_API_KEY = db.Column(db.String(64))
-
-    # job = db.relationship("Job", backref="config")
 
     def __init__(self, c, job_id):
         self.__dict__.update(c)

@@ -199,18 +199,6 @@ def main(logfile, job):
             # Or the successful rip of the disc is not found in our database
             if cfg["ALLOW_DUPLICATES"] or not have_dupes:
                 ts = round(time.time() * 100)
-                # if we have a nice title, set the folder to MEDIA_DIR and not the unidentified ARMPATH
-
-                # None of this is needed. we already have a path we just need to ad to it so no point regenerating it completely
-                """if job.hasnicetitle:
-                    # Dont use the year if its  0000
-                if job.year != "0000" or job.year != "":
-                    hb_out_path = os.path.join(cfg["MEDIA_DIR"], str(typeSubFolder), f"{job.title} ({job.year}) {ts}")
-                else:
-                    hb_out_path = os.path.join(cfg["MEDIA_DIR"], str(typeSubFolder), f"{job.title} {ts}")
-                else:
-                    hb_out_path = os.path.join(cfg["ARMPATH"], str(job.title) + "_" + str(ts))"""
-
                 hb_out_path = hb_out_path + "_" + str(ts)
 
                 if (utils.make_dir(hb_out_path)) is False:
@@ -493,7 +481,7 @@ if __name__ == "__main__":
         sys.exit()
     # Dont put out anything if we are using the empty.log
     # This kills multiple runs. it stops the same job triggering more than once
-    if logfile.find("empty.log") != -1:
+    if logfile.find("empty.log") != -1 or logfile.find("NAS_") != -1:
         sys.exit()
 
     logging.info("Starting ARM processing at " + str(datetime.datetime.now()))

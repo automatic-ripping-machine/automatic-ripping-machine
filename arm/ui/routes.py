@@ -742,6 +742,7 @@ def updatetitle():
 @app.route('/')
 @app.route('/index.html')
 @app.route('/index')
+@login_required
 def home():
     """
     The main homepage showing current rips and server stats
@@ -749,6 +750,8 @@ def home():
     # app.logger.info('Processing default request')
     # app.logger.debug('DEBUGGING')
     # app.logger.error('ERROR Inside /logreader')
+    # Force a db update
+    utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
     # Hard drive space
     try:
