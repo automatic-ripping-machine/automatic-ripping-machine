@@ -11,6 +11,16 @@ ARM_CHECK_UDF: true
 # For BluRays attempts to extract the title from an XML file on the disc
 GET_VIDEO_TITLE: true
 
+# ARM dvd crc64 api key
+# This is only needed if you would like to send movies to the database
+ARM_API_KEY: ""
+
+# Do you want to be forced to login to view/edit jobs
+# True will leave all of the pages open to be editable/viewable by anyone
+# False will require you to login to view/edit jobs or settings from the ui
+# ARMui will need to be restared for this to update
+DISABLE_LOGIN: false
+
 # Skip transcoding if you want the original MakeMKV files as your final output
 # This will produce the highest quality videos (and use the most storage)
 # Note: RIPMETHOD must be set to "mkv" for this feature to work
