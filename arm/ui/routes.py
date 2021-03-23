@@ -100,7 +100,6 @@ def submitrip():
 def changeparams():
     config_id = request.args.get('config_id')
     config = Config.query.get(config_id)
-    app.logger.debug(config.pretty_table())
     job = Job.query.get(config_id)
     form = ChangeParamsForm(obj=config)
     if form.validate_on_submit():
