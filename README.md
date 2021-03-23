@@ -8,7 +8,7 @@ If you wish to upgrade from v2_master to v2.2_dev instead of a clean install, th
 
 ```bash
 cd /opt/arm
-sudo git checkout v2.2_dev
+sudo git checkout v2_master
 sudo pip3 install -r requirements.txt
 ```
 Backup config file and replace it with the updated config
@@ -79,7 +79,7 @@ sudo regionset /dev/sr0
 
 Sets up graphics drivers, does Ubuntu update & Upgrade, gets Ubuntu to auto set up driver, and finally installs and setups up avahi-daemon
 ```bash
-sudo apt upgrade -y && sudo apt update -y 
+sudo apt update -y && sudo apt upgrade -y 
 ***optional (was not required for me): sudo add-apt-repository ppa:graphics-drivers/ppa
 sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
 sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install 
@@ -192,7 +192,7 @@ Run below to pick up the aliases
 **For the attended install use:**
  ```
  apt install wget
- wget https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/v2.1_dev/scripts/debian-setup.sh
+ wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/v2_master/scripts/debian-setup.sh
  chmod +x debian-setup.sh
  ./debian-setup.sh
  ```
@@ -203,7 +203,8 @@ Run below to pick up the aliases
  **For the silent install use**
   ```
  apt -qqy install wget
- wget https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/v2.1_dev/scripts/deb-install-quiet.sh
+ 
+ wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/v2_master/scripts/deb-install-quiet.sh
  chmod +x deb-install-quiet.sh
  ./deb-install-quiet.sh
  ```
