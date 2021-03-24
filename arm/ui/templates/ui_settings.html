@@ -40,7 +40,7 @@
 						<form id="form1" name="form1" method="post" action="ui_settings">
 						    {{ form.hidden_tag() }}
 							{% for k, v in settings.get_d().items() %}
-                                {% if k != "id" %}
+                                {% if k != "id" and k != "csrf_token" %}
 							<div class="input-group mb-3">
 								<div class="input-group-prepend">
 									<span class="input-group-text" id="{{ k }}">{{ k }}: </span>

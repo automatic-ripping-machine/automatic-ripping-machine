@@ -20,6 +20,36 @@ from arm.models.models import Job, Config, Track, User, Alembic_version, UISetti
 from flask import Flask, render_template, flash, request  # noqa: F401
 
 
+def database_updater(args, job, wait_time=90):
+    """
+    Try to update our db for x seconds and handle it nicely if we cant
+
+    :param args: This needs to be a Dict with the key being the job.method you want to change and the value being
+    the new value.
+
+    :param job: This is the job object
+    :param wait_time: The time to wait in seconds
+    :return: Nothing
+    """
+    # Loop through our args and try to set any of our job variables
+    for (key, value) in args.items():
+        setattr(job, key, value)
+        app.logger.debug(str(key) + "= " + str(value))
+    for i in range(wait_time):  # give up after the users wait period in seconds
+        try:
+            db.session.commit()
+        except Exception as e:
+            if "locked" in str(e):
+                time.sleep(1)
+                app.logger.debug("database is locked - trying in 1 second")
+            else:
+                app.logger.debug("Error: " + str(e))
+                raise RuntimeError(str(e))
+        else:
+            app.logger.debug("successfully written to the database")
+            return True
+
+
 def check_db_version(install_path, db_file):
     """
     Check if db exists and is up to date.
@@ -301,7 +331,7 @@ def delete_job(job_id, mode):
     return t
 
 
-def setupdatabase():
+def setup_database():
     """
     Try to get the db.User if not we nuke everything
     """
@@ -473,18 +503,16 @@ def get_x_jobs(job_status):
 
         app.logger.debug("job obj= " + str(j.get_d()))
         x = j.get_d().items()
-        app.logger.debug("job obj.items= " + str(j.get_d().items()))
         for key, value in x:
             if key != "config":
                 r[i][str(key)] = str(value)
             # logging.debug(str(key) + "= " + str(value))
         i += 1
-    app.logger.debug("Stuff = " + str(r))
     if jobs:
         app.logger.debug("jobs  - we have " + str(len(r)) + " jobs")
         return {"success": True, "mode": job_status, "results": r}
     else:
-        app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
+        app.logger.debug("we have no jobs")
         return {"success": False, "mode": job_status, "results": {}}
 
 
@@ -836,3 +864,19 @@ def fix_permissions(j_id):
         app.logger.error(err)
         d = {"success": False, "mode": "fixperms", "Error": str(err), "ts": str(ts)}
     return d
+
+
+def trigger_restart():
+    """
+    We update the file modified time to get flask to restart
+    This only works if ARMui is running as a service
+    """
+    import datetime
+
+    def set_file_last_modified(file_path, dt):
+        dt_epoch = dt.timestamp()
+        os.utime(file_path, (dt_epoch, dt_epoch))
+
+    now = datetime.datetime.now()
+    arm_main = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routes.py")
+    set_file_last_modified(arm_main, now)

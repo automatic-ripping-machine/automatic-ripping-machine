@@ -40,3 +40,13 @@ class SettingsForm(FlaskForm):
     TRANSCODE_PATH = StringField('TRANSCODE_PATH', validators=[DataRequired()])
     COMPLETED_PATH = StringField('COMPLETED_PATH', validators=[DataRequired()])
     submit = SubmitField('Submit')
+
+
+class UiSettingsForm(FlaskForm):
+    index_refresh = IntegerField('index_refresh', validators=[DataRequired()])
+    boostrap_skin = StringField('boostrap_skin', validators=[DataRequired()])
+    use_icons = IntegerField('use_icons', validators=[DataRequired()])
+    database_limit = IntegerField('database_limit', validators=[DataRequired()])
+    language = StringField('language', validators=[DataRequired()])
+    save_remote_images = IntegerField('save_remote_images', validators=[DataRequired()])
+    submit = SubmitField('Submit')

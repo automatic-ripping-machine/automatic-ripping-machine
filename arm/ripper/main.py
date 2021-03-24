@@ -116,15 +116,7 @@ def main(logfile, job):
     identify.identify(job, logfile)
     # Check db for entries matching the crc and successful
     have_dupes, crc_jobs = utils.job_dupe_check(job)
-    if crc_jobs is not None:
-        # This might need some tweaks to because of title/year manual
-        job.title = crc_jobs[0]['title'] if crc_jobs[0]['title'] != "" else job.label
-        job.year = crc_jobs[0]['year'] if crc_jobs[0]['year'] != "" else ""
-        job.poster_url = crc_jobs[0]['poster_url'] if crc_jobs[0]['poster_url'] != "" else None
-        crc_jobs[0]['hasnicetitle'] = bool(crc_jobs[0]['hasnicetitle'])
-        job.hasnicetitle = crc_jobs[0]['hasnicetitle'] if crc_jobs[0]['hasnicetitle'] else False
-        job.video_type = crc_jobs[0]['video_type'] if crc_jobs[0]['hasnicetitle'] != "" else "unknown"
-        db.session.commit()
+
     # DVD disk entry
     if job.disctype in ["dvd", "bluray"]:
         # Send the notifications
@@ -179,18 +171,17 @@ def main(logfile, job):
         # If we have a nice title/confirmed name use the MEDIA_DIR and not the ARM unidentified folder
         # if job.hasnicetitle:
         if job.video_type == "movie":
-            typeSubFolder = "movies"
+            type_sub_folder = "movies"
         elif job.video_type == "series":
-            typeSubFolder = "tv"
+            type_sub_folder = "tv"
         else:
-            typeSubFolder = "unidentified"
+            type_sub_folder = "unidentified"
 
         if job.year != "0000" or job.year != "":
-            hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(typeSubFolder), str(job.title) + " (" + str(job.year) + ")")
+            hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(type_sub_folder),
+                                       str(job.title) + " (" + str(job.year) + ")")
         else:
-            hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(typeSubFolder), str(job.title))
-        # else:
-            # hb_out_path = os.path.join(cfg["ARMPATH"], str(job.title))
+            hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(type_sub_folder), str(job.title))
 
         # The dvd directory already exists - Lets make a new one using random numbers
         if (utils.make_dir(hb_out_path)) is False:
@@ -222,7 +213,9 @@ def main(logfile, job):
 
         logging.info("Processing files to: " + hb_out_path)
 
-        # entry point for bluray or dvd with MAINFEATURE off and RIPMETHOD mkv
+        # entry point for bluray
+        # or
+        # dvd with MAINFEATURE off and RIPMETHOD mkv
         hb_in_path = str(job.devpath)
         if job.disctype == "bluray" or (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv"):
             # send to makemkv for ripping
@@ -240,7 +233,6 @@ def main(logfile, job):
                 db.session.commit()
                 sys.exit()
             if cfg["NOTIFY_RIP"]:
-                # Fixed bug line below
                 utils.notify(job, "ARM notification", str(job.title) + " rip complete.  Starting transcode. ")
             # point HB to the path MakeMKV ripped to
             hb_in_path = mkvoutpath
@@ -288,7 +280,8 @@ def main(logfile, job):
                                 else:
                                     logging.info("Not moving extra: " + file)
                     # Change final path (used to set permissions)
-                    final_directory = os.path.join(cfg["COMPLETED_PATH"], str(typeSubFolder), str(job.title) + " (" + str(job.year) + ")")
+                    final_directory = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder),
+                                                   str(job.title) + " (" + str(job.year) + ")")
                     # Clean up
                     # TODO: fix this so it doesnt remove everything
                     logging.debug("Attempting to remove extra folder in TRANSCODE_PATH: " + hb_out_path)
@@ -343,72 +336,47 @@ def main(logfile, job):
         # time.sleep(60)
         db.session.refresh(job)
         logging.debug("New Title is " + str(job.title_manual))
-        if job.title_manual and not job.updated:
-            newpath = utils.rename_files(hb_out_path, job)
-            p = newpath
+        if job.year != "0000" or job.year != "":
+            final_directory = os.path.join(job.config.COMPLETED_PATH, str(type_sub_folder),
+                                           str(job.title) + " (" + str(job.year) + ")")
         else:
-            p = hb_out_path
+            final_directory = os.path.join(job.config.COMPLETED_PATH, str(type_sub_folder), str(job.title))
 
         # move to media directory
         if job.video_type == "movie" and job.hasnicetitle:
             # tracks = job.tracks.all()
             tracks = job.tracks.filter_by(ripped=True)
+            # tracks = job.tracks.filter(job.tracks.length > cfg['MINLENGTH'])
             for track in tracks:
                 logging.info("Moving Movie " + str(track.filename) + " to " + str(p))
-                utils.move_files(p, track.filename, job, track.main_feature)
+                utils.move_files(hb_out_path, track.filename, job, track.main_feature)
         # move to media directory
         elif job.video_type == "series" and job.hasnicetitle:
             # tracks = job.tracks.all()
             tracks = job.tracks.filter_by(ripped=True)
             for track in tracks:
-                logging.info("Moving Series " + str(track.filename) + " to " + str(p))
-                utils.move_files(p, track.filename, job, False)
+                logging.info("Moving Series " + str(track.filename) + " to " + str(final_directory))
+                utils.move_files(hb_out_path, track.filename, job, False)
         else:
             logging.info("job type is " + str(job.video_type) + "not movie or series, not moving.")
             utils.scan_emby(job)
 
-        if job.year != "0000" or job.year != "":
-            final_directory = os.path.join(job.config.COMPLETED_PATH, str(typeSubFolder), str(job.title) + " (" + str(job.year) + ")")
-        else:
-            final_directory = os.path.join(job.config.COMPLETED_PATH, str(typeSubFolder), str(job.title))
-
-        # Test for dvd fail permissions
-        # final_directory = p
         if cfg["SET_MEDIA_PERMISSIONS"]:
             perm_result = utils.set_permissions(job, final_directory)
             logging.info("Permissions set successfully: " + str(perm_result))
 
-        # remove empty directories
-        # Same issue of removing files that have already been identified
-        # TODO: fully fix this, this is only a temp fix
-        if hb_out_path != final_directory:
-            try:
-                os.rmdir(hb_out_path)
-            except OSError:
-                logging.info(hb_out_path + " directory is not empty.  Skipping removal. ")
-                pass
-
-        try:
-            newpath
-        except NameError:
-            logging.debug("'newpath' directory not found")
-        else:
-            logging.info("Found path " + newpath + ".  Attempting to remove it. ")
-            try:
-                os.rmdir(p)
-            except OSError:
-                logging.info(newpath + " directory is not empty.  Skipping removal. ")
-                pass
-
         # Clean up bluray backup
         # if job.disctype == "bluray" and cfg["DELRAWFILES"]:
         if cfg["DELRAWFILES"]:
-            try:
-                shutil.rmtree(mkvoutpath)
-            except UnboundLocalError:
-                logging.debug("No raw files found to delete. ")
-            except OSError:
-                logging.debug("No raw files found to delete. ")
+            raw_list = [mkvoutpath, hb_out_path, hb_in_path]
+            for raw_folder in raw_list:
+                try:
+                    logging.info(f"Removing raw path - {raw_folder}")
+                    shutil.rmtree(raw_folder)
+                except UnboundLocalError as e:
+                    logging.debug(f"No raw files found to delete in {raw_folder}- {e}")
+                except OSError as e:
+                    logging.debug(f"No raw files found to delete in {raw_folder} - {e}")
 
         # report errors if any
         if job.errors:

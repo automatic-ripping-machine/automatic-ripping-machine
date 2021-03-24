@@ -205,11 +205,9 @@ def get_track_info(mdisc, job):
 
     logging.info("Using MakeMKV to get information on all the tracks on the disc.  This will take a few minutes...")
 
-    cmd = 'makemkvcon -r --cache=1 info disc:{0}'.format(
-        mdisc
-    )
+    cmd = f'makemkvcon -r --cache=1 info disc:{mdisc}'
 
-    logging.debug("Sending command: %s", cmd)
+    logging.debug(f"Sending command: {cmd}")
 
     try:
         mkv = subprocess.check_output(
@@ -238,8 +236,6 @@ def get_track_info(mdisc, job):
 
             if msg_type == "MSG":
                 if msg[0] == "5055":
-                    # job.errors = "MakeMKV evaluation period has expired.  " \
-                    #             "DVD processing will continue.  Bluray processing will exit."
                     arm_error = "MakeMKV evaluation period has expired." \
                                 "DVD processing will continue.  Bluray processing will exit."
                     if job.disctype == "bluray":
@@ -249,13 +245,10 @@ def get_track_info(mdisc, job):
                     else:
                         logging.error("MakeMKV evaluation period has expired.  Disc is dvd so ARM will continue")
                     utils.database_updater({'errors': arm_error}, job)
-                    # db.session.commit()
 
             if msg_type == "TCOUNT":
                 titles = int(line_split[1].strip())
                 logging.info("Found " + str(titles) + " titles")
-                # job.no_of_titles = titles
-                # db.session.commit()
                 utils.database_updater({'no_of_titles': titles}, job)
             if msg_type == "TINFO":
                 if track != line_track:

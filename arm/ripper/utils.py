@@ -319,25 +319,19 @@ def move_files(basepath, filename, job, ismainfeature=False):
     logging.debug("Moving files: " + str(job.pretty_table()))
 
     if job.video_type == "movie":
-        typeSubFolder = "movies"
+        type_sub_folder = "movies"
     elif job.video_type == "series":
-        typeSubFolder = "tv"
+        type_sub_folder = "tv"
     else:
-        typeSubFolder = "unidentified"
+        type_sub_folder = "unidentified"
 
-    if job.title_manual:
-        # logging.info("Found new title: " + job.new_title + " (" + str(job.new_year) + ")")
-        # videotitle = job.new_title + " (" + str(job.new_year) + ")"
-        hasnicetitle = True
-    else:
-        hasnicetitle = job.hasnicetitle
-
+    hasnicetitle = True if job.title_manual else job.hasnicetitle
     videotitle = job.title + " (" + str(job.year) + ")"
 
     logging.debug(f"Arguments: {basepath} : {filename} : {hasnicetitle} : {videotitle} : {ismainfeature}")
 
     if hasnicetitle:
-        m_path = os.path.join(cfg["COMPLETED_PATH"], str(typeSubFolder), videotitle)
+        m_path = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), videotitle)
 
         if not os.path.exists(m_path):
             logging.info("Creating base title directory: " + m_path)
@@ -684,13 +678,13 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         track_number=t_no,
         length=seconds,
         aspect_ratio=aspect,
-        # blocks=b,
         fps=fps,
         main_feature=mainfeature,
         source=source,
         basename=job.title,
-        filename=filename
+        filename=filename,
     )
+    t.ripped = True if seconds > int(cfg['MINLENGTH']) else False
     db.session.add(t)
     db.session.commit()
 
@@ -766,25 +760,32 @@ def job_dupe_check(job):
              False if we didnt find any with the same crc
               - Will also return None as a secondary param
     """
-    logging.debug(f"trying to find jobs with crc64 = {job.crc_id}")
-    jobs = Job.query.filter_by(crc_id=job.crc_id, status="success", hasnicetitle=True)
-    # logging.debug("search - posts=" + str(jobs))
+    logging.debug(f"trying to find jobs with crc64={job.crc_id}")
+    previous_rips = Job.query.filter_by(crc_id=job.crc_id, status="success", hasnicetitle=True)
     r = {}
     i = 0
-    for j in jobs:
+    for j in previous_rips:
         logging.debug("job obj= " + str(j.get_d()))
         x = j.get_d().items()
         r[i] = {}
         for key, value in iter(x):
             r[i][str(key)] = str(value)
-            # logging.debug(str(key) + "= " + str(value))
         i += 1
 
-    logging.debug(r)
-    logging.debug("r len=" + str(len(r)))
-    if jobs is not None and len(r) > 0:
-        logging.debug("jobs is not none or len(r) - we have jobs")
+    logging.debug(f"previous rips = {r}")
+    if previous_rips is not None and len(r) > 0:
+        logging.debug(f"we have {len(r)} jobs")
+        # This might need some tweaks to because of title/year manual
+        title = r[0]['title'] if r[0]['title'] else job.label
+        year = r[0]['year'] if r[0]['year'] != "" else ""
+        poster_url = r[0]['poster_url'] if r[0]['poster_url'] != "" else None
+        hasnicetitle = bool(r[0]['hasnicetitle']) if r[0]['hasnicetitle'] else False
+        video_type = r[0]['video_type'] if r[0]['hasnicetitle'] != "" else "unknown"
+        active_rip = {
+            "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
+            "video_type": video_type}
+        database_updater(active_rip, job)
         return True, r
     else:
-        logging.debug("jobs is none or len(r) is 0 - we have no jobs")
+        logging.debug("we have no previous rips/jobs matching this crc64")
         return False, None

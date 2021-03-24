@@ -17,7 +17,7 @@ from flask import Flask, render_template, make_response, abort, request, send_fi
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, Alembic_version, UISettings  # noqa: F401
 from arm.config.config import cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, SettingsForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, SettingsForm, UiSettingsForm
 from pathlib import Path, PurePath
 from flask.logging import default_handler  # noqa: F401
 from flask_login import LoginManager, login_required, current_user, login_user, UserMixin, logout_user  # noqa: F401
@@ -102,7 +102,7 @@ def setup():
         app.logger.debug("Successfully created all of the ARM directories")
 
     try:
-        if utils.setupdatabase():
+        if utils.setup_database():
             flash("Setup of the database was successful.", "success")
             app.logger.debug("Setup of the database was successful.")
             perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
@@ -422,17 +422,7 @@ def settings():
         with open(arm_cfg_file, "w") as f:
             f.write(arm_cfg)
             f.close()
-        # Now we update the file modified time to get flask to restart
-        import datetime
-
-        def set_file_last_modified(file_path, dt):
-            dt_epoch = dt.timestamp()
-            os.utime(file_path, (dt_epoch, dt_epoch))
-
-        now = datetime.datetime.now()
-        arm_main = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routes.py")
-        set_file_last_modified(arm_main, now)
-
+        utils.trigger_restart()
         flash("Setting saved successfully!", "success")
         return redirect(url_for('settings'))
     # If we get to here there was no post data
@@ -446,9 +436,14 @@ def ui_settings():
     The ARMui settings page - allows the user to update the armui_settings
     This function needs to trigger a restart of flask for debugging to update the values
 
-    This wont work well if flask isnt run in debug mode
     """
-    armui_cfg = UISettings.query.filter_by().first()
+    armui_cfg = UISettings.query.filter_by(id=1).first()
+    form = UiSettingsForm()
+    flash("This page is not fully developed yet, values may or may not be used currently", "info")
+    if form.validate_on_submit():
+        utils.database_updater(request.form.to_dict(), armui_cfg)
+        db.session.refresh(armui_cfg)
+        utils.trigger_restart()
     return render_template('ui_settings.html', form=SettingsForm(), settings=armui_cfg)
 
 
@@ -747,9 +742,6 @@ def home():
     """
     The main homepage showing current rips and server stats
     """
-    # app.logger.info('Processing default request')
-    # app.logger.debug('DEBUGGING')
-    # app.logger.error('ERROR Inside /logreader')
     # Force a db update
     utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
