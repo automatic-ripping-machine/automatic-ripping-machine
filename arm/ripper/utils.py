@@ -682,7 +682,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         main_feature=mainfeature,
         source=source,
         basename=job.title,
-        filename=filename,
+        filename=filename
     )
     t.ripped = True if seconds > int(cfg['MINLENGTH']) else False
     db.session.add(t)

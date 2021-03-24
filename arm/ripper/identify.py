@@ -91,15 +91,9 @@ def clean_for_filename(string):
     string = re.sub('\\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
-    # Added from pull 366
     string = string.replace('&', 'and')
     string = string.replace("\\", " - ")
     string = string.strip()
-
-    # Added from pull 366
-    # testing why the return function isn't cleaning
-    # [^\w_.() -]  # New without errors
-    # [^\w\-_\.\(\)]  #  Gives warning of extra escapes
     return re.sub('[^\\w_.() -]', '', string)
     # return string
 
@@ -113,7 +107,6 @@ def identify_bluray(job):
     except OSError as e:
         logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.  Error "
                       "number is: " + str(e.errno))
-        # job.title = "not identified"
         # Maybe call OMdb with label when we cant find any ident on disc ?
         job.title = str(job.label)
         job.year = ""
@@ -123,8 +116,6 @@ def identify_bluray(job):
     try:
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
     except KeyError:
-        # Changed from pull 366
-        # bluray_title = "not identified"
         bluray_title = str(job.label)
         bluray_year = ""
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
@@ -155,7 +146,6 @@ def identify_dvd(job):
     lookup the title """
 
     logging.debug("\n\r" + job.pretty_table())
-    # Added from #338
     # Some older DVDs aren't actually labelled
     if not job.label or job.label == "":
         job.label = "not identified"
