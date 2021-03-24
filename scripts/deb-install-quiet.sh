@@ -81,7 +81,7 @@ mkdir -p /mnt/dev/sr0
 
 ######## adding new line to fstab, needed for the autoplay to work
 echo -e "${RED}Adding fstab entry${NC}"
-echo -e "\n/dev/sr0  /mnt/dev/sr0  udf,iso9660  user,noauto,exec,utf8  0  0 \n" >> /etc/fstab
+echo -e "\n/dev/sr0  /mnt/dev/sr0  udf,iso9660  users,noauto,exec,utf8  0  0 \n" >> /etc/fstab
 
 #####run the ARM ui as a service
 echo -e "${RED}Installing ARM service${NC}"

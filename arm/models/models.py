@@ -4,6 +4,8 @@ import psutil
 import logging
 from arm.ui import db
 from arm.config.config import cfg  # noqa: E402
+from flask_login import LoginManager, current_user, login_user, UserMixin  # noqa: F401
+from prettytable import PrettyTable
 
 
 class Job(db.Model):
@@ -55,7 +57,6 @@ class Job(db.Model):
         self.updated = False
         if cfg['VIDEOTYPE'] != "auto":
             self.video_type = cfg['VIDEOTYPE']
-
         self.parse_udev()
         self.get_pid()
 
@@ -94,6 +95,25 @@ class Job(db.Model):
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 
         return s
+
+    def pretty_table(self):
+        """Returns a string of the prettytable"""
+        x = PrettyTable()
+        x.field_names = ["Config", "Value"]
+        x._max_width = {"Config": 50, "Value": 60}
+        for attr, value in self.__dict__.items():
+            if attr == "config":
+                x.add_row([str(attr), str(value.pretty_table())])
+            else:
+                x.add_row([str(attr), str(value)])
+        return str(x.get_string())
+
+    def get_d(self):
+        r = {}
+        for key, value in self.__dict__.items():
+            if '_sa_instance_state' not in key:
+                r[str(key)] = str(value)
+        return r
 
     def __repr__(self):
         return '<Job {}>'.format(self.label)
@@ -205,6 +225,7 @@ class Config(db.Model):
     PO_USER_KEY = db.Column(db.String(64))
     PO_APP_KEY = db.Column(db.String(64))
     OMDB_API_KEY = db.Column(db.String(64))
+
     # job = db.relationship("Job", backref="config")
 
     def __init__(self, c, job_id):
@@ -213,13 +234,13 @@ class Config(db.Model):
 
     def list_params(self):
         """Returns a string of the object"""
-
         s = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
             if s:
                 s = s + "\n"
-            if str(attr) in ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
-                             "PO_USER_KEY", "PO_APP_KEY") and value:
+            if str(attr) in (
+                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                    "PO_USER_KEY", "PO_APP_KEY") and value:
                 value = "<hidden>"
             s = s + str(attr) + ":" + str(value)
 
@@ -227,7 +248,6 @@ class Config(db.Model):
 
     def __str__(self):
         """Returns a string of the object"""
-
         s = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
             if str(attr) in (
@@ -237,3 +257,41 @@ class Config(db.Model):
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 
         return s
+
+    def pretty_table(self):
+        """Returns a string of the prettytable"""
+        x = PrettyTable()
+        x.field_names = ["Config", "Value"]
+        x._max_width = {"Config": 20, "Value": 30}
+        for attr, value in self.__dict__.items():
+            if str(attr) in (
+                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                    "PO_USER_KEY", "PO_APP_KEY") and value:
+                value = "<hidden>"
+            x.add_row([str(attr), str(value)])
+        return str(x.get_string())
+
+
+class User(db.Model, UserMixin):
+    user_id = db.Column(db.Integer, index=True, primary_key=True)
+    email = db.Column(db.String(64))
+    password = db.Column(db.String(128))
+    hash = db.Column(db.String(256))
+
+    def __init__(self, email=None, password=None, hashed=None):
+        self.email = email
+        self.password = password
+        self.hash = hashed
+
+    def __repr__(self):
+        return '<User %r>' % (self.email)
+
+    def get_id(self):
+        return self.user_id
+
+
+class Alembic_version(db.Model):
+    version_num = db.Column(db.String(36), autoincrement=False, primary_key=True)
+
+    def __init__(self, version=None):
+        self.version_num = version

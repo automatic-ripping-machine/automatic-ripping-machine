@@ -1,35 +1,414 @@
 import os
+import psutil
 import platform
 import subprocess
 import re
-import psutil
-
+import sys  # noqa: F401
+import bcrypt
+import hashlib
+import json
+import yaml
+import arm.ui.utils as utils
 from time import sleep
-from flask import render_template, abort, request, send_file, flash, redirect, url_for
+from flask import Flask, render_template, make_response, abort, request, send_file, flash, redirect, url_for, \
+    Markup  # noqa: F401
 from arm.ui import app, db
-from arm.models.models import Job, Config
+from arm.models.models import Job, Config, Track, User, Alembic_version  # noqa: F401
 from arm.config.config import cfg
-from arm.ui.utils import convert_log, get_info, call_omdb_api, clean_for_filename
+# from arm.ui.utils import get_info, call_omdb_api, clean_for_filename, generate_comments
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm
-from pathlib import Path
+from pathlib import Path, PurePath
+from flask.logging import default_handler  # noqa: F401
+
+from flask_login import LoginManager, login_required, current_user, login_user, UserMixin  # noqa: F401
+
+#  the login manager
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        return User.query.get(int(user_id))
+    except Exception:
+        app.logger.debug("error getting user")
+        # return redirect('/login')
+
+
+#  Redirect to login if we arent auth
+@login_manager.unauthorized_handler
+def unauthorized():
+    return redirect('/login')
+
+
+@app.route('/setup')
+def setup():
+    perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
+    app.logger.debug("perm " + str(perm_file))
+    if perm_file.exists():
+        flash(str(perm_file) + " exists, setup cannot continue. To re-install please delete this file.", "danger")
+        app.logger.debug("perm exist GTFO")
+        return redirect('/setup-stage2')  # We push to setup-stage2 and let it decide where the user needs to go
+    dir0 = Path(PurePath(cfg['DBFILE']).parent)
+    dir1 = Path(cfg['ARMPATH'])
+    dir2 = Path(cfg['RAWPATH'])
+    dir3 = Path(cfg['MEDIA_DIR'])
+    dir4 = Path(cfg['LOGPATH'])
+    app.logger.debug("dir0 " + str(dir0))
+    app.logger.debug("dir1 " + str(dir1))
+    app.logger.debug("dir2 " + str(dir2))
+    app.logger.debug("dir3 " + str(dir3))
+    app.logger.debug("dir4 " + str(dir4))
+    try:
+        if not Path.exists(dir0):
+            os.makedirs(dir0)
+            flash(f"{dir0} was created successfully.")
+        if not Path.exists(dir1):
+            os.makedirs(dir1)
+            flash(f"{dir1} was created successfully.")
+        if not Path.exists(dir2):
+            os.makedirs(dir2)
+            flash(f"{dir2} was created successfully.")
+        if not Path.exists(dir3):
+            os.makedirs(dir3)
+            flash(f"{dir3} was created successfully.")
+        if not Path.exists(dir4):
+            os.makedirs(dir4)
+            flash(f"{dir4} was created successfully.")
+    except FileNotFoundError as e:
+        flash(f"Creation of the directory {dir0} failed {e}")
+        app.logger.debug(f"Creation of the directory failed - {e}")
+    else:
+        flash("Successfully created all of the ARM directories", "success")
+        app.logger.debug("Successfully created all of the ARM directories")
+
+    try:
+        if utils.setupdatabase():
+            flash("Setup of the database was successful.", "success")
+            app.logger.debug("Setup of the database was successful.")
+            perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
+            f = open(perm_file, "w")
+            f.write("boop!")
+            f.close()
+            return redirect('/setup-stage2')
+        else:
+            flash("Couldn't setup database", "danger")
+            app.logger.debug("Couldn't setup database")
+            return redirect("/error")
+    except Exception as e:
+        flash(str(e))
+        app.logger.debug("Setup - " + str(e))
+        return redirect('/index')
+
+
+@app.route('/error')
+def was_error():
+    return render_template('error.html', title='error')
+
+
+@app.route('/setup-stage2', methods=['GET', 'POST'])
+def setup_stage2():
+    # if there is no user in the database
+    try:
+        # Return the user to login screen if we dont error when calling for any users
+        users = User.query.all()
+        if users:
+            flash('You cannot create more than 1 admin account')
+            return redirect(url_for('login'))
+        # return redirect('/login')
+    except Exception:
+        # return redirect('/index')
+        app.logger.debug("No admin account found")
+
+    save = False
+    try:
+        save = request.form['save']
+    except KeyError:
+        app.logger.debug("no post")
+
+    # After a login for is submitted
+    if save:
+        username = str(request.form['username']).strip()
+        pass1 = str(request.form['password']).strip().encode('utf-8')
+        hash = bcrypt.gensalt(12)
+
+        if request.form['username'] != "" and request.form['password'] != "":
+            hashedpassword = bcrypt.hashpw(pass1, hash)
+            user = User(email=username, password=hashedpassword, hashed=hash)
+            # app.logger.debug("user: " + str(username) + " Pass:" + str(pass1))
+            # app.logger.debug("user db " + str(user))
+            db.session.add(user)
+            try:
+                db.session.commit()
+            except Exception as e:
+                flash(str(e), "danger")
+                return redirect('/setup-stage2')
+            else:
+                return redirect(url_for('login'))
+        else:
+            # app.logger.debug("user: "+ str(username) + " Pass:" + pass1 )
+            flash("error something was blank")
+            return redirect('/setup-stage2')
+    return render_template('setup.html', title='setup')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    # if there is no user in the database
+    try:
+        x = User.query.all()
+        # If we dont raise an exception but the usr table is empty
+        if not x:
+            return redirect('/setup-stage2')
+    except Exception:
+        flash("No admin account found")
+        app.logger.debug("No admin account found")
+        return redirect('/setup-stage2')
+
+    # if user is logged in
+    if current_user.is_authenticated:
+        return redirect('/index')
+    save = False
+    try:
+        save = request.form['save']
+    except KeyError:
+        app.logger.debug("no post")
+
+    # After a login for is submitted
+    if save:
+        email = request.form['username']
+        # TODO: we know there is only ever 1 admin account,
+        #  so we can pull it and check against it locally
+        user = User.query.filter_by(email=str(email).strip()).first()
+        if user is None:
+            return render_template('login.html', success="false", raw='Invalid username')
+        app.logger.debug("user= " + str(user))
+        # our previous pass
+        password = user.password
+        hashed = user.hash
+        # our new one
+        loginhashed = bcrypt.hashpw(str(request.form['password']).strip().encode('utf-8'), hashed)
+        # app.logger.debug(loginhashed)
+        # app.logger.debug(password)
+
+        if loginhashed == password:
+            login_user(user)
+            app.logger.debug("user was logged in - redirecting")
+            return redirect('/index')
+        elif user is None:
+            return render_template('login.html', success="false", raw='Invalid username')
+        else:
+            return render_template('login.html', success="false", raw='Invalid Password')
+
+        # return redirect(url_for('home'))
+    return render_template('login.html', title='Sign In')
+
+
+@app.route('/database')
+@login_required
+def database():
+    # Success gives the user feedback to let them know if the delete worked
+    success = False
+    saved = False
+    # Check for database file
+    if os.path.isfile(cfg['DBFILE']):
+        # jobs = Job.query.filter_by(status="active")
+        jobs = Job.query.filter_by()
+    else:
+        app.logger.error('ERROR: /database no database, file doesnt exist')
+        jobs = {}
+    # Try to see if we have the arg set, if not ignore the error
+    try:
+        mode = request.args['mode']
+        jobid = request.args['jobid']
+        saved = True
+    except Exception:
+        app.logger.debug("/database - no vars set")
+
+    if saved:
+        try:
+            # Find the job the user wants to delete
+            if mode == 'delete' and jobid is not None:
+                # User wants to wipe the whole database
+                # Make a backup and everything
+                # The user can only access this by typing it manually
+                if jobid == 'all':
+                    if os.path.isfile(cfg['DBFILE']):
+                        # Make a backup of the database file
+                        cmd = f'cp {cfg["DBFILE"]} {cfg["DBFILE"]}.bak'
+                        app.logger.info(f"cmd  -  {cmd}")
+                        os.system(cmd)
+                    Track.query.delete()
+                    Job.query.delete()
+                    Config.query.delete()
+                    db.session.commit()
+                    success = True
+                    """elif jobid == "logfile":
+                    #  The user can only access this by typing it manually
+                    #  This shouldnt be left on when on a full server
+                    logfile = request.args['file']
+                    Job.query.filter_by(title=logfile).delete()
+                    db.session.commit()
+                    """
+                    # Not sure this is the greatest way of handling this
+                else:
+                    Track.query.filter_by(job_id=jobid).delete()
+                    Job.query.filter_by(job_id=jobid).delete()
+                    Config.query.filter_by(job_id=jobid).delete()
+                    db.session.commit()
+                    success = True
+        # If we run into problems with the datebase changes
+        # error out to the log and roll back
+        except Exception as err:
+            db.session.rollback()
+            app.logger.error(f"Error:db-1 {err}")
+            success = False
+
+    return render_template('database.html', jobs=jobs, success=success, date_format=cfg['DATE_FORMAT'])
+
+
+@app.route('/json', methods=['GET', 'POST'])
+@login_required
+def feed_json():
+    x = request.args.get('mode')
+    j_id = request.args.get('job')
+    # We should never let the user pick the log file
+    # logfile = request.args.get('logfile')
+    searchq = request.args.get('q')
+    logpath = cfg['LOGPATH']
+    if x is None:
+        j = utils.generate_comments()
+    elif x == "delete":
+        j = utils.delete_job(j_id, x)
+        # app.logger.debug("delete")
+    elif x == "abandon":
+        j = utils.abandon_job(j_id)
+        # app.logger.debug("abandon")
+    elif x == "full":
+        app.logger.debug("getlog")
+        j = utils.generate_log(logpath, j_id)
+    elif x == "search":
+        app.logger.debug("search")
+        j = utils.search(searchq)
+    elif x == "getfailed":
+        app.logger.debug("getfailed")
+        j = utils.get_x_jobs("fail")
+    elif x == "getsuccessful":
+        app.logger.debug("getsucessful")
+        j = utils.get_x_jobs("success")
+    return app.response_class(response=json.dumps(j, indent=4, sort_keys=True),
+                              status=200,
+                              mimetype='application/json')
+
+
+# New page for editing/Viewing the ARM config
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    x = ""
+    save = False
+    try:
+        save = request.form['save']
+    except KeyError:
+        app.logger.debug("no post")
+    arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
+    comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
+    try:
+        with open(comments_file, "r") as f:
+            try:
+                comments = json.load(f)
+            except Exception as e:
+                app.logger.debug(f"Error with comments file. {e}")
+                return render_template("error.html", error=str(e))
+    except FileNotFoundError:
+        return render_template("error.html", error="Couldn't find the comment.json file")
+    # Import the cfg again as we want the latest values, not stale.
+    try:
+        with open(arm_cfg_file, "r") as f:
+            try:
+                cfg = yaml.load(f, Loader=yaml.FullLoader)
+            except Exception:
+                cfg = yaml.safe_load(f)  # For older versions use this
+    except FileNotFoundError:
+        return render_template("error.html", error="Couldn't find the arm.yaml file")
+
+    if save:
+        # For testing
+        x = request.form.to_dict()
+        arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
+        for k, v in x.items():
+            if k != "save":
+                if k == "ARMPATH":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP']
+                elif k == "WEBSERVER_IP":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['WEB_SERVER']
+                elif k == "SET_MEDIA_PERMISSIONS":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['FILE_PERMS']
+                elif k == "RIPMETHOD":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['MAKE_MKV']
+                elif k == "HB_PRESET_DVD":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['HANDBRAKE']
+                elif k == "EMBY_REFRESH":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['EMBY']
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['EMBY_ADDITIONAL']
+                elif k == "NOTIFY_RIP":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['NOTIFY_PERMS']
+                elif k == "APPRISE":
+                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['APPRISE']
+
+                arm_cfg += "\n" + comments[str(k)] + "\n" if comments[str(k)] != "" else ""
+
+                try:
+                    post_value = int(v)
+                    arm_cfg += f"{k}: {post_value}\n"
+                except ValueError:
+                    v_low = v.lower()
+                    if v_low == 'false' or v_low == "true":
+                        arm_cfg += f"{k}: {v_low}\n"
+                    else:
+                        if k == "WEBSERVER_IP":
+                            arm_cfg += f"{k}: {v_low}\n"
+                        else:
+                            arm_cfg += f"{k}: \"{v}\"\n"
+                app.logger.debug(f"\n{k} = {v} ")
+
+        app.logger.debug(f"arm_cfg= {arm_cfg}")
+        with open(arm_cfg_file, "w") as f:
+            f.write(arm_cfg)
+            f.close()
+        flash("Setting saved successfully!", "success")
+        return redirect(url_for('settings'))
+
+    # If we get to here there was no post data
+    return render_template('settings.html', settings=cfg, raw=x, jsoncomments=comments)
 
 
 @app.route('/logreader')
+@login_required
 def logreader():
-    #  TODO: check if logfile exist, if not error out
-    logpath = cfg['LOGPATH']
-    mode = request.args['mode']
-    logfile = request.args['logfile']
+    # use logger
+    # app.logger.info('Processing default request')
+    # app.logger.debug('DEBUGGING')
+    # app.logger.error('ERROR Inside /logreader')
 
+    # Setup our vars
+    logpath = cfg['LOGPATH']
+    mode = request.args.get('mode')
+    # TODO
+    # We should use the job id and not get the raw logfile from the user
+    logfile = request.args.get('logfile')
+    if logfile is None or "../" in logfile or mode is None:
+        return render_template('error.html')
     # Assemble full path
     fullpath = os.path.join(logpath, logfile)
-    #  Check if the logfile exists
+    # Check if the logfile exists
     my_file = Path(fullpath)
     if not my_file.is_file():
-        # file exists
-        # clogfile = convert_log(logfile)
-        return render_template('error.html')
-        # return send_file("templates/error.html")
+        # logfile doesnt exist throw out error template
+        return render_template('simple_error.html')
+
+    # Only ARM logs
     if mode == "armcat":
         def generate():
             f = open(fullpath)
@@ -40,67 +419,98 @@ def logreader():
                         yield new
                 else:
                     sleep(1)
+    # Give everything / Tail
     elif mode == "full":
         def generate():
-            with open(fullpath) as f:
-                while True:
-                    yield f.read()
-                    sleep(1)
+            try:
+                with open(fullpath) as f:
+                    while True:
+                        yield f.read()
+                        sleep(1)
+            except Exception:
+                try:
+                    with open(fullpath, encoding="utf8", errors='ignore') as f:
+                        while True:
+                            yield f.read()
+                            sleep(1)
+                except Exception:
+                    return render_template('simple_error.html')
     elif mode == "download":
-        clogfile = convert_log(logfile)
-        return send_file(clogfile, as_attachment=True)
+        app.logger.debug('fullpath: ' + fullpath)
+        return send_file(fullpath, as_attachment=True)
     else:
-        # do nothing
-        exit()
+        # do nothing/ or error out
+        return render_template('error.html')
+        # exit()
 
     return app.response_class(generate(), mimetype='text/plain')
 
 
 @app.route('/activerips')
+@login_required
 def rips():
     return render_template('activerips.html', jobs=Job.query.filter_by(status="active"))
 
 
 @app.route('/history')
+@login_required
 def history():
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
         jobs = Job.query.filter_by()
     else:
+        app.logger.error('ERROR: /history database file doesnt exist')
         jobs = {}
+    app.logger.debug(cfg['DATE_FORMAT'])
 
-    return render_template('history.html', jobs=jobs)
+    return render_template('history.html', jobs=jobs, date_format=cfg['DATE_FORMAT'])
 
 
 @app.route('/jobdetail', methods=['GET', 'POST'])
+@login_required
 def jobdetail():
     job_id = request.args.get('job_id')
     jobs = Job.query.get(job_id)
     tracks = jobs.tracks.all()
+    return render_template('jobdetail.html', jobs=jobs, tracks=tracks, success="null")
 
-    return render_template('jobdetail.html', jobs=jobs, tracks=tracks)
+
+@app.route('/abandon', methods=['GET', 'POST'])
+@login_required
+def abandon_job():
+    job_id = request.args.get('job_id')
+    # TODO add a confirm and then
+    #  delete the raw folder (this will cause ARM to bail)
+    try:
+        # This should be none if we aren't set
+        job = Job.query.get(job_id)
+        job.status = "fail"
+        db.session.commit()
+        return render_template('jobdetail.html', success="true", jobmessage="Job was abandoned!", jobs=job)
+    except Exception as e:
+        flash(f"Failed to update job {e}", "danger")
+        return render_template('error.html')
 
 
 @app.route('/titlesearch', methods=['GET', 'POST'])
+@login_required
 def submitrip():
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     if form.validate_on_submit():
         form.populate_obj(job)
-        flash('Search for {}, year={}'.format(form.title.data, form.year.data), category='success')
-        # dvd_info = call_omdb_api(form.title.data, form.year.data)
+        flash(f'Search for {form.title.data}, year={form.year.data}', 'success')
         return redirect(url_for('list_titles', title=form.title.data, year=form.year.data, job_id=job_id))
-        # return render_template('list_titles.html', results=dvd_info, job_id=job_id)
-        # return redirect('/gettitle', title=form.title.data, year=form.year.data)
     return render_template('titlesearch.html', title='Update Title', form=form)
 
 
 @app.route('/changeparams', methods=['GET', 'POST'])
+@login_required
 def changeparams():
     config_id = request.args.get('config_id')
     config = Config.query.get(config_id)
-    app.logger.debug(config.pretty_table())
+    # app.logger.debug(config.pretty_table())
     job = Job.query.get(config_id)
     form = ChangeParamsForm(obj=config)
     if form.validate_on_submit():
@@ -114,15 +524,15 @@ def changeparams():
         db.session.commit()
         db.session.refresh(job)
         db.session.refresh(config)
-        flash('Parameters changed. Rip Method={}, Main Feature={}, Minimum Length={}, '
-              'Maximum Length={}, Disctype={}'.format(
-                config.RIPMETHOD, config.MAINFEATURE, config.MINLENGTH, config.MAXLENGTH,
-                job.disctype))
+        flash(f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},'
+              f'Minimum Length={config.MINLENGTH}, '
+              f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}', "success")
         return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
 
 @app.route('/customTitle', methods=['GET', 'POST'])
+@login_required
 def customtitle():
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
@@ -132,56 +542,72 @@ def customtitle():
         job.title = format(form.title.data)
         job.year = format(form.year.data)
         db.session.commit()
-        flash('custom title changed. Title={}, Year={}, '.format(form.title, form.year))
+        flash(f'custom title changed. Title={form.title.data}, Year={form.year.data}.', "success")
         return redirect(url_for('home'))
     return render_template('customTitle.html', title='Change Title', form=form)
 
 
 @app.route('/list_titles')
+@login_required
 def list_titles():
-    title = request.args.get('title').strip()
-    year = request.args.get('year').strip()
-    job_id = request.args.get('job_id')
-    dvd_info = call_omdb_api(title, year)
+    title = request.args.get('title').strip() if request.args.get('title') else ''
+    year = request.args.get('year').strip() if request.args.get('year') else ''
+    job_id = request.args.get('job_id').strip() if request.args.get('job_id') else ''
+    if job_id == "":
+        app.logger.debug("list_titles - no job supplied")
+        flash("No job supplied", "danger")
+        return redirect('/error')
+    dvd_info = utils.call_omdb_api(title, year)
     return render_template('list_titles.html', results=dvd_info, job_id=job_id)
 
 
 @app.route('/gettitle', methods=['GET', 'POST'])
+@app.route('/select_title', methods=['GET', 'POST'])
+@login_required
 def gettitle():
-    imdbID = request.args.get('imdbID')
-    job_id = request.args.get('job_id')
-    dvd_info = call_omdb_api(None, None, imdbID, "full")
+    imdb_id = request.args.get('imdbID').strip() if request.args.get('imdbID') else None
+    job_id = request.args.get('job_id').strip() if request.args.get('job_id') else None
+    if imdb_id == "" or imdb_id is None:
+        app.logger.debug("gettitle - no job supplied")
+        flash("No job supplied", "danger")
+        return redirect('/error')
+    if job_id == "" or job_id is None:
+        app.logger.debug("gettitle - no job supplied")
+        flash("No job supplied", "danger")
+        return redirect('/error')
+    dvd_info = utils.call_omdb_api(None, None, imdb_id, "full")
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
 
 @app.route('/updatetitle', methods=['GET', 'POST'])
+@login_required
 def updatetitle():
     new_title = request.args.get('title')
     new_year = request.args.get('year')
     video_type = request.args.get('type')
-    imdbID = request.args.get('imdbID')
+    imdb_id = request.args.get('imdbID')
     poster_url = request.args.get('poster')
     job_id = request.args.get('job_id')
-    print("New imdbID=" + imdbID)
+    app.logger.debug("New imdbID=" + str(imdb_id))
     job = Job.query.get(job_id)
-    job.title = clean_for_filename(new_title)
-    job.title_manual = clean_for_filename(new_title)
+    job.title = utils.clean_for_filename(new_title)
+    job.title_manual = utils.clean_for_filename(new_title)
     job.year = new_year
     job.year_manual = new_year
     job.video_type_manual = video_type
     job.video_type = video_type
-    job.imdb_id_manual = imdbID
-    job.imdb_id = imdbID
+    job.imdb_id_manual = imdb_id
+    job.imdb_id = imdb_id
     job.poster_url_manual = poster_url
     job.poster_url = poster_url
     job.hasnicetitle = True
     db.session.commit()
-    flash('Title: {} ({}) was updated to {} ({})'.format(job.title_auto, job.year_auto, new_title, new_year),
-          category='success')
+    flash(f'Title: {job.title_auto} ({job.year_auto}) was updated to {new_title} ({new_year})', "success")
     return redirect(url_for('home'))
 
 
 @app.route('/logs')
+@login_required
 def logs():
     mode = request.args['mode']
     logfile = request.args['logfile']
@@ -190,59 +616,245 @@ def logs():
 
 
 @app.route('/listlogs', defaults={'path': ''})
+@login_required
 def listlogs(path):
     basepath = cfg['LOGPATH']
     fullpath = os.path.join(basepath, path)
 
     # Deal with bad data
     if not os.path.exists(fullpath):
-        return abort(404)
+        return render_template('error.html')
 
     # Get all files in directory
-    files = get_info(fullpath)
-    return render_template('logfiles.html', files=files)
+    files = utils.get_info(fullpath)
+    return render_template('logfiles.html', files=files, date_format=cfg['DATE_FORMAT'])
 
 
 @app.route('/')
 @app.route('/index.html')
+@app.route('/index')
 def home():
+    # app.logger.info('Processing default request')
+    # app.logger.debug('DEBUGGING')
+    # app.logger.error('ERROR Inside /logreader')
+
     # Hard drive space
-    freegb = psutil.disk_usage(cfg['ARMPATH']).free
-    freegb = round(freegb / 1073741824, 1)
-    mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
-    mfreegb = round(mfreegb / 1073741824, 1)
+    try:
+        freegb = psutil.disk_usage(cfg['ARMPATH']).free
+        freegb = round(freegb / 1073741824, 1)
+        arm_percent = psutil.disk_usage(cfg['ARMPATH']).percent
+        mfreegb = psutil.disk_usage(cfg['MEDIA_DIR']).free
+        mfreegb = round(mfreegb / 1073741824, 1)
+        media_percent = psutil.disk_usage(cfg['MEDIA_DIR']).percent
+    except FileNotFoundError:
+        freegb = 0
+        arm_percent = 0
+        mfreegb = 0
+        media_percent = 0
+        app.logger.debug("ARM folders not found")
+        flash("There was a problem accessing the ARM folders. Please make sure you have setup the ARMui", "danger")
+        # We could check for the install file here  and then error out if we want
+    #  RAM
+    memory = psutil.virtual_memory()
+    mem_total = round(memory.total / 1073741824, 1)
+    mem_free = round(memory.available / 1073741824, 1)
+    mem_used = round(memory.used / 1073741824, 1)
+    ram_percent = memory.percent
+    #  get out cpu info
+    try:
+        our_cpu = get_processor_name()
+        cpu_usage = psutil.cpu_percent()
+    except EnvironmentError:
+        our_cpu = "Not found"
+        cpu_usage = "0"
 
-    # RAM memory
-    meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1])) for i in open('/proc/meminfo').readlines())
-    mem_kib = meminfo['MemTotal']  # e.g. 3921852
-    mem_gib = mem_kib / (1024.0 * 1024.0)
-    # lets make sure we only give back small numbers
-    mem_gib = round(mem_gib, 2)
-
-    memused_kib = meminfo['MemFree']  # e.g. 3921852
-    memused_gib = memused_kib / (1024.0 * 1024.0)
-    # lets make sure we only give back small numbers
-    memused_gib = round(memused_gib, 2)
-    memused_gibs = round(mem_gib - memused_gib, 2)
-
-    # get out cpu info
-    ourcpu = get_processor_name()
+    try:
+        temps = psutil.sensors_temperatures()
+        temp = temps['coretemp'][0][1]
+    except KeyError:
+        temp = temps = None
 
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
-        jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+        try:
+            jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+        except Exception:
+            # db isnt setup
+            return redirect(url_for('setup'))
+        for job in jobs:
+            job_log = cfg['LOGPATH'] + job.logfile
+            # Try to catch if the logfile gets delete before the job is finished
+            try:
+                line = subprocess.check_output(['tail', '-n', '1', job_log])
+            except subprocess.CalledProcessError:
+                app.logger.debug("Error while reading logfile for ETA")
+                line = ""
+            # job_status = re.search("([0-9]{1,2}\.[0-9]{2}) %.*ETA ([0-9]{2})h([0-9]{2})m([0-9]{2})s", str(line))
+            # ([0-9]{1,3}\.[0-9]{2}) %.*(?!ETA) ([0-9hms]*?)\)  # This is more dumb but it returns with the h m s
+            # job_status = re.search(r"([0-9]{1,2}\.[0-9]{2}) %.*ETA\s([0-9hms]*?)\)", str(line))
+            # This correctly get the very last ETA and %
+            job_status = re.search(r"([0-9]{1,3}\.[0-9]{2}) %.{0,40}ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
+            if job_status:
+                job.progress = job_status.group(1)
+                # job.eta = job_status.group(2)+":"+job_status.group(3)+":"+job_status.group(4)
+                job.eta = job_status.group(2)
+                app.logger.debug("job.progress = " + str(job.progress))
+                x = job.progress
+                job.progress_round = int(float(x))
+                app.logger.debug("Job.round = " + str(job.progress_round))
     else:
         jobs = {}
 
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb, jobs=jobs, cpu=ourcpu, ram=mem_gib,
-                           ramused=memused_gibs, ramfree=memused_gib, ramdump=meminfo)
+    return render_template('index.html', freegb=freegb, mfreegb=mfreegb,
+                           arm_percent=arm_percent, media_percent=media_percent,
+                           jobs=jobs, cpu=our_cpu, cputemp=temp, cpu_usage=cpu_usage,
+                           ram=mem_total, ramused=mem_used, ramfree=mem_free, ram_percent=ram_percent,
+                           ramdump=str(temps))
 
 
+@app.route('/import_movies')
+@login_required
+def import_movies():
+    """
+    Function for finding all movies not currently tracked by ARM
+    This should not be run frequently - Re-runs are fine.
+    This causes a HUGE number of requests to OMdb
+    :return: Outputs json - contains a dict/json of movies added and a notfound list
+             that doesnt match ARM identified folder format.
+    """
+    import time
+    from os import listdir
+    from os.path import isfile, join, isdir
+    t0 = time.time()
+
+    my_path = cfg['MEDIA_DIR']
+    movies = {0: {'notfound': {}}}
+    dest_ext = cfg['DEST_EXT']
+    i = 1
+    movie_dirs = [f for f in listdir(my_path) if isfile(join(my_path, f)) and not f.startswith(".")
+                  or isdir(join(my_path, f)) and not f.startswith(".")]
+
+    app.logger.debug(movie_dirs)
+    if len(movie_dirs) < 1:
+        app.logger.debug("movie_dirs found none")
+
+    for movie in movie_dirs:
+        mystring = f"{movie}"
+        regex = r"([\w\ \'\.\-\&\,]*?) \(([0-9]{2,4})\)"
+        matched = re.match(regex, movie)
+        if matched:
+            # This is only for pycharm
+            movie_name = re.sub(" ", "%20", matched.group(1).strip())  # movie
+
+            p1, imdb_id = utils.get_omdb_poster(movie_name, matched.group(2))
+            # ['poster.jpg', 'title_t00.mkv', 'title_t00.xml', 'fanart.jpg',
+            #  'title_t00.nfo-orig', 'title_t00.nfo', 'title_t00.xml-orig', 'folder.jpg']
+            app.logger.debug(str(listdir(join(my_path, str(movie)))))
+            movie_files = [f for f in listdir(join(my_path, str(movie)))
+                           if isfile(join(my_path, str(movie), f)) and f.endswith("." + dest_ext)
+                           or isfile(join(my_path, str(movie), f)) and f.endswith(".mp4")
+                           or isfile(join(my_path, str(movie), f)) and f.endswith(".avi")]
+            app.logger.debug("movie files = " + str(movie_files))
+
+            hash_object = hashlib.md5(mystring.encode())
+            dupe_found, x = utils.job_dupe_check(hash_object.hexdigest())
+            if dupe_found:
+                app.logger.debug("We found dupes breaking loop")
+                continue
+
+            movies[i] = {
+                'title': matched.group(1),
+                'year': matched.group(2),
+                'crc_id': hash_object.hexdigest(),
+                'imdb_id': imdb_id,
+                'poster': p1,
+                'status': 'success' if len(movie_files) > 0 else 'fail',
+                'video_type': 'movie',
+                'disctype': 'unknown',
+                'hasnicetitle': True,
+                'no_of_titles': len(movie_files)
+            }
+
+            new_movie = Job("/dev/sr0")
+            new_movie.title = movies[i]['title']
+            new_movie.year = movies[i]['year']
+            new_movie.crc_id = hash_object.hexdigest()
+            new_movie.imdb_id = imdb_id
+            new_movie.poster_url = movies[i]['poster']
+            new_movie.status = movies[i]['status']
+            new_movie.video_type = movies[i]['video_type']
+            new_movie.disctype = movies[i]['disctype']
+            new_movie.hasnicetitle = movies[i]['hasnicetitle']
+            new_movie.no_of_titles = movies[i]['no_of_titles']
+            db.session.add(new_movie)
+            i += 1
+        else:
+            sub_path = join(my_path, str(movie))
+            # go through each folder and treat it as a subfolder of movie folder
+            subfiles = [f for f in listdir(sub_path) if isfile(join(sub_path, f)) and not f.startswith(".")
+                        or isdir(join(sub_path, f)) and not f.startswith(".")]
+            for sub_movie in subfiles:
+                mystring = f"{sub_movie}"
+                sub_matched = re.match(regex, sub_movie)
+                if sub_matched:
+                    # This is only for pycharm
+                    sub_movie_name = re.sub(" ", "%20", sub_matched.group(1).strip())  # movie
+                    sub_movie_name = re.sub("&", "%26", sub_movie_name)
+                    p2, imdb_id = utils.get_omdb_poster(sub_movie_name, sub_matched.group(2))
+                    app.logger.debug(listdir(join(sub_path, str(sub_movie))))
+                    # If the user selects another ext thats not mkv we are f
+                    sub_movie_files = [f for f in listdir(join(sub_path, str(sub_movie)))
+                                       if isfile(join(sub_path, str(sub_movie), f)) and f.endswith("." + dest_ext)
+                                       or isfile(join(sub_path, str(sub_movie), f)) and f.endswith(".mp4")
+                                       or isfile(join(my_path, str(movie), f)) and f.endswith(".avi")]
+                    app.logger.debug("movie files = " + str(sub_movie_files))
+                    hash_object = hashlib.md5(mystring.encode())
+                    dupe_found, x = utils.job_dupe_check(hash_object.hexdigest())
+                    if dupe_found:
+                        app.logger.debug("We found dupes breaking loop")
+                        continue
+                    movies[i] = {
+                        'title': sub_matched.group(1),
+                        'year': sub_matched.group(2),
+                        'crc_id': hash_object.hexdigest(),
+                        'imdb_id': imdb_id,
+                        'poster': p2,
+                        'status': 'success' if len(sub_movie_files) > 0 else 'fail',
+                        'video_type': 'movie',
+                        'disctype': 'unknown',
+                        'hasnicetitle': True,
+                        'no_of_titles': len(sub_movie_files)
+                    }
+                    new_movie = Job("/dev/sr0")
+                    new_movie.title = movies[i]['title']
+                    new_movie.year = movies[i]['year']
+                    new_movie.crc_id = hash_object.hexdigest()
+                    new_movie.imdb_id = imdb_id
+                    new_movie.poster_url = p2
+                    new_movie.status = movies[i]['status']
+                    new_movie.video_type = movies[i]['video_type']
+                    new_movie.disctype = movies[i]['disctype']
+                    new_movie.hasnicetitle = movies[i]['hasnicetitle']
+                    new_movie.no_of_titles = movies[i]['no_of_titles']
+                    db.session.add(new_movie)
+                    i += 1
+                else:
+                    movies[0]['notfound'][str(i)] = str(sub_movie)
+            print(subfiles)
+    # app.logger.debug(movies)
+
+    t1 = time.time()
+    total = round(t1 - t0, 3)
+    app.logger.debug(str(total) + " sec")
+    db.session.commit()
+    return app.response_class(response=json.dumps(movies, indent=4, sort_keys=True),
+                              status=200,
+                              mimetype='application/json')
+
+
+#  Lets show some cpu info
+#  only tested on OMV
 def get_processor_name():
-    """
-    function to collect and return some cpu info
-    ideally want to return {name} @ {speed} Ghz
-    """
     if platform.system() == "Windows":
         return platform.processor()
     elif platform.system() == "Darwin":
@@ -264,12 +876,12 @@ def get_processor_name():
         # AMD CPU
         # model name.*?:(.*?)\n
         # matches = re.search(regex, test_str)
-        amd_name_full = re.search(r"model name\\t: (.*?)\\n", fulldump)
+        amd_name_full = re.search(r"vendor_id\\t:(.*?)\\n", fulldump)
         if amd_name_full:
             amd_name = amd_name_full.group(1)
-            amd_mhz = re.search(r"cpu MHz(?:\\t)*: ([.0-9]*)\\n", fulldump)  # noqa: W605
-            if amd_mhz:
-                # amd_ghz = re.sub('[^.0-9]', '', amd_mhz.group())
-                amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
-                return str(amd_name) + " @ " + str(amd_ghz) + " GHz"
+            amd_hz = re.search(r"cpu\\sMHz\\t.*?([.0-9]*?)\\n", fulldump)  # noqa: W605
+            if amd_hz:
+                amd_ghz = re.sub('[^.0-9]', '', amd_hz.group())
+                amd_ghz = int(float(amd_ghz))  # Not sure this is a good idea
+                return str(amd_name) + " @" + str(amd_ghz) + " GHz"
     return None  # We didnt find our cpu

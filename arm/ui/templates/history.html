@@ -1,41 +1,42 @@
 {% extends "base.html" %}
-{% block title %}Logs{% endblock %}
+{% block title %}History{% endblock %}
 
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}  
-<div class="container">
-    <div class="row">
-        <div class="col-sm-2"></div>
-            <div class="col-sm-8" >
+<div class="jumbotron" style="padding-top: 1rem;">
+					<div class="col-sm-12  rounded text-center">
+						<img src="/static/img/arm80.png">
+						<p class="text-center">
+							<h2> Rip History </h2>
+						</p>
+					</div>
+
                 <div class="table-responsive">
                     <table id="riptable" style="margin: 0 auto" class="table table-striped">
-                        <thead class="tablesorterhead bg-secondary">    
+                        <thead class="tablesorterhead bg-secondary">
                             <tr style="margin: 0 auto">
-                                <th onclick="sortTable(0)" style="cursor: pointer;">Title</th>
-                                <th onclick="sortTable(1)" width="200px" style="cursor: pointer;">Start Time</th>
-                                <th onclick="sortTable(2)" style="cursor: pointer;">Duration</th>
-                                <th onclick="sortTable(3)" style="cursor: pointer;">Status</th>
-								<th onclick="sortTable(3)" style="cursor: pointer;">Logfile</th>
+                                <th style="cursor: pointer;">Title</th>
+                                <th width="200px" style="cursor: pointer;">Start Time</th>
+                                <th style="cursor: pointer;">Duration</th>
+                                <th style="cursor: pointer;">Status</th>
+								<th style="cursor: pointer;">Logfile</th>
                             </tr>
                         </thead>
                         <tbody>
                                         {% for job in jobs %}
                             <tr>
-                                <td class="text-nowrap"><a href="jobdetail?job_id={{ job.job_id }}" >{{ job.title }}</a></td>
-                                <td class="text-nowrap">{{ job.start_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                                <td class="text-nowrap"><a href="jobdetail?job_id={{ job.job_id }}" >{{ job.title|truncate(50, True) }}</a></td>
+                                <td class="text-nowrap">{{ job.start_time.strftime(date_format) if job.start_time is not none}}</td>
                                 <td class="text-nowrap">{{ job.job_length }}</td>
                                 <td class="text-nowrap {{ job.status }}"><img src="static/img/{{ job.status }}.png" height="30px" alt="{{ job.status }}" title="{{ job.status }}"></td>
-                                <td class="text-nowrap"><a href="logs?logfile={{ job.logfile }}&mode=full">{{ job.logfile }}</a></td>
+                                <td class="text-nowrap"><a href="logs?logfile={{ job.logfile }}&mode=full">{{ job.logfile|truncate(50, True) if job.logfile is not none}}</a></td>
                                         {% endfor %}
                             </tr>
                         </tbody>
                     </table>
-                </div>
-            <div class="col-sm-2"></div>
-        </div>
+            </div>
     </div>
-</div>
 
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}
@@ -43,13 +44,14 @@
 {{ super() }}
 <script src="{{ url_for('static', filename='js/jquery.tablesorter.js') }}"></script>
 
-<script>
+<script type="application/javascript">
   $(document).ready(function() { 
     // call the tablesorter plugin 
     $("table").tablesorter({ 
         // sort on the first column and third column, order asc 
         sortList: [[1,1]] 
     }); 
-}); 
+});
+activeTab("history");
 </script>
 {% endblock %}

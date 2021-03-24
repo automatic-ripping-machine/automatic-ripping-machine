@@ -4,18 +4,29 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}  
-<div class="container">
-  <!-- <div class="bheader"><h4 style="margin-bottom: 0px">Automatic Ripping Machine</h4></div> -->
+<div class="container"> 
   <div class="row">
     <div class="col-12" >
         <div class="table-responsive">
+		<div class="jumbotron">
+
+			<div class="row">
+				<div class="col-sm-12  rounded text-center">
+					<img src="/static/img/arm80.png">
+						<p>
+							<b>Welcome to your Automatic Ripping Machine<br></b>
+						</p>
+				</div>
+			</div>
+		<br>
+		
 <table id="logTable" style="margin: 0 auto" class="table table-striped">
   <thead class="tablesorterhead bg-secondary">    
     <tr style="margin: 0 auto">
-        <th onclick="sortTable(0)" style="cursor: pointer;">Log file</th>
-        <th onclick="sortTable(1)" width="200px" style="cursor: pointer;">Created Time</th>
-        <th onclick="sortTable(2)" style="cursor: pointer;">Size(kb)</th>
-        <th colspan="4" style="text-align:center; cursor: default;" data-sorter="false">View mode</th>
+        <th style="cursor: pointer;">Log file</th>
+        <th width="200px" style="cursor: pointer;">Created Time</th>
+        <th style="cursor: pointer;">Size(kb)</th>
+        <th colspan="4" style="text-align:center; cursor: default;" data-sorter="false">View modes</th>
     </tr>
   </thead>
   <tbody>
@@ -23,30 +34,34 @@
     <tr>
         <td class="text-nowrap">{{ file[0] }}</a></td>
         <td class="text-nowrap">{{ file[2] }}</a></td>
-        <td style="text-align:right">{{ file[3] }}</a></td>
+        <td style="text-align:center">{{ file[3] }}</a></td>
         <td style="text-align:center"><a href="logs?logfile={{ file[0] }}&mode=tail">tail</a></td>
         <td><a href="logs?logfile={{ file[0] }}&mode=armcat">arm</a></td>
         <td><a href="logs?logfile={{ file[0] }}&mode=full">full</a></td>
         <td><a href="/logreader?logfile={{ file[0] }}&mode=download">download</a></td>
-        <!-- <td><a href="logreader?logfile={{ file[0] }}&mode=armcat">arm</a></td>
-        <td><a href="logreader?logfile={{ file[0] }}&mode=full">full</a></td>
-        <td><a href="logreader?logfile={{ file[0] }}&mode=download">download</a></td> -->
     </tr>
     {% endfor %}
   </tbody>
 </table>
+</div></div>
+        <div class="row" style="height: 30px;"></div>
+<div class="align-items-center">
+        <div>
+                <div class="card mx-auto">
+                        <div class="card-header d-flex justify-content-center">
+                                <strong>View Modes</strong>
+                        </div>
+						<div class="d-flex justify-content-center">
+							<p style="white-space: nowrap; line-height: 20pt;">
+								<b>tail:</b>   Output to browser in real time.  Similar to 'tail -f'</li><br/>
+								<b>arm:</b>   Static output of just the ARM log entries<br/>
+								<b>full:</b>   Static output of all of the log including MakeMKV and HandBrake<br/>
+								<b>download:</b>   Download the full log file<br/>
+							</p>
+					</div>
+                </div>
+        </div>
 </div>
-<table id="descTable" style="margin: 0 auto">
-  <tr style="margin: 0 auto">
-    <th colspan="2" style="border-bottom: 0px; padding: 6px 15px; padding-top: 15px; padding-bottom: 0px;">
-        <h5 style="margin-bottom: 0px">View Modes:</h5>
-    </th>
-  </tr>
-  <tr><td valign="top"><b>tail:</b></td><td> Output to browser in real time.  Similar to 'tail -f'</td></tr>
-  <tr><td valign="top"><b>arm:</b></td><td> Static output of just the ARM log entries</td></tr>
-  <tr><td valign="top"><b>full:</b></td><td> Static output of all of the log including MakeMKV and HandBrake</td></tr>
-  <tr><td width="80px" valign="top"><b>download:</b></td><td> Download the full log file</td></tr>
-</table>
 </div>
 </div>
 </div>
@@ -64,5 +79,6 @@
         sortList: [[1,1]] 
     }); 
 }); 
+activeTab("viewlogs");
 </script>
 {% endblock %}

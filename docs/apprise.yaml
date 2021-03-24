@@ -1,6 +1,7 @@
 #####################################
 ## Apprise Notification Parameters ##
 #####################################
+
 BOXCAR_KEY: ""
 BOXCAR_SECRET: ""
 
@@ -201,3 +202,9 @@ WEBEX_TEAMS_TOKEN: ""
 ZILUP_CHAT_TOKEN: ""
 ZILUP_CHAT_BOTNAME: ""
 ZILUP_CHAT_ORG: ""
+
+## SMS NOTI
+
+## DESKTOP NOTI
+
+## EMAIL NOTI

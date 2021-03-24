@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 import os
 import logging
@@ -7,7 +8,7 @@ import shlex
 
 # from arm.config.config import cfg
 from arm.ripper import utils  # noqa: E402
-from arm.ui import db
+from arm.ui import db  # noqa: F401, E402
 
 
 def makemkv(logfile, job):
@@ -24,7 +25,7 @@ def makemkv(logfile, job):
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
     cmd = 'makemkvcon -r info disc:9999  |grep {0} |grep -oP \'(?<=:).*?(?=,)\''.format(
-                job.devpath
+        job.devpath
     )
 
     try:
@@ -49,6 +50,7 @@ def makemkv(logfile, job):
         except OSError:
             # logging.error("Couldn't create the base file path: " + rawpath + " Probably a permissions error")
             err = "Couldn't create the base file path: " + str(rawpath) + " Probably a permissions error"
+            logging.debug(err)
     else:
         logging.info(rawpath + " exists.  Adding timestamp.")
         ts = round(time.time() * 100)
@@ -87,7 +89,8 @@ def makemkv(logfile, job):
                 logging.error(err)
                 raise RuntimeError(err)
         except subprocess.CalledProcessError as mdisc_error:
-            err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
+            err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(
+                mdisc_error.output) + ")"
             logging.error(err)
             # print("Error: " + mkv)
             return None
@@ -122,7 +125,8 @@ def makemkv(logfile, job):
                     logging.error(err)
                     raise RuntimeError(err)
             except subprocess.CalledProcessError as mdisc_error:
-                err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
+                err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" \
+                      + str(mdisc_error.output) + ")"
                 logging.error(err)
                 # print("Error: " + mkv)
                 return None
@@ -131,16 +135,18 @@ def makemkv(logfile, job):
             for track in job.tracks:
                 if track.length < int(job.config.MINLENGTH):
                     # too short
-                    logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length (" + str(track.length) +
-                                 ") is less than minimum length (" + job.config.MINLENGTH + ").  Skipping")
+                    logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length ("
+                                 + str(track.length)
+                                 + ") is less than minimum length (" + job.config.MINLENGTH + ").  Skipping")
                 elif track.length > int(job.config.MAXLENGTH):
                     # too long
-                    logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length (" + str(track.length) +
+                    logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles)
+                                 + ". Length (" + str(track.length) +
                                  ") is greater than maximum length (" + job.config.MAXLENGTH + ").  Skipping")
                 else:
                     # just right
-                    logging.info("Processing track #" + str(track.track_number) + " of " + str(job.no_of_titles - 1) + ". Length is " +
-                                 str(track.length) + " seconds.")
+                    logging.info("Processing track #" + str(track.track_number) + " of " + str(job.no_of_titles - 1)
+                                 + ". Length is " + str(track.length) + " seconds.")
 
                     # filename = "title_" + str.zfill(str(track.track_number), 2) + "." + cfg['DEST_EXT']
                     # filename = track.filename
@@ -175,7 +181,8 @@ def makemkv(logfile, job):
                             logging.error(err)
                             raise RuntimeError(err)
                     except subprocess.CalledProcessError as mdisc_error:
-                        err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
+                        err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) \
+                              + "(" + str(mdisc_error.output) + ")"
                         logging.error(err)
                         # print("Error: " + mkv)
                         return None
@@ -186,7 +193,7 @@ def makemkv(logfile, job):
     job.eject()
 
     logging.info("Exiting MakeMKV processing with return value of: " + rawpath)
-    return(rawpath)
+    return rawpath
 
 
 def get_track_info(mdisc, job):
@@ -202,7 +209,7 @@ def get_track_info(mdisc, job):
         mdisc
     )
 
-    logging.debug("Sending command: %s", (cmd))
+    logging.debug("Sending command: %s", cmd)
 
     try:
         mkv = subprocess.check_output(
@@ -231,21 +238,25 @@ def get_track_info(mdisc, job):
 
             if msg_type == "MSG":
                 if msg[0] == "5055":
-                    job.errors = "MakeMKV evaluation period has expired.  DVD processing will continus.  Bluray processing will exit."
+                    # job.errors = "MakeMKV evaluation period has expired.  " \
+                    #             "DVD processing will continue.  Bluray processing will exit."
+                    arm_error = "MakeMKV evaluation period has expired." \
+                                "DVD processing will continue.  Bluray processing will exit."
                     if job.disctype == "bluray":
                         err = "MakeMKV evaluation period has expired.  Disc is a Bluray so ARM is exiting"
                         logging.error(err)
                         raise ValueError(err, "makemkv")
                     else:
-                        logging.error("MakeMKV evaluation perios has ecpires.  Disc is dvd so ARM will continue")
-                    db.session.commit()
+                        logging.error("MakeMKV evaluation period has expired.  Disc is dvd so ARM will continue")
+                    utils.database_updater({'errors': arm_error}, job)
+                    # db.session.commit()
 
             if msg_type == "TCOUNT":
                 titles = int(line_split[1].strip())
                 logging.info("Found " + str(titles) + " titles")
-                job.no_of_titles = titles
-                db.session.commit()
-
+                # job.no_of_titles = titles
+                # db.session.commit()
+                utils.database_updater({'no_of_titles': titles}, job)
             if msg_type == "TINFO":
                 if track != line_track:
                     if line_track == int(0):

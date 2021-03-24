@@ -1,7 +1,8 @@
+#!/usr/bin/env python3
 # Collection of utility functions
-
 import os
 import sys
+import yaml
 import logging
 import fcntl
 import subprocess
@@ -10,14 +11,12 @@ import requests
 import time
 import apprise
 import random
-import yaml
-# Added from pull 366
-import datetime  # noqa: F401
-import psutil  # noqa E402
+import re
+import psutil
 
 # from arm.config.config import cfg
-from arm.ui import app, db  # noqa E402
-from arm.models.models import Track  # noqa: E402
+from arm.ui import app, db
+from arm.models.models import Track, Job
 
 
 def notify(job, title, body):
@@ -40,7 +39,7 @@ def notify(job, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending Pushbullet apprise notification.  Continueing processing...")
+            logging.error("Failed sending Pushbullet apprise notification.  Continuing processing...")
     # IFTTT
     # ifttt://{WebhookID}@{Event}/
     if job.config.IFTTT_KEY != "":
@@ -57,7 +56,7 @@ def notify(job, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending IFTTT apprise notification.  Continueing processing...")
+            logging.error("Failed sending IFTTT apprise notification.  Continuing processing...")
     # PUSHOVER
     if job.config.PO_USER_KEY != "":
         try:
@@ -73,28 +72,27 @@ def notify(job, title, body):
             )
         except:  # noqa: E722
             logging.error("Failed sending PUSHOVER apprise notification.  continuing  processing...")
-    try:
-        if job.config.APPRISE != "":
+    if job.config.APPRISE != "":
+        try:
             apprise_notify(job.config.APPRISE, title, body)
             logging.debug("apprise-config: " + str(job.config.APPRISE))
-    except Exception as e:  # noqa: E722
-        logging.error("Failed sending apprise notification. " + str(e))
+        except Exception as e:  # noqa: E722
+            logging.error("Failed sending apprise notification. " + str(e))
 
 
-def apprise_notify(apprisecfg, title, body):
+def apprise_notify(apprise_cfg, title, body):
     """APPRISE NOTIFICATIONS
 
     :argument
-    apprisecfg - The full path to the apprisecfg file
+    apprise_cfg - The full path to the apprise.yaml file
     title - the message title
     body - the main body of the message
 
     :returns
     nothing
     """
-    cfg = ""
-    yamlfile = apprisecfg
-    with open(yamlfile, "r") as f:
+    yaml_file = apprise_cfg
+    with open(yaml_file, "r") as f:
         cfg = yaml.load(f)
 
     cmd = "apprise -vv -t \"{0}\" -b \"{1}\" dbus://".format(title, body)
@@ -141,7 +139,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending boxcar apprise notification.  Continueing processing...")
+            logging.error("Failed sending boxcar apprise notification.  Continuing processing...")
     # discord
     # discord://{WebhookID}/{WebhookToken}/
     if cfg['DISCORD_WEBHOOK_ID'] != "":
@@ -158,7 +156,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending discord apprise notification.  Continueing processing...")
+            logging.error("Failed sending discord apprise notification.  Continuing processing...")
     # Faast
     # faast://{authorizationtoken}
     if cfg['FAAST_TOKEN'] != "":
@@ -175,7 +173,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending faast apprise notification.  Continueing processing...")
+            logging.error("Failed sending faast apprise notification.  Continuing processing...")
     # FLOCK
     # flock://{token}/
     if cfg['FLOCK_TOKEN'] != "":
@@ -192,7 +190,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending flock apprise notification.  Continueing processing...")
+            logging.error("Failed sending flock apprise notification.  Continuing processing...")
     # GITTER
     # gitter: // {token} / {room} /
     if cfg['GITTER_TOKEN'] != "":
@@ -209,7 +207,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending gitter apprise notification.  Continueing processing...")
+            logging.error("Failed sending gitter apprise notification.  Continuing processing...")
     # Gotify
     # gotify://{hostname}/{token}
     if cfg['GOTIFY_TOKEN'] != "":
@@ -226,7 +224,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending gitter apprise notification.  Continueing processing...")
+            logging.error("Failed sending gitter apprise notification.  Continuing processing...")
     # Growl
     # growl://{hostname} || growl://{password}@{hostname}
     if cfg['GROWL_HOST'] != "":
@@ -247,7 +245,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending growl apprise notification.  Continueing processing...")
+            logging.error("Failed sending growl apprise notification.  Continuing processing...")
     # JOIN
     # join://{apikey}/ ||  join://{apikey}/{device_id}
     if cfg['JOIN_API'] != "":
@@ -268,7 +266,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending growl apprise notification.  Continueing processing...")
+            logging.error("Failed sending growl apprise notification.  Continuing processing...")
     # Kodi
     # kodi://{hostname}:{port} || kodi: // {userid}: {password} @ {hostname}:{port}
     if cfg['KODI_HOST'] != "":
@@ -295,7 +293,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending KODI apprise notification.  Continueing processing...")
+            logging.error("Failed sending KODI apprise notification.  Continuing processing...")
     # KUMULOS
     if cfg['KUMULOS_API'] != "":
         try:
@@ -311,7 +309,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending KUMULOS apprise notification.  Continueing processing...")
+            logging.error("Failed sending KUMULOS apprise notification.  Continuing processing...")
     # LEMETRIC
     if cfg['LAMETRIC_MODE'] != "":
         try:
@@ -332,7 +330,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending LAMETRIC apprise notification.  Continueing processing...")
+            logging.error("Failed sending LAMETRIC apprise notification.  Continuing processing...")
     # MAILGUN
     if cfg['MAILGUN_DOMAIN'] != "":
         try:
@@ -349,7 +347,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending mailgun apprise notification.  Continueing processing...")
+            logging.error("Failed sending mailgun apprise notification.  Continuing processing...")
     # MATRIX
     if cfg['MATRIX_HOST'] != "" or cfg['MATRIX_TOKEN'] != "":
         try:
@@ -367,7 +365,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending Matrix apprise notification.  Continueing processing...")
+            logging.error("Failed sending Matrix apprise notification.  Continuing processing...")
     # Microsoft teams
     if cfg['MSTEAMS_TOKENA'] != "":
         try:
@@ -385,7 +383,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending Microsoft teams apprise notification.  Continueing processing...")
+            logging.error("Failed sending Microsoft teams apprise notification.  Continuing processing...")
     # Nextcloud
     if cfg['NEXTCLOUD_HOST'] != "":
         try:
@@ -403,7 +401,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending nextcloud apprise notification.  Continueing processing...")
+            logging.error("Failed sending nextcloud apprise notification.  Continuing processing...")
     # Notica
     if cfg['NOTICA_TOKEN'] != "":
         try:
@@ -419,7 +417,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending notica apprise notification.  Continueing processing...")
+            logging.error("Failed sending notica apprise notification.  Continuing processing...")
     # Notifico
     if cfg['NOTIFICO_PROJECTID'] != "":
         try:
@@ -471,7 +469,7 @@ def apprise_notify(apprisecfg, title, body):
                 title=title,
             )
         except:  # noqa: E722
-            logging.error("Failed sending popcorn apprise notification.  Continueing processing...")
+            logging.error("Failed sending popcorn apprise notification.  Continuing processing...")
     # PROWL
     if cfg['PROWL_API'] != "":
         try:
@@ -776,20 +774,19 @@ def scan_emby(job):
 
     if job.config.EMBY_REFRESH:
         logging.info("Sending Emby library scan request")
-        url = "http://" + job.config.EMBY_SERVER + ":" + job.config.EMBY_PORT + "/Library/Refresh?api_key=" + job.config.EMBY_API_KEY
+        url = f"http://{job.config.EMBY_SERVER}:{job.config.EMBY_PORT}/Library/Refresh?api_key={job.config.EMBY_API_KEY}"
         try:
             req = requests.post(url)
             if req.status_code > 299:
                 req.raise_for_status()
             logging.info("Emby Library Scan request successful")
         except requests.exceptions.HTTPError:
-            logging.error("Emby Library Scan request failed with status code: " + str(req.status_code))
+            logging.error(f"Emby Library Scan request failed with status code: {req.status_code}")
     else:
         logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
 
 
-# New function from pull 366
-def SleepCheckProcess(process_str: str, transcode_limit: int):
+def sleep_check_process(process_str, transcode_limit):
     """ New function to check for max_transcode from cfg file and force obey limits\n
     arguments:
     process_st - The process string from arm.yaml
@@ -800,19 +797,19 @@ def SleepCheckProcess(process_str: str, transcode_limit: int):
     """
     if transcode_limit > 0:
         loop_count = transcode_limit + 1
-        logging.debug("Loop_Count " + str(loop_count))
+        logging.debug("loop_count " + str(loop_count))
         logging.info("Starting A sleep check of " + str(process_str))
         while loop_count >= transcode_limit:
             loop_count = sum(1 for proc in psutil.process_iter() if proc.name() == process_str)
-            logging.debug("Number of Processes running is:" + str(loop_count) + " going to waiting 12 seconds.")
+            logging.debug(f"Number of Processes running is: {loop_count} going to waiting 12 seconds.")
             if transcode_limit > loop_count:
                 return True
             # Try to make each check at different times
             x = random.randrange(20, 120, 10)
-            logging.debug("sleeping for " + str(x) + " seconds")
+            logging.debug(f"sleeping for {x} seconds")
             time.sleep(x)
     else:
-        logging.info("Transcode limit is disabled!")
+        logging.info("Transcode limit is disabled")
 
 
 def move_files(basepath, filename, job, ismainfeature=False):
@@ -821,7 +818,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
     filename = name of file to be moved\n
     job = instance of Job class\n
     ismainfeature = True/False"""
-
+    # TODO update this to use prettytables
     logging.debug("Moving files: " + str(job))
 
     if job.title_manual:
@@ -833,7 +830,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
 
     videotitle = job.title + " (" + str(job.year) + ")"
 
-    logging.debug("Arguments: " + basepath + " : " + filename + " : " + str(hasnicetitle) + " : " + videotitle + " : " + str(ismainfeature))
+    logging.debug(f"Arguments: {basepath} : {filename} : {hasnicetitle} : {videotitle} : {ismainfeature}")
 
     if hasnicetitle:
         m_path = os.path.join(job.config.MEDIA_DIR + videotitle)
@@ -883,23 +880,25 @@ def rename_files(oldpath, job):
 
     returns new path if successful
     """
+    # Check if the job has a nice title after rip is complete, if so use the media dir not the arm
+    # This is for media that was recognised after the wait period/disk started ripping
+    if job.hasnicetitle:
+        newpath = os.path.join(job.config.MEDIA_DIR, job.title + " (" + str(job.year) + ")")
+    else:
+        newpath = os.path.join(job.config.ARMPATH, job.title + " (" + str(job.year) + ")")
 
-    newpath = os.path.join(job.config.ARMPATH, job.title + " (" + str(job.year) + ")")
     logging.debug("oldpath: " + oldpath + " newpath: " + newpath)
     logging.info("Changing directory name from " + oldpath + " to " + newpath)
 
-    """
-    Added from pull 366
-    Sometimes a job fails, after the rip, but before move of the tracks into the folder,
-    at which point the below command
-    will move the newly ripped folder inside the old correctly named folder.
-    This can be a problem as the job when it tries to move the files, won't find them.
-    other than putting in an error message, I'm not sure how to permanently fix this problem.
-    Maybe I could add a configurable option for deletion of crashed job files?
-    """
+    # Added from pull 366 Sometimes a job fails, after the rip, but before move of the tracks into the folder,
+    # at which point the below command will move the newly ripped folder inside the old correctly named folder. This
+    # can be a problem as the job when it tries to move the files, won't find them. other than putting in an error
+    # message, I'm not sure how to permanently fix this problem. Maybe I could add a configurable option for deletion
+    # of crashed job files?
     if os.path.isdir(newpath):
-        logging.info("Error: The 'new' directory already exists,"
-                     " ARM will probably copy the newly ripped folder into the old-new folder.")
+        logging.info(
+            "Error: The 'new' directory already exists, "
+            "ARM will probably copy the newly ripped folder into the old-new folder.")
 
     try:
         shutil.move(oldpath, newpath)
@@ -907,6 +906,7 @@ def rename_files(oldpath, job):
     except shutil.Error:
         logging.info("Error change directory from " + oldpath + " to " + newpath + ".  Likely the path already exists.")
         raise OSError(2, 'No such file or directory', newpath)
+
     return newpath
 
 
@@ -948,8 +948,10 @@ def get_cdrom_status(devpath):
 
     try:
         fd = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
-    except Exception:
-        logging.info("Failed to open device " + devpath + " to check status.")
+    except OSError:
+        # Sometimes ARM will log errors opening hard drives. this check should stop it
+        if not bool(re.search(r'hd[a-j]|sd[a-j]', devpath)):
+            logging.info("Failed to open device " + devpath + " to check status.")
         exit(2)
     result = fcntl.ioctl(fd, 0x5326, 0)
 
@@ -980,14 +982,16 @@ def rip_music(job, logfile):
     returns True/False for success/fail
     """
 
+    abcfile = job.config.ABCDE_CONFIG_FILE
     if job.disctype == "music":
         logging.info("Disc identified as music")
-        cmd = 'abcde -d "{0}" >> "{1}" 2>&1'.format(
-            job.devpath,
-            logfile
-        )
+        # If user has set a cfg file with ARM use it
+        if os.path.isfile(abcfile):
+            cmd = f'abcde -d "{job.devpath}" -c {abcfile} >> "{logfile}" 2>&1'
+        else:
+            cmd = f'abcde -d "{job.devpath}" >> "{logfile}" 2>&1'
 
-        logging.debug("Sending command: " + cmd)
+        logging.debug(f"Sending command: {cmd}")
 
         try:
             subprocess.check_output(
@@ -997,7 +1001,7 @@ def rip_music(job, logfile):
             logging.info("abcde call successful")
             return True
         except subprocess.CalledProcessError as ab_error:
-            err = "Call to abcde failed with code: " + str(ab_error.returncode) + "(" + str(ab_error.output) + ")"
+            err = f"Call to abcde failed with code: {ab_error.returncode} ({ab_error.output})"
             logging.error(err)
             # sys.exit(err)
 
@@ -1017,17 +1021,18 @@ def rip_data(job, datapath, logfile):
     if job.disctype == "data":
         logging.info("Disc identified as data")
 
-        if job.label == "":
+        if job.label == "" or job.label is None:
             job.label = "datadisc"
 
-        filename = os.path.join(datapath, job.label + ".iso")
+        incomplete_filename = os.path.join(datapath, job.label + ".part")
+        final_filename = os.path.join(datapath, job.label + ".iso")
 
-        logging.info("Ripping data disc to: " + filename)
+        logging.info("Ripping data disc to: " + incomplete_filename)
 
-        #  Added from pull 366
+        # Added from pull 366
         cmd = 'dd if="{0}" of="{1}" {2} 2>> {3}'.format(
             job.devpath,
-            filename,
+            incomplete_filename,
             job.config.DATA_RIP_PARAMETERS,
             logfile
         )
@@ -1040,10 +1045,12 @@ def rip_data(job, datapath, logfile):
                 shell=True
             ).decode("utf-8")
             logging.info("Data rip call successful")
+            os.rename(incomplete_filename, final_filename)
             return True
         except subprocess.CalledProcessError as dd_error:
             err = "Data rip failed with code: " + str(dd_error.returncode) + "(" + str(dd_error.output) + ")"
             logging.error(err)
+            os.unlink(incomplete_filename)
             # sys.exit(err)
 
     return False
@@ -1110,7 +1117,9 @@ def check_db_version(install_path, db_file):
     if head_revision == db_version:
         logging.info("Database is up to date")
     else:
-        logging.info("Database out of date. Head is " + head_revision + " and database is " + db_version + ".  Upgrading database...")
+        logging.info(
+            "Database out of date. Head is " + head_revision + " and database is " + db_version
+            + ".  Upgrading database...")
         with app.app_context():
             ts = round(time.time() * 100)
             logging.info("Backuping up database '" + db_file + "' to '" + db_file + str(ts) + "'.")
@@ -1124,7 +1133,9 @@ def check_db_version(install_path, db_file):
         if head_revision == db_version:
             logging.info("Database is now up to date")
         else:
-            logging.error("Database is still out of date. Head is " + head_revision + " and database is " + db_version + ".  Exiting arm.")
+            logging.error(
+                "Database is still out of date. Head is " + head_revision + " and database is " + db_version
+                + ".  Exiting arm.")
             sys.exit()
 
 
@@ -1143,8 +1154,8 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
     filename = filename of track\n
     """
 
-    logging.debug("Track #" + str(t_no) + " Length: " + str(seconds) + " fps: " + str(fps) + " aspect: " + str(aspect) +
-                  " Mainfeature: " + str(mainfeature) + " Source: " + source)
+    logging.debug(
+        f"Track #{t_no} Length: {seconds} fps: {fps} aspect: {aspect} Mainfeature: {mainfeature} Source:  {source}")
 
     t = Track(
         job_id=job.job_id,
@@ -1157,6 +1168,254 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         source=source,
         basename=job.title,
         filename=filename
-        )
+    )
     db.session.add(t)
     db.session.commit()
+
+
+def arm_setup():
+    """
+    setup arm - make sure everything is fully setup and ready and there are no errors. This is still in dev. ATM
+
+    :arguments
+    None
+
+    :return
+    None
+    """
+    from arm.config.config import cfg
+    try:
+        # Make the ARM dir if it doesnt exist
+        if not os.path.exists(cfg['ARMPATH']):
+            os.makedirs(cfg['ARMPATH'])
+        # Make the RAW dir if it doesnt exist
+        if not os.path.exists(cfg['RAWPATH']):
+            os.makedirs(cfg['RAWPATH'])
+        # Make the Media dir if it doesnt exist
+        if not os.path.exists(cfg['MEDIA_DIR']):
+            os.makedirs(cfg['MEDIA_DIR'])
+        # Make the log dir if it doesnt exist
+        if not os.path.exists(cfg['LOGPATH']):
+            os.makedirs(cfg['LOGPATH'])
+    except IOError as e:  # noqa: F841
+        # logging.error("A fatal error has occurred.  Cant find/create the folders from arm.yaml " + str(e))
+        # notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the
+        # logs for more details. " + str(e))
+        sys.exit(e)
+
+
+def makecleanlogfile(logfile):
+    """
+    Clean the log of secret keys and return the removed string
+
+    arguments:
+    logfile - the log as string
+
+    returns - a clean string with all keys and api secrets removed
+    """
+    # TODO: make this cleaner/smaller
+    # lets make sure we are using a string
+    logfile = str(logfile)
+    # logging.debug("inside makecleanlogfile: " + str(logfile) + "\n\r")
+    out = re.sub(r"(PB_KEY=.*?)", '(PB_KEY=** REMOVED **)', logfile)  # noqa W605
+    out = re.sub(r"(EMBY_PASSWORD=.*?)", '(EMBY_PASSWORD=** REMOVED **)', out)
+    out = re.sub(r"(EMBY_API_KEY=.*?)", '(EMBY_API_KEY=** REMOVED **)', out)
+    out = re.sub(r"(EMBY_SERVER=.*?)", '(EMBY_SERVER=** REMOVED **)', out)
+    out = re.sub(r"(IFTTT_KEY=.*?)", '(IFTTT_KEY=** REMOVED **)', out)
+    out = re.sub(r"(OMDB_API_KEY=.*?)", '(OMDB_API_KEY=** REMOVED **)', out)
+    out = re.sub(r"(PO_APP_KEY=.*?)", '(PO_APP_KEY=** REMOVED **)', out)
+    out = re.sub(r"(PO_USER_KEY=.*?)", '(PO_USER_KEY=** REMOVED **)', out)
+    # \(WEBSERVER_IP=(.*?)\.3[0-9]{1,3}\.[0-9]{1,3}\)
+    ips = re.search(r'(WEBSERVER_IP=(.*?)\.[0-9]{1,3}\.[0-9]{1,3})', out)
+    if ips:
+        ip = ips.group(1)
+        out = re.sub(r"(WEBSERVER_IP=.*?)", '(WEBSERVER_IP=' + str(ip) + '.xx.xx)', out)
+
+    # Apprise notifications
+    out = re.sub("(DISCORD_WEBHOOK_ID=.*?)", '(DISCORD_WEBHOOK_ID=** REMOVED **)', out)
+    out = re.sub("(DISCORD_TOKEN=.*?)", '(DISCORD_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(FAAST_TOKEN=.*?)", '(FAAST_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(FLOCK_TOKEN=.*?)", '(FLOCK_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(GITTER_TOKEN=.*?)", '(GITTER_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(GOTIFY_HOST=.*?)", '(GOTIFY_HOST=** REMOVED **)', out)
+    out = re.sub(r"(GROWL_HOST=.*?)", '(GROWL_HOST=** REMOVED **)', out)
+    out = re.sub(r"(GROWL_PASS=.*?)", '(GROWL_PASS=** REMOVED **)', out)
+    out = re.sub(r"(JOIN_API=.*?)", '(JOIN_API=** REMOVED **)', out)
+    out = re.sub(r"(JOIN_DEVICE=.*?)", '(JOIN_DEVICE=** REMOVED **)', out)
+    out = re.sub(r"(KODI_HOST=.*?)", '(KODI_HOST=** REMOVED **)', out)
+    out = re.sub(r"(KODI_PASS=.*?)", '(KODI_PASS=** REMOVED **)', out)
+    out = re.sub(r"(KUMULOS_API=.*?)", '(KUMULOS_API=** REMOVED **)', out)
+    out = re.sub(r"(LAMETRIC_API=.*?)", '(LAMETRIC_API=** REMOVED **)', out)
+    out = re.sub(r"(LAMETRIC_HOST=.*?)", '(LAMETRIC_HOST=** REMOVED **)', out)
+    out = re.sub(r"(LAMETRIC_APP_ID=.*?)", '(LAMETRIC_APP_ID=** REMOVED **)', out)
+    out = re.sub(r"(LAMETRIC_TOKEN=.*?)", '(LAMETRIC_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(MAILGUN_DOMAIN=.*?)", '(MAILGUN_DOMAIN=** REMOVED **)', out)
+    out = re.sub(r"(MAILGUN_APIKEY=.*?)", '(MAILGUN_APIKEY=** REMOVED **)', out)
+    out = re.sub(r"(MATRIX_HOST=.*?)", '(MATRIX_HOST=** REMOVED **)', out)
+    out = re.sub(r"(MATRIX_PASS=.*?)", '(MATRIX_PASS=** REMOVED **)', out)
+    out = re.sub(r"(MATRIX_TOKEN=.*?)", '(MATRIX_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(MSTEAMS_TOKENA=.*?)", '(MSTEAMS_TOKENA=** REMOVED **)', out)
+    out = re.sub(r"(MSTEAMS_TOKENB=.*?)", '(MSTEAMS_TOKENB=** REMOVED **)', out)
+    out = re.sub(r"(MSTEAMS_TOKENC=.*?)", '(MSTEAMS_TOKENC=** REMOVED **)', out)
+    out = re.sub(r"(NEXTCLOUD_HOST=.*?)", '(NEXTCLOUD_HOST=** REMOVED **)', out)
+    out = re.sub(r"(NEXTCLOUD_ADMINPASS=.*?)", '(NEXTCLOUD_ADMINPASS=** REMOVED **)', out)
+    out = re.sub(r"(NOTICA_TOKEN=.*?)", '(NOTICA_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(NOTIFICO_PROJECTID=.*?)", '(NOTIFICO_PROJECTID=** REMOVED **)', out)
+    out = re.sub(r"(NOTIFICO_MESSAGEHOOK=.*?)", '(NOTIFICO_MESSAGEHOOK=** REMOVED **)', out)
+    out = re.sub(r"(OFFICE365_TENANTID=.*?)", '(OFFICE365_TENANTID=** REMOVED **)', out)
+    out = re.sub(r"(OFFICE365_CLIENT_ID=.*?)", '(OFFICE365_CLIENT_ID=** REMOVED **)', out)
+    out = re.sub(r"(OFFICE365_CLIENT_SECRET=.*?)", '(OFFICE365_CLIENT_SECRET=** REMOVED **)', out)
+    out = re.sub(r"(POPCORN_API=.*?)", '(POPCORN_API=** REMOVED **)', out)
+    out = re.sub(r"(POPCORN_EMAIL=.*?)", '(POPCORN_EMAIL=** REMOVED **)', out)
+    out = re.sub(r"(POPCORN_PHONENO=.*?)", '(POPCORN_PHONENO=** REMOVED **)', out)
+    out = re.sub(r"(PROWL_API=.*?)", '(PROWL_API=** REMOVED **)', out)
+    out = re.sub(r"(PROWL_PROVIDERKEY=.*?)", '(PROWL_PROVIDERKEY=** REMOVED **)', out)
+    out = re.sub(r"(PUSH_API=.*?)", '(PUSH_API=** REMOVED **)', out)
+    out = re.sub(r"(PUSHED_APP_KEY=.*?)", '(PUSHED_APP_KEY=** REMOVED **)', out)
+    out = re.sub(r"(PUSHED_APP_SECRET=.*?)", '(PUSHED_APP_SECRET=** REMOVED **)', out)
+    out = re.sub(r"(PUSHSAFER_KEY=.*?)", '(PUSHSAFER_KEY=** REMOVED **)', out)
+    out = re.sub(r"(ROCKETCHAT_HOST=.*?)", '(ROCKETCHAT_HOST=** REMOVED **)', out)
+    out = re.sub(r"(ROCKETCHAT_PASS=.*?)", '(ROCKETCHAT_PASS=** REMOVED **)', out)
+    out = re.sub(r"(ROCKETCHAT_WEBHOOK=.*?)", '(ROCKETCHAT_WEBHOOK=** REMOVED **)', out)
+    out = re.sub(r"(RYVER_ORG=.*?)", '(RYVER_ORG=** REMOVED **)', out)
+    out = re.sub(r"(RYVER_TOKEN=.*?)", '(RYVER_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(SENDGRID_API=.*?)", '(SENDGRID_API=** REMOVED **)', out)
+    out = re.sub(r"(SENDGRID_FROMMAIL=.*?)", '(SENDGRID_FROMMAIL=** REMOVED **)', out)
+    out = re.sub(r"(SIMPLEPUSH_API=.*?)", '(SIMPLEPUSH_API=** REMOVED **)', out)
+    out = re.sub(r"(SLACK_TOKENA=.*?)", '(SLACK_TOKENA=** REMOVED **)', out)
+    out = re.sub(r"(SLACK_TOKENB=.*?)", '(SLACK_TOKENB=** REMOVED **)', out)
+    out = re.sub(r"(SLACK_TOKENC=.*?)", '(SLACK_TOKENC=** REMOVED **)', out)
+    out = re.sub(r"(SPARKPOST_API=.*?)", '(SPARKPOST_API=** REMOVED **)', out)
+    out = re.sub(r"(SPARKPOST_HOST=.*?)", '(SPARKPOST_HOST=** REMOVED **)', out)
+    out = re.sub(r"(SPONTIT_API=.*?)", '(SPONTIT_API=** REMOVED **)', out)
+    out = re.sub(r"(SPONTIT_USER_ID=.*?)", '(SPONTIT_USER_ID=** REMOVED **)', out)
+    out = re.sub(r"(TELEGRAM_BOT_TOKEN=.*?)", '(TELEGRAM_BOT_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(TELEGRAM_CHAT_ID=.*?)", '(TELEGRAM_CHAT_ID=** REMOVED **)', out)
+    out = re.sub(r"(TWIST_EMAIL=.*?)", '(TWIST_EMAIL=** REMOVED **)', out)
+    out = re.sub(r"(TWIST_PASS=.*?)", '(TWIST_PASS=** REMOVED **)', out)
+    out = re.sub(r"(XBMC_HOST=.*?)", '(XBMC_HOST=** REMOVED **)', out)
+    out = re.sub(r"(XBMC_PASS=.*?)", '(XBMC_PASS=** REMOVED **)', out)
+    out = re.sub(r"(XMPP_HOST=.*?)", '(XMPP_HOST=** REMOVED **)', out)
+    out = re.sub(r"(XMPP_PASS=.*?)", '(XMPP_PASS=** REMOVED **)', out)
+    out = re.sub(r"(WEBEX_TEAMS_TOKEN=.*?)", '(WEBEX_TEAMS_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(ZILUP_CHAT_TOKEN=.*?)", '(ZILUP_CHAT_TOKEN=** REMOVED **)', out)
+    out = re.sub(r"(ZILUP_CHAT_ORG=.*?)", '(ZILUP_CHAT_ORG=** REMOVED **)', out)
+    # format for more entries
+    # out = re.sub("\(CONFIG_ID=.*?)", '(CONFIG_ID=** REMOVED **)', out)
+
+    # logging.debug("our clean log string" + str(out))
+    return out
+
+
+def database_updater(args, job, wait_time=90):
+    """
+    Try to update our db for x seconds and handle it nicely if we cant
+
+    :param args: This needs to be a Dict with the key being the job.method you want to change and the value being
+    the new value.
+
+    :param job: This is the job object
+    :param wait_time: The time to wait in seconds
+    :return: Nothing
+    """
+    # Loop through our args and try to set any of our job variables
+    for (key, value) in args.items():
+        logging.debug(str(key) + "= " + str(value))
+        logging.debug("key = " + str(key))
+        if key == "job_id":
+            job.job_id = value
+        elif key == "logfile":
+            job.logfile = value
+        elif key == "status":
+            job.status = value
+        elif key == "no_of_titles":
+            job.no_of_titles = value
+        elif key == "job_length":
+            job.job_length = value
+        elif key == "crc_id":
+            job.crc_id = value
+        elif key == "year":
+            job.year = value
+        elif key == "year_auto":
+            job.year_auto = value
+        elif key == "year_manual":
+            job.year_manual = value
+        elif key == "no_of_titles":
+            job.no_of_titles = value
+        elif key == "title":
+            job.title = value
+        elif key == "title_auto":
+            job.title_auto = value
+        elif key == "title_manual":
+            job.title_manual = value
+        elif key == "video_type":
+            job.video_type = value
+        elif key == "video_type_auto":
+            job.video_type_auto = value
+        elif key == "video_type_manual":
+            job.video_type_manual = value
+        elif key == "imdb_id":
+            job.imdb_id = value
+        elif key == "imdb_id_auto":
+            job.poster_url = value
+        elif key == "imdb_id_manual":
+            job.imdb_id_manual = value
+        elif key == "poster_url":
+            job.poster_url = value
+        elif key == "poster_url_auto":
+            job.poster_url_auto = value
+        elif key == "poster_url_manual":
+            job.poster_url_manual = value
+        elif key == "hasnicetitle":
+            job.hasnicetitle = value
+        elif key == "errors":
+            job.errors = value
+
+    for i in range(wait_time):  # give up after the users wait period in seconds
+        try:
+            db.session.commit()
+        except Exception as e:
+            if "locked" in str(e):
+                time.sleep(1)
+                logging.debug("database is locked - trying in 1 second")
+            else:
+                logging.debug("Error: " + str(e))
+                raise RuntimeError(str(e))
+        else:
+            logging.debug("successfully written to the database")
+            return True
+
+
+def job_dupe_check(job):
+    """
+    function for checking the database to look for jobs that have completed
+    successfully with the same crc
+
+    :param job: The job obj so we can use the crc/title etc
+    :return: True if we have found dupes with the same crc
+              - Will also return a dict of all the jobs found.
+             False if we didnt find any with the same crc
+              - Will also return None as a secondary param
+    """
+    # TODO possibly only grab hasnicetitles ?
+    jobs = Job.query.filter_by(crc_id=job.crc_id, status="success")
+    # logging.debug("search - posts=" + str(jobs))
+    r = {}
+    i = 0
+    for j in jobs:
+        logging.debug("job obj= " + str(j.get_d()))
+        x = j.get_d().items()
+        r[i] = {}
+        for key, value in iter(x):
+            r[i][str(key)] = str(value)
+            # logging.debug(str(key) + "= " + str(value))
+        i += 1
+
+    logging.debug(r)
+    logging.debug("r len=" + str(len(r)))
+    if jobs is not None and len(r) > 0:
+        logging.debug("jobs is none or len(r) - we have jobs")
+        return True, r
+    else:
+        logging.debug("jobs is none or len(r) is 0 - we have no jobs")
+        return False, None

@@ -37,6 +37,11 @@ MANUAL_WAIT: true
 # Wait tie for manual identification (in seconds)
 MANUAL_WAIT_TIME: 60
 
+
+# Allows you to format the date/time to your own liking
+# This will be used throughout ARM and ARMui
+DATE_FORMAT: "%d-%m-%Y %H:%M:%S"
+
 ## Do you want to allow Rips of the same disk multiple times
 ## With this set as false the task will exit if it recongnises the same movie being ripped
 ## recommended to set to false for series 
@@ -45,10 +50,20 @@ ALLOW_DUPLICATES: false
 # Number of Transcodes that runs at the same time.
 # Certain Video cards are limited to how many encodes they can run at the same time.
 # Also useful for deminishing returns on CPU based encodes.
-MAX_CONCURRENT_TRANSCODES: 3
+# 0 to disable
+MAX_CONCURRENT_TRANSCODES: 0
 
 # Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
 DATA_RIP_PARAMETERS: ""
+
+# Set to one of "none", "musicbrainz", "freecddb"
+# if "musicbrainz" is used the disc information are asked from musicbrainz.org
+# if "none" is used no label is identified
+GET_AUDIO_TITLE: "musicbrainz"
+
+## Location of your ABCDE config file
+## This over-rides any other abcde.conf files 
+ABCDE_CONFIG_FILE: "/etc/abcde.conf"
 
 #####################
 ## Directory setup ##
@@ -94,7 +109,6 @@ DBFILE: "/home/arm/db/arm.db"
 ##################
 
 # IP address of web server (this machine)
-# Use x.x.x.x to autodetect the IP address to use
 WEBSERVER_IP: x.x.x.x
 
 # Port for web server
@@ -244,4 +258,5 @@ OMDB_API_KEY: ""
 ##            APPRISE NOTIFICATIONS            ##
 #################################################
 ## File location of your apprise.yaml file
+## Leave blank to disable
 APPRISE: ""
