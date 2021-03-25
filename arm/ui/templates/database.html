@@ -147,11 +147,10 @@
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
-    {{ super() }}
+{{ super() }}
 
     <script type="application/javascript">
         var hrrref = "";
-        var wedeleted = "{{ success }}";
         var activeJob = null;
         var actionType = null;
         $(document).ready(function(){

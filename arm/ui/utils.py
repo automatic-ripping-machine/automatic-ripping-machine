@@ -41,7 +41,7 @@ def database_updater(args, job, wait_time=90):
         except Exception as e:
             if "locked" in str(e):
                 time.sleep(1)
-                app.logger.debug("database is locked - trying in 1 second")
+                app.logger.debug("database is locked - trying in 1 second " + str(e))
             else:
                 app.logger.debug("Error: " + str(e))
                 raise RuntimeError(str(e))
@@ -869,7 +869,7 @@ def fix_permissions(j_id):
 def trigger_restart():
     """
     We update the file modified time to get flask to restart
-    This only works if ARMui is running as a service
+    This only works if ARMui is running as a service & in debug mode
     """
     import datetime
 

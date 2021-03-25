@@ -97,15 +97,24 @@ $(document).ready(function () {
 function addJobItem(job) {
     // TODO: this needs converted to the new format seen on database page
     var x = '<div class="col-md-4" id="jobId' + job["job_id"] + '">\
-            <div class="card mb-3  mx-auto" style="max-width: 600px">\
-            <div class="row no-gutters">\
-                            <div class="col-lg-4">\
-							<a href="jobdetail?job_id=' + job["job_id"] + '"><img id="jobId' + job["job_id"] + '_poster_url" src="' + job["poster_url"] + '" \
-                                                                                 width="240px"\
-                                                                                 class="img-thumbnail"></a>\
-																				 </div>\
-                            <div class="col-lg-4">\
-                                <div class="card-body px-1 py-1">'
+    <div class="card mb-3  mx-auto">\
+                <div class="card-header row no-gutters justify-content-center">\
+                    <strong>';
+    if (job['title_manual']) {
+        x += job["title_manual"] + ' ('+job['year']+')';
+    }else{
+        x += job["title"] + ' (' + job['year'] + ')';
+    }
+    x += '</strong>\
+          </div>\
+          <div class="row no-gutters">\
+          <div class="col-lg-4">\
+	      <a href="jobdetail?job_id=' + job["job_id"] + '">\
+          <img id="jobId' + job["job_id"] + '_poster_url" src="' + job["poster_url"] + '" width="240px" class="img-thumbnail">\
+          </a>\
+          </div>\
+          <div class="col-lg-4">\
+          <div class="card-body px-1 py-1">'
 
     x += '<div id="jobId' + job["job_id"] + '_title"><b>' + job["title"] + '</b></div>'
 	x += '<div id="jobId' + job["job_id"] + '_year"><b>Year: </b>' + job["year"] +'</div>'
@@ -151,7 +160,7 @@ function addJobItem(job) {
                             </div>\
                         </div>\
                     </div>\
-                </div>';
+                </div></div>';
     return x
 }
 

@@ -12,7 +12,7 @@ import requests
 import arm.ui.utils as utils
 
 from time import sleep
-from flask import Flask, render_template, make_response, abort, request, send_file, flash, \
+from flask import Flask, render_template, request, send_file, flash, \
     redirect, url_for  # noqa: F401
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, Alembic_version, UISettings  # noqa: F401
@@ -238,9 +238,6 @@ def database():
     Currently outputs every job from the databse - this can cause serious slow downs with + 3/4000 entries
     Pagination is needed!
     """
-    # Success gives the user feedback to let them know if the delete worked
-    success = False
-    saved = False
     # Check for database file
     if os.path.isfile(cfg['DBFILE']):
         # jobs = Job.query.filter_by(status="active")
@@ -248,54 +245,8 @@ def database():
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
-    # Try to see if we have the arg set, if not ignore the error
-    try:
-        mode = request.args['mode']
-        jobid = request.args['jobid']
-        saved = True
-    except Exception:
-        app.logger.debug("/database - no vars set")
 
-    if saved:
-        try:
-            # Find the job the user wants to delete
-            if mode == 'delete' and jobid is not None:
-                # User wants to wipe the whole database
-                # Make a backup and everything
-                # The user can only access this by typing it manually
-                if jobid == 'all':
-                    if os.path.isfile(cfg['DBFILE']):
-                        # Make a backup of the database file
-                        cmd = f'cp {cfg["DBFILE"]} {cfg["DBFILE"]}.bak'
-                        app.logger.info(f"cmd  -  {cmd}")
-                        os.system(cmd)
-                    Track.query.delete()
-                    Job.query.delete()
-                    Config.query.delete()
-                    db.session.commit()
-                    success = True
-                    """elif jobid == "logfile":
-                    #  The user can only access this by typing it manually
-                    #  This shouldnt be left on when on a full server
-                    logfile = request.args['file']
-                    Job.query.filter_by(title=logfile).delete()
-                    db.session.commit()
-                    """
-                    # Not sure this is the greatest way of handling this
-                else:
-                    Track.query.filter_by(job_id=jobid).delete()
-                    Job.query.filter_by(job_id=jobid).delete()
-                    Config.query.filter_by(job_id=jobid).delete()
-                    db.session.commit()
-                    success = True
-        # If we run into problems with the datebase changes
-        # error out to the log and roll back
-        except Exception as err:
-            db.session.rollback()
-            app.logger.error(f"Error:db-1 {err}")
-            success = False
-
-    return render_template('database.html', jobs=jobs, success=success, date_format=cfg['DATE_FORMAT'])
+    return render_template('database.html', jobs=jobs, date_format=cfg['DATE_FORMAT'])
 
 
 @app.route('/json', methods=['GET', 'POST'])
@@ -437,14 +388,25 @@ def ui_settings():
     This function needs to trigger a restart of flask for debugging to update the values
 
     """
-    armui_cfg = UISettings.query.filter_by(id=1).first()
+    armui_cfg = UISettings.query.filter_by().first()
     form = UiSettingsForm()
-    flash("This page is not fully developed yet, values may or may not be used currently", "info")
     if form.validate_on_submit():
-        utils.database_updater(request.form.to_dict(), armui_cfg)
+        use_icons = False if str(form.use_icons.data).strip().lower() != "true" else True
+        save_remote_images = False if str(form.save_remote_images.data).strip().lower() != "true" else True
+        x = {
+            'index_refresh': format(form.index_refresh.data),
+            'use_icons': use_icons,
+            'save_remote_images': save_remote_images,
+            'bootstrap_skin': format(form.bootstrap_skin.data),
+            'language': format(form.language.data),
+            'database_limit': format(form.database_limit.data),
+        }
+        utils.database_updater(x, armui_cfg)
         db.session.refresh(armui_cfg)
         utils.trigger_restart()
-    return render_template('ui_settings.html', form=SettingsForm(), settings=armui_cfg)
+        flash("Settings saved successfully!", "success")
+
+    return render_template('ui_settings.html', form=form, settings=armui_cfg)
 
 
 @app.route('/logs')

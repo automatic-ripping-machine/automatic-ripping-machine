@@ -17,7 +17,7 @@ class CustomTitleForm(FlaskForm):
 
 class ChangeParamsForm(FlaskForm):
     RIPMETHOD = SelectField('Rip Method: ', choices=[('mkv', 'mkv'), ('backup', 'backup')])
-    DISCTYPE = SelectField('Disc Type: ', choices=[('dvd', 'DVD'), ('bluray', 'Bluray'),
+    DISCTYPE = SelectField('Disc Type: ', choices=[('dvd', 'DVD'), ('bluray', 'Blu-ray'),
                                                    ('music', 'Music'), ('data', 'Data')])
     # "music", "dvd", "bluray" and "data"
     MAINFEATURE = BooleanField('Main Feature')
@@ -44,9 +44,9 @@ class SettingsForm(FlaskForm):
 
 class UiSettingsForm(FlaskForm):
     index_refresh = IntegerField('index_refresh', validators=[DataRequired()])
-    boostrap_skin = StringField('boostrap_skin', validators=[DataRequired()])
-    use_icons = IntegerField('use_icons', validators=[DataRequired()])
-    database_limit = IntegerField('database_limit', validators=[DataRequired()])
+    use_icons = StringField('use_icons')
+    save_remote_images = StringField('save_remote_images')
+    bootstrap_skin = StringField('bootstrap_skin', validators=[DataRequired()])
     language = StringField('language', validators=[DataRequired()])
-    save_remote_images = IntegerField('save_remote_images', validators=[DataRequired()])
+    database_limit = IntegerField('database_limit', validators=[DataRequired()])
     submit = SubmitField('Submit')
