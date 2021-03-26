@@ -17,8 +17,8 @@ echo -e "${RED}Setting up directories and getting makeMKV files${NC}"
 mkdir /makeMKV
 cd /makeMKV
 
-wget https://www.makemkv.com/download/makemkv-bin-1.16.1.tar.gz
-wget https://www.makemkv.com/download/makemkv-oss-1.16.1.tar.gz
+wget https://www.makemkv.com/download/old/makemkv-bin-1.16.1.tar.gz
+wget https://www.makemkv.com/download/old/makemkv-oss-1.16.1.tar.gz
 
 echo -e "${RED}Extracting MakeMKV${NC}"
 tar xvzf makemkv-oss-1.16.1.tar.gz
