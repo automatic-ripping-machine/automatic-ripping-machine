@@ -13,7 +13,6 @@ class Job(db.Model):
     arm_version = db.Column(db.String(20))
     crc_id = db.Column(db.String(63))
     logfile = db.Column(db.String(256))
-    # disc = db.Column(db.String(63))
     start_time = db.Column(db.DateTime)
     stop_time = db.Column(db.DateTime)
     job_length = db.Column(db.String(12))
@@ -139,7 +138,6 @@ class Track(db.Model):
     track_number = db.Column(db.String(4))
     length = db.Column(db.Integer)
     aspect_ratio = db.Column(db.String(20))
-    # blocks = db.Column(db.Integer)
     fps = db.Column(db.Float)
     main_feature = db.Column(db.Boolean)
     basename = db.Column(db.String(256))
@@ -157,7 +155,6 @@ class Track(db.Model):
         self.track_number = track_number
         self.length = length
         self.aspect_ratio = aspect_ratio
-        # self.blocks = blocks
         self.fps = fps
         self.main_feature = main_feature
         self.source = source

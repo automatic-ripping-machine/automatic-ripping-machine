@@ -19,7 +19,6 @@ def setuplogging(job):
             # Use the music label if we can find it - defaults to music_cd.log
             disc_id = music_brainz.get_disc_id(job)
             mb_title = music_brainz.get_title(disc_id, job)
-            # mb_title = music_brainz.main(job)
             if mb_title == "not identified":
                 job.label = job.title = "not identified"
                 logfile = "music_cd.log"
@@ -27,8 +26,6 @@ def setuplogging(job):
                 temp_log_full = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" \
                     else cfg['LOGPATH'] + "/" + logfile
                 logfile = new_log_file if os.path.isfile(temp_log_full) else str(logfile) + ".log"
-                # job.logfile = "music_cd.log"
-                # logfile = "music_cd.log"
             else:
                 orig_logfile = str(mb_title) + ".log"
                 new_log_file = str(mb_title) + "_" + str(round(time.time() * 100)) + ".log"
@@ -98,7 +95,6 @@ def cleanuplogs(logpath, loglife):
 
     for filename in os.listdir(logpath):
         fullname = os.path.join(logpath, filename)
-        if fullname.endswith(".log"):
-            if os.stat(fullname).st_mtime < now - loglife * 86400:
-                logging.info("Deleting log file: " + filename)
-                os.remove(fullname)
+        if fullname.endswith(".log") and os.stat(fullname).st_mtime < now - loglife * 86400:
+            logging.info("Deleting log file: " + filename)
+            os.remove(fullname)

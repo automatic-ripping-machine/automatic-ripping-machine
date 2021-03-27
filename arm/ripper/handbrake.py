@@ -13,7 +13,6 @@ import datetime  # noqa: F401
 import psutil  # noqa: F401
 
 from arm.ripper import utils
-# from arm.config.config import cfg
 from arm.models.models import Track  # noqa: F401
 from arm.ui import app, db  # noqa E402
 from arm.config.config import cfg
@@ -44,8 +43,6 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     get_track_info(srcpath, job)
 
     track = job.tracks.filter_by(main_feature=True).first()
-    # track = job.tracks.order_by(Track.length.desc()).first()
-
     if track is None:
         msg = "No main feature found by Handbrake. Turn MAINFEATURE to false in arm.yml and try again."
         logging.error(msg)

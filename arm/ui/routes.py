@@ -32,10 +32,8 @@ def load_user(user_id):
         return User.query.get(int(user_id))
     except Exception:
         app.logger.debug("error getting user")
-        # return redirect('/login')
 
 
-#  Redirect to login if we arent auth
 @login_manager.unauthorized_handler
 def unauthorized():
     return redirect('/login')
@@ -135,7 +133,6 @@ def setup_stage2():
             flash('You cannot create more than 1 admin account')
             return redirect(url_for('login'))
     except Exception:
-        # return redirect('/index')
         app.logger.debug("No admin account found")
 
     save = False
@@ -213,8 +210,6 @@ def login():
         hashed = user.hash
         # our new one
         loginhashed = bcrypt.hashpw(str(request.form['password']).strip().encode('utf-8'), hashed)
-        # app.logger.debug(loginhashed)
-        # app.logger.debug(password)
 
         if loginhashed == password:
             login_user(user)
@@ -225,7 +220,6 @@ def login():
         else:
             return render_template('login.html', success="false", raw='Invalid Password')
 
-        # return redirect(url_for('home'))
     return render_template('login.html', title='Sign In')
 
 
@@ -240,7 +234,6 @@ def database():
     """
     # Check for database file
     if os.path.isfile(cfg['DBFILE']):
-        # jobs = Job.query.filter_by(status="active")
         jobs = Job.query.filter_by().order_by(db.desc(Job.job_id))
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
@@ -525,7 +518,6 @@ def history():
 
     """
     if os.path.isfile(cfg['DBFILE']):
-        # jobs = Job.query.filter_by(status="active")
         jobs = Job.query.filter_by()
     else:
         app.logger.error('ERROR: /history database file doesnt exist')
@@ -744,7 +736,6 @@ def home():
         temp = temps = None
 
     if os.path.isfile(cfg['DBFILE']):
-        # jobs = Job.query.filter_by(status="active")
         try:
             jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
         except Exception:
@@ -769,7 +760,6 @@ def home():
                 app.logger.debug(str(job_status.group(1)))
                 job.stage = job_status.group(1)
                 job.progress = job_status.group(2)
-                # job.eta = job_status.group(2)+":"+job_status.group(3)+":"+job_status.group(4)
                 job.eta = job_status.group(3)
                 app.logger.debug("job.progress = " + str(job.progress))
                 x = job.progress
@@ -942,7 +932,6 @@ def send_movies():
     api_key = cfg['ARM_API_KEY']
 
     for p in posts:
-        # if i>5:break
         base_url = "https://1337server.pythonanywhere.com"  # This allows easy updates to the API url
         url = f"{base_url}/api/v1/?mode=p&api_key={api_key}&crc64={p.crc_id}&t={p.title}&y={p.year}&imdb={p.imdb_id}" \
               f"&hnt={p.hasnicetitle}&l={p.label}"
@@ -980,7 +969,6 @@ def get_processor_name():
         cpu_info = subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
     elif platform.system() == "Linux":
         command = "cat /proc/cpuinfo"
-        # return \
         fulldump = str(subprocess.check_output(command, shell=True).strip())
         # Take any float trailing "MHz", some whitespace, and a colon.
         speeds = re.search(r"\\nmodel name\\t:.*?GHz\\n", fulldump)
@@ -998,7 +986,6 @@ def get_processor_name():
             amd_name = amd_name_full.group(1)
             amd_mhz = re.search(r"cpu MHz(?:\\t)*: ([.0-9]*)\\n", fulldump)  # noqa: W605
             if amd_mhz:
-                # amd_ghz = re.sub('[^.0-9]', '', amd_mhz.group())
                 amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
                 cpu_info = str(amd_name) + " @ " + str(amd_ghz) + " GHz"
     return cpu_info

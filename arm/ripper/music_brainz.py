@@ -74,8 +74,6 @@ def music_brainz(discid, job):
             'title_auto': title
         }
         database_updater(args, job)
-        # db.session.commit()
-        # time.sleep(1)
         logging.debug("musicbrain works -  New title is " + title + ".  New Year is: " + new_year)
     except mb.WebServiceError as exc:
         logging.error("Cant reach MB or cd not found ? - ERROR: " + str(exc))
@@ -92,7 +90,6 @@ def music_brainz(discid, job):
         else:
             logging.debug("we didnt get art image")
         # Set up the database properly for music cd's
-        # job.logfile = clean_for_log(artist) + "_" + clean_for_log(release['title']) + ".log"
         artist_title = artist + " " + title
         args = {
             'job_id': str(job.job_id),
@@ -103,7 +100,6 @@ def music_brainz(discid, job):
             'no_of_titles': infos['disc']['offset-count']
         }
         database_updater(args, job)
-        # db.session.commit()
     except Exception as exc:
         artist_title = "Not identified" if not title else title
         logging.error("Try 2 -  ERROR: " + str(exc))
@@ -141,7 +137,6 @@ def get_title(discid, job):
         logging.debug('crc = %s', job.crc_id)
         artist = str(infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name'])
         logging.debug('artist = %s', artist)
-        # log = clean_for_log(artist) + "_" + clean_for_log(title) + ".log"
         job.title = job.title_auto = artist + " " + title
         logging.debug('job.title = %s', job.title)
         job.video_type = "Music"
@@ -149,7 +144,6 @@ def get_title(discid, job):
         logging.debug('clean title = %s', clean_title)
         db.session.commit()
         return clean_title
-        # return artist + "_" + title
     except mb.WebServiceError as exc:
         logging.error("mb.gettitle -  ERROR: " + str(exc))
         logging.debug('error = %s', str(exc))
@@ -195,8 +189,6 @@ def get_cd_art(job, infos):
         # [<img src="https://images-eu.ssl-images-amazon.com/images/I/41SN9FK5ATL.jpg"/>]
         job.poster_url = re.search(r'<img src="(.*)"', str(img)).group(1)
         job.poster_url_auto = job.poster_url
-        # logging.debug("img =====  " + str(img))
-        # logging.debug("img stripped =====" + str(job.poster_url))
         db.session.commit()
         if job.poster_url != "":
             return True
@@ -249,4 +241,4 @@ if __name__ == "__main__":
     logging.debug("DiscID: %s (%s)", str(myid), myid.freedb_id)
     logging.debug("URL: %s", myid.submission_url)
     logging.debug("Tracks: %s", myid.tracks)
-    logging.debug("Musicbrain: %s", music_brainz(myid))
+    logging.debug("Musicbrain: %s", music_brainz(myid, None))

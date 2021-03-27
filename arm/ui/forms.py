@@ -21,7 +21,6 @@ class ChangeParamsForm(FlaskForm):
                                                    ('music', 'Music'), ('data', 'Data')])
     # "music", "dvd", "bluray" and "data"
     MAINFEATURE = BooleanField('Main Feature')
-    # MAINFEATURE = SelectField('Main Feature: ', choices=[(1, 'Yes'), (0, 'No')])
     MINLENGTH = IntegerField('Minimum Length: ')
     MAXLENGTH = IntegerField('Maximum Length: ')
     submit = SubmitField('Submit')

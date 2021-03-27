@@ -382,14 +382,14 @@ def rename_files(oldpath, job):
     # This is for media that was recognised after the wait period/disk started ripping
 
     if job.video_type == "movie":
-        typeSubFolder = "movies"
+        type_sub_folder = "movies"
     elif job.video_type == "series":
-        typeSubFolder = "tv"
+        type_sub_folder = "tv"
     else:
-        typeSubFolder = "unidentified"
+        type_sub_folder = "unidentified"
 
     # if job.hasnicetitle:
-    newpath = os.path.join(cfg["COMPLETED_PATH"], str(typeSubFolder), job.title + " (" + str(job.year) + ")")
+    newpath = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), job.title + " (" + str(job.year) + ")")
     # else:
     #    newpath = os.path.join(cfg["COMPLETED_PATH"], job.title + " (" + str(job.year) + ")")
 
@@ -433,7 +433,6 @@ Make a directory\n
             err = "Couldn't create a directory at path: " + path + " Probably a permissions error.  Exiting"
             logging.error(err)
             sys.exit(err)
-            # return False
     else:
         return False
 
@@ -602,7 +601,6 @@ def check_db_version(install_path, db_file):
     import sqlite3
     import flask_migrate
 
-    # db_file = cfg["DBFILE"]
     mig_dir = os.path.join(install_path, "arm/migrations")
 
     config = Config()
@@ -713,10 +711,7 @@ def arm_setup():
         if not os.path.exists(cfg['LOGPATH']):
             os.makedirs(cfg['LOGPATH'])
     except IOError as e:  # noqa: F841
-        # logging.error("A fatal error has occurred.  Cant find/create the folders from arm.yaml " + str(e))
-        # notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(job.title) + ". Check the
-        # logs for more details. " + str(e))
-        sys.exit(e)
+        logging.error("A fatal error has occurred.  Cant find/create the folders from arm.yaml " + str(e))
 
 
 def database_updater(args, job, wait_time=90):

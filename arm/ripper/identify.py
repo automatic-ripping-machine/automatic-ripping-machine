@@ -95,7 +95,6 @@ def clean_for_filename(string):
     string = string.replace("\\", " - ")
     string = string.strip()
     return re.sub('[^\\w_.() -]', '', string)
-    # return string
 
 
 def identify_bluray(job):
@@ -119,7 +118,6 @@ def identify_bluray(job):
         bluray_title = str(job.label)
         bluray_year = ""
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
-        # return False
 
     bluray_modified_timestamp = os.path.getmtime(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml')
     bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))
@@ -197,7 +195,7 @@ def identify_dvd(job):
         logging.debug("using omdb")
         dvd_info_xml = callwebservice(job, cfg["OMDB_API_KEY"], dvd_title, year)
     else:
-        raise Exception("Error with metadata provider - Not supported")
+        raise KeyError("Error with metadata provider - Not supported")
     logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
     # Not sure this is needed anymore because of CWS()
     job.year = year
@@ -227,7 +225,6 @@ def get_video_details(job):
     logging.debug("Title = " + title)
     if title == "not identified" or title is None:
         return
-    # dvd_title_clean = cleanupstring(dvd_title)
     title = title.strip()
     title = re.sub('[_ ]', "+", title)
 
@@ -275,9 +272,7 @@ def get_video_details(job):
             # see if there is a hyphen and split it
             # if title.find("-") > -1:
             while response == "fail" and title.find("-") > 0:
-                # dvd_title_slice = title[:title.find("-")]
                 title = title.rsplit('-', 1)[0]
-                # dvd_title_slice = cleanupstring(dvd_title_slice)
                 logging.debug("Trying title: " + title)
                 response = call_web_service(job, omdb_api_key, title, year)
                 logging.debug("response: " + str(response))
@@ -315,11 +310,6 @@ def callwebservice(job, omdb_api_key, dvd_title, year=""):
 
     logging.debug("***Calling webservice with Title: " + str(dvd_title) + " and Year: " + str(year))
     try:
-        # strurl = "http://www.omdbapi.com/?t={1}&y={2}&plot=short&
-        # r=json&apikey={0}".format(omdb_api_key, dvd_title, year)
-        #
-        # logging.debug("http://www.omdbapi.com/?t={1}&y={2}&plot=short&
-        # r=json&apikey={0}".format("key_hidden", dvd_title, year))
         dvd_title_info_json = urllib.request.urlopen(strurl).read()
     except Exception:
         logging.debug("Webservice failed")
@@ -330,9 +320,7 @@ def callwebservice(job, omdb_api_key, dvd_title, year=""):
             logging.debug("Webservice failed with error: " + doc['Error'])
             return "fail"
         else:
-            # global new_year
             new_year = doc['Year']
-            # new_year = job.year_auto = job.year = str(doc['Year'])
             title = clean_for_filename(doc['Title'])
             logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
             args = {
@@ -397,9 +385,7 @@ def call_tmdb_service(job, tmdb_api_key, dvd_title, year=""):
                 s['Search'] = s
                 logging.debug("x=" + str(x))
                 s['Response'] = True
-                # global new_year
                 new_year = s['Year']
-                # new_year = job.year_auto = job.year = str(x['Year'])
                 title = clean_for_filename(s['Title'])
                 logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
                 args = {
@@ -424,7 +410,6 @@ def call_tmdb_service(job, tmdb_api_key, dvd_title, year=""):
         url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={dvd_title}"
         response = requests.get(url)
         p = json.loads(response.text)
-        # v = json.dumps(response.json(), indent=4, sort_keys=True)
         logging.debug(p)
         x = {}
         if 'total_results' in p and p['total_results'] > 0:
@@ -449,9 +434,7 @@ def call_tmdb_service(job, tmdb_api_key, dvd_title, year=""):
                     s['Search'] = s
                     logging.debug("x=" + str(x))
                     s['Response'] = True
-                    # global new_year
                     new_year = s['Year']
-                    # new_year = job.year_auto = job.year = str(x['Year'])
                     title = clean_for_filename(s['Title'])
                     logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
                     args = {
@@ -496,7 +479,6 @@ def tmdb_get_media_type(job):
     logging.debug("Title = " + title)
     if title == "not identified" or title is None:
         return
-    # dvd_title_clean = cleanupstring(dvd_title)
     title = title.strip()
     title = re.sub('[_ ]', "+", title)
 
@@ -512,8 +494,6 @@ def tmdb_get_media_type(job):
     logging.debug("Title: " + title + " | Year: " + year)
     logging.debug("Calling webservice with title: " + title + " and year: " + year)
     response = call_tmdb_service(job, tmdb_api_key, title, year)
-    # logging.debug("response: " + str(response))
-
     # handle failures
     # this is a little kludgy, but it kind of works...
     if response == "fail":
@@ -535,9 +515,7 @@ def tmdb_get_media_type(job):
             # see if there is a hyphen and split it
             # if title.find("-") > -1:
             while response == "fail" and title.find("-") > 0:
-                # dvd_title_slice = title[:title.find("-")]
                 title = title.rsplit('-', 1)[0]
-                # dvd_title_slice = cleanupstring(dvd_title_slice)
                 logging.debug("Trying title: " + title)
                 response = call_tmdb_service(job, tmdb_api_key, title, year)
                 logging.debug("response: " + str(response))
