@@ -20,6 +20,9 @@ from arm.models.models import Job, Config, Track, User, Alembic_version, UISetti
 from flask import Flask, render_template, flash, request  # noqa: F401
 
 
+TMDB_YEAR_REGEX = "-[0-9]{0,2}-[0-9]{0,2}"
+
+
 def database_updater(args, job, wait_time=90):
     """
     Try to update our db for x seconds and handle it nicely if we cant
@@ -60,7 +63,6 @@ def check_db_version(install_path, db_file):
     import sqlite3
     import flask_migrate
 
-    # db_file = cfg["DBFILE"]
     mig_dir = os.path.join(install_path, "arm/migrations")
 
     config = Config()
@@ -128,7 +130,6 @@ Make a directory\n
         except OSError:
             err = "Couldn't create a directory at path: " + path + " Probably a permissions error.  Exiting"
             app.logger.error(err)
-            # return False
     else:
         return False
 
@@ -156,7 +157,6 @@ def clean_for_filename(string):
     string = string.replace('&', 'and')
     string = string.replace("\\", " - ")
     string = string.strip()
-    # return re.sub('[^\w\-_\.\(\) ]', '', string)
     return string
 
 
@@ -183,9 +183,6 @@ def call_omdb_api(title=None, year=None, imdbID=None, plot="short"):
     else:
         app.logger.debug("no params")
         return None
-
-    # strurl = urllib.parse.quote(strurl)
-    # app.logger.info("OMDB string query"+str(strurl))
     app.logger.debug("omdb - " + str(strurl))
     try:
         title_info_json = urllib.request.urlopen(strurl).read()
@@ -194,14 +191,8 @@ def call_omdb_api(title=None, year=None, imdbID=None, plot="short"):
     except urllib.error.HTTPError as e:
         app.logger.debug(f"omdb call failed with error - {e}")
         return {}
-    # logging.info("Response from Title Info command"+str(title_info))
-    # d = {'year': '1977'}
-    # dvd_info = omdb.get(title=title, year=year)
     app.logger.debug("omdb - call was successful")
     return title_info
-    # except Exception:
-    #     print("call failed")
-    #     return(None)
 
 
 def generate_comments():
@@ -255,7 +246,6 @@ def generate_log(logpath, job_id):
 
 
 def abandon_job(job_id):
-    # job_id = request.args.get('job_id')
     try:
         job = Job.query.get(job_id)
         job.status = "fail"
@@ -399,8 +389,6 @@ def get_omdb_poster(title=None, year=None, imdbID=None, plot="short"):
     from requests.utils import requote_uri
     r = requote_uri(strurl)
     r2 = requote_uri(strurl2)
-    # app.logger.info("OMDB string query - " + str(r))
-    # app.logger.debug("omdb - " + str(f))
     try:
         title_info_json = urllib.request.urlopen(r).read()
     except Exception as e:
@@ -521,10 +509,8 @@ def get_tmdb_poster(search_query=None, year=None):
     tmdb_api_key = cfg['TMDB_API_KEY']
     if year:
         url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}&year={year}"
-        # url_clean = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={search_query}&year={year}"
     else:
         url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}"
-        # url_clean = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={search_query}"
     # Valid poster sizes
     # "w92", "w154", "w185", "w342", "w500", "w780", "original"
     poster_size = "original"
@@ -540,17 +526,16 @@ def get_tmdb_poster(search_query=None, year=None):
     if p['total_results'] > 0:
         app.logger.debug(p['total_results'])
         for s in p['results']:
-            if s['poster_path'] is not None:
-                if 'release_date' in s:
-                    x = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['release_date'])
-                    app.logger.debug(f"{s['title']} ({x})- {poster_base}{s['poster_path']}")
-                    s['poster_url'] = f"{poster_base}{s['poster_path']}"
-                    s["Plot"] = s['overview']
-                    # print(poster_url)
-                    s['background_url'] = f"{poster_base}{s['backdrop_path']}"
-                    s['Type'] = "movie"
-                    app.logger.debug(s['background_url'])
-                    return s
+            if s['poster_path'] is not None and 'release_date' in s:
+                x = re.sub(TMDB_YEAR_REGEX, "", s['release_date'])
+                app.logger.debug(f"{s['title']} ({x})- {poster_base}{s['poster_path']}")
+                s['poster_url'] = f"{poster_base}{s['poster_path']}"
+                s["Plot"] = s['overview']
+                # print(poster_url)
+                s['background_url'] = f"{poster_base}{s['backdrop_path']}"
+                s['Type'] = "movie"
+                app.logger.debug(s['background_url'])
+                return s
     else:
         url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={search_query}"
         response = requests.get(url)
@@ -565,9 +550,8 @@ def get_tmdb_poster(search_query=None, year=None):
                 s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
                 s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
                 s['imdbID'] = tmdb_get_imdb(s['id'])
-                reg = "-[0-9]{0,2}-[0-9]{0,2}"
-                s['Year'] = re.sub(reg, "", s['first_air_date']) if 'first_air_date' in s else \
-                    re.sub(reg, "", s['release_date'])
+                s['Year'] = re.sub(TMDB_YEAR_REGEX, "", s['first_air_date']) if 'first_air_date' in s else \
+                    re.sub(TMDB_YEAR_REGEX, "", s['release_date'])
                 s['Title'] = s['title'] if 'title' in s else s['name']  # This isnt great
                 s['Type'] = "movie"
                 app.logger.debug(f"{s['Title']} ({s['Year']})- {poster_base}{s['poster_path']}")
@@ -598,23 +582,17 @@ def tmdb_search(search_query=None, year=None):
     tmdb_api_key = cfg['TMDB_API_KEY']
     if year:
         url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}&year={year}"
-        # url_clean = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={search_query}&year={year}"
     else:
         url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}"
-        # url_clean = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={search_query}"
     # Valid poster sizes
     # "w92", "w154", "w185", "w342", "w500", "w780", "original"
     poster_size = "original"
     poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
-    # Making a get request
     response = requests.get(url)
     p = json.loads(response.text)
-    # if status_code is in p we know there was an error
     if 'status_code' in p:
         app.logger.debug(f"get_tmdb_poster failed with error -  {p['status_message']}")
         return {}
-    # x = json.dumps(response.json(), indent=4, sort_keys=True)
-    # print(x)
     x = {}
     if p['total_results'] > 0:
         app.logger.debug(f"tmdb_search - found {p['total_results']} movies")
@@ -622,7 +600,7 @@ def tmdb_search(search_query=None, year=None):
             s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
             s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
             s['imdbID'] = tmdb_get_imdb(s['id'])
-            s['Year'] = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['release_date'])
+            s['Year'] = re.sub(TMDB_YEAR_REGEX, "", s['release_date'])
             s['Title'] = s['title']
             s['Type'] = "movie"
             app.logger.debug(f"{s['title']} ({s['Year']})- {poster_base}{s['poster_path']}")
@@ -637,8 +615,6 @@ def tmdb_search(search_query=None, year=None):
         url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={search_query}"
         response = requests.get(url)
         p = json.loads(response.text)
-        # v = json.dumps(response.json(), indent=4, sort_keys=True)
-        # app.logger.debug(v)
         x = {}
         if p['total_results'] > 0:
             app.logger.debug(p['total_results'])
@@ -647,9 +623,8 @@ def tmdb_search(search_query=None, year=None):
                 s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
                 s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
                 s['imdbID'] = tmdb_get_imdb(s['id'])
-                reg = "-[0-9]{0,2}-[0-9]{0,2}"
-                s['Year'] = re.sub(reg, "", s['first_air_date']) if 'first_air_date' in s else \
-                    re.sub(reg, "", s['release_date'])
+                s['Year'] = re.sub(TMDB_YEAR_REGEX, "", s['first_air_date']) if 'first_air_date' in s else \
+                    re.sub(TMDB_YEAR_REGEX, "", s['release_date'])
                 s['Title'] = s['title'] if 'title' in s else s['name']  # This isnt great
                 s['Type'] = "series"
                 app.logger.debug(f"{s['Title']} ({s['Year']})- {poster_base}{s['poster_path']}")
@@ -659,31 +634,6 @@ def tmdb_search(search_query=None, year=None):
                 app.logger.debug(s['background_url'])
                 search_query_pretty = re.sub(r"\+", " ", search_query)
                 app.logger.debug(f"trying {search_query_pretty.capitalize()} == {s['Title'].capitalize()}")
-                """if search_query_pretty.capitalize() == s['Title'].capitalize():
-                    s['Search'] = s
-                    app.logger.debug("x=" + str(x))
-                    s['Response'] = True
-                    # global new_year
-                    new_year = s['Year']
-                    # new_year = job.year_auto = job.year = str(x['Year'])
-                    title = clean_for_filename(s['Title'])
-                    app.logger.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
-                    args = {
-                        'year_auto': str(new_year),
-                        'year': str(new_year),
-                        'title_auto': title,
-                        'title': title,
-                        'video_type_auto': s['Type'],
-                        'video_type': s['Type'],
-                        'imdb_id_auto': s['imdbID'],
-                        'imdb_id': s['imdbID'],
-                        'poster_url_auto': s['Poster'],
-                        'poster_url': s['Poster'],
-                        'hasnicetitle': True
-                    }
-                    # database_updater(args, job)
-                    return s
-                """
             x['Search'] = p['results']
             return x
 
@@ -736,26 +686,24 @@ def tmdb_find(imdb_id):
     if len(p['movie_results']) > 0:
         # We want to push out everything even if we dont use it right now, it may be used later.
         s = {'results': p['movie_results']}
-        x = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['results'][0]['release_date'])
+        x = re.sub(TMDB_YEAR_REGEX, "", s['results'][0]['release_date'])
         app.logger.debug(f"{s['results'][0]['title']} ({x})- {poster_base}{s['results'][0]['poster_path']}")
         s['poster_url'] = f"{poster_base}{s['results'][0]['poster_path']}"
         s["Plot"] = s['results'][0]['overview']
         s['background_url'] = f"{poster_base}{s['results'][0]['backdrop_path']}"
         s['Type'] = "movie"
         s['imdbID'] = imdb_id
-        s['Type'] = "movie"
         s['Poster'] = s['poster_url']
         s['Year'] = x
         s['Title'] = s['results'][0]['title']
     else:
         # We want to push out everything even if we dont use it right now, it may be used later.
         s = {'results': p['tv_results']}
-        x = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['results'][0]['first_air_date'])
+        x = re.sub(TMDB_YEAR_REGEX, "", s['results'][0]['first_air_date'])
         app.logger.debug(f"{s['results'][0]['name']} ({x})- {poster_base}{s['results'][0]['poster_path']}")
         s['poster_url'] = f"{poster_base}{s['results'][0]['poster_path']}"
         s["Plot"] = s['results'][0]['overview']
         s['background_url'] = f"{poster_base}{s['results'][0]['backdrop_path']}"
-        s['Type'] = "movie"
         s['imdbID'] = imdb_id
         s['Type'] = "series"
         s['Poster'] = s['poster_url']
@@ -834,8 +782,6 @@ def fix_permissions(j_id):
     else:
         app.logger.debug("not found")
         directory_to_traverse = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
-    # folder_clean = re.sub("_", " ", job.logfile)
-    # directory_to_traverse = str(os.path.join(folder_clean))
     try:
         corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
         app.logger.info("Setting permissions to: " + str(job.config.CHMOD_VALUE) + " on: " + directory_to_traverse)

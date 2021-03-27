@@ -100,7 +100,7 @@ function addJobItem(job) {
     <div class="card mb-3  mx-auto">\
                 <div class="card-header row no-gutters justify-content-center">\
                     <strong>';
-    if (job['title_manual']) {
+    if (job['title_manual'] !== "None") {
         x += job["title_manual"] + ' ('+job['year']+')';
     }else{
         x += job["title"] + ' (' + job['year'] + ')';

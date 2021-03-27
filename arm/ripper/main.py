@@ -22,6 +22,9 @@ from arm.ripper.getkeys import grabkeys  # noqa: E402
 from arm.models.models import Job, Config  # noqa: E402
 from arm.ui import app, db  # noqa E402
 
+NOTIFY_TITLE = "ARM notification"
+PROCESS_COMPLETE = " processing complete. "
+
 
 def entry():
     """ Entry to program, parses arguments"""
@@ -120,16 +123,16 @@ def main(logfile, job):
     # DVD disk entry
     if job.disctype in ["dvd", "bluray"]:
         # Send the notifications
-        utils.notify(job, "ARM notification",
+        utils.notify(job, NOTIFY_TITLE,
                      f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {cfg['MAINFEATURE']}"
                      f".  Edit entry here: http://" + str(check_ip()) + ":"
                      f"{cfg['WEBSERVER_PORT']}/jobdetail?job_id={job.job_id}")
     elif job.disctype == "music":
-        utils.notify(job, "ARM notification", f"Found music CD: {job.label}. Ripping all tracks")
+        utils.notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks")
     elif job.disctype == "data":
-        utils.notify(job, "ARM notification", "Found data disc.  Copying data.")
+        utils.notify(job, NOTIFY_TITLE, "Found data disc.  Copying data.")
     else:
-        utils.notify(job, "ARM Notification", "Could not identify disc.  Exiting.")
+        utils.notify(job, NOTIFY_TITLE, "Could not identify disc.  Exiting.")
         sys.exit()
 
     # TODO: Update function that will look for the best match with most data
@@ -197,7 +200,7 @@ def main(logfile, job):
                     logging.exception(
                         "A fatal error has occurred and ARM is exiting.  "
                         "Couldn't create filesystem. Possible permission error")
-                    utils.notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(
+                    utils.notify(job, NOTIFY_TITLE, "ARM encountered a fatal error processing " + str(
                         job.title) + ".  Couldn't create filesystem. Possible permission error. ")
                     job.status = "fail"
                     db.session.commit()
@@ -205,7 +208,7 @@ def main(logfile, job):
             else:
                 # We arent allowed to rip dupes, notify and exit
                 logging.info("Duplicate rips are disabled.")
-                utils.notify(job, "ARM notification", "ARM Detected a duplicate disc. For " + str(
+                utils.notify(job, NOTIFY_TITLE, "ARM Detected a duplicate disc. For " + str(
                     job.title) + ".  Duplicate rips are disabled. You can re-enable them from your config file. ")
                 job.status = "fail"
                 db.session.commit()
@@ -233,7 +236,7 @@ def main(logfile, job):
                 db.session.commit()
                 sys.exit()
             if cfg["NOTIFY_RIP"]:
-                utils.notify(job, "ARM notification", str(job.title) + " rip complete.  Starting transcode. ")
+                utils.notify(job, NOTIFY_TITLE, str(job.title) + " rip complete.  Starting transcode. ")
             # point HB to the path MakeMKV ripped to
             hb_in_path = mkvoutpath
 
@@ -308,7 +311,7 @@ def main(logfile, job):
                 if cfg["SET_MEDIA_PERMISSIONS"]:
                     perm_result = utils.set_permissions(job, final_directory)
                     logging.info("Permissions set successfully: " + str(perm_result))
-                utils.notify(job, "ARM notification", str(job.title) + " processing complete. ")
+                utils.notify(job, NOTIFY_TITLE, str(job.title) + PROCESS_COMPLETE)
                 logging.info("ARM processing complete")
                 # WARN  : might cause issues
                 # We need to update our job before we quit
@@ -344,15 +347,12 @@ def main(logfile, job):
 
         # move to media directory
         if job.video_type == "movie" and job.hasnicetitle:
-            # tracks = job.tracks.all()
             tracks = job.tracks.filter_by(ripped=True)
-            # tracks = job.tracks.filter(job.tracks.length > cfg['MINLENGTH'])
             for track in tracks:
                 logging.info("Moving Movie " + str(track.filename) + " to " + str(p))
                 utils.move_files(hb_out_path, track.filename, job, track.main_feature)
         # move to media directory
         elif job.video_type == "series" and job.hasnicetitle:
-            # tracks = job.tracks.all()
             tracks = job.tracks.filter_by(ripped=True)
             for track in tracks:
                 logging.info("Moving Series " + str(track.filename) + " to " + str(final_directory))
@@ -382,18 +382,18 @@ def main(logfile, job):
         if job.errors:
             errlist = ', '.join(job.errors)
             if cfg["NOTIFY_TRANSCODE"]:
-                utils.notify(job, "ARM notification",
+                utils.notify(job, NOTIFY_TITLE,
                              str(job.title) + " processing completed with errors. Title(s) " + str(
                                  errlist) + " failed to complete. ")
             logging.info("Transcoding completed with errors.  Title(s) " + str(errlist) + " failed to complete. ")
         else:
             if cfg["NOTIFY_TRANSCODE"]:
-                utils.notify(job, "ARM notification", str(job.title) + " processing complete. ")
+                utils.notify(job, NOTIFY_TITLE, str(job.title) + PROCESS_COMPLETE)
             logging.info("ARM processing complete")
 
     elif job.disctype == "music":
         if utils.rip_music(job, logfile):
-            utils.notify(job, "ARM notification", "Music CD: " + str(job.label) + " processing complete. ")
+            utils.notify(job, NOTIFY_TITLE, "Music CD: " + str(job.label) + PROCESS_COMPLETE)
             utils.scan_emby(job)
             # This shouldnt be needed. but to be safe
             job.status = "success"
@@ -416,7 +416,7 @@ def main(logfile, job):
                 sys.exit()
 
         if utils.rip_data(job, datapath, logfile):
-            utils.notify(job, "ARM notification", "Data disc: " + str(job.label) + " copying complete. ")
+            utils.notify(job, NOTIFY_TITLE, "Data disc: " + str(job.label) + " copying complete. ")
             job.eject()
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")
@@ -474,8 +474,6 @@ if __name__ == "__main__":
     logging.info("User is: " + getpass.getuser())
     logger.cleanuplogs(cfg["LOGPATH"], cfg["LOGLIFE"])
     logging.info("Job: " + str(job.label))
-
-    # a_jobs = Job.query.filter_by(status="active")
     a_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
 
     # Clean up abandoned jobs
@@ -496,7 +494,7 @@ if __name__ == "__main__":
         main(logfile, job)
     except Exception as e:
         logging.exception("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
-        utils.notify(job, "ARM notification", "ARM encountered a fatal error processing " + str(
+        utils.notify(job, NOTIFY_TITLE, "ARM encountered a fatal error processing " + str(
             job.title) + ". Check the logs for more details. " + str(e))
         job.status = "fail"
         job.eject()

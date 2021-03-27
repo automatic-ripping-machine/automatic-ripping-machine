@@ -147,15 +147,8 @@ def makemkv(logfile, job):
                     # just right
                     logging.info("Processing track #" + str(track.track_number) + " of " + str(job.no_of_titles - 1)
                                  + ". Length is " + str(track.length) + " seconds.")
-
-                    # filename = "title_" + str.zfill(str(track.track_number), 2) + "." + cfg['DEST_EXT']
-                    # filename = track.filename
                     filepathname = os.path.join(rawpath, track.filename)
-
                     logging.info("Ripping title " + str(track.track_number) + " to " + shlex.quote(filepathname))
-
-                    # track.filename = track.orig_filename = filename
-                    # db.session.commit()
 
                     cmd = 'makemkvcon mkv {0} -r dev:{1} {2} {3} --minlength={4}>> {5}'.format(
                         cfg["MKV_ARGS"],
@@ -234,17 +227,16 @@ def get_track_info(mdisc, job):
             msg = line_split[1].split(",")
             line_track = int(msg[0])
 
-            if msg_type == "MSG":
-                if msg[0] == "5055":
-                    arm_error = "MakeMKV evaluation period has expired." \
-                                "DVD processing will continue.  Bluray processing will exit."
-                    if job.disctype == "bluray":
-                        err = "MakeMKV evaluation period has expired.  Disc is a Bluray so ARM is exiting"
-                        logging.error(err)
-                        raise ValueError(err, "makemkv")
-                    else:
-                        logging.error("MakeMKV evaluation period has expired.  Disc is dvd so ARM will continue")
-                    utils.database_updater({'errors': arm_error}, job)
+            if msg_type == "MSG" and msg[0] == "5055":
+                arm_error = "MakeMKV evaluation period has expired." \
+                            "DVD processing will continue.  Bluray processing will exit."
+                if job.disctype == "bluray":
+                    err = "MakeMKV evaluation period has expired.  Disc is a Bluray so ARM is exiting"
+                    logging.error(err)
+                    raise ValueError(err, "makemkv")
+                else:
+                    logging.error("MakeMKV evaluation period has expired.  Disc is dvd so ARM will continue")
+                utils.database_updater({'errors': arm_error}, job)
 
             if msg_type == "TCOUNT":
                 titles = int(line_split[1].strip())
