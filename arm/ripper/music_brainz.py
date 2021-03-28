@@ -124,7 +124,7 @@ def get_title(discid, job):
     return:
     the label of the disc as a string or "" if nothing was found
 
-    Notes: dont try to use logging here -  doing so will break the arm setuplogging() function
+    Notes: dont try to use logging here -  doing so will break the arm setup_logging() function
     """
     mb.set_useragent("arm", "v1.0")
     try:

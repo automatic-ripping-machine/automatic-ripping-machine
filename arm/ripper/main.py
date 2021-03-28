@@ -112,6 +112,85 @@ def check_ip():
         return host
 
 
+def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
+    """
+    For when skipping transcode in enabled
+    """
+    logging.info("SKIP_TRANSCODE is true.  Moving raw mkv files.")
+    logging.info("NOTE: Identified main feature may not be actual main feature")
+    files = os.listdir(mkv_out_path)
+    final_directory = hb_out_path
+    if job.video_type == "movie":
+        logging.debug("Videotype: " + job.video_type)
+        # if videotype is movie, then move biggest title to media_dir
+        # move the rest of the files to the extras folder
+
+        # find largest filesize
+        logging.debug("Finding largest file")
+        largest_file_name = ""
+        for f in files:
+            # initialize largest_file_name
+            if largest_file_name == "":
+                largest_file_name = f
+            temp_path_f = os.path.join(hb_in_path, f)
+            temp_path_largest = os.path.join(hb_in_path, largest_file_name)
+            if (os.stat(temp_path_f).st_size > os.stat(temp_path_largest).st_size):
+                largest_file_name = f
+        # largest_file should be largest file
+        logging.debug("Largest file is: " + largest_file_name)
+        temp_path = os.path.join(hb_in_path, largest_file_name)
+        if (os.stat(temp_path).st_size > 0):  # sanity check for filesize
+            for file in files:
+                # move main into media_dir
+                # move others into extras folder
+                if (file == largest_file_name):
+                    # largest movie
+                    # Encorporating Rajlaud's fix #349
+                    utils.move_files(hb_in_path, file, job, True)
+                else:
+                    # other extras
+                    if not str(cfg["EXTRAS_SUB"]).lower() == "none":
+                        # Incorporating Rajlaud's fix #349
+                        utils.move_files(hb_in_path, file, job, False)
+                    else:
+                        logging.info("Not moving extra: " + file)
+        # Change final path (used to set permissions)
+        final_directory = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder),
+                                       str(job.title) + " (" + str(job.year) + ")")
+        # Clean up
+        logging.debug("Attempting to remove extra folder in TRANSCODE_PATH: " + hb_out_path)
+        if hb_out_path != final_directory:
+            try:
+                shutil.rmtree(hb_out_path)
+                logging.debug("Removed sucessfully: " + hb_out_path)
+            except Exception:
+                logging.debug("Failed to remove: " + hb_out_path)
+    else:
+        # if videotype is not movie, then move everything
+        # into 'Unidentified' folder
+        logging.debug("Videotype: " + job.video_type)
+
+        for f in files:
+            mkvoutfile = os.path.join(mkv_out_path, f)
+            logging.debug("Moving file: " + mkvoutfile + " to: " + mkv_out_path + f)
+            shutil.move(mkvoutfile, hb_out_path)
+    # remove raw files, if specified in config
+    if cfg["DELRAWFILES"]:
+        logging.info("Removing raw files")
+        shutil.rmtree(mkv_out_path)
+
+    utils.set_permissions(job, final_directory)
+    utils.notify(job, NOTIFY_TITLE, str(job.title) + PROCESS_COMPLETE)
+    logging.info("ARM processing complete")
+    # WARN  : might cause issues
+    # We need to update our job before we quit
+    # It should be safe to do this as we aren't waiting for transcode
+    job.status = "success"
+    db.session.commit()
+    job.eject()
+    sys.exit()
+
+
 def main(logfile, job):
     """main dvd processing function"""
     logging.info("Starting Disc identification")
@@ -125,7 +204,7 @@ def main(logfile, job):
         # Send the notifications
         utils.notify(job, NOTIFY_TITLE,
                      f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {cfg['MAINFEATURE']}"
-                     f".  Edit entry here: http://" + str(check_ip()) + ":"
+                     f".  Edit entry here: http://{check_ip()}:"
                      f"{cfg['WEBSERVER_PORT']}/jobdetail?job_id={job.job_id}")
     elif job.disctype == "music":
         utils.notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks")
@@ -215,7 +294,7 @@ def main(logfile, job):
                 sys.exit()
 
         logging.info("Processing files to: " + hb_out_path)
-
+        mkvoutpath = None
         # entry point for bluray
         # or
         # dvd with MAINFEATURE off and RIPMETHOD mkv
@@ -236,91 +315,13 @@ def main(logfile, job):
                 db.session.commit()
                 sys.exit()
             if cfg["NOTIFY_RIP"]:
-                utils.notify(job, NOTIFY_TITLE, str(job.title) + " rip complete.  Starting transcode. ")
+                utils.notify(job, NOTIFY_TITLE, str(job.title) + " rip complete. Starting transcode. ")
             # point HB to the path MakeMKV ripped to
             hb_in_path = mkvoutpath
 
             # Entry point for not transcoding
             if cfg["SKIP_TRANSCODE"] and cfg["RIPMETHOD"] == "mkv":
-                logging.info("SKIP_TRANSCODE is true.  Moving raw mkv files.")
-                logging.info("NOTE: Identified main feature may not be actual main feature")
-                files = os.listdir(mkvoutpath)
-                final_directory = hb_out_path
-                if job.video_type == "movie":
-                    logging.debug("Videotype: " + job.video_type)
-                    # if videotype is movie, then move biggest title to media_dir
-                    # move the rest of the files to the extras folder
-
-                    # find largest filesize
-                    logging.debug("Finding largest file")
-                    largest_file_name = ""
-                    for f in files:
-                        # initialize largest_file_name
-                        if largest_file_name == "":
-                            largest_file_name = f
-                        temp_path_f = os.path.join(hb_in_path, f)
-                        temp_path_largest = os.path.join(hb_in_path, largest_file_name)
-                        # os.path.join(cfg['MEDIA_DIR'] + videotitle)
-                        # if cur file size > largest_file size
-                        if (os.stat(temp_path_f).st_size > os.stat(temp_path_largest).st_size):
-                            largest_file_name = f
-                    # largest_file should be largest file
-                    logging.debug("Largest file is: " + largest_file_name)
-                    temp_path = os.path.join(hb_in_path, largest_file_name)
-                    if (os.stat(temp_path).st_size > 0):  # sanity check for filesize
-                        for file in files:
-                            # move main into media_dir
-                            # move others into extras folder
-                            if (file == largest_file_name):
-                                # largest movie
-                                # Encorporating Rajlaud's fix #349
-                                utils.move_files(hb_in_path, file, job, True)
-                            else:
-                                # other extras
-                                if not str(cfg["EXTRAS_SUB"]).lower() == "none":
-                                    # Incorporating Rajlaud's fix #349
-                                    utils.move_files(hb_in_path, file, job, False)
-                                else:
-                                    logging.info("Not moving extra: " + file)
-                    # Change final path (used to set permissions)
-                    final_directory = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder),
-                                                   str(job.title) + " (" + str(job.year) + ")")
-                    # Clean up
-                    # TODO: fix this so it doesnt remove everything
-                    logging.debug("Attempting to remove extra folder in TRANSCODE_PATH: " + hb_out_path)
-                    if hb_out_path != final_directory:
-                        try:
-                            shutil.rmtree(hb_out_path)
-                            logging.debug("Removed sucessfully: " + hb_out_path)
-                        except Exception:
-                            logging.debug("Failed to remove: " + hb_out_path)
-                else:
-                    # if videotype is not movie, then move everything
-                    # into 'Unidentified' folder
-                    logging.debug("Videotype: " + job.video_type)
-
-                    for f in files:
-                        mkvoutfile = os.path.join(mkvoutpath, f)
-                        logging.debug("Moving file: " + mkvoutfile + " to: " + mkvoutpath + f)
-                        shutil.move(mkvoutfile, hb_out_path)
-                # remove raw files, if specified in config
-                if cfg["DELRAWFILES"]:
-                    logging.info("Removing raw files")
-                    shutil.rmtree(mkvoutpath)
-                # set file to default permissions '777'
-                if cfg["SET_MEDIA_PERMISSIONS"]:
-                    perm_result = utils.set_permissions(job, final_directory)
-                    logging.info("Permissions set successfully: " + str(perm_result))
-                utils.notify(job, NOTIFY_TITLE, str(job.title) + PROCESS_COMPLETE)
-                logging.info("ARM processing complete")
-                # WARN  : might cause issues
-                # We need to update our job before we quit
-                # It should be safe to do this as we arent waiting for transcode
-                job.status = "success"
-                db.session.commit()
-                # exit
-                job.eject()
-                sys.exit()
+                skip_transcode(job, hb_out_path, hb_in_path, mkvoutpath, type_sub_folder)
         job.path = hb_out_path
         job.status = "transcoding"
         db.session.commit()
@@ -361,10 +362,7 @@ def main(logfile, job):
             logging.info("job type is " + str(job.video_type) + "not movie or series, not moving.")
             utils.scan_emby(job)
 
-        if cfg["SET_MEDIA_PERMISSIONS"]:
-            perm_result = utils.set_permissions(job, final_directory)
-            logging.info("Permissions set successfully: " + str(perm_result))
-
+        utils.set_permissions(job, final_directory)
         # Clean up bluray backup
         # if job.disctype == "bluray" and cfg["DELRAWFILES"]:
         if cfg["DELRAWFILES"]:
@@ -377,23 +375,23 @@ def main(logfile, job):
                     logging.debug(f"No raw files found to delete in {raw_folder}- {e}")
                 except OSError as e:
                     logging.debug(f"No raw files found to delete in {raw_folder} - {e}")
-
+                except TypeError as e:
+                    logging.debug(f"No raw files found to delete in {raw_folder} - {e}")
         # report errors if any
-        if job.errors:
-            errlist = ', '.join(job.errors)
-            if cfg["NOTIFY_TRANSCODE"]:
+        if cfg["NOTIFY_TRANSCODE"]:
+            if job.errors:
+                errlist = ', '.join(job.errors)
                 utils.notify(job, NOTIFY_TITLE,
-                             str(job.title) + " processing completed with errors. Title(s) " + str(
-                                 errlist) + " failed to complete. ")
-            logging.info("Transcoding completed with errors.  Title(s) " + str(errlist) + " failed to complete. ")
-        else:
-            if cfg["NOTIFY_TRANSCODE"]:
+                             f" {job.title} processing completed with errors. "
+                             f"Title(s) {errlist} failed to complete. ")
+                logging.info(f"Transcoding completed with errors.  Title(s) {errlist} failed to complete. ")
+            else:
                 utils.notify(job, NOTIFY_TITLE, str(job.title) + PROCESS_COMPLETE)
-            logging.info("ARM processing complete")
+        logging.info("ARM processing complete")
 
     elif job.disctype == "music":
         if utils.rip_music(job, logfile):
-            utils.notify(job, NOTIFY_TITLE, "Music CD: " + str(job.label) + PROCESS_COMPLETE)
+            utils.notify(job, NOTIFY_TITLE, f"Music CD: {job.label} {PROCESS_COMPLETE}")
             utils.scan_emby(job)
             # This shouldnt be needed. but to be safe
             job.status = "success"
@@ -412,11 +410,11 @@ def main(logfile, job):
             datapath = os.path.join(cfg["RAW_PATH"], str(job.label) + "_" + ts)
 
             if (utils.make_dir(datapath)) is False:
-                logging.info("Could not create data directory: " + str(datapath) + ".  Exiting ARM. ")
+                logging.info(f"Could not create data directory: {datapath}  Exiting ARM. ")
                 sys.exit()
 
         if utils.rip_data(job, datapath, logfile):
-            utils.notify(job, NOTIFY_TITLE, "Data disc: " + str(job.label) + " copying complete. ")
+            utils.notify(job, NOTIFY_TITLE, f"Data disc: {job.label} copying complete. ")
             job.eject()
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")
@@ -443,20 +441,20 @@ if __name__ == "__main__":
     devpath = "/dev/" + args.devpath
     # print(devpath)
     job = Job(devpath)
-    logfile = logger.setuplogging(job)
+    logfile = logger.setup_logging(job)
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
-    # Dont put out anything if we are using the empty.log
-    # This kills multiple runs. it stops the same job triggering more than once
+    # Dont put out anything if we are using the empty.log or NAS_
     if logfile.find("empty.log") != -1 or logfile.find("NAS_") != -1:
         sys.exit()
 
-    logging.info("Starting ARM processing at " + str(datetime.datetime.now()))
+    logging.info(f"Starting ARM processing at {datetime.datetime.now()}")
 
     utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
     # put in db
+    # TODO - Change utils.database_updated to allow adding of obj
     job.status = "active"
     job.start_time = datetime.datetime.now()
     db.session.add(job)
@@ -468,12 +466,12 @@ if __name__ == "__main__":
     # Log version number
     with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
-    logging.info("ARM version: " + str(version))
+    logging.info(f"ARM version: {version}")
     job.arm_version = version
     logging.info(("Python version: " + sys.version).replace('\n', ""))
-    logging.info("User is: " + getpass.getuser())
-    logger.cleanuplogs(cfg["LOGPATH"], cfg["LOGLIFE"])
-    logging.info("Job: " + str(job.label))
+    logging.info(f"User is: {getpass.getuser()}")
+    logger.clean_up_logs(cfg["LOGPATH"], cfg["LOGLIFE"])
+    logging.info(f"Job: {job.label}")
     a_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
 
     # Clean up abandoned jobs
@@ -481,10 +479,10 @@ if __name__ == "__main__":
         if psutil.pid_exists(j.pid):
             p = psutil.Process(j.pid)
             if j.pid_hash == hash(p):
-                logging.info("Job #" + str(j.job_id) + " with PID " + str(j.pid) + " is currently running.")
+                logging.info(f"Job #{j.job_id} with PID {j.pid} is currently running.")
         else:
-            logging.info("Job #" + str(j.job_id) + " with PID " + str(
-                j.pid) + " has been abandoned.  Updating job status to fail.")
+            logging.info(f"Job #{j.job_id} with PID {j.pid} has been abandoned."
+                         f"Updating job status to fail.")
             j.status = "fail"
             db.session.commit()
 
@@ -494,8 +492,8 @@ if __name__ == "__main__":
         main(logfile, job)
     except Exception as e:
         logging.exception("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
-        utils.notify(job, NOTIFY_TITLE, "ARM encountered a fatal error processing " + str(
-            job.title) + ". Check the logs for more details. " + str(e))
+        utils.notify(job, NOTIFY_TITLE, "ARM encountered a fatal error processing "
+                                        f"{job.title}. Check the logs for more details. {e}")
         job.status = "fail"
         job.eject()
     else:

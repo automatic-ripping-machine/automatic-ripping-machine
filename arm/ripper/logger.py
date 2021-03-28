@@ -10,7 +10,7 @@ from arm.config.config import cfg
 from arm.ripper import music_brainz
 
 
-def setuplogging(job):
+def setup_logging(job):
     """Setup logging and return the path to the logfile for
     redirection of external calls"""
     # This isn't catching all of them
@@ -81,7 +81,7 @@ def setuplogging(job):
     return logfull
 
 
-def cleanuplogs(logpath, loglife):
+def clean_up_logs(logpath, loglife):
     """Delete all log files older than x days\n
     logpath = path of log files\n
     loglife = days to let logs live\n

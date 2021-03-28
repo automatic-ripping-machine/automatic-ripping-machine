@@ -69,11 +69,11 @@ def apprise_notify(apprise_cfg, title, body):
     # discord://{WebhookID}/{WebhookToken}/
     if cfg['DISCORD_WEBHOOK_ID'] != "":
         # TODO: add userid to this and config
-        apobj.add('discord://' + str(cfg['DISCORD_WEBHOOK_ID']) + "/" + str(cfg['DISCORD_TOKEN']))
+        apobj.add(f"discord://{cfg['DISCORD_WEBHOOK_ID']}/{cfg['DISCORD_TOKEN']}")
     # Faast
     # faast://{authorizationtoken}
     if cfg['FAAST_TOKEN'] != "":
-        apobj.add('faast://' + str(cfg['FAAST_TOKEN']))
+        apobj.add(f"faast://{cfg['FAAST_TOKEN']}")
     # FLOCK
     # flock://{token}/
     if cfg['FLOCK_TOKEN'] != "":
@@ -562,6 +562,8 @@ def rip_data(job, datapath, logfile):
 
 
 def set_permissions(job, directory_to_traverse):
+    if not cfg['SET_MEDIA_PERMISSIONS']:
+        return False
     try:
         corrected_chmod_value = int(str(cfg["CHMOD_VALUE"]), 8)
         logging.info("Setting permissions to: " + str(cfg["CHMOD_VALUE"]) + " on: " + directory_to_traverse)
@@ -584,11 +586,9 @@ def set_permissions(job, directory_to_traverse):
                 os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
                 if job.config.SET_MEDIA_OWNER:
                     os.chown(os.path.join(dirpath, cur_file), uid, gid)
-        return True
+        logging.info("Permissions set successfully: True")
     except Exception as e:
-        err = "Permissions setting failed as: " + str(e)
-        logging.error(err)
-        return False
+        logging.error(f"Permissions setting failed as: {e}")
 
 
 def check_db_version(install_path, db_file):
