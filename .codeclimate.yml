@@ -38,9 +38,6 @@ plugins:
     enabled: true
   pep8:
     enabled: true
-engines:
-  pep8:
-    enabled: true
     checks:
       E501:
         enabled: false
