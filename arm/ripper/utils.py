@@ -64,7 +64,7 @@ def apprise_notify(apprise_cfg, title, body):
     # boxcar
     # boxcar://{access_key}/{secret_key}
     if cfg['BOXCAR_KEY'] != "":
-        apobj.add('boxcar://' + str(cfg['BOXCAR_KEY']) + "/" + str(cfg['BOXCAR_SECRET']))
+        apobj.add(f"boxcar://{cfg['BOXCAR_KEY']}/{cfg['BOXCAR_SECRET']}")
     # discord
     # discord://{WebhookID}/{WebhookToken}/
     if cfg['DISCORD_WEBHOOK_ID'] != "":
@@ -287,7 +287,7 @@ def scan_emby(job):
 def sleep_check_process(process_str, transcode_limit):
     """ New function to check for max_transcode from cfg file and force obey limits\n
     arguments:
-    process_st - The process string from arm.yaml
+    process_str - The process string from arm.yaml
     transcode_limit - The user defined limit for maximum transcodes\n\n
 
     returns:
@@ -768,7 +768,7 @@ def job_dupe_check(job):
         i += 1
 
     logging.debug(f"previous rips = {r}")
-    if previous_rips is not None and len(r) > 0:
+    if previous_rips:
         logging.debug(f"we have {len(r)} jobs")
         # This might need some tweaks to because of title/year manual
         title = r[0]['title'] if r[0]['title'] else job.label

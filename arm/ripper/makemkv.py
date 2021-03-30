@@ -10,6 +10,8 @@ from arm.config.config import cfg
 from arm.ripper import utils  # noqa: E402
 from arm.ui import db  # noqa: F401, E402
 
+MAKE_MKV_FAILED = "Call to MakeMKV failed with code: "
+
 
 def makemkv(logfile, job):
     """
@@ -20,58 +22,50 @@ def makemkv(logfile, job):
     Returns path to ripped files.
     """
 
-    logging.info("Starting MakeMKV rip. Method is " + cfg["RIPMETHOD"])
+    logging.info(f"Starting MakeMKV rip. Method is {cfg['RIPMETHOD']}")
 
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
-    cmd = 'makemkvcon -r info disc:9999  |grep {0} |grep -oP \'(?<=:).*?(?=,)\''.format(
-        job.devpath
-    )
+    cmd = f"makemkvcon -r info disc:9999  |grep {job.devpath} |grep -oP '(?<=:).*?(?=,)'"
 
     try:
         mdisc = subprocess.check_output(
             cmd,
             shell=True
         ).decode("utf-8")
-        logging.info("MakeMKV disc number: " + mdisc.strip())
+        logging.info(f"MakeMKV disc number: {mdisc.strip()}")
         # print("mdisc is: " + mdisc)
     except subprocess.CalledProcessError as mdisc_error:
-        err = "Call to makemkv failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
+        err = f'{MAKE_MKV_FAILED} {mdisc_error.returncode} ({mdisc_error.output})'
         logging.error(err)
         raise RuntimeError(err)
 
     # get filesystem in order
     rawpath = os.path.join(str(cfg["RAW_PATH"]), str(job.title))
-    logging.info("Destination is " + str(rawpath))
+    logging.info(f"Destination is {rawpath}")
 
     if not os.path.exists(rawpath):
         try:
             os.makedirs(rawpath)
         except OSError:
-            # logging.error("Couldn't create the base file path: " + rawpath + " Probably a permissions error")
-            err = "Couldn't create the base file path: " + str(rawpath) + " Probably a permissions error"
+            err = f"Couldn't create the base file path: {rawpath} Probably a permissions error"
             logging.debug(err)
     else:
-        logging.info(rawpath + " exists.  Adding timestamp.")
+        logging.info(f"{rawpath} exists.  Adding timestamp.")
         ts = round(time.time() * 100)
-        rawpath = os.path.join(str(cfg["RAW_PATH"]), str(job.title) + "_" + str(ts))
-        logging.info("rawpath is " + str(rawpath))
+        rawpath = os.path.join(str(cfg["RAW_PATH"]), f"{job.title}_{ts}")
+        logging.info(f"rawpath is {rawpath}")
         try:
             os.makedirs(rawpath)
         except OSError:
-            # logging.error("Couldn't create the base file path: " + rawpath + " Probably a permissions error")
-            err = "Couldn't create the base file path: " + str(rawpath) + " Probably a permissions error"
+            err = f"Couldn't create the base file path: {rawpath} Probably a permissions error"
             sys.exit(err)
 
     # rip bluray
     if cfg["RIPMETHOD"] == "backup" and job.disctype == "bluray":
         # backup method
-        cmd = 'makemkvcon backup --decrypt {0} -r disc:{1} {2}>> {3}'.format(
-            cfg["MKV_ARGS"],
-            mdisc.strip(),
-            shlex.quote(rawpath),
-            logfile
-        )
+        cmd = f'makemkvcon backup --decrypt {cfg["MKV_ARGS"]} ' \
+              f'-r disc:{mdisc.strip()} {shlex.quote(rawpath)}>> {logfile}'
         logging.info("Backup up disc")
         logging.debug("Backing up with the following command: " + cmd)
 
@@ -82,15 +76,14 @@ def makemkv(logfile, job):
             )
             # ).decode("utf-8")
             # print("mkv is: " + mkv)
-            logging.debug("The exit code for MakeMKV is: " + str(mkv.returncode))
+            logging.debug(f"The exit code for MakeMKV is: {mkv.returncode}")
             if mkv.returncode == 253:
                 # Makemkv is out of date
                 err = "MakeMKV version is too old.  Upgrade and try again.  MakeMKV returncode is '253'."
                 logging.error(err)
                 raise RuntimeError(err)
         except subprocess.CalledProcessError as mdisc_error:
-            err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(
-                mdisc_error.output) + ")"
+            err = f'{MAKE_MKV_FAILED} {mdisc_error.returncode} ({mdisc_error.output})'
             logging.error(err)
             # print("Error: " + mkv)
             return None
@@ -101,15 +94,14 @@ def makemkv(logfile, job):
 
         # if no maximum length, process the whole disc in one command
         if int(cfg["MAXLENGTH"]) > 99998:
-            cmd = 'makemkvcon mkv {0} -r dev:{1} {2} {3} --minlength={4}>> {5}'.format(
+            cmd = 'makemkvcon mkv {0} -r dev:{1} all {2} --minlength={3}>> {4}'.format(
                 cfg["MKV_ARGS"],
                 job.devpath,
-                "all",
                 shlex.quote(rawpath),
                 cfg["MINLENGTH"],
                 logfile
             )
-            logging.debug("Ripping with the following command: " + cmd)
+            logging.debug(f"Ripping with the following command: {cmd}")
 
             try:
                 mkv = subprocess.run(
@@ -118,15 +110,14 @@ def makemkv(logfile, job):
                 )
                 # ).decode("utf-8")
                 # print("mkv is: " + mkv)
-                logging.debug("The exit code for MakeMKV is: " + str(mkv.returncode))
+                logging.debug(f"The exit code for MakeMKV is: {mkv.returncode}")
                 if mkv.returncode == 253:
                     # Makemkv is out of date
                     err = "MakeMKV version is too old.  Upgrade and try again.  MakeMKV returncode is '253'."
                     logging.error(err)
                     raise RuntimeError(err)
             except subprocess.CalledProcessError as mdisc_error:
-                err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" \
-                      + str(mdisc_error.output) + ")"
+                err = f'{MAKE_MKV_FAILED} {mdisc_error.returncode} ({mdisc_error.output})'
                 logging.error(err)
                 # print("Error: " + mkv)
                 return None
@@ -158,7 +149,7 @@ def makemkv(logfile, job):
                         cfg["MINLENGTH"],
                         logfile
                     )
-                    logging.debug("Ripping with the following command: " + cmd)
+                    logging.debug(f"Ripping with the following command: {cmd}")
 
                     try:
                         mkv = subprocess.run(
@@ -167,17 +158,15 @@ def makemkv(logfile, job):
                         )
                         # ).decode("utf-8")
                         # print("mkv is: " + mkv)
-                        logging.debug("The exit code for MakeMKV is: " + str(mkv.returncode))
+                        logging.debug(f"The exit code for MakeMKV is: {mkv.returncode}")
                         if mkv.returncode == 253:
                             # Makemkv is out of date
                             err = "MakeMKV version is too old.  Upgrade and try again.  MakeMKV returncode is '253'."
                             logging.error(err)
                             raise RuntimeError(err)
                     except subprocess.CalledProcessError as mdisc_error:
-                        err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) \
-                              + "(" + str(mdisc_error.output) + ")"
+                        err = f'{MAKE_MKV_FAILED} {mdisc_error.returncode} ({mdisc_error.output})'
                         logging.error(err)
-                        # print("Error: " + mkv)
                         return None
 
     else:
@@ -185,12 +174,12 @@ def makemkv(logfile, job):
 
     job.eject()
 
-    logging.info("Exiting MakeMKV processing with return value of: " + rawpath)
+    logging.info(f"Exiting MakeMKV processing with return value of: {rawpath}")
     return rawpath
 
 
 def get_track_info(mdisc, job):
-    """Use MakeMKV to get track info and updatte Track class\n
+    """Use MakeMKV to get track info and update Track class\n
 
     mdisc = MakeMKV disc number\n
     job = Job instance\n
@@ -209,7 +198,7 @@ def get_track_info(mdisc, job):
             shell=True
         ).decode("utf-8").splitlines()
     except subprocess.CalledProcessError as mdisc_error:
-        err = "Call to MakeMKV failed with code: " + str(mdisc_error.returncode) + "(" + str(mdisc_error.output) + ")"
+        err = f'{MAKE_MKV_FAILED} {mdisc_error.returncode} ({mdisc_error.output})'
         logging.error(err)
         return None
 
@@ -240,7 +229,7 @@ def get_track_info(mdisc, job):
 
             if msg_type == "TCOUNT":
                 titles = int(line_split[1].strip())
-                logging.info("Found " + str(titles) + " titles")
+                logging.info(f"Found {titles} titles")
                 utils.database_updater({'no_of_titles': titles}, job)
             if msg_type == "TINFO":
                 if track != line_track:

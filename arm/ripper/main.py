@@ -14,7 +14,7 @@ import shutil  # noqa: E402
 import pyudev  # noqa: E402
 import getpass  # noqa E402
 import psutil  # noqa E402
-from pathlib import Path, PurePath  # noqa: E402
+
 from arm.ripper import logger, utils, makemkv, handbrake, identify  # noqa: E402
 from arm.config.config import cfg  # noqa: E402
 
@@ -342,7 +342,7 @@ def main(logfile, job):
         logging.debug("New Title is " + str(job.title_manual))
         if job.year != "0000" or job.year != "":
             final_directory = os.path.join(job.config.COMPLETED_PATH, str(type_sub_folder),
-                                           str(job.title) + " (" + str(job.year) + ")")
+                                           f'{job.title} ({job.year})')
         else:
             final_directory = os.path.join(job.config.COMPLETED_PATH, str(type_sub_folder), str(job.title))
 
@@ -350,16 +350,16 @@ def main(logfile, job):
         if job.video_type == "movie" and job.hasnicetitle:
             tracks = job.tracks.filter_by(ripped=True)
             for track in tracks:
-                logging.info("Moving Movie " + str(track.filename) + " to " + str(p))
+                logging.info(f"Moving Movie {track.filename} to {final_directory}")
                 utils.move_files(hb_out_path, track.filename, job, track.main_feature)
         # move to media directory
         elif job.video_type == "series" and job.hasnicetitle:
             tracks = job.tracks.filter_by(ripped=True)
             for track in tracks:
-                logging.info("Moving Series " + str(track.filename) + " to " + str(final_directory))
+                logging.info(f"Moving Series {track.filename} to {final_directory}")
                 utils.move_files(hb_out_path, track.filename, job, False)
         else:
-            logging.info("job type is " + str(job.video_type) + "not movie or series, not moving.")
+            logging.info(f"job type is {job.video_type} not movie or series, not moving.")
             utils.scan_emby(job)
 
         utils.set_permissions(job, final_directory)
@@ -427,16 +427,6 @@ def main(logfile, job):
 if __name__ == "__main__":
     # Make sure all directories are fully setup
     utils.arm_setup()
-    log_path = PurePath(cfg['LOGPATH'], "NAS.log")
-    log_file = Path(log_path)
-    if log_file.is_file():
-        logging.basicConfig(filename=log_file,
-                            format='[%(asctime)s] %(levelname)s ARM: %(message)s',
-                            datefmt=cfg['DATE_FORMAT'], level="DEBUG")
-    else:
-        logging.basicConfig(filename=cfg['INSTALLPATH'] + "NAS.log",
-                            format='[%(asctime)s] %(levelname)s ARM: %(message)s',
-                            datefmt=cfg['DATE_FORMAT'], level="DEBUG")
     args = entry()
     devpath = "/dev/" + args.devpath
     # print(devpath)

@@ -129,24 +129,16 @@ def get_title(discid, job):
     mb.set_useragent("arm", "v1.0")
     try:
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits'])
-        logging.debug('mb info = %s', infos)
         title = str(infos['disc']['release-list'][0]['title'])
-        logging.debug('title = %s', title)
         # Start setting our db stuff
         job.crc_id = str(infos['disc']['release-list'][0]['id'])
-        logging.debug('crc = %s', job.crc_id)
         artist = str(infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name'])
-        logging.debug('artist = %s', artist)
         job.title = job.title_auto = artist + " " + title
-        logging.debug('job.title = %s', job.title)
         job.video_type = "Music"
         clean_title = clean_for_log(artist) + "-" + clean_for_log(title)
-        logging.debug('clean title = %s', clean_title)
         db.session.commit()
         return clean_title
-    except mb.WebServiceError as exc:
-        logging.error("mb.gettitle -  ERROR: " + str(exc))
-        logging.debug('error = %s', str(exc))
+    except mb.WebServiceError:
         db.session.rollback()
         return "not identified"
 
@@ -212,15 +204,14 @@ def database_updater(args, job, wait_time=90):
     # Loop through our args and try to set any of our job variables
     for (key, value) in args.items():
         setattr(job, key, value)
-        logging.debug(str(key) + "= " + str(value))
+        # logging.debug(str(key) + "= " + str(value))
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
             db.session.commit()
         except Exception as e:
-            # logging.debug("Exception = " + str(e) + "\n")
             if "locked" in str(e):
                 time.sleep(1)
-                logging.debug("database is locked - trying in 1 second")
+                logging.debug(f"database is locked - trying in 1 second - {i}/{wait_time} sec")
             else:
                 logging.debug("Error: " + str(e))
                 db.session.rollback()
