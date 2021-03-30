@@ -25,14 +25,12 @@ def identify_audio_cd(job):
         job.label = job.title = "not identified"
         logfile = "music_cd.log"
         new_log_file = f"music_cd_{round(time.time() * 100)}.log"
-        temp_log_full = os.path.join(cfg['LOGPATH'], logfile)
-        logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
     else:
-        orig_logfile = f"{mb_title}.log"
+        logfile = f"{mb_title}.log"
         new_log_file = f"{mb_title}_{round(time.time() * 100)}.log"
-        temp_log_full = os.path.join(cfg['LOGPATH'], orig_logfile)
-        logfile = new_log_file if os.path.isfile(temp_log_full) else orig_logfile
 
+    temp_log_full = os.path.join(cfg['LOGPATH'], logfile)
+    logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
     return logfile
 
 
