@@ -768,7 +768,7 @@ def job_dupe_check(job):
         i += 1
 
     logging.debug(f"previous rips = {r}")
-    if previous_rips:
+    if r:
         logging.debug(f"we have {len(r)} jobs")
         # This might need some tweaks to because of title/year manual
         title = r[0]['title'] if r[0]['title'] else job.label

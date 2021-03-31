@@ -126,20 +126,19 @@ def makemkv(logfile, job):
             for track in job.tracks:
                 if track.length < int(cfg["MINLENGTH"]):
                     # too short
-                    logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length ("
-                                 + str(track.length)
-                                 + ") is less than minimum length (" + cfg["MINLENGTH"] + ").  Skipping")
+                    logging.info(f"Track #{track.track_number} of {job.no_of_titles}. Length ({track.length}) "
+                                 f"is less than minimum length ({cfg['MINLENGTH']}).  Skipping")
                 elif track.length > int(cfg["MAXLENGTH"]):
                     # too long
-                    logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles)
-                                 + ". Length (" + str(track.length) +
-                                 ") is greater than maximum length (" + cfg["MAXLENGTH"] + ").  Skipping")
+                    logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
+                                 f"Length ({track.length}) is greater than maximum length ({cfg['MAXLENGTH']}).  "
+                                 "Skipping")
                 else:
                     # just right
-                    logging.info("Processing track #" + str(track.track_number) + " of " + str(job.no_of_titles - 1)
-                                 + ". Length is " + str(track.length) + " seconds.")
+                    logging.info(f"Processing track #{track.track_number} of {(job.no_of_titles - 1)}. "
+                                 f"Length is {track.length} seconds.")
                     filepathname = os.path.join(rawpath, track.filename)
-                    logging.info("Ripping title " + str(track.track_number) + " to " + shlex.quote(filepathname))
+                    logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
 
                     cmd = 'makemkvcon mkv {0} -r dev:{1} {2} {3} --minlength={4}>> {5}'.format(
                         cfg["MKV_ARGS"],
