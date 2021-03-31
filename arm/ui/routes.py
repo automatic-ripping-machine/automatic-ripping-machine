@@ -145,17 +145,17 @@ def setup_stage2():
     if save:
         username = str(request.form['username']).strip()
         pass1 = str(request.form['password']).strip().encode('utf-8')
-        hash = bcrypt.gensalt(12)
+        gen_hash = bcrypt.gensalt(12)
 
         if username and pass1:
             user = User.query.filter_by(email=username).first()
-            hashedpassword = bcrypt.hashpw(pass1, hash)
+            hashedpassword = bcrypt.hashpw(pass1, gen_hash)
             if user is None:
-                user = User(email=username, password=hashedpassword, hashed=hash)
+                user = User(email=username, password=hashedpassword, hashed=gen_hash)
                 db.session.add(user)
             else:
                 user.password = hashedpassword
-                user.hash = hash
+                user.hash = gen_hash
                 app.logger.debug("hashedpass = " + str(hashedpassword))
             app.logger.debug("user: " + username + " Pass:" + pass1.decode('utf-8'))
             app.logger.debug("user db " + str(user))
@@ -168,7 +168,7 @@ def setup_stage2():
             else:
                 return redirect(url_for('login'))
         else:
-            app.logger.debug("user: " + str(username) + " Pass:" + pass1)
+            app.logger.debug("user: " + str(username) + " Pass:" + str(pass1))
             flash("error something was blank")
             return redirect('/setup-stage2')
     return render_template('setup.html', title='setup', override=over)

@@ -121,7 +121,7 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
     files = os.listdir(mkv_out_path)
     final_directory = hb_out_path
     if job.video_type == "movie":
-        logging.debug("Videotype: " + job.video_type)
+        logging.debug(f"Videotype: {job.video_type}")
         # if videotype is movie, then move biggest title to media_dir
         # move the rest of the files to the extras folder
 
@@ -134,37 +134,35 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
                 largest_file_name = f
             temp_path_f = os.path.join(hb_in_path, f)
             temp_path_largest = os.path.join(hb_in_path, largest_file_name)
-            if (os.stat(temp_path_f).st_size > os.stat(temp_path_largest).st_size):
+            if os.stat(temp_path_f).st_size > os.stat(temp_path_largest).st_size:
                 largest_file_name = f
         # largest_file should be largest file
-        logging.debug("Largest file is: " + largest_file_name)
+        logging.debug(f"Largest file is: {largest_file_name}")
         temp_path = os.path.join(hb_in_path, largest_file_name)
-        if (os.stat(temp_path).st_size > 0):  # sanity check for filesize
+        if os.stat(temp_path).st_size > 0:  # sanity check for filesize
             for file in files:
                 # move main into media_dir
                 # move others into extras folder
-                if (file == largest_file_name):
+                if file == largest_file_name:
                     # largest movie
-                    # Encorporating Rajlaud's fix #349
                     utils.move_files(hb_in_path, file, job, True)
                 else:
                     # other extras
                     if not str(cfg["EXTRAS_SUB"]).lower() == "none":
-                        # Incorporating Rajlaud's fix #349
                         utils.move_files(hb_in_path, file, job, False)
                     else:
-                        logging.info("Not moving extra: " + file)
+                        logging.info(f"Not moving extra: {file}")
         # Change final path (used to set permissions)
         final_directory = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder),
-                                       str(job.title) + " (" + str(job.year) + ")")
+                                       f"{job.title} ({job.year})")
         # Clean up
-        logging.debug("Attempting to remove extra folder in TRANSCODE_PATH: " + hb_out_path)
+        logging.debug(f"Attempting to remove extra folder in TRANSCODE_PATH: {hb_out_path}")
         if hb_out_path != final_directory:
             try:
                 shutil.rmtree(hb_out_path)
-                logging.debug("Removed sucessfully: " + hb_out_path)
+                logging.debug(f"Removed sucessfully: {hb_out_path}")
             except Exception:
-                logging.debug("Failed to remove: " + hb_out_path)
+                logging.debug(f"Failed to remove: {hb_out_path}")
     else:
         # if videotype is not movie, then move everything
         # into 'Unidentified' folder
@@ -172,7 +170,7 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
 
         for f in files:
             mkvoutfile = os.path.join(mkv_out_path, f)
-            logging.debug("Moving file: " + mkvoutfile + " to: " + mkv_out_path + f)
+            logging.debug(f"Moving file: {mkvoutfile} to: {mkv_out_path} {f}")
             shutil.move(mkvoutfile, hb_out_path)
     # remove raw files, if specified in config
     if cfg["DELRAWFILES"]:
@@ -186,6 +184,7 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
     # We need to update our job before we quit
     # It should be safe to do this as we aren't waiting for transcode
     job.status = "success"
+    job.path = hb_out_path
     db.session.commit()
     job.eject()
     sys.exit()

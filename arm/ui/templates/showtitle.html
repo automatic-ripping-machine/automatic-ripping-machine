@@ -9,8 +9,8 @@
         <div class="col-sm-3"></div>
             <div class="col-sm-6 text-center">
                 <div class="card text-center">
-                    <div class="card-header"><a href="select_title?imdbID={{ results["imdbID"] }}&job_id={{ job_id }}"><img src="{{ results["Poster"] }}" width="240px" class="img-thumbnail"></a></div>
-                    <div class="card-body"><b>{{  results["Title"]  }}</b> - {{ results["Type"].capitalize() }} ({{ results["Year"] }})</div>
+                    <div class="card-header"><a href="select_title?imdbID={{ results["imdbID"] }}&job_id={{ job_id }}"><img src="{{ results["Poster"] }}" width="240px" class="img-thumbnail" alt="Poster Image"></a></div>
+                    <div class="card-body"><strong>{{  results["Title"]  }}</strong> - {{ results["Type"].capitalize() }} ({{ results["Year"] }})</div>
                     <div class="card-body"><strong>Full Plot:</strong> {{ results["Plot"] }}</div>
                     <div class="card-footer">
 						<a href="titlesearch?job_id={{ job_id }}" class="btn btn-primary">New Search</a>   

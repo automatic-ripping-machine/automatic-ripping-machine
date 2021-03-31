@@ -55,7 +55,6 @@ div.ratings{
 -->
 <div class="container">
     <div class="row">
-        <!-- <div class="col-sm-1"></div> -->
         <div class="col-sm-12">
             <div class="table-responsive">
                 <div class="card{{ ' text-center' if jobs.background is none  else '' }}">
@@ -75,7 +74,7 @@ div.ratings{
                     <div class="card-header background-poster">
 					
 						<a id="posterClick" href="#">
-							<img src="static/img/none.png" width="240px" class="img-thumbnail"></a>
+							<img src="static/img/none.png" alt="Not found" width="240px" class="img-thumbnail"></a>
 							{% if jobs.video_type != "Music" %}
 							<div class="btn-group float-right mt-2" role="group">
 								<a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title Search</a>
@@ -87,7 +86,7 @@ div.ratings{
                     {% else %}
                     <div class="card-header background-poster">
 						<a id="posterClick" href="#">
-							<img src="{{ jobs.poster_url }}" width="240px" class="img-thumbnail"></a>
+							<img src="{{ jobs.poster_url }}" width="240px" class="img-thumbnail" alt="Poster image"></a>
 							{% if jobs.video_type != "Music" %}
 							<div class="btn-group float-right mt-2"  role="group">
 								<a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title Search</a>
@@ -103,7 +102,7 @@ div.ratings{
 						<p class="mb-0">{{jobs.plot}}</p>
 					</div>
 					<div class="card-body">
-                        <table id="jobtable" class="table table-striped">
+                        <table id="jobtable" class="table table-striped" aria-label="Job details">
                             <thead class="bg-secondary">
                             <tr>
                                 <th scope="col" style="text-align:left">Field</th>
@@ -112,197 +111,201 @@ div.ratings{
                             </thead>
                             <tbody>
                             <tr>
-                                <td style="text-align:left"><b>job_id</b></td>
+                                <td style="text-align:left"><strong>job_id</strong></td>
                                 <td style="text-align:left">{{ jobs.job_id }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>arm_version</b></td>
+                                <td style="text-align:left"><strong>arm_version</strong></td>
                                 <td style="text-align:left">{{ jobs.arm_version }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>crc_id</b></td>
+                                <td style="text-align:left"><strong>crc_id</strong></td>
                                 <td style="text-align:left">{{ jobs.crc_id }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>logfile</b></td>
+                                <td style="text-align:left"><strong>logfile</strong></td>
                                 <td style="text-align:left"><a href="logs?logfile={{ jobs.logfile }}&mode=full">{{
                                     jobs.logfile }}</a>
                                 </td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>disc</b></td>
+                                <td style="text-align:left"><strong>disc</strong></td>
                                 <td style="text-align:left">{{ jobs.disc }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>start_time</b></td>
+                                <td style="text-align:left"><strong>start_time</strong></td>
                                 <td style="text-align:left">{{ jobs.start_time }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>stop_time</b></td>
+                                <td style="text-align:left"><strong>stop_time</strong></td>
                                 <td style="text-align:left">{{ jobs.stop_time }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>job_length</b></td>
+                                <td style="text-align:left"><strong>job_length</strong></td>
                                 <td style="text-align:left">{{ jobs.job_length }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>status</b></td>
+                                <td style="text-align:left"><strong>status</strong></td>
                                 <td style="text-align:left">{{ jobs.status }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>video_type</b></td>
+                                <td style="text-align:left"><strong>video_type</strong></td>
                                 <td style="text-align:left">{{ jobs.video_type }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>video_type_auto</b></td>
+                                <td style="text-align:left"><strong>video_type_auto</strong></td>
                                 <td style="text-align:left">{{ jobs.video_type_auto }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>video_type_manual</b></td>
+                                <td style="text-align:left"><strong>video_type_manual</strong></td>
                                 <td style="text-align:left">{{ jobs.video_type_manual }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>title</b></td>
+                                <td style="text-align:left"><strong>title</strong></td>
                                 <td style="text-align:left">{{ jobs.title }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>title_auto</b></td>
+                                <td style="text-align:left"><strong>title_auto</strong></td>
                                 <td style="text-align:left">{{ jobs.title_auto }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>title_manual</b></td>
+                                <td style="text-align:left"><strong>title_manual</strong></td>
                                 <td style="text-align:left">{{ jobs.title_manual }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>year</b></td>
+                                <td style="text-align:left"><strong>year</strong></td>
                                 <td style="text-align:left">{{ jobs.year }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>year_auto</b></td>
+                                <td style="text-align:left"><strong>year_auto</strong></td>
                                 <td style="text-align:left">{{ jobs.year_auto }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>year_manual</b></td>
+                                <td style="text-align:left"><strong>year_manual</strong></td>
                                 <td style="text-align:left">{{ jobs.year_manual }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>imdb_id</b></td>
+                                <td style="text-align:left"><strong>imdb_id</strong></td>
                                 <td style="text-align:left">{{ jobs.imdb_id }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>imdb_id_auto</b></td>
+                                <td style="text-align:left"><strong>imdb_id_auto</strong></td>
                                 <td style="text-align:left">{{ jobs.imdb_id_auto }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>imdb_id_manual</b></td>
+                                <td style="text-align:left"><strong>imdb_id_manual</strong></td>
                                 <td style="text-align:left">{{ jobs.imdb_id_manual }}</td>
                             </tr>
                             {% if not jobs.poster_url %}
                             <tr>
-                                <td style="text-align:left"><b>poster_url</b></td>
-                                <td style="text-align:left"><a href="static/img/none.png"><img src="static/img/none.png"
+                                <td style="text-align:left"><strong>poster_url</strong></td>
+                                <td style="text-align:left"><a href=""><img src="static/img/none.png" alt="Not found"
                                                                                                title="static/img/none.png"
                                                                                                width=50></a><br/>None
                                 </td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>poster_url_auto</b></td>
-                                <td style="text-align:left"><a href="static/img/none.png"><img src="static/img/none.png"
+                                <td style="text-align:left"><strong>poster_url_auto</strong></td>
+                                <td style="text-align:left"><a href=""><img src="static/img/none.png" alt="Not found"
                                                                                                title="static/img/none.png"
                                                                                                width=50></a><br/>None
                                 </td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>poster_url_manual</b></td>
-                                <td style="text-align:left"><a href="static/img/none.png"><img src="static/img/none.png"
+                                <td style="text-align:left"><strong>poster_url_manual</strong></td>
+                                <td style="text-align:left"><a href=""><img src="static/img/none.png" alt="Not found"
                                                                                                title="static/img/none.png"
                                                                                                width=50> </a><br/>None
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td style="text-align:left"><b>poster_url</b></td>
-                                <td style="text-align:left"><a href="{{ jobs.poster_url }}"><img
+                                <td style="text-align:left"><strong>poster_url</strong></td>
+                                <td style="text-align:left"><a href="{{ jobs.poster_url }}"><img alt="Poster image"
                                         src="{{ jobs.poster_url }}" title="{{ jobs.poster_url }}" width=50></a><br/>{{
                                     jobs.poster_url }}
                                 </td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>poster_url_auto</b></td>
-                                <td style="text-align:left"><a href="{{ jobs.poster_url_auto }}"><img
+                                <td style="text-align:left"><strong>poster_url_auto</strong></td>
+                                <td style="text-align:left"><a href="{{ jobs.poster_url_auto }}"><img alt="Poster image"
                                         src="{{ jobs.poster_url_auto }}" title="{{ jobs.poster_url_auto }}"
                                         width=50></a><br/>{{ jobs.poster_url_auto }}
                                 </td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>poster_url_manual</b></td>
-                                <td style="text-align:left"><a href="{{ jobs.poster_url_manual }}"><img
+                                <td style="text-align:left"><strong>poster_url_manual</strong></td>
+                                <td style="text-align:left"><a href="{{ jobs.poster_url_manual }}"><img alt="Poster image"
                                         src="{{ jobs.poster_url_manual }}" title="{{ jobs.poster_url_manual }}"
                                         width=50> </a><br/>{{ jobs.poster_url_manual }}
                                 </td>
                             </tr>
                             {% endif %}
                             <tr>
-                                <td style="text-align:left"><b>devpath</b></td>
+                                <td style="text-align:left"><strong>devpath</strong></td>
                                 <td style="text-align:left">{{ jobs.devpath }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>mountpoint</b></td>
+                                <td style="text-align:left"><strong>mountpoint</strong></td>
                                 <td style="text-align:left">{{ jobs.mountpoint }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>hasnicetitle</b></td>
+                                <td style="text-align:left"><strong>hasnicetitle</strong></td>
                                 <td style="text-align:left">{{ jobs.hasnicetitle }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>errors</b></td>
+                                <td style="text-align:left"><strong>errors</strong></td>
                                 <td style="text-align:left">{{ jobs.errors }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>disctype</b></td>
+                                <td style="text-align:left"><strong>disctype</strong></td>
                                 <td style="text-align:left">{{ jobs.disctype }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>label</b></td>
+                                <td style="text-align:left"><strong>label</strong></td>
                                 <td style="text-align:left">{{ jobs.label }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>ejected</b></td>
+                                <td style="text-align:left"><strong>ejected</strong></td>
                                 <td style="text-align:left">{{ jobs.ejected }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>pid</b></td>
+                                <td style="text-align:left"><strong>pid</strong></td>
                                 <td style="text-align:left">{{ jobs.pid }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>pid hash</b></td>
+                                <td style="text-align:left"><strong>pid hash</strong></td>
                                 <td style="text-align:left">{{ jobs.pid_hash }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>Config ID</b></td>
+                                <td style="text-align:left"><strong>path</strong></td>
+                                <td style="text-align:left">{{ jobs.path }}</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align:left"><strong>Config ID</strong></td>
                                 <td style="text-align:left"> {{ jobs.config.CONFIG_ID }}</td>
                             </tr>
                             {% if jobs.video_type != "Music" %}
                             <tr>
-                                <td style="text-align:left"><b>HB_PRESET_DVD</b></td>
+                                <td style="text-align:left"><strong>HB_PRESET_DVD</strong></td>
                                 <td style="text-align:left"> {{ jobs.config.HB_PRESET_DVD }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>HB_ARGS_DVD</b></td>
+                                <td style="text-align:left"><strong>HB_ARGS_DVD</strong></td>
                                 <td style="text-align:left"> {{ jobs.config.HB_ARGS_DVD }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>HB_PRESET_BD</b></td>
+                                <td style="text-align:left"><strong>HB_PRESET_BD</strong></td>
                                 <td style="text-align:left">{{ jobs.config.HB_PRESET_BD }}</td>
                             </tr>
                             <tr>
-                                <td style="text-align:left"><b>HB_ARGS_BD</b></td>
+                                <td style="text-align:left"><strong>HB_ARGS_BD</strong></td>
                                 <td style="text-align:left">{{ jobs.config.HB_ARGS_BD }}</td>
                             </tr>
                             {% endif %}
                             </tbody>
                         </table>
-                        <table id="tracktable" class="table table-striped">
+                        <table id="tracktable" class="table table-striped" aria-label="Tracks">
                             <thead class="bg-secondary">
                             <tr>
                                 <th scope="col" style="text-align:left">Track #</th>
@@ -316,7 +319,7 @@ div.ratings{
                             <tbody>
                             {% for track in tracks %}
                             <tr>
-                                <td style="text-align:left"><b>{{ track.track_number }}</b></td>
+                                <td style="text-align:left"><strong>{{ track.track_number }}</strong></td>
                                 <td style="text-align:left">{{ track.length }}</td>
                                 <td style="text-align:left">{{ track.fps }}</td>
                                 <td style="text-align:left">{{ track.aspect_ratio }}</td>
@@ -328,10 +331,8 @@ div.ratings{
 
                         </table>
                     </div>
-                    <!-- <div class="card-footer"><a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">New Search</a> </div> -->
                 </div>
             </div>
-        <!-- <div class="col-sm-1"></div> -->
         </div>
     </div>
 </div>

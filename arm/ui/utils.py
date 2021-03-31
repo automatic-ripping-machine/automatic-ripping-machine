@@ -19,7 +19,6 @@ from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, Alembic_version, UISettings  # noqa: F401
 from flask import Flask, render_template, flash, request  # noqa: F401
 
-
 TMDB_YEAR_REGEX = "-[0-9]{0,2}-[0-9]{0,2}"
 
 
@@ -44,7 +43,7 @@ def database_updater(args, job, wait_time=90):
         except Exception as e:
             if "locked" in str(e):
                 time.sleep(1)
-                app.logger.debug("database is locked - trying in 1 second " + str(e))
+                app.logger.debug(f"database is locked - trying in 1 second {i}/{wait_time} - {e}")
             else:
                 app.logger.debug("Error: " + str(e))
                 raise RuntimeError(str(e))
@@ -116,7 +115,7 @@ def check_db_version(install_path, db_file):
 
 def make_dir(path):
     """
-Make a directory\n
+    Make a directory\n
     path = Path to directory\n
 
     returns success True if successful
@@ -167,13 +166,13 @@ def getsize(path):
     return freegb
 
 
-def call_omdb_api(title=None, year=None, imdbID=None, plot="short"):
+def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
     omdb_api_key = cfg['OMDB_API_KEY']
 
-    if imdbID:
-        strurl = "http://www.omdbapi.com/?i={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key, imdbID, plot)
+    if imdb_id:
+        strurl = "http://www.omdbapi.com/?i={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key, imdb_id, plot)
     elif title:
         # try:
         title = urllib.parse.quote(title)
@@ -277,8 +276,8 @@ def delete_job(job_id, mode):
             if job_id == 'all':
                 # if os.path.isfile(cfg['DBFILE']):
                 #    # Make a backup of the database file
-                #    cmd = 'cp ' + str(cfg['DBFILE']) + ' ' + str(cfg['DBFILE']) + '.bak'
-                #    app.logger.info("cmd  -  {0}".format(cmd))
+                #    cmd = f"cp {cfg['DBFILE']} {cfg['DBFILE'])}.bak"
+                #    app.logger.info(f"cmd  -  {cmd}")
                 #    os.system(cmd)
                 # Track.query.delete()
                 # Job.query.delete()
@@ -289,10 +288,11 @@ def delete_job(job_id, mode):
             elif job_id == "title":
                 #  The user can only access this by typing it manually
                 #  This shouldn't be left on when on a full server
-                # logfile = request.args['file']
+                # This causes db corruption!
+                # logfile = request.args['title']
                 # Job.query.filter_by(title=logfile).delete()
                 # db.session.commit()
-                app.logger.debug("Admin is requesting to delete all jobs with (x) title. No deletes went to db")
+                # app.logger.debug("Admin is requesting to delete all jobs with (x) title.")
                 t = {'success': True, 'job': job_id, 'mode': mode}
                 # Not sure this is the greatest way of handling this
             else:
@@ -304,7 +304,6 @@ def delete_job(job_id, mode):
                     return {'success': False, 'job': 'invalid', 'mode': mode, 'error': 'Not a valid job'}
                 else:
                     app.logger.debug("No errors: job_id=" + str(post_value))
-                    # TODO maybe/ re.sub('[^0-9]{1,10}', '', job_id)
                     Track.query.filter_by(job_id=job_id).delete()
                     Job.query.filter_by(job_id=job_id).delete()
                     Config.query.filter_by(job_id=job_id).delete()
@@ -373,12 +372,12 @@ def search(search_query):
     return {'success': True, 'mode': 'search', 'results': r}
 
 
-def get_omdb_poster(title=None, year=None, imdbID=None, plot="short"):
+def get_omdb_poster(title=None, year=None, imdb_id=None, plot="short"):
     """ Queries OMDbapi.org for the poster for movie/show """
     omdb_api_key = cfg['OMDB_API_KEY']
     title_info = {}
-    if imdbID:
-        strurl = f"http://www.omdbapi.com/?i={imdbID}&plot={plot}&r=json&apikey={omdb_api_key}"
+    if imdb_id:
+        strurl = f"http://www.omdbapi.com/?i={imdb_id}&plot={plot}&r=json&apikey={omdb_api_key}"
         strurl2 = ""
     elif title:
         strurl = f"http://www.omdbapi.com/?s={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
@@ -402,14 +401,13 @@ def get_omdb_poster(title=None, year=None, imdbID=None, plot="short"):
         else:
             try:
                 title_info_json2 = urllib.request.urlopen(r2).read()
-            except Exception as e:
-                app.logger.debug(f"Failed to reach OMdb - {e}")
-                return None, None
-            else:
                 title_info2 = json.loads(title_info_json2.decode())
                 # app.logger.debug("omdb - " + str(title_info2))
                 if 'Error' not in title_info2:
                     return title_info2['Poster'], title_info2['imdbID']
+            except Exception as e:
+                app.logger.debug(f"Failed to reach OMdb - {e}")
+                return None, None
 
     return None, None
 
@@ -458,7 +456,8 @@ def get_x_jobs(job_status):
              False if we didnt find any with the same crc
               - Will also return None as a secondary param
     """
-    if job_status == "success" or job_status == "fail":
+    success = False
+    if job_status in ("success", "fail"):
         jobs = Job.query.filter_by(status=job_status)
     else:
         jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
@@ -498,10 +497,9 @@ def get_x_jobs(job_status):
         i += 1
     if jobs:
         app.logger.debug("jobs  - we have " + str(len(r)) + " jobs")
-        return {"success": True, "mode": job_status, "results": r}
-    else:
-        app.logger.debug("we have no jobs")
-        return {"success": False, "mode": job_status, "results": {}}
+        success = True
+
+    return {"success": success, "mode": job_status, "results": r}
 
 
 def get_tmdb_poster(search_query=None, year=None):
@@ -730,7 +728,7 @@ def metadata_selector(func, query=None, year=None, imdb_id=None):
             return tmdb_search(query, year)
         elif func == "get_details":
             if query:
-                return get_tmdb_poster(query) if year is None else get_tmdb_poster(query, year)
+                return get_tmdb_poster(query, year)
             elif imdb_id:
                 return tmdb_find(imdb_id)
 
@@ -739,12 +737,11 @@ def metadata_selector(func, query=None, year=None, imdb_id=None):
         if func == "search":
             return call_omdb_api(query, year)
         elif func == "get_details":
-            s = call_omdb_api(title=query, year=year, imdbID=imdb_id, plot="full")
+            s = call_omdb_api(title=query, year=year, imdb_id=imdb_id, plot="full")
             s['background_url'] = None
             return s
-    else:
-        app.logger.debug(cfg['METADATA_PROVIDER'])
-        app.logger.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
+    app.logger.debug(cfg['METADATA_PROVIDER'])
+    app.logger.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
 
 
 def fix_permissions(j_id):
@@ -763,7 +760,7 @@ def fix_permissions(j_id):
     if not job:
         return {"success": False, "mode": "fixperms", "Error": "JobDeleted",
                 "PrettyError": "Job Has Been Deleted From The Database"}
-    job_log = cfg['LOGPATH'] + job.logfile
+    job_log = os.path.join(cfg['LOGPATH'], job.logfile)
     if not os.path.isfile(job_log):
         return {"success": False, "mode": "fixperms", "Error": "FileNotFoundError",
                 "PrettyError": "Logfile Has Been Deleted Or Moved"}
