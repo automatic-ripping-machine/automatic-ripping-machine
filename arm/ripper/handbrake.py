@@ -19,6 +19,7 @@ from arm.config.config import cfg
 
 PROCESS_COMPLETE = "Handbrake processing complete"
 
+
 def handbrake_mainfeature(srcpath, basepath, logfile, job):
     """process dvd with mainfeature enabled.\n
     srcpath = Path to source for HB (dvd or files)\n
