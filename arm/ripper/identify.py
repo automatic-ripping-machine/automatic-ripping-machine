@@ -179,7 +179,7 @@ def identify_dvd(job):
     year = re.sub(r"[^0-9]", "", str(job.year))
     # next line is not really needed, but we dont want to leave an x somewhere
     dvd_title = job.label.replace("16x9", "")
-    # Rip out any not alpha chars replace with
+    # Rip out any not alpha chars replace with &nbsp;
     dvd_title = re.sub(r"[^a-zA-Z ]", " ", dvd_title)
     logging.debug("dvd_title ^a-z= " + str(dvd_title))
     # rip out any SKU's at the end of the line
@@ -197,7 +197,7 @@ def identify_dvd(job):
     else:
         raise KeyError("Error with metadata provider - Not supported")
     logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
-    # Not sure this is needed anymore because of CWS()
+    # Not sure this is needed anymore because of callwebservice()
     job.year = year
     job.title = dvd_title
     db.session.commit()
@@ -232,8 +232,7 @@ def get_video_details(job):
     if job.year is None:
         year = ""
     else:
-        year = str(job.year)
-        year = re.sub("[^0-9]", "", year)
+        year = re.sub("[^0-9]", "", str(job.year))
 
     omdb_api_key = cfg["OMDB_API_KEY"]
     tmdb_api_key = cfg['TMDB_API_KEY']
@@ -461,7 +460,6 @@ def call_tmdb_service(job, tmdb_api_key, dvd_title, year=""):
 def tmdb_get_media_type(job):
     """ Clean up title and year.  Get video_type, imdb_id, poster_url from
     tmdb API.\n
-
     job = Instance of Job class\n
     """
     # Make sure we have a title.
@@ -546,7 +544,7 @@ def tmdb_get_imdb(tmdb_id, tmdb_api_key):
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={tmdb_api_key}&" \
           f"append_to_response=alternative_titles,credits,images,keywords,releases,reviews,similar,videos,external_ids"
     clean_url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key=hidden&" \
-          f"append_to_response=images,keywords,releases,videos,external_ids"
+                f"append_to_response=images,keywords,releases,videos,external_ids"
 
     # f"https://api.themoviedb.org/3/tv/1606?api_key={tmdb_api_key}"
     # Making a get request
