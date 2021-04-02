@@ -17,6 +17,7 @@ from arm.models.models import Track  # noqa: F401
 from arm.ui import app, db  # noqa E402
 from arm.config.config import cfg
 
+PROCESS_COMPLETE = "Handbrake processing complete"
 
 def handbrake_mainfeature(srcpath, basepath, logfile, job):
     """process dvd with mainfeature enabled.\n
@@ -38,7 +39,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     utils.database_updater({'status': "transcoding"}, job)
     filename = os.path.join(basepath, job.title + "." + cfg["DEST_EXT"])
     filepathname = os.path.join(basepath, filename)
-    logging.info("Ripping title Mainfeature to " + shlex.quote(filepathname))
+    logging.info(f"Ripping title Mainfeature to {shlex.quote(filepathname)}")
 
     get_track_info(srcpath, job)
 
@@ -67,7 +68,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
         logfile
     )
 
-    logging.debug("Sending command: %s", cmd)
+    logging.debug(f"Sending command: {cmd}")
 
     try:
         subprocess.check_output(
@@ -77,7 +78,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
         logging.info("Handbrake call successful")
         track.status = "success"
     except subprocess.CalledProcessError as hb_error:
-        err = "Call to handbrake failed with code: " + str(hb_error.returncode) + "(" + str(hb_error.output) + ")"
+        err = f"Call to handbrake failed with code: {hb_error.returncode}({hb_error.output})"
         logging.error(err)
         track.status = "fail"
         track.error = err
@@ -85,12 +86,10 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
         db.session.commit()
         sys.exit(err)
 
-    logging.info("Handbrake processing complete")
+    logging.info(PROCESS_COMPLETE)
     logging.debug("\n\r" + job.pretty_table())
     track.ripped = True
     db.session.commit()
-
-    return
 
 
 def handbrake_all(srcpath, basepath, logfile, job):
@@ -120,30 +119,27 @@ def handbrake_all(srcpath, basepath, logfile, job):
 
     get_track_info(srcpath, job)
 
-    logging.debug("Total number of tracks is " + str(job.no_of_titles))
+    logging.debug(f"Total number of tracks is {job.no_of_titles}")
 
     for track in job.tracks:
 
         if track.length < int(cfg["MINLENGTH"]):
             # too short
-            logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length (" + str(
-                track.length) +
-                         ") is less than minimum length (" + str(cfg["MINLENGTH"]) + ").  Skipping")
+            logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
+                         f"Length ({track.length}) is less than minimum length ({cfg['MINLENGTH']}).  Skipping")
         elif track.length > int(cfg["MAXLENGTH"]):
             # too long
-            logging.info("Track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length (" + str(
-                track.length) +
-                         ") is greater than maximum length (" + str(cfg["MAXLENGTH"]) + ").  Skipping")
+            logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
+                         f"Length ({track.length}) is greater than maximum length ({cfg['MAXLENGTH']}).  Skipping")
         else:
             # just right
-            logging.info(
-                "Processing track #" + str(track.track_number) + " of " + str(job.no_of_titles) + ". Length is " + str(
-                    track.length) + " seconds.")
+            logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. "
+                         f"Length is {track.length} seconds.")
 
             filename = "title_" + str.zfill(str(track.track_number), 2) + "." + cfg["DEST_EXT"]
             filepathname = os.path.join(basepath, filename)
 
-            logging.info("Transcoding title " + str(track.track_number) + " to " + shlex.quote(filepathname))
+            logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
 
             track.filename = track.orig_filename = filename
             db.session.commit()
@@ -158,30 +154,27 @@ def handbrake_all(srcpath, basepath, logfile, job):
                 logfile
             )
 
-            logging.debug("Sending command: %s", cmd)
+            logging.debug(f"Sending command: {cmd}")
 
             try:
                 hb = subprocess.check_output(
                     cmd,
                     shell=True
                 ).decode("utf-8")
-                logging.debug("Handbrake exit code: " + hb)
+                logging.debug(f"Handbrake exit code: {hb}")
                 track.status = "success"
             except subprocess.CalledProcessError as hb_error:
-                err = "Handbrake encoding of title " + str(track.track_number) + " failed with code: " + str(
-                    hb_error.returncode) + "(" + str(hb_error.output) + ")"  # noqa E501
+                err = f"Handbrake encoding of title {track.track_number} failed with code: {hb_error.returncode}" \
+                      f"({hb_error.output})"
                 logging.error(err)
                 track.status = "fail"
                 track.error = err
-                # return
-                # sys.exit(err)
 
             track.ripped = True
             db.session.commit()
 
-    logging.info("Handbrake processing complete")
+    logging.info(PROCESS_COMPLETE)
     logging.debug("\n\r" + job.pretty_table())
-    return
 
 
 def handbrake_mkv(srcpath, basepath, logfile, job):
@@ -213,7 +206,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
         filename = os.path.join(basepath, destfile + "." + cfg["DEST_EXT"])
         filepathname = os.path.join(basepath, filename)
 
-        logging.info("Transcoding file " + shlex.quote(f) + " to " + shlex.quote(filepathname))
+        logging.info(f"Transcoding file {shlex.quote(f)} to {shlex.quote(filepathname)}")
 
         cmd = 'nice {0} -i {1} -o {2} --preset "{3}" {4}>> {5} 2>&1'.format(
             cfg["HANDBRAKE_CLI"],
@@ -224,23 +217,22 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
             logfile
         )
 
-        logging.debug("Sending command: %s", cmd)
+        logging.debug(f"Sending command: {cmd}")
 
         try:
             hb = subprocess.check_output(
                 cmd,
                 shell=True
             ).decode("utf-8")
-            logging.debug("Handbrake exit code: " + hb)
+            logging.debug(f"Handbrake exit code: {hb}")
         except subprocess.CalledProcessError as hb_error:
-            err = "Handbrake encoding of file " + shlex.quote(f) + " failed with code: " + str(
-                hb_error.returncode) + "(" + str(hb_error.output) + ")"
+            err = f"Handbrake encoding of file {shlex.quote(f)} failed with code: {hb_error.returncode}" \
+                  f"({hb_error.output})"
             logging.error(err)
             # job.errors.append(f)
 
-    logging.info("Handbrake processing complete")
+    logging.info(PROCESS_COMPLETE)
     logging.debug("\n\r" + job.pretty_table())
-    return
 
 
 def get_track_info(srcpath, job):
@@ -257,7 +249,7 @@ def get_track_info(srcpath, job):
         shlex.quote(srcpath)
     )
 
-    logging.debug("Sending command: %s", cmd)
+    logging.debug(f"Sending command: {cmd}")
     try:
         hb = subprocess.check_output(
             cmd,
@@ -265,8 +257,8 @@ def get_track_info(srcpath, job):
             shell=True
         ).decode('utf-8', 'ignore').splitlines()
     except subprocess.CalledProcessError as hb_error:
-        logging.error("Couldn't find a valid track.  Try running the command manually to see more specific errors.")
-        logging.error("Specific error is: " + str(hb_error))
+        logging.error("Couldn't find a valid track. Try running the command manually to see more specific errors.")
+        logging.error(f"Specific error is: {hb_error}")
     else:
         charset_found = True
     if not charset_found:
@@ -277,8 +269,8 @@ def get_track_info(srcpath, job):
                 shell=True
             ).decode('cp437').splitlines()
         except subprocess.CalledProcessError as hb_error:
-            logging.error("Couldn't find a valid track.  Try running the command manually to see more specific errors.")
-            logging.error("Specific error is: " + str(hb_error))
+            logging.error("Couldn't find a valid track. Try running the command manually to see more specific errors.")
+            logging.error(f"Specific error is: {hb_error}")
             # If it doesnt work now we either have bad encoding or HB has ran into issues
             return -1
 
@@ -302,8 +294,8 @@ def get_track_info(srcpath, job):
             if result:
                 titles = result.group(1)
                 titles = titles.strip()
-                logging.debug("Line found is: " + line)
-                logging.info("Found " + titles + " titles")
+                logging.debug(f"Line found is: {line}")
+                logging.info(f"Found {titles} titles")
                 job.no_of_titles = titles
                 db.session.commit()
 
