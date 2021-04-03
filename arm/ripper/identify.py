@@ -11,7 +11,6 @@ import pydvdid
 import unicodedata
 import xmltodict
 import json
-import requests
 
 from arm.ripper import music_brainz
 from arm.ripper import utils
@@ -20,13 +19,14 @@ from arm.config.config import cfg
 
 
 # flake8: noqa: W605
+from arm.ui.utils import call_omdb_api, tmdb_search
 
 
 def identify(job, logfile):
     """Identify disc attributes"""
 
-    logging.debug("Identify Entry point --- job ---- \n\r" + job.pretty_table())
-    logging.info("Mounting disc to: " + str(job.mountpoint))
+    logging.debug(f"Identify Entry point --- job ---- \n\r{job.pretty_table()}")
+    logging.info(f"Mounting disc to: {job.mountpoint}")
 
     if not os.path.exists(str(job.mountpoint)):
         os.makedirs(str(job.mountpoint))
@@ -66,21 +66,15 @@ def identify(job, logfile):
                 res = identify_dvd(job)
             if job.disctype == "bluray":
                 res = identify_bluray(job)
-            # Need to check if year is "0000"  or ""
-            if res and job.year != "0000":
-                if cfg['METADATA_PROVIDER'].lower() == "tmdb":
-                    tmdb_get_media_type(job)
-                elif cfg['METADATA_PROVIDER'].lower() == "omdb":
-                    get_video_details(job)
-                else:
-                    logging.debug("unknown provider")
+            if res:
+                get_video_details(job)
             else:
                 job.hasnicetitle = False
                 db.session.commit()
 
             logging.info(
-                "Disc title Post ident: " + str(job.title) + " : " + str(job.year) + " : " + str(job.video_type))
-            logging.debug("identify.job.end ---- \n\r" + job.pretty_table())
+                f"Disc title Post ident -  title:{job.title} year:{job.year} type:{job.video_type}")
+            logging.debug(f"identify.job.end ---- \n\r{job.pretty_table()}")
 
     os.system("umount " + job.devpath)
 
@@ -140,21 +134,18 @@ def identify_bluray(job):
 
 
 def identify_dvd(job):
-    """ Manipulates the DVD title and calls OMDB to try and 	
+    """ Manipulates the DVD title and calls OMDB to try and
     lookup the title """
 
     logging.debug("\n\r" + job.pretty_table())
     # Some older DVDs aren't actually labelled
     if not job.label or job.label == "":
         job.label = "not identified"
-
-    dvd_info_xml = False
-    dvd_release_date = ""
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
         fallback_title = f"{job.label}_{crc64}"
         dvd_title = fallback_title
-        logging.info("DVD CRC64 hash is: " + str(crc64))
+        logging.info(f"DVD CRC64 hash is: {crc64}")
         job.crc_id = str(crc64)
         urlstring = f"http://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
         logging.debug(urlstring)
@@ -163,16 +154,23 @@ def identify_dvd(job):
         logging.debug("dvd xml - " + str(x))
         logging.debug(f"results = {x['results']}")
         if bool(x['success']):
-            job.title = x['results']['0']['title']
-            job.year = x['results']['0']['year']
-            job.imdb_id = x['results']['0']['imdb_id']
-            job.video_type = x['results']['0']['video_type']
-            db.session.commit()
-            return True
-    except pydvdid.exceptions.PydvdidException as e:
+            logging.info("Found crc64 id from online API")
+            logging.info(f"title is {x['results']['0']['title']}")
+            args = {
+                    'title': x['results']['0']['title'],
+                    'title_auto': x['results']['0']['title'],
+                    'year': x['results']['0']['year'],
+                    'year_auto': x['results']['0']['year'],
+                    'imdb_id': x['results']['0']['imdb_id'],
+                    'imdb_id_auto': x['results']['0']['imdb_id'],
+                    'video_type': x['results']['0']['video_type'],
+                    'video_type_auto': x['results']['0']['video_type'],
+                    }
+            utils.database_updater(args, job)
+            # return True
+    except Exception as e:
         logging.error("Pydvdid failed with the error: " + str(e))
         dvd_title = fallback_title = str(job.label)
-    # TODO: make use of dvd_info_xml again if found
 
     logging.debug("dvd_title_label= " + str(dvd_title))
     # strip all non-numeric chars and use that for year
@@ -186,21 +184,8 @@ def identify_dvd(job):
     dvd_title = re.sub(r"SKU\b", "", dvd_title)
     logging.debug("dvd_title SKU$= " + str(dvd_title))
 
-    # try to contact omdb/tmdb
-    if cfg['METADATA_PROVIDER'].lower() == "tmdb":
-        logging.debug("using tmdb")
-        tmdb_api_key = cfg['TMDB_API_KEY']
-        dvd_info_xml = call_tmdb_service(job, tmdb_api_key, dvd_title, year)
-    elif cfg['METADATA_PROVIDER'].lower() == "omdb":
-        logging.debug("using omdb")
-        dvd_info_xml = callwebservice(job, cfg["OMDB_API_KEY"], dvd_title, year)
-    else:
-        raise KeyError("Error with metadata provider - Not supported")
+    dvd_info_xml = metadata_selector(job, dvd_title, year)
     logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
-    # Not sure this is needed anymore because of callwebservice()
-    job.year = year
-    job.title = dvd_title
-    db.session.commit()
     return True
 
 
@@ -210,23 +195,15 @@ def get_video_details(job):
 
     job = Instance of Job class\n
     """
-    # Make sure we have a title.
-    # if we do its bluray use job.title not job.label
-    try:
-        if job.title is not None and job.title != "":
-            title = str(job.title)
-        else:
-            title = str(job.label)
-    except TypeError:
-        title = str(job.label)
+    title = job.title
 
     # Set out title from the job.label
     # return if not identified
     logging.debug("Title = " + title)
     if title == "not identified" or title is None:
+        logging.info("Disc couldn't be identified")
         return
-    title = title.strip()
-    title = re.sub('[_ ]', "+", title)
+    title = re.sub('[_ ]', "+", title.strip())
 
     # strip all non-numeric chars and use that for year
     if job.year is None:
@@ -234,325 +211,92 @@ def get_video_details(job):
     else:
         year = re.sub("[^0-9]", "", str(job.year))
 
-    omdb_api_key = cfg["OMDB_API_KEY"]
-    tmdb_api_key = cfg['TMDB_API_KEY']
+    logging.debug(f"Title: {title} | Year: {year}")
+    logging.debug(f"Calling webservice with title: {title} and year: {year}")
+
+    response = metadata_selector(job, title, year)
+
+    # handle failures
+    # this is a little kludgy, but it kind of works...
+    if response is None:
+        if year:
+            # first try subtracting one year.  This accounts for when
+            # the dvd release date is the year following the movie release date
+            logging.debug("Subtracting 1 year...")
+            response = metadata_selector(job, title, str(int(year) - 1))
+            logging.debug(f"response: {response}")
+
+        # try submitting without the year
+        if response is None:
+            # year needs to be changed
+            logging.debug("Removing year...")
+            response = metadata_selector(job, title)
+            logging.debug(f"response: {response}")
+
+        if response is None:
+            while response is None and title.find("-") > 0:
+                title = title.rsplit('-', 1)[0]
+                logging.debug("Trying title: " + title)
+                response = metadata_selector(job, title, year)
+                logging.debug(f"response: {response}")
+
+            # if still fail, then try slicing off the last word in a loop
+            while response is None and title.count('+') > 0:
+                title = title.rsplit('+', 1)[0]
+                logging.debug("Trying title: " + title)
+                response = metadata_selector(job, title, year)
+                logging.debug(f"response: {response}")
+                if response is None:
+                    logging.debug("Removing year...")
+                    response = metadata_selector(job, title)
+
+
+def update_job(job, s):
+    logging.debug(f"s =======  {s}")
+    new_year = s['Search'][0]['Year']
+    title = clean_for_filename(s['Search'][0]['Title'])
+    logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
+    args = {
+        'year_auto': str(new_year),
+        'year': str(new_year),
+        'title_auto': title,
+        'title': title,
+        'video_type_auto': s['Search'][0]['Type'],
+        'video_type': s['Search'][0]['Type'],
+        'imdb_id_auto': s['Search'][0]['imdbID'],
+        'imdb_id': s['Search'][0]['imdbID'],
+        'poster_url_auto': s['Search'][0]['Poster'],
+        'poster_url': s['Search'][0]['Poster'],
+        'hasnicetitle': True
+    }
+    utils.database_updater(args, job)
+
+
+def metadata_selector(job, title=None, year=None):
+    """
+    Used to switch between OMDB or TMDB as the metadata provider
+    - TMDB returned queries are converted into the OMDB format
+
+    :param job: The job class
+    :param title: this can either be a search string or movie/show title
+    :param year: the year of movie/show release
+
+    :return: json/dict object or None
+
+    Args:
+        job:
+    """
     if cfg['METADATA_PROVIDER'].lower() == "tmdb":
-        def call_web_service(j, api_key, dvd_title, y, tmdb_api=tmdb_api_key):
-            return tmdb_get_media_type(j)
-    elif cfg['METADATA_PROVIDER'].lower() == "omdb":
-        def call_web_service(j, api_key, dvd_title, y):
-            return callwebservice(j, api_key, dvd_title, y)
-    else:
-        return None
-    logging.debug("Title: " + title + " | Year: " + year)
-    logging.debug("Calling webservice with title: " + title + " and year: " + year)
-
-    response = call_web_service(job, omdb_api_key, title, year)
-    # logging.debug("response: " + str(response))
-
-    # handle failures
-    # this is a little kludgy, but it kind of works...
-    if response == "fail":
-        if year:
-            # first try subtracting one year.  This accounts for when
-            # the dvd release date is the year following the movie release date
-            logging.debug("Subtracting 1 year...")
-            response = call_web_service(job, omdb_api_key, title, str(int(year) - 1))
-            logging.debug("response: " + str(response))
-
-        # try submitting without the year
-        if response == "fail":
-            # year needs to be changed
-            logging.debug("Removing year...")
-            response = call_web_service(job, omdb_api_key, title, "")
-            logging.debug("response: " + str(response))
-
-        if response == "fail":
-            # see if there is a hyphen and split it
-            # if title.find("-") > -1:
-            while response == "fail" and title.find("-") > 0:
-                title = title.rsplit('-', 1)[0]
-                logging.debug("Trying title: " + title)
-                response = call_web_service(job, omdb_api_key, title, year)
-                logging.debug("response: " + str(response))
-
-            # if still fail, then try slicing off the last word in a loop
-            while response == "fail" and title.count('+') > 0:
-                title = title.rsplit('+', 1)[0]
-                logging.debug("Trying title: " + title)
-                response = call_web_service(job, omdb_api_key, title, year)
-                logging.debug("response: " + str(response))
-                # Added from pull 366 but we already try without the year.
-                # Possible bad/increased rate of false positives
-                if response == "fail":
-                    logging.debug("Removing year...")
-                    response = call_web_service(job, omdb_api_key, title, "")
-
-    # If after everything we dont have a nice title. lets make sure we revert to using job.label
-    if not job.hasnicetitle:
-        job.title = job.label
-        db.session.commit()
-
-
-def callwebservice(job, omdb_api_key, dvd_title, year=""):
-    """ Queries OMDbapi.org for title information and parses type, imdb, and poster info
-    """
-    if cfg["VIDEOTYPE"] == "auto":
-        strurl = f"http://www.omdbapi.com/?t={dvd_title}&y={year}&plot=short&r=json&apikey={omdb_api_key}"
-        logging.debug(f"http://www.omdbapi.com/?t={dvd_title}&y={year}&plot=short&r=json&apikey=key_hidden")
-    else:
-        strurl = f"http://www.omdbapi.com/?t={dvd_title}&y={year}&type={cfg['VIDEOTYPE']}" \
-                 f"&plot=short&r=json&apikey={omdb_api_key}"
-        logging.debug(
-            f"http://www.omdbapi.com/?t={dvd_title}&y={year}&type={cfg['VIDEOTYPE']}"
-            f"&plot=short&r=json&apikey=key_hidden")
-
-    logging.debug("***Calling webservice with Title: " + str(dvd_title) + " and Year: " + str(year))
-    try:
-        dvd_title_info_json = urllib.request.urlopen(strurl).read()
-    except Exception:
-        logging.debug("Webservice failed")
-        return "fail"
-    else:
-        doc = json.loads(dvd_title_info_json.decode())
-        if doc['Response'] == "False":
-            logging.debug("Webservice failed with error: " + doc['Error'])
-            return "fail"
-        else:
-            new_year = doc['Year']
-            title = clean_for_filename(doc['Title'])
-            logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
-            args = {
-                'year_auto': str(new_year),
-                'year': str(new_year),
-                'title_auto': title,
-                'title': title,
-                'video_type_auto': doc['Type'],
-                'video_type': doc['Type'],
-                'imdb_id_auto': doc['imdbID'],
-                'imdb_id': doc['imdbID'],
-                'poster_url_auto': doc['Poster'],
-                'poster_url': doc['Poster'],
-                'hasnicetitle': True
-            }
-            utils.database_updater(args, job)
-            # db.session.commit()
-            return doc['Response']
-
-
-def call_tmdb_service(job, tmdb_api_key, dvd_title, year=""):
-    """
-        Queries api.themoviedb.org for movies close to the query
-
-    """
-    # Movies and TV shows
-    # https://api.themoviedb.org/3/search/multi?api_key=<<api_key>>&query=aa
-    # Movie with tons of extra details
-    # https://api.themoviedb.org/3/movie/78?api_key=
-    # &append_to_response=alternative_titles,changes,credits,images,keywords,lists,releases,reviews,similar,videos
-    if year:
-        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={dvd_title}&year={year}"
-        clean_url = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={dvd_title}&year={year}"
-    else:
-        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={dvd_title}"
-        clean_url = f"https://api.themoviedb.org/3/search/movie?api_key=hidden&query={dvd_title}"
-    poster_size = "original"
-    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
-    # Making a get request
-    logging.debug(f"url = {clean_url}")
-    response = requests.get(url)
-    p = json.loads(response.text)
-    logging.debug(p)
-    x = {}
-    # Check for movies
-    if 'total_results' in p and p['total_results'] > 0:
-        logging.debug(p['total_results'])
-        for s in p['results']:
-            s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
-            s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
-            s['imdbID'] = tmdb_get_imdb(s['id'], tmdb_api_key)
-            s['Year'] = re.sub("-[0-9]{0,2}-[0-9]{0,2}", "", s['release_date'])
-            s['Title'] = s['title']
-            s['Type'] = "movie"
-            logging.debug(f"{s['title']} ({s['Year']})- {poster_base}{s['poster_path']}")
-            s['Poster'] = f"{poster_base}{s['poster_path']}"  # print(poster_url)
-            s['background_url'] = f"{poster_base}{s['backdrop_path']}"
-            logging.debug(s['background_url'])
-            dvd_title_pretty = re.sub(r"\+", " ", dvd_title)
-            logging.debug(f"trying {dvd_title.capitalize()} == {s['title'].capitalize()}")
-            if dvd_title_pretty.capitalize() == s['title'].capitalize():
-                s['Search'] = s
-                logging.debug("x=" + str(x))
-                s['Response'] = True
-                new_year = s['Year']
-                title = clean_for_filename(s['Title'])
-                logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
-                args = {
-                    'year_auto': str(new_year),
-                    'year': str(new_year),
-                    'title_auto': title,
-                    'title': title,
-                    'video_type_auto': s['Type'],
-                    'video_type': s['Type'],
-                    'imdb_id_auto': s['imdbID'],
-                    'imdb_id': s['imdbID'],
-                    'poster_url_auto': s['Poster'],
-                    'poster_url': s['Poster'],
-                    'hasnicetitle': True
-                }
-                utils.database_updater(args, job)
-                return s
-        x['Search'] = p['results']
+        logging.debug("provider tmdb")
+        x = tmdb_search(title, year)
+        if x is not None:
+            update_job(job, x)
         return x
-    else:
-        # Movies have failed check for tv series
-        url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={dvd_title}"
-        response = requests.get(url)
-        p = json.loads(response.text)
-        logging.debug(p)
-        x = {}
-        if 'total_results' in p and p['total_results'] > 0:
-            logging.debug(p['total_results'])
-            for s in p['results']:
-                logging.debug(s)
-                s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
-                s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
-                s['imdbID'] = tmdb_get_imdb(s['id'], tmdb_api_key)
-                reg = "-[0-9]{0,2}-[0-9]{0,2}"
-                s['Year'] = re.sub(reg, "", s['first_air_date']) if 'first_air_date' in s else \
-                    re.sub(reg, "", s['release_date'])
-                s['Title'] = s['title'] if 'title' in s else s['name']  # This isnt great
-                s['Type'] = "series"
-                logging.debug(f"{s['Title']} ({s['Year']})- {poster_base}{s['poster_path']}")
-                s['Poster'] = f"{poster_base}{s['poster_path']}"  # print(poster_url)
-                s['background_url'] = f"{poster_base}{s['backdrop_path']}"
-                logging.debug(s['background_url'])
-                dvd_title_pretty = re.sub(r"\+", " ", dvd_title)
-                logging.debug(f"trying {dvd_title.capitalize()} == {s['Title'].capitalize()}")
-                if dvd_title_pretty.capitalize() == s['Title'].capitalize():
-                    s['Search'] = s
-                    logging.debug("x=" + str(x))
-                    s['Response'] = True
-                    new_year = s['Year']
-                    title = clean_for_filename(s['Title'])
-                    logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
-                    args = {
-                        'year_auto': str(new_year),
-                        'year': str(new_year),
-                        'title_auto': title,
-                        'title': title,
-                        'video_type_auto': s['Type'],
-                        'video_type': s['Type'],
-                        'imdb_id_auto': s['imdbID'],
-                        'imdb_id': s['imdbID'],
-                        'poster_url_auto': s['Poster'],
-                        'poster_url': s['Poster'],
-                        'hasnicetitle': True
-                    }
-                    utils.database_updater(args, job)
-                    return s
-            x['Search'] = p['results']
-            return x
-        logging.debug("no results found")
-        return "fail"
-
-
-def tmdb_get_media_type(job):
-    """ Clean up title and year.  Get video_type, imdb_id, poster_url from
-    tmdb API.\n
-    job = Instance of Job class\n
-    """
-    # Make sure we have a title.
-    # if we do its bluray use job.title not job.label
-    try:
-        if job.title is not None and job.title != "":
-            title = str(job.title)
-        else:
-            title = str(job.label)
-    except TypeError:
-        title = str(job.label)
-
-    # Set out title from the job.label
-    # return if not identified
-    logging.debug("Title = " + title)
-    if title == "not identified" or title is None:
-        return
-    title = title.strip()
-    title = re.sub('[_ ]', "+", title)
-
-    # strip all non-numeric chars and use that for year
-    if job.year is None:
-        year = ""
-    else:
-        year = str(job.year)
-        year = re.sub("[^0-9]", "", year)
-
-    tmdb_api_key = cfg['TMDB_API_KEY']
-
-    logging.debug("Title: " + title + " | Year: " + year)
-    logging.debug("Calling webservice with title: " + title + " and year: " + year)
-    response = call_tmdb_service(job, tmdb_api_key, title, year)
-    # handle failures
-    # this is a little kludgy, but it kind of works...
-    if response == "fail":
-        if year:
-            # first try subtracting one year.  This accounts for when
-            # the dvd release date is the year following the movie release date
-            logging.debug("Subtracting 1 year...")
-            response = call_tmdb_service(job, tmdb_api_key, title, str(int(year) - 1))
-            logging.debug("response: " + str(response))
-
-        # try submitting without the year
-        if response == "fail":
-            # year needs to be changed
-            logging.debug("Removing year...")
-            response = call_tmdb_service(job, tmdb_api_key, title, "")
-            logging.debug("response: " + str(response))
-
-        if response == "fail":
-            # see if there is a hyphen and split it
-            # if title.find("-") > -1:
-            while response == "fail" and title.find("-") > 0:
-                title = title.rsplit('-', 1)[0]
-                logging.debug("Trying title: " + title)
-                response = call_tmdb_service(job, tmdb_api_key, title, year)
-                logging.debug("response: " + str(response))
-
-            # if still fail, then try slicing off the last word in a loop
-            while response == "fail" and title.count('+') > 0:
-                title = title.rsplit('+', 1)[0]
-                logging.debug("Trying title: " + title)
-                response = call_tmdb_service(job, tmdb_api_key, title, year)
-                logging.debug("response: " + str(response))
-                # Added from pull 366 but we already try without the year.
-                # Possible bad/increased rate of false positives
-                if response == "fail":
-                    logging.debug("Removing year...")
-                    response = call_tmdb_service(job, tmdb_api_key, title, "")
-
-    # If after everything we dont have a nice title. lets make sure we revert to using job.label
-    if not job.hasnicetitle:
-        job.title = job.label
-        db.session.commit()
-
-
-def tmdb_get_imdb(tmdb_id, tmdb_api_key):
-    """
-        Queries api.themoviedb.org for imdb_id by TMDB id
-
-    """
-    url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={tmdb_api_key}&" \
-          f"append_to_response=alternative_titles,credits,images,keywords,releases,reviews,similar,videos,external_ids"
-    clean_url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key=hidden&" \
-                f"append_to_response=images,keywords,releases,videos,external_ids"
-
-    # f"https://api.themoviedb.org/3/tv/1606?api_key={tmdb_api_key}"
-    # Making a get request
-    logging.debug(clean_url)
-    response = requests.get(url)
-    p = json.loads(response.text)
-    if 'status_code' not in p:
-        p['imdbID'] = p['external_ids']['imdb_id']
-    else:
-        p['imdbID'] = "NA"
-    return p['imdbID']
+    elif cfg['METADATA_PROVIDER'].lower() == "omdb":
+        logging.debug("provider omdb")
+        x = call_omdb_api(str(title), str(year))
+        if x is not None:
+            update_job(job, x)
+        return x
+    logging.debug(cfg['METADATA_PROVIDER'])
+    logging.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")

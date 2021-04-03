@@ -180,16 +180,16 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
         strurl = "http://www.omdbapi.com/?s={1}&y={2}&plot={3}&r=json&apikey={0}".format(omdb_api_key,
                                                                                          title, year, plot)
     else:
-        app.logger.debug("no params")
+        # app.logger.debug("no params")
         return None
-    app.logger.debug("omdb - " + str(strurl))
+    # app.logger.debug(f"omdb - {strurl}")
     try:
         title_info_json = urllib.request.urlopen(strurl).read()
         title_info = json.loads(title_info_json.decode())
-        app.logger.debug("omdb - " + str(title_info))
+        app.logger.debug(f"omdb - {title_info}")
     except urllib.error.HTTPError as e:
         app.logger.debug(f"omdb call failed with error - {e}")
-        return {}
+        return None
     app.logger.debug("omdb - call was successful")
     return title_info
 
@@ -590,7 +590,7 @@ def tmdb_search(search_query=None, year=None):
     p = json.loads(response.text)
     if 'status_code' in p:
         app.logger.debug(f"get_tmdb_poster failed with error -  {p['status_message']}")
-        return {}
+        return None
     x = {}
     if p['total_results'] > 0:
         app.logger.debug(f"tmdb_search - found {p['total_results']} movies")
