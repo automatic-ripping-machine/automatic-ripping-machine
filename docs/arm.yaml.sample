@@ -29,7 +29,7 @@ DISABLE_LOGIN: false
 SKIP_TRANSCODE: false
 
 # Video type identification.  Options are "auto", "series", "movie".
-# If "auto" then ARM will get the video type when quering the movie webservice.  This is default.
+# If "auto" then ARM will get the video type when querying the movie webservice.  This is default.
 # If the disc is not clearly a movie or series, or if ARM is having difficulty getting the right video type
 # you can override the automatic identification with "series" or "movie"
 VIDEOTYPE: "auto"
@@ -44,31 +44,30 @@ MAXLENGTH: "99999"
 # Wait for manual identification
 MANUAL_WAIT: true
 
-# Wait tie for manual identification (in seconds)
+# Wait time for manual identification (in seconds)
 MANUAL_WAIT_TIME: 60
-
 
 # Allows you to format the date/time to your own liking
 # This will be used throughout ARM and ARMui
 DATE_FORMAT: "%d-%m-%Y %H:%M:%S"
 
 ## Do you want to allow Rips of the same disk multiple times
-## With this set as false the task will exit if it recongnises the same movie being ripped
-## recommended to set to false for series 
+## With this set as false the task will exit if it recognises the same movie being ripped
+## recommended to set to true for series
 ALLOW_DUPLICATES: false
 
 # Number of Transcodes that runs at the same time.
 # Certain Video cards are limited to how many encodes they can run at the same time.
-# Also useful for deminishing returns on CPU based encodes.
-# 0 to disable
+# Also useful for diminishing returns on CPU based encodes.
+# Set to 0 to disable
 MAX_CONCURRENT_TRANSCODES: 0
 
 # Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
 DATA_RIP_PARAMETERS: ""
 
 # This selects the metadata provider, Each provider has their own ups and downs
-# But a general rule would be 
-# OMDB for movies and shows 
+# But a general rule would be
+# OMDB for movies and shows
 # TMDB for movies only
 # You will still need to provide an api key for the provider you have selected
 METADATA_PROVIDER: "omdb"
@@ -78,13 +77,15 @@ METADATA_PROVIDER: "omdb"
 # if "none" is used no label is identified
 GET_AUDIO_TITLE: "musicbrainz"
 
-## Location of your ABCDE config file
-## This over-rides any other abcde.conf files 
+# Location of your ABCDE config file
+# This over-rides any other abcde.conf files
 ABCDE_CONFIG_FILE: "/etc/abcde.conf"
+
 
 #####################
 ## Directory setup ##
 #####################
+
 # Path to raw MakeMKV directory
 # Destination for MakeMKV and source for HandBrake
 RAW_PATH: "/home/arm/media/raw/"
@@ -112,36 +113,43 @@ LOGPATH: "/home/arm/logs/"
 
 # Log level.  DEBUG, INFO, WARNING, ERROR, CRITICAL
 # The default is INFO
+# If you are experiencing difficulties set this to DEBUG
 LOGLEVEL: "INFO"
 
 # How long to let log files live before deleting (in days)
+# Set to 0 to disable
 LOGLIFE: 1
 
 # Path to ARM database file
 DBFILE: "/home/arm/db/arm.db"
+
 
 ##################
 ##  Web Server  ##
 ##################
 
 # IP address of web server (this machine)
+# Use x.x.x.x to autodetect the IP address to use
 WEBSERVER_IP: x.x.x.x
 
 # Port for web server
 WEBSERVER_PORT: 8080
 
+
 ########################
 ##  File Permissions  ##
 ########################
 
-# Enabling this seting will allow you to adjust the default file permissions of the outputted files
+# Enabling this setting will allow you to adjust the default file permissions of the outputted files
 # The default value is set to 777 for read/write/execute for all users, but can be changed below using the "CHMOD_VALUE" setting
 # This setting is helpful when storing the data locally on the system
 SET_MEDIA_PERMISSIONS: false
 CHMOD_VALUE: 777
+
 SET_MEDIA_OWNER: false
 CHOWN_USER: 
 CHOWN_GROUP: 
+
 
 ########################
 ## MakeMKV Parameters ##
@@ -152,13 +160,14 @@ CHOWN_GROUP:
 # analytical abilities such as the main-feature identification.  This method seems to offer success on bluray 
 # discs that fail in "mkv" mode. *** NOTE: MakeMKV only supports the backup method on BluRay discs.  ARM does
 # not use MakeMKV for DVDs.   
-RIPMETHOD: "backup" 
+RIPMETHOD: "backup"
 
 # MakeMKV Arguments
 # MakeMKV Profile used for controlling Audio Track Selection.
 # This is the default profile MakeMKV uses for Audio track selection. Updating this file or changing it is considered
 # to be advanced usage of MakeMKV. But this will allow users to alternatively tell makemkv to select HD audio tracks and etc.
 # MKV_ARGS: "--profile=/opt/arm/default.mmcp.xml"
+# MKV_ARGS: "--debug=-stdout"  # this will enable more detailed logging
 MKV_ARGS: ""
 
 # Remove the files created by MakeMKV after processing is complete
@@ -167,7 +176,8 @@ DELRAWFILES: true
 # Automatically download hashed_keys.  This is for UHD ripping only.  You mush have a UHD friendly drive for this to work.
 # Check out this post: https://www.makemkv.com/forum2/viewtopic.php?f=12&t=16883&sid=93f1db30f6ceb99b494f3f37cd723841 before 
 # changing this to True 
-HASHEDKEYS: False
+HASHEDKEYS: false
+
 
 ##########################
 ## HandBrake Parameters ##
@@ -175,11 +185,11 @@ HASHEDKEYS: False
 
 # Handbrake preset profile for DVDs
 # Execute "HandBrakeCLI -z" to see a list of all presets
-HB_PRESET_DVD: "HQ 720p30 Surround" 
+HB_PRESET_DVD: "HQ 720p30 Surround"
 
 # Handbrake preset profile for Blurays
 # Execute "HandBrakeCLI -z" to see a list of all presets
-HB_PRESET_BD: "HQ 1080p30 Surround" 
+HB_PRESET_BD: "HQ 1080p30 Surround"
 
 # Extension of the final video file
 DEST_EXT: mkv
@@ -195,19 +205,19 @@ HANDBRAKE_CLI: HandBrakeCLI
 # However, it does not handle tv shows well at all.  This setting is only used when the video is identified as a movie.
 MAINFEATURE: false
 
-# Additional HandBrake arguments for DVDs.  
+# Additional HandBrake arguments for DVDs.
 HB_ARGS_DVD: "--subtitle scan -F"
 
 # Additional Handbrake arguments for Bluray Discs.
 HB_ARGS_BD: "--subtitle scan -F --subtitle-burned --audio-lang-list eng --all-audio"
+
 
 #####################
 ## Emby Parameters ##
 #####################
 
 # Parameters to enable automatic library scan in Emby.  This will trigger only if MainFeature is true above.
-
-# Scan emby library after succesful placement of mainfeature (see above)
+# Scan emby library after successful placement of mainfeature (see above)
 EMBY_REFRESH: false
 
 # Server parameters
@@ -236,6 +246,7 @@ EMBY_PASSWORD: ""
 # Emby API key.  This can be found (generated) by going to Advanced/Security in the 
 # Emby dashboard
 EMBY_API_KEY: ""
+
 
 #############################
 ## Notification Parameters ##
@@ -281,6 +292,7 @@ TMDB_API_KEY: ""
 #################################################
 ##            APPRISE NOTIFICATIONS            ##
 #################################################
-## File location of your apprise.yaml file
-## Leave blank to disable
+
+# File location of your apprise.yaml file
+# Leave blank to disable
 APPRISE: ""
