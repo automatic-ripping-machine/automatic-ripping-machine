@@ -13,6 +13,8 @@
     },
     "ARM_CHECK_UDF": "# Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.",
     "GET_VIDEO_TITLE": "# When enabled if the disc is a DVD use dvdid to calculate a crc64 and query Windows Media Meta Services for the Movie Title.\n# For BluRays attempts to extract the title from an XML file on the disc",
+    "ARM_API_KEY": "# ARM dvd crc64 api key\n# This is only needed if you would like to send movies to the database",
+    "DISABLE_LOGIN": "# Do you want to be forced to login to view/edit jobs\n# True will leave all of the pages open to be editable/viewable by anyone\n# False will require you to login to view/edit jobs or settings from the ui\n# ARMui will need to be restared for this to update",
     "SKIP_TRANSCODE": "# Skip transcoding if you want the original MakeMKV files as your final output\n# This will produce the highest quality videos (and use the most storage)\n# Note: RIPMETHOD must be set to \"mkv\" for this feature to work\n# Note: The largest file will be considered to be the \"main feature\" but there are cases when this is not true\n# to avoid losing a desired track, use this feature with an EXTRAS_SUB value that is not \"None\"",
     "VIDEOTYPE": "# Video type identification.  Options are \"auto\", \"series\", \"movie\".\n# If \"auto\" then ARM will get the video type when querying the movie webservice.  This is default.\n# If the disc is not clearly a movie or series, or if ARM is having difficulty getting the right video type\n# you can override the automatic identification with \"series\" or \"movie\"",
     "MINLENGTH": "# Minimum length of track for ARM rip (in seconds)",
