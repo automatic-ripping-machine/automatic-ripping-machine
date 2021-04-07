@@ -199,7 +199,7 @@ def get_video_details(job):
 
     # Set out title from the job.label
     # return if not identified
-    logging.debug("Title = " + title)
+    logging.debug("Title = " + str(title))
     if title == "not identified" or title is None:
         logging.info("Disc couldn't be identified")
         return
