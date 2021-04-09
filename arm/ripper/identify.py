@@ -295,7 +295,7 @@ def metadata_selector(job, title=None, year=None):
     elif cfg['METADATA_PROVIDER'].lower() == "omdb":
         logging.debug("provider omdb")
         x = call_omdb_api(str(title), str(year))
-        if x is not None:
+        if x is not None and x['Response']:
             update_job(job, x)
         return x
     logging.debug(cfg['METADATA_PROVIDER'])
