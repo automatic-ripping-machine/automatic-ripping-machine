@@ -253,6 +253,8 @@ def get_video_details(job):
 
 def update_job(job, s):
     logging.debug(f"s =======  {s}")
+    if 'Search' not in s:
+        return None
     new_year = s['Search'][0]['Year']
     title = clean_for_filename(s['Search'][0]['Title'])
     logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
