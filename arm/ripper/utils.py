@@ -836,7 +836,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
     logging.debug("Arguments: " + basepath + " : " + filename + " : " + str(hasnicetitle) + " : " + videotitle + " : " + str(ismainfeature))
 
     if hasnicetitle:
-        m_path = os.path.join(job.config.MEDIA_DIR + videotitle)
+        m_path = os.path.join(job.config.MEDIA_DIR, videotitle)
 
         if not os.path.exists(m_path):
             logging.info("Creating base title directory: " + m_path)

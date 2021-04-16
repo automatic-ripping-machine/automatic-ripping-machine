@@ -92,7 +92,7 @@ def check_fstab():
     with open('/etc/fstab', 'r') as f:
         lines = f.readlines()
         for line in lines:
-            if re.search(job.devpath, line):
+            if re.search("^" + job.devpath, line):
                 logging.info("fstab entry is: " + line.rstrip())
                 return
     logging.error("No fstab entry found.  ARM will likely fail.")
@@ -327,7 +327,9 @@ def main(logfile, job):
             handbrake.handbrake_mkv(hbinpath, hboutpath, logfile, job)
         elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
             handbrake.handbrake_mainfeature(hbinpath, hboutpath, logfile, job)
-            job.eject()
+            # disc was already ejected after makemkv rip finished for blu-ray discs
+            if job.disctype != "bluray":
+                job.eject()
         else:
             handbrake.handbrake_all(hbinpath, hboutpath, logfile, job)
             job.eject()
