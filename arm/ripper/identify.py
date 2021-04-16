@@ -167,6 +167,7 @@ def identify_dvd(job):
     except pydvdid.exceptions.PydvdidException as e:
         logging.error("Pydvdid failed with the error: " + str(e))
         dvd_title = fallback_title = str(job.label)
+        crc64 = ""
 
     logging.info("DVD CRC64 hash is: " + str(crc64))
     job.crc_id = str(crc64)
