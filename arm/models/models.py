@@ -235,7 +235,7 @@ class Config(db.Model):
                 s = s + "\n"
             if str(attr) in (
                     "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY", "TMDB_API_KEY",
-                    "PO_USER_KEY", "PO_APP_KEY") and value:
+                    "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY") and value:
                 value = "<hidden>"
             s = s + str(attr) + ":" + str(value)
 
@@ -247,7 +247,7 @@ class Config(db.Model):
         for attr, value in self.__dict__.items():
             if str(attr) in (
                     "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY", "TMDB_API_KEY",
-                    "PO_USER_KEY", "PO_APP_KEY") and value:
+                    "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY") and value:
                 value = "<hidden>"
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 
@@ -261,7 +261,7 @@ class Config(db.Model):
         for attr, value in self.__dict__.items():
             if str(attr) in (
                     "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY", "TMDB_API_KEY",
-                    "PO_USER_KEY", "PO_APP_KEY") and value:
+                    "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY") and value:
                 value = "<hidden>"
             x.add_row([str(attr), str(value)])
         return str(x.get_string())
@@ -271,7 +271,7 @@ class Config(db.Model):
         for key, value in self.__dict__.items():
             if str(key) not in (
                     "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY", "TMDB_API_KEY",
-                    "PO_USER_KEY", "PO_APP_KEY", "_sa_instance_state"):
+                    "PO_USER_KEY", "PO_APP_KEY", "_sa_instance_state", "ARM_API_KEY"):
                 r[str(key)] = str(value)
         return r
 
