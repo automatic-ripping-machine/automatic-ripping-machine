@@ -234,7 +234,7 @@ class Config(db.Model):
             if s:
                 s = s + "\n"
             if str(attr) in (
-                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY", "TMDB_API_KEY",
                     "PO_USER_KEY", "PO_APP_KEY") and value:
                 value = "<hidden>"
             s = s + str(attr) + ":" + str(value)
@@ -246,7 +246,7 @@ class Config(db.Model):
         s = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
             if str(attr) in (
-                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY", "TMDB_API_KEY",
                     "PO_USER_KEY", "PO_APP_KEY") and value:
                 value = "<hidden>"
             s = s + "(" + str(attr) + "=" + str(value) + ") "
@@ -260,7 +260,7 @@ class Config(db.Model):
         x._max_width = {"Config": 20, "Value": 30}
         for attr, value in self.__dict__.items():
             if str(attr) in (
-                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY", "TMDB_API_KEY",
                     "PO_USER_KEY", "PO_APP_KEY") and value:
                 value = "<hidden>"
             x.add_row([str(attr), str(value)])
@@ -270,7 +270,7 @@ class Config(db.Model):
         r = {}
         for key, value in self.__dict__.items():
             if str(key) not in (
-                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY", "TMDB_API_KEY",
                     "PO_USER_KEY", "PO_APP_KEY", "_sa_instance_state"):
                 r[str(key)] = str(value)
         return r
