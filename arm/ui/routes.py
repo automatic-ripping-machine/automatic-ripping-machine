@@ -345,9 +345,10 @@ def settings():
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['NOTIFY_PERMS']
                 elif k == "APPRISE":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['APPRISE']
-
-                arm_cfg += "\n" + comments[str(k)] + "\n" if comments[str(k)] != "" else ""
-
+                try:
+                    arm_cfg += "\n" + comments[str(k)] + "\n" if comments[str(k)] != "" else ""
+                except KeyError:
+                    arm_cfg += "\n"
                 try:
                     post_value = int(v)
                     arm_cfg += f"{k}: {post_value}\n"
@@ -550,7 +551,7 @@ def jobdetail():
 @login_required
 def submitrip():
     """
-    ...
+    The initial search page
     """
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
@@ -611,7 +612,7 @@ def customtitle():
     return render_template('customTitle.html', title='Change Title', form=form, job=job)
 
 
-@app.route('/list_titles')
+@app.route('/list_titles', methods=['GET', 'POST'])
 @login_required
 def list_titles():
     """
@@ -626,9 +627,11 @@ def list_titles():
         app.logger.debug("list_titles - no job supplied")
         flash("No job supplied", "danger")
         return redirect('/error')
-
+    job = Job.query.get(job_id)
+    form = TitleSearchForm(obj=job)
     search_results = utils.metadata_selector("search", title, year)
-    return render_template('list_titles.html', results=search_results, job_id=job_id)
+    return render_template('list_titles.html', results=search_results, job_id=job_id,
+                           form=form, title=title, year=year)
 
 
 @app.route('/gettitle', methods=['GET', 'POST'])
@@ -659,7 +662,7 @@ def gettitle():
 @login_required
 def updatetitle():
     """
-    ...
+    used to save the details from the search
     """
     # updatetitle?title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
     #  poster=http://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
@@ -685,7 +688,7 @@ def updatetitle():
     db.session.commit()
     # TODO: show the previous values that were set, not just assume it was _auto
     flash(f'Title: {job.title_auto} ({job.year_auto}) was updated to {new_title} ({new_year})', "success")
-    return redirect(request.referrer)
+    return redirect("/")
 
 
 @app.route('/')

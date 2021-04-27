@@ -3,20 +3,52 @@
 
 {% block nav %}{{ super() }}{% endblock %}
 
-{% block content %}  
-<div class="container">
-    <div class="row">
-    {% for res in results["Search"] %}
-		{% if "Type" in res and res["Type"].lower() != "game" %}
-			<div class="col-md-3 text-center">
-				<div class="card text-center">
-					<div class="card-header"><a href="gettitle?imdbID={{ res["imdbID"] }}&job_id={{ job_id }}"><img src="{{ res["Poster"] }}" width="120px" class="img-thumbnail" alt="Poster image"></a></div>
-					<div class="card-body"><strong>{{  res["Title"]  }}</strong> - {{ res["Type"].capitalize() }} ({{ res["Year"] }})</div>
-				</div>
-			</div>
-		{% endif %}
-    {% endfor %}           
+{% block content %}
+    <div class="container">
+        <div class="container d-flex justify-content-center">
+            <div class="row" style="flex-wrap: nowrap">
+                <form action="" method="get" novalidate>
+                    {{ form.hidden_tag() }}
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="searchtitle">Title</span>
+                        </div>
+                        <input type="text" class="form-control" aria-label="searchtitle" name="title"
+                               value="{{ title }}" aria-describedby="searchtitle">
+                        <div class="invalid-tooltip">
+                            Search can't be blank
+                        </div>
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="basic-addon1">Year</span>
+                        </div>
+                        <input type="text" class="form-control" name="year" value="{{ year }}" aria-label="year"
+                               aria-describedby="basic-addon1">
+                    </div>
+                    <input class="form-control" name="job_id" value="{{ job_id }}" hidden>
+                    <input class="form-control" name="save" value="save" hidden>
+                    <button class="btn btn-info btn-lg btn-block" type="submit">Search</button>
+                </form>
+            </div>
+        </div>
+        <br><br>
+
+        <div class="row">
+            {% for res in results["Search"] %}
+                {% if "Type" in res and res["Type"].lower() != "game" %}
+                    <div class="col-md-3 text-center">
+                        <div class="card text-center">
+                            <div class="card-header"><a
+                                    href="gettitle?imdbID={{ res["imdbID"] }}&job_id={{ job_id }}"><img
+                                    src="{{ res["Poster"] }}" width="120px" class="img-thumbnail"
+                                    alt="Poster image"></a></div>
+                            <div class="card-body"><strong>{{ res["Title"] }}</strong> - {{ res["Type"].capitalize() }}
+                                ({{ res["Year"] }})
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
     </div>
-</div>
 
 {% endblock %}

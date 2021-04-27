@@ -7,6 +7,10 @@ from arm.config.config import cfg
 from flask_login import LoginManager, current_user, login_user, UserMixin  # noqa: F401
 from prettytable import PrettyTable
 
+hidden_attribs = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                  "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY", "TMDB_API_KEY")
+HIDDEN_VALUE = "<hidden>"
+
 
 class Job(db.Model):
     job_id = db.Column(db.Integer, primary_key=True)
@@ -233,10 +237,8 @@ class Config(db.Model):
         for attr, value in self.__dict__.items():
             if s:
                 s = s + "\n"
-            if str(attr) in (
-                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
-                    "PO_USER_KEY", "PO_APP_KEY") and value:
-                value = "<hidden>"
+            if str(attr) in hidden_attribs and value:
+                value = HIDDEN_VALUE
             s = s + str(attr) + ":" + str(value)
 
         return s
@@ -245,10 +247,8 @@ class Config(db.Model):
         """Returns a string of the object"""
         s = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
-            if str(attr) in (
-                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
-                    "PO_USER_KEY", "PO_APP_KEY") and value:
-                value = "<hidden>"
+            if str(attr) in hidden_attribs and value:
+                value = HIDDEN_VALUE
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 
         return s
@@ -259,19 +259,15 @@ class Config(db.Model):
         x.field_names = ["Config", "Value"]
         x._max_width = {"Config": 20, "Value": 30}
         for attr, value in self.__dict__.items():
-            if str(attr) in (
-                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
-                    "PO_USER_KEY", "PO_APP_KEY") and value:
-                value = "<hidden>"
+            if str(attr) in hidden_attribs and value:
+                value = HIDDEN_VALUE
             x.add_row([str(attr), str(value)])
         return str(x.get_string())
 
     def get_d(self):
         r = {}
         for key, value in self.__dict__.items():
-            if str(key) not in (
-                    "OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
-                    "PO_USER_KEY", "PO_APP_KEY", "_sa_instance_state"):
+            if str(key) not in hidden_attribs:
                 r[str(key)] = str(value)
         return r
 
