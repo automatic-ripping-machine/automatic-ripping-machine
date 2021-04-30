@@ -80,8 +80,8 @@
 	{% with messages = get_flashed_messages(with_categories=true) %}
 		{% if messages %}
 			{% for category, message in messages %}
-				<div id="message1" class="alert alert-{{ category if category !="message" else 'info' }}" role="alert">
-					<h4 class="alert-heading">{{ message }}</h4>
+				<div id="message1" class="alert alert-{{ category if category !="message" else 'info' }} text-center" role="alert">
+					<h4 class="alert-heading">{{ message|safe }}</h4>
 				</div>
 			{% endfor %}
 		{% endif %}

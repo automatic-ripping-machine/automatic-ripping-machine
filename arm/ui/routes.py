@@ -630,6 +630,12 @@ def list_titles():
     job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     search_results = utils.metadata_selector("search", title, year)
+    if 'Error' in search_results or ('Search' in search_results and len(search_results['Search']) < 1):
+        app.logger.debug("No results found. Trying without year")
+        flash(f"No search results found for {title} ({year})<br/> Trying without year", 'danger')
+        search_results = utils.metadata_selector("search", title, "")
+    if 'Error' in search_results or ('Search' in search_results and len(search_results['Search']) < 1):
+        flash(f"No search results found for {title}", 'danger')
     return render_template('list_titles.html', results=search_results, job_id=job_id,
                            form=form, title=title, year=year)
 
