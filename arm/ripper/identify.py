@@ -186,6 +186,10 @@ def identify_dvd(job):
 
     dvd_info_xml = metadata_selector(job, dvd_title, year)
     logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
+    # Failsafe so they we always have a title.
+    if job.title is None or job.title == "None":
+        job.title = str(job.label)
+        job.year = ""
     return True
 
 

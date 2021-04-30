@@ -109,9 +109,13 @@ function addJobItem(job) {
           </div>\
           <div class="row no-gutters">\
           <div class="col-lg-4">\
-	      <a href="jobdetail?job_id=' + job["job_id"] + '">\
-          <img id="jobId' + job["job_id"] + '_poster_url" src="' + job["poster_url"] + '" width="240px" class="img-thumbnail">\
-          </a>\
+	      <a href="jobdetail?job_id=' + job["job_id"] + '">';
+    if(job["poster_url"] !== "None") {
+        x += '<img id="jobId' + job["job_id"] + '_poster_url" src="' + job["poster_url"] + '" width="240px" class="img-thumbnail">';
+    }else{
+        x += '<img id="jobId' + job["job_id"] + '_poster_url" src="/static/img/none.png" width="240px" class="img-thumbnail">';
+    }
+    x+='      </a>\
           </div>\
           <div class="col-lg-4">\
           <div class="card-body px-1 py-1">'
@@ -165,7 +169,7 @@ function addJobItem(job) {
 }
 
 function updateJobItem(oldJob, job) {
-    if (job['poster_url'] !== $('#jobId' + job["job_id"] + '_poster_url')[0].src) {
+    if (job['poster_url'] !== $('#jobId' + job["job_id"] + '_poster_url')[0].src && job['poster_url'] !== "None") {
         $('#jobId' + job["job_id"] + '_poster_url')[0].src = job['poster_url'];
     }
 

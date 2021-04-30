@@ -75,7 +75,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending boxcar apprise notification.  Continuing processing...")
     # discord
     # discord://{WebhookID}/{WebhookToken}/
@@ -92,7 +92,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending discord apprise notification.  Continuing processing...")
     # Faast
     # faast://{authorizationtoken}
@@ -109,7 +109,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending faast apprise notification.  Continuing processing...")
     # FLOCK
     # flock://{token}/
@@ -126,7 +126,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending flock apprise notification.  Continuing processing...")
     # GITTER
     # gitter: // {token} / {room} /
@@ -143,7 +143,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending gitter apprise notification.  Continuing processing...")
     # Gotify
     # gotify://{hostname}/{token}
@@ -160,7 +160,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending gitter apprise notification.  Continuing processing...")
     # Growl
     # growl://{hostname} || growl://{password}@{hostname}
@@ -181,7 +181,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending growl apprise notification.  Continuing processing...")
     # JOIN
     # join://{apikey}/ ||  join://{apikey}/{device_id}
@@ -202,7 +202,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending growl apprise notification.  Continuing processing...")
     # Kodi
     # kodi://{hostname}:{port} || kodi: // {userid}: {password} @ {hostname}:{port}
@@ -229,7 +229,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending KODI apprise notification.  Continuing processing...")
     # KUMULOS
     if cfg['KUMULOS_API'] != "":
@@ -245,7 +245,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending KUMULOS apprise notification.  Continuing processing...")
     # LEMETRIC
     if cfg['LAMETRIC_MODE'] != "":
@@ -266,7 +266,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending LAMETRIC apprise notification.  Continuing processing...")
     # MAILGUN
     if cfg['MAILGUN_DOMAIN'] != "":
@@ -283,7 +283,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending mailgun apprise notification.  Continuing processing...")
     # MATRIX
     if cfg['MATRIX_HOST'] != "" or cfg['MATRIX_TOKEN'] != "":
@@ -301,7 +301,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending Matrix apprise notification.  Continuing processing...")
     # Microsoft teams
     if cfg['MSTEAMS_TOKENA'] != "":
@@ -319,7 +319,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending Microsoft teams apprise notification.  Continuing processing...")
     # Nextcloud
     if cfg['NEXTCLOUD_HOST'] != "":
@@ -337,7 +337,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending nextcloud apprise notification.  Continuing processing...")
     # Notica
     if cfg['NOTICA_TOKEN'] != "":
@@ -353,7 +353,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending notica apprise notification.  Continuing processing...")
     # Notifico
     if cfg['NOTIFICO_PROJECTID'] != "":
@@ -369,7 +369,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending notifico apprise notification.  continuing  processing...")
     # Office365
     if cfg['OFFICE365_TENANTID'] != "":
@@ -388,7 +388,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending Office365 apprise notification.  continuing processing...")
     # Popcorn
     if cfg['POPCORN_API'] != "":
@@ -405,7 +405,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending popcorn apprise notification.  Continuing processing...")
     # PROWL
     if cfg['PROWL_API'] != "":
@@ -422,7 +422,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending notifico apprise notification.  continuing  processing...")
     # Pushjet
     # project is dead not worth coding fully
@@ -438,7 +438,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending pushjet apprise notification.  continuing  processing...")
     # techulus push
     if cfg['PUSH_API'] != "":
@@ -453,7 +453,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending techulus push apprise notification.  continuing  processing...")
     # PUSHED
     if cfg['PUSHED_APP_KEY'] != "":
@@ -468,7 +468,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending PUSHED apprise notification.  continuing  processing...")
     # PUSHSAFER
     if cfg['PUSHSAFER_KEY'] != "":
@@ -483,7 +483,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending pushsafer apprise notification.  continuing  processing...")
     # ROCKETCHAT
     # rocket://{webhook}@{hostname}/{@user}
@@ -500,7 +500,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending rocketchat apprise notification.  continuing  processing...")
     # ryver
     # ryver://{organization}/{token}/
@@ -517,7 +517,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending RYVER apprise notification.  continuing  processing...")
     # Sendgrid
     # sendgrid://{apikey}:{from_email}
@@ -533,7 +533,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending sendgrid apprise notification.  continuing  processing...")
     # simplepush
     # spush://{apikey}/
@@ -548,7 +548,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending simplepush apprise notification.  continuing  processing...")
     # slacks
     # slack://{tokenA}/{tokenB}/{tokenC}
@@ -564,7 +564,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending slacks apprise notification.  continuing  processing...")
     # SPARKPOST
     # sparkpost://{user}@{domain}/{apikey}/ || sparkpost://{user}@{domain}/{apikey}/{email}/
@@ -580,7 +580,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending SparkPost apprise notification.  continuing  processing...")
     # spontit
     # spontit://{user}@{apikey}
@@ -595,7 +595,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending Spontit apprise notification.  continuing  processing...")
     # Telegram
     # tgram://{bot_token}/{chat_id}/ || tgram://{bot_token}/
@@ -610,7 +610,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending Telegram apprise notification.  continuing  processing...")
     # Twist
     # twist://{email}/{password} || twist://{password}:{email}
@@ -626,7 +626,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending Twist apprise notification.  continuing  processing...")
     # XBMC
     # xbmc://{userid}:{password}@{hostname}:{port} ||  xbmc://{hostname}:{port}
@@ -647,7 +647,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending XBMC apprise notification.  continuing  processing...")
     # XMPP
     # xmpp://{password}@{hostname}:{port} || xmpps://{userid}:{password}@{hostname}
@@ -669,7 +669,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending XMPP apprise notification.  continuing  processing...")
     # Webex teams
     # wxteams://{token}/
@@ -685,7 +685,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending Webex teams apprise notification.  continuing  processing...")
     # Zulip
     # zulip://{botname}@{organization}/{token}/
@@ -702,7 +702,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-        except:  # noqa: E722
+        except Exception:  # noqa: E722
             logging.error("Failed sending Zulip apprise notification.  continuing  processing...")
 
 
@@ -755,7 +755,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
     filename = name of file to be moved\n
     job = instance of Job class\n
     ismainfeature = True/False"""
-    logging.debug("Moving files: " + str(job.pretty_table()))
+    # logging.debug("Moving files: " + str(job.pretty_table()))
 
     if job.video_type == "movie":
         type_sub_folder = "movies"
@@ -765,48 +765,39 @@ def move_files(basepath, filename, job, ismainfeature=False):
         type_sub_folder = "unidentified"
 
     hasnicetitle = True if job.title_manual else job.hasnicetitle
-    videotitle = job.title + " (" + str(job.year) + ")"
+    videotitle = f"{job.title} ({job.year})" if job.year else f"{job.title}"
 
     logging.debug(f"Arguments: {basepath} : {filename} : {hasnicetitle} : {videotitle} : {ismainfeature}")
+    m_path = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), videotitle)
+    if not os.path.exists(m_path):
+        logging.info(f"Creating base title directory: {m_path}")
+        os.makedirs(m_path)
 
-    if hasnicetitle:
-        m_path = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), videotitle)
-
-        if not os.path.exists(m_path):
-            logging.info("Creating base title directory: " + m_path)
-            os.makedirs(m_path)
-
-        if ismainfeature is True:
-            logging.info("Track is the Main Title.  Moving '" + filename + "' to " + m_path)
-
-            m_file = os.path.join(m_path, videotitle + "." + cfg["DEST_EXT"])
-            if not os.path.isfile(m_file):
-                try:
-                    shutil.move(os.path.join(basepath, filename), m_file)
-                except Exception as e:
-                    logging.error("Unable to move '" + filename + "' to " + m_path + " - " + str(e))
-            else:
-                logging.info("File: " + m_file + " already exists.  Not moving.")
+    if ismainfeature is True:
+        logging.info(f"Track is the Main Title.  Moving '{filename}' to {m_path}")
+        m_file = os.path.join(m_path, videotitle + "." + cfg["DEST_EXT"])
+        if not os.path.isfile(m_file):
+            try:
+                shutil.move(os.path.join(basepath, filename), m_file)
+            except Exception as e:
+                logging.error(f"Unable to move '{filename}' to '{m_path}' - Error: {e}")
         else:
-            e_path = os.path.join(m_path, cfg["EXTRAS_SUB"])
-
-            if not os.path.exists(e_path):
-                logging.info("Creating extras directory " + e_path)
-                os.makedirs(e_path)
-
-            logging.info("Moving '" + filename + "' to " + e_path)
-
-            e_file = os.path.join(e_path, videotitle + "." + cfg["DEST_EXT"])
-            if not os.path.isfile(e_file):
-                try:
-                    shutil.move(os.path.join(basepath, filename), os.path.join(e_path, filename))
-                except shutil.Error:
-                    logging.error("Unable to move '" + filename + "' to " + e_path)
-            else:
-                logging.info("File: " + e_file + " already exists.  Not moving.")
-
+            logging.info(f"File: {m_file} already exists.  Not moving.")
     else:
-        logging.info("hasnicetitle is false.  Not moving files.")
+        e_path = os.path.join(m_path, cfg["EXTRAS_SUB"])
+        if not os.path.exists(e_path):
+            logging.info(f"Creating extras directory {e_path}")
+            os.makedirs(e_path)
+
+        logging.info(f"Moving '{filename}' to {e_path}")
+        e_file = os.path.join(e_path, videotitle + "." + cfg["DEST_EXT"])
+        if not os.path.isfile(e_file):
+            try:
+                shutil.move(os.path.join(basepath, filename), os.path.join(e_path, filename))
+            except shutil.Error:
+                logging.error(f"Unable to move '{filename}' to {e_path}")
+        else:
+            logging.info(f"File: {e_file} already exists.  Not moving.")
 
 
 def rename_files(oldpath, job):
@@ -1174,7 +1165,7 @@ def database_updater(args, job, wait_time=90):
         except Exception as e:
             if "locked" in str(e):
                 time.sleep(1)
-                logging.debug("database is locked - trying in 1 second")
+                logging.debug(f"database is locked - try {i}/{wait_time}")
             else:
                 logging.debug("Error: " + str(e))
                 raise RuntimeError(str(e))

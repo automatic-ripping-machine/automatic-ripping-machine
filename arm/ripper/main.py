@@ -266,7 +266,7 @@ def main(logfile, job):
 
         # The dvd directory already exists - Lets make a new one using random numbers
         if (utils.make_dir(hb_out_path)) is False:
-            logging.info("Directory exist.")
+            logging.info(f"Handbrake Output directory \"{hb_out_path}\" already exists.")
             # Only begin ripping if we are allowed to make duplicates
             # Or the successful rip of the disc is not found in our database
             if cfg["ALLOW_DUPLICATES"] or not have_dupes:
@@ -292,7 +292,7 @@ def main(logfile, job):
                 db.session.commit()
                 sys.exit()
 
-        logging.info("Processing files to: " + hb_out_path)
+        logging.info(f"Processing files to: {hb_out_path}")
         mkvoutpath = None
         # entry point for bluray
         # or
@@ -314,7 +314,7 @@ def main(logfile, job):
                 db.session.commit()
                 sys.exit()
             if cfg["NOTIFY_RIP"]:
-                utils.notify(job, NOTIFY_TITLE, str(job.title) + " rip complete. Starting transcode. ")
+                utils.notify(job, NOTIFY_TITLE, f"{job.title} rip complete. Starting transcode. ")
             # point HB to the path MakeMKV ripped to
             hb_in_path = mkvoutpath
 
@@ -338,7 +338,7 @@ def main(logfile, job):
         # check if there is a new title and change all filenames
         # time.sleep(60)
         db.session.refresh(job)
-        logging.debug("New Title is " + str(job.title_manual))
+        logging.debug(f"New Title is {job.title}")
         if job.year != "0000" or job.year != "":
             final_directory = os.path.join(job.config.COMPLETED_PATH, str(type_sub_folder),
                                            f'{job.title} ({job.year})')
@@ -346,19 +346,22 @@ def main(logfile, job):
             final_directory = os.path.join(job.config.COMPLETED_PATH, str(type_sub_folder), str(job.title))
 
         # move to media directory
-        if job.video_type == "movie" and job.hasnicetitle:
-            tracks = job.tracks.filter_by(ripped=True)
+        tracks = job.tracks.filter_by(ripped=True)
+
+        if job.video_type == "movie":
             for track in tracks:
                 logging.info(f"Moving Movie {track.filename} to {final_directory}")
                 utils.move_files(hb_out_path, track.filename, job, track.main_feature)
         # move to media directory
-        elif job.video_type == "series" and job.hasnicetitle:
-            tracks = job.tracks.filter_by(ripped=True)
+        elif job.video_type == "series":
             for track in tracks:
                 logging.info(f"Moving Series {track.filename} to {final_directory}")
                 utils.move_files(hb_out_path, track.filename, job, False)
         else:
-            logging.info(f"job type is {job.video_type} not movie or series, not moving.")
+            for track in tracks:
+                logging.info(f"Type is 'unknown' or we dont have a nice title - "
+                             f"Moving {track.filename} to {final_directory}")
+                utils.move_files(hb_out_path, track.filename, job, track.main_feature)
             utils.scan_emby(job)
 
         utils.set_permissions(job, final_directory)
@@ -369,7 +372,8 @@ def main(logfile, job):
             for raw_folder in raw_list:
                 try:
                     logging.info(f"Removing raw path - {raw_folder}")
-                    shutil.rmtree(raw_folder)
+                    if raw_folder != final_directory:
+                        shutil.rmtree(raw_folder)
                 except UnboundLocalError as e:
                     logging.debug(f"No raw files found to delete in {raw_folder}- {e}")
                 except OSError as e:
@@ -435,8 +439,16 @@ if __name__ == "__main__":
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
     # Dont put out anything if we are using the empty.log or NAS_
-    if logfile.find("empty.log") != -1 or logfile.find("NAS_") != -1:
+    if logfile.find("empty.log") != -1 or logfile.find("/NAS_") != -1:
         sys.exit()
+    # This will kill any runs that have been triggered twice on the same device
+    running_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success']), Job.devpath == devpath).all()
+    if len(running_jobs) >= 1:
+        for j in running_jobs:
+            print(j.start_time - datetime.datetime.now())
+            z = int(round(abs(j.start_time - datetime.datetime.now()).total_seconds()) / 60)
+            if z < 1:
+                sys.exit(f"job already running on {devpath}")
 
     logging.info(f"Starting ARM processing at {datetime.datetime.now()}")
 
