@@ -10,6 +10,7 @@ import psutil
 import requests
 import bcrypt  # noqa: F401
 import html
+import yaml
 
 from pathlib import Path
 from arm.config.config import cfg
@@ -423,8 +424,9 @@ def job_dupe_check(crc_id):
              False if we didnt find any with the same crc
               - Will also return None as a secondary param
     """
-    # TODO possibly only grab hasnicetitles ?
-    jobs = Job.query.filter_by(crc_id=crc_id, status="success")
+    if crc_id is None:
+        return False, None
+    jobs = Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
     # app.logger.debug("search - posts=" + str(jobs))
     r = {}
     i = 0
@@ -778,7 +780,7 @@ def fix_permissions(j_id):
         directory_to_traverse = ts.group(1)
     else:
         app.logger.debug("not found")
-        directory_to_traverse = os.path.join(job.config.MEDIA_DIR, str(job.title) + " (" + str(job.year) + ")")
+        directory_to_traverse = os.path.join(job.config.COMPLETED_PATH, str(job.title) + " (" + str(job.year) + ")")
     try:
         corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
         app.logger.info("Setting permissions to: " + str(job.config.CHMOD_VALUE) + " on: " + directory_to_traverse)
@@ -823,3 +825,25 @@ def trigger_restart():
     now = datetime.datetime.now()
     arm_main = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routes.py")
     set_file_last_modified(arm_main, now)
+
+
+def get_settings(arm_cfg_file):
+    """
+    yaml file loader - is used for loading fresh arm.yaml config
+    Args:
+        arm_cfg_file: full path to arm.yaml
+
+    Returns:
+        cfg: the loaded yaml file
+    """
+    try:
+        with open(arm_cfg_file, "r") as f:
+            try:
+                cfg = yaml.load(f, Loader=yaml.FullLoader)
+            except Exception as e:
+                app.logger.debug(e)
+                cfg = yaml.safe_load(f)  # For older versions use this
+    except FileNotFoundError as e:
+        app.logger.debug(e)
+        cfg = {}
+    return cfg

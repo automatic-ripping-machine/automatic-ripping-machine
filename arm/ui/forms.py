@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, IntegerField, BooleanField, validators  # noqa: F401
+from wtforms import StringField, SubmitField, SelectField, IntegerField, BooleanField, validators, PasswordField  # noqa: F401
 from wtforms.validators import DataRequired
 
 
@@ -48,4 +48,10 @@ class UiSettingsForm(FlaskForm):
     bootstrap_skin = StringField('bootstrap_skin', validators=[DataRequired()])
     language = StringField('language', validators=[DataRequired()])
     database_limit = IntegerField('database_limit', validators=[DataRequired()])
+    submit = SubmitField('Submit')
+
+
+class SetupForm(FlaskForm):
+    username = StringField('username', validators=[DataRequired()])
+    password = PasswordField('password', validators=[DataRequired()])
     submit = SubmitField('Submit')
