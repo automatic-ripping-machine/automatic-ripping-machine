@@ -712,7 +712,7 @@ def tmdb_find(imdb_id):
     return s
 
 
-def metadata_selector(func, query=None, year=None, imdb_id=None):
+def metadata_selector(func, query="", year="", imdb_id=""):
     """
     Used to switch between OMDB or TMDB as the metadata provider
     - TMDB returned queries are converted into the OMDB format
@@ -727,19 +727,19 @@ def metadata_selector(func, query=None, year=None, imdb_id=None):
     if cfg['METADATA_PROVIDER'].lower() == "tmdb":
         app.logger.debug("provider tmdb")
         if func == "search":
-            return tmdb_search(query, year)
+            return tmdb_search(str(query), str(year))
         elif func == "get_details":
             if query:
-                return get_tmdb_poster(query, year)
+                return get_tmdb_poster(str(query), str(year))
             elif imdb_id:
                 return tmdb_find(imdb_id)
 
     elif cfg['METADATA_PROVIDER'].lower() == "omdb":
         app.logger.debug("provider omdb")
         if func == "search":
-            return call_omdb_api(query, year)
+            return call_omdb_api(str(query), str(year))
         elif func == "get_details":
-            s = call_omdb_api(title=query, year=year, imdb_id=imdb_id, plot="full")
+            s = call_omdb_api(title=str(query), year=str(year), imdb_id=str(imdb_id), plot="full")
             s['background_url'] = None
             return s
     app.logger.debug(cfg['METADATA_PROVIDER'])

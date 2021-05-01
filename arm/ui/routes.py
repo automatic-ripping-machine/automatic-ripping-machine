@@ -7,7 +7,6 @@ import sys  # noqa: F401
 import bcrypt
 import hashlib
 import json
-import yaml
 import requests
 import arm.ui.utils as utils
 
