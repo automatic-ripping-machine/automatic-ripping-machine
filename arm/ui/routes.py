@@ -209,7 +209,7 @@ def login():
             return redirect('/index')
         else:
             flash('Password is wrong', 'danger')
-        return render_template('login.html', form=form)
+    return render_template('login.html', form=form)
 
 
 @app.route('/database')
