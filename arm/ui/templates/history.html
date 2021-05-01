@@ -4,100 +4,126 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-        <style>
-/*
-Max width before this PARTICULAR table gets nasty
-This query will take effect for any screen smaller than 760px
-and also iPads specifically.
-*/
-@media
-only screen and (max-width: 760px),
-(min-device-width: 768px) and (max-device-width: 1024px)  {
+    <style>
+        /*
+        Max width before this PARTICULAR table gets nasty
+        This query will take effect for any screen smaller than 760px
+        and also iPads specifically.
+        */
+        @media only screen and (max-width: 760px),
+        (min-device-width: 768px) and (max-device-width: 1024px) {
 
-	/* Force table to not be like tables anymore */
-	table, thead, tbody, th, td, tr {
-		display: block;
-        /*padding: .75rem;*/
-	}
+            /* Force table to not be like tables anymore */
+            table, thead, tbody, th, td, tr {
+                display: block;
+                /*padding: .75rem;*/
+            }
 
-	/* Hide table headers (but not display: none;, for accessibility) */
-	thead tr {
-		position: absolute;
-		top: -9999px;
-		left: -9999px;
-	}
+            /* Hide table headers (but not display: none;, for accessibility) */
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
 
-	tr { border: 1px solid #ccc; margin-top: 5px;border-radius: 7px;}
+            tr {
+                border: 1px solid #ccc;
+                margin-top: 5px;
+                border-radius: 7px;
+            }
 
-	td {
-        white-space: normal !important;
-		/* Behave  like a "row" */
-		border: none;
-		border-bottom: 1px solid #eee;
-		position: relative;
-		padding-left: 50%;
-        padding-top: 3px;
-	}
+            td {
+                white-space: normal !important;
+                /* Behave  like a "row" */
+                border: none;
+                border-bottom: 1px solid #eee;
+                position: relative;
+                padding-left: 50%;
+                padding-top: 3px;
+            }
 
-	td:before {
-		/* Now like a table header */
-		/* Top/left values mimic padding */
-		top: 6px;
-		width: 45%;
-		padding-right: 10px;
-		white-space: pre;
-	}
+            td:before {
+                /* Now like a table header */
+                /* Top/left values mimic padding */
+                top: 6px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: pre;
+            }
 
-	/*
-	Label the data
-	*/
-	td:nth-of-type(1):before { content: "Title:\A"; }
-	td:nth-of-type(2):before { content: "Job Start datetime:\A"; }
-	td:nth-of-type(3):before { content: "Duration:\A"; }
-	td:nth-of-type(4):before { content: "Status:\A"; }
-	td:nth-of-type(5):before { content: "Logfile:\A"; }
-}
+            /*
+            Label the data
+            */
+            td:nth-of-type(1):before {
+                content: "Title:\A";
+            }
+
+            td:nth-of-type(2):before {
+                content: "Job Start datetime:\A";
+            }
+
+            td:nth-of-type(3):before {
+                content: "Duration:\A";
+            }
+
+            td:nth-of-type(4):before {
+                content: "Status:\A";
+            }
+
+            td:nth-of-type(5):before {
+                content: "Logfile:\A";
+            }
+        }
     </style>
-    <div class="jumbotron" style="padding-top: 1rem;">
-        <div class="col-sm-12  rounded text-center">
-            <img src="static/img/arm80.png" alt="">
-            <p class="text-center">
-            <h2> Rip History </h2>
-            </p>
-        </div>
-
-        <div class="table-responsive">
-            <table id="riptable" style="margin: 0 auto" class="table table-striped">
-                <caption>Previous rips</caption>
-                <thead class="tablesorterhead bg-secondary">
-                <tr style="margin: 0 auto">
-                    <th scope="col" style="cursor: pointer;">Title</th>
-                    <th scope="col" style="cursor: pointer;">Start Time</th>
-                    <th scope="col" style="cursor: pointer;">Duration</th>
-                    <th scope="col" style="cursor: pointer;">Status</th>
-                    <th scope="col" style="cursor: pointer;">Logfile</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for job in jobs %}
-                    <tr>
-                    <td class="text-nowrap"><a
-                            href="jobdetail?job_id={{ job.job_id }}">{{ job.title|truncate(50, True) if job.title is not none else 'Title unknown' }}</a>
-                    </td>
-                    <td class="text-nowrap">{{ job.start_time.strftime(date_format) if job.start_time is not none }}</td>
-                    <td class="text-nowrap">{{ job.job_length }}</td>
-                    <td class="text-nowrap {{ job.status }}"><img src="static/img/{{ job.status }}.png" height="30px"
-                                                                  alt="{{ job.status }}" title="{{ job.status }}"></td>
-                    <td class="text-nowrap"><a
-                            href="logs?logfile={{ job.logfile }}&mode=full">{{ job.logfile|truncate(50, True) if job.logfile is not none else 'Unknown logfile' }}</a>
-                    </td>
-                {% endfor %}
-                </tr>
-                </tbody>
-            </table>
+    <div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="table-responsive">
+                <div class="jumbotron">
+                    <div class="row">
+                            <div class="col-sm-12  rounded text-center">
+                                <img src="static/img/arm80.png" alt="">
+                                <p>
+                                    <strong>Welcome to your Automatic Ripping Machine<br></strong>
+                                </p>
+                            </div>
+                        </div>
+                    <br>
+                    <div class="row">
+                            <table class="table table-striped">
+                                <caption>Previous rips</caption>
+                                <thead class="tablesorterhead thead-dark">
+                                <tr style="margin: 0 auto">
+                                    <th scope="col" style="cursor: pointer;">Title</th>
+                                    <th scope="col" style="cursor: pointer;">Start Time</th>
+                                    <th scope="col" style="cursor: pointer;">Duration</th>
+                                    <th scope="col" style="cursor: pointer;">Status</th>
+                                    <th scope="col" style="cursor: pointer;">Logfile</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for job in jobs %}
+                                    <tr>
+                                        <th scope="row" class="text-wrap"><a
+                                                href="jobdetail?job_id={{ job.job_id }}">{{ job.title|truncate(50, True) if job.title is not none else 'Title unknown' }}</a>
+                                        </th>
+                                        <td class="text-nowrap">{{ job.start_time.strftime(date_format) if job.start_time is not none }}</td>
+                                        <td class="text-nowrap">{{ job.job_length }}</td>
+                                        <td class="text-nowrap {{ job.status }}"><img
+                                                src="static/img/{{ job.status }}.png" height="30px" width="30px"
+                                                alt="{{ job.status }}" title="{{ job.status }}"></td>
+                                        <td class="text-nowrap"><a
+                                                href="logs?logfile={{ job.logfile }}&mode=full">{{ job.logfile|truncate(50, True) if job.logfile is not none else 'Unknown logfile' }}</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                </div>
+            </div>
         </div>
     </div>
-
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
