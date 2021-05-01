@@ -765,7 +765,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
         type_sub_folder = "unidentified"
 
     hasnicetitle = True if job.title_manual else job.hasnicetitle
-    videotitle = f"{job.title} ({job.year})" if job.year else f"{job.title}"
+    videotitle = f"{job.title} ({job.year})" if job.year and job.year != "0000" and job.year != "" else f"{job.title}"
 
     logging.debug(f"Arguments: {basepath} : {filename} : {hasnicetitle} : {videotitle} : {ismainfeature}")
     m_path = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), videotitle)

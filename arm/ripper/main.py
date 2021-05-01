@@ -258,7 +258,7 @@ def main(logfile, job):
         else:
             type_sub_folder = "unidentified"
 
-        if job.year != "0000" or job.year != "":
+        if job.year and job.year != "0000" and job.year != "":
             hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(type_sub_folder),
                                        str(job.title) + " (" + str(job.year) + ")")
         else:
@@ -339,7 +339,7 @@ def main(logfile, job):
         # time.sleep(60)
         db.session.refresh(job)
         logging.debug(f"New Title is {job.title}")
-        if job.year != "0000" or job.year != "":
+        if job.year and job.year != "0000" and job.year != "":
             final_directory = os.path.join(job.config.COMPLETED_PATH, str(type_sub_folder),
                                            f'{job.title} ({job.year})')
         else:
