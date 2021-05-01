@@ -4,6 +4,60 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
+        <style>
+/*
+Max width before this PARTICULAR table gets nasty
+This query will take effect for any screen smaller than 760px
+and also iPads specifically.
+*/
+@media
+only screen and (max-width: 760px),
+(min-device-width: 768px) and (max-device-width: 1024px)  {
+
+	/* Force table to not be like tables anymore */
+	table, thead, tbody, th, td, tr {
+		display: block;
+        /*padding: .75rem;*/
+	}
+
+	/* Hide table headers (but not display: none;, for accessibility) */
+	thead tr {
+		position: absolute;
+		top: -9999px;
+		left: -9999px;
+	}
+
+	tr { border: 1px solid #ccc; margin-top: 5px;border-radius: 7px;}
+
+	td {
+        white-space: normal !important;
+		/* Behave  like a "row" */
+		border: none;
+		border-bottom: 1px solid #eee;
+		position: relative;
+		padding-left: 50%;
+        padding-top: 3px;
+	}
+
+	td:before {
+		/* Now like a table header */
+		/* Top/left values mimic padding */
+		top: 6px;
+		width: 45%;
+		padding-right: 10px;
+		white-space: pre;
+	}
+
+	/*
+	Label the data
+	*/
+	td:nth-of-type(1):before { content: "Title:\A"; }
+	td:nth-of-type(2):before { content: "Job Start datetime:\A"; }
+	td:nth-of-type(3):before { content: "Duration:\A"; }
+	td:nth-of-type(4):before { content: "Status:\A"; }
+	td:nth-of-type(5):before { content: "Logfile:\A"; }
+}
+    </style>
     <div class="jumbotron" style="padding-top: 1rem;">
         <div class="col-sm-12  rounded text-center">
             <img src="static/img/arm80.png" alt="">

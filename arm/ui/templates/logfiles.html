@@ -4,12 +4,67 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
+    <style>
+/*
+Max width before this PARTICULAR table gets nasty
+This query will take effect for any screen smaller than 760px
+and also iPads specifically.
+*/
+@media
+only screen and (max-width: 760px),
+(min-device-width: 768px) and (max-device-width: 1024px)  {
+
+	/* Force table to not be like tables anymore */
+	table, thead, tbody, th, td, tr {
+		display: block;
+        /*padding: .75rem;*/
+	}
+
+	/* Hide table headers (but not display: none;, for accessibility) */
+	thead tr {
+		position: absolute;
+		top: -9999px;
+		left: -9999px;
+	}
+
+	tr { border: 1px solid #ccc; margin-top: 5px;border-radius: 7px;}
+
+	td {
+        white-space: normal !important;
+		/* Behave  like a "row" */
+		border: none;
+		border-bottom: 1px solid #eee;
+		position: relative;
+		padding-left: 50%;
+        padding-top: 3px;
+	}
+
+	td:before {
+		/* Now like a table header */
+		/* Top/left values mimic padding */
+		top: 6px;
+		width: 45%;
+		padding-right: 10px;
+		white-space: pre;
+	}
+
+	/*
+	Label the data
+	*/
+	td:nth-of-type(1):before { content: "Log name:\A"; }
+	td:nth-of-type(2):before { content: "Creation datetime:\A"; }
+	td:nth-of-type(3):before { content: "Size in kilobytes:\A"; }
+	td:nth-of-type(4):before { content: "Log link Tail:"; }
+	td:nth-of-type(5):before { content: "Log link ARM:"; }
+	td:nth-of-type(6):before { content: "Log link Full:"; }
+	td:nth-of-type(7):before { content: "Log link Download:"; }
+}
+    </style>
     <div class="container">
         <div class="row">
             <div class="col-12">
                 <div class="table-responsive">
                     <div class="jumbotron">
-
                         <div class="row">
                             <div class="col-sm-12  rounded text-center">
                                 <img src="static/img/arm80.png" alt="">
@@ -19,34 +74,38 @@
                             </div>
                         </div>
                         <br>
-
-                        <table id="logTable" style="margin: 0 auto" class="table table-striped">
-                            <caption>Log files</caption>
-                            <thead class="tablesorterhead bg-secondary">
-                            <tr style="margin: 0 auto">
-                                <th id="logfile" style="cursor: pointer;">Log file</th>
-                                <th id="created" style="cursor: pointer;">Created Time</th>
-                                <th id="sizekb" style="cursor: pointer;">Size(kb)</th>
-                                <th id="viewlog" colspan="4" style="text-align:center; cursor: default;"
-                                    data-sorter="false">View modes
-                                </th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for file in files %}
-                                <tr>
-                                    <td headers="logfile" class="text-wrap">{{ file[0]|truncate(30, True) }}</td>
-                                    <td headers="created" class="text-wrap">{{ file[2] }}</td>
-                                    <td headers="sizekb" style="text-align:center">{{ file[3] }}</td>
-                                    <td headers="viewlog" style="text-align:center"><a
-                                            href="logs?logfile={{ file[0] }}&mode=tail">tail</a></td>
-                                    <td headers="viewlog"><a href="logs?logfile={{ file[0] }}&mode=armcat">arm</a></td>
-                                    <td headers="viewlog"><a href="logs?logfile={{ file[0] }}&mode=full">full</a></td>
-                                    <td headers="viewlog"><a href="logreader?logfile={{ file[0] }}&mode=download">download</a></td>
+                        <div style="overflow-x:auto;">
+                            <table id="logTable" style="margin: 0 auto" class="table table-striped">
+                                <caption>Log files in the log directory</caption>
+                                <thead class="tablesorterhead bg-secondary">
+                                <tr style="margin: 0 auto">
+                                    <th id="logfile" style="cursor: pointer;">Log file</th>
+                                    <th id="created" style="cursor: pointer;">Created Time</th>
+                                    <th id="sizekb" style="cursor: pointer;">Size(kb)</th>
+                                    <th id="viewlog" colspan="4" style="cursor: default;"
+                                        data-sorter="false">View modes
+                                    </th>
                                 </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                {% for file in files %}
+                                    <tr>
+                                        <td headers="logfile" class="text-wrap">{{ file[0]|truncate(30, True) }}</td>
+                                        <td headers="created" class="text-wrap">{{ file[2] }}</td>
+                                        <td headers="sizekb">{{ file[3] }}</td>
+                                        <td headers="viewlog"><a
+                                                href="logs?logfile={{ file[0] }}&mode=tail">tail</a></td>
+                                        <td headers="viewlog"><a href="logs?logfile={{ file[0] }}&mode=armcat">arm</a>
+                                        </td>
+                                        <td headers="viewlog"><a href="logs?logfile={{ file[0] }}&mode=full">full</a>
+                                        </td>
+                                        <td headers="viewlog"><a href="logreader?logfile={{ file[0] }}&mode=download">download</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 <div class="row" style="height: 30px;"></div>
@@ -57,7 +116,7 @@
                                 <strong>View Modes</strong>
                             </div>
                             <div class="d-flex justify-content-center">
-                                <p style="white-space: nowrap; line-height: 20pt;">
+                                <p class="p-4" style="line-height: 20pt;">
                                     <strong>tail:</strong> Output to browser in real time. Similar to 'tail -f'<br/>
                                     <strong>arm:</strong> Static output of just the ARM log entries<br/>
                                     <strong>full:</strong> Static output of all of the log including MakeMKV and
