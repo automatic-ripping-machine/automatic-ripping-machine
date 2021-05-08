@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Error{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}  
+                <div class="jumbotron">
+       <pre>
+        \          SORRY            /
+         \                         /
+          \    There was an       /
+           ]      error          [    ,'|
+           ]                     [   /  |
+           ]___               ___[ ,'   |
+           ]  ]\             /[  [ |:   |
+           ]  ] \           / [  [ |:   |
+           ]  ]  ]         [  [  [ |:   |
+           ]  ]  ]__     __[  [  [ |:   |
+           ]  ]  ] ]\ _ /[ [  [  [ |:   |
+           ]  ]  ] ] (#) [ [  [  [ :===='
+           ]  ]  ]_].nHn.[_[  [  [
+           ]  ]  ]  HHHHH. [  [  [
+           ]  ] /   `HH("N  \ [  [
+           ]__]/     HHH  "  \[__[
+           ]         NNN         [
+           ]         N/"         [
+           ]         N H         [
+          /          N            \
+         /           q,            \
+        /                           \
+                </pre>
+				<p>{{ error }}</p>
+                </div>
+
+
+
+{% endblock %}

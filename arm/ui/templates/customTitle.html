@@ -4,31 +4,43 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}  
-<div class="container">
-    <div class="row h-100 mx-auto align-items-center">
-            <div class="col-sm-4 mx-auto"></div>
-                <div class="col-sm-4 mx-auto">
-			<p>This for was inteneded for DVD's that have more than one disk</p>
-			<p>This for was inteneded or for TV Serie's that have more than one disk</p>
-                    <form action="" method="post" novalidate>
-                        {{ form.hidden_tag() }}
-                        <p>
-                            <strong>{{ form.title.label }}</strong><br>
-                            {{ form.title(size=32) }}
-                        </p>
-                        <p>
-                            <strong>{{ form.year.label }}</strong><br>
-                            {{ form.year(size=4) }}
-                        </p>
-                        <p>{{ form.submit() }}</p>
+	<div class="row text-center justify-content-center">
+		<div class="col">
+			<p>This for was intended for DVD's that have more than one disk</p>
+			<p>This for was intended or for TV Series that have more than one disk</p>
+		</div>
+	</div> 
+<div class="container justify-content-center">
+    <div class="row justify-content-center" style="flex-wrap: nowrap">
+        <div class="col-7">
+		<form action="" method="post" novalidate>
+			{{ form.hidden_tag() }}
+			<div class="input-group mb-3 flex-nowrap">
+				<div class="input-group-prepend">
+					<span class="input-group-text" id="searchtitle">Title</span>
+				</div>
+				<input type="text" class="form-control" aria-label="searchtitle" name="title" placeholder="title..." value="{{job.title if job.title != '' else '' }}" aria-describedby="searchtitle">
+			    <div class="invalid-tooltip">
+					Title can't be blank
+				</div>
+			</div>
+			<div class="input-group mb-3 flex-nowrap">
+				<div class="input-group-prepend">
+					<span class="input-group-text" id="basic-addon1">Year</span>
+				</div>
+				<input type="text" class="form-control" name="year" aria-label="year" value="{{ job.year if job.year != '' else '' }}" aria-describedby="basic-addon1">
+			</div>
+			<button class="btn btn-info btn-lg btn-block" type="submit">Set Custome Title</button>
+		</form>
+		</div>
+	</div>
 			{% if form.errors %}
-			<span style="color: red;">{{ form.errors }}</span>
+				{% for k in form.errors %}
+					<script>$("[name='{{k}}']").addClass("is-invalid");</script>
+				{% endfor %}
 			{% endif %}
-                    </form>        
-                </div>
-            <div class="col-sm-4 mx-auto"></div>
-    </div>
 </div>
+
 
 
 

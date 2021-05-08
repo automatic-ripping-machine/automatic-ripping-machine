@@ -1,30 +1,35 @@
 {% extends "base.html" %}
-{% block title %}Logs{% endblock %}
+{% block title %}Search{% endblock %}
 
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}  
-<div class="container">
-    <div class="row h-100 mx-auto align-items-center">
-            <div class="col-sm-4 mx-auto"></div>
-                <div class="col-sm-4 mx-auto">
-                    <form action="" method="post" novalidate>
-                        {{ form.hidden_tag() }}
-                        <p>
-                            <strong>{{ form.title.label }}</strong><br>
-                            {{ form.title(size=32) }}
-                        </p>
-                        <p>
-                            <strong>{{ form.year.label }}</strong><br>
-                            {{ form.year(size=4) }}
-                        </p>
-                        <p>{{ form.submit() }}</p>
-                    </form>        
-                </div>
-            <div class="col-sm-4 mx-auto"></div>
-    </div>
+<div class="container d-flex justify-content-center">
+    <div class="row" style="flex-wrap: nowrap">
+        <form action="" method="post" novalidate>
+			{{ form.hidden_tag() }}
+			<div class="input-group mb-3">
+				<div class="input-group-prepend">
+					<span class="input-group-text" id="searchtitle">Title</span>
+				</div>
+				<input type="text" class="form-control" aria-label="searchtitle" name="title" value="{{job.title}}" aria-describedby="searchtitle">
+			    <div class="invalid-tooltip">
+					Search can't be blank
+				</div>
+				<div class="input-group-prepend">
+					<span class="input-group-text" id="basic-addon1">Year</span>
+				</div>
+				<input type="text" class="form-control" name="year" value="{{job.year}}" aria-label="year" aria-describedby="basic-addon1">
+			</div>
+			<input class="form-control" name="save" value="save" hidden>
+			<button class="btn btn-info btn-lg btn-block" type="submit">Search</button>
+		</form>
+	</div>
 </div>
-
-
+			{% if form.errors %}
+				{% for k in form.errors %}
+					<script>$("[name='{{k}}']").addClass("is-invalid");</script>
+				{% endfor %}
+			{% endif %}
 
 {% endblock %}

@@ -1,8 +1,15 @@
 import os
 import pyudev
 import psutil
+import logging
 from arm.ui import db
-from arm.config.config import cfg  # noqa: E402
+from arm.config.config import cfg
+from flask_login import LoginManager, current_user, login_user, UserMixin  # noqa: F401
+from prettytable import PrettyTable
+
+hidden_attribs = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                  "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY", "TMDB_API_KEY")
+HIDDEN_VALUE = "<hidden>"
 
 
 class Job(db.Model):
@@ -10,7 +17,6 @@ class Job(db.Model):
     arm_version = db.Column(db.String(20))
     crc_id = db.Column(db.String(63))
     logfile = db.Column(db.String(256))
-    # disc = db.Column(db.String(63))
     start_time = db.Column(db.DateTime)
     stop_time = db.Column(db.DateTime)
     job_length = db.Column(db.String(12))
@@ -37,6 +43,7 @@ class Job(db.Model):
     errors = db.Column(db.Text)
     disctype = db.Column(db.String(20))  # dvd/bluray/data/music/unknown
     label = db.Column(db.String(256))
+    path = db.Column(db.String(256))
     ejected = db.Column(db.Boolean)
     updated = db.Column(db.Boolean)
     pid = db.Column(db.Integer)
@@ -54,17 +61,15 @@ class Job(db.Model):
         self.updated = False
         if cfg['VIDEOTYPE'] != "auto":
             self.video_type = cfg['VIDEOTYPE']
-
         self.parse_udev()
         self.get_pid()
 
     def parse_udev(self):
         """Parse udev for properties of current disc"""
-
-        # print("Entering disc")
         context = pyudev.Context()
         device = pyudev.Devices.from_device_file(context, self.devpath)
         self.disctype = "unknown"
+
         for key, value in device.items():
             if key == "ID_FS_LABEL":
                 self.label = value
@@ -94,16 +99,41 @@ class Job(db.Model):
 
         return s
 
+    def pretty_table(self):
+        """Returns a string of the prettytable"""
+        x = PrettyTable()
+        x.field_names = ["Config", "Value"]
+        x._max_width = {"Config": 50, "Value": 60}
+        for attr, value in self.__dict__.items():
+            if attr == "config":
+                x.add_row([str(attr), str(value.pretty_table())])
+            else:
+                x.add_row([str(attr), str(value)])
+        return str(x.get_string())
+
+    def get_d(self):
+        r = {}
+        for key, value in self.__dict__.items():
+            if '_sa_instance_state' not in key:
+                r[str(key)] = str(value)
+        return r
+
     def __repr__(self):
         return '<Job {}>'.format(self.label)
 
     def eject(self):
         """Eject disc if it hasn't previously been ejected"""
-
-        # print("Value is " + str(self.ejected))
-        if not self.ejected:
-            os.system("eject " + self.devpath)
-            self.ejected = True
+        try:
+            if os.system("umount " + self.devpath):
+                logging.debug("we unmounted disc" + self.devpath)
+            if os.system("eject " + self.devpath):
+                logging.debug("we ejected disc" + self.devpath)
+                self.ejected = True
+            else:
+                logging.debug("failed to eject" + self.devpath)
+        except Exception as e:
+            self.ejected = False
+            logging.debug(self.devpath + " couldn't be ejected " + str(e))
 
 
 class Track(db.Model):
@@ -112,7 +142,6 @@ class Track(db.Model):
     track_number = db.Column(db.String(4))
     length = db.Column(db.Integer)
     aspect_ratio = db.Column(db.String(20))
-    # blocks = db.Column(db.Integer)
     fps = db.Column(db.Float)
     main_feature = db.Column(db.Boolean)
     basename = db.Column(db.String(256))
@@ -130,7 +159,6 @@ class Track(db.Model):
         self.track_number = track_number
         self.length = length
         self.aspect_ratio = aspect_ratio
-        # self.blocks = blocks
         self.fps = fps
         self.main_feature = main_feature
         self.source = source
@@ -153,9 +181,9 @@ class Config(db.Model):
     MAXLENGTH = db.Column(db.String(6))
     MANUAL_WAIT = db.Column(db.Boolean)
     MANUAL_WAIT_TIME = db.Column(db.Integer)
-    ARMPATH = db.Column(db.String(255))
-    RAWPATH = db.Column(db.String(255))
-    MEDIA_DIR = db.Column(db.String(255))
+    RAW_PATH = db.Column(db.String(255))
+    TRANSCODE_PATH = db.Column(db.String(255))
+    COMPLETED_PATH = db.Column(db.String(255))
     EXTRAS_SUB = db.Column(db.String(255))
     INSTALLPATH = db.Column(db.String(255))
     LOGPATH = db.Column(db.String(255))
@@ -198,7 +226,6 @@ class Config(db.Model):
     PO_USER_KEY = db.Column(db.String(64))
     PO_APP_KEY = db.Column(db.String(64))
     OMDB_API_KEY = db.Column(db.String(64))
-    # job = db.relationship("Job", backref="config")
 
     def __init__(self, c, job_id):
         self.__dict__.update(c)
@@ -206,17 +233,90 @@ class Config(db.Model):
 
     def list_params(self):
         """Returns a string of the object"""
-
         s = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
             if s:
                 s = s + "\n"
-            if str(attr) in ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
-                             "PO_USER_KEY", "PO_APP_KEY") and value:
-                value = "<hidden>"
+            if str(attr) in hidden_attribs and value:
+                value = HIDDEN_VALUE
             s = s + str(attr) + ":" + str(value)
 
         return s
+
+    def __str__(self):
+        """Returns a string of the object"""
+        s = self.__class__.__name__ + ": "
+        for attr, value in self.__dict__.items():
+            if str(attr) in hidden_attribs and value:
+                value = HIDDEN_VALUE
+            s = s + "(" + str(attr) + "=" + str(value) + ") "
+
+        return s
+
+    def pretty_table(self):
+        """Returns a string of the prettytable"""
+        x = PrettyTable()
+        x.field_names = ["Config", "Value"]
+        x._max_width = {"Config": 20, "Value": 30}
+        for attr, value in self.__dict__.items():
+            if str(attr) in hidden_attribs and value:
+                value = HIDDEN_VALUE
+            x.add_row([str(attr), str(value)])
+        return str(x.get_string())
+
+    def get_d(self):
+        r = {}
+        for key, value in self.__dict__.items():
+            if str(key) not in hidden_attribs:
+                r[str(key)] = str(value)
+        return r
+
+
+class User(db.Model, UserMixin):
+    user_id = db.Column(db.Integer, index=True, primary_key=True)
+    email = db.Column(db.String(64))
+    password = db.Column(db.String(128))
+    hash = db.Column(db.String(256))
+
+    def __init__(self, email=None, password=None, hashed=None):
+        self.email = email
+        self.password = password
+        self.hash = hashed
+
+    def __repr__(self):
+        return '<User %r>' % (self.email)
+
+    def get_id(self):
+        return self.user_id
+
+
+class Alembic_version(db.Model):
+    version_num = db.Column(db.String(36), autoincrement=False, primary_key=True)
+
+    def __init__(self, version=None):
+        self.version_num = version
+
+
+class UISettings(db.Model):
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    use_icons = db.Column(db.Boolean)
+    save_remote_images = db.Column(db.Boolean)
+    bootstrap_skin = db.Column(db.String(64))
+    language = db.Column(db.String(4))
+    index_refresh = db.Column(db.Integer)
+    database_limit = db.Column(db.Integer)
+
+    def __init__(self, use_icons=None, save_remote_images=None, bootstrap_skin=None, language=None, index_refresh=None,
+                 database_limit=None):
+        self.use_icons = use_icons
+        self.save_remote_images = save_remote_images
+        self.bootstrap_skin = bootstrap_skin
+        self.language = language
+        self.index_refresh = index_refresh
+        self.database_limit = database_limit
+
+    def __repr__(self):
+        return '<UISettings %r>' % self.id
 
     def __str__(self):
         """Returns a string of the object"""
@@ -226,3 +326,10 @@ class Config(db.Model):
             s = s + "(" + str(attr) + "=" + str(value) + ") "
 
         return s
+
+    def get_d(self):
+        r = {}
+        for key, value in self.__dict__.items():
+            if '_sa_instance_state' not in key:
+                r[str(key)] = str(value)
+        return r

@@ -1,0 +1,13 @@
+coverage:
+  status:
+    patch: false
+    project:
+      default:
+        threshold: 50%
+comment:
+  layout: "header"
+  require_changes: false
+  branches: null
+  behavior: default
+  flags: null
+  paths: null

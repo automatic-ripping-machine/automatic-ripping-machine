@@ -1,118 +1,120 @@
 {% extends "base.html" %}
-{% block title %}Logs{% endblock %}
+{% block title %}Home{% endblock %}
 
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid h-100 mx-auto">
-        <div class="row">
-                <!-- <div class="col-sm-2"></div> -->
-                <div class="col-sm-12  rounded bg-secondary text-center">
-                        <img src="/static/img/arm80.png">
-                        <p class="text-center"><b>Welcome to your Automatic Ripping Machine<br>
-                                        <!-- What would you like to do? -->
-                                </b></p>
+    <style>
+        .progress-bar {
+            color: #020202ba !important;
+        }
+    </style>
+    <div class="container-fluid h-100 mx-auto">
+        <!-- Modal -->
+        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle"
+             aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLongTitle">Abandon this job ??</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p><span class="ui-icon ui-icon-alert" style="margin:12px 12px 20px 0;"></span>
+                            <span id="m-body">This job will be abandoned. Are you sure?</span></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="save-no" type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                        <button id="save-yes" type="button" class="btn btn-primary">Yes</button>
+                    </div>
                 </div>
-                <!-- <div class="col-sm-2"></div> -->
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12 rounded text-center">
+                <img src="static/img/arm80.png" alt="Automatic Ripping Machine">
+                <p class="text-center">
+                <h2>Welcome to your Automatic Ripping Machine</h2>
+                </p>
+            </div>
         </div>
 
         <div class="row h-100 mx-auto align-items-center">
-                <div class="col-sm-12 mx-auto">
-                        <p class="text-center">
-                        <h5 class="text-center"><b>Active Rips</b></h5>
-                        </p>
-                </div>
+            <div class="col-sm-12 mx-auto">
+                <p class="text-center">
+                <h5 class="text-center"><strong>Active Rips</strong></h5>
+                </p>
+            </div>
         </div>
-        <!-- <div class="container-fluid h-100 mx-auto"> -->
         <div class="row h-100 align-items-center">
-                <!-- <div class="col-sm-4 mx-auto"></div> -->
-                <div class="col-md-12 mx-auto">
-                        <div class="card-deck">
-                                {% for job in jobs %}
-                                <div class="col-md-4">
-                                        <div class="card mb-3  mx-auto" style="max-width: 600px">
-                                                <div class="row no-gutters">
-                                                        <div class="col-lg-4">
-                                                                <a href="jobdetail?job_id={{ job.job_id }}"><img
-                                                                                src="{{ job["poster_url"] }}"
-                                                                                width="240px" class="img-thumbnail"></a>
-                                                        </div>
-                                                        <div class="col-lg-4">
-                                                                <div class="card-body px-1 py-1">
-                                                                        {% if not job.title_manual  %}
-                                                                        <b>{{  job["title"]  }}</b><br>
-                                                                        {% else %}
-                                                                        <del><b>{{  job["title_auto"]  }}</b><br></del>
-                                                                        <b>{{  job["title"]  }}</b><br>
-                                                                        {% endif %}
-                                                                        <b>Type: </b> {{ job.video_type }} <br>
-                                                                        {% if not job.title_manual %}
-                                                                        <b>Year: </b>({{ job["year"] }})<br>
-                                                                        {% else %}
-                                                                        <del><b>Year:
-                                                                                </b>{{ job["year_auto"] }}<br></del>
-                                                                        <b>Year: </b> {{  job["year"]  }}<br>
-                                                                        {% endif %}
-                                                                        <b>Device: </b>{{ job.devpath }}<br>
-                                                                        <b>Status: </b>{{ job.status }} <br>
-                                                                        <a href="titlesearch?job_id={{ job["job_id"] }}"
-                                                                                class="btn btn-primary">Title Search</a>
-                                                                        </li>
-                                                                </div>
-                                                        </div>
-                                                        <div class="col-lg-4">
-                                                                <div class="card-body px-1 py-1">
-                                                                        <b>Rip Method: </b>{{ job.config.RIPMETHOD }}
-                                                                        <br>
-                                                                        <b>Main Feature:
-                                                                        </b>{{ job.config.MAINFEATURE }} <br>
-                                                                        <b>Min Length:
-                                                                        </b>{{ job.config.MINLENGTH }}<br>
-                                                                        <b>Max Length:
-                                                                        </b>{{ job.config.MAXLENGTH }}<br>
-                                                                        <a href="changeparams?config_id={{ job.config.CONFIG_ID }}"
-                                                                                class="btn btn-primary">Change
-                                                                                Settings</a>
-                                                                </div>
-                                                                <div class="card-body px-1 py-1">
-                                                                        <a href="customTitle?job_id={{ job["job_id"] }}"
-                                                                                class="btn btn-primary">Custom Title</a>
-                                                                </div>
-                                                        </div>
-
-                                                </div>
-                                        </div>
-                                </div>
-                                {% endfor %}
-                        </div>
-                </div>
+            <div class="col-md-12 mx-auto">
+                <div id="joblist" class="card-deck"></div>
+            </div>
         </div>
-        <!-- <div class="col-sm-4 mx-auto"></div> -->
-        <!-- </div> -->
-</div>
-<div class="row" style="height: 30px;"></div>
-<div class="row h-100 mx-auto align-items-center">
+    </div>
+    <div class="row" style="height: 30px;"></div>
+    <div class="row h-100 mx-auto align-items-center">
         <div class="col-sm-4 mx-auto"></div>
-        <!-- <div class="col-md-2 h-100 text-center align-content-center" ><h4>Free Space: {{ freegb }}</h4></div> -->
         <div class="col-sm-4 text-center mx-auto">
-                <div class="card mx-auto">
-                        <div class="card-header">
-                                <strong>Server Specs</strong>
-                        </div>
-                        <ul class="list-group list-group-flush">
-                                <li class="list-group-item">Free Space: {{ freegb }} GB</li>
-                        </ul>
+            <div class="card mx-auto">
+                <div class="card-header">
+                    <strong>Server Specs</strong>
                 </div>
+                <ul class="list-group list-group-flush">
+                    {% if mfreegb != freegb %}
+                        <li class="list-group-item">Free Space
+                            <br>ARM: {{ freegb }} GB
+                            <br>Media: {{ mfreegb }} GB
+                        </li>
+                    {% else %}
+                        <li class="list-group-item">
+                            <h6 class="progress-label" style="float: left;margin-right: 1em;">Storage Used: </h6>
+                            <div class="progress">
+                                <div class="progress-bar{{ ' bg-danger' if arm_percent > 80 }}" role="progressbar"
+                                     style="width: {{ arm_percent }}%;" aria-valuenow="{{ arm_percent }}"
+                                     aria-valuemin="0" aria-valuemax="100">{{ arm_percent }}%
+                                </div>
+                            </div>
+                            <br>
+                            <p>Free Space: {{ freegb }} GB</p>
+                        </li>
+                    {% endif %}
+
+                    <li class="list-group-item">CPU: {{ cpu }}
+                        {% if cputemp is not none %}
+                            <br>
+                            <p class="{{ ' bg-danger text-white' if cputemp > 70 }}">CPU Temp: {{ cputemp }}&#176;C</p>
+                        {% endif %}
+                        <h6 class="progress-label" style="float: left;margin-right: 1em;">CPU Usage: </h6>
+                        <div class="progress">
+                            <div class="progress-bar{{ ' bg-danger' if cpu_usage > 80 }}" role="progressbar"
+                                 style="width: {{ ' 10' if cpu_usage < 10 else cpu_usage }}%;"
+                                 aria-valuenow="{{ cpu_usage }}" aria-valuemin="10" aria-valuemax="100">{{ cpu_usage }}%
+                            </div>
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <h6 class="progress-label" style="float: left;margin-right: 1em;">RAM Usage: </h6>
+                        <div class="progress">
+                            <div class="progress-bar{{ ' bg-danger' if ram_percent > 80 }}" role="progressbar"
+                                 style="width: {{ ram_percent }}%;" aria-valuenow="{{ ram_percent }}" aria-valuemin="0"
+                                 aria-valuemax="100">{{ ram_percent }}%
+                            </div>
+                        </div>
+                        <br>{{ ram }} GB total
+                        <br> {{ ramfree }} GB free
+                        <br> {{ ramused }} GB Used
+                    </li>
+                </ul>
+            </div>
         </div>
-        <!-- <div class="col-sm-1 text-center mx-auto">
-                <a href="activerips" title="Active Rips"><img src="{{ url_for('static', filename='img/disc.svg') }}" class="img-responsive" height="75px" width="75px"><br>Active Rips</a>
-        </div>
-        <div class="col-sm-1 text-center mx-auto">
-                <a href="listlogs" title="Log Files"><img src="{{ url_for('static', filename='img/file-text.svg') }}" class="img-responsive" height="75px" width="75px"><br>View Log Files</a>
-        </div> -->
         <div class="col-sm-4 mx-auto"></div>
-</div>
-</div>
+    </div>
+    </div>
+    <script type="application/javascript" src="static/js/jobRefresh.js"></script>
 
 {% endblock %}
 {% block js %}{{ super() }}{% endblock %}
