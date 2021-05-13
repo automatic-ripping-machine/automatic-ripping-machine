@@ -12,14 +12,14 @@ import unicodedata
 import xmltodict
 import json
 
-from arm.ripper import music_brainz
 from arm.ripper import utils
 from arm.ui import db
 from arm.config.config import cfg
 
 
 # flake8: noqa: W605
-from arm.ui.utils import call_omdb_api, tmdb_search
+# from arm.ui.utils import call_omdb_api, tmdb_search
+import arm.ui.utils as u
 
 
 def identify(job, logfile):
@@ -33,35 +33,15 @@ def identify(job, logfile):
 
     os.system("mount " + job.devpath)
 
-    # Check to make sure it's not a data disc
-    if job.disctype == "music":
-        logging.debug("Disc is music.")
-        job.label = music_brainz.main(job)
-    elif os.path.isdir(job.mountpoint + "/VIDEO_TS"):
-        logging.debug("Found: " + job.mountpoint + "/VIDEO_TS")
-        job.disctype = "dvd"
-    elif os.path.isdir(job.mountpoint + "/video_ts"):
-        logging.debug("Found: " + job.mountpoint + "/video_ts")
-        job.disctype = "dvd"
-    elif os.path.isdir(job.mountpoint + "/BDMV"):
-        logging.debug("Found: " + job.mountpoint + "/BDMV")
-        job.disctype = "bluray"
-    elif os.path.isdir(job.mountpoint + "/HVDVD_TS"):
-        logging.debug("Found: " + job.mountpoint + "/HVDVD_TS")
-        # do something here
-    elif utils.find_file("HVDVD_TS", job.mountpoint):
-        logging.debug("Found file: HVDVD_TS")
-        # do something here too
-    else:
-        logging.debug("Did not find valid dvd/bd files. Changing disctype to 'data'")
-        job.disctype = "data"
+    # Check with the job class to get the correct disc type
+    job.get_disc_type(utils.find_file("HVDVD_TS", job.mountpoint))
 
     if job.disctype in ["dvd", "bluray"]:
 
         logging.info("Disc identified as video")
 
         if cfg["GET_VIDEO_TITLE"]:
-            # get crc_id (dvd only), title, year
+            res = False
             if job.disctype == "dvd":
                 res = identify_dvd(job)
             if job.disctype == "bluray":
@@ -72,8 +52,8 @@ def identify(job, logfile):
                 job.hasnicetitle = False
                 db.session.commit()
 
-            logging.info(
-                f"Disc title Post ident -  title:{job.title} year:{job.year} type:{job.video_type}")
+            logging.info(f"Disc title Post ident -  title:{job.title} year:{job.year} video_type:{job.video_type} "
+                         f"disctype: {job.disctype}")
             logging.debug(f"identify.job.end ---- \n\r{job.pretty_table()}")
 
     os.system("umount " + job.devpath)
@@ -204,7 +184,7 @@ def get_video_details(job):
     # Set out title from the job.label
     # return if not identified
     logging.debug("Title = " + str(title))
-    if title == "not identified" or title is None:
+    if title == "not identified" or title is None or title == "":
         logging.info("Disc couldn't be identified")
         return
     title = re.sub('[_ ]', "+", title.strip())
@@ -232,7 +212,6 @@ def get_video_details(job):
 
         # try submitting without the year
         if response is None:
-            # year needs to be changed
             logging.debug("Removing year...")
             response = metadata_selector(job, title)
             logging.debug(f"response: {response}")
@@ -294,13 +273,13 @@ def metadata_selector(job, title=None, year=None):
     """
     if cfg['METADATA_PROVIDER'].lower() == "tmdb":
         logging.debug("provider tmdb")
-        x = tmdb_search(title, year)
+        x = u.tmdb_search(title, year)
         if x is not None:
             update_job(job, x)
         return x
     elif cfg['METADATA_PROVIDER'].lower() == "omdb":
         logging.debug("provider omdb")
-        x = call_omdb_api(str(title), str(year))
+        x = u.call_omdb_api(str(title), str(year))
         if x is not None and x['Response']:
             update_job(job, x)
         return x

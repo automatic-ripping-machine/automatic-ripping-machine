@@ -13,7 +13,6 @@ import datetime  # noqa: F401
 import psutil  # noqa: F401
 
 from arm.ripper import utils
-from arm.models.models import Track  # noqa: F401
 from arm.ui import app, db  # noqa E402
 from arm.config.config import cfg
 
@@ -72,10 +71,7 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
     logging.debug(f"Sending command: {cmd}")
 
     try:
-        subprocess.check_output(
-            cmd,
-            shell=True
-        ).decode("utf-8")
+        subprocess.check_output(cmd, shell=True).decode("utf-8")
         logging.info("Handbrake call successful")
         track.status = "success"
     except subprocess.CalledProcessError as hb_error:

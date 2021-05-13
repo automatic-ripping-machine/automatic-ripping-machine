@@ -42,6 +42,7 @@ sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
 sudo cp docs/arm.yaml.sample arm.yaml
 sudo mkdir /etc/arm/
 sudo ln -s /opt/arm/arm.yaml /etc/arm/
+sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
 
 sudo mkdir -p /mnt/dev/sr0
 

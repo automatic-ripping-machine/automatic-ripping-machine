@@ -114,7 +114,7 @@ LOGPATH: "/home/arm/logs/"
 # Log level.  DEBUG, INFO, WARNING, ERROR, CRITICAL
 # The default is INFO
 # If you are experiencing difficulties set this to DEBUG
-LOGLEVEL: "INFO"
+LOGLEVEL: "DEBUG"
 
 # How long to let log files live before deleting (in days)
 # Set to 0 to disable

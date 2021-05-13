@@ -17,7 +17,7 @@ from arm.config.config import cfg
 from flask.logging import default_handler  # noqa: F401
 
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track, User, Alembic_version, UISettings  # noqa: F401
+from arm.models.models import Job, Config, Track, User, AlembicVersion, UISettings  # noqa: F401
 from flask import Flask, render_template, flash, request  # noqa: F401
 
 TMDB_YEAR_REGEX = "-[0-9]{0,2}-[0-9]{0,2}"
@@ -342,7 +342,7 @@ def setup_database():
             db.create_all()
             db.session.commit()
             #  push the database version arm is looking for
-            user = Alembic_version('6dfe7244b18e')
+            user = AlembicVersion('6dfe7244b18e')
             ui_config = UISettings(1, 1, "spacelab", "en", 10, 200)
             db.session.add(ui_config)
             db.session.add(user)
