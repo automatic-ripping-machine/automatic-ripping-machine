@@ -160,14 +160,14 @@
                 /*have not agreed to understanding the risks, show modal*/
                 hrrref = "entryWarn";
                 $('div .modal-title').html("<p class=\"text-center text-danger\">WARNING");
-                $('#m-body').html('<p class="text-center bg-danger text-white">This can be dangerous if you don\'t know what you\'re doing. <br> \
+                $('div.modal-body').html('<p class="text-center bg-danger text-white">This can be dangerous if you don\'t know what you\'re doing. <br> \
 									You could delete all your of your database entries if you\'re not careful!!! <br> \
 									Be careful!<br><br> Are you sure you want to continue ?</p>');
                 $('#exampleModal').modal('show');
                 $('#save-get-success').addClass('d-none');
                 $('#save-get-failed').addClass('d-none');
-                $('#message2').addClass('d-none');
                 $('#message3').addClass('d-none');
+                $('#message1').addClass('d-none');
             }
             $("#save-get-success").bind('click', function(){
                 // Add the spinner to let them know we are loading

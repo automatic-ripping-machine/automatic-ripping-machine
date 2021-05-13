@@ -2,11 +2,13 @@
 import os
 # Added for newer werkzeug versions
 import werkzeug
-from robobrowser import RoboBrowser
 werkzeug.cached_property = werkzeug.utils.cached_property
+from robobrowser import RoboBrowser  # noqa E402
 
 
-def grabkeys():
+def grabkeys(cfg):
+    if not cfg:
+        return False
     br = RoboBrowser()
     br.open('http://makemkv.com/forum2/viewtopic.php?f=12&t=16959')
     pageStr = str(br.parsed())

@@ -7,31 +7,6 @@ import logging
 import time
 
 from arm.config.config import cfg
-from arm.ripper import music_brainz
-
-
-def identify_audio_cd(job):
-    """
-    Get the title for audio cds to use for the logfile name.
-
-    Needs the job class passed into it so it can be forwarded to mb
-
-    return - only the logfile - setup_logging() adds the full path
-    """
-    # Use the music label if we can find it - defaults to music_cd.log
-    disc_id = music_brainz.get_disc_id(job)
-    mb_title = music_brainz.get_title(disc_id, job)
-    if mb_title == "not identified":
-        job.label = job.title = "not identified"
-        logfile = "music_cd.log"
-        new_log_file = f"music_cd_{round(time.time() * 100)}.log"
-    else:
-        logfile = f"{mb_title}.log"
-        new_log_file = f"{mb_title}_{round(time.time() * 100)}.log"
-
-    temp_log_full = os.path.join(cfg['LOGPATH'], logfile)
-    logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
-    return logfile
 
 
 def setup_logging(job):
@@ -42,7 +17,7 @@ def setup_logging(job):
     # This isn't catching all of them
     if job.label == "" or job.label is None:
         if job.disctype == "music":
-            logfile = job.logfile = identify_audio_cd(job)
+            logfile = job.logfile = job.identify_audio_cd()
         else:
             logfile = "empty.log"
         # set a logfull for empty.log and music_cd.log

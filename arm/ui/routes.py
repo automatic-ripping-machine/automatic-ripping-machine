@@ -14,7 +14,7 @@ from time import sleep
 from flask import Flask, render_template, request, send_file, flash, \
     redirect, url_for  # noqa: F401
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track, User, Alembic_version, UISettings  # noqa: F401
+from arm.models.models import Job, Config, Track, User, AlembicVersion, UISettings  # noqa: F401
 from arm.config.config import cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, SettingsForm, UiSettingsForm, SetupForm
 from pathlib import Path, PurePath

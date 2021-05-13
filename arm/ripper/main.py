@@ -83,35 +83,6 @@ def check_fstab():
     logging.error("No fstab entry found.  ARM will likely fail.")
 
 
-def check_ip():
-    """
-        Check if user has set an ip in the config file
-        if not gets the most likely ip
-        arguments:
-        none
-        return: the ip of the host or 127.0.0.1
-    """
-    host = cfg['WEBSERVER_IP']
-    if host == 'x.x.x.x':
-        # autodetect host IP address
-        from netifaces import interfaces, ifaddresses, AF_INET
-        ip_list = []
-        for interface in interfaces():
-            inet_links = ifaddresses(interface).get(AF_INET, [])
-            for link in inet_links:
-                ip = link['addr']
-                # print(str(ip))
-                if ip != '127.0.0.1' and not (ip.startswith('172')):
-                    ip_list.append(ip)
-                    # print(str(ip))
-        if len(ip_list) > 0:
-            return ip_list[0]
-        else:
-            return '127.0.0.1'
-    else:
-        return host
-
-
 def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
     """
     For when skipping transcode in enabled
@@ -170,8 +141,8 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
 
         for f in files:
             mkvoutfile = os.path.join(mkv_out_path, f)
-            logging.debug(f"Moving file: {mkvoutfile} to: {mkv_out_path} {f}")
-            shutil.move(mkvoutfile, hb_out_path)
+            logging.debug(f"Moving file: {mkvoutfile} to: {hb_out_path} {f}")
+            utils.move_files(mkv_out_path, f, job, False)
     # remove raw files, if specified in config
     if cfg["DELRAWFILES"]:
         logging.info("Removing raw files")
@@ -191,29 +162,15 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
 
 
 def main(logfile, job):
-    """main dvd processing function"""
+    """main disc processing function"""
     logging.info("Starting Disc identification")
 
     identify.identify(job, logfile)
     # Check db for entries matching the crc and successful
     have_dupes, crc_jobs = utils.job_dupe_check(job)
 
-    # DVD disk entry
-    if job.disctype in ["dvd", "bluray"]:
-        # Send the notifications
-        utils.notify(job, NOTIFY_TITLE,
-                     f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {cfg['MAINFEATURE']}"
-                     f".  Edit entry here: http://{check_ip()}:"
-                     f"{cfg['WEBSERVER_PORT']}/jobdetail?job_id={job.job_id}")
-    elif job.disctype == "music":
-        utils.notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks")
-    elif job.disctype == "data":
-        utils.notify(job, NOTIFY_TITLE, "Found data disc.  Copying data.")
-    else:
-        utils.notify(job, NOTIFY_TITLE, "Could not identify disc.  Exiting.")
-        sys.exit()
+    utils.notify_entry(job)
 
-    # TODO: Update function that will look for the best match with most data
     #  If we have have waiting for user input enabled
     if cfg["MANUAL_WAIT"]:
         logging.info(f"Waiting {cfg['MANUAL_WAIT_TIME']} seconds for manual override.")
@@ -241,22 +198,14 @@ def main(logfile, job):
 
     log_arm_params(job)
     check_fstab()
-
-    if cfg["HASHEDKEYS"]:
-        logging.info("Getting MakeMKV hashed keys for UHD rips")
-        grabkeys()
+    grabkeys(cfg["HASHEDKEYS"])
 
     # Entry point for dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
         # get filesystem in order
         # If we have a nice title/confirmed name use the MEDIA_DIR and not the ARM unidentified folder
         # if job.hasnicetitle:
-        if job.video_type == "movie":
-            type_sub_folder = "movies"
-        elif job.video_type == "series":
-            type_sub_folder = "tv"
-        else:
-            type_sub_folder = "unidentified"
+        type_sub_folder = utils.convert_job_type(job.video_type)
 
         if job.year and job.year != "0000" and job.year != "":
             hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(type_sub_folder),
@@ -347,11 +296,22 @@ def main(logfile, job):
 
         # move to media directory
         tracks = job.tracks.filter_by(ripped=True)
+        main_feature = job.tracks.filter_by(main_feature=True).first()
 
+        def main_feature_test(m, t):
+            if not t.main_feature:
+                logging.debug("track main is false - checking size")
+                if m.length == t.length:
+                    logging.debug("track is same size as main feature")
+                    return True
+                else:
+                    return False
+            else:
+                return t.main_feature
         if job.video_type == "movie":
             for track in tracks:
                 logging.info(f"Moving Movie {track.filename} to {final_directory}")
-                utils.move_files(hb_out_path, track.filename, job, track.main_feature)
+                utils.move_files(hb_out_path, track.filename, job, main_feature_test(main_feature, track))
         # move to media directory
         elif job.video_type == "series":
             for track in tracks:
@@ -390,6 +350,7 @@ def main(logfile, job):
                 logging.info(f"Transcoding completed with errors.  Title(s) {errlist} failed to complete. ")
             else:
                 utils.notify(job, NOTIFY_TITLE, str(job.title) + PROCESS_COMPLETE)
+
         logging.info("ARM processing complete")
 
     elif job.disctype == "music":
@@ -432,14 +393,13 @@ if __name__ == "__main__":
     utils.arm_setup()
     args = entry()
     devpath = "/dev/" + args.devpath
-    # print(devpath)
     job = Job(devpath)
     logfile = logger.setup_logging(job)
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
     # Dont put out anything if we are using the empty.log or NAS_
-    if logfile.find("empty.log") != -1 or logfile.find("/NAS_") != -1:
+    if logfile.find("empty.log") != -1 or re.search("NAS_[0-9].?log", logfile) is not None:
         sys.exit()
     # This will kill any runs that have been triggered twice on the same device
     running_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success']), Job.devpath == devpath).all()
@@ -447,22 +407,22 @@ if __name__ == "__main__":
         for j in running_jobs:
             print(j.start_time - datetime.datetime.now())
             z = int(round(abs(j.start_time - datetime.datetime.now()).total_seconds()) / 60)
-            if z < 1:
-                sys.exit(f"job already running on {devpath}")
+            if z <= 1:
+                logging.error(f"Job already running on {devpath}")
+                sys.exit(1)
 
     logging.info(f"Starting ARM processing at {datetime.datetime.now()}")
 
     utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
     # put in db
-    # TODO - Change utils.database_updated to allow adding of obj
     job.status = "active"
     job.start_time = datetime.datetime.now()
-    db.session.add(job)
-    db.session.commit()
+    utils.database_adder(job)
+
+    time.sleep(1)
     config = Config(cfg, job_id=job.job_id)
-    db.session.add(config)
-    db.session.commit()
+    utils.database_adder(config)
 
     # Log version number
     with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
@@ -473,20 +433,7 @@ if __name__ == "__main__":
     logging.info(f"User is: {getpass.getuser()}")
     logger.clean_up_logs(cfg["LOGPATH"], cfg["LOGLIFE"])
     logging.info(f"Job: {job.label}")
-    a_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
-
-    # Clean up abandoned jobs
-    for j in a_jobs:
-        if psutil.pid_exists(j.pid):
-            p = psutil.Process(j.pid)
-            if j.pid_hash == hash(p):
-                logging.info(f"Job #{j.job_id} with PID {j.pid} is currently running.")
-        else:
-            logging.info(f"Job #{j.job_id} with PID {j.pid} has been abandoned."
-                         f"Updating job status to fail.")
-            j.status = "fail"
-            db.session.commit()
-
+    utils.clean_old_jobs()
     log_udev_params()
 
     try:

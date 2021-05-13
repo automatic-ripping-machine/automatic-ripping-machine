@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import logging
 import re
-import time
 import musicbrainzngs as mb
 from discid import read, Disc
 
 from arm.config.config import cfg
-from arm.ui import app, db  # noqa E402
+import arm.ripper.utils as u
 import werkzeug
 werkzeug.cached_property = werkzeug.utils.cached_property
 from robobrowser import RoboBrowser  # noqa E402
@@ -73,11 +72,11 @@ def music_brainz(discid, job):
             'title': title,
             'title_auto': title
         }
-        database_updater(args, job)
+        u.database_updater(args, job)
         logging.debug("musicbrain works -  New title is " + title + ".  New Year is: " + new_year)
     except mb.WebServiceError as exc:
         logging.error("Cant reach MB or cd not found ? - ERROR: " + str(exc))
-        db.session.rollback()
+        u.database_updater(False, job)
         return ""
     try:
         # We never make it to here if the mb fails
@@ -99,11 +98,11 @@ def music_brainz(discid, job):
             'title_auto': artist_title,
             'no_of_titles': infos['disc']['offset-count']
         }
-        database_updater(args, job)
+        u.database_updater(args, job)
     except Exception as exc:
         artist_title = "Not identified" if not title else title
         logging.error("Try 2 -  ERROR: " + str(exc))
-        db.session.rollback()
+        u.database_updater(False, job)
     return artist_title
 
 
@@ -131,15 +130,18 @@ def get_title(discid, job):
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits'])
         title = str(infos['disc']['release-list'][0]['title'])
         # Start setting our db stuff
-        job.crc_id = str(infos['disc']['release-list'][0]['id'])
         artist = str(infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name'])
-        job.title = job.title_auto = artist + " " + title
-        job.video_type = "Music"
         clean_title = clean_for_log(artist) + "-" + clean_for_log(title)
-        db.session.commit()
+        args = {
+            'crc_id': str(infos['disc']['release-list'][0]['id']),
+            'title': str(artist + " " + title),
+            'title_auto': str(artist + " " + title),
+            'video_type': "Music"
+        }
+        u.database_updater(args, job)
         return clean_title
     except mb.WebServiceError:
-        db.session.rollback()
+        u.database_updater(False, job)
         return "not identified"
 
 
@@ -167,66 +169,40 @@ def get_cd_art(job, infos):
                     return True"""
                 # We dont care if its verified ?
                 if "image" in image:
-                    job.poster_url_auto = str(image["image"])
-                    job.poster_url = str(image["image"])
+                    args = {
+                        'poster_url': str(image["image"]),
+                        'poster_url_auto': str(image["image"])
+                    }
+                    u.database_updater(args, job)
                     return True
     except mb.WebServiceError as exc:
-        db.session.rollback()
+        u.database_updater(False, job)
         logging.error("get_cd_art ERROR: " + str(exc))
     try:
         # This uses roboBrowser to grab the amazon/3rd party image if it exists
-        browser = RoboBrowser(user_agent='a python robot')
+        browser = RoboBrowser(user_agent='ARM-v2_devel')
         browser.open('https://musicbrainz.org/release/' + job.crc_id)
         img = browser.select('.cover-art img')
         # [<img src="https://images-eu.ssl-images-amazon.com/images/I/41SN9FK5ATL.jpg"/>]
-        job.poster_url = re.search(r'<img src="(.*)"', str(img)).group(1)
-        job.poster_url_auto = job.poster_url
-        db.session.commit()
+        # img[0].text
+        args = {
+            'poster_url': str(re.search(r'<img src="(.*)"', str(img)).group(1)),
+            'poster_url_auto': str(re.search(r'<img src="(.*)"', str(img)).group(1)),
+            'video_type': "Music"
+        }
+        u.database_updater(args, job)
         if job.poster_url != "":
             return True
         else:
             return False
     except mb.WebServiceError as exc:
         logging.error("get_cd_art ERROR: " + str(exc))
-        db.session.rollback()
+        u.database_updater(False, job)
         return False
-
-
-def database_updater(args, job, wait_time=90):
-    """
-    Try to update our db for x seconds and handle it nicely if we cant
-
-    :param args:
-    :param job:
-    :param wait_time:
-    :return:
-    """
-    # Loop through our args and try to set any of our job variables
-    for (key, value) in args.items():
-        setattr(job, key, value)
-        # logging.debug(str(key) + "= " + str(value))
-    for i in range(wait_time):  # give up after the users wait period in seconds
-        try:
-            db.session.commit()
-        except Exception as e:
-            if "locked" in str(e):
-                time.sleep(1)
-                logging.debug(f"database is locked - trying in 1 second - {i}/{wait_time} sec")
-            else:
-                logging.debug("Error: " + str(e))
-                db.session.rollback()
-                time.sleep(1)
-                job.status = "fail"
-                db.session.commit()
-                raise
-        else:
-            logging.debug("successfully written to the database")
-            return True
 
 
 if __name__ == "__main__":
     # this will break our logging if it ever triggers for arm
-    # logging.basicConfig(level=logging.DEBUG)
     disc = Disc("/dev/cdrom")
     myid = get_disc_id(disc)
     logging.debug("DiscID: %s (%s)", str(myid), myid.freedb_id)
