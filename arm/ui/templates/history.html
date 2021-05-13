@@ -18,7 +18,10 @@
                 display: block;
                 /*padding: .75rem;*/
             }
-
+            caption{
+                width: 100%;
+                text-align: center;
+            }
             /* Hide table headers (but not display: none;, for accessibility) */
             thead tr {
                 position: absolute;
@@ -30,6 +33,9 @@
                 border: 1px solid #ccc;
                 margin-top: 5px;
                 border-radius: 7px;
+            }
+            th{
+                border-bottom: 1px solid #c5c6c8;
             }
 
             td {
@@ -55,22 +61,21 @@
             Label the data
             */
             td:nth-of-type(1):before {
-                content: "Title:\A";
-            }
-
-            td:nth-of-type(2):before {
                 content: "Job Start datetime:\A";
             }
 
+            td:nth-of-type(2):before {
+                content: "Duration:";
+            }
+            td:nth-of-type(2):after {
+                content: " (h:mm:ss)";
+            }
+
             td:nth-of-type(3):before {
-                content: "Duration:\A";
+                content: "Status:";
             }
 
             td:nth-of-type(4):before {
-                content: "Status:\A";
-            }
-
-            td:nth-of-type(5):before {
                 content: "Logfile:\A";
             }
         }

@@ -18,7 +18,10 @@
                 display: block;
                 /*padding: .75rem;*/
             }
-
+            caption{
+                width: 100%;
+                text-align: center;
+            }
             /* Hide table headers (but not display: none;, for accessibility) */
             thead tr {
                 position: absolute;
@@ -31,7 +34,9 @@
                 margin-top: 5px;
                 border-radius: 7px;
             }
-
+            th{
+                border-bottom: 1px solid #c5c6c8;
+            }
             td {
                 white-space: normal !important;
                 /* Behave  like a "row" */
@@ -55,30 +60,29 @@
             Label the data
             */
             td:nth-of-type(1):before {
-                content: "Log name:\A";
-            }
-
-            td:nth-of-type(2):before {
                 content: "Creation datetime:\A";
             }
 
-            td:nth-of-type(3):before {
+            td:nth-of-type(2):before {
                 content: "Size in kilobytes:\A";
             }
+            td:nth-of-type(2):after {
+                content: " Kb";
+            }
 
-            td:nth-of-type(4):before {
+            td:nth-of-type(3):before {
                 content: "Log link Tail:";
             }
 
-            td:nth-of-type(5):before {
+            td:nth-of-type(4):before {
                 content: "Log link ARM:";
             }
 
-            td:nth-of-type(6):before {
+            td:nth-of-type(5):before {
                 content: "Log link Full:";
             }
 
-            td:nth-of-type(7):before {
+            td:nth-of-type(6):before {
                 content: "Log link Download:";
             }
         }
