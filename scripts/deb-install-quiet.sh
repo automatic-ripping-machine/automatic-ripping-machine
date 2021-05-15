@@ -7,13 +7,13 @@ echo -e "${RED}Adding arm user${NC}"
 groupadd arm
 useradd -m arm -g arm -G cdrom
 
-# If a password was not specified as the first arg, otherwise use that without prompting
-if [ -z "$1" ]
+# If a password was specified use that, otherwise prompt
+if [ -n "$1" ]
 then
-    passwd arm
-else
     echo "$1" | passwd --stdin arm
-if
+else
+    passwd arm
+fi
 
 echo -e "${RED}Installing git${NC}"
 apt -qqy install git
