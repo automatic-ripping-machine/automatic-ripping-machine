@@ -6,7 +6,15 @@ export DEBIAN_FRONTEND=noninteractiveexport
 echo -e "${RED}Adding arm user${NC}"
 groupadd arm
 useradd -m arm -g arm -G cdrom
-passwd arm
+
+# If a password was not specified as the first arg, otherwise use that without prompting
+if [ -z "$1" ]
+then
+    passwd arm
+else
+    echo "$1" | passwd --stdin arm
+if
+
 echo -e "${RED}Installing git${NC}"
 apt -qqy install git
 echo -e "${RED}Installing required build tools${NC}"
