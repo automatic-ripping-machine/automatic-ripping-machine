@@ -546,8 +546,6 @@ def changeparams():
     # app.logger.debug(config.pretty_table())
     job = Job.query.get(config_id)
     config = job.config
-    for key, value in cfg.items():
-        setattr(config, key, value)
     form = ChangeParamsForm(obj=config)
     if form.validate_on_submit():
         cfg["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
@@ -556,6 +554,8 @@ def changeparams():
         cfg["MAINFEATURE"] = config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False
         app.logger.debug(f"main={config.MAINFEATURE}")
         job.disctype = format(form.DISCTYPE.data)
+        for key, value in cfg.items():
+            setattr(config, key, value)
         db.session.commit()
         db.session.refresh(job)
         db.session.refresh(config)
