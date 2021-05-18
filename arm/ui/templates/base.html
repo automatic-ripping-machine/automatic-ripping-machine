@@ -3,7 +3,12 @@
 <head>
     <!-- Required meta tags -->
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="mobile-web-app-capable" content="yes"/>
+	<meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="viewport" content="viewport-fit=cover, user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+	<link rel="manifest" href="/static/manifest.json" crossorigin="use-credentials"/>
+	<link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png"/>
     {% block head %}
         <!-- <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> -->
         <script src="https://code.jquery.com/jquery-3.5.1.min.js"
