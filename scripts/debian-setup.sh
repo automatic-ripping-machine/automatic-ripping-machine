@@ -32,13 +32,13 @@ wget https://www.makemkv.com/download/makemkv-sha-$mmv.txt
 wget https://www.makemkv.com/download/makemkv-bin-$mmv.tar.gz
 wget https://www.makemkv.com/download/makemkv-oss-$mmv.tar.gz
 
-echo "${RED}Checking checksums${NC}"
+echo -e "${RED}Checking checksums${NC}"
 grep "makemkv-bin-$mmv.tar.gz" makemkv-sha-$mmv.txt | sha256sum -c
 # grep "makemkv-oss-$mmv.tar.gz" makemkv-sha-$mmv.txt | sha256sum -c  # DEBUG
 # Their makemkv-oss-1.16.3.tar.gz checksum did not match???
 # Remove these comments and enable the grep line above when it does match.
 
-echo "${RED}Extracting MakeMKV${NC}"
+echo -e "${RED}Extracting MakeMKV${NC}"
 tar xvzf makemkv-oss-$mmv.tar.gz
 tar xvzf makemkv-bin-$mmv.tar.gz
 
