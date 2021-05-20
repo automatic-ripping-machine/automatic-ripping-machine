@@ -133,7 +133,7 @@ sudo dpkg-reconfigure libdvd-pkg
 
 ```bash
 cd /opt
-sudo mkdir arm
+sudo mkdir -p arm
 sudo chown arm:arm arm
 sudo chmod 775 arm
 sudo git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
@@ -143,7 +143,7 @@ sudo pip3 install -r requirements.txt
 sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
 sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
 sudo cp docs/arm.yaml.sample arm.yaml
-sudo mkdir /etc/arm/
+sudo mkdir -p /etc/arm/
 sudo ln -s /opt/arm/arm.yaml /etc/arm/
 ```
 
