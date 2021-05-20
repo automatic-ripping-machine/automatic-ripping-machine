@@ -2,6 +2,9 @@
 
 # Setup automatic-ripping-machine (ARM) for Debian systems.
 
+# Exit on error.
+set -e
+
 RED='\033[1;31m'
 NC='\033[0m' # No Color
 
@@ -21,20 +24,31 @@ echo -e "${RED}Setting up directories and getting makeMKV files${NC}"
 mkdir /makeMKV
 cd /makeMKV
 
-wget https://www.makemkv.com/download/old/makemkv-bin-1.16.1.tar.gz
-wget https://www.makemkv.com/download/old/makemkv-oss-1.16.1.tar.gz
+echo -e "${RED}Finding current MakeMKV version${NC}"
+mmv=$(curl -s https://www.makemkv.com/download/ | grep -o [0-9.]*.txt | sed 's/.txt//')
 
-echo -e "${RED}Extracting MakeMKV${NC}"
-tar xvzf makemkv-oss-1.16.1.tar.gz
-tar xvzf makemkv-bin-1.16.1.tar.gz
+echo -e "${RED}Downloading MakeMKV sha, bin, and oss${NC}"
+wget https://www.makemkv.com/download/makemkv-sha-$mmv.txt
+wget https://www.makemkv.com/download/makemkv-bin-$mmv.tar.gz
+wget https://www.makemkv.com/download/makemkv-oss-$mmv.tar.gz
 
-cd makemkv-oss-1.16.1
+echo "${RED}Checking checksums${NC}"
+grep "makemkv-bin-$mmv.tar.gz" makemkv-sha-$mmv.txt | sha256sum -c
+# grep "makemkv-oss-$mmv.tar.gz" makemkv-sha-$mmv.txt | sha256sum -c  # DEBUG
+# Their makemkv-oss-1.16.3.tar.gz checksum did not match???
+# Remove these comments and enable the grep line above when it does match.
+
+echo "${RED}Extracting MakeMKV${NC}"
+tar xvzf makemkv-oss-$mmv.tar.gz
+tar xvzf makemkv-bin-$mmv.tar.gz
+
+cd makemkv-oss-$mmv
 echo -e "${RED}Installing MakeMKV${NC}"
 ./configure
 make
 make install
 
-cd ../makemkv-bin-1.16.1
+cd ../makemkv-bin-$mmv
 make
 make install
 
