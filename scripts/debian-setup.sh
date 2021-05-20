@@ -21,7 +21,7 @@ echo -e "${RED}Installing wget${NC}"
 apt install -y wget
 
 echo -e "${RED}Setting up directories and getting makeMKV files${NC}"
-mkdir /makeMKV
+mkdir -p /makeMKV
 cd /makeMKV
 
 echo -e "${RED}Finding current MakeMKV version${NC}"
@@ -75,7 +75,7 @@ apt install -y eject
 
 echo -e "${RED}Installing ARM:Automatic Ripping Machine${NC}"
 cd /opt
-mkdir arm
+mkdir -p arm
 chown arm:arm arm
 chmod 775 arm
 git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
@@ -88,7 +88,7 @@ pip3 install -r requirements.txt
 ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
 ln -s /opt/arm/setup/.abcde.conf /home/arm/
 cp docs/arm.yaml.sample arm.yaml
-mkdir /etc/arm/
+mkdir -p /etc/arm/
 ln -s /opt/arm/arm.yaml /etc/arm/
 
 mkdir -p /mnt/dev/sr0

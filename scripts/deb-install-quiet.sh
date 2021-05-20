@@ -22,7 +22,7 @@ apt -qqy install build-essential pkg-config libc6-dev libssl-dev libexpat1-dev l
 #apt -qqy install wget
 
 echo -e "${RED}Setting up directories and getting makeMKV files${NC}"
-mkdir /makeMKV
+mkdir -p /makeMKV
 cd /makeMKV
 
 echo -e "${RED}Finding current MakeMKV version${NC}"
@@ -50,8 +50,8 @@ make -s
 make install
 
 cd ../makemkv-bin-$mmv
-mkdir /makeMKV/makemkv-bin-1.16.1/tmp
-touch /makeMKV/makemkv-bin-1.16.1/tmp/eula_accepted
+mkdir -p /makeMKV/makemkv-bin-$mmv/tmp
+touch /makeMKV/makemkv-bin-$mmv/tmp/eula_accepted
 make -s
 make install
 
@@ -78,7 +78,7 @@ apt -qqy install eject
 
 echo -e "${RED}Installing ARM:Automatic Ripping Machine${NC}"
 cd /opt
-mkdir arm
+mkdir -p arm
 chown arm:arm arm
 chmod 775 arm
 git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
@@ -91,7 +91,7 @@ pip3 install -r requirements.txt
 ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
 ln -s /opt/arm/setup/.abcde.conf /home/arm/
 cp docs/arm.yaml.sample arm.yaml
-mkdir /etc/arm/
+mkdir -p /etc/arm/
 ln -s /opt/arm/arm.yaml /etc/arm/
 
 mkdir -p /mnt/dev/sr0
