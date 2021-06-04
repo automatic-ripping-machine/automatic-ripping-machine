@@ -3,13 +3,13 @@
 
 {% block nav %}{{ super() }}{% endblock %}
 
-{% block content %}  
-  <h4>Loading log: {{ file }}...</h4>
-  <div id="container">
+{% block content %}
+<h4>Loading log: {{ file }}...</h4>
+<div id="container">
 
-  <div id="log">
-    <pre id="{{ file }}" ></pre>
-  </div>
+    <div id="log">
+        <pre id="{{ file }}" ></pre>
+    </div>
 </div>
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}

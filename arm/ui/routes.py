@@ -418,10 +418,6 @@ def logreader():
     This will display or allow downloading the requested logfile
     This is where the XHR requests are sent when viewing /logs?=logfile
     """
-    # use logger
-    # app.logger.info('Processing default request')
-    # app.logger.debug('DEBUGGING')
-    # app.logger.error('ERROR Inside /logreader')
 
     # Setup our vars
     logpath = cfg['LOGPATH']
@@ -430,9 +426,8 @@ def logreader():
     logfile = request.args.get('logfile')
     if logfile is None or "../" in logfile or mode is None:
         return render_template('error.html')
-    # Assemble full path
     fullpath = os.path.join(logpath, logfile)
-    # Check if the logfile exists
+
     my_file = Path(fullpath)
     if not my_file.is_file():
         # logfile doesnt exist throw out error template

@@ -16,7 +16,6 @@ arm.conf
 arm.yaml
 *.db
 *.log
-*.json
 .abdce.conf
 *.old
 __pycache__
