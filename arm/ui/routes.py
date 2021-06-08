@@ -221,14 +221,17 @@ def database():
     Currently outputs every job from the databse - this can cause serious slow downs with + 3/4000 entries
     Pagination is needed!
     """
+
+    page = request.args.get('page', 1, type=int)
     # Check for database file
     if os.path.isfile(cfg['DBFILE']):
-        jobs = Job.query.filter_by().order_by(db.desc(Job.job_id))
+        # jobs = Job.query.filter_by().order_by(db.desc(Job.job_id))
+        jobs = Job.query.order_by().paginate(page, 100, False)
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
 
-    return render_template('database.html', jobs=jobs, date_format=cfg['DATE_FORMAT'])
+    return render_template('database.html', jobs=jobs.items, date_format=cfg['DATE_FORMAT'], pages=jobs)
 
 
 @app.route('/json', methods=['GET', 'POST'])
@@ -486,14 +489,17 @@ def history():
     Smaller much simpler output of previously run jobs
 
     """
+    page = request.args.get('page', 1, type=int)
     if os.path.isfile(cfg['DBFILE']):
-        jobs = Job.query.filter_by()
+        # after roughly 175 entries firefox readermode will break
+        # jobs = Job.query.filter_by().limit(175).all()
+        jobs = Job.query.order_by().paginate(page, 100, False)
     else:
         app.logger.error('ERROR: /history database file doesnt exist')
         jobs = {}
     app.logger.debug(cfg['DATE_FORMAT'])
 
-    return render_template('history.html', jobs=jobs, date_format=cfg['DATE_FORMAT'])
+    return render_template('history.html', jobs=jobs.items, date_format=cfg['DATE_FORMAT'], pages=jobs)
 
 
 @app.route('/jobdetail', methods=['GET', 'POST'])
