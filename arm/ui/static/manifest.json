@@ -1,0 +1,27 @@
+{
+    "name": "",
+    "icons": [
+        {
+            "src": "/static/img/arm80.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/img/arm80.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src":"/static/img/android-chrome-192x192.png",
+            "sizes":"192x192",
+            "type":"image/png"
+        },
+        {   
+            "src":"/static/img/android-chrome-512x512.png",
+            "sizes":"512x512",
+            "type":"image/png"
+        }]
+    "theme_color": "#446e9b",
+    "background_color": "#3a3f51",
+    "display": "standalone"
+}

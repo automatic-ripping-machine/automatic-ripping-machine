@@ -1,7 +1,8 @@
+#!/usr/bin/env python3
 # Identification of dvd/bluray
 
 import os
-import sys # noqa # pylint: disable=unused-import
+import sys  # noqa # pylint: disable=unused-import
 import logging
 import urllib
 import re
@@ -13,145 +14,61 @@ import json
 
 from arm.ripper import utils
 from arm.ui import db
-# from arm.config.config import cfg
+from arm.config.config import cfg
+
 
 # flake8: noqa: W605
+# from arm.ui.utils import call_omdb_api, tmdb_search
+import arm.ui.utils as u
 
 
 def identify(job, logfile):
     """Identify disc attributes"""
 
-    logging.debug("Identification starting: " + str(job))
-
-    logging.info("Mounting disc to: " + str(job.mountpoint))
+    logging.debug(f"Identify Entry point --- job ---- \n\r{job.pretty_table()}")
+    logging.info(f"Mounting disc to: {job.mountpoint}")
 
     if not os.path.exists(str(job.mountpoint)):
         os.makedirs(str(job.mountpoint))
 
     os.system("mount " + job.devpath)
 
-    # Check to make sure it's not a data disc
-    if job.disctype == "music":
-        logging.debug("Disc is music.  Skipping identification")
-    elif os.path.isdir(job.mountpoint + "/VIDEO_TS"):
-        logging.debug("Found: " + job.mountpoint + "/VIDEO_TS")
-        job.disctype = "dvd"
-    elif os.path.isdir(job.mountpoint + "/video_ts"):
-        logging.debug("Found: " + job.mountpoint + "/video_ts")
-        job.disctype = "dvd"
-    elif os.path.isdir(job.mountpoint + "/BDMV"):
-        logging.debug("Found: " + job.mountpoint + "/BDMV")
-        job.disctype = "bluray"
-    elif os.path.isdir(job.mountpoint + "/HVDVD_TS"):
-        logging.debug("Found: " + job.mountpoint + "/HVDVD_TS")
-        # do something here
-    elif utils.find_file("HVDVD_TS", job.mountpoint):
-        logging.debug("Found file: HVDVD_TS")
-        # do something here too
-    else:
-        logging.debug("Did not find valid dvd/bd files. Changing disctype to 'data'")
-        job.disctype = "data"
+    # Check with the job class to get the correct disc type
+    job.get_disc_type(utils.find_file("HVDVD_TS", job.mountpoint))
 
     if job.disctype in ["dvd", "bluray"]:
 
         logging.info("Disc identified as video")
 
-        if job.config.GET_VIDEO_TITLE:
-
-            # get crc_id (dvd only), title, year
+        if cfg["GET_VIDEO_TITLE"]:
+            res = False
             if job.disctype == "dvd":
                 res = identify_dvd(job)
             if job.disctype == "bluray":
                 res = identify_bluray(job)
-
-            if res and not job.year == "":
+            if res:
                 get_video_details(job)
             else:
                 job.hasnicetitle = False
                 db.session.commit()
 
-            logging.info("Disc title: " + str(job.title) + " : " + str(job.year) + " : " + str(job.video_type))
-            logging.debug("Identification complete: " + str(job))
+            logging.info(f"Disc title Post ident -  title:{job.title} year:{job.year} video_type:{job.video_type} "
+                         f"disctype: {job.disctype}")
+            logging.debug(f"identify.job.end ---- \n\r{job.pretty_table()}")
 
     os.system("umount " + job.devpath)
 
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
-    string = re.sub('\[(.*?)\]', '', string)
-    string = re.sub('\s+', ' ', string)
+    string = re.sub('\\[(.*?)\\]', '', string)
+    string = re.sub('\\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
     string = string.replace('&', 'and')
     string = string.replace("\\", " - ")
     string = string.strip()
-    # testing why the return function isn't cleaning
-    return re.sub('[^\w\-_\.\(\) ]', '', string)
-    #return string
-
-
-def identify_dvd(job):
-    """ Calculates CRC64 for the DVD and calls Windows Media
-        Metaservices and returns the Title and year of DVD """
-    """ Manipulates the DVD title and calls OMDB to try and 
-        lookup the title """
-    logging.debug(str(job))    
-
-    try:
-        crc64 = pydvdid.compute(str(job.mountpoint))
-    except pydvdid.exceptions.PydvdidException as e:
-        logging.error("Pydvdid failed with the error: " + str(e))
-        return False
-
-    logging.info("DVD CRC64 hash is: " + str(crc64))
-    job.crc_id = str(crc64)
-    fallback_title = "{0}_{1}".format(str(job.label), str(crc64))
-    logging.info("Fallback title is: " + str(fallback_title))
-    urlstring = "http://metaservices.windowsmedia.com/pas_dvd_B/template/GetMDRDVDByCRC.xml?CRC={0}".format(str(crc64))
-    logging.debug(urlstring)
-
-    try:
-        dvd_info_xml = urllib.request.urlopen(urlstring).read()
-    except OSError as e:
-        dvd_info_xml = False
-        dvd_title = str(fallback_title)
-        dvd_release_date = ""
-        logging.error("Failed to reach windowsmedia web service.  Error number is: " + str(e.errno))
-        # return False
-
-    # Some older DVDs aren't actually labelled
-    if not job.label:
-        job.label = "not identified"
-        
-    try:
-        if not dvd_info_xml:
-            pass
-        else:
-            doc = xmltodict.parse(dvd_info_xml)
-            dvd_title = doc['METADATA']['MDR-DVD']['dvdTitle']
-            dvd_release_date = doc['METADATA']['MDR-DVD']['releaseDate']
-            dvd_title = dvd_title.strip()
-            dvd_title = clean_for_filename(dvd_title)
-            if dvd_release_date is not None:
-                dvd_release_date = dvd_release_date.split()[0]
-            else:
-                dvd_release_date = ""
-    except KeyError:
-        dvd_title = str(fallback_title)
-        dvd_release_date = ""
-        logging.error("Windows Media request returned no result.Probably because the service is discontinued.")
-        # return False
- 
-    # TODO: split this out to another file/function and loop depending how many replacements
-    # need to be done
-    dvd_title = job.label.replace("_", " ").replace("16x9", "")
-    dvd_release_date = ""
-
-    job.title = job.title_auto = dvd_title
-    job.year = job.year_auto = dvd_release_date
-    db.session.commit()
-
-    return True
+    return re.sub('[^\\w_.() -]', '', string)
 
 
 def identify_bluray(job):
@@ -161,16 +78,20 @@ def identify_bluray(job):
         with open(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
             doc = xmltodict.parse(xml_file.read())
     except OSError as e:
-        logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.  Error number is: " + str(e.errno))
+        logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.  Error "
+                      "number is: " + str(e.errno))
+        # Maybe call OMdb with label when we cant find any ident on disc ?
+        job.title = str(job.label)
+        job.year = ""
+        db.session.commit()
         return False
 
     try:
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
     except KeyError:
-        bluray_title = str(fallback_title)
+        bluray_title = str(job.label)
         bluray_year = ""
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
-        # return False
 
     bluray_modified_timestamp = os.path.getmtime(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml')
     bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))
@@ -192,119 +113,175 @@ def identify_bluray(job):
     return True
 
 
+def identify_dvd(job):
+    """ Manipulates the DVD title and calls OMDB to try and
+    lookup the title """
+
+    logging.debug("\n\r" + job.pretty_table())
+    # Some older DVDs aren't actually labelled
+    if not job.label or job.label == "":
+        job.label = "not identified"
+    try:
+        crc64 = pydvdid.compute(str(job.mountpoint))
+        fallback_title = f"{job.label}_{crc64}"
+        dvd_title = fallback_title
+        logging.info(f"DVD CRC64 hash is: {crc64}")
+        job.crc_id = str(crc64)
+        urlstring = f"http://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
+        logging.debug(urlstring)
+        dvd_info_xml = urllib.request.urlopen(urlstring).read()
+        x = json.loads(dvd_info_xml)
+        logging.debug("dvd xml - " + str(x))
+        logging.debug(f"results = {x['results']}")
+        if bool(x['success']):
+            logging.info("Found crc64 id from online API")
+            logging.info(f"title is {x['results']['0']['title']}")
+            args = {
+                    'title': x['results']['0']['title'],
+                    'title_auto': x['results']['0']['title'],
+                    'year': x['results']['0']['year'],
+                    'year_auto': x['results']['0']['year'],
+                    'imdb_id': x['results']['0']['imdb_id'],
+                    'imdb_id_auto': x['results']['0']['imdb_id'],
+                    'video_type': x['results']['0']['video_type'],
+                    'video_type_auto': x['results']['0']['video_type'],
+                    }
+            utils.database_updater(args, job)
+            # return True
+    except Exception as e:
+        logging.error("Pydvdid failed with the error: " + str(e))
+        dvd_title = fallback_title = str(job.label)
+
+    logging.debug("dvd_title_label= " + str(dvd_title))
+    # strip all non-numeric chars and use that for year
+    year = re.sub(r"[^0-9]", "", str(job.year))
+    # next line is not really needed, but we dont want to leave an x somewhere
+    dvd_title = job.label.replace("16x9", "")
+    # Rip out any not alpha chars replace with &nbsp;
+    dvd_title = re.sub(r"[^a-zA-Z ]", " ", dvd_title)
+    logging.debug("dvd_title ^a-z= " + str(dvd_title))
+    # rip out any SKU's at the end of the line
+    dvd_title = re.sub(r"SKU\b", "", dvd_title)
+    logging.debug("dvd_title SKU$= " + str(dvd_title))
+
+    dvd_info_xml = metadata_selector(job, dvd_title, year)
+    logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
+    # Failsafe so they we always have a title.
+    if job.title is None or job.title == "None":
+        job.title = str(job.label)
+        job.year = ""
+    return True
+
+
 def get_video_details(job):
     """ Clean up title and year.  Get video_type, imdb_id, poster_url from
     omdbapi.com webservice.\n
 
     job = Instance of Job class\n
     """
-
     title = job.title
-    
-    if title == "not identified":
+
+    # Set out title from the job.label
+    # return if not identified
+    logging.debug("Title = " + str(title))
+    if title == "not identified" or title is None or title == "":
+        logging.info("Disc couldn't be identified")
         return
-    
-    year = job.year
-    if year is None:
+    title = re.sub('[_ ]', "+", title.strip())
+
+    # strip all non-numeric chars and use that for year
+    if job.year is None:
         year = ""
+    else:
+        year = re.sub("[^0-9]", "", str(job.year))
 
-    # needs_new_year = False
-    omdb_api_key = job.config.OMDB_API_KEY
+    logging.debug(f"Title: {title} | Year: {year}")
+    logging.debug(f"Calling webservice with title: {title} and year: {year}")
 
-    logging.debug("Title: " + title + " | Year: " + year)
-
-    # dvd_title_clean = cleanupstring(dvd_title)
-    title = title.strip()
-    title = re.sub('[_ ]', "+", title)
-
-    logging.debug("Calling webservice with title: " + title + " and year: " + year)
-    response = callwebservice(job, omdb_api_key, title, year)
-    logging.debug("response: " + response)
+    response = metadata_selector(job, title, year)
 
     # handle failures
     # this is a little kludgy, but it kind of works...
-    if (response == "fail"):
-
+    if response is None:
         if year:
-          # first try subtracting one year.  This accounts for when
-          # the dvd release date is the year following the movie release date
-          logging.debug("Subtracting 1 year...")
-          response = callwebservice(job, omdb_api_key, title, str(int(year) - 1))
-          logging.debug("response: " + response)
+            # first try subtracting one year.  This accounts for when
+            # the dvd release date is the year following the movie release date
+            logging.debug("Subtracting 1 year...")
+            response = metadata_selector(job, title, str(int(year) - 1))
+            logging.debug(f"response: {response}")
 
-          # try submitting without the year
-          if response == "fail":
-              # year needs to be changed
-              logging.debug("Removing year...")
-              response = callwebservice(job, omdb_api_key, title, "")
-              logging.debug("response: " + response)
-            
-        # if response != "fail":
-        #     # that means the year is wrong.
-        #     needs_new_year = True
-        #     logging.debug("Setting needs_new_year = True.")
+        # try submitting without the year
+        if response is None:
+            logging.debug("Removing year...")
+            response = metadata_selector(job, title)
+            logging.debug(f"response: {response}")
 
-        if response == "fail":
-            # see if there is a hyphen and split it
-            # if title.find("-") > -1:
-            while response == "fail" and title.find("-") > 0:
-                # dvd_title_slice = title[:title.find("-")]
+        if response is None:
+            while response is None and title.find("-") > 0:
                 title = title.rsplit('-', 1)[0]
-                # dvd_title_slice = cleanupstring(dvd_title_slice)
                 logging.debug("Trying title: " + title)
-                response = callwebservice(job, omdb_api_key, title, year)
-                logging.debug("response: " + response)
+                response = metadata_selector(job, title, year)
+                logging.debug(f"response: {response}")
 
             # if still fail, then try slicing off the last word in a loop
-            while response == "fail" and title.count('+') > 0:
+            while response is None and title.count('+') > 0:
                 title = title.rsplit('+', 1)[0]
                 logging.debug("Trying title: " + title)
-                response = callwebservice(job, omdb_api_key, title, year)
-                logging.debug("response: " + response)
-                if response == "fail":
+                response = metadata_selector(job, title, year)
+                logging.debug(f"response: {response}")
+                if response is None:
                     logging.debug("Removing year...")
-                    response = callwebservice(job, omdb_api_key, title, "")
+                    response = metadata_selector(job, title)
 
 
-def callwebservice(job, omdb_api_key, dvd_title, year=""):
-    """ Queries OMDbapi.org for title information and parses type, imdb, and poster info
+def update_job(job, s):
+    logging.debug(f"s =======  {s}")
+    if 'Search' not in s:
+        return None
+    new_year = s['Search'][0]['Year']
+    title = clean_for_filename(s['Search'][0]['Title'])
+    logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
+    args = {
+        'year_auto': str(new_year),
+        'year': str(new_year),
+        'title_auto': title,
+        'title': title,
+        'video_type_auto': s['Search'][0]['Type'],
+        'video_type': s['Search'][0]['Type'],
+        'imdb_id_auto': s['Search'][0]['imdbID'],
+        'imdb_id': s['Search'][0]['imdbID'],
+        'poster_url_auto': s['Search'][0]['Poster'],
+        'poster_url': s['Search'][0]['Poster'],
+        'hasnicetitle': True
+    }
+    utils.database_updater(args, job)
+
+
+def metadata_selector(job, title=None, year=None):
     """
+    Used to switch between OMDB or TMDB as the metadata provider
+    - TMDB returned queries are converted into the OMDB format
 
-    if job.config.VIDEOTYPE == "auto":
-        strurl = "http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year)
-        logging.debug("http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format("key_hidden", dvd_title, year))
-    else:
-        strurl = "http://www.omdbapi.com/?t={1}&y={2}&type={3}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year, job.config.VIDEOTYPE)
-        logging.debug("http://www.omdbapi.com/?t={1}&y={2}&type={3}&plot=short&r=json&apikey={0}".format("key_hidden", dvd_title, year, job.config.VIDEOTYPE))
+    :param job: The job class
+    :param title: this can either be a search string or movie/show title
+    :param year: the year of movie/show release
 
-    logging.debug("***Calling webservice with Title: " + dvd_title + " and Year: " + year)
-    try:
-        # strurl = "http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format(omdb_api_key, dvd_title, year)
-        # logging.debug("http://www.omdbapi.com/?t={1}&y={2}&plot=short&r=json&apikey={0}".format("key_hidden", dvd_title, year))
-        dvd_title_info_json = urllib.request.urlopen(strurl).read()
-    except Exception:
-        logging.debug("Webservice failed")
-        return "fail"
-    else:
-        doc = json.loads(dvd_title_info_json.decode())
-        if doc['Response'] == "False":
-            logging.debug("Webservice failed with error: " + doc['Error'])
-            return "fail"
-        else:
-            # global new_year
-            new_year = doc['Year']
-            title = clean_for_filename(doc['Title'])
-            logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
-            job.year_auto = str(new_year)
-            job.year = str(new_year)
-            job.title_auto = title
-            job.title = title
-            job.video_type_auto = doc['Type']
-            job.video_type = doc['Type']
-            job.imdb_id_auto = doc['imdbID']
-            job.imdb_id = doc['imdbID']
-            job.poster_url_auto = doc['Poster']
-            job.poster_url = doc['Poster']
-            job.hasnicetitle = True
-            db.session.commit()
-            return doc['Response']
+    :return: json/dict object or None
+
+    Args:
+        job:
+    """
+    if cfg['METADATA_PROVIDER'].lower() == "tmdb":
+        logging.debug("provider tmdb")
+        x = u.tmdb_search(title, year)
+        if x is not None:
+            update_job(job, x)
+        return x
+    elif cfg['METADATA_PROVIDER'].lower() == "omdb":
+        logging.debug("provider omdb")
+        x = u.call_omdb_api(str(title), str(year))
+        if x is not None and x['Response']:
+            update_job(job, x)
+        return x
+    logging.debug(cfg['METADATA_PROVIDER'])
+    logging.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
