@@ -187,6 +187,7 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
     try:
         title_info_json = urllib.request.urlopen(strurl).read()
         title_info = json.loads(title_info_json.decode())
+        title_info['background_url'] = None
         app.logger.debug(f"omdb - {title_info}")
     except urllib.error.HTTPError as e:
         app.logger.debug(f"omdb call failed with error - {e}")
@@ -740,7 +741,6 @@ def metadata_selector(func, query="", year="", imdb_id=""):
             return call_omdb_api(str(query), str(year))
         elif func == "get_details":
             s = call_omdb_api(title=str(query), year=str(year), imdb_id=str(imdb_id), plot="full")
-            s['background_url'] = None
             return s
     app.logger.debug(cfg['METADATA_PROVIDER'])
     app.logger.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
