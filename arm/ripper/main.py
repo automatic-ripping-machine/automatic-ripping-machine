@@ -311,7 +311,10 @@ def main(logfile, job):
         if job.video_type == "movie":
             for track in tracks:
                 logging.info(f"Moving Movie {track.filename} to {final_directory}")
-                utils.move_files(hb_out_path, track.filename, job, main_feature_test(main_feature, track))
+                if tracks.count() == 1:
+                    utils.move_files(hb_out_path, track.filename, job, True)
+                else:
+                    utils.move_files(hb_out_path, track.filename, job, main_feature_test(main_feature, track))
         # move to media directory
         elif job.video_type == "series":
             for track in tracks:
@@ -321,12 +324,15 @@ def main(logfile, job):
             for track in tracks:
                 logging.info(f"Type is 'unknown' or we dont have a nice title - "
                              f"Moving {track.filename} to {final_directory}")
-                utils.move_files(hb_out_path, track.filename, job, track.main_feature)
-            utils.scan_emby(job)
+                if tracks.count() == 1:
+                    utils.move_files(hb_out_path, track.filename, job, True)
+                else:
+                    utils.move_files(hb_out_path, track.filename, job, track.main_feature)
 
+        utils.scan_emby(job)
         utils.set_permissions(job, final_directory)
+
         # Clean up bluray backup
-        # if job.disctype == "bluray" and cfg["DELRAWFILES"]:
         if cfg["DELRAWFILES"]:
             raw_list = [mkvoutpath, hb_out_path, hb_in_path]
             for raw_folder in raw_list:
