@@ -253,6 +253,7 @@ def abandon_job(job_id):
         db.session.commit()
         app.logger.debug("Job {} was abandoned successfully".format(job_id))
         t = {'success': True, 'job': job_id, 'mode': 'abandon'}
+        job.eject()
     except Exception as e:
         db.session.rollback()
         app.logger.debug("Job {} couldn't be abandoned ".format(job_id))

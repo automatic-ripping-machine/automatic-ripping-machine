@@ -11,6 +11,7 @@
         "NOTIFY_PERMS": "#############################\n## Notification Parameters ##\n#############################",
         "APPRISE": "#################################################\n##            APPRISE NOTIFICATIONS            ##\n#################################################"
     },
+    "PREVENT_99": "# Prevent ARM from wasting time on 99 Title protected DVDs.\n# A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.\n# When set to \"true\" affected DVDs will be autoejected on insertion.",
     "ARM_CHECK_UDF": "# Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.",
     "GET_VIDEO_TITLE": "# When enabled if the disc is a DVD use dvdid to calculate a crc64 and query Windows Media Meta Services for the Movie Title.\n# For BluRays attempts to extract the title from an XML file on the disc",
     "ARM_API_KEY": "# ARM dvd crc64 api key\n# This is only needed if you would like to send movies to the database",
