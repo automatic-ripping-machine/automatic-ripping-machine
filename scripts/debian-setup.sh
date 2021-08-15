@@ -127,3 +127,8 @@ systemctl enable armui
 systemctl start armui
 systemctl daemon-reload
 sysctl -p
+
+#advise to reboot
+echo
+echo -e "${RED}We recommend rebooting your system at this time.${NC}"
+echo

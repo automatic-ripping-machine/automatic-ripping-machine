@@ -34,6 +34,8 @@ def notify(job, title, body):
         apobj.add('ifttt://' + str(cfg["IFTTT_KEY"]) + "@" + str(cfg["IFTTT_EVENT"]))
     if cfg["PO_USER_KEY"] != "":
         apobj.add('pover://' + str(cfg["PO_USER_KEY"]) + "@" + str(cfg["PO_APP_KEY"]))
+    if cfg["JSON_URL"] != "":
+        apobj.add(str(cfg["JSON_URL"]).replace("http://","json://").replace("https://","jsons://"))
     try:
         apobj.notify(body, title=title)
     except Exception as e:  # noqa: E722

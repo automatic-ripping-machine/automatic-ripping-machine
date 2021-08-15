@@ -293,6 +293,9 @@ OMDB_API_KEY: ""
 # More info at https://www.themoviedb.org/documentation/api
 TMDB_API_KEY: ""
 
+# JSON_URL
+# Url to send Notifications to in JSON format
+JSON_URL: ""
 
 #################################################
 ##            APPRISE NOTIFICATIONS            ##
