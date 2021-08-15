@@ -4,6 +4,11 @@
 ## ARM Options ##
 #################
 
+# Prevent ARM from wasting time on 99 Title protected DVDs.
+# A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.
+# When set to "true" affected DVDs will be autoejected on insertion.
+PREVENT_99: true
+
 # Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.
 ARM_CHECK_UDF: true
 
