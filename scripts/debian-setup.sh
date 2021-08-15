@@ -43,8 +43,9 @@ apt install libdvdcss2
 apt install abcde flac imagemagick glyrc cdparanoia
 apt install at
 apt install python3 python3-pip
-apt install libcurl4-openssl-dev libssl-dev  
+apt install libcurl4-openssl-dev libssl-dev
 apt install libdvd-pkg
+apt install lsdvd
 wget http://download.videolan.org/pub/debian/stable/libdvdcss2_1.2.13-0_amd64.deb
 wget http://download.videolan.org/pub/debian/stable/libdvdcss_1.2.13-0.debian.tar.gz
 wget http://ftp.us.debian.org/debian/pool/contrib/libd/libdvd-pkg/libdvd-pkg_1.4.0-1-2_all.deb
@@ -69,7 +70,7 @@ cd arm
 pip3 install setuptools
 apt-get install python3-dev python3-pip python3-venv python3-wheel -y
 pip3 install wheel
-pip3 install -r requirements.txt 
+pip3 install -r requirements.txt
 ln -s /opt/arm/setup/51-automedia.rules /lib/udev/rules.d/
 ln -s /opt/arm/setup/.abcde.conf /home/arm/
 cp docs/arm.yaml.sample arm.yaml
@@ -77,11 +78,26 @@ mkdir /etc/arm/
 ln -s /opt/arm/arm.yaml /etc/arm/
 sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
 
-mkdir -p /mnt/dev/sr0
-
 ######## adding new line to fstab, needed for the autoplay to work
-echo -e "${RED}Adding fstab entry${NC}"
-echo -e "\n/dev/sr0  /mnt/dev/sr0  udf,iso9660  users,noauto,exec,utf8  0  0 \n" >> /etc/fstab
+######## also creating mount points (why loop twice)
+echo -e "${RED}Adding fstab entry and creating mount points${NC}"
+for dev in /dev/sr?; do
+   echo -e "\n${dev}  /mnt${dev}  udf,iso9660  users,noauto,exec,utf8  0  0 \n" >> /etc/fstab
+   mkdir -p /mnt$dev
+done
+
+
+##### Add sysctl.d rule to prevent auto-unejecting cd tray
+cat > /etc/sysctl.d/arm-uneject-fix.conf <<-EOM
+# Fix issue with DVD tray being autoclosed after rip is complete
+
+dev.cdrom.autoclose=0
+EOM
+
+##### Add syslog rule to route all ARM system logs to /var/log/arm.log
+cat > /etc/rsyslog.d/arm.conf <<-EOM
+:programname, isequal, "ARM" /var/log/arm.log
+EOM
 
 #####run the ARM ui as a service
 echo -e "${RED}Installing ARM service${NC}"
@@ -106,8 +122,8 @@ ExecStart=python3 /opt/arm/arm/runui.py
 WantedBy=multi-user.target
 EOM
 
-#reload the daemon and then start ui
+#reload the daemon, sysctl, and then start ui
 systemctl enable armui
 systemctl start armui
 systemctl daemon-reload
-
+sysctl -p
