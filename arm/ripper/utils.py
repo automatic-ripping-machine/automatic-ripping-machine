@@ -29,7 +29,7 @@ def notify(job, title, body):
     
     # Prepend Site Name if configured, append Job ID if configured
     if cfg["ARM_NAME"] != "":
-        title = cfg["ARM_NAME"] + title
+        title = "[" + cfg["ARM_NAME"] +"] - "+title
     if cfg["NOTIFY_JOBID"]:
         title = title + f" - {job.job_id}"
 
