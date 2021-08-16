@@ -4,6 +4,10 @@
 ## ARM Options ##
 #################
 
+# A friendly name for this machine. Useful if you are running multiple instances.
+# Used in notification titles.
+ARM_NAME: ""
+
 # Prevent ARM from wasting time on 99 Title protected DVDs.
 # A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.
 # When set to "true" affected DVDs will be autoejected on insertion.
@@ -262,6 +266,9 @@ NOTIFY_RIP: true
 
 # Notify after transcode?
 NOTIFY_TRANSCODE: true
+
+# Add Job ID to Notification Title
+NOTIFY_JOBID: false
 
 # Pushbullet API Key
 # Leave empty to disable Pushbullet notifications

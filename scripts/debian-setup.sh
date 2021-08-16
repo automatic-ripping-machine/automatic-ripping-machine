@@ -17,20 +17,20 @@ echo -e "${RED}Setting up directories and getting makeMKV files${NC}"
 mkdir /makeMKV
 cd /makeMKV
 
-wget https://www.makemkv.com/download/old/makemkv-bin-1.16.1.tar.gz
-wget https://www.makemkv.com/download/old/makemkv-oss-1.16.1.tar.gz
+wget https://www.makemkv.com/download/makemkv-bin-1.16.4.tar.gz
+wget https://www.makemkv.com/download/makemkv-oss-1.16.4.tar.gz
 
 echo -e "${RED}Extracting MakeMKV${NC}"
-tar xvzf makemkv-oss-1.16.1.tar.gz
-tar xvzf makemkv-bin-1.16.1.tar.gz
+tar xvzf makemkv-oss-1.16.4.tar.gz
+tar xvzf makemkv-bin-1.16.4.tar.gz
 
-cd makemkv-oss-1.16.1
+cd makemkv-oss-1.16.4
 echo -e "${RED}Installing MakeMKV${NC}"
 ./configure
 make
 make install
 
-cd ../makemkv-bin-1.16.1
+cd ../makemkv-bin-1.16.4
 make
 make install
 

@@ -757,7 +757,7 @@ def home():
                            arm_percent=arm_percent, media_percent=media_percent,
                            jobs=jobs, cpu=our_cpu, cputemp=temp, cpu_usage=cpu_usage,
                            ram=mem_total, ramused=mem_used, ramfree=mem_free, ram_percent=ram_percent,
-                           ramdump=str(temps))
+                           ramdump=str(temps), armname=cfg['ARM_NAME'])
 
 
 @app.route('/import_movies')

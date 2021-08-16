@@ -26,6 +26,13 @@ def notify(job, title, body):
      title = title for notification
     body = body of the notification
     """
+    
+    # Prepend Site Name if configured, append Job ID if configured
+    if cfg["ARM_NAME"] != "":
+        title = cfg["ARM_NAME"] + title
+    if cfg["NOTIFY_JOBID"]:
+        title = title + f" - {job.job_id}"
+
     # Create an Apprise instance
     apobj = apprise.Apprise()
     if cfg["PB_KEY"] != "":
