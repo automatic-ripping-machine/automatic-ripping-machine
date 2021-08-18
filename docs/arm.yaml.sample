@@ -8,6 +8,11 @@
 # Used in notification titles.
 ARM_NAME: ""
 
+# ARM_CHILDREN
+# Comma delimited list of child ARM servers to display on the Home Page
+# Should be full protocol, path and port: http://192.168.0.100:8080
+ARM_CHILDREN: ""
+
 # Prevent ARM from wasting time on 99 Title protected DVDs.
 # A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.
 # When set to "true" affected DVDs will be autoejected on insertion.
