@@ -63,18 +63,18 @@ sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
 ######## also creating mount points (why loop twice)
 echo -e "${RED}Adding fstab entry and creating mount points${NC}"
 for dev in /dev/sr?; do
-   sudo echo -e "\n${dev}  /mnt${dev}  udf,iso9660  users,noauto,exec,utf8  0  0 \n" >> /etc/fstab
+   echo -e "\n${dev}  /mnt${dev}  udf,iso9660  users,noauto,exec,utf8  0  0 \n" | sudo tee -a /etc/fstab
    sudo mkdir -p /mnt$dev
 done
 
 ##### Add syslog rule to route all ARM system logs to /var/log/arm.log
-cat > /etc/rsyslog.d/30-arm.conf <<-EOM
+cat <<EOM | sudo tee /etc/rsyslog.d/30-arm.conf
 :programname, isequal, "ARM" /var/log/arm.log
 EOM
 
-#####run the ARM ui as a service
+##### Run the ARM UI as a service
 echo -e "${RED}Installing ARM service${NC}"
-sudo cat > /etc/systemd/system/armui.service <<- EOM
+cat <<EOM | sudo tee /etc/systemd/system/armui.service
 [Unit]
 Description=Arm service
 ## Added to force armui to wait for network

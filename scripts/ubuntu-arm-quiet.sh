@@ -18,14 +18,12 @@ sudo apt install ubuntu-drivers-common -yqq && sudo ubuntu-drivers install
 
 echo -e "${RED}Adding arm user${NC}"
 sudo groupadd arm
-sudo useradd -m arm -g arm -G cdrom
-sudo useradd -G arm video
-sudo passwd arm 
+sudo useradd -m arm -g arm -G cdrom,video
+sudo passwd arm
 
 echo -e "${RED}Installing git${NC}"
 sudo apt-get install git -yqq
 sudo add-apt-repository ppa:heyarje/makemkv-beta
-sudo add-apt-repository ppa:stebbins/handbrake-releases
 
 NumOnly=$(cut -f2 <<< `lsb_release -r`) && case $NumOnly in "16.04" ) sudo add-apt-repository ppa:mc3man/xerus-media;; "18.04" ) sudo add-apt-repository ppa:mc3man/bionic-prop;; "20.04" ) sudo add-apt-repository ppa:mc3man/focal6;; *) echo "error in finding release version";; esac
 
@@ -36,8 +34,9 @@ sudo apt install handbrake-cli libavcodec-extra -yqq
 sudo apt install abcde flac imagemagick glyrc cdparanoia -yqq
 sudo apt install at -yqq
 sudo apt install python3 python3-pip -yqq
-sudo apt-get install libcurl4-openssl-dev libssl-dev -yqq
-sudo apt-get install libdvd-pkg -yqq
+sudo apt install libcurl4-openssl-dev libssl-dev -yqq
+sudo apt install libdvd-pkg -yqq
+sudo apt install lsdvd -y
 sudo dpkg-reconfigure libdvd-pkg
 sudo apt install default-jre-headless -yqq
 
@@ -64,18 +63,18 @@ sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
 ######## also creating mount points (why loop twice)
 echo -e "${RED}Adding fstab entry and creating mount points${NC}"
 for dev in /dev/sr?; do
-   sudo echo -e "\n${dev}  /mnt${dev}  udf,iso9660  users,noauto,exec,utf8  0  0 \n" >> /etc/fstab
+   echo -e "\n${dev}  /mnt${dev}  udf,iso9660  users,noauto,exec,utf8  0  0 \n" | sudo tee -a /etc/fstab
    sudo mkdir -p /mnt$dev
 done
 
 ##### Add syslog rule to route all ARM system logs to /var/log/arm.log
-cat > /etc/rsyslog.d/30-arm.conf <<-EOM
+cat <<EOM | sudo tee /etc/rsyslog.d/30-arm.conf
 :programname, isequal, "ARM" /var/log/arm.log
 EOM
 
-#####run the ARM ui as a service
+##### Run the ARM UI as a service
 echo -e "${RED}Installing ARM service${NC}"
-sudo cat > /etc/systemd/system/armui.service <<- EOM
+cat <<EOM | sudo tee /etc/systemd/system/armui.service
 [Unit]
 Description=Arm service
 ## Added to force armui to wait for network
