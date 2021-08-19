@@ -7,6 +7,7 @@ from discid import read, Disc
 from arm.config.config import cfg
 import arm.ripper.utils as u
 import werkzeug
+
 werkzeug.cached_property = werkzeug.utils.cached_property
 from robobrowser import RoboBrowser  # noqa E402
 
@@ -106,9 +107,16 @@ def music_brainz(discid, job):
     return artist_title
 
 
-def clean_for_log(s):
-    a = str(s).replace(" ", "_")
-    return a
+def clean_for_log(string):
+    """ Cleans up string for use in filename """
+    string = re.sub('\\[(.*?)\\]', '', string)
+    string = re.sub('\\s+', ' ', string)
+    string = string.replace(' : ', ' - ')
+    string = string.replace(':', '-')
+    string = string.replace('&', 'and')
+    string = string.replace("\\", " - ")
+    string = string.strip()
+    return re.sub('[^\\w_.() -]', '', string)
 
 
 def get_title(discid, job):

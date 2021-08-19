@@ -34,13 +34,13 @@ def entry():
     return parser.parse_args()
 
 
-def log_udev_params():
+def log_udev_params(devpath):
     """log all udev parameters"""
 
     logging.debug("**** Logging udev attributes ****")
     # logging.info("**** Start udev attributes ****")
     context = pyudev.Context()
-    device = pyudev.Devices.from_device_file(context, '/dev/sr0')
+    device = pyudev.Devices.from_device_file(context, devpath)
     for key, value in device.items():
         logging.debug(key + ":" + value)
     logging.debug("**** End udev attributes ****")
@@ -297,25 +297,14 @@ def main(logfile, job):
 
         # move to media directory
         tracks = job.tracks.filter_by(ripped=True)
-        main_feature = job.tracks.filter_by(main_feature=True).first()
 
-        def main_feature_test(m, t):
-            if not t.main_feature:
-                logging.debug("track main is false - checking size")
-                if m.length == t.length:
-                    logging.debug("track is same size as main feature")
-                    return True
-                else:
-                    return False
-            else:
-                return t.main_feature
         if job.video_type == "movie":
             for track in tracks:
                 logging.info(f"Moving Movie {track.filename} to {final_directory}")
                 if tracks.count() == 1:
                     utils.move_files(hb_out_path, track.filename, job, True)
                 else:
-                    utils.move_files(hb_out_path, track.filename, job, main_feature_test(main_feature, track))
+                    utils.move_files(hb_out_path, track.filename, job, track.main_feature)
         # move to media directory
         elif job.video_type == "series":
             for track in tracks:
@@ -441,7 +430,7 @@ if __name__ == "__main__":
     logger.clean_up_logs(cfg["LOGPATH"], cfg["LOGLIFE"])
     logging.info(f"Job: {job.label}")
     utils.clean_old_jobs()
-    log_udev_params()
+    log_udev_params(devpath)
 
     try:
         main(logfile, job)
