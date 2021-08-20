@@ -237,6 +237,7 @@ def main(logfile, job):
                 logging.info("Duplicate rips are disabled.")
                 utils.notify(job, NOTIFY_TITLE, "ARM Detected a duplicate disc. For " + str(
                     job.title) + ".  Duplicate rips are disabled. You can re-enable them from your config file. ")
+                job.eject()
                 job.status = "fail"
                 db.session.commit()
                 sys.exit()

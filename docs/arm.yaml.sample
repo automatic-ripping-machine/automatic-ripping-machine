@@ -4,6 +4,20 @@
 ## ARM Options ##
 #################
 
+# A friendly name for this machine. Useful if you are running multiple instances.
+# Used in notification titles.
+ARM_NAME: ""
+
+# ARM_CHILDREN
+# Comma delimited list of child ARM servers to display on the Home Page
+# Should be full protocol, path and port: http://192.168.0.100:8080
+ARM_CHILDREN: ""
+
+# Prevent ARM from wasting time on 99 Title protected DVDs.
+# A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.
+# When set to "true" affected DVDs will be autoejected on insertion.
+PREVENT_99: true
+
 # Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.
 ARM_CHECK_UDF: true
 
@@ -258,6 +272,9 @@ NOTIFY_RIP: true
 # Notify after transcode?
 NOTIFY_TRANSCODE: true
 
+# Add Job ID to Notification Title
+NOTIFY_JOBID: false
+
 # Pushbullet API Key
 # Leave empty to disable Pushbullet notifications
 PB_KEY: ""
@@ -288,6 +305,9 @@ OMDB_API_KEY: ""
 # More info at https://www.themoviedb.org/documentation/api
 TMDB_API_KEY: ""
 
+# JSON_URL
+# Url to send Notifications to in JSON format
+JSON_URL: ""
 
 #################################################
 ##            APPRISE NOTIFICATIONS            ##

@@ -26,6 +26,13 @@ def notify(job, title, body):
      title = title for notification
     body = body of the notification
     """
+
+    # Prepend Site Name if configured, append Job ID if configured
+    if cfg["ARM_NAME"] != "":
+        title = f"[{cfg['ARM_NAME']}] - {title}"
+    if cfg["NOTIFY_JOBID"]:
+        title = f"{title} - {job.job_id}"
+
     # Create an Apprise instance
     apobj = apprise.Apprise()
     if cfg["PB_KEY"] != "":
@@ -34,6 +41,8 @@ def notify(job, title, body):
         apobj.add('ifttt://' + str(cfg["IFTTT_KEY"]) + "@" + str(cfg["IFTTT_EVENT"]))
     if cfg["PO_USER_KEY"] != "":
         apobj.add('pover://' + str(cfg["PO_USER_KEY"]) + "@" + str(cfg["PO_APP_KEY"]))
+    if cfg["JSON_URL"] != "":
+        apobj.add(str(cfg["JSON_URL"]).replace("http://", "json://").replace("https://", "jsons://"))
     try:
         apobj.notify(body, title=title)
     except Exception as e:  # noqa: E722

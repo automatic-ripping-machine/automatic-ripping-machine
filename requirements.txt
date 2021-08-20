@@ -9,6 +9,7 @@ flask>=1.0.2
 flask-WTF>=0.14.2
 flask-sqlalchemy>=2.3.2
 flask-migrate>=2.2.1
+flask-cors>=3.0.10
 psutil>=5.4.6
 robobrowser>=0.5.3
 tinydownload>=0.1.0

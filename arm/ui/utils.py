@@ -253,6 +253,7 @@ def abandon_job(job_id):
         db.session.commit()
         app.logger.debug("Job {} was abandoned successfully".format(job_id))
         t = {'success': True, 'job': job_id, 'mode': 'abandon'}
+        job.eject()
     except Exception as e:
         db.session.rollback()
         app.logger.debug("Job {} couldn't be abandoned ".format(job_id))
@@ -502,7 +503,7 @@ def get_x_jobs(job_status):
         app.logger.debug("jobs  - we have " + str(len(r)) + " jobs")
         success = True
 
-    return {"success": success, "mode": job_status, "results": r}
+    return {"success": success, "mode": job_status, "results": r, "arm_name": cfg['ARM_NAME']}
 
 
 def get_tmdb_poster(search_query=None, year=None):

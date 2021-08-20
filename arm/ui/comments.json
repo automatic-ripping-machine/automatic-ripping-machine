@@ -11,6 +11,9 @@
         "NOTIFY_PERMS": "#############################\n## Notification Parameters ##\n#############################",
         "APPRISE": "#################################################\n##            APPRISE NOTIFICATIONS            ##\n#################################################"
     },
+    "ARM_NAME": "# A friendly name for this machine. Useful if you are running multiple instances.\n# Used in notification titles.",
+    "ARM_CHILDREN": "# Comma delimited list of child ARM servers to display on the Home Page\n# Should be full protocol, path, and port: http://192.168.0.100:8080/",
+    "PREVENT_99": "# Prevent ARM from wasting time on 99 Title protected DVDs.\n# A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.\n# When set to \"true\" affected DVDs will be autoejected on insertion.",
     "ARM_CHECK_UDF": "# Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.",
     "GET_VIDEO_TITLE": "# When enabled if the disc is a DVD use dvdid to calculate a crc64 and query Windows Media Meta Services for the Movie Title.\n# For BluRays attempts to extract the title from an XML file on the disc",
     "ARM_API_KEY": "# ARM dvd crc64 api key\n# This is only needed if you would like to send movies to the database",
@@ -67,6 +70,7 @@
     "EMBY_API_KEY": "# Emby API key.  This can be found (generated) by going to Advanced/Security in the \n# Emby dashboard",
     "NOTIFY_RIP": "# Notify after Rip?",
     "NOTIFY_TRANSCODE": "# Notify after transcode?",
+    "NOTIFY_JOBID": "# Add Job ID to Notification Title",
     "PB_KEY": "# Pushbullet API Key\n# Leave empty to disable Pushbullet notifications",
     "IFTTT_KEY": "# IFTTT API KEY\n# Leave empty to disable IFTTT notifications",
     "IFTTT_EVENT": "# IFTTT Event Name",
@@ -74,5 +78,6 @@
     "PO_APP_KEY": "",
     "OMDB_API_KEY": "# OMDB_API_KEY\n# omdbapi.com API Key\n# See README-OMDBAPI for background and info\n# This is the API key for omdbapi.com queries.\n# More info at http://omdbapi.com/",
     "TMDB_API_KEY": "# TMDB_API_KEY\n# https://www.themoviedb.org/ API Key\n# See README-OMDBAPI for background and info\n# This is the API key for https://www.themoviedb.org/ queries.\n# More info at https://www.themoviedb.org/documentation/api",
+    "JSON_URL": "# JSON_URL\n# Url to send Notifications to in JSON format",
     "APPRISE": "# File location of your apprise.yaml file"
 }
