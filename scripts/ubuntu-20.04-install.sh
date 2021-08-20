@@ -38,7 +38,7 @@ sudo apt install libcurl4-openssl-dev libssl-dev -y
 sudo apt install libdvd-pkg -y
 sudo apt install lsdvd -y
 sudo dpkg-reconfigure libdvd-pkg
-sudo apt install default-jre-headless
+sudo apt install default-jre-headless -y
 
 echo -e "${RED}Installing ARM:Automatic Ripping Machine${NC}"
 cd /opt
