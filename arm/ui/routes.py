@@ -706,11 +706,11 @@ def home():
     mem_free = round(memory.available / 1073741824, 1)
     mem_used = round(memory.used / 1073741824, 1)
     ram_percent = memory.percent
-    
+
     armname = ""
     if cfg['ARM_NAME'] != "":
         armname = "["+cfg['ARM_NAME']+"] - "
-    
+
     #  get out cpu info
     try:
         our_cpu = get_processor_name()

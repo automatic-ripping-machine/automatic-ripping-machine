@@ -503,7 +503,7 @@ def get_x_jobs(job_status):
         app.logger.debug("jobs  - we have " + str(len(r)) + " jobs")
         success = True
 
-    return {"success": success, "mode": job_status, "results": r, "arm_name": cfg['ARM_NAME'] }
+    return {"success": success, "mode": job_status, "results": r, "arm_name": cfg['ARM_NAME']}
 
 
 def get_tmdb_poster(search_query=None, year=None):
