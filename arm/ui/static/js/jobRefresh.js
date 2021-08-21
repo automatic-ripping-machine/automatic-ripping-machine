@@ -132,7 +132,8 @@ function addJobItem(job) {
           </div>\
           <div class="row no-gutters">\
           <div class="col-lg-4">\
-          <a href="jobdetail?job_id=' + job.job_id + '">';
+          <a href="jobdetail?job_id=' + idsplit[1] + '">';
+    // TODO: Fix above to link the correct server - for now it links to the main server
     if(job.poster_url !== "None" && job.poster_url !== "N/A") {
         x += '<img id="jobId' + job.job_id + '_poster_url" src="' + job.poster_url + '" width="240px" class="img-thumbnail">';
     }else{
@@ -174,14 +175,14 @@ function addJobItem(job) {
     x += '<div id="jobId' + job.job_id + '_MAXLENGTH"><b>Max Length: </b>' + job.config.MAXLENGTH + '</div>';
 
     x += '</div>\
-                                <div class="card-body px-2 py-1">\
-                                    <div class="btn-group-vertical" role="group" aria-label="buttons" '+(idsplit[0]!='0' ? 'style="display: none;"' : '')+'>\
-                                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="' + job.job_id + '" data-href="json?job=' + job.job_id + '&mode=abandon">Abandon Job</button>\
-                                        <a href="logs?logfile=' + job.logfile + '&mode=full" class="btn btn-primary">View logfile</a>';
+            <div class="card-body px-2 py-1">\
+              <div class="btn-group-vertical" role="group" aria-label="buttons" '+(idsplit[0]!='0' ? 'style="display: none;"' : '')+'>\
+              <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="' + idsplit[1] + '" data-href="json?job=' + idsplit[1] + '&mode=abandon">Abandon Job</button>\
+              <a href="logs?logfile=' + job.logfile + '&mode=full" class="btn btn-primary">View logfile</a>';
     if (job.video_type !== "Music") {
-        x += '<a href="titlesearch?job_id=' + job.job_id + '" class="btn btn-primary">Title Search</a>\
-                      <a href="customTitle?job_id=' + job.job_id + '" class="btn btn-primary">Custom Title</a>\
-                      <a href="changeparams?config_id=' + job.job_id + '" class="btn btn-primary">Edit Settings</a>';
+        x += '<a href="titlesearch?job_id=' + idsplit[1] + '" class="btn btn-primary">Title Search</a>\
+              <a href="customTitle?job_id=' + idsplit[1] + '" class="btn btn-primary">Custom Title</a>\
+              <a href="changeparams?config_id=' + idsplit[1]+ '" class="btn btn-primary">Edit Settings</a>';
     }
     x += '</div>\
                                 </div>\
@@ -196,7 +197,7 @@ function updateJobItem(oldJob, job) {
     if (job.poster_url !== $('#jobId' + job.job_id + '_poster_url')[0].src && job.poster_url !== "None" && job.poster_url !== "N/A") {
         $('#jobId' + job.job_id + '_poster_url')[0].src = job.poster_url;
     }
-
+    // TODO: Check against the auto title
     if (job.title !== $('#jobId' + job.job_id + '_title')[0].innerText) {
         $('#jobId' + job.job_id + '_title')[0].innerText = job.title;
     }
