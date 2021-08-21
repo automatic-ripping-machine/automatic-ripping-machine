@@ -16,7 +16,7 @@ from flask_login import LoginManager
 sqlitefile = 'sqlite:///' + cfg['DBFILE']
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*", "send_wildcard": "False"}})
 
 login_manager = LoginManager()
 login_manager.init_app(app)
