@@ -225,8 +225,7 @@ def database():
     page = request.args.get('page', 1, type=int)
     # Check for database file
     if os.path.isfile(cfg['DBFILE']):
-        # jobs = Job.query.filter_by().order_by(db.desc(Job.job_id))
-        jobs = Job.query.order_by().paginate(page, 100, False)
+        jobs = Job.query.order_by(db.desc(Job.job_id)).paginate(page, 100, False)
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
@@ -253,10 +252,8 @@ def feed_json():
     logpath = cfg['LOGPATH']
     if x == "delete":
         j = utils.delete_job(j_id, x)
-        # app.logger.debug("delete")
     elif x == "abandon":
         j = utils.abandon_job(j_id)
-        # app.logger.debug("abandon")
     elif x == "full":
         app.logger.debug("getlog")
         j = utils.generate_log(logpath, j_id)
@@ -709,7 +706,7 @@ def home():
 
     armname = ""
     if cfg['ARM_NAME'] != "":
-        armname = "["+cfg['ARM_NAME']+"] - "
+        armname = f"[{cfg['ARM_NAME']}] - "
 
     #  get out cpu info
     try:
@@ -731,30 +728,6 @@ def home():
         except Exception:
             # db isnt setup
             return redirect(url_for('setup'))
-        for job in jobs:
-            job_log = cfg['LOGPATH'] + job.logfile
-            # Try to catch if the logfile gets delete before the job is finished
-            try:
-                line = subprocess.check_output(['tail', '-n', '1', job_log])
-            except subprocess.CalledProcessError:
-                app.logger.debug("Error while reading logfile for ETA")
-                line = ""
-            # job_status = re.search("([0-9]{1,2}\.[0-9]{2}) %.*ETA ([0-9]{2})h([0-9]{2})m([0-9]{2})s", str(line))
-            # ([0-9]{1,3}\.[0-9]{2}) %.*(?!ETA) ([0-9hms]*?)\)  # This is more dumb but it returns with the h m s
-            # job_status = re.search(r"([0-9]{1,2}\.[0-9]{2}) %.*ETA\s([0-9hms]*?)\)", str(line))
-            # This correctly get the very last ETA and %
-            job_status = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
-                                   r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
-
-            if job_status:
-                app.logger.debug(str(job_status.group(1)))
-                job.stage = job_status.group(1)
-                job.progress = job_status.group(2)
-                job.eta = job_status.group(3)
-                app.logger.debug("job.progress = " + str(job.progress))
-                x = job.progress
-                job.progress_round = int(float(x))
-                app.logger.debug("Job.round = " + str(job.progress_round))
     else:
         jobs = {}
 

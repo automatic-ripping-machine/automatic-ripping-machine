@@ -471,26 +471,12 @@ def get_x_jobs(job_status):
     for j in jobs:
         r[i] = {}
         job_log = cfg['LOGPATH'] + j.logfile
+        process_logfile(job_log, j, r[i])
         try:
             r[i]['config'] = j.config.get_d()
         except AttributeError:
             r[i]['config'] = "config not found"
             app.logger.debug("couldn't get config")
-        # Try to catch if the logfile gets delete before the job is finished
-        try:
-            line = subprocess.check_output(['tail', '-n', '1', job_log])
-        except subprocess.CalledProcessError:
-            app.logger.debug("Error while reading logfile for ETA")
-            line = ""
-        app.logger.debug(line)
-        job_status_bar = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
-                                   r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
-        if job_status_bar:
-            app.logger.debug(job_status_bar.group())
-            r[i]['stage'] = job_status_bar.group(1)
-            r[i]['progress'] = job_status_bar.group(2)
-            r[i]['eta'] = job_status_bar.group(3)
-            r[i]['progress_round'] = int(float(r[i]['progress']))
 
         app.logger.debug("job obj= " + str(j.get_d()))
         x = j.get_d().items()
@@ -749,7 +735,7 @@ def metadata_selector(func, query="", year="", imdb_id=""):
 
 def fix_permissions(j_id):
     """
-    Json api
+    Json api version
 
     ARM can sometimes have issues with changing the file owner, we can use the fact ARMui is run
     as a service to fix permissions.
@@ -848,3 +834,56 @@ def get_settings(arm_cfg_file):
         app.logger.debug(e)
         cfg = {}
     return cfg
+
+
+def process_logfile(logfile, job, r):
+    """
+    Breaking out the log parser to its own function.
+    This is used to search the log for ETA and current stage
+
+    :param logfile: the logfile for parsing
+    :param job: the Job class
+    :param r: the {} of
+    :return: r should be dict for the json api
+    """
+    # Try to catch if the logfile gets delete before the job is finished
+    try:
+        line = subprocess.check_output(['tail', '-n', '1', logfile])
+    except subprocess.CalledProcessError:
+        app.logger.debug("Error while reading logfile for ETA")
+        line = ""
+    # This correctly get the very last ETA and %
+    job_status = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
+                           r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
+
+    if job_status:
+        app.logger.debug(job_status.group())
+        job.stage = job_status.group(1)
+        job.progress = job_status.group(2)
+        job.eta = job_status.group(3)
+        x = job.progress
+        job.progress_round = int(float(x))
+        r['stage'] = job.stage
+        r['progress'] = job.progress
+        r['eta'] = job.eta
+        r['progress_round'] = int(float(r['progress']))
+
+    # INFO ARM: handbrake.handbrake_all Processing track #1 of 42. Length is 8602 seconds.
+    # Try to catch if the logfile gets delete before the job is finished
+    try:
+        with open(logfile, encoding="utf8", errors='ignore') as f:
+            line = f.readlines()
+    except FileNotFoundError:
+        line = ""
+    job_status_index = re.search(r"Processing track #([0-9]{1,2}) of ([0-9]{1,2})(?!.*Processing track #)", str(line))
+    if job_status_index:
+        try:
+            current_index = int(job_status_index.group(1))
+            job.stage = r['stage'] = f"{job.stage} - {current_index}/{job.no_of_titles}"
+        except Exception as e:
+            app.logger.debug("Problem finding the current track " + str(e))
+            job.stage = f"{job.stage} - %0%/%0%"
+    else:
+        app.logger.debug("Cant find index")
+
+    return r

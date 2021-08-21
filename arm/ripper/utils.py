@@ -166,8 +166,8 @@ def move_files(basepath, filename, job, ismainfeature=False):
         if not os.path.isfile(e_file):
             try:
                 shutil.move(os.path.join(basepath, filename), os.path.join(e_path, filename))
-            except shutil.Error:
-                logging.error(f"Unable to move '{filename}' to {e_path}")
+            except Exception as e:
+                logging.error(f"Unable to move '{filename}' to {e_path} - {e}")
         else:
             logging.info(f"File: {e_file} already exists.  Not moving.")
 

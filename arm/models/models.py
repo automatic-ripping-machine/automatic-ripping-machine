@@ -24,6 +24,7 @@ class Job(db.Model):
     stop_time = db.Column(db.DateTime)
     job_length = db.Column(db.String(12))
     status = db.Column(db.String(32))
+    stage = db.Column(db.String(63))
     no_of_titles = db.Column(db.Integer)
     title = db.Column(db.String(256))
     title_auto = db.Column(db.String(256))
