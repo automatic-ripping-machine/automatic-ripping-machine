@@ -173,17 +173,18 @@ class Job(db.Model):
 
     def eject(self):
         """Eject disc if it hasn't previously been ejected"""
-        try:
-            if os.system("umount " + self.devpath):
-                logging.debug("we unmounted disc" + self.devpath)
-            if os.system("eject " + self.devpath):
-                logging.debug("we ejected disc" + self.devpath)
-                self.ejected = True
-            else:
-                logging.debug("failed to eject" + self.devpath)
-        except Exception as e:
-            self.ejected = False
-            logging.debug(self.devpath + " couldn't be ejected " + str(e))
+        if not self.ejected:
+            self.ejected = True
+            try:
+                if os.system("umount " + self.devpath):
+                    logging.debug("we unmounted disc" + self.devpath)
+                if os.system("eject " + self.devpath):
+                    logging.debug("we ejected disc" + self.devpath)
+                    self.ejected = True
+                else:
+                    logging.debug("failed to eject" + self.devpath)
+            except Exception as e:
+                logging.debug(self.devpath + " couldn't be ejected " + str(e))
 
 
 class Track(db.Model):
