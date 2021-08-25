@@ -187,6 +187,7 @@ def identify_dvd(job):
     logging.debug("dvd_title ^a-z= " + str(dvd_title))
     # rip out any SKU's at the end of the line
     dvd_title = re.sub("SKU$", " ", dvd_title)
+    dvd_title = dvd_title.strip()
     logging.debug("dvd_title SKU$= " + str(dvd_title))
 
     # try to contact omdb
