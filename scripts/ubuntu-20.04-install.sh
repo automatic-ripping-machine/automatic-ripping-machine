@@ -83,6 +83,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+User=arm
+Group=arm
 ## Add your path to your logfiles if you want to enable logging
 ## Remember to remove the # at the start of the line
 #StandardOutput=append:/PATH-TO-MY-LOGFILES/WebUI.log
@@ -95,6 +97,7 @@ ExecStart=python3 /opt/arm/arm/runui.py
 WantedBy=multi-user.target
 EOM
 
+sudo systemctl daemon-reload
 sudo chmod u+x /etc/systemd/system/armui.service
 sudo chmod 700 /etc/systemd/system/armui.service
 

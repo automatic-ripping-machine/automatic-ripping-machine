@@ -134,6 +134,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+User=arm
+Group=arm
 ## Add your path to your logfiles if you want to enable logging.
 ## Remember to remove the # at the start of the line.
 #StandardOutput=append:/PATH-TO-MY-LOGFILES/WebUI.log
