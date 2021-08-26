@@ -177,18 +177,24 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
     elif title:
         # try:
         title = urllib.parse.quote(title)
-        year = urllib.parse.quote(year)
-        strurl = "http://www.omdbapi.com/?s={1}&y={2}&plot={3}&r=json&apikey={0}".format(omdb_api_key,
-                                                                                         title, year, plot)
+        if year and year is not None:
+            year = urllib.parse.quote(year)
+            strurl = "http://www.omdbapi.com/?s={1}&y={2}&plot={3}&r=json&apikey={0}".format(omdb_api_key,
+                                                                                             title, year, plot)
+        else:
+            strurl = "http://www.omdbapi.com/?s={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key,
+                                                                                       title, plot)
     else:
-        # app.logger.debug("no params")
+        app.logger.debug("no params")
         return None
-    # app.logger.debug(f"omdb - {strurl}")
+    app.logger.debug(f"omdb - {strurl}")
     try:
         title_info_json = urllib.request.urlopen(strurl).read()
         title_info = json.loads(title_info_json.decode())
         title_info['background_url'] = None
         app.logger.debug(f"omdb - {title_info}")
+        if 'Error' in title_info or title_info['Response'] == "False":
+            return None
     except urllib.error.HTTPError as e:
         app.logger.debug(f"omdb call failed with error - {e}")
         return None
