@@ -48,6 +48,13 @@ function mergeifneeded() {
 
 echo
 echo -e "${RED}Installing Packages${NC}"
+echo This script was developed for OpenRC based Gentoo Systems
+echo
+echo The "default/linux/amd64/17.1/desktop/plasma (stable)" profile
+echo was selected and the kde-plasma/plasma-meta package was installed.
+echo If your profile or desktop environment differ you may need to
+echo adjust this script.
+echo
 echo This script will stop for any issues such as licenses or use flags.
 echo Resolve the issue and rerun the script.
 echo How to resolve the issue is beyond the scope of this script.
@@ -57,6 +64,7 @@ echo '    watch -c "genlop -c"'
 echo
 echo You may need to emerge genlop first.
 echo
+
 #provides equery for later use
 mergeifneeded app-portage/gentoolkit
 
