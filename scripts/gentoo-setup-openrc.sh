@@ -93,13 +93,12 @@ if [ "$installed" = "No matches found" ]; then
 	echo Replacing jre-package with the name of your actual JRE.
 	echo
 	echo The next command to run will show you which JRE will be merged.
-	echo You can use enter no when prompted to stop the installation and
+	echo You can enter no when prompted to stop the installation and
 	echo update your package.use file as needed.
 	echo
 	read -n1 -s -r -p $'Press Enter to continue...\n' key
 	emerge -a virtual/jre
 fi
-
 
 # Git Clone the ARM project
 ################################################################################
@@ -120,10 +119,7 @@ if [ -d /opt/arm/.git ]; then
 	git fetch
 	cd /opt
 else
-	git clone https://github.com/mneimeyer/automatic-ripping-machine.git arm
-
-	##Upstream
-	#git clone https://github.com/1337-server/automatic-ripping-machine.git arm
+	git clone https://github.com/1337-server/automatic-ripping-machine.git arm
 
 	###stock
 	#git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
@@ -140,6 +136,8 @@ echo -e "${RED}Installing Required Python Libraries${NC}"
 for line in $(cat requirements.txt) ; do
 
 	reqpkg=$(echo $line | cut -d '>' -f 1 | tr '[:upper:]' '[:lower:]')
+
+	#TODO: Probably not completely safe to check for repo directory
 
 	if [ -d /var/db/repos/gentoo/dev-python/$reqpkg ]; then
 		reqpkg="dev-python/${reqpkg}"
@@ -183,12 +181,17 @@ dev.cdrom.autoclose=0
 EOM
 
 ##### Add syslog rule to route all ARM system logs to /var/log/arm.log
+
+# TODO: Untested, not installed on dev system
+
 if [ -d /etc/rsyslog.d ]; then
 	cat > /etc/rsyslog.d/arm.conf <<-EOM
 :programname, isequal, "ARM" /var/log/arm.log
 EOM
 	/etc/init.d/rsyslog restart
 fi
+
+# TODO: Doesn't seem to be working
 
 if ! grep -qE "^ARM :$" /etc/metalog.conf; then
 	echo '' >> /etc/metalog.conf
