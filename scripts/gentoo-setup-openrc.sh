@@ -108,6 +108,31 @@ if [ "$installed" = "No matches found" ]; then
 	emerge -a virtual/jre
 fi
 
+# Handbrake 1.3 is not compatible with FFMpeg 4.4
+################################################################################
+
+version_greater_equal() {
+    printf '%s\n%s\n' "$2" "$1" | sort --check=quiet --version-sort
+}
+
+hb_ver=$(eix -I handbrake | grep "Installed versions:" | tr -s " " | cut -d " " -f 4 | cut -d "-" -f 1)
+ff_ver=$(eix -I ffmpeg    | grep "Installed versions:" | tr -s " " | cut -d " " -f 4 | cut -d "-" -f 1)
+
+echo Handbrake: $hb_ver
+echo FFMpeg:    $ff_ver
+if ! version_greater_equal $hb_ver 1.4 && version_greater_equal $ff_ver 4.4 ; then
+	echo
+	echo -e "${RED}!!! Warning !!!${NC}"
+	echo
+	echo Versions of Handbrake prior to 1.4 do not officially support
+	echo FFmpeg 4.4. Common issues include the inability to properly
+	echo transcode audio resulting in silent media files.
+	echo
+	echo You may need to mask FFmpeg 4.4 until Handbrake 1.4 is available.
+	echo
+	read -n1 -s -r -p $'Press Enter to continue...\n' key
+fi
+
 # Git Clone the ARM project
 ################################################################################
 

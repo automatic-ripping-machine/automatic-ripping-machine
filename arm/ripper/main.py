@@ -242,6 +242,17 @@ def main(logfile, job):
                 db.session.commit()
                 sys.exit()
 
+        # Use FFMPeg to convert Large Poster
+        if job.disctype == "dvd":
+            os.system("mount " + job.devpath)
+            if os.path.isfile(job.mountpoint+"/JACKET_P/J00___5L.MP2"):
+                logging.info("Converting NTSC Poster Image")
+                os.system('ffmpeg -i "'+job.mountpoint+'/JACKET_P/J00___5L.MP2" "'+hb_out_path+'/poster.png"')
+            elif os.path.isfile(job.mountpoint+"/JACKET_P/J00___6L.MP2"):
+                logging.info("Converting PAL Poster Image")
+                os.system('ffmpeg -i "'+job.mountpoint+'/JACKET_P/J00___6L.MP2" "'+hb_out_path+'/poster.png"')
+            os.system("umount " + job.devpath)
+
         logging.info(f"Processing files to: {hb_out_path}")
         mkvoutpath = None
         # entry point for bluray
@@ -318,6 +329,18 @@ def main(logfile, job):
                     utils.move_files(hb_out_path, track.filename, job, True)
                 else:
                     utils.move_files(hb_out_path, track.filename, job, track.main_feature)
+
+        # move movie poster
+        src_poster = os.path.join(hb_out_path, "poster.png")
+        dst_poster = os.path.join(final_directory, "poster.png")
+        if os.path.isfile(src_poster):
+            if not os.path.isfile(dst_poster):
+                try:
+                    shutil.move(src_poster, dst_poster)
+                except Exception as e:
+                    logging.error(f"Unable to move poster.png to '{final_directory}' - Error: {e}")
+            else:
+                logging.info(f"File: poster.png already exists.  Not moving.")
 
         utils.scan_emby(job)
         utils.set_permissions(job, final_directory)
