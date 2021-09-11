@@ -10,7 +10,7 @@ ARM_NAME: ""
 
 # ARM_CHILDREN
 # Comma delimited list of child ARM servers to display on the Home Page
-# Should be full protocol, path and port: http://192.168.0.100:8080
+# Should be full protocol, path, and port: http://192.168.0.100:8080
 ARM_CHILDREN: ""
 
 # Prevent ARM from wasting time on 99 Title protected DVDs.
@@ -81,8 +81,8 @@ DATA_RIP_PARAMETERS: ""
 
 # This selects the metadata provider, Each provider has their own ups and downs
 # But a general rule would be
-# OMDB for movies and shows
-# TMDB for movies only
+#    OMDB for movies and shows
+#    TMDB for movies only
 # You will still need to provide an api key for the provider you have selected
 METADATA_PROVIDER: "omdb"
 
@@ -308,6 +308,7 @@ TMDB_API_KEY: ""
 # JSON_URL
 # Url to send Notifications to in JSON format
 JSON_URL: ""
+
 
 #################################################
 ##            APPRISE NOTIFICATIONS            ##

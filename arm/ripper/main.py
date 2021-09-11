@@ -340,7 +340,7 @@ def main(logfile, job):
                 except Exception as e:
                     logging.error(f"Unable to move poster.png to '{final_directory}' - Error: {e}")
             else:
-                logging.info(f"File: poster.png already exists.  Not moving.")
+                logging.info("File: poster.png already exists.  Not moving.")
 
         utils.scan_emby(job)
         utils.set_permissions(job, final_directory)

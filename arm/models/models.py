@@ -1,4 +1,5 @@
 import os
+import subprocess
 import pyudev
 import psutil
 import logging
@@ -67,6 +68,12 @@ class Job(db.Model):
             self.video_type = cfg['VIDEOTYPE']
         self.parse_udev()
         self.get_pid()
+
+        if self.disctype == "dvd" and (self.label == "" or self.label == None):
+            logging.info("No disk label Available. Trying lsdvd")
+            command = f"lsdvd {devpath} | grep 'Disc Title' | cut -d ' ' -f 3-"
+            lsdvdlbl = str(subprocess.check_output(command, shell=True).strip(),'utf-8')
+            self.label = lsdvdlbl
 
     def parse_udev(self):
         """Parse udev for properties of current disc"""
