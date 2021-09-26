@@ -69,10 +69,10 @@ class Job(db.Model):
         self.parse_udev()
         self.get_pid()
 
-        if self.disctype == "dvd" and (self.label == "" or self.label == None):
+        if self.disctype == "dvd" and not self.label:
             logging.info("No disk label Available. Trying lsdvd")
             command = f"lsdvd {devpath} | grep 'Disc Title' | cut -d ' ' -f 3-"
-            lsdvdlbl = str(subprocess.check_output(command, shell=True).strip(),'utf-8')
+            lsdvdlbl = str(subprocess.check_output(command, shell=True).strip(), 'utf-8')
             self.label = lsdvdlbl
 
     def parse_udev(self):

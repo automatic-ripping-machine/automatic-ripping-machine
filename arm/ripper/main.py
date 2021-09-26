@@ -242,8 +242,8 @@ def main(logfile, job):
                 db.session.commit()
                 sys.exit()
 
-        # Use FFMPeg to convert Large Poster
-        if job.disctype == "dvd":
+        # Use FFMPeg to convert Large Poster if enabled in config
+        if job.disctype == "dvd" and cfg["RIP_POSTER"]:
             os.system("mount " + job.devpath)
             if os.path.isfile(job.mountpoint+"/JACKET_P/J00___5L.MP2"):
                 logging.info("Converting NTSC Poster Image")

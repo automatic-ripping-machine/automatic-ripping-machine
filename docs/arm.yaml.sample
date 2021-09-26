@@ -91,14 +91,18 @@ METADATA_PROVIDER: "omdb"
 # if "none" is used no label is identified
 GET_AUDIO_TITLE: "musicbrainz"
 
-# Location of your ABCDE config file
-# This over-rides any other abcde.conf files
-ABCDE_CONFIG_FILE: "/etc/abcde.conf"
+# Rip DVD Posters from JACKET_P folder
+# Requires FFmpeg
+RIP_POSTER: false
 
 
 #####################
 ## Directory setup ##
 #####################
+
+# Location of your ABCDE config file
+# This over-rides any other abcde.conf files
+ABCDE_CONFIG_FILE: "/etc/abcde.conf"
 
 # Path to raw MakeMKV directory
 # Destination for MakeMKV and source for HandBrake
