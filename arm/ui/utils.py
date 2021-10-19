@@ -187,7 +187,7 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
     else:
         app.logger.debug("no params")
         return None
-    app.logger.debug(f"omdb - {strurl}")
+    # app.logger.debug(f"omdb - {strurl}")
     try:
         title_info_json = urllib.request.urlopen(strurl).read()
         title_info = json.loads(title_info_json.decode())
