@@ -41,9 +41,9 @@ def makemkv(logfile, job):
 
     # get filesystem in order
     if job.video_type == "series":
-        rawpath = os.path.join(str(job.config.RAWPATH), str(job.title))
-    else:
         rawpath = os.path.join(str(job.config.RAWPATH), str(job.title) + "__" +str(job.label))
+    else:
+        rawpath = os.path.join(str(job.config.RAWPATH), str(job.title))
     logging.info("Destination is " + str(rawpath))
 
     if not os.path.exists(rawpath):
