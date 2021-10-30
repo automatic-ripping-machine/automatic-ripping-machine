@@ -185,6 +185,10 @@ def main(logfile, job):
                 hboutpath = os.path.join(job.config.MEDIA_DIR, str(job.title))
         else:
             hboutpath = os.path.join(job.config.ARMPATH, str(job.title))
+        # if tv series include the disk label in name. usually contains DISK1, DISK2 etc. 
+        # this means duplicate rips does not need to be enabled
+        if job.video_type == "series":
+            hboutpath = os.path.join(hboutpath, str(job.label))
 
         #  The dvd directory already exists - Lets make a new one using random numbers
         if (utils.make_dir(hboutpath)) is False:
