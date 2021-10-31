@@ -40,6 +40,9 @@ def makemkv(logfile, job):
         raise RuntimeError(err)
 
     # get filesystem in order
+
+    # if tv series, include the disk label in folder path. usually contains DISK1, DISK2 etc. 
+    # this means duplicate rips does not need to be enabled
     if job.video_type == "series":
         rawpath = os.path.join(str(job.config.RAWPATH), str(job.title) + "__" +str(job.label))
     else:
