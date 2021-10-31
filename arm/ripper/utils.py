@@ -885,6 +885,10 @@ def rename_files(oldpath, job):
     """
 
     newpath = os.path.join(job.config.ARMPATH, job.title + " (" + str(job.year) + ")")
+    # if tv series, include the disk label in name. usually contains DISK1, DISK2 etc. 
+    # this means duplicate rips does not need to be enabled
+    if job.video_type == "series":
+        newpath = os.path.join(newpath, str(job.label))
     logging.debug("oldpath: " + oldpath + " newpath: " + newpath)
     logging.info("Changing directory name from " + oldpath + " to " + newpath)
 
