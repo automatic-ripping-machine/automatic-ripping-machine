@@ -42,7 +42,7 @@ def setuplogging(job):
             newlogfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
             TmpLogFull = cfg['LOGPATH'] + logfile
             logfile = newlogfile if os.path.isfile(TmpLogFull) else logfile
-            logfull = cfg['LOGPATH'] + newlogfile if os.path.isfile(TmpLogFull) else cfg['LOGPATH'] + str(job.label) + ".log "
+            logfull = cfg['LOGPATH'] + newlogfile if os.path.isfile(TmpLogFull) else cfg['LOGPATH'] + str(job.label) + ".log"
         else:
             # Check to see if file already exists, if so, create a new file
             newlogfile = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
