@@ -42,7 +42,7 @@ sudo apt install default-jre-headless -y
 
 echo -e "${RED}Installing ARM:Automatic Ripping Machine${NC}"
 cd /opt
-sudo mkdir arm
+sudo mkdir -p arm
 sudo chown arm:arm arm
 sudo chmod 775 arm
 ##my updated version
@@ -53,10 +53,10 @@ sudo chown -R arm:arm arm
 cd arm
 sudo pip3 install -r requirements.txt 
 sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
-sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
+sudo ln -sf /opt/arm/setup/.abcde.conf /home/arm/
 sudo cp docs/arm.yaml.sample arm.yaml
-sudo mkdir /etc/arm/
-sudo ln -s /opt/arm/arm.yaml /etc/arm/
+sudo mkdir -p /etc/arm/
+sudo ln -sf /opt/arm/arm.yaml /etc/arm/
 sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
 
 ######## Adding new line to fstab, needed for the autoplay to work.
