@@ -22,10 +22,15 @@ fi
 echo -e "${RED}Installing git${NC}"
 apt update
 apt install git
+
 echo -e "${RED}Installing required build tools${NC}"
 apt install build-essential pkg-config libc6-dev libssl-dev libexpat1-dev libavcodec-dev libgl1-mesa-dev qtbase5-dev zlib1g-dev
+
 echo -e "${RED}Installing wget${NC}"
 apt install wget
+
+echo -e "${RED}Installing curl${NC}"
+apt install curl
 
 echo -e "${RED}Setting up directories and getting makeMKV files${NC}"
 mkdir -p /makeMKV
