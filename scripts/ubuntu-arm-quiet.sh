@@ -23,7 +23,7 @@ echo -e "${RED}Adding arm user${NC}"
 if ! [ $(getent group arm) ]; then
   sudo groupadd arm
 else
-  echo "arm group already exists, skipping..."
+  echo -e "${RED}arm group already exists, skipping...${NC}"
 fi
 
 # create arm user if it doesn't already exist
@@ -31,7 +31,7 @@ if ! id arm >/dev/null 2>&1; then
   sudo useradd -m arm -g arm
   sudo passwd arm
 else
-  echo "arm user already exists, skipping creation..."
+  echo -e "${RED}arm user already exists, skipping creation...${NC}"
 fi
 sudo usermod -aG arm cdrom,video
 
