@@ -9,7 +9,8 @@ NC='\033[0m' # No Color
 sudo apt upgrade -y && sudo apt update -yqq 
 #***optional (was not required for me): sudo add-apt-repository ppa:graphics-drivers/ppa
 sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
-sudo apt install ubuntu-drivers-common -yqq && sudo ubuntu-drivers install 
+sudo apt install ubuntu-drivers-common -yqq && sudo ubuntu-drivers install
+sudo apt install alsa -y # this will install sound drivers on ubuntu server, preventing a crash
 
 #sudo reboot
 # Installation of drivers seems to install a full gnome desktop, and it seems to set up hibernation modes.
