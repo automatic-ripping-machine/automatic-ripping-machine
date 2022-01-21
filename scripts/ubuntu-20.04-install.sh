@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Exit on error.
-set -e
+#set -e
 
 RED='\033[1;31m'
 NC='\033[0m' # No Color
@@ -18,9 +18,21 @@ sudo apt install alsa -y # this will install sound drivers on ubuntu server, pre
 #sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 
 echo -e "${RED}Adding arm user${NC}"
-sudo groupadd arm
-sudo useradd -m arm -g arm -G cdrom,video
-sudo passwd arm
+# create arm group if it doesn't already exist
+if ! [ $(getent group arm) ]; then
+  sudo groupadd arm
+else
+  echo "arm group already exists, skipping..."
+fi
+
+# create arm user if it doesn't already exist
+if ! id arm >/dev/null 2>&1; then
+  sudo useradd -m arm -g arm
+  sudo passwd arm
+else
+  echo "arm user already exists, skipping creation..."
+fi
+sudo usermod -aG arm cdrom,video
 
 echo -e "${RED}Installing git${NC}"
 sudo apt-get install git -y
