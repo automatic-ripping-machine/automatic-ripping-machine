@@ -11,7 +11,7 @@ sudo apt upgrade -y && sudo apt update -y
 #***optional (was not required for me): sudo add-apt-repository ppa:graphics-drivers/ppa
 sudo apt install lsscsi && sudo apt install net-tools
 sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
-sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install
+sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers -y install
 
 #sudo reboot
 # Installation of drivers seems to install a full gnome desktop, and it seems to set up hibernation modes.
@@ -33,7 +33,7 @@ if ! id arm >/dev/null 2>&1; then
 else
   echo -e "${RED}arm user already exists, skipping creation...${NC}"
 fi
-sudo usermod -aG arm cdrom,video
+sudo usermod -aG cdrom,video arm
 
 echo -e "${RED}Installing git${NC}"
 sudo apt-get install git -y
