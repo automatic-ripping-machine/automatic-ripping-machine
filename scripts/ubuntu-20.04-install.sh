@@ -11,7 +11,7 @@ sudo apt upgrade -y && sudo apt update -y
 #***optional (was not required for me): sudo add-apt-repository ppa:graphics-drivers/ppa
 sudo apt install lsscsi && sudo apt install net-tools
 sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
-sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers -y install
+sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install
 
 #sudo reboot
 # Installation of drivers seems to install a full gnome desktop, and it seems to set up hibernation modes.
