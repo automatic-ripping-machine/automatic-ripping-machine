@@ -60,7 +60,9 @@ sudo mkdir -p arm
 sudo chown arm:arm arm
 sudo chmod 775 arm
 ##my updated version
-sudo git clone https://github.com/1337-server/automatic-ripping-machine.git arm
+#sudo git clone https://github.com/1337-server/automatic-ripping-machine.git arm
+sudo git clone https://github.com/shitwolfymakes/automatic-ripping-machine.git arm
+sudo git checkout ubuntu_scripts_update
 ###stock
 #git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
 sudo chown -R arm:arm arm
