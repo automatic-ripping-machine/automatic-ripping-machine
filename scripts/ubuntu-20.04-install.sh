@@ -62,11 +62,11 @@ sudo chmod 775 arm
 ##my updated version
 #sudo git clone https://github.com/1337-server/automatic-ripping-machine.git arm
 sudo git clone https://github.com/shitwolfymakes/automatic-ripping-machine.git arm
-sudo git checkout ubuntu_scripts_update
 ###stock
 #git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
 sudo chown -R arm:arm arm
 cd arm
+sudo git checkout ubuntu_scripts_update
 sudo pip3 install -r requirements.txt 
 sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
 sudo ln -sf /opt/arm/setup/.abcde.conf /home/arm/
