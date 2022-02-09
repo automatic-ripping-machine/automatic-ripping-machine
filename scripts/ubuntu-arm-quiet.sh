@@ -71,6 +71,7 @@ sudo pip3 install -r requirements.txt
 sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
 sudo ln -s /opt/arm/setup/.abcde.conf /home/arm/
 sudo cp docs/arm.yaml.sample arm.yaml
+sudo chown arm:arm arm.yaml
 sudo mkdir /etc/arm/
 sudo ln -s /opt/arm/arm.yaml /etc/arm/
 sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
