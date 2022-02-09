@@ -80,8 +80,12 @@ sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
 ######## also creating mount points (why loop twice)
 echo -e "${RED}Adding fstab entry and creating mount points${NC}"
 for dev in /dev/sr?; do
-   echo -e "\n${dev}  /mnt${dev}  udf,iso9660  users,noauto,exec,utf8  0  0 \n" | sudo tee -a /etc/fstab
-   sudo mkdir -p /mnt$dev
+  if grep -q "${dev}  /mnt${dev}  udf,iso9660  users,noauto,exec,utf8  0  0" /etc/fstab; then
+    echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
+  else
+    echo -e "\n${dev}  /mnt${dev}  udf,iso9660  users,noauto,exec,utf8  0  0 \n" | sudo tee -a /etc/fstab
+  fi
+  sudo mkdir -p /mnt$dev
 done
 
 ##### Add syslog rule to route all ARM system logs to /var/log/arm.log
