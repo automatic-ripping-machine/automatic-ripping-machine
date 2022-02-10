@@ -168,6 +168,7 @@ def main(logfile, job):
     identify.identify(job, logfile)
     # Check db for entries matching the crc and successful
     have_dupes, crc_jobs = utils.job_dupe_check(job)
+    logging.debug(f"Value of have_dupes: {have_dupes}")
 
     utils.notify_entry(job)
 
@@ -218,6 +219,8 @@ def main(logfile, job):
             logging.info(f"Handbrake Output directory \"{hb_out_path}\" already exists.")
             # Only begin ripping if we are allowed to make duplicates
             # Or the successful rip of the disc is not found in our database
+            logging.debug(f"Value of ALLOW_DUPLICATES: {0}".format(cfg["ALLOW_DUPLICATES"]))
+            logging.debug(f"Value of have_dupes: {have_dupes}")
             if cfg["ALLOW_DUPLICATES"] or not have_dupes:
                 ts = round(time.time() * 100)
                 hb_out_path = hb_out_path + "_" + str(ts)
