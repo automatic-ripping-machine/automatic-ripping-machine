@@ -89,34 +89,23 @@ for dev in /dev/sr?; do
 done
 
 ##### Add syslog rule to route all ARM system logs to /var/log/arm.log
-cat <<EOM | sudo tee /etc/rsyslog.d/30-arm.conf
-:programname, isequal, "ARM" /var/log/arm.log
-EOM
+if [-f /etc/rsyslog.d/30-arm.conf]; then
+  echo -e "${RED}ARM syslog rule found. Overwriting...${NC}"
+  sudo rm /etc/rsyslog.d/30-arm.conf
+fi
+sudo cp /scripts/30-armui.conf /etc/rsyslog.d/30-arm.conf
 
 ##### Run the ARM UI as a service
+# check if the armui service exists in any state
+if sudo systemctl list-unit-files --type service | grep -F armui.service; then
+  echo -e "${RED}Previous installation of ARM service found. Removing...${NC}"
+  service=armui.service
+  sudo systemctl stop $service && sudo systemctl disable $service
+  sudo find /etc/systemd/system $service -delete
+  sudo systemctl daemon-reload && sudo systemctl reset-failed
+fi
 echo -e "${RED}Installing ARM service${NC}"
-cat <<EOM | sudo tee /etc/systemd/system/armui.service
-[Unit]
-Description=Arm service
-## Added to force armui to wait for network
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=arm
-Group=arm
-## Add your path to your logfiles if you want to enable logging
-## Remember to remove the # at the start of the line
-#StandardOutput=append:/PATH-TO-MY-LOGFILES/WebUI.log
-#StandardError=append:/PATH-TO-MY-LOGFILES/WebUI.log
-Restart=always
-RestartSec=3
-ExecStart=python3 /opt/arm/arm/runui.py
-
-[Install]
-WantedBy=multi-user.target
-EOM
+sudo cp /scripts/armui.service /etc/systemd/system/armui.service
 
 sudo systemctl daemon-reload
 sudo chmod u+x /etc/systemd/system/armui.service
