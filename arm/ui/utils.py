@@ -423,8 +423,7 @@ def get_omdb_poster(title=None, year=None, imdb_id=None, plot="short"):
 
 def job_dupe_check(crc_id):
     """
-    function for checking the database to look for jobs that have completed
-    successfully with the same crc
+    function for checking the database to look for jobs with the same crc that haven't failed
 
     :param crc_id: The job obj so we can use the crc/title etc
     :return: True if we have found dupes with the same crc
@@ -434,7 +433,7 @@ def job_dupe_check(crc_id):
     """
     if crc_id is None:
         return False, None
-    jobs = Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
+    jobs = Job.query.filter(~Job.status.__contains__("fail"), crc_id=crc_id, hasnicetitle=True)
     # app.logger.debug("search - posts=" + str(jobs))
     r = {}
     i = 0
