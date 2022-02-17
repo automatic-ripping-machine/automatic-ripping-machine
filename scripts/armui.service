@@ -14,7 +14,7 @@ Group=arm
 #StandardError=append:/PATH-TO-MY-LOGFILES/WebUI.log
 Restart=always
 RestartSec=3
-ExecCondition=/bin/bash -xc '/usr/bin/systemctl is-active --quiet armui.service && { [[ %i == "main" ]] && exit 255 || exit 1; } || exit 0'
+ExecStartPre=/bin/bash -xc '/usr/bin/systemctl is-active --quiet armui.service && exit 1 || exit 0'
 ExecStart=python3 /opt/arm/arm/runui.py
 
 [Install]
