@@ -56,6 +56,10 @@ sudo apt install default-jre-headless -y
 
 echo -e "${RED}Installing ARM:Automatic Ripping Machine${NC}"
 cd /opt
+if [ -d arm ]; then
+  echo -e "${RED}Existing ARM installation found, removing...${NC}"
+  sudo rm -rf arm
+fi
 sudo mkdir -p arm
 sudo chown arm:arm arm
 sudo chmod 775 arm
@@ -89,11 +93,11 @@ for dev in /dev/sr?; do
 done
 
 ##### Add syslog rule to route all ARM system logs to /var/log/arm.log
-if [-f /etc/rsyslog.d/30-arm.conf]; then
+if [ -f /etc/rsyslog.d/30-arm.conf ]; then
   echo -e "${RED}ARM syslog rule found. Overwriting...${NC}"
   sudo rm /etc/rsyslog.d/30-arm.conf
 fi
-sudo cp /scripts/30-armui.conf /etc/rsyslog.d/30-arm.conf
+sudo cp ./scripts/30-arm.conf /etc/rsyslog.d/30-arm.conf
 
 ##### Run the ARM UI as a service
 # check if the armui service exists in any state
@@ -105,7 +109,8 @@ if sudo systemctl list-unit-files --type service | grep -F armui.service; then
   sudo systemctl daemon-reload && sudo systemctl reset-failed
 fi
 echo -e "${RED}Installing ARM service${NC}"
-sudo cp /scripts/armui.service /etc/systemd/system/armui.service
+sudo mkdir -p /etc/systemd/system
+sudo cp ./scripts/armui.service /etc/systemd/system/armui.service
 
 sudo systemctl daemon-reload
 sudo chmod u+x /etc/systemd/system/armui.service
