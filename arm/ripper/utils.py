@@ -545,7 +545,9 @@ def job_dupe_check(job):
     if job.crc_id is None:
         return False, None
     logging.debug(f"trying to find jobs with crc64={job.crc_id}")
-    previous_rips = m.Job.query.filter(not m.Job.status != "fail", crc_id=job.crc_id, hasnicetitle=True)
+    previous_rips = m.Job.query.filter(not m.Job.status != "fail",
+                                       m.Job.crc_id == job.crc_id,
+                                       m.Job.hasnicetitle is True)
     r = {}
     i = 0
     for j in previous_rips:
