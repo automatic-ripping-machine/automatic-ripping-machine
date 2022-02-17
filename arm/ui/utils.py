@@ -435,7 +435,7 @@ def job_dupe_check(crc_id):
         return False, None
     jobs = Job.query.filter(not Job.status != "fail",
                             Job.crc_id == crc_id,
-                            Job.hasnicetitle is True)
+                            Job.hasnicetitle == True)
     # app.logger.debug("search - posts=" + str(jobs))
     r = {}
     i = 0
