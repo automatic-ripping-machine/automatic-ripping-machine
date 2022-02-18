@@ -165,7 +165,8 @@ function install_armui_service() {
 function launch_setup() {
     # launch default browser to <localhost>:8080/setup
     echo -e "${RED}Launching ARMUI setup${NC}"
-    sudo -u arm nohup xdg-open http://localhost:8080/setup > /dev/null 2>&1 &
+    site_addr=`sudo netstat -tlpn | awk '{ print $4 }' | grep .*:8080`
+    sudo -u arm nohup xdg-open $site_addr/setup > /dev/null 2>&1 &
 }
 
 # start here
