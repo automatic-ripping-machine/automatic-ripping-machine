@@ -162,7 +162,7 @@ function install_armui_service() {
 
 function launch_setup() {
     # launch default browser to <localhost>:8080/setup
-    echo -e "${RED}Launching ARM setup${NC}"
+    echo -e "${RED}Launching ARMUI setup${NC}"
     xdg-open http://localhost:8080/setup
 }
 
