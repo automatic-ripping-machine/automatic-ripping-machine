@@ -3,6 +3,18 @@
 RED='\033[1;31m'
 NC='\033[0m' # No Color
 
+dev_env_flag=
+while getopts 'd' OPTION
+do
+    case $OPTION in
+    d)    dev_env_flag=1
+          ;;
+    ?)    echo "Usage: ubuntu-20.04-install.sh [ -d ]"
+          return 2
+          ;;
+    esac
+done
+
 function install_os_tools() {
     sudo apt update -y && sudo apt upgrade -y
     sudo apt install alsa -y # this will install sound drivers on ubuntu server, preventing a crash
