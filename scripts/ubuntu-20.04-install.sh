@@ -102,7 +102,7 @@ function install_arm_dev_env() {
     # install arm without automation and with PyCharm
     echo -e "${RED}Installing ARM for Development${NC}"
     sudo snap install pycharm-community --classic
-    mkdir /home/`whoami`/PycharmProjects && cd /home/`whoami`/PycharmProjects
+    mkdir /home/arm/PycharmProjects && cd /home/arm/PycharmProjects
     clone_arm
     cd arm
     sudo git checkout ubuntu_script_updates
