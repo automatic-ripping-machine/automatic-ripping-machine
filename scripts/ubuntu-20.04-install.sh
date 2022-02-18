@@ -157,7 +157,14 @@ function launch_setup() {
 install_os_tools
 add_arm_user
 install_dev_requirements
-install_arm_live_env
+
+if dev_env_flag; then
+    echo -e "${RED}Installing ARM Development Environment${NC}"
+    install_arm_dev_env
+else
+    install_arm_live_env
+fi
+
 setup_autoplay
 setup_syslog_rule
 install_armui_service
