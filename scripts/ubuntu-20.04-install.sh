@@ -102,6 +102,15 @@ function install_arm_dev_env() {
     # install arm without automation and with PyCharm
     echo -e "${RED}Installing ARM for Development${NC}"
     sudo snap install pycharm-community --classic
+    mkdir /home/`whoami`/PycharmProjects && cd /home/`whoami`/PycharmProjects
+    clone_arm
+    cd arm
+    sudo git checkout ubuntu_script_updates
+    sudo pip3 install -r requirements.txt
+    sudo cp docs/arm.yaml.sample arm.yaml
+    sudo chown arm:arm arm.yaml
+    sudo mkdir -p /etc/arm/
+    sudo ln -sf /opt/arm/arm.yaml /etc/arm/
 }
 
 function setup_autoplay() {
