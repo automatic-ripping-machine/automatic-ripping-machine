@@ -100,6 +100,7 @@ function install_arm_live_env() {
 
 function install_arm_dev_env() {
     # install arm without automation and with PyCharm
+    echo -e "${RED}Installing ARM for Development${NC}"
 }
 
 function setup_autoplay() {
@@ -151,6 +152,7 @@ function install_armui_service() {
 
 function launch_setup() {
     # launch default browser to <localhost>:8080/setup
+    echo -e "${RED}Launching ARM setup${NC}"
 }
 
 # start here
@@ -158,10 +160,10 @@ install_os_tools
 add_arm_user
 install_dev_requirements
 
-if dev_env_flag; then
-    echo -e "${RED}Installing ARM Development Environment${NC}"
+if [ "$dev_env_flag" ]; then
     install_arm_dev_env
 else
+    echo
     install_arm_live_env
 fi
 
