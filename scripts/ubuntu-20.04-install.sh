@@ -101,6 +101,7 @@ function install_arm_live_env() {
 function install_arm_dev_env() {
     # install arm without automation and with PyCharm
     echo -e "${RED}Installing ARM for Development${NC}"
+    sudo snap install pycharm-community --classic
 }
 
 function setup_autoplay() {
