@@ -163,10 +163,14 @@ function install_armui_service() {
 }
 
 function launch_setup() {
-    # launch default browser to <localhost>:8080/setup
-    echo -e "${RED}Launching ARMUI setup${NC}"
+    echo -e "${RED}Launching ArmUI first-time setup${NC}"
     site_addr=`sudo netstat -tlpn | awk '{ print $4 }' | grep .*:8080`
-    sudo -u arm nohup xdg-open $site_addr/setup > /dev/null 2>&1 &
+    if [ -z $site_addr ]; then
+        echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}"
+    else
+        echo -e "${RED}ArmUI site is running on http://$site_addr. Launching setup...${NC}"
+        sudo -u arm nohup xdg-open http://$site_addr/setup > /dev/null 2>&1 &
+    fi
 }
 
 # start here
