@@ -534,7 +534,8 @@ def clean_old_jobs():
 
 def job_dupe_check(job):
     """
-    function for checking the database to look for jobs with the same crc that haven't failed
+    function for checking the database to look for jobs that have completed
+    successfully with the same crc
 
     :param job: The job obj so we can use the crc/title etc
     :return: True if we have found dupes with the same crc
@@ -545,9 +546,7 @@ def job_dupe_check(job):
     if job.crc_id is None:
         return False, None
     logging.debug(f"trying to find jobs with crc64={job.crc_id}")
-    previous_rips = m.Job.query.filter(not m.Job.status != "fail",
-                                       m.Job.crc_id == job.crc_id,
-                                       m.Job.hasnicetitle == True)
+    previous_rips = m.Job.query.filter_by(crc_id=job.crc_id, status="success", hasnicetitle=True)
     r = {}
     i = 0
     for j in previous_rips:
