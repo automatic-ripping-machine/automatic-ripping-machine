@@ -90,7 +90,7 @@ function create_abcde_symlink() {
 }
 
 function create_arm_config_symlink() {
-    if ! [ -z `find /home/arm/ -type l -ls | grep .abcde` ]; then
+    if ! [ -z `find /home/arm/ -type l -ls | grep arm.yaml` ]; then
         rm /etc/arm/arm.yaml
     fi
     sudo ln -sf /opt/arm/arm.yaml /etc/arm/
