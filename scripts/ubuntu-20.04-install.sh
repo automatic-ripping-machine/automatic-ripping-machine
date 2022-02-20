@@ -113,7 +113,7 @@ function install_arm_dev_env() {
     sudo mkdir -p /etc/arm/
     sudo ln -sf /opt/arm/arm.yaml /etc/arm/
 
-    # all developer to write to the installation
+    # allow developer to write to the installation
     sudo chmod -R 777 /opt/arm
 }
 
