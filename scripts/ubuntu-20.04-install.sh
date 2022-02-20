@@ -82,6 +82,20 @@ function clone_arm() {
     sudo chown -R arm:arm arm
 }
 
+function create_abcde_symlink() {
+    if ! [ -z `find /home/arm/ -type l -ls | grep .abcde` ]; then
+        rm /home/arm/.abcde.conf
+    fi
+    sudo ln -sf /opt/arm/setup/.abcde.conf /home/arm/
+}
+
+function create_arm_config_symlink() {
+    if ! [ -z `find /home/arm/ -type l -ls | grep .abcde` ]; then
+        rm /etc/arm/arm.yaml
+    fi
+    sudo ln -sf /opt/arm/arm.yaml /etc/arm/
+}
+
 function install_arm_live_env() {
     echo -e "${RED}Installing ARM:Automatic Ripping Machine${NC}"
     cd /opt
@@ -90,11 +104,11 @@ function install_arm_live_env() {
     sudo git checkout ubuntu_script_updates
     sudo pip3 install -r requirements.txt
     sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
-    sudo ln -sf /opt/arm/setup/.abcde.conf /home/arm/
+    create_abcde_symlink
     sudo cp docs/arm.yaml.sample arm.yaml
     sudo chown arm:arm arm.yaml
     sudo mkdir -p /etc/arm/
-    sudo ln -sf /opt/arm/arm.yaml /etc/arm/
+    create_arm_config_symlink
     sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
 }
 
@@ -107,11 +121,11 @@ function install_arm_dev_env() {
     clone_arm
     cd arm
     sudo pip3 install -r requirements.txt
-    sudo ln -sf /opt/arm/setup/.abcde.conf /home/arm/
+    create_abcde_symlink
     sudo cp docs/arm.yaml.sample arm.yaml
     sudo chown arm:arm arm.yaml
     sudo mkdir -p /etc/arm/
-    sudo ln -sf /opt/arm/arm.yaml /etc/arm/
+    create_arm_config_symlink
 
     # allow developer to write to the installation
     sudo chmod -R 777 /opt/arm
