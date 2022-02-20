@@ -106,7 +106,6 @@ function install_arm_dev_env() {
     cd /opt
     clone_arm
     cd arm
-    sudo git checkout ubuntu_script_updates
     sudo pip3 install -r requirements.txt
     sudo ln -sf /opt/arm/setup/.abcde.conf /home/arm/
     sudo cp docs/arm.yaml.sample arm.yaml
