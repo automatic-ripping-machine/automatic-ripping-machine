@@ -18,7 +18,6 @@ done
 function install_os_tools() {
     sudo apt update -y && sudo apt upgrade -y
     sudo apt install alsa -y # this will install sound drivers on ubuntu server, preventing a crash
-    #***optional (was not required for me): sudo add-apt-repository ppa:graphics-drivers/ppa
     sudo apt install lsscsi && sudo apt install net-tools
     sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
     sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install
@@ -101,7 +100,6 @@ function install_arm_live_env() {
     cd /opt
     clone_arm
     cd arm
-    sudo git checkout ubuntu_script_updates
     sudo pip3 install -r requirements.txt
     sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
     create_abcde_symlink
