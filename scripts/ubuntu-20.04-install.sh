@@ -49,10 +49,10 @@ function add_arm_user() {
 }
 
 function install_dev_requirements() {
-    sudo add-apt-repository ppa:mc3man/focal6
-
     echo -e "${RED}Installing ARM requirments${NC}"
-    sudo add-apt-repository ppa:heyarje/makemkv-beta
+    sudo add-apt-repository ppa:mc3man/focal6 -y
+    sudo add-apt-repository ppa:heyarje/makemkv-beta -y
+
     sudo apt update -y
     sudo apt install makemkv-bin makemkv-oss -y
     sudo apt install handbrake-cli libavcodec-extra -y
