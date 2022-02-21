@@ -159,7 +159,7 @@ function install_armui_service() {
         echo -e "${RED}Previous installation of ARM service found. Removing...${NC}"
         service=armui.service
         sudo systemctl stop $service && sudo systemctl disable $service
-        sudo find /etc/systemd/system $service -delete
+        sudo find /etc/systemd/system/$service -delete
         sudo systemctl daemon-reload && sudo systemctl reset-failed
     fi
     echo -e "${RED}Installing ARM service${NC}"
@@ -188,9 +188,9 @@ function launch_setup() {
 }
 
 # start here
-install_os_tools # This isn't the cause
-add_arm_user # This isn't the cause
-install_dev_requirements # This isn't the cause
+install_os_tools
+add_arm_user
+install_dev_requirements
 
 if [ "$dev_env_flag" ]; then
     install_arm_dev_env
