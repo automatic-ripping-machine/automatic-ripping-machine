@@ -82,14 +82,14 @@ function clone_arm() {
 }
 
 function create_abcde_symlink() {
-    if ! [ -z `find /home/arm/ -type l -ls | grep .abcde` ]; then
+    if ! [[ -z $(find /home/arm/ -type l -ls | grep ".abcde.conf") ]]; then
         rm /home/arm/.abcde.conf
     fi
     sudo ln -sf /opt/arm/setup/.abcde.conf /home/arm/
 }
 
 function create_arm_config_symlink() {
-    if ! [ -z `find /home/arm/ -type l -ls | grep arm.yaml` ]; then
+    if ! [[ -z $(find /etc/arm/ -type l -ls | grep "arm.yaml") ]]; then
         rm /etc/arm/arm.yaml
     fi
     sudo ln -sf /opt/arm/arm.yaml /etc/arm/
@@ -188,9 +188,9 @@ function launch_setup() {
 }
 
 # start here
-install_os_tools
-add_arm_user
-install_dev_requirements
+install_os_tools # This isn't the cause
+add_arm_user # This isn't the cause
+install_dev_requirements # This isn't the cause
 
 if [ "$dev_env_flag" ]; then
     install_arm_dev_env
