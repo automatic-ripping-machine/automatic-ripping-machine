@@ -65,6 +65,17 @@ function install_dev_requirements() {
     sudo apt install default-jre-headless -y
 }
 
+function remove_existing_arm() {
+    # check if the armui service exists in any state
+    if sudo systemctl list-unit-files --type service | grep -F armui.service; then
+        echo -e "${RED}Previous installation of ARM service found. Removing...${NC}"
+        service=armui.service
+        sudo systemctl stop $service && sudo systemctl disable $service
+        sudo find /etc/systemd/system/$service -delete
+        sudo systemctl daemon-reload && sudo systemctl reset-failed
+    fi
+}
+
 function clone_arm() {
     if [ -d arm ]; then
         echo -e "${RED}Existing ARM installation found, removing...${NC}"
@@ -154,14 +165,6 @@ function setup_syslog_rule() {
 
 function install_armui_service() {
     ##### Run the ARM UI as a service
-    # check if the armui service exists in any state
-    if sudo systemctl list-unit-files --type service | grep -F armui.service; then
-        echo -e "${RED}Previous installation of ARM service found. Removing...${NC}"
-        service=armui.service
-        sudo systemctl stop $service && sudo systemctl disable $service
-        sudo find /etc/systemd/system/$service -delete
-        sudo systemctl daemon-reload && sudo systemctl reset-failed
-    fi
     echo -e "${RED}Installing ARM service${NC}"
     sudo mkdir -p /etc/systemd/system
     sudo cp ./scripts/armui.service /etc/systemd/system/armui.service
@@ -191,6 +194,7 @@ function launch_setup() {
 install_os_tools
 add_arm_user
 install_dev_requirements
+remove_existing_arm
 
 if [ "$dev_env_flag" ]; then
     install_arm_dev_env
