@@ -69,24 +69,7 @@ def makemkv(logfile, job):
         logging.info("Backup up disc")
         logging.debug("Backing up with the following command: " + cmd)
 
-        try:
-            mkv = subprocess.run(
-                cmd,
-                shell=True
-            )
-            # ).decode("utf-8")
-            # print("mkv is: " + mkv)
-            logging.debug(f"The exit code for MakeMKV is: {mkv.returncode}")
-            if mkv.returncode == 253:
-                # Makemkv is out of date
-                err = "MakeMKV version is too old.  Upgrade and try again.  MakeMKV returncode is '253'."
-                logging.error(err)
-                raise RuntimeError(err)
-        except subprocess.CalledProcessError as mdisc_error:
-            err = f'{MAKE_MKV_FAILED} {mdisc_error.returncode} ({mdisc_error.output})'
-            logging.error(err)
-            # print("Error: " + mkv)
-            return None
+        run_makemkv(cmd)
 
     elif cfg["RIPMETHOD"] == "mkv" or job.disctype == "dvd":
         # mkv method
@@ -103,24 +86,7 @@ def makemkv(logfile, job):
             )
             logging.debug(f"Ripping with the following command: {cmd}")
 
-            try:
-                mkv = subprocess.run(
-                    cmd,
-                    shell=True
-                )
-                # ).decode("utf-8")
-                # print("mkv is: " + mkv)
-                logging.debug(f"The exit code for MakeMKV is: {mkv.returncode}")
-                if mkv.returncode == 253:
-                    # Makemkv is out of date
-                    err = "MakeMKV version is too old.  Upgrade and try again.  MakeMKV returncode is '253'."
-                    logging.error(err)
-                    raise RuntimeError(err)
-            except subprocess.CalledProcessError as mdisc_error:
-                err = f'{MAKE_MKV_FAILED} {mdisc_error.returncode} ({mdisc_error.output})'
-                logging.error(err)
-                # print("Error: " + mkv)
-                return None
+            run_makemkv(cmd)
         else:
             # process one track at a time based on track length
             for track in job.tracks:
@@ -150,23 +116,7 @@ def makemkv(logfile, job):
                     )
                     logging.debug(f"Ripping with the following command: {cmd}")
 
-                    try:
-                        mkv = subprocess.run(
-                            cmd,
-                            shell=True
-                        )
-                        # ).decode("utf-8")
-                        # print("mkv is: " + mkv)
-                        logging.debug(f"The exit code for MakeMKV is: {mkv.returncode}")
-                        if mkv.returncode == 253:
-                            # Makemkv is out of date
-                            err = "MakeMKV version is too old.  Upgrade and try again.  MakeMKV returncode is '253'."
-                            logging.error(err)
-                            raise RuntimeError(err)
-                    except subprocess.CalledProcessError as mdisc_error:
-                        err = f'{MAKE_MKV_FAILED} {mdisc_error.returncode} ({mdisc_error.output})'
-                        logging.error(err)
-                        return None
+                    run_makemkv(cmd)
 
     else:
         logging.info("I'm confused what to do....  Passing on MakeMKV")
@@ -255,3 +205,33 @@ def get_track_info(mdisc, job):
                     fps = float(fps)
 
     utils.put_track(job, track, seconds, aspect, fps, False, "makemkv", filename)
+
+
+def run_makemkv(cmd):
+    """
+    Run MakeMKV with the command passed to the function.
+
+    Parameters:
+        cmd: the command to be run
+
+    Raises:
+        RuntimeError:
+            If MakeMKV throws error 253.
+            If a CalledProcessError exception is caught when trying to run the command.
+    """
+
+    try:
+        mkv = subprocess.run(
+            cmd,
+            shell=True
+        )
+        logging.debug(f"The exit code for MakeMKV is: {mkv.returncode}")
+        if mkv.returncode == 253:
+            # Makemkv is out of date
+            err = "MakeMKV version is too old.  Upgrade and try again.  MakeMKV returncode is '253'."
+            logging.error(err)
+            raise RuntimeError(err)
+    except subprocess.CalledProcessError as mdisc_error:
+        err = f'subprocess.CalledProcessError: {MAKE_MKV_FAILED} {mdisc_error.returncode} ({mdisc_error.output})'
+        logging.error(err)
+        raise RuntimeError(err)
