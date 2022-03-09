@@ -172,7 +172,7 @@ function install_armui_service() {
 
     sudo systemctl daemon-reload
     sudo chmod u+x /etc/systemd/system/armui.service
-    sudo chmod 700 /etc/systemd/system/armui.service
+    sudo chmod 600 /etc/systemd/system/armui.service
 
     #reload the daemon and then start ui
     sudo systemctl start armui.service
