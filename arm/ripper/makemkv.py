@@ -141,14 +141,14 @@ def prep_mkv(job):
     cmd = f"makemkvcon info {job.devpath}"
     try:
         # check=True is needed to make the exception throw on a non-zero return
-        mkv = subprocess.run(cmd, capture_output=True, shell=True, check=True)
+        mkv = subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
     except subprocess.CalledProcessError as mkv_error:
         if mkv_error.returncode == 253:
             # MakeMKV is out of date
             logging.info("MakeMKV: return code is 253, MakeMKV beta key has expired.")
             update_key()
             try:
-                mkv_redux = subprocess.run(cmd, capture_output=True, shell=True, check=True)
+                mkv_redux = subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
             except subprocess.CalledProcessError as mkv_redux_error:
                 if mkv_redux_error.returncode == 10:
                     logging.info("MakeMKV beta key updated successfully!")
@@ -170,7 +170,7 @@ def update_key():
     try:
         logging.info("Updating MakeMKV key...")
         update_cmd = "/bin/bash /opt/arm/scripts/update_key.sh"
-        updater = subprocess.run(update_cmd, capture_output=True, shell=True, check=True)
+        updater = subprocess.run(update_cmd, capture_output=True, shell=True, check=True)  # noqa: F841
     except subprocess.CalledProcessError as update_err:
         err = f"Error updating MakeMKV key, return code: {update_err.returncode}"
         logging.error(err)
@@ -253,6 +253,6 @@ def run_makemkv(cmd):
 
     logging.debug(f"Ripping with the following command: {cmd}")
     try:
-        mkv = subprocess.run(cmd, capture_output=True, shell=True, check=True)
+        mkv = subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
     except subprocess.CalledProcessError as mkv_error:
         raise MakeMkvRuntimeError(mkv_error)
