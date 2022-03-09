@@ -119,6 +119,7 @@ function install_arm_live_env() {
     sudo mkdir -p /etc/arm/
     create_arm_config_symlink
     sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
+    sudo chmod +x /opt/arm/scripts/update_key.sh
 }
 
 function install_arm_dev_env() {
