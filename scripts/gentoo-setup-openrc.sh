@@ -195,6 +195,7 @@ cp docs/arm.yaml.sample arm.yaml
 mkdir -p /etc/arm/
 ln -s /opt/arm/arm.yaml /etc/arm/
 chmod +x /opt/arm/scripts/arm_wrapper.sh
+chmod +x /opt/arm/scripts/update_key.sh
 
 # System Files
 ################################################################################

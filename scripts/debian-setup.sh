@@ -107,6 +107,7 @@ cp docs/arm.yaml.sample arm.yaml
 mkdir -p /etc/arm/
 ln -s /opt/arm/arm.yaml /etc/arm/
 sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
+sudo chmod +x /opt/arm/scripts/update_key.sh
 
 ######## Adding new line to fstab, needed for the autoplay to work.
 ######## also creating mount points (why loop twice)
