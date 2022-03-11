@@ -197,7 +197,8 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
         hb_preset = cfg["HB_PRESET_BD"]
 
     # This will fail if the directory raw gets deleted
-    for f in os.listdir(srcpath):
+    # sorted makes sure we transcode each title in order
+    for f in sorted(srcpath, key=lambda x: int(x.replace('title_t', ''))):
         srcpathname = os.path.join(srcpath, f)
         destfile = os.path.splitext(f)[0]
         filename = os.path.join(basepath, destfile + "." + cfg["DEST_EXT"])
