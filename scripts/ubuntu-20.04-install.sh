@@ -119,6 +119,7 @@ function install_arm_live_env() {
     sudo mkdir -p /etc/arm/
     create_arm_config_symlink
     sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
+    sudo chmod +x /opt/arm/scripts/update_key.sh
 }
 
 function install_arm_dev_env() {
@@ -171,7 +172,7 @@ function install_armui_service() {
 
     sudo systemctl daemon-reload
     sudo chmod u+x /etc/systemd/system/armui.service
-    sudo chmod 700 /etc/systemd/system/armui.service
+    sudo chmod 600 /etc/systemd/system/armui.service
 
     #reload the daemon and then start ui
     sudo systemctl start armui.service

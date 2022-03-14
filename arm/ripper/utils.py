@@ -420,7 +420,8 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
     """
 
     logging.debug(
-        f"Track #{t_no} Length: {seconds} fps: {fps} aspect: {aspect} Mainfeature: {mainfeature} Source:  {source}")
+        f"Track #{t_no:02} Length: {seconds: >4} fps: {fps:2.3f} "
+        f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source}")
 
     t = m.Track(
         job_id=job.job_id,
