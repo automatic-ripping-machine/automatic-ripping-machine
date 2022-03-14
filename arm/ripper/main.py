@@ -18,7 +18,6 @@ import psutil  # noqa E402
 from arm.ripper import logger, utils, makemkv, handbrake, identify  # noqa: E402
 from arm.config.config import cfg  # noqa: E402
 
-from arm.ripper.getkeys import grabkeys  # noqa: E402
 from arm.models.models import Job, Config  # noqa: E402
 from arm.ui import app, db  # noqa E402
 
