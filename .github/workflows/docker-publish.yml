@@ -95,7 +95,7 @@ jobs:
         # against the sigstore community Fulcio instance.
         run: cosign sign ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }}
 
-  push docker:
+  push-docker:
     runs-on: ubuntu-latest
     steps:
       -
