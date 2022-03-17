@@ -1,4 +1,7 @@
 /*jshint multistr: true */
+/*jshint esversion: 6 */
+/*global $:false, jQuery:false */
+/* jshint node: true */
 
 var hrrref = "";
 var wedeleted = "{{ success }}";
@@ -23,13 +26,13 @@ $(document).ready(function () {
 
     $("#save-yes").bind('click', function () {
         console.log(hrrref);
-        if (hrrref != "") {
+        if (hrrref !== "") {
             // Add the spinner to let them know we are loading
-            $("#m-body").append('<div class="d-flex justify-content-center">\
-                                        <div class="spinner-border" role="status">\
-                                        <span class="sr-only">Loading...</span>\
-                                        </div>\
-                                        </div>');
+            $("#m-body").append('<div class="d-flex justify-content-center">' +
+                                '<div class="spinner-border" role="status">' +
+                                '<span class="sr-only">Loading...</span>' +
+                                '</div>' +
+                                '</div>');
             $.get(hrrref, function (data) {
                 console.log(data.success);
                 console.log("#jobId" + activeJob);
@@ -64,13 +67,13 @@ $(document).ready(function () {
         }
     });
     $("#save-no").bind('click', function () {
-        if (hrrref == "entryWarn") {
-            console.log("use wants to go away");
+        if (hrrref === "entryWarn") {
+            console.log("user wants to go away");
             window.location.href = "/";
             return false;
         } else {
 
-            console.log("user shouldnt be here...");
+            console.log("user shouldn't be here...");
             $('#exampleModal').modal('toggle');
         }
     });
@@ -87,24 +90,21 @@ $(document).ready(function () {
         var modalTitle;
         var modalBody;
 
-        if (actionType == "abandon") {
+        if (actionType === "abandon") {
             modalTitle = "Abandon This Job ?";
             modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?";
-        } else if (actionType == "delete") {
+        } else if (actionType === "delete") {
             modalTitle = "Delete this job forever ?";
             modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?";
-        } else if (actionType == "search") {
+        } else if (actionType === "search") {
             modalTitle = "Search the database";
-            //var modalBody = '<input type="email" class="form-control" id="searchquery" placeholder="Search titles">'
-            modalBody = '<div class="input-group mb-3">\
-                            <div class="input-group-prepend">\
-                                <span class="input-group-text" id="searchlabel">Search </span>\
-                            </div>\
-                            <input type="text" class="form-control" id="searchquery" aria-label="searchquery" name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">\
-                                  <div id="validationServer03Feedback" class="invalid-feedback">\
-                                    Search string too short.\
-                                  </div>\
-                            </div>';
+            modalBody = '<div class="input-group mb-3">' +
+                        '<div class="input-group-prepend">' +
+                        '<span class="input-group-text" id="searchlabel">Search </span>' +
+                        '</div>' +
+                        '<input type="text" class="form-control" id="searchquery" aria-label="searchquery" name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">' +
+                        '<div id="validationServer03Feedback" class="invalid-feedback">Search string too short.</div>' +
+                        '</div>';
         } else {
             modalTitle = "Do you want to leave this page ?";
             modalBody = "To view the log file you need to leave this page. Would you like to leave ?";
@@ -117,32 +117,30 @@ $(document).ready(function () {
 
 function addJobItem(job) {
     idsplit = job.job_id.split("_");
-
-    // TODO: this needs converted to the new format seen on database page
-    var x = '<div class="col-md-4" id="jobId' + job.job_id + '">\
-    <div class="card mb-3  mx-auto" style="min-height: 420px;">\
-                <div class="card-header row no-gutters justify-content-center">\
-                    <strong id="jobId' + job.job_id + '_header">';
+    var x = '<div class="col-md-4" id="jobId' + job.job_id + '">' +
+            '<div class="card mb-3  mx-auto" style="min-height: 420px;">' +
+            '<div class="card-header row no-gutters justify-content-center">' +
+            '<strong id="jobId' + job.job_id + '_header">';
     if (job.title_manual !== "None") {
         x += job.title_manual + ' ('+job.year+')';
     }else{
         x += job.title + ' (' + job.year + ')';
     }
-    x += '</strong>\
-          </div>\
-          <div class="row no-gutters">\
-          <div class="col-lg-4">\
-          <a href="jobdetail?job_id=' + idsplit[1] + '">';
+    x += '</strong>' +
+         '</div>' +
+         '<div class="row no-gutters">' +
+         '<div class="col-lg-4">' +
+         '<a href="jobdetail?job_id=' + idsplit[1] + '">';
     // TODO: Fix above to link the correct server - for now it links to the main server
     if(job.poster_url !== "None" && job.poster_url !== "N/A") {
-        x += '<img id="jobId' + job.job_id + '_poster_url" src="' + job.poster_url + '" width="240px" class="img-thumbnail">';
+        x += '<img id="jobId' + job.job_id + '_poster_url" alt="poster img" src="' + job.poster_url + '" width="240px" class="img-thumbnail">';
     }else{
-        x += '<img id="jobId' + job.job_id + '_poster_url" src="/static/img/none.png" width="240px" class="img-thumbnail">';
+        x += '<img id="jobId' + job.job_id + '_poster_url" alt="poster img" src="/static/img/none.png" width="240px" class="img-thumbnail">';
     }
-    x += '      </a>\
-          </div>\
-          <div class="col-lg-4">\
-          <div class="card-body px-1 py-1">';
+    x += '</a>' +
+         '</div>' +
+         '<div class="col-lg-4">' +
+         '<div class="card-body px-1 py-1">';
 
     x += '<div id="jobId' + job.job_id + '_title"><b>' + job.title + '</b></div>';
     x += '<div id="jobId' + job.job_id + '_year"><b>Year: </b>' + job.year +'</div>';
@@ -154,19 +152,19 @@ function addJobItem(job) {
     if (job.status === "transcoding" && job.stage != '' && job.progress) {
         x += '<div id="jobId' + job.job_id + '_stage"><b>Stage: </b>' + job.stage + '</div>';
         x += '<div id="jobId' + job.job_id + '_progress" >';
-        x += '<div class="progress">\
-                  <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">\
-                      <small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>\
-                  </div>\
-              </div>\
-              </div>\
-              <div id="jobId' + job.job_id + '_eta"><b>ETA: </b>' + job.eta + '</div>';
+        x += '<div class="progress">' +
+            '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">' +
+            '<small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '<div id="jobId' + job.job_id + '_eta"><b>ETA: </b>' + job.eta + '</div>';
     }
-    x += '</div>\
-          </div>\
-          </div>\
-          <div class="col-lg-4">\
-              <div class="card-body px-1 py-1">';
+    x += '</div>' +
+         '</div>' +
+         '</div>' +
+         '<div class="col-lg-4">' +
+         '<div class="card-body px-1 py-1">';
 
     x += '<div id="jobId' + job.job_id + '_RIPPER"><b>Ripper: </b>' + (job.ripper ? job.ripper : (idsplit[0] == "0" ? "Local" : "")) + '</div>';
     x += '<div id="jobId' + job.job_id + '_RIPMETHOD"><b>Rip Method: </b>' + job.config.RIPMETHOD + '</div>';
@@ -184,18 +182,18 @@ function addJobItem(job) {
               <a href="customTitle?job_id=' + idsplit[1] + '" class="btn btn-primary">Custom Title</a>\
               <a href="changeparams?config_id=' + idsplit[1]+ '" class="btn btn-primary">Edit Settings</a>';
     }
-    x += '</div>\
-                                </div>\
-                            </div>\
-                        </div>\
-                    </div>\
-                </div></div>';
+    x += '</div>' +
+         '</div>' +
+         '</div>' +
+         '</div>' +
+         '</div>' +
+         '</div></div>';
     return x;
 }
 
 function updateJobItem(oldJob, job) {
     if ($('#jobId' + job.job_id + '_header')[0].innerText !== job.title + " (" + job.year + ")"){
-        $('#jobId' + job.job_id + '_header')[0].innerText = job.title + " (" + job.year + ")"
+        $('#jobId' + job.job_id + '_header')[0].innerText = job.title + " (" + job.year + ")";
     }
     if (job.poster_url !== $('#jobId' + job.job_id + '_poster_url')[0].src && job.poster_url !== "None" && job.poster_url !== "N/A") {
         $('#jobId' + job.job_id + '_poster_url')[0].src = job.poster_url;
@@ -223,29 +221,28 @@ function updateJobItem(oldJob, job) {
         $('#jobId' + job.job_id + '_status')[0].title = job.status;
     }
 
-    if (job.status === "transcoding" && job.stage != '' && job.progress) {
+    if (job.status === "transcoding" && job.stage !== '' && job.progress) {
         if ($('#jobId' + job.job_id + '_progress_section')[0].innerHTML === "") {
-            var x = '<div id="jobId' + job.job_id + '_stage"><b>Stage: </b>' + job.stage + '</div>\
-                <div id="jobId' + job.job_id + '_progress" >\
-                <div class="progress">\
-                  <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">\
-                      <small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>\
-                  </div>\
-              </div>\
-              </div>\
-              <div id="jobId' + job.job_id + '_eta"><b>ETA: </b>' + job.eta + '</div>';
-            $('#jobId' + job.job_id + '_progress_section')[0].innerHTML = x;
+            $('#jobId' + job.job_id + '_progress_section')[0].innerHTML = '<div id="jobId' + job.job_id + '_stage"><b>Stage: </b>' + job.stage + '</div>' +
+                '<div id="jobId' + job.job_id + '_progress" >' +
+                '<div class="progress">' +
+                '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">' +
+                '<small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '<div id="jobId' + job.job_id + '_eta"><b>ETA: </b>' + job.eta + '</div>';
         } else {
             if (!$('#jobId' + job.job_id + '_stage')[0].innerText.includes(job.stage)) {
                 $('#jobId' + job.job_id + '_stage')[0].innerHTML = '<b>Device: </b>' + job.stage;
             }
 
             if (job.progress_round !== oldJob.progress_round || job.progress !== oldJob.progress) {
-                $('#jobId' + job.job_id + '_progress')[0].innerHTML = '<div class="progress">\
-                  <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">\
-                      <small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>\
-                  </div>\
-              </div>';
+                $('#jobId' + job.job_id + '_progress')[0].innerHTML = '<div class="progress">' +
+    '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">' +
+    '<small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>' +
+    '</div>' +
+    '</div>';
             }
 
             if (!$('#jobId' + job.job_id + '_eta')[0].innerText.includes(job.eta)) {
@@ -291,10 +288,10 @@ function refreshJobs() {
             error: function() { --serverCount; },
             complete: function() {
                 if(serverCount) {
-                    //console.log("Waiting on "+serverCount+" job lists.");
+                    console.log("Waiting on "+serverCount+" job lists.");
                 } else {
                     // TODO need to check if job list is empty and remove any jobs still on page
-                    console.log(activeJobs)
+                    console.log(activeJobs);
                     $.each(activeJobs, function (index, job) {
                         if (typeof(job) !== "undefined" && !job.active) {
                             removeJobItem(job);
@@ -303,7 +300,7 @@ function refreshJobs() {
                     });
 
                     $("#joblist .col-md-4").sort(function(a, b) {
-                        if(a.id == b.id) { return 0; }
+                        if(a.id === b.id) { return 0; }
                         return a.id < b.id ? -1 : 1;
                     }).each(function() {
                         var elem = $(this);
