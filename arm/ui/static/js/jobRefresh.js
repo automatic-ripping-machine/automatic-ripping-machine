@@ -122,7 +122,7 @@ function addJobItem(job) {
     var x = '<div class="col-md-4" id="jobId' + job.job_id + '">\
     <div class="card mb-3  mx-auto" style="min-height: 420px;">\
                 <div class="card-header row no-gutters justify-content-center">\
-                    <strong>';
+                    <strong id="jobId' + job.job_id + '_header">';
     if (job.title_manual !== "None") {
         x += job.title_manual + ' ('+job.year+')';
     }else{
@@ -194,6 +194,9 @@ function addJobItem(job) {
 }
 
 function updateJobItem(oldJob, job) {
+    if ($('#jobId' + job.job_id + '_header')[0].innerText !== job.title + " (" + job.year + ")"){
+        $('#jobId' + job.job_id + '_header')[0].innerText = job.title + " (" + job.year + ")"
+    }
     if (job.poster_url !== $('#jobId' + job.job_id + '_poster_url')[0].src && job.poster_url !== "None" && job.poster_url !== "N/A") {
         $('#jobId' + job.job_id + '_poster_url')[0].src = job.poster_url;
     }
@@ -290,6 +293,8 @@ function refreshJobs() {
                 if(serverCount) {
                     //console.log("Waiting on "+serverCount+" job lists.");
                 } else {
+                    // TODO need to check if job list is empty and remove any jobs still on page
+                    console.log(activeJobs)
                     $.each(activeJobs, function (index, job) {
                         if (typeof(job) !== "undefined" && !job.active) {
                             removeJobItem(job);

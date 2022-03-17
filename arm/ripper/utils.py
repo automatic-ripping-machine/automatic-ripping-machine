@@ -408,19 +408,18 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
     """
     Put data into a track instance\n
 
-
-    job = job ID\n
-    t_no = track number\n
-    seconds = lenght of track in seconds\n
-    aspect = aspect ratio (ie '16:9')\n
-    fps = frames per second (float)\n
-    mainfeature = True/False\n
-    source = Source of information\n
-    filename = filename of track\n
+    :param job: instance of job class\n
+    :param str t_no: track number\n
+    :param int seconds: length of track in seconds\n
+    :param str aspect: aspect ratio (ie '16:9')\n
+    :param str fps: frames per second:str (-not a float-)\n
+    :param bool mainfeature: user only wants mainfeature \n
+    :param str source: Source of information\n
+    :param str filename: filename of track\n
     """
 
     logging.debug(
-        f"Track #{t_no:02} Length: {seconds: >4} fps: {fps:2.3f} "
+        f"Track #{int(t_no):02} Length: {seconds: >4} fps: {float(fps):2.3f} "
         f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source}")
 
     t = m.Track(
@@ -470,12 +469,11 @@ def database_updater(args, job, wait_time=90):
     """
     Try to update our db for x seconds and handle it nicely if we cant
 
-    :param args: This needs to be a Dict with the key being the job.method you want to change and the value being
+    :param args: This needs to be a Dict with the key being the job. Method you want to change and the value being
     the new value. If args isn't a dict assume we are wanting a rollback
-
     :param job: This is the job object
     :param wait_time: The time to wait in seconds
-    :return: Nothing
+    :return: None
     """
     if type(args) is not dict:
         db.session.rollback()
@@ -541,7 +539,7 @@ def job_dupe_check(job):
     :param job: The job obj so we can use the crc/title etc
     :return: True if we have found dupes with the same crc
               - Will also return a dict of all the jobs found.
-             False if we didnt find any with the same crc
+             False if we didn't find any with the same crc
               - Will also return None as a secondary param
     """
     if job.crc_id is None:
