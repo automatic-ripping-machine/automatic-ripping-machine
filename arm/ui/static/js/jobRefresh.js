@@ -12,7 +12,7 @@ $(document).ready(function () {
     activeServers.push(location.origin);
     var children = $("#children").text().trim();
     if(children) {
-        childLinks = [];
+        var childLinks = [];
         var children_arr = children.split(",");
         $.each(children_arr, function(index,value) {
             activeServers.push(value);
@@ -116,7 +116,7 @@ $(document).ready(function () {
 });
 
 function addJobItem(job) {
-    idsplit = job.job_id.split("_");
+    var idsplit = job.job_id.split("_");
     var x = '<div class="col-md-4" id="jobId' + job.job_id + '">' +
             '<div class="card mb-3  mx-auto" style="min-height: 420px;">' +
             '<div class="card-header row no-gutters justify-content-center">' +
@@ -172,15 +172,15 @@ function addJobItem(job) {
     x += '<div id="jobId' + job.job_id + '_MINLENGTH"><b>Min Length: </b>' + job.config.MINLENGTH + '</div>';
     x += '<div id="jobId' + job.job_id + '_MAXLENGTH"><b>Max Length: </b>' + job.config.MAXLENGTH + '</div>';
 
-    x += '</div>\
-            <div class="card-body px-2 py-1">\
-              <div class="btn-group-vertical" role="group" aria-label="buttons" '+(idsplit[0]!='0' ? 'style="display: none;"' : '')+'>\
-              <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="' + idsplit[1] + '" data-href="json?job=' + idsplit[1] + '&mode=abandon">Abandon Job</button>\
-              <a href="logs?logfile=' + job.logfile + '&mode=full" class="btn btn-primary">View logfile</a>';
+    x += '</div>' +
+         '<div class="card-body px-2 py-1">' +
+         '<div class="btn-group-vertical" role="group" aria-label="buttons" '+(idsplit[0]!='0' ? 'style="display: none;"' : '')+'>' +
+         '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="' + idsplit[1] + '" data-href="json?job=' + idsplit[1] + '&mode=abandon">Abandon Job</button>' +
+         '<a href="logs?logfile=' + job.logfile + '&mode=full" class="btn btn-primary">View logfile</a>';
     if (job.video_type !== "Music") {
-        x += '<a href="titlesearch?job_id=' + idsplit[1] + '" class="btn btn-primary">Title Search</a>\
-              <a href="customTitle?job_id=' + idsplit[1] + '" class="btn btn-primary">Custom Title</a>\
-              <a href="changeparams?config_id=' + idsplit[1]+ '" class="btn btn-primary">Edit Settings</a>';
+        x += '<a href="titlesearch?job_id=' + idsplit[1] + '" class="btn btn-primary">Title Search</a>' +
+             '<a href="customTitle?job_id=' + idsplit[1] + '" class="btn btn-primary">Custom Title</a>' +
+             '<a href="changeparams?config_id=' + idsplit[1]+ '" class="btn btn-primary">Edit Settings</a>';
     }
     x += '</div>' +
          '</div>' +
@@ -277,7 +277,7 @@ function refreshJobs() {
     let serverCount = activeServers.length;
 
     $.each(activeServers, function(server_index, server_url) {
-        $.each(activeJobs, function (index, job) {
+        $.each(activeJobs, function (index) {
             activeJobs[index].active = false;
         });
 
