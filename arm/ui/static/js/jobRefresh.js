@@ -306,13 +306,10 @@ function refreshJobs() {
             timeout: 2000,
             error: function() { --serverCount; },
             complete: function() {
-                if(serverCount) {
-                    console.log("Waiting on "+serverCount+" job lists.");
-                } else {
-                    // TODO need to check if job list is empty and remove any jobs still on page
                     console.log(activeJobs);
                     $.each(activeJobs, function (index, job) {
                         if (typeof(job) !== "undefined" && !job.active) {
+                            console.log("job isnt active");
                             removeJobItem(job);
                             activeJobs.splice(index, 1);
                         }
@@ -326,7 +323,7 @@ function refreshJobs() {
                         elem.remove();
                         $(elem).appendTo("#joblist");
                     });
-                }
+
             },
             success: function (data) {
                 $.each(data.results, function (index, job) {
