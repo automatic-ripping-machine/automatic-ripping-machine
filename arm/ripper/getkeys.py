@@ -20,17 +20,17 @@ def grabkeys(cfg):
         str_length = len(base_link)
 
         while True:
-            link = pageStr[beg:beg + str_length + i]
+            link = page_str[beg:beg + str_length + i]
             print(link)
 
-            if pageStr[beg + str_length:beg + str_length + i].isnumeric() is False:
+            if page_str[beg + str_length:beg + str_length + i].isnumeric() is False:
                 return link[:-1]
                 i = i + 1
 
         # print(get_key_link())
         os.system('tinydownload -o keys_hashed.txt ' + get_key_link('http://s000.tinyupload.com/index.php?file_id='))
         br.open('https://forum.doom9.org/showthread.php?t=175194')
-        pageStr = str(br.parsed())
+        page_str = str(br.parsed())
         i = 1
         os.system('tinydownload -o KEYDB.cfg ' + get_key_link('http://s000.tinyupload.com/index.php?file_id='))
         os.system('mv -u -t /home/arm/.MakeMKV keys_hashed.txt KEYDB.cfg')
