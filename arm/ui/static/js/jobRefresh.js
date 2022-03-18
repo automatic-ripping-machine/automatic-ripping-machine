@@ -2,6 +2,7 @@
 /*jshint esversion: 6 */
 /*global $:false, jQuery:false */
 /* jshint node: true */
+/* jshint strict: false */
 
 var hrrref = "";
 var wedeleted = "{{ success }}";
@@ -149,7 +150,7 @@ function addJobItem(job) {
     x += '<div><b>Status: </b><img id="jobId' + job.job_id + '_status" src="static/img/' + job.status + '.png" height="20px" alt="' + job.status + '" title="' + job.status + '"></div>';
 
     x += '<div id="jobId' + job.job_id + '_progress_section">';
-    if (job.status === "transcoding" && job.stage != '' && job.progress) {
+    if (job.status === "transcoding" && job.stage !== '' && job.progress) {
         x += '<div id="jobId' + job.job_id + '_stage"><b>Stage: </b>' + job.stage + '</div>';
         x += '<div id="jobId' + job.job_id + '_progress" >';
         x += '<div class="progress">' +
@@ -166,7 +167,7 @@ function addJobItem(job) {
          '<div class="col-lg-4">' +
          '<div class="card-body px-1 py-1">';
 
-    x += '<div id="jobId' + job.job_id + '_RIPPER"><b>Ripper: </b>' + (job.ripper ? job.ripper : (idsplit[0] == "0" ? "Local" : "")) + '</div>';
+    x += '<div id="jobId' + job.job_id + '_RIPPER"><b>Ripper: </b>' + (job.ripper ? job.ripper : (idsplit[0] === "0" ? "Local" : "")) + '</div>';
     x += '<div id="jobId' + job.job_id + '_RIPMETHOD"><b>Rip Method: </b>' + job.config.RIPMETHOD + '</div>';
     x += '<div id="jobId' + job.job_id + '_MAINFEATURE"><b>Main Feature: </b>' + job.config.MAINFEATURE + '</div>';
     x += '<div id="jobId' + job.job_id + '_MINLENGTH"><b>Min Length: </b>' + job.config.MINLENGTH + '</div>';
@@ -174,7 +175,7 @@ function addJobItem(job) {
 
     x += '</div>' +
          '<div class="card-body px-2 py-1">' +
-         '<div class="btn-group-vertical" role="group" aria-label="buttons" '+(idsplit[0]!='0' ? 'style="display: none;"' : '')+'>' +
+         '<div class="btn-group-vertical" role="group" aria-label="buttons" '+(idsplit[0]!=='0' ? 'style="display: none;"' : '')+'>' +
          '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="' + idsplit[1] + '" data-href="json?job=' + idsplit[1] + '&mode=abandon">Abandon Job</button>' +
          '<a href="logs?logfile=' + job.logfile + '&mode=full" class="btn btn-primary">View logfile</a>';
     if (job.video_type !== "Music") {
@@ -191,80 +192,97 @@ function addJobItem(job) {
     return x;
 }
 
-function updateJobItem(oldJob, job) {
-    if ($('#jobId' + job.job_id + '_header')[0].innerText !== job.title + " (" + job.year + ")"){
-        $('#jobId' + job.job_id + '_header')[0].innerText = job.title + " (" + job.year + ")";
-    }
-    if (job.poster_url !== $('#jobId' + job.job_id + '_poster_url')[0].src && job.poster_url !== "None" && job.poster_url !== "N/A") {
-        $('#jobId' + job.job_id + '_poster_url')[0].src = job.poster_url;
-    }
-    // TODO: Check against the auto title
-    if (job.title !== $('#jobId' + job.job_id + '_title')[0].innerText) {
-        $('#jobId' + job.job_id + '_title')[0].innerText = job.title;
-    }
-
-    if (!$('#jobId' + job.job_id + '_year')[0].innerText.includes(job.year)) {
-        $('#jobId' + job.job_id + '_year')[0].innerHTML = '<b>Year: </b>' + job.year;
-    }
-
-    if (!$('#jobId' + job.job_id + '_video_type')[0].innerText.includes(job.video_type)) {
-        $('#jobId' + job.job_id + '_video_type')[0].innerHTML = '<b>Type: </b>' + job.video_type;
-    }
-
-    if (!$('#jobId' + job.job_id + '_devpath')[0].innerText.includes(job.devpath)) {
-        $('#jobId' + job.job_id + '_devpath')[0].innerHTML = '<b>Device: </b>' + job.devpath;
-    }
-
-    if (job.status !== $('#jobId' + job.job_id + '_status')[0].title) {
-        $('#jobId' + job.job_id + '_status')[0].src = 'static/img/' + job.status + '.png';
-        $('#jobId' + job.job_id + '_status')[0].alt = job.status;
-        $('#jobId' + job.job_id + '_status')[0].title = job.status;
-    }
+function updateProgress(job, oldJob) {
+    let subProgressBar = '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">' +
+                         '<small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>' +
+                         '</div>' +
+                         '</div>';
+    let mainProgressBar = '<div id="jobId' + job.job_id + '_stage"><b>Stage: </b>' + job.stage + '</div>' +
+                         '<div id="jobId' + job.job_id + '_progress" >' +
+                         '<div class="progress">' +
+                         subProgressBar +
+                         '</div>' +
+                         '<div id="jobId' + job.job_id + '_eta"><b>ETA: </b>' + job.eta + '</div>';
+    let progressSection = $('#jobId' + job.job_id + '_progress_section');
+    let stage = $('#jobId' + job.job_id + '_stage');
+    let eta = $('#jobId' + job.job_id + '_eta');
 
     if (job.status === "transcoding" && job.stage !== '' && job.progress) {
-        if ($('#jobId' + job.job_id + '_progress_section')[0].innerHTML === "") {
-            $('#jobId' + job.job_id + '_progress_section')[0].innerHTML = '<div id="jobId' + job.job_id + '_stage"><b>Stage: </b>' + job.stage + '</div>' +
-                '<div id="jobId' + job.job_id + '_progress" >' +
-                '<div class="progress">' +
-                '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">' +
-                '<small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>' +
-                '</div>' +
-                '</div>' +
-                '</div>' +
-                '<div id="jobId' + job.job_id + '_eta"><b>ETA: </b>' + job.eta + '</div>';
+        if (progressSection[0].innerHTML === "") {
+            progressSection[0].innerHTML = mainProgressBar;
         } else {
-            if (!$('#jobId' + job.job_id + '_stage')[0].innerText.includes(job.stage)) {
-                $('#jobId' + job.job_id + '_stage')[0].innerHTML = '<b>Device: </b>' + job.stage;
+            if (!stage[0].innerText.includes(job.stage)) {
+                stage[0].innerHTML = '<b>Device: </b>' + job.stage;
             }
 
             if (job.progress_round !== oldJob.progress_round || job.progress !== oldJob.progress) {
                 $('#jobId' + job.job_id + '_progress')[0].innerHTML = '<div class="progress">' +
-    '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">' +
-    '<small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>' +
-    '</div>' +
-    '</div>';
+                         subProgressBar;
             }
 
-            if (!$('#jobId' + job.job_id + '_eta')[0].innerText.includes(job.eta)) {
-                $('#jobId' + job.job_id + '_eta')[0].innerHTML = '<b>ETA: </b>' + job.eta;
+            if (!eta[0].innerText.includes(job.eta)) {
+                eta[0].innerHTML = '<b>ETA: </b>' + job.eta;
             }
         }
     }
+}
 
-    if (!$('#jobId' + job.job_id + '_RIPMETHOD')[0].innerText.includes(job.config.RIPMETHOD)) {
-        $('#jobId' + job.job_id + '_RIPMETHOD')[0].innerHTML = '<b>Rip Method: </b>' + job.config.RIPMETHOD;
+function updateJobItem(oldJob, job) {
+    let cardHeader = $('#jobId' + job.job_id + '_header');
+    let posterUrl = $('#jobId' + job.job_id + '_poster_url');
+    let jobTitle = $('#jobId' + job.job_id + '_title');
+    let jobYear = $('#jobId' + job.job_id + '_year');
+    let videoType = $('#jobId' + job.job_id + '_video_type');
+    let devPath = $('#jobId' + job.job_id + '_devpath');
+    let status = $('#jobId' + job.job_id + '_status');
+    let ripMethod = $('#jobId' + job.job_id + '_RIPMETHOD');
+    let mainFeature = $('#jobId' + job.job_id + '_MAINFEATURE');
+    let minLength = $('#jobId' + job.job_id + '_MINLENGTH');
+    let maxLength = $('#jobId' + job.job_id + '_MAXLENGTH');
+
+    if (cardHeader[0].innerText !== job.title + " (" + job.year + ")"){
+        cardHeader[0].innerText = job.title + " (" + job.year + ")";
+    }
+    if (job.poster_url !== posterUrl[0].src && job.poster_url !== "None" && job.poster_url !== "N/A") {
+        posterUrl[0].src = job.poster_url;
+    }
+    // TODO: Check against the auto title
+    if (job.title !== jobTitle[0].innerText) {
+        jobTitle[0].innerText = job.title;
     }
 
-    if (!$('#jobId' + job.job_id + '_MAINFEATURE')[0].innerText.includes(job.config.MAINFEATURE)) {
-        $('#jobId' + job.job_id + '_MAINFEATURE')[0].innerHTML = '<b>Main Feature: </b>' + job.config.MAINFEATURE;
+    if (!jobYear[0].innerText.includes(job.year)) {
+        jobYear[0].innerHTML = '<b>Year: </b>' + job.year;
     }
 
-    if (!$('#jobId' + job.job_id + '_MINLENGTH')[0].innerText.includes(job.config.MINLENGTH)) {
-        $('#jobId' + job.job_id + '_MINLENGTH')[0].innerHTML = '<b>Min Length: </b>' + job.config.MINLENGTH;
+    if (!videoType[0].innerText.includes(job.video_type)) {
+        videoType[0].innerHTML = '<b>Type: </b>' + job.video_type;
     }
 
-    if (!$('#jobId' + job.job_id + '_MAXLENGTH')[0].innerText.includes(job.config.MAXLENGTH)) {
-        $('#jobId' + job.job_id + '_MAXLENGTH')[0].innerHTML = '<b>Max Length: </b>' + job.config.MAXLENGTH;
+    if (!devPath[0].innerText.includes(job.devpath)) {
+        devPath[0].innerHTML = '<b>Device: </b>' + job.devpath;
+    }
+    if (job.status !== status[0].title) {
+        status[0].src = 'static/img/' + job.status + '.png';
+        status[0].alt = job.status;
+        status[0].title = job.status;
+    }
+    updateProgress(job, oldJob);
+
+    if (!ripMethod[0].innerText.includes(job.config.RIPMETHOD)) {
+        ripMethod[0].innerHTML = '<b>Rip Method: </b>' + job.config.RIPMETHOD;
+    }
+
+    if (!mainFeature[0].innerText.includes(job.config.MAINFEATURE)) {
+        mainFeature[0].innerHTML = '<b>Main Feature: </b>' + job.config.MAINFEATURE;
+    }
+
+    if (!minLength[0].innerText.includes(job.config.MINLENGTH)) {
+        minLength[0].innerHTML = '<b>Min Length: </b>' + job.config.MINLENGTH;
+    }
+
+    if (!maxLength[0].innerText.includes(job.config.MAXLENGTH)) {
+        maxLength[0].innerHTML = '<b>Max Length: </b>' + job.config.MAXLENGTH;
     }
 }
 

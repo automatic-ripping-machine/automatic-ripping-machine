@@ -84,7 +84,7 @@ def makemkv(logfile, job):
 
         # if no maximum length, process the whole disc in one command
         if int(cfg["MAXLENGTH"]) > 99998:
-            cmd = 'makemkvcon mkv {0} -r dev:{1} all {2} --minlength={3}>> {4}'.format(
+            cmd = 'makemkvcon mkv {0} -r --progress=-stdout --messages=-stdout dev:{1} all {2} --minlength={3}>> {4}'.format(
                 cfg["MKV_ARGS"],
                 job.devpath,
                 shlex.quote(rawpath),
@@ -111,7 +111,7 @@ def makemkv(logfile, job):
                     filepathname = os.path.join(rawpath, track.filename)
                     logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
 
-                    cmd = 'makemkvcon mkv {0} -r dev:{1} {2} {3} --minlength={4}>> {5}'.format(
+                    cmd = 'makemkvcon mkv {0} -r --progress=-stdout --messages=-stdout dev:{1} {2} {3} --minlength={4}>> {5}'.format(
                         cfg["MKV_ARGS"],
                         job.devpath,
                         str(track.track_number),
@@ -141,14 +141,14 @@ def prep_mkv(job):
     cmd = f"makemkvcon info {job.devpath}"
     try:
         # check=True is needed to make the exception throw on a non-zero return
-        mkv = subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
+        subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
     except subprocess.CalledProcessError as mkv_error:
         if mkv_error.returncode == 253:
             # MakeMKV is out of date
             logging.info("MakeMKV: return code is 253, MakeMKV beta key has expired.")
             update_key()
             try:
-                mkv_redux = subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
+                subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
             except subprocess.CalledProcessError as mkv_redux_error:
                 if mkv_redux_error.returncode == 10:
                     logging.info("MakeMKV beta key updated successfully!")
@@ -170,7 +170,7 @@ def update_key():
     try:
         logging.info("Updating MakeMKV key...")
         update_cmd = "/bin/bash /opt/arm/scripts/update_key.sh"
-        updater = subprocess.run(update_cmd, capture_output=True, shell=True, check=True)  # noqa: F841
+        subprocess.run(update_cmd, capture_output=True, shell=True, check=True)  # noqa: F841
     except subprocess.CalledProcessError as update_err:
         err = f"Error updating MakeMKV key, return code: {update_err.returncode}"
         logging.error(err)
@@ -186,7 +186,7 @@ def get_track_info(mdisc, job):
 
     logging.info("Using MakeMKV to get information on all the tracks on the disc.  This will take a few minutes...")
 
-    cmd = f'makemkvcon -r --cache=1 info disc:{mdisc}'
+    cmd = f'makemkvcon -r --progress=-stdout --messages=-stdout --cache=1 info disc:{mdisc}'
     logging.debug(f"Sending command: {cmd}")
     try:
         mkv = subprocess.check_output(
@@ -253,6 +253,6 @@ def run_makemkv(cmd):
 
     logging.debug(f"Ripping with the following command: {cmd}")
     try:
-        mkv = subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
+        subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
     except subprocess.CalledProcessError as mkv_error:
         raise MakeMkvRuntimeError(mkv_error)
