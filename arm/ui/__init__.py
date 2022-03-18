@@ -29,4 +29,3 @@ app.config['LOGIN_DISABLED'] = cfg['DISABLE_LOGIN']
 db = SQLAlchemy(app)
 
 migrate = Migrate(app, db)
-
