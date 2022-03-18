@@ -9,7 +9,6 @@ from flask_cors import CORS
 from arm.config.config import cfg
 from flask.logging import default_handler  # noqa: F401
 from getpass import getpass  # noqa: F401
-# import omdb
 
 from flask_login import LoginManager
 
@@ -31,7 +30,3 @@ db = SQLAlchemy(app)
 
 migrate = Migrate(app, db)
 
-# import arm.ui.routes  # noqa: E402,F401
-# import models.models  # noqa: E402
-# import ui.config  # noqa: E402
-# import ui.utils  # noqa: E402,F401

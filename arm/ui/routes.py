@@ -770,7 +770,7 @@ def import_movies():
         matched = re.match(regex, movie)
         if matched:
             # This is only for pycharm
-            movie_name = re.sub(" ", "%20", matched.group(1).strip())  # movie
+            movie_name = str.replace(" ", "%20", matched.group(1).strip())  # movie
 
             p1, imdb_id = utils.get_omdb_poster(movie_name, matched.group(2))
             # ['poster.jpg', 'title_t00.mkv', 'title_t00.xml', 'fanart.jpg',
@@ -824,8 +824,8 @@ def import_movies():
                 sub_matched = re.match(regex, sub_movie)
                 if sub_matched:
                     # This is only for pycharm
-                    sub_movie_name = re.sub(" ", "%20", sub_matched.group(1).strip())  # movie
-                    sub_movie_name = re.sub("&", "%26", sub_movie_name)
+                    sub_movie_name = str.replace(" ", "%20", sub_matched.group(1).strip())  # movie
+                    sub_movie_name = str.replace("&", "%26", sub_movie_name)
                     p2, imdb_id = utils.get_omdb_poster(sub_movie_name, sub_matched.group(2))
                     app.logger.debug(listdir(join(sub_path, str(sub_movie))))
                     # If the user selects another ext thats not mkv we are f

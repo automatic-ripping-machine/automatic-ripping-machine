@@ -11,7 +11,8 @@ var actionType = null;
 $(document).ready(function () {
 
     activeServers.push(location.origin);
-    var children = $("#children").text().trim();
+    var childs = $("#children");
+    var children = childs.text().trim();
     if(children) {
         var childLinks = [];
         var children_arr = children.split(",");
@@ -19,7 +20,7 @@ $(document).ready(function () {
             activeServers.push(value);
             childLinks.push("<a target='_blank' href='"+value+"'>"+value+"</a>");
         });
-        $("#children").html("Children: <br />"+childLinks.join("<br />"));
+        childs.html("Children: <br />"+childLinks.join("<br />"));
     }
 
     refreshJobs();

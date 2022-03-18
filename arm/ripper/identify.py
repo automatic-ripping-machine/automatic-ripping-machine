@@ -67,7 +67,7 @@ def clean_for_filename(string):
     string = string.replace('&', 'and')
     string = string.replace("\\", " - ")
     string = string.strip()
-    return re.sub('[^\\w_.() -]', '', string)
+    return re.sub(r'[^\w_.() -]', '', string)
 
 
 def identify_bluray(job):
@@ -146,7 +146,6 @@ def identify_dvd(job):
                 'video_type_auto': x['results']['0']['video_type'],
             }
             utils.database_updater(args, job)
-            # return True
     except Exception as e:
         logging.error("Pydvdid failed with the error: " + str(e))
         dvd_title = fallback_title = str(job.label)
@@ -260,18 +259,10 @@ def identify_loop(job, response, title, year):
     # this is a little kludgy, but it kind of works...
     logging.debug(f"Response = {response}")
     if response is None:
-        if year:
-            # first try subtracting one year.  This accounts for when
-            # the dvd release date is the year following the movie release date
-            logging.debug("Subtracting 1 year...")
-            response = metadata_selector(job, title, str(int(year) - 1))
-            logging.debug(f"response: {response}")
-
+        # try with year first
+        response = try_with_year(job, response, title, year)
         # try submitting without the year
-        if response is None:
-            logging.debug("Removing year...")
-            response = metadata_selector(job, title)
-            logging.debug(f"response: {response}")
+        response = try_without_year(job, response, title)
 
         if response is None:
             while response is None and title.find("-") > 0:
@@ -287,5 +278,24 @@ def identify_loop(job, response, title, year):
                 response = metadata_selector(job, title, year)
                 logging.debug(f"response: {response}")
                 if response is None:
+                    # Still failing - try the words we have without year
                     logging.debug("Removing year...")
                     response = metadata_selector(job, title)
+
+
+def try_without_year(job, response, title):
+    if response is None:
+        logging.debug("Removing year...")
+        response = metadata_selector(job, title)
+        logging.debug(f"response: {response}")
+    return response
+
+
+def try_with_year(job, response, title, year):
+    if year:
+        # first try subtracting one year.  This accounts for when
+        # the dvd release date is the year following the movie release date
+        logging.debug("Subtracting 1 year...")
+        response = metadata_selector(job, title, str(int(year) - 1))
+        logging.debug(f"response: {response}")
+    return response

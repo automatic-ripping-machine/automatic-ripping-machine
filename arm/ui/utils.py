@@ -553,7 +553,7 @@ def get_tmdb_poster(search_query=None, year=None):
                 s['background_url'] = f"{poster_base}{s['backdrop_path']}"
                 s["Plot"] = s['overview']
                 app.logger.debug(s['background_url'])
-                search_query_pretty = re.sub(r"\+", " ", search_query)
+                search_query_pretty = str.replace(r"\+", " ", search_query)
                 app.logger.debug(f"trying {search_query.capitalize()} == {s['Title'].capitalize()}")
                 if search_query_pretty.capitalize() == s['Title'].capitalize():
                     s['Search'] = s
@@ -626,7 +626,7 @@ def tmdb_search(search_query=None, year=None):
                 s['background_url'] = f"{poster_base}{s['backdrop_path']}"
                 s["Plot"] = s['overview']
                 app.logger.debug(s['background_url'])
-                search_query_pretty = re.sub(r"\+", " ", search_query)
+                search_query_pretty = str.replace(r"\+", " ", search_query)
                 app.logger.debug(f"trying {search_query_pretty.capitalize()} == {s['Title'].capitalize()}")
             x['Search'] = p['results']
             return x
