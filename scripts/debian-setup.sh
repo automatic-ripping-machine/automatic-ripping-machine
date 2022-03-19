@@ -91,7 +91,10 @@ cd /opt
 mkdir -p arm
 chown arm:arm arm
 chmod 775 arm
-git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
+##my updated version
+git clone https://github.com/1337-server/automatic-ripping-machine.git arm
+###stock
+#git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
 chown -R arm:arm arm
 cd arm
 pip3 install -U setuptools
