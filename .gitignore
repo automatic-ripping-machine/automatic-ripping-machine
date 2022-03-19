@@ -16,10 +16,14 @@ arm.conf
 arm.yaml
 *.db
 *.log
-*.json
 .abdce.conf
 *.old
 __pycache__
 *.xml
 venv/*
 *.iml
+*.rar
+installed
+.idea/.name
+*config.py
+*arm_wrapper.sh

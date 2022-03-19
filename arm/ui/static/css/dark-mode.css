@@ -370,7 +370,7 @@ button.bg-danger:focus {
     letter-spacing: normal;
     word-spacing: normal;
     text-transform: none;
-    text-indent: 0px;
+    text-indent: 0;
     text-shadow: none;
     display: inline-block;
     text-align: center;
@@ -378,8 +378,8 @@ button.bg-danger:focus {
     cursor: default;
     background-color: -internal-light-dark(rgb(239, 239, 239), rgb(59, 59, 59));
     box-sizing: border-box;
-    margin: 0em;
-    font: 400 13.3333px Arial;
+    margin: 0;
+    font: 400 13px Arial, sans-serif;
     padding: 1px 6px;
     border-width: 2px;
     border-style: outset;
@@ -498,8 +498,7 @@ button.bg-danger:focus {
 }
 
 [data-theme="dark"] button:focus {
-  outline: 1px dotted;
-  outline: 5px auto -webkit-focus-ring-color;
+    outline: 5px auto -webkit-focus-ring-color;
 }
 
 [data-theme="dark"] .list-group {

@@ -28,30 +28,26 @@
             <div class="col">
                 <div class="jumbotron" style="padding-top: 1rem;">
 					<div class="col-sm-12  rounded text-center">
-						<img src="/static/img/arm80.png">
+						<img src="static/img/arm80.png" alt="Automatic Ripping Machine">
 						<p class="text-center">
-						<!--<b>Welcome to your Automatic Ripping Machine</b>
-						<br>-->
 						<h2> ARM - Settings </h2>
 						</p>
 					</div>
 				
 					<div class="container" style="padding-top: 4rem;">
-						<form id="form1" name="form1" method="post" action="/settings">
+						<form id="form1" name="form1" method="post" action="settings">
+						    {{ form.hidden_tag() }}
 							{% for k, v in settings.items() %}
-
 							<div class="input-group mb-3">
 								<div class="input-group-prepend">
 									<span class="input-group-text" id="{{ k }}">{{ k }}: </span>
 								</div>
 								<input type="text" class="form-control" aria-label="{{ k }}" name={{ k }} placeholder="{{ v}}" value="{{ v }}" aria-describedby="{{ k }}">
 								 <a class="popovers" onClick='return false;' href="" data-content="{{ jsoncomments[k] }}" rel="popover" data-placement="top" data-original-title="{{ k }}">
-									<img title="More information" src="/static/img/info.png" width="30px" height="35px">
+									<img title="More information" src="static/img/info.png" width="30px" height="35px" alt="More Info">
 								</a>
 							</div>
 							{% endfor %}
-                                <!--{{ html }}-->
-								<input class="form-control" name="save" value="save" hidden>
 								<button class="btn btn-secondary btn-lg btn-block" form="form1" type="submit">Submit</button>
                         </form>
 					</div>
@@ -63,12 +59,17 @@
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
 {{ super() }}
-  <script type="application/javascript">
-      $(function () {
+<script type="application/javascript">
+	$(function () {
 		$(".popovers").popover({ 
 			trigger: "hover",
 		});
-      });
-activeTab("armsettings");
-  </script>
+	{% if form.errors %}
+		{% for k in form.errors %}
+			$("[name='{{k}}']").addClass("is-invalid");
+		{% endfor %}
+	{% endif %}
+	activeTab("armsettings");
+	});
+</script>
 {% endblock %}

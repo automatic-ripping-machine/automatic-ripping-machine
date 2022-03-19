@@ -7,63 +7,31 @@ import logging
 import time
 
 from arm.config.config import cfg
-from arm.ripper import music_brainz
 
 
-def setuplogging(job):
+def setup_logging(job):
     """Setup logging and return the path to the logfile for
-    redirection of external calls"""
+    redirection of external calls
+    We need to return the full logfile path but set the job.logfile to just the filename
+    """
     # This isn't catching all of them
     if job.label == "" or job.label is None:
         if job.disctype == "music":
-            # Use the music label if we can find it - defaults to music_cd.log
-            disc_id = music_brainz.get_disc_id(job)
-            mb_title = music_brainz.get_title(disc_id, job)
-            # mb_title = music_brainz.main(job)
-            if mb_title == "not identified":
-                job.label = job.title = "not identified"
-                logfile = "music_cd.log"
-                new_log_file = "music_cd_" + str(round(time.time() * 100)) + ".log"
-                temp_log_full = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" \
-                    else cfg['LOGPATH'] + "/" + logfile
-                logfile = new_log_file if os.path.isfile(temp_log_full) else str(logfile) + ".log"
-                # job.logfile = "music_cd.log"
-                # logfile = "music_cd.log"
-            else:
-                orig_logfile = str(mb_title) + ".log"
-                new_log_file = str(mb_title) + "_" + str(round(time.time() * 100)) + ".log"
-                temp_log_full = cfg['LOGPATH'] + orig_logfile if cfg['LOGPATH'][-1:] == "/" \
-                    else cfg['LOGPATH'] + "/" + orig_logfile
-                logfile = new_log_file if os.path.isfile(temp_log_full) else orig_logfile
-            # We need to give the logfile only to database
-            job.logfile = logfile
+            logfile = job.logfile = job.identify_audio_cd()
         else:
             logfile = "empty.log"
         # set a logfull for empty.log and music_cd.log
-        logfull = cfg['LOGPATH'] + logfile if cfg['LOGPATH'][-1:] == "/" else cfg['LOGPATH'] + "/" + logfile
+        logfull = os.path.join(cfg['LOGPATH'], logfile)
     else:
         logfile = job.label + ".log"
-        # REGRESSION - NAS is created multi times with (ts)
-        if cfg['LOGPATH'][-1:] == "/":
-            # #This really needs to be cleaned up, but it works for now
-            # Check to see if file already exists, if so, create a new file
-            new_log_file = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
-            temp_log_full = cfg['LOGPATH'] + logfile
-            logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
-            logfull = cfg['LOGPATH'] + new_log_file if os.path.isfile(temp_log_full) \
-                else cfg['LOGPATH'] + str(job.label) + ".log"
-        else:
-            # Check to see if file already exists, if so, create a new file
-            new_log_file = str(job.label) + "_" + str(round(time.time() * 100)) + ".log"
-            temp_log_full = cfg['LOGPATH'] + "/" + logfile
-            logfile = new_log_file if os.path.isfile(temp_log_full) else str(job.label)
-            logfull = cfg['LOGPATH'] + "/" + new_log_file if os.path.isfile(temp_log_full) \
-                else cfg['LOGPATH'] + "/" + str(job.label) + ".log"
-        # We need to give the logfile only to database
+        new_log_file = f"{job.label}_{round(time.time() * 100)}.log"
+        temp_log_full = os.path.join(cfg['LOGPATH'], logfile)
+        logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
+        # If log already exist use the new_log_file
+        logfull = os.path.join(cfg['LOGPATH'], new_log_file) if os.path.isfile(temp_log_full) \
+            else os.path.join(cfg['LOGPATH'], str(job.label) + ".log")
         job.logfile = logfile
-    # Remove all handlers associated with the root logger object.
-    for handler in logging.root.handlers[:]:
-        logging.root.removeHandler(handler)
+
     # Debug formatting
     if cfg['LOGLEVEL'] == "DEBUG":
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s '
@@ -72,11 +40,9 @@ def setuplogging(job):
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
                             datefmt=cfg['DATE_FORMAT'], level=cfg['LOGLEVEL'])
-    # logging.debug("Logfull = " + logfull)
 
     # This stops apprise spitting our secret keys when users posts online
-    apprise_logger = logging.getLogger('apprise')
-    apprise_logger.setLevel(logging.WARN)
+    logging.getLogger("apprise").setLevel(logging.WARN)
     logging.getLogger("requests").setLevel(logging.WARN)
     logging.getLogger("urllib3").setLevel(logging.WARN)
 
@@ -84,7 +50,7 @@ def setuplogging(job):
     return logfull
 
 
-def cleanuplogs(logpath, loglife):
+def clean_up_logs(logpath, loglife):
     """Delete all log files older than x days\n
     logpath = path of log files\n
     loglife = days to let logs live\n
@@ -94,11 +60,10 @@ def cleanuplogs(logpath, loglife):
         logging.info("loglife is set to 0. Removal of logs is disabled")
         return False
     now = time.time()
-    logging.info("Looking for log files older than " + str(loglife) + " days old.")
+    logging.info(f"Looking for log files older than {loglife} days old.")
 
     for filename in os.listdir(logpath):
         fullname = os.path.join(logpath, filename)
-        if fullname.endswith(".log"):
-            if os.stat(fullname).st_mtime < now - loglife * 86400:
-                logging.info("Deleting log file: " + filename)
-                os.remove(fullname)
+        if fullname.endswith(".log") and os.stat(fullname).st_mtime < now - loglife * 86400:
+            logging.info(f"Deleting log file: {filename}")
+            os.remove(fullname)

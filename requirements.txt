@@ -1,3 +1,4 @@
+Markdown==3.3.4
 pycurl>=7.43.0
 pydvdid>=1.0
 requests>=2.9.1
@@ -5,12 +6,11 @@ urllib3>=1.13.1
 xmltodict>=0.10.2
 pyudev>=0.21.0
 pyyaml>=3.12
-flake8>=2.5.0
 flask>=1.0.2
 flask-WTF>=0.14.2
 flask-sqlalchemy>=2.3.2
 flask-migrate>=2.2.1
-omdb>=0.10.0
+flask-cors>=3.0.10
 psutil>=5.4.6
 robobrowser>=0.5.3
 tinydownload>=0.1.0
