@@ -34,13 +34,12 @@ def entry():
     return parser.parse_args()
 
 
-def log_udev_params(devpath):
+def log_udev_params(dev_path):
     """log all udev parameters"""
 
     logging.debug("**** Logging udev attributes ****")
-    # logging.info("**** Start udev attributes ****")
     context = pyudev.Context()
-    device = pyudev.Devices.from_device_file(context, devpath)
+    device = pyudev.Devices.from_device_file(context, dev_path)
     for key, value in device.items():
         logging.debug(key + ":" + value)
     logging.debug("**** End udev attributes ****")
@@ -72,6 +71,10 @@ def log_arm_params(job):
 
 
 def check_fstab():
+    """
+    Check the fstab entries to see if ARM has been set up correctly
+    :return: None
+    """
     logging.info("Checking for fstab entry.")
     with open('/etc/fstab', 'r') as f:
         lines = f.readlines()
@@ -85,7 +88,13 @@ def check_fstab():
 
 def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
     """
-    For when skipping transcode in enabled
+    Section to follow when Skip transcoding is wanted
+    :param job:
+    :param hb_out_path:
+    :param hb_in_path:
+    :param mkv_out_path:
+    :param type_sub_folder:
+    :return:
     """
     logging.info("SKIP_TRANSCODE is true.  Moving raw mkv files.")
     logging.info("NOTE: Identified main feature may not be actual main feature")
@@ -236,7 +245,7 @@ def main(logfile, job):
                     db.session.commit()
                     sys.exit()
             else:
-                # We arent allowed to rip dupes, notify and exit
+                # We aren't allowed to rip dupes, notify and exit
                 logging.info("Duplicate rips are disabled.")
                 utils.notify(job, NOTIFY_TITLE, "ARM Detected a duplicate disc. For " + str(
                     job.title) + ".  Duplicate rips are disabled. You can re-enable them from your config file. ")
@@ -274,6 +283,7 @@ def main(logfile, job):
 
             if mkvoutpath is None:
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
+                job.errors += ",MakeMKV did not complete successfully"
                 job.status = "fail"
                 db.session.commit()
                 sys.exit()
@@ -310,9 +320,10 @@ def main(logfile, job):
             final_directory = os.path.join(job.config.COMPLETED_PATH, str(type_sub_folder), str(job.title))
 
         # move to media directory
-        tracks = job.tracks.filter_by(ripped=True)
+        tracks = job.tracks.filter_by(ripped=True)  # .order_by(job.tracks.length.desc())
 
         if job.video_type == "movie":
+            logging.debug(f"Total track count for this job was: {tracks.count()}")
             for track in tracks:
                 logging.info(f"Moving Movie {track.filename} to {final_directory}")
                 if tracks.count() == 1:
@@ -326,7 +337,7 @@ def main(logfile, job):
                 utils.move_files(hb_out_path, track.filename, job, False)
         else:
             for track in tracks:
-                logging.info(f"Type is 'unknown' or we dont have a nice title - "
+                logging.info(f"Type is 'unknown' or we don't have a nice title - "
                              f"Moving {track.filename} to {final_directory}")
                 if tracks.count() == 1:
                     utils.move_files(hb_out_path, track.filename, job, True)
@@ -348,11 +359,12 @@ def main(logfile, job):
         utils.scan_emby(job)
         utils.set_permissions(job, final_directory)
 
-        # Clean up bluray backup
+        # Clean up Blu-ray backup
         if cfg["DELRAWFILES"]:
             raw_list = [mkvoutpath, hb_out_path, hb_in_path]
             for raw_folder in raw_list:
                 try:
+                    logging.info(f"{raw_folder} != {final_directory}")
                     logging.info(f"Removing raw path - {raw_folder}")
                     if raw_folder != final_directory:
                         shutil.rmtree(raw_folder)
@@ -379,7 +391,7 @@ def main(logfile, job):
         if utils.rip_music(job, logfile):
             utils.notify(job, NOTIFY_TITLE, f"Music CD: {job.label} {PROCESS_COMPLETE}")
             utils.scan_emby(job)
-            # This shouldnt be needed. but to be safe
+            # This shouldn't be needed. but to be safe
             job.status = "success"
             db.session.commit()
         else:
