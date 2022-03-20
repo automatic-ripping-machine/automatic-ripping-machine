@@ -13,13 +13,15 @@ import arm.ui.utils as utils
 from time import sleep
 from flask import Flask, render_template, request, send_file, flash, \
     redirect, url_for  # noqa: F401
-from arm.ui import app, db
+from arm.ui import app, db, constants, json_api
 from arm.models.models import Job, Config, Track, User, AlembicVersion, UISettings  # noqa: F401
 from arm.config.config import cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, SettingsForm, UiSettingsForm, SetupForm
 from pathlib import Path, PurePath
 from flask.logging import default_handler  # noqa: F401
 from flask_login import LoginManager, login_required, current_user, login_user, UserMixin, logout_user  # noqa: F401
+
+from arm.ui.metadata import get_omdb_poster
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -40,7 +42,7 @@ def unauthorized():
 
 @app.route('/error')
 def was_error():
-    return render_template('error.html', title='error')
+    return render_template(constants.ERROR_PAGE, title='error')
 
 
 @app.route("/logout")
@@ -64,7 +66,7 @@ def setup():
     if perm_file.exists():
         flash(str(perm_file) + " exists, setup cannot continue. To re-install please delete this file.", "danger")
         app.logger.debug("perm exist GTFO")
-        return redirect('/setup-stage2')  # We push to setup-stage2 and let it decide where the user needs to go
+        return redirect(constants.SETUP_STAGE_2)  # We push to setup-stage2 and let it decide where the user needs to go
     dir0 = Path(PurePath(cfg['DBFILE']).parent)
     dir1 = Path(cfg['RAW_PATH'])
     dir2 = Path(cfg['TRANSCODE_PATH'])
@@ -92,7 +94,7 @@ def setup():
             f = open(perm_file, "w")
             f.write("boop!")
             f.close()
-            return redirect('/setup-stage2')
+            return redirect(constants.SETUP_STAGE_2)
         else:
             flash("Couldn't setup database", "danger")
             app.logger.debug("Couldn't setup database")
@@ -100,10 +102,10 @@ def setup():
     except Exception as e:
         flash(str(e))
         app.logger.debug("Setup - " + str(e))
-        return redirect('/index')
+        return redirect(constants.HOME_PAGE)
 
 
-@app.route('/setup-stage2', methods=['GET', 'POST'])
+@app.route(constants.SETUP_STAGE_2, methods=['GET', 'POST'])
 def setup_stage2():
     """
     This is the second stage of setup this will allow the user to create an admin account
@@ -116,7 +118,7 @@ def setup_stage2():
             flash('You cannot create more than 1 admin account')
             return redirect(url_for('login'))
     except Exception:
-        app.logger.debug("No admin account found")
+        app.logger.debug(constants.NO_ADMIN_ACCOUNT)
 
     # After a login for is submitted
     form = SetupForm()
@@ -133,7 +135,7 @@ def setup_stage2():
             db.session.commit()
         except Exception as e:
             flash(str(e), "danger")
-            return redirect('/setup-stage2')
+            return redirect(constants.SETUP_STAGE_2)
         else:
             return redirect(url_for('login'))
     return render_template('setup.html', form=form)
@@ -177,15 +179,15 @@ def login():
         x = User.query.all()
         # If we dont raise an exception but the usr table is empty
         if not x:
-            return redirect('/setup-stage2')
+            return redirect(constants.SETUP_STAGE_2)
     except Exception:
-        flash("No admin account found")
-        app.logger.debug("No admin account found")
-        return redirect('/setup-stage2')
+        flash(constants.NO_ADMIN_ACCOUNT)
+        app.logger.debug(constants.NO_ADMIN_ACCOUNT)
+        return redirect(constants.SETUP_STAGE_2)
 
     # if user is logged in
     if current_user.is_authenticated:
-        return redirect('/index')
+        return redirect(constants.HOME_PAGE)
 
     form = SetupForm()
     if form.validate_on_submit():
@@ -206,7 +208,7 @@ def login():
         if loginhashed == password:
             login_user(user)
             app.logger.debug("user was logged in - redirecting")
-            return redirect('/index')
+            return redirect(constants.HOME_PAGE)
         else:
             flash('Password is wrong', 'danger')
     return render_template('login.html', form=form)
@@ -251,24 +253,24 @@ def feed_json():
     searchq = request.args.get('q')
     logpath = cfg['LOGPATH']
     if x == "delete":
-        j = utils.delete_job(j_id, x)
+        j = json_api.delete_job(j_id, x)
     elif x == "abandon":
-        j = utils.abandon_job(j_id)
+        j = json_api.abandon_job(j_id)
     elif x == "full":
         app.logger.debug("getlog")
-        j = utils.generate_log(logpath, j_id)
+        j = json_api.generate_log(logpath, j_id)
     elif x == "search":
         app.logger.debug("search")
-        j = utils.search(searchq)
+        j = json_api.search(searchq)
     elif x == "getfailed":
         app.logger.debug("getfailed")
-        j = utils.get_x_jobs("fail")
+        j = json_api.get_x_jobs("fail")
     elif x == "getsuccessful":
         app.logger.debug("getsucessful")
-        j = utils.get_x_jobs("success")
+        j = json_api.get_x_jobs("success")
     elif x == "joblist":
         app.logger.debug("joblist")
-        j = utils.get_x_jobs("joblist")
+        j = json_api.get_x_jobs("joblist")
     elif x == "fixperms":
         app.logger.debug("fixperms")
         j = utils.fix_permissions(j_id)
@@ -402,7 +404,7 @@ def listlogs(path):
 
     # Deal with bad data
     if not os.path.exists(fullpath):
-        return render_template('error.html')
+        return render_template(constants.ERROR_PAGE)
 
     # Get all files in directory
     files = utils.get_info(fullpath)
@@ -418,14 +420,12 @@ def logreader():
     This will display or allow downloading the requested logfile
     This is where the XHR requests are sent when viewing /logs?=logfile
     """
-
-    # Setup our vars
     logpath = cfg['LOGPATH']
     mode = request.args.get('mode')
     # We should use the job id and not get the raw logfile from the user
     logfile = request.args.get('logfile')
-    if logfile is None or "../" in logfile or mode is None:
-        return render_template('error.html')
+    if logfile is None or "../" in logfile or mode is None or logfile.find("/") != -1:
+        return render_template(constants.ERROR_PAGE)
     fullpath = os.path.join(logpath, logfile)
 
     my_file = Path(fullpath)
@@ -465,7 +465,7 @@ def logreader():
         return send_file(fullpath, as_attachment=True)
     else:
         # do nothing/ or error out
-        return render_template('error.html')
+        return render_template(constants.ERROR_PAGE)
 
     return app.response_class(generate(), mimetype='text/plain')
 
@@ -490,11 +490,11 @@ def history():
     if os.path.isfile(cfg['DBFILE']):
         # after roughly 175 entries firefox readermode will break
         # jobs = Job.query.filter_by().limit(175).all()
-        jobs = Job.query.order_by().paginate(page, 100, False)
+        jobs = Job.query.order_by(db.desc(Job.job_id)).paginate(page, 100, False)
     else:
         app.logger.error('ERROR: /history database file doesnt exist')
         jobs = {}
-    app.logger.debug(cfg['DATE_FORMAT'])
+    app.logger.debug(f"Date format - {cfg['DATE_FORMAT']}")
 
     return render_template('history.html', jobs=jobs.items, date_format=cfg['DATE_FORMAT'], pages=jobs)
 
@@ -597,7 +597,7 @@ def list_titles():
     if job_id == "":
         app.logger.debug("list_titles - no job supplied")
         flash("No job supplied", "danger")
-        return redirect('/error')
+        return redirect(constants.ERROR_REDIRECT)
     job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     search_results = utils.metadata_selector("search", title, year)
@@ -626,11 +626,11 @@ def gettitle():
     if imdb_id == "" or imdb_id is None:
         app.logger.debug("gettitle - no imdb supplied")
         flash("No imdb supplied", "danger")
-        return redirect('/error')
+        return redirect(constants.ERROR_REDIRECT)
     if job_id == "" or job_id is None:
         app.logger.debug("gettitle - no job supplied")
         flash("No job supplied", "danger")
-        return redirect('/error')
+        return redirect(constants.ERROR_REDIRECT)
     dvd_info = utils.metadata_selector("get_details", None, None, imdb_id)
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
@@ -772,7 +772,7 @@ def import_movies():
             # This is only for pycharm
             movie_name = str.replace(" ", "%20", matched.group(1).strip())  # movie
 
-            p1, imdb_id = utils.get_omdb_poster(movie_name, matched.group(2))
+            p1, imdb_id = get_omdb_poster(movie_name, matched.group(2))
             # ['poster.jpg', 'title_t00.mkv', 'title_t00.xml', 'fanart.jpg',
             #  'title_t00.nfo-orig', 'title_t00.nfo', 'title_t00.xml-orig', 'folder.jpg']
             app.logger.debug(str(listdir(join(my_path, str(movie)))))
@@ -826,7 +826,7 @@ def import_movies():
                     # This is only for pycharm
                     sub_movie_name = str.replace(" ", "%20", sub_matched.group(1).strip())  # movie
                     sub_movie_name = str.replace("&", "%26", sub_movie_name)
-                    p2, imdb_id = utils.get_omdb_poster(sub_movie_name, sub_matched.group(2))
+                    p2, imdb_id = get_omdb_poster(sub_movie_name, sub_matched.group(2))
                     app.logger.debug(listdir(join(sub_path, str(sub_movie))))
                     # If the user selects another ext thats not mkv we are f
                     sub_movie_files = [f for f in listdir(join(sub_path, str(sub_movie)))

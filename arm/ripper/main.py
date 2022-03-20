@@ -52,8 +52,7 @@ def log_arm_params(job):
     logging.info("**** Logging ARM variables ****")
     for key in ("devpath", "mountpoint", "title", "year", "video_type",
                 "hasnicetitle", "label", "disctype"):
-        logging.info(
-            key + ": " + str(getattr(job, key)))
+        logging.info(key + ": " + str(getattr(job, key)))
     logging.info("**** End of ARM variables ****")
 
     logging.info("**** Logging config parameters ****")
@@ -64,9 +63,7 @@ def log_arm_params(job):
                 "COMPLETED_PATH", "EXTRAS_SUB", "EMBY_REFRESH", "EMBY_SERVER",
                 "EMBY_PORT", "NOTIFY_RIP", "NOTIFY_TRANSCODE",
                 "MAX_CONCURRENT_TRANSCODES"):
-        logging.info(key.lower() +
-                     ": " +
-                     str(cfg.get(key, '<not given>')))
+        logging.info(key.lower() + ": " + str(cfg.get(key, '<not given>')))
     logging.info("**** End of config parameters ****")
 
 
@@ -257,12 +254,12 @@ def main(logfile, job):
         # Use FFMPeg to convert Large Poster if enabled in config
         if job.disctype == "dvd" and cfg["RIP_POSTER"]:
             os.system("mount " + job.devpath)
-            if os.path.isfile(job.mountpoint+"/JACKET_P/J00___5L.MP2"):
+            if os.path.isfile(job.mountpoint + "/JACKET_P/J00___5L.MP2"):
                 logging.info("Converting NTSC Poster Image")
-                os.system('ffmpeg -i "'+job.mountpoint+'/JACKET_P/J00___5L.MP2" "'+hb_out_path+'/poster.png"')
-            elif os.path.isfile(job.mountpoint+"/JACKET_P/J00___6L.MP2"):
+                os.system('ffmpeg -i "' + job.mountpoint + '/JACKET_P/J00___5L.MP2" "' + hb_out_path + '/poster.png"')
+            elif os.path.isfile(job.mountpoint + "/JACKET_P/J00___6L.MP2"):
                 logging.info("Converting PAL Poster Image")
-                os.system('ffmpeg -i "'+job.mountpoint+'/JACKET_P/J00___6L.MP2" "'+hb_out_path+'/poster.png"')
+                os.system('ffmpeg -i "' + job.mountpoint + '/JACKET_P/J00___6L.MP2" "' + hb_out_path + '/poster.png"')
             os.system("umount " + job.devpath)
 
         logging.info(f"Processing files to: {hb_out_path}")

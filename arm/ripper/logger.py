@@ -51,10 +51,11 @@ def setup_logging(job):
 
 
 def clean_up_logs(logpath, loglife):
-    """Delete all log files older than x days\n
-    logpath = path of log files\n
-    loglife = days to let logs live\n
-
+    """
+    Delete all log files older than x days\n
+    :param logpath: path of log files\n
+    :param loglife: days to let logs live\n
+    :return:
     """
     if loglife < 1:
         logging.info("loglife is set to 0. Removal of logs is disabled")

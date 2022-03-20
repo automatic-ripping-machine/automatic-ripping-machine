@@ -102,18 +102,6 @@ def music_brainz(discid, job):
     return artist_title
 
 
-def clean_for_log(string):
-    """ Cleans up string for use in filename """
-    string = re.sub('\\[(.*?)]', '', string)
-    string = re.sub('\\s+', ' ', string)
-    string = string.replace(' : ', ' - ')
-    string = string.replace(':', '-')
-    string = string.replace('&', 'and')
-    string = string.replace("\\", " - ")
-    string = string.strip()
-    return re.sub('[^\\w.() -]', '', string)
-
-
 def get_title(discid, job):
     """
     Ask musicbrainz.org for the release of the disc
@@ -131,7 +119,7 @@ def get_title(discid, job):
         title = str(infos['disc']['release-list'][0]['title'])
         # Start setting our db stuff
         artist = str(infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name'])
-        clean_title = clean_for_log(artist) + "-" + clean_for_log(title)
+        clean_title = u.clean_for_filename(artist) + "-" + u.clean_for_filename(title)
         args = {
             'crc_id': str(infos['disc']['release-list'][0]['id']),
             'title': str(artist + " " + title),
