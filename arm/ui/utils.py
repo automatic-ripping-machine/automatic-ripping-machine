@@ -51,7 +51,7 @@ def check_db_version(install_path, db_file):
     If it doesn't exist create it.  If it's out of date update it.
     """
     from alembic.script import ScriptDirectory
-    from alembic.config import Config
+    from alembic.config import Config  # noqa: F811
     import sqlite3
     import flask_migrate
 
