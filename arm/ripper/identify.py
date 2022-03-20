@@ -60,14 +60,14 @@ def identify(job, logfile):
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
-    string = re.sub('\\[(.*?)\\]', '', string)
+    string = re.sub('\\[(.*?)]', '', string)
     string = re.sub('\\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
     string = string.replace('&', 'and')
     string = string.replace("\\", " - ")
     string = string.strip()
-    return re.sub(r'[^\w_.() -]', '', string)
+    return re.sub(r'[^\w.() -]', '', string)
 
 
 def identify_bluray(job):
@@ -122,8 +122,7 @@ def identify_dvd(job):
         job.label = "not identified"
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
-        fallback_title = f"{job.label}_{crc64}"
-        dvd_title = fallback_title
+        dvd_title = f"{job.label}_{crc64}"
         logging.info(f"DVD CRC64 hash is: {crc64}")
         job.crc_id = str(crc64)
         urlstring = f"http://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
@@ -148,7 +147,7 @@ def identify_dvd(job):
             utils.database_updater(args, job)
     except Exception as e:
         logging.error("Pydvdid failed with the error: " + str(e))
-        dvd_title = fallback_title = str(job.label)
+        dvd_title = str(job.label)
 
     logging.debug("dvd_title_label= " + str(dvd_title))
     # strip all non-numeric chars and use that for year
@@ -166,7 +165,7 @@ def identify_dvd(job):
     dvd_info_xml = metadata_selector(job, dvd_title, year)
     logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
     identify_loop(job, dvd_info_xml, dvd_title, year)
-    # Failsafe so they we always have a title.
+    # Failsafe so that we always have a title.
     if job.title is None or job.title == "None":
         job.title = str(job.label)
         job.year = None

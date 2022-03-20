@@ -26,18 +26,16 @@ class MakeMkvRuntimeError(RuntimeError):
 
 def makemkv(logfile, job):
     """
-    Rip Blurays with MakeMKV\n
-    logfile = Location of logfile to redirect MakeMKV logs to\n
-    job = job object\n
+    Rip Blu-rays with MakeMKV\n\n
 
-    Returns path to ripped files.
+    :param logfile: Location of logfile to redirect MakeMKV logs to
+    :param job: job object
+    :return: path to ripped files.
     """
 
     # confirm MKV is working, beta key hasn't expired
     prep_mkv(job)
-
     logging.info(f"Starting MakeMKV rip. Method is {cfg['RIPMETHOD']}")
-
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
     cmd = f"makemkvcon -r info disc:9999  |grep {job.devpath} |grep -oP '(?<=:).*?(?=,)'"
@@ -51,25 +49,7 @@ def makemkv(logfile, job):
         raise MakeMkvRuntimeError(mdisc_error)
 
     # get filesystem in order
-    rawpath = os.path.join(str(cfg["RAW_PATH"]), str(job.title))
-    logging.info(f"Destination is {rawpath}")
-
-    if not os.path.exists(rawpath):
-        try:
-            os.makedirs(rawpath)
-        except OSError:
-            err = f"Couldn't create the base file path: {rawpath} Probably a permissions error"
-            logging.debug(err)
-    else:
-        logging.info(f"{rawpath} exists.  Adding timestamp.")
-        ts = round(time.time() * 100)
-        rawpath = os.path.join(str(cfg["RAW_PATH"]), f"{job.title}_{ts}")
-        logging.info(f"rawpath is {rawpath}")
-        try:
-            os.makedirs(rawpath)
-        except OSError:
-            err = f"Couldn't create the base file path: {rawpath} Probably a permissions error"
-            sys.exit(err)
+    rawpath = setup_rawpath(job, os.path.join(str(cfg["RAW_PATH"]), str(job.title)))
 
     # rip bluray
     if cfg["RIPMETHOD"] == "backup" and job.disctype == "bluray":
@@ -93,38 +73,77 @@ def makemkv(logfile, job):
             )
             run_makemkv(cmd)
         else:
-            # process one track at a time based on track length
-            for track in job.tracks:
-                if track.length < int(cfg["MINLENGTH"]):
-                    # too short
-                    logging.info(f"Track #{track.track_number} of {job.no_of_titles}. Length ({track.length}) "
-                                 f"is less than minimum length ({cfg['MINLENGTH']}).  Skipping")
-                elif track.length > int(cfg["MAXLENGTH"]):
-                    # too long
-                    logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
-                                 f"Length ({track.length}) is greater than maximum length ({cfg['MAXLENGTH']}).  "
-                                 "Skipping")
-                else:
-                    # just right
-                    logging.info(f"Processing track #{track.track_number} of {(job.no_of_titles - 1)}. "
-                                 f"Length is {track.length} seconds.")
-                    filepathname = os.path.join(rawpath, track.filename)
-                    logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
-
-                    cmd = 'makemkvcon mkv {0} -r --progress=-stdout --messages=-stdout dev:{1} {2} {3} --minlength={4}>> {5}'.format(
-                        cfg["MKV_ARGS"],
-                        job.devpath,
-                        str(track.track_number),
-                        shlex.quote(rawpath),
-                        cfg["MINLENGTH"],
-                        logfile
-                    )
-                    run_makemkv(cmd)
+            process_tracks(job, logfile, rawpath)
     else:
         logging.info("I'm confused what to do....  Passing on MakeMKV")
 
     job.eject()
     logging.info(f"Exiting MakeMKV processing with return value of: {rawpath}")
+    return rawpath
+
+
+def process_tracks(job, logfile, rawpath):
+    """
+    For processing single tracks from MakeMKV
+    :param job: job object
+    :param str logfile: path of logfile
+    :param str rawpath:
+    :return:
+    """
+    # process one track at a time based on track length
+    for track in job.tracks:
+        if track.length < int(cfg["MINLENGTH"]):
+            # too short
+            logging.info(f"Track #{track.track_number} of {job.no_of_titles}. Length ({track.length}) "
+                         f"is less than minimum length ({cfg['MINLENGTH']}).  Skipping")
+        elif track.length > int(cfg["MAXLENGTH"]):
+            # too long
+            logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
+                         f"Length ({track.length}) is greater than maximum length ({cfg['MAXLENGTH']}).  "
+                         "Skipping")
+        else:
+            # just right
+            logging.info(f"Processing track #{track.track_number} of {(job.no_of_titles - 1)}. "
+                         f"Length is {track.length} seconds.")
+            filepathname = os.path.join(rawpath, track.filename)
+            logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
+
+            cmd = 'makemkvcon mkv {0} -r --progress=-stdout --messages=-stdout' \
+                  'dev:{1} {2} {3} --minlength={4}>> {5}'.format(cfg["MKV_ARGS"],
+                                                                 job.devpath,
+                                                                 str(track.track_number),
+                                                                 shlex.quote(rawpath),
+                                                                 cfg["MINLENGTH"],
+                                                                 logfile
+                                                                 )
+            run_makemkv(cmd)
+
+
+def setup_rawpath(job, rawpath):
+    """
+    Checks if we need to create path and does so if needed\n\n
+    :param job:
+    :param rawpath:
+    :return: rawpath
+    """
+
+    logging.info(f"Destination is {rawpath}")
+    if not os.path.exists(rawpath):
+        try:
+            os.makedirs(rawpath)
+        except OSError:
+            err = f"Couldn't create the base file path: {rawpath} Probably a permissions error"
+            logging.debug(err)
+    else:
+        logging.info(f"{rawpath} exists.  Adding timestamp.")
+        ts = round(time.time() * 100)
+        rawpath = os.path.join(str(cfg["RAW_PATH"]), f"{job.title}_{ts}")
+        logging.info(f"rawpath is {rawpath}")
+        try:
+            os.makedirs(rawpath)
+        except OSError:
+            err = f"Couldn't create the base file path: {rawpath} Probably a permissions error"
+            sys.exit(err)
     return rawpath
 
 
@@ -178,10 +197,12 @@ def update_key():
 
 
 def get_track_info(mdisc, job):
-    """Use MakeMKV to get track info and update Track class\n
+    """
+    Use MakeMKV to get track info and update Track class
 
-    mdisc = MakeMKV disc number\n
-    job = Job instance\n
+    :param mdisc: MakeMKV disc number
+    :param job: Job instance
+    :return: None
     """
 
     logging.info("Using MakeMKV to get information on all the tracks on the disc.  This will take a few minutes...")

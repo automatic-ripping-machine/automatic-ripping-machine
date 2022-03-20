@@ -38,16 +38,11 @@ def get_disc_id(disc):
 def music_brainz(discid, job):
     """
     Ask musicbrainz.org for the release of the disc
-
-    arguments:
-    discid - identification object from discid package
-    job - the job class/obj
-
-    return:
-    the label of the disc as a string or "" if nothing was found
+    :param discid: identification object from discid package
+    :param job: the job class/obj
+    :return: the label of the disc as a string or "" if nothing was found
     """
-    mb.set_useragent("arm", "v2.4")
-    # TODO: Split this into smaller groups of tries so we dont lose everything if a single thing fails
+    mb.set_useragent("arm", "v2.6")
     try:
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits'])
         logging.debug("Infos: %s", infos)
@@ -109,14 +104,14 @@ def music_brainz(discid, job):
 
 def clean_for_log(string):
     """ Cleans up string for use in filename """
-    string = re.sub('\\[(.*?)\\]', '', string)
+    string = re.sub('\\[(.*?)]', '', string)
     string = re.sub('\\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
     string = string.replace('&', 'and')
     string = string.replace("\\", " - ")
     string = string.strip()
-    return re.sub('[^\\w_.() -]', '', string)
+    return re.sub('[^\\w.() -]', '', string)
 
 
 def get_title(discid, job):
@@ -124,12 +119,9 @@ def get_title(discid, job):
     Ask musicbrainz.org for the release of the disc
     only gets the title of the album and artist
 
-    arguments:
-    discid - identification object from discid package
-    job - the job object for the database entry
-
-    return:
-    the label of the disc as a string or "" if nothing was found
+    :param discid: identification object from discid package
+    :param job: the job object for the database entry
+    :return: the label of the disc as a string or "" if nothing was found
 
     Notes: dont try to use logging here -  doing so will break the arm setup_logging() function
     """
@@ -157,24 +149,15 @@ def get_cd_art(job, infos):
     """
     Ask musicbrainz.org for the art of the disc
 
-    arguments:
-    job - the job object for the database entry
-    infos - object/json returned from musicbrainz.org api
-
-    return:
-    True if we find the cd art
-    False if we didnt find the art
+    :param job: the job object for the database entry
+    :param infos: object/json returned from musicbrainz.org api
+    :return:     True if we find the cd art - False if we didnt find the art
     """
     try:
         # Use the build-in images from coverartarchive if available
         if infos['disc']['release-list'][0]['cover-art-archive']['artwork'] != "false":
             artlist = mb.get_image_list(job.crc_id)
             for image in artlist["images"]:
-                # For verified images only
-                """if "Front" in image["types"] and image["approved"]:
-                    job.poster_url_auto = str(image["thumbnails"]["large"])
-                    job.poster_url = str(image["thumbnails"]["large"])
-                    return True"""
                 # We dont care if its verified ?
                 if "image" in image:
                     args = {
