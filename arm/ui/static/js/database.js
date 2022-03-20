@@ -4,19 +4,21 @@
 /* jshint node: true */
 /* jshint strict: false */
 
-var hrrref = "";
-var activeJob = null;
-var actionType = null;
+let hrrref = "";
+let activeJob = null;
+let actionType = null;
+let z = ""
+
 $(document).ready(function () {
     //get the value
-    var seen = checkCookie();
+    const seen = checkCookie();
     if (seen == null) {
         /*have not agreed to understanding the risks, show modal*/
         hrrref = "entryWarn";
         $('div .modal-title').html("<p class=\"text-center text-danger\">WARNING");
-        $('div.modal-body').html('<p class="text-center bg-danger text-white">This can be dangerous if you don\'t know what you\'re doing. <br> \
-									You could delete all your of your database entries if you\'re not careful!!! <br> \
-									Be careful!<br><br> Are you sure you want to continue ?</p>');
+        $('div.modal-body').html('<p class="text-center bg-danger text-white">This can be dangerous if you don\'t know what you\'re doing. <br>' +
+            'You could delete all your of your database entries if you\'re not careful!!! <br>' +
+            'Be careful!<br><br> Are you sure you want to continue ?</p>');
         $('#exampleModal').modal('show');
         $('#save-get-success').addClass('d-none');
         $('#save-get-failed').addClass('d-none');
@@ -38,7 +40,7 @@ $(document).ready(function () {
             //console.log(data)
             if (data['success'] === true) {
                 $('.card-deck').html('')
-                var size = Object.keys(data['results']).length;
+                let size = Object.keys(data['results']).length;
                 console.log("length = " + size);
                 if (size > 0) {
                     $.each(data['results'], function (index, value) {
@@ -65,16 +67,16 @@ $(document).ready(function () {
         $('#exampleModal').modal('show');
         $('.modal-title').text("Loading...");
         $('.modal-body').html("");
-        $(".modal-body").append('<div class="d-flex justify-content-center">\
-									<div class="spinner-border" role="status">\
-									<span class="sr-only">Loading...</span>\
-									</div>\
-									</div>');
+        $(".modal-body").append('<div class="d-flex justify-content-center">' +
+            '<div class="spinner-border" role="status">' +
+            '<span class="sr-only">Loading...</span>' +
+            '</div>' +
+            '</div>');
         hrrref = '/json?mode=getfailed';
         $.get(hrrref, function (data) {
             if (data['success'] === true) {
                 $('.card-deck').html('');
-                var size = Object.keys(data['results']).length;
+                let size = Object.keys(data['results']).length;
                 console.log("length = " + size);
                 if (size > 0) {
                     $.each(data['results'], function (index, value) {
@@ -101,26 +103,26 @@ $(document).ready(function () {
         }, "json");
     });
     $("#searchquery").on("keydown", function (event) {
-        if (event.which == 13)
+        if (event.which === 13)
             $("#save-yes").click();
     });
     $("#save-yes").bind('click', function () {
         console.log(hrrref)
-        // Check we have the searchquery element & it must be more than 3 chars
+        // Check we have the search query & it must be more than 3 chars
         if ($("input#searchquery").length) {
-            var search_query = $("input#searchquery").val().length;
+            let search_query = $("input#searchquery").val().length;
             if (search_query < 3) {
                 $("#searchquery").addClass("is-invalid");
                 return false;
             }
         }
-        if (hrrref != "") {
+        if (hrrref !== "") {
             // Add the spinner to let them know we are loading
-            $("#m-body").append('<div class="d-flex justify-content-center">\
-										<div class="spinner-border" role="status">\
-										<span class="sr-only">Loading...</span>\
-										</div>\
-										</div>');
+            $("#m-body").append('<div class="d-flex justify-content-center">' +
+                '<div class="spinner-border" role="status">' +
+                '<span class="sr-only">Loading...</span>' +
+                '</div>' +
+                '</div>');
             if (actionType === "search") {
                 console.log("searching");
                 console.log("q=" + $('#searchquery').val());
@@ -169,8 +171,8 @@ $(document).ready(function () {
                     if (data['mode'] === "logfile") {
                         $(this).find('.modal-title').text("Logfile")
                         $("#message1 .alert-heading").html("Here is the logfile you requested")
-                        $('div .card-deck').html('<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">\
-								<strong>' + data['job_title'] + '</strong></div><pre class="text-white bg-secondary"><code>' + data['log'] + '</code></pre>')
+                        $('div .card-deck').html('<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">' +
+                            '<strong>' + data['job_title'] + '</strong></div><pre class="text-white bg-secondary"><code>' + data['log'] + '</code></pre>')
                         window.scrollTo({top: 0, behavior: 'smooth'});
                         $('#exampleModal').modal('toggle');
                         $('#message1').removeClass('d-none');
@@ -180,7 +182,7 @@ $(document).ready(function () {
                     if (data['mode'] === "search") {
                         $(this).find('.modal-title').text("searching....")
                         $('.card-deck').html('')
-                        var size = Object.keys(data['results']).length;
+                        let size = Object.keys(data['results']).length;
                         console.log("length = " + size);
                         if (size > 0) {
                             $.each(data['results'], function (index, value) {
@@ -193,7 +195,6 @@ $(document).ready(function () {
                             $('#m-body').modal('handleUpdate')
                             $('#exampleModal').modal('toggle');
                             $('#message1').removeClass('d-none').removeClass('alert-danger').addClass('alert-success');
-                            ;
                             $('#message2').addClass('d-none');
                             $('#message3').addClass('d-none');
                         } else {
@@ -232,7 +233,7 @@ $(document).ready(function () {
         }
     });
     $("#save-no").bind('click', function () {
-        if (hrrref == "entryWarn") {
+        if (hrrref === "entryWarn") {
             console.log("use wants to go away");
             window.location.href = "/";
             return false;
@@ -245,25 +246,20 @@ $(document).ready(function () {
 
     //Simple function to check if we have already agreed
     function checkCookie() {
-        var understands = getCookie("understands");
-        if (understands != "" && understands != null) {
-            return true;
-        } else {
-            return null;
-        }
+        const understands = getCookie("understands");
+        return understands !== "" && understands != null;
     }
 
     //Get only the understands cookie
     function getCookie(cname) {
-        var name = cname + "=";
-        var decodedCookie = decodeURIComponent(document.cookie);
-        var ca = decodedCookie.split(';');
-        for (var i = 0; i < ca.length; i++) {
-            var c = ca[i];
-            while (c.charAt(0) == ' ') {
+        let name = cname + "=";
+        let decodedCookie = decodeURIComponent(document.cookie);
+        let ca = decodedCookie.split(';');
+        for (var c of ca) {
+            while (c.charAt(0) === ' ') {
                 c = c.substring(1);
             }
-            if (c.indexOf(name) == 0) {
+            if (c.indexOf(name) === 0) {
                 return c.substring(name.length, c.length);
             }
         }
@@ -271,14 +267,16 @@ $(document).ready(function () {
 
     //Set out cookie so we dont need the dialog popping up
     function setCookie(cname, cvalue, exdays) {
-        var d = new Date();
+        const d = new Date();
         d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-        var expires = "expires=" + d.toUTCString();
+        const expires = "expires=" + d.toUTCString();
         document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
     }
 
     $('#exampleModal').on('show.bs.modal', function (event) {
-        var button = $(event.relatedTarget) // Button that triggered the modal
+        let button = $(event.relatedTarget) // Button that triggered the modal
+        let modalTitle
+        let modalBody
         actionType = button.data('type') // Extract info from data-* attributes
         hrrref = button.data('href')
         activeJob = button.data('jobid')
@@ -287,14 +285,14 @@ $(document).ready(function () {
         console.log(actionType)
 
         if (actionType === "abandon") {
-            var modalTitle = "Abandon This Job ?"
-            var modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?"
+            modalTitle = "Abandon This Job ?"
+            modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?"
         } else if (actionType === "delete") {
-            var modalTitle = "Delete this job forever ?"
-            var modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?"
+            modalTitle = "Delete this job forever ?"
+            modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?"
         } else if (actionType === "search") {
-            var modalTitle = "Search the database"
-            var modalBody = '<div class="input-group mb-3">' +
+            modalTitle = "Search the database"
+            modalBody = '<div class="input-group mb-3">' +
                 '<div class="input-group-prepend">' +
                 '<span class="input-group-text" id="searchlabel">Search </span>' +
                 '</div>' +
@@ -302,13 +300,13 @@ $(document).ready(function () {
                 '<div id="validationServer03Feedback" class="invalid-feedback">Search string too short.</div>' +
                 '</div>';
         } else if (actionType === "fixperms") {
-            var modalTitle = "Fix Folder Permissions"
-            var modalBody = "Sometimes ARM fails to set file owner and permissions, would you like ARM to try to fix it ?"
+            modalTitle = "Fix Folder Permissions"
+            modalBody = "Sometimes ARM fails to set file owner and permissions, would you like ARM to try to fix it ?"
         } else {
-            var modalTitle = "Do you want to leave this page ?"
-            var modalBody = "To view the log file you need to leave this page. Would you like to leave ?"
+            modalTitle = "Do you want to leave this page ?"
+            modalBody = "To view the log file you need to leave this page. Would you like to leave ?"
         }
-        var modal = $(this)
+        let modal = $(this)
         modal.find('.modal-title').text(modalTitle)
         modal.find('.modal-body').html(modalBody)
         $("#searchquery").on("keydown", function (event) {
@@ -318,11 +316,10 @@ $(document).ready(function () {
     })
 
     function addJobItem(job) {
-        var idsplit = job.job_id.split("_");
-        var x = '<div class="col-md-4" id="jobId' + job.job_id + '">' +
-            '<div class="card mb-3  mx-auto" style="min-height: 420px;">' +
+        let x = '<div class="col-md-4" id="jobId' + job.job_id + '">' +
+            '<div class="card mb-3  mx-auto">' +
             '<div class="card-header row no-gutters justify-content-center">' +
-            '<strong id="jobId' + job.job_id + '_header">';
+            '<strong>';
         if (job.title_manual !== "None") {
             x += job.title_manual + ' (' + job.year + ')';
         } else {
@@ -332,57 +329,58 @@ $(document).ready(function () {
             '</div>' +
             '<div class="row no-gutters">' +
             '<div class="col-lg-4">' +
-            '<a href="jobdetail?job_id=' + idsplit[1] + '">';
-        // TODO: Fix above to link the correct server - for now it links to the main server
-        if (job.poster_url !== "None" && job.poster_url !== "N/A") {
-            x += '<img id="jobId' + job.job_id + '_poster_url" alt="poster img" src="' + job.poster_url + '" width="240px" class="img-thumbnail">';
+            '<a href="jobdetail?job_id=' + job.job_id + '">';
+        if (job.poster_url !== "None") {
+            x += '<img id="jobId' + job.job_id + '_poster_url" src="' + job.poster_url + '" width="240px" class="img-thumbnail" alt="poster_image">';
         } else {
-            x += '<img id="jobId' + job.job_id + '_poster_url" alt="poster img" src="/static/img/none.png" width="240px" class="img-thumbnail">';
+            x += '<img id="jobId' + job.job_id + '_poster_url" src="/static/img/none.png" width="240px" class="img-thumbnail" alt="poster_image">';
         }
         x += '</a>' +
             '</div>' +
             '<div class="col-lg-4">' +
-            '<div class="card-body px-1 py-1">';
+            '<div class="card-body px-1 py-1">'
 
-        x += '<div id="jobId' + job.job_id + '_title"><b>' + job.title + '</b></div>';
-        x += '<div id="jobId' + job.job_id + '_year"><b>Year: </b>' + job.year + '</div>';
-        x += '<div id="jobId' + job.job_id + '_video_type"><b>Type: </b>' + job.video_type + '</div>';
-        x += '<div id="jobId' + job.job_id + '_devpath"><b>Device: </b>' + job.devpath + '</div>';
-        x += '<div><b>Status: </b><img id="jobId' + job.job_id + '_status" src="static/img/' + job.status + '.png" height="20px" alt="' + job.status + '" title="' + job.status + '"></div>';
+        x += '<div id="jobId' + job.job_id + '_title"><strong>' + job.title + '</strong></div>'
+        x += '<div id="jobId' + job.job_id + '_year"><strong>Year: </strong>' + job.year + '</div>'
+        x += '<div id="jobId' + job.job_id + '_video_type"><strong>Type: </strong>' + job.video_type + '</div>'
+        x += '<div id="jobId' + job.job_id + '_devpath"><strong>Device: </strong>' + job.devpath + '</div>'
+        x += '<div><strong>Status: </strong><img id="jobId' + job.job_id + '_status" src="static/img/' + job.status + '.png" height="20px" alt="' + job.status + '" title="' + job.status + '"></div>';
 
-        x += '<div id="jobId' + job.job_id + '_progress_section">';
+        x += '<div id="jobId' + job.job_id + '_progress_section">'
         if (job.status === "transcoding" && job.stage !== '' && job.progress) {
-            x += '<div id="jobId' + job.job_id + '_stage"><b>Stage: </b>' + job.stage + '</div>';
-            x += '<div id="jobId' + job.job_id + '_progress" >';
+            x += '<div id="jobId' + job.job_id + '_stage"><strong>Stage: </strong>' + job.stage + '</div>'
+            x += '<div id="jobId' + job.job_id + '_progress" >'
             x += '<div class="progress">' +
                 '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">' +
                 '<small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>' +
                 '</div>' +
                 '</div>' +
                 '</div>' +
-                '<div id="jobId' + job.job_id + '_eta"><b>ETA: </b>' + job.eta + '</div>';
+                '<div id="jobId' + job.job_id + '_eta"><strong>ETA: </strong>' + job.eta + '</div>';
+        } else {
+            x += '<div id="jobId' + job.job_id + '_start_time"><strong>Start time: </strong>' + job.start_time + '</div>';
+            x += '<div id="jobId' + job.job_id + '_job_length"><strong>Job Length: </strong>' + job.job_length + '</div>';
         }
         x += '</div>' +
             '</div>' +
             '</div>' +
             '<div class="col-lg-4">' +
-            '<div class="card-body px-1 py-1">';
+            '<div class="card-body px-1 py-1">'
 
-        x += '<div id="jobId' + job.job_id + '_RIPPER"><b>Ripper: </b>' + (job.ripper ? job.ripper : (idsplit[0] === "0" ? "Local" : "")) + '</div>';
-        x += '<div id="jobId' + job.job_id + '_RIPMETHOD"><b>Rip Method: </b>' + job.config.RIPMETHOD + '</div>';
-        x += '<div id="jobId' + job.job_id + '_MAINFEATURE"><b>Main Feature: </b>' + job.config.MAINFEATURE + '</div>';
-        x += '<div id="jobId' + job.job_id + '_MINLENGTH"><b>Min Length: </b>' + job.config.MINLENGTH + '</div>';
-        x += '<div id="jobId' + job.job_id + '_MAXLENGTH"><b>Max Length: </b>' + job.config.MAXLENGTH + '</div>';
+        x += '<div id="jobId' + job.job_id + '_RIPMETHOD"><strong>Rip Method: </strong>' + job.config.RIPMETHOD + '</div>'
+        x += '<div id="jobId' + job.job_id + '_MAINFEATURE"><strong>Main Feature: </strong>' + job.config.MAINFEATURE + '</div>'
+        x += '<div id="jobId' + job.job_id + '_MINLENGTH"><strong>Min Length: </strong>' + job.config.MINLENGTH + '</div>'
+        x += '<div id="jobId' + job.job_id + '_MAXLENGTH"><strong>Max Length: </strong>' + job.config.MAXLENGTH + '</div>'
 
         x += '</div>' +
             '<div class="card-body px-2 py-1">' +
-            '<div class="btn-group-vertical" role="group" aria-label="buttons" ' + (idsplit[0] !== '0' ? 'style="display: none;"' : '') + '>' +
-            '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="' + idsplit[1] + '" data-href="json?job=' + idsplit[1] + '&mode=abandon">Abandon Job</button>' +
+            '<div class="btn-group-vertical" role="group" aria-label="buttons">' +
+            '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="' + job.job_id + '" data-href="json?job=' + job.job_id + '&mode=abandon">Abandon Job</button>' +
             '<a href="logs?logfile=' + job.logfile + '&mode=full" class="btn btn-primary">View logfile</a>';
         if (job.video_type !== "Music") {
-            x += '<a href="titlesearch?job_id=' + idsplit[1] + '" class="btn btn-primary">Title Search</a>' +
-                '<a href="customTitle?job_id=' + idsplit[1] + '" class="btn btn-primary">Custom Title</a>' +
-                '<a href="changeparams?config_id=' + idsplit[1] + '" class="btn btn-primary">Edit Settings</a>';
+            x += '<a href="titlesearch?job_id=' + job.job_id + '" class="btn btn-primary">Title Search</a>' +
+                '<a href="customTitle?job_id=' + job.job_id + '" class="btn btn-primary">Custom Title</a>' +
+                '<a href="changeparams?config_id=' + job.job_id + '" class="btn btn-primary">Change Settings</a>';
         }
         x += '</div>' +
             '</div>' +
@@ -390,6 +388,8 @@ $(document).ready(function () {
             '</div>' +
             '</div>' +
             '</div></div>';
-        return x;
+        return x
     }
+
+
 });

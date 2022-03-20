@@ -16,7 +16,7 @@
         <div class="row h-100 mx-auto align-items-center">
             <div class="col-sm-12 mx-auto">
                 <p class="text-center">
-                <h5 class="text-center"><strong>Database Entries</strong></h5>
+                    <h5 class="text-center"><strong>Database Entries</strong></h5>
                 </p>
             </div>
         </div>
@@ -169,6 +169,14 @@
                                     </div>
                                     <div class="col-lg-4">
                                         <div class="card-body px-1 py-1">
+                                            <div id="jobId{{ job.job_id }}_RIPMETHOD"><strong>Rip
+                                                Method: </strong>{{ job.config.RIPMETHOD }}</div>
+                                            <div id="jobId{{ job.job_id }}_MAINFEATURE"><strong>Main
+                                                Feature: </strong>{{ job.config.MAINFEATURE }}</div>
+                                            <div id="jobId{{ job.job_id }}_MINLENGTH"><strong>Min
+                                                Length: </strong>{{ job.config.MINLENGTH }}</div>
+                                            <div id="jobId{{ job.job_id }}_MAXLENGTH"><strong>Max
+                                                Length: </strong>{{ job.config.MAXLENGTH }}</div>
                                         </div>
                                         <div class="card-body px-2 py-1">
                                             <div class="btn-group-vertical" role="group" aria-label="buttons">

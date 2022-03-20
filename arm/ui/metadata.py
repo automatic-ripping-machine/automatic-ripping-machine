@@ -274,6 +274,18 @@ def tmdb_find(imdb_id):
     return s
 
 
+def validate_imdb(imdb_id):
+    """
+    Validate that the imdb id we got
+    :param imdb_id:
+    :return:
+    """
+    # ['tt', 'nm', 'co', 'ev', 'ch' or 'ni'] - 123456789
+    # /ev\d{7}\/\d{4}(-\d)?|(ch|co|ev|nm|tt)\d{7}/
+    # /^ev\d{7}\/\d{4}(-\d)?$|^(ch|co|ev|nm|tt)\d{7}$/
+    ...
+
+
 def tmdb_fetch_results(search_query, year, tmdb_api_key):
     """
     Main function for fetching results from TMDB\n\n
