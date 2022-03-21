@@ -170,7 +170,6 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
 def main(logfile, job):
     """main disc processing function"""
     logging.info("Starting Disc identification")
-
     identify.identify(job, logfile)
     # Check db for entries matching the crc and successful
     have_dupes, crc_jobs = utils.job_dupe_check(job)
@@ -441,7 +440,6 @@ if __name__ == "__main__":
                 sys.exit(1)
 
     logging.info(f"Starting ARM processing at {datetime.datetime.now()}")
-
     utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
     # put in db

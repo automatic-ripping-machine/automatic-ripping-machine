@@ -31,11 +31,11 @@ def setup_logging(job):
         logfull = os.path.join(cfg['LOGPATH'], new_log_file) if os.path.isfile(temp_log_full) \
             else os.path.join(cfg['LOGPATH'], str(job.label) + ".log")
         job.logfile = logfile
-
     # Debug formatting
+    logging.getLogger().removeHandler(logging.getLogger().handlers[0])
     if cfg['LOGLEVEL'] == "DEBUG":
-        logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s '
-                                                     'ARM: %(module)s.%(funcName)s %(message)s',
+        logging.basicConfig(filename=logfull,
+                            format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
                             datefmt=cfg['DATE_FORMAT'], level=cfg['LOGLEVEL'])
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',

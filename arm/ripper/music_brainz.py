@@ -42,7 +42,7 @@ def music_brainz(discid, job):
     :param job: the job class/obj
     :return: the label of the disc as a string or "" if nothing was found
     """
-    mb.set_useragent("arm", "v2.6")
+    mb.set_useragent("arm", "v2_devel")
     try:
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits'])
         logging.debug("Infos: %s", infos)
@@ -113,7 +113,7 @@ def get_title(discid, job):
 
     Notes: dont try to use logging here -  doing so will break the arm setup_logging() function
     """
-    mb.set_useragent("arm", "v1.0")
+    mb.set_useragent("arm", "v2_devel")
     try:
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits'])
         title = str(infos['disc']['release-list'][0]['title'])
