@@ -78,7 +78,7 @@ MATRIX_PASS: ""
 ## MATRIX t2bot.io notification
 MATRIX_TOKEN: ""
 
-## Microsoft teams
+## Microsoft Teams
 MSTEAMS_TOKENA: ""
 MSTEAMS_TOKENB: ""
 MSTEAMS_TOKENC: ""
@@ -109,7 +109,7 @@ POPCORN_API: ""
 POPCORN_EMAIL: ""
 POPCORN_PHONENO: ""
 
-## maybe dont need PROVIDERKEY
+## Maybe don't need PROVIDERKEY
 PROWL_API: ""
 PROWL_PROVIDERKEY: ""
 

@@ -139,15 +139,15 @@ def delete_job(job_id, mode):
             # Make a backup and everything
             # The user can only access this by typing it manually
             if job_id == 'all':
-                # if os.path.isfile(cfg['DBFILE']):
+                #  if os.path.isfile(cfg['DBFILE']):  # noqa: S125
                 #    # Make a backup of the database file
                 #    cmd = f"cp {cfg['DBFILE']} {cfg['DBFILE'])}.bak"
                 #    app.logger.info(f"cmd  -  {cmd}")
                 #    os.system(cmd)
-                # Track.query.delete()
-                # Job.query.delete()
-                # Config.query.delete()
-                # db.session.commit()
+                #  Track.query.delete()
+                #  Job.query.delete()
+                #  Config.query.delete()
+                #  db.session.commit()
                 app.logger.debug("Admin is requesting to delete all jobs from database!!! No deletes went to db")
                 t = {'success': True, 'job': job_id, 'mode': mode}
             elif job_id == "title":

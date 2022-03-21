@@ -93,7 +93,7 @@ class Job(db.Model):
             elif key == "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO":
                 self.disctype = "music"
             else:
-                pass
+                logging.debug(f"key: {key} - value: {value}")
 
     def get_pid(self):
         pid = os.getpid()
@@ -121,7 +121,7 @@ class Job(db.Model):
             logging.debug("Found file: HVDVD_TS")
             # do something here too
         else:
-            logging.debug("Did not find valid dvd/bd files. Changing disctype to 'data'")
+            logging.debug("Did not find valid dvd/bd files. Changing disc-type to 'data'")
             self.disctype = "data"
 
     def identify_audio_cd(self):

@@ -9,10 +9,8 @@ let activeJob = null;
 let actionType = null;
 let z = ""
 
-$(document).ready(function () {
-    //get the value
-    const seen = checkCookie();
-    if (seen == null) {
+function checkNewUser(seen) {
+    if (seen === false) {
         /*have not agreed to understanding the risks, show modal*/
         hrrref = "entryWarn";
         $('div .modal-title').html("<p class=\"text-center text-danger\">WARNING");
@@ -25,6 +23,168 @@ $(document).ready(function () {
         $('#message3').addClass('d-none');
         $('#message1').addClass('d-none');
     }
+}
+
+
+//Simple function to check if we have already agreed
+function checkCookie() {
+    let understands = getCookie("understands");
+    return understands !== "" && understands != null;
+}
+
+//Get only the understands cookie
+function getCookie(cname) {
+    let name = cname + "=";
+    let decodedCookie = decodeURIComponent(document.cookie);
+    let ca = decodedCookie.split(';');
+    for (let c of ca) {
+        while (c.charAt(0) === ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) === 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+}
+
+//Set out cookie so we dont need the dialog popping up
+function setCookie(cname, cvalue, exdays) {
+    const d = new Date();
+    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + d.toUTCString();
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+}
+
+function proccessReturn(data, addJobItem) {
+    if (data['success'] === true) {
+        switch (data['mode']) {
+            case "delete":
+                $("#jobId" + activeJob).remove();
+                $("#message1 .alert-heading").html("Job was successfully deleted")
+                $('#exampleModal').modal('toggle');
+                $('#message1').removeClass('d-none');
+                $('#message2').addClass('d-none');
+                $('#message3').addClass('d-none');
+                setTimeout(
+                    function () {
+                        $('#message1').addClass('d-none');
+                    },
+                    5000
+                );
+                break;
+            case "abandon":
+                $("#status" + activeJob).attr("src", "static/img/fail.png")
+                $("#message1 .alert-heading").html("Job was successfully abandoned")
+                $('#exampleModal').modal('toggle');
+                $('#message1').removeClass('d-none');
+                $('#message2').addClass('d-none');
+                $('#message3').addClass('d-none');
+                setTimeout(
+                    function () {
+                        $('#message1').addClass('d-none');
+                    },
+                    5000
+                );
+                break;
+            case "logfile":
+                $(this).find('.modal-title').text("Logfile")
+                $("#message1 .alert-heading").html("Here is the logfile you requested")
+                $('div .card-deck').html('<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">' +
+                    '<strong>' + data['job_title'] + '</strong></div><pre class="text-white bg-secondary"><code>' + data['log'] + '</code></pre>')
+                window.scrollTo({top: 0, behavior: 'smooth'});
+                $('#exampleModal').modal('toggle');
+                $('#message1').removeClass('d-none');
+                $('#message2').addClass('d-none');
+                $('#message3').addClass('d-none');
+                break;
+            case "search":
+                $(this).find('.modal-title').text("searching....")
+                $('.card-deck').html('')
+                let size = Object.keys(data['results']).length;
+                console.log("length = " + size);
+                if (size > 0) {
+                    $.each(data['results'], function (index, value) {
+                        z = addJobItem(value)
+                        $('.card-deck').append(z);
+                    });
+                    console.log(data)
+                    $("#message1 .alert-heading").html("Here are the jobs i found matching your query")
+                    $('#m-body').addClass('bd-example-modal-lg')
+                    $('#m-body').modal('handleUpdate')
+                    $('#exampleModal').modal('toggle');
+                    $('#message1').removeClass('d-none').removeClass('alert-danger').addClass('alert-success');
+                    $('#message2').addClass('d-none');
+                    $('#message3').addClass('d-none');
+                } else {
+                    $("#message1 .alert-heading").html("I couldnt find any results matching that title")
+                    $('#message1').removeClass('d-none').removeClass('alert-success').addClass('alert-danger');
+                    $('#exampleModal').modal('toggle');
+                }
+                break;
+            case "fixperms":
+                $("#jobId" + activeJob).addClass("alert-success")
+                $("#message1 .alert-heading").html("Permissions fixed")
+                $('#exampleModal').modal('toggle');
+                $('#message1').removeClass('d-none');
+                $('#message2').addClass('d-none');
+                $('#message3').addClass('d-none');
+                setTimeout(
+                    function () {
+                        $('#message1').addClass('d-none');
+                    },
+                    5000
+                );
+                break;
+            default:
+                break;
+        }
+    } else {
+        $('#message3').removeClass('d-none');
+        $('#message1').addClass('d-none');
+        $('#message2').addClass('d-none');
+        $('#exampleModal').modal('toggle');
+        setTimeout(
+            function () {
+                $('#message3').addClass('d-none');
+            },
+            5000
+        );
+    }
+}
+
+function checkHref(addJobItem) {
+    if (hrrref !== "") {
+        // Add the spinner to let them know we are loading
+        $("#m-body").append('<div class="d-flex justify-content-center">' +
+            '<div class="spinner-border" role="status">' +
+            '<span class="sr-only">Loading...</span>' +
+            '</div>' +
+            '</div>');
+        if (actionType === "search") {
+            console.log("searching");
+            console.log("q=" + $('#searchquery').val());
+            hrrref = hrrref + $('#searchquery').val();
+            console.log("href=" + hrrref);
+        }
+        if (hrrref === "entryWarn") {
+            setCookie("understands", "yes", 66);
+            $('#exampleModal').modal('toggle');
+            $('#save-get-success').removeClass('d-none');
+            $('#save-get-failed').removeClass('d-none');
+            hrrref = "";
+        }
+        $.get(hrrref, function (data) {
+            console.log(data['success']); // John
+            console.log("#jobId" + activeJob)
+            proccessReturn.call(this, data, addJobItem);
+        }, "json");
+    }
+}
+
+$(document).ready(function () {
+    //Check if user is new
+    console.log(checkCookie());
+    checkNewUser(checkCookie());
     $("#save-get-success").bind('click', function () {
         // Add the spinner to let them know we are loading
         $('#exampleModal').modal('show');
@@ -116,121 +276,7 @@ $(document).ready(function () {
                 return false;
             }
         }
-        if (hrrref !== "") {
-            // Add the spinner to let them know we are loading
-            $("#m-body").append('<div class="d-flex justify-content-center">' +
-                '<div class="spinner-border" role="status">' +
-                '<span class="sr-only">Loading...</span>' +
-                '</div>' +
-                '</div>');
-            if (actionType === "search") {
-                console.log("searching");
-                console.log("q=" + $('#searchquery').val());
-                hrrref = hrrref + $('#searchquery').val();
-                console.log("href=" + hrrref);
-            }
-            if (hrrref === "entryWarn") {
-                setCookie("understands", "yes", 66);
-                $('#exampleModal').modal('toggle');
-                $('#save-get-success').removeClass('d-none');
-                $('#save-get-failed').removeClass('d-none');
-                hrrref = "";
-            }
-            $.get(hrrref, function (data) {
-                console.log(data['success']); // John
-                console.log("#jobId" + activeJob)
-                if (data['success'] === true) {
-                    if (data['mode'] === "delete") {
-                        $("#jobId" + activeJob).remove();
-                        $("#message1 .alert-heading").html("Job was successfully deleted")
-                        $('#exampleModal').modal('toggle');
-                        $('#message1').removeClass('d-none');
-                        $('#message2').addClass('d-none');
-                        $('#message3').addClass('d-none');
-                        setTimeout(
-                            function () {
-                                $('#message1').addClass('d-none');
-                            },
-                            5000
-                        );
-                    }
-                    if (data['mode'] === "abandon") {
-                        $("#status" + activeJob).attr("src", "static/img/fail.png")
-                        $("#message1 .alert-heading").html("Job was successfully abandoned")
-                        $('#exampleModal').modal('toggle');
-                        $('#message1').removeClass('d-none');
-                        $('#message2').addClass('d-none');
-                        $('#message3').addClass('d-none');
-                        setTimeout(
-                            function () {
-                                $('#message1').addClass('d-none');
-                            },
-                            5000
-                        );
-                    }
-                    if (data['mode'] === "logfile") {
-                        $(this).find('.modal-title').text("Logfile")
-                        $("#message1 .alert-heading").html("Here is the logfile you requested")
-                        $('div .card-deck').html('<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">' +
-                            '<strong>' + data['job_title'] + '</strong></div><pre class="text-white bg-secondary"><code>' + data['log'] + '</code></pre>')
-                        window.scrollTo({top: 0, behavior: 'smooth'});
-                        $('#exampleModal').modal('toggle');
-                        $('#message1').removeClass('d-none');
-                        $('#message2').addClass('d-none');
-                        $('#message3').addClass('d-none');
-                    }
-                    if (data['mode'] === "search") {
-                        $(this).find('.modal-title').text("searching....")
-                        $('.card-deck').html('')
-                        let size = Object.keys(data['results']).length;
-                        console.log("length = " + size);
-                        if (size > 0) {
-                            $.each(data['results'], function (index, value) {
-                                z = addJobItem(value)
-                                $('.card-deck').append(z);
-                            });
-                            console.log(data)
-                            $("#message1 .alert-heading").html("Here are the jobs i found matching your query")
-                            $('#m-body').addClass('bd-example-modal-lg')
-                            $('#m-body').modal('handleUpdate')
-                            $('#exampleModal').modal('toggle');
-                            $('#message1').removeClass('d-none').removeClass('alert-danger').addClass('alert-success');
-                            $('#message2').addClass('d-none');
-                            $('#message3').addClass('d-none');
-                        } else {
-                            $("#message1 .alert-heading").html("I couldnt find any results matching that title")
-                            $('#message1').removeClass('d-none').removeClass('alert-success').addClass('alert-danger');
-                            $('#exampleModal').modal('toggle');
-                        }
-                    }
-                    if (data['mode'] === "fixperms") {
-                        $("#jobId" + activeJob).addClass("alert-success")
-                        $("#message1 .alert-heading").html("Permissions fixed")
-                        $('#exampleModal').modal('toggle');
-                        $('#message1').removeClass('d-none');
-                        $('#message2').addClass('d-none');
-                        $('#message3').addClass('d-none');
-                        setTimeout(
-                            function () {
-                                $('#message1').addClass('d-none');
-                            },
-                            5000
-                        );
-                    }
-                } else {
-                    $('#message3').removeClass('d-none');
-                    $('#message1').addClass('d-none');
-                    $('#message2').addClass('d-none');
-                    $('#exampleModal').modal('toggle');
-                    setTimeout(
-                        function () {
-                            $('#message3').addClass('d-none');
-                        },
-                        5000
-                    );
-                }
-            }, "json");
-        }
+        checkHref(addJobItem);
     });
     $("#save-no").bind('click', function () {
         if (hrrref === "entryWarn") {
@@ -243,36 +289,6 @@ $(document).ready(function () {
             $('#exampleModal').modal('toggle');
         }
     });
-
-    //Simple function to check if we have already agreed
-    function checkCookie() {
-        const understands = getCookie("understands");
-        return understands !== "" && understands != null;
-    }
-
-    //Get only the understands cookie
-    function getCookie(cname) {
-        let name = cname + "=";
-        let decodedCookie = decodeURIComponent(document.cookie);
-        let ca = decodedCookie.split(';');
-        for (var c of ca) {
-            while (c.charAt(0) === ' ') {
-                c = c.substring(1);
-            }
-            if (c.indexOf(name) === 0) {
-                return c.substring(name.length, c.length);
-            }
-        }
-    }
-
-    //Set out cookie so we dont need the dialog popping up
-    function setCookie(cname, cvalue, exdays) {
-        const d = new Date();
-        d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-        const expires = "expires=" + d.toUTCString();
-        document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-    }
-
     $('#exampleModal').on('show.bs.modal', function (event) {
         let button = $(event.relatedTarget) // Button that triggered the modal
         let modalTitle
@@ -309,8 +325,8 @@ $(document).ready(function () {
         let modal = $(this)
         modal.find('.modal-title').text(modalTitle)
         modal.find('.modal-body').html(modalBody)
-        $("#searchquery").on("keydown", function (event) {
-            if (event.which === 13)
+        $("#searchquery").on("keydown", function (e) {
+            if (e.which === 13)
                 $("#save-yes").click();
         });
     })
@@ -390,6 +406,5 @@ $(document).ready(function () {
             '</div></div>';
         return x
     }
-
 
 });

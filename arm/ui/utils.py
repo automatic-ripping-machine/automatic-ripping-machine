@@ -302,8 +302,6 @@ def fix_permissions(j_id):
             ts = re.search("Operation not permitted: '([0-9a-zA-Z()/ -]*?)'", str(line))
             if ts:
                 break
-            # app.logger.debug(ts)
-            # Operation not permitted: '([0-9a-zA-Z\(\)/ -]*?)'
     if ts:
         app.logger.debug(str(ts.group(1)))
         directory_to_traverse = ts.group(1)
@@ -340,6 +338,10 @@ def fix_permissions(j_id):
     return d
 
 
+def job_id_validator():
+    ...
+
+
 def trigger_restart():
     """
     We update the file modified time to get flask to restart
@@ -359,11 +361,9 @@ def trigger_restart():
 def get_settings(arm_cfg_file):
     """
     yaml file loader - is used for loading fresh arm.yaml config
-    Args:
-        arm_cfg_file: full path to arm.yaml
 
-    Returns:
-        cfg: the loaded yaml file
+    :param arm_cfg_file: full path to arm.yaml
+    :return: the loaded yaml file
     """
     try:
         with open(arm_cfg_file, "r") as f:
