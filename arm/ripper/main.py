@@ -280,7 +280,6 @@ def main(logfile, job):
 
             if mkvoutpath is None:
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
-                job.errors += ",MakeMKV did not complete successfully"
                 job.status = "fail"
                 db.session.commit()
                 sys.exit()
@@ -300,7 +299,7 @@ def main(logfile, job):
         elif job.disctype == "dvd" and (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv"):
             handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
         elif job.video_type == "movie" and cfg["MAINFEATURE"] and job.hasnicetitle:
-            handbrake.handbrake_mainfeature(hb_in_path, hb_out_path, logfile, job)
+            handbrake.handbrake_main_feature(hb_in_path, hb_out_path, logfile, job)
             job.eject()
         else:
             handbrake.handbrake_all(hb_in_path, hb_out_path, logfile, job)
@@ -320,7 +319,6 @@ def main(logfile, job):
         tracks = job.tracks.filter_by(ripped=True)  # .order_by(job.tracks.length.desc())
 
         if job.video_type == "movie":
-            logging.debug(f"Total track count for this job was: {tracks.count()}")
             for track in tracks:
                 logging.info(f"Moving Movie {track.filename} to {final_directory}")
                 if tracks.count() == 1:

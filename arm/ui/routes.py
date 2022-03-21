@@ -8,6 +8,9 @@ import bcrypt
 import hashlib
 import json
 import requests
+from werkzeug.exceptions import HTTPException
+from werkzeug.routing import ValidationError
+
 import arm.ui.utils as utils
 
 from time import sleep
@@ -404,7 +407,7 @@ def listlogs(path):
 
     # Deal with bad data
     if not os.path.exists(fullpath):
-        return render_template(constants.ERROR_PAGE)
+        raise ValidationError
 
     # Get all files in directory
     files = utils.get_info(fullpath)
@@ -424,14 +427,8 @@ def logreader():
     mode = request.args.get('mode')
     # We should use the job id and not get the raw logfile from the user
     logfile = request.args.get('logfile')
-    if logfile is None or "../" in logfile or mode is None or logfile.find("/") != -1:
-        return render_template(constants.ERROR_PAGE)
     fullpath = os.path.join(logpath, logfile)
-
-    my_file = Path(fullpath)
-    if not my_file.is_file():
-        # logfile doesnt exist throw out error template
-        return render_template('simple_error.html')
+    validate_logfile(logfile, mode, Path(fullpath))
 
     # Only ARM logs
     if mode == "armcat":
@@ -459,13 +456,12 @@ def logreader():
                             yield f.read()
                             sleep(1)
                 except Exception:
-                    return render_template('simple_error.html')
+                    raise ValidationError
     elif mode == "download":
-        app.logger.debug('fullpath: ' + fullpath)
         return send_file(fullpath, as_attachment=True)
     else:
-        # do nothing/ or error out
-        return render_template(constants.ERROR_PAGE)
+        # No mode - error out
+        raise ValidationError
 
     return app.response_class(generate(), mimetype='text/plain')
 
@@ -499,7 +495,7 @@ def history():
     return render_template('history.html', jobs=jobs.items, date_format=cfg['DATE_FORMAT'], pages=jobs)
 
 
-@app.route('/jobdetail', methods=['GET', 'POST'])
+@app.route('/jobdetail')
 @login_required
 def jobdetail():
     """
@@ -597,15 +593,18 @@ def list_titles():
     if job_id == "":
         app.logger.debug("list_titles - no job supplied")
         flash("No job supplied", "danger")
-        return redirect(constants.ERROR_REDIRECT)
+        raise ValidationError
     job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     search_results = utils.metadata_selector("search", title, year)
-    if search_results is None or 'Error' in search_results or ('Search' in search_results and len(search_results['Search']) < 1):
+    if search_results is None or 'Error' in search_results or (
+            'Search' in search_results and len(search_results['Search']) < 1):
         app.logger.debug("No results found. Trying without year")
         flash(f"No search results found for {title} ({year})<br/> Trying without year", 'danger')
         search_results = utils.metadata_selector("search", title, "")
-    if search_results is None or 'Error' in search_results or ('Search' in search_results and len(search_results['Search']) < 1):
+
+    if search_results is None or 'Error' in search_results or (
+            'Search' in search_results and len(search_results['Search']) < 1):
         flash(f"No search results found for {title}", 'danger')
     return render_template('list_titles.html', results=search_results, job_id=job_id,
                            form=form, title=title, year=year)
@@ -626,11 +625,11 @@ def gettitle():
     if imdb_id == "" or imdb_id is None:
         app.logger.debug("gettitle - no imdb supplied")
         flash("No imdb supplied", "danger")
-        return redirect(constants.ERROR_REDIRECT)
+        raise ValidationError
     if job_id == "" or job_id is None:
         app.logger.debug("gettitle - no job supplied")
         flash("No job supplied", "danger")
-        return redirect(constants.ERROR_REDIRECT)
+        raise ValidationError
     dvd_info = utils.metadata_selector("get_details", None, None, imdb_id)
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
@@ -663,7 +662,6 @@ def updatetitle():
     job.poster_url = poster_url
     job.hasnicetitle = True
     db.session.commit()
-    # TODO: show the previous values that were set, not just assume it was _auto
     flash(f'Title: {job.title_auto} ({job.year_auto}) was updated to {new_title} ({new_year})', "success")
     return redirect("/")
 
@@ -952,3 +950,21 @@ def get_processor_name():
                 amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
                 cpu_info = str(amd_name) + " @ " + str(amd_ghz) + " GHz"
     return cpu_info
+
+
+def validate_logfile(logfile, mode, my_file):
+    if logfile is None or "../" in logfile or mode is None or logfile.find("/") != -1:
+        raise ValidationError
+    if not my_file.is_file():
+        # logfile doesnt exist throw out error template
+        raise ValidationError
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # pass through HTTP errors
+    if isinstance(e, HTTPException):
+        return e
+
+    # now you're handling non-HTTP exceptions only
+    return render_template(constants.ERROR_PAGE, e=e), 500
