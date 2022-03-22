@@ -29,5 +29,5 @@ CMD ["python3", "/opt/arm/arm/runui.py"]
 # setup default directories and configs
 FROM base as automatic-ripping-machine
 
-LABEL org.opencontainers.image.source=https://github.com//shitwolfymakes/automatic-ripping-machine
+LABEL org.opencontainers.image.source=https://github.com/1337-server/automatic-ripping-machine
 LABEL org.opencontainers.image.license=MIT
