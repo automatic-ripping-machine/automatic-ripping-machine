@@ -161,14 +161,14 @@ function setup_syslog_rule() {
         echo -e "${RED}ARM syslog rule found. Overwriting...${NC}"
         sudo rm /etc/rsyslog.d/30-arm.conf
     fi
-    sudo cp ./scripts/30-arm.conf /etc/rsyslog.d/30-arm.conf
+    sudo cp ./setup/30-arm.conf /etc/rsyslog.d/30-arm.conf
 }
 
 function install_armui_service() {
     ##### Run the ARM UI as a service
     echo -e "${RED}Installing ARM service${NC}"
     sudo mkdir -p /etc/systemd/system
-    sudo cp ./scripts/armui.service /etc/systemd/system/armui.service
+    sudo cp ./setup/armui.service /etc/systemd/system/armui.service
 
     sudo systemctl daemon-reload
     sudo chmod u+x /etc/systemd/system/armui.service
