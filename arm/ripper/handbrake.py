@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Handbrake processing of dvd/blu-ray
+# Handbrake processing of dvd/bluray
 
 import sys
 import os
@@ -19,17 +19,16 @@ from arm.config.config import cfg
 PROCESS_COMPLETE = "Handbrake processing complete"
 
 
-def handbrake_main_feature(srcpath, basepath, logfile, job):
+def handbrake_mainfeature(srcpath, basepath, logfile, job):
     """
-    Process dvd with main_feature enabled.\n\n
+    Process dvd with mainfeature enabled.\n\n
     :param srcpath: Path to source for HB (dvd or files)\n
     :param basepath: Path where HB will save trancoded files\n
     :param logfile: Logfile for HB to redirect output to\n
     :param job: Disc object\n
     :return: None
     """
-    hb_args = hb_preset = ""
-    logging.info("Starting DVD Movie main_feature processing")
+    logging.info("Starting DVD Movie Mainfeature processing")
     logging.debug("Handbrake starting: ")
     logging.debug("\n\r" + job.pretty_table())
 
@@ -40,13 +39,13 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     utils.database_updater({'status': "transcoding"}, job)
     filename = os.path.join(basepath, job.title + "." + cfg["DEST_EXT"])
     filepathname = os.path.join(basepath, filename)
-    logging.info(f"Ripping title main_feature to {shlex.quote(filepathname)}")
+    logging.info(f"Ripping title Mainfeature to {shlex.quote(filepathname)}")
 
     get_track_info(srcpath, job)
 
     track = job.tracks.filter_by(main_feature=True).first()
     if track is None:
-        msg = "No main feature found by Handbrake. Turn main_feature to false in arm.yml and try again."
+        msg = "No main feature found by Handbrake. Turn MAINFEATURE to false in arm.yml and try again."
         logging.error(msg)
         raise RuntimeError(msg)
 
@@ -99,6 +98,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
     :param job: Disc object\n
     :return: None
     """
+
     # Wait until there is a spot to transcode
     job.status = "waiting_transcode"
     db.session.commit()
@@ -107,7 +107,12 @@ def handbrake_all(srcpath, basepath, logfile, job):
     db.session.commit()
     logging.info("Starting BluRay/DVD transcoding - All titles")
 
-    hb_args, hb_preset = correct_hb_settings(job)
+    if job.disctype == "dvd":
+        hb_args = cfg["HB_ARGS_DVD"]
+        hb_preset = cfg["HB_PRESET_DVD"]
+    elif job.disctype == "bluray":
+        hb_args = cfg["HB_ARGS_BD"]
+        hb_preset = cfg["HB_PRESET_BD"]
 
     get_track_info(srcpath, job)
 
@@ -169,19 +174,6 @@ def handbrake_all(srcpath, basepath, logfile, job):
     logging.debug("\n\r" + job.pretty_table())
 
 
-def correct_hb_settings(job):
-    if job.disctype == "dvd":
-        hb_args = cfg["HB_ARGS_DVD"]
-        hb_preset = cfg["HB_PRESET_DVD"]
-    elif job.disctype == "bluray":
-        hb_args = cfg["HB_ARGS_BD"]
-        hb_preset = cfg["HB_PRESET_BD"]
-    else:
-        hb_args = ""
-        hb_preset = ""
-    return hb_args, hb_preset
-
-
 def handbrake_mkv(srcpath, basepath, logfile, job):
     """
     Process all mkv files in a directory.\n\n
@@ -197,7 +189,12 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
     utils.sleep_check_process("HandBrakeCLI", int(cfg["MAX_CONCURRENT_TRANSCODES"]))
     job.status = "transcoding"
     db.session.commit()
-    hb_args, hb_preset = correct_hb_settings(job)
+    if job.disctype == "dvd":
+        hb_args = cfg["HB_ARGS_DVD"]
+        hb_preset = cfg["HB_PRESET_DVD"]
+    elif job.disctype == "bluray":
+        hb_args = cfg["HB_ARGS_BD"]
+        hb_preset = cfg["HB_PRESET_BD"]
 
     # This will fail if the directory raw gets deleted
     for f in os.listdir(srcpath):
@@ -250,21 +247,21 @@ def get_track_info(srcpath, job):
     hb = handbrake_char_encoding(cmd)
 
     t_pattern = re.compile(r'.*\+ title *')
-    pattern = re.compile(r'.*duration:.*')
+    pattern = re.compile(r'.*duration\:.*')
     seconds = 0
     t_no = 0
     fps = float(0)
     aspect = 0
     result = None
-    main_feature = False
+    mainfeature = False
     for line in hb:
 
         # get number of titles
         if result is None:
             if job.disctype == "bluray":
-                result = re.search('scan: BD has (.*) title(s)', line)
+                result = re.search('scan: BD has (.*) title\(s\)', line)  # noqa: W605
             else:
-                result = re.search('scan: DVD has (.*) title(s)', line)  # noqa: W605
+                result = re.search('scan: DVD has (.*) title\(s\)', line)  # noqa: W605
 
             if result:
                 titles = result.group(1)
@@ -274,66 +271,30 @@ def get_track_info(srcpath, job):
                 job.no_of_titles = titles
                 db.session.commit()
 
-        main_feature, t_no = title_finder(aspect, fps, job, line, main_feature, seconds, t_no, t_pattern)
-        seconds = seconds_builder(line, pattern, seconds)
-        main_feature = is_main_feature(line, main_feature)
+        if (re.search(t_pattern, line)) is not None:
+            if t_no == 0:
+                pass
+            else:
+                utils.put_track(job, t_no, seconds, aspect, fps, mainfeature, "handbrake")
+
+            mainfeature = False
+            t_no = line.rsplit(' ', 1)[-1]
+            t_no = t_no.replace(":", "")
+
+        if (re.search(pattern, line)) is not None:
+            t = line.split()
+            h, m, s = t[2].split(':')
+            seconds = int(h) * 3600 + int(m) * 60 + int(s)
+
+        if (re.search("Main Feature", line)) is not None:
+            mainfeature = True
 
         if (re.search(" fps", line)) is not None:
             fps = line.rsplit(' ', 2)[-2]
             aspect = line.rsplit(' ', 3)[-3]
             aspect = str(aspect).replace(",", "")
 
-    utils.put_track(job, t_no, seconds, aspect, fps, main_feature, "handbrake")
-
-
-def title_finder(aspect, fps, job, line, main_feature, seconds, t_no, t_pattern):
-    """
-
-    :param aspect:
-    :param fps:
-    :param job:
-    :param line:
-    :param main_feature:
-    :param seconds:
-    :param t_no:
-    :param t_pattern:
-    :return: None
-    """
-    if (re.search(t_pattern, line)) is not None:
-        if t_no != 0:
-            utils.put_track(job, t_no, seconds, aspect, fps, main_feature, "handbrake")
-
-        main_feature = False
-        t_no = line.rsplit(' ', 1)[-1]
-        t_no = t_no.replace(":", "")
-    return main_feature, t_no
-
-
-def is_main_feature(line, main_feature):
-    """
-    Check if we can find 'Main Feature' in hb output line\n
-    :param str line: Line from HandBrake output
-    :param bool main_feature:
-    :return bool main_feature: Return true if we fine main feature
-    """
-    if (re.search("Main Feature", line)) is not None:
-        main_feature = True
-    return main_feature
-
-
-def seconds_builder(line, pattern, seconds):
-    """
-    Find the track time and convert to seconds\n
-    :param line: Line from HandBrake output
-    :param pattern: regex patter
-    :param seconds:
-    :return:
-    """
-    if (re.search(pattern, line)) is not None:
-        t = line.split()
-        h, m, s = t[2].split(':')
-        seconds = int(h) * 3600 + int(m) * 60 + int(s)
-    return seconds
+    utils.put_track(job, t_no, seconds, aspect, fps, mainfeature, "handbrake")
 
 
 def handbrake_char_encoding(cmd):

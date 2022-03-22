@@ -161,7 +161,11 @@
 
     <script type="application/javascript">
         $(document).ready(function () {
-            $("table").tablesorter({});
+            // call the tablesorter plugin
+            $("table").tablesorter({
+                // sort on the first column and third column, order asc
+                sortList: [[1, 1]]
+            });
         });
         activeTab("history");
     </script>

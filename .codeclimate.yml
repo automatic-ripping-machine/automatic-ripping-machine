@@ -33,7 +33,7 @@ checks:
 
 plugins:
   csslint:
-    enabled: false
+    enabled: true
   sonar-python:
     enabled: true
   pep8:

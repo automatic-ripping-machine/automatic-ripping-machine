@@ -10,7 +10,7 @@ def grabkeys(cfg):
     if not cfg:
         return False
     br = RoboBrowser()
-    br.open('https://makemkv.com/forum2/viewtopic.php?f=12&t=16959')
+    br.open('http://makemkv.com/forum2/viewtopic.php?f=12&t=16959')
     page_str = str(br.parsed())
     i = 1
 

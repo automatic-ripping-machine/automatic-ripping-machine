@@ -408,9 +408,6 @@
                                 <thead class="bg-secondary">
                                 <tr>
                                     <th scope="col" style="text-align:left">Track #</th>
-                                    {% if jobs.video_type == "Music" %}
-                                        <th scope="col" style="text-align:left">Track Name</th>
-                                    {% endif %}
                                     <th scope="col" style="text-align:left">Length (sec)</th>
                                     <th scope="col" style="text-align:left">FPS</th>
                                     <th scope="col" style="text-align:left">Aspect Ratio</th>
@@ -422,10 +419,7 @@
                                 {% for track in tracks %}
                                     <tr>
                                         <td style="text-align:left"><strong>{{ track.track_number }}</strong></td>
-                                        {% if jobs.video_type == "Music" %}
-                                            <td style="text-align:left"><strong>{{ track.filename}}</strong></td>
-                                        {% endif %}
-                                        <td style="text-align:left">{{ track.length }} {{ " (Milliseconds)" if jobs.video_type == "Music" else "" }}</td>
+                                        <td style="text-align:left">{{ track.length }}</td>
                                         <td style="text-align:left">{{ track.fps }}</td>
                                         <td style="text-align:left">{{ track.aspect_ratio }}</td>
                                         <td style="text-align:left">{{ track.main_feature }}</td>
