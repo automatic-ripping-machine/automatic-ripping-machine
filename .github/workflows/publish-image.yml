@@ -28,6 +28,12 @@ jobs:
 
         steps:
             -
+                name: Set tag for non-default branches
+                if: ${{ env.TAG }} != ${{ github.event.repository.default_branch }}
+                run: |
+                    echo "TAG=${{ env.GITHUB_REF_NAME }}" >> $GITHUB_ENV
+
+            -
                 name: Checkout repository
                 uses: actions/checkout@v2
 
