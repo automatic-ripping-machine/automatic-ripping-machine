@@ -32,8 +32,13 @@ jobs:
                 uses: actions/checkout@v2
 
             -
+                name: Get branch name
+                id: branch-name
+                uses: tj-actions/branch-names@v5.1
+
+            -
                 name: Set tag for non-default branch
-                if: ${{ GITHUB_REF_NAME != 'main' && GITHUB_REF_NAME != 'v2_devel' }}
+                if: steps.branch-name.outputs.is_default == 'false'
                 run: |
                     echo "Branch name is ${{ env.GITHUB_REF_NAME }}"
                     echo "TAG=${{ env.GITHUB_REF_NAME }}" >> $GITHUB_ENV
