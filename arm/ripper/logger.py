@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-
+"""
+Main code for setting up the logging for all of A.R.M
+Also triggers CD identification
+"""
 # set up logging
 
 import os
@@ -32,7 +35,7 @@ def setup_logging(job):
             else os.path.join(cfg['LOGPATH'], str(job.label) + ".log")
         job.logfile = logfile
     # Debug formatting
-    logging.getLogger().removeHandler(logging.getLogger().handlers[0])
+    clean_loggers()
     if cfg['LOGLEVEL'] == "DEBUG":
         logging.basicConfig(filename=logfull,
                             format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
@@ -48,6 +51,17 @@ def setup_logging(job):
 
     # Return the full logfile location to the logs
     return logfull
+
+
+def clean_loggers():
+    """
+    try to catch any old loggers and remove them
+    :return: None
+    """
+    try:
+        logging.getLogger().removeHandler(logging.getLogger().handlers[0])
+    except IndexError:
+        return
 
 
 def clean_up_logs(logpath, loglife):
@@ -68,3 +82,4 @@ def clean_up_logs(logpath, loglife):
         if fullname.endswith(".log") and os.stat(fullname).st_mtime < now - loglife * 86400:
             logging.info(f"Deleting log file: {filename}")
             os.remove(fullname)
+    return True

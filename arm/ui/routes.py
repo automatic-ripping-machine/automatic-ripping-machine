@@ -1,29 +1,31 @@
+"""
+Main routes for the A.R.M ui
+"""
 import os
-import psutil
 import platform
 import subprocess
 import re
 import sys  # noqa: F401
-import bcrypt
 import hashlib
 import json
+from pathlib import Path, PurePath
+
 import requests
+import bcrypt
+import psutil
 from werkzeug.exceptions import HTTPException
 from werkzeug.routing import ValidationError
-
-import arm.ui.utils as utils
-
-from time import sleep
 from flask import Flask, render_template, request, send_file, flash, \
     redirect, url_for  # noqa: F401
+from flask.logging import default_handler  # noqa: F401
+from flask_login import LoginManager, login_required,\
+    current_user, login_user, UserMixin, logout_user  # noqa: F401
+import arm.ui.utils as utils
 from arm.ui import app, db, constants, json_api
 from arm.models.models import Job, Config, Track, User, AlembicVersion, UISettings  # noqa: F401
 from arm.config.config import cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, SettingsForm, UiSettingsForm, SetupForm
-from pathlib import Path, PurePath
-from flask.logging import default_handler  # noqa: F401
-from flask_login import LoginManager, login_required, current_user, login_user, UserMixin, logout_user  # noqa: F401
-
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
+    CustomTitleForm, SettingsForm, UiSettingsForm, SetupForm
 from arm.ui.metadata import get_omdb_poster
 
 login_manager = LoginManager()
@@ -32,24 +34,42 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
+    """
+    Logged in check
+    :param user_id:
+    :return:
+    """
     try:
         return User.query.get(int(user_id))
     except Exception:
-        app.logger.debug("error getting user")
+        app.logger.debug("Error getting user")
+        return None
 
 
 @login_manager.unauthorized_handler
 def unauthorized():
+    """
+    User isn't authorised to view the page
+    :return: Page redirect
+    """
     return redirect('/login')
 
 
 @app.route('/error')
-def was_error():
-    return render_template(constants.ERROR_PAGE, title='error')
+def was_error(error):
+    """
+    Catch all error page
+    :return: Error page
+    """
+    return render_template(constants.ERROR_PAGE, title='error', error=error)
 
 
 @app.route("/logout")
 def logout():
+    """
+    Log user out
+    :return:
+    """
     logout_user()
     flash("logged out", "success")
     return redirect('/')
@@ -67,24 +87,26 @@ def setup():
     perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
     app.logger.debug("perm " + str(perm_file))
     if perm_file.exists():
-        flash(str(perm_file) + " exists, setup cannot continue. To re-install please delete this file.", "danger")
+        flash(str(perm_file) + " exists, setup cannot continue."
+                               " To re-install please delete this file.", "danger")
         app.logger.debug("perm exist GTFO")
-        return redirect(constants.SETUP_STAGE_2)  # We push to setup-stage2 and let it decide where the user needs to go
+        # We push to setup-stage2 and let it decide where the user needs to go
+        return redirect(constants.SETUP_STAGE_2)
     dir0 = Path(PurePath(cfg['DBFILE']).parent)
     dir1 = Path(cfg['RAW_PATH'])
     dir2 = Path(cfg['TRANSCODE_PATH'])
     dir3 = Path(cfg['COMPLETED_PATH'])
     dir4 = Path(cfg['LOGPATH'])
-    x = [dir0, dir1, dir2, dir3, dir4]
+    arm_directories = [dir0, dir1, dir2, dir3, dir4]
 
     try:
-        for arm_dir in x:
+        for arm_dir in arm_directories:
             if not Path.exists(arm_dir):
                 os.makedirs(arm_dir)
                 flash(f"{arm_dir} was created successfully.")
-    except FileNotFoundError as e:
-        flash(f"Creation of the directory {dir0} failed {e}", "danger")
-        app.logger.debug(f"Creation of the directory failed - {e}")
+    except FileNotFoundError as error:
+        flash(f"Creation of the directory {dir0} failed {error}", "danger")
+        app.logger.debug(f"Creation of the directory failed - {error}")
     else:
         flash("Successfully created all of the ARM directories", "success")
         app.logger.debug("Successfully created all of the ARM directories")
@@ -94,17 +116,16 @@ def setup():
             flash("Setup of the database was successful.", "success")
             app.logger.debug("Setup of the database was successful.")
             perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
-            f = open(perm_file, "w")
-            f.write("boop!")
-            f.close()
+            write_permission_file = open(perm_file, "w")
+            write_permission_file.write("boop!")
+            write_permission_file.close()
             return redirect(constants.SETUP_STAGE_2)
-        else:
-            flash("Couldn't setup database", "danger")
-            app.logger.debug("Couldn't setup database")
-            return redirect("/error")
-    except Exception as e:
-        flash(str(e))
-        app.logger.debug("Setup - " + str(e))
+        flash("Couldn't setup database", "danger")
+        app.logger.debug("Couldn't setup database")
+        return redirect("/error")
+    except Exception as error:
+        flash(str(error))
+        app.logger.debug("Setup - " + str(error))
         return redirect(constants.HOME_PAGE)
 
 
@@ -136,8 +157,8 @@ def setup_stage2():
         # app.logger.debug("user: " + username + " Pass:" + pass1.decode('utf-8'))
         try:
             db.session.commit()
-        except Exception as e:
-            flash(str(e), "danger")
+        except Exception as error:
+            flash(str(error), "danger")
             return redirect(constants.SETUP_STAGE_2)
         else:
             return redirect(url_for('login'))
@@ -168,8 +189,8 @@ def update_password():
                 db.session.commit()
                 flash("Password successfully updated", "success")
                 return redirect("logout")
-            except Exception as e:
-                flash(str(e), "danger")
+            except Exception as error:
+                flash(str(error), "danger")
         else:
             flash("Password couldn't be updated. Problem with old password", "danger")
     return render_template('update_password.html', form=form)
@@ -177,11 +198,16 @@ def update_password():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    """
+    Login page if login is enabled
+    :return: redirect
+    """
+    # TODO fix this so there is only 1 return
     # if there is no user in the database
     try:
-        x = User.query.all()
+        user_list = User.query.all()
         # If we dont raise an exception but the usr table is empty
-        if not x:
+        if not user_list:
             return redirect(constants.SETUP_STAGE_2)
     except Exception:
         flash(constants.NO_ADMIN_ACCOUNT)
@@ -212,8 +238,7 @@ def login():
             login_user(user)
             app.logger.debug("user was logged in - redirecting")
             return redirect(constants.HOME_PAGE)
-        else:
-            flash('Password is wrong', 'danger')
+        flash('Password is wrong', 'danger')
     return render_template('login.html', form=form)
 
 
@@ -223,7 +248,8 @@ def database():
     """
     The main database page
 
-    Currently outputs every job from the databse - this can cause serious slow downs with + 3/4000 entries
+    Currently outputs every job from the database
+     this can cause serious slow downs with + 3/4000 entries
     Pagination is needed!
     """
 
@@ -234,8 +260,8 @@ def database():
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
-
-    return render_template('database.html', jobs=jobs.items, date_format=cfg['DATE_FORMAT'], pages=jobs)
+    return render_template('database.html', jobs=jobs.items,
+                           date_format=cfg['DATE_FORMAT'], pages=jobs)
 
 
 @app.route('/json', methods=['GET', 'POST'])
@@ -249,32 +275,32 @@ def feed_json():
     You can then add a function inside utils to deal with the request
     """
     j = {}
-    x = request.args.get('mode')
+    mode = request.args.get('mode')
     j_id = request.args.get('job')
     # We should never let the user pick the log file
     # logfile = request.args.get('logfile')
     searchq = request.args.get('q')
     logpath = cfg['LOGPATH']
-    if x == "delete":
-        j = json_api.delete_job(j_id, x)
-    elif x == "abandon":
+    if mode == "delete":
+        j = json_api.delete_job(j_id, mode)
+    elif mode == "abandon":
         j = json_api.abandon_job(j_id)
-    elif x == "full":
+    elif mode == "full":
         app.logger.debug("getlog")
         j = json_api.generate_log(logpath, j_id)
-    elif x == "search":
+    elif mode == "search":
         app.logger.debug("search")
         j = json_api.search(searchq)
-    elif x == "getfailed":
+    elif mode == "getfailed":
         app.logger.debug("getfailed")
         j = json_api.get_x_jobs("fail")
-    elif x == "getsuccessful":
+    elif mode == "getsuccessful":
         app.logger.debug("getsucessful")
         j = json_api.get_x_jobs("success")
-    elif x == "joblist":
+    elif mode == "joblist":
         app.logger.debug("joblist")
         j = json_api.get_x_jobs("joblist")
-    elif x == "fixperms":
+    elif mode == "fixperms":
         app.logger.debug("fixperms")
         j = utils.fix_permissions(j_id)
     return app.response_class(response=json.dumps(j, indent=4, sort_keys=True),
@@ -292,7 +318,7 @@ def settings():
 
     This needs rewritten to be static
     """
-    x = ""
+    form_data = ""
     arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     comments = utils.generate_comments()
     cfg = utils.get_settings(arm_cfg_file)
@@ -300,56 +326,57 @@ def settings():
     form = SettingsForm()
     if form.validate_on_submit():
         # For testing
-        x = request.form.to_dict()
+        form_data = request.form.to_dict()
         arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
-        # TODO: This is not the safest way to do things. It assumes the user isn't trying to mess with us.
+        # TODO: This is not the safest way to do things.
+        #  It assumes the user isn't trying to mess with us.
         # This really should be hard coded.
-        for k, v in x.items():
-            if k != "csrf_token":
-                if k == "COMPLETED_PATH":
+        for key, value in form_data.items():
+            if key != "csrf_token":
+                if key == "COMPLETED_PATH":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP']
-                elif k == "WEBSERVER_IP":
+                elif key == "WEBSERVER_IP":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['WEB_SERVER']
-                elif k == "SET_MEDIA_PERMISSIONS":
+                elif key == "SET_MEDIA_PERMISSIONS":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['FILE_PERMS']
-                elif k == "RIPMETHOD":
+                elif key == "RIPMETHOD":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['MAKE_MKV']
-                elif k == "HB_PRESET_DVD":
+                elif key == "HB_PRESET_DVD":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['HANDBRAKE']
-                elif k == "EMBY_REFRESH":
+                elif key == "EMBY_REFRESH":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['EMBY']
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['EMBY_ADDITIONAL']
-                elif k == "NOTIFY_RIP":
+                elif key == "NOTIFY_RIP":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['NOTIFY_PERMS']
-                elif k == "APPRISE":
+                elif key == "APPRISE":
                     arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['APPRISE']
                 try:
-                    arm_cfg += "\n" + comments[str(k)] + "\n" if comments[str(k)] != "" else ""
+                    arm_cfg += "\n" + comments[str(key)] + "\n" if comments[str(key)] != "" else ""
                 except KeyError:
                     arm_cfg += "\n"
                 try:
-                    post_value = int(v)
-                    arm_cfg += f"{k}: {post_value}\n"
+                    post_value = int(value)
+                    arm_cfg += f"{key}: {post_value}\n"
                 except ValueError:
-                    v_low = v.lower()
-                    if v_low == 'false' or v_low == "true":
-                        arm_cfg += f"{k}: {v_low}\n"
+                    if value.lower() == 'false' or value.lower() == "true":
+                        arm_cfg += f"{key}: {value.lower()}\n"
                     else:
-                        if k == "WEBSERVER_IP":
-                            arm_cfg += f"{k}: {v_low}\n"
+                        if key == "WEBSERVER_IP":
+                            arm_cfg += f"{key}: {value.lower()}\n"
                         else:
-                            arm_cfg += f"{k}: \"{v}\"\n"
+                            arm_cfg += f"{key}: \"{value}\"\n"
                 # app.logger.debug(f"\n{k} = {v} ")
 
         # app.logger.debug(f"arm_cfg= {arm_cfg}")
-        with open(arm_cfg_file, "w") as f:
-            f.write(arm_cfg)
-            f.close()
+        with open(arm_cfg_file, "w") as settings_file:
+            settings_file.write(arm_cfg)
+            settings_file.close()
         utils.trigger_restart()
         flash("Setting saved successfully!", "success")
         return redirect(url_for('settings'))
     # If we get to here there was no post data
-    return render_template('settings.html', settings=cfg, form=form, raw=x, jsoncomments=comments)
+    return render_template('settings.html', settings=cfg,
+                           form=form, raw=form_data, jsoncomments=comments)
 
 
 @app.route('/ui_settings', methods=['GET', 'POST'])
@@ -363,9 +390,10 @@ def ui_settings():
     armui_cfg = UISettings.query.filter_by().first()
     form = UiSettingsForm()
     if form.validate_on_submit():
+        # json.loads("false".lower())
         use_icons = False if str(form.use_icons.data).strip().lower() != "true" else True
         save_remote_images = False if str(form.save_remote_images.data).strip().lower() != "true" else True
-        x = {
+        database_arguments = {
             'index_refresh': format(form.index_refresh.data),
             'use_icons': use_icons,
             'save_remote_images': save_remote_images,
@@ -373,7 +401,7 @@ def ui_settings():
             'language': format(form.language.data),
             'database_limit': format(form.database_limit.data),
         }
-        utils.database_updater(x, armui_cfg)
+        utils.database_updater(database_arguments, armui_cfg)
         db.session.refresh(armui_cfg)
         utils.trigger_restart()
         flash("Settings saved successfully!", "success")
@@ -402,15 +430,15 @@ def listlogs(path):
     The 'View logs' page - show a list of logfiles in the log folder with creation time and size
     Gives the user links to tail/arm/Full/download
     """
-    basepath = cfg['LOGPATH']
-    fullpath = os.path.join(basepath, path)
+    base_path = cfg['LOGPATH']
+    full_path = os.path.join(base_path, path)
 
     # Deal with bad data
-    if not os.path.exists(fullpath):
+    if not os.path.exists(full_path):
         raise ValidationError
 
     # Get all files in directory
-    files = utils.get_info(fullpath)
+    files = utils.get_info(full_path)
     return render_template('logfiles.html', files=files, date_format=cfg['DATE_FORMAT'])
 
 
@@ -423,47 +451,26 @@ def logreader():
     This will display or allow downloading the requested logfile
     This is where the XHR requests are sent when viewing /logs?=logfile
     """
-    logpath = cfg['LOGPATH']
+    log_path = cfg['LOGPATH']
     mode = request.args.get('mode')
     # We should use the job id and not get the raw logfile from the user
     logfile = request.args.get('logfile')
-    fullpath = os.path.join(logpath, logfile)
-    validate_logfile(logfile, mode, Path(fullpath))
+    full_path = os.path.join(log_path, logfile)
+    validate_logfile(logfile, mode, Path(full_path))
 
     # Only ARM logs
     if mode == "armcat":
-        def generate():
-            f = open(fullpath)
-            while True:
-                new = f.readline()
-                if new:
-                    if "ARM:" in new:
-                        yield new
-                else:
-                    sleep(1)
+        generate = utils.generate_arm_cat(full_path)
     # Give everything / Tail
     elif mode == "full":
-        def generate():
-            try:
-                with open(fullpath) as f:
-                    while True:
-                        yield f.read()
-                        sleep(1)
-            except Exception:
-                try:
-                    with open(fullpath, encoding="utf8", errors='ignore') as f:
-                        while True:
-                            yield f.read()
-                            sleep(1)
-                except Exception:
-                    raise ValidationError
+        generate = utils.generate_full_log(full_path)
     elif mode == "download":
-        return send_file(fullpath, as_attachment=True)
+        return send_file(full_path, as_attachment=True)
     else:
         # No mode - error out
         raise ValidationError
 
-    return app.response_class(generate(), mimetype='text/plain')
+    return app.response_class(generate, mimetype='text/plain')
 
 
 @app.route('/activerips')
@@ -492,7 +499,8 @@ def history():
         jobs = {}
     app.logger.debug(f"Date format - {cfg['DATE_FORMAT']}")
 
-    return render_template('history.html', jobs=jobs.items, date_format=cfg['DATE_FORMAT'], pages=jobs)
+    return render_template('history.html', jobs=jobs.items,
+                           date_format=cfg['DATE_FORMAT'], pages=jobs)
 
 
 @app.route('/jobdetail')
@@ -507,11 +515,11 @@ def jobdetail():
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
     tracks = job.tracks.all()
-    s = utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
-    if s and 'Error' not in s:
-        job.plot = s['Plot'] if 'Plot' in s else "There was a problem getting the plot"
-        job.background = s['background_url'] if 'background_url' in s else None
-    return render_template('jobdetail.html', jobs=job, tracks=tracks, s=s)
+    search_results = utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
+    if search_results and 'Error' not in search_results:
+        job.plot = search_results['Plot'] if 'Plot' in search_results else "There was a problem getting the plot"
+        job.background = search_results['background_url'] if 'background_url' in search_results else None
+    return render_template('jobdetail.html', jobs=job, tracks=tracks, s=search_results)
 
 
 @app.route('/titlesearch', methods=['GET', 'POST'])
@@ -724,7 +732,7 @@ def home():
         try:
             jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
         except Exception:
-            # db isnt setup
+            # db isn't setup
             return redirect(url_for('setup'))
     else:
         jobs = {}
@@ -749,7 +757,7 @@ def import_movies():
     import time
     from os import listdir
     from os.path import isfile, join, isdir
-    t0 = time.time()
+    time_0 = time.time()
 
     my_path = cfg['COMPLETED_PATH']
     movies = {0: {'notfound': {}}}
@@ -867,8 +875,8 @@ def import_movies():
             print(subfiles)
     # app.logger.debug(movies)
 
-    t1 = time.time()
-    total = round(t1 - t0, 3)
+    time_1 = time.time()
+    total = round(time_1 - time_0, 3)
     app.logger.debug(str(total) + " sec")
     db.session.commit()
     return app.response_class(response=json.dumps(movies, indent=4, sort_keys=True),
@@ -893,7 +901,8 @@ def send_movies():
     api_key = cfg['ARM_API_KEY']
 
     for p in posts:
-        base_url = "https://1337server.pythonanywhere.com"  # This allows easy updates to the API url
+        # This allows easy updates to the API url
+        base_url = "https://1337server.pythonanywhere.com"
         url = f"{base_url}/api/v1/?mode=p&api_key={api_key}&crc64={p.crc_id}&t={p.title}&y={p.year}&imdb={p.imdb_id}" \
               f"&hnt={p.hasnicetitle}&l={p.label}"
         app.logger.debug(url)
@@ -953,6 +962,14 @@ def get_processor_name():
 
 
 def validate_logfile(logfile, mode, my_file):
+    """
+    check if logfile we got from the user is valid
+    :param logfile: full logfile path
+    :param mode:
+    :param my_file: full logfile path
+    :return: None
+    :raise ValidationError:
+    """
     if logfile is None or "../" in logfile or mode is None or logfile.find("/") != -1:
         raise ValidationError
     if not my_file.is_file():
@@ -961,11 +978,16 @@ def validate_logfile(logfile, mode, my_file):
 
 
 @app.errorhandler(Exception)
-def handle_exception(e):
-    app.logger.debug(e)
+def handle_exception(sent_error):
+    """
+    Exception handler
+    :param sent_error: error
+    :return: error page
+    """
+    app.logger.debug(sent_error)
     # pass through HTTP errors
-    if isinstance(e, HTTPException):
-        return e
+    if isinstance(sent_error, HTTPException):
+        return sent_error
 
     # now you're handling non-HTTP exceptions only
-    return render_template(constants.ERROR_PAGE, e=e), 500
+    return render_template(constants.ERROR_PAGE, error=sent_error), 500

@@ -1,17 +1,18 @@
+"""
+Main catch all page for functions for the A.R.M ui
+"""
 import os
 import shutil
 import json
 import re
-import bcrypt  # noqa: F401
+
+from time import strftime, localtime, time, sleep
+from werkzeug.routing import ValidationError
 import yaml
-
-from time import strftime, localtime, time
-from arm.config.config import cfg
 from flask.logging import default_handler  # noqa: F401
+from arm.config.config import cfg
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track, User, AlembicVersion, UISettings  # noqa: F401
-from flask import Flask, render_template, flash, request  # noqa: F401
-
+from arm.models.models import Job, User, AlembicVersion, UISettings  # noqa: F401
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
 
 
@@ -19,12 +20,12 @@ def database_updater(args, job, wait_time=90):
     """
     Try to update our db for x seconds and handle it nicely if we cant
 
-    :param args: This needs to be a Dict with the key being the job.method you want to change and the value being
-    the new value.
+    :param args: This needs to be a Dict with the key being the
+    job.method you want to change and the value being the new value.
 
     :param job: This is the job object
     :param wait_time: The time to wait in seconds
-    :return: Nothing
+    :returns : Boolean
     """
     # Loop through our args and try to set any of our job variables
     for (key, value) in args.items():
@@ -33,16 +34,16 @@ def database_updater(args, job, wait_time=90):
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
             db.session.commit()
-        except Exception as e:
-            if "locked" in str(e):
+        except Exception as error:
+            if "locked" in str(error):
                 time.sleep(1)
-                app.logger.debug(f"database is locked - trying in 1 second {i}/{wait_time} - {e}")
+                app.logger.debug(f"database is locked - trying in 1 second {i}/{wait_time} - {error}")
             else:
-                app.logger.debug("Error: " + str(e))
-                raise RuntimeError(str(e))
-        else:
-            app.logger.debug("successfully written to the database")
-            return True
+                app.logger.debug("Error: " + str(error))
+                raise RuntimeError(str(error)) from error
+
+    app.logger.debug("successfully written to the database")
+    return True
 
 
 def check_db_version(install_path, db_file):
@@ -78,9 +79,9 @@ def check_db_version(install_path, db_file):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
 
-    c.execute("SELECT {cn} FROM {tn}".format(cn="version_num", tn="alembic_version"))
+    c.execute('SELECT version_num FROM alembic_version')
     db_version = c.fetchone()[0]
-    app.logger.debug("Database version is: " + db_version)
+    app.logger.debug(f"Database version is: {db_version}")
     if head_revision == db_version:
         app.logger.info("Database is up to date")
     else:
@@ -88,62 +89,66 @@ def check_db_version(install_path, db_file):
             "Database out of date. Head is " + head_revision + " and database is " + db_version
             + ".  Upgrading database...")
         with app.app_context():
-            ts = round(time() * 100)
-            app.logger.info("Backuping up database '" + db_file + "' to '" + db_file + str(ts) + "'.")
-            shutil.copy(db_file, db_file + "_" + str(ts))
+            unique_stamp = round(time() * 100)
+            app.logger.info("Backuping up database '" + db_file + "' to '" + db_file + str(unique_stamp) + "'.")
+            shutil.copy(db_file, db_file + "_" + str(unique_stamp))
             flask_migrate.upgrade(mig_dir)
         app.logger.info("Upgrade complete.  Validating version level...")
 
-        c.execute("SELECT {cn} FROM {tn}".format(tn="alembic_version", cn="version_num"))
+        c.execute("SELECT version_num FROM alembic_version")
         db_version = c.fetchone()[0]
         app.logger.debug("Database version is: " + db_version)
         if head_revision == db_version:
             app.logger.info("Database is now up to date")
         else:
-            app.logger.error(
-                "Database is still out of date. Head is " + head_revision + " and database is " + db_version
-                + ".  Exiting arm.")
-            # sys.exit()
+            app.logger.error("Database is still out of date. "
+                             "Head is " + head_revision + " and database is " + db_version
+                             + ".  Exiting arm.")
 
 
 def make_dir(path):
     """
-    Make a directory\n
-    path = Path to directory\n
-
-    returns success True if successful
-        false if the directory already exists
+        Make a directory\n
+    :param path: Path to directory
+    :return: Boolean if successful
     """
+    success = False
     if not os.path.exists(path):
         app.logger.debug("Creating directory: " + path)
         try:
             os.makedirs(path)
-            return True
+            success = True
         except OSError:
             err = "Couldn't create a directory at path: " + path + " Probably a permissions error.  Exiting"
             app.logger.error(err)
-    else:
-        return False
+    return success
 
 
 def get_info(directory):
+    """
+    Used to read stats from files
+    -Used for view logs page
+    :param directory:
+    :return: list containing a list with each files stats
+    """
     file_list = []
     for i in os.listdir(directory):
         if os.path.isfile(os.path.join(directory, i)):
-            a = os.stat(os.path.join(directory, i))
-            fsize = os.path.getsize(os.path.join(directory, i))
-            fsize = round((fsize / 1024), 1)
-            fsize = "{0:,.1f}".format(fsize)
-            create_time = strftime(cfg['DATE_FORMAT'], localtime(a.st_ctime))
-            access_time = strftime(cfg['DATE_FORMAT'], localtime(a.st_atime))
-            file_list.append([i, access_time, create_time, fsize])  # [file,most_recent_access,created]
+            file_stats = os.stat(os.path.join(directory, i))
+            file_size = os.path.getsize(os.path.join(directory, i))
+            file_size = round((file_size / 1024), 1)
+            file_size = f"{file_size :,.1f}"
+            create_time = strftime(cfg['DATE_FORMAT'], localtime(file_stats.st_ctime))
+            access_time = strftime(cfg['DATE_FORMAT'], localtime(file_stats.st_atime))
+            # [file,most_recent_access,created, file_size]
+            file_list.append([i, access_time, create_time, file_size])
     return file_list
 
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
     string = re.sub(r"\[.*?]", "", string)  # noqa: W605
-    string = re.sub('\s+', ' ', string)  # noqa: W605
+    string = re.sub('\\s+', ' ', string)  # noqa: W605
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
     string = string.replace('&', 'and')
@@ -160,18 +165,60 @@ def getsize(path):
 
 
 def generate_comments():
+    """
+    load comments.json and use it for settings page
+    allows us to easily add more settings later
+    :return: json
+    """
+    comments = "{'error':'Unknown error'}"
     comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
     try:
-        with open(comments_file, "r") as f:
+        with open(comments_file, "r") as comments_read_file:
             try:
-                comments = json.load(f)
-                return comments
-            except Exception as e:
-                comments = None
-                app.logger.debug("Error with comments file. {}".format(str(e)))
-                return "{'error':'" + str(e) + "'}"
+                comments = json.load(comments_read_file)
+            except Exception as error:
+                app.logger.debug(f"Error with comments file. {error}")
+                comments = "{'error':'" + str(error) + "'}"
     except FileNotFoundError:
-        return "{'error':'File not found'}"
+        comments = "{'error':'File not found'}"
+    return comments
+
+
+def generate_full_log(full_path):
+    """
+    Gets/tails all lines from log file
+    :param full_path: full path to job logfile
+    :return: None
+    """
+    try:
+        with open(full_path) as read_log_file:
+            while True:
+                yield read_log_file.read()
+                sleep(1)
+    except Exception:
+        try:
+            with open(full_path, encoding="utf8", errors='ignore') as read_log_file:
+                while True:
+                    yield read_log_file.read()
+                    sleep(1)
+        except Exception as error:
+            raise ValidationError from error
+
+
+def generate_arm_cat(full_path):
+    """
+    Read from log file and only output ARM: logs
+    :param full_path: full path to job logfile
+    :return: None
+    """
+    read_log_file = open(full_path)
+    while True:
+        new = read_log_file.readline()
+        if new:
+            if "ARM:" in new:
+                yield new
+            else:
+                sleep(1)
 
 
 def setup_database():
@@ -184,7 +231,6 @@ def setup_database():
     except Exception:
         #  We only need this on first run
         #  Wipe everything
-        # flash(str(err))
         try:
             db.drop_all()
         except Exception:
@@ -221,25 +267,23 @@ def job_dupe_check(crc_id):
         return False, None
     jobs = Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
     # app.logger.debug("search - posts=" + str(jobs))
-    r = {}
+    return_results = {}
     i = 0
     for j in jobs:
         app.logger.debug("job obj= " + str(j.get_d()))
-        x = j.get_d().items()
-        r[i] = {}
-        for key, value in iter(x):
-            r[i][str(key)] = str(value)
+        return_results[i] = {}
+        for key, value in iter(j.get_d().items()):
+            return_results[i][str(key)] = str(value)
             # logging.debug(str(key) + "= " + str(value))
         i += 1
 
-    app.logger.debug(r)
-    app.logger.debug("r len=" + str(len(r)))
-    if jobs is not None and len(r) > 0:
+    app.logger.debug(return_results)
+    app.logger.debug("r len=" + str(len(return_results)))
+    if jobs is not None and len(return_results) > 0:
         app.logger.debug("jobs is none or len(r) - we have jobs")
-        return True, r
-    else:
-        app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
-        return False, None
+        return True, return_results
+    app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
+    return False, None
 
 
 def metadata_selector(func, query="", year="", imdb_id=""):
@@ -257,22 +301,21 @@ def metadata_selector(func, query="", year="", imdb_id=""):
     if cfg['METADATA_PROVIDER'].lower() == "tmdb":
         app.logger.debug("provider tmdb")
         if func == "search":
-            return tmdb_search(str(query), str(year))
+            return_function = tmdb_search(str(query), str(year))
         elif func == "get_details":
             if query:
-                return get_tmdb_poster(str(query), str(year))
+                return_function = get_tmdb_poster(str(query), str(year))
             elif imdb_id:
-                return tmdb_find(imdb_id)
+                return_function = tmdb_find(imdb_id)
 
     elif cfg['METADATA_PROVIDER'].lower() == "omdb":
         app.logger.debug("provider omdb")
         if func == "search":
-            return call_omdb_api(str(query), str(year))
+            return_function = call_omdb_api(str(query), str(year))
         elif func == "get_details":
-            s = call_omdb_api(title=str(query), year=str(year), imdb_id=str(imdb_id), plot="full")
-            return s
-    app.logger.debug(cfg['METADATA_PROVIDER'])
-    app.logger.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
+            return_function = call_omdb_api(title=str(query), year=str(year), imdb_id=str(imdb_id), plot="full")
+
+    return return_function
 
 
 def fix_permissions(j_id):
@@ -299,18 +342,18 @@ def fix_permissions(j_id):
     # This is kind of hacky way to get around the fact we dont save the ts variable
     with open(job_log, 'r') as reader:
         for line in reader.readlines():
-            ts = re.search("Operation not permitted: '([0-9a-zA-Z()/ -]*?)'", str(line))
-            if ts:
+            failed_perms_found = re.search("Operation not permitted: '([0-9a-zA-Z()/ -]*?)'", str(line))
+            if failed_perms_found:
                 break
-    if ts:
-        app.logger.debug(str(ts.group(1)))
-        directory_to_traverse = ts.group(1)
+    if failed_perms_found:
+        app.logger.debug(str(failed_perms_found.group(1)))
+        directory_to_traverse = failed_perms_found.group(1)
     else:
         app.logger.debug("not found")
         directory_to_traverse = os.path.join(job.config.COMPLETED_PATH, str(job.title) + " (" + str(job.year) + ")")
     try:
         corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
-        app.logger.info("Setting permissions to: " + str(job.config.CHMOD_VALUE) + " on: " + directory_to_traverse)
+        app.logger.info(f"Setting permissions to: {job.config.CHMOD_VALUE} on: {directory_to_traverse}")
         os.chmod(directory_to_traverse, corrected_chmod_value)
         if job.config.SET_MEDIA_OWNER and job.config.CHOWN_USER and job.config.CHOWN_GROUP:
             import pwd
@@ -330,15 +373,19 @@ def fix_permissions(j_id):
                 os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
                 if job.config.SET_MEDIA_OWNER:
                     os.chown(os.path.join(dirpath, cur_file), uid, gid)
-        d = {"success": True, "mode": "fixperms", "folder": str(directory_to_traverse)}
-    except Exception as e:
-        err = "Permissions setting failed as: " + str(e)
+        return_json = {"success": True, "mode": "fixperms", "folder": str(directory_to_traverse)}
+    except Exception as error:
+        err = f"Permissions setting failed as: {error}"
         app.logger.error(err)
-        d = {"success": False, "mode": "fixperms", "Error": str(err), "ts": str(ts)}
-    return d
+        return_json = {"success": False, "mode": "fixperms", "Error": str(err), "ts": str(failed_perms_found)}
+    return return_json
 
 
 def job_id_validator():
+    """
+    Validate job id is an int
+    :return:
+    """
     ...
 
 
@@ -349,8 +396,8 @@ def trigger_restart():
     """
     import datetime
 
-    def set_file_last_modified(file_path, dt):
-        dt_epoch = dt.timestamp()
+    def set_file_last_modified(file_path, date_time):
+        dt_epoch = date_time.timestamp()
         os.utime(file_path, (dt_epoch, dt_epoch))
 
     now = datetime.datetime.now()
@@ -366,13 +413,13 @@ def get_settings(arm_cfg_file):
     :return: the loaded yaml file
     """
     try:
-        with open(arm_cfg_file, "r") as f:
+        with open(arm_cfg_file, "r") as yaml_file:
             try:
-                cfg = yaml.load(f, Loader=yaml.FullLoader)
-            except Exception as e:
-                app.logger.debug(e)
-                cfg = yaml.safe_load(f)  # For older versions use this
-    except FileNotFoundError as e:
-        app.logger.debug(e)
-        cfg = {}
-    return cfg
+                yaml_cfg = yaml.load(yaml_file, Loader=yaml.FullLoader)
+            except Exception as error:
+                app.logger.debug(error)
+                yaml_cfg = yaml.safe_load(yaml_file)  # For older versions use this
+    except FileNotFoundError as error:
+        app.logger.debug(error)
+        yaml_cfg = {}
+    return yaml_cfg

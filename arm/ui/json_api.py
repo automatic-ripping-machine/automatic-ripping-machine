@@ -1,14 +1,16 @@
+"""
+Basic json api for access to A.R.M UI
+Also used to connect to both omdb and tmdb
+"""
 import os
 import subprocess
 import re
-import psutil
 import html
-
 from pathlib import Path
+import psutil
 from arm.config.config import cfg
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track, User, AlembicVersion, UISettings  # noqa: F401
-from flask import Flask, render_template, flash, request  # noqa: F401
+from arm.models.models import Job, Config, Track  # noqa: F401
 
 
 def get_x_jobs(job_status):
@@ -26,42 +28,41 @@ def get_x_jobs(job_status):
     else:
         jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
 
-    r = {}
+    job_results = {}
     i = 0
     for j in jobs:
-        r[i] = {}
+        job_results[i] = {}
         job_log = cfg['LOGPATH'] + j.logfile
-        process_logfile(job_log, j, r[i])
+        process_logfile(job_log, j, job_results[i])
         try:
-            r[i]['config'] = j.config.get_d()
+            job_results[i]['config'] = j.config.get_d()
         except AttributeError:
-            r[i]['config'] = "config not found"
+            job_results[i]['config'] = "config not found"
             app.logger.debug("couldn't get config")
 
         app.logger.debug("job obj= " + str(j.get_d()))
-        x = j.get_d().items()
-        for key, value in x:
+        for key, value in j.get_d().items():
             if key != "config":
-                r[i][str(key)] = str(value)
+                job_results[i][str(key)] = str(value)
             # logging.debug(str(key) + "= " + str(value))
         i += 1
     if jobs:
-        app.logger.debug("jobs  - we have " + str(len(r)) + " jobs")
+        app.logger.debug("jobs  - we have " + str(len(job_results)) + " jobs")
         success = True
+    return {"success": success, "mode": job_status,
+            "results": job_results, "arm_name": cfg['ARM_NAME']}
 
-    return {"success": success, "mode": job_status, "results": r, "arm_name": cfg['ARM_NAME']}
 
-
-def process_logfile(logfile, job, r):
+def process_logfile(logfile, job, job_results):
     """
     Breaking out the log parser to its own function.
     This is used to search the log for ETA and current stage
-
     :param logfile: the logfile for parsing
     :param job: the Job class
-    :param r: the {} of
+    :param job_results: the {} of
     :return: r should be dict for the json api
     """
+    # TODO: Add MakeMKV progress to this
     # Try to catch if the logfile gets delete before the job is finished
     try:
         line = subprocess.check_output(['tail', '-n', '1', logfile])
@@ -77,62 +78,66 @@ def process_logfile(logfile, job, r):
         job.stage = job_status.group(1)
         job.progress = job_status.group(2)
         job.eta = job_status.group(3)
-        x = job.progress
-        job.progress_round = int(float(x))
-        r['stage'] = job.stage
-        r['progress'] = job.progress
-        r['eta'] = job.eta
-        r['progress_round'] = int(float(r['progress']))
+        job.progress_round = int(float(job.progress))
+        job_results['stage'] = job.stage
+        job_results['progress'] = job.progress
+        job_results['eta'] = job.eta
+        job_results['progress_round'] = int(float(job_results['progress']))
 
     # INFO ARM: handbrake.handbrake_all Processing track #1 of 42. Length is 8602 seconds.
     # Try to catch if the logfile gets delete before the job is finished
     try:
-        with open(logfile, encoding="utf8", errors='ignore') as f:
-            line = f.readlines()
+        with open(logfile, encoding="utf8", errors='ignore') as log_file:
+            line = log_file.readlines()
     except FileNotFoundError:
         line = ""
     job_status_index = re.search(r"Processing track #([0-9]{1,2}) of ([0-9]{1,2})(?!.*Processing track #)", str(line))
     if job_status_index:
         try:
             current_index = int(job_status_index.group(1))
-            job.stage = r['stage'] = f"{job.stage} - {current_index}/{job.no_of_titles}"
-        except Exception as e:
-            app.logger.debug("Problem finding the current track " + str(e))
+            job.stage = job_results['stage'] = f"{job.stage} - {current_index}/{job.no_of_titles}"
+        except Exception as error:
+            app.logger.debug(f"Problem finding the current track {error}")
             job.stage = f"{job.stage} - %0%/%0%"
     else:
         app.logger.debug("Cant find index")
 
-    return r
+    return job_results
 
 
 def search(search_query):
     """ Queries ARMui db for the movie/show matching the query"""
-    search = re.sub('[^a-zA-Z0-9]', '', search_query)
-    search = "%{}%".format(search)
+    safe_search = re.sub('[^a-zA-Z0-9]', '', search_query)
+    safe_search = f"%{safe_search}%"
     app.logger.debug('-' * 30)
 
     # app.logger.debug("search - q=" + str(search))
-    posts = db.session.query(Job).filter(Job.title.like(search)).all()
+    posts = db.session.query(Job).filter(Job.title.like(safe_search)).all()
     # app.logger.debug("search - posts=" + str(posts))
-    r = {}
+    search_results = {}
     i = 0
     app.logger.debug(f"000000000000 FOUND - {len(posts)}")
-    for p in posts:
+    for jobs in posts:
         # app.logger.debug("job obj = " + str(p.get_d()))
-        x = p.get_d().items()
-        r[i] = {}
-        r[i]['config'] = p.config.get_d()
-        for key, value in iter(x):
-            r[i][str(key)] = str(value)
+        search_results[i] = {}
+        search_results[i]['config'] = jobs.config.get_d()
+        for key, value in iter(jobs.get_d().items()):
+            search_results[i][str(key)] = str(value)
             # app.logger.debug(str(key) + "= " + str(value))
         i += 1
-    return {'success': True, 'mode': 'search', 'results': r}
+    return {'success': True, 'mode': 'search', 'results': search_results}
 
 
 def delete_job(job_id, mode):
+    """
+    json api version of delete jobs
+    :param job_id: job id to delete || str "all"/"title"
+    :param str mode: should always be delete
+    :return: json/dict to be returned if success or fail
+    """
     try:
-        t = {}
-        app.logger.debug("job_id= {}".format(job_id))
+        json_return = {}
+        app.logger.debug(f"job_id= {job_id}")
         # Find the job the user wants to delete
         if mode == 'delete' and job_id is not None:
             # User wants to wipe the whole database
@@ -149,7 +154,7 @@ def delete_job(job_id, mode):
                 #  Config.query.delete()
                 #  db.session.commit()
                 app.logger.debug("Admin is requesting to delete all jobs from database!!! No deletes went to db")
-                t = {'success': True, 'job': job_id, 'mode': mode}
+                json_return = {'success': True, 'job': job_id, 'mode': mode}
             elif job_id == "title":
                 #  The user can only access this by typing it manually
                 #  This shouldn't be left on when on a full server
@@ -158,12 +163,12 @@ def delete_job(job_id, mode):
                 # Job.query.filter_by(title=logfile).delete()
                 # db.session.commit()
                 # app.logger.debug("Admin is requesting to delete all jobs with (x) title.")
-                t = {'success': True, 'job': job_id, 'mode': mode}
+                json_return = {'success': True, 'job': job_id, 'mode': mode}
                 # Not sure this is the greatest way of handling this
             else:
                 try:
                     post_value = int(job_id)
-                    app.logger.debug("Admin requesting delete job {} from database!".format(job_id))
+                    app.logger.debug(f"Admin requesting delete job {job_id} from database!")
                 except ValueError:
                     app.logger.debug("Admin is requesting to delete a job but didnt provide a valid job ID")
                     return {'success': False, 'job': 'invalid', 'mode': mode, 'error': 'Not a valid job'}
@@ -174,20 +179,26 @@ def delete_job(job_id, mode):
                     Config.query.filter_by(job_id=job_id).delete()
                     db.session.commit()
                     app.logger.debug("Admin deleting  job {} was successful")
-                    t = {'success': True, 'job': job_id, 'mode': mode}
+                    json_return = {'success': True, 'job': job_id, 'mode': mode}
     # If we run into problems with the datebase changes
     # error out to the log and roll back
     except Exception as err:
         db.session.rollback()
-        app.logger.error("Error:db-1 {0}".format(err))
-        t = {'success': False}
+        app.logger.error(f"Error:db-1 {err}")
+        json_return = {'success': False}
 
-    return t
+    return json_return
 
 
 def generate_log(logpath, job_id):
+    """
+    Generate log for json api and return it in a valid form
+    :param str logpath:
+    :param int job_id:
+    :return:
+    """
     try:
-        job = Job.query.get(job_id)
+        job = Job.query.get(int(job_id))
     except Exception:
         app.logger.debug(f"Cant find job {job_id} ")
         job = None
@@ -205,37 +216,43 @@ def generate_log(logpath, job_id):
         app.logger.debug("Couldn't find the logfile requested, Possibly deleted/moved")
         return {'success': False, 'job': job_id, 'log': 'File not found'}
     try:
-        with open(fullpath) as f:
-            r = f.read()
+        with open(fullpath) as full_log:
+            read_log = full_log.read()
     except Exception:
         try:
-            with open(fullpath, encoding="utf8", errors='ignore') as f:
-                r = f.read()
+            with open(fullpath, encoding="utf8", errors='ignore') as full_log:
+                read_log = full_log.read()
         except Exception:
             app.logger.debug("Cant read logfile. Possibly encoding issue")
             return {'success': False, 'job': job_id, 'log': 'Cant read logfile'}
-    r = html.escape(r)
+    html_escaped_log = html.escape(read_log)
     title_year = str(job.title) + " (" + str(job.year) + ") - file: " + str(job.logfile)
-    return {'success': True, 'job': job_id, 'mode': 'logfile', 'log': r,
+    return {'success': True, 'job': job_id, 'mode': 'logfile', 'log': html_escaped_log,
             'escaped': True, 'job_title': title_year}
 
 
 def abandon_job(job_id):
+    """
+    json api abondon job
+    :param int job_id: the job id
+    :return: json/dict
+    """
     try:
         job = Job.query.get(job_id)
         job.status = "fail"
         db.session.commit()
-        app.logger.debug("Job {} was abandoned successfully".format(job_id))
-        t = {'success': True, 'job': job_id, 'mode': 'abandon'}
+        app.logger.debug(f"Job {job_id} was abandoned successfully")
+        json_return = {'success': True, 'job': job_id, 'mode': 'abandon'}
         job.eject()
-    except Exception as e:
+    except Exception as error:
         db.session.rollback()
-        app.logger.debug("Job {} couldn't be abandoned ".format(job_id))
-        return {'success': False, 'job': job_id, 'mode': 'abandon', "Error": str(e)}
+        app.logger.debug(f"Job {job_id} couldn't be abandoned ")
+        return {'success': False, 'job': job_id, 'mode': 'abandon', "Error": str(error)}
     try:
-        p = psutil.Process(job.pid)
-        p.terminate()  # or p.kill()
+        job_process = psutil.Process(job.pid)
+        job_process.terminate()  # or p.kill()
     except psutil.NoSuchProcess:
-        t['Error'] = f"couldnt find job.pid - {job.pid}"  # This is a soft error db changes still went through
-        app.logger.debug(f"couldnt find job.pid - {job.pid}")
-    return t
+        # This is a soft error db changes still went through
+        json_return['Error'] = f"Couldn't find job.pid - {job.pid}"
+        app.logger.debug(f"Couldn't find job.pid - {job.pid}")
+    return json_return

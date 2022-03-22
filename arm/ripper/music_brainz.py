@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""Module to connect to A.R.M to MusicBrainz API"""
+
 import logging
 import re
 import musicbrainzngs as mb
@@ -21,8 +23,7 @@ def main(disc):
     discid = get_disc_id(disc)
     if cfg['GET_AUDIO_TITLE'] == 'musicbrainz':
         return music_brainz(discid, disc)
-    else:
-        return ""
+    return ""
 
 
 def get_disc_id(disc):
@@ -45,8 +46,8 @@ def music_brainz(discid, job):
     mb.set_useragent("arm", "v2_devel")
     try:
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits', 'recordings'])
-        logging.debug("Infos: %s", infos)
-        logging.debug("discid = " + str(discid))
+        logging.debug(f"Infos: {infos}")
+        logging.debug(f"discid = {discid}")
         process_tracks(job, infos['disc']['release-list'][0]['medium-list'][0]['track-list'])
         logging.debug("-" * 300)
         release = infos['disc']['release-list'][0]
@@ -63,16 +64,16 @@ def music_brainz(discid, job):
             'title_auto': title
         }
         u.database_updater(args, job)
-        logging.debug("musicbrain works -  New title is " + title + ".  New Year is: " + new_year)
+        logging.debug(f"musicbrain works -  New title is {title}  New Year is: {new_year}")
     except mb.WebServiceError as exc:
-        logging.error("Cant reach MB or cd not found ? - ERROR: " + str(exc))
+        logging.error(f"Cant reach MB or cd not found ? - ERROR: {exc}")
         u.database_updater(False, job)
         return ""
     try:
         # We never make it to here if the mb fails
         artist = release['artist-credit'][0]['artist']['name']
-        logging.debug("artist=====" + str(artist))
-        logging.debug("do have artwork?======" + str(release['cover-art-archive']['artwork']))
+        logging.debug(f"artist====={artist}")
+        logging.debug(f"do have artwork?======{release['cover-art-archive']['artwork']}")
         # Get our front cover if it exists
         if get_cd_art(job, infos):
             logging.debug("we got an art image")
@@ -91,12 +92,17 @@ def music_brainz(discid, job):
         u.database_updater(args, job)
     except Exception as exc:
         artist_title = "Not identified" if not title else title
-        logging.error("Try 2 -  ERROR: " + str(exc))
+        logging.error(f"Try 2 -  ERROR: {exc}")
         u.database_updater(False, job)
     return artist_title
 
 
 def check_date(release):
+    """
+    Check for valid date
+    :param release:
+    :return: correct year
+    """
     # Clean up the date and the title
     if 'date' in release:
         new_year = str(release['date'])
@@ -161,7 +167,7 @@ def get_cd_art(job, infos):
                     return True
     except mb.WebServiceError as exc:
         u.database_updater(False, job)
-        logging.error("get_cd_art ERROR: " + str(exc))
+        logging.error(f"get_cd_art ERROR: {exc}")
     try:
         # This uses roboBrowser to grab the amazon/3rd party image if it exists
         browser = RoboBrowser(user_agent='ARM-v2_devel')
@@ -175,12 +181,9 @@ def get_cd_art(job, infos):
             'video_type': "Music"
         }
         u.database_updater(args, job)
-        if job.poster_url != "":
-            return True
-        else:
-            return False
+        return bool(job.poster_url)
     except mb.WebServiceError as exc:
-        logging.error("get_cd_art ERROR: " + str(exc))
+        logging.error(f"get_cd_art ERROR: {exc}")
         u.database_updater(False, job)
         return False
 
