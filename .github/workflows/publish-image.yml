@@ -17,6 +17,7 @@ env:
     REGISTRY: ghcr.io
     # use DOCKERHUB_USERNAME as the name maybe different from the github username
     IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
+    tag: latest
 
 jobs:
     build:
@@ -27,13 +28,9 @@ jobs:
 
         steps:
             -
-                name: Set tag
-                run: echo "TAG=${{env.GITHUB_REF_NAME}}" >> $GITHUB_ENV
-
-            -
-                name: Set tag if default branch
-                if: ${{ env.GITHUB_REF_NAME == main || env.GITHUB_REF_NAME == v2_devel }}
-                run: echo "TAG=latest" >> $GITHUB_ENV
+                name: Set tag for non-default branch
+                if: ${{ env.GITHUB_REF_NAME != 'main' || env.GITHUB_REF_NAME != 'v2_devel' }}
+                run: echo "TAG=${{ env.GITHUB_REF_NAME }}" >> $GITHUB_ENV
 
             -
                 name: Checkout repository
