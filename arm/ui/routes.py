@@ -962,6 +962,7 @@ def validate_logfile(logfile, mode, my_file):
 
 @app.errorhandler(Exception)
 def handle_exception(e):
+    app.logger.debug(e)
     # pass through HTTP errors
     if isinstance(e, HTTPException):
         return e

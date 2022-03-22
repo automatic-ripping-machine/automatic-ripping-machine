@@ -44,21 +44,15 @@ def music_brainz(discid, job):
     """
     mb.set_useragent("arm", "v2_devel")
     try:
-        infos = mb.get_releases_by_discid(discid, includes=['artist-credits'])
+        infos = mb.get_releases_by_discid(discid, includes=['artist-credits', 'recordings'])
         logging.debug("Infos: %s", infos)
         logging.debug("discid = " + str(discid))
+        process_tracks(job, infos['disc']['release-list'][0]['medium-list'][0]['track-list'])
+        logging.debug("-" * 300)
         release = infos['disc']['release-list'][0]
-        # Clean up the date and the title
-        if 'date' in release:
-            new_year = str(release['date'])
-            new_year = re.sub("-[0-9]{2}-[0-9]{2}$", "", new_year)
-        else:
-            # sometimes there is no date in a release
-            new_year = ""
+        new_year = check_date(release)
         title = str(release.get('title', 'no title'))
         # Set out release id as the CRC_ID
-        # job.crc_id = release['id']
-        # job.hasnicetitle = True
         args = {
             'job_id': str(job.job_id),
             'crc_id': release['id'],
@@ -100,6 +94,17 @@ def music_brainz(discid, job):
         logging.error("Try 2 -  ERROR: " + str(exc))
         u.database_updater(False, job)
     return artist_title
+
+
+def check_date(release):
+    # Clean up the date and the title
+    if 'date' in release:
+        new_year = str(release['date'])
+        new_year = re.sub("-[0-9]{2}-[0-9]{2}$", "", new_year)
+    else:
+        # sometimes there is no date in a release
+        new_year = ""
+    return new_year
 
 
 def get_title(discid, job):
@@ -178,6 +183,18 @@ def get_cd_art(job, infos):
         logging.error("get_cd_art ERROR: " + str(exc))
         u.database_updater(False, job)
         return False
+
+
+def process_tracks(job, mb_track_list):
+    """
+
+    :param job:
+    :param mb_track_list:
+    :return:
+    """
+    for track in mb_track_list:
+        u.put_track(job, track['number'], int(track['recording']['length']),
+                    "n/a", 0.1, False, "ABCDE", track['recording']['title'])
 
 
 if __name__ == "__main__":

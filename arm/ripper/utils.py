@@ -258,6 +258,7 @@ def rip_music(job, logfile):
         logging.debug(f"Sending command: {cmd}")
 
         try:
+            # TODO check output and confirm all tracks ripped; find "Finished\.$"
             subprocess.check_output(cmd, shell=True).decode("utf-8")
             logging.info("abcde call successful")
             return True
