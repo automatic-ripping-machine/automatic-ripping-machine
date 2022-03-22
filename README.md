@@ -1,22 +1,23 @@
 # Automatic Ripping Machine (ARM)
 [![CI](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/main.yml/badge.svg)](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/main.yml)
+[![Docker](https://img.shields.io/docker/pulls/1337server/automatic-ripping-machine.svg)](https://hub.docker.com/r/1337server/automatic-ripping-machine)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/1337-server/automatic-ripping-machine?label=Latest%20Stable%20Version)](https://github.com/1337-server/automatic-ripping-machine/releases)
+[![GitHub release Date](https://img.shields.io/github/release-date/1337-server/automatic-ripping-machine?label=Latest%20Stable%20Released)](https://github.com/1337-server/automatic-ripping-machine/releases)
+
 [![GitHub license](https://img.shields.io/github/license/1337-server/automatic-ripping-machine)](https://github.com/1337-server/automatic-ripping-machine/blob/v2_devel/LICENSE)
 [![GitHub forks](https://img.shields.io/github/forks/1337-server/automatic-ripping-machine)](https://github.com/1337-server/automatic-ripping-machine/network)
 [![GitHub stars](https://img.shields.io/github/stars/1337-server/automatic-ripping-machine)](https://github.com/1337-server/automatic-ripping-machine/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/1337-server/automatic-ripping-machine)](https://github.com/1337-server/automatic-ripping-machine/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/1337-server/automatic-ripping-machine)](https://github.com/1337-server/automatic-ripping-machine/pulls)
+
 [![Wiki](https://img.shields.io/badge/Wiki-Get%20Help-brightgreen)](https://github.com/1337-server/automatic-ripping-machine/wiki)
 [![GitHub contributors](https://img.shields.io/github/contributors/1337-server/automatic-ripping-machine)](https://github.com/1337-server/automatic-ripping-machine/graphs/contributors)
 [![GitHub last commit](https://img.shields.io/github/last-commit/1337-server/automatic-ripping-machine)](https://github.com/1337-server/automatic-ripping-machine/commits/v2_devel)
 
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/1337-server/automatic-ripping-machine?label=Latest%20Stable%20Version&style=plastic)](https://github.com/1337-server/automatic-ripping-machine/releases)
-[![GitHub release Date](https://img.shields.io/github/release-date/1337-server/automatic-ripping-machine?label=Latest%20Stable%20Released&style=plastic)](https://github.com/1337-server/automatic-ripping-machine/releases)
-
-[![Docker](https://img.shields.io/docker/pulls/1337server/automatic-ripping-machine.svg)](https://hub.docker.com/r/1337server/automatic-ripping-machine)
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/django)
 
-
+![Discord](https://img.shields.io/discord/576479573886107699)
 
 ## Overview
 
