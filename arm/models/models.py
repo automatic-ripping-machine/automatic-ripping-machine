@@ -12,7 +12,7 @@ from flask_login import LoginManager, current_user, login_user, UserMixin  # noq
 from prettytable import PrettyTable
 
 hidden_attribs = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
-                  "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY", "TMDB_API_KEY")
+                  "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY", "TMDB_API_KEY", "_sa_instance_state")
 HIDDEN_VALUE = "<hidden>"
 
 
@@ -121,7 +121,7 @@ class Job(db.Model):
             logging.debug("Found file: HVDVD_TS")
             # do something here too
         else:
-            logging.debug("Did not find valid dvd/bd files. Changing disctype to 'data'")
+            logging.debug("Did not find valid dvd/bd files. Changing disc-type to 'data'")
             self.disctype = "data"
 
     def identify_audio_cd(self):

@@ -2,13 +2,13 @@ README-OMDBAPI
 
 BACKGROUND:
 
-The ARM uses a call to the omdbapi (Open Movie Database API) web site to determine whether a video disc
+The ARM uses a call to the omdbapi (Open Movie Database API) website to determine whether a video disc
 is a movie or a TV series. It also uses the database to determine the correct year for a movie, since
 older movies frequently report the date of issue on DVD as opposed to the date of the actual movie. An
 example of this is "The Enforcer" which was originally released in 1976, but released on DVD in 2008.
 
 Give the two primary functions OMDBAPI is used for in ARM, it's fair to say that having it not work is
-nothing more than a bit of a headache in re-titling and categorizing your final product. Years may be
+more than a bit of a headache in re-titling and categorizing your final product. Years may be
 wrong, and as the ARM is currently designed, your movies will be placed in the Unknown directory as 
 opposed to the "Movies" directory. I can also see plenty of future uses for this functionality, so it
 seemed prudent to repair it and make it work again. And I like shell scripts, and I wanted to
@@ -51,7 +51,7 @@ DEVELOPER'S NOTES:
 Since not everyone interested in testing this update prior to pulling it into the master codebase
 may want to purchase an API key, and since each API key gives access to 100,000 queries per day,
 I am willing to share my key for testing purposes provided you don't go over, oh let's say, 25,000
-queries in a day (LOL). Contact me at my primary email cbunt1@yahoo.com or my github account cbunt1.
+queries in a day (LOL). Contact me at my primary email cbunt1@yahoo.com or my GitHub account cbunt1.
 
 A special thank you to Aaron Helton (aargonian) for your help with the Python update...I'm a
 Shell scripter, not a Python scripter...:-)

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
+"""
+The main runner for Automatic Ripping Machine
 
+For help please visit https://github.com/automatic-ripping-machine/automatic-ripping-machine
+"""
 import sys
-
-sys.path.append("/opt/arm")
-
 import argparse  # noqa: E402
 import os  # noqa: E402
 import logging  # noqa: E402
@@ -14,6 +15,7 @@ import shutil  # noqa: E402
 import pyudev  # noqa: E402
 import getpass  # noqa E402
 import psutil  # noqa E402
+sys.path.append("/opt/arm")
 
 from arm.ripper import logger, utils, makemkv, handbrake, identify  # noqa: E402
 from arm.config.config import cfg  # noqa: E402
@@ -52,8 +54,7 @@ def log_arm_params(job):
     logging.info("**** Logging ARM variables ****")
     for key in ("devpath", "mountpoint", "title", "year", "video_type",
                 "hasnicetitle", "label", "disctype"):
-        logging.info(
-            key + ": " + str(getattr(job, key)))
+        logging.info(key + ": " + str(getattr(job, key)))
     logging.info("**** End of ARM variables ****")
 
     logging.info("**** Logging config parameters ****")
@@ -64,9 +65,7 @@ def log_arm_params(job):
                 "COMPLETED_PATH", "EXTRAS_SUB", "EMBY_REFRESH", "EMBY_SERVER",
                 "EMBY_PORT", "NOTIFY_RIP", "NOTIFY_TRANSCODE",
                 "MAX_CONCURRENT_TRANSCODES"):
-        logging.info(key.lower() +
-                     ": " +
-                     str(cfg.get(key, '<not given>')))
+        logging.info(key.lower() + ": " + str(cfg.get(key, '<not given>')))
     logging.info("**** End of config parameters ****")
 
 
@@ -76,8 +75,8 @@ def check_fstab():
     :return: None
     """
     logging.info("Checking for fstab entry.")
-    with open('/etc/fstab', 'r') as f:
-        lines = f.readlines()
+    with open('/etc/fstab', 'r') as fstab:
+        lines = fstab.readlines()
         for line in lines:
             # Now grabs the real uncommented fstab entry
             if re.search("^" + job.devpath, line):
@@ -108,14 +107,14 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
         # find largest filesize
         logging.debug("Finding largest file")
         largest_file_name = ""
-        for f in files:
+        for file in files:
             # initialize largest_file_name
             if largest_file_name == "":
-                largest_file_name = f
-            temp_path_f = os.path.join(hb_in_path, f)
+                largest_file_name = file
+            temp_path_f = os.path.join(hb_in_path, file)
             temp_path_largest = os.path.join(hb_in_path, largest_file_name)
             if os.stat(temp_path_f).st_size > os.stat(temp_path_largest).st_size:
-                largest_file_name = f
+                largest_file_name = file
         # largest_file should be largest file
         logging.debug(f"Largest file is: {largest_file_name}")
         temp_path = os.path.join(hb_in_path, largest_file_name)
@@ -128,7 +127,7 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
                     utils.move_files(hb_in_path, file, job, True)
                 else:
                     # other extras
-                    if not str(cfg["EXTRAS_SUB"]).lower() == "none":
+                    if str(cfg["EXTRAS_SUB"]).lower() != "none":
                         utils.move_files(hb_in_path, file, job, False)
                     else:
                         logging.info(f"Not moving extra: {file}")
@@ -146,12 +145,12 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
     else:
         # if videotype is not movie, then move everything
         # into 'Unidentified' folder
-        logging.debug("Videotype: " + job.video_type)
+        logging.debug(f"Videotype: {job.video_type}")
 
-        for f in files:
-            mkvoutfile = os.path.join(mkv_out_path, f)
-            logging.debug(f"Moving file: {mkvoutfile} to: {hb_out_path} {f}")
-            utils.move_files(mkv_out_path, f, job, False)
+        for file in files:
+            mkvoutfile = os.path.join(mkv_out_path, file)
+            logging.debug(f"Moving file: {mkvoutfile} to: {hb_out_path} {file}")
+            utils.move_files(mkv_out_path, file, job, False)
     # remove raw files, if specified in config
     if cfg["DELRAWFILES"]:
         logging.info("Removing raw files")
@@ -173,7 +172,6 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
 def main(logfile, job):
     """main disc processing function"""
     logging.info("Starting Disc identification")
-
     identify.identify(job, logfile)
     # Check db for entries matching the crc and successful
     have_dupes, crc_jobs = utils.job_dupe_check(job)
@@ -231,8 +229,8 @@ def main(logfile, job):
             logging.debug(f"Value of ALLOW_DUPLICATES: {0}".format(cfg["ALLOW_DUPLICATES"]))
             logging.debug(f"Value of have_dupes: {have_dupes}")
             if cfg["ALLOW_DUPLICATES"] or not have_dupes:
-                ts = round(time.time() * 100)
-                hb_out_path = hb_out_path + "_" + str(ts)
+                random_time = round(time.time() * 100)
+                hb_out_path = hb_out_path + "_" + str(random_time)
 
                 if (utils.make_dir(hb_out_path)) is False:
                     # We failed to make a random directory, most likely a permission issue
@@ -257,12 +255,12 @@ def main(logfile, job):
         # Use FFMPeg to convert Large Poster if enabled in config
         if job.disctype == "dvd" and cfg["RIP_POSTER"]:
             os.system("mount " + job.devpath)
-            if os.path.isfile(job.mountpoint+"/JACKET_P/J00___5L.MP2"):
+            if os.path.isfile(job.mountpoint + "/JACKET_P/J00___5L.MP2"):
                 logging.info("Converting NTSC Poster Image")
-                os.system('ffmpeg -i "'+job.mountpoint+'/JACKET_P/J00___5L.MP2" "'+hb_out_path+'/poster.png"')
-            elif os.path.isfile(job.mountpoint+"/JACKET_P/J00___6L.MP2"):
+                os.system('ffmpeg -i "' + job.mountpoint + '/JACKET_P/J00___5L.MP2" "' + hb_out_path + '/poster.png"')
+            elif os.path.isfile(job.mountpoint + "/JACKET_P/J00___6L.MP2"):
                 logging.info("Converting PAL Poster Image")
-                os.system('ffmpeg -i "'+job.mountpoint+'/JACKET_P/J00___6L.MP2" "'+hb_out_path+'/poster.png"')
+                os.system('ffmpeg -i "' + job.mountpoint + '/JACKET_P/J00___6L.MP2" "' + hb_out_path + '/poster.png"')
             os.system("umount " + job.devpath)
 
         logging.info(f"Processing files to: {hb_out_path}")
@@ -283,7 +281,6 @@ def main(logfile, job):
 
             if mkvoutpath is None:
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
-                job.errors += ",MakeMKV did not complete successfully"
                 job.status = "fail"
                 db.session.commit()
                 sys.exit()
@@ -303,7 +300,7 @@ def main(logfile, job):
         elif job.disctype == "dvd" and (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv"):
             handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
         elif job.video_type == "movie" and cfg["MAINFEATURE"] and job.hasnicetitle:
-            handbrake.handbrake_mainfeature(hb_in_path, hb_out_path, logfile, job)
+            handbrake.handbrake_main_feature(hb_in_path, hb_out_path, logfile, job)
             job.eject()
         else:
             handbrake.handbrake_all(hb_in_path, hb_out_path, logfile, job)
@@ -323,7 +320,6 @@ def main(logfile, job):
         tracks = job.tracks.filter_by(ripped=True)  # .order_by(job.tracks.length.desc())
 
         if job.video_type == "movie":
-            logging.debug(f"Total track count for this job was: {tracks.count()}")
             for track in tracks:
                 logging.info(f"Moving Movie {track.filename} to {final_directory}")
                 if tracks.count() == 1:
@@ -351,8 +347,8 @@ def main(logfile, job):
             if not os.path.isfile(dst_poster):
                 try:
                     shutil.move(src_poster, dst_poster)
-                except Exception as e:
-                    logging.error(f"Unable to move poster.png to '{final_directory}' - Error: {e}")
+                except Exception as error:
+                    logging.error(f"Unable to move poster.png to '{final_directory}' - Error: {error}")
             else:
                 logging.info("File: poster.png already exists.  Not moving.")
 
@@ -368,12 +364,12 @@ def main(logfile, job):
                     logging.info(f"Removing raw path - {raw_folder}")
                     if raw_folder != final_directory:
                         shutil.rmtree(raw_folder)
-                except UnboundLocalError as e:
-                    logging.debug(f"No raw files found to delete in {raw_folder}- {e}")
-                except OSError as e:
-                    logging.debug(f"No raw files found to delete in {raw_folder} - {e}")
-                except TypeError as e:
-                    logging.debug(f"No raw files found to delete in {raw_folder} - {e}")
+                except UnboundLocalError as error:
+                    logging.debug(f"No raw files found to delete in {raw_folder}- {error}")
+                except OSError as error:
+                    logging.debug(f"No raw files found to delete in {raw_folder} - {error}")
+                except TypeError as error:
+                    logging.debug(f"No raw files found to delete in {raw_folder} - {error}")
         # report errors if any
         if cfg["NOTIFY_TRANSCODE"]:
             if job.errors:
@@ -404,8 +400,8 @@ def main(logfile, job):
         # get filesystem in order
         datapath = os.path.join(cfg["RAW_PATH"], str(job.label))
         if (utils.make_dir(datapath)) is False:
-            ts = str(round(time.time() * 100))
-            datapath = os.path.join(cfg["RAW_PATH"], str(job.label) + "_" + ts)
+            random_time = str(round(time.time() * 100))
+            datapath = os.path.join(cfg["RAW_PATH"], str(job.label) + "_" + random_time)
 
             if (utils.make_dir(datapath)) is False:
                 logging.info(f"Could not create data directory: {datapath}  Exiting ARM. ")
@@ -446,7 +442,6 @@ if __name__ == "__main__":
                 sys.exit(1)
 
     logging.info(f"Starting ARM processing at {datetime.datetime.now()}")
-
     utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
     # put in db
@@ -472,10 +467,10 @@ if __name__ == "__main__":
 
     try:
         main(logfile, job)
-    except Exception as e:
+    except Exception as error:
         logging.exception("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
         utils.notify(job, NOTIFY_TITLE, "ARM encountered a fatal error processing "
-                                        f"{job.title}. Check the logs for more details. {e}")
+                                        f"{job.title}. Check the logs for more details. {error}")
         job.status = "fail"
         job.eject()
     else:
@@ -485,6 +480,6 @@ if __name__ == "__main__":
         joblength = job.stop_time - job.start_time
         minutes, seconds = divmod(joblength.seconds + joblength.days * 86400, 60)
         hours, minutes = divmod(minutes, 60)
-        total_len = '{:d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
-        job.job_length = total_len
+        total_length = '{:d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+        job.job_length = total_length
         db.session.commit()

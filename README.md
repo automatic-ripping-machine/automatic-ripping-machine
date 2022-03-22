@@ -20,7 +20,7 @@
 
 ## Overview
 
-Insert an optical disc (Blu-Ray, DVD, CD) and checks to see if it's audio, video (Movie or TV), or data, then rips it.
+Insert an optical disc (Blu-ray, DVD, CD) and checks to see if it's audio, video (Movie or TV), or data, then rips it.
 
 See: https://b3n.org/automatic-ripping-machine
 
@@ -30,15 +30,15 @@ See: https://b3n.org/automatic-ripping-machine
 - Detects insertion of disc using udev
 - Auto downloads keys_hashed.txt and KEYDB.cfg using robobrowser and tinydownloader
 - Determines disc type...
-  - If video (Blu-Ray or DVD)
+  - If video (Blu-ray or DVD)
     - Retrieve title from disc or [OMDb API](http://www.omdbapi.com/) to name the folder "Movie Title (Year)" so that Plex or Emby can pick it up
     - Determine if video is Movie or TV using [OMDb API](http://www.omdbapi.com/)
     - Rip using MakeMKV or HandBrake (can rip all features or main feature)
     - Eject disc and queue up Handbrake transcoding when done
-    - Transcoding jobs are asynchronusly batched from ripping
+    - Transcoding jobs are asynchronously batched from ripping
     - Send notifications via IFTTT, Pushbullet, Slack, Discord, and many more!
-  - If audio (CD) - rip using abcde (get discdata and album art from [musicbrainz](https://musicbrainz.org/))
-  - If data (Blu-Ray, DVD, or CD) - make an ISO backup
+  - If audio (CD) - rip using abcde (get disc-data and album art from [musicbrainz](https://musicbrainz.org/))
+  - If data (Blu-ray, DVD, or CD) - make an ISO backup
 - Headless, designed to be run from a server
 - Can rip from multiple-optical drives in parallel
 - Python Flask UI to interact with ripping jobs, view logs, update jobs, etc
@@ -55,15 +55,15 @@ See: https://b3n.org/automatic-ripping-machine
 ## Requirements
 
 - Ubuntu Server 18.04 (should work with other Linux distros) - Needs Multiverse and Universe repositories
-- One or more optical drives to rip Blu-Rays, DVDs, and CDs
+- One or more optical drives to rip Blu-rays, DVDs, and CDs
 - Lots of drive space (I suggest using a NAS like FreeNAS) to store your movies
 
 
 ## Install
 
-For normal install please see the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/).
+For normal installation please see the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/).
 
-For docker install please see [here](https://github.com/1337-server/automatic-ripping-machine/wiki/docker).
+For docker installation please see [here](https://github.com/1337-server/automatic-ripping-machine/wiki/docker).
 
 ## Troubleshooting
  Please see the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/).
@@ -72,7 +72,7 @@ For docker install please see [here](https://github.com/1337-server/automatic-ri
 
 Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/1337-server/automatic-ripping-machine/wiki/Contributing-Guide)
 
-If you set ARM up in a different environment (harware/OS/virtual/etc), please consider submitting a howto to the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki).
+If you set ARM up in a different environment (hardware/OS/virtual/etc.), please consider submitting a howto to the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki).
 
 ## License
 
