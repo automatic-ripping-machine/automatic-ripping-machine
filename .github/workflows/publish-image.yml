@@ -29,7 +29,7 @@ jobs:
         steps:
             -
                 name: Set tag for non-default branches
-                if: ${{ env.TAG }} != ${{ github.event.repository.default_branch }}
+                if: ${{ env.TAG }} != main || ${{ env.TAG }} != v2_devel
                 run: |
                     echo "TAG=${{ env.GITHUB_REF_NAME }}" >> $GITHUB_ENV
 
