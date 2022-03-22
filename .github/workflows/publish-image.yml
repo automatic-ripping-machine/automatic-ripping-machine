@@ -30,7 +30,9 @@ jobs:
             -
                 name: Set tag for non-default branch
                 if: ${{ env.GITHUB_REF_NAME != 'main' && env.GITHUB_REF_NAME != 'v2_devel' }}
-                run: echo "TAG=${{ env.GITHUB_REF_NAME }}" >> $GITHUB_ENV
+                run: |
+                    echo "Branch name is ${{ env.GITHUB_REF_NAME }}
+                    echo "TAG=${{ env.GITHUB_REF_NAME }}" >> $GITHUB_ENV
 
             -
                 name: Checkout repository
