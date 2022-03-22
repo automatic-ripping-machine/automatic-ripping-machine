@@ -258,6 +258,7 @@ def rip_music(job, logfile):
         logging.debug(f"Sending command: {cmd}")
 
         try:
+            # TODO check output and confirm all tracks ripped; find "Finished\.$"
             subprocess.check_output(cmd, shell=True).decode("utf-8")
             logging.info("abcde call successful")
             return True
@@ -449,13 +450,10 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
 
 def arm_setup():
     """
-    setup arm - make sure everything is fully setup and ready and there are no errors. This is still in dev. ATM
+    Setup arm - make sure everything is fully setup and ready and there are no errors.
 
-    :arguments
-    None
-
-    :return
-    None
+    :arguments: None
+    :return: None
     """
     try:
         # Make the Raw dir if it doesnt exist
@@ -611,3 +609,16 @@ def check_ip():
             return '127.0.0.1'
     else:
         return host
+
+
+def clean_for_filename(string):
+    """ Cleans up string for use in filename """
+    string = re.sub('\\[(.*?)]', '', string)
+    string = re.sub('\\s+', '-', string)
+    string = string.replace(' : ', ' - ')
+    string = string.replace(':', '-')
+    string = string.replace('&', 'and')
+    string = string.replace("\\", " - ")
+    string = string.replace(" ", " - ")
+    string = string.strip()
+    return re.sub('[^\\w.() -]', '', string)

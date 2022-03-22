@@ -4,25 +4,11 @@
 /* jshint node: true */
 /* jshint strict: false */
 
-var hrrref = "";
-var wedeleted = "{{ success }}";
-var activeJob = null;
-var actionType = null;
+let hrrref = "";
+let activeJob = null;
+let actionType = null;
 $(document).ready(function () {
-
-    activeServers.push(location.origin);
-    var childs = $("#children");
-    var children = childs.text().trim();
-    if(children) {
-        var childLinks = [];
-        var children_arr = children.split(",");
-        $.each(children_arr, function(index,value) {
-            activeServers.push(value);
-            childLinks.push("<a target='_blank' href='"+value+"'>"+value+"</a>");
-        });
-        childs.html("Children: <br />"+childLinks.join("<br />"));
-    }
-
+    pushChildServers();
     refreshJobs();
     activeTab("home");
 
@@ -168,7 +154,7 @@ function addJobItem(job) {
          '<div class="col-lg-4">' +
          '<div class="card-body px-1 py-1">';
 
-    x += '<div id="jobId' + job.job_id + '_RIPPER"><b>Ripper: </b>' + (job.ripper ? job.ripper : (idsplit[0] === "0" ? "Local" : "")) + '</div>';
+    x += '<div id="jobId' + job.job_id + '_RIPPER"><b>Ripper: </b>' + getRipperName(job, idsplit) + '</div>';
     x += '<div id="jobId' + job.job_id + '_RIPMETHOD"><b>Rip Method: </b>' + job.config.RIPMETHOD + '</div>';
     x += '<div id="jobId' + job.job_id + '_MAINFEATURE"><b>Main Feature: </b>' + job.config.MAINFEATURE + '</div>';
     x += '<div id="jobId' + job.job_id + '_MINLENGTH"><b>Min Length: </b>' + job.config.MINLENGTH + '</div>';
@@ -194,7 +180,8 @@ function addJobItem(job) {
 }
 
 function updateProgress(job, oldJob) {
-    let subProgressBar = '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">' +
+    let subProgressBar = '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" ' + 'aria-valuenow="' +
+                         job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">' +
                          '<small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>' +
                          '</div>' +
                          '</div>';
@@ -291,6 +278,28 @@ function removeJobItem(job) {
     $('#jobId' + job.job_id).remove();
 }
 
+function refreshJobsComplete() {
+    console.log(activeJobs);
+    $.each(activeJobs, function (index, job) {
+        if (typeof (job) !== "undefined" && !job.active) {
+            console.log("job isn't active");
+            removeJobItem(job);
+            activeJobs.splice(index, 1);
+        }
+    });
+
+    $("#joblist .col-md-4").sort(function (a, b) {
+        if (a.id === b.id) {
+            return 0;
+        }
+        return a.id < b.id ? -1 : 1;
+    }).each(function () {
+        var elem = $(this);
+        elem.remove();
+        $(elem).appendTo("#joblist");
+    });
+}
+
 function refreshJobs() {
 
     let serverCount = activeServers.length;
@@ -306,23 +315,7 @@ function refreshJobs() {
             timeout: 2000,
             error: function() { --serverCount; },
             complete: function() {
-                    console.log(activeJobs);
-                    $.each(activeJobs, function (index, job) {
-                        if (typeof(job) !== "undefined" && !job.active) {
-                            console.log("job isnt active");
-                            removeJobItem(job);
-                            activeJobs.splice(index, 1);
-                        }
-                    });
-
-                    $("#joblist .col-md-4").sort(function(a, b) {
-                        if(a.id === b.id) { return 0; }
-                        return a.id < b.id ? -1 : 1;
-                    }).each(function() {
-                        var elem = $(this);
-                        elem.remove();
-                        $(elem).appendTo("#joblist");
-                    });
+                refreshJobsComplete();
 
             },
             success: function (data) {
@@ -348,6 +341,36 @@ function refreshJobs() {
             }
         });
     });
+}
+
+
+function pushChildServers() {
+    activeServers.push(location.origin);
+    let childs = $("#children");
+    let children = childs.text().trim();
+    if (children) {
+        var childLinks = [];
+        var children_arr = children.split(",");
+        $.each(children_arr, function (index, value) {
+            activeServers.push(value);
+            childLinks.push("<a target='_blank' href='" + value + "'>" + value + "</a>");
+        });
+        childs.html("Children: <br />" + childLinks.join("<br />"));
+    }
+}
+
+function getRipperName(job, idsplit) {
+    let ripper_name;
+    if (job.ripper) {
+        ripper_name = job.ripper
+    } else {
+        if (idsplit[0] === "0") {
+            ripper_name = "Local"
+        } else {
+            ripper_name = ""
+        }
+    }
+    return ripper_name;
 }
 
 var activeServers = [];

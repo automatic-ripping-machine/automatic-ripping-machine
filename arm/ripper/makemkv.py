@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+Main file for dealing with connecting to MakeMKV and handling errors
+"""
 import sys
 import os
 import logging
@@ -119,32 +122,32 @@ def process_tracks(job, logfile, rawpath):
             run_makemkv(cmd)
 
 
-def setup_rawpath(job, rawpath):
+def setup_rawpath(job, raw_path):
     """
     Checks if we need to create path and does so if needed\n\n
     :param job:
-    :param rawpath:
-    :return: rawpath
+    :param raw_path:
+    :return: raw_path
     """
 
-    logging.info(f"Destination is {rawpath}")
-    if not os.path.exists(rawpath):
+    logging.info(f"Destination is {raw_path}")
+    if not os.path.exists(raw_path):
         try:
-            os.makedirs(rawpath)
+            os.makedirs(raw_path)
         except OSError:
-            err = f"Couldn't create the base file path: {rawpath} Probably a permissions error"
+            err = f"Couldn't create the base file path: {raw_path} Probably a permissions error"
             logging.debug(err)
     else:
-        logging.info(f"{rawpath} exists.  Adding timestamp.")
-        ts = round(time.time() * 100)
-        rawpath = os.path.join(str(cfg["RAW_PATH"]), f"{job.title}_{ts}")
-        logging.info(f"rawpath is {rawpath}")
+        logging.info(f"{raw_path} exists.  Adding timestamp.")
+        random_time = round(time.time() * 100)
+        raw_path = os.path.join(str(cfg["RAW_PATH"]), f"{job.title}_{random_time}")
+        logging.info(f"raw_path is {raw_path}")
         try:
-            os.makedirs(rawpath)
+            os.makedirs(raw_path)
         except OSError:
-            err = f"Couldn't create the base file path: {rawpath} Probably a permissions error"
+            err = f"Couldn't create the base file path: {raw_path} Probably a permissions error"
             sys.exit(err)
-    return rawpath
+    return raw_path
 
 
 def prep_mkv(job):

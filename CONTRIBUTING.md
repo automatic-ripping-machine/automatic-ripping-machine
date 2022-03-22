@@ -13,11 +13,11 @@ When submitting a bug, enhancement, or feature request please indicate if you ar
 ## Pull Requests
 Please submit pull request for bug fixes against the v2_fixes branch and features against the v2.x_dev branch.
 
-To make a pull request fork this project into your own github repository and after making changes create a PR.  Read https://help.github.com/articles/creating-a-pull-request/
+To make a pull request fork this project into your own GitHub repository and after making changes create a PR.  Read https://help.github.com/articles/creating-a-pull-request/
 
 Test your changes locally to the best of your ability to make sure nothing broke.
 
-If you are making multiple changes, please create  separate pull requests so they can be evaluated and approved individually (obviously if changes are trivial, or multiple changes are dependent on each other then one PR is fine).
+If you are making multiple changes, please create separate pull requests, so they can be evaluated and approved individually (obviously if changes are trivial, or multiple changes are dependent on each other, then one PR is fine).
 
 Update the README file in your PR if your changes require them.
 

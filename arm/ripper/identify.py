@@ -17,7 +17,6 @@ from arm.ui import db
 from arm.config.config import cfg
 
 # flake8: noqa: W605
-# from arm.ui.utils import call_omdb_api, tmdb_search
 import arm.ui.utils as u
 
 
@@ -58,18 +57,6 @@ def identify(job, logfile):
     os.system("umount " + job.devpath)
 
 
-def clean_for_filename(string):
-    """ Cleans up string for use in filename """
-    string = re.sub('\\[(.*?)]', '', string)
-    string = re.sub('\\s+', ' ', string)
-    string = string.replace(' : ', ' - ')
-    string = string.replace(':', '-')
-    string = string.replace('&', 'and')
-    string = string.replace("\\", " - ")
-    string = string.strip()
-    return re.sub(r'[^\w.() -]', '', string)
-
-
 def identify_bluray(job):
     """ Get's Blu-Ray title by parsing XML in bdmt_eng.xml """
 
@@ -103,7 +90,7 @@ def identify_bluray(job):
     bluray_title = bluray_title.replace(' - BLU-RAY', '')
     bluray_title = bluray_title.replace(' - Blu-ray', '')
 
-    bluray_title = clean_for_filename(bluray_title)
+    bluray_title = utils.clean_for_filename(bluray_title)
 
     job.title = job.title_auto = bluray_title
     job.year = job.year_auto = bluray_year
@@ -125,7 +112,7 @@ def identify_dvd(job):
         dvd_title = f"{job.label}_{crc64}"
         logging.info(f"DVD CRC64 hash is: {crc64}")
         job.crc_id = str(crc64)
-        urlstring = f"http://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
+        urlstring = f"https://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
         logging.debug(urlstring)
         dvd_info_xml = urllib.request.urlopen(urlstring).read()
         x = json.loads(dvd_info_xml)
@@ -205,7 +192,7 @@ def update_job(job, s):
     if 'Search' not in s:
         return None
     new_year = s['Search'][0]['Year']
-    title = clean_for_filename(s['Search'][0]['Title'])
+    title = utils.clean_for_filename(s['Search'][0]['Title'])
     logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
     args = {
         'year_auto': str(new_year),
