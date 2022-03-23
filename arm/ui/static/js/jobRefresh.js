@@ -194,27 +194,26 @@ function updateProgress(job, oldJob) {
     let progressSection = $('#jobId' + job.job_id + '_progress_section');
     let stage = $('#jobId' + job.job_id + '_stage');
     let eta = $('#jobId' + job.job_id + '_eta');
-
-    if (job.status === "transcoding" && job.stage !== '' && job.progress) {
+    if (job.status === "transcoding" || job.status === "ripping" && job.stage !== '' && job.progress) {
         if (progressSection[0].innerHTML === "") {
             progressSection[0].innerHTML = mainProgressBar;
         } else {
-            if (!stage[0].innerText.includes(job.stage)) {
-                stage[0].innerHTML = '<b>Device: </b>' + job.stage;
-            }
-
             if (job.progress_round !== oldJob.progress_round || job.progress !== oldJob.progress) {
                 $('#jobId' + job.job_id + '_progress')[0].innerHTML = '<div class="progress">' +
                          subProgressBar;
             }
-
-            if (!eta[0].innerText.includes(job.eta)) {
-                eta[0].innerHTML = '<b>ETA: </b>' + job.eta;
-            }
+            updateContents(stage, job, 'stage', 'Stage');
+            updateContents(eta, job, 'eta', 'ETA');
         }
     }
 }
 
+function updateContents(item, job, changeItem, keyString){
+    if (!item[0].innerText.includes(job[changeItem])) {
+        item[0].innerHTML = '<b>' + keyString + ': </b>' + job[changeItem];
+    }
+    console.log("updated:" +changeItem);
+}
 function updateJobItem(oldJob, job) {
     let cardHeader = $('#jobId' + job.job_id + '_header');
     let posterUrl = $('#jobId' + job.job_id + '_poster_url');
@@ -239,17 +238,11 @@ function updateJobItem(oldJob, job) {
         jobTitle[0].innerText = job.title;
     }
 
-    if (!jobYear[0].innerText.includes(job.year)) {
-        jobYear[0].innerHTML = '<b>Year: </b>' + job.year;
-    }
+    updateContents(jobYear, job, 'year', 'Year');
+    updateContents(devPath, job, 'devpath', 'Device');
+    updateContents(videoType, job, 'video_type', 'Type');
+    //  Adding more:  updateContents(devPath, job, 'devpath', 'Device');
 
-    if (!videoType[0].innerText.includes(job.video_type)) {
-        videoType[0].innerHTML = '<b>Type: </b>' + job.video_type;
-    }
-
-    if (!devPath[0].innerText.includes(job.devpath)) {
-        devPath[0].innerHTML = '<b>Device: </b>' + job.devpath;
-    }
     if (job.status !== status[0].title) {
         status[0].src = 'static/img/' + job.status + '.png';
         status[0].alt = job.status;
@@ -362,12 +355,12 @@ function pushChildServers() {
 function getRipperName(job, idsplit) {
     let ripper_name;
     if (job.ripper) {
-        ripper_name = job.ripper
+        ripper_name = job.ripper;
     } else {
         if (idsplit[0] === "0") {
-            ripper_name = "Local"
+            ripper_name = "Local";
         } else {
-            ripper_name = ""
+            ripper_name = "";
         }
     }
     return ripper_name;

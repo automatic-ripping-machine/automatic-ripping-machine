@@ -40,11 +40,9 @@ def get_x_jobs(job_status):
             job_results[i]['config'] = "config not found"
             app.logger.debug("couldn't get config")
 
-        app.logger.debug("job obj= " + str(j.get_d()))
         for key, value in j.get_d().items():
             if key != "config":
                 job_results[i][str(key)] = str(value)
-            # logging.debug(str(key) + "= " + str(value))
         i += 1
     if jobs:
         app.logger.debug("jobs  - we have " + str(len(job_results)) + " jobs")
@@ -55,20 +53,61 @@ def get_x_jobs(job_status):
 
 def process_logfile(logfile, job, job_results):
     """
-    Breaking out the log parser to its own function.
-    This is used to search the log for ETA and current stage
+        Decide if we need to process HandBrake or MakeMKV
+        :param logfile: the logfile for parsing
+        :param job: the Job class
+        :param job_results: the {} of
+        :return: r should be dict for the json api
+    """
+    app.logger.debug(job.status)
+    if job.status == "ripping":
+        app.logger.debug("using mkv - " + logfile)
+        job_results = process_makemkv_logfile(logfile, job, job_results)
+    else:
+        app.logger.debug("using handbrake")
+        job_results = process_handbrake_logfile(logfile, job, job_results)
+    return job_results
+
+
+def percentage(part, whole):
+    percent = 100 * float(part) / float(whole)
+    return percent
+
+
+def process_makemkv_logfile(logfile, job, job_results):
+    """
+    Process the logfile and find current status
+    :return: job_results dict
+    """
+    line = read_all_log_lines(logfile)
+    # Correctly get last entry for progress bar
+    for one_line in line:
+        job_progress_status = re.search(r"PRGV:([\d]{3,}),([\d]+),([\d]{3,})$", str(one_line))
+        job_stage_index = re.search(r"PRGC:[\d]+,[\d]+,\"([\w -]{2,})\"$", str(one_line))
+        if job_progress_status:
+            x = "{:.2f}".format(percentage(job_progress_status.group(1), job_progress_status.group(3)))
+            job.progress = job_results['progress'] = x
+            job.progress_round = percentage(job_progress_status.group(1),
+                                            job_progress_status.group(3))
+        if job_stage_index:
+            try:
+                current_index = job_stage_index.group(1)
+                job.stage = job_results['stage'] = current_index
+            except Exception as error:
+                job.stage = f"Unknown -  {error}"
+    job.eta = "Unknown"
+    return job_results
+
+
+def process_handbrake_logfile(logfile, job, job_results):
+    """
+    process a logfile looking for HandBrake progress
     :param logfile: the logfile for parsing
     :param job: the Job class
     :param job_results: the {} of
     :return: r should be dict for the json api
     """
-    # TODO: Add MakeMKV progress to this
-    # Try to catch if the logfile gets delete before the job is finished
-    try:
-        line = subprocess.check_output(['tail', '-n', '1', logfile])
-    except subprocess.CalledProcessError:
-        app.logger.debug("Error while reading logfile for ETA")
-        line = ""
+    line = read_log_line(logfile)
     # This correctly get the very last ETA and %
     job_status = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
                            r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
@@ -85,13 +124,9 @@ def process_logfile(logfile, job, job_results):
         job_results['progress_round'] = int(float(job_results['progress']))
 
     # INFO ARM: handbrake.handbrake_all Processing track #1 of 42. Length is 8602 seconds.
-    # Try to catch if the logfile gets delete before the job is finished
-    try:
-        with open(logfile, encoding="utf8", errors='ignore') as log_file:
-            line = log_file.readlines()
-    except FileNotFoundError:
-        line = ""
-    job_status_index = re.search(r"Processing track #([0-9]{1,2}) of ([0-9]{1,2})(?!.*Processing track #)", str(line))
+    line = read_all_log_lines(logfile)
+    job_status_index = re.search(r"Processing track #([0-9]{1,2}) of ([0-9]{1,2})"
+                                 r"(?!.*Processing track #)", str(line))
     if job_status_index:
         try:
             current_index = int(job_status_index.group(1))
@@ -103,6 +138,26 @@ def process_logfile(logfile, job, job_results):
         app.logger.debug("Cant find index")
 
     return job_results
+
+
+def read_log_line(log_file):
+    # Try to catch if the logfile gets delete before the job is finished
+    try:
+        line = subprocess.check_output(['tail', '-n', '1', log_file])
+    except subprocess.CalledProcessError:
+        app.logger.debug("Error while reading logfile for ETA")
+        line = ""
+    return line
+
+
+def read_all_log_lines(log_file):
+    # Try to catch if the logfile gets delete before the job is finished
+    try:
+        with open(log_file, encoding="utf8", errors='ignore') as read_log_file:
+            line = read_log_file.readlines()
+    except FileNotFoundError:
+        line = ""
+    return line
 
 
 def search(search_query):
