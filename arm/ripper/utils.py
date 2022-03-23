@@ -490,7 +490,7 @@ def database_updater(args, job, wait_time=90):
     the new value. If args isn't a dict assume we are wanting a rollback
     :param job: This is the job object
     :param wait_time: The time to wait in seconds
-    :return: None
+    :return: Success
     """
     if not isinstance(args, dict):
         db.session.rollback()
@@ -583,7 +583,7 @@ def job_dupe_check(job):
         title = results[0]['title'] if results[0]['title'] else job.label
         year = results[0]['year'] if results[0]['year'] != "" else ""
         poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
-        hasnicetitle = results[0]['hasnicetitle'] if results[0]['hasnicetitle'] else False
+        hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
         video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
         active_rip = {
             "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
