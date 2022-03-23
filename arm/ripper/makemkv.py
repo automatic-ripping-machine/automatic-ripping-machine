@@ -67,13 +67,8 @@ def makemkv(logfile, job):
 
         # if no maximum length, process the whole disc in one command
         if int(cfg["MAXLENGTH"]) > 99998:
-            cmd = 'makemkvcon mkv {0} -r --progress=-stdout --messages=-stdout dev:{1} all {2} --minlength={3}>> {4}'.format(
-                cfg["MKV_ARGS"],
-                job.devpath,
-                shlex.quote(rawpath),
-                cfg["MINLENGTH"],
-                logfile
-            )
+            cmd = f'makemkvcon mkv {cfg["MKV_ARGS"]} -r --progress=-stdout --messages=-stdout ' \
+                  f'dev:{job.devpath} all {shlex.quote(rawpath)} --minlength={cfg["MINLENGTH"]}>> {logfile}'
             run_makemkv(cmd)
         else:
             process_tracks(job, logfile, rawpath)
@@ -111,14 +106,9 @@ def process_tracks(job, logfile, rawpath):
             filepathname = os.path.join(rawpath, track.filename)
             logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
 
-            cmd = 'makemkvcon mkv {0} -r --progress=-stdout --messages=-stdout' \
-                  'dev:{1} {2} {3} --minlength={4}>> {5}'.format(cfg["MKV_ARGS"],
-                                                                 job.devpath,
-                                                                 str(track.track_number),
-                                                                 shlex.quote(rawpath),
-                                                                 cfg["MINLENGTH"],
-                                                                 logfile
-                                                                 )
+            cmd = f'makemkvcon mkv {cfg["MKV_ARGS"]} -r --progress=-stdout --messages=-stdout' \
+                  f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)} ' \
+                  f'--minlength={cfg["MINLENGTH"]}>> {logfile}'
             run_makemkv(cmd)
 
 
@@ -208,7 +198,8 @@ def get_track_info(mdisc, job):
     :return: None
     """
 
-    logging.info("Using MakeMKV to get information on all the tracks on the disc.  This will take a few minutes...")
+    logging.info("Using MakeMKV to get information on all the tracks on the disc. "
+                 "This will take a few minutes...")
 
     cmd = f'makemkvcon -r --progress=-stdout --messages=-stdout --cache=1 info disc:{mdisc}'
     logging.debug(f"Sending command: {cmd}")
@@ -251,8 +242,8 @@ def get_track_info(mdisc, job):
 
             if msg_type == "TINFO" and msg[1] == "9":
                 len_hms = msg[3].replace('"', '').strip()
-                h, m, s = len_hms.split(':')
-                seconds = int(h) * 3600 + int(m) * 60 + int(s)
+                hour, mins, secs = len_hms.split(':')
+                seconds = int(hour) * 3600 + int(mins) * 60 + int(secs)
 
             if msg_type == "SINFO" and msg[1] == "0":
                 if msg[2] == "20":

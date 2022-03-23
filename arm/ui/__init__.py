@@ -1,18 +1,15 @@
 import sys  # noqa: F401
 import os  # noqa: F401
-import bcrypt  # noqa: F401
-
+from getpass import getpass  # noqa: F401
 from flask import Flask, logging, current_app  # noqa: F401
+from flask.logging import default_handler  # noqa: F401
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_wtf import CSRFProtect
-
-from arm.config.config import cfg
-from flask.logging import default_handler  # noqa: F401
-from getpass import getpass  # noqa: F401
-
 from flask_login import LoginManager
+import bcrypt  # noqa: F401
+from arm.config.config import cfg
 
 sqlitefile = 'sqlite:///' + cfg['DBFILE']
 

@@ -24,8 +24,7 @@ import arm.ui.utils as utils
 from arm.ui import app, db, constants, json_api
 from arm.models.models import Job, Config, Track, User, AlembicVersion, UISettings  # noqa: F401
 from arm.config.config import cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
-    CustomTitleForm, SettingsForm, UiSettingsForm, SetupForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm, SettingsForm, UiSettingsForm, SetupForm
 from arm.ui.metadata import get_omdb_poster
 
 login_manager = LoginManager()
@@ -576,7 +575,7 @@ def customtitle():
     """
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
-    form = CustomTitleForm(obj=job)
+    form = TitleSearchForm(obj=job)
     if form.validate_on_submit():
         form.populate_obj(job)
         job.title = format(form.title.data)

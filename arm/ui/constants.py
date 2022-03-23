@@ -1,4 +1,4 @@
-# ARM UI Constants
+"""ARM UI Constants"""
 HOME_PAGE = '/index'
 ERROR_PAGE = 'error.html'
 ERROR_REDIRECT = "/error"

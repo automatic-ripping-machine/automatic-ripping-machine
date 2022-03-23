@@ -1,9 +1,14 @@
+import logging
 import yaml
 import apprise
-import logging
 
 
 def build_apprise_sent(cfg):
+    """
+    Build dict for processing
+    :param cfg: apprise.yaml loaded as dict
+    :return: dict with key -> link
+    """
     apprise_dict = {
         'BOXCAR_KEY': 'boxcar://' + str(cfg['BOXCAR_KEY']) + "/" + str(cfg['BOXCAR_SECRET']),
         'DISCORD_WEBHOOK_ID': 'discord://' + str(cfg['DISCORD_WEBHOOK_ID']) + "/" + str(cfg['DISCORD_TOKEN']),
@@ -74,8 +79,8 @@ def apprise_notify(apprise_cfg, title, body):
     :param body: the main body of the message
     :return: None
     """
-    with open(apprise_cfg, "r") as f:
-        cfg = yaml.safe_load(f)
+    with open(apprise_cfg, "r") as yaml_file:
+        cfg = yaml.safe_load(yaml_file)
 
     sent_cfg = build_apprise_sent(cfg)
     for host, string in sent_cfg.items():
@@ -87,5 +92,5 @@ def apprise_notify(apprise_cfg, title, body):
                 apobj.add(string)
                 apobj.notify(body, title=title)
                 logging.debug(f"Sent apprise to {host} was successful")
-        except Exception as e:  # noqa: E722
-            logging.error(f"Failed sending {host} apprise notification.  continuing  processing...{e}")
+        except Exception as error:  # noqa: E722
+            logging.error(f"Failed sending {host} apprise notification.  continuing  processing...{error}")

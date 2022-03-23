@@ -9,12 +9,6 @@ class TitleSearchForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
-class CustomTitleForm(FlaskForm):
-    title = StringField('Title', validators=[DataRequired()])
-    year = StringField('Year')
-    submit = SubmitField('Submit')
-
-
 class ChangeParamsForm(FlaskForm):
     RIPMETHOD = SelectField('Rip Method: ', choices=[('mkv', 'mkv'), ('backup', 'backup')])
     DISCTYPE = SelectField('Disc Type: ', choices=[('dvd', 'DVD'), ('bluray', 'Blu-ray'),

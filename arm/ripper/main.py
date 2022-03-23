@@ -12,9 +12,8 @@ import time  # noqa: E402
 import datetime  # noqa: E402
 import re  # noqa: E402
 import shutil  # noqa: E402
-import pyudev  # noqa: E402
 import getpass  # noqa E402
-import psutil  # noqa E402
+import pyudev  # noqa: E402
 sys.path.append("/opt/arm")
 
 from arm.ripper import logger, utils, makemkv, handbrake, identify  # noqa: E402
@@ -80,25 +79,24 @@ def check_fstab():
         for line in lines:
             # Now grabs the real uncommented fstab entry
             if re.search("^" + job.devpath, line):
-                logging.info("fstab entry is: " + line.rstrip())
+                logging.info(f"fstab entry is: {line.rstrip()}")
                 return
     logging.error("No fstab entry found.  ARM will likely fail.")
 
 
-def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
+def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path):
     """
     Section to follow when Skip transcoding is wanted
     :param job:
     :param hb_out_path:
     :param hb_in_path:
     :param mkv_out_path:
-    :param type_sub_folder:
     :return:
     """
     logging.info("SKIP_TRANSCODE is true.  Moving raw mkv files.")
     logging.info("NOTE: Identified main feature may not be actual main feature")
     files = os.listdir(mkv_out_path)
-    final_directory = hb_out_path
+    type_sub_folder = utils.convert_job_type(job.video_type)
     if job.video_type == "movie":
         logging.debug(f"Videotype: {job.video_type}")
         # if videotype is movie, then move biggest title to media_dir
@@ -150,7 +148,7 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
         for file in files:
             mkvoutfile = os.path.join(mkv_out_path, file)
             logging.debug(f"Moving file: {mkvoutfile} to: {hb_out_path} {file}")
-            utils.move_files(mkv_out_path, file, job, False)
+            utils.move_files(mkv_out_path, file, job, True)
     # remove raw files, if specified in config
     if cfg["DELRAWFILES"]:
         logging.info("Removing raw files")
@@ -158,6 +156,7 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
 
     utils.set_permissions(job, final_directory)
     utils.notify(job, NOTIFY_TITLE, str(job.title) + PROCESS_COMPLETE)
+
     logging.info("ARM processing complete")
     # WARN  : might cause issues
     # We need to update our job before we quit
@@ -199,7 +198,8 @@ def main(logfile, job):
     if job.title_manual:
         logging.info("Manual override found.  Overriding auto identification values.")
         job.updated = True
-        # We need to let arm know we have a nice title so it can use the MEDIA folder and not the ARM folder
+        # We need to let arm know we have a nice title so it can
+        # use the MEDIA folder and not the ARM folder
         job.hasnicetitle = True
     else:
         logging.info("No manual override found.")
@@ -211,57 +211,19 @@ def main(logfile, job):
     # Entry point for dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
         # get filesystem in order
-        # If we have a nice title/confirmed name use the MEDIA_DIR and not the ARM unidentified folder
-        # if job.hasnicetitle:
+        # If we have a nice title/confirmed name use the
+        #  MEDIA_DIR and not the ARM unidentified folder
         type_sub_folder = utils.convert_job_type(job.video_type)
-
+        # We need to check the final path, not the transcode path
         if job.year and job.year != "0000" and job.year != "":
-            hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(type_sub_folder),
+            hb_out_path = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder),
                                        str(job.title) + " (" + str(job.year) + ")")
         else:
-            hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(type_sub_folder), str(job.title))
-
-        # The dvd directory already exists - Lets make a new one using random numbers
-        if (utils.make_dir(hb_out_path)) is False:
-            logging.info(f"Handbrake Output directory \"{hb_out_path}\" already exists.")
-            # Only begin ripping if we are allowed to make duplicates
-            # Or the successful rip of the disc is not found in our database
-            logging.debug(f"Value of ALLOW_DUPLICATES: {0}".format(cfg["ALLOW_DUPLICATES"]))
-            logging.debug(f"Value of have_dupes: {have_dupes}")
-            if cfg["ALLOW_DUPLICATES"] or not have_dupes:
-                random_time = round(time.time() * 100)
-                hb_out_path = hb_out_path + "_" + str(random_time)
-
-                if (utils.make_dir(hb_out_path)) is False:
-                    # We failed to make a random directory, most likely a permission issue
-                    logging.exception(
-                        "A fatal error has occurred and ARM is exiting.  "
-                        "Couldn't create filesystem. Possible permission error")
-                    utils.notify(job, NOTIFY_TITLE, "ARM encountered a fatal error processing " + str(
-                        job.title) + ".  Couldn't create filesystem. Possible permission error. ")
-                    job.status = "fail"
-                    db.session.commit()
-                    sys.exit()
-            else:
-                # We aren't allowed to rip dupes, notify and exit
-                logging.info("Duplicate rips are disabled.")
-                utils.notify(job, NOTIFY_TITLE, "ARM Detected a duplicate disc. For " + str(
-                    job.title) + ".  Duplicate rips are disabled. You can re-enable them from your config file. ")
-                job.eject()
-                job.status = "fail"
-                db.session.commit()
-                sys.exit()
-
-        # Use FFMPeg to convert Large Poster if enabled in config
-        if job.disctype == "dvd" and cfg["RIP_POSTER"]:
-            os.system("mount " + job.devpath)
-            if os.path.isfile(job.mountpoint + "/JACKET_P/J00___5L.MP2"):
-                logging.info("Converting NTSC Poster Image")
-                os.system('ffmpeg -i "' + job.mountpoint + '/JACKET_P/J00___5L.MP2" "' + hb_out_path + '/poster.png"')
-            elif os.path.isfile(job.mountpoint + "/JACKET_P/J00___6L.MP2"):
-                logging.info("Converting PAL Poster Image")
-                os.system('ffmpeg -i "' + job.mountpoint + '/JACKET_P/J00___6L.MP2" "' + hb_out_path + '/poster.png"')
-            os.system("umount " + job.devpath)
+            hb_out_path = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), str(job.title))
+        # Check folder for already ripped jobs
+        hb_out_path = utils.check_for_dupe_folder(have_dupes, hb_out_path, job)
+        # Save poster image from disc if enabled
+        utils.save_disc_poster(hb_out_path, job)
 
         logging.info(f"Processing files to: {hb_out_path}")
         mkvoutpath = None
@@ -291,7 +253,7 @@ def main(logfile, job):
 
             # Entry point for not transcoding
             if cfg["SKIP_TRANSCODE"] and cfg["RIPMETHOD"] == "mkv":
-                skip_transcode(job, hb_out_path, hb_in_path, mkvoutpath, type_sub_folder)
+                skip_transcode(job, hb_out_path, hb_in_path, mkvoutpath)
         job.path = hb_out_path
         job.status = "transcoding"
         db.session.commit()
@@ -314,7 +276,8 @@ def main(logfile, job):
             final_directory = os.path.join(job.config.COMPLETED_PATH, str(type_sub_folder),
                                            f'{job.title} ({job.year})')
         else:
-            final_directory = os.path.join(job.config.COMPLETED_PATH, str(type_sub_folder), str(job.title))
+            final_directory = os.path.join(job.config.COMPLETED_PATH,
+                                           str(type_sub_folder), str(job.title))
 
         # move to media directory
         tracks = job.tracks.filter_by(ripped=True)  # .order_by(job.tracks.length.desc())
@@ -352,17 +315,17 @@ def main(logfile, job):
             else:
                 logging.info("File: poster.png already exists.  Not moving.")
 
-        utils.scan_emby(job)
+        utils.scan_emby()
         utils.set_permissions(job, final_directory)
 
         # Clean up Blu-ray backup
         if cfg["DELRAWFILES"]:
-            raw_list = [mkvoutpath, hb_out_path, hb_in_path]
+            raw_list = [mkvoutpath]
             for raw_folder in raw_list:
                 try:
                     logging.info(f"{raw_folder} != {final_directory}")
                     logging.info(f"Removing raw path - {raw_folder}")
-                    if raw_folder != final_directory:
+                    if raw_folder and raw_folder != final_directory:
                         shutil.rmtree(raw_folder)
                 except UnboundLocalError as error:
                     logging.debug(f"No raw files found to delete in {raw_folder}- {error}")
@@ -386,7 +349,7 @@ def main(logfile, job):
     elif job.disctype == "music":
         if utils.rip_music(job, logfile):
             utils.notify(job, NOTIFY_TITLE, f"Music CD: {job.label} {PROCESS_COMPLETE}")
-            utils.scan_emby(job)
+            utils.scan_emby()
             # This shouldn't be needed. but to be safe
             job.status = "success"
             db.session.commit()
@@ -431,15 +394,8 @@ if __name__ == "__main__":
     # Dont put out anything if we are using the empty.log or NAS_
     if logfile.find("empty.log") != -1 or re.search("NAS_[0-9].?log", logfile) is not None:
         sys.exit()
-    # This will kill any runs that have been triggered twice on the same device
-    running_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success']), Job.devpath == devpath).all()
-    if len(running_jobs) >= 1:
-        for j in running_jobs:
-            print(j.start_time - datetime.datetime.now())
-            z = int(round(abs(j.start_time - datetime.datetime.now()).total_seconds()) / 60)
-            if z <= 1:
-                logging.error(f"Job already running on {devpath}")
-                sys.exit(1)
+
+    utils.duplicate_run_check(devpath)
 
     logging.info(f"Starting ARM processing at {datetime.datetime.now()}")
     utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
@@ -480,6 +436,5 @@ if __name__ == "__main__":
         joblength = job.stop_time - job.start_time
         minutes, seconds = divmod(joblength.seconds + joblength.days * 86400, 60)
         hours, minutes = divmod(minutes, 60)
-        total_length = '{:d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
-        job.job_length = total_length
+        job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
         db.session.commit()
