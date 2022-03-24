@@ -24,9 +24,12 @@ NOTIFY_TITLE = "ARM notification"
 
 
 def notify(job, title, body):
-    """Send notifications
-     title = title for notification
-    body = body of the notification
+    """
+    Send notifications with apprise
+    :param job: Current Job
+    :param title: title for notification
+    :param body: body of the notification
+    :return: None
     """
 
     # Prepend Site Name if configured, append Job ID if configured
@@ -151,46 +154,49 @@ def fix_job_title(job):
     return job_title
 
 
-def move_files(basepath, filename, job, ismainfeature=False):
+def move_files(base_path, filename, job, ismainfeature=False):
     """
-    Move files into final media directory\n\n
-    :param basepath: path to source directory\n
+    Move files from RAW_PATH or TRANSCODE_PATH to final media directory\n\n
+    :param base_path: Path to source directory\n
     :param filename: name of file to be moved\n
     :param job: instance of Job class\n
     :param ismainfeature: True/False
     :return: None
     """
+    video_title = fix_job_title(job)
     type_sub_folder = convert_job_type(job.video_type)
-    videotitle = fix_job_title(job)
 
-    logging.debug(f"Arguments: {basepath} : {filename} : "
-                  f"{job.hasnicetitle} : {videotitle} : {ismainfeature}")
-    m_path = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), videotitle)
-    # For series there are no extras as we never get a main feature
-    e_path = os.path.join(m_path, cfg["EXTRAS_SUB"]) if job.video_type != "series" else m_path
-    make_dir(m_path)
+    logging.debug(f"Arguments: {base_path} : {filename} : "
+                  f"{job.hasnicetitle} : {video_title} : {ismainfeature}")
+
+    movie_path = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), video_title)
+    logging.info(f"Moving {job.video_type} {filename} to {movie_path}")
+    # For series there are no extras so always use the base path
+    extras_path = os.path.join(movie_path, cfg["EXTRAS_SUB"]) if job.video_type != "series" else movie_path
+    make_dir(movie_path)
 
     if ismainfeature is True:
-        logging.info(f"Track is the Main Title.  Moving '{filename}' to {m_path}")
-        m_file = os.path.join(m_path, videotitle + "." + cfg["DEST_EXT"])
-        if not os.path.isfile(m_file):
+        movie_file = os.path.join(movie_path, video_title + "." + cfg["DEST_EXT"])
+        logging.info(f"Track is the Main Title.  Moving '{filename}' to {movie_file}")
+        if not os.path.isfile(movie_file):
             try:
-                shutil.move(os.path.join(basepath, filename), m_file)
+                shutil.move(os.path.join(base_path, filename), movie_file)
             except Exception as error:
-                logging.error(f"Unable to move '{filename}' to '{m_path}' - Error: {error}")
+                logging.error(f"Unable to move '{filename}' to '{movie_path}' - Error: {error}")
         else:
-            logging.info(f"File: {m_file} already exists.  Not moving.")
+            logging.info(f"File: {movie_file} already exists.  Not moving.")
     else:
-        make_dir(e_path)
-        logging.info(f"Moving '{filename}' to {e_path}")
-        e_file = os.path.join(e_path, videotitle + "." + cfg["DEST_EXT"])
-        if not os.path.isfile(e_file):
+        make_dir(extras_path)
+        logging.info(f"Moving '{filename}' to {extras_path}")
+        extras_file = os.path.join(extras_path, video_title + "." + cfg["DEST_EXT"])
+        if not os.path.isfile(extras_file):
             try:
-                shutil.move(os.path.join(basepath, filename), os.path.join(e_path, filename))
+                shutil.move(os.path.join(base_path, filename), os.path.join(extras_path, filename))
             except Exception as error:
-                logging.error(f"Unable to move '{filename}' to {e_path} - {error}")
+                logging.error(f"Unable to move '{filename}' to {extras_path} - {error}")
         else:
-            logging.info(f"File: {e_file} already exists.  Not moving.")
+            logging.info(f"File: {extras_file} already exists.  Not moving.")
+    return movie_path
 
 
 def make_dir(path):
@@ -253,6 +259,25 @@ def find_file(filename, search_path):
         if filename in filenames:
             return True
     return False
+
+
+def find_largest_file(files, mkv_out_path):
+    """
+    Step through given dir and return the largest file name
+    :param files: dir in os.listdir() format
+    :param mkv_out_path: RAW_PATH
+    :return: largest file name
+    """
+    largest_file_name = ""
+    for file in files:
+        # initialize largest_file_name
+        if largest_file_name == "":
+            largest_file_name = file
+        temp_path_f = os.path.join(mkv_out_path, file)
+        temp_path_largest = os.path.join(mkv_out_path, largest_file_name)
+        if os.stat(temp_path_f).st_size > os.stat(temp_path_largest).st_size:
+            largest_file_name = file
+    return largest_file_name
 
 
 def rip_music(job, logfile):
@@ -650,11 +675,11 @@ def duplicate_run_check(dev_path):
                 sys.exit(1)
 
 
-def save_disc_poster(hb_out_path, job):
+def save_disc_poster(final_directory, job):
     """
      Use FFMPeg to convert Large Poster if enabled in config
-    :param hb_out_path:
-    :param job:
+    :param final_directory: folder to put the poster in
+    :param job: Current Job
     :return: None
     """
     if job.disctype == "dvd" and cfg["RIP_POSTER"]:
@@ -662,17 +687,17 @@ def save_disc_poster(hb_out_path, job):
         if os.path.isfile(job.mountpoint + "/JACKET_P/J00___5L.MP2"):
             logging.info("Converting NTSC Poster Image")
             os.system('ffmpeg -i "' + job.mountpoint + '/JACKET_P/J00___5L.MP2" "'
-                      + hb_out_path + '/poster.png"')
+                      + final_directory + '/poster.png"')
         elif os.path.isfile(job.mountpoint + "/JACKET_P/J00___6L.MP2"):
             logging.info("Converting PAL Poster Image")
             os.system('ffmpeg -i "' + job.mountpoint + '/JACKET_P/J00___6L.MP2" "'
-                      + hb_out_path + '/poster.png"')
+                      + final_directory + '/poster.png"')
         os.system("umount " + job.devpath)
 
 
 def check_for_dupe_folder(have_dupes, hb_out_path, job):
     """
-    Check if the final directory already exists
+    Check if the folder already exists
      if it exist lets make a new one using random numbers
     :param have_dupes: is this title in the local arm database
     :param hb_out_path: path to HandBrake out
@@ -711,3 +736,30 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
             db.session.commit()
             sys.exit()
     return hb_out_path
+
+
+def check_for_wait(job, config):
+    """
+    wait if we have have waiting for user input updates\n\n
+    :param config: Config for current Job
+    :param job: Current Job
+    :return: None
+    """
+    #  If we have have waiting for user input enabled
+    if cfg["MANUAL_WAIT"]:
+        logging.info(f"Waiting {cfg['MANUAL_WAIT_TIME']} seconds for manual override.")
+        job.status = "waiting"
+        db.session.commit()
+        sleep_time = 0
+        while sleep_time < cfg["MANUAL_WAIT_TIME"]:
+            time.sleep(5)
+            sleep_time += 5
+            db.session.refresh(job)
+            db.session.refresh(config)
+            if job.title_manual:
+                logging.info("Manual override found.  Overriding auto identification values.")
+                job.updated = True
+                job.hasnicetitle = True
+                break
+        job.status = "active"
+        db.session.commit()

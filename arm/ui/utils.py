@@ -325,6 +325,7 @@ def fix_permissions(j_id):
     ARM can sometimes have issues with changing the file owner, we can use the fact ARMui is run
     as a service to fix permissions.
     """
+    # TODO add new json exception - break these check out into a function
     try:
         job_id = int(j_id.strip())
     except AttributeError:
