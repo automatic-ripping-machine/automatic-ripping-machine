@@ -1,7 +1,7 @@
-import requests
 import urllib
 import json
 import re
+import requests
 from flask.logging import default_handler  # noqa: F401
 
 from arm.ui import app
@@ -16,17 +16,15 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
     omdb_api_key = cfg['OMDB_API_KEY']
 
     if imdb_id:
-        strurl = "https://www.omdbapi.com/?i={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key, imdb_id, plot)
+        strurl = f"https://www.omdbapi.com/?i={imdb_id}&plot={plot}&r=json&apikey={omdb_api_key}"
     elif title:
         # try:
         title = urllib.parse.quote(title)
         if year and year is not None:
             year = urllib.parse.quote(year)
-            strurl = "https://www.omdbapi.com/?s={1}&y={2}&plot={3}&r=json&apikey={0}".format(omdb_api_key,
-                                                                                              title, year, plot)
+            strurl = f"https://www.omdbapi.com/?s={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
         else:
-            strurl = "https://www.omdbapi.com/?s={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key,
-                                                                                        title, plot)
+            strurl = f"https://www.omdbapi.com/?s={title}&plot={plot}&r=json&apikey={omdb_api_key}"
     else:
         app.logger.debug("no params")
         return None
@@ -38,8 +36,8 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
         app.logger.debug(f"omdb - {title_info}")
         if 'Error' in title_info or title_info['Response'] == "False":
             return None
-    except urllib.error.HTTPError as e:
-        app.logger.debug(f"omdb call failed with error - {e}")
+    except urllib.error.HTTPError as error:
+        app.logger.debug(f"omdb call failed with error - {error}")
         return None
     app.logger.debug("omdb - call was successful")
     return title_info
@@ -58,29 +56,28 @@ def get_omdb_poster(title=None, year=None, imdb_id=None, plot="short"):
     else:
         app.logger.debug("no params")
         return None, None
-    from requests.utils import requote_uri
-    r = requote_uri(strurl)
-    r2 = requote_uri(strurl2)
+    r = requests.utils.requote_uri(strurl)
+    r2 = requests.utils.requote_uri(strurl2)
     try:
         title_info_json = urllib.request.urlopen(r).read()
-    except Exception as e:
-        app.logger.debug(f"Failed to reach OMdb - {e}")
+    except Exception as error:
+        app.logger.debug(f"Failed to reach OMdb - {error}")
         return None, None
     else:
         title_info = json.loads(title_info_json.decode())
         # app.logger.debug("omdb - " + str(title_info))
         if 'Error' not in title_info:
             return title_info['Search'][0]['Poster'], title_info['Search'][0]['imdbID']
-        else:
-            try:
-                title_info_json2 = urllib.request.urlopen(r2).read()
-                title_info2 = json.loads(title_info_json2.decode())
-                # app.logger.debug("omdb - " + str(title_info2))
-                if 'Error' not in title_info2:
-                    return title_info2['Poster'], title_info2['imdbID']
-            except Exception as e:
-                app.logger.debug(f"Failed to reach OMdb - {e}")
-                return None, None
+
+        try:
+            title_info_json2 = urllib.request.urlopen(r2).read()
+            title_info2 = json.loads(title_info_json2.decode())
+            # app.logger.debug("omdb - " + str(title_info2))
+            if 'Error' not in title_info2:
+                return title_info2['Poster'], title_info2['imdbID']
+        except Exception as e:
+            app.logger.debug(f"Failed to reach OMdb - {e}")
+            return None, None
 
     return None, None
 
@@ -126,13 +123,7 @@ def get_tmdb_poster(search_query=None, year=None):
                     re.sub(TMDB_YEAR_REGEX, "", s['release_date'])
                 s['Title'] = s['title'] if 'title' in s else s['name']  # This isnt great
                 s['Type'] = "movie"
-                app.logger.debug(f"{s['Title']} ({s['Year']})- {poster_base}{s['poster_path']}")
-                s['Poster'] = f"{poster_base}{s['poster_path']}"  # print(poster_url)
-                s['background_url'] = f"{poster_base}{s['backdrop_path']}"
-                s["Plot"] = s['overview']
-                app.logger.debug(s['background_url'])
-                search_query_pretty = str.replace(r"\+", " ", search_query)
-                app.logger.debug(f"trying {search_query.capitalize()} == {s['Title'].capitalize()}")
+                search_query_pretty = fix_post_plot(poster_base, s, search_query)
                 if search_query_pretty.capitalize() == s['Title'].capitalize():
                     s['Search'] = s
                     app.logger.debug("x=" + str(x))
@@ -142,6 +133,17 @@ def get_tmdb_poster(search_query=None, year=None):
             return x
         app.logger.debug("no results found")
         return None
+
+
+def fix_post_plot(poster_base, s, search_query):
+    app.logger.debug(f"{s['Title']} ({s['Year']})- {poster_base}{s['poster_path']}")
+    s['Poster'] = f"{poster_base}{s['poster_path']}"  # print(poster_url)
+    s['background_url'] = f"{poster_base}{s['backdrop_path']}"
+    s["Plot"] = s['overview']
+    app.logger.debug(s['background_url'])
+    search_query_pretty = str.replace(r"\+", " ", search_query)
+    app.logger.debug(f"trying {search_query.capitalize()} == {s['Title'].capitalize()}")
+    return search_query_pretty
 
 
 def tmdb_search(search_query=None, year=None):
@@ -189,13 +191,7 @@ def tmdb_search(search_query=None, year=None):
                     re.sub(TMDB_YEAR_REGEX, "", s['release_date'])
                 s['Title'] = s['title'] if 'title' in s else s['name']  # This isnt great
                 s['Type'] = "series"
-                app.logger.debug(f"{s['Title']} ({s['Year']})- {poster_base}{s['poster_path']}")
-                s['Poster'] = f"{poster_base}{s['poster_path']}"  # print(poster_url)
-                s['background_url'] = f"{poster_base}{s['backdrop_path']}"
-                s["Plot"] = s['overview']
-                app.logger.debug(s['background_url'])
-                search_query_pretty = str.replace(r"\+", " ", search_query)
-                app.logger.debug(f"trying {search_query_pretty.capitalize()} == {s['Title'].capitalize()}")
+                fix_post_plot(poster_base, s, search_query)
             x['Search'] = p['results']
             return x
 
@@ -217,10 +213,10 @@ def tmdb_get_imdb(tmdb_id):
     url_tv = f"https://api.themoviedb.org/3/tv/{tmdb_id}/external_ids?api_key={tmdb_api_key}"
     # Making a get request
     response = requests.get(url)
-    p = json.loads(response.text)
-    app.logger.debug(f"tmdb_get_imdb - {p}")
+    search_results = json.loads(response.text)
+    app.logger.debug(f"tmdb_get_imdb - {search_results}")
     # 'status_code' means id wasn't found
-    if 'status_code' in p:
+    if 'status_code' in search_results:
         # Try tv series
         response = requests.get(url_tv)
         tv = json.loads(response.text)
@@ -228,7 +224,7 @@ def tmdb_get_imdb(tmdb_id):
         if 'status_code' not in tv:
             return tv['imdb_id']
     else:
-        return p['external_ids']['imdb_id']
+        return search_results['external_ids']['imdb_id']
 
 
 def tmdb_find(imdb_id):
@@ -243,33 +239,33 @@ def tmdb_find(imdb_id):
     poster_base = f"https://image.tmdb.org/t/p/{poster_size}"
     # Making a get request
     response = requests.get(url)
-    p = json.loads(response.text)
-    app.logger.debug(f"tmdb_find = {p}")
-    if len(p['movie_results']) > 0:
+    search_results = json.loads(response.text)
+    app.logger.debug(f"tmdb_find = {search_results}")
+    if len(search_results['movie_results']) > 0:
         # We want to push out everything even if we dont use it right now, it may be used later.
-        s = {'results': p['movie_results']}
-        x = re.sub(TMDB_YEAR_REGEX, "", s['results'][0]['release_date'])
-        app.logger.debug(f"{s['results'][0]['title']} ({x})- {poster_base}{s['results'][0]['poster_path']}")
+        s = {'results': search_results['movie_results']}
+        release_year = re.sub(TMDB_YEAR_REGEX, "", s['results'][0]['release_date'])
+        # app.logger.debug(f"{s['results'][0]['title']} ({release_year})-{poster_base}{s['results'][0]['poster_path']}")
         s['poster_url'] = f"{poster_base}{s['results'][0]['poster_path']}"
         s["Plot"] = s['results'][0]['overview']
         s['background_url'] = f"{poster_base}{s['results'][0]['backdrop_path']}"
         s['Type'] = "movie"
         s['imdbID'] = imdb_id
         s['Poster'] = s['poster_url']
-        s['Year'] = x
+        s['Year'] = release_year
         s['Title'] = s['results'][0]['title']
     else:
         # We want to push out everything even if we dont use it right now, it may be used later.
-        s = {'results': p['tv_results']}
-        x = re.sub(TMDB_YEAR_REGEX, "", s['results'][0]['first_air_date'])
-        app.logger.debug(f"{s['results'][0]['name']} ({x})- {poster_base}{s['results'][0]['poster_path']}")
+        s = {'results': search_results['tv_results']}
+        release_year = re.sub(TMDB_YEAR_REGEX, "", s['results'][0]['first_air_date'])
+        # app.logger.debug(f"{s['results'][0]['name']} ({x})- {poster_base}{s['results'][0]['poster_path']}")
         s['poster_url'] = f"{poster_base}{s['results'][0]['poster_path']}"
         s["Plot"] = s['results'][0]['overview']
         s['background_url'] = f"{poster_base}{s['results'][0]['backdrop_path']}"
         s['imdbID'] = imdb_id
         s['Type'] = "series"
         s['Poster'] = s['poster_url']
-        s['Year'] = x
+        s['Year'] = release_year
         s['Title'] = s['results'][0]['name']
     return s
 
@@ -306,5 +302,5 @@ def tmdb_fetch_results(search_query, year, tmdb_api_key):
     poster_size = "original"
     poster_base = f"https://image.tmdb.org/t/p/{poster_size}"
     response = requests.get(url)
-    p = json.loads(response.text)
-    return p, poster_base, response
+    return_json = json.loads(response.text)
+    return return_json, poster_base, response

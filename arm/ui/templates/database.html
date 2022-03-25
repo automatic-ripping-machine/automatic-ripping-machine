@@ -50,21 +50,19 @@
                 </div>
             </div>
         </div>
-
+        <!-- Messages -->
         <div id="message1" class="alert alert-success d-none" role="alert">
             <h4 class="alert-heading">Job was deleted successfully</h4>
         </div>
-
         <div id="message2" class="alert alert-danger text-center">
             <strong>WARNING: </strong>There is no undo here!
             <br>Be careful!
         </div>
-
         <div id="message3" class="alert alert-danger d-none" role="alert">
             <h4 class="alert-heading">There was a problem with your request</h4>
             <p>There was a problem with your request. Check the ARMui log for more details.</p>
         </div>
-
+        <!-- Buttons -->
         <div class="row d-flex justify-content-end">
             <div class="p-4">
                 <button id="save-get-success" type="button" class="btn btn-secondary btn-success">Get all successful
@@ -77,34 +75,11 @@
                 </button>
             </div>
         </div>
-        <div class="row">
-            <div class="col">
-                <p class="text-left mt-3 d-block">Showing page {{ pages.page }} of {{ pages.pages }}</p>
-            </div>
-            <!-- Pagination Links-->
-            <div class="col text-right">
-                <a href="{{ url_for('database', page=pages.prev_num) }}"
-                   class="btn btn-primary {% if pages.page == 1 %}disabled{% endif %}">&laquo;</a>
-                <!-- Loop through the number of pages to display a link for each-->
-                {% for page_num in pages.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                    {% if page_num %}
-                        <!-- Check for the active page and set the link to "Active"-->
-                        {% if pages.page == page_num %}
-                            <a href="{{ url_for('database', page=page_num) }}"
-                               class="btn btn-secondary active">{{ page_num }}</a>
-                        {% else %}
-                            <a href="{{ url_for('database', page=page_num) }}"
-                               class="btn btn-primary">{{ page_num }}</a>
-                        {% endif %}
-                    {% else %}
-                        ...
-                    {% endif %}
-                {% endfor %}
-                <a href="{{ url_for('database', page=pages.next_num) }}"
-                   class="btn btn-primary {% if pages.page == pages.pages %}disabled{% endif %}">&raquo;</a>
-            </div>
-        </div>
 
+        {% with pages=pages, page_name="database" %}
+            {% include "pagination.html" %}
+        {% endwith %}
+        <!-- All jobs -->
         <div class="row">
             <div class="col-md-12 mx-auto">
                 <div class="card-deck">
@@ -153,18 +128,7 @@
                                     job.start_time is not none }}<br>
                                             <strong>Start Time:</strong>{{ job.start_time.strftime("%H:%M:%S") if job.start_time
                                     is not none }}<br>
-                                            <strong>Job Time:</strong>{{ job.job_length }}<br>
-                                            {% if job.status == "transcoding" %}
-                                                <div class="progress">
-                                                    <div class="progress-bar progress-bar-striped progress-bar-animated"
-                                                         role="progressbar" aria-valuenow="{{ job.progress_round }}"
-                                                         aria-valuemin="0" aria-valuemax="100"
-                                                         style="width: {{ job.progress_round }}%;">
-                                                        <small class="justify-content-center d-flex position-absolute w-100"><strong>Progress: </strong>{{ job.progress }}%</small>
-                                                    </div>
-                                                </div>
-                                                <strong>ETA: </strong>{{ job.eta }} <br>
-                                            {% endif %}
+                                            <strong>Job Time:</strong>{{ " Ongoing" if job.job_length is none else job.job_length }}<br>
                                         </div>
                                     </div>
                                     <div class="col-lg-4">
@@ -215,33 +179,9 @@
             </div>
         </div>
 
-        <div class="row">
-            <div class="col">
-                <p class="text-left mt-3 d-block">Showing page {{ pages.page }} of {{ pages.pages }}</p>
-            </div>
-            <!-- Pagination Links-->
-            <div class="col text-right">
-                <a href="{{ url_for('database', page=pages.prev_num) }}"
-                   class="btn btn-primary {% if pages.page == 1 %}disabled{% endif %}">&laquo;</a>
-                <!-- Loop through the number of pages to display a link for each-->
-                {% for page_num in pages.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                    {% if page_num %}
-                        <!-- Check for the active page and set the link to "Active"-->
-                        {% if pages.page == page_num %}
-                            <a href="{{ url_for('database', page=page_num) }}"
-                               class="btn btn-secondary active">{{ page_num }}</a>
-                        {% else %}
-                            <a href="{{ url_for('database', page=page_num) }}"
-                               class="btn btn-primary">{{ page_num }}</a>
-                        {% endif %}
-                    {% else %}
-                        ...
-                    {% endif %}
-                {% endfor %}
-                <a href="{{ url_for('database', page=pages.next_num) }}"
-                   class="btn btn-primary {% if pages.page == pages.pages %}disabled{% endif %}">&raquo;</a>
-            </div>
-        </div>
+        {% with pages=pages, page_name="database" %}
+            {% include "pagination.html" %}
+        {% endwith %}
 
     </div>
 
@@ -250,8 +190,6 @@
 {% block js %}
     {{ super() }}
 
-    <script type="application/javascript">
-        activeTab("database");
-    </script>
+    <script type="application/javascript">activeTab("database");</script>
     <script type="application/javascript" src="static/js/database.js"></script>
 {% endblock %}

@@ -266,7 +266,7 @@ def main(logfile, job):
 
         # Clean up Blu-ray backup
         if cfg["DELRAWFILES"]:
-            raw_list = [mkvoutpath, hb_in_path]
+            raw_list = [hb_in_path, hb_out_path, mkvoutpath]
             for raw_folder in raw_list:
                 try:
                     logging.debug(f"{raw_folder} != {final_directory}")

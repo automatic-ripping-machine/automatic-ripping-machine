@@ -16,13 +16,13 @@
 {% block js %}
 {{ super() }}
 <script>
-    var output = document.getElementById('{{ file }}');
+    const output = document.getElementById('{{ file }}');
 
-    var xhr = new XMLHttpRequest();
+    const xhr = new XMLHttpRequest();
     {% if mode == 'tail' or mode == 'full' %}
-    xhr.open('GET', '/logreader?logfile={{ file }}&mode=full');
+        xhr.open('GET', '/logreader?logfile={{ file }}&mode=full&json=1');
     {% else %}
-    xhr.open('GET', '/logreader?logfile={{ file }}&mode={{ mode }}');
+        xhr.open('GET', '/logreader?logfile={{ file }}&mode={{ mode }}&json=1');
     {% endif %}
     xhr.open
     xhr.send();
@@ -30,14 +30,9 @@
     setInterval(function() {
         output.textContent = xhr.responseText;
         {% if mode == 'tail' %}
-        window.scrollTo(0,document.body.scrollHeight);
+            window.scrollTo(0, document.querySelector("#content").scrollHeight);
         {% endif %}
     }, 1000);
-
-    // window.setInterval(function() {
-    //     var elem = document.getElementById('log');
-    //     elem.scrollTop = elem.scrollHeight;
-    // })
 
 </script>
 {% endblock %}

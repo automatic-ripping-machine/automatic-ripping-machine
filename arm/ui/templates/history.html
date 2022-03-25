@@ -96,29 +96,10 @@
                         </div>
                     </div>
                     <br>
-                    <div class="row">
-                        <div class="col">
-                            <p class="text-left mt-3 d-block">Showing page {{ pages.page }} of {{ pages.pages }}</p>
-                        </div>
-                        <!-- Pagination Links-->
-                        <div class="col text-right">
-                                <a href="{{ url_for('history', page=pages.prev_num) }}" class="btn btn-outline-dark {% if pages.page == 1 %}disabled{% endif %}">&laquo;</a>
-                                <!-- Loop through the number of pages to display a link for each-->
-                                {% for page_num in pages.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                                    {% if page_num %}
-                                        <!-- Check for the active page and set the link to "Active"-->
-                                        {% if pages.page == page_num %}
-                                            <a href="{{ url_for('history', page=page_num) }}" class="btn btn-dark">{{ page_num }}</a>
-                                        {% else %}
-                                            <a href="{{ url_for('history', page=page_num) }}" class="btn btn-outline-dark">{{ page_num }}</a>
-                                        {% endif %}
-                                    {% else %}
-                                        ...
-                                    {% endif %}
-                                {% endfor %}
-                                <a href="{{ url_for('history', page=pages.next_num) }}" class="btn btn-outline-dark {% if pages.page == pages.pages %}disabled{% endif %}">&raquo;</a>
-                            </div>
-                    </div>
+                    {% with pages=pages, page_name="history" %}
+                        {% include "pagination.html" %}
+                    {% endwith %}
+                    <!-- Main Body -->
                     <div class="row">
                         <table class="table table-striped">
                             <caption>Previous rips</caption>
@@ -149,6 +130,9 @@
                             </tbody>
                         </table>
                     </div>
+                    {% with pages=pages, page_name="history" %}
+                        {% include "pagination.html" %}
+                    {% endwith %}
                 </div>
             </div>
         </div>

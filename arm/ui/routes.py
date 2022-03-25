@@ -2,8 +2,6 @@
 Main routes for the A.R.M ui
 """
 import os
-import platform
-import subprocess
 import re
 import sys  # noqa: F401
 import hashlib
@@ -16,9 +14,9 @@ import psutil
 from werkzeug.exceptions import HTTPException
 from werkzeug.routing import ValidationError
 from flask import Flask, render_template, request, send_file, flash, \
-    redirect, url_for  # noqa: F401
+    redirect, url_for, jsonify  # noqa: F401
 from flask.logging import default_handler  # noqa: F401
-from flask_login import LoginManager, login_required,\
+from flask_login import LoginManager, login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
 import arm.ui.utils as utils
 from arm.ui import app, db, constants, json_api
@@ -273,34 +271,36 @@ def feed_json():
     is your call
     You can then add a function inside utils to deal with the request
     """
-    j = {}
+    return_json = {}
     mode = request.args.get('mode')
     j_id = request.args.get('job')
     searchq = request.args.get('q')
     logpath = cfg['LOGPATH']
+
     if mode == "delete":
-        j = json_api.delete_job(j_id, mode)
+        return_json = json_api.delete_job(j_id, mode)
     elif mode == "abandon":
-        j = json_api.abandon_job(j_id)
+        return_json = json_api.abandon_job(j_id)
     elif mode == "full":
         app.logger.debug("getlog")
-        j = json_api.generate_log(logpath, j_id)
+        return_json = json_api.generate_log(logpath, j_id)
     elif mode == "search":
         app.logger.debug("search")
-        j = json_api.search(searchq)
+        return_json = json_api.search(searchq)
     elif mode == "getfailed":
         app.logger.debug("getfailed")
-        j = json_api.get_x_jobs("fail")
+        return_json = json_api.get_x_jobs("fail")
     elif mode == "getsuccessful":
         app.logger.debug("getsucessful")
-        j = json_api.get_x_jobs("success")
+        return_json = json_api.get_x_jobs("success")
     elif mode == "joblist":
         app.logger.debug("joblist")
-        j = json_api.get_x_jobs("joblist")
+        return_json = json_api.get_x_jobs("joblist")
     elif mode == "fixperms":
         app.logger.debug("fixperms")
-        j = utils.fix_permissions(j_id)
-    return app.response_class(response=json.dumps(j, indent=4, sort_keys=True),
+        return_json = utils.fix_permissions(j_id)
+    app.logger.debug(return_json)
+    return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
                               mimetype='application/json')
 
@@ -388,8 +388,8 @@ def ui_settings():
     form = UiSettingsForm()
     if form.validate_on_submit():
         # json.loads("false".lower())
-        use_icons = False if str(form.use_icons.data).strip().lower() != "true" else True
-        save_remote_images = False if str(form.save_remote_images.data).strip().lower() != "true" else True
+        use_icons = (str(form.use_icons.data).strip().lower() == "true")
+        save_remote_images = (str(form.save_remote_images.data).strip().lower() == "true")
         database_arguments = {
             'index_refresh': format(form.index_refresh.data),
             'use_icons': use_icons,
@@ -451,9 +451,9 @@ def logreader():
     log_path = cfg['LOGPATH']
     mode = request.args.get('mode')
     # We should use the job id and not get the raw logfile from the user
-    logfile = request.args.get('logfile')
-    full_path = os.path.join(log_path, logfile)
-    validate_logfile(logfile, mode, Path(full_path))
+    # TODO poss search database and see if we can match the logname with a previous rip ?
+    full_path = os.path.join(log_path, request.args.get('logfile'))
+    utils.validate_logfile(request.args.get('logfile'), mode, Path(full_path))
 
     # Only ARM logs
     if mode == "armcat":
@@ -713,7 +713,7 @@ def home():
 
     #  get out cpu info
     try:
-        our_cpu = get_processor_name()
+        our_cpu = utils.get_processor_name()
         cpu_usage = psutil.cpu_percent()
     except EnvironmentError:
         our_cpu = "Not found"
@@ -786,7 +786,7 @@ def import_movies():
             app.logger.debug("movie files = " + str(movie_files))
 
             hash_object = hashlib.md5(mystring.encode())
-            dupe_found, x = utils.job_dupe_check(hash_object.hexdigest())
+            dupe_found, not_used_variable = utils.job_dupe_check(hash_object.hexdigest())
             if dupe_found:
                 app.logger.debug("We found dupes breaking loop")
                 continue
@@ -901,7 +901,7 @@ def send_movies():
         # This allows easy updates to the API url
         base_url = "https://1337server.pythonanywhere.com"
         url = f"{base_url}/api/v1/?mode=p&api_key={api_key}&crc64={p.crc_id}&t={p.title}&y={p.year}&imdb={p.imdb_id}" \
-              f"&hnt={p.hasnicetitle}&l={p.label}"
+              f"&hnt={p.hasnicetitle}&l={p.label}&vt={p.video_type}"
         app.logger.debug(url)
         response = requests.get(url)
         req = json.loads(response.text)
@@ -924,56 +924,6 @@ def send_movies():
     return render_template('send_movies.html', sent=r['sent'], failed=r['failed'], full=r)
 
 
-def get_processor_name():
-    """
-    function to collect and return some cpu info
-    ideally want to return {name} @ {speed} Ghz
-    """
-    cpu_info = None
-    if platform.system() == "Windows":
-        cpu_info = platform.processor()
-    elif platform.system() == "Darwin":
-        cpu_info = subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
-    elif platform.system() == "Linux":
-        command = "cat /proc/cpuinfo"
-        fulldump = str(subprocess.check_output(command, shell=True).strip())
-        # Take any float trailing "MHz", some whitespace, and a colon.
-        speeds = re.search(r"\\nmodel name\\t:.*?GHz\\n", fulldump)
-        if speeds:
-            # We have intel CPU
-            speeds = str(speeds.group())
-            speeds = speeds.replace('\\n', ' ')
-            speeds = speeds.replace('\\t', ' ')
-            speeds = speeds.replace('model name :', '')
-            cpu_info = speeds
-
-        # AMD CPU
-        amd_name_full = re.search(r"model name\\t: (.*?)\\n", fulldump)
-        if amd_name_full:
-            amd_name = amd_name_full.group(1)
-            amd_mhz = re.search(r"cpu MHz(?:\\t)*: ([.0-9]*)\\n", fulldump)  # noqa: W605
-            if amd_mhz:
-                amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
-                cpu_info = str(amd_name) + " @ " + str(amd_ghz) + " GHz"
-    return cpu_info
-
-
-def validate_logfile(logfile, mode, my_file):
-    """
-    check if logfile we got from the user is valid
-    :param logfile: full logfile path
-    :param mode:
-    :param my_file: full logfile path
-    :return: None
-    :raise ValidationError:
-    """
-    if logfile is None or "../" in logfile or mode is None or logfile.find("/") != -1:
-        raise ValidationError
-    if not my_file.is_file():
-        # logfile doesnt exist throw out error template
-        raise ValidationError
-
-
 @app.errorhandler(Exception)
 def handle_exception(sent_error):
     """
@@ -981,10 +931,20 @@ def handle_exception(sent_error):
     :param sent_error: error
     :return: error page
     """
-    app.logger.debug(sent_error)
     # pass through HTTP errors
     if isinstance(sent_error, HTTPException):
         return sent_error
 
-    # now you're handling non-HTTP exceptions only
+    app.logger.debug(sent_error)
+    app.logger.debug(f"\n\n{request.path}\n\n{request.args.get('json')}")
+    if request.path.startswith('/json') or request.args.get('json'):
+        app.logger.debug(f"{request.path} - {sent_error}")
+        return_json = {
+            'path': request.path,
+            'Error': str(sent_error)
+        }
+        return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
+                                  status=200,
+                                  mimetype='application/json')
+
     return render_template(constants.ERROR_PAGE, error=sent_error), 500

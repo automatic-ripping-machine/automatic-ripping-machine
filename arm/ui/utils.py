@@ -5,8 +5,11 @@ import os
 import shutil
 import json
 import re
+import platform
+import subprocess
 
 from time import strftime, localtime, time, sleep
+
 from werkzeug.routing import ValidationError
 import yaml
 from flask.logging import default_handler  # noqa: F401
@@ -147,8 +150,8 @@ def get_info(directory):
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
-    string = re.sub(r"\[.*?]", "", string)  # noqa: W605
-    string = re.sub('\\s+', ' ', string)  # noqa: W605
+    string = re.sub(r"\[.*?]", "", string)
+    string = re.sub('\\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
     string = string.replace('&', 'and')
@@ -201,8 +204,8 @@ def generate_full_log(full_path):
                 while True:
                     yield read_log_file.read()
                     sleep(1)
-        except Exception as error:
-            raise ValidationError from error
+        except FileNotFoundError as error:
+            raise FileNotFoundError("Not found with utf8 encoding") from error
 
 
 def generate_arm_cat(full_path):
@@ -328,17 +331,14 @@ def fix_permissions(j_id):
     # TODO add new json exception - break these check out into a function
     try:
         job_id = int(j_id.strip())
-    except AttributeError:
-        return {"success": False, "mode": "fixperms", "Error": "AttributeError",
-                "PrettyError": "No Valid Job Id Supplied"}
+    except ValueError:
+        raise ValueError("No Valid Job Id Supplied")
     job = Job.query.get(job_id)
     if not job:
-        return {"success": False, "mode": "fixperms", "Error": "JobDeleted",
-                "PrettyError": "Job Has Been Deleted From The Database"}
+        raise TypeError("Job Has Been Deleted From The Database")
     job_log = os.path.join(cfg['LOGPATH'], job.logfile)
     if not os.path.isfile(job_log):
-        return {"success": False, "mode": "fixperms", "Error": "FileNotFoundError",
-                "PrettyError": "Logfile Has Been Deleted Or Moved"}
+        raise FileNotFoundError("Logfile Has Been Deleted Or Moved")
 
     # This is kind of hacky way to get around the fact we dont save the ts variable
     with open(job_log, 'r') as reader:
@@ -382,12 +382,17 @@ def fix_permissions(j_id):
     return return_json
 
 
-def job_id_validator():
+def job_id_validator(job_id):
     """
     Validate job id is an int
     :return:
     """
-    ...
+    try:
+        int(job_id.strip())
+        valid = True
+    except AttributeError:
+        valid = False
+    return valid
 
 
 def trigger_restart():
@@ -424,3 +429,53 @@ def get_settings(arm_cfg_file):
         app.logger.debug(error)
         yaml_cfg = {}
     return yaml_cfg
+
+
+def get_processor_name():
+    """
+    function to collect and return some cpu info
+    ideally want to return {name} @ {speed} Ghz
+    """
+    cpu_info = None
+    if platform.system() == "Windows":
+        cpu_info = platform.processor()
+    elif platform.system() == "Darwin":
+        cpu_info = subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
+    elif platform.system() == "Linux":
+        command = "cat /proc/cpuinfo"
+        fulldump = str(subprocess.check_output(command, shell=True).strip())
+        # Take any float trailing "MHz", some whitespace, and a colon.
+        speeds = re.search(r"\\nmodel name\\t:.*?GHz\\n", fulldump)
+        if speeds:
+            # We have intel CPU
+            speeds = str(speeds.group())
+            speeds = speeds.replace('\\n', ' ')
+            speeds = speeds.replace('\\t', ' ')
+            speeds = speeds.replace('model name :', '')
+            cpu_info = speeds
+
+        # AMD CPU
+        amd_name_full = re.search(r"model name\\t: (.*?)\\n", fulldump)
+        if amd_name_full:
+            amd_name = amd_name_full.group(1)
+            amd_mhz = re.search(r"cpu MHz(?:\\t)*: ([.0-9]*)\\n", fulldump)  # noqa: W605
+            if amd_mhz:
+                amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
+                cpu_info = str(amd_name) + " @ " + str(amd_ghz) + " GHz"
+    return cpu_info
+
+
+def validate_logfile(logfile, mode, my_file):
+    """
+    check if logfile we got from the user is valid
+    :param logfile: logfile name
+    :param mode:
+    :param my_file: full base path using Path()
+    :return: None
+    :raise ValidationError:
+    """
+    if logfile is None or "../" in logfile or mode is None or logfile.find("/") != -1:
+        raise ValidationError
+    if not my_file.is_file():
+        # logfile doesnt exist throw out error template
+        raise FileNotFoundError("File not found")

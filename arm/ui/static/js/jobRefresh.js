@@ -7,6 +7,41 @@
 let hrrref = "";
 let activeJob = null;
 let actionType = null;
+
+function updateModal(modal) {
+    var modalTitle;
+    var modalBody;
+    console.log(hrrref);
+    console.log(activeJob);
+    console.log(actionType);
+    switch (actionType) {
+        case "abandon":
+            modalTitle = "Abandon This Job ?";
+            modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?";
+            break;
+        case "delete":
+        modalTitle = "Delete this job forever ?";
+        modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?";
+            break;
+        case "search":
+        modalTitle = "Search the database";
+        modalBody = '<div class="input-group mb-3">' +
+            '<div class="input-group-prepend">' +
+            '<span class="input-group-text" id="searchlabel">Search </span>' +
+            '</div>' +
+            '<input type="text" class="form-control" id="searchquery" aria-label="searchquery" ' +
+            'name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">' +
+            '<div id="validationServer03Feedback" class="invalid-feedback">Search string too short.</div>' +
+            '</div>';
+            break;
+        default:
+            modalTitle = "Do you want to leave this page ?";
+            modalBody = "To view the log file you need to leave this page. Would you like to leave ?";
+    }
+    modal.find('.modal-title').text(modalTitle);
+    modal.find('.modal-body').html(modalBody);
+}
+
 $(document).ready(function () {
     pushChildServers();
     refreshJobs();
@@ -24,29 +59,14 @@ $(document).ready(function () {
             $.get(hrrref, function (data) {
                 console.log(data.success);
                 console.log("#jobId" + activeJob);
-                if (data.success === true) {
-                    if (data.mode === "abandon") {
-                        $("#id" + activeJob).remove();
-                        $("#message1 .alert-heading").html("Job was successfully abandoned");
-                        $('#exampleModal').modal('toggle');
-                        $('#message1').removeClass('d-none');
-                        $('#message2').addClass('d-none');
-                        $('#message3').addClass('d-none');
-                        setTimeout(
-                            function () {
-                                $('#message1').addClass('d-none');
-                            },
-                            5000
-                        );
-                    }
-                } else {
-                    $('#message3').removeClass('d-none');
-                    $('#message1').addClass('d-none');
-                    $('#message2').addClass('d-none');
+                if (data.success && data.mode === "abandon") {
+                    $("#id" + activeJob).remove();
+                    $("#message1 .alert-heading").html("Job was successfully abandoned");
                     $('#exampleModal').modal('toggle');
+                    $('#message1').removeClass('d-none');
                     setTimeout(
                         function () {
-                            $('#message3').addClass('d-none');
+                            $('#message1').addClass('d-none');
                         },
                         5000
                     );
@@ -55,51 +75,15 @@ $(document).ready(function () {
         }
     });
     $("#save-no").bind('click', function () {
-        if (hrrref === "entryWarn") {
-            console.log("user wants to go away");
-            window.location.href = "/";
-            return false;
-        } else {
-
-            console.log("user shouldn't be here...");
             $('#exampleModal').modal('toggle');
-        }
     });
     $('#exampleModal').on('show.bs.modal', function (event) {
-        var button = $(event.relatedTarget); // Button that triggered the modal
+        let button = $(event.relatedTarget); // Button that triggered the modal
         actionType = button.data('type'); // Extract info from data-* attributes
         hrrref = button.data('href');
         activeJob = button.data('jobid');
-        //jobId = job.job_id
-        console.log(hrrref);
-        console.log(activeJob);
-        console.log(actionType);
-
-        var modalTitle;
-        var modalBody;
-
-        if (actionType === "abandon") {
-            modalTitle = "Abandon This Job ?";
-            modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?";
-        } else if (actionType === "delete") {
-            modalTitle = "Delete this job forever ?";
-            modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?";
-        } else if (actionType === "search") {
-            modalTitle = "Search the database";
-            modalBody = '<div class="input-group mb-3">' +
-                        '<div class="input-group-prepend">' +
-                        '<span class="input-group-text" id="searchlabel">Search </span>' +
-                        '</div>' +
-                        '<input type="text" class="form-control" id="searchquery" aria-label="searchquery" name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">' +
-                        '<div id="validationServer03Feedback" class="invalid-feedback">Search string too short.</div>' +
-                        '</div>';
-        } else {
-            modalTitle = "Do you want to leave this page ?";
-            modalBody = "To view the log file you need to leave this page. Would you like to leave ?";
-        }
-        var modal = $(this);
-        modal.find('.modal-title').text(modalTitle);
-        modal.find('.modal-body').html(modalBody);
+        const modal = $(this);
+        updateModal(modal);
     });
 });
 
@@ -214,6 +198,7 @@ function updateContents(item, job, changeItem, keyString){
     }
     console.log("updated:" +changeItem);
 }
+
 function updateJobItem(oldJob, job) {
     let cardHeader = $('#jobId' + job.job_id + '_header');
     let posterUrl = $('#jobId' + job.job_id + '_poster_url');
@@ -336,7 +321,6 @@ function refreshJobs() {
     });
 }
 
-
 function pushChildServers() {
     activeServers.push(location.origin);
     let childs = $("#children");
@@ -368,5 +352,4 @@ function getRipperName(job, idsplit) {
 
 var activeServers = [];
 var activeJobs = [];
-
-var intervalId = window.setInterval(refreshJobs, 5000);
+const intervalId = window.setInterval(refreshJobs, 5000);

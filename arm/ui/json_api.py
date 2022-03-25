@@ -11,6 +11,7 @@ import psutil
 from arm.config.config import cfg
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track  # noqa: F401
+from arm.ui.utils import job_id_validator
 
 
 def get_x_jobs(job_status):
@@ -199,6 +200,7 @@ def delete_job(job_id, mode):
             # Make a backup and everything
             # The user can only access this by typing it manually
             if job_id == 'all':
+                # TODO if this gets put in final the DB will need optimised
                 #  if os.path.isfile(cfg['DBFILE']):  # noqa: S125
                 #    # Make a backup of the database file
                 #    cmd = f"cp {cfg['DBFILE']} {cfg['DBFILE'])}.bak"
@@ -292,22 +294,34 @@ def abandon_job(job_id):
     :param int job_id: the job id
     :return: json/dict
     """
+    json_return = {
+        'success': False,
+        'job': job_id,
+        'mode': 'abandon'
+    }
+    if not job_id_validator(job_id):
+        return json_return
+
     try:
-        job = Job.query.get(job_id)
+        job = Job.query.get(int(job_id))
         job.status = "fail"
+        job_process = psutil.Process(job.pid)
+        job_process.terminate()  # or p.kill()
         db.session.commit()
+        json_return['success'] = True
         app.logger.debug(f"Job {job_id} was abandoned successfully")
-        json_return = {'success': True, 'job': job_id, 'mode': 'abandon'}
         job.eject()
     except Exception as error:
         db.session.rollback()
-        app.logger.debug(f"Job {job_id} couldn't be abandoned ")
-        return {'success': False, 'job': job_id, 'mode': 'abandon', "Error": str(error)}
-    try:
-        job_process = psutil.Process(job.pid)
-        job_process.terminate()  # or p.kill()
+        app.logger.debug(f"Job {job_id} couldn't be abandoned. ")
+        json_return["Error"] = str(error)
     except psutil.NoSuchProcess:
-        # This is a soft error db changes still went through
-        json_return['Error'] = f"Couldn't find job.pid - {job.pid}"
-        app.logger.debug(f"Couldn't find job.pid - {job.pid}")
+        db.session.rollback()
+        json_return['Error'] = f"Couldn't find job.pid - {job.pid}! Reverting db changes."
+        app.logger.debug(f"Couldn't find job.pid - {job.pid}! Reverting db changes.")
+    except psutil.AccessDenied:
+        db.session.rollback()
+        json_return['Error'] = f"Access denied abandoning job: {job.pid}! Reverting db changes."
+        app.logger.debug(f"Access denied abandoning job: {job.pid}! Reverting db changes.")
+
     return json_return

@@ -63,7 +63,7 @@ function hideModal() {
 }
 
 function proccessReturn(data, addJobItem) {
-    if (data.success === true) {
+    if (data.success) {
         switch (data.mode) {
             case "delete":
                 $("#jobId" + activeJob).remove();
@@ -79,7 +79,7 @@ function proccessReturn(data, addJobItem) {
             case "abandon":
                 $("#status" + activeJob).attr("src", "static/img/fail.png");
                 $("#message1 .alert-heading").html("Job was successfully abandoned");
-               hideModal();
+                hideModal();
                 setTimeout(
                     function () {
                         $('#message1').addClass('d-none');
@@ -131,6 +131,7 @@ function proccessReturn(data, addJobItem) {
                 );
                 break;
             default:
+                $('#exampleModal').modal('toggle');
                 break;
         }
     } else {
@@ -171,9 +172,43 @@ function checkHref(addJobItem) {
         $.get(hrrref, function (data) {
             console.log(data.success); // John
             console.log("#jobId" + activeJob);
-            proccessReturn.call(this, data, addJobItem);
+            proccessReturn(data, addJobItem);
         }, "json");
     }
+}
+
+function updateModalContent(modal) {
+    let modalTitle;
+    let modalBody;
+    console.log(hrrref);
+    console.log(activeJob);
+    console.log(actionType);
+    switch (actionType) {
+        case "abandon":
+            modalTitle = "Abandon This Job ?";
+            modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?";
+            break;
+        case "delete":
+            modalTitle = "Delete this job forever ?";
+            modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?";
+            break;
+        case "search":
+            modalTitle = "Search the database";
+            modalBody = '<div class="input-group mb-3">' +
+                '<div class="input-group-prepend">' +
+                '<span class="input-group-text" id="searchlabel">Search </span>' +
+                '</div>' +
+                '<input type="text" class="form-control" id="searchquery" aria-label="searchquery" ' +
+                'name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">' +
+                '<div id="validationServer03Feedback" class="invalid-feedback">Search string too short.</div>' +
+                '</div>';
+            break;
+        default:
+            modalTitle = "Do you want to leave this page ?";
+            modalBody = "To view the log file you need to leave this page. Would you like to leave ?";
+    }
+    modal.find('.modal-title').text(modalTitle);
+    modal.find('.modal-body').html(modalBody);
 }
 
 $(document).ready(function () {
@@ -181,6 +216,7 @@ $(document).ready(function () {
     console.log(checkCookie());
     checkNewUser(checkCookie());
     $("#save-get-success").bind('click', function () {
+        // TODO hide yes/no buttons
         // Add the spinner to let them know we are loading
         $('#exampleModal').modal('show');
         $('.modal-title').text("Loading...");
@@ -192,15 +228,13 @@ $(document).ready(function () {
             '</div>');
         hrrref = '/json?mode=getsuccessful';
         $.get(hrrref, function (data) {
-            //console.log(data)
             if (data.success === true) {
                 $('.card-deck').html('');
                 let size = Object.keys(data.results).length;
                 console.log("length = " + size);
                 if (size > 0) {
                     $.each(data.results, function (index, value) {
-                        z = addJobItem(value);
-                        $('.card-deck').append(z);
+                        $('.card-deck').append(addJobItem(value));
                     });
                     console.log(data);
                 } else {
@@ -208,7 +242,11 @@ $(document).ready(function () {
                     $('#message1').removeClass('d-none');
                     $('#exampleModal').modal('toggle');
                 }
-                $('#exampleModal').modal('hide');
+                setTimeout(
+                    function () {
+                        $('#exampleModal').modal('hide');
+                        }, 2000
+                );
             } else {
                 $('#message3').removeClass('d-none');
                 $('#message1').addClass('d-none');
@@ -218,6 +256,7 @@ $(document).ready(function () {
         }, "json");
     });
     $("#save-get-failed").bind('click', function () {
+        // TODO hide yes/no buttons
         // Add the spinner to let them know we are loading
         $('#exampleModal').modal('show');
         $('.modal-title').text("Loading...");
@@ -287,40 +326,11 @@ $(document).ready(function () {
     });
     $('#exampleModal').on('show.bs.modal', function (event) {
         let button = $(event.relatedTarget); // Button that triggered the modal
-        let modalTitle;
-        let modalBody;
         actionType = button.data('type'); // Extract info from data-* attributes
         hrrref = button.data('href');
         activeJob = button.data('jobid');
-        console.log(hrrref);
-        console.log(activeJob);
-        console.log(actionType);
-
-        if (actionType === "abandon") {
-            modalTitle = "Abandon This Job ?";
-            modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?";
-        } else if (actionType === "delete") {
-            modalTitle = "Delete this job forever ?";
-            modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?";
-        } else if (actionType === "search") {
-            modalTitle = "Search the database";
-            modalBody = '<div class="input-group mb-3">' +
-                '<div class="input-group-prepend">' +
-                '<span class="input-group-text" id="searchlabel">Search </span>' +
-                '</div>' +
-                '<input type="text" class="form-control" id="searchquery" aria-label="searchquery" name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">' +
-                '<div id="validationServer03Feedback" class="invalid-feedback">Search string too short.</div>' +
-                '</div>';
-        } else if (actionType === "fixperms") {
-            modalTitle = "Fix Folder Permissions";
-            modalBody = "Sometimes ARM fails to set file owner and permissions, would you like ARM to try to fix it ?";
-        } else {
-            modalTitle = "Do you want to leave this page ?";
-            modalBody = "To view the log file you need to leave this page. Would you like to leave ?";
-        }
-        let modal = $(this);
-        modal.find('.modal-title').text(modalTitle);
-        modal.find('.modal-body').html(modalBody);
+        const modal = $(this);
+        updateModalContent(modal);
         $("#searchquery").on("keydown", function (e) {
             if (e.which === 13) {
                 $("#save-yes").click();
