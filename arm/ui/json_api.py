@@ -81,6 +81,8 @@ def process_makemkv_logfile(logfile, job, job_results):
     :return: job_results dict
     """
     line = read_all_log_lines(logfile)
+    # TODO - 3 on the line below is the track number extract it and give 3/job.track count
+    # PRGC:5057,3,"Analyzing seamless segments"
     # Correctly get last entry for progress bar
     for one_line in line:
         job_progress_status = re.search(r"PRGV:([\d]{3,}),([\d]+),([\d]{3,})$", str(one_line))

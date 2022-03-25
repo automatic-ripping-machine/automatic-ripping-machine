@@ -547,17 +547,21 @@ def changeparams():
     config = job.config
     form = ChangeParamsForm(obj=config)
     if form.validate_on_submit():
+        job.disctype = format(form.DISCTYPE.data)
         cfg["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
         cfg["MAXLENGTH"] = config.MAXLENGTH = format(form.MAXLENGTH.data)
         cfg["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
         cfg["MAINFEATURE"] = config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False
         app.logger.debug(f"main={config.MAINFEATURE}")
-        job.disctype = format(form.DISCTYPE.data)
-        for key, value in cfg.items():
-            setattr(config, key, value)
-        db.session.commit()
-        db.session.refresh(job)
-        db.session.refresh(config)
+
+        args = {
+            'disctype': job.disctype,
+            'title_auto': config.MINLENGTH,
+            'year': config.MAXLENGTH,
+            'year_auto': config.RIPMETHOD,
+            'imdb_id': config.MAINFEATURE
+        }
+        utils.database_updater(args, job)
         flash(f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},'
               f'Minimum Length={config.MINLENGTH}, '
               f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}', "success")

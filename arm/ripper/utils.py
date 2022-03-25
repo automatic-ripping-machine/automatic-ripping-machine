@@ -215,6 +215,7 @@ def make_dir(path):
         except OSError:
             err = f"Couldn't create a directory at path: {path} Probably a permissions error.  Exiting"
             logging.error(err)
+            # TODO set job to fail and commit to db
             sys.exit(err)
     else:
         return False
@@ -282,6 +283,12 @@ def find_largest_file(files, mkv_out_path):
 
 def rip_music(job, logfile):
     """
+    Rip music CD using abcde config\n
+    :param job: job object
+    :param logfile: location of logfile\n
+    :return: Bool on success or fail
+    """
+    """
     Rip music CD using abcde using abcde config\n
     job = job object\n
     logfile = location of logfile\n
@@ -311,47 +318,55 @@ def rip_music(job, logfile):
     return False
 
 
-def rip_data(job, datapath, logfile):
+def rip_data(job):
     """
     Rip data disc using dd on the command line\n
-    job = job object\n
-    datapath = path to copy data to\n
-    logfile = location of logfile\n
-
-    returns True/False for success/fail
+    :param job: Current job
+    :return: True/False for success/fail
     """
+    success = False
+    if job.label == "" or job.label is None:
+        job.label = "data-disc"
+    # get filesystem in order
+    raw_path = os.path.join(cfg["RAW_PATH"], str(job.label))
+    final_path = os.path.join(cfg["COMPLETED_PATH"], convert_job_type(job.video_type))
+    final_file_name = str(job.label)
 
-    if job.disctype == "data":
-        logging.info("Disc identified as data")
+    if (make_dir(raw_path)) is False:
+        random_time = str(round(time.time() * 100))
+        raw_path = os.path.join(cfg["RAW_PATH"], str(job.label) + "_" + random_time)
+        final_file_name = f"{job.label}_{random_time}"
+        if (make_dir(raw_path)) is False:
+            logging.info(f"Could not create data directory: {raw_path}  Exiting ARM. ")
+            sys.exit()
 
-        if job.label == "" or job.label is None:
-            job.label = "datadisc"
-
-        incomplete_filename = os.path.join(datapath, job.label + ".part")
-        final_filename = os.path.join(datapath, job.label + ".iso")
-
-        logging.info("Ripping data disc to: {incomplete_filename}")
-
-        # Added from pull 366
-        cmd = f'dd if="{job.devpath}" of="{incomplete_filename}" {cfg["DATA_RIP_PARAMETERS"]} 2>> {logfile}'
-
-        logging.debug(f"Sending command: {cmd}")
-
-        try:
-            subprocess.check_output(
-                cmd,
-                shell=True
-            ).decode("utf-8")
-            logging.info("Data rip call successful")
-            os.rename(incomplete_filename, final_filename)
-            return True
-        except subprocess.CalledProcessError as dd_error:
-            err = f"Data rip failed with code: {dd_error.returncode}({dd_error.output})"
-            logging.error(err)
-            os.unlink(incomplete_filename)
-            # sys.exit(err)
-
-    return False
+    final_path = os.path.join(final_path, final_file_name)
+    incomplete_filename = os.path.join(raw_path, str(job.label) + ".part")
+    make_dir(final_path)
+    logging.info(f"Ripping data disc to: {incomplete_filename}")
+    # Added from pull 366
+    cmd = f'dd if="{job.devpath}" of="{incomplete_filename}" {cfg["DATA_RIP_PARAMETERS"]} 2>> {job.logfile}'
+    logging.debug(f"Sending command: {cmd}")
+    try:
+        subprocess.check_output(cmd, shell=True).decode("utf-8")
+        full_final_file = os.path.join(final_path, f"{str(job.label)}.iso")
+        logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
+        os.rename(incomplete_filename, full_final_file)
+        logging.info("Data rip call successful")
+        success = True
+    except subprocess.CalledProcessError as dd_error:
+        err = f"Data rip failed with code: {dd_error.returncode}({dd_error.output})"
+        logging.error(err)
+        os.unlink(incomplete_filename)
+        args = {'status': 'fail', 'errors': err}
+        database_updater(args, job)
+        success = False
+    try:
+        logging.info(f"Trying to remove raw_path: '{raw_path}'")
+        shutil.rmtree(raw_path)
+    except OSError as error:
+        logging.error(f"Error: {error.filename} - {error.strerror}.")
+    return success
 
 
 def set_permissions(job, directory_to_traverse):

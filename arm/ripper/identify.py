@@ -22,10 +22,8 @@ import arm.ui.utils as u
 
 def identify(job, logfile):
     """Identify disc attributes"""
-
-    logging.debug(f"Identify Entry point --- job ---- \n\r{job.pretty_table()}")
+    logging.debug(f"Identify Entry point --- job ----")
     logging.info(f"Mounting disc to: {job.mountpoint}")
-
     if not os.path.exists(str(job.mountpoint)):
         os.makedirs(str(job.mountpoint))
 

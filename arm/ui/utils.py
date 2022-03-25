@@ -39,10 +39,11 @@ def database_updater(args, job, wait_time=90):
             db.session.commit()
         except Exception as error:
             if "locked" in str(error):
-                time.sleep(1)
+                sleep(1)
                 app.logger.debug(f"database is locked - trying in 1 second {i}/{wait_time} - {error}")
             else:
                 app.logger.debug("Error: " + str(error))
+                db.session.rollback()
                 raise RuntimeError(str(error)) from error
 
     app.logger.debug("successfully written to the database")

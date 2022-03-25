@@ -243,12 +243,13 @@ def main(logfile, job):
             for track in tracks:
                 utils.move_files(hb_out_path, track.filename, job, False)
         else:
+            # TODO check if mkv was used and correct/disable the extras
             for track in tracks:
                 if tracks.count() == 1:
                     utils.move_files(hb_out_path, track.filename, job, True)
                 else:
                     utils.move_files(hb_out_path, track.filename, job, track.main_feature)
-
+        # TODO extract this section and move it out of main
         # move movie poster
         src_poster = os.path.join(hb_out_path, "poster.png")
         dst_poster = os.path.join(final_directory, "poster.png")
@@ -269,7 +270,6 @@ def main(logfile, job):
             raw_list = [hb_in_path, hb_out_path, mkvoutpath]
             for raw_folder in raw_list:
                 try:
-                    logging.debug(f"{raw_folder} != {final_directory}")
                     logging.info(f"Removing raw path - {raw_folder}")
                     if raw_folder and raw_folder != final_directory:
                         shutil.rmtree(raw_folder)
@@ -306,22 +306,12 @@ def main(logfile, job):
             db.session.commit()
 
     elif job.disctype == "data":
-        # get filesystem in order
-        datapath = os.path.join(cfg["RAW_PATH"], str(job.label))
-        if (utils.make_dir(datapath)) is False:
-            random_time = str(round(time.time() * 100))
-            datapath = os.path.join(cfg["RAW_PATH"], str(job.label) + "_" + random_time)
-
-            if (utils.make_dir(datapath)) is False:
-                logging.info(f"Could not create data directory: {datapath}  Exiting ARM. ")
-                sys.exit()
-
-        if utils.rip_data(job, datapath, logfile):
+        logging.info("Disc identified as data")
+        if utils.rip_data(job):
             utils.notify(job, NOTIFY_TITLE, f"Data disc: {job.label} copying complete. ")
-            job.eject()
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")
-            job.eject()
+        job.eject()
 
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
