@@ -1,6 +1,14 @@
 ###########################################################
 # setup default directories and configs
 FROM shitwolfymakes/arm-dependencies AS base
+
+# override at runtime to match user that ARM runs as local user
+ENV RUN_AS_USER=true
+ENV UID=1000
+ENV GID=1000
+
+WORKDIR /opt/arm
+
 RUN \
     mkdir -m 0777 -p /home/arm /home/arm/config /mnt/dev/sr0 /mnt/dev/sr1 /mnt/dev/sr2 /mnt/dev/sr3 && \
     ln -sv /home/arm/config/arm.yaml /opt/arm/arm.yaml && \
