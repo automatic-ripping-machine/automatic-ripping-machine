@@ -69,7 +69,8 @@ function install_dev_requirements() {
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
     sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable" -y
     apt-cache policy docker-ce
-    sudo apt install docker-ce -y
+    sudo apt update
+    sudo apt install docker-ce docker-ce-cli containerd.io -y
 }
 
 function remove_existing_arm() {
