@@ -22,6 +22,7 @@ VOLUME /home/arm/config
 WORKDIR /home/arm
 
 ENTRYPOINT ["/opt/arm/scripts/docker-entrypoint.sh"]
+CMD service rsyslog start
 CMD ["python3", "/opt/arm/arm/runui.py"]
 
 ###########################################################
