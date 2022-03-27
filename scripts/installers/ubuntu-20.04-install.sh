@@ -93,7 +93,7 @@ function clone_arm() {
     sudo chmod 775 arm
     ##my updated version
     #sudo git clone https://github.com/1337-server/automatic-ripping-machine.git arm
-    sudo git clone https://github.com/shitwolfymakes/automatic-ripping-machine.git arm
+    sudo git clone --recurse-submodules https://github.com/shitwolfymakes/automatic-ripping-machine.git arm
     ###stock
     #git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
     sudo chown -R arm:arm arm
