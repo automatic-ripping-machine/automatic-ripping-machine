@@ -106,12 +106,10 @@ function startArmRip {
         #/bin/bash /etc/init.d/udev start | logger -t ARM
     echo "Starting rip" | logger -t ARM
     echo "trying - docker exec -it \
-        -w /home/arm \
         ${CONTAINER_NAME} \
         python3 /opt/arm/arm/ripper/main.py -d ${DEVNAME}" | logger -t ARM
 
     sudo $(docker exec -it \
-        -w /home/arm \
         "${CONTAINER_NAME}" \
         python3 /opt/arm/arm/ripper/main.py -d ${DEVNAME}) | logger -t ARM
 }
