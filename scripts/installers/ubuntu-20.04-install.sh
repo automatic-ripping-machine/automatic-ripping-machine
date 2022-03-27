@@ -102,14 +102,14 @@ function clone_arm() {
 
 function create_abcde_symlink() {
     if ! [[ -z $(find /home/arm/ -type l -ls | grep ".abcde.conf") ]]; then
-        rm /home/arm/.abcde.conf
+        sudo rm /home/arm/.abcde.conf
     fi
     sudo ln -sf /opt/arm/setup/.abcde.conf /home/arm/
 }
 
 function create_arm_config_symlink() {
     if ! [[ -z $(find /etc/arm/ -type l -ls | grep "arm.yaml") ]]; then
-        rm /etc/arm/arm.yaml
+        sudo rm /etc/arm/arm.yaml
     fi
     sudo ln -sf /opt/arm/arm.yaml /etc/arm/
 }
