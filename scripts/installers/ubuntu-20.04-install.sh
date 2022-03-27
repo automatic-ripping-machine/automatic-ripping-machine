@@ -63,14 +63,6 @@ function install_dev_requirements() {
     sudo apt install lsdvd -y
     sudo dpkg-reconfigure libdvd-pkg
     sudo apt install default-jre-headless -y
-
-    # install docker
-    sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable" -y
-    apt-cache policy docker-ce
-    sudo apt update
-    sudo apt install docker-ce docker-ce-cli containerd.io -y
 }
 
 function remove_existing_arm() {
@@ -133,6 +125,15 @@ function install_arm_live_env() {
 function install_arm_dev_env() {
     # install arm without automation and with PyCharm
     echo -e "${RED}Installing ARM for Development${NC}"
+    # install docker
+    sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable" -y
+    apt-cache policy docker-ce
+    sudo apt update
+    sudo apt install docker-ce docker-ce-cli containerd.io -y
+    sudo usermod -aG docker $USER
+
     cd /home/arm
     sudo snap install pycharm-community --classic
     cd /opt
