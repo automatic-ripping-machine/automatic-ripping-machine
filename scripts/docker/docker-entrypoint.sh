@@ -37,7 +37,7 @@ for conf in $CONFS; do
     thisConf="/etc/arm/config/${conf}"
     if [[ ! -f "${thisConf}" ]] ; then
         echo "creating config file ${thisConf}"
-        cp "/opt/arm/setup/${conf}" "/etc/arm/config/${thisConf}"
+        cp "/opt/arm/setup/${conf}" "${thisConf}"
     fi
 done
 chown -R "${USER}:${USER}" /etc/arm/config/
