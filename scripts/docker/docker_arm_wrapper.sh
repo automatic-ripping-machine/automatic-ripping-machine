@@ -1,51 +1,75 @@
 #!/bin/bash
 
-set -euo pipefail
+DEVNAME=$1
+
+echo "Entering docker wrapper" | logger -t ARM -s
+
+#######################################################################################
+# YAML Parser to read Config
+#
+# From: https://stackoverflow.com/questions/5014632/how-can-i-parse-a-yaml-file-from-a-linux-shell-script
+#######################################################################################
+
+function parse_yaml {
+   local prefix=$2
+   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+   sed -ne "s|^\($s\):|\1|" \
+        -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
+        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+   awk -F$fs '{
+      indent = length($1)/2;
+      vname[indent] = $2;
+      for (i in vname) {if (i > indent) {delete vname[i]}}
+      if (length($3) > 0) {
+         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+      }
+   }'
+}
+eval $(parse_yaml /etc/arm/arm.yaml "CONFIG_")
+
+#######################################################################################
+# Log Discovered Type and Start Rip
+#######################################################################################
+
+# ID_CDROM_MEDIA_BD = Bluray
+# ID_CDROM_MEDIA_CD = CD
+# ID_CDROM_MEDIA_DVD = DVD
+
+if [ "$ID_CDROM_MEDIA_DVD" == "1" ]; then
+    if [ "$CONFIG_PREVENT_99" != "false" ]; then
+        numtracks=$(lsdvd /dev/"${DEVNAME}" 2> /dev/null | sed 's/,/ /' | cut -d ' ' -f 2 | grep -E '[0-9]+' | sort -r | head -n 1)
+        if [ "$numtracks" == "99" ]; then
+            echo "[ARM] ${DEVNAME} has 99 Track Protection. Bailing out and ejecting." | logger -t ARM -s
+            eject "${DEVNAME}"
+            exit
+        fi
+    fi
+    echo "[ARM] Starting ARM for DVD on ${DEVNAME}" | logger -t ARM -s
+
+elif [ "$ID_CDROM_MEDIA_BD" == "1" ]; then
+	  echo "[ARM] Starting ARM for Bluray on ${DEVNAME}" | logger -t ARM -s
+
+elif [ "$ID_CDROM_MEDIA_CD" == "1" ]; then
+	  echo "[ARM] Starting ARM for CD on ${DEVNAME}" | logger -t ARM -s
+
+elif [ "$ID_FS_TYPE" != "" ]; then
+	  echo "[ARM] Starting ARM for Data Disk on ${DEVNAME} with File System ${ID_FS_TYPE}" | logger -t ARM -s
+
+else
+	  echo "[ARM] Not CD, Bluray, DVD or Data. Bailing out on ${DEVNAME}" | logger -t ARM -s
+	  exit #bail out
+
+fi
+
 # Change this to docker.com image
 DOCKER_IMAGE="shitwolfymakes/automatic-ripping-machine:latest"
 
 CONTAINER_NAME="arm-rippers"
-CONTAINER_VOLUME="-v /home/arm:/home/arm -v /home/arm/config:/home/arm/config -v /home/arm/Music:/home/arm/Music -v /home/arm/logs:/home/arm/logs -v /home/arm/media:/home/arm/media"
+CONTAINER_VOLUME="-v /home/arm:/home/arm -v /etc/arm/config:/etc/arm/config -v /home/arm/Music:/home/arm/Music -v /home/arm/logs:/home/arm/logs -v /home/arm/media:/home/arm/media"
 CONTAINER_RESTART="on-failure:3"
 ARM_UID="$(id -u arm)"
 ARM_GID="$(id -g arm)"
-
-sleep 5 # allow the system enough time to load disc information such as title
-
-echo "Entering docker wrapper" | logger -t ARM -s
-
-# exit if udev ID_CDROM_MEDIA properties not available yet
-# avoid running too early
-if [[ -z "${!ID_CDROM_MEDIA_*}" ]] ; then
-    echo "No ID_s" | logger -t ARM -s
-    # echo "$(date) disk not ready/identified yet" >> /tmp/docker_arm_wrapper.log
-echo "xxx" | logger -t ARM -s
-
-    exit 0
-fi
-
-# fork to let udev keep running
-if [[ "${1:-}" != "fork" ]] ; then
-    #{ "$0" fork "$*" > /dev/null 2>&1 < /dev/null & } &
-    echo "$0 xxx1 $@" | logger -t ARM -s
-    #echo "$0 fork $@" | at -M now # systemd udev hates children
-    #exit 0
-else
-    # get rid of "fork" arg
-    shift
-fi
-
-DEVNAME=$1
-if [[ -z "${DEVNAME}" ]] ; then
-    echo "Usage: $(basename -- "$0") <device>" | logger -t ARM -s
-    echo "devname messed up" | logger -t ARM -s
-    exit 1
-fi
-# if device doesn't exist
-if [[ ! -b "/dev/${DEVNAME}" ]] ; then
-    echo "ERROR: Device \"/dev/${DEVNAME}\" doesn't exist" | logger -t ARM -s
-    exit 1
-fi
 
 function findGenericDevice {
 echo "xxx4" | logger -t ARM -s
@@ -93,7 +117,7 @@ function startArmRip {
     if [[ -z "${!ID_CDROM_MEDIA_*}" ]] ; then
         eval "$(udevadm info --query=env --export "${DEVNAME}")"
     fi
-    local disctype="$(echo ${!ID_CDROM_MEDIA_*} \
+    local disctype="$(echo "${!ID_CDROM_MEDIA_*}" \
         | sed -nE '/.*(ID_CDROM_MEDIA_(BD|DVD|TRACK_COUNT_AUDIO)).*/ s//\1=1/p' )"
     local label_flag="${ID_FS_LABEL:+-l ID_FS_LABEL=${ID_FS_LABEL}}"
     if [[ -z "${disctype}" ]] ; then
@@ -106,12 +130,14 @@ function startArmRip {
         #/bin/bash /etc/init.d/udev start | logger -t ARM
     echo "Starting rip" | logger -t ARM
     echo "trying - docker exec -it \
+        -u ${ARM_UID} \
         ${CONTAINER_NAME} \
         python3 /opt/arm/arm/ripper/main.py -d ${DEVNAME}" | logger -t ARM
 
-    sudo $(docker exec -it \
+    sudo docker exec -it \
+        -u "${ARM_UID}" \
         "${CONTAINER_NAME}" \
-        python3 /opt/arm/arm/ripper/main.py -d ${DEVNAME}) | logger -t ARM
+        python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" | logger -t ARM
 }
 
 # start ARM container, if not running, for WebUI
