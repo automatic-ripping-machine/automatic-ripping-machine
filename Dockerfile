@@ -11,8 +11,6 @@ WORKDIR /opt/arm
 
 RUN \
     mkdir -m 0777 -p /home/arm /home/arm/config /mnt/dev/sr0 /mnt/dev/sr1 /mnt/dev/sr2 /mnt/dev/sr3 && \
-    ln -sv /home/arm/config/arm.yaml /opt/arm/arm.yaml && \
-    ln -sv /opt/arm/apprise.yaml /home/arm/config/apprise.yaml && \
     echo "/dev/sr0  /mnt/dev/sr0  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
     echo "/dev/sr1  /mnt/dev/sr1  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
     echo "/dev/sr2  /mnt/dev/sr2  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
@@ -22,11 +20,12 @@ RUN \
 COPY . /opt/arm/
 
 EXPOSE 8080
-#VOLUME /home/arm
+
 VOLUME /home/arm/Music
 VOLUME /home/arm/logs
 VOLUME /home/arm/media
-VOLUME /home/arm/config
+VOLUME /etc/arm/config
+
 WORKDIR /home/arm
 
 ENTRYPOINT ["/opt/arm/scripts/docker/docker-entrypoint.sh"]
