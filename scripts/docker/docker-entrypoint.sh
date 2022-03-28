@@ -16,35 +16,31 @@ if ! id -u "${USER}" ; then
     useradd --shell /bin/bash \
         -u "${UID}" -g "${GID}" -G video,cdrom \
         -o -c "" "${USER}"
-    chown "${USER}.${USER}" "${HOME}"
+    chown -R "${USER}:${USER}" "${HOME}"
 fi
 
 # setup needed/expected dirs if not found
-SUBDIRS="config media media/completed media/raw media/movies logs db Music .MakeMKV"
+SUBDIRS="media media/completed media/raw media/movies logs db Music .MakeMKV"
 for dir in $SUBDIRS ; do
     thisDir="${HOME}/${dir}"
     if [[ ! -d "${thisDir}" ]] ; then
         echo "creating dir ${thisDir}"
-        mkdir -p -m 0777 "${thisDir}"
-        chown -R "${USER}.${USER}" "${thisDir}"
+        mkdir -p 0777 "${thisDir}"
+        chown -R "${USER}:${USER}" "${thisDir}"
     fi
 done
-if [[ ! -f "${HOME}/config/arm.yaml" ]] ; then
-    echo "creating example ARM config ${HOME}/config/arm.yaml"
-    cp /opt/arm/docs/arm.yaml.sample "${HOME}/config/arm.yaml"
-    chown "${USER}.${USER}" "${HOME}/config/arm.yaml"
-fi
-if [[ ! -f "${HOME}/config/apprise.yaml" ]] ; then
-    echo "creating example apprise config ${HOME}/config/apprise.yaml"
-    cp /opt/arm/docs/apprise.yaml "${HOME}/config/apprise.yaml"
-    chown "${USER}.${USER}" "${HOME}/config/apprise.yaml"
-fi
-if [[ ! -f "${HOME}/.abcde.conf" ]] ; then
-    echo "creating example abcde config ${HOME}/.abcde.conf"
-    cp /opt/arm/setup/.abcde.conf "${HOME}/.abcde.conf"
-    ln -sv "${HOME}/.abcde.conf" "${HOME}/config/.abcde.conf"
-    chown "${USER}.${USER}" "${HOME}/.abcde.conf"
-fi
+
+# setup config files if not found
+mkdir -p /etc/config
+CONFS="arm.yaml apprise.yaml .abcde.conf"
+for conf in $CONFS; do
+    thisConf="/etc/config/${conf}"
+    if [[ ! -f "${thisConf}" ]] ; then
+        echo "creating config file ${thisConf}"
+        cp "/opt/arm/setup/${thisConf}" "/etc/config/${thisConf}"
+    fi
+done
+chown -R "${USER}:${USER}" /etc/config/
 
 [[ -h /dev/cdrom ]] || ln -sv /dev/sr0 /dev/cdrom 
 

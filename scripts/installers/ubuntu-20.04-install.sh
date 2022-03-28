@@ -92,18 +92,18 @@ function clone_arm() {
     sudo chown -R arm:arm arm
 }
 
-function create_abcde_symlink() {
-    if ! [[ -z $(find /home/arm/ -type l -ls | grep ".abcde.conf") ]]; then
-        sudo rm /home/arm/.abcde.conf
-    fi
-    sudo ln -sf /opt/arm/setup/.abcde.conf /home/arm/
-}
-
-function create_arm_config_symlink() {
-    if ! [[ -z $(find /etc/arm/ -type l -ls | grep "arm.yaml") ]]; then
-        sudo rm /etc/arm/arm.yaml
-    fi
-    sudo ln -sf /opt/arm/arm.yaml /etc/arm/
+function setup_config_files() {
+    # setup config files if not found, DO NOT RESET DURING REINSTALL
+    mkdir -p /etc/config
+    CONFS="arm.yaml apprise.yaml .abcde.conf"
+    for conf in $CONFS; do
+        thisConf="/etc/config/${conf}"
+        if [[ ! -f "${thisConf}" ]] ; then
+            echo "creating config file ${thisConf}"
+            cp "/opt/arm/setup/${thisConf}" "/etc/config/${thisConf}"
+        fi
+    done
+    chown -R "${USER}:${USER}" /etc/config/
 }
 
 function install_arm_live_env() {
@@ -113,11 +113,7 @@ function install_arm_live_env() {
     cd arm
     sudo pip3 install -r requirements.txt
     sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
-    create_abcde_symlink
-    sudo cp docs/arm.yaml.sample arm.yaml
-    sudo chown arm:arm arm.yaml
-    sudo mkdir -p /etc/arm/
-    create_arm_config_symlink
+    setup_config_files
     sudo chmod +x /opt/arm/scripts/thickclient/arm_wrapper.sh
     sudo chmod +x /opt/arm/scripts/update_key.sh
 }
@@ -140,11 +136,7 @@ function install_arm_dev_env() {
     clone_arm
     cd arm
     sudo pip3 install -r requirements.txt
-    create_abcde_symlink
-    sudo cp docs/arm.yaml.sample arm.yaml
-    sudo chown arm:arm arm.yaml
-    sudo mkdir -p /etc/arm/
-    create_arm_config_symlink
+    setup_config_files
 
     # allow developer to write to the installation
     sudo chmod -R 777 /opt/arm
