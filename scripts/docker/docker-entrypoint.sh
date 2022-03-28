@@ -31,16 +31,16 @@ for dir in $SUBDIRS ; do
 done
 
 # setup config files if not found
-mkdir -p /etc/config
+mkdir -p /etc/arm/config
 CONFS="arm.yaml apprise.yaml .abcde.conf"
 for conf in $CONFS; do
-    thisConf="/etc/config/${conf}"
+    thisConf="/etc/arm/config/${conf}"
     if [[ ! -f "${thisConf}" ]] ; then
         echo "creating config file ${thisConf}"
-        cp "/opt/arm/setup/${thisConf}" "/etc/config/${thisConf}"
+        cp "/opt/arm/setup/${thisConf}" "/etc/arm/config/${thisConf}"
     fi
 done
-chown -R "${USER}:${USER}" /etc/config/
+chown -R "${USER}:${USER}" /etc/arm/config/
 
 [[ -h /dev/cdrom ]] || ln -sv /dev/sr0 /dev/cdrom 
 

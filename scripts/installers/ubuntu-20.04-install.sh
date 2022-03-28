@@ -94,16 +94,16 @@ function clone_arm() {
 
 function setup_config_files() {
     # setup config files if not found, DO NOT RESET DURING REINSTALL
-    mkdir -p /etc/config
+    mkdir -p /etc/arm/config
     CONFS="arm.yaml apprise.yaml .abcde.conf"
     for conf in $CONFS; do
-        thisConf="/etc/config/${conf}"
+        thisConf="/etc/arm/config/${conf}"
         if [[ ! -f "${thisConf}" ]] ; then
             echo "creating config file ${thisConf}"
-            cp "/opt/arm/setup/${thisConf}" "/etc/config/${thisConf}"
+            cp "/opt/arm/setup/${thisConf}" "/etc/arm/config/${thisConf}"
         fi
     done
-    chown -R "${USER}:${USER}" /etc/config/
+    chown -R "${USER}:${USER}" /etc/arm/config/
 }
 
 function install_arm_live_env() {
