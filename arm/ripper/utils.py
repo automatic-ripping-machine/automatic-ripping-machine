@@ -13,8 +13,8 @@ import apprise
 import random
 import re
 import psutil
+import arm.config.config as cfg
 
-from arm.config.config import cfg
 from arm.ui import app, db
 import arm.models.models as m
 
@@ -28,30 +28,30 @@ def notify(job, title, body):
     """
 
     # Prepend Site Name if configured, append Job ID if configured
-    if cfg["ARM_NAME"] != "":
-        title = f"[{cfg['ARM_NAME']}] - {title}"
-    if cfg["NOTIFY_JOBID"]:
+    if cfg.arm_config["ARM_NAME"] != "":
+        title = f"[{cfg.arm_config['ARM_NAME']}] - {title}"
+    if cfg.arm_config["NOTIFY_JOBID"]:
         title = f"{title} - {job.job_id}"
 
     # Create an Apprise instance
     apobj = apprise.Apprise()
-    if cfg["PB_KEY"] != "":
-        apobj.add('pbul://' + str(cfg["PB_KEY"]))
-    if cfg["IFTTT_KEY"] != "":
-        apobj.add('ifttt://' + str(cfg["IFTTT_KEY"]) + "@" + str(cfg["IFTTT_EVENT"]))
-    if cfg["PO_USER_KEY"] != "":
-        apobj.add('pover://' + str(cfg["PO_USER_KEY"]) + "@" + str(cfg["PO_APP_KEY"]))
-    if cfg["JSON_URL"] != "":
-        apobj.add(str(cfg["JSON_URL"]).replace("http://", "json://").replace("https://", "jsons://"))
+    if cfg.arm_config["PB_KEY"] != "":
+        apobj.add('pbul://' + str(cfg.arm_config["PB_KEY"]))
+    if cfg.arm_config["IFTTT_KEY"] != "":
+        apobj.add('ifttt://' + str(cfg.arm_config["IFTTT_KEY"]) + "@" + str(cfg.arm_config["IFTTT_EVENT"]))
+    if cfg.arm_config["PO_USER_KEY"] != "":
+        apobj.add('pover://' + str(cfg.arm_config["PO_USER_KEY"]) + "@" + str(cfg.arm_config["PO_APP_KEY"]))
+    if cfg.arm_config["JSON_URL"] != "":
+        apobj.add(str(cfg.arm_config["JSON_URL"]).replace("http://", "json://").replace("https://", "jsons://"))
     try:
         apobj.notify(body, title=title)
     except Exception as e:  # noqa: E722
         logging.error(f"Failed sending notifications. error:{e}. Continuing processing...")
 
-    if cfg["APPRISE"] != "":
+    if cfg.arm_config["APPRISE"] != "":
         try:
-            apprise_notify(cfg["APPRISE"], title, body)
-            logging.debug("apprise-config: " + str(cfg["APPRISE"]))
+            apprise_notify(cfg.arm_config["APPRISE"], title, body)
+            logging.debug("apprise-config: " + str(cfg.arm_config["APPRISE"]))
         except Exception as e:  # noqa: E722
             logging.error("Failed sending apprise notifications. " + str(e))
 
@@ -61,9 +61,9 @@ def notify_entry(job):
     if job.disctype in ["dvd", "bluray"]:
         # Send the notifications
         notify(job, NOTIFY_TITLE,
-               f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {cfg['MAINFEATURE']}"
+               f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {cfg.arm_config['MAINFEATURE']}"
                f".  Edit entry here: http://{check_ip()}:"
-               f"{cfg['WEBSERVER_PORT']}/jobdetail?job_id={job.job_id}")
+               f"{cfg.arm_config['WEBSERVER_PORT']}/jobdetail?job_id={job.job_id}")
     elif job.disctype == "music":
         notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks")
     elif job.disctype == "data":
@@ -76,9 +76,9 @@ def notify_entry(job):
 def scan_emby(job):
     """Trigger a media scan on Emby"""
 
-    if cfg["EMBY_REFRESH"]:
+    if cfg.arm_config["EMBY_REFRESH"]:
         logging.info("Sending Emby library scan request")
-        url = f"http://{cfg['EMBY_SERVER']}:{cfg['EMBY_PORT']}/Library/Refresh?api_key={cfg['EMBY_API_KEY']}"
+        url = f"http://{cfg.arm_config['EMBY_SERVER']}:{cfg.arm_config['EMBY_PORT']}/Library/Refresh?api_key={cfg.arm_config['EMBY_API_KEY']}"
         try:
             req = requests.post(url)
             if req.status_code > 299:
@@ -91,7 +91,7 @@ def scan_emby(job):
 
 
 def sleep_check_process(process_str, transcode_limit):
-    """ New function to check for max_transcode from cfg file and force obey limits\n
+    """ New function to check for max_transcode from cfg.arm_config file and force obey limits\n
     arguments:
     process_str - The process string from arm.yaml
     transcode_limit - The user defined limit for maximum transcodes\n\n
@@ -144,14 +144,14 @@ def move_files(basepath, filename, job, ismainfeature=False):
     videotitle = fix_job_title(job)
 
     logging.debug(f"Arguments: {basepath} : {filename} : {job.hasnicetitle} : {videotitle} : {ismainfeature}")
-    m_path = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), videotitle)
+    m_path = os.path.join(cfg.arm_config["COMPLETED_PATH"], str(type_sub_folder), videotitle)
     # For series there are no extras as we never get a main feature
-    e_path = os.path.join(m_path, cfg["EXTRAS_SUB"]) if job.video_type != "series" else m_path
+    e_path = os.path.join(m_path, cfg.arm_config["EXTRAS_SUB"]) if job.video_type != "series" else m_path
     make_dir(m_path)
 
     if ismainfeature is True:
         logging.info(f"Track is the Main Title.  Moving '{filename}' to {m_path}")
-        m_file = os.path.join(m_path, videotitle + "." + cfg["DEST_EXT"])
+        m_file = os.path.join(m_path, videotitle + "." + cfg.arm_config["DEST_EXT"])
         if not os.path.isfile(m_file):
             try:
                 shutil.move(os.path.join(basepath, filename), m_file)
@@ -162,7 +162,7 @@ def move_files(basepath, filename, job, ismainfeature=False):
     else:
         make_dir(e_path)
         logging.info(f"Moving '{filename}' to {e_path}")
-        e_file = os.path.join(e_path, videotitle + "." + cfg["DEST_EXT"])
+        e_file = os.path.join(e_path, videotitle + "." + cfg.arm_config["DEST_EXT"])
         if not os.path.isfile(e_file):
             try:
                 shutil.move(os.path.join(basepath, filename), os.path.join(e_path, filename))
@@ -243,10 +243,10 @@ def rip_music(job, logfile):
     returns True/False for success/fail
     """
 
-    abcfile = cfg["ABCDE_CONFIG_FILE"]
+    abcfile = cfg.arm_config["ABCDE_CONFIG_FILE"]
     if job.disctype == "music":
         logging.info("Disc identified as music")
-        # If user has set a cfg file with ARM use it
+        # If user has set a cfg.arm_config file with ARM use it
         if os.path.isfile(abcfile):
             cmd = f'abcde -d "{job.devpath}" -c {abcfile} >> "{logfile}" 2>&1'
         else:
@@ -289,7 +289,7 @@ def rip_data(job, datapath, logfile):
         cmd = 'dd if="{0}" of="{1}" {2} 2>> {3}'.format(
             job.devpath,
             incomplete_filename,
-            cfg["DATA_RIP_PARAMETERS"],
+            cfg.arm_config["DATA_RIP_PARAMETERS"],
             logfile
         )
 
@@ -313,11 +313,11 @@ def rip_data(job, datapath, logfile):
 
 
 def set_permissions(job, directory_to_traverse):
-    if not cfg['SET_MEDIA_PERMISSIONS']:
+    if not cfg.arm_config['SET_MEDIA_PERMISSIONS']:
         return False
     try:
-        corrected_chmod_value = int(str(cfg["CHMOD_VALUE"]), 8)
-        logging.info("Setting permissions to: " + str(cfg["CHMOD_VALUE"]) + " on: " + directory_to_traverse)
+        corrected_chmod_value = int(str(cfg.arm_config["CHMOD_VALUE"]), 8)
+        logging.info("Setting permissions to: " + str(cfg.arm_config["CHMOD_VALUE"]) + " on: " + directory_to_traverse)
         os.chmod(directory_to_traverse, corrected_chmod_value)
         if job.config.SET_MEDIA_OWNER and job.config.CHOWN_USER and job.config.CHOWN_GROUP:
             import pwd
@@ -328,12 +328,12 @@ def set_permissions(job, directory_to_traverse):
 
         for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
             for cur_dir in l_directories:
-                logging.debug("Setting path: " + cur_dir + " to permissions value: " + str(cfg["CHMOD_VALUE"]))
+                logging.debug("Setting path: " + cur_dir + " to permissions value: " + str(cfg.arm_config["CHMOD_VALUE"]))
                 os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
                 if job.config.SET_MEDIA_OWNER:
                     os.chown(os.path.join(dirpath, cur_dir), uid, gid)
             for cur_file in l_files:
-                logging.debug("Setting file: " + cur_file + " to permissions value: " + str(cfg["CHMOD_VALUE"]))
+                logging.debug("Setting file: " + cur_file + " to permissions value: " + str(cfg.arm_config["CHMOD_VALUE"]))
                 os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
                 if job.config.SET_MEDIA_OWNER:
                     os.chown(os.path.join(dirpath, cur_file), uid, gid)
@@ -434,7 +434,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         basename=job.title,
         filename=filename
     )
-    t.ripped = True if seconds > int(cfg['MINLENGTH']) else False
+    t.ripped = True if seconds > int(cfg.arm_config['MINLENGTH']) else False
     db.session.add(t)
     db.session.commit()
 
@@ -451,17 +451,17 @@ def arm_setup():
     """
     try:
         # Make the Raw dir if it doesnt exist
-        if not os.path.exists(cfg['RAW_PATH']):
-            os.makedirs(cfg['RAW_PATH'])
+        if not os.path.exists(cfg.arm_config['RAW_PATH']):
+            os.makedirs(cfg.arm_config['RAW_PATH'])
         # Make the Transcode dir if it doesnt exist
-        if not os.path.exists(cfg['TRANSCODE_PATH']):
-            os.makedirs(cfg['TRANSCODE_PATH'])
+        if not os.path.exists(cfg.arm_config['TRANSCODE_PATH']):
+            os.makedirs(cfg.arm_config['TRANSCODE_PATH'])
         # Make the Complete dir if it doesnt exist
-        if not os.path.exists(cfg['COMPLETED_PATH']):
-            os.makedirs(cfg['COMPLETED_PATH'])
+        if not os.path.exists(cfg.arm_config['COMPLETED_PATH']):
+            os.makedirs(cfg.arm_config['COMPLETED_PATH'])
         # Make the log dir if it doesnt exist
-        if not os.path.exists(cfg['LOGPATH']):
-            os.makedirs(cfg['LOGPATH'])
+        if not os.path.exists(cfg.arm_config['LOGPATH']):
+            os.makedirs(cfg.arm_config['LOGPATH'])
     except IOError as e:  # noqa: F841
         logging.error(f"A fatal error has occurred.  Cant find/create the folders from arm.yaml - Error:{e}")
 
@@ -585,7 +585,7 @@ def check_ip():
         none
         return: the ip of the host or 127.0.0.1
     """
-    host = cfg['WEBSERVER_IP']
+    host = cfg.arm_config['WEBSERVER_IP']
     if host == 'x.x.x.x':
         # autodetect host IP address
         from netifaces import interfaces, ifaddresses, AF_INET

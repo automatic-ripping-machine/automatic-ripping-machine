@@ -14,9 +14,9 @@ import shutil  # noqa: E402
 import pyudev  # noqa: E402
 import getpass  # noqa E402
 import psutil  # noqa E402
+import arm.config.config as cfg
 
 from arm.ripper import logger, utils, makemkv, handbrake, identify  # noqa: E402
-from arm.config.config import cfg  # noqa: E402
 
 from arm.ripper.getkeys import grabkeys  # noqa: E402
 from arm.models.models import Job, Config  # noqa: E402
@@ -67,7 +67,7 @@ def log_arm_params(job):
                 "MAX_CONCURRENT_TRANSCODES"):
         logging.info(key.lower() +
                      ": " +
-                     str(cfg.get(key, '<not given>')))
+                     str(cfg.arm_config.get(key, '<not given>')))
     logging.info("**** End of config parameters ****")
 
 
@@ -119,12 +119,12 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
                     utils.move_files(hb_in_path, file, job, True)
                 else:
                     # other extras
-                    if not str(cfg["EXTRAS_SUB"]).lower() == "none":
+                    if not str(cfg.arm_config["EXTRAS_SUB"]).lower() == "none":
                         utils.move_files(hb_in_path, file, job, False)
                     else:
                         logging.info(f"Not moving extra: {file}")
         # Change final path (used to set permissions)
-        final_directory = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder),
+        final_directory = os.path.join(cfg.arm_config["COMPLETED_PATH"], str(type_sub_folder),
                                        f"{job.title} ({job.year})")
         # Clean up
         logging.debug(f"Attempting to remove extra folder in TRANSCODE_PATH: {hb_out_path}")
@@ -144,7 +144,7 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
             logging.debug(f"Moving file: {mkvoutfile} to: {hb_out_path} {f}")
             utils.move_files(mkv_out_path, f, job, False)
     # remove raw files, if specified in config
-    if cfg["DELRAWFILES"]:
+    if cfg.arm_config["DELRAWFILES"]:
         logging.info("Removing raw files")
         shutil.rmtree(mkv_out_path)
 
@@ -173,12 +173,12 @@ def main(logfile, job):
     utils.notify_entry(job)
 
     #  If we have have waiting for user input enabled
-    if cfg["MANUAL_WAIT"]:
-        logging.info(f"Waiting {cfg['MANUAL_WAIT_TIME']} seconds for manual override.")
+    if cfg.arm_config["MANUAL_WAIT"]:
+        logging.info(f"Waiting {cfg.arm_config['MANUAL_WAIT_TIME']} seconds for manual override.")
         job.status = "waiting"
         db.session.commit()
         sleep_time = 0
-        while sleep_time < cfg["MANUAL_WAIT_TIME"]:
+        while sleep_time < cfg.arm_config["MANUAL_WAIT_TIME"]:
             time.sleep(5)
             sleep_time += 5
             db.session.refresh(job)
@@ -199,7 +199,7 @@ def main(logfile, job):
 
     log_arm_params(job)
     check_fstab()
-    grabkeys(cfg["HASHEDKEYS"])
+    grabkeys(cfg.arm_config["HASHEDKEYS"])
 
     # Entry point for dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
@@ -209,19 +209,19 @@ def main(logfile, job):
         type_sub_folder = utils.convert_job_type(job.video_type)
 
         if job.year and job.year != "0000" and job.year != "":
-            hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(type_sub_folder),
+            hb_out_path = os.path.join(cfg.arm_config["TRANSCODE_PATH"], str(type_sub_folder),
                                        str(job.title) + " (" + str(job.year) + ")")
         else:
-            hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(type_sub_folder), str(job.title))
+            hb_out_path = os.path.join(cfg.arm_config["TRANSCODE_PATH"], str(type_sub_folder), str(job.title))
 
         # The dvd directory already exists - Lets make a new one using random numbers
         if (utils.make_dir(hb_out_path)) is False:
             logging.info(f"Handbrake Output directory \"{hb_out_path}\" already exists.")
             # Only begin ripping if we are allowed to make duplicates
             # Or the successful rip of the disc is not found in our database
-            logging.debug(f"Value of ALLOW_DUPLICATES: {0}".format(cfg["ALLOW_DUPLICATES"]))
+            logging.debug(f"Value of ALLOW_DUPLICATES: {0}".format(cfg.arm_config["ALLOW_DUPLICATES"]))
             logging.debug(f"Value of have_dupes: {have_dupes}")
-            if cfg["ALLOW_DUPLICATES"] or not have_dupes:
+            if cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
                 ts = round(time.time() * 100)
                 hb_out_path = hb_out_path + "_" + str(ts)
 
@@ -246,7 +246,7 @@ def main(logfile, job):
                 sys.exit()
 
         # Use FFMPeg to convert Large Poster if enabled in config
-        if job.disctype == "dvd" and cfg["RIP_POSTER"]:
+        if job.disctype == "dvd" and cfg.arm_config["RIP_POSTER"]:
             os.system("mount " + job.devpath)
             if os.path.isfile(job.mountpoint+"/JACKET_P/J00___5L.MP2"):
                 logging.info("Converting NTSC Poster Image")
@@ -262,7 +262,7 @@ def main(logfile, job):
         # or
         # dvd with MAINFEATURE off and RIPMETHOD mkv
         hb_in_path = str(job.devpath)
-        if job.disctype == "bluray" or (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv"):
+        if job.disctype == "bluray" or (not cfg.arm_config["MAINFEATURE"] and cfg.arm_config["RIPMETHOD"] == "mkv"):
             # send to makemkv for ripping
             # run MakeMKV and get path to output
             job.status = "ripping"
@@ -277,22 +277,22 @@ def main(logfile, job):
                 job.status = "fail"
                 db.session.commit()
                 sys.exit()
-            if cfg["NOTIFY_RIP"]:
+            if cfg.arm_config["NOTIFY_RIP"]:
                 utils.notify(job, NOTIFY_TITLE, f"{job.title} rip complete. Starting transcode. ")
             # point HB to the path MakeMKV ripped to
             hb_in_path = mkvoutpath
 
             # Entry point for not transcoding
-            if cfg["SKIP_TRANSCODE"] and cfg["RIPMETHOD"] == "mkv":
+            if cfg.arm_config["SKIP_TRANSCODE"] and cfg.arm_config["RIPMETHOD"] == "mkv":
                 skip_transcode(job, hb_out_path, hb_in_path, mkvoutpath, type_sub_folder)
         job.path = hb_out_path
         job.status = "transcoding"
         db.session.commit()
-        if job.disctype == "bluray" and cfg["RIPMETHOD"] == "mkv":
+        if job.disctype == "bluray" and cfg.arm_config["RIPMETHOD"] == "mkv":
             handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
-        elif job.disctype == "dvd" and (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv"):
+        elif job.disctype == "dvd" and (not cfg.arm_config["MAINFEATURE"] and cfg.arm_config["RIPMETHOD"] == "mkv"):
             handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
-        elif job.video_type == "movie" and cfg["MAINFEATURE"] and job.hasnicetitle:
+        elif job.video_type == "movie" and cfg.arm_config["MAINFEATURE"] and job.hasnicetitle:
             handbrake.handbrake_mainfeature(hb_in_path, hb_out_path, logfile, job)
             job.eject()
         else:
@@ -349,7 +349,7 @@ def main(logfile, job):
         utils.set_permissions(job, final_directory)
 
         # Clean up bluray backup
-        if cfg["DELRAWFILES"]:
+        if cfg.arm_config["DELRAWFILES"]:
             raw_list = [mkvoutpath, hb_out_path, hb_in_path]
             for raw_folder in raw_list:
                 try:
@@ -363,7 +363,7 @@ def main(logfile, job):
                 except TypeError as e:
                     logging.debug(f"No raw files found to delete in {raw_folder} - {e}")
         # report errors if any
-        if cfg["NOTIFY_TRANSCODE"]:
+        if cfg.arm_config["NOTIFY_TRANSCODE"]:
             if job.errors:
                 errlist = ', '.join(job.errors)
                 utils.notify(job, NOTIFY_TITLE,
@@ -390,10 +390,10 @@ def main(logfile, job):
 
     elif job.disctype == "data":
         # get filesystem in order
-        datapath = os.path.join(cfg["RAW_PATH"], str(job.label))
+        datapath = os.path.join(cfg.arm_config["RAW_PATH"], str(job.label))
         if (utils.make_dir(datapath)) is False:
             ts = str(round(time.time() * 100))
-            datapath = os.path.join(cfg["RAW_PATH"], str(job.label) + "_" + ts)
+            datapath = os.path.join(cfg.arm_config["RAW_PATH"], str(job.label) + "_" + ts)
 
             if (utils.make_dir(datapath)) is False:
                 logging.info(f"Could not create data directory: {datapath}  Exiting ARM. ")
@@ -435,7 +435,7 @@ if __name__ == "__main__":
 
     logging.info(f"Starting ARM processing at {datetime.datetime.now()}")
 
-    utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
+    utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
 
     # put in db
     job.status = "active"
@@ -443,17 +443,17 @@ if __name__ == "__main__":
     utils.database_adder(job)
 
     time.sleep(1)
-    config = Config(cfg, job_id=job.job_id)
+    config = Config(cfg.arm_config, job_id=job.job_id)
     utils.database_adder(config)
 
     # Log version number
-    with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
+    with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
     logging.info(f"ARM version: {version}")
     job.arm_version = version
     logging.info(("Python version: " + sys.version).replace('\n', ""))
     logging.info(f"User is: {getpass.getuser()}")
-    logger.clean_up_logs(cfg["LOGPATH"], cfg["LOGLIFE"])
+    logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])
     logging.info(f"Job: {job.label}")
     utils.clean_old_jobs()
     log_udev_params(devpath)

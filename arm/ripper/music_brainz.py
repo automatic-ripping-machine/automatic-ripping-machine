@@ -2,9 +2,9 @@
 import logging
 import re
 import musicbrainzngs as mb
-from discid import read, Disc
+import arm.config.config as cfg
 
-from arm.config.config import cfg
+from discid import read, Disc
 import arm.ripper.utils as u
 import werkzeug
 
@@ -19,7 +19,7 @@ def main(disc):
     or "".
     """
     discid = get_disc_id(disc)
-    if cfg['GET_AUDIO_TITLE'] == 'musicbrainz':
+    if cfg.arm_config['GET_AUDIO_TITLE'] == 'musicbrainz':
         return music_brainz(discid, disc)
     else:
         return ""

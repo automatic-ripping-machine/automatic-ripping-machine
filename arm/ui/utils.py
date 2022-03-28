@@ -11,9 +11,9 @@ import requests
 import bcrypt  # noqa: F401
 import html
 import yaml
+import arm.config.config as cfg
 
 from pathlib import Path
-from arm.config.config import cfg
 from flask.logging import default_handler  # noqa: F401
 
 from arm.ui import app, db
@@ -142,8 +142,8 @@ def get_info(directory):
             fsize = os.path.getsize(os.path.join(directory, i))
             fsize = round((fsize / 1024), 1)
             fsize = "{0:,.1f}".format(fsize)
-            create_time = strftime(cfg['DATE_FORMAT'], localtime(a.st_ctime))
-            access_time = strftime(cfg['DATE_FORMAT'], localtime(a.st_atime))
+            create_time = strftime(cfg.arm_config['DATE_FORMAT'], localtime(a.st_ctime))
+            access_time = strftime(cfg.arm_config['DATE_FORMAT'], localtime(a.st_atime))
             file_list.append([i, access_time, create_time, fsize])  # [file,most_recent_access,created]
     return file_list
 
@@ -170,7 +170,7 @@ def getsize(path):
 def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
     """ Queries OMDbapi.org for title information and parses if it's a movie
         or a tv series """
-    omdb_api_key = cfg['OMDB_API_KEY']
+    omdb_api_key = cfg.arm_config['OMDB_API_KEY']
 
     if imdb_id:
         strurl = "http://www.omdbapi.com/?i={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key, imdb_id, plot)
@@ -283,9 +283,9 @@ def delete_job(job_id, mode):
             # Make a backup and everything
             # The user can only access this by typing it manually
             if job_id == 'all':
-                # if os.path.isfile(cfg['DBFILE']):
+                # if os.path.isfile(cfg.arm_config['DBFILE']):
                 #    # Make a backup of the database file
-                #    cmd = f"cp {cfg['DBFILE']} {cfg['DBFILE'])}.bak"
+                #    cmd = f"cp {cfg.arm_config['DBFILE']} {cfg.arm_config['DBFILE'])}.bak"
                 #    app.logger.info(f"cmd  -  {cmd}")
                 #    os.system(cmd)
                 # Track.query.delete()
@@ -383,7 +383,7 @@ def search(search_query):
 
 def get_omdb_poster(title=None, year=None, imdb_id=None, plot="short"):
     """ Queries OMDbapi.org for the poster for movie/show """
-    omdb_api_key = cfg['OMDB_API_KEY']
+    omdb_api_key = cfg.arm_config['OMDB_API_KEY']
     title_info = {}
     if imdb_id:
         strurl = f"http://www.omdbapi.com/?i={imdb_id}&plot={plot}&r=json&apikey={omdb_api_key}"
@@ -476,7 +476,7 @@ def get_x_jobs(job_status):
     i = 0
     for j in jobs:
         r[i] = {}
-        job_log = cfg['LOGPATH'] + j.logfile
+        job_log = cfg.arm_config['LOGPATH'] + j.logfile
         process_logfile(job_log, j, r[i])
         try:
             r[i]['config'] = j.config.get_d()
@@ -495,12 +495,12 @@ def get_x_jobs(job_status):
         app.logger.debug("jobs  - we have " + str(len(r)) + " jobs")
         success = True
 
-    return {"success": success, "mode": job_status, "results": r, "arm_name": cfg['ARM_NAME']}
+    return {"success": success, "mode": job_status, "results": r, "arm_name": cfg.arm_config['ARM_NAME']}
 
 
 def get_tmdb_poster(search_query=None, year=None):
     """ Queries api.themoviedb.org for the poster/backdrop for movie """
-    tmdb_api_key = cfg['TMDB_API_KEY']
+    tmdb_api_key = cfg.arm_config['TMDB_API_KEY']
     if year:
         url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}&year={year}"
     else:
@@ -573,7 +573,7 @@ def tmdb_search(search_query=None, year=None):
     """
     # https://api.themoviedb.org/3/movie/78?api_key=
     # &append_to_response=alternative_titles,changes,credits,images,keywords,lists,releases,reviews,similar,videos
-    tmdb_api_key = cfg['TMDB_API_KEY']
+    tmdb_api_key = cfg.arm_config['TMDB_API_KEY']
     if year:
         url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}&year={year}"
     else:
@@ -643,7 +643,7 @@ def tmdb_get_imdb(tmdb_id):
     """
     # https://api.themoviedb.org/3/movie/78?api_key=
     # &append_to_response=alternative_titles,changes,credits,images,keywords,lists,releases,reviews,similar,videos
-    tmdb_api_key = cfg['TMDB_API_KEY']
+    tmdb_api_key = cfg.arm_config['TMDB_API_KEY']
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={tmdb_api_key}&" \
           f"append_to_response=alternative_titles,credits,images,keywords,releases,reviews,similar,videos,external_ids"
     url_tv = f"https://api.themoviedb.org/3/tv/{tmdb_id}/external_ids?api_key={tmdb_api_key}"
@@ -669,7 +669,7 @@ def tmdb_find(imdb_id):
     :param imdb_id: the imdb id to lookup
     :return: dict in the standard 'arm' format
     """
-    tmdb_api_key = cfg['TMDB_API_KEY']
+    tmdb_api_key = cfg.arm_config['TMDB_API_KEY']
     url = f"https://api.themoviedb.org/3/find/{imdb_id}?api_key={tmdb_api_key}&external_source=imdb_id"
     poster_size = "original"
     poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
@@ -718,7 +718,7 @@ def metadata_selector(func, query="", year="", imdb_id=""):
 
     :return: json/dict object
     """
-    if cfg['METADATA_PROVIDER'].lower() == "tmdb":
+    if cfg.arm_config['METADATA_PROVIDER'].lower() == "tmdb":
         app.logger.debug("provider tmdb")
         if func == "search":
             return tmdb_search(str(query), str(year))
@@ -728,14 +728,14 @@ def metadata_selector(func, query="", year="", imdb_id=""):
             elif imdb_id:
                 return tmdb_find(imdb_id)
 
-    elif cfg['METADATA_PROVIDER'].lower() == "omdb":
+    elif cfg.arm_config['METADATA_PROVIDER'].lower() == "omdb":
         app.logger.debug("provider omdb")
         if func == "search":
             return call_omdb_api(str(query), str(year))
         elif func == "get_details":
             s = call_omdb_api(title=str(query), year=str(year), imdb_id=str(imdb_id), plot="full")
             return s
-    app.logger.debug(cfg['METADATA_PROVIDER'])
+    app.logger.debug(cfg.arm_config['METADATA_PROVIDER'])
     app.logger.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
 
 
@@ -755,7 +755,7 @@ def fix_permissions(j_id):
     if not job:
         return {"success": False, "mode": "fixperms", "Error": "JobDeleted",
                 "PrettyError": "Job Has Been Deleted From The Database"}
-    job_log = os.path.join(cfg['LOGPATH'], job.logfile)
+    job_log = os.path.join(cfg.arm_config['LOGPATH'], job.logfile)
     if not os.path.isfile(job_log):
         return {"success": False, "mode": "fixperms", "Error": "FileNotFoundError",
                 "PrettyError": "Logfile Has Been Deleted Or Moved"}
@@ -818,28 +818,6 @@ def trigger_restart():
     now = datetime.datetime.now()
     arm_main = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routes.py")
     set_file_last_modified(arm_main, now)
-
-
-def get_settings(arm_cfg_file):
-    """
-    yaml file loader - is used for loading fresh arm.yaml config
-    Args:
-        arm_cfg_file: full path to arm.yaml
-
-    Returns:
-        cfg: the loaded yaml file
-    """
-    try:
-        with open(arm_cfg_file, "r") as f:
-            try:
-                cfg = yaml.load(f, Loader=yaml.FullLoader)
-            except Exception as e:
-                app.logger.debug(e)
-                cfg = yaml.safe_load(f)  # For older versions use this
-    except FileNotFoundError as e:
-        app.logger.debug(e)
-        cfg = {}
-    return cfg
 
 
 def process_logfile(logfile, job, r):

@@ -6,7 +6,7 @@ import os
 import logging
 import time
 
-from arm.config.config import cfg
+import arm.config.config as cfg
 
 
 def setup_logging(job):
@@ -21,25 +21,25 @@ def setup_logging(job):
         else:
             logfile = "empty.log"
         # set a logfull for empty.log and music_cd.log
-        logfull = os.path.join(cfg['LOGPATH'], logfile)
+        logfull = os.path.join(cfg.arm_config['LOGPATH'], logfile)
     else:
         logfile = job.label + ".log"
         new_log_file = f"{job.label}_{round(time.time() * 100)}.log"
-        temp_log_full = os.path.join(cfg['LOGPATH'], logfile)
+        temp_log_full = os.path.join(cfg.arm_config['LOGPATH'], logfile)
         logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
         # If log already exist use the new_log_file
-        logfull = os.path.join(cfg['LOGPATH'], new_log_file) if os.path.isfile(temp_log_full) \
-            else os.path.join(cfg['LOGPATH'], str(job.label) + ".log")
+        logfull = os.path.join(cfg.arm_config['LOGPATH'], new_log_file) if os.path.isfile(temp_log_full) \
+            else os.path.join(cfg.arm_config['LOGPATH'], str(job.label) + ".log")
         job.logfile = logfile
 
     # Debug formatting
-    if cfg['LOGLEVEL'] == "DEBUG":
+    if cfg.arm_config['LOGLEVEL'] == "DEBUG":
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s '
                                                      'ARM: %(module)s.%(funcName)s %(message)s',
-                            datefmt=cfg['DATE_FORMAT'], level=cfg['LOGLEVEL'])
+                            datefmt=cfg.arm_config['DATE_FORMAT'], level=cfg.arm_config['LOGLEVEL'])
     else:
         logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
-                            datefmt=cfg['DATE_FORMAT'], level=cfg['LOGLEVEL'])
+                            datefmt=cfg.arm_config['DATE_FORMAT'], level=cfg.arm_config['LOGLEVEL'])
 
     # This stops apprise spitting our secret keys when users posts online
     logging.getLogger("apprise").setLevel(logging.WARN)

@@ -11,10 +11,10 @@ import pydvdid
 import unicodedata
 import xmltodict
 import json
+import arm.config.config as cfg
 
 from arm.ripper import utils
 from arm.ui import db
-from arm.config.config import cfg
 
 # flake8: noqa: W605
 # from arm.ui.utils import call_omdb_api, tmdb_search
@@ -39,7 +39,7 @@ def identify(job, logfile):
 
         logging.info("Disc identified as video")
 
-        if cfg["GET_VIDEO_TITLE"]:
+        if cfg.arm_config["GET_VIDEO_TITLE"]:
             res = False
             if job.disctype == "dvd":
                 res = identify_dvd(job)
@@ -239,19 +239,19 @@ def metadata_selector(job, title=None, year=None):
     Args:
         job:
     """
-    if cfg['METADATA_PROVIDER'].lower() == "tmdb":
+    if cfg.arm_config['METADATA_PROVIDER'].lower() == "tmdb":
         logging.debug("provider tmdb")
         x = u.tmdb_search(title, year)
         if x is not None:
             update_job(job, x)
         return x
-    elif cfg['METADATA_PROVIDER'].lower() == "omdb":
+    elif cfg.arm_config['METADATA_PROVIDER'].lower() == "omdb":
         logging.debug("provider omdb")
         x = u.call_omdb_api(str(title), str(year))
         if x is not None:
             update_job(job, x)
         return x
-    logging.debug(cfg['METADATA_PROVIDER'])
+    logging.debug(cfg.arm_config['METADATA_PROVIDER'])
     logging.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
 
 

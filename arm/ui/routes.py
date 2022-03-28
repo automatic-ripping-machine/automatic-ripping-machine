@@ -8,6 +8,8 @@ import bcrypt
 import hashlib
 import json
 import requests
+
+import arm.config.config as cfg
 import arm.ui.utils as utils
 
 from time import sleep
@@ -15,7 +17,6 @@ from flask import Flask, render_template, request, send_file, flash, \
     redirect, url_for  # noqa: F401
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, AlembicVersion, UISettings  # noqa: F401
-from arm.config.config import cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, SettingsForm, UiSettingsForm, SetupForm
 from pathlib import Path, PurePath
 from flask.logging import default_handler  # noqa: F401
@@ -59,17 +60,17 @@ def setup():
     This function will do various checks to make sure everything can be setup for ARM
     Directory ups, create the db, etc
     """
-    perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
+    perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
     app.logger.debug("perm " + str(perm_file))
     if perm_file.exists():
         flash(str(perm_file) + " exists, setup cannot continue. To re-install please delete this file.", "danger")
         app.logger.debug("perm exist GTFO")
         return redirect('/setup-stage2')  # We push to setup-stage2 and let it decide where the user needs to go
-    dir0 = Path(PurePath(cfg['DBFILE']).parent)
-    dir1 = Path(cfg['RAW_PATH'])
-    dir2 = Path(cfg['TRANSCODE_PATH'])
-    dir3 = Path(cfg['COMPLETED_PATH'])
-    dir4 = Path(cfg['LOGPATH'])
+    dir0 = Path(PurePath(cfg.arm_config['DBFILE']).parent)
+    dir1 = Path(cfg.arm_config['RAW_PATH'])
+    dir2 = Path(cfg.arm_config['TRANSCODE_PATH'])
+    dir3 = Path(cfg.arm_config['COMPLETED_PATH'])
+    dir4 = Path(cfg.arm_config['LOGPATH'])
     x = [dir0, dir1, dir2, dir3, dir4]
 
     try:
@@ -88,7 +89,7 @@ def setup():
         if utils.setup_database():
             flash("Setup of the database was successful.", "success")
             app.logger.debug("Setup of the database was successful.")
-            perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
+            perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
             f = open(perm_file, "w")
             f.write("boop!")
             f.close()
@@ -224,13 +225,13 @@ def database():
 
     page = request.args.get('page', 1, type=int)
     # Check for database file
-    if os.path.isfile(cfg['DBFILE']):
+    if os.path.isfile(cfg.arm_config['DBFILE']):
         jobs = Job.query.order_by(db.desc(Job.job_id)).paginate(page, 100, False)
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
 
-    return render_template('database.html', jobs=jobs.items, date_format=cfg['DATE_FORMAT'], pages=jobs)
+    return render_template('database.html', jobs=jobs.items, date_format=cfg.arm_config['DATE_FORMAT'], pages=jobs)
 
 
 @app.route('/json', methods=['GET', 'POST'])
@@ -249,7 +250,7 @@ def feed_json():
     # We should never let the user pick the log file
     # logfile = request.args.get('logfile')
     searchq = request.args.get('q')
-    logpath = cfg['LOGPATH']
+    logpath = cfg.arm_config['LOGPATH']
     if x == "delete":
         j = utils.delete_job(j_id, x)
     elif x == "abandon":
@@ -288,9 +289,9 @@ def settings():
     This needs rewritten to be static
     """
     x = ""
-    arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
+    #arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     comments = utils.generate_comments()
-    cfg = utils.get_settings(arm_cfg_file)
+    #arm_config = utils.get_settings(arm_cfg_file)
 
     form = SettingsForm()
     if form.validate_on_submit():
@@ -337,7 +338,7 @@ def settings():
                 # app.logger.debug(f"\n{k} = {v} ")
 
         # app.logger.debug(f"arm_cfg= {arm_cfg}")
-        with open(arm_cfg_file, "w") as f:
+        with open(cfg.arm_config_path, "w") as f:
             f.write(arm_cfg)
             f.close()
         utils.trigger_restart()
@@ -397,7 +398,7 @@ def listlogs(path):
     The 'View logs' page - show a list of logfiles in the log folder with creation time and size
     Gives the user links to tail/arm/Full/download
     """
-    basepath = cfg['LOGPATH']
+    basepath = cfg.arm_config['LOGPATH']
     fullpath = os.path.join(basepath, path)
 
     # Deal with bad data
@@ -406,7 +407,7 @@ def listlogs(path):
 
     # Get all files in directory
     files = utils.get_info(fullpath)
-    return render_template('logfiles.html', files=files, date_format=cfg['DATE_FORMAT'])
+    return render_template('logfiles.html', files=files, date_format=cfg.arm_config['DATE_FORMAT'])
 
 
 @app.route('/logreader')
@@ -420,7 +421,7 @@ def logreader():
     """
 
     # Setup our vars
-    logpath = cfg['LOGPATH']
+    logpath = cfg.arm_config['LOGPATH']
     mode = request.args.get('mode')
     # We should use the job id and not get the raw logfile from the user
     logfile = request.args.get('logfile')
@@ -487,16 +488,16 @@ def history():
 
     """
     page = request.args.get('page', 1, type=int)
-    if os.path.isfile(cfg['DBFILE']):
+    if os.path.isfile(cfg.arm_config['DBFILE']):
         # after roughly 175 entries firefox readermode will break
         # jobs = Job.query.filter_by().limit(175).all()
         jobs = Job.query.order_by().paginate(page, 100, False)
     else:
         app.logger.error('ERROR: /history database file doesnt exist')
         jobs = {}
-    app.logger.debug(cfg['DATE_FORMAT'])
+    app.logger.debug(cfg.arm_config['DATE_FORMAT'])
 
-    return render_template('history.html', jobs=jobs.items, date_format=cfg['DATE_FORMAT'], pages=jobs)
+    return render_template('history.html', jobs=jobs.items, date_format=cfg.arm_config['DATE_FORMAT'], pages=jobs)
 
 
 @app.route('/jobdetail', methods=['GET', 'POST'])
@@ -546,10 +547,10 @@ def changeparams():
     config = job.config
     form = ChangeParamsForm(obj=config)
     if form.validate_on_submit():
-        cfg["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
-        cfg["MAXLENGTH"] = config.MAXLENGTH = format(form.MAXLENGTH.data)
-        cfg["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
-        cfg["MAINFEATURE"] = config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False
+        cfg.arm_config["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
+        cfg.arm_config["MAXLENGTH"] = config.MAXLENGTH = format(form.MAXLENGTH.data)
+        cfg.arm_config["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
+        cfg.arm_config["MAINFEATURE"] = config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False
         app.logger.debug(f"main={config.MAINFEATURE}")
         job.disctype = format(form.DISCTYPE.data)
         for key, value in cfg.items():
@@ -677,16 +678,16 @@ def home():
     The main homepage showing current rips and server stats
     """
     # Force a db update
-    utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
+    utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
 
     # Hard drive space
     try:
-        freegb = psutil.disk_usage(cfg['TRANSCODE_PATH']).free
+        freegb = psutil.disk_usage(cfg.arm_config['TRANSCODE_PATH']).free
         freegb = round(freegb / 1073741824, 1)
-        arm_percent = psutil.disk_usage(cfg['TRANSCODE_PATH']).percent
-        mfreegb = psutil.disk_usage(cfg['COMPLETED_PATH']).free
+        arm_percent = psutil.disk_usage(cfg.arm_config['TRANSCODE_PATH']).percent
+        mfreegb = psutil.disk_usage(cfg.arm_config['COMPLETED_PATH']).free
         mfreegb = round(mfreegb / 1073741824, 1)
-        media_percent = psutil.disk_usage(cfg['COMPLETED_PATH']).percent
+        media_percent = psutil.disk_usage(cfg.arm_config['COMPLETED_PATH']).percent
     except FileNotFoundError:
         freegb = 0
         arm_percent = 0
@@ -705,8 +706,8 @@ def home():
     ram_percent = memory.percent
 
     armname = ""
-    if cfg['ARM_NAME'] != "":
-        armname = f"[{cfg['ARM_NAME']}] - "
+    if cfg.arm_config['ARM_NAME'] != "":
+        armname = f"[{cfg.arm_config['ARM_NAME']}] - "
 
     #  get out cpu info
     try:
@@ -722,7 +723,7 @@ def home():
     except KeyError:
         temp = temps = None
 
-    if os.path.isfile(cfg['DBFILE']):
+    if os.path.isfile(cfg.arm_config['DBFILE']):
         try:
             jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
         except Exception:
@@ -735,7 +736,7 @@ def home():
                            arm_percent=arm_percent, media_percent=media_percent,
                            jobs=jobs, cpu=our_cpu, cputemp=temp, cpu_usage=cpu_usage,
                            ram=mem_total, ramused=mem_used, ramfree=mem_free, ram_percent=ram_percent,
-                           ramdump=str(temps), armname=armname, children=cfg['ARM_CHILDREN'])
+                           ramdump=str(temps), armname=armname, children=cfg.arm_config['ARM_CHILDREN'])
 
 
 @app.route('/import_movies')
@@ -753,9 +754,9 @@ def import_movies():
     from os.path import isfile, join, isdir
     t0 = time.time()
 
-    my_path = cfg['COMPLETED_PATH']
+    my_path = cfg.arm_config['COMPLETED_PATH']
     movies = {0: {'notfound': {}}}
-    dest_ext = cfg['DEST_EXT']
+    dest_ext = cfg.arm_config['DEST_EXT']
     i = 1
     movie_dirs = [f for f in listdir(my_path) if isfile(join(my_path, f)) and not f.startswith(".")
                   or isdir(join(my_path, f)) and not f.startswith(".")]
@@ -892,7 +893,7 @@ def send_movies():
     app.logger.debug("search - posts=" + str(posts))
     r = {'failed': {}, 'sent': {}}
     i = 0
-    api_key = cfg['ARM_API_KEY']
+    api_key = cfg.arm_config['ARM_API_KEY']
 
     for p in posts:
         base_url = "https://1337server.pythonanywhere.com"  # This allows easy updates to the API url

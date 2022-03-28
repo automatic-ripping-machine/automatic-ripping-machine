@@ -6,7 +6,7 @@ from arm.ui import app  # noqa E402
 from arm.config.config import cfg  # noqa E402
 import arm.ui.routes  # noqa E402
 
-host = cfg['WEBSERVER_IP']
+host = arm_config['WEBSERVER_IP']
 if host == 'x.x.x.x':
     # autodetect host IP address
     from netifaces import interfaces, ifaddresses, AF_INET
@@ -23,5 +23,5 @@ if host == 'x.x.x.x':
         host = '127.0.0.1'
 
 if __name__ == '__main__':
-    app.run(host=host, port=cfg['WEBSERVER_PORT'], debug=True)
+    app.run(host=host, port=arm_config['WEBSERVER_PORT'], debug=True)
     # app.run(debug=True)
