@@ -1,8 +1,0 @@
-# arm-udev.rules
-#   user udev rule to launch ARM automagically whenever new media is inserted
-#
-# this rule will trigger twice
-# 1. for the media change event (script exits early in this case)
-# 2. after udev rules have loaded media details
-ACTION=="change", SUBSYSTEM=="block", RUN+="/opt/arm/scripts/arm_launcher.sh %k"
-
