@@ -3,7 +3,7 @@
 import os
 import yaml
 
-yamlfile = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
+yamlfile = os.path.join("/etc/arm/config", "arm.yaml")
 
 with open(yamlfile, "r") as f:
     try:
