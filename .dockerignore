@@ -1,0 +1,13 @@
+.idea/
+.git/
+.github/
+.dockerignore
+.gitignore
+.gitmodules
+
+venv/
+
+*.yml
+*.md
+!README.md
+Dockerfile
