@@ -36,11 +36,11 @@ CONFS="arm.yaml apprise.yaml .abcde.conf"
 for conf in $CONFS; do
     thisConf="/etc/arm/config/${conf}"
     if [[ ! -f "${thisConf}" ]] ; then
-        echo "creating config file ${thisConf}"
-        cp "/opt/arm/setup/${conf}" "${thisConf}"
+        # Don't overwrite with defaults during reinstall
+        cp --no-clobber "/opt/arm/setup/${conf}" "${thisConf}"
     fi
 done
-chown -R "${USER}:${USER}" /etc/arm/config/
+chown -R "${USER}:${USER}" /etc/arm/
 
 [[ -h /dev/cdrom ]] || ln -sv /dev/sr0 /dev/cdrom 
 
