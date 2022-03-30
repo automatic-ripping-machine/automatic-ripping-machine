@@ -16,8 +16,8 @@ RUN \
     echo "/dev/sr2  /mnt/dev/sr2  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
     echo "/dev/sr3  /mnt/dev/sr3  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab
 
-# copy ARM source last, helps with Docker build caching
 COPY . /opt/arm/
+RUN rm -rf /opt/arm/venv
 
 EXPOSE 8080
 
@@ -26,14 +26,12 @@ VOLUME /home/arm/logs
 VOLUME /home/arm/media
 VOLUME /etc/arm/config
 
-WORKDIR /home/arm
+###########################################################
+# Final image pushed for use
+FROM base as automatic-ripping-machine
 
 ENTRYPOINT ["/opt/arm/scripts/docker/docker-entrypoint.sh"]
 CMD ["python3", "/opt/arm/arm/runui.py"]
-
-###########################################################
-# setup default directories and configs
-FROM base as automatic-ripping-machine
 
 LABEL org.opencontainers.image.source=https://github.com/1337-server/automatic-ripping-machine
 LABEL org.opencontainers.image.license=MIT
