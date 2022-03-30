@@ -18,14 +18,10 @@ done
 function install_os_tools() {
     sudo apt update -y && sudo apt upgrade -y
     sudo apt install alsa -y # this will install sound drivers on ubuntu server, preventing a crash
-    sudo apt install lsscsi && sudo apt install net-tools
+    sudo apt install lsscsi net-tools -y
     sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
     sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install
     sudo apt install git -y
-
-    # Installation of drivers seems to install a full gnome desktop, and it seems to set up hibernation modes.
-    # It is optional to run the below line (Hibernation may be something you want.)
-    #sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 }
 
 function add_arm_user() {
@@ -47,26 +43,46 @@ function add_arm_user() {
     sudo usermod -aG cdrom,video arm
 }
 
-function install_dev_requirements() {
+function install_arm_requirements() {
     echo -e "${RED}Installing ARM requirments${NC}"
     sudo add-apt-repository ppa:mc3man/focal6 -y
     sudo add-apt-repository ppa:heyarje/makemkv-beta -y
-
+    sudo add-apt-repository ppa:stebbins/handbrake-releases -y
     sudo apt update -y
-    sudo apt install makemkv-bin makemkv-oss -y
-    sudo apt install handbrake-cli libavcodec-extra -y
-    sudo apt install abcde flac imagemagick glyrc cdparanoia -y
-    sudo apt install at -y
-    sudo apt install python3 python3-pip -y
-    sudo apt install libcurl4-openssl-dev libssl-dev -y # install these otherwise `pip install pycurl` will explode
-    sudo apt install libdvd-pkg -y
-    sudo apt install lsdvd -y
+
+    sudo apt install -y \
+        build-essential \
+        libcurl4-openssl-dev libssl-dev \
+        libudev-dev \
+        udev \
+        python3 \
+        python3-dev \
+        python3-pip \
+        python3-wheel \
+        python-psutil \
+        python3-pyudev \
+        abcde \
+        eyed3 \
+        atomicparsley \
+        cdparanoia \
+        eject \
+        ffmpeg \
+        flac \
+        glyrc \
+        default-jre-headless \
+        libavcodec-extra
+
+    sudo apt install -y \
+        handbrake-cli makemkv-bin makemkv-oss \
+        imagemagick \
+        at \
+        libdvd-pkg lsdvd
+
     sudo dpkg-reconfigure libdvd-pkg
-    sudo apt install default-jre-headless -y
 }
 
 function remove_existing_arm() {
-    # check if the armui service exists in any state
+    ##### Check if the ArmUI service exists in any state and remove it
     if sudo systemctl list-unit-files --type service | grep -F armui.service; then
         echo -e "${RED}Previous installation of ARM service found. Removing...${NC}"
         service=armui.service
@@ -77,82 +93,78 @@ function remove_existing_arm() {
 }
 
 function clone_arm() {
+    cd /opt
     if [ -d arm ]; then
         echo -e "${RED}Existing ARM installation found, removing...${NC}"
         sudo rm -rf arm
     fi
-    sudo mkdir -p arm
-    sudo chown arm:arm arm
-    sudo chmod 775 arm
-    ##my updated version
-    #sudo git clone https://github.com/1337-server/automatic-ripping-machine.git arm
+
     sudo git clone --recurse-submodules https://github.com/shitwolfymakes/automatic-ripping-machine.git arm
-    ###stock
-    #git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
-    sudo chown -R arm:arm arm
-}
-
-function setup_config_files() {
-    # setup config files if not found, DO NOT RESET DURING REINSTALL
-    mkdir -p /etc/arm/config
-    CONFS="arm.yaml apprise.yaml .abcde.conf"
-    for conf in $CONFS; do
-        thisConf="/etc/arm/config/${conf}"
-        if [[ ! -f "${thisConf}" ]] ; then
-            echo "creating config file ${thisConf}"
-            cp "/opt/arm/setup/${conf}" "${thisConf}"
-        fi
-    done
-    chown -R "${USER}:${USER}" /etc/arm/config/
-}
-
-function install_arm_live_env() {
-    echo -e "${RED}Installing ARM:Automatic Ripping Machine${NC}"
-    cd /opt
-    clone_arm
-    cd arm
-    sudo pip3 install -r requirements.txt
-    sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
-    setup_config_files
-    sudo chmod +x /opt/arm/scripts/thickclient/arm_wrapper.sh
-    sudo chmod +x /opt/arm/scripts/update_key.sh
+    sudo chown -R arm:arm /opt/arm
+    sudo find /opt/arm/scripts/ -type f -iname "*.sh" -exec chmod +x {} \;
 }
 
 function install_arm_dev_env() {
-    # install arm without automation and with PyCharm
+    ##### Install ARM development stack
     echo -e "${RED}Installing ARM for Development${NC}"
+    clone_arm
+
     # install docker
     sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
     sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable" -y
     apt-cache policy docker-ce
-    sudo apt update
+    sudo apt update -y
     sudo apt install docker-ce docker-ce-cli containerd.io -y
-    sudo usermod -aG docker $USER
+    sudo usermod -aG docker arm
 
-    cd /home/arm
+    # install pycharm
     sudo snap install pycharm-community --classic
-    cd /opt
-    clone_arm
-    cd arm
-    sudo pip3 install -r requirements.txt
-    setup_config_files
+}
 
-    # allow developer to write to the installation
-    sudo chmod -R 777 /opt/arm
+function install_arm_live_env() {
+    ##### Install ARM live environment
+    echo -e "${RED}Installing Automatic Ripping Machine${NC}"
+    clone_arm
+
+    sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
+    sudo udevadm control --reload
+}
+
+function setup_config_files() {
+    ##### Setup ARM config files if not found
+    sudo mkdir -p /etc/arm/config
+    CONFS="arm.yaml apprise.yaml .abcde.conf"
+    for conf in $CONFS; do
+        thisConf="/etc/arm/config/${conf}"
+        if [[ ! -f "${thisConf}" ]] ; then
+            echo "creating config file ${thisConf}"
+            # Don't overwrite with defaults during reinstall
+            cp --no-clobber "/opt/arm/setup/${conf}" "${thisConf}"
+        fi
+    done
+    chown -R arm:arm /etc/arm/
+}
+
+function install_python_requirements {
+    ##### Install the python tools and requirements
+    echo -e "${RED}Installing up python requirements${NC}"
+    cd /opt/arm/
+    sudo pip3 install --upgrade pip wheel setuptools psutil pyudev
+    sudo pip3 install -r requirements.txt
 }
 
 function setup_autoplay() {
-    ######## Adding new line to fstab, needed for the autoplay to work.
-    ######## also creating mount points (why loop twice)
+    ##### Add new line to fstab, needed for the autoplay to work.
     echo -e "${RED}Adding fstab entry and creating mount points${NC}"
     for dev in /dev/sr?; do
-        if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
+        if grep -q "${dev}  /mnt${dev}  udf,iso9660  users,noauto,exec,utf8  0  0" /etc/fstab; then
             echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
         else
-            echo -e "\n${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 \n" | sudo tee -a /etc/fstab
+            echo -e "\n${dev}  /mnt${dev}  udf,iso9660  users,noauto,exec,utf8  0  0 \n" | sudo tee -a /etc/fstab
         fi
         sudo mkdir -p /mnt$dev
+        sudo chown arm:arm /mnt$dev
     done
 }
 
@@ -163,19 +175,18 @@ function setup_syslog_rule() {
         sudo rm /etc/rsyslog.d/30-arm.conf
     fi
     sudo cp ./setup/30-arm.conf /etc/rsyslog.d/30-arm.conf
+    sudo chown arm:arm /etc/rsyslog.d/30-arm.conf
 }
 
 function install_armui_service() {
-    ##### Run the ARM UI as a service
+    ##### Install the ArmUI service
     echo -e "${RED}Installing ARM service${NC}"
     sudo mkdir -p /etc/systemd/system
-    sudo cp ./setup/armui.service /etc/systemd/system/armui.service
-
-    sudo systemctl daemon-reload
-    sudo chmod u+x /etc/systemd/system/armui.service
+    sudo cp /opt/arm/setup/armui.service /etc/systemd/system/armui.service
     sudo chmod 600 /etc/systemd/system/armui.service
 
-    #reload the daemon and then start ui
+    # reload the daemon and then start service
+    sudo systemctl daemon-reload
     sudo systemctl start armui.service
     sudo systemctl enable armui.service
     sudo sysctl -p
@@ -195,7 +206,7 @@ function launch_setup() {
 # start here
 install_os_tools
 add_arm_user
-install_dev_requirements
+install_arm_requirements
 remove_existing_arm
 
 if [ "$dev_env_flag" ]; then
@@ -204,6 +215,8 @@ else
     install_arm_live_env
 fi
 
+setup_config_files
+install_python_requirements
 setup_autoplay
 setup_syslog_rule
 install_armui_service
