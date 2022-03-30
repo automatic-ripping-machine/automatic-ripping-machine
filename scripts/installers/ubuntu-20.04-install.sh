@@ -100,6 +100,8 @@ function clone_arm() {
     fi
 
     sudo git clone --recurse-submodules https://github.com/shitwolfymakes/automatic-ripping-machine.git arm
+    git submodule update --init --recursive
+    git submodule update --recursive --remote
     sudo chown -R arm:arm /opt/arm
     sudo find /opt/arm/scripts/ -type f -iname "*.sh" -exec chmod +x {} \;
 }
