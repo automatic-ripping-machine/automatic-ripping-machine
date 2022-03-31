@@ -1,7 +1,6 @@
 import sys  # noqa: F401
 import os  # noqa: F401
 import bcrypt  # noqa: F401
-import arm.config.config as cfg
 
 from flask import Flask, logging, current_app  # noqa: F401
 from flask_sqlalchemy import SQLAlchemy
@@ -12,6 +11,8 @@ from getpass import getpass  # noqa: F401
 # import omdb
 
 from flask_login import LoginManager
+
+import arm.config.config as cfg
 
 sqlitefile = 'sqlite:///' + cfg.arm_config['DBFILE']
 

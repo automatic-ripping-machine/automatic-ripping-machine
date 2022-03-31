@@ -289,9 +289,7 @@ def settings():
     This needs rewritten to be static
     """
     x = ""
-    #arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     comments = utils.generate_comments()
-    #arm_config = utils.get_settings(arm_cfg_file)
 
     form = SettingsForm()
     if form.validate_on_submit():
@@ -345,7 +343,7 @@ def settings():
         flash("Setting saved successfully!", "success")
         return redirect(url_for('settings'))
     # If we get to here there was no post data
-    return render_template('settings.html', settings=cfg, form=form, raw=x, jsoncomments=comments)
+    return render_template('settings.html', settings=cfg.arm_config, form=form, raw=x, jsoncomments=comments)
 
 
 @app.route('/ui_settings', methods=['GET', 'POST'])

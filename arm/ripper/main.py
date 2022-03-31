@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 
-sys.path.append("/opt/arm")
+# set the PATH to /arm/arm so we can handle imports properly
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
 
 import argparse  # noqa: E402
-import os  # noqa: E402
 import logging  # noqa: E402
 import time  # noqa: E402
 import datetime  # noqa: E402
@@ -14,10 +15,9 @@ import shutil  # noqa: E402
 import pyudev  # noqa: E402
 import getpass  # noqa E402
 import psutil  # noqa E402
-import arm.config.config as cfg
+import arm.config.config as cfg  # noqa E402
 
 from arm.ripper import logger, utils, makemkv, handbrake, identify  # noqa: E402
-
 from arm.ripper.getkeys import grabkeys  # noqa: E402
 from arm.models.models import Job, Config  # noqa: E402
 from arm.ui import app, db  # noqa E402
