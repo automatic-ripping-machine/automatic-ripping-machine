@@ -100,7 +100,6 @@ function clone_arm() {
     fi
 
     sudo git clone --recurse-submodules https://github.com/shitwolfymakes/automatic-ripping-machine.git arm
-    cd arm
     git submodule update --init --recursive
     git submodule update --recursive --remote
     sudo chown -R arm:arm /opt/arm
@@ -152,9 +151,9 @@ function setup_config_files() {
 function install_python_requirements {
     ##### Install the python tools and requirements
     echo -e "${RED}Installing up python requirements${NC}"
-    cd /opt/arm/
-    sudo pip3 install --upgrade pip wheel setuptools psutil pyudev
-    sudo pip3 install -r requirements.txt
+    # running pip with sudo can result in permissions errors, run as arm
+    sudo -u arm pip3 install --upgrade pip wheel setuptools psutil pyudev
+    sudo -u arm pip3 install -r requirements.txt
 }
 
 function setup_autoplay() {
@@ -186,7 +185,7 @@ function install_armui_service() {
     echo -e "${RED}Installing ARM service${NC}"
     sudo mkdir -p /etc/systemd/system
     sudo cp /opt/arm/setup/armui.service /etc/systemd/system/armui.service
-    sudo chmod 600 /etc/systemd/system/armui.service
+    sudo chmod 644 /etc/systemd/system/armui.service
 
     # reload the daemon and then start service
     sudo systemctl daemon-reload
