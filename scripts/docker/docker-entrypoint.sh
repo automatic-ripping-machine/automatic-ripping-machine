@@ -19,6 +19,9 @@ if ! id -u "${USER}" ; then
     chown -R "${USER}:${USER}" "${HOME}"
 fi
 
+# set permissions for source code
+chown -R "${USER}:${USER}" /opt/arm
+
 # setup needed/expected dirs if not found
 SUBDIRS="media media/completed media/raw media/movies logs db Music .MakeMKV"
 for dir in $SUBDIRS ; do
@@ -40,7 +43,7 @@ for conf in $CONFS; do
         cp --no-clobber "/opt/arm/setup/${conf}" "${thisConf}"
     fi
 done
-chown -R "${USER}:${USER}" /etc/arm/
+chown -R "${USER}:${USER}" /etc/arm
 
 [[ -h /dev/cdrom ]] || ln -sv /dev/sr0 /dev/cdrom 
 
