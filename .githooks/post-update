@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cd arm-dependencies
+git pull
+cd ..
+
+if ! [[ -z $(git diff arm-dependencies) ]]; then 
+	git add arm-dependencies
+	git commit -m "updated dependencies"
+fi
