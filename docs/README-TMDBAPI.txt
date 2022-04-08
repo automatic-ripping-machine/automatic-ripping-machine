@@ -2,7 +2,6 @@ README-TMDBAPI
 
 ## BACKGROUND:
 
-For now ARM only makes use of tmdbapi in the ARMui part, it is not used in ARM (the ripping part)
 ARMui uses a call to the tmdbapi (The Movie Database API) website to determine the full details of a movie.
 It tries to get the full name and year, as well as poster/backdrop images,imdb_id and plot.
 
