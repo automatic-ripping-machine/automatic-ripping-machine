@@ -328,7 +328,7 @@ function pushChildServers() {
     if (children) {
         var childLinks = [];
         var children_arr = children.split(",");
-        $.each(children_arr, function (index, value) {
+        $.each(children_arr, function (_index, value) {
             activeServers.push(value);
             childLinks.push("<a target='_blank' href='" + value + "'>" + value + "</a>");
         });

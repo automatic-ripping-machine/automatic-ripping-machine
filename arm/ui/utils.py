@@ -152,7 +152,7 @@ def get_info(directory):
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
-    string = re.sub(r"\[.*?]", "", string)
+    string = re.sub(r"\[[^]]*]", "", string)
     string = re.sub('\\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
@@ -335,7 +335,7 @@ def fix_permissions(j_id):
     ARM can sometimes have issues with changing the file owner, we can use the fact ARMui is run
     as a service to fix permissions.
     """
-    # TODO add new json exception - break these check out into a function
+    # TODO add new json exception - break these checks out into a function
     try:
         job_id = int(j_id.strip())
     except ValueError:
@@ -347,7 +347,7 @@ def fix_permissions(j_id):
     if not os.path.isfile(job_log):
         raise FileNotFoundError("Logfile Has Been Deleted Or Moved")
 
-    # This is kind of hacky way to get around the fact we dont save the ts variable
+    # This is kind of hacky way to get around the fact we don't save the ts variable
     with open(job_log, 'r') as reader:
         for line in reader.readlines():
             failed_perms_found = re.search("Operation not permitted: '([0-9a-zA-Z()/ -]*?)'", str(line))

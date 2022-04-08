@@ -101,7 +101,7 @@ function proccessReturn(data, addJobItem) {
                 let size = Object.keys(data.results).length;
                 console.log("length = " + size);
                 if (size > 0) {
-                    $.each(data.results, function (index, value) {
+                    $.each(data.results, function (_index, value) {
                         z = addJobItem(value);
                         $('.card-deck').append(z);
                     });
@@ -233,7 +233,7 @@ $(document).ready(function () {
                 let size = Object.keys(data.results).length;
                 console.log("length = " + size);
                 if (size > 0) {
-                    $.each(data.results, function (index, value) {
+                    $.each(data.results, function (_index, value) {
                         $('.card-deck').append(addJobItem(value));
                     });
                     console.log(data);
@@ -273,7 +273,7 @@ $(document).ready(function () {
                 let size = Object.keys(data.results).length;
                 console.log("length = " + size);
                 if (size > 0) {
-                    $.each(data.results, function (index, value) {
+                    $.each(data.results, function (_index, value) {
                         z = addJobItem(value);
                         $('.card-deck').append(z);
                     });

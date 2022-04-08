@@ -101,7 +101,7 @@ class Job(db.Model):
             elif key == "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO":
                 self.disctype = "music"
             else:
-                pass
+                continue
 
     def get_pid(self):
         """
