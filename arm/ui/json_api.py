@@ -10,7 +10,7 @@ from pathlib import Path
 import psutil
 from arm.config.config import cfg
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track  # noqa: F401
+from arm.models.models import Job, Config, Track
 from arm.ui.utils import job_id_validator
 
 
@@ -81,20 +81,19 @@ def process_makemkv_logfile(logfile, job, job_results):
     :return: job_results dict
     """
     line = read_all_log_lines(logfile)
-    # TODO - 3 on the line below is the track number extract it and give 3/job.track count
     # PRGC:5057,3,"Analyzing seamless segments"
     # Correctly get last entry for progress bar
     for one_line in line:
         job_progress_status = re.search(r"PRGV:([\d]{3,}),([\d]+),([\d]{3,})$", str(one_line))
-        job_stage_index = re.search(r"PRGC:[\d]+,[\d]+,\"([\w -]{2,})\"$", str(one_line))
+        job_stage_index = re.search(r"PRGC:[\d]+,([\d]+),\"([\w -]{2,})\"$", str(one_line))
         if job_progress_status:
-            x = "{:.2f}".format(percentage(job_progress_status.group(1), job_progress_status.group(3)))
-            job.progress = job_results['progress'] = x
+            job_progress = f"{percentage(job_progress_status.group(1), job_progress_status.group(3)):.2f}"
+            job.progress = job_results['progress'] = job_progress
             job.progress_round = percentage(job_progress_status.group(1),
                                             job_progress_status.group(3))
         if job_stage_index:
             try:
-                current_index = job_stage_index.group(1)
+                current_index = f"{job_stage_index.group(2)} - {(int(job_stage_index.group(1)) + 1)}/{job.no_of_titles}"
                 job.stage = job_results['stage'] = current_index
             except Exception as error:
                 job.stage = f"Unknown -  {error}"
@@ -202,7 +201,7 @@ def delete_job(job_id, mode):
             # Make a backup and everything
             # The user can only access this by typing it manually
             if job_id == 'all':
-                # TODO if this gets put in final the DB will need optimised
+                # TODO if this gets put in final, the DB will need optimised
                 #  if os.path.isfile(cfg['DBFILE']):  # noqa: S125
                 #    # Make a backup of the database file
                 #    cmd = f"cp {cfg['DBFILE']} {cfg['DBFILE'])}.bak"

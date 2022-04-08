@@ -25,7 +25,7 @@ NOTIFY_TITLE = "ARM notification"
 
 def notify(job, title, body):
     """
-    Send notifications with apprise
+    Send notifications with apprise\n
     :param job: Current Job
     :param title: title for notification
     :param body: body of the notification
@@ -63,9 +63,9 @@ def notify(job, title, body):
 
 def notify_entry(job):
     """
-    Notify On Entry
+    Notify On Entry\n
     :param job:
-    :return:
+    :return: None
     """
     # TODO make this better or merge with notify/class
     if job.disctype in ["dvd", "bluray"]:
@@ -103,9 +103,9 @@ def scan_emby():
 def sleep_check_process(process_str, transcode_limit):
     """
     New function to check for max_transcode from cfg file and force obey limits\n
-    :param process_str: The process string from arm.yaml
-    :param transcode_limit: The user defined limit for maximum transcodes
-    :return: Bool - when we have space in the transcode queue
+    :param str process_str: The process string from arm.yaml
+    :param int transcode_limit: The user defined limit for maximum transcodes
+    :return bool: when we have space in the transcode queue
     """
     if transcode_limit > 0:
         loop_count = transcode_limit + 1
@@ -143,9 +143,9 @@ def convert_job_type(video_type):
 
 def fix_job_title(job):
     """
-    Validate the job title remove/add job year as needed
+    Validate the job title remove/add job year as needed\n
     :param job:
-    :return: correct job.title
+    :return: corrected job.title
     """
     if job.year and job.year != "0000" and job.year != "":
         job_title = f"{job.title} ({job.year})"
@@ -156,12 +156,12 @@ def fix_job_title(job):
 
 def move_files(base_path, filename, job, ismainfeature=False):
     """
-    Move files from RAW_PATH or TRANSCODE_PATH to final media directory\n\n
-    :param base_path: Path to source directory\n
-    :param filename: name of file to be moved\n
+    Move files from RAW_PATH or TRANSCODE_PATH to final media directory\n
+    :param str base_path: Path to source directory\n
+    :param str filename: name of file to be moved\n
     :param job: instance of Job class\n
-    :param ismainfeature: True/False
-    :return: None
+    :param bool ismainfeature: if current is main feature move to main dir
+    :return str: Full movie path
     """
     video_title = fix_job_title(job)
     type_sub_folder = convert_job_type(job.video_type)
@@ -202,10 +202,8 @@ def move_files(base_path, filename, job, ismainfeature=False):
 def make_dir(path):
     """
     Make a directory\n
-    path = Path to directory\n
-
-    returns success True if successful
-        false if the directory already exists
+    :param path: Path to directory
+    :return: True if successful, false if the directory already exists
     """
     if not os.path.exists(path):
         logging.debug(f"Creating directory: {path}")
@@ -222,10 +220,8 @@ def make_dir(path):
 
 
 def get_cdrom_status(devpath):
-    """get the status of the cdrom drive\n
-    devpath = path to cdrom\n
-
-    returns int
+    """
+    get the status of the cdrom drive\n
     CDS_NO_INFO		0\n
     CDS_NO_DISC		1\n
     CDS_TRAY_OPEN		2\n
@@ -233,16 +229,17 @@ def get_cdrom_status(devpath):
     CDS_DISC_OK		4\n
 
     see linux/cdrom.h for specifics\n
+    :param devpath: path to cdrom
+    :return int:
     """
-
     try:
-        fd = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
+        disc_check = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
     except OSError:
         # Sometimes ARM will log errors opening hard drives. this check should stop it
         if not re.search(r'hd[a-j]|sd[a-j]|loop[0-9]', devpath):
             logging.info(f"Failed to open device {devpath} to check status.")
         sys.exit(2)
-    result = fcntl.ioctl(fd, 0x5326, 0)
+    result = fcntl.ioctl(disc_check, 0x5326, 0)
 
     return result
 
@@ -250,12 +247,10 @@ def get_cdrom_status(devpath):
 def find_file(filename, search_path):
     """
     Check to see if file exists by searching a directory recursively\n
-    filename = filename to look for\n
-    search_path = path to search recursively\n
-
-    returns True or False
+    :param filename: filename to look for
+    :param search_path: path to search recursively
+    :return bool:
     """
-
     for dirpath, dirnames, filenames in os.walk(search_path):
         if filename in filenames:
             return True
@@ -287,13 +282,6 @@ def rip_music(job, logfile):
     :param job: job object
     :param logfile: location of logfile\n
     :return: Bool on success or fail
-    """
-    """
-    Rip music CD using abcde using abcde config\n
-    job = job object\n
-    logfile = location of logfile\n
-
-    returns True/False for success/fail
     """
 
     abcfile = cfg["ABCDE_CONFIG_FILE"]
@@ -499,9 +487,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         filename=filename
     )
     job_track.ripped = (seconds > int(cfg['MINLENGTH']))
-    # TODO add the db adder or updater here
-    db.session.add(job_track)
-    db.session.commit()
+    database_adder(job_track)
 
 
 def arm_setup():
@@ -524,13 +510,14 @@ def arm_setup():
 
 def database_updater(args, job, wait_time=90):
     """
-    Try to update our db for x seconds and handle it nicely if we cant
+    Try to update our db for x seconds and handle it nicely if we can't
+    If args isn't a dict assume we are wanting a rollback\n
 
-    :param args: This needs to be a Dict with the key being the job.
-    Method you want to change and the value being
-    the new value. If args isn't a dict assume we are wanting a rollback
+    :param args: This needs to be a Dict with the key being the job.method
+    you want to change and the value being
+    the new value.
     :param job: This is the job object
-    :param wait_time: The time to wait in seconds
+    :param int wait_time: Number of times to try(1 sec sleep between try)
     :return: Success
     """
     if not isinstance(args, dict):
