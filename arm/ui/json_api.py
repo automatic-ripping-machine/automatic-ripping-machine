@@ -58,7 +58,7 @@ def process_logfile(logfile, job, job_results):
         :param logfile: the logfile for parsing
         :param job: the Job class
         :param job_results: the {} of
-        :return: r should be dict for the json api
+        :return: should be dict for the json api
     """
     app.logger.debug(job.status)
     if job.status == "ripping":
@@ -71,13 +71,14 @@ def process_logfile(logfile, job, job_results):
 
 
 def percentage(part, whole):
+    """percent calculator"""
     percent = 100 * float(part) / float(whole)
     return percent
 
 
 def process_makemkv_logfile(logfile, job, job_results):
     """
-    Process the logfile and find current status
+    Process the logfile and find current status\n
     :return: job_results dict
     """
     line = read_all_log_lines(logfile)
@@ -107,7 +108,7 @@ def process_handbrake_logfile(logfile, job, job_results):
     :param logfile: the logfile for parsing
     :param job: the Job class
     :param job_results: the {} of
-    :return: r should be dict for the json api
+    :return: should be dict for the json api
     """
     line = read_log_line(logfile)
     # This correctly get the very last ETA and %
@@ -143,7 +144,11 @@ def process_handbrake_logfile(logfile, job, job_results):
 
 
 def read_log_line(log_file):
-    # Try to catch if the logfile gets delete before the job is finished
+    """
+    Try to catch if the logfile gets delete before the job is finished\n
+    :param log_file:
+    :return:
+    """
     try:
         line = subprocess.check_output(['tail', '-n', '1', log_file])
     except subprocess.CalledProcessError:
@@ -153,7 +158,7 @@ def read_log_line(log_file):
 
 
 def read_all_log_lines(log_file):
-    # Try to catch if the logfile gets delete before the job is finished
+    """Try to catch if the logfile gets delete before the job is finished"""
     try:
         with open(log_file, encoding="utf8", errors='ignore') as read_log_file:
             line = read_log_file.readlines()
@@ -187,7 +192,7 @@ def search(search_query):
 
 def delete_job(job_id, mode):
     """
-    json api version of delete jobs
+    json api version of delete jobs\n
     :param job_id: job id to delete || str "all"/"title"
     :param str mode: should always be delete
     :return: json/dict to be returned if success or fail
@@ -250,7 +255,7 @@ def delete_job(job_id, mode):
 
 def generate_log(logpath, job_id):
     """
-    Generate log for json api and return it in a valid form
+    Generate log for json api and return it in a valid form\n
     :param str logpath:
     :param int job_id:
     :return:
@@ -291,7 +296,7 @@ def generate_log(logpath, job_id):
 
 def abandon_job(job_id):
     """
-    json api abondon job
+    json api abondon job\n
     :param int job_id: the job id
     :return: json/dict
     """
@@ -312,10 +317,6 @@ def abandon_job(job_id):
         json_return['success'] = True
         app.logger.debug(f"Job {job_id} was abandoned successfully")
         job.eject()
-    except Exception as error:
-        db.session.rollback()
-        app.logger.debug(f"Job {job_id} couldn't be abandoned. ")
-        json_return["Error"] = str(error)
     except psutil.NoSuchProcess:
         db.session.rollback()
         json_return['Error'] = f"Couldn't find job.pid - {job.pid}! Reverting db changes."
@@ -324,5 +325,9 @@ def abandon_job(job_id):
         db.session.rollback()
         json_return['Error'] = f"Access denied abandoning job: {job.pid}! Reverting db changes."
         app.logger.debug(f"Access denied abandoning job: {job.pid}! Reverting db changes.")
+    except Exception as error:
+        db.session.rollback()
+        app.logger.debug(f"Job {job_id} couldn't be abandoned. ")
+        json_return["Error"] = str(error)
 
     return json_return

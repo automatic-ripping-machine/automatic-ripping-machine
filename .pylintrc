@@ -13,3 +13,6 @@ disable=broad-except,
 # Maximum number of characters on a single line.
 max-line-length=120
 		
+[TYPECHECK]
+generated-members=app.logger
+ignored-classes=scoped_session

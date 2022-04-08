@@ -1,6 +1,5 @@
-"""
-Main routes for the A.R.M ui
-"""
+#!/usr/bin/env python3
+"""Main routes for the A.R.M ui"""
 import os
 import re
 import sys  # noqa: F401
@@ -14,11 +13,11 @@ import psutil
 from werkzeug.exceptions import HTTPException
 from werkzeug.routing import ValidationError
 from flask import Flask, render_template, request, send_file, flash, \
-    redirect, url_for, jsonify  # noqa: F401
+    redirect, url_for  # noqa: F401
 from flask.logging import default_handler  # noqa: F401
 from flask_login import LoginManager, login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
-import arm.ui.utils as utils
+import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
 from arm.models.models import Job, Config, Track, User, AlembicVersion, UISettings  # noqa: F401
 from arm.config.config import cfg
@@ -83,12 +82,11 @@ def setup():
     """
     perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
     app.logger.debug("perm " + str(perm_file))
+    #  TODO : Possibly check for database incase the user got here without db but has a installed file
     if perm_file.exists():
         flash(str(perm_file) + " exists, setup cannot continue."
                                " To re-install please delete this file.", "danger")
-        app.logger.debug("perm exist GTFO")
-        # We push to setup-stage2 and let it decide where the user needs to go
-        return redirect(constants.SETUP_STAGE_2)
+        return redirect("/")
     dir0 = Path(PurePath(cfg['DBFILE']).parent)
     dir1 = Path(cfg['RAW_PATH'])
     dir2 = Path(cfg['TRANSCODE_PATH'])
@@ -100,7 +98,7 @@ def setup():
         for arm_dir in arm_directories:
             if not Path.exists(arm_dir):
                 os.makedirs(arm_dir)
-                flash(f"{arm_dir} was created successfully.")
+                flash(f"{arm_dir} was created successfully.", "success")
     except FileNotFoundError as error:
         flash(f"Creation of the directory {dir0} failed {error}", "danger")
         app.logger.debug(f"Creation of the directory failed - {error}")
@@ -109,14 +107,14 @@ def setup():
         app.logger.debug("Successfully created all of the ARM directories")
 
     try:
-        if utils.setup_database():
+        if ui_utils.setup_database():
             flash("Setup of the database was successful.", "success")
             app.logger.debug("Setup of the database was successful.")
             perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
             write_permission_file = open(perm_file, "w")
             write_permission_file.write("boop!")
             write_permission_file.close()
-            return redirect(constants.SETUP_STAGE_2)
+            return redirect(constants.HOME_PAGE)
         flash("Couldn't setup database", "danger")
         app.logger.debug("Couldn't setup database")
         return redirect("/error")
@@ -124,42 +122,6 @@ def setup():
         flash(str(error))
         app.logger.debug("Setup - " + str(error))
         return redirect(constants.HOME_PAGE)
-
-
-@app.route(constants.SETUP_STAGE_2, methods=['GET', 'POST'])
-def setup_stage2():
-    """
-    This is the second stage of setup this will allow the user to create an admin account
-    this will also be the page for resetting the admin account password
-    """
-    try:
-        # Return the user to login screen if we dont error when calling for any users
-        users = User.query.all()
-        if users:
-            flash('You cannot create more than 1 admin account')
-            return redirect(url_for('login'))
-    except Exception:
-        app.logger.debug(constants.NO_ADMIN_ACCOUNT)
-
-    # After a login for is submitted
-    form = SetupForm()
-    if form.validate_on_submit():
-        app.logger.debug("We valid")
-        username = str(request.form['username']).strip()
-        pass1 = str(request.form['password']).strip().encode('utf-8')
-        hashed = bcrypt.gensalt(12)
-        hashedpassword = bcrypt.hashpw(pass1, hashed)
-        user = User(email=username, password=hashedpassword, hashed=hashed)
-        db.session.add(user)
-        # app.logger.debug("user: " + username + " Pass:" + pass1.decode('utf-8'))
-        try:
-            db.session.commit()
-        except Exception as error:
-            flash(str(error), "danger")
-            return redirect(constants.SETUP_STAGE_2)
-        else:
-            return redirect(url_for('login'))
-    return render_template('setup.html', form=form)
 
 
 @app.route('/update_password', methods=['GET', 'POST'])
@@ -207,7 +169,7 @@ def login():
         if not user_list:
             return redirect(constants.SETUP_STAGE_2)
     except Exception:
-        flash(constants.NO_ADMIN_ACCOUNT)
+        flash(constants.NO_ADMIN_ACCOUNT, "danger")
         app.logger.debug(constants.NO_ADMIN_ACCOUNT)
         return redirect(constants.SETUP_STAGE_2)
 
@@ -218,8 +180,7 @@ def login():
     form = SetupForm()
     if form.validate_on_submit():
         email = request.form['username']
-        # TODO: we know there is only ever 1 admin account,
-        #  so we can pull it and check against it locally
+        # TODO: we know there is only ever 1 admin account, so we can pull it and check against it locally
         user = User.query.filter_by(email=str(email).strip()).first()
         if user is None:
             flash('Invalid username', 'danger')
@@ -298,7 +259,7 @@ def feed_json():
         return_json = json_api.get_x_jobs("joblist")
     elif mode == "fixperms":
         app.logger.debug("fixperms")
-        return_json = utils.fix_permissions(j_id)
+        return_json = ui_utils.fix_permissions(j_id)
     app.logger.debug(return_json)
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
@@ -317,8 +278,8 @@ def settings():
     """
     form_data = ""
     arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
-    comments = utils.generate_comments()
-    cfg = utils.get_settings(arm_cfg_file)
+    comments = ui_utils.generate_comments()
+    cfg = ui_utils.get_settings(arm_cfg_file)
 
     form = SettingsForm()
     if form.validate_on_submit():
@@ -368,7 +329,7 @@ def settings():
         with open(arm_cfg_file, "w") as settings_file:
             settings_file.write(arm_cfg)
             settings_file.close()
-        utils.trigger_restart()
+        ui_utils.trigger_restart()
         flash("Setting saved successfully!", "success")
         return redirect(url_for('settings'))
     # If we get to here there was no post data
@@ -398,9 +359,9 @@ def ui_settings():
             'language': format(form.language.data),
             'database_limit': format(form.database_limit.data),
         }
-        utils.database_updater(database_arguments, armui_cfg)
+        ui_utils.database_updater(database_arguments, armui_cfg)
         db.session.refresh(armui_cfg)
-        utils.trigger_restart()
+        ui_utils.trigger_restart()
         flash("Settings saved successfully!", "success")
 
     return render_template('ui_settings.html', form=form, settings=armui_cfg)
@@ -435,7 +396,7 @@ def listlogs(path):
         raise ValidationError
 
     # Get all files in directory
-    files = utils.get_info(full_path)
+    files = ui_utils.get_info(full_path)
     return render_template('logfiles.html', files=files, date_format=cfg['DATE_FORMAT'])
 
 
@@ -453,14 +414,14 @@ def logreader():
     # We should use the job id and not get the raw logfile from the user
     # TODO poss search database and see if we can match the logname with a previous rip ?
     full_path = os.path.join(log_path, request.args.get('logfile'))
-    utils.validate_logfile(request.args.get('logfile'), mode, Path(full_path))
+    ui_utils.validate_logfile(request.args.get('logfile'), mode, Path(full_path))
 
     # Only ARM logs
     if mode == "armcat":
-        generate = utils.generate_arm_cat(full_path)
+        generate = ui_utils.generate_arm_cat(full_path)
     # Give everything / Tail
     elif mode == "full":
-        generate = utils.generate_full_log(full_path)
+        generate = ui_utils.generate_full_log(full_path)
     elif mode == "download":
         return send_file(full_path, as_attachment=True)
     else:
@@ -512,7 +473,7 @@ def jobdetail():
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
     tracks = job.tracks.all()
-    search_results = utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
+    search_results = ui_utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
     if search_results and 'Error' not in search_results:
         job.plot = search_results['Plot'] if 'Plot' in search_results else "There was a problem getting the plot"
         job.background = search_results['background_url'] if 'background_url' in search_results else None
@@ -561,7 +522,7 @@ def changeparams():
             'year_auto': config.RIPMETHOD,
             'imdb_id': config.MAINFEATURE
         }
-        utils.database_updater(args, job)
+        ui_utils.database_updater(args, job)
         flash(f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},'
               f'Minimum Length={config.MINLENGTH}, '
               f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}', "success")
@@ -605,12 +566,12 @@ def list_titles():
         raise ValidationError
     job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
-    search_results = utils.metadata_selector("search", title, year)
+    search_results = ui_utils.metadata_selector("search", title, year)
     if search_results is None or 'Error' in search_results or (
             'Search' in search_results and len(search_results['Search']) < 1):
         app.logger.debug("No results found. Trying without year")
         flash(f"No search results found for {title} ({year})<br/> Trying without year", 'danger')
-        search_results = utils.metadata_selector("search", title, "")
+        search_results = ui_utils.metadata_selector("search", title, "")
 
     if search_results is None or 'Error' in search_results or (
             'Search' in search_results and len(search_results['Search']) < 1):
@@ -639,7 +600,7 @@ def gettitle():
         app.logger.debug("gettitle - no job supplied")
         flash("No job supplied", "danger")
         raise ValidationError
-    dvd_info = utils.metadata_selector("get_details", None, None, imdb_id)
+    dvd_info = ui_utils.metadata_selector("get_details", None, None, imdb_id)
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
 
@@ -659,8 +620,8 @@ def updatetitle():
     job_id = request.args.get('job_id')
     app.logger.debug("New imdbID=" + str(imdb_id))
     job = Job.query.get(job_id)
-    job.title = utils.clean_for_filename(new_title)
-    job.title_manual = utils.clean_for_filename(new_title)
+    job.title = ui_utils.clean_for_filename(new_title)
+    job.title_manual = ui_utils.clean_for_filename(new_title)
     job.year = new_year
     job.year_manual = new_year
     job.video_type_manual = video_type
@@ -684,7 +645,7 @@ def home():
     The main homepage showing current rips and server stats
     """
     # Force a db update
-    utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
+    ui_utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
     # Hard drive space
     try:
@@ -717,7 +678,7 @@ def home():
 
     #  get out cpu info
     try:
-        our_cpu = utils.get_processor_name()
+        our_cpu = ui_utils.get_processor_name()
         cpu_usage = psutil.cpu_percent()
     except EnvironmentError:
         our_cpu = "Not found"
@@ -790,7 +751,7 @@ def import_movies():
             app.logger.debug("movie files = " + str(movie_files))
 
             hash_object = hashlib.md5(mystring.encode())
-            dupe_found, not_used_variable = utils.job_dupe_check(hash_object.hexdigest())
+            dupe_found, not_used_variable = ui_utils.job_dupe_check(hash_object.hexdigest())
             if dupe_found:
                 app.logger.debug("We found dupes breaking loop")
                 continue
@@ -842,7 +803,7 @@ def import_movies():
                                        or isfile(join(my_path, str(movie), f)) and f.endswith(".avi")]
                     app.logger.debug("movie files = " + str(sub_movie_files))
                     hash_object = hashlib.md5(mystring.encode())
-                    dupe_found, x = utils.job_dupe_check(hash_object.hexdigest())
+                    dupe_found, not_used_variable = ui_utils.job_dupe_check(hash_object.hexdigest())
                     if dupe_found:
                         app.logger.debug("We found dupes breaking loop")
                         continue

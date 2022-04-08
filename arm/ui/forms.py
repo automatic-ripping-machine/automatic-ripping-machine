@@ -1,3 +1,4 @@
+"""Forms used in the arm ui"""
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField,\
     IntegerField, BooleanField, PasswordField
@@ -5,12 +6,18 @@ from wtforms.validators import DataRequired
 
 
 class TitleSearchForm(FlaskForm):
+    """Main title search form used on pages\n
+      - /titlesearch
+      - /customTitle
+      - /list_titles"""
     title = StringField('Title', validators=[DataRequired()])
     year = StringField('Year')
     submit = SubmitField('Submit')
 
 
 class ChangeParamsForm(FlaskForm):
+    """Change config parameters form, used on pages\n
+          - /changeparams"""
     RIPMETHOD = SelectField('Rip Method: ', choices=[('mkv', 'mkv'), ('backup', 'backup')])
     DISCTYPE = SelectField('Disc Type: ', choices=[('dvd', 'DVD'), ('bluray', 'Blu-ray'),
                                                    ('music', 'Music'), ('data', 'Data')])
@@ -22,6 +29,8 @@ class ChangeParamsForm(FlaskForm):
 
 
 class SettingsForm(FlaskForm):
+    """settings form used on pages\n
+              - /settings"""
     MANUAL_WAIT = StringField('MANUAL_WAIT', validators=[DataRequired()])
     DATE_FORMAT = StringField('DATE_FORMAT', validators=[DataRequired()])
     HB_PRESET_DVD = StringField('HB_PRESET_DVD', validators=[DataRequired()])
@@ -37,6 +46,8 @@ class SettingsForm(FlaskForm):
 
 
 class UiSettingsForm(FlaskForm):
+    """UI settings form, used on pages\n
+                  - /ui_settings"""
     index_refresh = IntegerField('index_refresh', validators=[DataRequired()])
     use_icons = StringField('use_icons')
     save_remote_images = StringField('save_remote_images')
@@ -47,6 +58,9 @@ class UiSettingsForm(FlaskForm):
 
 
 class SetupForm(FlaskForm):
+    """Login/admin account creation on pages\n
+      - /login
+      - /update_password"""
     username = StringField('username', validators=[DataRequired()])
     password = PasswordField('password', validators=[DataRequired()])
     submit = SubmitField('Submit')

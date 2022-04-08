@@ -156,7 +156,7 @@ def skip_transcode_movie(files, job, mkv_out_path):
 def main(logfile, job):
     """main disc processing function"""
     logging.info("Starting Disc identification")
-    identify.identify(job, logfile)
+    identify.identify(job)
     # Check db for entries matching the crc and successful
     have_dupes, crc_jobs = utils.job_dupe_check(job)
     logging.debug(f"Value of have_dupes: {have_dupes}")
@@ -331,10 +331,10 @@ if __name__ == "__main__":
     if logfile.find("empty.log") != -1 or re.search("NAS_[0-9].?log", logfile) is not None:
         sys.exit()
 
+    utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
     utils.duplicate_run_check(devpath)
 
     logging.info(f"Starting ARM processing at {datetime.datetime.now()}")
-    utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
     # put in db
     job.status = "active"

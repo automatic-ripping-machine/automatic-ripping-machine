@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Identification of dvd/bluray
+"""Identification of dvd/bluray"""
 
 import os
 import sys  # noqa # pylint: disable=unused-import
@@ -17,10 +17,10 @@ from arm.ui import db
 from arm.config.config import cfg
 
 # flake8: noqa: W605
-import arm.ui.utils as u
+import arm.ui.utils as ui_utils
 
 
-def identify(job, logfile):
+def identify(job):
     """Identify disc attributes"""
     logging.debug("Identify Entry point --- job ----")
     logging.info(f"Mounting disc to: {job.mountpoint}")
@@ -66,7 +66,7 @@ def identify_bluray(job):
         logging.error("Disc is a bluray, but bdmt_eng.xml could not be found. "
                       "Disc cannot be identified.  Error "
                       f"number is: {error.errno}")
-        # Maybe call OMdb with label when we cant find any ident on disc ?
+        # Maybe call OMdb with label when we can't find any ident on disc ?
         job.title = str(job.label)
         job.year = ""
         db.session.commit()
@@ -220,7 +220,7 @@ def update_job(job, search_results):
 
 def metadata_selector(job, title=None, year=None):
     """
-    Used to switch between OMDB or TMDB as the metadata provider
+    Used to switch between OMDB or TMDB as the metadata provider\n
     - TMDB returned queries are converted into the OMDB format
 
     :param job: The job class
@@ -228,19 +228,16 @@ def metadata_selector(job, title=None, year=None):
     :param year: the year of movie/show release
 
     :return: json/dict object or None
-
-    Args:
-        job:
     """
     search_results = None
     if cfg['METADATA_PROVIDER'].lower() == "tmdb":
         logging.debug("provider tmdb")
-        search_results = u.tmdb_search(title, year)
+        search_results = ui_utils.tmdb_search(title, year)
         if search_results is not None:
             update_job(job, search_results)
     elif cfg['METADATA_PROVIDER'].lower() == "omdb":
         logging.debug("provider omdb")
-        search_results = u.call_omdb_api(str(title), str(year))
+        search_results = ui_utils.call_omdb_api(str(title), str(year))
         if search_results is not None:
             update_job(job, search_results)
     else:
@@ -256,7 +253,6 @@ def identify_loop(job, response, title, year):
     :param response:
     :param title:
     :param year:
-    :return:
     """
     # handle failures
     # this is a little kludgy, but it kind of works...

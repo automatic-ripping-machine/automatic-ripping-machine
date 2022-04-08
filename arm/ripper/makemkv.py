@@ -253,7 +253,7 @@ def get_track_info(mdisc, job):
                     fps = fps.replace('"', '').strip()
                     fps = float(fps)
 
-    utils.put_track(job, track, seconds, aspect, fps, False, "makemkv", filename)
+    utils.put_track(job, track, seconds, aspect, fps, False, "MakeMKV", filename)
 
 
 def run_makemkv(cmd):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Collection of utility functions
+"""Collection of utility functions"""
 import datetime
 import os
 import sys
@@ -10,6 +10,9 @@ import shutil
 import time
 import random
 import re
+from pathlib import Path, PurePath
+
+import bcrypt
 import requests
 import apprise
 import psutil
@@ -348,7 +351,6 @@ def rip_data(job):
         os.unlink(incomplete_filename)
         args = {'status': 'fail', 'errors': err}
         database_updater(args, job)
-        success = False
     try:
         logging.info(f"Trying to remove raw_path: '{raw_path}'")
         shutil.rmtree(raw_path)
@@ -413,14 +415,15 @@ def check_db_version(install_path, db_file):
     # create db file if it doesn't exist
     if not os.path.isfile(db_file):
         logging.info("No database found.  Initializing arm.db...")
+        #  notify("", "No database was found!", "Trying to continue anyway")
         make_dir(os.path.dirname(db_file))
         with app.app_context():
             flask_migrate.upgrade(mig_dir)
 
         if not os.path.isfile(db_file):
-            logging.error("Can't create database file.  "
-                          "This could be a permissions issue.  Exiting...")
-            sys.exit()
+            error = "Can't create database file. This could be a permissions issue.  Exiting..."
+            logging.error(error)
+            raise IOError(error)
 
     # check to see if db is at current revision
     head_revision = script.get_current_head()
@@ -434,6 +437,7 @@ def check_db_version(install_path, db_file):
     logging.debug(f"Database version is: {db_version}")
     if head_revision == db_version:
         logging.info("Database is up to date")
+        try_add_default_user()
     else:
         logging.info(
             f"Database out of date. Head is {head_revision} and "
@@ -448,13 +452,34 @@ def check_db_version(install_path, db_file):
         c.execute("SELECT version_num FROM alembic_version")
         db_version = c.fetchone()[0]
         logging.debug(f"Database version is: {db_version}")
+        try_add_default_user()
         if head_revision == db_version:
             logging.info("Database is now up to date")
         else:
-            logging.error(
-                f"Database is still out of date. Head is {head_revision} and "
-                f"database is {db_version}. Exiting arm.")
-            sys.exit()
+            error = f"Database is still out of date. Head is {head_revision} and " \
+                    f"database is {db_version}. Exiting arm."
+            logging.error(error)
+            raise IOError(error)
+
+
+def try_add_default_user():
+    """
+    Added to fix missmatch from the armui and armripper\n
+    :return: None
+    """
+    try:
+        username = "admin"
+        pass1 = "password".encode('utf-8')
+        hashed = bcrypt.gensalt(12)
+        user = m.User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed)
+        database_adder(user)
+        perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
+        write_permission_file = open(perm_file, "w")
+        write_permission_file.write("boop!")
+        write_permission_file.close()
+    except Exception as error:
+        #  notify("", str(error), str(error))
+        logging.error(error)
 
 
 def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename=""):
