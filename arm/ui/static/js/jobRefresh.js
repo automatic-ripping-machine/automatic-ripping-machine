@@ -9,8 +9,8 @@ let activeJob = null;
 let actionType = null;
 
 function updateModal(modal) {
-    var modalTitle;
-    var modalBody;
+    let modalTitle;
+    let modalBody;
     console.log(hrrref);
     console.log(activeJob);
     console.log(actionType);
@@ -102,7 +102,7 @@ function addJobItem(job) {
          '</div>' +
          '<div class="row no-gutters">' +
          '<div class="col-lg-4">' +
-         '<a href="jobdetail?job_id=' + idsplit[1] + '">';
+         '<a href="' + job.server_url + '/jobdetail?job_id=' + idsplit[1] + '">';
     // TODO: Fix above to link the correct server - for now it links to the main server
     if(job.poster_url !== "None" && job.poster_url !== "N/A") {
         x += '<img id="jobId' + job.job_id + '_poster_url" alt="poster img" src="' + job.poster_url + '" width="240px" class="img-thumbnail">';
@@ -294,13 +294,12 @@ function refreshJobs() {
             error: function() { --serverCount; },
             complete: function() {
                 refreshJobsComplete();
-
             },
             success: function (data) {
-                $.each(data.results, function (index, job) {
+                $.each(data.results, function (_index, job) {
                     job.job_id = server_index+"_"+job.job_id;
                     job.ripper = data.arm_name ? data.arm_name : "";
-
+                    job.server_url = server_url
                     if (activeJobs.some(e => e.job_id === job.job_id)) {
                         var oldJob = activeJobs.find(e => e.job_id === job.job_id);
 
