@@ -99,9 +99,13 @@ function clone_arm() {
         sudo rm -rf arm
     fi
 
-    sudo git clone --recurse-submodules https://github.com/shitwolfymakes/automatic-ripping-machine.git arm
+    git clone --recurse-submodules https://github.com/shitwolfymakes/automatic-ripping-machine.git arm
+    
+    cd arm
     git submodule update --init --recursive
     git submodule update --recursive --remote
+    cd ..
+    
     sudo chown -R arm:arm /opt/arm
     sudo find /opt/arm/scripts/ -type f -iname "*.sh" -exec chmod +x {} \;
 }
@@ -146,14 +150,6 @@ function setup_config_files() {
         fi
     done
     chown -R arm:arm /etc/arm/
-}
-
-function install_python_requirements {
-    ##### Install the python tools and requirements
-    echo -e "${RED}Installing up python requirements${NC}"
-    # running pip with sudo can result in permissions errors, run as arm
-    sudo -u arm pip3 install --upgrade pip wheel setuptools psutil pyudev
-    sudo -u arm pip3 install -r requirements.txt
 }
 
 function setup_autoplay() {
@@ -218,7 +214,6 @@ else
 fi
 
 setup_config_files
-install_python_requirements
 setup_autoplay
 setup_syslog_rule
 install_armui_service
