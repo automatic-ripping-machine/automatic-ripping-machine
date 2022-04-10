@@ -124,8 +124,10 @@ function install_arm_dev_env() {
     sudo apt install docker-ce docker-ce-cli containerd.io -y
     sudo usermod -aG docker arm
 
-    # install pycharm
-    sudo snap install pycharm-community --classic
+    # install pycharm community, if professional not installed already
+    if [[ -z $(snap find pycharm-professional) ]]; then
+        sudo snap install pycharm-community --classic
+    fi
 }
 
 function install_arm_live_env() {
@@ -172,7 +174,7 @@ function setup_syslog_rule() {
         echo -e "${RED}ARM syslog rule found. Overwriting...${NC}"
         sudo rm /etc/rsyslog.d/30-arm.conf
     fi
-    sudo cp ./setup/30-arm.conf /etc/rsyslog.d/30-arm.conf
+    sudo cp /opt/arm/setup/30-arm.conf /etc/rsyslog.d/30-arm.conf
     sudo chown arm:arm /etc/rsyslog.d/30-arm.conf
 }
 
