@@ -61,6 +61,7 @@ function install_arm_requirements() {
         python3-wheel \
         python-psutil \
         python3-pyudev \
+        python3-testresources \
         abcde \
         eyed3 \
         atomicparsley \
@@ -154,6 +155,15 @@ function setup_config_files() {
     chown -R arm:arm /etc/arm/
 }
 
+function install_python_requirements {
+    ##### Install the python tools and requirements
+    echo -e "${RED}Installing up python requirements${NC}"
+    cd /opt/arm
+    # running pip with sudo can result in permissions errors, run as arm
+    sudo -u arm pip3 install --upgrade pip wheel setuptools psutil pyudev
+    sudo -u arm pip3 install --ignore-installed --prefer-binary -r requirements.txt
+}
+
 function setup_autoplay() {
     ##### Add new line to fstab, needed for the autoplay to work.
     echo -e "${RED}Adding fstab entry and creating mount points${NC}"
@@ -216,6 +226,7 @@ else
 fi
 
 setup_config_files
+install_python_requirements
 setup_autoplay
 setup_syslog_rule
 install_armui_service
