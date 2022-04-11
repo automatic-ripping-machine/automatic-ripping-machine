@@ -202,6 +202,20 @@ def move_files(base_path, filename, job, ismainfeature=False):
     return movie_path
 
 
+def move_movie_poster(final_directory, hb_out_path):
+    """move movie poster"""
+    src_poster = os.path.join(hb_out_path, "poster.png")
+    dst_poster = os.path.join(final_directory, "poster.png")
+    if os.path.isfile(src_poster):
+        if not os.path.isfile(dst_poster):
+            try:
+                shutil.move(src_poster, dst_poster)
+            except Exception as poster_error:
+                logging.error(f"Unable to move poster.png to '{final_directory}' - Error: {poster_error}")
+        else:
+            logging.info("File: poster.png already exists.  Not moving.")
+
+
 def make_dir(path):
     """
     Make a directory\n

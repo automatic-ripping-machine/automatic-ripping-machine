@@ -264,7 +264,7 @@ def get_track_info(srcpath, job):
             aspect = line.rsplit(' ', 3)[-3]
             aspect = str(aspect).replace(",", "")
 
-    utils.put_track(job, t_no, seconds, aspect, fps, main_feature, "handbrake")
+    utils.put_track(job, t_no, seconds, aspect, fps, main_feature, "HandBrake")
 
 
 def title_finder(aspect, fps, job, line, main_feature, seconds, t_no, t_pattern):
@@ -282,7 +282,7 @@ def title_finder(aspect, fps, job, line, main_feature, seconds, t_no, t_pattern)
     """
     if (re.search(t_pattern, line)) is not None:
         if t_no != 0:
-            utils.put_track(job, t_no, seconds, aspect, fps, main_feature, "handbrake")
+            utils.put_track(job, t_no, seconds, aspect, fps, main_feature, "HandBrake")
 
         main_feature = False
         t_no = line.rsplit(' ', 1)[-1]

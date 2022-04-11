@@ -77,6 +77,7 @@ ALLOW_DUPLICATES: false
 MAX_CONCURRENT_TRANSCODES: 0
 
 # Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
+# "status=progress" to log progress
 DATA_RIP_PARAMETERS: ""
 
 # This selects the metadata provider, Each provider has their own ups and downs
@@ -173,11 +174,12 @@ CHOWN_GROUP:
 ## MakeMKV Parameters ##
 ########################
 
-# Method of MakeMKV to use for Blu Ray discs.  Options are "mkv" or "backup".
-# backup decrypts the dvd and then copies it to the hard drive.  This allows HandBrake to apply some of it's
-# analytical abilities such as the main-feature identification.  This method seems to offer success on bluray 
-# discs that fail in "mkv" mode. *** NOTE: MakeMKV only supports the backup method on BluRay discs.  ARM does
-# not use MakeMKV for DVDs.   
+# Method of MakeMKV to use for Blu-ray discs
+# Options are "mkv" or "backup".
+# backup decrypts the dvd and then copies it to the hard drive.
+# This allows HandBrake to apply some of its analytical abilities such as the main-feature identification.
+# This method seems to offer success on Blu-ray discs that fail in "mkv" mode.
+# *** NOTE: MakeMKV only supports the backup method on BluRay discs.
 RIPMETHOD: "backup"
 
 # MakeMKV Arguments

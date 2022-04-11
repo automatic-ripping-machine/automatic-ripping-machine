@@ -206,7 +206,7 @@ def delete_job(job_id, mode):
             # Make a backup and everything
             # The user can only access this by typing it manually
             if job_id == 'all':
-                # TODO if this gets put in final, the DB will need optimised
+                #  # if this gets put in final, the DB will need optimised
                 #  if os.path.isfile(cfg['DBFILE']):  # noqa: S125
                 #    # Make a backup of the database file
                 #    cmd = f"cp {cfg['DBFILE']} {cfg['DBFILE'])}.bak"
