@@ -193,11 +193,6 @@ MKV_ARGS: ""
 # Remove the files created by MakeMKV after processing is complete
 DELRAWFILES: true
 
-# Automatically download hashed_keys.  This is for UHD ripping only.  You mush have a UHD friendly drive for this to work.
-# Check out this post: https://www.makemkv.com/forum2/viewtopic.php?f=12&t=16883&sid=93f1db30f6ceb99b494f3f37cd723841 before 
-# changing this to True 
-HASHEDKEYS: false
-
 
 ##########################
 ## HandBrake Parameters ##

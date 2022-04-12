@@ -29,7 +29,6 @@ See: https://b3n.org/automatic-ripping-machine
 ## Features
 
 - Detects insertion of disc using udev
-- Auto downloads keys_hashed.txt and KEYDB.cfg using robobrowser and tinydownloader
 - Determines disc type...
   - If video (Blu-ray or DVD)
     - Retrieve title from disc or [OMDb API](http://www.omdbapi.com/) to name the folder "Movie Title (Year)" so that Plex or Emby can pick it up
