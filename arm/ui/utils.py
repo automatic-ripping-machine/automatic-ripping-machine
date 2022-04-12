@@ -347,7 +347,7 @@ def fix_permissions(j_id):
     if not job:
         raise TypeError("Job Has Been Deleted From The Database")
     job_log = os.path.join(cfg['LOGPATH'], job.logfile)
-    # validate_logfile(job_log, "true", Path(job_log))
+    validate_logfile(job.logfile, "true", Path(job_log))
     # This is kind of hacky way to get around the fact we don't save the ts variable
     with open(job_log, 'r') as reader:
         for line in reader.readlines():
@@ -477,13 +477,15 @@ def validate_logfile(logfile, mode, my_file):
     """
     check if logfile we got from the user is valid
     :param logfile: logfile name
-    :param mode:
+    :param mode: This is used by the json.api
     :param my_file: full base path using Path()
     :return: None
-    :raise ValidationError:
+    :raise ValidationError: if logfile has "/" or "../" in it or "mode" is None
+    :raise FileNotFoundError: if logfile cant be found in arm log folder
     """
+    app.logger.debug(f"Logfile: {logfile}")
     if logfile is None or "../" in logfile or mode is None or logfile.find("/") != -1:
-        raise ValidationError
+        raise ValidationError("logfile doesnt pass sanity checks")
     if not my_file.is_file():
         # logfile doesnt exist throw out error template
         raise FileNotFoundError("File not found")
