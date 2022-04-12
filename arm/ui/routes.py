@@ -537,6 +537,7 @@ def customtitle():
     For setting custom title for series with multiple discs
     """
     job_id = request.args.get('job_id')
+    ui_utils.job_id_validator(job_id)
     job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     if form.validate_on_submit():
@@ -549,7 +550,7 @@ def customtitle():
     return render_template('customTitle.html', title='Change Title', form=form, job=job)
 
 
-@app.route('/list_titles', methods=['GET', 'POST'])
+@app.route('/list_titles', methods=['GET'])
 @login_required
 def list_titles():
     """
@@ -580,8 +581,8 @@ def list_titles():
                            form=form, title=title, year=year)
 
 
-@app.route('/gettitle', methods=['GET', 'POST'])
-@app.route('/select_title', methods=['GET', 'POST'])
+@app.route('/gettitle', methods=['GET'])
+@app.route('/select_title', methods=['GET'])
 @login_required
 def gettitle():
     """
@@ -595,16 +596,16 @@ def gettitle():
     if imdb_id == "" or imdb_id is None:
         app.logger.debug("gettitle - no imdb supplied")
         flash("No imdb supplied", "danger")
-        raise ValidationError
+        raise ValidationError("No imdb supplied")
     if job_id == "" or job_id is None:
         app.logger.debug("gettitle - no job supplied")
         flash("No job supplied", "danger")
-        raise ValidationError
+        raise ValidationError("No job supplied")
     dvd_info = ui_utils.metadata_selector("get_details", None, None, imdb_id)
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
 
-@app.route('/updatetitle', methods=['GET', 'POST'])
+@app.route('/updatetitle', methods=['GET'])
 @login_required
 def updatetitle():
     """
