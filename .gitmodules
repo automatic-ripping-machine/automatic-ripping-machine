@@ -1,0 +1,5 @@
+[submodule "arm-dependencies"]
+	path = arm-dependencies
+	url = https://github.com/shitwolfymakes/arm-dependencies
+	branch = main
+	update = rebase
