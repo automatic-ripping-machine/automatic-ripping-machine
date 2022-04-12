@@ -92,9 +92,13 @@ mkdir -p arm
 chown arm:arm arm
 chmod 775 arm
 ##my updated version
-git clone https://github.com/1337-server/automatic-ripping-machine.git arm
+git clone --recurse-submodules https://github.com/1337-server/automatic-ripping-machine.git arm
 ###stock
 #git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
+cd arm
+git submodule update --init --recursive
+git submodule update --recursive --remote
+cd ..
 chown -R arm:arm arm
 cd arm
 pip3 install -U setuptools

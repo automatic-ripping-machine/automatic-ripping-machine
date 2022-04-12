@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 RED='\033[1;31m'
 NC='\033[0m' # No Color
 
@@ -18,14 +20,10 @@ done
 function install_os_tools() {
     sudo apt update -y && sudo apt upgrade -y
     sudo apt install alsa -y # this will install sound drivers on ubuntu server, preventing a crash
-    sudo apt install lsscsi && sudo apt install net-tools
+    sudo apt install lsscsi net-tools -y
     sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
     sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install
     sudo apt install git -y
-
-    # Installation of drivers seems to install a full gnome desktop, and it seems to set up hibernation modes.
-    # It is optional to run the below line (Hibernation may be something you want.)
-    #sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 }
 
 function add_arm_user() {
@@ -47,26 +45,47 @@ function add_arm_user() {
     sudo usermod -aG cdrom,video arm
 }
 
-function install_dev_requirements() {
+function install_arm_requirements() {
     echo -e "${RED}Installing ARM requirments${NC}"
     sudo add-apt-repository ppa:mc3man/focal6 -y
     sudo add-apt-repository ppa:heyarje/makemkv-beta -y
-
+    sudo add-apt-repository ppa:stebbins/handbrake-releases -y
     sudo apt update -y
-    sudo apt install makemkv-bin makemkv-oss -y
-    sudo apt install handbrake-cli libavcodec-extra -y
-    sudo apt install abcde flac imagemagick glyrc cdparanoia -y
-    sudo apt install at -y
-    sudo apt install python3 python3-pip -y
-    sudo apt install libcurl4-openssl-dev libssl-dev -y # install these otherwise `pip install pycurl` will explode
-    sudo apt install libdvd-pkg -y
-    sudo apt install lsdvd -y
+
+    sudo apt install -y \
+        build-essential \
+        libcurl4-openssl-dev libssl-dev \
+        libudev-dev \
+        udev \
+        python3 \
+        python3-dev \
+        python3-pip \
+        python3-wheel \
+        python-psutil \
+        python3-pyudev \
+        python3-testresources \
+        abcde \
+        eyed3 \
+        atomicparsley \
+        cdparanoia \
+        eject \
+        ffmpeg \
+        flac \
+        glyrc \
+        default-jre-headless \
+        libavcodec-extra
+
+    sudo apt install -y \
+        handbrake-cli makemkv-bin makemkv-oss \
+        imagemagick \
+        at \
+        libdvd-pkg lsdvd
+
     sudo dpkg-reconfigure libdvd-pkg
-    sudo apt install default-jre-headless -y
 }
 
 function remove_existing_arm() {
-    # check if the armui service exists in any state
+    ##### Check if the ArmUI service exists in any state and remove it
     if sudo systemctl list-unit-files --type service | grep -F armui.service; then
         echo -e "${RED}Previous installation of ARM service found. Removing...${NC}"
         service=armui.service
@@ -77,18 +96,21 @@ function remove_existing_arm() {
 }
 
 function clone_arm() {
+    cd /opt
     if [ -d arm ]; then
         echo -e "${RED}Existing ARM installation found, removing...${NC}"
         sudo rm -rf arm
     fi
-    sudo mkdir -p arm
-    sudo chown arm:arm arm
-    sudo chmod 775 arm
-    ##my updated version
-    sudo git clone https://github.com/1337-server/automatic-ripping-machine.git arm
-    ###stock
-    #git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
-    sudo chown -R arm:arm arm
+
+    git clone --recurse-submodules https://github.com/1337-server/automatic-ripping-machine.git arm
+
+    cd arm
+    git submodule update --init --recursive
+    git submodule update --recursive --remote
+    cd ..
+
+    sudo chown -R arm:arm /opt/arm
+    sudo find /opt/arm/scripts/ -type f -iname "*.sh" -exec chmod +x {} \;
 }
 
 function create_abcde_symlink() {
@@ -138,6 +160,15 @@ function install_arm_dev_env() {
 
     # allow developer to write to the installation
     sudo chmod -R 777 /opt/arm
+}
+
+function install_python_requirements {
+    ##### Install the python tools and requirements
+    echo -e "${RED}Installing up python requirements${NC}"
+    cd /opt/arm
+    # running pip with sudo can result in permissions errors, run as arm
+    sudo -u arm pip3 install --upgrade pip wheel setuptools psutil pyudev
+    sudo -u arm pip3 install --ignore-installed --prefer-binary -r requirements.txt
 }
 
 function setup_autoplay() {
@@ -193,7 +224,7 @@ function launch_setup() {
 # start here
 install_os_tools
 add_arm_user
-install_dev_requirements
+install_arm_requirements
 remove_existing_arm
 
 if [ "$dev_env_flag" ]; then
@@ -202,6 +233,7 @@ else
     install_arm_live_env
 fi
 
+install_python_requirements
 setup_autoplay
 setup_syslog_rule
 install_armui_service
