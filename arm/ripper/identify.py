@@ -141,7 +141,7 @@ def identify_dvd(job):
     # in this block we want to strip out any chars that might be bad
     # strip all non-numeric chars and use that for year
     year = re.sub(r"[^0-9]", "", str(job.year)) if job.year else None
-    # next line is not really needed, but we dont want to leave an x somewhere
+    # next line is not really needed, but we don't want to leave an x somewhere
     dvd_title = job.label.replace("16x9", "")
     # Rip out any not alpha chars replace with &nbsp;
     dvd_title = re.sub(r"[^a-zA-Z _-]", "", dvd_title)
@@ -306,10 +306,16 @@ def try_with_year(job, response, title, year):
     :param year:
     :return:
     """
+    # If we have a response don't overwrite it
+    if response is not None:
+        return response
     if year:
-        # first try subtracting one year.  This accounts for when
+        response = metadata_selector(job, title, str(year))
+        logging.debug(f"response: {response}")
+    # If we still don't have a response try removing a year off
+    if response is None and year:
+        # This accounts for when
         # the dvd release date is the year following the movie release date
         logging.debug("Subtracting 1 year...")
         response = metadata_selector(job, title, str(int(year) - 1))
-        logging.debug(f"response: {response}")
     return response

@@ -7,6 +7,7 @@ import json
 import re
 import platform
 import subprocess
+from pathlib import Path
 
 from time import strftime, localtime, time, sleep
 
@@ -308,23 +309,28 @@ def metadata_selector(func, query="", year="", imdb_id=""):
 
     :return: json/dict object
     """
+    return_function = None
     if cfg['METADATA_PROVIDER'].lower() == "tmdb":
-        app.logger.debug("provider tmdb")
+        app.logger.debug(f"provider tmdb - function: {func}")
         if func == "search":
             return_function = tmdb_search(str(query), str(year))
         elif func == "get_details":
             if query:
+                app.logger.debug("provider tmdb - using: get_tmdb_poster")
                 return_function = get_tmdb_poster(str(query), str(year))
             elif imdb_id:
+                app.logger.debug("provider tmdb - using: tmdb_find")
                 return_function = tmdb_find(imdb_id)
+            app.logger.debug("No title or imdb provided")
 
     elif cfg['METADATA_PROVIDER'].lower() == "omdb":
-        app.logger.debug("provider omdb")
+        app.logger.debug(f"provider omdb - function: {func}")
         if func == "search":
             return_function = call_omdb_api(str(query), str(year))
         elif func == "get_details":
             return_function = call_omdb_api(title=str(query), year=str(year), imdb_id=str(imdb_id), plot="full")
-
+    else:
+        app.logger.debug("Unknown metadata selected")
     return return_function
 
 
@@ -336,17 +342,12 @@ def fix_permissions(j_id):
     as a service to fix permissions.
     """
     # TODO add new json exception - break these checks out into a function
-    try:
-        job_id = int(j_id.strip())
-    except ValueError:
-        raise ValueError("No Valid Job Id Supplied")
-    job = Job.query.get(job_id)
+    job_id_validator(j_id)
+    job = Job.query.get(j_id)
     if not job:
         raise TypeError("Job Has Been Deleted From The Database")
     job_log = os.path.join(cfg['LOGPATH'], job.logfile)
-    if not os.path.isfile(job_log):
-        raise FileNotFoundError("Logfile Has Been Deleted Or Moved")
-
+    # validate_logfile(job_log, "true", Path(job_log))
     # This is kind of hacky way to get around the fact we don't save the ts variable
     with open(job_log, 'r') as reader:
         for line in reader.readlines():
@@ -392,7 +393,7 @@ def fix_permissions(j_id):
 def job_id_validator(job_id):
     """
     Validate job id is an int
-    :return:
+    :return: bool if is valid
     """
     try:
         int(job_id.strip())

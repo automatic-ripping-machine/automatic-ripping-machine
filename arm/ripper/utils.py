@@ -115,6 +115,7 @@ def sleep_check_process(process_str, transcode_limit):
         logging.debug(f"loop_count {loop_count}")
         logging.info(f"Starting A sleep check of {process_str}")
         while loop_count >= transcode_limit:
+            # Maybe send a notification that jobs are waiting ?
             loop_count = sum(1 for proc in psutil.process_iter() if proc.name() == process_str)
             logging.debug(f"Number of Processes running is: "
                           f"{loop_count} going to waiting 12 seconds.")

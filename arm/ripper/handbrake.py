@@ -30,7 +30,6 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     logging.debug(f"\n\r{job.pretty_table()}")
 
     utils.database_updater({'status': "waiting_transcode"}, job)
-    # TODO: send a notification that jobs are waiting ?
     utils.sleep_check_process("HandBrakeCLI", int(cfg["MAX_CONCURRENT_TRANSCODES"]))
     logging.debug("Setting job status to 'transcoding'")
     utils.database_updater({'status': "transcoding"}, job)
