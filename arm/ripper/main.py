@@ -18,7 +18,6 @@ import psutil  # noqa E402
 import arm.config.config as cfg  # noqa E402
 
 from arm.ripper import logger, utils, makemkv, handbrake, identify  # noqa: E402
-from arm.ripper.getkeys import grabkeys  # noqa: E402
 from arm.models.models import Job, Config  # noqa: E402
 from arm.ui import app, db  # noqa E402
 
@@ -199,7 +198,6 @@ def main(logfile, job):
 
     log_arm_params(job)
     check_fstab()
-    grabkeys(cfg.arm_config["HASHEDKEYS"])
 
     # Entry point for dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
