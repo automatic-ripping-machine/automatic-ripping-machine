@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 RED='\033[1;31m'
 NC='\033[0m' # No Color
 
