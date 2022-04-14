@@ -118,7 +118,7 @@ def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
                     utils.move_files(hb_in_path, file, job, True)
                 else:
                     # other extras
-                    if not str(cfg.arm_config["EXTRAS_SUB"]).lower() == "none":
+                    if str(cfg.arm_config["EXTRAS_SUB"]).lower() != "none":
                         utils.move_files(hb_in_path, file, job, False)
                     else:
                         logging.info(f"Not moving extra: {file}")
@@ -267,8 +267,8 @@ def main(logfile, job):
             db.session.commit()
             try:
                 mkvoutpath = makemkv.makemkv(logfile, job)
-            except:  # noqa: E722
-                raise
+            except RuntimeError as e:
+                raise e
 
             if mkvoutpath is None:
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
