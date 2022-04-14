@@ -31,8 +31,8 @@ See: https://b3n.org/automatic-ripping-machine
 - Detects insertion of disc using udev
 - Determines disc type...
   - If video (Blu-Ray or DVD)
-    - Retrieve title from disc or [OMDb API](http://www.omdbapi.com/) to name the folder "Movie Title (Year)" so that Plex or Emby can pick it up
-    - Determine if video is Movie or TV using [OMDb API](http://www.omdbapi.com/)
+    - Retrieve title from disc or [OMDb API](https://www.omdbapi.com/) to name the folder "Movie Title (Year)" so that Plex or Emby can pick it up
+    - Determine if video is Movie or TV using [OMDb API](https://www.omdbapi.com/)
     - Rip using MakeMKV or HandBrake (can rip all features or main feature)
     - Eject disc and queue up Handbrake transcoding when done
     - Transcoding jobs are asynchronusly batched from ripping

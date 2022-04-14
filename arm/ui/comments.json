@@ -66,7 +66,7 @@
     "EMBY_DEVICEID": "",
     "EMBY_USERNAME": "# Emby authentication parameters.  These are parameters that must be set to a current user in Emby.",
     "EMBY_USERID": "# EMBY_USERID is the user ID associated with the username above.  You can find this by going to the following address on your emby server\n# <server>:<port>/Users/Public and getting the ID value for the username above.",
-    "EMBY_PASSWORD": "# This is the SHA1 encrypted password for the username above.  You can generate the SHA1 hash of your password by executing the following at\n# the command line: \n# echo -n your-password | sha1sum | awk '{print $1}'\n# or using an online generator like the one located at http://www.sha1-online.com/",
+    "EMBY_PASSWORD": "# This is the SHA1 encrypted password for the username above.  You can generate the SHA1 hash of your password by executing the following at\n# the command line: \n# echo -n your-password | sha1sum | awk '{print $1}'\n# or using an online generator like the one located at https://www.sha1-online.com/",
     "EMBY_API_KEY": "# Emby API key.  This can be found (generated) by going to Advanced/Security in the \n# Emby dashboard",
     "NOTIFY_RIP": "# Notify after Rip?",
     "NOTIFY_TRANSCODE": "# Notify after transcode?",
@@ -76,7 +76,7 @@
     "IFTTT_EVENT": "# IFTTT Event Name",
     "PO_USER_KEY": "# Pushover API User and Application Key\n# Leave User key empty to disable Pushover notifications",
     "PO_APP_KEY": "",
-    "OMDB_API_KEY": "# OMDB_API_KEY\n# omdbapi.com API Key\n# See README-OMDBAPI for background and info\n# This is the API key for omdbapi.com queries.\n# More info at http://omdbapi.com/",
+    "OMDB_API_KEY": "# OMDB_API_KEY\n# omdbapi.com API Key\n# See README-OMDBAPI for background and info\n# This is the API key for omdbapi.com queries.\n# More info at https://omdbapi.com/",
     "TMDB_API_KEY": "# TMDB_API_KEY\n# https://www.themoviedb.org/ API Key\n# See README-OMDBAPI for background and info\n# This is the API key for https://www.themoviedb.org/ queries.\n# More info at https://www.themoviedb.org/documentation/api",
     "JSON_URL": "# JSON_URL\n# Url to send Notifications to in JSON format",
     "APPRISE": "# File location of your apprise.yaml file"

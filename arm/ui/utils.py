@@ -173,16 +173,16 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
     omdb_api_key = cfg.arm_config['OMDB_API_KEY']
 
     if imdb_id:
-        strurl = "http://www.omdbapi.com/?i={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key, imdb_id, plot)
+        strurl = "https://www.omdbapi.com/?i={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key, imdb_id, plot)
     elif title:
         # try:
         title = urllib.parse.quote(title)
         if year and year is not None:
             year = urllib.parse.quote(year)
-            strurl = "http://www.omdbapi.com/?s={1}&y={2}&plot={3}&r=json&apikey={0}".format(omdb_api_key,
+            strurl = "https://www.omdbapi.com/?s={1}&y={2}&plot={3}&r=json&apikey={0}".format(omdb_api_key,
                                                                                              title, year, plot)
         else:
-            strurl = "http://www.omdbapi.com/?s={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key,
+            strurl = "https://www.omdbapi.com/?s={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key,
                                                                                        title, plot)
     else:
         app.logger.debug("no params")
@@ -386,11 +386,11 @@ def get_omdb_poster(title=None, year=None, imdb_id=None, plot="short"):
     omdb_api_key = cfg.arm_config['OMDB_API_KEY']
     title_info = {}
     if imdb_id:
-        strurl = f"http://www.omdbapi.com/?i={imdb_id}&plot={plot}&r=json&apikey={omdb_api_key}"
+        strurl = f"https://www.omdbapi.com/?i={imdb_id}&plot={plot}&r=json&apikey={omdb_api_key}"
         strurl2 = ""
     elif title:
-        strurl = f"http://www.omdbapi.com/?s={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
-        strurl2 = f"http://www.omdbapi.com/?t={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
+        strurl = f"https://www.omdbapi.com/?s={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
+        strurl2 = f"https://www.omdbapi.com/?t={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
     else:
         app.logger.debug("no params")
         return None, None
@@ -508,7 +508,7 @@ def get_tmdb_poster(search_query=None, year=None):
     # Valid poster sizes
     # "w92", "w154", "w185", "w342", "w500", "w780", "original"
     poster_size = "original"
-    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
+    poster_base = f"https://image.tmdb.org/t/p/{poster_size}"
     response = requests.get(url)
     p = json.loads(response.text)
     # if status_code is in p we know there was an error
@@ -581,7 +581,7 @@ def tmdb_search(search_query=None, year=None):
     # Valid poster sizes
     # "w92", "w154", "w185", "w342", "w500", "w780", "original"
     poster_size = "original"
-    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
+    poster_base = f"https://image.tmdb.org/t/p/{poster_size}"
     response = requests.get(url)
     p = json.loads(response.text)
     if 'status_code' in p:
@@ -672,7 +672,7 @@ def tmdb_find(imdb_id):
     tmdb_api_key = cfg.arm_config['TMDB_API_KEY']
     url = f"https://api.themoviedb.org/3/find/{imdb_id}?api_key={tmdb_api_key}&external_source=imdb_id"
     poster_size = "original"
-    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
+    poster_base = f"https://image.tmdb.org/t/p/{poster_size}"
     # Making a get request
     response = requests.get(url)
     p = json.loads(response.text)

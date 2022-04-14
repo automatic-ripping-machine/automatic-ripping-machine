@@ -641,7 +641,7 @@ def updatetitle():
     used to save the details from the search
     """
     # updatetitle?title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
-    #  poster=http://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
+    #  poster=https://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
     new_title = request.args.get('title')
     new_year = request.args.get('year')
     video_type = request.args.get('type')

@@ -76,9 +76,9 @@ apt install -qqy python3 python3-pip
 apt install -qqy libcurl4-openssl-dev libssl-dev
 apt install -qqy libdvd-pkg
 apt install -qqy lsdvd
-wget -q http://download.videolan.org/pub/debian/stable/libdvdcss2_1.2.13-0_amd64.deb
-wget -q http://download.videolan.org/pub/debian/stable/libdvdcss_1.2.13-0.debian.tar.gz
-wget -q http://ftp.us.debian.org/debian/pool/contrib/libd/libdvd-pkg/libdvd-pkg_1.4.0-1-2_all.deb
+wget -q https://download.videolan.org/pub/debian/stable/libdvdcss2_1.2.13-0_amd64.deb
+wget -q https://download.videolan.org/pub/debian/stable/libdvdcss_1.2.13-0.debian.tar.gz
+wget -q https://ftp.us.debian.org/debian/pool/contrib/libd/libdvd-pkg/libdvd-pkg_1.4.0-1-2_all.deb
 sudo dpkg -i libdvdcss2_1.2.13-0_amd64.deb 2> /dev/null
 sudo dpkg -i libdvd-pkg_1.4.0-1-2_all.deb 2> /dev/null
 apt -f install -qqy

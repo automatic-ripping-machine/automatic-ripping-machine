@@ -126,7 +126,7 @@ def identify_dvd(job):
         dvd_title = fallback_title
         logging.info(f"DVD CRC64 hash is: {crc64}")
         job.crc_id = str(crc64)
-        urlstring = f"http://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
+        urlstring = f"https://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
         logging.debug(urlstring)
         dvd_info_xml = urllib.request.urlopen(urlstring).read()
         x = json.loads(dvd_info_xml)

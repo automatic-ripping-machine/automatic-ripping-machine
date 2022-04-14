@@ -31,7 +31,7 @@ the requirement for an API key.
 
 HOW TO GET YOUR OWN OMDBAPI KEY:
 
-Start by visiting http://www.omdbapi.com/ As of this writing (2017-06-08), you will find a
+Start by visiting https://www.omdbapi.com/ As of this writing (2017-06-08), you will find a
 link labeled "Become a Patron." That link will take you to the Patreon site, where you can sign up.
 Select the $1.00/month level and complete the process (or donate more if you feel so compelled -- it
 seems to be a very useful project.) Once you have completed your donation, go back to the omdbapi
