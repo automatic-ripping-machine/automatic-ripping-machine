@@ -21,7 +21,10 @@ from pathlib import Path, PurePath
 from flask.logging import default_handler  # noqa: F401
 from flask_login import LoginManager, login_required, current_user, login_user, UserMixin, logout_user  # noqa: F401
 
-ERROR_HTML = "error.html"
+ROUTE_ERROR = "error.html"
+ROUTE_INDEX = '/index'
+ROUTE_SETUP_STAGE2 = '/setup-stage2'
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -42,7 +45,7 @@ def unauthorized():
 
 @app.route('/error')
 def was_error():
-    return render_template(ERROR_HTML, title='error')
+    return render_template(ROUTE_ERROR, title='error')
 
 
 @app.route("/logout")
@@ -66,7 +69,7 @@ def setup():
     if perm_file.exists():
         flash(str(perm_file) + " exists, setup cannot continue. To re-install please delete this file.", "danger")
         app.logger.debug("perm exist GTFO")
-        return redirect('/setup-stage2')  # We push to setup-stage2 and let it decide where the user needs to go
+        return redirect(ROUTE_SETUP_STAGE2)  # We push to setup-stage2 and let it decide where the user needs to go
     dir0 = Path(PurePath(cfg.arm_config['DBFILE']).parent)
     dir1 = Path(cfg.arm_config['RAW_PATH'])
     dir2 = Path(cfg.arm_config['TRANSCODE_PATH'])
@@ -94,7 +97,7 @@ def setup():
             f = open(perm_file, "w")
             f.write("boop!")
             f.close()
-            return redirect('/setup-stage2')
+            return redirect(ROUTE_SETUP_STAGE2)
         else:
             flash("Couldn't setup database", "danger")
             app.logger.debug("Couldn't setup database")
@@ -102,7 +105,7 @@ def setup():
     except Exception as e:
         flash(str(e))
         app.logger.debug("Setup - " + str(e))
-        return redirect('/index')
+        return redirect(ROUTE_INDEX)
 
 
 @app.route('/setup-stage2', methods=['GET', 'POST'])
@@ -135,7 +138,7 @@ def setup_stage2():
             db.session.commit()
         except Exception as e:
             flash(str(e), "danger")
-            return redirect('/setup-stage2')
+            return redirect(ROUTE_SETUP_STAGE2)
         else:
             return redirect(url_for('login'))
     return render_template('setup.html', form=form)
@@ -179,15 +182,15 @@ def login():
         x = User.query.all()
         # If we dont raise an exception but the usr table is empty
         if not x:
-            return redirect('/setup-stage2')
+            return redirect(ROUTE_SETUP_STAGE2)
     except Exception:
         flash("No admin account found")
         app.logger.debug("No admin account found")
-        return redirect('/setup-stage2')
+        return redirect(ROUTE_SETUP_STAGE2)
 
     # if user is logged in
     if current_user.is_authenticated:
-        return redirect('/index')
+        return redirect(ROUTE_INDEX)
 
     form = SetupForm()
     if form.validate_on_submit():
@@ -208,7 +211,7 @@ def login():
         if loginhashed == password:
             login_user(user)
             app.logger.debug("user was logged in - redirecting")
-            return redirect('/index')
+            return redirect(ROUTE_INDEX)
         else:
             flash('Password is wrong', 'danger')
     return render_template('login.html', form=form)
@@ -402,7 +405,7 @@ def listlogs(path):
 
     # Deal with bad data
     if not os.path.exists(fullpath):
-        return render_template(ERROR_HTML)
+        return render_template(ROUTE_ERROR)
 
     # Get all files in directory
     files = utils.get_info(fullpath)
@@ -425,7 +428,7 @@ def logreader():
     # We should use the job id and not get the raw logfile from the user
     logfile = request.args.get('logfile')
     if logfile is None or "../" in logfile or mode is None:
-        return render_template(ERROR_HTML)
+        return render_template(ROUTE_ERROR)
     fullpath = os.path.join(logpath, logfile)
 
     my_file = Path(fullpath)
@@ -465,7 +468,7 @@ def logreader():
         return send_file(fullpath, as_attachment=True)
     else:
         # do nothing/ or error out
-        return render_template(ERROR_HTML)
+        return render_template(ROUTE_ERROR)
 
     return app.response_class(generate(), mimetype='text/plain')
 
