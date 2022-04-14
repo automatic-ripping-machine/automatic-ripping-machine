@@ -2,7 +2,6 @@
 # Identification of dvd/bluray
 
 import os
-import sys  # noqa # pylint: disable=unused-import
 import logging
 import urllib
 import re
@@ -16,12 +15,10 @@ import arm.config.config as cfg
 from arm.ripper import utils
 from arm.ui import db
 
-# flake8: noqa: W605
-# from arm.ui.utils import call_omdb_api, tmdb_search
 import arm.ui.utils as u
 
 
-def identify(job, logfile):
+def identify(job):
     """Identify disc attributes"""
 
     logging.debug(f"Identify Entry point --- job ---- \n\r{job.pretty_table()}")
@@ -146,7 +143,6 @@ def identify_dvd(job):
                 'video_type_auto': x['results']['0']['video_type'],
             }
             utils.database_updater(args, job)
-            # return True
     except Exception as e:
         logging.error("Pydvdid failed with the error: " + str(e))
         dvd_title = fallback_title = str(job.label)
