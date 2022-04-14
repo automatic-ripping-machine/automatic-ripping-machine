@@ -31,8 +31,3 @@ app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
 db = SQLAlchemy(app)
 
 migrate = Migrate(app, db)
-
-# import arm.ui.routes  # noqa: E402,F401
-# import models.models  # noqa: E402
-# import ui.config  # noqa: E402
-# import ui.utils  # noqa: E402,F401
