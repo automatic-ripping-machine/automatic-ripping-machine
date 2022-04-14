@@ -13,14 +13,15 @@ import arm.config.config as cfg
 import arm.ui.utils as utils
 
 from time import sleep
-from flask import Flask, render_template, request, send_file, flash, \
-    redirect, url_for  # noqa: F401
+from flask import Flask, render_template, request, send_file, flash, redirect, url_for  # noqa: F401
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, User, AlembicVersion, UISettings  # noqa: F401
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, CustomTitleForm, SettingsForm, UiSettingsForm, SetupForm
 from pathlib import Path, PurePath
 from flask.logging import default_handler  # noqa: F401
 from flask_login import LoginManager, login_required, current_user, login_user, UserMixin, logout_user  # noqa: F401
+
+ERROR_HTML = "error.html"
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -41,7 +42,7 @@ def unauthorized():
 
 @app.route('/error')
 def was_error():
-    return render_template('error.html', title='error')
+    return render_template(ERROR_HTML, title='error')
 
 
 @app.route("/logout")
@@ -401,7 +402,7 @@ def listlogs(path):
 
     # Deal with bad data
     if not os.path.exists(fullpath):
-        return render_template('error.html')
+        return render_template(ERROR_HTML)
 
     # Get all files in directory
     files = utils.get_info(fullpath)
@@ -424,7 +425,7 @@ def logreader():
     # We should use the job id and not get the raw logfile from the user
     logfile = request.args.get('logfile')
     if logfile is None or "../" in logfile or mode is None:
-        return render_template('error.html')
+        return render_template(ERROR_HTML)
     fullpath = os.path.join(logpath, logfile)
 
     my_file = Path(fullpath)
@@ -464,7 +465,7 @@ def logreader():
         return send_file(fullpath, as_attachment=True)
     else:
         # do nothing/ or error out
-        return render_template('error.html')
+        return render_template(ERROR_HTML)
 
     return app.response_class(generate(), mimetype='text/plain')
 
