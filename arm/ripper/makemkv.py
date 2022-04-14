@@ -214,13 +214,13 @@ def get_track_info(mdisc, job):
                 titles = int(line_split[1].strip())
                 logging.info(f"Found {titles} titles")
                 utils.database_updater({'no_of_titles': titles}, job)
+
             if msg_type == "TINFO":
                 if track != line_track:
                     if line_track == int(0):
-                        pass
+                        track = line_track
                     else:
                         utils.put_track(job, track, seconds, aspect, fps, False, "makemkv", filename)
-                    track = line_track
 
                 if msg[1] == "27":
                     filename = msg[3].replace('"', '').strip()
