@@ -8,7 +8,6 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from flask.logging import default_handler  # noqa: F401
 from getpass import getpass  # noqa: F401
-# import omdb
 
 from flask_login import LoginManager
 
@@ -24,6 +23,7 @@ login_manager.init_app(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 # We should really gen a key for each system
 app.config['SECRET_KEY'] = "Big secret key"
 app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
