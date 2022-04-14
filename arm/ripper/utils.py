@@ -765,6 +765,7 @@ def apprise_notify(apprise_cfg, title, body):
             )
         except Exception:  # noqa: E722
             logging.error("Failed sending growl apprise notification.  Continuing processing...")
+
     # Kodi
     # kodi://{hostname}:{port} || kodi: // {userid}: {password} @ {hostname}:{port}
     if cfg['KODI_HOST'] != "":
@@ -772,8 +773,9 @@ def apprise_notify(apprise_cfg, title, body):
             # Create an Apprise instance
             apobj = apprise.Apprise()
             # check if we have login details, if so use them
+            kodi_insecure_url_prefix = 'kodi://'
             if cfg['KODI_USER'] != "":
-                apobj.add('kodi://' + str(cfg['KODI_USER']) + ":" + str(cfg['KODI_PASS']) + "@" + str(
+                apobj.add(kodi_insecure_url_prefix + str(cfg['KODI_USER']) + ":" + str(cfg['KODI_PASS']) + "@" + str(
                     cfg['KODI_HOST']) + ":" + str(cfg['KODI_PORT']))
             else:
                 if cfg['KODI_PORT'] != "":
@@ -781,9 +783,9 @@ def apprise_notify(apprise_cfg, title, body):
                     if cfg['KODI_PORT'] == "443":
                         apobj.add('kodis://' + str(cfg['KODI_HOST']) + ":" + str(cfg['KODI_PORT']))
                     else:
-                        apobj.add('kodi://' + str(cfg['KODI_HOST']) + ":" + str(cfg['KODI_PORT']))
+                        apobj.add(kodi_insecure_url_prefix + str(cfg['KODI_HOST']) + ":" + str(cfg['KODI_PORT']))
                 else:
-                    apobj.add('kodi://' + str(cfg['KODI_HOST']))
+                    apobj.add(kodi_insecure_url_prefix + str(cfg['KODI_HOST']))
             # Then notify these services any time you desire. The below would
             # notify all of the services loaded into our Apprise object.
             apobj.notify(
