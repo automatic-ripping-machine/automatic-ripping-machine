@@ -1,0 +1,3 @@
+[submodule "arm-dependencies"]
+	path = arm-dependencies
+	url = https://github.com/1337-server/arm-dependencies
