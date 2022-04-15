@@ -7,7 +7,7 @@ import musicbrainzngs as mb
 from discid import read, Disc
 
 from arm.config.config import cfg
-import arm.ripper.utils as u
+from arm.ripper import utils as u
 import werkzeug
 
 werkzeug.cached_property = werkzeug.utils.cached_property

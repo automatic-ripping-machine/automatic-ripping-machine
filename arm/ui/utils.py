@@ -17,7 +17,7 @@ import yaml
 from flask.logging import default_handler  # noqa: F401
 from arm.config.config import cfg
 from arm.ui import app, db
-from arm.models.models import Job, User, AlembicVersion, UISettings
+from arm.models import models
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
 
 
@@ -231,36 +231,41 @@ def setup_database():
     """
     Try to get the db.User if not we nuke everything
     """
+    # This checks for a user table
     try:
-        User.query.all()
+        admins = models.User.query.all()
+        app.logger.debug(f"Number of admins: {len(admins)}")
+        if len(admins) > 0:
+            return True
+    except Exception:
+        app.logger.debug(f"Couldn't find a user table")
+    else:
+        app.logger.debug(f"Found User table but didnt find any admins... triggering db wipe")
+    #  Wipe everything
+    try:
+        db.drop_all()
+    except Exception:
+        app.logger.debug("Couldn't drop all")
+    try:
+        #  Recreate everything
+        db.metadata.create_all(db.engine)
+        db.create_all()
+        db.session.commit()
+        #  push the database version arm is looking for
+        version = models.AlembicVersion('c54d68996895')
+        ui_config = models.UISettings(1, 1, "spacelab", "en", 10, 200)
+        # Create default user to save problems with ui and ripper having diff setups
+        hashed = bcrypt.gensalt(12)
+        default_user = models.User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
+                                   hashed=hashed)
+        db.session.add(ui_config)
+        db.session.add(version)
+        db.session.add(default_user)
+        db.session.commit()
         return True
     except Exception:
-        #  We only need this on first run
-        #  Wipe everything
-        try:
-            db.drop_all()
-        except Exception:
-            app.logger.debug("Couldn't drop all")
-        try:
-            #  Recreate everything
-            db.metadata.create_all(db.engine)
-            db.create_all()
-            db.session.commit()
-            #  push the database version arm is looking for
-            version = AlembicVersion('c54d68996895')
-            ui_config = UISettings(1, 1, "spacelab", "en", 10, 200)
-            # Create default user to save problems with ui and ripper having diff setups
-            hashed = bcrypt.gensalt(12)
-            default_user = User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
-                                hashed=hashed)
-            db.session.add(ui_config)
-            db.session.add(version)
-            db.session.add(default_user)
-            db.session.commit()
-            return True
-        except Exception:
-            app.logger.debug("Couldn't create all")
-            return False
+        app.logger.debug("Couldn't create all")
+    return False
 
 
 def job_dupe_check(crc_id):
@@ -276,7 +281,7 @@ def job_dupe_check(crc_id):
     """
     if crc_id is None:
         return False, None
-    jobs = Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
+    jobs = models.Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
     # app.logger.debug("search - posts=" + str(jobs))
     return_results = {}
     i = 0
@@ -343,7 +348,7 @@ def fix_permissions(j_id):
     """
     # TODO add new json exception - break these checks out into a function
     job_id_validator(j_id)
-    job = Job.query.get(j_id)
+    job = models.Job.query.get(j_id)
     if not job:
         raise TypeError("Job Has Been Deleted From The Database")
     job_log = os.path.join(cfg['LOGPATH'], job.logfile)
@@ -373,12 +378,12 @@ def fix_permissions(j_id):
 
         for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
             for cur_dir in l_directories:
-                app.logger.debug("Setting path: " + cur_dir + " to permissions value: " + str(job.config.CHMOD_VALUE))
+                app.logger.debug(f"Setting path: {cur_dir} to permissions value: {job.config.CHMOD_VALUE}")
                 os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
                 if job.config.SET_MEDIA_OWNER:
                     os.chown(os.path.join(dirpath, cur_dir), uid, gid)
             for cur_file in l_files:
-                app.logger.debug("Setting file: " + cur_file + " to permissions value: " + str(job.config.CHMOD_VALUE))
+                app.logger.debug(f"Setting file: {cur_file} to permissions value: {job.config.CHMOD_VALUE}")
                 os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
                 if job.config.SET_MEDIA_OWNER:
                     os.chown(os.path.join(dirpath, cur_file), uid, gid)
@@ -390,23 +395,12 @@ def fix_permissions(j_id):
     return return_json
 
 
-def job_id_validator(job_id):
-    """
-    Validate job id is an int
-    :return: bool if is valid
-    """
-    try:
-        int(job_id.strip())
-        valid = True
-    except AttributeError:
-        valid = False
-    return valid
-
-
 def trigger_restart():
     """
     We update the file modified time to get flask to restart
     This only works if ARMui is running as a service & in debug mode
+
+    notes: This has been removed, breaks and causes errors when run as 'arm' user
     """
     import datetime
 
@@ -489,3 +483,16 @@ def validate_logfile(logfile, mode, my_file):
     if not my_file.is_file():
         # logfile doesnt exist throw out error template
         raise FileNotFoundError("File not found")
+
+
+def job_id_validator(job_id):
+    """
+    Validate job id is an int
+    :return: bool if is valid
+    """
+    try:
+        int(job_id.strip())
+        valid = True
+    except AttributeError:
+        valid = False
+    return valid

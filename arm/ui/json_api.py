@@ -257,7 +257,7 @@ def generate_log(logpath, job_id):
     """
     Generate log for json api and return it in a valid form\n
     :param str logpath:
-    :param int job_id:
+    :param str job_id:
     :return:
     """
     try:
@@ -296,8 +296,8 @@ def generate_log(logpath, job_id):
 
 def abandon_job(job_id):
     """
-    json api abondon job\n
-    :param int job_id: the job id
+    json api abandon job\n
+    :param str job_id: the job id
     :return: json/dict
     """
     json_return = {

@@ -21,7 +21,7 @@ from netifaces import interfaces, ifaddresses, AF_INET
 from arm.config.config import cfg
 from arm.ripper import apprise_bulk
 from arm.ui import app, db
-import arm.models.models as m
+from arm.models import models
 
 NOTIFY_TITLE = "ARM notification"
 
@@ -307,9 +307,9 @@ def rip_music(job, logfile):
         logging.info("Disc identified as music")
         # If user has set a cfg file with ARM use it
         if os.path.isfile(abcfile):
-            cmd = f'abcde -d "{job.devpath}" -c {abcfile} >> "{logfile}" 2>&1'
+            cmd = f'abcde -d "{job.devpath}" -c {abcfile} >> "{os.path.join(cfg["LOGPATH"], logfile)}" 2>&1'
         else:
-            cmd = f'abcde -d "{job.devpath}" >> "{logfile}" 2>&1'
+            cmd = f'abcde -d "{job.devpath}" >> "{os.path.join(cfg["LOGPATH"], logfile)}" 2>&1'
 
         logging.debug(f"Sending command: {cmd}")
 
@@ -351,7 +351,8 @@ def rip_data(job):
     make_dir(final_path)
     logging.info(f"Ripping data disc to: {incomplete_filename}")
     # Added from pull 366
-    cmd = f'dd if="{job.devpath}" of="{incomplete_filename}" {cfg["DATA_RIP_PARAMETERS"]} 2>> {job.logfile}'
+    cmd = f'dd if="{job.devpath}" of="{incomplete_filename}" {cfg["DATA_RIP_PARAMETERS"]} 2>> ' \
+          f'{os.path.join(cfg["LOGPATH"], job.logfile)}'
     logging.debug(f"Sending command: {cmd}")
     try:
         subprocess.check_output(cmd, shell=True).decode("utf-8")
@@ -486,8 +487,7 @@ def try_add_default_user():
         username = "admin"
         pass1 = "password".encode('utf-8')
         hashed = bcrypt.gensalt(12)
-        user = m.User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed)
-        database_adder(user)
+        database_adder(models.User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed))
         perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
         write_permission_file = open(perm_file, "w")
         write_permission_file.write("boop!")
@@ -515,7 +515,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         f"Track #{int(t_no):02} Length: {seconds: >4} fps: {float(fps):2.3f} "
         f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source}")
 
-    job_track = m.Track(
+    job_track = models.Track(
         job_id=job.job_id,
         track_number=t_no,
         length=seconds,
@@ -610,7 +610,7 @@ def clean_old_jobs():
     Check for running jobs, update failed jobs that are no longer running
     :return: None
     """
-    active_jobs = db.session.query(m.Job).filter(m.Job.status.notin_(['fail', 'success'])).all()
+    active_jobs = db.session.query(models.Job).filter(models.Job.status.notin_(['fail', 'success'])).all()
     # Clean up abandoned jobs
     for job in active_jobs:
         if psutil.pid_exists(job.pid):
@@ -634,7 +634,7 @@ def job_dupe_check(job):
     if job.crc_id is None:
         return False, None
     logging.debug(f"trying to find jobs with crc64={job.crc_id}")
-    previous_rips = m.Job.query.filter_by(crc_id=job.crc_id, status="success", hasnicetitle=True)
+    previous_rips = models.Job.query.filter_by(crc_id=job.crc_id, status="success", hasnicetitle=True)
     results = {}
     i = 0
     for j in previous_rips:
@@ -706,8 +706,8 @@ def duplicate_run_check(dev_path):
 
     :return: None
     """
-    running_jobs = db.session.query(m.Job).filter(
-        m.Job.status.notin_(['fail', 'success']), m.Job.devpath == dev_path).all()
+    running_jobs = db.session.query(models.Job).filter(
+        models.Job.status.notin_(['fail', 'success']), models.Job.devpath == dev_path).all()
     if len(running_jobs) >= 1:
         for j in running_jobs:
             print(j.start_time - datetime.datetime.now())

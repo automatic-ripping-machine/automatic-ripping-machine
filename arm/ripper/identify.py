@@ -17,7 +17,7 @@ from arm.ui import db
 from arm.config.config import cfg
 
 # flake8: noqa: W605
-import arm.ui.utils as ui_utils
+from arm.ui import utils as ui_utils
 
 
 def identify(job):
@@ -131,6 +131,7 @@ def identify_dvd(job):
                 'imdb_id_auto': arm_api_json['results']['0']['imdb_id'],
                 'video_type': arm_api_json['results']['0']['video_type'],
                 'video_type_auto': arm_api_json['results']['0']['video_type'],
+                'hasnicetitle': True
             }
             utils.database_updater(args, job)
     except Exception as error:

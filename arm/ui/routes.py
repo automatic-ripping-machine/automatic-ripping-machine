@@ -19,7 +19,7 @@ from flask_login import LoginManager, login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
-from arm.models.models import Job, Config, Track, User, AlembicVersion, UISettings  # noqa: F401
+from arm.models import models as models
 from arm.config.config import cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, SettingsForm, UiSettingsForm, SetupForm
 from arm.ui.metadata import get_omdb_poster
@@ -36,7 +36,7 @@ def load_user(user_id):
     :return:
     """
     try:
-        return User.query.get(int(user_id))
+        return models.User.query.get(int(user_id))
     except Exception:
         app.logger.debug("Error getting user")
         return None
@@ -135,7 +135,7 @@ def update_password():
     if form.validate_on_submit():
         username = str(request.form['username']).strip()
         new_password = str(request.form['newpassword']).strip().encode('utf-8')
-        user = User.query.filter_by(email=username).first()
+        user = models.User.query.filter_by(email=username).first()
         password = user.password
         hashed = user.hash
         # our new one
@@ -164,9 +164,10 @@ def login():
     # TODO fix this so there is only 1 return
     # if there is no user in the database
     try:
-        user_list = User.query.all()
-        # If we dont raise an exception but the usr table is empty
+        user_list = models.User.query.all()
+        # If we don't raise an exception but the usr table is empty
         if not user_list:
+            app.logger.debug("No admin found")
             return redirect(constants.SETUP_STAGE_2)
     except Exception:
         flash(constants.NO_ADMIN_ACCOUNT, "danger")
@@ -181,7 +182,7 @@ def login():
     if form.validate_on_submit():
         email = request.form['username']
         # TODO: we know there is only ever 1 admin account, so we can pull it and check against it locally
-        user = User.query.filter_by(email=str(email).strip()).first()
+        user = models.User.query.filter_by(email=str(email).strip()).first()
         if user is None:
             flash('Invalid username', 'danger')
             return render_template('login.html', form=form)
@@ -206,15 +207,14 @@ def database():
     """
     The main database page
 
-    Currently outputs every job from the database
-     this can cause serious slow downs with + 3/4000 entries
-    Pagination is needed!
+    Outputs every job from the database
+     this can cause serious slow-downs with + 3/4000 entries
     """
 
     page = request.args.get('page', 1, type=int)
     # Check for database file
     if os.path.isfile(cfg['DBFILE']):
-        jobs = Job.query.order_by(db.desc(Job.job_id)).paginate(page, 100, False)
+        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page, 100, False)
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
@@ -272,7 +272,6 @@ def settings():
     """
     The settings page - allows the user to update the arm.yaml without needing to open a text editor
     Also triggers a restart of flask for debugging.
-    This wont work well if flask isnt run in debug mode
 
     This needs rewritten to be static
     """
@@ -329,7 +328,6 @@ def settings():
         with open(arm_cfg_file, "w") as settings_file:
             settings_file.write(arm_cfg)
             settings_file.close()
-        ui_utils.trigger_restart()
         flash("Setting saved successfully!", "success")
         return redirect(url_for('settings'))
     # If we get to here there was no post data
@@ -345,7 +343,7 @@ def ui_settings():
     This function needs to trigger a restart of flask for debugging to update the values
 
     """
-    armui_cfg = UISettings.query.filter_by().first()
+    armui_cfg = models.UISettings.query.filter_by().first()
     form = UiSettingsForm()
     if form.validate_on_submit():
         # json.loads("false".lower())
@@ -361,7 +359,6 @@ def ui_settings():
         }
         ui_utils.database_updater(database_arguments, armui_cfg)
         db.session.refresh(armui_cfg)
-        ui_utils.trigger_restart()
         flash("Settings saved successfully!", "success")
 
     return render_template('ui_settings.html', form=form, settings=armui_cfg)
@@ -437,7 +434,7 @@ def rips():
     """
     This no longer works properly because of the 'transcoding' status
     """
-    return render_template('activerips.html', jobs=Job.query.filter_by(status="active"))
+    return render_template('activerips.html', jobs=models.Job.query.filter_by(status="active"))
 
 
 @app.route('/history')
@@ -451,7 +448,7 @@ def history():
     if os.path.isfile(cfg['DBFILE']):
         # after roughly 175 entries firefox readermode will break
         # jobs = Job.query.filter_by().limit(175).all()
-        jobs = Job.query.order_by(db.desc(Job.job_id)).paginate(page, 100, False)
+        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page, 100, False)
     else:
         app.logger.error('ERROR: /history database file doesnt exist')
         jobs = {}
@@ -471,7 +468,7 @@ def jobdetail():
     displays them in a clear and easy to ready format
     """
     job_id = request.args.get('job_id')
-    job = Job.query.get(job_id)
+    job = models.Job.query.get(job_id)
     tracks = job.tracks.all()
     search_results = ui_utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
     if search_results and 'Error' not in search_results:
@@ -487,7 +484,7 @@ def submitrip():
     The initial search page
     """
     job_id = request.args.get('job_id')
-    job = Job.query.get(job_id)
+    job = models.Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     if form.validate_on_submit():
         form.populate_obj(job)
@@ -504,7 +501,7 @@ def changeparams():
     """
     config_id = request.args.get('config_id')
     # app.logger.debug(config.pretty_table())
-    job = Job.query.get(config_id)
+    job = models.Job.query.get(config_id)
     config = job.config
     form = ChangeParamsForm(obj=config)
     if form.validate_on_submit():
@@ -538,7 +535,7 @@ def customtitle():
     """
     job_id = request.args.get('job_id')
     ui_utils.job_id_validator(job_id)
-    job = Job.query.get(job_id)
+    job = models.Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     if form.validate_on_submit():
         form.populate_obj(job)
@@ -565,7 +562,7 @@ def list_titles():
         app.logger.debug("list_titles - no job supplied")
         flash("No job supplied", "danger")
         raise ValidationError
-    job = Job.query.get(job_id)
+    job = models.Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     search_results = ui_utils.metadata_selector("search", title, year)
     if search_results is None or 'Error' in search_results or (
@@ -620,7 +617,7 @@ def updatetitle():
     poster_url = request.args.get('poster')
     job_id = request.args.get('job_id')
     app.logger.debug("New imdbID=" + str(imdb_id))
-    job = Job.query.get(job_id)
+    job = models.Job.query.get(job_id)
     job.title = ui_utils.clean_for_filename(new_title)
     job.title_manual = ui_utils.clean_for_filename(new_title)
     job.year = new_year
@@ -693,7 +690,7 @@ def home():
 
     if os.path.isfile(cfg['DBFILE']):
         try:
-            jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+            jobs = db.session.query(models.Job).filter(models.Job.status.notin_(['fail', 'success'])).all()
         except Exception:
             # db isn't setup
             return redirect(url_for('setup'))
@@ -770,7 +767,7 @@ def import_movies():
                 'no_of_titles': len(movie_files)
             }
 
-            new_movie = Job("/dev/sr0")
+            new_movie = models.Job("/dev/sr0")
             new_movie.title = movies[i]['title']
             new_movie.year = movies[i]['year']
             new_movie.crc_id = hash_object.hexdigest()
@@ -820,7 +817,7 @@ def import_movies():
                         'hasnicetitle': True,
                         'no_of_titles': len(sub_movie_files)
                     }
-                    new_movie = Job("/dev/sr0")
+                    new_movie = models.Job("/dev/sr0")
                     new_movie.title = movies[i]['title']
                     new_movie.year = movies[i]['year']
                     new_movie.crc_id = hash_object.hexdigest()
@@ -857,7 +854,7 @@ def send_movies():
     if request.args.get('s') is None:
         return render_template('send_movies_form.html')
 
-    posts = db.session.query(Job).filter_by(hasnicetitle=True, disctype="dvd").all()
+    posts = db.session.query(models.Job).filter_by(hasnicetitle=True, disctype="dvd").all()
     app.logger.debug("search - posts=" + str(posts))
     r = {'failed': {}, 'sent': {}}
     i = 0
@@ -901,8 +898,7 @@ def handle_exception(sent_error):
     if isinstance(sent_error, HTTPException):
         return sent_error
 
-    app.logger.debug(sent_error)
-    app.logger.debug(f"\n\n{request.path}\n\n{request.args.get('json')}")
+    app.logger.debug(f"Error: {sent_error}")
     if request.path.startswith('/json') or request.args.get('json'):
         app.logger.debug(f"{request.path} - {sent_error}")
         return_json = {
