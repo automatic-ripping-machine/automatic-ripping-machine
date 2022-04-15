@@ -6,7 +6,7 @@ RED='\033[1;31m'
 NC='\033[0m' # No Color
 
 dev_env_flag=
-while getopts 'd' OPTION
+while getopts 'dp:' OPTION
 do
     case $OPTION in
     d)    dev_env_flag=1
