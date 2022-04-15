@@ -238,9 +238,9 @@ def setup_database():
         if len(admins) > 0:
             return True
     except Exception:
-        app.logger.debug(f"Couldn't find a user table")
+        app.logger.debug("Couldn't find a user table")
     else:
-        app.logger.debug(f"Found User table but didnt find any admins... triggering db wipe")
+        app.logger.debug("Found User table but didnt find any admins... triggering db wipe")
     #  Wipe everything
     try:
         db.drop_all()
