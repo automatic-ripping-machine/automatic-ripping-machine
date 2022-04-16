@@ -9,6 +9,7 @@ function usage() {
 }
 
 RED='\033[1;31m'
+GREEN='\033[1;32m'
 NC='\033[0m' # No Color
 
 dev_env_flag=
@@ -235,11 +236,12 @@ function install_armui_service() {
 
 function launch_setup() {
     echo -e "${RED}Launching ArmUI first-time setup${NC}"
+    sleep 5  # Waits 5 seconds, This gives time for service to start
     site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:${PORT}")
-    if [ -z "$site_addr" ]; then
+    if [[ -z "$site_addr" ]]; then
         echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}"
     else
-        echo -e "${RED}ArmUI site is running on http://$site_addr. Launching setup...${NC}"
+        echo -e "${GREEN}ArmUI site is running on http://$site_addr\n${RED}Launching setup...${NC}"
         sudo -u arm nohup xdg-open "http://$site_addr/setup" > /dev/null 2>&1 &
     fi
 }
