@@ -1,18 +1,35 @@
 #!/bin/bash
 
-set -euo pipefail
+set -eo pipefail
+
+function usage() {
+    echo -e "\nUsage: ubuntu-20.04-install.sh [OPTIONS]"
+    echo -e "\t-d\t\tInstall the ARM Development Environment"
+    echo -e "\t-p [PORT]\tOverwrite the default WEBSERVER_PORT"
+}
 
 RED='\033[1;31m'
 NC='\033[0m' # No Color
 
 dev_env_flag=
-while getopts 'd' OPTION
+port_flag=
+PORT=8080
+while getopts 'dp:' OPTION
 do
     case $OPTION in
     d)    dev_env_flag=1
           ;;
-    ?)    echo "Usage: ubuntu-20.04-install.sh [ -d ]"
-          return 2
+    p)    port_flag=1
+          PORT=$OPTARG
+          # test if port is valid (DOES NOT WORK WITH `set -u` DECLARED)
+          if ! [[ $PORT -gt 0 && $PORT -le 65535 ]]; then
+              echo -e "\nERROR: ${PORT} is not a port"
+              usage
+              exit 1
+          fi
+          ;;
+    ?)    usage
+          exit 1
           ;;
     esac
 done
@@ -29,7 +46,7 @@ function install_os_tools() {
 function add_arm_user() {
     echo -e "${RED}Adding arm user${NC}"
     # create arm group if it doesn't already exist
-    if ! [ $(getent group arm) ]; then
+    if ! [[ $(getent group arm) ]]; then
         sudo groupadd arm
     else
         echo -e "${RED}arm group already exists, skipping...${NC}"
@@ -121,6 +138,12 @@ function create_abcde_symlink() {
 }
 
 function create_arm_config_symlink() {
+    if [[ $port_flag ]]; then
+        echo -e "${RED}Non-default port specified, updating arm config...${NC}"
+        # replace the default 8080 port with the specified port
+        sed -e s"/\(^WEBSERVER_PORT:\) 8080/\1 ${PORT}/" -i /opt/arm/arm.yaml
+    fi
+
     if ! [[ -z $(find /etc/arm/ -type l -ls | grep "arm.yaml") ]]; then
         rm /etc/arm/arm.yaml
     fi
@@ -181,7 +204,7 @@ function setup_autoplay() {
         else
             echo -e "\n${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 \n" | sudo tee -a /etc/fstab
         fi
-        sudo mkdir -p /mnt$dev
+        sudo mkdir -p "/mnt$dev"
     done
 }
 
@@ -212,12 +235,12 @@ function install_armui_service() {
 
 function launch_setup() {
     echo -e "${RED}Launching ArmUI first-time setup${NC}"
-    site_addr=`sudo netstat -tlpn | awk '{ print $4 }' | grep .*:8080`
-    if [ -z $site_addr ]; then
+    site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:${PORT}")
+    if [ -z "$site_addr" ]; then
         echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}"
     else
         echo -e "${RED}ArmUI site is running on http://$site_addr. Launching setup...${NC}"
-        sudo -u arm nohup xdg-open http://$site_addr/setup > /dev/null 2>&1 &
+        sudo -u arm nohup xdg-open "http://$site_addr/setup" > /dev/null 2>&1 &
     fi
 }
 
