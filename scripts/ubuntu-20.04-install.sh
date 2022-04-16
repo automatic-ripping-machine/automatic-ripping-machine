@@ -1,6 +1,12 @@
 #!/bin/bash
 
-set -euo pipefail
+set -eo pipefail
+
+function usage() {
+    echo -e "\nUsage: ubuntu-20.04-install.sh [OPTIONS]"
+    echo -e "\t-d\t\tInstall the ARM Development Environment"
+    echo -e "\t-p [PORT]\tOverwrite the default WEBSERVER_PORT"
+}
 
 RED='\033[1;31m'
 NC='\033[0m' # No Color
@@ -14,11 +20,11 @@ do
     d)    dev_env_flag=1
           ;;
     p)    port_flag=1
-          PORT=$OPTION
+          PORT=$OPTARG
+          # test if port is valid (DOES NOT WORK WITH `set -u` DECLARED)
+          [[ $PORT -gt 0 && $PORT -le 65535 ]] || echo -e "\nERROR: ${PORT} is not a port" && usage && exit 1
           ;;
-    ?)    echo -e "\nUsage: ubuntu-20.04-install.sh [OPTIONS]"
-          echo -e "\t-d\t\tInstall the ARM Development Environment"
-          echo -e "\t-p [PORT]\tOverwrite the default WEBSERVER_PORT"
+    ?)    usage
           exit 2
           ;;
     esac
@@ -130,7 +136,7 @@ function create_abcde_symlink() {
 function create_arm_config_symlink() {
     if [[ $port_flag ]]; then
         echo -e "${RED}Non-default port specified, updating arm config...${NC}"
-        # replace the default 8080 port with the
+        # replace the default 8080 port with the specified port
         sed -e s"/\(^WEBSERVER_PORT:\) 8080/\1 ${PORT}/" -i /opt/arm/arm.yaml
     fi
 
