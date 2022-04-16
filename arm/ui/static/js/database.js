@@ -13,15 +13,15 @@ function checkNewUser(seen) {
     if (seen === false) {
         /*have not agreed to understanding the risks, show modal*/
         hrrref = "entryWarn";
-        $('div .modal-title').html("<p class=\"text-center text-danger\">WARNING");
-        $('div.modal-body').html('<p class="text-center bg-danger text-white">This can be dangerous if you don\'t know what you\'re doing. <br>' +
-            'You could delete all your of your database entries if you\'re not careful!!! <br>' +
-            'Be careful!<br><br> Are you sure you want to continue ?</p>');
-        $('#exampleModal').modal('show');
-        $('#save-get-success').addClass('d-none');
-        $('#save-get-failed').addClass('d-none');
-        $('#message3').addClass('d-none');
-        $('#message1').addClass('d-none');
+        $("div .modal-title").html("<p class=\"text-center text-danger\">WARNING");
+        $("div.modal-body").html("<p class=\"text-center bg-danger text-white\">This can be dangerous if you don't know what you're doing. <br>" +
+            "You could delete all your of your database entries if you're not careful!!! <br>" +
+            "Be careful!<br><br> Are you sure you want to continue ?</p>");
+        $("#exampleModal").modal("show");
+        $("#save-get-success").addClass("d-none");
+        $("#save-get-failed").addClass("d-none");
+        $("#message3").addClass("d-none");
+        $("#message1").addClass("d-none");
     }
 }
 
@@ -36,9 +36,9 @@ function checkCookie() {
 function getCookie(cname) {
     let name = cname + "=";
     let decodedCookie = decodeURIComponent(document.cookie);
-    let ca = decodedCookie.split(';');
+    let ca = decodedCookie.split(";");
     for (let c of ca) {
-        while (c.charAt(0) === ' ') {
+        while (c.charAt(0) === " ") {
             c = c.substring(1);
         }
         if (c.indexOf(name) === 0) {
@@ -55,20 +55,13 @@ function setCookie(cname, cvalue, exdays) {
     document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
 }
 
-function hideModal() {
-    $('#exampleModal').modal('toggle');
-    $('#message1').removeClass('d-none');
-    $('#message2').addClass('d-none');
-    $('#message3').addClass('d-none');
-}
-
 function switchDelete() {
     $("#jobId" + activeJob).remove();
     $("#message1 .alert-heading").html("Job was successfully deleted");
     hideModal();
     setTimeout(
         function () {
-            $('#message1').addClass('d-none');
+            $("#message1").addClass("d-none");
         },
         5000
     );
@@ -80,43 +73,43 @@ function switchAbandon() {
     hideModal();
     setTimeout(
         function () {
-            $('#message1').addClass('d-none');
+            $("#message1").addClass("d-none");
         },
         5000
     );
 }
 
 function switchLogFile(data) {
-    $(this).find('.modal-title').text("Logfile");
+    $(this).find(".modal-title").text("Logfile");
     $("#message1 .alert-heading").html("Here is the logfile you requested");
-    $('div .card-deck').html('<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">' +
-        '<strong>' + data.job_title + '</strong></div><pre class="text-white bg-secondary"><code>' + data.log + '</code></pre>');
-    window.scrollTo({top: 0, behavior: 'smooth'});
+    $("div .card-deck").html("<div class=\"bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto\">" +
+        "<strong>" + data.job_title + "</strong></div><pre class=\"text-white bg-secondary\"><code>" + data.log + "</code></pre>");
+    window.scrollTo({top: 0, behavior: "smooth"});
     hideModal();
 }
 
 function switchSearch(data, addJobItem) {
-    $(this).find('.modal-title').text("searching....");
-    $('.card-deck').html('');
+    $(this).find(".modal-title").text("searching....");
+    $(".card-deck").html("");
     let size = Object.keys(data.results).length;
     console.log("length = " + size);
     if (size > 0) {
         $.each(data.results, function (_index, value) {
             z = addJobItem(value);
-            $('.card-deck').append(z);
+            $(".card-deck").append(z);
         });
         console.log(data);
         $("#message1 .alert-heading").html("Here are the jobs i found matching your query");
-        $('#m-body').addClass('bd-example-modal-lg');
-        $('#m-body').modal('handleUpdate');
-        $('#exampleModal').modal('toggle');
-        $('#message1').removeClass('d-none').removeClass('alert-danger').addClass('alert-success');
-        $('#message2').addClass('d-none');
-        $('#message3').addClass('d-none');
+        $("#m-body").addClass("bd-example-modal-lg");
+        $("#m-body").modal("handleUpdate");
+        $("#exampleModal").modal("toggle");
+        $("#message1").removeClass("d-none").removeClass("alert-danger").addClass("alert-success");
+        $("#message2").addClass("d-none");
+        $("#message3").addClass("d-none");
     } else {
         $("#message1 .alert-heading").html("I couldnt find any results matching that title");
-        $('#message1').removeClass('d-none').removeClass('alert-success').addClass('alert-danger');
-        $('#exampleModal').modal('toggle');
+        $("#message1").removeClass("d-none").removeClass("alert-success").addClass("alert-danger");
+        $("#exampleModal").modal("toggle");
     }
 }
 
@@ -126,20 +119,20 @@ function switchFixPerms() {
     hideModal();
     setTimeout(
         function () {
-            $('#message1').addClass('d-none');
+            $("#message1").addClass("d-none");
         },
         5000
     );
 }
 
 function processFailedReturn() {
-    $('#message3').removeClass('d-none');
-    $('#message1').addClass('d-none');
-    $('#message2').addClass('d-none');
-    $('#exampleModal').modal('toggle');
+    $("#message3").removeClass("d-none");
+    $("#message1").addClass("d-none");
+    $("#message2").addClass("d-none");
+    $("#exampleModal").modal("toggle");
     setTimeout(
         function () {
-            $('#message3').addClass('d-none');
+            $("#message3").addClass("d-none");
         },
         5000
     );
@@ -164,7 +157,7 @@ function proccessReturn(data, addJobItem) {
                 switchFixPerms();
                 break;
             default:
-                $('#exampleModal').modal('toggle');
+                $("#exampleModal").modal("toggle");
                 break;
         }
     } else {
@@ -175,22 +168,19 @@ function proccessReturn(data, addJobItem) {
 function checkHref(addJobItem) {
     if (hrrref !== "") {
         // Add the spinner to let them know we are loading
-        $("#m-body").append('<div class="d-flex justify-content-center">' +
-            '<div class="spinner-border" role="status">' +
-            '<span class="sr-only">Loading...</span>' +
-            '</div>' +
-            '</div>');
+        $("#m-body").append("<div class=\"d-flex justify-content-center\">" +
+            "<div class=\"spinner-border\" role=\"status\"><span class=\"sr-only\">Loading...</span></div></div>");
         if (actionType === "search") {
             console.log("searching");
-            console.log("q=" + $('#searchquery').val());
-            hrrref = hrrref + $('#searchquery').val();
+            console.log("q=" + $("#searchquery").val());
+            hrrref = hrrref + $("#searchquery").val();
             console.log("href=" + hrrref);
         }
         if (hrrref === "entryWarn") {
             setCookie("understands", "yes", 66);
-            $('#exampleModal').modal('toggle');
-            $('#save-get-success').removeClass('d-none');
-            $('#save-get-failed').removeClass('d-none');
+            $("#exampleModal").modal("toggle");
+            $("#save-get-success").removeClass("d-none");
+            $("#save-get-failed").removeClass("d-none");
             hrrref = "";
         }
         $.get(hrrref, function (data) {
@@ -205,82 +195,71 @@ function checkHref(addJobItem) {
 $(document).ready(function () {
     //Check if user is new
     checkNewUser(checkCookie());
-    $("#save-get-success").bind('click', function () {
+    $("#save-get-success").bind("click", function () {
         // TODO hide yes/no buttons
         // Add the spinner to let them know we are loading
-        $('#exampleModal').modal('show');
-        $('.modal-title').text("Loading...");
-        $('.modal-body').html("");
-        $(".modal-body").append('<div class="d-flex justify-content-center">' +
-            '<div class="spinner-border" role="status">' +
-            '<span class="sr-only">Loading...</span>' +
-            '</div>' +
-            '</div>');
-        hrrref = '/json?mode=getsuccessful';
+        $("#exampleModal").modal("show");
+        $(".modal-title").text("Loading...");
+        $(".modal-body").html("");
+        $(".modal-body").append("<div class=\"d-flex justify-content-center\">" +
+            "<div class=\"spinner-border\" role=\"status\"><span class=\"sr-only\">Loading...</span></div></div>");
+        hrrref = "/json?mode=getsuccessful";
         $.get(hrrref, function (data) {
             if (data.success === true) {
-                $('.card-deck').html('');
+                $(".card-deck").html("");
                 let size = Object.keys(data.results).length;
                 console.log("length = " + size);
                 if (size > 0) {
                     $.each(data.results, function (_index, value) {
-                        $('.card-deck').append(addJobItem(value));
+                        $(".card-deck").append(addJobItem(value));
                     });
                     console.log(data);
                 } else {
                     $("#message1 .alert-heading").html("I couldn't find any results matching that title");
-                    $('#message1').removeClass('d-none');
-                    $('#exampleModal').modal('toggle');
+                    $("#message1").removeClass("d-none");
+                    $("#exampleModal").modal("toggle");
                 }
                 setTimeout(
                     function () {
-                        $('#exampleModal').modal('hide');
+                        $("#exampleModal").modal("hide");
                         }, 2000
                 );
             } else {
-                $('#message3').removeClass('d-none');
-                $('#message1').addClass('d-none');
-                $('#message2').addClass('d-none');
-                $('#exampleModal').modal('hide');
+                hideModal();
             }
         }, "json");
     });
-    $("#save-get-failed").bind('click', function () {
+    $("#save-get-failed").bind("click", function () {
         // TODO hide yes/no buttons
         // Add the spinner to let them know we are loading
-        $('#exampleModal').modal('show');
-        $('.modal-title').text("Loading...");
-        $('.modal-body').html("");
-        $(".modal-body").append('<div class="d-flex justify-content-center">' +
-            '<div class="spinner-border" role="status">' +
-            '<span class="sr-only">Loading...</span>' +
-            '</div>' +
-            '</div>');
-        hrrref = '/json?mode=getfailed';
+        $("#exampleModal").modal("show");
+        $(".modal-title").text("Loading...");
+        $(".modal-body").html("");
+        $(".modal-body").append("<div class=\"d-flex justify-content-center\">" +
+            "<div class=\"spinner-border\" role=\"status\"><span class=\"sr-only\">Loading...</span> </div></div>");
+        hrrref = "/json?mode=getfailed";
         $.get(hrrref, function (data) {
             if (data.success === true) {
-                $('.card-deck').html('');
+                $(".card-deck").html("");
                 let size = Object.keys(data.results).length;
                 console.log("length = " + size);
                 if (size > 0) {
                     $.each(data.results, function (_index, value) {
                         z = addJobItem(value);
-                        $('.card-deck').append(z);
+                        $(".card-deck").append(z);
                     });
                     console.log(data);
                 } else {
                     $("#message1 .alert-heading").html("I couldn't find any results for failed jobs");
-                    $('#message1').removeClass('d-none');
+                    $("#message1").removeClass("d-none");
                 }
             } else {
-                $('#message3').removeClass('d-none');
-                $('#message1').addClass('d-none');
-                $('#message2').addClass('d-none');
+                hideModal();
             }
             // Need to set as timeout because modal shows too slow for the ajax request to trigger its hide
             setTimeout(
                 function () {
-                    $('#exampleModal').modal("hide");
+                    $("#exampleModal").modal("hide");
                 },
                 3000
             );
@@ -291,7 +270,7 @@ $(document).ready(function () {
             $("#save-yes").click();
         }
     });
-    $("#save-yes").bind('click', function () {
+    $("#save-yes").bind("click", function () {
         console.log(hrrref);
         // Check we have the search query & it must be more than 3 chars
         if ($("input#searchquery").length) {
@@ -303,22 +282,21 @@ $(document).ready(function () {
         }
         checkHref(addJobItem);
     });
-    $("#save-no").bind('click', function () {
+    $("#save-no").bind("click", function () {
         if (hrrref === "entryWarn") {
             console.log("use wants to go away");
             window.location.href = "/";
             return false;
         } else {
-
             console.log("user shouldnt be here...");
-            $('#exampleModal').modal('toggle');
+            $("#exampleModal").modal("toggle");
         }
     });
-    $('#exampleModal').on('show.bs.modal', function (event) {
+    $("#exampleModal").on("show.bs.modal", function (event) {
         let button = $(event.relatedTarget); // Button that triggered the modal
-        actionType = button.data('type'); // Extract info from data-* attributes
-        hrrref = button.data('href');
-        activeJob = button.data('jobid');
+        actionType = button.data("type"); // Extract info from data-* attributes
+        hrrref = button.data("href");
+        activeJob = button.data("jobid");
         const modal = $(this);
         updateModal(modal);
         $("#searchquery").on("keydown", function (e) {

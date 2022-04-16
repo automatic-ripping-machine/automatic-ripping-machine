@@ -55,8 +55,8 @@ $(document).ready(function () {
 function updateProgress(job, oldJob) {
     let subProgressBar = "<div class=\"progress-bar progress-bar-striped progress-bar-animated\" role=\"progressbar\" aria-valuenow=\"" +
                          job.progress_round + "\" aria-valuemin=\"0\" aria-valuemax=\"100\" style=\"width: " + job.progress_round + "%\">" +
-                         "<small class=\"justify-content-center d-flex position-absolute w-100\">' + job.progress + '%</small></div></div>";
-    let mainProgressBar = "<div id=\"jobId' + job.job_id + '_stage\"><b>Stage: </b>' + job.stage + '</div>" +
+                         "<small class=\"justify-content-center d-flex position-absolute w-100\">" + job.progress + "%</small></div></div>";
+    let mainProgressBar = "<div id=\"jobId" + job.job_id + "_stage\"><b>Stage: </b>" + job.stage + "</div>" +
                          "<div id=\"jobId" + job.job_id + "_progress\" >" +
                          "<div class=\"progress\">" + subProgressBar + "</div>" +
                          "<div id=\"jobId" + job.job_id + "_eta\"><b>ETA: </b>" + job.eta + "</div>";
@@ -77,6 +77,10 @@ function updateProgress(job, oldJob) {
 }
 
 function updateContents(item, job, changeItem, keyString){
+    if(item[0] === undefined){
+        console.log(item)
+        return false;
+    }
     if (!item[0].innerText.includes(job[changeItem])) {
         item[0].innerHTML = "<b>" + keyString + ": </b>" + job[changeItem];
     }
@@ -109,7 +113,7 @@ function updateJobItem(oldJob, job) {
     updateContents(jobYear, job, "year", "Year");
     updateContents(devPath, job, "devpath", "Device");
     updateContents(videoType, job, "video_type", "Type");
-    //  Adding more:  updateContents(devPath, job, 'devpath', 'Device');
+    //  Adding more:  updateContents(devPath, job, "devpath", "Device");
 
     if (job.status !== status[0].title) {
         status[0].src = "static/img/" + job.status + ".png";
@@ -137,7 +141,6 @@ function removeJobItem(job) {
 }
 
 function refreshJobsComplete() {
-    console.log(activeJobs);
     $.each(activeJobs, function (index, job) {
         if (typeof (job) !== "undefined" && !job.active) {
             console.log("job isn't active");

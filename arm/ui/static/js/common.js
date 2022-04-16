@@ -153,3 +153,11 @@ function updateModal(modal) {
     modal.find('.modal-title').text(modalTitle);
     modal.find('.modal-body').html(modalBody);
 }
+
+
+function hideModal() {
+    $('#exampleModal').modal('toggle');
+    $('#message1').removeClass('d-none');
+    $('#message2').addClass('d-none');
+    $('#message3').addClass('d-none');
+}

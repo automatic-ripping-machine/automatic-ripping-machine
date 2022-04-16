@@ -178,13 +178,18 @@ def search(search_query):
     # app.logger.debug("search - posts=" + str(posts))
     search_results = {}
     i = 0
-    app.logger.debug(f"000000000000 FOUND - {len(posts)}")
     for jobs in posts:
         # app.logger.debug("job obj = " + str(p.get_d()))
         search_results[i] = {}
-        search_results[i]['config'] = jobs.config.get_d()
+        try:
+            search_results[i]['config'] = jobs.config.get_d()
+        except AttributeError:
+            search_results[i]['config'] = "config not found"
+            app.logger.debug("couldn't get config")
+
         for key, value in iter(jobs.get_d().items()):
-            search_results[i][str(key)] = str(value)
+            if key != "config":
+                search_results[i][str(key)] = str(value)
             # app.logger.debug(str(key) + "= " + str(value))
         i += 1
     return {'success': True, 'mode': 'search', 'results': search_results}
