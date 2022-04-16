@@ -126,6 +126,12 @@ function create_abcde_symlink() {
 }
 
 function create_arm_config_symlink() {
+    if [[ $port_flag ]]; then
+        echo -e "${RED}Non-default port specified, updating arm config...${NC}"
+        # replace the default 8080 port with the
+        sed -e s"/\(^WEBSERVER_PORT:\) 8080/\1 ${PORT}/" -i /opt/arm/arm.yaml
+    fi
+
     if ! [[ -z $(find /etc/arm/ -type l -ls | grep "arm.yaml") ]]; then
         rm /etc/arm/arm.yaml
     fi
