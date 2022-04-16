@@ -22,10 +22,14 @@ do
     p)    port_flag=1
           PORT=$OPTARG
           # test if port is valid (DOES NOT WORK WITH `set -u` DECLARED)
-          [[ $PORT -gt 0 && $PORT -le 65535 ]] || echo -e "\nERROR: ${PORT} is not a port" && usage && exit 1
+          if ! [[ $PORT -gt 0 && $PORT -le 65535 ]]; then
+              echo -e "\nERROR: ${PORT} is not a port"
+              usage
+              exit 1
+          fi
           ;;
     ?)    usage
-          exit 2
+          exit 1
           ;;
     esac
 done
