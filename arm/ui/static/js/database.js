@@ -62,89 +62,113 @@ function hideModal() {
     $('#message3').addClass('d-none');
 }
 
+function switchDelete() {
+    $("#jobId" + activeJob).remove();
+    $("#message1 .alert-heading").html("Job was successfully deleted");
+    hideModal();
+    setTimeout(
+        function () {
+            $('#message1').addClass('d-none');
+        },
+        5000
+    );
+}
+
+function switchAbandon() {
+    $("#status" + activeJob).attr("src", "static/img/fail.png");
+    $("#message1 .alert-heading").html("Job was successfully abandoned");
+    hideModal();
+    setTimeout(
+        function () {
+            $('#message1').addClass('d-none');
+        },
+        5000
+    );
+}
+
+function switchLogFile(data) {
+    $(this).find('.modal-title').text("Logfile");
+    $("#message1 .alert-heading").html("Here is the logfile you requested");
+    $('div .card-deck').html('<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">' +
+        '<strong>' + data.job_title + '</strong></div><pre class="text-white bg-secondary"><code>' + data.log + '</code></pre>');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+    hideModal();
+}
+
+function switchSearch(data, addJobItem) {
+    $(this).find('.modal-title').text("searching....");
+    $('.card-deck').html('');
+    let size = Object.keys(data.results).length;
+    console.log("length = " + size);
+    if (size > 0) {
+        $.each(data.results, function (_index, value) {
+            z = addJobItem(value);
+            $('.card-deck').append(z);
+        });
+        console.log(data);
+        $("#message1 .alert-heading").html("Here are the jobs i found matching your query");
+        $('#m-body').addClass('bd-example-modal-lg');
+        $('#m-body').modal('handleUpdate');
+        $('#exampleModal').modal('toggle');
+        $('#message1').removeClass('d-none').removeClass('alert-danger').addClass('alert-success');
+        $('#message2').addClass('d-none');
+        $('#message3').addClass('d-none');
+    } else {
+        $("#message1 .alert-heading").html("I couldnt find any results matching that title");
+        $('#message1').removeClass('d-none').removeClass('alert-success').addClass('alert-danger');
+        $('#exampleModal').modal('toggle');
+    }
+}
+
+function switchFixPerms() {
+    $("#jobId" + activeJob).addClass("alert-success");
+    $("#message1 .alert-heading").html("Permissions fixed");
+    hideModal();
+    setTimeout(
+        function () {
+            $('#message1').addClass('d-none');
+        },
+        5000
+    );
+}
+
+function processFailedReturn() {
+    $('#message3').removeClass('d-none');
+    $('#message1').addClass('d-none');
+    $('#message2').addClass('d-none');
+    $('#exampleModal').modal('toggle');
+    setTimeout(
+        function () {
+            $('#message3').addClass('d-none');
+        },
+        5000
+    );
+}
+
 function proccessReturn(data, addJobItem) {
     if (data.success) {
         switch (data.mode) {
             case "delete":
-                $("#jobId" + activeJob).remove();
-                $("#message1 .alert-heading").html("Job was successfully deleted");
-                hideModal();
-                setTimeout(
-                    function () {
-                        $('#message1').addClass('d-none');
-                    },
-                    5000
-                );
+                switchDelete();
                 break;
             case "abandon":
-                $("#status" + activeJob).attr("src", "static/img/fail.png");
-                $("#message1 .alert-heading").html("Job was successfully abandoned");
-                hideModal();
-                setTimeout(
-                    function () {
-                        $('#message1').addClass('d-none');
-                    },
-                    5000
-                );
+                switchAbandon();
                 break;
             case "logfile":
-                $(this).find('.modal-title').text("Logfile");
-                $("#message1 .alert-heading").html("Here is the logfile you requested");
-                $('div .card-deck').html('<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">' +
-                    '<strong>' + data.job_title + '</strong></div><pre class="text-white bg-secondary"><code>' + data.log + '</code></pre>');
-                window.scrollTo({top: 0, behavior: 'smooth'});
-                hideModal();
+                switchLogFile.call(this, data);
                 break;
             case "search":
-                $(this).find('.modal-title').text("searching....");
-                $('.card-deck').html('');
-                let size = Object.keys(data.results).length;
-                console.log("length = " + size);
-                if (size > 0) {
-                    $.each(data.results, function (_index, value) {
-                        z = addJobItem(value);
-                        $('.card-deck').append(z);
-                    });
-                    console.log(data);
-                    $("#message1 .alert-heading").html("Here are the jobs i found matching your query");
-                    $('#m-body').addClass('bd-example-modal-lg');
-                    $('#m-body').modal('handleUpdate');
-                    $('#exampleModal').modal('toggle');
-                    $('#message1').removeClass('d-none').removeClass('alert-danger').addClass('alert-success');
-                    $('#message2').addClass('d-none');
-                    $('#message3').addClass('d-none');
-                } else {
-                    $("#message1 .alert-heading").html("I couldnt find any results matching that title");
-                    $('#message1').removeClass('d-none').removeClass('alert-success').addClass('alert-danger');
-                    $('#exampleModal').modal('toggle');
-                }
+                switchSearch.call(this, data, addJobItem);
                 break;
             case "fixperms":
-                $("#jobId" + activeJob).addClass("alert-success");
-                $("#message1 .alert-heading").html("Permissions fixed");
-                hideModal();
-                setTimeout(
-                    function () {
-                        $('#message1').addClass('d-none');
-                    },
-                    5000
-                );
+                switchFixPerms();
                 break;
             default:
                 $('#exampleModal').modal('toggle');
                 break;
         }
     } else {
-        $('#message3').removeClass('d-none');
-        $('#message1').addClass('d-none');
-        $('#message2').addClass('d-none');
-        $('#exampleModal').modal('toggle');
-        setTimeout(
-            function () {
-                $('#message3').addClass('d-none');
-            },
-            5000
-        );
+        processFailedReturn();
     }
 }
 
@@ -177,43 +201,9 @@ function checkHref(addJobItem) {
     }
 }
 
-function updateModalContent(modal) {
-    let modalTitle;
-    let modalBody;
-    console.log(hrrref);
-    console.log(activeJob);
-    console.log(actionType);
-    switch (actionType) {
-        case "abandon":
-            modalTitle = "Abandon This Job ?";
-            modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?";
-            break;
-        case "delete":
-            modalTitle = "Delete this job forever ?";
-            modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?";
-            break;
-        case "search":
-            modalTitle = "Search the database";
-            modalBody = '<div class="input-group mb-3">' +
-                '<div class="input-group-prepend">' +
-                '<span class="input-group-text" id="searchlabel">Search </span>' +
-                '</div>' +
-                '<input type="text" class="form-control" id="searchquery" aria-label="searchquery" ' +
-                'name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">' +
-                '<div id="validationServer03Feedback" class="invalid-feedback">Search string too short.</div>' +
-                '</div>';
-            break;
-        default:
-            modalTitle = "Do you want to leave this page ?";
-            modalBody = "To view the log file you need to leave this page. Would you like to leave ?";
-    }
-    modal.find('.modal-title').text(modalTitle);
-    modal.find('.modal-body').html(modalBody);
-}
 
 $(document).ready(function () {
     //Check if user is new
-    console.log(checkCookie());
     checkNewUser(checkCookie());
     $("#save-get-success").bind('click', function () {
         // TODO hide yes/no buttons
@@ -337,81 +327,4 @@ $(document).ready(function () {
             }
         });
     });
-
-    function addJobItem(job) {
-        let x = '<div class="col-md-4" id="jobId' + job.job_id + '">' +
-            '<div class="card mb-3  mx-auto">' +
-            '<div class="card-header row no-gutters justify-content-center">' +
-            '<strong>';
-        if (job.title_manual !== "None") {
-            x += job.title_manual + ' (' + job.year + ')';
-        } else {
-            x += job.title + ' (' + job.year + ')';
-        }
-        x += '</strong>' +
-            '</div>' +
-            '<div class="row no-gutters">' +
-            '<div class="col-lg-4">' +
-            '<a href="jobdetail?job_id=' + job.job_id + '">';
-        if (job.poster_url !== "None") {
-            x += '<img id="jobId' + job.job_id + '_poster_url" src="' + job.poster_url + '" width="240px" class="img-thumbnail" alt="poster_image">';
-        } else {
-            x += '<img id="jobId' + job.job_id + '_poster_url" src="/static/img/none.png" width="240px" class="img-thumbnail" alt="poster_image">';
-        }
-        x += '</a>' +
-            '</div>' +
-            '<div class="col-lg-4">' +
-            '<div class="card-body px-1 py-1">';
-
-        x += '<div id="jobId' + job.job_id + '_title"><strong>' + job.title + '</strong></div>';
-        x += '<div id="jobId' + job.job_id + '_year"><strong>Year: </strong>' + job.year + '</div>';
-        x += '<div id="jobId' + job.job_id + '_video_type"><strong>Type: </strong>' + job.video_type + '</div>';
-        x += '<div id="jobId' + job.job_id + '_devpath"><strong>Device: </strong>' + job.devpath + '</div>';
-        x += '<div><strong>Status: </strong><img id="jobId' + job.job_id + '_status" src="static/img/' + job.status + '.png" height="20px" alt="' + job.status + '" title="' + job.status + '"></div>';
-
-        x += '<div id="jobId' + job.job_id + '_progress_section">';
-        if (job.status === "transcoding" && job.stage !== '' && job.progress) {
-            x += '<div id="jobId' + job.job_id + '_stage"><strong>Stage: </strong>' + job.stage + '</div>';
-            x += '<div id="jobId' + job.job_id + '_progress" >';
-            x += '<div class="progress">' +
-                '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">' +
-                '<small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>' +
-                '</div>' +
-                '</div>' +
-                '</div>' +
-                '<div id="jobId' + job.job_id + '_eta"><strong>ETA: </strong>' + job.eta + '</div>';
-        } else {
-            x += '<div id="jobId' + job.job_id + '_start_time"><strong>Start time: </strong>' + job.start_time + '</div>';
-            x += '<div id="jobId' + job.job_id + '_job_length"><strong>Job Length: </strong>' + job.job_length + '</div>';
-        }
-        x += '</div>' +
-            '</div>' +
-            '</div>' +
-            '<div class="col-lg-4">' +
-            '<div class="card-body px-1 py-1">';
-
-        x += '<div id="jobId' + job.job_id + '_RIPMETHOD"><strong>Rip Method: </strong>' + job.config.RIPMETHOD + '</div>';
-        x += '<div id="jobId' + job.job_id + '_MAINFEATURE"><strong>Main Feature: </strong>' + job.config.MAINFEATURE + '</div>';
-        x += '<div id="jobId' + job.job_id + '_MINLENGTH"><strong>Min Length: </strong>' + job.config.MINLENGTH + '</div>';
-        x += '<div id="jobId' + job.job_id + '_MAXLENGTH"><strong>Max Length: </strong>' + job.config.MAXLENGTH + '</div>';
-
-        x += '</div>' +
-            '<div class="card-body px-2 py-1">' +
-            '<div class="btn-group-vertical" role="group" aria-label="buttons">' +
-            '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="' + job.job_id + '" data-href="json?job=' + job.job_id + '&mode=abandon">Abandon Job</button>' +
-            '<a href="logs?logfile=' + job.logfile + '&mode=full" class="btn btn-primary">View logfile</a>';
-        if (job.video_type !== "Music") {
-            x += '<a href="titlesearch?job_id=' + job.job_id + '" class="btn btn-primary">Title Search</a>' +
-                '<a href="customTitle?job_id=' + job.job_id + '" class="btn btn-primary">Custom Title</a>' +
-                '<a href="changeparams?config_id=' + job.job_id + '" class="btn btn-primary">Change Settings</a>';
-        }
-        x += '</div>' +
-            '</div>' +
-            '</div>' +
-            '</div>' +
-            '</div>' +
-            '</div></div>';
-        return x;
-    }
-
 });

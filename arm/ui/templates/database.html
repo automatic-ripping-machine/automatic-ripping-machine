@@ -5,6 +5,7 @@
 {% block content %}
 
     <div class="container-fluid h-100 mx-auto">
+        <!-- Header image -->
         <div class="row">
             <div class="col-sm-12  rounded text-center">
                 <img src="static/img/arm80.png" alt="Automatic Ripping Machine">
@@ -84,16 +85,20 @@
             <div class="col-md-12 mx-auto">
                 <div class="card-deck">
                     {% for job in jobs %}
+                        <!-- Job {{ job.job_id }}-->
                         <div class="col-md-4" id="jobId{{ job.job_id }}">
                             <div class="card mb-3  mx-auto">
+                                <!-- Card Header -->
                                 <div class="card-header row no-gutters justify-content-center">
-                                    <strong>{% if not job.title_manual %}
+                                    <strong>
+                                     {% if not job.title_manual %}
                                         {{ job["title"] }} {{ '('+job['year']+')' if job["year"] is not none }}
                                     {% else %}
                                         {{ job["title_manual"] }} {{ '('+job['year']+')' if job["year"] is not none }}
                                     {% endif %}
                                     </strong>
                                 </div>
+                                <!-- Card Body -->
                                 <div class="row no-gutters">
                                     <div class="col-lg-4">
                                         {% if not job.poster_url %}
@@ -191,5 +196,6 @@
     {{ super() }}
 
     <script type="application/javascript">activeTab("database");</script>
+    <script type="application/javascript" src="static/js/common.js"></script>
     <script type="application/javascript" src="static/js/database.js"></script>
 {% endblock %}
