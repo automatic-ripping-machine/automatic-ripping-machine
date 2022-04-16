@@ -16,8 +16,10 @@ do
     p)    port_flag=1
           PORT=$OPTION
           ;;
-    ?)    echo "Usage: ubuntu-20.04-install.sh [ -d ]"
-          return 2
+    ?)    echo -e "\nUsage: ubuntu-20.04-install.sh [OPTIONS]"
+          echo -e "\t-d\t\tInstall the ARM Development Environment"
+          echo -e "\t-p [PORT]\tOverwrite the default WEBSERVER_PORT"
+          exit 2
           ;;
     esac
 done
