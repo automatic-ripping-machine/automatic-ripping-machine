@@ -1,18 +1,35 @@
 #!/bin/bash
 
-set -euo pipefail
+set -eo pipefail
+
+function usage() {
+    echo -e "\nUsage: ubuntu-20.04-install.sh [OPTIONS]"
+    echo -e "\t-d\t\tInstall the ARM Development Environment"
+    echo -e "\t-p [PORT]\tOverwrite the default WEBSERVER_PORT"
+}
 
 RED='\033[1;31m'
 NC='\033[0m' # No Color
 
 dev_env_flag=
-while getopts 'd' OPTION
+port_flag=
+PORT=8080
+while getopts 'dp:' OPTION
 do
     case $OPTION in
     d)    dev_env_flag=1
           ;;
-    ?)    echo "Usage: ubuntu-20.04-install.sh [ -d ]"
-          return 2
+    p)    port_flag=1
+          PORT=$OPTARG
+          # test if port is valid (DOES NOT WORK WITH `set -u` DECLARED)
+          if ! [[ $PORT -gt 0 && $PORT -le 65535 ]]; then
+              echo -e "\nERROR: ${PORT} is not a port"
+              usage
+              exit 1
+          fi
+          ;;
+    ?)    usage
+          exit 2
           ;;
     esac
 done
@@ -155,6 +172,16 @@ function setup_config_files() {
         fi
     done
     chown -R arm:arm /etc/arm/
+
+    if [[ $port_flag ]]; then
+        echo -e "${RED}Non-default port specified, updating arm config...${NC}"
+        # replace the default 8080 port with the specified port
+        sed -E s"/(^WEBSERVER_PORT:) 8080/\1 ${PORT}/" -i /etc/arm/config/arm.yaml
+    else
+        # reset the port number in the config since it's no longer being
+        # overwritten which each run of this installer
+        sed -E s"/(^WEBSERVER_PORT:) [0-9]+/\1 8080/" -i /etc/arm/config/arm.yaml
+    fi
 }
 
 function install_python_requirements {
@@ -206,7 +233,7 @@ function install_armui_service() {
 
 function launch_setup() {
     echo -e "${RED}Launching ArmUI first-time setup${NC}"
-    site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:8080")
+    site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:${PORT}")
     if [[ -z "$site_addr" ]]; then
         echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}"
     else
