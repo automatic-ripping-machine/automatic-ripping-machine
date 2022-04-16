@@ -320,7 +320,7 @@ $(document).ready(function () {
         hrrref = button.data('href');
         activeJob = button.data('jobid');
         const modal = $(this);
-        updateModalContent(modal);
+        updateModal(modal);
         $("#searchquery").on("keydown", function (e) {
             if (e.which === 13) {
                 $("#save-yes").click();
