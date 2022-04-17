@@ -277,7 +277,7 @@ def find_file(filename, search_path):
 
 def find_largest_file(files, mkv_out_path):
     """
-    Step through given dir and return the largest file name
+    Step through given dir and return the largest file name\n
     :param files: dir in os.listdir() format
     :param mkv_out_path: RAW_PATH
     :return: largest file name

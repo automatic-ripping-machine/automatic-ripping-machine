@@ -21,11 +21,13 @@ function getRipperName(job, idsplit) {
 function addJobItem(job) {
     // Local server or remote
     let idsplit = job.job_id.split("_");
+    console.log(idsplit[1] + " - " + idsplit[0] )
     //Start creating the card with job id and header title
     let x = "<div class=\"col-md-4\" id=\"jobId" + job.job_id + "\"><div class=\"card mb-3  mx-auto\" style=\"min-height: 420px;\">";
     x += "<div class=\"card-header row no-gutters justify-content-center\"><strong id=\"jobId" + job.job_id + "_header\">" + titleManual(job) + "</strong></div>";
     // Main holder for the 3 sections of info - includes 1 section (Poster img)
-    if(idsplit[1] === "undefined"){
+    // We need to check if idsplit is undefined, database page doesn't have splitid's
+    if(idsplit[1] === undefined){
         x += "<div class=\"row no-gutters\"><div class=\"col-lg-4\"><a href=\"/jobdetail?job_id=" + job.job_id + "\">" + posterCheck(job) + "</a></div>";
     }else {
         x += "<div class=\"row no-gutters\"><div class=\"col-lg-4\"><a href=\"" + job.server_url + "/jobdetail?job_id=" + idsplit[1] + "\">" + posterCheck(job) + "</a></div>";
@@ -91,7 +93,7 @@ function titleManual(job) {
 
 function buildMiddleSection(job) {
     let x;
-    x = "<div class=\"col-lg-4\"><div class=\"card-body px-1 py-1\"><div id=\"jobId" + job.job_id + "_title\"><b>" + job.title + "</b></div>";
+    x = "<div class=\"col-lg-4\"><div class=\"card-body px-1 py-1\">";
     x += "<div id=\"jobId" + job.job_id + "_year\"><b>Year: </b>" + job.year + "</div>";
     x += "<div id=\"jobId" + job.job_id + "_video_type\"><b>Type: </b>" + job.video_type + "</div>";
     x += "<div id=\"jobId" + job.job_id + "_devpath\"><b>Device: </b>" + job.devpath + "</div>";
@@ -103,9 +105,12 @@ function buildMiddleSection(job) {
 function buildRightSection(job, idsplit) {
     let x;
     // idsplit[1] should only be undefined on the /database page
-    if (idsplit[1] === "undefined"){
+    if (idsplit[1] === undefined){
         console.log("idsplit undefined... fixing");
         idsplit[0] = "0";
+        idsplit[1] = job.job_id
+    }else{
+        console.log("idsplit " + idsplit[0] + " - " + idsplit[1]);
     }
     // Section 3 (Right Top) Contains Config.values
     x = "<div class=\"col-lg-4\"><div class=\"card-body px-1 py-1\">";

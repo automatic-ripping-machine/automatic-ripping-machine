@@ -51,7 +51,11 @@ $(document).ready(function () {
     });
 });
 
-
+/**
+* Function to update the current progress
+* @param    {Class} job    current job
+* @param    {Class} oldJob    Copy of old job
+*/
 function updateProgress(job, oldJob) {
     let subProgressBar = "<div class=\"progress-bar progress-bar-striped progress-bar-animated\" role=\"progressbar\" aria-valuenow=\"" +
                          job.progress_round + "\" aria-valuemin=\"0\" aria-valuemax=\"100\" style=\"width: " + job.progress_round + "%\">" +
@@ -63,87 +67,96 @@ function updateProgress(job, oldJob) {
     let progressSection = $("#jobId" + job.job_id + "_progress_section");
     let stage = $("#jobId" + job.job_id + "_stage");
     let eta = $("#jobId" + job.job_id + "_eta");
+    let progressBarDiv = $("#jobId" + job.job_id + "_progress")
     if (job.status === "transcoding" || job.status === "ripping" && job.stage !== "" && job.progress) {
-        if (progressSection[0].innerHTML === "") {
+        // Catch if the progress section is empty and populate it
+        if (progressSection[0].innerHTML === "" || !progressBarDiv.length) {
             progressSection[0].innerHTML = mainProgressBar;
         } else {
             if (job.progress_round !== oldJob.progress_round || job.progress !== oldJob.progress) {
-                $("#jobId" + job.job_id + "_progress")[0].innerHTML = "<div class=\"progress\">" + subProgressBar;
+                progressBarDiv[0].innerHTML = "<div class=\"progress\">" + subProgressBar;
             }
-            updateContents(stage, job, "stage", "Stage");
-            updateContents(eta, job, "eta", "ETA");
+            updateContents(stage, job, "Stage", job.stage);
+            updateContents(eta, job, "ETA", job.eta);
         }
     }
 }
 
-function updateContents(item, job, changeItem, keyString){
+/**
+ * Function to check and update the job values
+ * @param {jQuery} item    Dom item to update
+ * @param {Class} job    Current job
+ * @param {String} keyString    String that pairs with config item for display purposes
+ * @param itemContents    item of job class to update
+ */
+function updateContents(item, job, keyString, itemContents) {
     if(item[0] === undefined){
         console.log(item)
         return false;
     }
-    if (!item[0].innerText.includes(job[changeItem])) {
-        item[0].innerHTML = "<b>" + keyString + ": </b>" + job[changeItem];
+    if (item[0].innerText.includes(itemContents)) {
+        //console.log("nothing to do - values are current")
+    }else{
+        item[0].innerHTML = "<b> " + keyString + ": </b>" + itemContents;
+        console.log(item[0].innerText + " - " + "<b>" + keyString + ": </b>" + itemContents)
+        console.log(item[0].innerText.includes(itemContents))
     }
-    console.log("updated:" +changeItem);
 }
 
+/**
+ * Function that goes through the whole job card and updates outdated values
+ * @param {Class} oldJob    Old job used to compare against fresh job from api
+ * @param {Class} job     Fresh job pulled from api
+ */
 function updateJobItem(oldJob, job) {
     let cardHeader = $("#jobId" + job.job_id + "_header");
     let posterUrl = $("#jobId" + job.job_id + "_poster_url");
-    let jobTitle = $("#jobId" + job.job_id + "_title");
-    let jobYear = $("#jobId" + job.job_id + "_year");
-    let videoType = $("#jobId" + job.job_id + "_video_type");
-    let devPath = $("#jobId" + job.job_id + "_devpath");
     let status = $("#jobId" + job.job_id + "_status");
-    let ripMethod = $("#jobId" + job.job_id + "_RIPMETHOD");
-    let mainFeature = $("#jobId" + job.job_id + "_MAINFEATURE");
-    let minLength = $("#jobId" + job.job_id + "_MINLENGTH");
-    let maxLength = $("#jobId" + job.job_id + "_MAXLENGTH");
-
+    // Update card header ( Title (Year) )
     if (cardHeader[0].innerText !== job.title + " (" + job.year + ")"){
         cardHeader[0].innerText = job.title + " (" + job.year + ")";
     }
+    // Update card poster image
     if (job.poster_url !== posterUrl[0].src && job.poster_url !== "None" && job.poster_url !== "N/A") {
         posterUrl[0].src = job.poster_url;
     }
-    // TODO: Check against the auto title
-    if (job.title !== jobTitle[0].innerText) {
-        jobTitle[0].innerText = job.title;
-    }
-    updateContents(jobYear, job, "year", "Year");
-    updateContents(devPath, job, "devpath", "Device");
-    updateContents(videoType, job, "video_type", "Type");
-    //  Adding more:  updateContents(devPath, job, "devpath", "Device");
-
+    // Update job status image
     if (job.status !== status[0].title) {
         status[0].src = "static/img/" + job.status + ".png";
         status[0].alt = job.status;
         status[0].title = job.status;
     }
+    // Go through and update job values as needed
+    updateContents($("#jobId" + job.job_id + "_year"), job, "Year", job.year);
+    updateContents($("#jobId" + job.job_id + "_devpath"), job, "Device", job.devpath);
+    updateContents($("#jobId" + job.job_id + "_video_type"), job, "Type", job.video_type);
     updateProgress(job, oldJob);
-
-    if (!ripMethod[0].innerText.includes(job.config.RIPMETHOD)) {
-        ripMethod[0].innerHTML = "<b>Rip Method: </b>" + job.config.RIPMETHOD;
-    }
-    if (!mainFeature[0].innerText.includes(job.config.MAINFEATURE)) {
-        mainFeature[0].innerHTML = "<b>Main Feature: </b>" + job.config.MAINFEATURE;
-    }
-    if (!minLength[0].innerText.includes(job.config.MINLENGTH)) {
-        minLength[0].innerHTML = "<b>Min Length: </b>" + job.config.MINLENGTH;
-    }
-    if (!maxLength[0].innerText.includes(job.config.MAXLENGTH)) {
-        maxLength[0].innerHTML = "<b>Max Length: </b>" + job.config.MAXLENGTH;
-    }
+    updateContents($("#jobId" + job.job_id + "_RIPMETHOD"), job, "Rip Method", job.config.RIPMETHOD);
+    updateContents($("#jobId" + job.job_id + "_MAINFEATURE"), job, "Main Feature", job.config.MAINFEATURE);
+    updateContents($("#jobId" + job.job_id + "_MINLENGTH"), job, "Min Length", job.config.MINLENGTH);
+    updateContents($("#jobId" + job.job_id + "_MAXLENGTH"), job, "Max Length", job.config.MAXLENGTH);
 }
 
+/**
+ * Removes a job from the card deck
+ * @param {Class} job
+ */
 function removeJobItem(job) {
     $("#jobId" + job.job_id).remove();
 }
 
+/**
+ * Function that runs after ajax request completes successfully
+ * Will check for inactive jobs and then remove them
+ * Then sorts the jobs in ascending order
+ */
 function refreshJobsComplete() {
+    // Loop through all active jobs and remove any that have finished
+    // Notes: This breaks when arm child servers are added
     $.each(activeJobs, function (index, job) {
         if (typeof (job) !== "undefined" && !job.active) {
-            console.log("job isn't active");
+            console.log("Job isn't active:" + job.job_id.split("_")[1]);
+            console.log(job)
             removeJobItem(job);
             activeJobs.splice(index, 1);
         }
@@ -161,42 +174,81 @@ function refreshJobsComplete() {
     });
 }
 
-function refreshJobs() {
-    let serverCount = activeServers.length;
-    $.each(activeServers, function(server_index, server_url) {
-        // Reset all jobs as inactive
-        $.each(activeJobs, function (index) {
-            activeJobs[index].active = false;
-        });
-
-        $.ajax({
-            url: server_url + "/json?mode=joblist",
-            type: "get",
-            timeout: 2000,
-            error: function() { --serverCount; },
-            complete: function() {refreshJobsComplete();},
-            success: function (data) {
-                $.each(data.results, function (_index, job) {
-                    job.job_id = server_index+"_"+job.job_id;
-                    job.ripper = (data.arm_name ? data.arm_name : "");
-                    job.server_url = server_url;
-                    if (activeJobs.some(e => e.job_id === job.job_id)) {
-                        var oldJob = activeJobs.find(e => e.job_id === job.job_id);
-                        job.active = true;
-                        activeJobs[activeJobs.indexOf(oldJob)] = job;
-                        updateJobItem(oldJob, job);
-                    } else {
-                        job.active = true;
-                        activeJobs.push(job);
-                        $("#joblist").append(addJobItem(job));
-                    }
-                    serverCount--;
-                });
+/**
+ * Function to check for active jobs from the return from api
+ * *** This doesn't work as it should when arm has child links
+ * @param data returned data from ajax
+ * @param server_index current server index count (added to the front of job id's)
+ */
+function checkActiveJobs(data, server_index) {
+    // Loop through each active job
+    $.each(activeJobs, function (AJIndex) {
+        // Turn off job active and re-enable it later if we find it
+        activeJobs[AJIndex].active = false;
+        // Loop through each result and search for our active job
+        $.each(data.results, function (_index, job) {
+            console.log("Looking for " + activeJobs[AJIndex].job_id + "!==" + server_index + "_" + job.job_id)
+            // We found a match for the current job id and the active job id
+            if (activeJobs[AJIndex].job_id === server_index + "_" + job.job_id) {
+                console.log("Match found for" + job.job_id)
+                activeJobs[AJIndex].active = true;
+                return false;
+            } else {
+                console.log("No match: " + activeJobs[AJIndex].job_id + "!==" + server_index + "_" + job.job_id)
             }
         });
     });
 }
 
+/**
+ * Function that is run when data is received back from json api
+ * @param data all data returned from the ajax request
+ * @param server_index
+ * @param server_url the url of the server the job is running on
+ * @param serverCount
+ * @returns {*}
+ */
+function refreshJobsSuccess(data, server_index, server_url, serverCount) {
+    checkActiveJobs(data, server_index);
+    $.each(data.results, function (_index, job) {
+        console.log(job.job_id)
+        job.job_id = server_index + "_" + job.job_id;
+        job.ripper = (data.arm_name ? data.arm_name : "");
+        job.server_url = server_url;
+        job.active = true;
+        if (activeJobs.some(e => e.job_id === job.job_id)) {
+            var oldJob = activeJobs.find(e => e.job_id === job.job_id);
+            activeJobs[activeJobs.indexOf(oldJob)] = job;
+            updateJobItem(oldJob, job);
+        } else {
+            activeJobs.push(job);
+            $("#joblist").append(addJobItem(job));
+        }
+        serverCount--;
+    });
+    return serverCount;
+}
+
+/**
+ * Function set as an interval to update all jobs from api
+ */
+function refreshJobs() {
+    let serverCount = activeServers.length;
+    $.each(activeServers, function(server_index, server_url) {
+        $.ajax({
+            url: server_url + "/json?mode=joblist",
+            type: "get",
+            timeout: 2000,
+            error: function() { --serverCount; },
+            success: function (data) {serverCount = refreshJobsSuccess(data, server_index, server_url, serverCount);},
+            complete: function() {refreshJobsComplete();}
+        });
+    });
+}
+
+/**
+ * Function to push all child servers from arm.yaml config into links on the homepage
+ */
 function pushChildServers() {
     activeServers.push(location.origin);
     let childs = $("#children");
