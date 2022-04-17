@@ -192,7 +192,7 @@ function checkActiveJobs(data, serverIndex) {
         $.each(data.results, function (_index, job) {
             console.log(`Looking for ${activeJobs[AJIndex].job_id}!==${serverIndex}_${job.job_id}`)
             // We found a match for the current job id and the active job id
-            if (activeJobs[AJIndex].job_id === serverIndex + "_" + job.job_id) {
+            if (activeJobs[AJIndex].job_id === `${serverIndex}_${job.job_id}`) {
                 console.log(`Match found for ${job.job_id}`)
                 activeJobs[AJIndex].active = true;
                 return false;
@@ -201,6 +201,7 @@ function checkActiveJobs(data, serverIndex) {
             }
         });
     });
+    return true;
 }
 
 /**
@@ -257,8 +258,8 @@ function pushChildServers() {
     const childs = $("#children");
     const children = childs.text().trim();
     if (children) {
-        let childLinks = [];
-        let childrenArr = children.split(",");
+        const childLinks = [];
+        const childrenArr = children.split(",");
         $.each(childrenArr, function (_index, value) {
             activeServers.push(value);
             childLinks.push(`<a target="_blank" href="${value}">${value}</a>`);

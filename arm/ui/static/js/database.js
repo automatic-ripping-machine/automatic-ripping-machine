@@ -266,6 +266,7 @@ $(document).ready(function () {
             }
         }
         checkHref(addJobItem);
+        return true;
     });
     $("#save-no").bind("click", function () {
         if (hrrref === "entryWarn") {
@@ -276,7 +277,7 @@ $(document).ready(function () {
             console.log("user shouldn't be here...");
             $("#exampleModal").modal("toggle");
         }
-        return false;
+        return true;
     });
     $("#exampleModal").on("show.bs.modal", function (event) {
         const button = $(event.relatedTarget); // Button that triggered the modal
