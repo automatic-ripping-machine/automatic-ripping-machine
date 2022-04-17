@@ -368,7 +368,9 @@ def fix_permissions(j_id):
         directory_to_traverse = job.path
     # Build return json dict
     return_json = {"success": False, "mode": "fixperms", "folder": str(directory_to_traverse), "path": str(job.path)}
-
+    # Set defaults as fail-safe
+    uid = 1000
+    gid = 1000
     try:
         corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
         app.logger.info(f"Setting permissions to: {job.config.CHMOD_VALUE} on: {directory_to_traverse}")
