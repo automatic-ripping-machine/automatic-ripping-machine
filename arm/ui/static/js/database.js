@@ -17,9 +17,9 @@ function checkNewUser(seen) {
         $("div.modal-body").html("<p class=\"text-center bg-danger text-white\">This can be dangerous if you don't know what you're doing. <br>" +
             "You could delete all your of your database entries if you're not careful!!! <br>" +
             "Be careful!<br><br> Are you sure you want to continue ?</p>");
-        $("#exampleModal").modal("show");
-        $("#save-get-success").addClass("d-none");
-        $("#save-get-failed").addClass("d-none");
+        $(MODEL_ID).modal("show");
+        $(DB_SUCCESS_BTN_ID ).addClass("d-none");
+        $(DB_FAIL_BTN_ID).addClass("d-none");
         $("#message3").addClass("d-none");
         $("#message1").addClass("d-none");
     }
@@ -59,7 +59,7 @@ function setCookie(cname, cvalue, exdays) {
 
 function switchDelete() {
     $("#jobId" + activeJob).remove();
-    $("#message1 .alert-heading").html("Job was successfully deleted");
+    $(MSG_1_ID).html("Job was successfully deleted");
     hideModal();
     setTimeout(
         function () {
@@ -71,7 +71,7 @@ function switchDelete() {
 
 function switchAbandon() {
     $("#status" + activeJob).attr("src", "static/img/fail.png");
-    $("#message1 .alert-heading").html("Job was successfully abandoned");
+    $(MSG_1_ID).html("Job was successfully abandoned");
     hideModal();
     setTimeout(
         function () {
@@ -82,8 +82,8 @@ function switchAbandon() {
 }
 
 function switchLogFile(data) {
-    $(this).find(".modal-title").text("Logfile");
-    $("#message1 .alert-heading").html("Here is the logfile you requested");
+    $(this).find(MODAL_TITLE).text("Logfile");
+    $(MSG_1_ID).html("Here is the logfile you requested");
     $("div .card-deck").html(`<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">
                               <strong>${data.job_title}</strong></div><pre class="text-white bg-secondary"><code>${data.log}</code></pre>`);
     window.scrollTo({top: 0, behavior: "smooth"});
@@ -91,33 +91,33 @@ function switchLogFile(data) {
 }
 
 function switchSearch(data, addJobItem) {
-    $(this).find(".modal-title").text("searching....");
-    $(".card-deck").html("");
+    $(this).find(MODAL_TITLE).text("searching....");
+    $(CARD_DECK).html("");
     const size = Object.keys(data.results).length;
     console.log("length = " + size);
     if (size > 0) {
         $.each(data.results, function (_index, value) {
             z = addJobItem(value);
-            $(".card-deck").append(z);
+            $(CARD_DECK).append(z);
         });
         console.log(data);
-        $("#message1 .alert-heading").html("Here are the jobs i found matching your query");
+        $(MSG_1_ID).html("Here are the jobs i found matching your query");
         $("#m-body").addClass("bd-example-modal-lg");
         $("#m-body").modal("handleUpdate");
-        $("#exampleModal").modal("toggle");
-        $("#message1").removeClass("d-none").removeClass("alert-danger").addClass("alert-success");
+        $(MODEL_ID).modal("toggle");
+        $("#message1").removeClass("d-none").removeClass("alert-danger").addClass(SUCCESS_CLASS);
         $("#message2").addClass("d-none");
         $("#message3").addClass("d-none");
     } else {
-        $("#message1 .alert-heading").html("I couldnt find any results matching that title");
-        $("#message1").removeClass("d-none").removeClass("alert-success").addClass("alert-danger");
-        $("#exampleModal").modal("toggle");
+        $(MSG_1_ID).html("I couldnt find any results matching that title");
+        $("#message1").removeClass("d-none").removeClass(SUCCESS_CLASS).addClass("alert-danger");
+        $(MODEL_ID).modal("toggle");
     }
 }
 
 function switchFixPerms() {
-    $("#jobId" + activeJob).addClass("alert-success");
-    $("#message1 .alert-heading").html("Permissions fixed");
+    $("#jobId" + activeJob).addClass(SUCCESS_CLASS);
+    $(MSG_1_ID).html("Permissions fixed");
     hideModal();
     setTimeout(
         function () {
@@ -135,7 +135,7 @@ function processFailedReturn() {
     $("#message3").removeClass("d-none");
     $("#message1").addClass("d-none");
     $("#message2").addClass("d-none");
-    $("#exampleModal").modal("toggle");
+    $(MODEL_ID).modal("toggle");
     setTimeout(
         function () {
             $("#message3").addClass("d-none");
@@ -163,7 +163,7 @@ function proccessReturn(data, addJobItem) {
                 switchFixPerms();
                 break;
             default:
-                $("#exampleModal").modal("toggle");
+                $(MODEL_ID).modal("toggle");
                 break;
         }
     } else {
@@ -178,15 +178,15 @@ function checkHref(addJobItem) {
             "<div class=\"spinner-border\" role=\"status\"><span class=\"sr-only\">Loading...</span></div></div>");
         if (actionType === "search") {
             console.log("searching");
-            console.log("q=" + $("#searchquery").val());
-            hrrref = hrrref + $("#searchquery").val();
+            console.log("q=" + $(SEARCH_BOX_ID).val());
+            hrrref = hrrref + $(SEARCH_BOX_ID).val();
             console.log("href=" + hrrref);
         }
         if (hrrref === "entryWarn") {
             setCookie("understands", "yes", 66);
-            $("#exampleModal").modal("toggle");
-            $("#save-get-success").removeClass("d-none");
-            $("#save-get-failed").removeClass("d-none");
+            $(MODEL_ID).modal("toggle");
+            $(DB_SUCCESS_BTN_ID).removeClass("d-none");
+            $(DB_FAIL_BTN_ID).removeClass("d-none");
             hrrref = "";
         }
         $.get(hrrref, function (data) {
@@ -204,22 +204,22 @@ function checkHref(addJobItem) {
 function fetchJobs(getJobsHREF) {
     // Add the spinner to let them know we are loading
     console.log(getJobsHREF)
-    $("#exampleModal").modal("show");
-    $(".modal-title").text("Loading...");
+    $(MODEL_ID).modal("show");
+    $(MODAL_TITLE).text("Loading...");
     $(".modal-body").html("");
     $(".modal-body").append("<div class=\"d-flex justify-content-center\"><div class=\"spinner-border\" role=\"status\"><span class=\"sr-only\">Loading...</span></div></div>");
     $.get(getJobsHREF, function (data) {
         if (data.success === true) {
-            $(".card-deck").html("");
+            $(CARD_DECK).html("");
             const size = Object.keys(data.results).length;
             if (size > 0) {
                 $.each(data.results, function (_index, value) {
-                    $(".card-deck").append(addJobItem(value));
+                    $(CARD_DECK).append(addJobItem(value));
                 });
             } else {
-                $("#message1 .alert-heading").html("I couldn't find any results matching that title");
+                $(MSG_1_ID).html("I couldn't find any results matching that title");
                 $("#message1").removeClass("d-none");
-                $("#exampleModal").modal("toggle");
+                $(MODEL_ID).modal("toggle");
             }
             setTimeout(
                 function () {
@@ -234,7 +234,7 @@ function fetchJobs(getJobsHREF) {
 
 
 function triggerSearchKeyPress() {
-    $("#searchquery").on("keydown", function (event) {
+    $(SEARCH_BOX_ID).on("keydown", function (event) {
         if (event.which === 13) {
             $("#save-yes").click();
         }
@@ -244,12 +244,12 @@ function triggerSearchKeyPress() {
 $(document).ready(function () {
     //Check if user is new
     checkNewUser(checkCookie());
-    $("#save-get-success").bind("click", function () {
+    $(DB_SUCCESS_BTN_ID).bind("click", function () {
         hrrref = "/json?mode=getsuccessful";
         // TODO hide yes/no buttons
         fetchJobs(hrrref);
     });
-    $("#save-get-failed").bind("click", function () {
+    $(DB_FAIL_BTN_ID).bind("click", function () {
         hrrref = "/json?mode=getfailed";
         // TODO hide yes/no buttons
         fetchJobs(hrrref);
@@ -261,7 +261,7 @@ $(document).ready(function () {
         if ($("input#searchquery").length) {
             const searchQuery = $("input#searchquery").val().length;
             if (searchQuery < 3) {
-                $("#searchquery").addClass("is-invalid");
+                $(SEARCH_BOX_ID).addClass("is-invalid");
                 return false;
             }
         }
@@ -275,11 +275,11 @@ $(document).ready(function () {
             return false;
         } else {
             console.log("user shouldn't be here...");
-            $("#exampleModal").modal("toggle");
+            $(MODEL_ID).modal("toggle");
         }
         return true;
     });
-    $("#exampleModal").on("show.bs.modal", function (event) {
+    $(MODEL_ID).on("show.bs.modal", function (event) {
         const button = $(event.relatedTarget); // Button that triggered the modal
         actionType = button.data("type"); // Extract info from data-* attributes
         hrrref = button.data("href");

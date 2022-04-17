@@ -28,7 +28,7 @@ $(document).ready(function () {
                 if (data.success && data.mode === "abandon") {
                     $("#id" + activeJob).remove();
                     $("#message1 .alert-heading").html("Job was successfully abandoned");
-                    $("#exampleModal").modal("toggle");
+                    $(MODEL_ID).modal("toggle");
                     $("#message1").removeClass("d-none");
                     setTimeout(
                         function () {
@@ -41,9 +41,9 @@ $(document).ready(function () {
         }
     });
     $("#save-no").bind("click", function () {
-            $("#exampleModal").modal("toggle");
+            $(MODEL_ID).modal("toggle");
     });
-    $("#exampleModal").on("show.bs.modal", function (event) {
+    $(MODEL_ID).on("show.bs.modal", function (event) {
         const button = $(event.relatedTarget); // Button that triggered the modal
         actionType = button.data("type"); // Extract info from data-* attributes
         hrrref = button.data("href");
@@ -201,7 +201,6 @@ function checkActiveJobs(data, serverIndex) {
             }
         });
     });
-    return true;
 }
 
 /**

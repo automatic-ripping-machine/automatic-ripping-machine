@@ -4,6 +4,16 @@
 /* jshint node: true */
 /* jshint strict: false */
 
+const MODEL_ID = "#exampleModal";
+const DB_SUCCESS_BTN_ID = "#save-get-success";
+const DB_FAIL_BTN_ID = "#save-get-failed";
+const MSG_1_ID = "#message1 .alert-heading";
+const SEARCH_BOX_ID = "#searchquery";
+const MODAL_TITLE = ".modal-title";
+const CARD_DECK = ".card-deck";
+const SUCCESS_CLASS = "alert-success";
+
+
 function getRipperName(job, idsplit) {
     let ripperName;
     if (job.ripper) {
