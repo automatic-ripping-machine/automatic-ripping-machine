@@ -166,3 +166,4 @@ function hideModal() {
     $('#message2').addClass('d-none');
     $('#message3').addClass('d-none');
 }
+

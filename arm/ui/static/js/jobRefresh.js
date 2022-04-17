@@ -85,11 +85,11 @@ function updateProgress(job, oldJob) {
 /**
  * Function to check and update the job values
  * @param {jQuery} item    Dom item to update
- * @param {Class} job    Current job
+ * @param {Class} _job    Current job
  * @param {String} keyString    String that pairs with config item for display purposes
  * @param itemContents    item of job class to update
  */
-function updateContents(item, job, keyString, itemContents) {
+function updateContents(item, _job, keyString, itemContents) {
     if(item[0] === undefined){
         console.log(item)
         return false;

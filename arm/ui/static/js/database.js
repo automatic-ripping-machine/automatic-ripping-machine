@@ -125,6 +125,10 @@ function switchFixPerms() {
     );
 }
 
+/**
+ * In the event of a failed request warn the user and then hide the
+ * messages after a timeout
+ */
 function processFailedReturn() {
     $("#message3").removeClass("d-none");
     $("#message1").addClass("d-none");
@@ -191,79 +195,49 @@ function checkHref(addJobItem) {
     }
 }
 
+/**
+ * Function to get jobs (success/fail buttons) from the arm api
+ * @param hrrref link to the json api
+ */
+function fetchJobs(hrrref) {
+    // Add the spinner to let them know we are loading
+    $("#exampleModal").modal("show");
+    $(".modal-title").text("Loading...");
+    $(".modal-body").html("");
+    $(".modal-body").append("<div class=\"d-flex justify-content-center\"><div class=\"spinner-border\" role=\"status\"><span class=\"sr-only\">Loading...</span></div></div>");
+    $.get(hrrref, function (data) {
+        if (data.success === true) {
+            $(".card-deck").html("");
+            let size = Object.keys(data.results).length;
+            if (size > 0) {
+                $.each(data.results, function (_index, value) {
+                    $(".card-deck").append(addJobItem(value));
+                });
+            } else {
+                $("#message1 .alert-heading").html("I couldn't find any results matching that title");
+                $("#message1").removeClass("d-none");
+                $("#exampleModal").modal("toggle");
+            }
+            setTimeout(function () {$("#exampleModal").modal("hide");}, 2000);
+        } else {
+            hideModal();
+        }
+    }, "json");
+}
+
 
 $(document).ready(function () {
     //Check if user is new
     checkNewUser(checkCookie());
     $("#save-get-success").bind("click", function () {
-        // TODO hide yes/no buttons
-        // Add the spinner to let them know we are loading
-        $("#exampleModal").modal("show");
-        $(".modal-title").text("Loading...");
-        $(".modal-body").html("");
-        $(".modal-body").append("<div class=\"d-flex justify-content-center\">" +
-            "<div class=\"spinner-border\" role=\"status\"><span class=\"sr-only\">Loading...</span></div></div>");
         hrrref = "/json?mode=getsuccessful";
-        $.get(hrrref, function (data) {
-            if (data.success === true) {
-                $(".card-deck").html("");
-                let size = Object.keys(data.results).length;
-                console.log("length = " + size);
-                if (size > 0) {
-                    $.each(data.results, function (_index, value) {
-                        $(".card-deck").append(addJobItem(value));
-                    });
-                    console.log(data);
-                } else {
-                    $("#message1 .alert-heading").html("I couldn't find any results matching that title");
-                    $("#message1").removeClass("d-none");
-                    $("#exampleModal").modal("toggle");
-                }
-                setTimeout(
-                    function () {
-                        $("#exampleModal").modal("hide");
-                        }, 2000
-                );
-            } else {
-                hideModal();
-            }
-        }, "json");
+        // TODO hide yes/no buttons
+        fetchJobs(hrrref);
     });
     $("#save-get-failed").bind("click", function () {
-        // TODO hide yes/no buttons
-        // Add the spinner to let them know we are loading
-        $("#exampleModal").modal("show");
-        $(".modal-title").text("Loading...");
-        $(".modal-body").html("");
-        $(".modal-body").append("<div class=\"d-flex justify-content-center\">" +
-            "<div class=\"spinner-border\" role=\"status\"><span class=\"sr-only\">Loading...</span> </div></div>");
         hrrref = "/json?mode=getfailed";
-        $.get(hrrref, function (data) {
-            if (data.success === true) {
-                $(".card-deck").html("");
-                let size = Object.keys(data.results).length;
-                console.log("length = " + size);
-                if (size > 0) {
-                    $.each(data.results, function (_index, value) {
-                        z = addJobItem(value);
-                        $(".card-deck").append(z);
-                    });
-                    console.log(data);
-                } else {
-                    $("#message1 .alert-heading").html("I couldn't find any results for failed jobs");
-                    $("#message1").removeClass("d-none");
-                }
-            } else {
-                hideModal();
-            }
-            // Need to set as timeout because modal shows too slow for the ajax request to trigger its hide
-            setTimeout(
-                function () {
-                    $("#exampleModal").modal("hide");
-                },
-                3000
-            );
-        }, "json");
+        // TODO hide yes/no buttons
+        fetchJobs(hrrref);
     });
     $("#searchquery").on("keydown", function (event) {
         if (event.which === 13) {
