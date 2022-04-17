@@ -347,19 +347,27 @@ def fix_permissions(j_id):
     ARM can sometimes have issues with changing the file owner, we can use the fact ARMui is run
     as a service to fix permissions.
     """
+    # Use set_media_owner to keep complexity low
+    def set_media_owner(dirpath, cur_dir, uid, gid):
+        if job.config.SET_MEDIA_OWNER:
+            os.chown(os.path.join(dirpath, cur_dir), uid, gid)
     # Validate job is valid
     job_id_validator(j_id)
     job = models.Job.query.get(j_id)
     if not job:
         raise TypeError("Job Has Been Deleted From The Database")
-    # Check logfile still exists
-    validate_logfile(job.logfile, "true", Path(os.path.join(cfg['LOGPATH'], job.logfile)))
-    # Find the correct path to use for fixing perms
-    directory_to_traverse = find_folder_in_log(os.path.join(cfg['LOGPATH'], job.logfile),
-                                               os.path.join(job.config.COMPLETED_PATH,
-                                                            f"{job.title} ({job.year})"))
+    # If there is no path saved in the job
+    if not job.path:
+        # Check logfile still exists
+        validate_logfile(job.logfile, "true", Path(os.path.join(cfg['LOGPATH'], job.logfile)))
+        # Find the correct path to use for fixing perms
+        directory_to_traverse = find_folder_in_log(os.path.join(cfg['LOGPATH'], job.logfile),
+                                                   os.path.join(job.config.COMPLETED_PATH,
+                                                                f"{job.title} ({job.year})"))
+    else:
+        directory_to_traverse = job.path
     # Build return json dict
-    return_json = {"success": False, "mode": "fixperms", "folder": str(directory_to_traverse)}
+    return_json = {"success": False, "mode": "fixperms", "folder": str(directory_to_traverse), "path": str(job.path)}
 
     try:
         corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
@@ -378,14 +386,12 @@ def fix_permissions(j_id):
             for cur_dir in l_directories:
                 app.logger.debug(f"Setting path: {cur_dir} to permissions value: {job.config.CHMOD_VALUE}")
                 os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
-                if job.config.SET_MEDIA_OWNER:
-                    os.chown(os.path.join(dirpath, cur_dir), uid, gid)
+                set_media_owner(dirpath, cur_dir, uid, gid)
             # Set permissions on each file
             for cur_file in l_files:
                 app.logger.debug(f"Setting file: {cur_file} to permissions value: {job.config.CHMOD_VALUE}")
                 os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
-                if job.config.SET_MEDIA_OWNER:
-                    os.chown(os.path.join(dirpath, cur_file), uid, gid)
+                set_media_owner(dirpath, cur_file, uid, gid)
         return_json["success"] = True
     except Exception as error:
         app.logger.error(f"Permissions setting failed as: {error}")

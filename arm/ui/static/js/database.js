@@ -203,7 +203,6 @@ function checkHref(addJobItem) {
  */
 function fetchJobs(getJobsHREF) {
     // Add the spinner to let them know we are loading
-    console.log(getJobsHREF)
     $(MODEL_ID).modal("show");
     $(MODAL_TITLE).text("Loading...");
     $(".modal-body").html("");
@@ -219,7 +218,6 @@ function fetchJobs(getJobsHREF) {
             } else {
                 $(MSG_1_ID).html("I couldn't find any results matching that title");
                 $("#message1").removeClass("d-none");
-                $(MODEL_ID).modal("toggle");
             }
             setTimeout(
                 function () {
@@ -246,11 +244,13 @@ $(document).ready(function () {
     checkNewUser(checkCookie());
     $(DB_SUCCESS_BTN_ID).bind("click", function () {
         hrrref = "/json?mode=getsuccessful";
+        console.log(hrrref)
         // TODO hide yes/no buttons
         fetchJobs(hrrref);
     });
     $(DB_FAIL_BTN_ID).bind("click", function () {
         hrrref = "/json?mode=getfailed";
+        console.log(hrrref)
         // TODO hide yes/no buttons
         fetchJobs(hrrref);
     });

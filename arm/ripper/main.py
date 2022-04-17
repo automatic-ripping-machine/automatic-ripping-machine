@@ -218,9 +218,8 @@ def main(logfile, job):
         job.path = final_directory
         job.status = "transcoding"
         db.session.commit()
-        if job.disctype == "bluray" and cfg["RIPMETHOD"] == "mkv":
-            handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
-        elif job.disctype == "dvd" and (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv"):
+        if job.disctype == "bluray" and cfg["RIPMETHOD"] == "mkv" \
+                or job.disctype == "dvd" and (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv"):
             handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
         elif job.video_type == "movie" and cfg["MAINFEATURE"] and job.hasnicetitle:
             handbrake.handbrake_main_feature(hb_in_path, hb_out_path, logfile, job)
@@ -244,9 +243,11 @@ def main(logfile, job):
                 if tracks.count() == 1:
                     utils.move_files(hb_out_path, track.filename, job, True)
                 else:
+                    # If source is MakeMKV we know the mainfeature will be wrong let skip_transcode_movie handle it
                     if track.source == "MakeMKV":
                         skip_transcode_movie(os.listdir(hb_out_path), job, hb_out_path)
                         break
+                    # If HandBrake was used we can pass track.main_feature
                     utils.move_files(hb_out_path, track.filename, job, track.main_feature)
 
         # Movie the movie poster if we have one
@@ -255,21 +256,8 @@ def main(logfile, job):
         utils.scan_emby()
         # Set permissions if arm.yaml requires it
         utils.set_permissions(final_directory)
-
-        # Clean up Blu-ray backup
-        if cfg["DELRAWFILES"]:
-            raw_list = [hb_in_path, hb_out_path, mkvoutpath]
-            for raw_folder in raw_list:
-                try:
-                    logging.info(f"Removing raw path - {raw_folder}")
-                    if raw_folder and raw_folder != final_directory:
-                        shutil.rmtree(raw_folder)
-                except UnboundLocalError as error:
-                    logging.debug(f"No raw files found to delete in {raw_folder}- {error}")
-                except OSError as error:
-                    logging.debug(f"No raw files found to delete in {raw_folder} - {error}")
-                except TypeError as error:
-                    logging.debug(f"No raw files found to delete in {raw_folder} - {error}")
+        # If set in the arm.yaml remove the raw files
+        utils.delete_raw_files(hb_in_path, hb_out_path, mkvoutpath)
         # report errors if any
         if cfg["NOTIFY_TRANSCODE"]:
             if job.errors:
@@ -315,14 +303,16 @@ if __name__ == "__main__":
     devpath = "/dev/" + args.devpath
     job = Job(devpath)
     logfile = logger.setup_logging(job)
+    # Exit if drive isn't ready
     if utils.get_cdrom_status(devpath) != 4:
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
-    # Dont put out anything if we are using the empty.log or NAS_
-    if logfile.find("empty.log") != -1 or re.search("NAS_[0-9].?log", logfile) is not None:
+    # Don't put out anything if we are using the empty.log NAS_[0-9].log or NAS1_[0-9].log
+    if logfile.find("empty.log") != -1 or re.search(r"(NAS|NAS1)_\d+\.log", logfile) is not None:
         sys.exit()
-
+    # Check the db is current, if not update it
     utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
+    # Sometimes drives trigger twice this stops multi runs from 1 udev trigger
     utils.duplicate_run_check(devpath)
 
     logging.info(f"Starting ARM processing at {datetime.datetime.now()}")
@@ -333,6 +323,7 @@ if __name__ == "__main__":
     utils.database_adder(job)
 
     time.sleep(1)
+    # Add the job.config to db
     config = Config(cfg, job_id=job.job_id)
     utils.database_adder(config)
 
@@ -343,8 +334,10 @@ if __name__ == "__main__":
     job.arm_version = version
     logging.info(("Python version: " + sys.version).replace('\n', ""))
     logging.info(f"User is: {getpass.getuser()}")
+    # Delete old log files
     logger.clean_up_logs(cfg["LOGPATH"], cfg["LOGLIFE"])
     logging.info(f"Job: {job.label}")  # This will sometimes be none
+    # Check for zombie jobs and update status to failed
     utils.clean_old_jobs()
     log_udev_params(devpath)
 
@@ -355,13 +348,14 @@ if __name__ == "__main__":
         utils.notify(job, NOTIFY_TITLE, "ARM encountered a fatal error processing "
                                         f"{job.title}. Check the logs for more details. {error}")
         job.status = "fail"
+        job.errors = str(error)
         job.eject()
     else:
         job.status = "success"
     finally:
         job.stop_time = datetime.datetime.now()
-        joblength = job.stop_time - job.start_time
-        minutes, seconds = divmod(joblength.seconds + joblength.days * 86400, 60)
+        job_length = job.stop_time - job.start_time
+        minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
         hours, minutes = divmod(minutes, 60)
         job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
         db.session.commit()

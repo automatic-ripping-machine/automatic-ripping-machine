@@ -86,23 +86,6 @@ def notify_entry(job):
         sys.exit()
 
 
-def scan_emby():
-    """Trigger a media scan on Emby"""
-
-    if cfg["EMBY_REFRESH"]:
-        logging.info("Sending Emby library scan request")
-        url = f"http://{cfg['EMBY_SERVER']}:{cfg['EMBY_PORT']}/Library/Refresh?api_key={cfg['EMBY_API_KEY']}"
-        try:
-            req = requests.post(url)
-            if req.status_code > 299:
-                req.raise_for_status()
-            logging.info("Emby Library Scan request successful")
-        except requests.exceptions.HTTPError:
-            logging.error(f"Emby Library Scan request failed with status code: {req.status_code}")
-    else:
-        logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
-
-
 def sleep_check_process(process_str, transcode_limit):
     """
     New function to check for max_transcode from cfg file and force obey limits\n
@@ -158,6 +141,7 @@ def fix_job_title(job):
     return job_title
 
 
+#  ############## Start of post processing functions
 def move_files(base_path, filename, job, ismainfeature=False):
     """
     Move files from RAW_PATH or TRANSCODE_PATH to final media directory\n
@@ -215,6 +199,44 @@ def move_movie_poster(final_directory, hb_out_path):
                 logging.error(f"Unable to move poster.png to '{final_directory}' - Error: {poster_error}")
         else:
             logging.info("File: poster.png already exists.  Not moving.")
+
+
+def scan_emby():
+    """Trigger a media scan on Emby"""
+
+    if cfg["EMBY_REFRESH"]:
+        logging.info("Sending Emby library scan request")
+        url = f"http://{cfg['EMBY_SERVER']}:{cfg['EMBY_PORT']}/Library/Refresh?api_key={cfg['EMBY_API_KEY']}"
+        try:
+            req = requests.post(url)
+            if req.status_code > 299:
+                req.raise_for_status()
+            logging.info("Emby Library Scan request successful")
+        except requests.exceptions.HTTPError:
+            logging.error(f"Emby Library Scan request failed with status code: {req.status_code}")
+    else:
+        logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
+
+
+def delete_raw_files(hb_in_path, hb_out_path, mkvoutpath):
+    """
+    Delete the raw folders from arm after job has finished
+    """
+    if cfg["DELRAWFILES"]:
+        raw_list = [hb_in_path, hb_out_path, mkvoutpath]
+        for raw_folder in raw_list:
+            try:
+                logging.info(f"Removing raw path - {raw_folder}")
+                shutil.rmtree(raw_folder)
+            except UnboundLocalError as error:
+                logging.debug(f"No raw files found to delete in {raw_folder}- {error}")
+            except OSError as error:
+                logging.debug(f"No raw files found to delete in {raw_folder} - {error}")
+            except TypeError as error:
+                logging.debug(f"No raw files found to delete in {raw_folder} - {error}")
+
+
+#  ############## End of post processing functions
 
 
 def make_dir(path):
@@ -598,7 +620,7 @@ def database_adder(obj_class):
 
 def clean_old_jobs():
     """
-    Check for running jobs, update failed jobs that are no longer running
+    Check for running jobs, update failed jobs that are no longer running\n
     :return: None
     """
     active_jobs = db.session.query(models.Job).filter(models.Job.status.notin_(['fail', 'success'])).all()
@@ -629,14 +651,14 @@ def job_dupe_check(job):
     results = {}
     i = 0
     for j in previous_rips:
-        logging.debug(f"job obj= {j.get_d()}")
+        # logging.debug(f"job obj= {j.get_d()}")
         job_dict = j.get_d().items()
         results[i] = {}
         for key, value in iter(job_dict):
             results[i][str(key)] = str(value)
         i += 1
 
-    logging.debug(f"previous rips = {results}")
+    # logging.debug(f"previous rips = {results}")
     if results:
         logging.debug(f"we have {len(results)} jobs")
         # This might need some tweaks to because of title/year manual

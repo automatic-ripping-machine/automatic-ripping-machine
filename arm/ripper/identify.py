@@ -197,7 +197,7 @@ def update_job(job, search_results):
     :param search_results: json returned from metadata provider
     :return: None if error
     """
-    logging.debug(f"s =======  {search_results}")
+    # logging.debug(f"s =======  {search_results}")
     if 'Search' not in search_results:
         return None
     new_year = search_results['Search'][0]['Year']
