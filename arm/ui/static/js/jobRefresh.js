@@ -8,6 +8,8 @@
 let hrrref = "";
 let activeJob = null;
 let actionType = null;
+var activeServers = [];
+var activeJobs = [];
 
 $(document).ready(function () {
     pushChildServers();
@@ -42,7 +44,7 @@ $(document).ready(function () {
             $("#exampleModal").modal("toggle");
     });
     $("#exampleModal").on("show.bs.modal", function (event) {
-        let button = $(event.relatedTarget); // Button that triggered the modal
+        const button = $(event.relatedTarget); // Button that triggered the modal
         actionType = button.data("type"); // Extract info from data-* attributes
         hrrref = button.data("href");
         activeJob = button.data("jobid");
@@ -57,17 +59,17 @@ $(document).ready(function () {
 * @param    {Class} oldJob    Copy of old job
 */
 function updateProgress(job, oldJob) {
-    let subProgressBar = "<div class=\"progress-bar progress-bar-striped progress-bar-animated\" role=\"progressbar\" aria-valuenow=\"" +
+    const subProgressBar = "<div class=\"progress-bar progress-bar-striped progress-bar-animated\" role=\"progressbar\" aria-valuenow=\"" +
                          job.progress_round + "\" aria-valuemin=\"0\" aria-valuemax=\"100\" style=\"width: " + job.progress_round + "%\">" +
                          "<small class=\"justify-content-center d-flex position-absolute w-100\">" + job.progress + "%</small></div></div>";
-    let mainProgressBar = "<div id=\"jobId" + job.job_id + "_stage\"><b>Stage: </b>" + job.stage + "</div>" +
+    const mainProgressBar = "<div id=\"jobId" + job.job_id + "_stage\"><b>Stage: </b>" + job.stage + "</div>" +
                          "<div id=\"jobId" + job.job_id + "_progress\" >" +
                          "<div class=\"progress\">" + subProgressBar + "</div>" +
                          "<div id=\"jobId" + job.job_id + "_eta\"><b>ETA: </b>" + job.eta + "</div>";
-    let progressSection = $("#jobId" + job.job_id + "_progress_section");
-    let stage = $("#jobId" + job.job_id + "_stage");
-    let eta = $("#jobId" + job.job_id + "_eta");
-    let progressBarDiv = $("#jobId" + job.job_id + "_progress")
+    const progressSection = $("#jobId" + job.job_id + "_progress_section");
+    const stage = $("#jobId" + job.job_id + "_stage");
+    const eta = $("#jobId" + job.job_id + "_eta");
+    const progressBarDiv = $("#jobId" + job.job_id + "_progress")
     if (job.status === "transcoding" || job.status === "ripping" && job.stage !== "" && job.progress) {
         // Catch if the progress section is empty and populate it
         if (progressSection[0].innerHTML === "" || !progressBarDiv.length) {
@@ -109,9 +111,9 @@ function updateContents(item, _job, keyString, itemContents) {
  * @param {Class} job     Fresh job pulled from api
  */
 function updateJobItem(oldJob, job) {
-    let cardHeader = $("#jobId" + job.job_id + "_header");
-    let posterUrl = $("#jobId" + job.job_id + "_poster_url");
-    let status = $("#jobId" + job.job_id + "_status");
+    const cardHeader = $("#jobId" + job.job_id + "_header");
+    const posterUrl = $("#jobId" + job.job_id + "_poster_url");
+    const status = $("#jobId" + job.job_id + "_status");
     // Update card header ( Title (Year) )
     if (cardHeader[0].innerText !== job.title + " (" + job.year + ")"){
         cardHeader[0].innerText = job.title + " (" + job.year + ")";
@@ -168,7 +170,7 @@ function refreshJobsComplete() {
         }
         return (a.id < b.id ? -1 : 1);
     }).each(function () {
-        let elem = $(this);
+        const elem = $(this);
         elem.remove();
         $(elem).appendTo("#joblist");
     });
@@ -251,8 +253,8 @@ function refreshJobs() {
  */
 function pushChildServers() {
     activeServers.push(location.origin);
-    let childs = $("#children");
-    let children = childs.text().trim();
+    const childs = $("#children");
+    const children = childs.text().trim();
     if (children) {
         var childLinks = [];
         var children_arr = children.split(",");
@@ -264,6 +266,4 @@ function pushChildServers() {
     }
 }
 
-var activeServers = [];
-var activeJobs = [];
 const intervalId = window.setInterval(refreshJobs, 5000);

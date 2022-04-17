@@ -28,15 +28,15 @@ function checkNewUser(seen) {
 
 //Simple function to check if we have already agreed
 function checkCookie() {
-    let understands = getCookie("understands");
+    const understands = getCookie("understands");
     return understands !== "" && understands !== null;
 }
 
 //Get only the understands cookie
 function getCookie(cname) {
-    let name = cname + "=";
-    let decodedCookie = decodeURIComponent(document.cookie);
-    let ca = decodedCookie.split(";");
+    const name = cname + "=";
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(";");
     for (let c of ca) {
         while (c.charAt(0) === " ") {
             c = c.substring(1);
@@ -91,7 +91,7 @@ function switchLogFile(data) {
 function switchSearch(data, addJobItem) {
     $(this).find(".modal-title").text("searching....");
     $(".card-deck").html("");
-    let size = Object.keys(data.results).length;
+    const size = Object.keys(data.results).length;
     console.log("length = " + size);
     if (size > 0) {
         $.each(data.results, function (_index, value) {
@@ -117,7 +117,12 @@ function switchFixPerms() {
     $("#jobId" + activeJob).addClass("alert-success");
     $("#message1 .alert-heading").html("Permissions fixed");
     hideModal();
-    setTimeout(function () {$("#message1").addClass("d-none");}, 5000);
+    setTimeout(
+        function () {
+            $("#message1").addClass("d-none");
+            },
+        5000
+    );
 }
 
 /**
@@ -204,7 +209,7 @@ function fetchJobs(getJobsHREF) {
     $.get(getJobsHREF, function (data) {
         if (data.success === true) {
             $(".card-deck").html("");
-            let size = Object.keys(data.results).length;
+            const size = Object.keys(data.results).length;
             if (size > 0) {
                 $.each(data.results, function (_index, value) {
                     $(".card-deck").append(addJobItem(value));
@@ -214,7 +219,12 @@ function fetchJobs(getJobsHREF) {
                 $("#message1").removeClass("d-none");
                 $("#exampleModal").modal("toggle");
             }
-            setTimeout(function () {$("#exampleModal").modal("hide");}, 2000);
+            setTimeout(
+                function () {
+                    $("#message1").addClass("d-none");
+                    },
+                5000
+            );
         } else {
             hideModal();
         }
@@ -248,7 +258,7 @@ $(document).ready(function () {
         console.log(hrrref);
         // Check we have the search query & it must be more than 3 chars
         if ($("input#searchquery").length) {
-            let search_query = $("input#searchquery").val().length;
+            const search_query = $("input#searchquery").val().length;
             if (search_query < 3) {
                 $("#searchquery").addClass("is-invalid");
                 return false;
@@ -267,7 +277,7 @@ $(document).ready(function () {
         }
     });
     $("#exampleModal").on("show.bs.modal", function (event) {
-        let button = $(event.relatedTarget); // Button that triggered the modal
+        const button = $(event.relatedTarget); // Button that triggered the modal
         actionType = button.data("type"); // Extract info from data-* attributes
         hrrref = button.data("href");
         activeJob = button.data("jobid");

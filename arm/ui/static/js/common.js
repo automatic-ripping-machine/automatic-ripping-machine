@@ -20,7 +20,7 @@ function getRipperName(job, idsplit) {
 
 function addJobItem(job) {
     // Local server or remote
-    let idsplit = job.job_id.split("_");
+    const idsplit = job.job_id.split("_");
     console.log(idsplit[1] + " - " + idsplit[0] )
     //Start creating the card with job id and header title
     let x = "<div class=\"col-md-4\" id=\"jobId" + job.job_id + "\"><div class=\"card mb-3  mx-auto\" style=\"min-height: 420px;\">";
@@ -46,14 +46,15 @@ function transcodingCheck(job) {
         x += "<div id=\"jobId" + job.job_id + "_stage\"><b>Stage: </b>" + job.stage + "</div>";
         x += "<div id=\"jobId" + job.job_id + "_progress\" >";
         x += "<div class=\"progress\">" +
-            "<div class=\"progress-bar progress-bar-striped progress-bar-animated\" role=\"progressbar\" aria-valuenow=\"" + job.progress_round + "\" aria-valuemin=\"0\" aria-valuemax=\"100\" style=\"width: " + job.progress_round + "%\">" +
+            "<div class=\"progress-bar progress-bar-striped progress-bar-animated\" role=\"progressbar\" aria-valuenow=\"" +
+            job.progress_round + "\" aria-valuemin=\"0\" aria-valuemax=\"100\" style=\"width: " + job.progress_round + "%\">" +
             "<small class=\"justify-content-center d-flex position-absolute w-100\">" + job.progress + "%</small>" +
             "</div></div></div>" +
             "<div id=\"jobId" + job.job_id + "_eta\"><b>ETA: </b>" + job.eta + "</div>";
     }
     // YYYY-MM-DD
-    let d  = new Date(Date.parse(job.start_time));
-    let datestring = d.getFullYear()  + "-" + (d.getMonth()+1) + "-" + d.getDate()
+    const d  = new Date(Date.parse(job.start_time));
+    const datestring = d.getFullYear()  + "-" + (d.getMonth()+1) + "-" + d.getDate()
 
     x += "<strong>Start Date:</strong> " + datestring + "<br>";
     x += "<strong>Start Time:</strong> "+ d.getHours().toString().padStart(2, '0') + ":" + d.getMinutes().toString().padStart(2, '0') + "<br>";
@@ -97,7 +98,8 @@ function buildMiddleSection(job) {
     x += "<div id=\"jobId" + job.job_id + "_year\"><b>Year: </b>" + job.year + "</div>";
     x += "<div id=\"jobId" + job.job_id + "_video_type\"><b>Type: </b>" + job.video_type + "</div>";
     x += "<div id=\"jobId" + job.job_id + "_devpath\"><b>Device: </b>" + job.devpath + "</div>";
-    x += "<div><b>Status: </b><img id=\"jobId" + job.job_id + "_status\" src=\"static/img/" + job.status + ".png\" height=\"20px\" alt=\"" + job.status + "\" title=\"" + job.status + "\"></div>";
+    x += "<div><b>Status: </b><img id=\"jobId" + job.job_id + "_status\" src=\"static/img/" + job.status +
+        ".png\" height=\"20px\" alt=\"" + job.status + "\" title=\"" + job.status + "\"></div>";
     x += "<div id=\"jobId" + job.job_id + "_progress_section\">" + transcodingCheck(job) + "</div></div></div>";
     return x;
 }
@@ -123,10 +125,12 @@ function buildRightSection(job, idsplit) {
     // Section 3 (Right Bottom) Contains Buttons for arm json api
     x += "<div class=\"card-body px-2 py-1\">" +
         "<div class=\"btn-group-vertical\" role=\"group\" aria-label=\"buttons\" " + (idsplit[0] !== "0" ? "style=\"display: none;\"" : "") + ">" +
-        "<button type=\"button\" class=\"btn btn-primary\" data-toggle=\"modal\" data-target=\"#exampleModal\" data-type=\"abandon\" data-jobid=\"" + idsplit[1] + "\" data-href=\"json?job=" + idsplit[1] + "&mode=abandon\">Abandon Job</button>" +
+        "<button type=\"button\" class=\"btn btn-primary\" data-toggle=\"modal\" data-target=\"#exampleModal\" data-type=\"abandon\" data-jobid=\"" +
+        idsplit[1] + "\" data-href=\"json?job=" + idsplit[1] + "&mode=abandon\">Abandon Job</button>" +
         "<a href=\"logs?logfile=" + job.logfile + "&mode=full\" class=\"btn btn-primary\">View logfile</a>";
     x += musicCheck(job, idsplit);
-    x += "<button type=\"button\" class=\"btn btn-primary\" data-toggle=\"modal\" data-target=\"#exampleModal\" data-type=\"fixperms\" data-jobid=\"" + idsplit[1]+ "\" data-href=\"json?mode=fixperms&job=" + idsplit[1] + "\">Fix Permissions</button>";
+    x += "<button type=\"button\" class=\"btn btn-primary\" data-toggle=\"modal\" data-target=\"#exampleModal\" data-type=\"fixperms\" data-jobid=\"" +
+        idsplit[1]+ "\" data-href=\"json?mode=fixperms&job=" + idsplit[1] + "\">Fix Permissions</button>";
     return x;
 }
 
