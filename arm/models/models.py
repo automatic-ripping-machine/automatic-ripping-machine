@@ -204,9 +204,10 @@ class Job(db.Model):
         if not self.ejected:
             self.ejected = True
             try:
-                if os.system("umount " + self.devpath):
+                # This might always return true
+                if bool(os.system("umount " + self.devpath)):
                     logging.debug(f"Unmounted disc {self.devpath}")
-                if os.system("eject " + self.devpath):
+                if bool(os.system("eject" + self.devpath)):
                     logging.debug(f"Ejected disc {self.devpath}")
                 else:
                     logging.debug(f"Failed to eject {self.devpath}")

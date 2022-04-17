@@ -164,10 +164,11 @@ def clean_for_filename(string):
 
 
 def getsize(path):
-    st = os.statvfs(path)
-    free = (st.f_bavail * st.f_frsize)
-    freegb = free / 1073741824
-    return freegb
+    """Simple function to get the free space left in a path"""
+    path_stats = os.statvfs(path)
+    free = (path_stats.f_bavail * path_stats.f_frsize)
+    free_gb = free / 1073741824
+    return free_gb
 
 
 def generate_comments():
@@ -346,53 +347,67 @@ def fix_permissions(j_id):
     ARM can sometimes have issues with changing the file owner, we can use the fact ARMui is run
     as a service to fix permissions.
     """
-    # TODO add new json exception - break these checks out into a function
+    # Validate job is valid
     job_id_validator(j_id)
     job = models.Job.query.get(j_id)
     if not job:
         raise TypeError("Job Has Been Deleted From The Database")
-    job_log = os.path.join(cfg['LOGPATH'], job.logfile)
-    validate_logfile(job.logfile, "true", Path(job_log))
-    # This is kind of hacky way to get around the fact we don't save the ts variable
-    with open(job_log, 'r') as reader:
-        for line in reader.readlines():
-            failed_perms_found = re.search("Operation not permitted: '([0-9a-zA-Z()/ -]*?)'", str(line))
-            if failed_perms_found:
-                break
-    if failed_perms_found:
-        app.logger.debug(str(failed_perms_found.group(1)))
-        directory_to_traverse = failed_perms_found.group(1)
-    else:
-        app.logger.debug("not found")
-        directory_to_traverse = os.path.join(job.config.COMPLETED_PATH, str(job.title) + " (" + str(job.year) + ")")
+    # Check logfile still exists
+    validate_logfile(job.logfile, "true", Path(os.path.join(cfg['LOGPATH'], job.logfile)))
+    # Find the correct path to use for fixing perms
+    directory_to_traverse = find_folder_in_log(os.path.join(cfg['LOGPATH'], job.logfile),
+                                               os.path.join(job.config.COMPLETED_PATH,
+                                                            f"{job.title} ({job.year})"))
+    # Build return json dict
+    return_json = {"success": False, "mode": "fixperms", "folder": str(directory_to_traverse)}
+
     try:
         corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
         app.logger.info(f"Setting permissions to: {job.config.CHMOD_VALUE} on: {directory_to_traverse}")
         os.chmod(directory_to_traverse, corrected_chmod_value)
+        # If set media owner in arm.yaml was true set them as users
         if job.config.SET_MEDIA_OWNER and job.config.CHOWN_USER and job.config.CHOWN_GROUP:
             import pwd
             import grp
             uid = pwd.getpwnam(job.config.CHOWN_USER).pw_uid
             gid = grp.getgrnam(job.config.CHOWN_GROUP).gr_gid
             os.chown(directory_to_traverse, uid, gid)
-
+        # walk through each folder and file in the final directory
         for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
+            # Set permissions on each directory
             for cur_dir in l_directories:
                 app.logger.debug(f"Setting path: {cur_dir} to permissions value: {job.config.CHMOD_VALUE}")
                 os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
                 if job.config.SET_MEDIA_OWNER:
                     os.chown(os.path.join(dirpath, cur_dir), uid, gid)
+            # Set permissions on each file
             for cur_file in l_files:
                 app.logger.debug(f"Setting file: {cur_file} to permissions value: {job.config.CHMOD_VALUE}")
                 os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
                 if job.config.SET_MEDIA_OWNER:
                     os.chown(os.path.join(dirpath, cur_file), uid, gid)
-        return_json = {"success": True, "mode": "fixperms", "folder": str(directory_to_traverse)}
+        return_json["success"] = True
     except Exception as error:
-        err = f"Permissions setting failed as: {error}"
-        app.logger.error(err)
-        return_json = {"success": False, "mode": "fixperms", "Error": str(err), "ts": str(failed_perms_found)}
+        app.logger.error(f"Permissions setting failed as: {error}")
+        return_json["Error"] = str(f"Permissions setting failed as: {error}")
     return return_json
+
+
+def find_folder_in_log(job_log, default_directory):
+    """
+    This is kind of hacky way to get around the fact we don't save the ts variable
+    Opens the job logfile and searches for arm.ripper failing to set permissions\n
+
+    :param job_log: full path to job.log
+    :param default_directory: full path to the final directory prebuilt
+    :return: full path to the final directory prebuilt or found in log
+    """
+    with open(job_log, 'r') as reader:
+        for line in reader.readlines():
+            failed_perms_found = re.search("Operation not permitted: '([0-9a-zA-Z()/ -]*?)'", str(line))
+            if failed_perms_found:
+                return failed_perms_found.group(1)
+    return default_directory
 
 
 def trigger_restart():

@@ -71,7 +71,7 @@ def makemkv(logfile, job):
                   f'dev:{job.devpath} all {shlex.quote(rawpath)} --minlength={cfg["MINLENGTH"]}>> {logfile}'
             run_makemkv(cmd)
         else:
-            process_tracks(job, logfile, rawpath)
+            process_single_tracks(job, logfile, rawpath)
     else:
         logging.info("I'm confused what to do....  Passing on MakeMKV")
 
@@ -80,7 +80,7 @@ def makemkv(logfile, job):
     return rawpath
 
 
-def process_tracks(job, logfile, rawpath):
+def process_single_tracks(job, logfile, rawpath):
     """
     For processing single tracks from MakeMKV
     :param job: job object
@@ -224,27 +224,27 @@ def get_track_info(mdisc, job):
             msg_type = line_split[0]
             msg = line_split[1].split(",")
             line_track = int(msg[0])
-
+            # Total track count
             if msg_type == "TCOUNT":
                 titles = int(line_split[1].strip())
                 logging.info(f"Found {titles} titles")
                 utils.database_updater({'no_of_titles': titles}, job)
+            # Title info add track
             if msg_type == "TINFO":
                 if track != line_track:
-                    if line_track == int(0):
-                        pass
-                    else:
+                    if line_track != int(0):
+                        logging.debug(f"line track !!: {line}")
                         utils.put_track(job, track, seconds, aspect, fps, False, "MakeMKV", filename)
                     track = line_track
 
                 if msg[1] == "27":
                     filename = msg[3].replace('"', '').strip()
-
+            # Title info length ?
             if msg_type == "TINFO" and msg[1] == "9":
                 len_hms = msg[3].replace('"', '').strip()
                 hour, mins, secs = len_hms.split(':')
                 seconds = int(hour) * 3600 + int(mins) * 60 + int(secs)
-
+            # Stream info
             if msg_type == "SINFO" and msg[1] == "0":
                 if msg[2] == "20":
                     aspect = msg[4].replace('"', '').strip()

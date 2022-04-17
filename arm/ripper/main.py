@@ -108,7 +108,7 @@ def skip_transcode(job, final_directory, mkv_out_path):
         logging.info("Removing raw files")
         shutil.rmtree(mkv_out_path)
 
-    utils.set_permissions(job, final_directory)
+    utils.set_permissions(final_directory)
     utils.notify(job, NOTIFY_TITLE, str(job.title) + PROCESS_COMPLETE)
 
     logging.info("ARM processing complete")
@@ -169,11 +169,10 @@ def main(logfile, job):
     # Entry point for dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
         type_sub_folder = utils.convert_job_type(job.video_type)
-        # We need to check/construct the final path, not the transcode path
+        # We need to check/construct the final path, and the transcode path
         if job.year and job.year != "0000" and job.year != "":
             hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(type_sub_folder),
                                        f"{job.title} ({job.year})")
-            # TODO: check final directory for dupes and add _random_time create folder
             final_directory = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder),
                                            f"{job.title} ({job.year})")
         else:
@@ -181,6 +180,7 @@ def main(logfile, job):
             final_directory = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), str(job.title))
         # Check folder for already ripped jobs -> creates folder
         hb_out_path = utils.check_for_dupe_folder(have_dupes, hb_out_path, job)
+        final_directory = utils.check_for_dupe_folder(have_dupes, final_directory, job)
         # Save poster image from disc if enabled
         utils.save_disc_poster(final_directory, job)
 
@@ -254,7 +254,7 @@ def main(logfile, job):
         # Scan emby if arm.yaml requires it
         utils.scan_emby()
         # Set permissions if arm.yaml requires it
-        utils.set_permissions(job, final_directory)
+        utils.set_permissions(final_directory)
 
         # Clean up Blu-ray backup
         if cfg["DELRAWFILES"]:

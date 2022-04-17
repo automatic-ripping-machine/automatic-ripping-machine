@@ -117,12 +117,7 @@ function switchFixPerms() {
     $("#jobId" + activeJob).addClass("alert-success");
     $("#message1 .alert-heading").html("Permissions fixed");
     hideModal();
-    setTimeout(
-        function () {
-            $("#message1").addClass("d-none");
-        },
-        5000
-    );
+    setTimeout(function () {$("#message1").addClass("d-none");}, 5000);
 }
 
 /**

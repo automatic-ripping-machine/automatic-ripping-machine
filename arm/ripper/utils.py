@@ -375,10 +375,9 @@ def rip_data(job):
     return success
 
 
-def set_permissions(job, directory_to_traverse):
+def set_permissions(directory_to_traverse):
     """
 
-    :param job: job object
     :param directory_to_traverse: directory to fix permissions
     :return: Bool if fails
     """
@@ -388,24 +387,16 @@ def set_permissions(job, directory_to_traverse):
         corrected_chmod_value = int(str(cfg["CHMOD_VALUE"]), 8)
         logging.info(f"Setting permissions to: {cfg['CHMOD_VALUE']} on: {directory_to_traverse}")
         os.chmod(directory_to_traverse, corrected_chmod_value)
-        if job.config.SET_MEDIA_OWNER and job.config.CHOWN_USER and job.config.CHOWN_GROUP:
-            import pwd
-            import grp
-            uid = pwd.getpwnam(job.config.CHOWN_USER).pw_uid
-            gid = grp.getgrnam(job.config.CHOWN_GROUP).gr_gid
-            os.chown(directory_to_traverse, uid, gid)
 
         for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
             for cur_dir in l_directories:
                 logging.debug(f"Setting path: {cur_dir} to permissions value: {cfg['CHMOD_VALUE']}")
                 os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
-                if job.config.SET_MEDIA_OWNER:
-                    os.chown(os.path.join(dirpath, cur_dir), uid, gid)
+
             for cur_file in l_files:
                 logging.debug(f"Setting file: {cur_file} to permissions value: {cfg['CHMOD_VALUE']}")
                 os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
-                if job.config.SET_MEDIA_OWNER:
-                    os.chown(os.path.join(dirpath, cur_file), uid, gid)
+
         logging.info("Permissions set successfully: True")
     except Exception as error:
         logging.error(f"Permissions setting failed as: {error}")
@@ -740,7 +731,7 @@ def save_disc_poster(final_directory, job):
 def check_for_dupe_folder(have_dupes, hb_out_path, job):
     """
     Check if the folder already exists
-     if it exist lets make a new one using random numbers
+     if it exists lets make a new one using random numbers
     :param have_dupes: is this title in the local arm database
     :param hb_out_path: path to HandBrake out
     :param job: Current job
