@@ -560,7 +560,7 @@ def list_titles():
     job_id = request.args.get('job_id').strip() if request.args.get('job_id') else ''
     if job_id == "":
         app.logger.debug("list_titles - no job supplied")
-        flash("No job supplied", "danger")
+        flash(constants.NO_JOB, "danger")
         raise ValidationError
     job = models.Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
@@ -596,8 +596,8 @@ def gettitle():
         raise ValidationError("No imdb supplied")
     if job_id == "" or job_id is None:
         app.logger.debug("gettitle - no job supplied")
-        flash("No job supplied", "danger")
-        raise ValidationError("No job supplied")
+        flash(constants.NO_JOB, "danger")
+        raise ValidationError(constants.NO_JOB)
     dvd_info = ui_utils.metadata_selector("get_details", None, None, imdb_id)
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 

@@ -197,15 +197,16 @@ function checkHref(addJobItem) {
 
 /**
  * Function to get jobs (success/fail buttons) from the arm api
- * @param hrrref link to the json api
+ * @param getJobsHREF link to the json api
  */
-function fetchJobs(hrrref) {
+function fetchJobs(getJobsHREF) {
     // Add the spinner to let them know we are loading
+    console.log(getJobsHREF)
     $("#exampleModal").modal("show");
     $(".modal-title").text("Loading...");
     $(".modal-body").html("");
     $(".modal-body").append("<div class=\"d-flex justify-content-center\"><div class=\"spinner-border\" role=\"status\"><span class=\"sr-only\">Loading...</span></div></div>");
-    $.get(hrrref, function (data) {
+    $.get(getJobsHREF, function (data) {
         if (data.success === true) {
             $(".card-deck").html("");
             let size = Object.keys(data.results).length;
@@ -226,6 +227,14 @@ function fetchJobs(hrrref) {
 }
 
 
+function triggerSearchKeyPress() {
+    $("#searchquery").on("keydown", function (event) {
+        if (event.which === 13) {
+            $("#save-yes").click();
+        }
+    });
+}
+
 $(document).ready(function () {
     //Check if user is new
     checkNewUser(checkCookie());
@@ -239,11 +248,7 @@ $(document).ready(function () {
         // TODO hide yes/no buttons
         fetchJobs(hrrref);
     });
-    $("#searchquery").on("keydown", function (event) {
-        if (event.which === 13) {
-            $("#save-yes").click();
-        }
-    });
+    triggerSearchKeyPress();
     $("#save-yes").bind("click", function () {
         console.log(hrrref);
         // Check we have the search query & it must be more than 3 chars
@@ -273,10 +278,6 @@ $(document).ready(function () {
         activeJob = button.data("jobid");
         const modal = $(this);
         updateModal(modal);
-        $("#searchquery").on("keydown", function (e) {
-            if (e.which === 13) {
-                $("#save-yes").click();
-            }
-        });
+        triggerSearchKeyPress();
     });
 });
