@@ -59,24 +59,24 @@ $(document).ready(function () {
 * @param    {Class} oldJob    Copy of old job
 */
 function updateProgress(job, oldJob) {
-    const subProgressBar = "<div class=\"progress-bar progress-bar-striped progress-bar-animated\" role=\"progressbar\" aria-valuenow=\"" +
-                         job.progress_round + "\" aria-valuemin=\"0\" aria-valuemax=\"100\" style=\"width: " + job.progress_round + "%\">" +
-                         "<small class=\"justify-content-center d-flex position-absolute w-100\">" + job.progress + "%</small></div></div>";
-    const mainProgressBar = "<div id=\"jobId" + job.job_id + "_stage\"><b>Stage: </b>" + job.stage + "</div>" +
-                         "<div id=\"jobId" + job.job_id + "_progress\" >" +
-                         "<div class=\"progress\">" + subProgressBar + "</div>" +
-                         "<div id=\"jobId" + job.job_id + "_eta\"><b>ETA: </b>" + job.eta + "</div>";
-    const progressSection = $("#jobId" + job.job_id + "_progress_section");
-    const stage = $("#jobId" + job.job_id + "_stage");
-    const eta = $("#jobId" + job.job_id + "_eta");
-    const progressBarDiv = $("#jobId" + job.job_id + "_progress")
+    const subProgressBar = `<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                             aria-valuenow="${job.progress_round}" aria-valuemin="0" aria-valuemax="100" 
+                             style="width: ${job.progress_round}%">
+                             <small class="justify-content-center d-flex position-absolute w-100">${job.progress}%</small></div></div>`;
+    const mainProgressBar = `<div id="jobId${job.job_id}_stage"><b>Stage: </b>${job.stage}</div>
+                             <div id="jobId${job.job_id}_progress" ><div class="progress">${subProgressBar}</div>
+                             <div id="jobId${job.job_id}_eta"><b>ETA: </b>${job.eta}</div>`;
+    const progressSection = $(`#jobId${job.job_id}_progress_section`);
+    const stage = $(`#jobId${job.job_id}_stage`);
+    const eta = $(`#jobId${job.job_id}_eta`);
+    const progressBarDiv = $(`#jobId${job.job_id}_progress`)
     if (job.status === "transcoding" || job.status === "ripping" && job.stage !== "" && job.progress) {
         // Catch if the progress section is empty and populate it
         if (progressSection[0].innerHTML === "" || !progressBarDiv.length) {
             progressSection[0].innerHTML = mainProgressBar;
         } else {
             if (job.progress_round !== oldJob.progress_round || job.progress !== oldJob.progress) {
-                progressBarDiv[0].innerHTML = "<div class=\"progress\">" + subProgressBar;
+                progressBarDiv[0].innerHTML = `<div class="progress">${subProgressBar}`;
             }
             updateContents(stage, job, "Stage", job.stage);
             updateContents(eta, job, "ETA", job.eta);
@@ -99,10 +99,11 @@ function updateContents(item, _job, keyString, itemContents) {
     if (item[0].innerText.includes(itemContents)) {
         //console.log("nothing to do - values are current")
     }else{
-        item[0].innerHTML = "<b> " + keyString + ": </b>" + itemContents;
-        console.log(item[0].innerText + " - " + "<b>" + keyString + ": </b>" + itemContents)
+        item[0].innerHTML = `<b> ${keyString}: </b>${itemContents}`;
+        console.log(`${item[0].innerText} - <b>${keyString}: </b>${itemContents}`)
         console.log(item[0].innerText.includes(itemContents))
     }
+    return true;
 }
 
 /**
@@ -111,12 +112,12 @@ function updateContents(item, _job, keyString, itemContents) {
  * @param {Class} job     Fresh job pulled from api
  */
 function updateJobItem(oldJob, job) {
-    const cardHeader = $("#jobId" + job.job_id + "_header");
-    const posterUrl = $("#jobId" + job.job_id + "_poster_url");
-    const status = $("#jobId" + job.job_id + "_status");
+    const cardHeader = $(`#jobId${job.job_id}_header`);
+    const posterUrl = $(`#jobId${job.job_id}_poster_url`);
+    const status = $(`#jobId${job.job_id}_status`);
     // Update card header ( Title (Year) )
-    if (cardHeader[0].innerText !== job.title + " (" + job.year + ")"){
-        cardHeader[0].innerText = job.title + " (" + job.year + ")";
+    if (cardHeader[0].innerText !== `${job.title} (${job.year})`){
+        cardHeader[0].innerText = `${job.title} (${job.year})`;
     }
     // Update card poster image
     if (job.poster_url !== posterUrl[0].src && job.poster_url !== "None" && job.poster_url !== "N/A") {
@@ -124,19 +125,19 @@ function updateJobItem(oldJob, job) {
     }
     // Update job status image
     if (job.status !== status[0].title) {
-        status[0].src = "static/img/" + job.status + ".png";
+        status[0].src = `static/img/${job.status}.png`;
         status[0].alt = job.status;
         status[0].title = job.status;
     }
     // Go through and update job values as needed
-    updateContents($("#jobId" + job.job_id + "_year"), job, "Year", job.year);
-    updateContents($("#jobId" + job.job_id + "_devpath"), job, "Device", job.devpath);
-    updateContents($("#jobId" + job.job_id + "_video_type"), job, "Type", job.video_type);
+    updateContents($(`#jobId${job.job_id}_year`), job, "Year", job.year);
+    updateContents($(`#jobId${job.job_id}_devpath`), job, "Device", job.devpath);
+    updateContents($(`#jobId${job.job_id}_video_type`), job, "Type", job.video_type);
     updateProgress(job, oldJob);
-    updateContents($("#jobId" + job.job_id + "_RIPMETHOD"), job, "Rip Method", job.config.RIPMETHOD);
-    updateContents($("#jobId" + job.job_id + "_MAINFEATURE"), job, "Main Feature", job.config.MAINFEATURE);
-    updateContents($("#jobId" + job.job_id + "_MINLENGTH"), job, "Min Length", job.config.MINLENGTH);
-    updateContents($("#jobId" + job.job_id + "_MAXLENGTH"), job, "Max Length", job.config.MAXLENGTH);
+    updateContents($(`#jobId${job.job_id}_RIPMETHOD`), job, "Rip Method", job.config.RIPMETHOD);
+    updateContents($(`#jobId${job.job_id}_MAINFEATURE`), job, "Main Feature", job.config.MAINFEATURE);
+    updateContents($(`#jobId${job.job_id}_MINLENGTH`), job, "Min Length", job.config.MINLENGTH);
+    updateContents($(`#jobId${job.job_id}_MAXLENGTH`), job, "Max Length", job.config.MAXLENGTH);
 }
 
 /**
@@ -180,23 +181,23 @@ function refreshJobsComplete() {
  * Function to check for active jobs from the return from api
  * *** This doesn't work as it should when arm has child links
  * @param data returned data from ajax
- * @param server_index current server index count (added to the front of job id's)
+ * @param serverIndex current server index count (added to the front of job id's)
  */
-function checkActiveJobs(data, server_index) {
+function checkActiveJobs(data, serverIndex) {
     // Loop through each active job
     $.each(activeJobs, function (AJIndex) {
         // Turn off job active and re-enable it later if we find it
         activeJobs[AJIndex].active = false;
         // Loop through each result and search for our active job
         $.each(data.results, function (_index, job) {
-            console.log("Looking for " + activeJobs[AJIndex].job_id + "!==" + server_index + "_" + job.job_id)
+            console.log(`Looking for ${activeJobs[AJIndex].job_id}!==${serverIndex}_${job.job_id}`)
             // We found a match for the current job id and the active job id
-            if (activeJobs[AJIndex].job_id === server_index + "_" + job.job_id) {
-                console.log("Match found for" + job.job_id)
+            if (activeJobs[AJIndex].job_id === serverIndex + "_" + job.job_id) {
+                console.log(`Match found for ${job.job_id}`)
                 activeJobs[AJIndex].active = true;
                 return false;
             } else {
-                console.log("No match: " + activeJobs[AJIndex].job_id + "!==" + server_index + "_" + job.job_id)
+                console.log(`No match: ${activeJobs[AJIndex].job_id}!==${serverIndex}_${job.job_id}`)
             }
         });
     });
@@ -205,18 +206,18 @@ function checkActiveJobs(data, server_index) {
 /**
  * Function that is run when data is received back from json api
  * @param data all data returned from the ajax request
- * @param server_index
- * @param server_url the url of the server the job is running on
+ * @param serverIndex
+ * @param serverUrl the url of the server the job is running on
  * @param serverCount
  * @returns {*}
  */
-function refreshJobsSuccess(data, server_index, server_url, serverCount) {
-    checkActiveJobs(data, server_index);
+function refreshJobsSuccess(data, serverIndex, serverUrl, serverCount) {
+    checkActiveJobs(data, serverIndex);
     $.each(data.results, function (_index, job) {
         console.log(job.job_id)
-        job.job_id = server_index + "_" + job.job_id;
+        job.job_id = `${serverIndex}_${job.job_id}`;
         job.ripper = (data.arm_name ? data.arm_name : "");
-        job.server_url = server_url;
+        job.server_url = serverUrl;
         job.active = true;
         if (activeJobs.some(e => e.job_id === job.job_id)) {
             var oldJob = activeJobs.find(e => e.job_id === job.job_id);
@@ -236,13 +237,13 @@ function refreshJobsSuccess(data, server_index, server_url, serverCount) {
  */
 function refreshJobs() {
     let serverCount = activeServers.length;
-    $.each(activeServers, function(server_index, server_url) {
+    $.each(activeServers, function(serverIndex, serverUrl) {
         $.ajax({
-            url: server_url + "/json?mode=joblist",
+            url: serverUrl + "/json?mode=joblist",
             type: "get",
             timeout: 2000,
             error: function() { --serverCount; },
-            success: function (data) {serverCount = refreshJobsSuccess(data, server_index, server_url, serverCount);},
+            success: function (data) {serverCount = refreshJobsSuccess(data, serverIndex, serverUrl, serverCount);},
             complete: function() {refreshJobsComplete();}
         });
     });
@@ -256,13 +257,13 @@ function pushChildServers() {
     const childs = $("#children");
     const children = childs.text().trim();
     if (children) {
-        var childLinks = [];
-        var children_arr = children.split(",");
-        $.each(children_arr, function (_index, value) {
+        let childLinks = [];
+        let childrenArr = children.split(",");
+        $.each(childrenArr, function (_index, value) {
             activeServers.push(value);
-            childLinks.push("<a target=\"_blank\" href=\"" + value + "\">" + value + "</a>");
+            childLinks.push(`<a target="_blank" href="${value}">${value}</a>`);
         });
-        childs.html("Children: <br />" + childLinks.join("<br />"));
+        childs.html(`Children: <br />${childLinks.join("<br />")}`);
     }
 }
 

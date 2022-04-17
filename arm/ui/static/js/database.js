@@ -42,17 +42,19 @@ function getCookie(cname) {
             c = c.substring(1);
         }
         if (c.indexOf(name) === 0) {
+            // Returns "yes"
             return c.substring(name.length, c.length);
         }
     }
+    return null
 }
 
 //Set out cookie so we dont need the dialog popping up
 function setCookie(cname, cvalue, exdays) {
     const d = new Date();
     d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-    const expires = "expires=" + d.toUTCString();
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    const expires = `expires=${d.toUTCString()}`;
+    document.cookie = `${cname}=${cvalue};${expires};path=/`;
 }
 
 function switchDelete() {
@@ -82,8 +84,8 @@ function switchAbandon() {
 function switchLogFile(data) {
     $(this).find(".modal-title").text("Logfile");
     $("#message1 .alert-heading").html("Here is the logfile you requested");
-    $("div .card-deck").html("<div class=\"bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto\">" +
-        "<strong>" + data.job_title + "</strong></div><pre class=\"text-white bg-secondary\"><code>" + data.log + "</code></pre>");
+    $("div .card-deck").html(`<div class="bg-info card-header row no-gutters justify-content-center col-md-12 mx-auto">
+                              <strong>${data.job_title}</strong></div><pre class="text-white bg-secondary"><code>${data.log}</code></pre>`);
     window.scrollTo({top: 0, behavior: "smooth"});
     hideModal();
 }
@@ -225,9 +227,8 @@ function fetchJobs(getJobsHREF) {
                     },
                 5000
             );
-        } else {
-            hideModal();
         }
+        hideModal();
     }, "json");
 }
 
@@ -258,8 +259,8 @@ $(document).ready(function () {
         console.log(hrrref);
         // Check we have the search query & it must be more than 3 chars
         if ($("input#searchquery").length) {
-            const search_query = $("input#searchquery").val().length;
-            if (search_query < 3) {
+            const searchQuery = $("input#searchquery").val().length;
+            if (searchQuery < 3) {
                 $("#searchquery").addClass("is-invalid");
                 return false;
             }
@@ -272,9 +273,10 @@ $(document).ready(function () {
             window.location.href = "/";
             return false;
         } else {
-            console.log("user shouldnt be here...");
+            console.log("user shouldn't be here...");
             $("#exampleModal").modal("toggle");
         }
+        return false;
     });
     $("#exampleModal").on("show.bs.modal", function (event) {
         const button = $(event.relatedTarget); // Button that triggered the modal
