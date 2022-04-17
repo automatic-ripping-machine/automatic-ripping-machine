@@ -207,7 +207,9 @@ class Job(db.Model):
                 # This might always return true
                 if bool(os.system("umount " + self.devpath)):
                     logging.debug(f"Unmounted disc {self.devpath}")
-                if bool(os.system("eject" + self.devpath)):
+                else:
+                    logging.debug(f"Failed to unmount {self.devpath}")
+                if bool(os.system("eject -sv " + self.devpath)):
                     logging.debug(f"Ejected disc {self.devpath}")
                 else:
                     logging.debug(f"Failed to eject {self.devpath}")
