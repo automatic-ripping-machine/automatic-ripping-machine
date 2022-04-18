@@ -226,34 +226,79 @@ def get_track_info(mdisc, job):
             line_track = int(msg[0])
             # Total track count
             if msg_type == "TCOUNT":
-                titles = int(line_split[1].strip())
-                logging.info(f"Found {titles} titles")
-                utils.database_updater({'no_of_titles': titles}, job)
-            # Title info add track
+                logging.info(f"Found {line_split[1].strip()} titles")
+                utils.database_updater({'no_of_titles': int(line_split[1].strip())}, job)
+            # Title info add track and get filename
             if msg_type == "TINFO":
-                if track != line_track:
-                    if line_track != int(0):
-                        logging.debug(f"line track !!: {line}")
-                        utils.put_track(job, track, seconds, aspect, fps, False, "MakeMKV", filename)
-                    track = line_track
-
-                if msg[1] == "27":
-                    filename = msg[3].replace('"', '').strip()
-            # Title info length ?
-            if msg_type == "TINFO" and msg[1] == "9":
-                len_hms = msg[3].replace('"', '').strip()
-                hour, mins, secs = len_hms.split(':')
-                seconds = int(hour) * 3600 + int(mins) * 60 + int(secs)
-            # Stream info
-            if msg_type == "SINFO" and msg[1] == "0":
-                if msg[2] == "20":
-                    aspect = msg[4].replace('"', '').strip()
-                elif msg[2] == "21":
-                    fps = msg[4].split()[0]
-                    fps = fps.replace('"', '').strip()
-                    fps = float(fps)
+                filename, track = add_track_filename(aspect, filename, fps, job,
+                                                     line_track, msg, seconds, track)
+            # Title length
+            seconds = find_track_length(msg, msg_type, seconds)
+            # Aspect ratio and fps
+            aspect, fps = find_aspect_fps(aspect, msg, msg_type, fps)
 
     utils.put_track(job, track, seconds, aspect, fps, False, "MakeMKV", filename)
+
+
+def find_track_length(msg, msg_type, seconds):
+    """
+    Find the track length from TINFO msg from MakeMKV\n
+    :param msg: current MakeMKV line split by ','
+    :param msg_type: the message type from MakeMKV
+    :param seconds: length in seconds of file
+    :return: seconds of file
+    """
+    if msg_type == "TINFO" and msg[1] == "9":
+        len_hms = msg[3].replace('"', '').strip()
+        hour, mins, secs = len_hms.split(':')
+        seconds = int(hour) * 3600 + int(mins) * 60 + int(secs)
+    return seconds
+
+
+def find_aspect_fps(aspect, msg, msg_type, fps):
+    """
+    Search current line and find the file's aspect ratio and fps if msg_type is SINFO\n
+    :param str aspect: aspect ratio (stored as float but db wants string)
+    :param msg: current MakeMKV line split by ','
+    :param msg_type: the message type from MakeMKV
+    :param float fps: fps of file
+    :return: [aspect, fps]
+
+    .. note::
+           aspect.msg - ['0', '0', '20', '0', '"16:9"']\n
+           fps.msg - ['0', '0', '21', '0', '"25"']\n
+    """
+    if msg_type == "SINFO" and msg[1] == "0":
+        if msg[2] == "20":
+            # aspect comes wrapped in "" remove them
+            aspect = msg[4].replace('"', '').strip()
+        elif msg[2] == "21":
+            fps = msg[4].split()[0]
+            fps = fps.replace('"', '').strip()
+            fps = float(fps)
+    return aspect, fps
+
+
+def add_track_filename(aspect, filename, fps, job, line_track, msg, seconds, track):
+    """
+    Only add tracks that weren't previously added ?\n
+    :param aspect: Aspect ratio of file
+    :param filename: Filename of file
+    :param fps: FPS of file
+    :param job: Job the track belongs to
+    :param line_track: e.g TINFO: **3** ,8,0,"2"
+    :param msg: current line from MakeMKV split into array
+    :param int seconds: Length of track
+    :param track: Track number of current file
+    :return: [filename, track]
+    """
+    if track != line_track:
+        if line_track != int(0):
+            utils.put_track(job, track, seconds, aspect, fps, False, "MakeMKV", filename)
+        track = line_track
+    if msg[1] == "27":
+        filename = msg[3].replace('"', '').strip()
+    return filename, track
 
 
 def run_makemkv(cmd):
@@ -268,6 +313,6 @@ def run_makemkv(cmd):
 
     logging.debug(f"Ripping with the following command: {cmd}")
     try:
-        subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
+        subprocess.run(cmd, capture_output=True, shell=True, check=True)
     except subprocess.CalledProcessError as mkv_error:
         raise MakeMkvRuntimeError(mkv_error)
