@@ -196,6 +196,8 @@ def get_track_info(mdisc, job):
     :param mdisc: MakeMKV disc number
     :param job: Job instance
     :return: None
+
+    .. note:: For help with MakeMKV codes: https://github.com/1337-server/automatic-ripping-machine/wiki/MakeMKV-Codes
     """
 
     logging.info("Using MakeMKV to get information on all the tracks on the disc. "
@@ -217,8 +219,8 @@ def get_track_info(mdisc, job):
     aspect = ""
     seconds = 0
     filename = ""
-
     for line in mkv:
+        # line - TINFO:0,2,0,"Breaking Bad: Season 1: Disc 1"
         if line.split(":")[0] in ("MSG", "TCOUNT", "CINFO", "TINFO", "SINFO"):
             line_split = line.split(":", 1)
             msg_type = line_split[0]
