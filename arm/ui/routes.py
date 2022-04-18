@@ -263,7 +263,7 @@ def feed_json():
     app.logger.debug(return_json)
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
-                              mimetype='application/json')
+                              mimetype=constants.JSON_TYPE)
 
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -841,7 +841,7 @@ def import_movies():
     db.session.commit()
     return app.response_class(response=json.dumps(movies, indent=4, sort_keys=True),
                               status=200,
-                              mimetype='application/json')
+                              mimetype=constants.JSON_TYPE)
 
 
 @app.route('/send_movies', methods=['GET', 'POST'])
@@ -907,6 +907,6 @@ def handle_exception(sent_error):
         }
         return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                                   status=200,
-                                  mimetype='application/json')
+                                  mimetype=constants.JSON_TYPE)
 
     return render_template(constants.ERROR_PAGE, error=sent_error), 500
