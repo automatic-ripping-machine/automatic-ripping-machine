@@ -6,7 +6,6 @@ import sys
 import os
 import logging
 import subprocess
-import time
 import shlex
 
 from arm.config.config import cfg
@@ -206,7 +205,7 @@ def get_track_info(mdisc, job):
     cmd = f'makemkvcon -r --progress=-stdout --messages=-stdout --cache=1 info disc:{mdisc}'
     logging.debug(f"Sending command: {cmd}")
     try:
-        mkv_run = subprocess.check_output(
+        mkv = subprocess.check_output(
             cmd,
             stderr=subprocess.STDOUT,
             shell=True
