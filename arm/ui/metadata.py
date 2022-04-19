@@ -23,6 +23,7 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
     """
     omdb_api_key = cfg['OMDB_API_KEY']
     title_info = None
+    str_url = ""
     # Build url for omdb
     if imdb_id:
         str_url = f"https://www.omdbapi.com/?i={imdb_id}&plot={plot}&r=json&apikey={omdb_api_key}"
