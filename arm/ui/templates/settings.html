@@ -9,8 +9,21 @@
 .popover {
     white-space: pre-line;    
 }
-.popover-content {
+.popover-body {
     white-space: pre-wrap;
+	font-weight: bold;
+}
+
+.popover-header  {
+	background-color: #f2f2f2;
+	border-bottom: 1px solid #EBEBEB;
+	border-radius: 5px 5px 0 0;
+	font-size: 20px;
+	line-height: 18px;
+	margin: 0;
+	padding: 8px 14px;
+	font-weight: bold;
+	text-align: center;
 }
 </style>
 <!-- We keep this here incase we need it later -->
@@ -35,15 +48,16 @@
 					</div>
 				
 					<div class="container" style="padding-top: 4rem;">
-						<form id="form1" name="form1" method="post" action="settings">
+						<form id="form1" name="form1" method="post" action="/settings">
 						    {{ form.hidden_tag() }}
 							{% for k, v in settings.items() %}
 							<div class="input-group mb-3">
 								<div class="input-group-prepend">
 									<span class="input-group-text" id="{{ k }}">{{ k }}: </span>
 								</div>
-								<input type="text" class="form-control" aria-label="{{ k }}" name={{ k }} placeholder="{{ v}}" value="{{ v }}" aria-describedby="{{ k }}">
-								 <a class="popovers" onClick='return false;' href="" data-content="{{ jsoncomments[k] }}" rel="popover" data-placement="top" data-original-title="{{ k }}">
+								<input type="text" class="form-control" aria-label="{{ k }}" name="{{ k }}" placeholder="{{ v}}" value="{{ v }}" aria-describedby="{{ k }}">
+								 <a class="popovers" onClick='return false;' href="" data-content="{{ jsoncomments[k]| replace("#", "\n")  }}" rel="popover"
+									data-placement="top" data-original-title="{{ k }}">
 									<img title="More information" src="static/img/info.png" width="30px" height="35px" alt="More Info">
 								</a>
 							</div>

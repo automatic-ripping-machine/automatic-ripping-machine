@@ -23,11 +23,10 @@ from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_a
 
 def database_updater(args, job, wait_time=90):
     """
-    Try to update our db for x seconds and handle it nicely if we cant
+    Try to update our db for x seconds and handle it nicely if we cant\n
 
     :param args: This needs to be a Dict with the key being the
     job.method you want to change and the value being the new value.
-
     :param job: This is the job object
     :param wait_time: The time to wait in seconds
     :returns : Boolean
@@ -35,7 +34,7 @@ def database_updater(args, job, wait_time=90):
     # Loop through our args and try to set any of our job variables
     for (key, value) in args.items():
         setattr(job, key, value)
-        app.logger.debug(str(key) + "= " + str(value))
+        app.logger.debug(f"Setting {key}: {value}")
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
             db.session.commit()

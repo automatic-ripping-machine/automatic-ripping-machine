@@ -85,8 +85,8 @@ def process_makemkv_logfile(logfile, job, job_results):
     # PRGC:5057,3,"Analyzing seamless segments"
     # Correctly get last entry for progress bar
     for one_line in line:
-        job_progress_status = re.search(r"PRGV:([\d]{3,}),([\d]+),([\d]{3,})$", str(one_line))
-        job_stage_index = re.search(r"PRGC:[\d]+,([\d]+),\"([\w -]{2,})\"$", str(one_line))
+        job_progress_status = re.search(r"PRGV:(\d{3,}),(\d+),(\d{3,})$", str(one_line))
+        job_stage_index = re.search(r"PRGC:\d+,(\d+),\"([\w -]{2,})\"$", str(one_line))
         if job_progress_status:
             job_progress = f"{percentage(job_progress_status.group(1), job_progress_status.group(3)):.2f}"
             job.progress = job_results['progress'] = job_progress
@@ -94,7 +94,7 @@ def process_makemkv_logfile(logfile, job, job_results):
                                             job_progress_status.group(3))
         if job_stage_index:
             try:
-                current_index = f"{job_stage_index.group(2)} - {(int(job_stage_index.group(1)) + 1)}/{job.no_of_titles}"
+                current_index = f"{(int(job_stage_index.group(1)) +1)}/{job.no_of_titles} - {job_stage_index.group(2)}"
                 job.stage = job_results['stage'] = current_index
             except Exception as error:
                 job.stage = f"Unknown -  {error}"

@@ -142,49 +142,56 @@ def fix_job_title(job):
 
 
 #  ############## Start of post processing functions
-def move_files(base_path, filename, job, ismainfeature=False):
+def move_files(base_path, filename, job, is_main_feature=False):
     """
-    Move files from RAW_PATH or TRANSCODE_PATH to final media directory\n
+    Run extra checks then move files from RAW_PATH or TRANSCODE_PATH to final media directory\n
     :param str base_path: Path to source directory\n
     :param str filename: name of file to be moved\n
     :param job: instance of Job class\n
-    :param bool ismainfeature: if current is main feature move to main dir
+    :param bool is_main_feature: if current is main feature move to main dir
     :return str: Full movie path
     """
     video_title = fix_job_title(job)
-    type_sub_folder = convert_job_type(job.video_type)
-
     logging.debug(f"Arguments: {base_path} : {filename} : "
-                  f"{job.hasnicetitle} : {video_title} : {ismainfeature}")
-
-    movie_path = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), video_title)
+                  f"{job.hasnicetitle} : {video_title} : {is_main_feature}")
+    # If filename is blank skip and return
+    if filename == "":
+        logging.info(f"{filename} is empty... Skipping")
+        return None
+    movie_path = job.path
     logging.info(f"Moving {job.video_type} {filename} to {movie_path}")
     # For series there are no extras so always use the base path
     extras_path = os.path.join(movie_path, cfg["EXTRAS_SUB"]) if job.video_type != "series" else movie_path
     make_dir(movie_path)
 
-    if ismainfeature is True:
+    if is_main_feature:
         movie_file = os.path.join(movie_path, video_title + "." + cfg["DEST_EXT"])
-        logging.info(f"Track is the Main Title.  Moving '{filename}' to {movie_file}")
-        if not os.path.isfile(movie_file):
-            try:
-                shutil.move(os.path.join(base_path, filename), movie_file)
-            except Exception as error:
-                logging.error(f"Unable to move '{filename}' to '{movie_path}' - Error: {error}")
-        else:
-            logging.info(f"File: {movie_file} already exists.  Not moving.")
+        logging.info(f"Track is the Main Title.  Moving '{os.path.join(base_path, filename)}' to {movie_file}")
+        move_files_main(os.path.join(base_path, filename), movie_file, movie_path)
     else:
+        # Don't make the extra's path unless we need it
         make_dir(extras_path)
-        logging.info(f"Moving '{filename}' to {extras_path}")
-        extras_file = os.path.join(extras_path, video_title + "." + cfg["DEST_EXT"])
-        if not os.path.isfile(extras_file):
-            try:
-                shutil.move(os.path.join(base_path, filename), os.path.join(extras_path, filename))
-            except Exception as error:
-                logging.error(f"Unable to move '{filename}' to {extras_path} - {error}")
-        else:
-            logging.info(f"File: {extras_file} already exists.  Not moving.")
+        logging.info(f"Moving '{os.path.join(base_path, filename)}' to {extras_path}")
+        # This also handles series - But it doesn't use the extras folder
+        move_files_main(os.path.join(base_path, filename), os.path.join(extras_path, filename), extras_path)
     return movie_path
+
+
+def move_files_main(old_file, new_file, base_path):
+    """
+    The base function for moving files with logging\n
+    :param old_file: The file to be moved - must include full path
+    :param new_file: Final destination of file - must include full path
+    :param base_path: The base path of the new file - used for logging
+    :return: None
+    """
+    if not os.path.isfile(new_file):
+        try:
+            shutil.move(old_file, new_file)
+        except Exception as error:
+            logging.error(f"Unable to move '{old_file}' to '{base_path}' - Error: {error}")
+    else:
+        logging.info(f"File: {new_file} already exists.  Not moving.")
 
 
 def move_movie_poster(final_directory, hb_out_path):
@@ -512,16 +519,17 @@ def try_add_default_user():
 
 def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename=""):
     """
-    Put data into a track instance\n
+    Put data into a track instance.\n
+    Having this here saves importing the models file everywhere\n
 
-    :param job: instance of job class\n
-    :param str t_no: track number\n
-    :param int seconds: length of track in seconds\n
-    :param str aspect: aspect ratio (ie '16:9')\n
-    :param str fps: frames per second:str (-not a float-)\n
-    :param bool mainfeature: user only wants mainfeature \n
-    :param str source: Source of information\n
-    :param str filename: filename of track\n
+    :param job: instance of job class
+    :param str t_no: track number
+    :param int seconds: length of track in seconds
+    :param str aspect: aspect ratio (ie '16:9')
+    :param str fps: frames per second:str (-not a float-)
+    :param bool mainfeature: If the file is identified as the mainfeature
+    :param str source: Source of information (HandBrake, MakeMKV, abcde)
+    :param str filename: filename of track
     """
 
     logging.debug(
@@ -635,6 +643,7 @@ def clean_old_jobs():
                          f"Updating job status to fail.")
             job.status = "fail"
             db.session.commit()
+            database_updater({'status': "fail"}, job)
 
 
 def job_dupe_check(job):
@@ -760,14 +769,13 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
     :return: Final media directory path
     """
     if (make_dir(hb_out_path)) is False:
-        logging.info(f"Handbrake Output directory \"{hb_out_path}\" already exists.")
+        logging.info(f"Output directory \"{hb_out_path}\" already exists.")
         # Only begin ripping if we are allowed to make duplicates
         # Or the successful rip of the disc is not found in our database
         logging.debug(f"Value of ALLOW_DUPLICATES: {cfg['ALLOW_DUPLICATES']}")
         logging.debug(f"Value of have_dupes: {have_dupes}")
         if cfg["ALLOW_DUPLICATES"] or not have_dupes:
-            random_time = round(time.time() * 100)
-            hb_out_path = hb_out_path + "_" + str(random_time)
+            hb_out_path = hb_out_path + " " + job.stage
 
             if (make_dir(hb_out_path)) is False:
                 # We failed to make a random directory, most likely a permission issue
@@ -777,8 +785,7 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
                 notify(job, NOTIFY_TITLE,
                        f"ARM encountered a fatal error processing {job.title}."
                        f" Couldn't create filesystem. Possible permission error. ")
-                job.status = "fail"
-                db.session.commit()
+                database_updater({'status': "fail", 'errors': 'Creating folder failed'}, job)
                 sys.exit()
         else:
             # We aren't allowed to rip dupes, notify and exit
@@ -787,24 +794,23 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
                                       f"Duplicate rips are disabled. "
                                       f"You can re-enable them from your config file. ")
             job.eject()
-            job.status = "fail"
-            db.session.commit()
+            database_updater({'status': "fail", 'errors': 'Duplicate rips are disabled'}, job)
             sys.exit()
+    logging.info(f"Final Output directory \"{hb_out_path}\"")
     return hb_out_path
 
 
 def check_for_wait(job, config):
     """
-    wait if we have have waiting for user input updates\n\n
+    Wait if we have waiting for user input updates\n\n
     :param config: Config for current Job
     :param job: Current Job
     :return: None
     """
-    #  If we have have waiting for user input enabled
+    #  If we have waiting for user input enabled
     if cfg["MANUAL_WAIT"]:
         logging.info(f"Waiting {cfg['MANUAL_WAIT_TIME']} seconds for manual override.")
-        job.status = "waiting"
-        db.session.commit()
+        database_updater({'status': "waiting"}, job)
         sleep_time = 0
         while sleep_time < cfg["MANUAL_WAIT_TIME"]:
             time.sleep(5)
@@ -815,6 +821,6 @@ def check_for_wait(job, config):
                 logging.info("Manual override found.  Overriding auto identification values.")
                 job.updated = True
                 job.hasnicetitle = True
+                database_updater({'status': "active", "hasnicetitle": True, "updated": True}, job)
                 break
-        job.status = "active"
-        db.session.commit()
+        database_updater({'status': "active"}, job)

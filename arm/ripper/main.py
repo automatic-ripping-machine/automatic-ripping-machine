@@ -37,25 +37,25 @@ def entry():
 def log_udev_params(dev_path):
     """log all udev parameters"""
 
-    logging.debug("**** Logging udev attributes ****")
+    logging.debug("******************* Logging udev attributes *******************")
     context = pyudev.Context()
     device = pyudev.Devices.from_device_file(context, dev_path)
     for key, value in device.items():
         logging.debug(key + ":" + value)
-    logging.debug("**** End udev attributes ****")
+    logging.debug("******************* End udev attributes *******************")
 
 
 def log_arm_params(job):
     """log all entry parameters"""
 
     # log arm parameters
-    logging.info("**** Logging ARM variables ****")
+    logging.info("******************* Logging ARM variables *******************")
     for key in ("devpath", "mountpoint", "title", "year", "video_type",
                 "hasnicetitle", "label", "disctype"):
         logging.info(f"{key}: {str(getattr(job, key))}")
-    logging.info("**** End of ARM variables ****")
+    logging.info("******************* End of ARM variables *******************")
 
-    logging.info("**** Logging config parameters ****")
+    logging.info("******************* Logging config parameters *******************")
     for key in ("SKIP_TRANSCODE", "MAINFEATURE", "MINLENGTH", "MAXLENGTH",
                 "VIDEOTYPE", "MANUAL_WAIT", "MANUAL_WAIT_TIME", "RIPMETHOD",
                 "MKV_ARGS", "DELRAWFILES", "HB_PRESET_DVD", "HB_PRESET_BD",
@@ -64,7 +64,7 @@ def log_arm_params(job):
                 "EMBY_PORT", "NOTIFY_RIP", "NOTIFY_TRANSCODE",
                 "MAX_CONCURRENT_TRANSCODES"):
         logging.info(f"{key.lower()}: {str(cfg.get(key, '<not given>'))}")
-    logging.info("**** End of config parameters ****")
+    logging.info("******************* End of config parameters *******************")
 
 
 def check_fstab():
@@ -83,72 +83,76 @@ def check_fstab():
     logging.error("No fstab entry found.  ARM will likely fail.")
 
 
-def skip_transcode(job, final_directory, mkv_out_path):
+def skip_transcode(job, final_directory, raw_path, hb_out_path):
     """
     Section to follow when Skip transcoding is enabled exit when finished
     :param job: current Job
     :param final_directory: final directory
-    :param mkv_out_path: RAW_PATH
-    :return: None
+    :param raw_path: RAW_PATH
+    :return: sys.exit()
     """
     logging.info("SKIP_TRANSCODE is true.  Moving raw mkv files.")
     logging.info("NOTE: Identified main feature may not be actual main feature")
-    files = os.listdir(mkv_out_path)
+    files = os.listdir(raw_path)
 
     if job.video_type == "movie":
-        skip_transcode_movie(files, job, mkv_out_path)
+        skip_transcode_movie(files, job, raw_path)
     else:
         # if video_type is not movie, then move everything
         logging.debug(f"Video type: {job.video_type}")
         for file in files:
-            utils.move_files(mkv_out_path, file, job, True)
+            utils.move_files(raw_path, file, job, True)
 
     # remove raw files, if specified in config
     if cfg["DELRAWFILES"]:
         logging.info("Removing raw files")
-        shutil.rmtree(mkv_out_path)
+        shutil.rmtree(raw_path)
+        shutil.rmtree(hb_out_path)
 
     utils.set_permissions(final_directory)
     utils.notify(job, NOTIFY_TITLE, str(job.title) + PROCESS_COMPLETE)
 
     logging.info("ARM processing complete")
-    job.status = "success"
-    job.path = final_directory
-    db.session.commit()
+    utils.database_updater({'status': "success"}, job)
     job.eject()
     sys.exit()
 
 
-def skip_transcode_movie(files, job, mkv_out_path):
+def skip_transcode_movie(files, job, raw_path):
     """
     only ran if job is a movie find the largest file use it as mainfeature\n\n
     :param files: os.listdir(RAW_PATH)
     :param job: Current job
-    :param mkv_out_path: RAW_PATH
+    :param raw_path: RAW_PATH of ripped mkv files (mkvoutpath)
     :return: None
     """
     logging.debug(f"Videotype: {job.video_type}")
-    # if videotype is movie, then move biggest title to media_dir
-    # move the rest of the files to the extras folder
+    # if video_type is movie, then move the biggest title to media_dir
+    # move the rest of the files to the extras' folder
     # find largest filesize
     logging.debug("Finding largest file")
-    largest_file_name = utils.find_largest_file(files, mkv_out_path)
-    # largest_file_name should be largest file
+    largest_file_name = utils.find_largest_file(files, raw_path)
+    # largest_file_name should be the largest file
     logging.debug(f"Largest file is: {largest_file_name}")
-    temp_path = os.path.join(mkv_out_path, largest_file_name)
-    if os.stat(temp_path).st_size > 0:  # sanity check for filesize
-        for file in files:
-            # move main into main folder
-            # move others into extras folder
-            if file == largest_file_name:
-                # largest movie
-                utils.move_files(mkv_out_path, file, job, True)
+    temp_path = os.path.join(raw_path, largest_file_name)
+    if os.stat(temp_path).st_size <= 1:  # sanity check for filesize
+        logging.debug(f"{raw_path} is empty or very small size. - Folder size: {os.stat(temp_path).st_size}")
+    for file in files:
+        # move main into main folder
+        # move others into extras folder
+        if file == largest_file_name:
+            # largest movie
+            utils.move_files(raw_path, file, job, True)
+        else:
+            # If mainfeature is enabled skip to the next file
+            if job.config.MAINFEATURE:
+                logging.debug(f"MAINFEATURE IS {job.config.MAINFEATURE} - Skipping move of {file}")
+                continue
+            # Other/extras
+            if str(cfg["EXTRAS_SUB"]).lower() != "none":
+                utils.move_files(raw_path, file, job, False)
             else:
-                # other extras
-                if str(cfg["EXTRAS_SUB"]).lower() != "none":
-                    utils.move_files(mkv_out_path, file, job, False)
-                else:
-                    logging.info(f"Not moving extra: {file}")
+                logging.info(f"Not moving extra: \"{file}\" - Sub folder is not set or named incorrectly")
 
 
 def main(logfile, job):
@@ -165,31 +169,32 @@ def main(logfile, job):
 
     log_arm_params(job)
     check_fstab()
-
+    # Set job.stage with a random timestamp, so we can sync all ts with one job
+    utils.database_updater({'stage': str(round(time.time() * 100))}, job)
     # Entry point for dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
         type_sub_folder = utils.convert_job_type(job.video_type)
         # We need to check/construct the final path, and the transcode path
         if job.year and job.year != "0000" and job.year != "":
-            hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(type_sub_folder),
-                                       f"{job.title} ({job.year})")
-            final_directory = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder),
-                                           f"{job.title} ({job.year})")
+            hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(type_sub_folder), f"{job.title} ({job.year})")
+            final_directory = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), f"{job.title} ({job.year})")
         else:
             hb_out_path = os.path.join(cfg["TRANSCODE_PATH"], str(type_sub_folder), str(job.title))
             final_directory = os.path.join(cfg["COMPLETED_PATH"], str(type_sub_folder), str(job.title))
-        # Check folder for already ripped jobs -> creates folder
+        # Check folders for already ripped jobs -> creates folder
         hb_out_path = utils.check_for_dupe_folder(have_dupes, hb_out_path, job)
+        # If dupes rips is disabled this might kill the run
         final_directory = utils.check_for_dupe_folder(have_dupes, final_directory, job)
+        # Update the job.path with the final directory
+        utils.database_updater({'path': final_directory}, job)
         # Save poster image from disc if enabled
         utils.save_disc_poster(final_directory, job)
 
         logging.info(f"Processing files to: {hb_out_path}")
         mkvoutpath = None
-        # entry point for bluray
-        # or
-        # dvd with MAINFEATURE off and RIPMETHOD mkv
         hb_in_path = str(job.devpath)
+        # entry point for bluray
+        #  or dvd with (not MAINFEATURE and RIPMETHOD mkv)
         if job.disctype == "bluray" or (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv"):
             # Run MakeMKV and get path to output
             job.status = "ripping"
@@ -211,13 +216,13 @@ def main(logfile, job):
 
             # Entry point for not transcoding
             if cfg["SKIP_TRANSCODE"] and cfg["RIPMETHOD"] == "mkv":
-                skip_transcode(job, final_directory, mkvoutpath)
+                skip_transcode(job, final_directory, mkvoutpath, hb_out_path)
             # point HB to the path MakeMKV ripped to
             hb_in_path = mkvoutpath
 
-        job.path = final_directory
-        job.status = "transcoding"
-        db.session.commit()
+        # Update db with transcoding status
+        utils.database_updater({'status': "transcoding"}, job)
+        # Begin transcoding section
         if job.disctype == "bluray" and cfg["RIPMETHOD"] == "mkv" \
                 or job.disctype == "dvd" and (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv"):
             handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
@@ -229,7 +234,6 @@ def main(logfile, job):
             job.eject()
 
         # check if there is a new title and change all filenames
-        # time.sleep(60)
         db.session.refresh(job)
         logging.debug(f"New Title is {job.title}")
 
@@ -237,7 +241,7 @@ def main(logfile, job):
         tracks = job.tracks.filter_by(ripped=True)  # .order_by(job.tracks.length.desc())
         if job.video_type == "series":
             for track in tracks:
-                utils.move_files(hb_out_path, track.filename, job, False)
+                utils.move_files(hb_out_path, track.filename, job, True)
         else:
             for track in tracks:
                 if tracks.count() == 1:

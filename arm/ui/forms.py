@@ -22,7 +22,7 @@ class ChangeParamsForm(FlaskForm):
     DISCTYPE = SelectField('Disc Type: ', choices=[('dvd', 'DVD'), ('bluray', 'Blu-ray'),
                                                    ('music', 'Music'), ('data', 'Data')])
     # "music", "dvd", "bluray" and "data"
-    MAINFEATURE = BooleanField('Main Feature')
+    MAINFEATURE = BooleanField('Main Feature: ')
     MINLENGTH = IntegerField('Minimum Length: ')
     MAXLENGTH = IntegerField('Maximum Length: ')
     submit = SubmitField('Submit')

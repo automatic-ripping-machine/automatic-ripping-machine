@@ -82,8 +82,8 @@ def setup():
     """
     perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
     app.logger.debug("perm " + str(perm_file))
-    #  TODO : Possibly check for database incase the user got here without db but has a installed file
-    if perm_file.exists():
+    # Check for install file and that db is correctly setup
+    if perm_file.exists() and ui_utils.setup_database():
         flash(str(perm_file) + " exists, setup cannot continue."
                                " To re-install please delete this file.", "danger")
         return redirect("/")
@@ -273,7 +273,7 @@ def settings():
     The settings page - allows the user to update the arm.yaml without needing to open a text editor
     Also triggers a restart of flask for debugging.
 
-    This needs rewritten to be static
+    This needs to be rewritten to be static
     """
     form_data = ""
     arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
@@ -497,7 +497,7 @@ def submitrip():
 @login_required
 def changeparams():
     """
-    For updating Config params or changing/correcting disctype manually
+    For updating Config params or changing/correcting job.disctype manually
     """
     config_id = request.args.get('config_id')
     # app.logger.debug(config.pretty_table())
@@ -509,21 +509,15 @@ def changeparams():
         cfg["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
         cfg["MAXLENGTH"] = config.MAXLENGTH = format(form.MAXLENGTH.data)
         cfg["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
-        cfg["MAINFEATURE"] = config.MAINFEATURE = bool(format(form.MAINFEATURE.data))  # must be 1 for True 0 for False
-        app.logger.debug(f"main={config.MAINFEATURE}")
-
-        args = {
-            'disctype': job.disctype,
-            'title_auto': config.MINLENGTH,
-            'year': config.MAXLENGTH,
-            'year_auto': config.RIPMETHOD,
-            'imdb_id': config.MAINFEATURE
-        }
+        # must be 1 for True 0 for False
+        cfg["MAINFEATURE"] = config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
+        args = {'disctype': job.disctype}
+        # We don't need to set the config as they are set with job commit
         ui_utils.database_updater(args, job)
+
         flash(f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},'
               f'Minimum Length={config.MINLENGTH}, '
               f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}', "success")
-        return redirect(url_for('home'))
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
 
@@ -541,7 +535,11 @@ def customtitle():
         form.populate_obj(job)
         job.title = format(form.title.data)
         job.year = format(form.year.data)
-        db.session.commit()
+        args = {
+            'title': job.disctype,
+            'year': job.year
+        }
+        ui_utils.database_updater(args, job)
         flash(f'custom title changed. Title={form.title.data}, Year={form.year.data}.', "success")
         return redirect(url_for('home'))
     return render_template('customTitle.html', title='Change Title', form=form, job=job)

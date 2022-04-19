@@ -129,7 +129,7 @@ def setup_rawpath(job, raw_path):
             logging.debug(err)
     else:
         logging.info(f"{raw_path} exists.  Adding timestamp.")
-        random_time = round(time.time() * 100)
+        random_time = job.stage
         raw_path = os.path.join(str(cfg["RAW_PATH"]), f"{job.title}_{random_time}")
         logging.info(f"raw_path is {raw_path}")
         try:
@@ -206,13 +206,13 @@ def get_track_info(mdisc, job):
     cmd = f'makemkvcon -r --progress=-stdout --messages=-stdout --cache=1 info disc:{mdisc}'
     logging.debug(f"Sending command: {cmd}")
     try:
-        mkv = subprocess.check_output(
+        mkv_run = subprocess.check_output(
             cmd,
             stderr=subprocess.STDOUT,
             shell=True
         ).decode("utf-8").splitlines()
     except subprocess.CalledProcessError as mdisc_error:
-        raise MakeMkvRuntimeError(mdisc_error)
+        raise MakeMkvRuntimeError(mdisc_error) from mdisc_error
 
     track = 0
     fps = float(0)
@@ -283,7 +283,7 @@ def find_aspect_fps(aspect, msg, msg_type, fps):
 
 def add_track_filename(aspect, filename, fps, job, line_track, msg, seconds, track):
     """
-    Only add tracks that weren't previously added ?\n
+    Only add tracks that weren't previously added ? Also finds filename and removes quotes around it\n
     :param aspect: Aspect ratio of file
     :param filename: Filename of file
     :param fps: FPS of file
@@ -317,4 +317,4 @@ def run_makemkv(cmd):
     try:
         subprocess.run(cmd, capture_output=True, shell=True, check=True)
     except subprocess.CalledProcessError as mkv_error:
-        raise MakeMkvRuntimeError(mkv_error)
+        raise MakeMkvRuntimeError(mkv_error) from mkv_error

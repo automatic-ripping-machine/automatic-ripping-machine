@@ -141,7 +141,7 @@ def identify_dvd(job):
     logging.debug(f"dvd_title_label: {dvd_title}")
     # in this block we want to strip out any chars that might be bad
     # strip all non-numeric chars and use that for year
-    year = re.sub(r"[^0-9]", "", str(job.year)) if job.year else None
+    year = re.sub(r"\D", "", str(job.year)) if job.year else None
     # next line is not really needed, but we don't want to leave an x somewhere
     dvd_title = job.label.replace("16x9", "")
     # Rip out any not alpha chars replace with &nbsp;
@@ -182,7 +182,7 @@ def get_video_details(job):
     if job.year is None:
         year = ""
     else:
-        year = re.sub("[^0-9]", "", str(job.year))
+        year = re.sub(r"\D", "", str(job.year))
 
     logging.debug(f"Title: {title} | Year: {year}")
     logging.debug(f"Calling webservice with title: {title} and year: {year}")
