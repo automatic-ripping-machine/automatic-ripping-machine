@@ -212,6 +212,7 @@ function fetchJobs(getJobsHREF) {
             $(CARD_DECK).html("");
             const size = Object.keys(data.results).length;
             if (size > 0) {
+                $(MSG_1_ID).html("Here are all the jobs you asked for....");
                 $.each(data.results, function (_index, value) {
                     $(CARD_DECK).append(addJobItem(value));
                 });
@@ -227,6 +228,7 @@ function fetchJobs(getJobsHREF) {
             );
         }
         hideModal();
+        $(".modal-footer").removeClass("d-none");
     }, "json");
 }
 
@@ -245,13 +247,13 @@ $(document).ready(function () {
     $(DB_SUCCESS_BTN_ID).bind("click", function () {
         hrrref = "/json?mode=getsuccessful";
         console.log(hrrref)
-        // TODO hide yes/no buttons
+        $(".modal-footer").addClass("d-none");
         fetchJobs(hrrref);
     });
     $(DB_FAIL_BTN_ID).bind("click", function () {
         hrrref = "/json?mode=getfailed";
         console.log(hrrref)
-        // TODO hide yes/no buttons
+        $(".modal-footer").addClass("d-none");
         fetchJobs(hrrref);
     });
     triggerSearchKeyPress();
