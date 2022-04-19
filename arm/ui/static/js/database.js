@@ -228,7 +228,7 @@ function fetchJobs(getJobsHREF) {
             );
         }
         hideModal();
-        $(".modal-footer").removeClass("d-none");
+        $(MODAL_FOOTER).removeClass("d-none");
     }, "json");
 }
 
@@ -247,13 +247,13 @@ $(document).ready(function () {
     $(DB_SUCCESS_BTN_ID).bind("click", function () {
         hrrref = "/json?mode=getsuccessful";
         console.log(hrrref)
-        $(".modal-footer").addClass("d-none");
+        $(MODAL_FOOTER).addClass("d-none");
         fetchJobs(hrrref);
     });
     $(DB_FAIL_BTN_ID).bind("click", function () {
         hrrref = "/json?mode=getfailed";
         console.log(hrrref)
-        $(".modal-footer").addClass("d-none");
+        $(MODAL_FOOTER).addClass("d-none");
         fetchJobs(hrrref);
     });
     triggerSearchKeyPress();

@@ -12,7 +12,7 @@ const SEARCH_BOX_ID = "#searchquery";
 const MODAL_TITLE = ".modal-title";
 const CARD_DECK = ".card-deck";
 const SUCCESS_CLASS = "alert-success";
-
+const MODAL_FOOTER = ".modal-footer";
 
 function getRipperName(job, idsplit) {
     let ripperName;
