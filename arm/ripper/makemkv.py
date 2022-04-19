@@ -28,7 +28,7 @@ class MakeMkvRuntimeError(RuntimeError):
 
 def makemkv(logfile, job):
     """
-    Rip Blu-rays with MakeMKV\n\n
+    Rip Blu-rays/DVDs with MakeMKV\n\n
 
     :param logfile: Location of logfile to redirect MakeMKV logs to
     :param job: job object
@@ -53,15 +53,15 @@ def makemkv(logfile, job):
     # get filesystem in order
     rawpath = setup_rawpath(job, os.path.join(str(cfg["RAW_PATH"]), str(job.title)))
 
-    # rip bluray
+    # Rip bluray
     if cfg["RIPMETHOD"] == "backup" and job.disctype == "bluray":
         # backup method
-        cmd = f'makemkvcon backup --decrypt {cfg["MKV_ARGS"]} ' \
+        cmd = f'makemkvcon backup --minlength={cfg["MINLENGTH"]} --decrypt {cfg["MKV_ARGS"]} ' \
               f'-r disc:{mdisc.strip()} {shlex.quote(rawpath)}>> {logfile}'
         logging.info("Backup up disc")
         run_makemkv(cmd)
+    # Rip DVD
     elif cfg["RIPMETHOD"] == "mkv" or job.disctype == "dvd":
-        # mkv method
         get_track_info(mdisc, job)
 
         # if no maximum length, process the whole disc in one command
@@ -81,7 +81,7 @@ def makemkv(logfile, job):
 
 def process_single_tracks(job, logfile, rawpath):
     """
-    For processing single tracks from MakeMKV
+    For processing single tracks from MakeMKV one at a time
     :param job: job object
     :param str logfile: path of logfile
     :param str rawpath:
@@ -199,10 +199,10 @@ def get_track_info(mdisc, job):
     .. note:: For help with MakeMKV codes: https://github.com/1337-server/automatic-ripping-machine/wiki/MakeMKV-Codes
     """
 
-    logging.info("Using MakeMKV to get information on all the tracks on the disc. "
-                 "This will take a few minutes...")
+    logging.info("Using MakeMKV to get information on all the tracks on the disc. This will take a few minutes...")
 
-    cmd = f'makemkvcon -r --progress=-stdout --messages=-stdout --cache=1 info disc:{mdisc}'
+    cmd = f'makemkvcon -r --progress=-stdout --messages=-stdout --minlength={cfg["MINLENGTH"]} ' \
+          f'--cache=1 info disc:{mdisc}'
     logging.debug(f"Sending command: {cmd}")
     try:
         mkv = subprocess.check_output(
@@ -237,7 +237,7 @@ def get_track_info(mdisc, job):
             seconds = find_track_length(msg, msg_type, seconds)
             # Aspect ratio and fps
             aspect, fps = find_aspect_fps(aspect, msg, msg_type, fps)
-
+    # If we haven't already added any tracks add one with what we have
     utils.put_track(job, track, seconds, aspect, fps, False, "MakeMKV", filename)
 
 

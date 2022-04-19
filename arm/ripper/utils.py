@@ -824,3 +824,21 @@ def check_for_wait(job, config):
                 database_updater({'status': "active", "hasnicetitle": True, "updated": True}, job)
                 break
         database_updater({'status': "active"}, job)
+
+
+def get_git_commit():
+    """
+    Function to get the current git version and log it in the arm logs
+    """
+    git_output = ""
+    cmd = "cd /opt/arm && git branch && git log -1"
+    try:
+        git_output = subprocess.check_output(
+            cmd,
+            shell=True
+        ).decode("utf-8")
+    except subprocess.CalledProcessError as _error:
+        logging.debug(f"Error getting git version - {_error}")
+    git_version = re.search(r"^\* (\S+)\ncommit ([a-z\d]{5,7})", str(git_output))
+    if git_version:
+        logging.info(f"Branch: {git_version.group(1)} - Commit: {git_version.group(2)}")
