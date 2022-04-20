@@ -52,7 +52,7 @@ function getCookie(cname) {
     const decodedCookie = decodeURIComponent(document.cookie);
     const ca = decodedCookie.split(";");
     // loop through each cookie and find our cookie. Not really needed, as we only use 1 cookie
-    for (let c of ca) {
+    for (const c of ca) {
         // Find "understands=" at start of cookie
         if (c.indexOf(name) === 0) {
             // Returns "yes" if we find our cookie
