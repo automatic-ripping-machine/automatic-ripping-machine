@@ -52,7 +52,7 @@ function addJobItem(job) {
 
 function transcodingCheck(job) {
     let x="";
-    if (job.status === "transcoding" && job.stage !== "" && job.progress) {
+    if (job.status === "transcoding" && job.stage !== "" && job.progress || job.disctype === "music" && job.stage !== "") {
         x += `<div id="jobId${job.job_id}_stage"><b>Stage: </b>${job.stage}</div>`;
         x += `<div id="jobId${job.job_id}_progress" >`;
         x += `<div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 

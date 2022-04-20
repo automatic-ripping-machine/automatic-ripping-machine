@@ -70,7 +70,8 @@ function updateProgress(job, oldJob) {
     const stage = $(`#jobId${job.job_id}_stage`);
     const eta = $(`#jobId${job.job_id}_eta`);
     const progressBarDiv = $(`#jobId${job.job_id}_progress`)
-    if (job.status === "transcoding" || job.status === "ripping" && job.stage !== "" && job.progress) {
+    if (job.status === "transcoding" || job.status === "ripping" && job.stage !== "" && job.progress
+        || job.disctype === "music" && job.stage !== "") {
         // Catch if the progress section is empty and populate it
         if (progressSection[0].innerHTML === "" || !progressBarDiv.length) {
             progressSection[0].innerHTML = mainProgressBar;

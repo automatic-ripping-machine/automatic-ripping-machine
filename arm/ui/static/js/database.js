@@ -9,6 +9,11 @@ let activeJob = null;
 let actionType = null;
 let z = "";
 
+/**
+ * Check if users has the understands cookie - if not show the warning dialog
+ * Runs on page loaded
+ * @param {boolean} seen Should be checkCookie()
+ */
 function checkNewUser(seen) {
     if (seen === false) {
         /*have not agreed to understanding the risks, show modal*/
@@ -26,30 +31,43 @@ function checkNewUser(seen) {
 }
 
 
-//Simple function to check if we have already agreed
+/**
+ * read the understands cookie and check it's not "" or null
+ * understands cookie should always be =yes
+ * the value isn't important, just that they have the cookie
+ * @returns {boolean}
+ */
 function checkCookie() {
     const understands = getCookie("understands");
     return understands !== "" && understands !== null;
 }
 
-//Get only the understands cookie
+/**
+ * Get the understands cookie and return "yes" if we find it
+ * @param cname {String} Cookie name
+ * @returns {string|null}
+ */
 function getCookie(cname) {
     const name = cname + "=";
     const decodedCookie = decodeURIComponent(document.cookie);
     const ca = decodedCookie.split(";");
+    // loop through each cookie and find our cookie. Not really needed, as we only use 1 cookie
     for (let c of ca) {
-        while (c.charAt(0) === " ") {
-            c = c.substring(1);
-        }
+        // Find "understands=" at start of cookie
         if (c.indexOf(name) === 0) {
-            // Returns "yes"
+            // Returns "yes" if we find our cookie
             return c.substring(name.length, c.length);
         }
     }
     return null
 }
 
-//Set out cookie so we dont need the dialog popping up
+/**
+ * Set our cookie
+ * @param cname {String} Cookie name
+ * @param cvalue {String} Cookie value
+ * @param exdays {BigInt} Expiry days the cookie should last
+ */
 function setCookie(cname, cvalue, exdays) {
     const d = new Date();
     d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
@@ -90,7 +108,7 @@ function switchLogFile(data) {
     hideModal();
 }
 
-function switchSearch(data, addJobItem) {
+function switchSearch(data) {
     $(this).find(MODAL_TITLE).text("searching....");
     $(CARD_DECK).html("");
     const size = Object.keys(data.results).length;
@@ -144,7 +162,11 @@ function processFailedReturn() {
     );
 }
 
-function proccessReturn(data, addJobItem) {
+/**
+ * Case switch for return results from arm api
+ * @param data returned data from ajax request
+ */
+function proccessReturn(data) {
     if (data.success) {
         switch (data.mode) {
             case "delete":
@@ -157,7 +179,7 @@ function proccessReturn(data, addJobItem) {
                 switchLogFile.call(this, data);
                 break;
             case "search":
-                switchSearch.call(this, data, addJobItem);
+                switchSearch.call(this, data);
                 break;
             case "fixperms":
                 switchFixPerms();
@@ -171,7 +193,11 @@ function proccessReturn(data, addJobItem) {
     }
 }
 
-function checkHref(addJobItem) {
+/**
+ * Used by the yes button trigger
+ * Shown on the search modal and the Warning modal
+ */
+function checkHref() {
     if (hrrref !== "") {
         // Add the spinner to let them know we are loading
         $("#m-body").append("<div class=\"d-flex justify-content-center\">" +
@@ -190,9 +216,9 @@ function checkHref(addJobItem) {
             hrrref = "";
         }
         $.get(hrrref, function (data) {
-            console.log(data.success); // John
+            console.log(data.success);
             console.log("#jobId" + activeJob);
-            proccessReturn(data, addJobItem);
+            proccessReturn(data);
         }, "json");
     }
 }
@@ -205,8 +231,7 @@ function fetchJobs(getJobsHREF) {
     // Add the spinner to let them know we are loading
     $(MODEL_ID).modal("show");
     $(MODAL_TITLE).text("Loading...");
-    $(".modal-body").html("");
-    $(".modal-body").append("<div class=\"d-flex justify-content-center\"><div class=\"spinner-border\" role=\"status\"><span class=\"sr-only\">Loading...</span></div></div>");
+    $(".modal-body").html("<div class=\"d-flex justify-content-center\"><div class=\"spinner-border\" role=\"status\"><span class=\"sr-only\">Loading...</span></div></div>");
     $.get(getJobsHREF, function (data) {
         if (data.success === true) {
             $(CARD_DECK).html("");
@@ -217,8 +242,7 @@ function fetchJobs(getJobsHREF) {
                     $(CARD_DECK).append(addJobItem(value));
                 });
             } else {
-                $(MSG_1_ID).html("I couldn't find any results matching that title");
-                $("#message1").removeClass("d-none");
+                $(MSG_1_ID).html("I couldn't find any results matching that title").removeClass("d-none");
             }
             setTimeout(
                 function () {
@@ -228,11 +252,13 @@ function fetchJobs(getJobsHREF) {
             );
         }
         hideModal();
-        $(MODAL_FOOTER).removeClass("d-none");
     }, "json");
+    $(MODAL_FOOTER).removeClass("d-none");
 }
 
-
+/**
+ * Used to add "Return" key press on the search box
+ */
 function triggerSearchKeyPress() {
     $(SEARCH_BOX_ID).on("keydown", function (event) {
         if (event.which === 13) {
@@ -244,18 +270,19 @@ function triggerSearchKeyPress() {
 $(document).ready(function () {
     //Check if user is new
     checkNewUser(checkCookie());
+    // Add the btn click event for success button
     $(DB_SUCCESS_BTN_ID).bind("click", function () {
         hrrref = "/json?mode=getsuccessful";
-        console.log(hrrref)
         $(MODAL_FOOTER).addClass("d-none");
         fetchJobs(hrrref);
     });
+    // Add the btn click event for fail button
     $(DB_FAIL_BTN_ID).bind("click", function () {
         hrrref = "/json?mode=getfailed";
-        console.log(hrrref)
         $(MODAL_FOOTER).addClass("d-none");
         fetchJobs(hrrref);
     });
+    // Set the event for return key press on the search input
     triggerSearchKeyPress();
     $("#save-yes").bind("click", function () {
         console.log(hrrref);
@@ -267,7 +294,7 @@ $(document).ready(function () {
                 return false;
             }
         }
-        checkHref(addJobItem);
+        checkHref();
         return true;
     });
     $("#save-no").bind("click", function () {
@@ -281,6 +308,7 @@ $(document).ready(function () {
         }
         return true;
     });
+    // When user clicks a job button store the data in the dom for later use if they confirm in the modal
     $(MODEL_ID).on("show.bs.modal", function (event) {
         const button = $(event.relatedTarget); // Button that triggered the modal
         actionType = button.data("type"); // Extract info from data-* attributes

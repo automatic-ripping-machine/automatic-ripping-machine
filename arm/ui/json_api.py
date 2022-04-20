@@ -64,6 +64,9 @@ def process_logfile(logfile, job, job_results):
     if job.status == "ripping":
         app.logger.debug("using mkv - " + logfile)
         job_results = process_makemkv_logfile(logfile, job, job_results)
+    elif job.disctype == "music":
+        app.logger.debug("using audio disc")
+        process_audio_logfile(job.logfile, job, job_results)
     else:
         app.logger.debug("using handbrake")
         job_results = process_handbrake_logfile(logfile, job, job_results)
@@ -140,6 +143,28 @@ def process_handbrake_logfile(logfile, job, job_results):
     else:
         app.logger.debug("Cant find index")
 
+    return job_results
+
+
+def process_audio_logfile(logfile, job, job_results):
+    """
+    Process audio disc logs to show current ripping tracks
+    :param logfile: will come in as only the bare logfile, no path
+    :param job: current job, so we can update the stage
+    :param job_results:
+    :return:
+    """
+    # \((track[^[]+)(?!track)
+    line = read_all_log_lines(os.path.join(cfg["LOGPATH"], logfile))
+    for one_line in line:
+        job_stage_index = re.search(r"\((track[^[]+)", str(one_line))
+        if job_stage_index:
+            try:
+                current_index = f"Ripping tracks: {job_stage_index.group(1).strip().capitalize()}/{job.no_of_titles}"
+                job.stage = job_results['stage'] = current_index
+            except Exception as error:
+                job.stage = f"Unknown -  {error}"
+    job.eta = "Unknown"
     return job_results
 
 

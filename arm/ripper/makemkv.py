@@ -108,6 +108,7 @@ def process_single_tracks(job, logfile, rawpath):
             cmd = f'makemkvcon mkv {cfg["MKV_ARGS"]} -r --progress=-stdout --messages=-stdout' \
                   f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)} ' \
                   f'--minlength={cfg["MINLENGTH"]}>> {logfile}'
+            # Possibly update db to say track was ripped
             run_makemkv(cmd)
 
 
@@ -219,7 +220,9 @@ def get_track_info(mdisc, job):
     seconds = 0
     filename = ""
     for line in mkv:
-        # line - TINFO:0,2,0,"Breaking Bad: Season 1: Disc 1"
+        # MSG:3028 - track was added (contains total length and chapter length)
+        # MSG:3025 - too short - track was skipped
+        # MSG:2003 - read error
         if line.split(":")[0] in ("MSG", "TCOUNT", "CINFO", "TINFO", "SINFO"):
             line_split = line.split(":", 1)
             msg_type = line_split[0]
