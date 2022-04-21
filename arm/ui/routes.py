@@ -493,7 +493,6 @@ def customtitle():
     job = models.Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     if request.args.get("title"):
-        form = TitleSearchForm(request.args, meta={'csrf': False})
         args = {
             'title': request.args.get("title"),
             'year': request.args.get("year")
