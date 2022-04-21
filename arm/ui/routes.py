@@ -221,7 +221,7 @@ def database():
                            date_format=cfg['DATE_FORMAT'], pages=jobs)
 
 
-@app.route('/json', methods=['GET', 'POST'])
+@app.route('/json', methods=['GET'])
 @login_required
 def feed_json():
     """
@@ -370,7 +370,7 @@ def logreader():
     log_path = cfg['LOGPATH']
     mode = request.args.get('mode')
     # We should use the job id and not get the raw logfile from the user
-    # poss search database and see if we can match the logname with a previous rip ?
+    # Maybe search database and see if we can match the logname with a previous rip ?
     full_path = os.path.join(log_path, request.args.get('logfile'))
     ui_utils.validate_logfile(request.args.get('logfile'), mode, Path(full_path))
 
@@ -438,19 +438,19 @@ def jobdetail():
     return render_template('jobdetail.html', jobs=job, tracks=tracks, s=search_results)
 
 
-@app.route('/titlesearch', methods=['GET', 'POST'])
+@app.route('/titlesearch', methods=['GET'])
 @login_required
-def submitrip():
+def title_search():
     """
     The initial search page
     """
     job_id = request.args.get('job_id')
     job = models.Job.query.get(job_id)
-    form = TitleSearchForm(obj=job)
-    if form.validate_on_submit():
-        form.populate_obj(job)
-        flash(f'Search for {form.title.data}, year={form.year.data}', 'success')
-        return redirect(url_for('list_titles', title=form.title.data, year=form.year.data, job_id=job_id))
+    form = TitleSearchForm(request.args, meta={'csrf': False})
+    if form.validate():
+        flash(f'Search for {request.args.get("title")}, year={request.args.get("year")}', 'success')
+        return redirect(url_for('list_titles', title=request.args.get("title"),
+                                year=request.args.get("year"), job_id=job_id))
     return render_template('titlesearch.html', title='Update Title', form=form, job=job)
 
 
@@ -482,7 +482,7 @@ def changeparams():
     return render_template('changeparams.html', title='Change Parameters', form=form)
 
 
-@app.route('/customTitle', methods=['GET', 'POST'])
+@app.route('/customTitle', methods=['GET'])
 @login_required
 def customtitle():
     """
@@ -492,16 +492,13 @@ def customtitle():
     ui_utils.job_id_validator(job_id)
     job = models.Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
-    if form.validate_on_submit():
-        form.populate_obj(job)
-        job.title = format(form.title.data)
-        job.year = format(form.year.data)
+    if request.args.get("title"):
         args = {
-            'title': job.disctype,
-            'year': job.year
+            'title': request.args.get("title"),
+            'year': request.args.get("year")
         }
         ui_utils.database_updater(args, job)
-        flash(f'custom title changed. Title={form.title.data}, Year={form.year.data}.', "success")
+        flash(f'Custom title changed. Title={job.title}, Year={job.year}.', "success")
         return redirect(url_for('home'))
     return render_template('customTitle.html', title='Change Title', form=form, job=job)
 

@@ -12,8 +12,7 @@
 <div class="container justify-content-center">
     <div class="row justify-content-center" style="flex-wrap: nowrap">
         <div class="col-7">
-		<form action="" method="post" novalidate>
-			{{ form.hidden_tag() }}
+		<form action="" method="get" novalidate>
 			<div class="input-group mb-3 flex-nowrap">
 				<div class="input-group-prepend">
 					<span class="input-group-text" id="searchtitle">Title</span>
@@ -29,6 +28,7 @@
 				</div>
 				<input type="text" class="form-control" name="year" aria-label="year" value="{{ job.year if job.year != '' else '' }}" aria-describedby="basic-addon1">
 			</div>
+			<input class="form-control" name="job_id" value="{{ job.job_id }}" hidden>
 			<button class="btn btn-info btn-lg btn-block" type="submit">Set Custom Title</button>
 		</form>
 		</div>

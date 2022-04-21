@@ -6,7 +6,7 @@
 {% block content %}  
 <div class="container d-flex justify-content-center">
     <div class="row" style="flex-wrap: nowrap">
-        <form action="" method="post" novalidate>
+        <form action="" method="get" novalidate>
 			{{ form.hidden_tag() }}
 			<div class="input-group mb-3">
 				<div class="input-group-prepend">
@@ -22,6 +22,7 @@
 				<input type="text" class="form-control" name="year" value="{{job.year}}" aria-label="year" aria-describedby="basic-addon1">
 			</div>
 			<input class="form-control" name="save" value="save" hidden>
+			<input class="form-control" name="job_id" value="{{ job.job_id }}" hidden>
 			<button class="btn btn-info btn-lg btn-block" type="submit">Search</button>
 		</form>
 	</div>
