@@ -1,3 +1,4 @@
+"""File to hold all functions pertaining to apprise"""
 import logging
 import yaml
 import apprise

@@ -416,7 +416,7 @@ def send_to_remote_db(job_id):
     url = f"{base_url}/api/v1/?mode=p&api_key={api_key}&crc64={job.crc_id}&t={job.title}" \
           f"&y={job.year}&imdb={job.imdb_id}" \
           f"&hnt={job.hasnicetitle}&l={job.label}&vt={job.video_type}"
-    app.logger.debug(url.replace(api_key, ""))
+    app.logger.debug(url.replace(api_key, "<api_key>"))
     response = requests.get(url)
     req = json.loads(response.text)
     app.logger.debug("req= " + str(req))

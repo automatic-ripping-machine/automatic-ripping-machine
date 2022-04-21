@@ -1,3 +1,4 @@
+"""Main arm ui file"""
 import sys  # noqa: F401
 import os  # noqa: F401
 from getpass import getpass  # noqa: F401

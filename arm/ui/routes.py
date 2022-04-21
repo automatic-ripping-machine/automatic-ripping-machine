@@ -370,7 +370,7 @@ def logreader():
     log_path = cfg['LOGPATH']
     mode = request.args.get('mode')
     # We should use the job id and not get the raw logfile from the user
-    # TODO poss search database and see if we can match the logname with a previous rip ?
+    # poss search database and see if we can match the logname with a previous rip ?
     full_path = os.path.join(log_path, request.args.get('logfile'))
     ui_utils.validate_logfile(request.args.get('logfile'), mode, Path(full_path))
 
@@ -621,7 +621,6 @@ def home():
         flash("There was a problem accessing the ARM folders. Please make sure you have setup ARM<br/>"
               "Setup can be started by visiting <a href=\"/setup\">setup page</a> ARM will not work correctly until"
               "until you have added an admin account", "danger")
-    # We could check for the install file here  and then error out if we want
     #  RAM
     memory = psutil.virtual_memory()
     mem_total = round(memory.total / 1073741824, 1)
@@ -814,16 +813,8 @@ def send_movies():
         return render_template('send_movies_form.html')
 
     job_list = db.session.query(models.Job).filter_by(hasnicetitle=True, disctype="dvd").all()
-    app.logger.debug("search - posts=" + str(job_list))
-    return_dict = {}
-    i = 0
-    for job in job_list:
-        job_dict = job.get_d().items()
-        return_dict[i] = {}
-        for key, value in iter(job_dict):
-            return_dict[i][str(key)] = str(value)
-        i += 1
-    return render_template('send_movies.html', full=return_dict)
+    return_job_list = [job.job_id for job in job_list]
+    return render_template('send_movies.html', job_list=return_job_list)
 
 
 @app.errorhandler(Exception)

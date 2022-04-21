@@ -33,7 +33,7 @@ function addJobItem(job) {
     const idsplit = job.job_id.split("_");
     console.log(`${idsplit[1]} - ${idsplit[0]}`)
     //Start creating the card with job id and header title
-    let x = `<div class="col-md-4" id="jobId${job.job_id}"><div class="card mb-3  mx-auto" style="min-height: 420px;">`;
+    let x = `<div class="col-md-4" id="jobId${job.job_id}"><div class="card m-3  mx-auto" style="min-height: 420px;">`;
     x += `<div class="card-header row no-gutters justify-content-center"><strong id="jobId${job.job_id}_header">${titleManual(job)}</strong></div>`;
     // Main holder for the 3 sections of info - includes 1 section (Poster img)
     // We need to check if idsplit is undefined, database page doesn't have splitid's
