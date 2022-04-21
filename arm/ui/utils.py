@@ -12,6 +12,7 @@ from pathlib import Path
 from time import strftime, localtime, time, sleep
 
 import bcrypt
+import requests
 from werkzeug.routing import ValidationError
 import yaml
 from flask.logging import default_handler  # noqa: F401
@@ -398,6 +399,37 @@ def fix_permissions(j_id):
         app.logger.error(f"Permissions setting failed as: {error}")
         return_json["Error"] = str(f"Permissions setting failed as: {error}")
     return return_json
+
+
+def send_to_remote_db(job_id):
+    """
+    Send a local db job to the arm remote crc64 database
+    :param job_id: Job id
+    :return: dict/json to return to user
+    """
+    job = models.Job.query.get(job_id)
+    return_dict = {}
+    api_key = cfg['ARM_API_KEY']
+
+    # This allows easy updates to the API url
+    base_url = "https://1337server.pythonanywhere.com"
+    url = f"{base_url}/api/v1/?mode=p&api_key={api_key}&crc64={job.crc_id}&t={job.title}" \
+          f"&y={job.year}&imdb={job.imdb_id}" \
+          f"&hnt={job.hasnicetitle}&l={job.label}&vt={job.video_type}"
+    app.logger.debug(url.replace(api_key, ""))
+    response = requests.get(url)
+    req = json.loads(response.text)
+    app.logger.debug("req= " + str(req))
+    job_dict = job.get_d().items()
+    return_dict['config'] = job.config.get_d()
+    for key, value in iter(job_dict):
+        return_dict[str(key)] = str(value)
+    if req['success']:
+        return_dict['status'] = "success"
+    else:
+        return_dict['error'] = req['Error']
+        return_dict['status'] = "fail"
+    return return_dict
 
 
 def find_folder_in_log(job_log, default_directory):

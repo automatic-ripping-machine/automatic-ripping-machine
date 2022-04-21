@@ -260,6 +260,9 @@ def feed_json():
     elif mode == "fixperms":
         app.logger.debug("fixperms")
         return_json = ui_utils.fix_permissions(j_id)
+    elif mode == "send_item":
+        app.logger.debug("send_item")
+        return_json = ui_utils.send_to_remote_db(j_id)
     app.logger.debug(return_json)
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,

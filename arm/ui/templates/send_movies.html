@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Database{% endblock %}
+{% block title %}Send Movies/Series{% endblock %}
 
 {% block nav %}{{ super() }}{% endblock %}
 
@@ -9,64 +9,54 @@
     <div class="row">
         <div class="col-sm-12  rounded text-center">
             <img src="static/img/arm80.png" alt="Automatic Ripping Machine">
-			<p class="text-center">
-				<strong>Welcome to your Automatic Ripping Machine<br></strong>
-			</p>
+            <p class="text-center">
+                <strong>Welcome to your Automatic Ripping Machine<br></strong>
+            </p>
         </div>
     </div>
 
     <div class="jumbotron mb-5">
-	<div class="row h-100 mx-auto align-items-center">
-        <div class="col-sm-12 mx-auto">
-            <p class="text-center">
+        <div class="row h-100 mx-auto align-items-center">
+            <div class="col-sm-12 mx-auto">
+                <p class="text-center">
                 <h5 class="text-center"><strong>These are the movies we tried to send to the ARM API</strong></h5>
-            </p>
-        </div>							
-    </div>
-	<div class="row">
-        <div class="col-md-12 mx-auto">
-            <div class="card-deck">
-			{% for k, job in full.items() %}
-                <div class="col-md-3 {{ 'alert-danger' if job['Error'] else 'alert-success' }}" id="jobId{{ job.job_id }}">
-                    <div class="card m-3  mx-auto">
-                        <div class="card-header row no-gutters justify-content-center">
-								<strong>
-									{{ job["title"] }} {{ '('+job['year']+')' if job["year"] is not none }}	
-								</strong>
-							</div>
-						<div class="row no-gutters">
-                            <div class="col-lg-4">
-                                {% if not job.poster_url or job.poster_url == "None" %}
-                                <a href="jobdetail?job_id={{ job.job_id }}">
-									<img src="static/img/none.png" width="240px" class="img-thumbnail" alt="Image Not Found">
-								</a>
-                                {% else %}
-                                <a href="jobdetail?job_id={{ job.job_id }}">
-									<img src="{{ job.poster_url }}" width="240px" class="img-thumbnail" alt="Poster Image">
-								</a>
-                                {% endif %}
-                            </div>
-                            <div class="col">
-                                <div class="card-body px-1 py-1">
-									<strong>crc64: </strong>{{job['crc_id']}}<br>
-									<strong>Title: </strong>"{{ job["title"] }}"<br>
-                                    <strong>Type: </strong> {{ job['video_type'] }} <br>
-                                    <strong>Year: </strong>({{ job["year"] }})<br>
-									<strong>imdb: </strong>{{ job["imdb_id"] }}<br>
-									<strong>tmdb: </strong>{{ job["tmdb_id"] }}<br>
-                                    <strong>Reason: </strong>{{ job['Error'] if job['Error'] else '' }}<br>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>	
-			{% endfor %}
+                </p>
+            </div>
+        </div>
+        <div class="row">
+            <!-- ADD SPINNER HERE WHEN LOOPING-->
+            <div class="col-md-12 mx-auto">
+                <div class="card-deck">
+                </div>
             </div>
         </div>
     </div>
-	</div>
 </div>
+<script type="application/javascript" src="static/js/common.js"></script>
+<script type="text/javascript">
+    $( document ).ready(function() {
+    console.log( "ready!" );
+    const jobItems = {{ full|safe }};
+    $.each(jobItems, function (index, job) {
+        console.log(index + ": " + job.title);
+        var jqxhr = $.get("/json",{mode: "send_item", job: job.job_id}, function (data) {
+            console.log(data);
+            $( ".card-deck" ).prepend( addJobItem(data) );
+            if(data.error !== ""){
+                $(`#jobId${job.job_id}`).addClass("alert-danger")
+                $(`#jobId${job.job_id}_progress_section`).append("<strong>Failure Reason: </strong>" + data.error)
+            }
+            else{
+                $(`#jobId${job.job_id}`).addClass("alert-success")
+            }
+        })
+            .fail(function () {
+                console.log("error");
+            })
+    });
+    activeTab("navsendmovies");
+});
+</script>
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
