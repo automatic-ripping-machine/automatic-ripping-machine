@@ -161,44 +161,44 @@ def login():
     Login page if login is enabled
     :return: redirect
     """
-    # TODO fix this so there is only 1 return
+    return_redirect = None
     # if there is no user in the database
     try:
         user_list = models.User.query.all()
         # If we don't raise an exception but the usr table is empty
         if not user_list:
             app.logger.debug("No admin found")
-            return redirect(constants.SETUP_STAGE_2)
+            return_redirect = redirect(constants.SETUP_STAGE_2)
     except Exception:
         flash(constants.NO_ADMIN_ACCOUNT, "danger")
         app.logger.debug(constants.NO_ADMIN_ACCOUNT)
-        return redirect(constants.SETUP_STAGE_2)
+        return_redirect = redirect(constants.SETUP_STAGE_2)
 
     # if user is logged in
     if current_user.is_authenticated:
-        return redirect(constants.HOME_PAGE)
+        return_redirect = redirect(constants.HOME_PAGE)
 
     form = SetupForm()
     if form.validate_on_submit():
-        email = request.form['username']
-        # TODO: we know there is only ever 1 admin account, so we can pull it and check against it locally
-        user = models.User.query.filter_by(email=str(email).strip()).first()
-        if user is None:
-            flash('Invalid username', 'danger')
-            return render_template('login.html', form=form)
-        app.logger.debug("user= " + str(user))
+        login_username = request.form['username']
+        # we know there is only ever 1 admin account, so we can pull it and check against it locally
+        admin = models.User.query.filter_by().first()
+        app.logger.debug("user= " + str(admin))
         # our pass
-        password = user.password
-        hashed = user.hash
+        password = admin.password
         # hashed pass the user provided
-        loginhashed = bcrypt.hashpw(str(request.form['password']).strip().encode('utf-8'), hashed)
+        login_hashed = bcrypt.hashpw(str(request.form['password']).strip().encode('utf-8'), admin.hash)
 
-        if loginhashed == password:
-            login_user(user)
+        if login_hashed == password and login_username == admin.email:
+            login_user(admin)
             app.logger.debug("user was logged in - redirecting")
-            return redirect(constants.HOME_PAGE)
-        flash('Password is wrong', 'danger')
-    return render_template('login.html', form=form)
+            return_redirect = redirect(constants.HOME_PAGE)
+        else:
+            flash("Something isn't right", "danger")
+    # If nothing has gone wrong give them the login page
+    if return_redirect is None:
+        return_redirect = render_template('login.html', form=form)
+    return return_redirect
 
 
 @app.route('/database')
@@ -275,64 +275,23 @@ def settings():
 
     This needs to be rewritten to be static
     """
-    form_data = ""
     arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     comments = ui_utils.generate_comments()
-    cfg = ui_utils.get_settings(arm_cfg_file)
+    current_cfg = ui_utils.get_settings(arm_cfg_file)
 
     form = SettingsForm()
     if form.validate_on_submit():
-        # For testing
-        form_data = request.form.to_dict()
-        arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
-        # TODO: This is not the safest way to do things.
-        #  It assumes the user isn't trying to mess with us.
-        # This really should be hard coded.
-        for key, value in form_data.items():
-            if key != "csrf_token":
-                if key == "COMPLETED_PATH":
-                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP']
-                elif key == "WEBSERVER_IP":
-                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['WEB_SERVER']
-                elif key == "SET_MEDIA_PERMISSIONS":
-                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['FILE_PERMS']
-                elif key == "RIPMETHOD":
-                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['MAKE_MKV']
-                elif key == "HB_PRESET_DVD":
-                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['HANDBRAKE']
-                elif key == "EMBY_REFRESH":
-                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['EMBY']
-                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['EMBY_ADDITIONAL']
-                elif key == "NOTIFY_RIP":
-                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['NOTIFY_PERMS']
-                elif key == "APPRISE":
-                    arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['APPRISE']
-                try:
-                    arm_cfg += "\n" + comments[str(key)] + "\n" if comments[str(key)] != "" else ""
-                except KeyError:
-                    arm_cfg += "\n"
-                try:
-                    post_value = int(value)
-                    arm_cfg += f"{key}: {post_value}\n"
-                except ValueError:
-                    if value.lower() == 'false' or value.lower() == "true":
-                        arm_cfg += f"{key}: {value.lower()}\n"
-                    else:
-                        if key == "WEBSERVER_IP":
-                            arm_cfg += f"{key}: {value.lower()}\n"
-                        else:
-                            arm_cfg += f"{key}: \"{value}\"\n"
-                # app.logger.debug(f"\n{k} = {v} ")
-
-        # app.logger.debug(f"arm_cfg= {arm_cfg}")
+        # Build the new arm.yaml with updated values from the user
+        arm_cfg = ui_utils.save_settings(request.form.to_dict(), comments)
+        # Save updated arm.yaml
         with open(arm_cfg_file, "w") as settings_file:
             settings_file.write(arm_cfg)
             settings_file.close()
         flash("Setting saved successfully!", "success")
         return redirect(url_for('settings'))
     # If we get to here there was no post data
-    return render_template('settings.html', settings=cfg,
-                           form=form, raw=form_data, jsoncomments=comments)
+    return render_template('settings.html', settings=current_cfg,
+                           form=form, raw=request.form.to_dict(), jsoncomments=comments)
 
 
 @app.route('/ui_settings', methods=['GET', 'POST'])
@@ -842,7 +801,7 @@ def import_movies():
                               mimetype=constants.JSON_TYPE)
 
 
-@app.route('/send_movies', methods=['GET', 'POST'])
+@app.route('/send_movies', methods=['GET'])
 @login_required
 def send_movies():
     """
@@ -852,37 +811,33 @@ def send_movies():
     if request.args.get('s') is None:
         return render_template('send_movies_form.html')
 
-    posts = db.session.query(models.Job).filter_by(hasnicetitle=True, disctype="dvd").all()
-    app.logger.debug("search - posts=" + str(posts))
-    r = {'failed': {}, 'sent': {}}
+    job_list = db.session.query(models.Job).filter_by(hasnicetitle=True, disctype="dvd").all()
+    app.logger.debug("search - posts=" + str(job_list))
+    return_dict = {}
     i = 0
     api_key = cfg['ARM_API_KEY']
 
-    for p in posts:
+    for job in job_list:
         # This allows easy updates to the API url
-        base_url = "https://1337server.pythonanywhere.com"
-        url = f"{base_url}/api/v1/?mode=p&api_key={api_key}&crc64={p.crc_id}&t={p.title}&y={p.year}&imdb={p.imdb_id}" \
-              f"&hnt={p.hasnicetitle}&l={p.label}&vt={p.video_type}"
-        app.logger.debug(url)
-        response = requests.get(url)
-        req = json.loads(response.text)
-        app.logger.debug("req= " + str(req))
-        if bool(req['success']):
-            x = p.get_d().items()
-            r['sent'][i] = {}
-            for key, value in iter(x):
-                r['sent'][i][str(key)] = str(value)
-                # app.logger.debug(str(key) + "= " + str(value))
-            i += 1
-        else:
-            x = p.get_d().items()
-            r['failed'][i] = {}
-            r['failed'][i]['Error'] = req['Error']
-            for key, value in iter(x):
-                r['failed'][i][str(key)] = str(value)
-                # app.logger.debug(str(key) + "= " + str(value))
-            i += 1
-    return render_template('send_movies.html', sent=r['sent'], failed=r['failed'], full=r)
+        # base_url = "https://1337server.pythonanywhere.com"
+        # url = f"{base_url}/api/v1/?mode=p&api_key={api_key}&crc64={job.crc_id}&t={job.title}" \
+        #       f"&y={job.year}&imdb={job.imdb_id}" \
+        #       f"&hnt={job.hasnicetitle}&l={job.label}&vt={job.video_type}"
+        # app.logger.debug(url.replace(api_key, ""))
+        # response = requests.get(url)
+        # req = json.loads(response.text)
+        # app.logger.debug("req= " + str(req))
+        job_dict = job.get_d().items()
+        return_dict[i] = {}
+        for key, value in iter(job_dict):
+            return_dict[i][str(key)] = str(value)
+        # if req['success']:
+        #     return_dict[i]['status'] = "success"
+        # else:
+        #     return_dict[i]['Error'] = req['Error']
+        #     return_dict[i]['status'] = "fail"
+        i += 1
+    return render_template('send_movies.html', full=return_dict)
 
 
 @app.errorhandler(Exception)

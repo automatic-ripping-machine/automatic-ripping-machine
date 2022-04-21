@@ -68,7 +68,7 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
         err = f"Call to handbrake failed with code: {hb_error.returncode}({hb_error.output})"
         logging.error(err)
         track.status = "fail"
-        track.error = err
+        track.error = job.errors = err
         job.status = "fail"
         db.session.commit()
         sys.exit(err)

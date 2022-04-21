@@ -83,6 +83,8 @@ def notify_entry(job):
         notify(job, NOTIFY_TITLE, "Found data disc.  Copying data.")
     else:
         notify(job, NOTIFY_TITLE, "Could not identify disc.  Exiting.")
+        args = {'status': 'fail', 'errors': "Could not identify disc."}
+        database_updater(args, job)
         sys.exit()
 
 
@@ -257,11 +259,10 @@ def make_dir(path):
         try:
             os.makedirs(path)
             return True
-        except OSError:
+        except OSError as error:
             err = f"Couldn't create a directory at path: {path} Probably a permissions error.  Exiting"
             logging.error(err)
-            # TODO set job to fail and commit to db
-            sys.exit(err)
+            raise OSError from error
     else:
         return False
 
@@ -349,6 +350,8 @@ def rip_music(job, logfile):
             return True
         except subprocess.CalledProcessError as ab_error:
             err = f"Call to abcde failed with code: {ab_error.returncode} ({ab_error.output})"
+            args = {'status': 'fail', 'errors': err}
+            database_updater(args, job)
             logging.error(err)
     return False
 
@@ -373,6 +376,8 @@ def rip_data(job):
         final_file_name = f"{job.label}_{random_time}"
         if (make_dir(raw_path)) is False:
             logging.info(f"Could not create data directory: {raw_path}  Exiting ARM. ")
+            args = {'status': 'fail', 'errors': "Couldn't create data directory"}
+            database_updater(args, job)
             sys.exit()
 
     final_path = os.path.join(final_path, final_file_name)

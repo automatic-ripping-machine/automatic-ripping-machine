@@ -15,20 +15,20 @@
         </div>
     </div>
 
-    <div class="jumbotron alert-danger mb-5">
+    <div class="jumbotron mb-5">
 	<div class="row h-100 mx-auto align-items-center">
         <div class="col-sm-12 mx-auto">
             <p class="text-center">
-                <h5 class="text-center"><strong>These movies failed to send to the ARM API</strong></h5>
+                <h5 class="text-center"><strong>These are the movies we tried to send to the ARM API</strong></h5>
             </p>
         </div>							
     </div>
 	<div class="row">
         <div class="col-md-12 mx-auto">
             <div class="card-deck">
-			{% for k, job in failed.items() %}		
-                <div class="col-md-3" id="jobId{{ job.job_id }}">
-                    <div class="card mb-3  mx-auto">
+			{% for k, job in full.items() %}
+                <div class="col-md-3 {{ 'alert-danger' if job['Error'] else 'alert-success' }}" id="jobId{{ job.job_id }}">
+                    <div class="card m-3  mx-auto">
                         <div class="card-header row no-gutters justify-content-center">
 								<strong>
 									{{ job["title"] }} {{ '('+job['year']+')' if job["year"] is not none }}	
@@ -36,7 +36,7 @@
 							</div>
 						<div class="row no-gutters">
                             <div class="col-lg-4">
-                                {% if not job.poster_url %}
+                                {% if not job.poster_url or job.poster_url == "None" %}
                                 <a href="jobdetail?job_id={{ job.job_id }}">
 									<img src="static/img/none.png" width="240px" class="img-thumbnail" alt="Image Not Found">
 								</a>
@@ -46,7 +46,7 @@
 								</a>
                                 {% endif %}
                             </div>
-                            <div class="col-lg-4">
+                            <div class="col">
                                 <div class="card-body px-1 py-1">
 									<strong>crc64: </strong>{{job['crc_id']}}<br>
 									<strong>Title: </strong>"{{ job["title"] }}"<br>
@@ -54,58 +54,7 @@
                                     <strong>Year: </strong>({{ job["year"] }})<br>
 									<strong>imdb: </strong>{{ job["imdb_id"] }}<br>
 									<strong>tmdb: </strong>{{ job["tmdb_id"] }}<br>
-                                    <strong>Reason: </strong>{{job['Error']}}<br>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>	
-			{% endfor %}
-            </div>
-        </div>
-    </div>
-	</div>
-    <div class="jumbotron alert-success mb-5">
-	<div class="row h-100 mx-auto align-items-center">
-        <div class="col-sm-12 mx-auto">
-            <p class="text-center">
-            <h5 class="text-center"><strong>These movies were to send to the ARM API</strong></h5>
-            </p>
-        </div>							
-    </div>
-	<div class="row">
-        <div class="col-md-12 mx-auto">
-            <div class="card-deck">
-			{% for k, job in sent.items() %}		
-                <div class="col-md-3" id="jobId{{ job.job_id }}">
-                    <div class="card mb-3  mx-auto">
-                        <div class="card-header row no-gutters justify-content-center">
-								<strong>
-									{{ job["title"] }} {{ '('+job['year']+')' if job["year"] is not none }}	
-								</strong>
-							</div>
-						<div class="row no-gutters">
-                            <div class="col-lg-4">
-                                {% if not job.poster_url %}
-                                <a href="jobdetail?job_id={{ job.job_id }}">
-									<img src="static/img/none.png" width="240px" class="img-thumbnail" alt="Image Not Found">
-								</a>
-                                {% else %}
-                                <a href="jobdetail?job_id={{ job.job_id }}">
-									<img src="{{ job.poster_url }}" width="240px" class="img-thumbnail" alt="Poster Image">
-								</a>
-                                {% endif %}
-                            </div>
-                            <div class="col-lg-4">
-                                <div class="card-body px-1 py-1">
-									<strong>crc64: </strong>{{job['crc_id']}}<br>
-									<strong>Title: </strong>"{{ job["title"] }}"<br>
-                                    <strong>Type: </strong> {{ job['video_type'] }} <br>
-                                    <strong>Year: </strong>({{ job["year"] }})<br>
-									<strong>imdb: </strong>{{ job["imdb_id"] }}<br>
-									<strong>tmdb: </strong>{{ job["tmdb_id"] }}<br>
-                                    <strong>Status: </strong><img id="status{{ job.job_id }}" src="static/img/fail.png" height="20px" alt="{{ job.status }}" title="{{ job.status }}"><br>
+                                    <strong>Reason: </strong>{{ job['Error'] if job['Error'] else '' }}<br>
                                 </div>
                             </div>
 
@@ -118,7 +67,6 @@
     </div>
 	</div>
 </div>
-
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}

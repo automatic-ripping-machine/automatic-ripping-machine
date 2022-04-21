@@ -455,6 +455,49 @@ def get_settings(arm_cfg_file):
     return yaml_cfg
 
 
+def save_settings(form_data, comments):
+    arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
+    # TODO: This is not the safest way to do things.
+    #  It assumes the user isn't trying to mess with us.
+    # This really should be hard coded.
+    for key, value in form_data.items():
+        if key != "csrf_token":
+            if key == "COMPLETED_PATH":
+                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP']
+            elif key == "WEBSERVER_IP":
+                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['WEB_SERVER']
+            elif key == "SET_MEDIA_PERMISSIONS":
+                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['FILE_PERMS']
+            elif key == "RIPMETHOD":
+                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['MAKE_MKV']
+            elif key == "HB_PRESET_DVD":
+                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['HANDBRAKE']
+            elif key == "EMBY_REFRESH":
+                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['EMBY']
+                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['EMBY_ADDITIONAL']
+            elif key == "NOTIFY_RIP":
+                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['NOTIFY_PERMS']
+            elif key == "APPRISE":
+                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['APPRISE']
+            try:
+                arm_cfg += "\n" + comments[str(key)] + "\n" if comments[str(key)] != "" else ""
+            except KeyError:
+                arm_cfg += "\n"
+            try:
+                post_value = int(value)
+                arm_cfg += f"{key}: {post_value}\n"
+            except ValueError:
+                if value.lower() == 'false' or value.lower() == "true":
+                    arm_cfg += f"{key}: {value.lower()}\n"
+                else:
+                    if key == "WEBSERVER_IP":
+                        arm_cfg += f"{key}: {value.lower()}\n"
+                    else:
+                        arm_cfg += f"{key}: \"{value}\"\n"
+            # app.logger.debug(f"\n{k} = {v} ")
+    return arm_cfg
+
+
 def get_processor_name():
     """
     function to collect and return some cpu info

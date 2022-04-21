@@ -334,7 +334,7 @@ if __name__ == "__main__":
     # Log version number
     with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
-    git_version = utils.get_git_commit()
+    utils.get_git_commit()
     logging.info(f"ARM version: {version}")
     job.arm_version = version
     logging.info(("Python version: " + sys.version).replace('\n', ""))
