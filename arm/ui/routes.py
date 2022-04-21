@@ -7,7 +7,6 @@ import hashlib
 import json
 from pathlib import Path, PurePath
 
-import requests
 import bcrypt
 import psutil
 from werkzeug.exceptions import HTTPException
@@ -818,27 +817,11 @@ def send_movies():
     app.logger.debug("search - posts=" + str(job_list))
     return_dict = {}
     i = 0
-    api_key = cfg['ARM_API_KEY']
-
     for job in job_list:
-        # This allows easy updates to the API url
-        # base_url = "https://1337server.pythonanywhere.com"
-        # url = f"{base_url}/api/v1/?mode=p&api_key={api_key}&crc64={job.crc_id}&t={job.title}" \
-        #       f"&y={job.year}&imdb={job.imdb_id}" \
-        #       f"&hnt={job.hasnicetitle}&l={job.label}&vt={job.video_type}"
-        # app.logger.debug(url.replace(api_key, ""))
-        # response = requests.get(url)
-        # req = json.loads(response.text)
-        # app.logger.debug("req= " + str(req))
         job_dict = job.get_d().items()
         return_dict[i] = {}
         for key, value in iter(job_dict):
             return_dict[i][str(key)] = str(value)
-        # if req['success']:
-        #     return_dict[i]['status'] = "success"
-        # else:
-        #     return_dict[i]['Error'] = req['Error']
-        #     return_dict[i]['status'] = "fail"
         i += 1
     return render_template('send_movies.html', full=return_dict)
 
