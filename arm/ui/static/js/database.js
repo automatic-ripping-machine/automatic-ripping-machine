@@ -251,7 +251,7 @@ function fetchJobs(getJobsHREF) {
                 5000
             );
         }
-        hideModal();
+        timeOutModal()
     }, "json");
     $(MODAL_FOOTER).removeClass("d-none");
 }
@@ -267,6 +267,17 @@ function triggerSearchKeyPress() {
     });
 }
 
+/**
+ * hideModal sometimes needs to be delayed, if triggered too soon it won't hide the modal
+ */
+function timeOutModal(){
+    setTimeout(
+        function () {
+            hideModal();
+            },
+        2000
+    );
+}
 $(document).ready(function () {
     //Check if user is new
     checkNewUser(checkCookie());

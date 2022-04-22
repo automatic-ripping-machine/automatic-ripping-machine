@@ -42,12 +42,10 @@
                 <div class="jumbotron" style="padding-top: 1rem;">
 					<div class="col-sm-12  rounded text-center">
 						<img src="static/img/arm80.png" alt="Automatic Ripping Machine">
-						<p class="text-center">
 						<h2> ARM - Settings </h2>
-						</p>
 					</div>
 				
-					<div class="container" style="padding-top: 4rem;">
+					<div class="container pt-4">
 						<form id="form1" name="form1" method="post" action="/settings">
 						    {{ form.hidden_tag() }}
 							{% for k, v in settings.items() %}

@@ -232,37 +232,32 @@ def feed_json():
     You can then add a function inside utils to deal with the request
     """
     return_json = {}
-    mode = request.args.get('mode')
-    j_id = request.args.get('job')
-    searchq = request.args.get('q')
-    logpath = cfg['LOGPATH']
+    mode = str(request.args.get('mode'))
 
-    if mode == "delete":
-        return_json = json_api.delete_job(j_id, mode)
-    elif mode == "abandon":
-        return_json = json_api.abandon_job(j_id)
-    elif mode == "full":
-        app.logger.debug("getlog")
-        return_json = json_api.generate_log(logpath, j_id)
-    elif mode == "search":
-        app.logger.debug("search")
-        return_json = json_api.search(searchq)
-    elif mode == "getfailed":
-        app.logger.debug("getfailed")
-        return_json = json_api.get_x_jobs("fail")
-    elif mode == "getsuccessful":
-        app.logger.debug("getsucessful")
-        return_json = json_api.get_x_jobs("success")
-    elif mode == "joblist":
-        app.logger.debug("joblist")
-        return_json = json_api.get_x_jobs("joblist")
-    elif mode == "fixperms":
-        app.logger.debug("fixperms")
-        return_json = ui_utils.fix_permissions(j_id)
-    elif mode == "send_item":
-        app.logger.debug("send_item")
-        return_json = ui_utils.send_to_remote_db(j_id)
-    app.logger.debug(return_json)
+    valid_data = {
+        'j_id': request.args.get('job'),
+        'searchq': request.args.get('q'),
+        'logpath': cfg['LOGPATH'],
+        'fail': 'fail',
+        'success': 'success',
+        'joblist': 'joblist'
+    }
+    valid_modes = {
+        'delete': {'funct': json_api.delete_job, 'args': ('j_id', 'mode')},
+        'abandon': {'funct': json_api.abandon_job, 'args': ('j_id',)},
+        'full': {'funct': json_api.generate_log, 'args': ('logpath', 'j_id')},
+        'search': {'funct': json_api.search, 'args': ('searchq',)},
+        'getfailed': {'funct': json_api.get_x_jobs, 'args': ('fail',)},
+        'getsuccessful': {'funct': json_api.get_x_jobs, 'args': ('success',)},
+        'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
+        'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
+        'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)}
+    }
+    if mode in valid_modes:
+        args = [valid_data[x] for x in valid_modes[mode]['args']]
+        app.logger.debug(args)
+        return_json = valid_modes[mode]['funct'](*args)
+    app.logger.debug(f"Json - {return_json}")
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
                               mimetype=constants.JSON_TYPE)
@@ -273,23 +268,24 @@ def feed_json():
 def settings():
     """
     The settings page - allows the user to update the arm.yaml without needing to open a text editor
-    Also triggers a restart of flask for debugging.
-
     This needs to be rewritten to be static
     """
+    # Path to arm.yaml
     arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
+    # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
+    # Get the current config, so we can show the current values with no post data
     current_cfg = ui_utils.get_settings(arm_cfg_file)
-
     form = SettingsForm()
     if form.validate_on_submit():
         # Build the new arm.yaml with updated values from the user
-        arm_cfg = ui_utils.save_settings(request.form.to_dict(), comments)
+        arm_cfg = ui_utils.build_arm_cfg(request.form.to_dict(), comments)
         # Save updated arm.yaml
         with open(arm_cfg_file, "w") as settings_file:
             settings_file.write(arm_cfg)
             settings_file.close()
         flash("Setting saved successfully!", "success")
+        # Redirect so we show the new config values
         return redirect(url_for('settings'))
     # If we get to here there was no post data
     return render_template('settings.html', settings=current_cfg,
@@ -566,27 +562,19 @@ def updatetitle():
     """
     # updatetitle?title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
     #  poster=http://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
-    new_title = request.args.get('title')
-    new_year = request.args.get('year')
-    video_type = request.args.get('type')
-    imdb_id = request.args.get('imdbID')
-    poster_url = request.args.get('poster')
     job_id = request.args.get('job_id')
-    app.logger.debug("New imdbID=" + str(imdb_id))
     job = models.Job.query.get(job_id)
-    job.title = ui_utils.clean_for_filename(new_title)
-    job.title_manual = ui_utils.clean_for_filename(new_title)
-    job.year = new_year
-    job.year_manual = new_year
-    job.video_type_manual = video_type
-    job.video_type = video_type
-    job.imdb_id_manual = imdb_id
-    job.imdb_id = imdb_id
-    job.poster_url_manual = poster_url
-    job.poster_url = poster_url
+    old_title = job.title
+    old_year = job.year
+    job.title = job.title_manual = ui_utils.clean_for_filename(request.args.get('title'))
+    job.year = job.year_manual = request.args.get('year')
+    job.video_type = job.video_type_manual = request.args.get('type')
+    job.imdb_id = job.imdb_id_manual = request.args.get('imdbID')
+    job.poster_url = job.poster_url_manual = request.args.get('poster')
     job.hasnicetitle = True
     db.session.commit()
-    flash(f'Title: {job.title_auto} ({job.year_auto}) was updated to {new_title} ({new_year})', "success")
+    flash(f'Title: {old_title} ({old_year}) was updated to '
+          f'{request.args.get("title")} ({request.args.get("year")})', "success")
     return redirect("/")
 
 
@@ -817,7 +805,7 @@ def send_movies():
 @app.errorhandler(Exception)
 def handle_exception(sent_error):
     """
-    Exception handler
+    Exception handler - This breaks all of the normal debug functions \n
     :param sent_error: error
     :return: error page
     """

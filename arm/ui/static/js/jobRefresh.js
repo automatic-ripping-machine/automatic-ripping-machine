@@ -70,8 +70,7 @@ function updateProgress(job, oldJob) {
     const stage = $(`#jobId${job.job_id}_stage`);
     const eta = $(`#jobId${job.job_id}_eta`);
     const progressBarDiv = $(`#jobId${job.job_id}_progress`)
-    if (job.status === "transcoding" || job.status === "ripping" && job.stage !== "" && job.progress
-        || job.disctype === "music" && job.stage !== "") {
+    if (checkTranscodeStatus(job)) {
         // Catch if the progress section is empty and populate it
         if (progressSection[0].innerHTML === "" || !progressBarDiv.length) {
             progressSection[0].innerHTML = mainProgressBar;
@@ -85,6 +84,28 @@ function updateProgress(job, oldJob) {
     }
 }
 
+/**
+ * Checks if current job needs a stage/progress bar added
+ * This is enabled for music discs to enable current ripping track in job.stage
+ * @param job current job object
+ * @returns {boolean} True if job is transcoding or disc is an audio disc
+ */
+function checkTranscodeStatus(job){
+    let status = false;
+    // HandBrake has the disc/files and should be outputting stage and eta
+    if(job.status === "transcoding") {
+        status = true;
+    }
+    // MakeMKV has the disc and should be outputting stage and eta
+    if(job.status === "ripping" && job.stage !== "" && job.progress){
+        status = true;
+    }
+    // abcde is ripping the audio disc and is outputting stage and eta
+    if(job.disctype === "music" && job.stage !== "") {
+        status = true;
+    }
+    return status;
+}
 /**
  * Function to check and update the job values
  * @param {jQuery} item    Dom item to update

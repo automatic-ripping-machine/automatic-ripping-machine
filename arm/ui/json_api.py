@@ -16,7 +16,9 @@ from arm.ui.utils import job_id_validator
 
 def get_x_jobs(job_status):
     """
-    function for getting all Failed/Successful jobs or currently active jobs from the database
+    function for getting all Failed/Successful jobs \n
+    or\n
+    currently active jobs from the database\n
 
     :return: True if we have found dupes with the same crc
               - Will also return a dict of all the jobs found.
@@ -97,7 +99,7 @@ def process_makemkv_logfile(logfile, job, job_results):
                                             job_progress_status.group(3))
         if job_stage_index:
             try:
-                current_index = f"{(int(job_stage_index.group(1)) +1)}/{job.no_of_titles} - {job_stage_index.group(2)}"
+                current_index = f"{(int(job_stage_index.group(1)) + 1)}/{job.no_of_titles} - {job_stage_index.group(2)}"
                 job.stage = job_results['stage'] = current_index
             except Exception as error:
                 job.stage = f"Unknown -  {error}"
@@ -335,6 +337,7 @@ def abandon_job(job_id):
         'job': job_id,
         'mode': 'abandon'
     }
+    job = None
     if not job_id_validator(job_id):
         return json_return
 
@@ -357,7 +360,7 @@ def abandon_job(job_id):
         app.logger.debug(f"Access denied abandoning job: {job.pid}! Reverting db changes.")
     except Exception as error:
         db.session.rollback()
-        app.logger.debug(f"Job {job_id} couldn't be abandoned. ")
+        app.logger.debug(f"Job {job_id} couldn't be abandoned. - {error}")
         json_return["Error"] = str(error)
 
     return json_return

@@ -177,7 +177,6 @@ def generate_comments():
     allows us to easily add more settings later
     :return: json
     """
-    comments = "{'error':'Unknown error'}"
     comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
     try:
         with open(comments_file, "r") as comments_read_file:
@@ -347,10 +346,12 @@ def fix_permissions(j_id):
     ARM can sometimes have issues with changing the file owner, we can use the fact ARMui is run
     as a service to fix permissions.
     """
+
     # Use set_media_owner to keep complexity low
     def set_media_owner(dirpath, cur_dir, uid, gid):
         if job.config.SET_MEDIA_OWNER:
             os.chown(os.path.join(dirpath, cur_dir), uid, gid)
+
     # Validate job is valid
     job_id_validator(j_id)
     job = models.Job.query.get(j_id)
@@ -469,8 +470,7 @@ def trigger_restart():
 
 def get_settings(arm_cfg_file):
     """
-    yaml file loader - is used for loading fresh arm.yaml config
-
+    yaml file loader - is used for loading fresh arm.yaml config\n
     :param arm_cfg_file: full path to arm.yaml
     :return: the loaded yaml file
     """
@@ -487,46 +487,81 @@ def get_settings(arm_cfg_file):
     return yaml_cfg
 
 
-def save_settings(form_data, comments):
+def build_arm_cfg(form_data, comments):
+    """
+    Main function for saving new updated arm.yaml\n
+    :param form_data: post data
+    :param comments: comments file loaded as dict
+    :return: full new arm.yaml as a String
+    """
     arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
     # TODO: This is not the safest way to do things.
     #  It assumes the user isn't trying to mess with us.
     # This really should be hard coded.
+    app.logger.debug("save_settings: START")
     for key, value in form_data.items():
-        if key != "csrf_token":
-            if key == "COMPLETED_PATH":
-                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP']
-            elif key == "WEBSERVER_IP":
-                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['WEB_SERVER']
-            elif key == "SET_MEDIA_PERMISSIONS":
-                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['FILE_PERMS']
-            elif key == "RIPMETHOD":
-                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['MAKE_MKV']
-            elif key == "HB_PRESET_DVD":
-                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['HANDBRAKE']
-            elif key == "EMBY_REFRESH":
-                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['EMBY']
-                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['EMBY_ADDITIONAL']
-            elif key == "NOTIFY_RIP":
-                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['NOTIFY_PERMS']
-            elif key == "APPRISE":
-                arm_cfg += "\n" + comments['ARM_CFG_GROUPS']['APPRISE']
-            try:
-                arm_cfg += "\n" + comments[str(key)] + "\n" if comments[str(key)] != "" else ""
-            except KeyError:
-                arm_cfg += "\n"
-            try:
-                post_value = int(value)
-                arm_cfg += f"{key}: {post_value}\n"
-            except ValueError:
-                if value.lower() == 'false' or value.lower() == "true":
-                    arm_cfg += f"{key}: {value.lower()}\n"
-                else:
-                    if key == "WEBSERVER_IP":
-                        arm_cfg += f"{key}: {value.lower()}\n"
-                    else:
-                        arm_cfg += f"{key}: \"{value}\"\n"
-            # app.logger.debug(f"\n{k} = {v} ")
+        app.logger.debug(f"save_settings: current key {key} = {value} ")
+        if key == "csrf_token":
+            continue
+        # Add any grouping comments
+        arm_cfg += arm_yaml_check_groups(comments, key)
+        # Check for comments for this key in comments.json, add them if they exist
+        try:
+            arm_cfg += "\n" + comments[str(key)] + "\n" if comments[str(key)] != "" else ""
+        except KeyError:
+            arm_cfg += "\n"
+        # test if key value is an int
+        try:
+            post_value = int(value)
+            arm_cfg += f"{key}: {post_value}\n"
+        except ValueError:
+            # Test if value is Boolean
+            arm_cfg += arm_yaml_test_bool(key, value)
+    app.logger.debug("save_settings: FINISH")
+    return arm_cfg
+
+
+def arm_yaml_test_bool(key, value):
+    """
+    we need to test if the key is a bool, as we need to lower() it for yaml\n\n
+    or check if key is the webserver ip. \nIf not we need to wrap the value with quotes\n
+    :param key: the current key
+    :param value: the current value
+    :return: the new updated arm.yaml config with new key: values
+    """
+    if value.lower() == 'false' or value.lower() == "true":
+        arm_cfg = f"{key}: {value.lower()}\n"
+    else:
+        # If we got here, the only key that doesn't need quotes is the webserver key
+        # everything else needs "" around the value
+        if key == "WEBSERVER_IP":
+            arm_cfg = f"{key}: {value.lower()}\n"
+        else:
+            arm_cfg = f"{key}: \"{value}\"\n"
+    return arm_cfg
+
+
+def arm_yaml_check_groups(comments, key):
+    """
+    Check the current key to be added to arm.yaml and insert the group
+    separator comment, if the key matches\n
+    :param comments: comments dict, containing all comments from the arm.yaml
+    :param key: the current post key from form.args
+    :return: arm.yaml config with any new comments added
+    """
+    comment_groups = {'COMPLETED_PATH': "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP'],
+                      'WEBSERVER_IP': "\n" + comments['ARM_CFG_GROUPS']['WEB_SERVER'],
+                      'SET_MEDIA_PERMISSIONS': "\n" + comments['ARM_CFG_GROUPS']['FILE_PERMS'],
+                      'RIPMETHOD': "\n" + comments['ARM_CFG_GROUPS']['MAKE_MKV'],
+                      'HB_PRESET_DVD': "\n" + comments['ARM_CFG_GROUPS']['HANDBRAKE'],
+                      'EMBY_REFRESH': "\n" + comments['ARM_CFG_GROUPS']['EMBY']
+                      + "\n" + comments['ARM_CFG_GROUPS']['EMBY_ADDITIONAL'],
+                      'NOTIFY_RIP': "\n" + comments['ARM_CFG_GROUPS']['NOTIFY_PERMS'],
+                      'APPRISE': "\n" + comments['ARM_CFG_GROUPS']['APPRISE']}
+    if key in comment_groups:
+        arm_cfg = comment_groups[key]
+    else:
+        arm_cfg = ""
     return arm_cfg
 
 
