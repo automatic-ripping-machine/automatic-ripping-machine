@@ -1,12 +1,14 @@
 """
 Main catch all page for functions for the A.R.M ui
 """
+import hashlib
 import os
 import shutil
 import json
 import re
 import platform
 import subprocess
+from datetime import datetime
 from pathlib import Path
 
 from time import strftime, localtime, time, sleep
@@ -555,7 +557,7 @@ def arm_yaml_check_groups(comments, key):
                       'RIPMETHOD': "\n" + comments['ARM_CFG_GROUPS']['MAKE_MKV'],
                       'HB_PRESET_DVD': "\n" + comments['ARM_CFG_GROUPS']['HANDBRAKE'],
                       'EMBY_REFRESH': "\n" + comments['ARM_CFG_GROUPS']['EMBY']
-                      + "\n" + comments['ARM_CFG_GROUPS']['EMBY_ADDITIONAL'],
+                                      + "\n" + comments['ARM_CFG_GROUPS']['EMBY_ADDITIONAL'],
                       'NOTIFY_RIP': "\n" + comments['ARM_CFG_GROUPS']['NOTIFY_PERMS'],
                       'APPRISE': "\n" + comments['ARM_CFG_GROUPS']['APPRISE']}
     if key in comment_groups:
@@ -628,3 +630,78 @@ def job_id_validator(job_id):
     except AttributeError:
         valid = False
     return valid
+
+
+def generate_file_list(my_path):
+    """
+    Generate a list of files from given path\n
+    :param my_path: path to folder
+    :return: list of files
+    """
+    movie_dirs = [f for f in os.listdir(my_path) if os.path.isdir(os.path.join(my_path, f)) and not f.startswith(".")
+                  and os.path.isdir(os.path.join(my_path, f))]
+    app.logger.debug(movie_dirs)
+    return movie_dirs
+
+
+def import_movie_add(poster_image, imdb_id, movie_group, my_path):
+    """
+    Search the movie directory, make sure we have movie files and then import it into the db\n
+    :param poster_image:
+    :param imdb_id:
+    :param movie_group:
+    :param my_path:
+    :return:
+    """
+    app.logger.debug(f"Poster image: {poster_image}, IMDB: {imdb_id}, "
+                     f"Movie_group: {movie_group.group(0)}, Path: {my_path}")
+    # only used to add a non-unique crc64
+    movie = movie_group.group(0)
+    # Fake crc64 number
+    hash_object = hashlib.md5(f"{movie}".strip().encode())
+    # Check if we already have this in the db exit if we do
+    dupe_found, not_used_variable = job_dupe_check(hash_object.hexdigest())
+    if dupe_found:
+        app.logger.debug("We found dupes breaking loop")
+        return None
+    app.logger.debug(f"List dir = {os.listdir(my_path)}")
+
+    # Build file list with common video extension types
+    movie_files = [f for f in os.listdir(my_path)
+                   if os.path.isfile(os.path.join(my_path, f))
+                   and f.endswith((".mkv", ".avi", ".mp4", ".avi"))]
+    app.logger.debug(f"movie files = {movie_files}")
+
+    # This dict will be returned to the big list, so we can display to the user
+    movie_dict = {
+        'title': movie_group.group(1),
+        'year': movie_group.group(2),
+        'crc_id': hash_object.hexdigest(),
+        'imdb_id': imdb_id,
+        'poster': poster_image,
+        'status': 'success' if len(movie_files) >= 1 else 'fail',
+        'video_type': 'movie',
+        'disctype': 'unknown',
+        'hasnicetitle': True,
+        'no_of_titles': len(movie_files)
+    }
+    app.logger.debug(movie_dict)
+    # Create the new job and use the found values
+    new_movie = models.Job("/dev/sr0")
+    new_movie.title = movie_dict['title']
+    new_movie.year = movie_dict['year']
+    new_movie.crc_id = hash_object.hexdigest()
+    new_movie.imdb_id = imdb_id
+    new_movie.status = movie_dict['status']
+    new_movie.video_type = movie_dict['video_type']
+    new_movie.disctype = movie_dict['disctype']
+    new_movie.hasnicetitle = movie_dict['hasnicetitle']
+    new_movie.no_of_titles = movie_dict['no_of_titles']
+    new_movie.poster_url = movie_dict['poster']
+    new_movie.start_time = datetime.now()
+    new_movie.logfile = "imported.log"
+    new_movie.ejected = True
+    new_movie.path = my_path
+    app.logger.debug(new_movie)
+    db.session.add(new_movie)
+    return movie_dict

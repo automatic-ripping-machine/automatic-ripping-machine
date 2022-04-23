@@ -29,13 +29,14 @@ def get_x_jobs(job_status):
     if job_status in ("success", "fail"):
         jobs = Job.query.filter_by(status=job_status)
     else:
+        # Get running jobs
         jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
 
     job_results = {}
     i = 0
     for j in jobs:
         job_results[i] = {}
-        job_log = cfg['LOGPATH'] + j.logfile
+        job_log = os.path.join(cfg['LOGPATH'], str(j.logfile))
         process_logfile(job_log, j, job_results[i])
         try:
             job_results[i]['config'] = j.config.get_d()

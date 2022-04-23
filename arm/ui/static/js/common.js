@@ -53,12 +53,12 @@ function addJobItem(job) {
 function transcodingCheck(job) {
     let x="";
     if (job.status === "transcoding" && job.stage !== "" && job.progress || job.disctype === "music" && job.stage !== "") {
-        x += `<div id="jobId${job.job_id}_stage"><b>Stage: </b>${job.stage}</div>`;
+        x += `<div id="jobId${job.job_id}_stage"><strong>Stage: </strong>${job.stage}</div>`;
         x += `<div id="jobId${job.job_id}_progress" >`;
         x += `<div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
               aria-valuenow="${job.progress_round}" aria-valuemin="0" aria-valuemax="100" style="width: ${job.progress_round}%">
               <small class="justify-content-center d-flex position-absolute w-100">${job.progress}%</small></div></div></div>
-              <div id="jobId${job.job_id}_eta"><b>ETA: </b>${job.eta}</div>`;
+              <div id="jobId${job.job_id}_eta"><strong>ETA: </strong>${job.eta}</div>`;
     }
     // YYYY-MM-DD
     const d  = new Date(Date.parse(job.start_time));
@@ -103,10 +103,10 @@ function titleManual(job) {
 function buildMiddleSection(job) {
     let x;
     x = "<div class=\"col-lg-4\"><div class=\"card-body px-1 py-1\">";
-    x += `<div id="jobId${job.job_id}_year"><b>Year: </b>${job.year}</div>`;
-    x += `<div id="jobId${job.job_id}_video_type"><b>Type: </b>${job.video_type}</div>`;
-    x += `<div id="jobId${job.job_id}_devpath"><b>Device: </b>${job.devpath}</div>`;
-    x += `<div><b>Status: </b><img id="jobId${job.job_id}_status" 
+    x += `<div id="jobId${job.job_id}_year"><strong>Year: </strong>${job.year}</div>`;
+    x += `<div id="jobId${job.job_id}_video_type"><strong>Type: </strong>${job.video_type}</div>`;
+    x += `<div id="jobId${job.job_id}_devpath"><strong>Device: </strong>${job.devpath}</div>`;
+    x += `<div><strong>Status: </strong><img id="jobId${job.job_id}_status" 
                                src="static/img/${job.status}.png" height="20px" alt="${job.status}" title="${job.status}"></div>`;
     x += `<div id="jobId${job.job_id}_progress_section">${transcodingCheck(job)}</div></div></div>`;
     return x;
@@ -124,11 +124,11 @@ function buildRightSection(job, idsplit) {
     }
     // Section 3 (Right Top) Contains Config.values
     x = "<div class=\"col-lg-4\"><div class=\"card-body px-1 py-1\">";
-    x += `<div id="jobId${job.job_id}_RIPPER"><b>Ripper: </b>${getRipperName(job, idsplit)}</div>`;
-    x += `<div id="jobId${job.job_id}_RIPMETHOD"><b>Rip Method: </b>${job.config.RIPMETHOD}</div>`;
-    x += `<div id="jobId${job.job_id}_MAINFEATURE"><b>Main Feature: </b>${job.config.MAINFEATURE}</div>`;
-    x += `<div id="jobId${job.job_id}_MINLENGTH"><b>Min Length: </b>${job.config.MINLENGTH}</div>`;
-    x += `<div id="jobId${job.job_id}_MAXLENGTH"><b>Max Length: </b>${job.config.MAXLENGTH}</div>`;
+    x += `<div id="jobId${job.job_id}_RIPPER"><strong>Ripper: </strong>${getRipperName(job, idsplit)}</div>`;
+    x += `<div id="jobId${job.job_id}_RIPMETHOD"><strong>Rip Method: </strong>${job.config.RIPMETHOD}</div>`;
+    x += `<div id="jobId${job.job_id}_MAINFEATURE"><strong>Main Feature: </strong>${job.config.MAINFEATURE}</div>`;
+    x += `<div id="jobId${job.job_id}_MINLENGTH"><strong>Min Length: </strong>${job.config.MINLENGTH}</div>`;
+    x += `<div id="jobId${job.job_id}_MAXLENGTH"><strong>Max Length: </strong>${job.config.MAXLENGTH}</div>`;
     x += "</div>";
     // Section 3 (Right Bottom) Contains Buttons for arm json api
     x += `<div class="card-body px-2 py-1"><div class="btn-group-vertical" role="group" aria-label="buttons" ${idsplit[0] !== "0" ? "style=\"display: none;\"" : ""}>
@@ -142,32 +142,32 @@ function buildRightSection(job, idsplit) {
 }
 
 
-function updateModal(modal) {
-    let modalTitle;
-    let modalBody;
+function updateModal(modal, modalTitle="", modalBody="") {
     switch (actionType) {
         case "abandon":
-            modalTitle = "Abandon This Job ?";
-            modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?";
+           modalTitle = "Abandon This Job ?";
+           modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?";
             break;
         case "delete":
-        modalTitle = "Delete this job forever ?";
-        modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?";
+           modalTitle = "Delete this job forever ?";
+           modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?";
+            break;
+        case "fixperms":
+           modalTitle = "Try to fix this jobs folder permissions ?";
+           modalBody = "This will try to set the chmod values from your arm.yaml. It wont always work, you may need to do this manually";
             break;
         case "search":
-        modalTitle = "Search the database";
-        modalBody = '<div class="input-group mb-3">' +
-            '<div class="input-group-prepend"><span class="input-group-text" id="searchlabel">Search </span></div>' +
-            '<input type="text" class="form-control" id="searchquery" aria-label="searchquery" ' +
-            'name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">' +
-            '<div id="validationServer03Feedback" class="invalid-feedback">Search string too short.</div></div>';
+           modalTitle = "Search the database";
+           modalBody = `<div class="input-group mb-3"><div class="input-group-prepend"><span class="input-group-text" id="searchlabel">Search </span></div>
+                       <input type="text" class="form-control" id="searchquery" aria-label="searchquery" name="searchquery" placeholder="Search...."
+                       value="" aria-describedby="searchlabel"><div id="validationServer03Feedback" class="invalid-feedback">Search string too short.</div></div>`;
             break;
         default:
-            modalTitle = "Do you want to leave this page ?";
-            modalBody = "To view the log file you need to leave this page. Would you like to leave ?";
+             modalTitle = "Do you want to leave this page ?";
+             modalBody = "To view the log file you need to leave this page. Would you like to leave ?";
     }
-    modal.find('.modal-title').text(modalTitle);
-    modal.find('.modal-body').html(modalBody);
+    modal.find(".modal-title").text(modalTitle);
+    modal.find(".modal-body").html(modalBody);
 }
 
 

@@ -3,7 +3,15 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-
+<style>
+    #message3, #message1{
+        float: left;
+        position: fixed;
+        z-index: 1000000000;
+        top: 200px;
+        left: 200px;
+    }
+</style>
     <div class="container-fluid h-100 mx-auto">
         <!-- Header image -->
         <div class="row">
