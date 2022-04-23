@@ -677,8 +677,8 @@ def import_movies():
             app.logger.debug(os.path.join(my_path, str(movie)))
             app.logger.debug(str(os.listdir(os.path.join(my_path, str(movie)))))
             movies[i] = ui_utils.import_movie_add(poster_image,
-                                                       imdb_id, matched,
-                                                       os.path.join(my_path, str(movie)))
+                                                  imdb_id, matched,
+                                                  os.path.join(my_path, str(movie)))
         else:
             # If we didn't get a match assume that the directory is a main directory for other folders
             # This means we can check for "series" type movie folders e.g
@@ -698,8 +698,8 @@ def import_movies():
                     app.logger.debug(os.listdir(os.path.join(sub_path, str(sub_movie))))
                     # Add the movies to the main movie dict
                     movies[i] = ui_utils.import_movie_add(poster_image,
-                                                               imdb_id, sub_matched,
-                                                               os.path.join(sub_path, str(sub_movie)))
+                                                          imdb_id, sub_matched,
+                                                          os.path.join(sub_path, str(sub_movie)))
                 else:
                     movies[0]['notfound'][str(i)] = str(sub_movie)
             app.logger.debug(subfiles)
