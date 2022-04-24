@@ -230,9 +230,8 @@ def feed_json():
     is your call
     You can then add a function inside utils to deal with the request
     """
-    return_json = {}
     mode = str(request.args.get('mode'))
-
+    return_json = {'mode': mode, 'success': False}
     valid_data = {
         'j_id': request.args.get('job'),
         'searchq': request.args.get('q'),
