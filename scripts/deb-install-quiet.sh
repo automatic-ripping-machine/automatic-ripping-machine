@@ -7,6 +7,7 @@ function usage() {
     echo -e "\nUsage: Debian-11-install.sh [OPTIONS]"
     echo -e "\t-d\t\tInstall the ARM Development Environment"
     echo -e "\t-p [PORT]\tOverwrite the default WEBSERVER_PORT"
+    echo -e "\t-t [password]\tSet the password for arm user - default is 1234"
 }
 
 RED='\033[1;31m'
@@ -16,10 +17,13 @@ NC='\033[0m' # No Color
 dev_env_flag=
 port_flag=
 PORT=8080
-while getopts 'dp:' OPTION
+pass=1234
+while getopts 'dpt:' OPTION
 do
     case $OPTION in
     d)    dev_env_flag=1
+          ;;
+    t)    pass="$OPTARG"
           ;;
     p)    port_flag=1
           PORT=$OPTARG
@@ -48,7 +52,13 @@ function add_arm_user() {
     # create arm user if it doesn't already exist
     if ! id arm >/dev/null 2>&1; then
         useradd -m arm -g arm
-        passwd arm
+        # If a password was specified use that, otherwise use default
+        if [ "$pass" != "1234" ]; then
+            echo "Password was supplied, using it."
+        else
+            echo "Password was not supplied, using 1234"
+        fi
+        echo -e "$pass\n$pass\n" | passwd arm
     else
         echo -e "${RED}arm user already exists, skipping creation...${NC}"
     fi
