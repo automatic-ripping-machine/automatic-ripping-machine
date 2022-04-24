@@ -239,7 +239,8 @@ def feed_json():
         'logpath': cfg['LOGPATH'],
         'fail': 'fail',
         'success': 'success',
-        'joblist': 'joblist'
+        'joblist': 'joblist',
+        'mode': mode
     }
     valid_modes = {
         'delete': {'funct': json_api.delete_job, 'args': ('j_id', 'mode')},
