@@ -13,7 +13,7 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/django)
 
 [![Docker](https://img.shields.io/docker/pulls/1337server/automatic-ripping-machine.svg)](https://hub.docker.com/r/1337server/automatic-ripping-machine)
-[![Docker](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/docker-publish.yml/badge.svg?branch=docker)](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/docker-publish.yml)
+[![Publish Main Docker Image](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/workflow.yml/badge.svg)](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/workflow.yml)
 
 [![Wiki](https://img.shields.io/badge/Wiki-Get%20Help-brightgreen)](https://github.com/1337-server/automatic-ripping-machine/wiki)
 [![Discord](https://img.shields.io/discord/576479573886107699)](https://discord.gg/BCarpwC7qC)
