@@ -13,7 +13,7 @@
     },
     "ARM_NAME": "# A friendly name for this machine. Useful if you are running multiple instances.\n# Used in notification titles.",
     "ARM_CHILDREN": "# Comma delimited list of child ARM servers to display on the Home Page\n# Should be full protocol, path, and port: http://192.168.0.100:8080/",
-    "PREVENT_99": "# Prevent ARM from wasting time on 99 Title protected DVDs.\n# A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.\n# When set to \"true\" affected DVDs will be autoejected on insertion.",
+    "PREVENT_99": "# Workaround for Track 99\n# A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.\n# When set to \"false\" affected DVDs will be passed to MakeMKV for ripping, but this can crash or hang\n# Setting this to true will eject the disc and log only to the system logging",
     "ARM_CHECK_UDF": "# Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.",
     "GET_VIDEO_TITLE": "# When enabled if the disc is a DVD use dvdid to calculate a crc64 and query Windows Media Meta Services for the Movie Title.\n# For BluRays attempts to extract the title from an XML file on the disc",
     "ARM_API_KEY": "# ARM dvd crc64 api key\n# This is only needed if you would like to send movies to the database",

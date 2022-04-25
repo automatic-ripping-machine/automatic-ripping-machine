@@ -13,9 +13,10 @@ ARM_NAME: ""
 # Should be full protocol, path, and port: http://192.168.0.100:8080
 ARM_CHILDREN: ""
 
-# Prevent ARM from wasting time on 99 Title protected DVDs.
+# Workaround for Track 99
 # A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.
-# When set to "true" affected DVDs will be autoejected on insertion.
+# When set to "false" affected DVDs will be passed to MakeMKV for ripping, but this can crash or hang
+# Setting this to true will eject the disc and log only to the system logging
 PREVENT_99: true
 
 # Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.
