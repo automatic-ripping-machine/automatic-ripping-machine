@@ -145,7 +145,7 @@ if __name__ == "__main__":
     # Sometimes drives trigger twice this stops multi runs from 1 udev trigger
     utils.duplicate_run_check(devpath)
 
-    logging.info(f"------------- Starting ARM processing at {datetime.datetime.now()} -------------")
+    logging.info(f"************* Starting ARM processing at {datetime.datetime.now()} *************")
     if args.protection:
         logging.warning("Found 99 Track protection system - Job may fail!")
     # put in job
@@ -184,6 +184,7 @@ if __name__ == "__main__":
         job.status = "fail"
         job.errors = str(error)
         job.eject()
+        # Possibly add cleanup section here for failed job files
     else:
         job.status = "success"
     finally:

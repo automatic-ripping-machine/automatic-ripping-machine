@@ -45,7 +45,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
     hb_in_path = str(job.devpath)
     # Do we need to use MakeMKV - Blu-rays, protected dvd's, and dvd with mainfeature off
     if rip_with_mkv(job, protection):
-        logging.info("------------- Ripping disc with MakeMKV -------------")
+        logging.info("************* Ripping disc with MakeMKV *************")
         # Run MakeMKV and get path to output
         job.status = "ripping"
         db.session.commit()
@@ -63,7 +63,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
             sys.exit()
         if job.config.NOTIFY_RIP:
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} rip complete. Starting transcode. ")
-        logging.info("------------- Ripping with MakeMKV completed -------------")
+        logging.info("************* Ripping with MakeMKV completed *************")
         # point HB to the path MakeMKV ripped to
         hb_in_path = makemkv_out_path
     # Begin transcoding section - only transcode if skip_transcode is false
@@ -81,7 +81,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
     utils.delete_raw_files(hb_in_path, hb_out_path, makemkv_out_path)
     # report errors if any
     notify_exit(job)
-    logging.info("--------------- ARM processing complete ---------------")
+    logging.info("************* ARM processing complete *************")
 
 
 def start_transcode(job, logfile, hb_in_path, hb_out_path, protection):
@@ -98,7 +98,7 @@ def start_transcode(job, logfile, hb_in_path, hb_out_path, protection):
     if not job.config.SKIP_TRANSCODE:
         # Update db with transcoding status
         utils.database_updater({'status': "transcoding"}, job)
-        logging.info("------------- Starting Transcode With HandBrake -------------")
+        logging.info("************* Starting Transcode With HandBrake *************")
         if rip_with_mkv(job, protection):
             handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
         elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
@@ -107,7 +107,7 @@ def start_transcode(job, logfile, hb_in_path, hb_out_path, protection):
         else:
             handbrake.handbrake_all(hb_in_path, hb_out_path, logfile, job)
             job.eject()
-        logging.info("------------- Finished Transcode With HandBrake -------------")
+        logging.info("************* Finished Transcode With HandBrake *************")
 
 
 def notify_exit(job):
@@ -194,7 +194,7 @@ def skip_transcode_movie(files, job, raw_path):
     logging.debug(f"Largest file is: {largest_file_name}")
     temp_path = os.path.join(raw_path, largest_file_name)
     if os.stat(temp_path).st_size <= 1:  # sanity check for filesize
-        logging.debug(f"{raw_path} is empty or very small size. - Folder size: {os.stat(temp_path).st_size}")
+        logging.info(f"{raw_path} is empty or very small size. - Folder size: {os.stat(temp_path).st_size}")
     for file in files:
         # move main into main folder
         # move others into extras folder
@@ -204,7 +204,7 @@ def skip_transcode_movie(files, job, raw_path):
         else:
             # If mainfeature is enabled - skip to the next file
             if job.config.MAINFEATURE:
-                logging.debug(f"MAINFEATURE IS {job.config.MAINFEATURE} - Skipping move of {file}")
+                logging.info(f"MAINFEATURE IS {job.config.MAINFEATURE} - Skipping move of {file}")
                 continue
             # Other/extras
             if str(job.config.EXTRAS_SUB).lower() != "none":
