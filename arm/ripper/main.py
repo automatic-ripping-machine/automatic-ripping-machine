@@ -27,7 +27,6 @@ def entry():
     parser = argparse.ArgumentParser(description='Process disc using ARM')
     parser.add_argument('-d', '--devpath', help='Devpath', required=True)
     parser.add_argument('-p', '--protection', help='Does disc have 99 track protection', required=False)
-    print(parser.parse_args())
     return parser.parse_args()
 
 
