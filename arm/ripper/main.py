@@ -11,13 +11,12 @@ import logging  # noqa: E402
 import time  # noqa: E402
 import datetime  # noqa: E402
 import re  # noqa: E402
-import shutil  # noqa: E402
 import getpass  # noqa E402
 import pyudev  # noqa: E402
 
 sys.path.append("/opt/arm")
 
-from arm.ripper import logger, utils, makemkv, handbrake, identify, arm_ripper  # noqa: E402
+from arm.ripper import logger, utils, identify, arm_ripper  # noqa: E402
 from arm.config.config import cfg  # noqa: E402
 from arm.models.models import Job, Config  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
