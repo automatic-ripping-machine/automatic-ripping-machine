@@ -30,7 +30,7 @@ RUN ln -sv /opt/arm/setup/docker-arm.rules /lib/udev/rules.d/
 
 EXPOSE 8080
 
-VOLUME /home/arm/music
+VOLUME /home/arm/Music
 VOLUME /home/arm/logs
 VOLUME /home/arm/media
 VOLUME /etc/arm/config
