@@ -4,35 +4,15 @@
 
 set -euo pipefail
 
-#UID="${UID:-1000}"
-#GID="${GID:-1000}"
-# dump env vars
-ls /etc/container_environment
-#echo $UID $GID $USER $HOME
-#export USER=arm
-export HOME="/home/arm"
-
-#echo "creating group [${GID}] with id ${UID}"
-#groupadd -fo -g "${GID}" "${USER}"
-#if ! id -u "${USER}" ; then
-#    echo "creating user [${USER}] with id ${UID}"
-#    useradd --shell /bin/bash \
-#        -u "${UID}" -g "${GID}" -G video,cdrom \
-#        -o -c "" "${USER}"
-#    chown -R "${USER}:${USER}" "${HOME}"
-#fi
-
-# set permissions for source code
-#chown -R "${USER}:${USER}" /opt/arm
+export ARM_HOME="/home/arm"
 
 # setup needed/expected dirs if not found
 SUBDIRS="media media/completed media/raw media/movies logs db Music .MakeMKV"
 for dir in $SUBDIRS ; do
-    thisDir="${HOME}/${dir}"
+    thisDir="${ARM_HOME}/${dir}"
     if [[ ! -d "${thisDir}" ]] ; then
         echo "creating dir ${thisDir}"
         mkdir -p 0777 "${thisDir}"
-#        chown -R "${USER}:${USER}" "${thisDir}"
     fi
 done
 
@@ -46,11 +26,5 @@ for conf in $CONFS; do
         cp --no-clobber "/opt/arm/setup/${conf}" "${thisConf}"
     fi
 done
-#chown -R "${USER}:${USER}" /etc/arm
 
-#if [[ "${RUN_AS_USER:-true}" == "true" ]] ; then
-#    exec /usr/sbin/gosu arm "$@"
-#else
-#    exec "$@"
-#fi
 exec "$@"
