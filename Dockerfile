@@ -31,7 +31,7 @@ COPY ./scripts/docker/custom_udev /etc/init.d/udev
 RUN chmod +x /etc/my_init.d/*.sh
 
 # Our docker udev rule
-RUN ln -sv /opt/arm/setup/51-automedia-docker.rules /lib/udev/rules.d/
+RUN ln -sv /opt/arm/setup/docker-arm.rules /lib/udev/rules.d/
 
 EXPOSE 8080
 
