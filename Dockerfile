@@ -2,11 +2,6 @@
 # setup default directories and configs
 FROM shitwolfymakes/arm-dependencies AS base
 
-# override at runtime to match user that ARM runs as local user
-ENV RUN_AS_USER=true
-ENV UID=1000
-ENV GID=1000
-
 RUN \
     mkdir -m 0777 -p /home/arm /home/arm/config /mnt/dev/sr0 /mnt/dev/sr1 /mnt/dev/sr2 /mnt/dev/sr3 && \
     echo "/dev/sr0  /mnt/dev/sr0  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
