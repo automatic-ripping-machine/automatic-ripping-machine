@@ -164,7 +164,7 @@ def main(logfile, job):
     """main disc processing function"""
     logging.info("Starting Disc identification")
 
-    identify.identify(job, logfile)
+    identify.identify(job)
     # Check db for entries matching the crc and successful
     have_dupes, crc_jobs = utils.job_dupe_check(job)
     logging.debug(f"Value of have_dupes: {have_dupes}")
