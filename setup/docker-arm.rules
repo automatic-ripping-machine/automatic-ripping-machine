@@ -1,8 +1,5 @@
-# docker-arm.rules
-#   user udev rule to launch ARM automagically whenever new media is inserted
-#
-# this rule will trigger twice
-# 1. for the media change event (script exits early in this case)
-# 2. after udev rules have loaded media details
+# ID_CDROM_MEDIA_BD = Bluray
+# ID_CDROM_MEDIA_DVD = DVD
+# ID_CDROM_MEDIA_CD = CD
 ACTION=="change", SUBSYSTEM=="block", RUN+="/opt/arm/scripts/docker/docker_arm_wrapper.sh %k"
 
