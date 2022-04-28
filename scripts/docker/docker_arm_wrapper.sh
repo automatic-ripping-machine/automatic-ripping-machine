@@ -62,4 +62,4 @@ else
 
 fi
 
-/bin/bash "/usr/bin/python3 /opt/arm/arm/ripper/main.py -d ${DEVNAME}" | logger -t ARM -s
+/usr/bin/python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" | logger -t ARM -s
