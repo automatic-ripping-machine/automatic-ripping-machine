@@ -1,3 +1,4 @@
+"""Main run page for armui"""
 import os  # noqa: F401
 import sys
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
@@ -24,4 +25,3 @@ if host == 'x.x.x.x':
 
 if __name__ == '__main__':
     app.run(host=host, port=cfg['WEBSERVER_PORT'], debug=True)
-    # app.run(debug=True)

@@ -63,7 +63,7 @@ MANUAL_WAIT_TIME: 60
 
 # Allows you to format the date/time to your own liking
 # This will be used throughout ARM and ARMui
-DATE_FORMAT: "%d-%m-%Y %H:%M:%S"
+DATE_FORMAT: "%m-%d-%Y %H:%M:%S"
 
 ## Do you want to allow Rips of the same disk multiple times
 ## With this set as false the task will exit if it recognises the same movie being ripped
@@ -77,6 +77,7 @@ ALLOW_DUPLICATES: false
 MAX_CONCURRENT_TRANSCODES: 0
 
 # Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
+# "status=progress" to log progress
 DATA_RIP_PARAMETERS: ""
 
 # This selects the metadata provider, Each provider has their own ups and downs
@@ -173,11 +174,12 @@ CHOWN_GROUP:
 ## MakeMKV Parameters ##
 ########################
 
-# Method of MakeMKV to use for Blu Ray discs.  Options are "mkv" or "backup".
-# backup decrypts the dvd and then copies it to the hard drive.  This allows HandBrake to apply some of it's
-# analytical abilities such as the main-feature identification.  This method seems to offer success on bluray 
-# discs that fail in "mkv" mode. *** NOTE: MakeMKV only supports the backup method on BluRay discs.  ARM does
-# not use MakeMKV for DVDs.   
+# Method of MakeMKV to use for Blu-ray discs
+# Options are "mkv" or "backup".
+# backup decrypts the dvd and then copies it to the hard drive.
+# This allows HandBrake to apply some of its analytical abilities such as the main-feature identification.
+# This method seems to offer success on Blu-ray discs that fail in "mkv" mode.
+# *** NOTE: MakeMKV only supports the backup method on BluRay discs.
 RIPMETHOD: "backup"
 
 # MakeMKV Arguments
@@ -190,11 +192,6 @@ MKV_ARGS: ""
 
 # Remove the files created by MakeMKV after processing is complete
 DELRAWFILES: true
-
-# Automatically download hashed_keys.  This is for UHD ripping only.  You mush have a UHD friendly drive for this to work.
-# Check out this post: https://www.makemkv.com/forum2/viewtopic.php?f=12&t=16883&sid=93f1db30f6ceb99b494f3f37cd723841 before 
-# changing this to True 
-HASHEDKEYS: false
 
 
 ##########################

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Identification of dvd/bluray
+"""Identification of dvd/bluray"""
 
 import os
 import sys  # noqa # pylint: disable=unused-import
@@ -7,26 +7,23 @@ import logging
 import urllib
 import re
 import datetime
-import pydvdid
 import unicodedata
-import xmltodict
 import json
+import pydvdid
+import xmltodict
 
 from arm.ripper import utils
 from arm.ui import db
 from arm.config.config import cfg
 
 # flake8: noqa: W605
-# from arm.ui.utils import call_omdb_api, tmdb_search
-import arm.ui.utils as u
+from arm.ui import utils as ui_utils
 
 
-def identify(job, logfile):
+def identify(job):
     """Identify disc attributes"""
-
-    logging.debug(f"Identify Entry point --- job ---- \n\r{job.pretty_table()}")
+    logging.debug("Identify Entry point --- job ----")
     logging.info(f"Mounting disc to: {job.mountpoint}")
-
     if not os.path.exists(str(job.mountpoint)):
         os.makedirs(str(job.mountpoint))
 
@@ -51,23 +48,12 @@ def identify(job, logfile):
                 job.hasnicetitle = False
                 db.session.commit()
 
-            logging.info(f"Disc title Post ident -  title:{job.title} year:{job.year} video_type:{job.video_type} "
+            logging.info(f"Disc title Post ident -  title:{job.title} "
+                         f"year:{job.year} video_type:{job.video_type} "
                          f"disctype: {job.disctype}")
             logging.debug(f"identify.job.end ---- \n\r{job.pretty_table()}")
 
     os.system("umount " + job.devpath)
-
-
-def clean_for_filename(string):
-    """ Cleans up string for use in filename """
-    string = re.sub('\\[(.*?)]', '', string)
-    string = re.sub('\\s+', ' ', string)
-    string = string.replace(' : ', ' - ')
-    string = string.replace(':', '-')
-    string = string.replace('&', 'and')
-    string = string.replace("\\", " - ")
-    string = string.strip()
-    return re.sub(r'[^\w.() -]', '', string)
 
 
 def identify_bluray(job):
@@ -76,10 +62,11 @@ def identify_bluray(job):
     try:
         with open(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
             doc = xmltodict.parse(xml_file.read())
-    except OSError as e:
-        logging.error("Disc is a bluray, but bdmt_eng.xml could not be found.  Disc cannot be identified.  Error "
-                      "number is: " + str(e.errno))
-        # Maybe call OMdb with label when we cant find any ident on disc ?
+    except OSError as error:
+        logging.error("Disc is a bluray, but bdmt_eng.xml could not be found. "
+                      "Disc cannot be identified.  Error "
+                      f"number is: {error.errno}")
+        # Maybe call OMdb with label when we can't find any ident on disc ?
         job.title = str(job.label)
         job.year = ""
         db.session.commit()
@@ -103,7 +90,7 @@ def identify_bluray(job):
     bluray_title = bluray_title.replace(' - BLU-RAY', '')
     bluray_title = bluray_title.replace(' - Blu-ray', '')
 
-    bluray_title = clean_for_filename(bluray_title)
+    bluray_title = utils.clean_for_filename(bluray_title)
 
     job.title = job.title_auto = bluray_title
     job.year = job.year_auto = bluray_year
@@ -116,7 +103,7 @@ def identify_dvd(job):
     """ Manipulates the DVD title and calls OMDB to try and
     lookup the title """
 
-    logging.debug("\n\r" + job.pretty_table())
+    logging.debug(f"\n\r{job.pretty_table()}")
     # Some older DVDs aren't actually labelled
     if not job.label or job.label == "":
         job.label = "not identified"
@@ -125,45 +112,48 @@ def identify_dvd(job):
         dvd_title = f"{job.label}_{crc64}"
         logging.info(f"DVD CRC64 hash is: {crc64}")
         job.crc_id = str(crc64)
-        urlstring = f"http://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
+        # TODO there was a bug with this db - we need to fix it by looking up the imdb of the result
+        urlstring = f"https://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
         logging.debug(urlstring)
         dvd_info_xml = urllib.request.urlopen(urlstring).read()
-        x = json.loads(dvd_info_xml)
-        logging.debug("dvd xml - " + str(x))
-        logging.debug(f"results = {x['results']}")
-        if x['success']:
+        arm_api_json = json.loads(dvd_info_xml)
+        logging.debug(f"dvd xml - {arm_api_json}")
+        logging.debug(f"results = {arm_api_json['results']}")
+        if arm_api_json['success']:
             logging.info("Found crc64 id from online API")
-            logging.info(f"title is {x['results']['0']['title']}")
+            logging.info(f"title is {arm_api_json['results']['0']['title']}")
             args = {
-                'title': x['results']['0']['title'],
-                'title_auto': x['results']['0']['title'],
-                'year': x['results']['0']['year'],
-                'year_auto': x['results']['0']['year'],
-                'imdb_id': x['results']['0']['imdb_id'],
-                'imdb_id_auto': x['results']['0']['imdb_id'],
-                'video_type': x['results']['0']['video_type'],
-                'video_type_auto': x['results']['0']['video_type'],
+                'title': arm_api_json['results']['0']['title'],
+                'title_auto': arm_api_json['results']['0']['title'],
+                'year': arm_api_json['results']['0']['year'],
+                'year_auto': arm_api_json['results']['0']['year'],
+                'imdb_id': arm_api_json['results']['0']['imdb_id'],
+                'imdb_id_auto': arm_api_json['results']['0']['imdb_id'],
+                'video_type': arm_api_json['results']['0']['video_type'],
+                'video_type_auto': arm_api_json['results']['0']['video_type'],
+                'hasnicetitle': True
             }
             utils.database_updater(args, job)
-    except Exception as e:
-        logging.error("Pydvdid failed with the error: " + str(e))
+    except Exception as error:
+        logging.error(f"Pydvdid failed with the error: {error}")
         dvd_title = str(job.label)
 
-    logging.debug("dvd_title_label= " + str(dvd_title))
+    logging.debug(f"dvd_title_label: {dvd_title}")
+    # in this block we want to strip out any chars that might be bad
     # strip all non-numeric chars and use that for year
-
-    year = re.sub(r"[^0-9]", "", str(job.year)) if job.year else None
-    # next line is not really needed, but we dont want to leave an x somewhere
+    year = re.sub(r"\D", "", str(job.year)) if job.year else None
+    # next line is not really needed, but we don't want to leave an x somewhere
     dvd_title = job.label.replace("16x9", "")
     # Rip out any not alpha chars replace with &nbsp;
     dvd_title = re.sub(r"[^a-zA-Z _-]", "", dvd_title)
-    logging.debug("dvd_title ^a-z= " + str(dvd_title))
+    logging.debug(f"dvd_title ^a-z _-: {dvd_title}")
     # rip out any SKU's at the end of the line
     dvd_title = re.sub(r"SKU\b", "", dvd_title)
-    logging.debug("dvd_title SKU$= " + str(dvd_title))
+    logging.debug(f"dvd_title SKU$: {dvd_title}")
 
+    # Do we really need metaselector if we have got from ARM online db?
     dvd_info_xml = metadata_selector(job, dvd_title, year)
-    logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
+    logging.debug(f"DVD_INFO_XML: {dvd_info_xml}")
     identify_loop(job, dvd_info_xml, dvd_title, year)
     # Failsafe so that we always have a title.
     if job.title is None or job.title == "None":
@@ -182,7 +172,7 @@ def get_video_details(job):
 
     # Set out title from the job.label
     # return if not identified
-    logging.debug("Title = " + str(title))
+    logging.debug(f"Title = {title}")
     if title == "not identified" or title is None or title == "":
         logging.info("Disc couldn't be identified")
         return
@@ -192,7 +182,7 @@ def get_video_details(job):
     if job.year is None:
         year = ""
     else:
-        year = re.sub("[^0-9]", "", str(job.year))
+        year = re.sub(r"\D", "", str(job.year))
 
     logging.debug(f"Title: {title} | Year: {year}")
     logging.debug(f"Calling webservice with title: {title} and year: {year}")
@@ -200,32 +190,38 @@ def get_video_details(job):
     identify_loop(job, None, title, year)
 
 
-def update_job(job, s):
-    logging.debug(f"s =======  {s}")
-    if 'Search' not in s:
+def update_job(job, search_results):
+    """
+    used to update a successfully found job
+    :param job: job obj
+    :param search_results: json returned from metadata provider
+    :return: None if error
+    """
+    # logging.debug(f"s =======  {search_results}")
+    if 'Search' not in search_results:
         return None
-    new_year = s['Search'][0]['Year']
-    title = clean_for_filename(s['Search'][0]['Title'])
-    logging.debug("Webservice successful.  New title is " + title + ".  New Year is: " + new_year)
+    new_year = search_results['Search'][0]['Year']
+    title = utils.clean_for_filename(search_results['Search'][0]['Title'])
+    logging.debug(f"Webservice successful.  New title is {title}.  New Year is: {new_year}")
     args = {
         'year_auto': str(new_year),
         'year': str(new_year),
         'title_auto': title,
         'title': title,
-        'video_type_auto': s['Search'][0]['Type'],
-        'video_type': s['Search'][0]['Type'],
-        'imdb_id_auto': s['Search'][0]['imdbID'],
-        'imdb_id': s['Search'][0]['imdbID'],
-        'poster_url_auto': s['Search'][0]['Poster'],
-        'poster_url': s['Search'][0]['Poster'],
+        'video_type_auto': search_results['Search'][0]['Type'],
+        'video_type': search_results['Search'][0]['Type'],
+        'imdb_id_auto': search_results['Search'][0]['imdbID'],
+        'imdb_id': search_results['Search'][0]['imdbID'],
+        'poster_url_auto': search_results['Search'][0]['Poster'],
+        'poster_url': search_results['Search'][0]['Poster'],
         'hasnicetitle': True
     }
-    utils.database_updater(args, job)
+    return utils.database_updater(args, job)
 
 
 def metadata_selector(job, title=None, year=None):
     """
-    Used to switch between OMDB or TMDB as the metadata provider
+    Used to switch between OMDB or TMDB as the metadata provider\n
     - TMDB returned queries are converted into the OMDB format
 
     :param job: The job class
@@ -233,27 +229,32 @@ def metadata_selector(job, title=None, year=None):
     :param year: the year of movie/show release
 
     :return: json/dict object or None
-
-    Args:
-        job:
     """
+    search_results = None
     if cfg['METADATA_PROVIDER'].lower() == "tmdb":
         logging.debug("provider tmdb")
-        x = u.tmdb_search(title, year)
-        if x is not None:
-            update_job(job, x)
-        return x
+        search_results = ui_utils.tmdb_search(title, year)
+        if search_results is not None:
+            update_job(job, search_results)
     elif cfg['METADATA_PROVIDER'].lower() == "omdb":
         logging.debug("provider omdb")
-        x = u.call_omdb_api(str(title), str(year))
-        if x is not None:
-            update_job(job, x)
-        return x
-    logging.debug(cfg['METADATA_PROVIDER'])
-    logging.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
+        search_results = ui_utils.call_omdb_api(str(title), str(year))
+        if search_results is not None:
+            update_job(job, search_results)
+    else:
+        logging.debug(cfg['METADATA_PROVIDER'])
+        logging.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
+    return search_results
 
 
 def identify_loop(job, response, title, year):
+    """
+
+    :param job:
+    :param response:
+    :param title:
+    :param year:
+    """
     # handle failures
     # this is a little kludgy, but it kind of works...
     logging.debug(f"Response = {response}")
@@ -266,14 +267,14 @@ def identify_loop(job, response, title, year):
         if response is None:
             while response is None and title.find("-") > 0:
                 title = title.rsplit('-', 1)[0]
-                logging.debug("Trying title: " + title)
+                logging.debug(f"Trying title: {title}")
                 response = metadata_selector(job, title, year)
                 logging.debug(f"response: {response}")
 
             # if still fail, then try slicing off the last word in a loop
             while response is None and title.count('+') > 0:
                 title = title.rsplit('+', 1)[0]
-                logging.debug("Trying title: " + title)
+                logging.debug(f"Trying title: {title}")
                 response = metadata_selector(job, title, year)
                 logging.debug(f"response: {response}")
                 if response is None:
@@ -283,6 +284,13 @@ def identify_loop(job, response, title, year):
 
 
 def try_without_year(job, response, title):
+    """
+
+    :param job:
+    :param response:
+    :param title:
+    :return:
+    """
     if response is None:
         logging.debug("Removing year...")
         response = metadata_selector(job, title)
@@ -291,10 +299,24 @@ def try_without_year(job, response, title):
 
 
 def try_with_year(job, response, title, year):
+    """
+
+    :param job:
+    :param response:
+    :param title:
+    :param year:
+    :return:
+    """
+    # If we have a response don't overwrite it
+    if response is not None:
+        return response
     if year:
-        # first try subtracting one year.  This accounts for when
+        response = metadata_selector(job, title, str(year))
+        logging.debug(f"response: {response}")
+    # If we still don't have a response try removing a year off
+    if response is None and year:
+        # This accounts for when
         # the dvd release date is the year following the movie release date
         logging.debug("Subtracting 1 year...")
         response = metadata_selector(job, title, str(int(year) - 1))
-        logging.debug(f"response: {response}")
     return response

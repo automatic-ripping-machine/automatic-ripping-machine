@@ -1,56 +1,57 @@
+"""
+Main catch all page for functions for the A.R.M ui
+"""
+import hashlib
 import os
 import shutil
-
-import subprocess
-from time import strftime, localtime, time
-import urllib
 import json
 import re
-import psutil
-import requests
-import bcrypt  # noqa: F401
-import html
-import yaml
-
+import platform
+import subprocess
+from datetime import datetime
 from pathlib import Path
-from arm.config.config import cfg
+
+from time import strftime, localtime, time, sleep
+
+import bcrypt
+import requests
+from werkzeug.routing import ValidationError
+import yaml
 from flask.logging import default_handler  # noqa: F401
-
+from arm.config.config import cfg
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track, User, AlembicVersion, UISettings  # noqa: F401
-from flask import Flask, render_template, flash, request  # noqa: F401
-
-TMDB_YEAR_REGEX = "-[0-9]{0,2}-[0-9]{0,2}"
+from arm.models import models
+from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
 
 
 def database_updater(args, job, wait_time=90):
     """
-    Try to update our db for x seconds and handle it nicely if we cant
+    Try to update our db for x seconds and handle it nicely if we cant\n
 
-    :param args: This needs to be a Dict with the key being the job.method you want to change and the value being
-    the new value.
-
+    :param args: This needs to be a Dict with the key being the
+    job.method you want to change and the value being the new value.
     :param job: This is the job object
     :param wait_time: The time to wait in seconds
-    :return: Nothing
+    :returns : Boolean
     """
     # Loop through our args and try to set any of our job variables
     for (key, value) in args.items():
         setattr(job, key, value)
-        app.logger.debug(str(key) + "= " + str(value))
+        app.logger.debug(f"Setting {key}: {value}")
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
             db.session.commit()
-        except Exception as e:
-            if "locked" in str(e):
-                time.sleep(1)
-                app.logger.debug(f"database is locked - trying in 1 second {i}/{wait_time} - {e}")
+        except Exception as error:
+            if "locked" in str(error):
+                sleep(1)
+                app.logger.debug(f"database is locked - trying in 1 second {i}/{wait_time} - {error}")
             else:
-                app.logger.debug("Error: " + str(e))
-                raise RuntimeError(str(e))
-        else:
-            app.logger.debug("successfully written to the database")
-            return True
+                app.logger.debug("Error: " + str(error))
+                db.session.rollback()
+                raise RuntimeError(str(error)) from error
+
+    app.logger.debug("successfully written to the database")
+    return True
 
 
 def check_db_version(install_path, db_file):
@@ -59,7 +60,7 @@ def check_db_version(install_path, db_file):
     If it doesn't exist create it.  If it's out of date update it.
     """
     from alembic.script import ScriptDirectory
-    from alembic.config import Config
+    from alembic.config import Config  # noqa: F811
     import sqlite3
     import flask_migrate
 
@@ -86,9 +87,9 @@ def check_db_version(install_path, db_file):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
 
-    c.execute("SELECT {cn} FROM {tn}".format(cn="version_num", tn="alembic_version"))
+    c.execute('SELECT version_num FROM alembic_version')
     db_version = c.fetchone()[0]
-    app.logger.debug("Database version is: " + db_version)
+    app.logger.debug(f"Database version is: {db_version}")
     if head_revision == db_version:
         app.logger.info("Database is up to date")
     else:
@@ -96,62 +97,66 @@ def check_db_version(install_path, db_file):
             "Database out of date. Head is " + head_revision + " and database is " + db_version
             + ".  Upgrading database...")
         with app.app_context():
-            ts = round(time() * 100)
-            app.logger.info("Backuping up database '" + db_file + "' to '" + db_file + str(ts) + "'.")
-            shutil.copy(db_file, db_file + "_" + str(ts))
+            unique_stamp = round(time() * 100)
+            app.logger.info("Backuping up database '" + db_file + "' to '" + db_file + str(unique_stamp) + "'.")
+            shutil.copy(db_file, db_file + "_" + str(unique_stamp))
             flask_migrate.upgrade(mig_dir)
         app.logger.info("Upgrade complete.  Validating version level...")
 
-        c.execute("SELECT {cn} FROM {tn}".format(tn="alembic_version", cn="version_num"))
+        c.execute("SELECT version_num FROM alembic_version")
         db_version = c.fetchone()[0]
         app.logger.debug("Database version is: " + db_version)
         if head_revision == db_version:
             app.logger.info("Database is now up to date")
         else:
-            app.logger.error(
-                "Database is still out of date. Head is " + head_revision + " and database is " + db_version
-                + ".  Exiting arm.")
-            # sys.exit()
+            app.logger.error("Database is still out of date. "
+                             "Head is " + head_revision + " and database is " + db_version
+                             + ".  Exiting arm.")
 
 
 def make_dir(path):
     """
-    Make a directory\n
-    path = Path to directory\n
-
-    returns success True if successful
-        false if the directory already exists
+        Make a directory\n
+    :param path: Path to directory
+    :return: Boolean if successful
     """
+    success = False
     if not os.path.exists(path):
         app.logger.debug("Creating directory: " + path)
         try:
             os.makedirs(path)
-            return True
+            success = True
         except OSError:
             err = "Couldn't create a directory at path: " + path + " Probably a permissions error.  Exiting"
             app.logger.error(err)
-    else:
-        return False
+    return success
 
 
 def get_info(directory):
+    """
+    Used to read stats from files
+    -Used for view logs page
+    :param directory:
+    :return: list containing a list with each files stats
+    """
     file_list = []
     for i in os.listdir(directory):
         if os.path.isfile(os.path.join(directory, i)):
-            a = os.stat(os.path.join(directory, i))
-            fsize = os.path.getsize(os.path.join(directory, i))
-            fsize = round((fsize / 1024), 1)
-            fsize = "{0:,.1f}".format(fsize)
-            create_time = strftime(cfg['DATE_FORMAT'], localtime(a.st_ctime))
-            access_time = strftime(cfg['DATE_FORMAT'], localtime(a.st_atime))
-            file_list.append([i, access_time, create_time, fsize])  # [file,most_recent_access,created]
+            file_stats = os.stat(os.path.join(directory, i))
+            file_size = os.path.getsize(os.path.join(directory, i))
+            file_size = round((file_size / 1024), 1)
+            file_size = f"{file_size :,.1f}"
+            create_time = strftime(cfg['DATE_FORMAT'], localtime(file_stats.st_ctime))
+            access_time = strftime(cfg['DATE_FORMAT'], localtime(file_stats.st_atime))
+            # [file,most_recent_access,created, file_size]
+            file_list.append([i, access_time, create_time, file_size])
     return file_list
 
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
-    string = re.sub(r"\[.*?]", "", string)  # noqa: W605
-    string = re.sub('\s+', ' ', string)  # noqa: W605
+    string = re.sub(r"\[[^]]*]", "", string)
+    string = re.sub('\\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
     string = string.replace('&', 'and')
@@ -161,264 +166,108 @@ def clean_for_filename(string):
 
 
 def getsize(path):
-    st = os.statvfs(path)
-    free = (st.f_bavail * st.f_frsize)
-    freegb = free / 1073741824
-    return freegb
-
-
-def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
-    """ Queries OMDbapi.org for title information and parses if it's a movie
-        or a tv series """
-    omdb_api_key = cfg['OMDB_API_KEY']
-
-    if imdb_id:
-        strurl = "http://www.omdbapi.com/?i={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key, imdb_id, plot)
-    elif title:
-        # try:
-        title = urllib.parse.quote(title)
-        if year and year is not None:
-            year = urllib.parse.quote(year)
-            strurl = "http://www.omdbapi.com/?s={1}&y={2}&plot={3}&r=json&apikey={0}".format(omdb_api_key,
-                                                                                             title, year, plot)
-        else:
-            strurl = "http://www.omdbapi.com/?s={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key,
-                                                                                       title, plot)
-    else:
-        app.logger.debug("no params")
-        return None
-    # app.logger.debug(f"omdb - {strurl}")
-    try:
-        title_info_json = urllib.request.urlopen(strurl).read()
-        title_info = json.loads(title_info_json.decode())
-        title_info['background_url'] = None
-        app.logger.debug(f"omdb - {title_info}")
-        if 'Error' in title_info or title_info['Response'] == "False":
-            return None
-    except urllib.error.HTTPError as e:
-        app.logger.debug(f"omdb call failed with error - {e}")
-        return None
-    app.logger.debug("omdb - call was successful")
-    return title_info
+    """Simple function to get the free space left in a path"""
+    path_stats = os.statvfs(path)
+    free = (path_stats.f_bavail * path_stats.f_frsize)
+    free_gb = free / 1073741824
+    return free_gb
 
 
 def generate_comments():
+    """
+    load comments.json and use it for settings page
+    allows us to easily add more settings later
+    :return: json
+    """
     comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
     try:
-        with open(comments_file, "r") as f:
+        with open(comments_file, "r") as comments_read_file:
             try:
-                comments = json.load(f)
-                return comments
-            except Exception as e:
-                comments = None
-                app.logger.debug("Error with comments file. {}".format(str(e)))
-                return "{'error':'" + str(e) + "'}"
+                comments = json.load(comments_read_file)
+            except Exception as error:
+                app.logger.debug(f"Error with comments file. {error}")
+                comments = "{'error':'" + str(error) + "'}"
     except FileNotFoundError:
-        return "{'error':'File not found'}"
+        comments = "{'error':'File not found'}"
+    return comments
 
 
-def generate_log(logpath, job_id):
+def generate_full_log(full_path):
+    """
+    Gets/tails all lines from log file
+    :param full_path: full path to job logfile
+    :return: None
+    """
     try:
-        job = Job.query.get(job_id)
-    except Exception:
-        app.logger.debug(f"Cant find job {job_id} ")
-        job = None
-
-    app.logger.debug("in logging")
-    if job is None or job.logfile is None or job.logfile == "":
-        app.logger.debug(f"Cant find the job {job_id}")
-        return {'success': False, 'job': job_id, 'log': 'Not found'}
-    # Assemble full path
-    fullpath = os.path.join(logpath, job.logfile)
-    # Check if the logfile exists
-    my_file = Path(fullpath)
-    if not my_file.is_file():
-        # logfile doesnt exist throw out error template
-        app.logger.debug("Couldn't find the logfile requested, Possibly deleted/moved")
-        return {'success': False, 'job': job_id, 'log': 'File not found'}
-    try:
-        with open(fullpath) as f:
-            r = f.read()
+        with open(full_path) as read_log_file:
+            while True:
+                yield read_log_file.read()
+                sleep(1)
     except Exception:
         try:
-            with open(fullpath, encoding="utf8", errors='ignore') as f:
-                r = f.read()
-        except Exception:
-            app.logger.debug("Cant read logfile. Possibly encoding issue")
-            return {'success': False, 'job': job_id, 'log': 'Cant read logfile'}
-    r = html.escape(r)
-    title_year = str(job.title) + " (" + str(job.year) + ") - file: " + str(job.logfile)
-    return {'success': True, 'job': job_id, 'mode': 'logfile', 'log': r,
-            'escaped': True, 'job_title': title_year}
+            with open(full_path, encoding="utf8", errors='ignore') as read_log_file:
+                while True:
+                    yield read_log_file.read()
+                    sleep(1)
+        except FileNotFoundError as error:
+            raise FileNotFoundError("Not found with utf8 encoding") from error
 
 
-def abandon_job(job_id):
-    try:
-        job = Job.query.get(job_id)
-        job.status = "fail"
-        db.session.commit()
-        app.logger.debug("Job {} was abandoned successfully".format(job_id))
-        t = {'success': True, 'job': job_id, 'mode': 'abandon'}
-        job.eject()
-    except Exception as e:
-        db.session.rollback()
-        app.logger.debug("Job {} couldn't be abandoned ".format(job_id))
-        return {'success': False, 'job': job_id, 'mode': 'abandon', "Error": str(e)}
-    try:
-        p = psutil.Process(job.pid)
-        p.terminate()  # or p.kill()
-    except psutil.NoSuchProcess:
-        t['Error'] = f"couldnt find job.pid - {job.pid}"  # This is a soft error db changes still went through
-        app.logger.debug(f"couldnt find job.pid - {job.pid}")
-    return t
-
-
-def delete_job(job_id, mode):
-    try:
-        t = {}
-        app.logger.debug("job_id= {}".format(job_id))
-        # Find the job the user wants to delete
-        if mode == 'delete' and job_id is not None:
-            # User wants to wipe the whole database
-            # Make a backup and everything
-            # The user can only access this by typing it manually
-            if job_id == 'all':
-                # if os.path.isfile(cfg['DBFILE']):
-                #    # Make a backup of the database file
-                #    cmd = f"cp {cfg['DBFILE']} {cfg['DBFILE'])}.bak"
-                #    app.logger.info(f"cmd  -  {cmd}")
-                #    os.system(cmd)
-                # Track.query.delete()
-                # Job.query.delete()
-                # Config.query.delete()
-                # db.session.commit()
-                app.logger.debug("Admin is requesting to delete all jobs from database!!! No deletes went to db")
-                t = {'success': True, 'job': job_id, 'mode': mode}
-            elif job_id == "title":
-                #  The user can only access this by typing it manually
-                #  This shouldn't be left on when on a full server
-                # This causes db corruption!
-                # logfile = request.args['title']
-                # Job.query.filter_by(title=logfile).delete()
-                # db.session.commit()
-                # app.logger.debug("Admin is requesting to delete all jobs with (x) title.")
-                t = {'success': True, 'job': job_id, 'mode': mode}
-                # Not sure this is the greatest way of handling this
+def generate_arm_cat(full_path):
+    """
+    Read from log file and only output ARM: logs
+    :param full_path: full path to job logfile
+    :return: None
+    """
+    read_log_file = open(full_path)
+    while True:
+        new = read_log_file.readline()
+        if new:
+            if "ARM:" in new:
+                yield new
             else:
-                try:
-                    post_value = int(job_id)
-                    app.logger.debug("Admin requesting delete job {} from database!".format(job_id))
-                except ValueError:
-                    app.logger.debug("Admin is requesting to delete a job but didnt provide a valid job ID")
-                    return {'success': False, 'job': 'invalid', 'mode': mode, 'error': 'Not a valid job'}
-                else:
-                    app.logger.debug("No errors: job_id=" + str(post_value))
-                    Track.query.filter_by(job_id=job_id).delete()
-                    Job.query.filter_by(job_id=job_id).delete()
-                    Config.query.filter_by(job_id=job_id).delete()
-                    db.session.commit()
-                    app.logger.debug("Admin deleting  job {} was successful")
-                    t = {'success': True, 'job': job_id, 'mode': mode}
-    # If we run into problems with the datebase changes
-    # error out to the log and roll back
-    except Exception as err:
-        db.session.rollback()
-        app.logger.error("Error:db-1 {0}".format(err))
-        t = {'success': False}
-
-    return t
+                sleep(1)
 
 
 def setup_database():
     """
     Try to get the db.User if not we nuke everything
     """
+    # This checks for a user table
     try:
-        User.query.all()
+        admins = models.User.query.all()
+        app.logger.debug(f"Number of admins: {len(admins)}")
+        if len(admins) > 0:
+            return True
+    except Exception:
+        app.logger.debug("Couldn't find a user table")
+    else:
+        app.logger.debug("Found User table but didnt find any admins... triggering db wipe")
+    #  Wipe everything
+    try:
+        db.drop_all()
+    except Exception:
+        app.logger.debug("Couldn't drop all")
+    try:
+        #  Recreate everything
+        db.metadata.create_all(db.engine)
+        db.create_all()
+        db.session.commit()
+        #  push the database version arm is looking for
+        version = models.AlembicVersion('c54d68996895')
+        ui_config = models.UISettings(1, 1, "spacelab", "en", 10, 200)
+        # Create default user to save problems with ui and ripper having diff setups
+        hashed = bcrypt.gensalt(12)
+        default_user = models.User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
+                                   hashed=hashed)
+        db.session.add(ui_config)
+        db.session.add(version)
+        db.session.add(default_user)
+        db.session.commit()
         return True
     except Exception:
-        #  We only need this on first run
-        #  Wipe everything
-        # flash(str(err))
-        try:
-            db.drop_all()
-        except Exception:
-            app.logger.debug("couldn't drop all")
-        try:
-            #  Recreate everything
-            db.metadata.create_all(db.engine)
-            db.create_all()
-            db.session.commit()
-            #  push the database version arm is looking for
-            user = AlembicVersion('c54d68996895')
-            ui_config = UISettings(1, 1, "spacelab", "en", 10, 200)
-            db.session.add(ui_config)
-            db.session.add(user)
-            db.session.commit()
-            return True
-        except Exception:
-            app.logger.debug("couldn't create all")
-            return False
-
-
-def search(search_query):
-    """ Queries ARMui db for the movie/show matching the query"""
-    search = re.sub('[^a-zA-Z0-9]', '', search_query)
-    search = "%{}%".format(search)
-    app.logger.debug("search - q=" + str(search))
-    posts = db.session.query(Job).filter(Job.title.like(search)).all()
-    app.logger.debug("search - posts=" + str(posts))
-    r = {}
-    i = 0
-    for p in posts:
-        app.logger.debug("job obj = " + str(p.get_d()))
-        x = p.get_d().items()
-        r[i] = {}
-        for key, value in iter(x):
-            r[i][str(key)] = str(value)
-            app.logger.debug(str(key) + "= " + str(value))
-        i += 1
-    return {'success': True, 'mode': 'search', 'results': r}
-
-
-def get_omdb_poster(title=None, year=None, imdb_id=None, plot="short"):
-    """ Queries OMDbapi.org for the poster for movie/show """
-    omdb_api_key = cfg['OMDB_API_KEY']
-    title_info = {}
-    if imdb_id:
-        strurl = f"http://www.omdbapi.com/?i={imdb_id}&plot={plot}&r=json&apikey={omdb_api_key}"
-        strurl2 = ""
-    elif title:
-        strurl = f"http://www.omdbapi.com/?s={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
-        strurl2 = f"http://www.omdbapi.com/?t={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
-    else:
-        app.logger.debug("no params")
-        return None, None
-    from requests.utils import requote_uri
-    r = requote_uri(strurl)
-    r2 = requote_uri(strurl2)
-    try:
-        title_info_json = urllib.request.urlopen(r).read()
-    except Exception as e:
-        app.logger.debug(f"Failed to reach OMdb - {e}")
-        return None, None
-    else:
-        title_info = json.loads(title_info_json.decode())
-        # app.logger.debug("omdb - " + str(title_info))
-        if 'Error' not in title_info:
-            return title_info['Search'][0]['Poster'], title_info['Search'][0]['imdbID']
-        else:
-            try:
-                title_info_json2 = urllib.request.urlopen(r2).read()
-                title_info2 = json.loads(title_info_json2.decode())
-                # app.logger.debug("omdb - " + str(title_info2))
-                if 'Error' not in title_info2:
-                    return title_info2['Poster'], title_info2['imdbID']
-            except Exception as e:
-                app.logger.debug(f"Failed to reach OMdb - {e}")
-                return None, None
-
-    return None, None
+        app.logger.debug("Couldn't create all")
+    return False
 
 
 def job_dupe_check(crc_id):
@@ -434,276 +283,25 @@ def job_dupe_check(crc_id):
     """
     if crc_id is None:
         return False, None
-    jobs = Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
+    jobs = models.Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
     # app.logger.debug("search - posts=" + str(jobs))
-    r = {}
+    return_results = {}
     i = 0
     for j in jobs:
         app.logger.debug("job obj= " + str(j.get_d()))
-        x = j.get_d().items()
-        r[i] = {}
-        for key, value in iter(x):
-            r[i][str(key)] = str(value)
+        return_results[i] = {}
+        for key, value in iter(j.get_d().items()):
+            return_results[i][str(key)] = str(value)
             # logging.debug(str(key) + "= " + str(value))
         i += 1
 
-    app.logger.debug(r)
-    app.logger.debug("r len=" + str(len(r)))
-    if jobs is not None and len(r) > 0:
+    app.logger.debug(return_results)
+    app.logger.debug("r len=" + str(len(return_results)))
+    if jobs is not None and len(return_results) > 0:
         app.logger.debug("jobs is none or len(r) - we have jobs")
-        return True, r
-    else:
-        app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
-        return False, None
-
-
-def get_x_jobs(job_status):
-    """
-    function for getting all Failed/Successful jobs or currently active jobs from the database
-
-    :return: True if we have found dupes with the same crc
-              - Will also return a dict of all the jobs found.
-             False if we didnt find any with the same crc
-              - Will also return None as a secondary param
-    """
-    success = False
-    if job_status in ("success", "fail"):
-        jobs = Job.query.filter_by(status=job_status)
-    else:
-        jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
-
-    r = {}
-    i = 0
-    for j in jobs:
-        r[i] = {}
-        job_log = cfg['LOGPATH'] + j.logfile
-        process_logfile(job_log, j, r[i])
-        try:
-            r[i]['config'] = j.config.get_d()
-        except AttributeError:
-            r[i]['config'] = "config not found"
-            app.logger.debug("couldn't get config")
-
-        app.logger.debug("job obj= " + str(j.get_d()))
-        x = j.get_d().items()
-        for key, value in x:
-            if key != "config":
-                r[i][str(key)] = str(value)
-            # logging.debug(str(key) + "= " + str(value))
-        i += 1
-    if jobs:
-        app.logger.debug("jobs  - we have " + str(len(r)) + " jobs")
-        success = True
-
-    return {"success": success, "mode": job_status, "results": r, "arm_name": cfg['ARM_NAME']}
-
-
-def get_tmdb_poster(search_query=None, year=None):
-    """ Queries api.themoviedb.org for the poster/backdrop for movie """
-    tmdb_api_key = cfg['TMDB_API_KEY']
-    if year:
-        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}&year={year}"
-    else:
-        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}"
-    # Valid poster sizes
-    # "w92", "w154", "w185", "w342", "w500", "w780", "original"
-    poster_size = "original"
-    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
-    response = requests.get(url)
-    p = json.loads(response.text)
-    # if status_code is in p we know there was an error
-    if 'status_code' in p:
-        app.logger.debug(f"get_tmdb_poster failed with error -  {p['status_message']}")
-        return {}
-    x = json.dumps(response.json(), indent=4, sort_keys=True)
-    print(x)
-    if p['total_results'] > 0:
-        app.logger.debug(p['total_results'])
-        for s in p['results']:
-            if s['poster_path'] is not None and 'release_date' in s:
-                x = re.sub(TMDB_YEAR_REGEX, "", s['release_date'])
-                app.logger.debug(f"{s['title']} ({x})- {poster_base}{s['poster_path']}")
-                s['poster_url'] = f"{poster_base}{s['poster_path']}"
-                s["Plot"] = s['overview']
-                # print(poster_url)
-                s['background_url'] = f"{poster_base}{s['backdrop_path']}"
-                s['Type'] = "movie"
-                app.logger.debug(s['background_url'])
-                return s
-    else:
-        url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={search_query}"
-        response = requests.get(url)
-        p = json.loads(response.text)
-        v = json.dumps(response.json(), indent=4, sort_keys=True)
-        app.logger.debug(v)
-        x = {}
-        if p['total_results'] > 0:
-            app.logger.debug(p['total_results'])
-            for s in p['results']:
-                app.logger.debug(s)
-                s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
-                s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
-                s['imdbID'] = tmdb_get_imdb(s['id'])
-                s['Year'] = re.sub(TMDB_YEAR_REGEX, "", s['first_air_date']) if 'first_air_date' in s else \
-                    re.sub(TMDB_YEAR_REGEX, "", s['release_date'])
-                s['Title'] = s['title'] if 'title' in s else s['name']  # This isnt great
-                s['Type'] = "movie"
-                app.logger.debug(f"{s['Title']} ({s['Year']})- {poster_base}{s['poster_path']}")
-                s['Poster'] = f"{poster_base}{s['poster_path']}"  # print(poster_url)
-                s['background_url'] = f"{poster_base}{s['backdrop_path']}"
-                s["Plot"] = s['overview']
-                app.logger.debug(s['background_url'])
-                search_query_pretty = str.replace(r"\+", " ", search_query)
-                app.logger.debug(f"trying {search_query.capitalize()} == {s['Title'].capitalize()}")
-                if search_query_pretty.capitalize() == s['Title'].capitalize():
-                    s['Search'] = s
-                    app.logger.debug("x=" + str(x))
-                    s['Response'] = True
-                    return s
-            x['Search'] = p['results']
-            return x
-        app.logger.debug("no results found")
-        return None
-
-
-def tmdb_search(search_query=None, year=None):
-    """
-        Queries api.themoviedb.org for movies close to the query
-
-    """
-    # https://api.themoviedb.org/3/movie/78?api_key=
-    # &append_to_response=alternative_titles,changes,credits,images,keywords,lists,releases,reviews,similar,videos
-    tmdb_api_key = cfg['TMDB_API_KEY']
-    if year:
-        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}&year={year}"
-    else:
-        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}"
-    # Valid poster sizes
-    # "w92", "w154", "w185", "w342", "w500", "w780", "original"
-    poster_size = "original"
-    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
-    response = requests.get(url)
-    p = json.loads(response.text)
-    if 'status_code' in p:
-        app.logger.debug(f"get_tmdb_poster failed with error -  {p['status_message']}")
-        return None
-    x = {}
-    if p['total_results'] > 0:
-        app.logger.debug(f"tmdb_search - found {p['total_results']} movies")
-        for s in p['results']:
-            s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
-            s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
-            s['imdbID'] = tmdb_get_imdb(s['id'])
-            s['Year'] = re.sub(TMDB_YEAR_REGEX, "", s['release_date'])
-            s['Title'] = s['title']
-            s['Type'] = "movie"
-            app.logger.debug(f"{s['title']} ({s['Year']})- {poster_base}{s['poster_path']}")
-            s['Poster'] = f"{poster_base}{s['poster_path']}"
-            s['background_url'] = f"{poster_base}{s['backdrop_path']}"
-            app.logger.debug(s['background_url'])
-        x['Search'] = p['results']
-        return x
-    else:
-        # Search for tv series
-        app.logger.debug("tmdb_search - movie not found, trying tv series ")
-        url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={search_query}"
-        response = requests.get(url)
-        p = json.loads(response.text)
-        x = {}
-        if p['total_results'] > 0:
-            app.logger.debug(p['total_results'])
-            for s in p['results']:
-                app.logger.debug(s)
-                s['poster_path'] = s['poster_path'] if s['poster_path'] is not None else None
-                s['release_date'] = '0000-00-00' if 'release_date' not in s else s['release_date']
-                s['imdbID'] = tmdb_get_imdb(s['id'])
-                s['Year'] = re.sub(TMDB_YEAR_REGEX, "", s['first_air_date']) if 'first_air_date' in s else \
-                    re.sub(TMDB_YEAR_REGEX, "", s['release_date'])
-                s['Title'] = s['title'] if 'title' in s else s['name']  # This isnt great
-                s['Type'] = "series"
-                app.logger.debug(f"{s['Title']} ({s['Year']})- {poster_base}{s['poster_path']}")
-                s['Poster'] = f"{poster_base}{s['poster_path']}"  # print(poster_url)
-                s['background_url'] = f"{poster_base}{s['backdrop_path']}"
-                s["Plot"] = s['overview']
-                app.logger.debug(s['background_url'])
-                search_query_pretty = str.replace(r"\+", " ", search_query)
-                app.logger.debug(f"trying {search_query_pretty.capitalize()} == {s['Title'].capitalize()}")
-            x['Search'] = p['results']
-            return x
-
-    # We got to here with no results give nothing back
-    app.logger.debug("tmdb_search - no results found")
-    return None
-
-
-def tmdb_get_imdb(tmdb_id):
-    """
-        Queries api.themoviedb.org for imdb_id by TMDB id
-
-    """
-    # https://api.themoviedb.org/3/movie/78?api_key=
-    # &append_to_response=alternative_titles,changes,credits,images,keywords,lists,releases,reviews,similar,videos
-    tmdb_api_key = cfg['TMDB_API_KEY']
-    url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={tmdb_api_key}&" \
-          f"append_to_response=alternative_titles,credits,images,keywords,releases,reviews,similar,videos,external_ids"
-    url_tv = f"https://api.themoviedb.org/3/tv/{tmdb_id}/external_ids?api_key={tmdb_api_key}"
-    # Making a get request
-    response = requests.get(url)
-    p = json.loads(response.text)
-    app.logger.debug(f"tmdb_get_imdb - {p}")
-    # 'status_code' means id wasn't found
-    if 'status_code' in p:
-        # Try tv series
-        response = requests.get(url_tv)
-        tv = json.loads(response.text)
-        app.logger.debug(tv)
-        if 'status_code' not in tv:
-            return tv['imdb_id']
-    else:
-        return p['external_ids']['imdb_id']
-
-
-def tmdb_find(imdb_id):
-    """
-    basic function to return an object from tmdb from only the imdb id
-    :param imdb_id: the imdb id to lookup
-    :return: dict in the standard 'arm' format
-    """
-    tmdb_api_key = cfg['TMDB_API_KEY']
-    url = f"https://api.themoviedb.org/3/find/{imdb_id}?api_key={tmdb_api_key}&external_source=imdb_id"
-    poster_size = "original"
-    poster_base = f"http://image.tmdb.org/t/p/{poster_size}"
-    # Making a get request
-    response = requests.get(url)
-    p = json.loads(response.text)
-    app.logger.debug(f"tmdb_find = {p}")
-    if len(p['movie_results']) > 0:
-        # We want to push out everything even if we dont use it right now, it may be used later.
-        s = {'results': p['movie_results']}
-        x = re.sub(TMDB_YEAR_REGEX, "", s['results'][0]['release_date'])
-        app.logger.debug(f"{s['results'][0]['title']} ({x})- {poster_base}{s['results'][0]['poster_path']}")
-        s['poster_url'] = f"{poster_base}{s['results'][0]['poster_path']}"
-        s["Plot"] = s['results'][0]['overview']
-        s['background_url'] = f"{poster_base}{s['results'][0]['backdrop_path']}"
-        s['Type'] = "movie"
-        s['imdbID'] = imdb_id
-        s['Poster'] = s['poster_url']
-        s['Year'] = x
-        s['Title'] = s['results'][0]['title']
-    else:
-        # We want to push out everything even if we dont use it right now, it may be used later.
-        s = {'results': p['tv_results']}
-        x = re.sub(TMDB_YEAR_REGEX, "", s['results'][0]['first_air_date'])
-        app.logger.debug(f"{s['results'][0]['name']} ({x})- {poster_base}{s['results'][0]['poster_path']}")
-        s['poster_url'] = f"{poster_base}{s['results'][0]['poster_path']}"
-        s["Plot"] = s['results'][0]['overview']
-        s['background_url'] = f"{poster_base}{s['results'][0]['backdrop_path']}"
-        s['imdbID'] = imdb_id
-        s['Type'] = "series"
-        s['Poster'] = s['poster_url']
-        s['Year'] = x
-        s['Title'] = s['results'][0]['name']
-    return s
+        return True, return_results
+    app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
+    return False, None
 
 
 def metadata_selector(func, query="", year="", imdb_id=""):
@@ -718,25 +316,29 @@ def metadata_selector(func, query="", year="", imdb_id=""):
 
     :return: json/dict object
     """
+    return_function = None
     if cfg['METADATA_PROVIDER'].lower() == "tmdb":
-        app.logger.debug("provider tmdb")
+        app.logger.debug(f"provider tmdb - function: {func}")
         if func == "search":
-            return tmdb_search(str(query), str(year))
+            return_function = tmdb_search(str(query), str(year))
         elif func == "get_details":
             if query:
-                return get_tmdb_poster(str(query), str(year))
+                app.logger.debug("provider tmdb - using: get_tmdb_poster")
+                return_function = get_tmdb_poster(str(query), str(year))
             elif imdb_id:
-                return tmdb_find(imdb_id)
+                app.logger.debug("provider tmdb - using: tmdb_find")
+                return_function = tmdb_find(imdb_id)
+            app.logger.debug("No title or imdb provided")
 
     elif cfg['METADATA_PROVIDER'].lower() == "omdb":
-        app.logger.debug("provider omdb")
+        app.logger.debug(f"provider omdb - function: {func}")
         if func == "search":
-            return call_omdb_api(str(query), str(year))
+            return_function = call_omdb_api(str(query), str(year))
         elif func == "get_details":
-            s = call_omdb_api(title=str(query), year=str(year), imdb_id=str(imdb_id), plot="full")
-            return s
-    app.logger.debug(cfg['METADATA_PROVIDER'])
-    app.logger.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
+            return_function = call_omdb_api(title=str(query), year=str(year), imdb_id=str(imdb_id), plot="full")
+    else:
+        app.logger.debug("Unknown metadata selected")
+    return return_function
 
 
 def fix_permissions(j_id):
@@ -746,73 +348,121 @@ def fix_permissions(j_id):
     ARM can sometimes have issues with changing the file owner, we can use the fact ARMui is run
     as a service to fix permissions.
     """
-    try:
-        job_id = int(j_id.strip())
-    except AttributeError:
-        return {"success": False, "mode": "fixperms", "Error": "AttributeError",
-                "PrettyError": "No Valid Job Id Supplied"}
-    job = Job.query.get(job_id)
-    if not job:
-        return {"success": False, "mode": "fixperms", "Error": "JobDeleted",
-                "PrettyError": "Job Has Been Deleted From The Database"}
-    job_log = os.path.join(cfg['LOGPATH'], job.logfile)
-    if not os.path.isfile(job_log):
-        return {"success": False, "mode": "fixperms", "Error": "FileNotFoundError",
-                "PrettyError": "Logfile Has Been Deleted Or Moved"}
 
-    # This is kind of hacky way to get around the fact we dont save the ts variable
-    with open(job_log, 'r') as reader:
-        for line in reader.readlines():
-            ts = re.search("Operation not permitted: '([0-9a-zA-Z()/ -]*?)'", str(line))
-            if ts:
-                break
-            # app.logger.debug(ts)
-            # Operation not permitted: '([0-9a-zA-Z\(\)/ -]*?)'
-    if ts:
-        app.logger.debug(str(ts.group(1)))
-        directory_to_traverse = ts.group(1)
+    # Use set_media_owner to keep complexity low
+    def set_media_owner(dirpath, cur_dir, uid, gid):
+        if job.config.SET_MEDIA_OWNER:
+            os.chown(os.path.join(dirpath, cur_dir), uid, gid)
+
+    # Validate job is valid
+    job_id_validator(j_id)
+    job = models.Job.query.get(j_id)
+    if not job:
+        raise TypeError("Job Has Been Deleted From The Database")
+    # If there is no path saved in the job
+    if not job.path:
+        # Check logfile still exists
+        validate_logfile(job.logfile, "true", Path(os.path.join(cfg['LOGPATH'], job.logfile)))
+        # Find the correct path to use for fixing perms
+        directory_to_traverse = find_folder_in_log(os.path.join(cfg['LOGPATH'], job.logfile),
+                                                   os.path.join(job.config.COMPLETED_PATH,
+                                                                f"{job.title} ({job.year})"))
     else:
-        app.logger.debug("not found")
-        directory_to_traverse = os.path.join(job.config.COMPLETED_PATH, str(job.title) + " (" + str(job.year) + ")")
+        directory_to_traverse = job.path
+    # Build return json dict
+    return_json = {"success": False, "mode": "fixperms", "folder": str(directory_to_traverse), "path": str(job.path)}
+    # Set defaults as fail-safe
+    uid = 1000
+    gid = 1000
     try:
         corrected_chmod_value = int(str(job.config.CHMOD_VALUE), 8)
-        app.logger.info("Setting permissions to: " + str(job.config.CHMOD_VALUE) + " on: " + directory_to_traverse)
+        app.logger.info(f"Setting permissions to: {job.config.CHMOD_VALUE} on: {directory_to_traverse}")
         os.chmod(directory_to_traverse, corrected_chmod_value)
+        # If set media owner in arm.yaml was true set them as users
         if job.config.SET_MEDIA_OWNER and job.config.CHOWN_USER and job.config.CHOWN_GROUP:
             import pwd
             import grp
             uid = pwd.getpwnam(job.config.CHOWN_USER).pw_uid
             gid = grp.getgrnam(job.config.CHOWN_GROUP).gr_gid
             os.chown(directory_to_traverse, uid, gid)
-
+        # walk through each folder and file in the final directory
         for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
+            # Set permissions on each directory
             for cur_dir in l_directories:
-                app.logger.debug("Setting path: " + cur_dir + " to permissions value: " + str(job.config.CHMOD_VALUE))
+                app.logger.debug(f"Setting path: {cur_dir} to permissions value: {job.config.CHMOD_VALUE}")
                 os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
-                if job.config.SET_MEDIA_OWNER:
-                    os.chown(os.path.join(dirpath, cur_dir), uid, gid)
+                set_media_owner(dirpath, cur_dir, uid, gid)
+            # Set permissions on each file
             for cur_file in l_files:
-                app.logger.debug("Setting file: " + cur_file + " to permissions value: " + str(job.config.CHMOD_VALUE))
+                app.logger.debug(f"Setting file: {cur_file} to permissions value: {job.config.CHMOD_VALUE}")
                 os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
-                if job.config.SET_MEDIA_OWNER:
-                    os.chown(os.path.join(dirpath, cur_file), uid, gid)
-        d = {"success": True, "mode": "fixperms", "folder": str(directory_to_traverse)}
-    except Exception as e:
-        err = "Permissions setting failed as: " + str(e)
-        app.logger.error(err)
-        d = {"success": False, "mode": "fixperms", "Error": str(err), "ts": str(ts)}
-    return d
+                set_media_owner(dirpath, cur_file, uid, gid)
+        return_json["success"] = True
+    except Exception as error:
+        app.logger.error(f"Permissions setting failed as: {error}")
+        return_json["Error"] = str(f"Permissions setting failed as: {error}")
+    return return_json
+
+
+def send_to_remote_db(job_id):
+    """
+    Send a local db job to the arm remote crc64 database
+    :param job_id: Job id
+    :return: dict/json to return to user
+    """
+    job = models.Job.query.get(job_id)
+    return_dict = {}
+    api_key = cfg['ARM_API_KEY']
+
+    # This allows easy updates to the API url
+    base_url = "https://1337server.pythonanywhere.com"
+    url = f"{base_url}/api/v1/?mode=p&api_key={api_key}&crc64={job.crc_id}&t={job.title}" \
+          f"&y={job.year}&imdb={job.imdb_id}" \
+          f"&hnt={job.hasnicetitle}&l={job.label}&vt={job.video_type}"
+    app.logger.debug(url.replace(api_key, "<api_key>"))
+    response = requests.get(url)
+    req = json.loads(response.text)
+    app.logger.debug("req= " + str(req))
+    job_dict = job.get_d().items()
+    return_dict['config'] = job.config.get_d()
+    for key, value in iter(job_dict):
+        return_dict[str(key)] = str(value)
+    if req['success']:
+        return_dict['status'] = "success"
+    else:
+        return_dict['error'] = req['Error']
+        return_dict['status'] = "fail"
+    return return_dict
+
+
+def find_folder_in_log(job_log, default_directory):
+    """
+    This is kind of hacky way to get around the fact we don't save the ts variable
+    Opens the job logfile and searches for arm.ripper failing to set permissions\n
+
+    :param job_log: full path to job.log
+    :param default_directory: full path to the final directory prebuilt
+    :return: full path to the final directory prebuilt or found in log
+    """
+    with open(job_log, 'r') as reader:
+        for line in reader.readlines():
+            failed_perms_found = re.search("Operation not permitted: '([0-9a-zA-Z()/ -]*?)'", str(line))
+            if failed_perms_found:
+                return failed_perms_found.group(1)
+    return default_directory
 
 
 def trigger_restart():
     """
     We update the file modified time to get flask to restart
     This only works if ARMui is running as a service & in debug mode
+
+    notes: This has been removed, breaks and causes errors when run as 'arm' user
     """
     import datetime
 
-    def set_file_last_modified(file_path, dt):
-        dt_epoch = dt.timestamp()
+    def set_file_last_modified(file_path, date_time):
+        dt_epoch = date_time.timestamp()
         os.utime(file_path, (dt_epoch, dt_epoch))
 
     now = datetime.datetime.now()
@@ -822,74 +472,236 @@ def trigger_restart():
 
 def get_settings(arm_cfg_file):
     """
-    yaml file loader - is used for loading fresh arm.yaml config
-    Args:
-        arm_cfg_file: full path to arm.yaml
-
-    Returns:
-        cfg: the loaded yaml file
+    yaml file loader - is used for loading fresh arm.yaml config\n
+    :param arm_cfg_file: full path to arm.yaml
+    :return: the loaded yaml file
     """
     try:
-        with open(arm_cfg_file, "r") as f:
+        with open(arm_cfg_file, "r") as yaml_file:
             try:
-                cfg = yaml.load(f, Loader=yaml.FullLoader)
-            except Exception as e:
-                app.logger.debug(e)
-                cfg = yaml.safe_load(f)  # For older versions use this
-    except FileNotFoundError as e:
-        app.logger.debug(e)
-        cfg = {}
-    return cfg
+                yaml_cfg = yaml.load(yaml_file, Loader=yaml.FullLoader)
+            except Exception as error:
+                app.logger.debug(error)
+                yaml_cfg = yaml.safe_load(yaml_file)  # For older versions use this
+    except FileNotFoundError as error:
+        app.logger.debug(error)
+        yaml_cfg = {}
+    return yaml_cfg
 
 
-def process_logfile(logfile, job, r):
+def build_arm_cfg(form_data, comments):
     """
-    Breaking out the log parser to its own function.
-    This is used to search the log for ETA and current stage
-
-    :param logfile: the logfile for parsing
-    :param job: the Job class
-    :param r: the {} of
-    :return: r should be dict for the json api
+    Main function for saving new updated arm.yaml\n
+    :param form_data: post data
+    :param comments: comments file loaded as dict
+    :return: full new arm.yaml as a String
     """
-    # Try to catch if the logfile gets delete before the job is finished
-    try:
-        line = subprocess.check_output(['tail', '-n', '1', logfile])
-    except subprocess.CalledProcessError:
-        app.logger.debug("Error while reading logfile for ETA")
-        line = ""
-    # This correctly get the very last ETA and %
-    job_status = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
-                           r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
-
-    if job_status:
-        app.logger.debug(job_status.group())
-        job.stage = job_status.group(1)
-        job.progress = job_status.group(2)
-        job.eta = job_status.group(3)
-        x = job.progress
-        job.progress_round = int(float(x))
-        r['stage'] = job.stage
-        r['progress'] = job.progress
-        r['eta'] = job.eta
-        r['progress_round'] = int(float(r['progress']))
-
-    # INFO ARM: handbrake.handbrake_all Processing track #1 of 42. Length is 8602 seconds.
-    # Try to catch if the logfile gets delete before the job is finished
-    try:
-        with open(logfile, encoding="utf8", errors='ignore') as f:
-            line = f.readlines()
-    except FileNotFoundError:
-        line = ""
-    job_status_index = re.search(r"Processing track #([0-9]{1,2}) of ([0-9]{1,2})(?!.*Processing track #)", str(line))
-    if job_status_index:
+    arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
+    # TODO: This is not the safest way to do things.
+    #  It assumes the user isn't trying to mess with us.
+    # This really should be hard coded.
+    app.logger.debug("save_settings: START")
+    for key, value in form_data.items():
+        app.logger.debug(f"save_settings: current key {key} = {value} ")
+        if key == "csrf_token":
+            continue
+        # Add any grouping comments
+        arm_cfg += arm_yaml_check_groups(comments, key)
+        # Check for comments for this key in comments.json, add them if they exist
         try:
-            current_index = int(job_status_index.group(1))
-            job.stage = r['stage'] = f"{job.stage} - {current_index}/{job.no_of_titles}"
-        except Exception as e:
-            app.logger.debug("Problem finding the current track " + str(e))
-            job.stage = f"{job.stage} - %0%/%0%"
-    else:
-        app.logger.debug("Cant find index")
+            arm_cfg += "\n" + comments[str(key)] + "\n" if comments[str(key)] != "" else ""
+        except KeyError:
+            arm_cfg += "\n"
+        # test if key value is an int
+        try:
+            post_value = int(value)
+            arm_cfg += f"{key}: {post_value}\n"
+        except ValueError:
+            # Test if value is Boolean
+            arm_cfg += arm_yaml_test_bool(key, value)
+    app.logger.debug("save_settings: FINISH")
+    return arm_cfg
 
-    return r
+
+def arm_yaml_test_bool(key, value):
+    """
+    we need to test if the key is a bool, as we need to lower() it for yaml\n\n
+    or check if key is the webserver ip. \nIf not we need to wrap the value with quotes\n
+    :param key: the current key
+    :param value: the current value
+    :return: the new updated arm.yaml config with new key: values
+    """
+    if value.lower() == 'false' or value.lower() == "true":
+        arm_cfg = f"{key}: {value.lower()}\n"
+    else:
+        # If we got here, the only key that doesn't need quotes is the webserver key
+        # everything else needs "" around the value
+        if key == "WEBSERVER_IP":
+            arm_cfg = f"{key}: {value.lower()}\n"
+        else:
+            arm_cfg = f"{key}: \"{value}\"\n"
+    return arm_cfg
+
+
+def arm_yaml_check_groups(comments, key):
+    """
+    Check the current key to be added to arm.yaml and insert the group
+    separator comment, if the key matches\n
+    :param comments: comments dict, containing all comments from the arm.yaml
+    :param key: the current post key from form.args
+    :return: arm.yaml config with any new comments added
+    """
+    comment_groups = {'COMPLETED_PATH': "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP'],
+                      'WEBSERVER_IP': "\n" + comments['ARM_CFG_GROUPS']['WEB_SERVER'],
+                      'SET_MEDIA_PERMISSIONS': "\n" + comments['ARM_CFG_GROUPS']['FILE_PERMS'],
+                      'RIPMETHOD': "\n" + comments['ARM_CFG_GROUPS']['MAKE_MKV'],
+                      'HB_PRESET_DVD': "\n" + comments['ARM_CFG_GROUPS']['HANDBRAKE'],
+                      'EMBY_REFRESH': "\n" + comments['ARM_CFG_GROUPS']['EMBY']
+                                      + "\n" + comments['ARM_CFG_GROUPS']['EMBY_ADDITIONAL'],
+                      'NOTIFY_RIP': "\n" + comments['ARM_CFG_GROUPS']['NOTIFY_PERMS'],
+                      'APPRISE': "\n" + comments['ARM_CFG_GROUPS']['APPRISE']}
+    if key in comment_groups:
+        arm_cfg = comment_groups[key]
+    else:
+        arm_cfg = ""
+    return arm_cfg
+
+
+def get_processor_name():
+    """
+    function to collect and return some cpu info
+    ideally want to return {name} @ {speed} Ghz
+    """
+    cpu_info = None
+    if platform.system() == "Windows":
+        cpu_info = platform.processor()
+    elif platform.system() == "Darwin":
+        cpu_info = subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
+    elif platform.system() == "Linux":
+        command = "cat /proc/cpuinfo"
+        fulldump = str(subprocess.check_output(command, shell=True).strip())
+        # Take any float trailing "MHz", some whitespace, and a colon.
+        speeds = re.search(r"\\nmodel name\\t:.*?GHz\\n", fulldump)
+        if speeds:
+            # We have intel CPU
+            speeds = str(speeds.group())
+            speeds = speeds.replace('\\n', ' ')
+            speeds = speeds.replace('\\t', ' ')
+            speeds = speeds.replace('model name :', '')
+            cpu_info = speeds
+
+        # AMD CPU
+        amd_name_full = re.search(r"model name\\t: (.*?)\\n", fulldump)
+        if amd_name_full:
+            amd_name = amd_name_full.group(1)
+            amd_mhz = re.search(r"cpu MHz(?:\\t)*: ([.0-9]*)\\n", fulldump)  # noqa: W605
+            if amd_mhz:
+                amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
+                cpu_info = str(amd_name) + " @ " + str(amd_ghz) + " GHz"
+    return cpu_info
+
+
+def validate_logfile(logfile, mode, my_file):
+    """
+    check if logfile we got from the user is valid
+    :param logfile: logfile name
+    :param mode: This is used by the json.api
+    :param my_file: full base path using Path()
+    :return: None
+    :raise ValidationError: if logfile has "/" or "../" in it or "mode" is None
+    :raise FileNotFoundError: if logfile cant be found in arm log folder
+    """
+    app.logger.debug(f"Logfile: {logfile}")
+    if logfile is None or "../" in logfile or mode is None or logfile.find("/") != -1:
+        raise ValidationError("logfile doesnt pass sanity checks")
+    if not my_file.is_file():
+        # logfile doesnt exist throw out error template
+        raise FileNotFoundError("File not found")
+
+
+def job_id_validator(job_id):
+    """
+    Validate job id is an int
+    :return: bool if is valid
+    """
+    try:
+        int(job_id.strip())
+        valid = True
+    except AttributeError:
+        valid = False
+    return valid
+
+
+def generate_file_list(my_path):
+    """
+    Generate a list of files from given path\n
+    :param my_path: path to folder
+    :return: list of files
+    """
+    movie_dirs = [f for f in os.listdir(my_path) if os.path.isdir(os.path.join(my_path, f)) and not f.startswith(".")
+                  and os.path.isdir(os.path.join(my_path, f))]
+    app.logger.debug(movie_dirs)
+    return movie_dirs
+
+
+def import_movie_add(poster_image, imdb_id, movie_group, my_path):
+    """
+    Search the movie directory, make sure we have movie files and then import it into the db\n
+    :param poster_image:
+    :param imdb_id:
+    :param movie_group:
+    :param my_path:
+    :return:
+    """
+    app.logger.debug(f"Poster image: {poster_image}, IMDB: {imdb_id}, "
+                     f"Movie_group: {movie_group.group(0)}, Path: {my_path}")
+    # only used to add a non-unique crc64
+    movie = movie_group.group(0)
+    # Fake crc64 number
+    hash_object = hashlib.md5(f"{movie}".strip().encode())
+    # Check if we already have this in the db exit if we do
+    dupe_found, not_used_variable = job_dupe_check(hash_object.hexdigest())
+    if dupe_found:
+        app.logger.debug("We found dupes breaking loop")
+        return None
+    app.logger.debug(f"List dir = {os.listdir(my_path)}")
+
+    # Build file list with common video extension types
+    movie_files = [f for f in os.listdir(my_path)
+                   if os.path.isfile(os.path.join(my_path, f))
+                   and f.endswith((".mkv", ".avi", ".mp4", ".avi"))]
+    app.logger.debug(f"movie files = {movie_files}")
+
+    # This dict will be returned to the big list, so we can display to the user
+    movie_dict = {
+        'title': movie_group.group(1),
+        'year': movie_group.group(2),
+        'crc_id': hash_object.hexdigest(),
+        'imdb_id': imdb_id,
+        'poster': poster_image,
+        'status': 'success' if len(movie_files) >= 1 else 'fail',
+        'video_type': 'movie',
+        'disctype': 'unknown',
+        'hasnicetitle': True,
+        'no_of_titles': len(movie_files)
+    }
+    app.logger.debug(movie_dict)
+    # Create the new job and use the found values
+    new_movie = models.Job("/dev/sr0")
+    new_movie.title = movie_dict['title']
+    new_movie.year = movie_dict['year']
+    new_movie.crc_id = hash_object.hexdigest()
+    new_movie.imdb_id = imdb_id
+    new_movie.status = movie_dict['status']
+    new_movie.video_type = movie_dict['video_type']
+    new_movie.disctype = movie_dict['disctype']
+    new_movie.hasnicetitle = movie_dict['hasnicetitle']
+    new_movie.no_of_titles = movie_dict['no_of_titles']
+    new_movie.poster_url = movie_dict['poster']
+    new_movie.start_time = datetime.now()
+    new_movie.logfile = "imported.log"
+    new_movie.ejected = True
+    new_movie.path = my_path
+    app.logger.debug(new_movie)
+    db.session.add(new_movie)
+    return movie_dict
