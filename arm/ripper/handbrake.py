@@ -20,13 +20,13 @@ PROCESS_COMPLETE = "Handbrake processing complete"
 
 
 def handbrake_mainfeature(srcpath, basepath, logfile, job):
-    """process dvd with mainfeature enabled.\n
-    srcpath = Path to source for HB (dvd or files)\n
-    basepath = Path where HB will save trancoded files\n
-    logfile = Logfile for HB to redirect output to\n
-    job = Job object\n
-
-    Returns nothing
+    """
+    Process dvd with mainfeature enabled.\n\n
+    :param srcpath: Path to source for HB (dvd or files)\n
+    :param basepath: Path where HB will save trancoded files\n
+    :param logfile: Logfile for HB to redirect output to\n
+    :param job: Disc object\n
+    :return: None
     """
     logging.info("Starting DVD Movie Mainfeature processing")
     logging.debug("Handbrake starting: ")
@@ -90,13 +90,13 @@ def handbrake_mainfeature(srcpath, basepath, logfile, job):
 
 
 def handbrake_all(srcpath, basepath, logfile, job):
-    """Process all titles on the dvd\n
-    srcpath = Path to source for HB (dvd or files)\n
-    basepath = Path where HB will save trancoded files\n
-    logfile = Logfile for HB to redirect output to\n
-    job = Disc object\n
-
-    Returns nothing
+    """
+    Process all titles on the dvd\n
+    :param srcpath: Path to source for HB (dvd or files)\n
+    :param basepath: Path where HB will save trancoded files\n
+    :param logfile: Logfile for HB to redirect output to\n
+    :param job: Disc object\n
+    :return: None
     """
 
     # Wait until there is a spot to transcode
@@ -175,13 +175,13 @@ def handbrake_all(srcpath, basepath, logfile, job):
 
 
 def handbrake_mkv(srcpath, basepath, logfile, job):
-    """process all mkv files in a directory.\n
-    srcpath = Path to source for HB (dvd or files)\n
-    basepath = Path where HB will save trancoded files\n
-    logfile = Logfile for HB to redirect output to\n
-    job = Disc object\n
-
-    Returns nothing
+    """
+    Process all mkv files in a directory.\n\n
+    :param srcpath: Path to source for HB (dvd or files)\n
+    :param basepath: Path where HB will save trancoded files\n
+    :param logfile: Logfile for HB to redirect output to\n
+    :param job: Disc object\n
+    :return: None
     """
     # Added to limit number of transcodes
     job.status = "waiting_transcode"
@@ -233,43 +233,18 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
 
 
 def get_track_info(srcpath, job):
-    """Use HandBrake to get track info and updatte Track class\n
-
-    srcpath = Path to disc\n
-    job = Job instance\n
     """
-    charset_found = False
+    Use HandBrake to get track info and updatte Track class\n\n
+    :param srcpath: Path to disc\n
+    :param job: Job instance\n
+    :return: None
+    """
     logging.info("Using HandBrake to get information on all the tracks on the disc.  This will take a few minutes...")
 
-    cmd = '{0} -i {1} -t 0 --scan'.format(
-        cfg["HANDBRAKE_CLI"],
-        shlex.quote(srcpath)
-    )
+    cmd = f'{cfg["HANDBRAKE_CLI"]} -i {shlex.quote(srcpath)} -t 0 --scan'
 
     logging.debug(f"Sending command: {cmd}")
-    try:
-        hb = subprocess.check_output(
-            cmd,
-            stderr=subprocess.STDOUT,
-            shell=True
-        ).decode('utf-8', 'ignore').splitlines()
-    except subprocess.CalledProcessError as hb_error:
-        logging.error("Couldn't find a valid track. Try running the command manually to see more specific errors.")
-        logging.error(f"Specific error is: {hb_error}")
-    else:
-        charset_found = True
-    if not charset_found:
-        try:
-            hb = subprocess.check_output(
-                cmd,
-                stderr=subprocess.STDOUT,
-                shell=True
-            ).decode('cp437').splitlines()
-        except subprocess.CalledProcessError as hb_error:
-            logging.error("Couldn't find a valid track. Try running the command manually to see more specific errors.")
-            logging.error(f"Specific error is: {hb_error}")
-            # If it doesnt work now we either have bad encoding or HB has ran into issues
-            return -1
+    hb = handbrake_char_encoding(cmd)
 
     t_pattern = re.compile(r'.*\+ title *')
     pattern = re.compile(r'.*duration\:.*')
@@ -320,3 +295,36 @@ def get_track_info(srcpath, job):
             aspect = str(aspect).replace(",", "")
 
     utils.put_track(job, t_no, seconds, aspect, fps, mainfeature, "handbrake")
+
+
+def handbrake_char_encoding(cmd):
+    """
+    Allows us to try multiple char encoding types\n\n
+    :param cmd: CMD to push
+    :return: the output from HandBrake or -1 if it fails
+    """
+    charset_found = False
+    hb = -1
+    try:
+        hb = subprocess.check_output(
+            cmd,
+            stderr=subprocess.STDOUT,
+            shell=True
+        ).decode('utf-8', 'ignore').splitlines()
+    except subprocess.CalledProcessError as hb_error:
+        logging.error("Couldn't find a valid track with utf-8 encoding. Trying with cp437")
+        logging.error(f"Specific error is: {hb_error}")
+    else:
+        charset_found = True
+    if not charset_found:
+        try:
+            hb = subprocess.check_output(
+                cmd,
+                stderr=subprocess.STDOUT,
+                shell=True
+            ).decode('cp437').splitlines()
+        except subprocess.CalledProcessError as hb_error:
+            logging.error("Couldn't find a valid track. Try running the command manually to see more specific errors.")
+            logging.error(f"Specific error is: {hb_error}")
+            # If it doesn't work now we either have bad encoding or HB has ran into issues
+    return hb

@@ -38,7 +38,7 @@
             color: #ced4da !important;
         }
     </style>
-    <title>{% block title %}{% endblock %} - ARM</title>
+    <title>{{ armname }}{% block title %}{% endblock %} - ARM</title>
     {% block head_extra %}{% endblock %}
     {% endblock %}
 </head>
@@ -73,7 +73,7 @@
                     <a class="nav-link" href="ui_settings"> Arm Ui Settings</a>
                 </li>
                 <li id="navsendmovies" class="nav-item">
-                    <a class="nav-link" href="send_movies"> Send DVD's to API</a>
+                    <a class="nav-link" href="send_movies"> Send DVDs to API</a>
                 </li>
                 <li id="navchangepass" class="nav-item">
                     <a class="nav-link" href="update_password"> Change admin password</a>
@@ -107,7 +107,6 @@
 <div id="footer" class="container-fluid h-100">
     <div class="row" style="height: 30px;"></div>
     <div class="row h-100" style="height: 40px;">
-        <!-- <div class="col-sm-4"></div> -->
         <div class="col-sm-12 h-100">
             {% block footer %}
             <p class="text-center h-100" style="margin-bottom: auto; margin-top: auto"> Automatic Ripping Machine.
@@ -115,7 +114,6 @@
             </p>
             {% endblock %}
         </div>
-        <!-- <div class="col-sm-4"></div> -->
     </div>
 </div>
 </div>
