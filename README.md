@@ -1,15 +1,15 @@
 # Automatic Ripping Machine (ARM)
-[![CI](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/main.yml/badge.svg)](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/main.yml)[![GitHub license](https://img.shields.io/github/license/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/blob/v2_devel/LICENSE)
-[![GitHub forks](https://img.shields.io/github/forks/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/network)
-[![GitHub stars](https://img.shields.io/github/stars/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/pulls)
-[![Wiki](https://img.shields.io/badge/Wiki-Get%20Help-brightgreen?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/wiki)
-[![GitHub contributors](https://img.shields.io/github/contributors/1337-server/automatic-ripping-machine?style=plastic)](https://github.com/1337-server/automatic-ripping-machine/graphs/contributors)
-[![GitHub last commit](https://img.shields.io/github/last-commit/1337-server/automatic-ripping-machine?&style=plastic)](https://github.com/1337-server/automatic-ripping-machine/commits/v2_devel)
+[![CI](https://github.com/automatic-ripping-machine/automatic-ripping-machine/actions/workflows/main.yml/badge.svg)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/actions/workflows/main.yml)[![GitHub license](https://img.shields.io/github/license/automatic-ripping-machine/automatic-ripping-machine?style=plastic)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/v2_devel/LICENSE)
+[![GitHub forks](https://img.shields.io/github/forks/automatic-ripping-machine/automatic-ripping-machine?style=plastic)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/network)
+[![GitHub stars](https://img.shields.io/github/stars/automatic-ripping-machine/automatic-ripping-machine?style=plastic)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/automatic-ripping-machine/automatic-ripping-machine?style=plastic)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/automatic-ripping-machine/automatic-ripping-machine?style=plastic)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/pulls)
+[![Wiki](https://img.shields.io/badge/Wiki-Get%20Help-brightgreen?style=plastic)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki)
+[![GitHub contributors](https://img.shields.io/github/contributors/automatic-ripping-machine/automatic-ripping-machine?style=plastic)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/graphs/contributors)
+[![GitHub last commit](https://img.shields.io/github/last-commit/automatic-ripping-machine/automatic-ripping-machine?&style=plastic)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/commits/v2_devel)
 
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/1337-server/automatic-ripping-machine?label=Latest%20Stable%20Version&style=plastic)](https://github.com/1337-server/automatic-ripping-machine/releases)
-[![GitHub release Date](https://img.shields.io/github/release-date/1337-server/automatic-ripping-machine?label=Latest%20Stable%20Released&style=plastic)](https://github.com/1337-server/automatic-ripping-machine/releases)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/automatic-ripping-machine/automatic-ripping-machine?label=Latest%20Stable%20Version&style=plastic)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases)
+[![GitHub release Date](https://img.shields.io/github/release-date/automatic-ripping-machine/automatic-ripping-machine?label=Latest%20Stable%20Released&style=plastic)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases)
 
 [![Docker](https://img.shields.io/docker/pulls/1337server/automatic-ripping-machine.svg)](https://hub.docker.com/r/1337server/automatic-ripping-machine)
 
@@ -54,24 +54,24 @@ See: https://b3n.org/automatic-ripping-machine
 ## Requirements
 
 - Ubuntu Server 18.04 (should work with other Linux distros) - Needs Multiverse and Universe repositories
-- One or more optical drives to rip Blu-Rays, DVDs, and CDs
+- One or more optical drives to rip Blu-rays, DVDs, and CDs
 - Lots of drive space (I suggest using a NAS like FreeNAS) to store your movies
 
 
 ## Install
 
-For normal install please see the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/).
+For normal install please see the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
 
-For docker install please see [here](https://github.com/1337-server/automatic-ripping-machine/wiki/docker).
+For docker install please see [here](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
 
 ## Troubleshooting
- Please see the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/).
+ Please see the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
 
 ## Contributing
 
-Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/1337-server/automatic-ripping-machine/wiki/Contributing-Guide)
+Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contributing-Guide)
 
-If you set ARM up in a different environment (harware/OS/virtual/etc), please consider submitting a howto to the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki).
+If you set ARM up in a different environment (harware/OS/virtual/etc), please consider submitting a howto to the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).
 
 ## License
 
