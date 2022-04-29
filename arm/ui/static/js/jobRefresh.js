@@ -223,7 +223,6 @@ function checkActiveJobs(data, serverIndex) {
             }
         });
     });
-    return true;
 }
 
 /**
