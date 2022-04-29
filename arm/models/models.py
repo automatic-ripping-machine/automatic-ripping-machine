@@ -1,4 +1,5 @@
 import os
+import subprocess
 import pyudev
 import psutil
 import logging
@@ -24,6 +25,7 @@ class Job(db.Model):
     stop_time = db.Column(db.DateTime)
     job_length = db.Column(db.String(12))
     status = db.Column(db.String(32))
+    stage = db.Column(db.String(63))
     no_of_titles = db.Column(db.Integer)
     title = db.Column(db.String(256))
     title_auto = db.Column(db.String(256))
@@ -66,6 +68,12 @@ class Job(db.Model):
             self.video_type = cfg['VIDEOTYPE']
         self.parse_udev()
         self.get_pid()
+
+        if self.disctype == "dvd" and not self.label:
+            logging.info("No disk label Available. Trying lsdvd")
+            command = f"lsdvd {devpath} | grep 'Disc Title' | cut -d ' ' -f 3-"
+            lsdvdlbl = str(subprocess.check_output(command, shell=True).strip(), 'utf-8')
+            self.label = lsdvdlbl
 
     def parse_udev(self):
         """Parse udev for properties of current disc"""
@@ -172,17 +180,18 @@ class Job(db.Model):
 
     def eject(self):
         """Eject disc if it hasn't previously been ejected"""
-        try:
-            if os.system("umount " + self.devpath):
-                logging.debug("we unmounted disc" + self.devpath)
-            if os.system("eject " + self.devpath):
-                logging.debug("we ejected disc" + self.devpath)
-                self.ejected = True
-            else:
-                logging.debug("failed to eject" + self.devpath)
-        except Exception as e:
-            self.ejected = False
-            logging.debug(self.devpath + " couldn't be ejected " + str(e))
+        if not self.ejected:
+            self.ejected = True
+            try:
+                if os.system("umount " + self.devpath):
+                    logging.debug("we unmounted disc" + self.devpath)
+                if os.system("eject " + self.devpath):
+                    logging.debug("we ejected disc" + self.devpath)
+                    self.ejected = True
+                else:
+                    logging.debug("failed to eject" + self.devpath)
+            except Exception as e:
+                logging.debug(self.devpath + " couldn't be ejected " + str(e))
 
 
 class Track(db.Model):

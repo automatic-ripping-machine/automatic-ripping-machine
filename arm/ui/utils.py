@@ -177,17 +177,24 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
     elif title:
         # try:
         title = urllib.parse.quote(title)
-        year = urllib.parse.quote(year)
-        strurl = "http://www.omdbapi.com/?s={1}&y={2}&plot={3}&r=json&apikey={0}".format(omdb_api_key,
-                                                                                         title, year, plot)
+        if year and year is not None:
+            year = urllib.parse.quote(year)
+            strurl = "http://www.omdbapi.com/?s={1}&y={2}&plot={3}&r=json&apikey={0}".format(omdb_api_key,
+                                                                                             title, year, plot)
+        else:
+            strurl = "http://www.omdbapi.com/?s={1}&plot={2}&r=json&apikey={0}".format(omdb_api_key,
+                                                                                       title, plot)
     else:
-        # app.logger.debug("no params")
+        app.logger.debug("no params")
         return None
     # app.logger.debug(f"omdb - {strurl}")
     try:
         title_info_json = urllib.request.urlopen(strurl).read()
         title_info = json.loads(title_info_json.decode())
+        title_info['background_url'] = None
         app.logger.debug(f"omdb - {title_info}")
+        if 'Error' in title_info or title_info['Response'] == "False":
+            return None
     except urllib.error.HTTPError as e:
         app.logger.debug(f"omdb call failed with error - {e}")
         return None
@@ -252,6 +259,7 @@ def abandon_job(job_id):
         db.session.commit()
         app.logger.debug("Job {} was abandoned successfully".format(job_id))
         t = {'success': True, 'job': job_id, 'mode': 'abandon'}
+        job.eject()
     except Exception as e:
         db.session.rollback()
         app.logger.debug("Job {} couldn't be abandoned ".format(job_id))
@@ -342,7 +350,7 @@ def setup_database():
             db.create_all()
             db.session.commit()
             #  push the database version arm is looking for
-            user = AlembicVersion('6dfe7244b18e')
+            user = AlembicVersion('c54d68996895')
             ui_config = UISettings(1, 1, "spacelab", "en", 10, 200)
             db.session.add(ui_config)
             db.session.add(user)
@@ -469,26 +477,12 @@ def get_x_jobs(job_status):
     for j in jobs:
         r[i] = {}
         job_log = cfg['LOGPATH'] + j.logfile
+        process_logfile(job_log, j, r[i])
         try:
             r[i]['config'] = j.config.get_d()
         except AttributeError:
             r[i]['config'] = "config not found"
             app.logger.debug("couldn't get config")
-        # Try to catch if the logfile gets delete before the job is finished
-        try:
-            line = subprocess.check_output(['tail', '-n', '1', job_log])
-        except subprocess.CalledProcessError:
-            app.logger.debug("Error while reading logfile for ETA")
-            line = ""
-        app.logger.debug(line)
-        job_status_bar = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
-                                   r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
-        if job_status_bar:
-            app.logger.debug(job_status_bar.group())
-            r[i]['stage'] = job_status_bar.group(1)
-            r[i]['progress'] = job_status_bar.group(2)
-            r[i]['eta'] = job_status_bar.group(3)
-            r[i]['progress_round'] = int(float(r[i]['progress']))
 
         app.logger.debug("job obj= " + str(j.get_d()))
         x = j.get_d().items()
@@ -501,7 +495,7 @@ def get_x_jobs(job_status):
         app.logger.debug("jobs  - we have " + str(len(r)) + " jobs")
         success = True
 
-    return {"success": success, "mode": job_status, "results": r}
+    return {"success": success, "mode": job_status, "results": r, "arm_name": cfg['ARM_NAME']}
 
 
 def get_tmdb_poster(search_query=None, year=None):
@@ -559,7 +553,7 @@ def get_tmdb_poster(search_query=None, year=None):
                 s['background_url'] = f"{poster_base}{s['backdrop_path']}"
                 s["Plot"] = s['overview']
                 app.logger.debug(s['background_url'])
-                search_query_pretty = re.sub(r"\+", " ", search_query)
+                search_query_pretty = str.replace(r"\+", " ", search_query)
                 app.logger.debug(f"trying {search_query.capitalize()} == {s['Title'].capitalize()}")
                 if search_query_pretty.capitalize() == s['Title'].capitalize():
                     s['Search'] = s
@@ -632,7 +626,7 @@ def tmdb_search(search_query=None, year=None):
                 s['background_url'] = f"{poster_base}{s['backdrop_path']}"
                 s["Plot"] = s['overview']
                 app.logger.debug(s['background_url'])
-                search_query_pretty = re.sub(r"\+", " ", search_query)
+                search_query_pretty = str.replace(r"\+", " ", search_query)
                 app.logger.debug(f"trying {search_query_pretty.capitalize()} == {s['Title'].capitalize()}")
             x['Search'] = p['results']
             return x
@@ -740,7 +734,6 @@ def metadata_selector(func, query="", year="", imdb_id=""):
             return call_omdb_api(str(query), str(year))
         elif func == "get_details":
             s = call_omdb_api(title=str(query), year=str(year), imdb_id=str(imdb_id), plot="full")
-            s['background_url'] = None
             return s
     app.logger.debug(cfg['METADATA_PROVIDER'])
     app.logger.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
@@ -748,7 +741,7 @@ def metadata_selector(func, query="", year="", imdb_id=""):
 
 def fix_permissions(j_id):
     """
-    Json api
+    Json api version
 
     ARM can sometimes have issues with changing the file owner, we can use the fact ARMui is run
     as a service to fix permissions.
@@ -847,3 +840,56 @@ def get_settings(arm_cfg_file):
         app.logger.debug(e)
         cfg = {}
     return cfg
+
+
+def process_logfile(logfile, job, r):
+    """
+    Breaking out the log parser to its own function.
+    This is used to search the log for ETA and current stage
+
+    :param logfile: the logfile for parsing
+    :param job: the Job class
+    :param r: the {} of
+    :return: r should be dict for the json api
+    """
+    # Try to catch if the logfile gets delete before the job is finished
+    try:
+        line = subprocess.check_output(['tail', '-n', '1', logfile])
+    except subprocess.CalledProcessError:
+        app.logger.debug("Error while reading logfile for ETA")
+        line = ""
+    # This correctly get the very last ETA and %
+    job_status = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
+                           r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
+
+    if job_status:
+        app.logger.debug(job_status.group())
+        job.stage = job_status.group(1)
+        job.progress = job_status.group(2)
+        job.eta = job_status.group(3)
+        x = job.progress
+        job.progress_round = int(float(x))
+        r['stage'] = job.stage
+        r['progress'] = job.progress
+        r['eta'] = job.eta
+        r['progress_round'] = int(float(r['progress']))
+
+    # INFO ARM: handbrake.handbrake_all Processing track #1 of 42. Length is 8602 seconds.
+    # Try to catch if the logfile gets delete before the job is finished
+    try:
+        with open(logfile, encoding="utf8", errors='ignore') as f:
+            line = f.readlines()
+    except FileNotFoundError:
+        line = ""
+    job_status_index = re.search(r"Processing track #([0-9]{1,2}) of ([0-9]{1,2})(?!.*Processing track #)", str(line))
+    if job_status_index:
+        try:
+            current_index = int(job_status_index.group(1))
+            job.stage = r['stage'] = f"{job.stage} - {current_index}/{job.no_of_titles}"
+        except Exception as e:
+            app.logger.debug("Problem finding the current track " + str(e))
+            job.stage = f"{job.stage} - %0%/%0%"
+    else:
+        app.logger.debug("Cant find index")
+
+    return r

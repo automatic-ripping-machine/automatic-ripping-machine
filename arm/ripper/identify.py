@@ -16,7 +16,6 @@ from arm.ripper import utils
 from arm.ui import db
 from arm.config.config import cfg
 
-
 # flake8: noqa: W605
 # from arm.ui.utils import call_omdb_api, tmdb_search
 import arm.ui.utils as u
@@ -61,14 +60,14 @@ def identify(job, logfile):
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
-    string = re.sub('\\[(.*?)\\]', '', string)
+    string = re.sub('\\[(.*?)]', '', string)
     string = re.sub('\\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
     string = string.replace('&', 'and')
     string = string.replace("\\", " - ")
     string = string.strip()
-    return re.sub('[^\\w_.() -]', '', string)
+    return re.sub(r'[^\w.() -]', '', string)
 
 
 def identify_bluray(job):
@@ -123,8 +122,7 @@ def identify_dvd(job):
         job.label = "not identified"
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
-        fallback_title = f"{job.label}_{crc64}"
-        dvd_title = fallback_title
+        dvd_title = f"{job.label}_{crc64}"
         logging.info(f"DVD CRC64 hash is: {crc64}")
         job.crc_id = str(crc64)
         urlstring = f"http://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
@@ -133,32 +131,32 @@ def identify_dvd(job):
         x = json.loads(dvd_info_xml)
         logging.debug("dvd xml - " + str(x))
         logging.debug(f"results = {x['results']}")
-        if bool(x['success']):
+        if x['success']:
             logging.info("Found crc64 id from online API")
             logging.info(f"title is {x['results']['0']['title']}")
             args = {
-                    'title': x['results']['0']['title'],
-                    'title_auto': x['results']['0']['title'],
-                    'year': x['results']['0']['year'],
-                    'year_auto': x['results']['0']['year'],
-                    'imdb_id': x['results']['0']['imdb_id'],
-                    'imdb_id_auto': x['results']['0']['imdb_id'],
-                    'video_type': x['results']['0']['video_type'],
-                    'video_type_auto': x['results']['0']['video_type'],
-                    }
+                'title': x['results']['0']['title'],
+                'title_auto': x['results']['0']['title'],
+                'year': x['results']['0']['year'],
+                'year_auto': x['results']['0']['year'],
+                'imdb_id': x['results']['0']['imdb_id'],
+                'imdb_id_auto': x['results']['0']['imdb_id'],
+                'video_type': x['results']['0']['video_type'],
+                'video_type_auto': x['results']['0']['video_type'],
+            }
             utils.database_updater(args, job)
-            # return True
     except Exception as e:
         logging.error("Pydvdid failed with the error: " + str(e))
-        dvd_title = fallback_title = str(job.label)
+        dvd_title = str(job.label)
 
     logging.debug("dvd_title_label= " + str(dvd_title))
     # strip all non-numeric chars and use that for year
-    year = re.sub(r"[^0-9]", "", str(job.year))
+
+    year = re.sub(r"[^0-9]", "", str(job.year)) if job.year else None
     # next line is not really needed, but we dont want to leave an x somewhere
     dvd_title = job.label.replace("16x9", "")
     # Rip out any not alpha chars replace with &nbsp;
-    dvd_title = re.sub(r"[^a-zA-Z ]", " ", dvd_title)
+    dvd_title = re.sub(r"[^a-zA-Z _-]", "", dvd_title)
     logging.debug("dvd_title ^a-z= " + str(dvd_title))
     # rip out any SKU's at the end of the line
     dvd_title = re.sub(r"SKU\b", "", dvd_title)
@@ -166,10 +164,11 @@ def identify_dvd(job):
 
     dvd_info_xml = metadata_selector(job, dvd_title, year)
     logging.debug("DVD_INFO_XML: " + str(dvd_info_xml))
-    # Failsafe so they we always have a title.
+    identify_loop(job, dvd_info_xml, dvd_title, year)
+    # Failsafe so that we always have a title.
     if job.title is None or job.title == "None":
         job.title = str(job.label)
-        job.year = ""
+        job.year = None
     return True
 
 
@@ -198,40 +197,7 @@ def get_video_details(job):
     logging.debug(f"Title: {title} | Year: {year}")
     logging.debug(f"Calling webservice with title: {title} and year: {year}")
 
-    response = metadata_selector(job, title, year)
-
-    # handle failures
-    # this is a little kludgy, but it kind of works...
-    if response is None:
-        if year:
-            # first try subtracting one year.  This accounts for when
-            # the dvd release date is the year following the movie release date
-            logging.debug("Subtracting 1 year...")
-            response = metadata_selector(job, title, str(int(year) - 1))
-            logging.debug(f"response: {response}")
-
-        # try submitting without the year
-        if response is None:
-            logging.debug("Removing year...")
-            response = metadata_selector(job, title)
-            logging.debug(f"response: {response}")
-
-        if response is None:
-            while response is None and title.find("-") > 0:
-                title = title.rsplit('-', 1)[0]
-                logging.debug("Trying title: " + title)
-                response = metadata_selector(job, title, year)
-                logging.debug(f"response: {response}")
-
-            # if still fail, then try slicing off the last word in a loop
-            while response is None and title.count('+') > 0:
-                title = title.rsplit('+', 1)[0]
-                logging.debug("Trying title: " + title)
-                response = metadata_selector(job, title, year)
-                logging.debug(f"response: {response}")
-                if response is None:
-                    logging.debug("Removing year...")
-                    response = metadata_selector(job, title)
+    identify_loop(job, None, title, year)
 
 
 def update_job(job, s):
@@ -280,8 +246,55 @@ def metadata_selector(job, title=None, year=None):
     elif cfg['METADATA_PROVIDER'].lower() == "omdb":
         logging.debug("provider omdb")
         x = u.call_omdb_api(str(title), str(year))
-        if x is not None and x['Response']:
+        if x is not None:
             update_job(job, x)
         return x
     logging.debug(cfg['METADATA_PROVIDER'])
     logging.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
+
+
+def identify_loop(job, response, title, year):
+    # handle failures
+    # this is a little kludgy, but it kind of works...
+    logging.debug(f"Response = {response}")
+    if response is None:
+        # try with year first
+        response = try_with_year(job, response, title, year)
+        # try submitting without the year
+        response = try_without_year(job, response, title)
+
+        if response is None:
+            while response is None and title.find("-") > 0:
+                title = title.rsplit('-', 1)[0]
+                logging.debug("Trying title: " + title)
+                response = metadata_selector(job, title, year)
+                logging.debug(f"response: {response}")
+
+            # if still fail, then try slicing off the last word in a loop
+            while response is None and title.count('+') > 0:
+                title = title.rsplit('+', 1)[0]
+                logging.debug("Trying title: " + title)
+                response = metadata_selector(job, title, year)
+                logging.debug(f"response: {response}")
+                if response is None:
+                    # Still failing - try the words we have without year
+                    logging.debug("Removing year...")
+                    response = metadata_selector(job, title)
+
+
+def try_without_year(job, response, title):
+    if response is None:
+        logging.debug("Removing year...")
+        response = metadata_selector(job, title)
+        logging.debug(f"response: {response}")
+    return response
+
+
+def try_with_year(job, response, title, year):
+    if year:
+        # first try subtracting one year.  This accounts for when
+        # the dvd release date is the year following the movie release date
+        logging.debug("Subtracting 1 year...")
+        response = metadata_selector(job, title, str(int(year) - 1))
+        logging.debug(f"response: {response}")
+    return response

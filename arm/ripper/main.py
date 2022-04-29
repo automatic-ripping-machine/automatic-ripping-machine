@@ -34,13 +34,12 @@ def entry():
     return parser.parse_args()
 
 
-def log_udev_params():
+def log_udev_params(dev_path):
     """log all udev parameters"""
 
     logging.debug("**** Logging udev attributes ****")
-    # logging.info("**** Start udev attributes ****")
     context = pyudev.Context()
-    device = pyudev.Devices.from_device_file(context, '/dev/sr0')
+    device = pyudev.Devices.from_device_file(context, dev_path)
     for key, value in device.items():
         logging.debug(key + ":" + value)
     logging.debug("**** End udev attributes ****")
@@ -72,6 +71,10 @@ def log_arm_params(job):
 
 
 def check_fstab():
+    """
+    Check the fstab entries to see if ARM has been set up correctly
+    :return: None
+    """
     logging.info("Checking for fstab entry.")
     with open('/etc/fstab', 'r') as f:
         lines = f.readlines()
@@ -85,7 +88,13 @@ def check_fstab():
 
 def skip_transcode(job, hb_out_path, hb_in_path, mkv_out_path, type_sub_folder):
     """
-    For when skipping transcode in enabled
+    Section to follow when Skip transcoding is wanted
+    :param job:
+    :param hb_out_path:
+    :param hb_in_path:
+    :param mkv_out_path:
+    :param type_sub_folder:
+    :return:
     """
     logging.info("SKIP_TRANSCODE is true.  Moving raw mkv files.")
     logging.info("NOTE: Identified main feature may not be actual main feature")
@@ -168,6 +177,7 @@ def main(logfile, job):
     identify.identify(job, logfile)
     # Check db for entries matching the crc and successful
     have_dupes, crc_jobs = utils.job_dupe_check(job)
+    logging.debug(f"Value of have_dupes: {have_dupes}")
 
     utils.notify_entry(job)
 
@@ -218,6 +228,8 @@ def main(logfile, job):
             logging.info(f"Handbrake Output directory \"{hb_out_path}\" already exists.")
             # Only begin ripping if we are allowed to make duplicates
             # Or the successful rip of the disc is not found in our database
+            logging.debug(f"Value of ALLOW_DUPLICATES: {0}".format(cfg["ALLOW_DUPLICATES"]))
+            logging.debug(f"Value of have_dupes: {have_dupes}")
             if cfg["ALLOW_DUPLICATES"] or not have_dupes:
                 ts = round(time.time() * 100)
                 hb_out_path = hb_out_path + "_" + str(ts)
@@ -233,13 +245,25 @@ def main(logfile, job):
                     db.session.commit()
                     sys.exit()
             else:
-                # We arent allowed to rip dupes, notify and exit
+                # We aren't allowed to rip dupes, notify and exit
                 logging.info("Duplicate rips are disabled.")
                 utils.notify(job, NOTIFY_TITLE, "ARM Detected a duplicate disc. For " + str(
                     job.title) + ".  Duplicate rips are disabled. You can re-enable them from your config file. ")
+                job.eject()
                 job.status = "fail"
                 db.session.commit()
                 sys.exit()
+
+        # Use FFMPeg to convert Large Poster if enabled in config
+        if job.disctype == "dvd" and cfg["RIP_POSTER"]:
+            os.system("mount " + job.devpath)
+            if os.path.isfile(job.mountpoint+"/JACKET_P/J00___5L.MP2"):
+                logging.info("Converting NTSC Poster Image")
+                os.system('ffmpeg -i "'+job.mountpoint+'/JACKET_P/J00___5L.MP2" "'+hb_out_path+'/poster.png"')
+            elif os.path.isfile(job.mountpoint+"/JACKET_P/J00___6L.MP2"):
+                logging.info("Converting PAL Poster Image")
+                os.system('ffmpeg -i "'+job.mountpoint+'/JACKET_P/J00___6L.MP2" "'+hb_out_path+'/poster.png"')
+            os.system("umount " + job.devpath)
 
         logging.info(f"Processing files to: {hb_out_path}")
         mkvoutpath = None
@@ -259,6 +283,7 @@ def main(logfile, job):
 
             if mkvoutpath is None:
                 logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
+                job.errors += ",MakeMKV did not complete successfully"
                 job.status = "fail"
                 db.session.commit()
                 sys.exit()
@@ -295,23 +320,16 @@ def main(logfile, job):
             final_directory = os.path.join(job.config.COMPLETED_PATH, str(type_sub_folder), str(job.title))
 
         # move to media directory
-        tracks = job.tracks.filter_by(ripped=True)
-        main_feature = job.tracks.filter_by(main_feature=True).first()
+        tracks = job.tracks.filter_by(ripped=True)  # .order_by(job.tracks.length.desc())
 
-        def main_feature_test(m, t):
-            if not t.main_feature:
-                logging.debug("track main is false - checking size")
-                if m.length == t.length:
-                    logging.debug("track is same size as main feature")
-                    return True
-                else:
-                    return False
-            else:
-                return t.main_feature
         if job.video_type == "movie":
+            logging.debug(f"Total track count for this job was: {tracks.count()}")
             for track in tracks:
                 logging.info(f"Moving Movie {track.filename} to {final_directory}")
-                utils.move_files(hb_out_path, track.filename, job, main_feature_test(main_feature, track))
+                if tracks.count() == 1:
+                    utils.move_files(hb_out_path, track.filename, job, True)
+                else:
+                    utils.move_files(hb_out_path, track.filename, job, track.main_feature)
         # move to media directory
         elif job.video_type == "series":
             for track in tracks:
@@ -319,18 +337,34 @@ def main(logfile, job):
                 utils.move_files(hb_out_path, track.filename, job, False)
         else:
             for track in tracks:
-                logging.info(f"Type is 'unknown' or we dont have a nice title - "
+                logging.info(f"Type is 'unknown' or we don't have a nice title - "
                              f"Moving {track.filename} to {final_directory}")
-                utils.move_files(hb_out_path, track.filename, job, track.main_feature)
-            utils.scan_emby(job)
+                if tracks.count() == 1:
+                    utils.move_files(hb_out_path, track.filename, job, True)
+                else:
+                    utils.move_files(hb_out_path, track.filename, job, track.main_feature)
 
+        # move movie poster
+        src_poster = os.path.join(hb_out_path, "poster.png")
+        dst_poster = os.path.join(final_directory, "poster.png")
+        if os.path.isfile(src_poster):
+            if not os.path.isfile(dst_poster):
+                try:
+                    shutil.move(src_poster, dst_poster)
+                except Exception as e:
+                    logging.error(f"Unable to move poster.png to '{final_directory}' - Error: {e}")
+            else:
+                logging.info("File: poster.png already exists.  Not moving.")
+
+        utils.scan_emby(job)
         utils.set_permissions(job, final_directory)
-        # Clean up bluray backup
-        # if job.disctype == "bluray" and cfg["DELRAWFILES"]:
+
+        # Clean up Blu-ray backup
         if cfg["DELRAWFILES"]:
             raw_list = [mkvoutpath, hb_out_path, hb_in_path]
             for raw_folder in raw_list:
                 try:
+                    logging.info(f"{raw_folder} != {final_directory}")
                     logging.info(f"Removing raw path - {raw_folder}")
                     if raw_folder != final_directory:
                         shutil.rmtree(raw_folder)
@@ -357,7 +391,7 @@ def main(logfile, job):
         if utils.rip_music(job, logfile):
             utils.notify(job, NOTIFY_TITLE, f"Music CD: {job.label} {PROCESS_COMPLETE}")
             utils.scan_emby(job)
-            # This shouldnt be needed. but to be safe
+            # This shouldn't be needed. but to be safe
             job.status = "success"
             db.session.commit()
         else:
@@ -434,7 +468,7 @@ if __name__ == "__main__":
     logger.clean_up_logs(cfg["LOGPATH"], cfg["LOGLIFE"])
     logging.info(f"Job: {job.label}")
     utils.clean_old_jobs()
-    log_udev_params()
+    log_udev_params(devpath)
 
     try:
         main(logfile, job)
