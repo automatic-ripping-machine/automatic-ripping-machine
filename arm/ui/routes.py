@@ -668,7 +668,7 @@ def import_movies():
 
     for movie in movie_dirs:
         # will match 'Movie (0000)'
-        regex = r"([\w\ \'\.\-\&\,]*?) \(([0-9]{2,4})\)"
+        regex = r"([\w\ \'\.\-\&\,]*?) \((\d{2,4})\)"
         # get our match
         matched = re.match(regex, movie)
         # if we can match the standard arm output format "Movie (year)"

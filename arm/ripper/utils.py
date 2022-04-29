@@ -286,7 +286,7 @@ def get_cdrom_status(devpath):
         disc_check = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
     except OSError:
         # Sometimes ARM will log errors opening hard drives. this check should stop it
-        if not re.search(r'hd[a-j]|sd[a-j]|loop[0-9]', devpath):
+        if not re.search(r'hd[a-j]|sd[a-j]|loop\d', devpath):
             logging.info(f"Failed to open device {devpath} to check status.")
         sys.exit(2)
     result = fcntl.ioctl(disc_check, 0x5326, 0)
