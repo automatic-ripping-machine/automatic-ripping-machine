@@ -1,64 +1,103 @@
 {% extends "base.html" %}
 {% block title %}Parameter Changer{% endblock %}
-
 {% block nav %}{{ super() }}{% endblock %}
-
 {% block content %}
-<div class="container">
-    <div class="row h-100 mx-auto align-items-center">
-        <div class="col-sm-4 mx-auto"></div>
-        <div class="col-sm-4 mx-auto">
-            <form action="" method="post" novalidate>
-                {{ form.hidden_tag() }}
-                <p>
-                    <strong></strong>
-                    <strong>{{ form.RIPMETHOD.label }}</strong>
-                    {{ form.RIPMETHOD }}
-                    {% for error in form.RIPMETHOD.errors %}
-                    <span style="color: red;">[{{ error }}]</span>
-                    {% endfor %}
-                </p>
+<style type="text/css">
+div input {
+    display: block;
+    width: 100%;height: initial;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    -webkit-border-top-right-radius: 3px;
+    -webkit-border-bottom-right-radius: 3px;
+    -moz-border-radius-topright: 3px;
+    -moz-border-radius-bottomright: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
 
+div.input-group input, div.input-group select{
+    position: relative;
+    -ms-flex: 1 1 auto;
+    flex: 1 1 auto;
+    width: 1%;
+    min-width: 0;
+    margin-bottom: 0;
+    display: block;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+</style>
+    <div class="container justify-content-center">
+    <div class="row justify-content-center" style="flex-wrap: nowrap">
+        <div class="col-7">
+		<form action="" method="post" novalidate>
+			{{ form.hidden_tag() }}
+			<div class="input-group mb-3 flex-nowrap">
+				<div class="input-group-prepend">
+					<span class="input-group-text">{{ form.RIPMETHOD.label }}</span>
+				</div>
+				{{ form.RIPMETHOD }}
+			</div>
 
+            <div class="input-group mb-3 flex-nowrap">
+				<div class="input-group-prepend">
+					<span class="input-group-text">{{ form.DISCTYPE.label }}</span>
+				</div>
+				{{ form.DISCTYPE }}
+			</div>
 
-                <p>
-                    <strong></strong>
-                    <strong>{{ form.DISCTYPE.label }}</strong>
-                    {{ form.DISCTYPE }}
-                    {% for error in form.DISCTYPE.errors %}
-                    <span style="color: red;">[{{ error }}]</span>
-                    {% endfor %}
-                </p>
-                <strong>{{ form.MAINFEATURE.label }}</strong>
+            <div class="input-group mb-3 flex-nowrap">
+				<div class="input-group-prepend">
+					<span class="input-group-text">{{ form.MAINFEATURE.label }}</span>
+				</div>
                 {{ form.MAINFEATURE }}
-                {% for error in form.MAINFEATURE.errors %}
-                <span style="color: red;">[{{ error }}]</span>
-                {% endfor %}
-                </p>
-                <p>
-                    <strong>{{ form.MINLENGTH.label }}</strong>
-                    {{ form.MINLENGTH(size=5) }}
-                    {% for error in form.MINLENGTH.errors %}
-                    <span style="color: red;">[{{ error }}]</span>
-                    {% endfor %}
-                </p>
-                <p>
-                    <strong>{{ form.MAXLENGTH.label }}</strong>
-                    {{ form.MAXLENGTH(size=5) }}
-                    {% for error in form.MAXLENGTH.errors %}
-                    <span style="color: red;">[{{ error }}]</span>
-                    {% endfor %}
-                </p>
-                <p>{{ form.submit() }}</p>
-                {% if form.errors %}
-                <span style="color: red;">{{ form.errors }}</span>
-                {% endif %}
-            </form>
-        </div>
-        <div class="col-sm-4 mx-auto"></div>
-    </div>
+			</div>
+
+            <div class="input-group mb-3 flex-nowrap">
+				<div class="input-group-prepend">
+					<span class="input-group-text">{{ form.MINLENGTH.label }}</span>
+				</div>
+				{{ form.MINLENGTH }}
+                <div class="invalid-tooltip" id="MINLENGTH_INVALID">
+					errors
+				</div>
+			</div>
+
+			<div class="input-group mb-3 flex-nowrap">
+				<div class="input-group-prepend">
+					<span class="input-group-text">{{  form.MAXLENGTH.label }} </span>
+				</div>
+                {{ form.MAXLENGTH }}
+                <div id="MAXLENGTH_INVALID" class="invalid-tooltip">
+					Title can't be blank
+				</div>
+            </div>
+			<button class="btn btn-info btn-lg btn-block" type="submit">Submit</button>
+		</form>
+		</div>
+	</div>
+    {% for field, errors in form.errors.items() %}
+        <script>
+            $("[name='{{field}}']").addClass("is-invalid");
+            $("div#{{ field }}_INVALID").html("{{ errors }}");
+        </script>
+    {% endfor %}
 </div>
 
-
-
+{{ conf }}
 {% endblock %}
