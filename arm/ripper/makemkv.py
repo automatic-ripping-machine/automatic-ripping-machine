@@ -8,7 +8,6 @@ import logging
 import subprocess
 import shlex
 
-from arm.config.config import cfg
 from arm.ripper import utils  # noqa: E402
 from arm.ui import db  # noqa: F401, E402
 
@@ -37,7 +36,7 @@ def makemkv(logfile, job):
 
     # confirm MKV is working, beta key hasn't expired
     prep_mkv(job)
-    logging.info(f"Starting MakeMKV rip. Method is {cfg['RIPMETHOD']}")
+    logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
     cmd = f"makemkvcon -r info disc:9999  |grep {job.devpath} |grep -oP '(?<=:).*?(?=,)'"
@@ -51,23 +50,23 @@ def makemkv(logfile, job):
         raise MakeMkvRuntimeError(mdisc_error)
 
     # get filesystem in order
-    rawpath = setup_rawpath(job, os.path.join(str(cfg["RAW_PATH"]), str(job.title)))
-
+    rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
+    logging.info(f"Processing files to: {rawpath}")
     # Rip bluray
-    if cfg["RIPMETHOD"] == "backup" and job.disctype == "bluray":
+    if job.config.RIPMETHOD == "backup" and job.disctype == "bluray":
         # backup method
-        cmd = f'makemkvcon backup --minlength={cfg["MINLENGTH"]} --decrypt {cfg["MKV_ARGS"]} ' \
+        cmd = f'makemkvcon backup --minlength={job.config.MINLENGTH} --decrypt {job.config.MKV_ARGS} ' \
               f'-r disc:{mdisc.strip()} {shlex.quote(rawpath)}>> {logfile}'
         logging.info("Backup up disc")
         run_makemkv(cmd)
     # Rip DVD
-    elif cfg["RIPMETHOD"] == "mkv" or job.disctype == "dvd":
+    elif job.config.RIPMETHOD == "mkv" or job.disctype == "dvd":
         get_track_info(mdisc, job)
 
         # if no maximum length, process the whole disc in one command
-        if int(cfg["MAXLENGTH"]) > 99998:
-            cmd = f'makemkvcon mkv {cfg["MKV_ARGS"]} -r --progress=-stdout --messages=-stdout ' \
-                  f'dev:{job.devpath} all {shlex.quote(rawpath)} --minlength={cfg["MINLENGTH"]}>> {logfile}'
+        if int(job.config.MAXLENGTH) > 99998:
+            cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r --progress=-stdout --messages=-stdout ' \
+                  f'dev:{job.devpath} all {shlex.quote(rawpath)} --minlength={job.config.MINLENGTH}>> {logfile}'
             run_makemkv(cmd)
         else:
             process_single_tracks(job, logfile, rawpath)
@@ -89,14 +88,14 @@ def process_single_tracks(job, logfile, rawpath):
     """
     # process one track at a time based on track length
     for track in job.tracks:
-        if track.length < int(cfg["MINLENGTH"]):
+        if track.length < int(job.config.MINLENGTH):
             # too short
             logging.info(f"Track #{track.track_number} of {job.no_of_titles}. Length ({track.length}) "
-                         f"is less than minimum length ({cfg['MINLENGTH']}).  Skipping")
-        elif track.length > int(cfg["MAXLENGTH"]):
+                         f"is less than minimum length ({job.config.MINLENGTH}).  Skipping")
+        elif track.length > int(job.config.MAXLENGTH):
             # too long
             logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
-                         f"Length ({track.length}) is greater than maximum length ({cfg['MAXLENGTH']}).  "
+                         f"Length ({track.length}) is greater than maximum length ({job.config.MAXLENGTH}).  "
                          "Skipping")
         else:
             # just right
@@ -105,9 +104,9 @@ def process_single_tracks(job, logfile, rawpath):
             filepathname = os.path.join(rawpath, track.filename)
             logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
 
-            cmd = f'makemkvcon mkv {cfg["MKV_ARGS"]} -r --progress=-stdout --messages=-stdout' \
+            cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r --progress=-stdout --messages=-stdout' \
                   f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)} ' \
-                  f'--minlength={cfg["MINLENGTH"]}>> {logfile}'
+                  f'--minlength={job.config.MINLENGTH}>> {logfile}'
             # Possibly update db to say track was ripped
             run_makemkv(cmd)
 
@@ -130,7 +129,7 @@ def setup_rawpath(job, raw_path):
     else:
         logging.info(f"{raw_path} exists.  Adding timestamp.")
         random_time = job.stage
-        raw_path = os.path.join(str(cfg["RAW_PATH"]), f"{job.title}_{random_time}")
+        raw_path = os.path.join(str(job.config.RAW_PATH), f"{job.title}_{random_time}")
         logging.info(f"raw_path is {raw_path}")
         try:
             os.makedirs(raw_path)
@@ -202,7 +201,7 @@ def get_track_info(mdisc, job):
 
     logging.info("Using MakeMKV to get information on all the tracks on the disc. This will take a few minutes...")
 
-    cmd = f'makemkvcon -r --progress=-stdout --messages=-stdout --minlength={cfg["MINLENGTH"]} ' \
+    cmd = f'makemkvcon -r --progress=-stdout --messages=-stdout --minlength={job.config.MINLENGTH} ' \
           f'--cache=1 info disc:{mdisc}'
     logging.debug(f"Sending command: {cmd}")
     try:

@@ -112,7 +112,6 @@ def identify_dvd(job):
         dvd_title = f"{job.label}_{crc64}"
         logging.info(f"DVD CRC64 hash is: {crc64}")
         job.crc_id = str(crc64)
-        # TODO there was a bug with this db - we need to fix it by looking up the imdb of the result
         urlstring = f"https://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
         logging.debug(urlstring)
         dvd_info_xml = urllib.request.urlopen(urlstring).read()

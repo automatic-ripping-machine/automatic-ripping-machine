@@ -149,8 +149,9 @@ function switchFixPerms() {
  * In the event of a failed request warn the user and then hide the
  * messages after a timeout
  */
-function processFailedReturn() {
-    $("#message3").removeClass("d-none");
+function processFailedReturn(data) {
+    $("#errorMessage").remove();
+    $("#message3").removeClass("d-none").append(`<div id="errorMessage"><hr>Error: ${data.Error}</div>`);
     $("#message1").addClass("d-none");
     $("#message2").addClass("d-none");
     $(MODEL_ID).modal("toggle");
@@ -189,7 +190,7 @@ function proccessReturn(data) {
                 break;
         }
     } else {
-        processFailedReturn();
+        processFailedReturn(data);
     }
 }
 

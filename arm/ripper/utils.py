@@ -74,9 +74,9 @@ def notify_entry(job):
     if job.disctype in ["dvd", "bluray"]:
         # Send the notifications
         notify(job, NOTIFY_TITLE,
-               f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {cfg['MAINFEATURE']}"
+               f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {job.config.MAINFEATURE}"
                f".  Edit entry here: http://{check_ip()}:"
-               f"{cfg['WEBSERVER_PORT']}/jobdetail?job_id={job.job_id}")
+               f"{job.config.WEBSERVER_PORT}/jobdetail?job_id={job.job_id}")
     elif job.disctype == "music":
         notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks")
     elif job.disctype == "data":
@@ -90,7 +90,7 @@ def notify_entry(job):
 
 def sleep_check_process(process_str, transcode_limit):
     """
-    New function to check for max_transcode from cfg file and force obey limits\n
+    New function to check for max_transcode from job.config and force obey limits\n
     :param str process_str: The process string from arm.yaml
     :param int transcode_limit: The user defined limit for maximum transcodes
     :return bool: when we have space in the transcode queue
@@ -117,7 +117,7 @@ def sleep_check_process(process_str, transcode_limit):
 
 def convert_job_type(video_type):
     """
-    Converts the job_type to the correct folder
+    Converts the job_type to the correct sub-folder
     :param video_type: job.video_type
     :return: string of the correct folder
     """
@@ -162,12 +162,12 @@ def move_files(base_path, filename, job, is_main_feature=False):
         return None
     movie_path = job.path
     logging.info(f"Moving {job.video_type} {filename} to {movie_path}")
-    # For series there are no extras so always use the base path
-    extras_path = os.path.join(movie_path, cfg["EXTRAS_SUB"]) if job.video_type != "series" else movie_path
+    # For series there are no extras so always use the base path - not needed, but extra safe
+    extras_path = os.path.join(movie_path, job.config.EXTRAS_SUB) if job.video_type != "series" else movie_path
     make_dir(movie_path)
 
     if is_main_feature:
-        movie_file = os.path.join(movie_path, video_title + "." + cfg["DEST_EXT"])
+        movie_file = os.path.join(movie_path, video_title + "." + job.config.DEST_EXT)
         logging.info(f"Track is the Main Title.  Moving '{os.path.join(base_path, filename)}' to {movie_file}")
         move_files_main(os.path.join(base_path, filename), movie_file, movie_path)
     else:
@@ -197,7 +197,9 @@ def move_files_main(old_file, new_file, base_path):
 
 
 def move_movie_poster(final_directory, hb_out_path):
-    """move movie poster"""
+    """move movie poster\n
+    ---------\n
+    DEPRECIATED - Arm already builds the final path so moving is no longer needed"""
     src_poster = os.path.join(hb_out_path, "poster.png")
     dst_poster = os.path.join(final_directory, "poster.png")
     if os.path.isfile(src_poster):
@@ -284,7 +286,7 @@ def get_cdrom_status(devpath):
         disc_check = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
     except OSError:
         # Sometimes ARM will log errors opening hard drives. this check should stop it
-        if not re.search(r'hd[a-j]|sd[a-j]|loop[0-9]', devpath):
+        if not re.search(r'hd[a-j]|sd[a-j]|loop\d', devpath):
             logging.info(f"Failed to open device {devpath} to check status.")
         sys.exit(2)
     result = fcntl.ioctl(disc_check, 0x5326, 0)
@@ -337,9 +339,9 @@ def rip_music(job, logfile):
         logging.info("Disc identified as music")
         # If user has set a cfg file with ARM use it
         if os.path.isfile(abcfile):
-            cmd = f'abcde -d "{job.devpath}" -c {abcfile} >> "{os.path.join(cfg["LOGPATH"], logfile)}" 2>&1'
+            cmd = f'abcde -d "{job.devpath}" -c {abcfile} >> "{os.path.join(job.config.LOGPATH, logfile)}" 2>&1'
         else:
-            cmd = f'abcde -d "{job.devpath}" >> "{os.path.join(cfg["LOGPATH"], logfile)}" 2>&1'
+            cmd = f'abcde -d "{job.devpath}" >> "{os.path.join(job.config.LOGPATH, logfile)}" 2>&1'
 
         logging.debug(f"Sending command: {cmd}")
 
@@ -366,13 +368,13 @@ def rip_data(job):
     if job.label == "" or job.label is None:
         job.label = "data-disc"
     # get filesystem in order
-    raw_path = os.path.join(cfg["RAW_PATH"], str(job.label))
-    final_path = os.path.join(cfg["COMPLETED_PATH"], convert_job_type(job.video_type))
+    raw_path = os.path.join(job.config.RAW_PATH, str(job.label))
+    final_path = os.path.join(job.config.COMPLETED_PATH, convert_job_type(job.video_type))
     final_file_name = str(job.label)
 
     if (make_dir(raw_path)) is False:
         random_time = str(round(time.time() * 100))
-        raw_path = os.path.join(cfg["RAW_PATH"], str(job.label) + "_" + random_time)
+        raw_path = os.path.join(job.config.RAW_PATH, str(job.label) + "_" + random_time)
         final_file_name = f"{job.label}_{random_time}"
         if (make_dir(raw_path)) is False:
             logging.info(f"Could not create data directory: {raw_path}  Exiting ARM. ")
@@ -386,7 +388,7 @@ def rip_data(job):
     logging.info(f"Ripping data disc to: {incomplete_filename}")
     # Added from pull 366
     cmd = f'dd if="{job.devpath}" of="{incomplete_filename}" {cfg["DATA_RIP_PARAMETERS"]} 2>> ' \
-          f'{os.path.join(cfg["LOGPATH"], job.logfile)}'
+          f'{os.path.join(job.config.LOGPATH, job.logfile)}'
     logging.debug(f"Sending command: {cmd}")
     try:
         subprocess.check_output(cmd, shell=True).decode("utf-8")
@@ -413,7 +415,7 @@ def set_permissions(directory_to_traverse):
     """
 
     :param directory_to_traverse: directory to fix permissions
-    :return: Bool if fails
+    :return: False if fails
     """
     if not cfg['SET_MEDIA_PERMISSIONS']:
         return False
@@ -439,8 +441,12 @@ def set_permissions(directory_to_traverse):
 
 def check_db_version(install_path, db_file):
     """
-    Check if db exists and is up to date.
-    If it doesn't exist create it.  If it's out of date update it.
+    Check if db exists and is up-to-date.\n
+    If it doesn't exist create it.\n
+    If it's out of date update it.\n
+    :param install_path: The installation path of arm - default path is /opt/arm
+    :param db_file: full path to the db file for arm
+    :return: None
     """
     from alembic.script import ScriptDirectory
     from alembic.config import Config
@@ -506,6 +512,10 @@ def check_db_version(install_path, db_file):
 def try_add_default_user():
     """
     Added to fix missmatch from the armui and armripper\n
+    This will try to add a default user for the armui
+    with the details\n
+    Username: admin\n
+    Password: password\n
     :return: None
     """
     try:
@@ -552,13 +562,13 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         basename=job.title,
         filename=filename
     )
-    job_track.ripped = (seconds > int(cfg['MINLENGTH']))
+    job_track.ripped = (seconds > int(job.config.MINLENGTH))
     database_adder(job_track)
 
 
 def arm_setup():
     """
-    Setup arm - make sure everything is fully setup and ready and there are no errors.
+    Setup arm - Create all the directories we need for arm to run
 
     :arguments: None
     :return: None
@@ -610,7 +620,7 @@ def database_updater(args, job, wait_time=90):
 
 def database_adder(obj_class):
     """
-    Used to stop database locked error
+    Used to stop database locked error\n
     :param obj_class: Job/Config/Track/ etc
     :return: True if success
     """
@@ -633,7 +643,7 @@ def database_adder(obj_class):
 
 def clean_old_jobs():
     """
-    Check for running jobs, update failed jobs that are no longer running\n
+    Check for running jobs - Update failed jobs that are no longer running\n
     :return: None
     """
     active_jobs = db.session.query(models.Job).filter(models.Job.status.notin_(['fail', 'success'])).all()
@@ -659,7 +669,7 @@ def job_dupe_check(job):
     :return: True/False, dict/None
     """
     if job.crc_id is None:
-        return False, None
+        return False
     logging.debug(f"trying to find jobs with crc64={job.crc_id}")
     previous_rips = models.Job.query.filter_by(crc_id=job.crc_id, status="success", hasnicetitle=True)
     results = {}
@@ -685,10 +695,10 @@ def job_dupe_check(job):
             "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
             "video_type": video_type}
         database_updater(active_rip, job)
-        return True, results
+        return True
 
     logging.debug("We have no previous rips/jobs matching this crc64")
-    return False, None
+    return False
 
 
 def check_ip():
@@ -729,8 +739,9 @@ def clean_for_filename(string):
 
 def duplicate_run_check(dev_path):
     """
-    This will kill any runs that have been triggered twice on the same device
-
+    This will kill any runs that have been triggered twice on the same device\n
+    Some drives will trigger the udev twice causing 1 disc insert to add 2 jobs\n
+    this stops that issue
     :return: None
     """
     running_jobs = db.session.query(models.Job).filter(
@@ -752,16 +763,14 @@ def save_disc_poster(final_directory, job):
     :return: None
     """
     if job.disctype == "dvd" and cfg["RIP_POSTER"]:
-        os.system("mount " + job.devpath)
+        os.system(f"mount {job.devpath}")
         if os.path.isfile(job.mountpoint + "/JACKET_P/J00___5L.MP2"):
             logging.info("Converting NTSC Poster Image")
-            os.system('ffmpeg -i "' + job.mountpoint + '/JACKET_P/J00___5L.MP2" "'
-                      + final_directory + '/poster.png"')
+            os.system(f'ffmpeg -i "{job.mountpoint}/JACKET_P/J00___5L.MP2" "{final_directory}/poster.png"')
         elif os.path.isfile(job.mountpoint + "/JACKET_P/J00___6L.MP2"):
             logging.info("Converting PAL Poster Image")
-            os.system('ffmpeg -i "' + job.mountpoint + '/JACKET_P/J00___6L.MP2" "'
-                      + final_directory + '/poster.png"')
-        os.system("umount " + job.devpath)
+            os.system(f'ffmpeg -i "{job.mountpoint}/JACKET_P/J00___6L.MP2" "{final_directory}/poster.png"')
+        os.system(f"umount {job.devpath}")
 
 
 def check_for_dupe_folder(have_dupes, hb_out_path, job):
@@ -813,11 +822,11 @@ def check_for_wait(job, config):
     :return: None
     """
     #  If we have waiting for user input enabled
-    if cfg["MANUAL_WAIT"]:
-        logging.info(f"Waiting {cfg['MANUAL_WAIT_TIME']} seconds for manual override.")
+    if job.config.MANUAL_WAIT:
+        logging.info(f"Waiting {job.config.MANUAL_WAIT_TIME} seconds for manual override.")
         database_updater({'status': "waiting"}, job)
         sleep_time = 0
-        while sleep_time < cfg["MANUAL_WAIT_TIME"]:
+        while sleep_time < job.config.MANUAL_WAIT_TIME:
             time.sleep(5)
             sleep_time += 5
             db.session.refresh(job)
@@ -843,7 +852,7 @@ def get_git_commit():
             shell=True
         ).decode("utf-8")
     except subprocess.CalledProcessError as _error:
-        logging.debug(f"Error getting git version - {_error}")
+        logging.error(f"Error getting git version - {_error}")
     git_version = re.search(r"^\* (\S+)\ncommit ([a-z\d]{5,7})", str(git_output))
     if git_version:
         logging.info(f"Branch: {git_version.group(1)} - Commit: {git_version.group(2)}")

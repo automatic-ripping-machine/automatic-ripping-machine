@@ -8,6 +8,7 @@ import re
 import html
 from pathlib import Path
 import psutil
+import datetime
 from arm.config.config import cfg
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track
@@ -160,15 +161,29 @@ def process_audio_logfile(logfile, job, job_results):
     # \((track[^[]+)(?!track)
     line = read_all_log_lines(os.path.join(cfg["LOGPATH"], logfile))
     for one_line in line:
-        job_stage_index = re.search(r"\((track[^[]+)", str(one_line))
+        job_stage_index = re.search(r"\(track([^[]+)", str(one_line))
         if job_stage_index:
             try:
-                current_index = f"Ripping tracks: {job_stage_index.group(1).strip().capitalize()}/{job.no_of_titles}"
+                current_index = f"Track: {job_stage_index.group(1)}/{job.no_of_titles}"
                 job.stage = job_results['stage'] = current_index
+                job.eta = calc_process_time(job.start_time, job_stage_index.group(1), job.no_of_titles)
+                job.progress = round(percentage(job_stage_index.group(1), job.no_of_titles + 1))
+                job.progress_round = round(job.progress)
             except Exception as error:
                 job.stage = f"Unknown -  {error}"
-    job.eta = "Unknown"
+                job.eta = "Unknown"
+                job.progress = job.progress_round = 0
     return job_results
+
+
+def calc_process_time(starttime, cur_iter, max_iter):
+    """Modified from stackoverflow
+    Get a rough estimate of ETA, return formatted String"""
+    time_elapsed = datetime.datetime.now() - starttime
+    time_estimated = (time_elapsed.seconds / int(cur_iter)) * int(max_iter)
+    finish_time = (starttime + datetime.timedelta(seconds=int(time_estimated)))
+    test = finish_time - datetime.datetime.now()
+    return f"{str(test).split('.', maxsplit=1)[0]} - @{finish_time.strftime('%H:%M:%S')}"
 
 
 def read_log_line(log_file):

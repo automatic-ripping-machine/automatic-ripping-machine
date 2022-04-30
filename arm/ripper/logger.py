@@ -66,7 +66,8 @@ def clean_loggers():
 
 def clean_up_logs(logpath, loglife):
     """
-    Delete all log files older than x days\n
+    Delete all log files older than {loglife} days\n
+    if {loglife} is 0 don't delete anything\n
     :param logpath: path of log files\n
     :param loglife: days to let logs live\n
     :return:

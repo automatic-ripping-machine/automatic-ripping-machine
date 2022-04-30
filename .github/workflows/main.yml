@@ -2,7 +2,7 @@
 
 name: "Quality Checks"
 
-# Controls when the action will run. 
+# Controls when the action will run.
 on:
   # Triggers the workflow on push or pull request events but only for the v2.5.0_dev branch
   push:
@@ -13,7 +13,7 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-  
+
 jobs:
   analyze:
     name: Analyze
