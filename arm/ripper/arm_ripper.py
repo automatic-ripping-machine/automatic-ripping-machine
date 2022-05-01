@@ -69,16 +69,20 @@ def rip_visual_media(have_dupes, job, logfile, protection):
     # Begin transcoding section - only transcode if skip_transcode is false
     start_transcode(job, logfile, hb_in_path, hb_out_path, protection)
     # --------------- POST PROCESSING ---------------
+    if job.config.SKIP_TRANSCODE:
+        # Delete the transcode path and update the out path to RAW path
+        utils.delete_raw_files([hb_out_path])
+        hb_out_path = hb_in_path
     # Move to final folder
     move_files_post(hb_out_path, job)
     # Movie the movie poster if we have one - no longer needed, now handled by save_movie_poster
     utils.move_movie_poster(final_directory, hb_out_path)
-    # Scan emby if arm.yaml requires it
+    # Scan Emby if arm.yaml requires it
     utils.scan_emby()
     # Set permissions if arm.yaml requires it
     utils.set_permissions(final_directory)
     # If set in the arm.yaml remove the raw files
-    utils.delete_raw_files(hb_in_path, hb_out_path, makemkv_out_path)
+    utils.delete_raw_files([hb_in_path, hb_out_path, makemkv_out_path])
     # report errors if any
     notify_exit(job)
     logging.info("************* ARM processing complete *************")
@@ -86,7 +90,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
 
 def start_transcode(job, logfile, hb_in_path, hb_out_path, protection):
     """
-    This check if transcoding is enabled for the job and then passes it off to the correct
+    This checks if transcoding is enabled for the job and then passes it off to the correct
     handbrake function\n
     :param hb_in_path: HandBrake in path (makeMKV_out_path|/dev/sr0)
     :param hb_out_path: Path HandBrake should put the files (transcode_path)
@@ -95,19 +99,24 @@ def start_transcode(job, logfile, hb_in_path, hb_out_path, protection):
     :param protection: If disc has 99 track protection
     :return: None
     """
-    if not job.config.SKIP_TRANSCODE:
-        # Update db with transcoding status
-        utils.database_updater({'status': "transcoding"}, job)
-        logging.info("************* Starting Transcode With HandBrake *************")
-        if rip_with_mkv(job, protection):
-            handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
-        elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
-            handbrake.handbrake_main_feature(hb_in_path, hb_out_path, logfile, job)
-            job.eject()
-        else:
-            handbrake.handbrake_all(hb_in_path, hb_out_path, logfile, job)
-            job.eject()
-        logging.info("************* Finished Transcode With HandBrake *************")
+    # Update db with transcoding status
+    utils.database_updater({'status': "transcoding"}, job)
+    logging.info("************* Starting Transcode With HandBrake *************")
+    if rip_with_mkv(job, protection):
+        # skip if transcode is disable
+        if job.config.SKIP_TRANSCODE:
+            logging.info("Transcoding is disabled, skipping transcode")
+            return None
+        handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
+    elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
+        handbrake.handbrake_main_feature(hb_in_path, hb_out_path, logfile, job)
+        job.eject()
+    else:
+        handbrake.handbrake_all(hb_in_path, hb_out_path, logfile, job)
+        job.eject()
+    logging.info("************* Finished Transcode With HandBrake *************")
+    utils.database_updater({'status': "active"}, job)
+    return True
 
 
 def notify_exit(job):
@@ -133,14 +142,14 @@ def move_files_post(hb_out_path, job):
     Logic for moving files post transcoding\n
     if series move all to 1 folder\n
     if movie check what source we got them from, for MakeMKV use skip_transcode_movie, so we can check filesize\n
-    :param hb_out_path: current files' directory
+    :param hb_out_path: This should either be the RAW_PATH from MakeMKV or the disc from /dev/srX or TRANSCODE_PATH
     :param job: current job
     :return: None
     """
     tracks = job.tracks.filter_by(ripped=True)  # .order_by(job.tracks.length.desc())
     if job.video_type == "series":
         for track in tracks:
-            utils.move_files(hb_out_path, track.filename, job, True)
+            utils.move_files(hb_out_path, track.filename, job, False)
     else:
         for track in tracks:
             if tracks.count() == 1:

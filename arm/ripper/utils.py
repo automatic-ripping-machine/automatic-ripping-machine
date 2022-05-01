@@ -229,13 +229,14 @@ def scan_emby():
         logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
 
 
-def delete_raw_files(hb_in_path, hb_out_path, mkvoutpath):
+def delete_raw_files(dir_list):
     """
     Delete the raw folders from arm after job has finished
+    :param list dir_list: Python list containing strings of the folders to be deleted
+
     """
     if cfg["DELRAWFILES"]:
-        raw_list = [hb_in_path, hb_out_path, mkvoutpath]
-        for raw_folder in raw_list:
+        for raw_folder in dir_list:
             try:
                 logging.info(f"Removing raw path - {raw_folder}")
                 shutil.rmtree(raw_folder)

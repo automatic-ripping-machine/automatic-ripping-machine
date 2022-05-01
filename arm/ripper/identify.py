@@ -143,8 +143,6 @@ def identify_dvd(job):
     year = re.sub(r"\D", "", str(job.year)) if job.year else None
     # next line is not really needed, but we don't want to leave an x somewhere
     dvd_title = job.label.replace("16x9", "")
-    # Rip out any not alpha chars replace with &nbsp;
-    dvd_title = re.sub(r"[^a-zA-Z _-]", "", dvd_title)
     logging.debug(f"dvd_title ^a-z _-: {dvd_title}")
     # rip out any SKU's at the end of the line
     dvd_title = re.sub(r"SKU\b", "", dvd_title)
