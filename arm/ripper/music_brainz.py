@@ -106,7 +106,7 @@ def check_date(release):
     # Clean up the date and the title
     if 'date' in release:
         new_year = str(release['date'])
-        new_year = re.sub("-[0-9]{2}-[0-9]{2}$", "", new_year)
+        new_year = re.sub(r"-\d{2}-\d{2}$", "", new_year)
     else:
         # sometimes there is no date in a release
         new_year = ""
