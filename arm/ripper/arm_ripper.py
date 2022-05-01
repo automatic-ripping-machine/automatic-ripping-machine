@@ -209,7 +209,7 @@ def skip_transcode_movie(files, job, raw_path):
         # move others into extras folder
         if file == largest_file_name:
             # largest movie
-            utils.move_files(raw_path, file, job, False)
+            utils.move_files(raw_path, file, job, True)
         else:
             # If mainfeature is enabled - skip to the next file
             if job.config.MAINFEATURE:
