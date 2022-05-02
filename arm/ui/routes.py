@@ -262,19 +262,37 @@ def feed_json():
                               mimetype=constants.JSON_TYPE)
 
 
-@app.route('/settings', methods=['GET', 'POST'])
+@app.route('/settings', methods=['GET'])
 @login_required
 def settings():
     """
     The settings page - allows the user to update the arm.yaml without needing to open a text editor
     This needs to be rewritten to be static
     """
+    # Load up the comments.json, so we can comment the arm.yaml
+    comments = ui_utils.generate_comments()
+    # Get the current config, so we can show the current values
+    arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
+    current_cfg = ui_utils.get_settings(arm_cfg_file)
+    # Get arm ui settings
+    armui_cfg = models.UISettings.query.filter_by().first()
+    form = SettingsForm()
+    return render_template('settings.html', settings=current_cfg, ui_settings=armui_cfg,
+                           form=form, jsoncomments=comments)
+
+
+@app.route('/save_settings', methods=['POST'])
+@login_required
+def save_settings():
+    """
+    Save arm ripper settings from post
+    """
     # Path to arm.yaml
     arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
-    # Get the current config, so we can show the current values with no post data
-    current_cfg = ui_utils.get_settings(arm_cfg_file)
+    success = False
+    arm_cfg = {}
     form = SettingsForm()
     if form.validate_on_submit():
         # Build the new arm.yaml with updated values from the user
@@ -283,24 +301,23 @@ def settings():
         with open(arm_cfg_file, "w") as settings_file:
             settings_file.write(arm_cfg)
             settings_file.close()
-        flash("Setting saved successfully!", "success")
-        # Redirect so we show the new config values
-        return redirect(url_for('settings'))
+        success = True
     # If we get to here there was no post data
-    return render_template('settings.html', settings=current_cfg,
-                           form=form, raw=request.form.to_dict(), jsoncomments=comments)
+    return {'success': success, 'settings': arm_cfg}
 
 
-@app.route('/ui_settings', methods=['GET', 'POST'])
+@app.route('/ui_settings', methods=['POST'])
 @login_required
 def ui_settings():
     """
-    The ARMui settings page - allows the user to update the armui_settings
+    Save arm ui settings to db\n
+    - allows the user to update the armui_settings
     This function needs to trigger a restart of flask for debugging to update the values
-
     """
     armui_cfg = models.UISettings.query.filter_by().first()
     form = UiSettingsForm()
+    success = False
+    database_arguments = {}
     if form.validate_on_submit():
         # json.loads("false".lower())
         use_icons = (str(form.use_icons.data).strip().lower() == "true")
@@ -315,9 +332,9 @@ def ui_settings():
         }
         ui_utils.database_updater(database_arguments, armui_cfg)
         db.session.refresh(armui_cfg)
-        flash("Settings saved successfully!", "success")
+        success = True
 
-    return render_template('ui_settings.html', form=form, settings=armui_cfg)
+    return {'success': success, 'settings': database_arguments}
 
 
 @app.route('/logs')
