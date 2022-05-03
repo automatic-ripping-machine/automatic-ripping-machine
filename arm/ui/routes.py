@@ -19,7 +19,7 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
 from arm.models import models as models
 from arm.config.config import cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm, SettingsForm, UiSettingsForm, SetupForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm, SettingsForm, UiSettingsForm, SetupForm, AbcdeForm
 from arm.ui.metadata import get_omdb_poster
 
 login_manager = LoginManager()
@@ -262,19 +262,39 @@ def feed_json():
                               mimetype=constants.JSON_TYPE)
 
 
-@app.route('/settings', methods=['GET', 'POST'])
+@app.route('/settings', methods=['GET'])
 @login_required
 def settings():
     """
     The settings page - allows the user to update the arm.yaml without needing to open a text editor
     This needs to be rewritten to be static
     """
+    # Load up the comments.json, so we can comment the arm.yaml
+    comments = ui_utils.generate_comments()
+    # Get the current config, so we can show the current values
+    arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
+    current_cfg = ui_utils.get_settings(arm_cfg_file)
+    # Get arm ui settings
+    armui_cfg = models.UISettings.query.filter_by().first()
+    # load abcde config
+    abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE']).strip()
+    form = SettingsForm()
+    return render_template('settings.html', settings=current_cfg, ui_settings=armui_cfg,
+                           form=form, jsoncomments=comments, abcde_cfg=abcde_cfg)
+
+
+@app.route('/save_settings', methods=['POST'])
+@login_required
+def save_settings():
+    """
+    Save arm ripper settings from post
+    """
     # Path to arm.yaml
     arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
-    # Get the current config, so we can show the current values with no post data
-    current_cfg = ui_utils.get_settings(arm_cfg_file)
+    success = False
+    arm_cfg = {}
     form = SettingsForm()
     if form.validate_on_submit():
         # Build the new arm.yaml with updated values from the user
@@ -283,24 +303,23 @@ def settings():
         with open(arm_cfg_file, "w") as settings_file:
             settings_file.write(arm_cfg)
             settings_file.close()
-        flash("Setting saved successfully!", "success")
-        # Redirect so we show the new config values
-        return redirect(url_for('settings'))
+        success = True
     # If we get to here there was no post data
-    return render_template('settings.html', settings=current_cfg,
-                           form=form, raw=request.form.to_dict(), jsoncomments=comments)
+    return {'success': success, 'settings': arm_cfg, 'form': 'arm ripper settings'}
 
 
-@app.route('/ui_settings', methods=['GET', 'POST'])
+@app.route('/save_ui_settings', methods=['POST'])
 @login_required
 def ui_settings():
     """
-    The ARMui settings page - allows the user to update the armui_settings
+    Save arm ui settings to db\n
+    - allows the user to update the armui_settings
     This function needs to trigger a restart of flask for debugging to update the values
-
     """
     armui_cfg = models.UISettings.query.filter_by().first()
     form = UiSettingsForm()
+    success = False
+    database_arguments = {}
     if form.validate_on_submit():
         # json.loads("false".lower())
         use_icons = (str(form.use_icons.data).strip().lower() == "true")
@@ -315,9 +334,32 @@ def ui_settings():
         }
         ui_utils.database_updater(database_arguments, armui_cfg)
         db.session.refresh(armui_cfg)
-        flash("Settings saved successfully!", "success")
+        success = True
 
-    return render_template('ui_settings.html', form=form, settings=armui_cfg)
+    return {'success': success, 'settings': database_arguments, 'form': 'arm ui settings'}
+
+
+@app.route('/save_abcde_settings', methods=['POST'])
+@login_required
+def save_abcde():
+    """
+    Save abcde config settings from post
+    """
+    # Path to arm.yaml
+    abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE'])
+    success = False
+    abcde_cfg_str = ""
+    form = AbcdeForm()
+    if form.validate():
+        app.logger.debug(f"routes.save_abcde: Saving new abcde.conf: {abcde_cfg}")
+        abcde_cfg_str = str(form.abcdeConfig.data).strip()
+        # Save updated abcde.conf
+        with open(cfg['ABCDE_CONFIG_FILE'], "w") as abcde_file:
+            abcde_file.write(abcde_cfg_str)
+            abcde_file.close()
+        success = True
+    # If we get to here there was no post data
+    return {'success': success, 'settings': abcde_cfg_str, 'form': 'abcde config'}
 
 
 @app.route('/logs')

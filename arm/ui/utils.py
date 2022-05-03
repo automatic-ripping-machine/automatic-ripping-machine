@@ -705,3 +705,15 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
     app.logger.debug(new_movie)
     db.session.add(new_movie)
     return movie_dict
+
+
+def get_abcde_cfg(abcde_cfg_file):
+    """
+    load and return as string abcde.cfg
+    """
+    try:
+        with open(abcde_cfg_file, "r") as abcde_read_file:
+            abcde = abcde_read_file.read()
+    except FileNotFoundError:
+        abcde = "File not found"
+    return abcde
