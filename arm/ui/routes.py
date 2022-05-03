@@ -19,7 +19,7 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
 from arm.models import models as models
 from arm.config.config import cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm, SettingsForm, UiSettingsForm, SetupForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm, SettingsForm, UiSettingsForm, SetupForm, AbcdeForm
 from arm.ui.metadata import get_omdb_poster
 
 login_manager = LoginManager()
@@ -276,9 +276,11 @@ def settings():
     current_cfg = ui_utils.get_settings(arm_cfg_file)
     # Get arm ui settings
     armui_cfg = models.UISettings.query.filter_by().first()
+    # load abcde config
+    abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE'])
     form = SettingsForm()
     return render_template('settings.html', settings=current_cfg, ui_settings=armui_cfg,
-                           form=form, jsoncomments=comments)
+                           form=form, jsoncomments=comments, abcde_cfg=abcde_cfg)
 
 
 @app.route('/save_settings', methods=['POST'])
@@ -303,10 +305,10 @@ def save_settings():
             settings_file.close()
         success = True
     # If we get to here there was no post data
-    return {'success': success, 'settings': arm_cfg}
+    return {'success': success, 'settings': arm_cfg, 'form': 'arm ripper settings'}
 
 
-@app.route('/ui_settings', methods=['POST'])
+@app.route('/save_ui_settings', methods=['POST'])
 @login_required
 def ui_settings():
     """
@@ -334,7 +336,30 @@ def ui_settings():
         db.session.refresh(armui_cfg)
         success = True
 
-    return {'success': success, 'settings': database_arguments}
+    return {'success': success, 'settings': database_arguments, 'form': 'arm ui settings'}
+
+
+@app.route('/save_abcde_settings', methods=['POST'])
+@login_required
+def save_abcde():
+    """
+    Save abcde config settings from post
+    """
+    # Path to arm.yaml
+    abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE'])
+    success = False
+    abcde_cfg_str = ""
+    form = AbcdeForm()
+    if form.validate():
+        app.logger.debug(f"routes.save_abcde: Saving new abcde.conf: {abcde_cfg}")
+        abcde_cfg_str = str(form.abcdeConfig.data).strip()
+        # Save updated abcde.conf
+        with open(cfg['ABCDE_CONFIG_FILE'], "w") as abcde_file:
+            abcde_file.write(abcde_cfg_str)
+            abcde_file.close()
+        success = True
+    # If we get to here there was no post data
+    return {'success': success, 'settings': abcde_cfg_str, 'form': 'abcde config'}
 
 
 @app.route('/logs')

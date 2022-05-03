@@ -79,18 +79,37 @@
                                aria-controls="settings" aria-selected="false">Ripper Settings</a>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <a class="nav-link" id="uiSettings-tab" data-toggle="tab" href="#uiSettings" role="tab"
-                               aria-controls="uiSettings" aria-selected="false">Ui Settings</a>
+                            <a class="nav-link" id="uiSettingsTab-tab" data-toggle="tab" href="#uiSettingsTab"
+                               role="tab"
+                               aria-controls="uiSettingsTab" aria-selected="false">Ui Settings</a>
                         </li>
                     </ul>
 
                     <!-- Tab panes -->
                     <div class="tab-content">
                         <!-- General info -->
-                        <div class="tab-pane active pt-5" id="home" role="tabpanel" aria-labelledby="home-tab">111111111111
+                        <div class="tab-pane active pt-5" id="home" role="tabpanel" aria-labelledby="home-tab">
+                            111111111111
                         </div>
                         <!-- abcde config -->
-                        <div class="tab-pane pt-5" id="abcde" role="tabpanel" aria-labelledby="abcde-tab">222222222</div>
+                        <div class="tab-pane pt-5" id="abcde" role="tabpanel" aria-labelledby="abcde-tab">
+                            <div class="row">
+                                <div class="col-md-8 mx-auto">
+                                    <form id="abcdeSettings" name="abcdeSettings" method="post" action="">
+                                        {{ form.hidden_tag() }}
+                                        <label for="abcdeConfigText">ABCDE Config:</label>
+                                        <textarea id="abcdeConfigText" name="abcdeConfig" spellcheck="false"
+                                                  class="w-100 form-control min-vh-100">
+                                                {{ abcde_cfg }}
+                                            </textarea>
+                                        <br>
+                                        <button id="abcdeConfigSubmit" class="btn btn-secondary btn-lg btn-block"
+                                                form="abcdeSettings">Submit
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
                         <!-- Ripper settings -->
                         <div class="tab-pane pt-5" id="settings" role="tabpanel" aria-labelledby="settings-tab">
                             <form id="ripperSettings" name="ripperSettings" method="post" action="">
@@ -110,15 +129,15 @@
                                         </a>
                                     </div>
                                 {% endfor %}
-                                <button id="settings" class="btn btn-secondary btn-lg btn-block" form="ripperSettings" type="submit">Submit
+                                <button id="settings" class="btn btn-secondary btn-lg btn-block" form="ripperSettings"
+                                        type="submit">Submit
                                 </button>
                             </form>
                         </div>
-                        <!-- ui settings -->
-                        <div class="tab-pane pt-5" id="uiSettings" role="tabpanel" aria-labelledby="uiSettings-tab">
-                            <form id="ui-settings" name="ui-settings" action="">
+                        <!-- UI settings -->
+                        <div class="tab-pane pt-5" id="uiSettingsTab" role="tabpanel" aria-labelledby="uiSettings-tab">
+                            <form id="uiSettings" name="uiSettings" action="">
                                 {{ form.hidden_tag() }}
-
                                 <div class="input-group mb-3">
                                     <div class="input-group-prepend">
                                         <span class="input-group-text" id="index_refresh">index_refresh: </span>
@@ -201,7 +220,7 @@
                                              height="35px" alt="More info">
                                     </a>
                                 </div>
-                                <button id="uiSubmit" class="btn btn-secondary btn-lg btn-block" form="ui-settings"
+                                <button id="uiSubmit" class="btn btn-secondary btn-lg btn-block" form="uiSettings"
                                         type="submit">
                                     Submit
                                 </button>
@@ -218,38 +237,33 @@
     {{ super() }}
     <script type="application/javascript">
         $(function () {
-            $('#ui-settings').submit(function (e) {
-                e.preventDefault();
+            function sendSettings(formToSend, sendTo) {
                 $.ajax({
                     type: 'POST',
-                    url: '/ui_settings',
-                    data: $('#ui-settings').serialize()
+                    url: sendTo,
+                    data: formToSend.serialize()
                 }).done(function (data) {
                     if (data.success === true) {
                         console.log(data)
                         var dt = new Date();
-                        var time = dt.getHours() + ":" + dt.getMinutes() + ":" + dt.getSeconds();
-                        $('.toast-body').html('Saved ui-settings at ' + time)
+                        var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
+                        $('.toast-body').html(`Saved ${data.form} settings at ${time}`)
                         $('.toast').toast('show');
                     }
                 });
-            })
-            $('#settings').submit(function (e) {
+            }
+            $("#uiSettings").submit(function (e) {
                 e.preventDefault();
-                $.ajax({
-                    type: 'POST',
-                    url: '/save_settings',
-                    data: $('#ripperSettings').serialize()
-                }).done(function (data) {
-                    if (data.success === true) {
-                        console.log(data)
-                        var dt = new Date();
-                        var time = dt.getHours() + ":" + dt.getMinutes() + ":" + dt.getSeconds();
-                        $('.toast-body').html('Saved ripper settings at ' + time)
-                        $('.toast').toast('show');
-                    }
-                });
+                sendSettings($("#uiSettings"), "/save_ui_settings");
+            });
+            $("#settings").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#ripperSettings"), "/save_settings");
             })
+            $("#abcdeSettings").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#abcdeSettings"), "/save_abcde_settings");
+            });
             $(".popovers").popover({
                 trigger: "hover",
             });
