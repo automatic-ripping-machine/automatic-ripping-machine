@@ -9,10 +9,12 @@ import html
 from pathlib import Path
 import datetime
 import psutil
+from flask import request
 from arm.config.config import cfg
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track
-from arm.ui.utils import job_id_validator
+from arm.ui.forms import ChangeParamsForm
+from arm.ui.utils import job_id_validator, database_updater
 
 
 def get_x_jobs(job_status):
@@ -116,8 +118,8 @@ def process_handbrake_logfile(logfile, job, job_results):
     """
     line = read_log_line(logfile)
     # This correctly get the very last ETA and %
-    job_status = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
-                           r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
+    job_status = re.search(r"Encoding: task (\d of \d), (\d{1,3}\.\d{2}) %.{0,40}"
+                           r"ETA ([\dhms]*?)\)(?!\\rEncod)", str(line))
 
     if job_status:
         app.logger.debug(job_status.group())
@@ -132,7 +134,7 @@ def process_handbrake_logfile(logfile, job, job_results):
 
     # INFO ARM: handbrake.handbrake_all Processing track #1 of 42. Length is 8602 seconds.
     line = read_all_log_lines(logfile)
-    job_status_index = re.search(r"Processing track #([0-9]{1,2}) of ([0-9]{1,2})"
+    job_status_index = re.search(r"Processing track #(\d{1,2}) of (\d{1,2})"
                                  r"(?!.*Processing track #)", str(line))
     if job_status_index:
         try:
@@ -209,7 +211,7 @@ def read_all_log_lines(log_file):
 
 def search(search_query):
     """ Queries ARMui db for the movie/show matching the query"""
-    safe_search = re.sub('[^a-zA-Z0-9]', '', search_query)
+    safe_search = re.sub(r'[^a-zA-Z\d]', '', search_query)
     safe_search = f"%{safe_search}%"
     app.logger.debug('-' * 30)
 
@@ -239,7 +241,7 @@ def delete_job(job_id, mode):
     """
     json api version of delete jobs\n
     :param job_id: job id to delete || str "all"/"title"
-    :param str mode: should always be delete
+    :param str mode: should always be 'delete'
     :return: json/dict to be returned if success or fail
     """
     try:
@@ -288,7 +290,7 @@ def delete_job(job_id, mode):
                     db.session.commit()
                     app.logger.debug("Admin deleting  job {} was successful")
                     json_return = {'success': True, 'job': job_id, 'mode': mode}
-    # If we run into problems with the datebase changes
+    # If we run into problems with the database changes
     # error out to the log and roll back
     except Exception as err:
         db.session.rollback()
@@ -377,3 +379,28 @@ def abandon_job(job_id):
         json_return["Error"] = str(error)
 
     return json_return
+
+
+def change_job_params(config_id):
+    """Update values for job"""
+    job = Job.query.get(config_id)
+    config = job.config
+    form = ChangeParamsForm(request.args, meta={'csrf': False})
+    app.logger.debug("Before valid")
+    if form.validate():
+        app.logger.debug("Valid")
+        job.disctype = format(form.DISCTYPE.data)
+        cfg["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
+        cfg["MAXLENGTH"] = config.MAXLENGTH = format(form.MAXLENGTH.data)
+        cfg["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
+        # must be 1 for True 0 for False
+        cfg["MAINFEATURE"] = config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
+        args = {'disctype': job.disctype}
+        # We don't need to set the config as they are set with job commit
+        database_updater(args, job)
+
+        return {'message': f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},'
+                f'Minimum Length={config.MINLENGTH}, '
+                f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}', 'form': 'change_job_params',
+                "success": True}
+    return {'return': '', 'success': False }

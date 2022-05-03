@@ -570,16 +570,25 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
 def arm_setup():
     """
     Setup arm - Create all the directories we need for arm to run
-
+    check that folders are writeable, and the db file is writeable
+    logging doesn't work here, need to write to empty.log or error.log ?\n
     :arguments: None
     :return: None
     """
     arm_directories = [cfg['RAW_PATH'], cfg['TRANSCODE_PATH'],
                        cfg['COMPLETED_PATH'], cfg['LOGPATH']]
     try:
+        # Check db file is writeable
+        if not os.access(cfg['DBFILE'], os.W_OK):
+            logging.error(f"Cant write to database file! Permission ERROR: {cfg['DBFILE']}")
+        # Check directories for read/write permission -> create if they don't exist
         for folder in arm_directories:
+            if not os.access(folder, os.R_OK):
+                logging.error(f"Cant read from folder, Permission ERROR: {folder}")
+            if not os.access(folder, os.W_OK):
+                logging.error(f"Cant write to folder, Permission ERROR: {folder}")
             if make_dir(folder):
-                logging.error(f"Cant creat folder: {folder}")
+                logging.error(f"Cant create folder: {folder}")
     except IOError as error:
         logging.error(f"A fatal error has occurred. "
                       f"Cant find/create the folders from arm.yaml - Error:{error}")

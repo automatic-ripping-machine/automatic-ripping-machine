@@ -41,6 +41,28 @@
 </head>
 <body style="padding: 70px 15px 50px;">
 {% block nav %}
+        <!-- TOAST -->
+    <div aria-live="polite" aria-atomic="true">
+        <!-- Position it -->
+        <div style="position: absolute; top: 100px; right: 300px;">
+            <div role="alert" aria-live="assertive" aria-atomic="true" class="toast position-fixed"
+                 data-autohide="false" style="z-index:1000">
+                <div class="toast-header">
+                    <img src="static/img/apple-touch-icon.png" class="rounded mr-2" alt="arm message" height="20px"
+                         width="20px">
+                    <strong class="mr-auto">A.R.M Message</strong>
+                    <small>now</small>
+                    <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="toast-body">
+                    ...
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Main -->
     <div class="container h-100 mx-auto">
         <nav class="navbar navbar-expand-md navbar-dark bg-primary justify-content-center fixed-top my-auto">
             <a class="navbar-brand" href="index.html">
@@ -85,6 +107,7 @@
         </nav>
     </div>
 {% endblock %}
+<!-- Errors -->
 <div id="content" class="h-100 content" style="width: 99%;padding-top: 51px;padding-left: 15px;">
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -98,6 +121,7 @@
         {% endif %}
     {% endwith %}
     {% block content %}{% endblock %}</div>
+<!-- Footer -->
 <div id="footer" class="container-fluid h-100">
     <div class="row" style="height: 30px;"></div>
     <div class="row h-100" style="height: 40px;">

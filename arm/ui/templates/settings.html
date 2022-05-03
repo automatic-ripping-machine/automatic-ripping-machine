@@ -34,27 +34,6 @@
             font-size: 25px;
         }
     </style>
-    <!-- TOAST -->
-    <div aria-live="polite" aria-atomic="true">
-        <!-- Position it -->
-        <div style="position: absolute; top: 100px; right: 300px;">
-            <div role="alert" aria-live="assertive" aria-atomic="true" class="toast position-fixed"
-                 data-autohide="false" style="z-index:1000">
-                <div class="toast-header">
-                    <img src="static/img/apple-touch-icon.png" class="rounded mr-2" alt="arm message" height="20px"
-                         width="20px">
-                    <strong class="mr-auto">A.R.M Message</strong>
-                    <small>now</small>
-                    <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="toast-body">
-                    ...
-                </div>
-            </div>
-        </div>
-    </div>
     <!-- MESSAGES - We keep this here incase we need it later -->
     <div class="alert alert-success d-none" role="alert" id="success">
         <h4 class="alert-heading">Settings were saved successfully</h4>
@@ -114,10 +93,15 @@
                                             <li class="list-group-item">Update Available:
                                                 <img src="static/img/{{ 'fail.png' if stats['updated'] else 'success.png' }}"
                                                      alt="update image" width="20px" height="20px">
+                                            <!-- Update A.R.M -->
                                                 {% if not stats['updated'] %}
-                                                    <button title="Not implemented yet!" class="btn btn-primary float-right" type="submit" disabled>Update
-                                                        A.R.M
-                                                    </button>
+                                                    <form id="updateArm" name="updateArm" method="post" action="">
+                                                        {{ form.hidden_tag() }}
+                                                        <button title="Not implemented yet!"
+                                                                class="btn btn-primary float-right" type="submit">Update
+                                                            A.R.M
+                                                        </button>
+                                                    </form>
                                                 {% endif %}
                                             </li>
                                             <!-- Rip stats -->
@@ -137,16 +121,16 @@
                                     <div class="card-header">Get help</div>
                                     <div class="card-body no-gutters">
                                         <div class="row">
-                                            <div class="col-lg-4"><a class="stretched-link text-center"
+                                            <div class="col-lg-4"><a class="stretched-link text-center" target="_blank"
                                                                      href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">
                                                 <img class="rounded mx-auto d-block mt-2" alt="GitHub"
                                                      src="{{ url_for('static', filename='/img/github/GitHub-Mark-120px-plus.png') }}">
                                                 <label>Github
                                                 </label>
                                             </a></div>
-                                            <div class="col-lg-4 alert-info rounded"><a
-                                                    class="stretched-link text-center"
-                                                    href="https://discord.gg/BCarpwC7qC">
+                                            <div class="col-lg-4 rounded"><a target="_blank"
+                                                                             class="stretched-link text-center"
+                                                                             href="https://discord.gg/BCarpwC7qC">
                                                 <img class="rounded mx-auto d-block mt-2"
                                                      src="{{ url_for('static', filename='/img/discord/discord-128.png') }}"
                                                      alt="Discord">
@@ -154,7 +138,7 @@
                                                 </label>
                                             </a>
                                             </div>
-                                            <div class="col-lg-4"><a class="stretched-link text-center"
+                                            <div class="col-lg-4"><a class="stretched-link text-center" target="_blank"
                                                                      href="https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki">
                                                 <img class="rounded mx-auto d-block mt-2"
                                                      src="{{ url_for('static', filename='/img/github/GitHub-Mark-120px-plus.png') }}"
@@ -350,6 +334,10 @@
                 e.preventDefault();
                 sendSettings($("#abcdeSettings"), "/save_abcde_settings");
             });
+            $("#updateArm").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#updateArm"), "/update_arm")
+            })
             $(".popovers").popover({
                 trigger: "hover",
             });

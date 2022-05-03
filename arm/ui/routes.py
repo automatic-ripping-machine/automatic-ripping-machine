@@ -233,6 +233,7 @@ def feed_json():
     """
     mode = str(request.args.get('mode'))
     return_json = {'mode': mode, 'success': False}
+    # Hold valid data (post/get data) we might receive from pages - not in here ? it's going to throw a key error
     valid_data = {
         'j_id': request.args.get('job'),
         'searchq': request.args.get('q'),
@@ -240,8 +241,10 @@ def feed_json():
         'fail': 'fail',
         'success': 'success',
         'joblist': 'joblist',
-        'mode': mode
+        'mode': mode,
+        'config_id': request.args.get('config_id')
     }
+    # Valid modes that should trigger functions
     valid_modes = {
         'delete': {'funct': json_api.delete_job, 'args': ('j_id', 'mode')},
         'abandon': {'funct': json_api.abandon_job, 'args': ('j_id',)},
@@ -251,7 +254,8 @@ def feed_json():
         'getsuccessful': {'funct': json_api.get_x_jobs, 'args': ('success',)},
         'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
         'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
-        'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)}
+        'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)},
+        'change_job_params': {'funct': json_api.change_job_params, 'args': ('config_id',)}
     }
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
@@ -263,12 +267,20 @@ def feed_json():
                               mimetype=constants.JSON_TYPE)
 
 
-@app.route('/settings', methods=['GET'])
+@app.route('/update_arm', methods=['POST'])
+@login_required
+def update_git():
+    """Update arm via git command line"""
+    return ui_utils.git_get_updates()
+
+
+@app.route('/settings')
 @login_required
 def settings():
     """
     The settings page - allows the user to update the all configs of A.R.M
-    without needing to open a text editor
+    without needing to open a text editor\n
+    This loads slow, needs to be optimised...
     """
     # stats for info page
     with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
@@ -286,7 +298,7 @@ def settings():
              'cds_ripped': cds,
              'no_failed_jobs': failed_rips,
              'total_rips': total_rips,
-             'updated': ui_utils.get_get_updates(ui_utils.get_git_revision_short_hash())
+             'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_short_hash())
              }
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
@@ -494,7 +506,7 @@ def jobdetail():
     return render_template('jobdetail.html', jobs=job, tracks=tracks, s=search_results)
 
 
-@app.route('/titlesearch', methods=['GET'])
+@app.route('/titlesearch')
 @login_required
 def title_search():
     """
@@ -510,35 +522,20 @@ def title_search():
     return render_template('titlesearch.html', title='Update Title', form=form, job=job)
 
 
-@app.route('/changeparams', methods=['GET', 'POST'])
+@app.route('/changeparams')
 @login_required
 def changeparams():
     """
     For updating Config params or changing/correcting job.disctype manually
     """
     config_id = request.args.get('config_id')
-    # app.logger.debug(config.pretty_table())
     job = models.Job.query.get(config_id)
     config = job.config
     form = ChangeParamsForm(obj=config)
-    if form.validate_on_submit():
-        job.disctype = format(form.DISCTYPE.data)
-        cfg["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
-        cfg["MAXLENGTH"] = config.MAXLENGTH = format(form.MAXLENGTH.data)
-        cfg["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
-        # must be 1 for True 0 for False
-        cfg["MAINFEATURE"] = config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
-        args = {'disctype': job.disctype}
-        # We don't need to set the config as they are set with job commit
-        ui_utils.database_updater(args, job)
-
-        flash(f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},'
-              f'Minimum Length={config.MINLENGTH}, '
-              f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}', "success")
-    return render_template('changeparams.html', title='Change Parameters', form=form)
+    return render_template('changeparams.html', title='Change Parameters', form=form, config=config)
 
 
-@app.route('/customTitle', methods=['GET'])
+@app.route('/customTitle')
 @login_required
 def customtitle():
     """
@@ -559,7 +556,7 @@ def customtitle():
     return render_template('customTitle.html', title='Change Title', form=form, job=job)
 
 
-@app.route('/list_titles', methods=['GET'])
+@app.route('/list_titles')
 @login_required
 def list_titles():
     """
@@ -590,8 +587,8 @@ def list_titles():
                            form=form, title=title, year=year)
 
 
-@app.route('/gettitle', methods=['GET'])
-@app.route('/select_title', methods=['GET'])
+@app.route('/gettitle')
+@app.route('/select_title')
 @login_required
 def gettitle():
     """
@@ -614,7 +611,7 @@ def gettitle():
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
 
-@app.route('/updatetitle', methods=['GET'])
+@app.route('/updatetitle')
 @login_required
 def updatetitle():
     """
@@ -773,7 +770,7 @@ def import_movies():
                               mimetype=constants.JSON_TYPE)
 
 
-@app.route('/send_movies', methods=['GET'])
+@app.route('/send_movies')
 @login_required
 def send_movies():
     """

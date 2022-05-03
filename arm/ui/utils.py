@@ -730,10 +730,18 @@ def get_git_revision_short_hash() -> str:
                                    cwd=cfg['INSTALLPATH']).decode('ascii').strip()
 
 
-def get_get_updates(current_hash) -> bool:
+def git_check_updates(current_hash) -> bool:
     """Check if we are on latest commit"""
     subprocess.run(['git', 'fetch', 'https://github.com/1337-server/automatic-ripping-machine'],
                    cwd=cfg['INSTALLPATH'], check=True)
-    return bool(re.search(fr"\* commit {current_hash}",
-                          subprocess.check_output(['git', 'log', 'v2_devel', 'origin/v2_devel', '--stat'],
-                                                  cwd=cfg['INSTALLPATH']).decode('utf8').strip()))
+    git_log = subprocess.check_output(['git', 'log', '-10', 'v2_devel', 'origin/v2_devel', '--stat'],
+                                      cwd=cfg['INSTALLPATH']).decode('utf8').strip()
+    app.logger.debug(git_log)
+    return bool(re.search(fr"\Acommit\s{current_hash}", git_log))
+
+
+def git_get_updates() -> dict:
+    """update arm"""
+    git_log = subprocess.run(['git', 'pull'], cwd=cfg['INSTALLPATH'], check=True)
+    return {'stdout': git_log.stdout, 'stderr': git_log.stderr,
+            'return_code': git_log.returncode, 'form': 'ARM Update', "success": True}
