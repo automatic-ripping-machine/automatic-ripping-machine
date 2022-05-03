@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Main routes for the A.R.M ui"""
 import os
+import platform
 import re
-import sys  # noqa: F401
 import json
 from pathlib import Path, PurePath
 
@@ -19,7 +19,8 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
 from arm.models import models as models
 from arm.config.config import cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm, SettingsForm, UiSettingsForm, SetupForm, AbcdeForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
+    SettingsForm, UiSettingsForm, SetupForm, AbcdeForm
 from arm.ui.metadata import get_omdb_poster
 
 login_manager = LoginManager()
@@ -266,9 +267,25 @@ def feed_json():
 @login_required
 def settings():
     """
-    The settings page - allows the user to update the arm.yaml without needing to open a text editor
-    This needs to be rewritten to be static
+    The settings page - allows the user to update the all configs of A.R.M
+    without needing to open a text editor
     """
+    # stats for info page
+    with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
+        version = version_file.read().strip()
+    failed_rips = len(json_api.get_x_jobs("fail")['results'])
+    movies = models.Job.query.filter_by(video_type="movie").count()
+    series = models.Job.query.filter_by(video_type="series").count()
+    cds = models.Job.query.filter_by(disctype="music").count()
+    stats = {'python_version': platform.python_version(),
+             'arm_version': version,
+             'git_commit': ui_utils.get_git_revision_short_hash(),
+             'movies_ripped': movies,
+             'series_ripped': series,
+             'cds_ripped': cds,
+             'no_failed_jobs': failed_rips,
+             'updated': ui_utils.get_get_updates(ui_utils.get_git_revision_short_hash())
+             }
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
     # Get the current config, so we can show the current values
@@ -280,7 +297,7 @@ def settings():
     abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE']).strip()
     form = SettingsForm()
     return render_template('settings.html', settings=current_cfg, ui_settings=armui_cfg,
-                           form=form, jsoncomments=comments, abcde_cfg=abcde_cfg)
+                           form=form, jsoncomments=comments, abcde_cfg=abcde_cfg, stats=stats)
 
 
 @app.route('/save_settings', methods=['POST'])
@@ -310,7 +327,7 @@ def save_settings():
 
 @app.route('/save_ui_settings', methods=['POST'])
 @login_required
-def ui_settings():
+def save_ui_settings():
     """
     Save arm ui settings to db\n
     - allows the user to update the armui_settings
@@ -345,7 +362,7 @@ def save_abcde():
     """
     Save abcde config settings from post
     """
-    # Path to arm.yaml
+    # Path to abcde.conf
     abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE'])
     success = False
     abcde_cfg_str = ""

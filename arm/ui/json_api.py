@@ -7,8 +7,8 @@ import subprocess
 import re
 import html
 from pathlib import Path
-import psutil
 import datetime
+import psutil
 from arm.config.config import cfg
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track
@@ -21,10 +21,7 @@ def get_x_jobs(job_status):
     or\n
     currently active jobs from the database\n
 
-    :return: True if we have found dupes with the same crc
-              - Will also return a dict of all the jobs found.
-             False if we didnt find any with the same crc
-              - Will also return None as a secondary param
+    :return: dict/json
     """
     success = False
     if job_status in ("success", "fail"):
