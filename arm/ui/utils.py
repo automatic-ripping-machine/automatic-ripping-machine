@@ -738,7 +738,7 @@ def git_check_updates(current_hash) -> bool:
                                       cwd=cfg['INSTALLPATH']).decode('utf8').strip()
     app.logger.debug(git_log)
     app.logger.debug(current_hash)
-    return bool(re.search(fr"\Acommit\s{current_hash}", git_log))
+    return bool(current_hash == git_log)
 
 
 def git_get_updates() -> dict:

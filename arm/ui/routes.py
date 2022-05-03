@@ -298,7 +298,7 @@ def settings():
              'cds_ripped': cds,
              'no_failed_jobs': failed_rips,
              'total_rips': total_rips,
-             'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_short_hash())
+             'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash())
              }
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
