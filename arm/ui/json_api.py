@@ -403,4 +403,4 @@ def change_job_params(config_id):
                 f'Minimum Length={config.MINLENGTH}, '
                 f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}', 'form': 'change_job_params',
                 "success": True}
-    return {'return': '', 'success': False }
+    return {'return': '', 'success': False}
