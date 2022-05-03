@@ -734,9 +734,10 @@ def git_check_updates(current_hash) -> bool:
     """Check if we are on latest commit"""
     subprocess.run(['git', 'fetch', 'https://github.com/1337-server/automatic-ripping-machine'],
                    cwd=cfg['INSTALLPATH'], check=True)
-    git_log = subprocess.check_output(['git', 'log', '-10', 'v2_devel', 'origin/v2_devel', '--stat'],
+    git_log = subprocess.check_output(['git', 'rev-parse', 'HEAD'],
                                       cwd=cfg['INSTALLPATH']).decode('utf8').strip()
     app.logger.debug(git_log)
+    app.logger.debug(current_hash)
     return bool(re.search(fr"\Acommit\s{current_hash}", git_log))
 
 
