@@ -277,7 +277,7 @@ def settings():
     # Get arm ui settings
     armui_cfg = models.UISettings.query.filter_by().first()
     # load abcde config
-    abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE'])
+    abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE']).strip()
     form = SettingsForm()
     return render_template('settings.html', settings=current_cfg, ui_settings=armui_cfg,
                            form=form, jsoncomments=comments, abcde_cfg=abcde_cfg)
