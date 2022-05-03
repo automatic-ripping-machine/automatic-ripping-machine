@@ -721,17 +721,19 @@ def get_abcde_cfg(abcde_cfg_file):
 
 def get_git_revision_hash() -> str:
     """Get full hash of current git commit"""
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd="/opt/arm").decode('ascii').strip()
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=cfg['INSTALLPATH']).decode('ascii').strip()
 
 
 def get_git_revision_short_hash() -> str:
     """Get short hash of current git commit"""
-    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], cwd="/opt/arm").decode('ascii').strip()
+    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
+                                   cwd=cfg['INSTALLPATH']).decode('ascii').strip()
 
 
 def get_get_updates(current_hash) -> bool:
     """Check if we are on latest commit"""
-    subprocess.run(['git', 'fetch', 'https://github.com/1337-server/automatic-ripping-machine'], cwd="/opt/arm")
-    return bool(re.search(current_hash,
+    subprocess.run(['git', 'fetch', 'https://github.com/1337-server/automatic-ripping-machine'],
+                   cwd=cfg['INSTALLPATH'], check=True)
+    return bool(re.search(fr"\* commit {current_hash}",
                           subprocess.check_output(['git', 'log', 'v2_devel', 'origin/v2_devel', '--stat'],
-                                                  cwd="/opt/arm").decode('utf8').strip()))
+                                                  cwd=cfg['INSTALLPATH']).decode('utf8').strip()))

@@ -26,6 +26,13 @@
             font-weight: bold;
             text-align: center;
         }
+
+        div a label {
+            display: grid;
+            font-weight: bolder;
+            margin: 1rem;
+            font-size: 25px;
+        }
     </style>
     <!-- TOAST -->
     <div aria-live="polite" aria-atomic="true">
@@ -61,10 +68,10 @@
             <div class="col">
                 <div class="jumbotron" style="padding-top: 1rem;">
                     <div class="col-sm-12  rounded text-center">
-                        <img src="static/img/arm80.png" alt="Automatic Ripping Machine">
+                        <img src="{{ url_for('static', filename='/img/arm80.png') }}" alt="Automatic Ripping Machine">
                         <h2> ARM - Settings </h2>
                     </div>
-                    <!-- Nav tabs -->
+                    <!-- Nav Tabs -->
                     <ul class="nav nav-tabs" id="myTab" role="tablist">
                         <li class="nav-item" role="presentation">
                             <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab"
@@ -85,11 +92,81 @@
                         </li>
                     </ul>
 
-                    <!-- Tab panes -->
+                    <!-- Tab Panes -->
                     <div class="tab-content">
-                        <!-- General info -->
+                        <!-- General Info -->
                         <div class="tab-pane active pt-5" id="home" role="tabpanel" aria-labelledby="home-tab">
-                            <code>{{ stats }}</code>
+                            <div class="card-deck">
+                                <!--Left Card-->
+                                <div class="card">
+                                    <div class="card-header">Server details</div>
+                                    <div class="card-body col">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item">Python
+                                                version: {{ stats['python_version'] }}</li>
+                                            <li class="list-group-item">A.R.M
+                                                version: {{ stats['arm_version'] }}</li>
+                                            <li class="list-group-item">
+                                                <label class="w-100">Current git version:<br>
+                                                    <input disabled value="{{ stats['git_commit'] }}"
+                                                           class="form-control">
+                                                </label></li>
+                                            <li class="list-group-item">Update Available:
+                                                <img src="static/img/{{ 'fail.png' if stats['updated'] else 'success.png' }}"
+                                                     alt="update image" width="20px" height="20px">
+                                                {% if not stats['updated'] %}
+                                                    <button title="Not implemented yet!" class="btn btn-primary float-right" type="submit" disabled>Update
+                                                        A.R.M
+                                                    </button>
+                                                {% endif %}
+                                            </li>
+                                            <!-- Rip stats -->
+                                            <li class="list-group-item">Total rips:
+                                                <code>{{ stats['total_rips'] }}</code></li>
+                                            <li class="list-group-item">Movies ripped:
+                                                <code>{{ stats['movies_ripped'] }}</code></li>
+                                            <li class="list-group-item">Series ripped:
+                                                <code>{{ stats['series_ripped'] }}</code></li>
+                                            <li class="list-group-item">Audios ripped:
+                                                <code>{{ stats['cds_ripped'] }}</code></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!--Right Card-->
+                                <div class="card">
+                                    <div class="card-header">Get help</div>
+                                    <div class="card-body no-gutters">
+                                        <div class="row">
+                                            <div class="col-lg-4"><a class="stretched-link text-center"
+                                                                     href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">
+                                                <img class="rounded mx-auto d-block mt-2" alt="GitHub"
+                                                     src="{{ url_for('static', filename='/img/github/GitHub-Mark-120px-plus.png') }}">
+                                                <label>Github
+                                                </label>
+                                            </a></div>
+                                            <div class="col-lg-4 alert-info rounded"><a
+                                                    class="stretched-link text-center"
+                                                    href="https://discord.gg/BCarpwC7qC">
+                                                <img class="rounded mx-auto d-block mt-2"
+                                                     src="{{ url_for('static', filename='/img/discord/discord-128.png') }}"
+                                                     alt="Discord">
+                                                <label>Discord
+                                                </label>
+                                            </a>
+                                            </div>
+                                            <div class="col-lg-4"><a class="stretched-link text-center"
+                                                                     href="https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki">
+                                                <img class="rounded mx-auto d-block mt-2"
+                                                     src="{{ url_for('static', filename='/img/github/GitHub-Mark-120px-plus.png') }}"
+                                                     alt="A.R.M Wiki - Help">
+                                                <label>A.R.M Wiki
+                                                </label>
+                                            </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <!-- abcde config -->
                         <div class="tab-pane pt-5" id="abcde" role="tabpanel" aria-labelledby="abcde-tab">
@@ -144,7 +221,8 @@
                                            name="index_refresh" placeholder="" value="{{ ui_settings.index_refresh }}"
                                            aria-describedby="index_refresh">
                                     <a class="popovers" onClick='return false;' href=""
-                                       data-content="{{ jsoncomments['index_refresh']| replace("#", "\n") }}" rel="popover"
+                                       data-content="{{ jsoncomments['index_refresh']| replace("#", "\n") }}"
+                                       rel="popover"
                                        data-placement="top" data-original-title="index_refresh">
                                         <img title="More information" src="static/img/info.png" width="30px"
                                              height="35px" alt="More info">
@@ -173,7 +251,8 @@
                                     <input type="text" class="form-control" aria-label="save_remote_images"
                                            name="save_remote_images" value="{{ ui_settings.save_remote_images }}">
                                     <a class="popovers" onClick='return false;' href=""
-                                       data-content="{{ jsoncomments['save_remote_images']| replace("#", "\n") }}" rel="popover"
+                                       data-content="{{ jsoncomments['save_remote_images']| replace("#", "\n") }}"
+                                       rel="popover"
                                        data-placement="top" data-original-title="save_remote_images">
                                         <img title="More information" src="static/img/info.png" width="30px"
                                              height="35px" alt="More info">
@@ -188,7 +267,8 @@
                                            name="bootstrap_skin" placeholder="" value="{{ ui_settings.bootstrap_skin }}"
                                            aria-describedby="bootstrap_skin">
                                     <a class="popovers" onClick='return false;' href=""
-                                       data-content="{{ jsoncomments['bootstrap_skin']| replace("#", "\n") }}" rel="popover"
+                                       data-content="{{ jsoncomments['bootstrap_skin']| replace("#", "\n") }}"
+                                       rel="popover"
                                        data-placement="top" data-original-title="bootstrap_skin">
                                         <img title="More information" src="static/img/info.png" width="30px"
                                              height="35px" alt="More info">
@@ -218,7 +298,8 @@
                                            name="database_limit" placeholder="" value="{{ ui_settings.database_limit }}"
                                            aria-describedby="database_limit">
                                     <a class="popovers" onClick='return false;' href=""
-                                       data-content="{{ jsoncomments['database_limit']| replace("#", "\n") }}" rel="popover"
+                                       data-content="{{ jsoncomments['database_limit']| replace("#", "\n") }}"
+                                       rel="popover"
                                        data-placement="top" data-original-title="database_limit">
                                         <img title="More information" src="static/img/info.png" width="30px"
                                              height="35px" alt="More info">
@@ -256,6 +337,7 @@
                     }
                 });
             }
+
             $("#uiSettings").submit(function (e) {
                 e.preventDefault();
                 sendSettings($("#uiSettings"), "/save_ui_settings");

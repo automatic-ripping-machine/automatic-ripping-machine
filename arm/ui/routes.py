@@ -274,16 +274,18 @@ def settings():
     with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
     failed_rips = len(json_api.get_x_jobs("fail")['results'])
+    total_rips = models.Job.query.filter_by().count()
     movies = models.Job.query.filter_by(video_type="movie").count()
     series = models.Job.query.filter_by(video_type="series").count()
     cds = models.Job.query.filter_by(disctype="music").count()
     stats = {'python_version': platform.python_version(),
              'arm_version': version,
-             'git_commit': ui_utils.get_git_revision_short_hash(),
+             'git_commit': ui_utils.get_git_revision_hash(),
              'movies_ripped': movies,
              'series_ripped': series,
              'cds_ripped': cds,
              'no_failed_jobs': failed_rips,
+             'total_rips': total_rips,
              'updated': ui_utils.get_get_updates(ui_utils.get_git_revision_short_hash())
              }
     # Load up the comments.json, so we can comment the arm.yaml
