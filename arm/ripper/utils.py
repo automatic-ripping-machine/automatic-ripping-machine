@@ -4,6 +4,7 @@ import datetime
 import os
 import sys
 import logging
+import logging.handlers
 import fcntl
 import subprocess
 import shutil
@@ -567,7 +568,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
     database_adder(job_track)
 
 
-def arm_setup():
+def arm_setup(arm_log):
     """
     Setup arm - Create all the directories we need for arm to run
     check that folders are writeable, and the db file is writeable
@@ -580,18 +581,22 @@ def arm_setup():
     try:
         # Check db file is writeable
         if not os.access(cfg['DBFILE'], os.W_OK):
-            logging.error(f"Cant write to database file! Permission ERROR: {cfg['DBFILE']}")
+            arm_log.error(f"Cant write to database file! Permission ERROR: {cfg['DBFILE']} - ARM Will Fail!")
+            raise IOError
         # Check directories for read/write permission -> create if they don't exist
         for folder in arm_directories:
             if not os.access(folder, os.R_OK):
-                logging.error(f"Cant read from folder, Permission ERROR: {folder}")
+                arm_log.error(f"Cant read from folder, Permission ERROR: {folder} - ARM Will Fail!")
+                raise IOError
             if not os.access(folder, os.W_OK):
-                logging.error(f"Cant write to folder, Permission ERROR: {folder}")
+                arm_log.error(f"Cant write to folder, Permission ERROR: {folder} - ARM Will Fail!")
+                raise IOError
             if make_dir(folder):
-                logging.error(f"Cant create folder: {folder}")
+                arm_log.error(f"Cant create folder: {folder} - ARM Will Fail!")
+                raise IOError
     except IOError as error:
-        logging.error(f"A fatal error has occurred. "
-                      f"Cant find/create the folders from arm.yaml - Error:{error}")
+        arm_log.error(f"A fatal error has occurred. "
+                      f"Cant find/create the folders set in arm.yaml - Error:{error} - ARM Will Fail!")
 
 
 def database_updater(args, job, wait_time=90):

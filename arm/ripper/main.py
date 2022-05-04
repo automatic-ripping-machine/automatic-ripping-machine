@@ -8,6 +8,8 @@ import sys
 import argparse  # noqa: E402
 import os  # noqa: E402
 import logging  # noqa: E402
+import logging.handlers  # noqa: E402
+from logging import config  # noqa: E402
 import time  # noqa: E402
 import datetime  # noqa: E402
 import re  # noqa: E402
@@ -124,8 +126,11 @@ def main(logfile, job, protection=0):
 
 
 if __name__ == "__main__":
+    # Setup base logger - will log to /var/log/arm.log, /home/arm/logs/arm.log & stdout
+    # This will catch any permission errors
+    arm_log = logger.create_logger("ARM", logging.DEBUG, True, True, True)
     # Make sure all directories are fully setup
-    utils.arm_setup()
+    utils.arm_setup(arm_log)
     # Get arguments from arg parser
     args = entry()
     devpath = f"/dev/{args.devpath}"

@@ -7,6 +7,7 @@ Also triggers CD identification
 
 import os
 import logging
+import logging.handlers
 import time
 
 from arm.config.config import cfg
@@ -84,3 +85,51 @@ def clean_up_logs(logpath, loglife):
             logging.info(f"Deleting log file: {filename}")
             os.remove(fullname)
     return True
+
+
+def create_logger(app_name, log_level=logging.DEBUG, stdout=True, syslog=False, file=False):
+    """
+    From: https://gist.github.com/danielkraic/a1657f19bad9c158cbf9532e1ed1503b\n
+    Create logging object with logging to syslog, file and stdout\n
+    Will log to `/var/log/arm.log`\n
+    :param app_name: app name
+    :param log_level: logging log level
+    :param stdout: log to stdout
+    :param syslog: log to syslog
+    :param file: log to file
+    :return: logging object
+    """
+    # disable requests logging
+    # logging.getLogger("requests").setLevel(logging.ERROR)
+    # logging.getLogger("urllib3").setLevel(logging.ERROR)
+
+    # create logger
+    logger = logging.getLogger(app_name)
+    logger.setLevel(log_level)
+
+    # set log format to handlers
+    formatter = logging.Formatter('[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s')
+
+    if file:
+        # create file logger handler
+        file_handler = logging.FileHandler('/home/arm/logs/arm.log')
+        file_handler.setLevel(log_level)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
+    if syslog:
+        # create syslog logger handler
+        stream_handler = logging.handlers.SysLogHandler(address='/dev/log')
+        stream_handler.setLevel(log_level)
+        stream_file = logging.Formatter('%(name)s: %(message)s')
+        stream_handler.setFormatter(stream_file)
+        logger.addHandler(stream_handler)
+
+    if stdout:
+        # create stream logger handler
+        stream_print = logging.StreamHandler()
+        stream_print.setLevel(log_level)
+        stream_print.setFormatter(formatter)
+        logger.addHandler(stream_print)
+
+    return logger
