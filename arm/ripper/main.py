@@ -271,7 +271,7 @@ def main(logfile, job):
         # or
         # dvd with MAINFEATURE off and RIPMETHOD mkv
         hb_in_path = str(job.devpath)
-        if job.disctype == "bluray" or (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv"):
+        if job.disctype == "bluray" or (not cfg["MAINFEATURE"] and cfg["RIPMETHOD"] == "mkv") or cfg["RIPMETHOD"] == "backup_dvd":
             # send to makemkv for ripping
             # run MakeMKV and get path to output
             job.status = "ripping"

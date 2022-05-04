@@ -241,7 +241,7 @@ def get_track_info(srcpath, job):
     """
     logging.info("Using HandBrake to get information on all the tracks on the disc.  This will take a few minutes...")
 
-    cmd = f'{cfg["HANDBRAKE_CLI"]} -i {shlex.quote(srcpath)} -t 0 --scan'
+    cmd = f'{cfg["HANDBRAKE_LOCAL"]} -i {shlex.quote(srcpath)} -t 0 --scan'
 
     logging.debug(f"Sending command: {cmd}")
     hb = handbrake_char_encoding(cmd)
