@@ -285,7 +285,7 @@ def settings():
     # stats for info page
     with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
-    failed_rips = len(json_api.get_x_jobs("fail")['results'])
+    failed_rips = models.Job.query.filter_by(status="fail").count()
     total_rips = models.Job.query.filter_by().count()
     movies = models.Job.query.filter_by(video_type="movie").count()
     series = models.Job.query.filter_by(video_type="series").count()
