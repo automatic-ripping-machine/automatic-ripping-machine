@@ -161,7 +161,7 @@ if __name__ == "__main__":
     # Sleep to lower chances of db locked - unlikely to be needed
     time.sleep(1)
     # Add the job.config to db
-    config = Config(cfg, job_id=job.job_id)
+    config = Config(cfg, job_id=job.job_id)  # noqa: F811
     utils.database_adder(config)
 
     # Log version number
