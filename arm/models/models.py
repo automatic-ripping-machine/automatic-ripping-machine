@@ -13,6 +13,7 @@ from flask_login import LoginManager, current_user, login_user, UserMixin  # noq
 from arm.ripper import music_brainz
 from arm.ui import db
 from arm.config.config import cfg
+
 hidden_attribs = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD",
                   "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
                   "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY",
@@ -76,12 +77,25 @@ class Job(db.Model):
             self.video_type = cfg['VIDEOTYPE']
         self.parse_udev()
         self.get_pid()
+        self.stage = str(round(time.time() * 100))
 
         if self.disctype == "dvd" and not self.label:
             logging.info("No disk label Available. Trying lsdvd")
             command = f"lsdvd {devpath} | grep 'Disc Title' | cut -d ' ' -f 3-"
             lsdvdlbl = str(subprocess.check_output(command, shell=True).strip(), 'utf-8')
             self.label = lsdvdlbl
+
+    def __str__(self):
+        """Returns a string of the object"""
+
+        return_string = self.__class__.__name__ + ": "
+        for attr, value in self.__dict__.items():
+            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
+
+        return return_string
+
+    def __repr__(self):
+        return f'<Job {self.label}>'
 
     def parse_udev(self):
         """Parse udev for properties of current disc"""
@@ -164,15 +178,6 @@ class Job(db.Model):
         logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
         return logfile
 
-    def __str__(self):
-        """Returns a string of the object"""
-
-        return_string = self.__class__.__name__ + ": "
-        for attr, value in self.__dict__.items():
-            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
-
-        return return_string
-
     def pretty_table(self):
         """Returns a string of the prettytable"""
         pretty_table = PrettyTable()
@@ -195,9 +200,6 @@ class Job(db.Model):
             if '_sa_instance_state' not in key:
                 return_dict[str(key)] = str(value)
         return return_dict
-
-    def __repr__(self):
-        return f'<Job {self.label}>'
 
     def eject(self):
         """Eject disc if it hasn't previously been ejected"""
@@ -254,7 +256,7 @@ class Track(db.Model):
 
 
 class Config(db.Model):
-    """ Holds all of the config settings for each job
+    """ Holds all the config settings for each job
     as these may change between each job """
     CONFIG_ID = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('job.job_id'))
@@ -316,6 +318,16 @@ class Config(db.Model):
         self.__dict__.update(c)
         self.job_id = job_id
 
+    def __str__(self):
+        """Returns a string of the object"""
+        return_string = self.__class__.__name__ + ": "
+        for attr, value in self.__dict__.items():
+            if str(attr) in hidden_attribs and value:
+                value = HIDDEN_VALUE
+            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
+
+        return return_string
+
     def list_params(self):
         """Returns a string of the object"""
         return_string = self.__class__.__name__ + ": "
@@ -325,16 +337,6 @@ class Config(db.Model):
             if str(attr) in hidden_attribs and value:
                 value = HIDDEN_VALUE
             return_string = return_string + str(attr) + ":" + str(value)
-
-        return return_string
-
-    def __str__(self):
-        """Returns a string of the object"""
-        return_string = self.__class__.__name__ + ": "
-        for attr, value in self.__dict__.items():
-            if str(attr) in hidden_attribs and value:
-                value = HIDDEN_VALUE
-            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
 
         return return_string
 

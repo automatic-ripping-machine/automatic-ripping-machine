@@ -15,7 +15,7 @@ from arm.config.config import cfg
 
 def setup_logging(job):
     """Setup logging and return the path to the logfile for
-    redirection of external calls
+    redirection of external calls\n
     We need to return the full logfile path but set the job.logfile to just the filename
     """
     # This isn't catching all of them
@@ -24,34 +24,33 @@ def setup_logging(job):
             logfile = job.logfile = job.identify_audio_cd()
         else:
             logfile = "empty.log"
-        # set a logfull for empty.log and music_cd.log
-        logfull = os.path.join(cfg['LOGPATH'], logfile)
+        # set a log_full for empty.log and music_cd.log
+        log_full = os.path.join(cfg['LOGPATH'], logfile)
     else:
-        logfile = job.label + ".log"
-        new_log_file = f"{job.label}_{round(time.time() * 100)}.log"
-        temp_log_full = os.path.join(cfg['LOGPATH'], logfile)
-        logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
-        # If log already exist use the new_log_file
-        logfull = os.path.join(cfg['LOGPATH'], new_log_file) if os.path.isfile(temp_log_full) \
-            else os.path.join(cfg['LOGPATH'], str(job.label) + ".log")
-        job.logfile = logfile
+        log_file_name = f"{job.label}.log"
+        new_log_file = f"{job.label}_{job.stage}.log"
+        temp_log_full = os.path.join(cfg['LOGPATH'], log_file_name)
+        log_file = new_log_file if os.path.isfile(temp_log_full) else log_file_name
+        log_full = os.path.join(cfg['LOGPATH'], log_file)
+        job.logfile = log_file
+    # Remove any root loggers
     clean_loggers()
     # Debug formatting
     if cfg['LOGLEVEL'] == "DEBUG":
-        logging.basicConfig(filename=logfull,
+        logging.basicConfig(filename=log_full,
                             format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
                             datefmt=cfg['DATE_FORMAT'], level=cfg['LOGLEVEL'])
     else:
-        logging.basicConfig(filename=logfull, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
+        logging.basicConfig(filename=log_full, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
                             datefmt=cfg['DATE_FORMAT'], level=cfg['LOGLEVEL'])
 
-    # This stops apprise spitting our secret keys when users posts online
+    # These stop apprise and others spitting our secret keys if users post log online
     logging.getLogger("apprise").setLevel(logging.WARN)
     logging.getLogger("requests").setLevel(logging.WARN)
     logging.getLogger("urllib3").setLevel(logging.WARN)
 
     # Return the full logfile location to the logs
-    return logfull
+    return log_full
 
 
 def clean_loggers():
