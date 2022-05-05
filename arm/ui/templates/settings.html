@@ -91,17 +91,20 @@
                                                            class="form-control">
                                                 </label></li>
                                             <li class="list-group-item">Update Available:
-                                                <img src="static/img/{{ 'fail.png' if stats['updated'] else 'success.png' }}"
-                                                     alt="update image" width="20px" height="20px">
                                             <!-- Update A.R.M -->
-                                                {% if not stats['updated'] %}
+                                                {% if stats['updated'] %}
+                                                    <img src="static/img/success.png"
+                                                     alt="update image" width="20px" height="20px">  You are on the latest version
+                                                {% else %}
+                                                    <img src="static/img/fail.png"
+                                                     alt="update image" width="20px" height="20px">
                                                     <form id="updateArm" name="updateArm" method="post" action="">
                                                         {{ form.hidden_tag() }}
                                                         <button title="Not implemented yet!"
                                                                 class="btn btn-primary float-right" type="submit">Update
                                                             A.R.M
                                                         </button>
-                                                    </form>
+                                                    </form>New updates are available!
                                                 {% endif %}
                                             </li>
                                             <!-- Rip stats -->

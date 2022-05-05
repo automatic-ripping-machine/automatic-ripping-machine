@@ -730,15 +730,18 @@ def get_git_revision_short_hash() -> str:
                                    cwd=cfg['INSTALLPATH']).decode('ascii').strip()
 
 
-def git_check_updates(current_hash) -> bool:
+def git_check_updates(current_hash):
     """Check if we are on latest commit"""
-    subprocess.run(['git', 'fetch', 'https://github.com/1337-server/automatic-ripping-machine'],
-                   cwd=cfg['INSTALLPATH'], check=False)
-    git_log = subprocess.check_output(['git', 'rev-parse', 'HEAD'],
-                                      cwd=cfg['INSTALLPATH']).decode('utf8').strip()
+    x = subprocess.run(['git', 'fetch', 'https://github.com/1337-server/automatic-ripping-machine'],
+                       cwd=cfg['INSTALLPATH'], check=False)
+    # git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1
+    git_log = subprocess.check_output('git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1',
+                                      shell=True, cwd="/opt/arm").decode('ascii').strip()
+    app.logger.debug(x.returncode)
     app.logger.debug(git_log)
     app.logger.debug(current_hash)
-    return bool(current_hash == git_log)
+    app.logger.debug(bool(re.search(rf"\A{current_hash}", git_log)))
+    return bool(re.search(rf"\A{current_hash}", git_log))
 
 
 def git_get_updates() -> dict:
