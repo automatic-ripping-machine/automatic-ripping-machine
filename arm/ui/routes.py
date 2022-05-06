@@ -548,6 +548,7 @@ def customtitle():
     if request.args.get("title"):
         args = {
             'title': request.args.get("title"),
+            'title_manual': request.args.get("title"),
             'year': request.args.get("year")
         }
         ui_utils.database_updater(args, job)

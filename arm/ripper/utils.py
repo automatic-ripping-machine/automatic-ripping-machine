@@ -138,9 +138,15 @@ def fix_job_title(job):
     :return: corrected job.title
     """
     if job.year and job.year != "0000" and job.year != "":
-        job_title = f"{job.title} ({job.year})"
+        if job.title_manual:
+            job_title = f"{job.title_manual} ({job.year})"
+        else:
+            job_title = f"{job.title} ({job.year})"
     else:
-        job_title = f"{job.title}"
+        if job.title_manual:
+            job_title = f"{job.title_manual}"
+        else:
+            job_title = f"{job.title}"
     return job_title
 
 
@@ -161,9 +167,10 @@ def move_files(base_path, filename, job, is_main_feature=False):
     if filename == "":
         logging.info(f"{filename} is empty... Skipping")
         return None
+
     movie_path = job.path
     logging.info(f"Moving {job.video_type} {filename} to {movie_path}")
-    # For series there are no extras so always use the base path - not needed, but extra safe
+    # For series there are no extras so always use the base path
     extras_path = os.path.join(movie_path, job.config.EXTRAS_SUB) if job.video_type != "series" else movie_path
     make_dir(movie_path)
 
@@ -183,9 +190,9 @@ def move_files(base_path, filename, job, is_main_feature=False):
 def move_files_main(old_file, new_file, base_path):
     """
     The base function for moving files with logging\n
-    :param old_file: The file to be moved - must include full path
-    :param new_file: Final destination of file - must include full path
-    :param base_path: The base path of the new file - used for logging
+    :param str old_file: The file to be moved - must include full path
+    :param str new_file: Final destination of file - must include full path
+    :param str base_path: The base path of the new file - used for logging
     :return: None
     """
     if not os.path.isfile(new_file):
