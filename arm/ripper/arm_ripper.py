@@ -73,6 +73,14 @@ def rip_visual_media(have_dupes, job, logfile, protection):
         # Delete the transcode path and update the out path to RAW path
         utils.delete_raw_files([hb_out_path])
         hb_out_path = hb_in_path
+    # Update final path if user has set a custom/manual title
+    if job.title_manual:
+        # Remove the old final dir
+        utils.delete_raw_files([final_directory])
+        job_title = utils.fix_job_title(job)
+        final_directory = os.path.join(job.config.COMPLETED_PATH, type_sub_folder, job_title)
+        # Update the job.path with the final directory
+        utils.database_updater({'path': final_directory}, job)
     # Move to final folder
     move_files_post(hb_out_path, job)
     # Movie the movie poster if we have one - no longer needed, now handled by save_movie_poster
