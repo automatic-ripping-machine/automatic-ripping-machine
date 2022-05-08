@@ -2,7 +2,6 @@
 """
 Main file for dealing with connecting to MakeMKV and handling errors
 """
-import sys
 import os
 import logging
 import subprocess
