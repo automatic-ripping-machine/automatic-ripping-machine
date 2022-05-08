@@ -216,7 +216,8 @@ def database():
     app.logger.debug(armui_cfg)
     # Check for database file
     if os.path.isfile(cfg['DBFILE']):
-        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page, int(armui_cfg.database_limit), False)
+        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page,
+                                                                              int(armui_cfg.database_limit), False)
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
