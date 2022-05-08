@@ -120,7 +120,7 @@ function clone_arm() {
         sudo rm -rf arm
     fi
 
-    git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
+    git clone -b v2_devel --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm
 
     cd arm
     git submodule update --init --recursive
