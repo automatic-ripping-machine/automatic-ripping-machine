@@ -23,6 +23,7 @@ from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
     SettingsForm, UiSettingsForm, SetupForm, AbcdeForm
 from arm.ui.metadata import get_omdb_poster
 
+ui_utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 login_manager = LoginManager()
 login_manager.init_app(app)
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn

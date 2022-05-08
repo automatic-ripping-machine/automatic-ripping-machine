@@ -6,7 +6,7 @@ Thank you for contributing to the Automatic Ripping Machine.
 If you find a bug, please delete the existing log for that rip, change the log level to DEBUG in your arm.yaml file and then run the rip again to get a clean log for analysis.  You can drag and drop the log onto an issue comment to attach it to the issue.
 
 Also, since ARM relies on software such a HandBrake and MakeMKV try running those programs manually to see if it's an issue there.  If you run ARM in DEBUG mode you should
-be able to see the exact call out to each program.
+be able to see the exact call-out to each program.
 
 When submitting a bug, enhancement, or feature request please indicate if you are able/willing to make the changes yourself in a pull request.
 
@@ -24,7 +24,7 @@ Update the README file in your PR if your changes require them.
 After submitting your PR check that the Travis CI build passes, if it doesn't you can fix those issues with additional commits.
 
 ## Hardware/OS Documentation
-The installation guide is for Ubuntu18.04 and the devs run it in VMware, however, many are running ARM in different environments.  If you have successfully set ARM up in a different environment and would like to assist others, please submit a howto to the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).   
+The installation guide is for Ubuntu 20.04 and the devs run it in VMware, however, many are running ARM in different environments.  If you have successfully set ARM up in a different environment and would like to assist others, please submit a howto to the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).   
 
 ## Testing, Quality, etc.
 If you are interested in helping out with testing, quality, etc. please let us know.

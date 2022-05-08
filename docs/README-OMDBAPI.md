@@ -1,6 +1,6 @@
-README-OMDBAPI
+# README-OMDBAPI
 
-BACKGROUND:
+### BACKGROUND:
 
 The ARM uses a call to the omdbapi (Open Movie Database API) website to determine whether a video disc
 is a movie or a TV series. It also uses the database to determine the correct year for a movie, since
@@ -14,7 +14,8 @@ opposed to the "Movies" directory. I can also see plenty of future uses for this
 seemed prudent to repair it and make it work again. And I like shell scripts, and I wanted to
 contribute something that might truly be useful to an already amazing project.
 
-HISTORY:
+---
+### HISTORY:
 
 Full writeup is here: https://www.patreon.com/posts/api-is-going-10743518
 
@@ -28,8 +29,8 @@ $1.00/month on a 12-month commitment which allows for 100,000 queries per day. I
 that leaves me with the hope that the API may go public again on a limited basis at some point in
 the future, and it is upon this hope that I went ahead and made the minor code updates to support
 the requirement for an API key.
-
-HOW TO GET YOUR OWN OMDBAPI KEY:
+---
+### HOW TO GET YOUR OWN OMDBAPI KEY:
 
 Start by visiting http://www.omdbapi.com/ As of this writing (2017-06-08), you will find a
 link labeled "Become a Patron." That link will take you to the Patreon site, where you can sign up.
@@ -39,14 +40,14 @@ home page, look to the top menu bar, click on "Patrons --> API Key." Enter the e
 which you registered, and your API key will be emailed to you. Reports are that it may take a few hours
 but mine came within a minute or two.
 
-TO USE YOUR NEW OMDBAPI KEY:
+### TO USE YOUR NEW OMDBAPI KEY:
 
 Open the config file (usually /opt/arm/config) with your favorite text editor and navigate to the
 section 'OMDB_API_KEY=""', put your new API key between the double quotes, and save the file.
 That's it! The API key will be propagated throughout the ARM tool as appropriate, and any future
 links or tools using the API will be made aware.
 
-DEVELOPER'S NOTES:
+### DEVELOPER'S NOTES:
 
 Since not everyone interested in testing this update prior to pulling it into the master codebase
 may want to purchase an API key, and since each API key gives access to 100,000 queries per day,

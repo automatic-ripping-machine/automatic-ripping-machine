@@ -599,8 +599,8 @@ def arm_setup(arm_log):
         # Check directories for read/write permission -> create if they don't exist
         for folder in arm_directories:
             if not os.access(folder, os.R_OK):
+                # don't raise as we may be able to create
                 arm_log.error(f"Cant read from folder, Permission ERROR: {folder} - ARM Will Fail!")
-                raise IOError
             if not os.access(folder, os.W_OK):
                 arm_log.error(f"Cant write to folder, Permission ERROR: {folder} - ARM Will Fail!")
                 raise IOError

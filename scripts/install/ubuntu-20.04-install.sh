@@ -215,14 +215,14 @@ function setup_syslog_rule() {
         echo -e "${RED}ARM syslog rule found. Overwriting...${NC}"
         sudo rm /etc/rsyslog.d/30-arm.conf
     fi
-    sudo cp ./scripts/30-arm.conf /etc/rsyslog.d/30-arm.conf
+    sudo cp ./setup/30-arm.conf /etc/rsyslog.d/30-arm.conf
 }
 
 function install_armui_service() {
     ##### Run the ARM UI as a service
     echo -e "${RED}Installing ARM service${NC}"
     sudo mkdir -p /etc/systemd/system
-    sudo cp ./scripts/armui.service /etc/systemd/system/armui.service
+    sudo cp ./setup/armui.service /etc/systemd/system/armui.service
 
     sudo systemctl daemon-reload
     sudo chmod u+x /etc/systemd/system/armui.service
@@ -236,6 +236,10 @@ function install_armui_service() {
 
 function launch_setup() {
     echo -e "${RED}Launching ArmUI first-time setup${NC}"
+    # HOTFIX for DB issue #169
+    sudo -u arm mkdir -p /home/arm/logs/
+    sudo -u arm touch /home/arm/logs/arm.log
+    sudo -u arm /usr/bin/python3 /opt/arm/arm/ripper/main.py -d sr0 | at now
     sleep 5  # Waits 5 seconds, This gives time for service to start
     site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:${PORT}")
     if [[ -z "$site_addr" ]]; then
