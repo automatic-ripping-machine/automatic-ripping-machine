@@ -124,18 +124,17 @@ def setup_rawpath(job, raw_path):
         try:
             os.makedirs(raw_path)
         except OSError:
-            err = f"Couldn't create the base file path: {raw_path} Probably a permissions error"
-            logging.debug(err)
+            err = f"Couldn't create the base file path: {raw_path}. Probably a permissions error"
+            logging.error(err)
     else:
         logging.info(f"{raw_path} exists.  Adding timestamp.")
-        random_time = job.stage
-        raw_path = os.path.join(str(job.config.RAW_PATH), f"{job.title}_{random_time}")
+        raw_path = os.path.join(str(job.config.RAW_PATH), f"{job.title}_{job.stage}")
         logging.info(f"raw_path is {raw_path}")
         try:
             os.makedirs(raw_path)
         except OSError:
-            err = f"Couldn't create the base file path: {raw_path} Probably a permissions error"
-            sys.exit(err)
+            err = f"Couldn't create the base file path: {raw_path}. Probably a permissions error"
+            raise OSError(err) from OSError
     return raw_path
 
 
@@ -164,12 +163,12 @@ def prep_mkv(job):
                 if mkv_redux_error.returncode == 10:
                     logging.info("MakeMKV beta key updated successfully!")
                 else:
-                    raise MakeMkvRuntimeError(mkv_redux_error)
+                    raise MakeMkvRuntimeError(mkv_redux_error) from mkv_error
         elif mkv_error.returncode == 10:
             # For some fucking reason the nominal return value for `makemkvcon info` is 10
             logging.info("MakeMKV is working as expected!")
         else:
-            raise MakeMkvRuntimeError(mkv_error)
+            raise MakeMkvRuntimeError(mkv_error) from mkv_error
 
 
 def update_key():
@@ -185,7 +184,7 @@ def update_key():
     except subprocess.CalledProcessError as update_err:
         err = f"Error updating MakeMKV key, return code: {update_err.returncode}"
         logging.error(err)
-        raise RuntimeError(err)
+        raise RuntimeError(err) from update_err
 
 
 def get_track_info(mdisc, job):
@@ -316,6 +315,7 @@ def run_makemkv(cmd):
 
     logging.debug(f"Ripping with the following command: {cmd}")
     try:
+        # need to check output for '"0 titles saved'
         subprocess.run(cmd, capture_output=True, shell=True, check=True)
     except subprocess.CalledProcessError as mkv_error:
         raise MakeMkvRuntimeError(mkv_error) from mkv_error

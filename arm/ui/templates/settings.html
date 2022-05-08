@@ -4,7 +4,7 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-
+<script src="{{ url_for('static', filename='js/common.js') }}"></script>
     <style>
         .popover {
             white-space: pre-line;
@@ -309,6 +309,7 @@
     {{ super() }}
     <script type="application/javascript">
         $(function () {
+            let toastCount = 0;
             function sendSettings(formToSend, sendTo) {
                 $.ajax({
                     type: 'POST',
@@ -319,8 +320,8 @@
                         console.log(data)
                         var dt = new Date();
                         var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
-                        $('.toast-body').html(`Saved ${data.form} settings at ${time}`)
-                        $('.toast').toast('show');
+                        addToast("Saved Successfully",`Saved ${data.form} settings at ${time}`, toastCount);
+                        toastCount++;
                     }
                 });
             }

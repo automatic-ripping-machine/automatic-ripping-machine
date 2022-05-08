@@ -20,7 +20,7 @@ sys.path.append("/opt/arm")
 
 from arm.ripper import logger, utils, identify, arm_ripper  # noqa: E402
 from arm.config.config import cfg  # noqa: E402
-from arm.models.models import Job, Config  # noqa: E402
+from arm.models.models import Job, Config, Notifications  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
 
 
@@ -39,7 +39,7 @@ def log_udev_params(dev_path):
     context = pyudev.Context()
     device = pyudev.Devices.from_device_file(context, dev_path)
     for key, value in device.items():
-        logging.debug(key + ":" + value)
+        logging.debug(f"{key}:{value}")
     logging.debug("******************* End udev attributes *******************")
 
 
@@ -163,7 +163,6 @@ if __name__ == "__main__":
     # Add the job.config to db
     config = Config(cfg, job_id=job.job_id)  # noqa: F811
     utils.database_adder(config)
-
     # Log version number
     with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()

@@ -12,9 +12,16 @@ import psutil
 from flask import request
 from arm.config.config import cfg
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track
+from arm.models.models import Job, Config, Track, Notifications
 from arm.ui.forms import ChangeParamsForm
 from arm.ui.utils import job_id_validator, database_updater
+
+
+def get_notifications():
+    """Get all current notifications"""
+    all_notification = Notifications.query.filter_by(seen=False)
+    notification = [a.get_d() for a in all_notification]
+    return notification
 
 
 def get_x_jobs(job_status):
@@ -281,12 +288,19 @@ def delete_job(job_id, mode):
                     app.logger.debug(f"Admin requesting delete job {job_id} from database!")
                 except ValueError:
                     app.logger.debug("Admin is requesting to delete a job but didnt provide a valid job ID")
+                    notification = Notifications(f"Job: {job_id} couldn't be Deleted!",
+                                                 "Couldn't find a job with that ID")
+                    db.session.add(notification)
+                    db.session.commit()
                     return {'success': False, 'job': 'invalid', 'mode': mode, 'error': 'Not a valid job'}
                 else:
                     app.logger.debug("No errors: job_id=" + str(post_value))
                     Track.query.filter_by(job_id=job_id).delete()
                     Job.query.filter_by(job_id=job_id).delete()
                     Config.query.filter_by(job_id=job_id).delete()
+                    notification = Notifications(f"Job: {job_id} was Deleted!",
+                                                 f'Job with id: {job_id} was successfully deleted from the database')
+                    db.session.add(notification)
                     db.session.commit()
                     app.logger.debug("Admin deleting  job {} was successful")
                     json_return = {'success': True, 'job': job_id, 'mode': mode}
@@ -354,6 +368,10 @@ def abandon_job(job_id):
     }
     job = None
     if not job_id_validator(job_id):
+        notification = Notifications(f"Job: {job_id} isn't a valid job!",
+                                     f'Job with id: {job_id} doesnt match anything in the database')
+        db.session.add(notification)
+        db.session.commit()
         return json_return
 
     try:
@@ -361,6 +379,9 @@ def abandon_job(job_id):
         job.status = "fail"
         job_process = psutil.Process(job.pid)
         job_process.terminate()  # or p.kill()
+        notification = Notifications(f"Job: {job_id} was Abandoned!",
+                                     f'Job with id: {job_id} was successfully abandoned. No files were deleted!')
+        db.session.add(notification)
         db.session.commit()
         json_return['success'] = True
         app.logger.debug(f"Job {job_id} was abandoned successfully")
@@ -377,7 +398,10 @@ def abandon_job(job_id):
         db.session.rollback()
         app.logger.debug(f"Job {job_id} couldn't be abandoned. - {error}")
         json_return["Error"] = str(error)
-
+    if 'Error' in json_return:
+        notification = Notifications(f"Job ERROR: {job_id} couldn't be abandoned", json_return["Error"])
+        db.session.add(notification)
+        db.session.commit()
     return json_return
 
 
@@ -396,11 +420,24 @@ def change_job_params(config_id):
         # must be 1 for True 0 for False
         cfg["MAINFEATURE"] = config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
         args = {'disctype': job.disctype}
+        message = f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},' \
+                  f'Minimum Length={config.MINLENGTH}, Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}'
         # We don't need to set the config as they are set with job commit
+        notification = Notifications(f"Job: {job.job_id} Config updated!", message)
+        db.session.add(notification)
         database_updater(args, job)
 
-        return {'message': f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},'
-                f'Minimum Length={config.MINLENGTH}, '
-                f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}', 'form': 'change_job_params',
-                "success": True}
+        return {'message': message, 'form': 'change_job_params', "success": True}
     return {'return': '', 'success': False}
+
+
+def read_notification(notify_id):
+    """Read notification, disable it from being show"""
+    return_json = {'success': False, 'mode': 'read_notification', 'message': ""}
+    notification = Notifications.query.filter_by(id=notify_id, seen=0).first()
+    if notification:
+        database_updater({'seen': 1, 'dismiss_time': datetime.datetime.now()}, notification)
+        return_json['success'] = True
+    else:
+        return_json['message'] = "Notification already read or not found!"
+    return return_json

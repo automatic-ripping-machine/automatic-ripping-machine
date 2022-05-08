@@ -94,24 +94,22 @@ def check_db_version(install_path, db_file):
         app.logger.info("Database is up to date")
     else:
         app.logger.info(
-            "Database out of date. Head is " + head_revision + " and database is " + db_version
-            + ".  Upgrading database...")
+            f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
         with app.app_context():
             unique_stamp = round(time() * 100)
-            app.logger.info("Backuping up database '" + db_file + "' to '" + db_file + str(unique_stamp) + "'.")
+            app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
             shutil.copy(db_file, db_file + "_" + str(unique_stamp))
             flask_migrate.upgrade(mig_dir)
         app.logger.info("Upgrade complete.  Validating version level...")
 
         c.execute("SELECT version_num FROM alembic_version")
         db_version = c.fetchone()[0]
-        app.logger.debug("Database version is: " + db_version)
+        app.logger.debug(f"Database version is: {db_version}")
         if head_revision == db_version:
             app.logger.info("Database is now up to date")
         else:
-            app.logger.error("Database is still out of date. "
-                             "Head is " + head_revision + " and database is " + db_version
-                             + ".  Exiting arm.")
+            app.logger.error(f"Database is still out of date. "
+                             f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
 
 
 def make_dir(path):
@@ -255,7 +253,7 @@ def setup_database():
         db.create_all()
         db.session.commit()
         #  push the database version arm is looking for
-        version = models.AlembicVersion('c54d68996895')
+        version = models.AlembicVersion('f1054468c1c7')
         ui_config = models.UISettings(1, 1, "spacelab", "en", 10, 200)
         # Create default user to save problems with ui and ripper having diff setups
         hashed = bcrypt.gensalt(12)
@@ -460,13 +458,12 @@ def trigger_restart():
 
     notes: This has been removed, breaks and causes errors when run as 'arm' user
     """
-    import datetime
 
     def set_file_last_modified(file_path, date_time):
         dt_epoch = date_time.timestamp()
         os.utime(file_path, (dt_epoch, dt_epoch))
 
-    now = datetime.datetime.now()
+    now = datetime.now()
     arm_main = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routes.py")
     set_file_last_modified(arm_main, now)
 
@@ -733,12 +730,12 @@ def get_git_revision_short_hash() -> str:
 
 def git_check_updates(current_hash) -> bool:
     """Check if we are on latest commit"""
-    x = subprocess.run(['git', 'fetch', 'https://github.com/1337-server/automatic-ripping-machine'],
+    git_update = subprocess.run(['git', 'fetch', 'https://github.com/1337-server/automatic-ripping-machine'],
                        cwd=cfg['INSTALLPATH'], check=False)
     # git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1
     git_log = subprocess.check_output('git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1',
                                       shell=True, cwd="/opt/arm").decode('ascii').strip()
-    app.logger.debug(x.returncode)
+    app.logger.debug(git_update.returncode)
     app.logger.debug(git_log)
     app.logger.debug(current_hash)
     app.logger.debug(bool(re.search(rf"\A{current_hash}", git_log)))

@@ -41,7 +41,7 @@ $(document).ready(function () {
         }
     });
     $("#save-no").bind("click", function () {
-            $(MODEL_ID).modal("toggle");
+        $(MODEL_ID).modal("toggle");
     });
     $(MODEL_ID).on("show.bs.modal", function (event) {
         const button = $(event.relatedTarget); // Button that triggered the modal
@@ -54,10 +54,10 @@ $(document).ready(function () {
 });
 
 /**
-* Function to update the current progress
-* @param    {Class} job    current job
-* @param    {Class} oldJob    Copy of old job
-*/
+ * Function to update the current progress
+ * @param    {Class} job    current job
+ * @param    {Class} oldJob    Copy of old job
+ */
 function updateProgress(job, oldJob) {
     const subProgressBar = `<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
                              aria-valuenow="${job.progress_round}" aria-valuemin="0" aria-valuemax="100" 
@@ -90,22 +90,23 @@ function updateProgress(job, oldJob) {
  * @param job current job object
  * @returns {boolean} True if job is transcoding or disc is an audio disc
  */
-function checkTranscodeStatus(job){
+function checkTranscodeStatus(job) {
     let status = false;
     // HandBrake has the disc/files and should be outputting stage and eta
-    if(job.status === "transcoding") {
+    if (job.status === "transcoding") {
         status = true;
     }
     // MakeMKV has the disc and should be outputting stage and eta
-    if(job.status === "ripping" && job.stage !== "" && job.progress){
+    if (job.status === "ripping" && job.stage !== "" && job.progress) {
         status = true;
     }
     // abcde is ripping the audio disc and is outputting stage and eta
-    if(job.disctype === "music" && job.stage !== "") {
+    if (job.disctype === "music" && job.stage !== "") {
         status = true;
     }
     return status;
 }
+
 /**
  * Function to check and update the job values
  * @param {jQuery} item    Dom item to update
@@ -114,13 +115,13 @@ function checkTranscodeStatus(job){
  * @param itemContents    item of job class to update
  */
 function updateContents(item, _job, keyString, itemContents) {
-    if(item[0] === undefined){
+    if (item[0] === undefined) {
         console.log(item)
         return false;
     }
     if (item[0].innerText.includes(itemContents)) {
         //console.log("nothing to do - values are current")
-    }else{
+    } else {
         item[0].innerHTML = `<b> ${keyString}: </b>${itemContents}`;
         console.log(`${item[0].innerText} - <b>${keyString}: </b>${itemContents}`)
         console.log(item[0].innerText.includes(itemContents))
@@ -138,7 +139,7 @@ function updateJobItem(oldJob, job) {
     const posterUrl = $(`#jobId${job.job_id}_poster_url`);
     const status = $(`#jobId${job.job_id}_status`);
     // Update card header ( Title (Year) )
-    if (cardHeader[0].innerText !== `${job.title} (${job.year})`){
+    if (cardHeader[0].innerText !== `${job.title} (${job.year})`) {
         cardHeader[0].innerText = `${job.title} (${job.year})`;
     }
     // Update card poster image
@@ -254,19 +255,38 @@ function refreshJobsSuccess(data, serverIndex, serverUrl, serverCount) {
     return serverCount;
 }
 
+function checkNotifications(data) {
+    $.each(data.notes, function (notifyIndex, note) {
+        if ($(`#toast${note.id}`).length) {
+            // Exists.
+            console.log("element exists, skipping add");
+        }else {
+            console.log(note);
+            addToast(note.title, note.message, note.id);
+        }
+    });
+}
+
 /**
  * Function set as an interval to update all jobs from api
  */
 function refreshJobs() {
     let serverCount = activeServers.length;
-    $.each(activeServers, function(serverIndex, serverUrl) {
+    $.each(activeServers, function (serverIndex, serverUrl) {
         $.ajax({
             url: serverUrl + "/json?mode=joblist",
             type: "get",
             timeout: 2000,
-            error: function() { --serverCount; },
-            success: function (data) {serverCount = refreshJobsSuccess(data, serverIndex, serverUrl, serverCount);},
-            complete: function() {refreshJobsComplete();}
+            error: function () {
+                --serverCount;
+            },
+            success: function (data) {
+                serverCount = refreshJobsSuccess(data, serverIndex, serverUrl, serverCount);
+            },
+            complete: function (data) {
+                refreshJobsComplete();
+                checkNotifications(data.responseJSON);
+            }
         });
     });
 }
@@ -288,5 +308,3 @@ function pushChildServers() {
         childs.html(`Children: <br />${childLinks.join("<br />")}`);
     }
 }
-
-const intervalId = window.setInterval(refreshJobs, 5000);

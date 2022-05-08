@@ -35,13 +35,16 @@ def notify(job, title, body):
     :param body: body of the notification
     :return: None
     """
-
     # Prepend Site Name if configured, append Job ID if configured
     if cfg["ARM_NAME"] != "":
         title = f"[{cfg['ARM_NAME']}] - {title}"
     if cfg["NOTIFY_JOBID"]:
         title = f"{title} - {job.job_id}"
+    # Send to local db
+    notification = models.Notifications(title, body)
+    database_adder(notification)
 
+    # Sent to remote sites
     # Create an Apprise instance
     apobj = apprise.Apprise()
     if cfg["PB_KEY"] != "":
@@ -72,12 +75,15 @@ def notify_entry(job):
     :return: None
     """
     # TODO make this better or merge with notify/class
+    notification = models.Notifications(f"New Job: {job.job_id} has started. Disctype: {job.disctype}",
+                                        f"New job has started to rip - {job.label},"
+                                        f"{job.disctype} at {datetime.datetime.now()}")
+    database_adder(notification)
     if job.disctype in ["dvd", "bluray"]:
         # Send the notifications
         notify(job, NOTIFY_TITLE,
-               f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {job.config.MAINFEATURE}"
-               f".  Edit entry here: http://{check_ip()}:"
-               f"{job.config.WEBSERVER_PORT}/jobdetail?job_id={job.job_id}")
+               f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {job.config.MAINFEATURE}."
+               f"Edit entry here: http://{check_ip()}:{job.config.WEBSERVER_PORT}/jobdetail?job_id={job.job_id}")
     elif job.disctype == "music":
         notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks")
     elif job.disctype == "data":
@@ -642,6 +648,7 @@ def database_updater(args, job, wait_time=90):
 
 def database_adder(obj_class):
     """
+    Adds model item to db\n
     Used to stop database locked error\n
     :param obj_class: Job/Config/Track/ etc
     :return: True if success

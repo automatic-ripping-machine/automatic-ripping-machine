@@ -16,9 +16,11 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
                 integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
                 crossorigin="anonymous"></script>
-        <link rel="stylesheet" href="{{ url_for('static', filename='/css/bootstrap.min.css') }}">
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-        <link rel="icon" type="image/png" href="static/img/favicon.png">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/{{  armui_cfg['bootstrap_skin'] if armui_cfg['bootstrap_skin'] != "" else "spacelab" }}/bootstrap.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js"
+                integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+                crossorigin="anonymous"></script>
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
         <script type="application/javascript">
             function activeTab(tab) {
                 $("#nav" + tab).addClass("active");
@@ -41,25 +43,11 @@
 </head>
 <body style="padding: 70px 15px 50px;">
 {% block nav %}
-        <!-- TOAST -->
+    <!-- TOAST -->
     <div aria-live="polite" aria-atomic="true">
         <!-- Position it -->
-        <div style="position: absolute; top: 100px; right: 300px;">
-            <div role="alert" aria-live="assertive" aria-atomic="true" class="toast position-fixed"
-                 data-autohide="false" style="z-index:1000">
-                <div class="toast-header">
-                    <img src="static/img/apple-touch-icon.png" class="rounded mr-2" alt="arm message" height="20px"
-                         width="20px">
-                    <strong class="mr-auto">A.R.M Message</strong>
-                    <small>now</small>
-                    <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="toast-body">
-                    ...
-                </div>
-            </div>
+        <div id="toastHolder" style="position: fixed; top: 30%; right: 10%;z-index: 1000;">
+            <!-- TOASTS -->
         </div>
     </div>
     <!-- Main -->

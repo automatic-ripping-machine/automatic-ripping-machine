@@ -25,6 +25,9 @@ from arm.ui.metadata import get_omdb_poster
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+# This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
+armui_cfg = models.UISettings.query.filter_by().first()
+app.jinja_env.globals.update(armui_cfg=armui_cfg)
 
 
 @login_manager.user_loader
@@ -83,8 +86,7 @@ def setup():
     app.logger.debug("perm " + str(perm_file))
     # Check for install file and that db is correctly setup
     if perm_file.exists() and ui_utils.setup_database():
-        flash(str(perm_file) + " exists, setup cannot continue."
-                               " To re-install please delete this file.", "danger")
+        flash(f"{perm_file} exists, setup cannot continue. To re-install please delete this file.", "danger")
         return redirect("/")
     dir0 = Path(PurePath(cfg['DBFILE']).parent)
     dir1 = Path(cfg['RAW_PATH'])
@@ -211,9 +213,10 @@ def database():
     """
 
     page = request.args.get('page', 1, type=int)
+    app.logger.debug(armui_cfg)
     # Check for database file
     if os.path.isfile(cfg['DBFILE']):
-        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page, 100, False)
+        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page, int(armui_cfg.database_limit), False)
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
@@ -242,7 +245,8 @@ def feed_json():
         'success': 'success',
         'joblist': 'joblist',
         'mode': mode,
-        'config_id': request.args.get('config_id')
+        'config_id': request.args.get('config_id'),
+        'notify_id': request.args.get('notify_id')
     }
     # Valid modes that should trigger functions
     valid_modes = {
@@ -255,13 +259,15 @@ def feed_json():
         'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
         'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
         'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)},
-        'change_job_params': {'funct': json_api.change_job_params, 'args': ('config_id',)}
+        'change_job_params': {'funct': json_api.change_job_params, 'args': ('config_id',)},
+        'read_notification': {'funct': json_api.read_notification, 'args': ('notify_id',)}
     }
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
         app.logger.debug(args)
         return_json = valid_modes[mode]['funct'](*args)
     app.logger.debug(f"Json - {return_json}")
+    return_json['notes'] = json_api.get_notifications()
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
                               mimetype=constants.JSON_TYPE)
@@ -305,8 +311,6 @@ def settings():
     # Get the current config, so we can show the current values
     arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     current_cfg = ui_utils.get_settings(arm_cfg_file)
-    # Get arm ui settings
-    armui_cfg = models.UISettings.query.filter_by().first()
     # load abcde config
     abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE']).strip()
     form = SettingsForm()
@@ -347,7 +351,6 @@ def save_ui_settings():
     - allows the user to update the armui_settings
     This function needs to trigger a restart of flask for debugging to update the values
     """
-    armui_cfg = models.UISettings.query.filter_by().first()
     form = UiSettingsForm()
     success = False
     database_arguments = {}
@@ -364,9 +367,8 @@ def save_ui_settings():
             'database_limit': format(form.database_limit.data),
         }
         ui_utils.database_updater(database_arguments, armui_cfg)
-        db.session.refresh(armui_cfg)
         success = True
-
+    app.jinja_env.globals.update(armui_cfg=armui_cfg)
     return {'success': success, 'settings': database_arguments, 'form': 'arm ui settings'}
 
 
@@ -551,6 +553,10 @@ def customtitle():
             'title_manual': request.args.get("title"),
             'year': request.args.get("year")
         }
+        notification = models.Notifications(f"Job: {job.job_id} was updated",
+                                            f'Title: {job.title} ({job.year}) was updated to '
+                                            f'{request.args.get("title")} ({request.args.get("year")})')
+        db.session.add(notification)
         ui_utils.database_updater(args, job)
         flash(f'Custom title changed. Title={job.title}, Year={job.year}.', "success")
         return redirect(url_for('home'))
@@ -630,6 +636,10 @@ def updatetitle():
     job.imdb_id = job.imdb_id_manual = request.args.get('imdbID')
     job.poster_url = job.poster_url_manual = request.args.get('poster')
     job.hasnicetitle = True
+    notification = models.Notifications(f"Job: {job.job_id} was updated",
+                                        f'Title: {old_title} ({old_year}) was updated to '
+                                        f'{request.args.get("title")} ({request.args.get("year")})')
+    db.session.add(notification)
     db.session.commit()
     flash(f'Title: {old_title} ({old_year}) was updated to '
           f'{request.args.get("title")} ({request.args.get("year")})', "success")

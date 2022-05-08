@@ -24,7 +24,7 @@ login_manager.init_app(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# We should really gen a key for each system
+# We should really generate a key for each system
 app.config['SECRET_KEY'] = "Big secret key"
 app.config['LOGIN_DISABLED'] = cfg['DISABLE_LOGIN']
 
