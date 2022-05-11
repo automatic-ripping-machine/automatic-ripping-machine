@@ -1,6 +1,4 @@
 #!/bin/bash
-#
-# set up a user and switch to that user
 
 set -euo pipefail
 
