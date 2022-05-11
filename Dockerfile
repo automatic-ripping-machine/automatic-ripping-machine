@@ -15,11 +15,15 @@ RUN rm -rf /opt/arm/venv
 # Remove SSH
 RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 
+# Add ARMui service
+RUN mkdir /etc/service/armui
+COPY ./scripts/docker/runsv/armui.sh /etc/service/armui/run
+
 # Create our startup scripts
 RUN mkdir -p /etc/my_init.d
 COPY ./scripts/docker/runit/start_udev.sh /etc/my_init.d/start_udev.sh
-COPY ./scripts/docker/runit/start_armui.sh /etc/my_init.d/start_armui.sh
 COPY ./scripts/docker/runit/docker-entrypoint.sh /etc/my_init.d/docker-entrypoint.sh
+RUN chmod +x /etc/my_init.d/*.sh
 
 # We need to use a modified udev
 COPY ./scripts/docker/custom_udev /etc/init.d/udev
