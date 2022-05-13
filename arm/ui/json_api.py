@@ -94,12 +94,12 @@ def process_makemkv_logfile(logfile, job, job_results):
     Process the logfile and find current status\n
     :return: job_results dict
     """
-    line = read_all_log_lines(logfile)
+    lines = read_log_line(logfile)
     # PRGC:5057,3,"Analyzing seamless segments"
     # Correctly get last entry for progress bar
-    for one_line in line:
-        job_progress_status = re.search(r"PRGV:(\d{3,}),(\d+),(\d{3,})$", str(one_line))
-        job_stage_index = re.search(r"PRGC:\d+,(\d+),\"([\w -]{2,})\"$", str(one_line))
+    for line in lines:
+        job_progress_status = re.search(r"PRGV:(\d{3,}),(\d+),(\d{3,})", str(line))
+        job_stage_index = re.search(r"PRGC:\d+,(\d+),\"([\w -]{2,})\"", str(line))
         if job_progress_status:
             job_progress = f"{percentage(job_progress_status.group(1), job_progress_status.group(3)):.2f}"
             job.progress = job_results['progress'] = job_progress
@@ -109,6 +109,7 @@ def process_makemkv_logfile(logfile, job, job_results):
             try:
                 current_index = f"{(int(job_stage_index.group(1)) + 1)}/{job.no_of_titles} - {job_stage_index.group(2)}"
                 job.stage = job_results['stage'] = current_index
+                db.session.commit()
             except Exception as error:
                 job.stage = f"Unknown -  {error}"
     job.eta = "Unknown"
@@ -123,11 +124,15 @@ def process_handbrake_logfile(logfile, job, job_results):
     :param job_results: the {} of
     :return: should be dict for the json api
     """
-    line = read_log_line(logfile)
-    # This correctly get the very last ETA and %
-    job_status = re.search(r"Encoding: task (\d of \d), (\d{1,3}\.\d{2}) %.{0,40}"
-                           r"ETA ([\dhms]*?)\)(?!\\rEncod)", str(line))
-
+    job_status = None
+    job_status_index = None
+    lines = read_log_line(logfile)
+    for line in lines:
+        # This correctly get the very last ETA and %
+        job_status = re.search(r"Encoding: task (\d of \d), (\d{1,3}\.\d{2}) %.{0,40}"
+                               r"ETA ([\dhms]*?)\)(?!\\rEncod)", str(line))
+        job_status_index = re.search(r"Processing track #(\d{1,2}) of (\d{1,2})"
+                                     r"(?!.*Processing track #)", str(line))
     if job_status:
         app.logger.debug(job_status.group())
         job.stage = job_status.group(1)
@@ -139,10 +144,6 @@ def process_handbrake_logfile(logfile, job, job_results):
         job_results['eta'] = job.eta
         job_results['progress_round'] = int(float(job_results['progress']))
 
-    # INFO ARM: handbrake.handbrake_all Processing track #1 of 42. Length is 8602 seconds.
-    line = read_all_log_lines(logfile)
-    job_status_index = re.search(r"Processing track #(\d{1,2}) of (\d{1,2})"
-                                 r"(?!.*Processing track #)", str(line))
     if job_status_index:
         try:
             current_index = int(job_status_index.group(1))
@@ -199,10 +200,10 @@ def read_log_line(log_file):
     :return:
     """
     try:
-        line = subprocess.check_output(['tail', '-n', '1', log_file])
+        line = subprocess.check_output(['tail', '-n', '20', log_file]).splitlines()
     except subprocess.CalledProcessError:
         app.logger.debug("Error while reading logfile for ETA")
-        line = ""
+        line = ["", ""]
     return line
 
 

@@ -2,6 +2,7 @@
 import sys  # noqa: F401
 import os  # noqa: F401
 from getpass import getpass  # noqa: F401
+from logging.config import dictConfig
 from flask import Flask, logging, current_app  # noqa: F401
 from flask.logging import default_handler  # noqa: F401
 from flask_sqlalchemy import SQLAlchemy
@@ -12,8 +13,23 @@ from flask_login import LoginManager
 import bcrypt  # noqa: F401
 from arm.config.config import cfg
 
-sqlitefile = 'sqlite:///' + cfg['DBFILE']
 
+sqlitefile = 'sqlite:///' + cfg['DBFILE']
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['wsgi']
+    }
+})
 app = Flask(__name__)
 csrf = CSRFProtect()
 csrf.init_app(app)

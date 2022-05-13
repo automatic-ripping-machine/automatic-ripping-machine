@@ -254,7 +254,7 @@ def setup_database():
         db.session.commit()
         #  push the database version arm is looking for
         version = models.AlembicVersion('f1054468c1c7')
-        ui_config = models.UISettings(1, 1, "spacelab", "en", 10, 200)
+        ui_config = models.UISettings(1, 1, "spacelab", "en", 2000, 200)
         # Create default user to save problems with ui and ripper having diff setups
         hashed = bcrypt.gensalt(12)
         default_user = models.User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),

@@ -27,7 +27,7 @@ ui_utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 login_manager = LoginManager()
 login_manager.init_app(app)
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
-armui_cfg = models.UISettings.query.filter_by().first()
+armui_cfg = models.UISettings.query.get(1)
 app.jinja_env.globals.update(armui_cfg=armui_cfg)
 
 
@@ -355,23 +355,20 @@ def save_ui_settings():
     """
     form = UiSettingsForm()
     success = False
-    database_arguments = {}
+    arm_ui_cfg = models.UISettings.query.get(1)
     if form.validate_on_submit():
-        # json.loads("false".lower())
         use_icons = (str(form.use_icons.data).strip().lower() == "true")
         save_remote_images = (str(form.save_remote_images.data).strip().lower() == "true")
-        database_arguments = {
-            'index_refresh': format(form.index_refresh.data),
-            'use_icons': use_icons,
-            'save_remote_images': save_remote_images,
-            'bootstrap_skin': format(form.bootstrap_skin.data),
-            'language': format(form.language.data),
-            'database_limit': format(form.database_limit.data),
-        }
-        ui_utils.database_updater(database_arguments, armui_cfg)
+        arm_ui_cfg.index_refresh = format(form.index_refresh.data)
+        arm_ui_cfg.use_icons = use_icons
+        arm_ui_cfg.save_remote_images = save_remote_images
+        arm_ui_cfg.bootstrap_skin = format(form.bootstrap_skin.data)
+        arm_ui_cfg.language = format(form.language.data)
+        arm_ui_cfg.database_limit = format(form.database_limit.data)
+        db.session.commit()
         success = True
-    app.jinja_env.globals.update(armui_cfg=armui_cfg)
-    return {'success': success, 'settings': database_arguments, 'form': 'arm ui settings'}
+    app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
+    return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
 
 
 @app.route('/save_abcde_settings', methods=['POST'])
