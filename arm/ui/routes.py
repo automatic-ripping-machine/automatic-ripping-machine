@@ -24,6 +24,7 @@ from arm.ui.metadata import get_omdb_poster
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+server = models.ServerInfo()
 
 
 @login_manager.user_loader
@@ -583,7 +584,6 @@ def systeminfo():
     """
     Server System information and details on connected CD, DVD and/or BluRay Drives
     """
-    server = models.ServerInfo()
     #CPU
     cpu_name = server.cpu_name
     cpu_usage = server.cpu_util
@@ -626,47 +626,30 @@ def home():
     # Force a db update
     ui_utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
-    # Hard drive space
-    try:
-        freegb = psutil.disk_usage(cfg['TRANSCODE_PATH']).free
-        freegb = round(freegb / 1073741824, 1)
-        arm_percent = psutil.disk_usage(cfg['TRANSCODE_PATH']).percent
-        mfreegb = psutil.disk_usage(cfg['COMPLETED_PATH']).free
-        mfreegb = round(mfreegb / 1073741824, 1)
-        media_percent = psutil.disk_usage(cfg['COMPLETED_PATH']).percent
-    except FileNotFoundError:
-        freegb = 0
-        arm_percent = 0
-        mfreegb = 0
-        media_percent = 0
-        app.logger.debug("ARM folders not found")
-        flash("There was a problem accessing the ARM folders. Please make sure you have setup ARM<br/>"
-              "Setup can be started by visiting <a href=\"/setup\">setup page</a> ARM will not work correctly until"
-              "until you have added an admin account", "danger")
-    #  RAM
-    memory = psutil.virtual_memory()
-    mem_total = round(memory.total / 1073741824, 1)
-    mem_free = round(memory.available / 1073741824, 1)
-    mem_used = round(memory.used / 1073741824, 1)
-    ram_percent = memory.percent
+    """
+    Server System information and details on connected CD, DVD and/or BluRay Drives
+    """
+    #CPU
+    cpu_name = server.cpu_name
+    cpu_usage = server.cpu_util
+    cpu_temp = server.cpu_temp
+    cpu = (cpu_name, cpu_usage, cpu_temp)
+    #RAM
+    mem_total = server.memory_total
+    mem_free = server.memory_free
+    mem_used = server.memory_used
+    mem_percent = server.memory_percent
+    #disk space
+    transcode_free = server.storage_transcode_free
+    transcode_percent = server.storage_transcode_percent
+    completed_free = server.storage_completed_free
+    completed_percent = server.storage_completed_percent
+    arm_path = cfg['TRANSCODE_PATH']
+    media_path = cfg['COMPLETED_PATH']
 
     armname = ""
     if cfg['ARM_NAME'] != "":
         armname = f"[{cfg['ARM_NAME']}] - "
-
-    #  get out cpu info
-    try:
-        our_cpu = ui_utils.get_processor_name()
-        cpu_usage = psutil.cpu_percent()
-    except EnvironmentError:
-        our_cpu = "Not found"
-        cpu_usage = "0"
-
-    try:
-        temps = psutil.sensors_temperatures()
-        temp = temps['coretemp'][0][1]
-    except KeyError:
-        temp = temps = None
 
     if os.path.isfile(cfg['DBFILE']):
         try:
@@ -677,12 +660,12 @@ def home():
     else:
         jobs = {}
 
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb,
-                           arm_percent=arm_percent, media_percent=media_percent,
-                           jobs=jobs, cpu=our_cpu, cputemp=temp, cpu_usage=cpu_usage,
-                           ram=mem_total, ramused=mem_used, ramfree=mem_free, ram_percent=ram_percent,
-                           ramdump=str(temps), armname=armname, children=cfg['ARM_CHILDREN'])
-
+    return render_template('index.html', jobs=jobs, armname=armname, children=cfg['ARM_CHILDREN'],
+                        cpu_name=cpu_name, cpu_temp=cpu_temp, cpu_usage=cpu_usage,
+                        mem_total=mem_total, mem_used=mem_used, mem_free=mem_free, mem_percent=mem_percent,
+                        transcode_free=transcode_free, transcode_percent=transcode_percent,
+                        completed_free=completed_free, completed_percent=completed_percent,
+                        arm_path=arm_path, media_path=media_path)
 
 @app.route('/import_movies')
 @login_required

@@ -537,3 +537,4 @@ class ServerInfo:
                   "Setup can be started by visiting <a href=\"/setup\">setup page</a> ARM will not work correctly until"
                   "you have added an admin account", "danger")
         return disk_space, disk_percent
+        
