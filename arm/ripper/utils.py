@@ -859,7 +859,6 @@ def check_for_wait(job, config):
             time.sleep(5)
             sleep_time += 5
             db.session.refresh(job)
-            db.session.refresh(config)
             if job.title_manual:
                 logging.info("Manual override found.  Overriding auto identification values.")
                 job.updated = True
