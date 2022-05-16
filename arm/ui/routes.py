@@ -633,6 +633,43 @@ def updatetitle():
     flash(f'Title: {job.title_auto} ({job.year_auto}) was updated to {new_title} ({new_year})', "success")
     return redirect("/")
 
+@app.route('/systeminfo')
+@login_required
+def systeminfo():
+    """
+    Server System information and details on connected CD, DVD and/or BluRay Drives
+    """
+    server = models.ServerInfo()
+    #CPU
+    cpu_name = server.cpu_name
+    cpu_usage = server.cpu_util
+    cpu_temp = server.cpu_temp
+    cpu = (cpu_name, cpu_usage, cpu_temp)
+    #RAM
+    mem_total = server.memory_total
+    mem_free = server.memory_free
+    mem_used = server.memory_used
+    mem_percent = server.memory_percent
+    #disk space
+    transcode_free = server.storage_transcode_free
+    transcode_percent = server.storage_transcode_percent
+    completed_free = server.storage_completed_free
+    completed_percent = server.storage_completed_percent
+    arm_path = cfg['TRANSCODE_PATH']
+    media_path = cfg['COMPLETED_PATH']
+    #disks
+    drive_name = "LG DVD"
+    drive_type = "DVD/CD"
+    drive_mount = "/dev/sr0"
+    drive_status = "Closed"
+    drive_job = "None"
+
+    return render_template('systeminfo.html', cpu_name=cpu_name, cpu_temp=cpu_temp, cpu_usage=cpu_usage,
+                            mem_total=mem_total, mem_used=mem_used, mem_free=mem_free, mem_percent=mem_percent,
+                            transcode_free=transcode_free, transcode_percent=transcode_percent,
+                            completed_free=completed_free, completed_percent=completed_percent,
+                            arm_path=arm_path, media_path=media_path,
+                            drive_name=drive_name, drive_type=drive_type, drive_mount=drive_mount, drive_status=drive_status, drive_job=drive_job)
 
 @app.route('/')
 @app.route('/index.html')
