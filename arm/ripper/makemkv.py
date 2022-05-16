@@ -52,7 +52,7 @@ def makemkv(logfile, job):
     rawpath = setup_rawpath(job, os.path.join(str(cfg["RAW_PATH"]), str(job.title)))
 
     # rip bluray
-    if cfg["RIPMETHOD"] == "backup" and job.disctype == "bluray":
+    if (cfg["RIPMETHOD"] == "backup" or cfg["RIPMETHOD"] == "backup_dvd") and job.disctype == "bluray":
         # backup method
         cmd = f'makemkvcon backup --decrypt {cfg["MKV_ARGS"]} ' \
               f'-r disc:{mdisc.strip()} {shlex.quote(rawpath)}>> {logfile}'
