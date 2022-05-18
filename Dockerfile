@@ -24,8 +24,7 @@ RUN chmod +x /etc/service/armui/run
 
 # Create our startup scripts
 RUN mkdir -p /etc/my_init.d
-COPY ./scripts/docker/runit/arm_user_setup.sh /etc/my_init.d/arm_user_setup.sh
-COPY ./scripts/docker/runit/entrypoint.sh /etc/my_init.d/entrypoint.sh
+COPY ./scripts/docker/runit/arm_user_files_setup.sh /etc/my_init.d/arm_user_files_setup.sh
 COPY ./scripts/docker/runit/start_udev.sh /etc/my_init.d/start_udev.sh
 RUN chmod +x /etc/my_init.d/*.sh
 
