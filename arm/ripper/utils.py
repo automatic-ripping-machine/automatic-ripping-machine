@@ -411,7 +411,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
 
     job = job ID\n
     t_no = track number\n
-    seconds = lenght of track in seconds\n
+    seconds = length of track in seconds\n
     aspect = aspect ratio (ie '16:9')\n
     fps = frames per second (float)\n
     mainfeature = True/False\n
@@ -420,7 +420,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
     """
 
     logging.debug(
-        f"Track #{t_no:02} Length: {seconds: >4} fps: {fps:2.3f} "
+        f"Track #{t_no:0>3} Length: {seconds: >4} fps: {fps:2.3f} "
         f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source}")
 
     t = m.Track(
