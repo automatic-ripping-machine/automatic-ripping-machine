@@ -24,10 +24,10 @@ fi
 
 if [[ $ARM_GID -ne $DEFAULT_GID ]]; then
     echo -e "Updating arm group id from $DEFAULT_GID to $ARM_GID..."
-    groupmod -go "$ARM_GID" arm
+    groupmod -og "$ARM_GID" arm
 elif [[ $ARM_UID -eq $DEFAULT_GID ]]; then
     echo -e "Updating arm group id $ARM_GID to default (1000)..."
-    groupmod -go $DEFAULT_GID arm
+    groupmod -og $DEFAULT_GID arm
 fi
 
 ### Setup Files
