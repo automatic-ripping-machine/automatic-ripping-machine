@@ -35,7 +35,6 @@ eval $(parse_yaml /etc/arm/config/arm.yaml "CONFIG_")
 # ID_CDROM_MEDIA_BD = Bluray
 # ID_CDROM_MEDIA_CD = CD
 # ID_CDROM_MEDIA_DVD = DVD
-
 if [ "$ID_CDROM_MEDIA_DVD" == "1" ]; then
     if [ "$CONFIG_PREVENT_99" != "false" ]; then
         numtracks=$(lsdvd /dev/"${DEVNAME}" 2> /dev/null | sed 's/,/ /' | cut -d ' ' -f 2 | grep -E '[0-9]+' | sort -r | head -n 1)
@@ -46,20 +45,15 @@ if [ "$ID_CDROM_MEDIA_DVD" == "1" ]; then
         fi
     fi
     echo "[ARM] Starting ARM for DVD on ${DEVNAME}" | logger -t ARM -s
-
 elif [ "$ID_CDROM_MEDIA_BD" == "1" ]; then
 	  echo "[ARM] Starting ARM for Bluray on ${DEVNAME}" | logger -t ARM -s
-
 elif [ "$ID_CDROM_MEDIA_CD" == "1" ]; then
 	  echo "[ARM] Starting ARM for CD on ${DEVNAME}" | logger -t ARM -s
-
 elif [ "$ID_FS_TYPE" != "" ]; then
 	  echo "[ARM] Starting ARM for Data Disk on ${DEVNAME} with File System ${ID_FS_TYPE}" | logger -t ARM -s
-
 else
 	  echo "[ARM] Not CD, Bluray, DVD or Data. Bailing out on ${DEVNAME}" | logger -t ARM -s
 	  exit #bail out
-
 fi
 
 /usr/bin/python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" | logger -t ARM -s
