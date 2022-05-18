@@ -7,9 +7,13 @@
 # If the container is run again without specifying UID and GID, this script
 # resets the UID and GID of all files in ARM directories to the defaults
 
+set -euo pipefail
+
+export ARM_HOME="/home/arm"
 DEFAULT_UID=1000
 DEFAULT_GID=1000
 
+### Setup User
 if [[ $ARM_UID -ne $DEFAULT_UID ]]; then
     echo -e "Updating arm user id from $DEFAULT_UID to $ARM_UID..."
     usermod -u "$ARM_UID" arm
@@ -25,3 +29,29 @@ elif [[ $ARM_UID -eq $DEFAULT_GID ]]; then
     echo -e "Updating arm group id $ARM_GID to default (1000)..."
     groupmod -g $DEFAULT_GID arm
 fi
+
+### Setup Files
+chown -R arm:arm /opt/arm
+
+# setup needed/expected dirs if not found
+SUBDIRS="media media/completed media/raw media/movies logs db Music .MakeMKV"
+for dir in $SUBDIRS ; do
+    thisDir="$ARM_HOME/$dir"
+    if [[ ! -d "$thisDir" ]] ; then
+        echo "Creating dir: $thisDir"
+        mkdir -p 0777 "$thisDir"
+    fi
+    chown -R arm:arm "$thisDir"
+done
+
+# setup config files if not found
+mkdir -p /etc/arm/config
+CONFS="arm.yaml apprise.yaml .abcde.conf"
+for conf in $CONFS; do
+    thisConf="/etc/arm/config/$conf"
+    if [[ ! -f "$thisConf" ]] ; then
+        # Don't overwrite with defaults during reinstall
+        cp --no-clobber "/opt/arm/setup/$conf" "$thisConf"
+    fi
+    chown -R arm:arm "$thisConf"
+done
