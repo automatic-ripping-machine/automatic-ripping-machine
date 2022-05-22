@@ -91,7 +91,7 @@ def main(logfile, job, protection=0):
 
     utils.notify_entry(job)
     # Check if user has manual wait time enabled
-    utils.check_for_wait(job, config)
+    utils.check_for_wait(job)
 
     log_arm_params(job)
     check_fstab()

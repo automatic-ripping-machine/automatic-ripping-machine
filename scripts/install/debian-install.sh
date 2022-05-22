@@ -75,7 +75,7 @@ function install_arm_build_tools(){
 
 function install_arm_requirements() {
     install_arm_build_tools
-    echo -e "${RED}Installing ARM requirments${NC}"
+    echo -e "${RED}Installing ARM requirements${NC}"
     apt update -y
     apt-get install -y \
         build-essential \
@@ -115,7 +115,7 @@ function build_makemkv(){
     cd ./makeMKV
 
     echo -e "${RED}Finding current MakeMKV version${NC}"
-    mmv=$(curl -s https://www.makemkv.com/download/ | grep -o [0-9.]*.txt | sed 's/.txt//')
+    mmv=$(curl -s https://www.makemkv.com/download/ | grep -o '[0-9.]*.txt' | sed 's/.txt//')
     echo -e "MakeMKV Current Version: ${mmv}"
     echo -e "${RED}Downloading MakeMKV sha, bin, and oss${NC}"
     # As MakeMKV is currently suspended I've included links to the wayback machine
@@ -211,7 +211,7 @@ function install_arm_live_env() {
     cd /opt
     clone_arm
     cd arm
-    pip3 install -r requirements.txt
+    sudo -u arm pip3 install -r requirements.txt
     cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
     create_abcde_symlink
     cp docs/arm.yaml.sample arm.yaml
@@ -252,14 +252,14 @@ function setup_syslog_rule() {
         echo -e "${RED}ARM syslog rule found. Overwriting...${NC}"
         rm /etc/rsyslog.d/30-arm.conf
     fi
-    cp ./scripts/30-arm.conf /etc/rsyslog.d/30-arm.conf
+    cp ./setup/30-arm.conf /etc/rsyslog.d/30-arm.conf
 }
 
 function install_armui_service() {
     ##### Run the ARM UI as a service
     echo -e "${RED}Installing ARM service${NC}"
     mkdir -p /etc/systemd/system
-    cp ./scripts/armui.service /etc/systemd/system/armui.service
+    cp ./setup/armui.service /etc/systemd/system/armui.service
 
     systemctl daemon-reload
     chmod u+x /etc/systemd/system/armui.service

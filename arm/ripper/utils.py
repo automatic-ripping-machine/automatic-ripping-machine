@@ -843,10 +843,9 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
     return hb_out_path
 
 
-def check_for_wait(job, config):
+def check_for_wait(job):
     """
     Wait if we have waiting for user input updates\n\n
-    :param config: Config for current Job
     :param job: Current Job
     :return: None
     """
