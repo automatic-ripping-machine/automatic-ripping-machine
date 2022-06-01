@@ -68,11 +68,11 @@
             </div>
             <ul class="list-group list-group-flush">
               <li class="list-group-item">
-                  CPU: {{ cpu_name }}
+                  CPU: {{ server.cpu_name  }}
               </li>
               <li class="list-group-item">
                   {% if cpu_temp is not none %}
-                      <section class="{{ ' bg-danger text-white' if cpu_temp > 70 }}">CPU Temp: {{ cpu_temp }}&#176;C</section>
+                      <section class="{{ ' bg-danger text-white' if server.cpu_temp > 70 }}">CPU Temp: {{ server.cpu_temp }}&#176;C</section>
                   {% else %}
                     <section> Temp: not reported </section>
                   {% endif %}
@@ -80,9 +80,9 @@
               <li class="list-group-item">
                   <h6 class="progress-label" style="float: left;margin-right: 1em;">Usage: </h6>
                   <div class="progress">
-                      <div class="progress-bar{{ ' bg-danger' if cpu_usage > 80 }}" role="progressbar"
-                           style="width: {{ ' 10' if cpu_usage < 10 else cpu_usage }}%;"
-                           aria-valuenow="{{ cpu_usage }}" aria-valuemin="10" aria-valuemax="100">{{ cpu_usage }}%
+                      <div class="progress-bar{{ ' bg-danger' if server.cpu_util > 80 }}" role="progressbar"
+                           style="width: {{ ' 10' if server.cpu_util < 10 else server.cpu_util }}%;"
+                           aria-valuenow="{{ server.cpu_util }}" aria-valuemin="10" aria-valuemax="100">{{ server.cpu_util }}%
                       </div>
                   </div>
               </li>
@@ -96,17 +96,17 @@
             </div>
             <ul class="list-group list-group-flush">
                 <li class="list-group-item">
-                    Total: {{ mem_total }} GB
-                    <br>Free:  {{ mem_free }} GB
-                    <br>Used:  {{ mem_used }} GB
+                  Total: {{ server.memory_total }} GB
+                  <br>Free:  {{ server.memory_free }} GB
+                  <br>Used:  {{ server.memory_used }} GB
                 </li>
                 <li class="list-group-item">
                     <h6 class="progress-label" style="float: left;margin-right: 1em;">Usage: </h6>
                     <div class="progress">
-                        <div class="progress-bar{{ ' bg-danger' if mem_percent > 80 }}" role="progressbar"
-                             style="width: {{ mem_percent }}%;" aria-valuenow="{{ mem_percent }}" aria-valuemin="0"
-                             aria-valuemax="100">{{ mem_percent }}%
-                        </div>
+                      <div class="progress-bar{{ ' bg-danger' if server.memory_percent > 80 }}" role="progressbar"
+                           style="width: {{ server.memory_percent }}%;" aria-valuenow="{{ server.memory_percent }}" aria-valuemin="0"
+                           aria-valuemax="100">{{ server.memory_percent }}%
+                      </div>
                     </div>
                   </li>
             </ul>
@@ -119,30 +119,30 @@
             </div>
             <ul class="list-group list-group-flush">
                 <li class="list-group-item">
-                    {% if transcode_free != 0 %}
+                    {% if server.storage_transcode_free != 0 %}
                     <h6 class="progress-label" style="float: left;margin-right: 1em;">Transcode: </h6>
                     <div class="progress">
-                        <div class="progress-bar{{ ' bg-danger' if transcode_percent > 80 }}" role="progressbar"
-                             style="width: {{ transcode_percent }}%;" aria-valuenow="{{ transcode_percent }}"
-                             aria-valuemin="0" aria-valuemax="100">{{ transcode_percent }}%
+                        <div class="progress-bar{{ ' bg-danger' if server.storage_transcode_percent > 80 }}" role="progressbar"
+                             style="width: {{ server.storage_transcode_percent }}%;" aria-valuenow="{{ server.storage_transcode_percent }}"
+                             aria-valuemin="0" aria-valuemax="100">{{ server.storage_transcode_percent }}%
                         </div>
                     </div>
-                    <br> Free Space: {{ completed_free }} GB
+                    <br> Free Space: {{ server.storage_completed_free }} GB
                     {% else %}
                     Transcode: Unable to get data on path
                     {% endif %}
                     <br>Path: {{ arm_path }}
                 </li>
                 <li class="list-group-item">
-                    {% if completed_free != 0 %}
+                    {% if server.storage_completed_free != 0 %}
                     <h6 class="progress-label" style="float: left;margin-right: 1em;">Completed: </h6>
                     <div class="progress">
-                        <div class="progress-bar{{ ' bg-danger' if completed_percent > 80 }}" role="progressbar"
-                             style="width: {{ completed_percent }}%;" aria-valuenow="{{ completed_percent }}"
-                             aria-valuemin="0" aria-valuemax="100">{{ completed_percent }}%
+                        <div class="progress-bar{{ ' bg-danger' if server.storage_completed_percent > 80 }}" role="progressbar"
+                             style="width: {{ server.storage_completed_percent }}%;" aria-valuenow="{{ server.storage_completed_percent }}"
+                             aria-valuemin="0" aria-valuemax="100">{{ server.storage_completed_percent }}%
                         </div>
                     </div>
-                    <br> Free Space: {{ completed_free }} GB
+                    <br> Free Space: {{ server.storage_completed_free }} GB
                     {% else %}
                     Transcode: Unable to get data on path
                     {% endif %}

@@ -442,22 +442,22 @@ class ServerInfo:
     """
     Class to hold the system information and cd/dvd/bluray drive information
     """
+
+    cpu_name = "N/A"
+    cpu_util = 0.0
+    cpu_temp = 0.0
+    #memory = {}
+    memory_total = 0.0
+    memory_free = 0.0
+    memory_used = 0.0
+    memory_percent = 0.0
+    #hard drive space
+    storage_transcode_free = 0
+    storage_transcode_percent = 0.0
+    storage_completed_free = 0
+    storage_completed_percent = 0.0
+
     def __init__(self):
-        cpu_name = "N/A"
-        cpu_util = 0.0
-        cpu_temp = 0.0
-        #memory = {}
-        memory_total = 0.0
-        memory_free = 0.0
-        memory_used = 0.0
-        memory_percent = 0.0
-        #hard drive space
-        storage_transcode_free = 0
-        storage_transcode_percent = 0.0
-        storage_completed_free = 0
-        storage_completed_percent = 0.0
-
-
         self.get_cpu_info()
         self.get_cpu_util()
         self.get_cpu_temp()
@@ -502,7 +502,6 @@ class ServerInfo:
         except EnvironmentError:
             self.cpu_util = 0
 
-
     def get_cpu_temp(self):
         try:
             temps = psutil.sensors_temperatures()
@@ -537,4 +536,3 @@ class ServerInfo:
                   "Setup can be started by visiting <a href=\"/setup\">setup page</a> ARM will not work correctly until"
                   "you have added an admin account", "danger")
         return disk_space, disk_percent
-        
