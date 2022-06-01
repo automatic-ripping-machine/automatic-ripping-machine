@@ -2,18 +2,18 @@
 
 set -eo pipefail
 
-function usage() {
-    echo -e "\nUsage: ubuntu-20.04-install.sh [OPTIONS]"
-    echo -e "\t-d\t\tInstall the ARM Development Environment"
-    echo -e "\t-p [PORT]\tOverwrite the default WEBSERVER_PORT"
-}
-
 RED='\033[1;31m'
 NC='\033[0m' # No Color
+PORT=8080
+
+function usage() {
+    echo -e "\nUsage: ubuntu-20.04-install.sh [OPTIONS]"
+    echo -e " -d \tInstall the ARM Development Environment"
+    echo -e " -p <port>\tSpecify the port arm will serve on. \n\t\tDefault is \"$PORT\""
+}
 
 dev_env_flag=
 port_flag=
-PORT=8080
 while getopts 'dp:' OPTION
 do
     case $OPTION in
@@ -25,11 +25,11 @@ do
           if ! [[ $PORT -gt 0 && $PORT -le 65535 ]]; then
               echo -e "\nERROR: ${PORT} is not a port"
               usage
-              exit 1
+              exit 2
           fi
           ;;
     ?)    usage
-          exit 2
+          exit 1
           ;;
     esac
 done
@@ -136,13 +136,14 @@ function install_arm_dev_env() {
     clone_arm
 
     # install docker
-    sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable" -y
-    apt-cache policy docker-ce
-    sudo apt update -y
-    sudo apt install docker-ce docker-ce-cli containerd.io -y
-    sudo usermod -aG docker arm
+    if [ -e /usr/bin/docker ]; then
+        echo -e "${RED}Docker installation detected, skipping...${NC}"
+    else
+        echo -e "${RED}Installing Docker${NC}"
+        # the convenience script auto-detects OS and handles install accordingly
+        curl -sSL https://get.docker.com | bash
+        sudo usermod -aG docker arm
+    fi
 
     # install pycharm community, if professional not installed already
     if [[ -z $(snap find pycharm-professional) ]]; then
