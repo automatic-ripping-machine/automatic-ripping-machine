@@ -94,24 +94,22 @@ def check_db_version(install_path, db_file):
         app.logger.info("Database is up to date")
     else:
         app.logger.info(
-            "Database out of date. Head is " + head_revision + " and database is " + db_version
-            + ".  Upgrading database...")
+            f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
         with app.app_context():
             unique_stamp = round(time() * 100)
-            app.logger.info("Backuping up database '" + db_file + "' to '" + db_file + str(unique_stamp) + "'.")
+            app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
             shutil.copy(db_file, db_file + "_" + str(unique_stamp))
             flask_migrate.upgrade(mig_dir)
         app.logger.info("Upgrade complete.  Validating version level...")
 
         c.execute("SELECT version_num FROM alembic_version")
         db_version = c.fetchone()[0]
-        app.logger.debug("Database version is: " + db_version)
+        app.logger.debug(f"Database version is: {db_version}")
         if head_revision == db_version:
             app.logger.info("Database is now up to date")
         else:
-            app.logger.error("Database is still out of date. "
-                             "Head is " + head_revision + " and database is " + db_version
-                             + ".  Exiting arm.")
+            app.logger.error(f"Database is still out of date. "
+                             f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
 
 
 def make_dir(path):
@@ -155,12 +153,13 @@ def get_info(directory):
 
 def clean_for_filename(string):
     """ Cleans up string for use in filename """
-    string = re.sub(r"\[[^]]*]", "", string)
-    string = re.sub('\\s+', ' ', string)
+    string = re.sub(r'\s+', ' ', string)
     string = string.replace(' : ', ' - ')
     string = string.replace(':', '-')
     string = string.replace('&', 'and')
     string = string.replace("\\", " - ")
+    # Strip out any remaining illegal chars
+    string = re.sub(r"[^\w -]", "", string)
     string = string.strip()
     return string
 
@@ -254,8 +253,8 @@ def setup_database():
         db.create_all()
         db.session.commit()
         #  push the database version arm is looking for
-        version = models.AlembicVersion('c54d68996895')
-        ui_config = models.UISettings(1, 1, "spacelab", "en", 10, 200)
+        version = models.AlembicVersion('f1054468c1c7')
+        ui_config = models.UISettings(1, 1, "spacelab", "en", 2000, 200)
         # Create default user to save problems with ui and ripper having diff setups
         hashed = bcrypt.gensalt(12)
         default_user = models.User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
@@ -459,13 +458,12 @@ def trigger_restart():
 
     notes: This has been removed, breaks and causes errors when run as 'arm' user
     """
-    import datetime
 
     def set_file_last_modified(file_path, date_time):
         dt_epoch = date_time.timestamp()
         os.utime(file_path, (dt_epoch, dt_epoch))
 
-    now = datetime.datetime.now()
+    now = datetime.now()
     arm_main = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routes.py")
     set_file_last_modified(arm_main, now)
 
@@ -705,3 +703,47 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
     app.logger.debug(new_movie)
     db.session.add(new_movie)
     return movie_dict
+
+
+def get_abcde_cfg(abcde_cfg_file):
+    """
+    load and return as string abcde.cfg
+    """
+    try:
+        with open(abcde_cfg_file, "r") as abcde_read_file:
+            abcde = abcde_read_file.read()
+    except FileNotFoundError:
+        abcde = "File not found"
+    return abcde
+
+
+def get_git_revision_hash() -> str:
+    """Get full hash of current git commit"""
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=cfg['INSTALLPATH']).decode('ascii').strip()
+
+
+def get_git_revision_short_hash() -> str:
+    """Get short hash of current git commit"""
+    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
+                                   cwd=cfg['INSTALLPATH']).decode('ascii').strip()
+
+
+def git_check_updates(current_hash) -> bool:
+    """Check if we are on latest commit"""
+    git_update = subprocess.run(['git', 'fetch', 'https://github.com/1337-server/automatic-ripping-machine'],
+                                cwd=cfg['INSTALLPATH'], check=False)
+    # git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1
+    git_log = subprocess.check_output('git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1',
+                                      shell=True, cwd="/opt/arm").decode('ascii').strip()
+    app.logger.debug(git_update.returncode)
+    app.logger.debug(git_log)
+    app.logger.debug(current_hash)
+    app.logger.debug(bool(re.search(rf"\A{current_hash}", git_log)))
+    return bool(re.search(rf"\A{current_hash}", git_log))
+
+
+def git_get_updates() -> dict:
+    """update arm"""
+    git_log = subprocess.run(['git', 'pull'], cwd=cfg['INSTALLPATH'], check=False)
+    return {'stdout': git_log.stdout, 'stderr': git_log.stderr,
+            'return_code': git_log.returncode, 'form': 'ARM Update', "success": (git_log.returncode == 0)}

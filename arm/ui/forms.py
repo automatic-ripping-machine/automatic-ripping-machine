@@ -64,3 +64,10 @@ class SetupForm(FlaskForm):
     username = StringField('username', validators=[DataRequired()])
     password = PasswordField('password', validators=[DataRequired()])
     submit = SubmitField('Submit')
+
+
+class AbcdeForm(FlaskForm):
+    """abcde config form used on pages\n
+              - /settings"""
+    abcdeConfig = StringField('abcdeConfig', validators=[DataRequired()])
+    submit = SubmitField('Submit')

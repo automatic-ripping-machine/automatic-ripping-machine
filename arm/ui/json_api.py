@@ -7,11 +7,21 @@ import subprocess
 import re
 import html
 from pathlib import Path
+import datetime
 import psutil
+from flask import request
 from arm.config.config import cfg
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track
-from arm.ui.utils import job_id_validator
+from arm.models.models import Job, Config, Track, Notifications
+from arm.ui.forms import ChangeParamsForm
+from arm.ui.utils import job_id_validator, database_updater
+
+
+def get_notifications():
+    """Get all current notifications"""
+    all_notification = Notifications.query.filter_by(seen=False)
+    notification = [a.get_d() for a in all_notification]
+    return notification
 
 
 def get_x_jobs(job_status):
@@ -20,10 +30,7 @@ def get_x_jobs(job_status):
     or\n
     currently active jobs from the database\n
 
-    :return: True if we have found dupes with the same crc
-              - Will also return a dict of all the jobs found.
-             False if we didnt find any with the same crc
-              - Will also return None as a secondary param
+    :return: dict/json
     """
     success = False
     if job_status in ("success", "fail"):
@@ -87,12 +94,12 @@ def process_makemkv_logfile(logfile, job, job_results):
     Process the logfile and find current status\n
     :return: job_results dict
     """
-    line = read_all_log_lines(logfile)
+    lines = read_log_line(logfile)
     # PRGC:5057,3,"Analyzing seamless segments"
     # Correctly get last entry for progress bar
-    for one_line in line:
-        job_progress_status = re.search(r"PRGV:(\d{3,}),(\d+),(\d{3,})$", str(one_line))
-        job_stage_index = re.search(r"PRGC:\d+,(\d+),\"([\w -]{2,})\"$", str(one_line))
+    for line in lines:
+        job_progress_status = re.search(r"PRGV:(\d{3,}),(\d+),(\d{3,})", str(line))
+        job_stage_index = re.search(r"PRGC:\d+,(\d+),\"([\w -]{2,})\"", str(line))
         if job_progress_status:
             job_progress = f"{percentage(job_progress_status.group(1), job_progress_status.group(3)):.2f}"
             job.progress = job_results['progress'] = job_progress
@@ -102,6 +109,7 @@ def process_makemkv_logfile(logfile, job, job_results):
             try:
                 current_index = f"{(int(job_stage_index.group(1)) + 1)}/{job.no_of_titles} - {job_stage_index.group(2)}"
                 job.stage = job_results['stage'] = current_index
+                db.session.commit()
             except Exception as error:
                 job.stage = f"Unknown -  {error}"
     job.eta = "Unknown"
@@ -116,11 +124,15 @@ def process_handbrake_logfile(logfile, job, job_results):
     :param job_results: the {} of
     :return: should be dict for the json api
     """
-    line = read_log_line(logfile)
-    # This correctly get the very last ETA and %
-    job_status = re.search(r"Encoding: task ([0-9] of [0-9]), ([0-9]{1,3}\.[0-9]{2}) %.{0,40}"
-                           r"ETA ([0-9hms]*?)\)(?!\\rEncod)", str(line))
-
+    job_status = None
+    job_status_index = None
+    lines = read_log_line(logfile)
+    for line in lines:
+        # This correctly get the very last ETA and %
+        job_status = re.search(r"Encoding: task (\d of \d), (\d{1,3}\.\d{2}) %.{0,40}"
+                               r"ETA ([\dhms]*?)\)(?!\\rEncod)", str(line))
+        job_status_index = re.search(r"Processing track #(\d{1,2}) of (\d{1,2})"
+                                     r"(?!.*Processing track #)", str(line))
     if job_status:
         app.logger.debug(job_status.group())
         job.stage = job_status.group(1)
@@ -132,10 +144,6 @@ def process_handbrake_logfile(logfile, job, job_results):
         job_results['eta'] = job.eta
         job_results['progress_round'] = int(float(job_results['progress']))
 
-    # INFO ARM: handbrake.handbrake_all Processing track #1 of 42. Length is 8602 seconds.
-    line = read_all_log_lines(logfile)
-    job_status_index = re.search(r"Processing track #([0-9]{1,2}) of ([0-9]{1,2})"
-                                 r"(?!.*Processing track #)", str(line))
     if job_status_index:
         try:
             current_index = int(job_status_index.group(1))
@@ -160,15 +168,29 @@ def process_audio_logfile(logfile, job, job_results):
     # \((track[^[]+)(?!track)
     line = read_all_log_lines(os.path.join(cfg["LOGPATH"], logfile))
     for one_line in line:
-        job_stage_index = re.search(r"\((track[^[]+)", str(one_line))
+        job_stage_index = re.search(r"\(track([^[]+)", str(one_line))
         if job_stage_index:
             try:
-                current_index = f"Ripping tracks: {job_stage_index.group(1).strip().capitalize()}/{job.no_of_titles}"
+                current_index = f"Track: {job_stage_index.group(1)}/{job.no_of_titles}"
                 job.stage = job_results['stage'] = current_index
+                job.eta = calc_process_time(job.start_time, job_stage_index.group(1), job.no_of_titles)
+                job.progress = round(percentage(job_stage_index.group(1), job.no_of_titles + 1))
+                job.progress_round = round(job.progress)
             except Exception as error:
                 job.stage = f"Unknown -  {error}"
-    job.eta = "Unknown"
+                job.eta = "Unknown"
+                job.progress = job.progress_round = 0
     return job_results
+
+
+def calc_process_time(starttime, cur_iter, max_iter):
+    """Modified from stackoverflow
+    Get a rough estimate of ETA, return formatted String"""
+    time_elapsed = datetime.datetime.now() - starttime
+    time_estimated = (time_elapsed.seconds / int(cur_iter)) * int(max_iter)
+    finish_time = (starttime + datetime.timedelta(seconds=int(time_estimated)))
+    test = finish_time - datetime.datetime.now()
+    return f"{str(test).split('.', maxsplit=1)[0]} - @{finish_time.strftime('%H:%M:%S')}"
 
 
 def read_log_line(log_file):
@@ -178,10 +200,10 @@ def read_log_line(log_file):
     :return:
     """
     try:
-        line = subprocess.check_output(['tail', '-n', '1', log_file])
+        line = subprocess.check_output(['tail', '-n', '20', log_file]).splitlines()
     except subprocess.CalledProcessError:
         app.logger.debug("Error while reading logfile for ETA")
-        line = ""
+        line = ["", ""]
     return line
 
 
@@ -197,7 +219,7 @@ def read_all_log_lines(log_file):
 
 def search(search_query):
     """ Queries ARMui db for the movie/show matching the query"""
-    safe_search = re.sub('[^a-zA-Z0-9]', '', search_query)
+    safe_search = re.sub(r'[^a-zA-Z\d]', '', search_query)
     safe_search = f"%{safe_search}%"
     app.logger.debug('-' * 30)
 
@@ -227,7 +249,7 @@ def delete_job(job_id, mode):
     """
     json api version of delete jobs\n
     :param job_id: job id to delete || str "all"/"title"
-    :param str mode: should always be delete
+    :param str mode: should always be 'delete'
     :return: json/dict to be returned if success or fail
     """
     try:
@@ -267,16 +289,23 @@ def delete_job(job_id, mode):
                     app.logger.debug(f"Admin requesting delete job {job_id} from database!")
                 except ValueError:
                     app.logger.debug("Admin is requesting to delete a job but didnt provide a valid job ID")
+                    notification = Notifications(f"Job: {job_id} couldn't be Deleted!",
+                                                 "Couldn't find a job with that ID")
+                    db.session.add(notification)
+                    db.session.commit()
                     return {'success': False, 'job': 'invalid', 'mode': mode, 'error': 'Not a valid job'}
                 else:
                     app.logger.debug("No errors: job_id=" + str(post_value))
                     Track.query.filter_by(job_id=job_id).delete()
                     Job.query.filter_by(job_id=job_id).delete()
                     Config.query.filter_by(job_id=job_id).delete()
+                    notification = Notifications(f"Job: {job_id} was Deleted!",
+                                                 f'Job with id: {job_id} was successfully deleted from the database')
+                    db.session.add(notification)
                     db.session.commit()
                     app.logger.debug("Admin deleting  job {} was successful")
                     json_return = {'success': True, 'job': job_id, 'mode': mode}
-    # If we run into problems with the datebase changes
+    # If we run into problems with the database changes
     # error out to the log and roll back
     except Exception as err:
         db.session.rollback()
@@ -340,6 +369,10 @@ def abandon_job(job_id):
     }
     job = None
     if not job_id_validator(job_id):
+        notification = Notifications(f"Job: {job_id} isn't a valid job!",
+                                     f'Job with id: {job_id} doesnt match anything in the database')
+        db.session.add(notification)
+        db.session.commit()
         return json_return
 
     try:
@@ -347,6 +380,9 @@ def abandon_job(job_id):
         job.status = "fail"
         job_process = psutil.Process(job.pid)
         job_process.terminate()  # or p.kill()
+        notification = Notifications(f"Job: {job_id} was Abandoned!",
+                                     f'Job with id: {job_id} was successfully abandoned. No files were deleted!')
+        db.session.add(notification)
         db.session.commit()
         json_return['success'] = True
         app.logger.debug(f"Job {job_id} was abandoned successfully")
@@ -363,5 +399,46 @@ def abandon_job(job_id):
         db.session.rollback()
         app.logger.debug(f"Job {job_id} couldn't be abandoned. - {error}")
         json_return["Error"] = str(error)
-
+    if 'Error' in json_return:
+        notification = Notifications(f"Job ERROR: {job_id} couldn't be abandoned", json_return["Error"])
+        db.session.add(notification)
+        db.session.commit()
     return json_return
+
+
+def change_job_params(config_id):
+    """Update values for job"""
+    job = Job.query.get(config_id)
+    config = job.config
+    form = ChangeParamsForm(request.args, meta={'csrf': False})
+    app.logger.debug("Before valid")
+    if form.validate():
+        app.logger.debug("Valid")
+        job.disctype = format(form.DISCTYPE.data)
+        cfg["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
+        cfg["MAXLENGTH"] = config.MAXLENGTH = format(form.MAXLENGTH.data)
+        cfg["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
+        # must be 1 for True 0 for False
+        cfg["MAINFEATURE"] = config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
+        args = {'disctype': job.disctype}
+        message = f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},' \
+                  f'Minimum Length={config.MINLENGTH}, Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}'
+        # We don't need to set the config as they are set with job commit
+        notification = Notifications(f"Job: {job.job_id} Config updated!", message)
+        db.session.add(notification)
+        database_updater(args, job)
+
+        return {'message': message, 'form': 'change_job_params', "success": True}
+    return {'return': '', 'success': False}
+
+
+def read_notification(notify_id):
+    """Read notification, disable it from being show"""
+    return_json = {'success': False, 'mode': 'read_notification', 'message': ""}
+    notification = Notifications.query.filter_by(id=notify_id, seen=0).first()
+    if notification:
+        database_updater({'seen': 1, 'dismiss_time': datetime.datetime.now()}, notification)
+        return_json['success'] = True
+    else:
+        return_json['message'] = "Notification already read or not found!"
+    return return_json

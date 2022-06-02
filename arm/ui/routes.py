@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Main routes for the A.R.M ui"""
 import os
+import platform
 import re
-import sys  # noqa: F401
 import json
 from pathlib import Path, PurePath
 
@@ -19,11 +19,16 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
 from arm.models import models as models
 from arm.config.config import cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm, SettingsForm, UiSettingsForm, SetupForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
+    SettingsForm, UiSettingsForm, SetupForm, AbcdeForm
 from arm.ui.metadata import get_omdb_poster
 
+ui_utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 login_manager = LoginManager()
 login_manager.init_app(app)
+# This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
+armui_cfg = models.UISettings.query.get(1)
+app.jinja_env.globals.update(armui_cfg=armui_cfg)
 
 
 @login_manager.user_loader
@@ -82,8 +87,7 @@ def setup():
     app.logger.debug("perm " + str(perm_file))
     # Check for install file and that db is correctly setup
     if perm_file.exists() and ui_utils.setup_database():
-        flash(str(perm_file) + " exists, setup cannot continue."
-                               " To re-install please delete this file.", "danger")
+        flash(f"{perm_file} exists, setup cannot continue. To re-install please delete this file.", "danger")
         return redirect("/")
     dir0 = Path(PurePath(cfg['DBFILE']).parent)
     dir1 = Path(cfg['RAW_PATH'])
@@ -210,9 +214,11 @@ def database():
     """
 
     page = request.args.get('page', 1, type=int)
+    app.logger.debug(armui_cfg)
     # Check for database file
     if os.path.isfile(cfg['DBFILE']):
-        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page, 100, False)
+        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page,
+                                                                              int(armui_cfg.database_limit), False)
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
@@ -230,9 +236,9 @@ def feed_json():
     is your call
     You can then add a function inside utils to deal with the request
     """
-    return_json = {}
     mode = str(request.args.get('mode'))
-
+    return_json = {'mode': mode, 'success': False}
+    # Hold valid data (post/get data) we might receive from pages - not in here ? it's going to throw a key error
     valid_data = {
         'j_id': request.args.get('job'),
         'searchq': request.args.get('q'),
@@ -240,8 +246,11 @@ def feed_json():
         'fail': 'fail',
         'success': 'success',
         'joblist': 'joblist',
-        'mode': mode
+        'mode': mode,
+        'config_id': request.args.get('config_id'),
+        'notify_id': request.args.get('notify_id')
     }
+    # Valid modes that should trigger functions
     valid_modes = {
         'delete': {'funct': json_api.delete_job, 'args': ('j_id', 'mode')},
         'abandon': {'funct': json_api.abandon_job, 'args': ('j_id',)},
@@ -251,31 +260,78 @@ def feed_json():
         'getsuccessful': {'funct': json_api.get_x_jobs, 'args': ('success',)},
         'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
         'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
-        'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)}
+        'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)},
+        'change_job_params': {'funct': json_api.change_job_params, 'args': ('config_id',)},
+        'read_notification': {'funct': json_api.read_notification, 'args': ('notify_id',)}
     }
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
         app.logger.debug(args)
         return_json = valid_modes[mode]['funct'](*args)
     app.logger.debug(f"Json - {return_json}")
+    return_json['notes'] = json_api.get_notifications()
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
                               mimetype=constants.JSON_TYPE)
 
 
-@app.route('/settings', methods=['GET', 'POST'])
+@app.route('/update_arm', methods=['POST'])
+@login_required
+def update_git():
+    """Update arm via git command line"""
+    return ui_utils.git_get_updates()
+
+
+@app.route('/settings')
 @login_required
 def settings():
     """
-    The settings page - allows the user to update the arm.yaml without needing to open a text editor
-    This needs to be rewritten to be static
+    The settings page - allows the user to update the all configs of A.R.M
+    without needing to open a text editor\n
+    This loads slow, needs to be optimised...
+    """
+    # stats for info page
+    with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
+        version = version_file.read().strip()
+    failed_rips = models.Job.query.filter_by(status="fail").count()
+    total_rips = models.Job.query.filter_by().count()
+    movies = models.Job.query.filter_by(video_type="movie").count()
+    series = models.Job.query.filter_by(video_type="series").count()
+    cds = models.Job.query.filter_by(disctype="music").count()
+    stats = {'python_version': platform.python_version(),
+             'arm_version': version,
+             'git_commit': ui_utils.get_git_revision_hash(),
+             'movies_ripped': movies,
+             'series_ripped': series,
+             'cds_ripped': cds,
+             'no_failed_jobs': failed_rips,
+             'total_rips': total_rips,
+             'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash())
+             }
+    # Load up the comments.json, so we can comment the arm.yaml
+    comments = ui_utils.generate_comments()
+    # Get the current config, so we can show the current values
+    arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
+    current_cfg = ui_utils.get_settings(arm_cfg_file)
+    # load abcde config
+    abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE']).strip()
+    form = SettingsForm()
+    return render_template('settings.html', settings=current_cfg, ui_settings=armui_cfg,
+                           form=form, jsoncomments=comments, abcde_cfg=abcde_cfg, stats=stats)
+
+
+@app.route('/save_settings', methods=['POST'])
+@login_required
+def save_settings():
+    """
+    Save arm ripper settings from post
     """
     # Path to arm.yaml
     arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
-    # Get the current config, so we can show the current values with no post data
-    current_cfg = ui_utils.get_settings(arm_cfg_file)
+    success = False
+    arm_cfg = {}
     form = SettingsForm()
     if form.validate_on_submit():
         # Build the new arm.yaml with updated values from the user
@@ -284,41 +340,58 @@ def settings():
         with open(arm_cfg_file, "w") as settings_file:
             settings_file.write(arm_cfg)
             settings_file.close()
-        flash("Setting saved successfully!", "success")
-        # Redirect so we show the new config values
-        return redirect(url_for('settings'))
+        success = True
     # If we get to here there was no post data
-    return render_template('settings.html', settings=current_cfg,
-                           form=form, raw=request.form.to_dict(), jsoncomments=comments)
+    return {'success': success, 'settings': arm_cfg, 'form': 'arm ripper settings'}
 
 
-@app.route('/ui_settings', methods=['GET', 'POST'])
+@app.route('/save_ui_settings', methods=['POST'])
 @login_required
-def ui_settings():
+def save_ui_settings():
     """
-    The ARMui settings page - allows the user to update the armui_settings
+    Save arm ui settings to db\n
+    - allows the user to update the armui_settings
     This function needs to trigger a restart of flask for debugging to update the values
-
     """
-    armui_cfg = models.UISettings.query.filter_by().first()
     form = UiSettingsForm()
+    success = False
+    arm_ui_cfg = models.UISettings.query.get(1)
     if form.validate_on_submit():
-        # json.loads("false".lower())
         use_icons = (str(form.use_icons.data).strip().lower() == "true")
         save_remote_images = (str(form.save_remote_images.data).strip().lower() == "true")
-        database_arguments = {
-            'index_refresh': format(form.index_refresh.data),
-            'use_icons': use_icons,
-            'save_remote_images': save_remote_images,
-            'bootstrap_skin': format(form.bootstrap_skin.data),
-            'language': format(form.language.data),
-            'database_limit': format(form.database_limit.data),
-        }
-        ui_utils.database_updater(database_arguments, armui_cfg)
-        db.session.refresh(armui_cfg)
-        flash("Settings saved successfully!", "success")
+        arm_ui_cfg.index_refresh = format(form.index_refresh.data)
+        arm_ui_cfg.use_icons = use_icons
+        arm_ui_cfg.save_remote_images = save_remote_images
+        arm_ui_cfg.bootstrap_skin = format(form.bootstrap_skin.data)
+        arm_ui_cfg.language = format(form.language.data)
+        arm_ui_cfg.database_limit = format(form.database_limit.data)
+        db.session.commit()
+        success = True
+    app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
+    return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
 
-    return render_template('ui_settings.html', form=form, settings=armui_cfg)
+
+@app.route('/save_abcde_settings', methods=['POST'])
+@login_required
+def save_abcde():
+    """
+    Save abcde config settings from post
+    """
+    # Path to abcde.conf
+    abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE'])
+    success = False
+    abcde_cfg_str = ""
+    form = AbcdeForm()
+    if form.validate():
+        app.logger.debug(f"routes.save_abcde: Saving new abcde.conf: {abcde_cfg}")
+        abcde_cfg_str = str(form.abcdeConfig.data).strip()
+        # Save updated abcde.conf
+        with open(cfg['ABCDE_CONFIG_FILE'], "w") as abcde_file:
+            abcde_file.write(abcde_cfg_str)
+            abcde_file.close()
+        success = True
+    # If we get to here there was no post data
+    return {'success': success, 'settings': abcde_cfg_str, 'form': 'abcde config'}
 
 
 @app.route('/logs')
@@ -434,7 +507,7 @@ def jobdetail():
     return render_template('jobdetail.html', jobs=job, tracks=tracks, s=search_results)
 
 
-@app.route('/titlesearch', methods=['GET'])
+@app.route('/titlesearch')
 @login_required
 def title_search():
     """
@@ -450,35 +523,20 @@ def title_search():
     return render_template('titlesearch.html', title='Update Title', form=form, job=job)
 
 
-@app.route('/changeparams', methods=['GET', 'POST'])
+@app.route('/changeparams')
 @login_required
 def changeparams():
     """
     For updating Config params or changing/correcting job.disctype manually
     """
     config_id = request.args.get('config_id')
-    # app.logger.debug(config.pretty_table())
     job = models.Job.query.get(config_id)
     config = job.config
     form = ChangeParamsForm(obj=config)
-    if form.validate_on_submit():
-        job.disctype = format(form.DISCTYPE.data)
-        cfg["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
-        cfg["MAXLENGTH"] = config.MAXLENGTH = format(form.MAXLENGTH.data)
-        cfg["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
-        # must be 1 for True 0 for False
-        cfg["MAINFEATURE"] = config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
-        args = {'disctype': job.disctype}
-        # We don't need to set the config as they are set with job commit
-        ui_utils.database_updater(args, job)
-
-        flash(f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},'
-              f'Minimum Length={config.MINLENGTH}, '
-              f'Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}', "success")
-    return render_template('changeparams.html', title='Change Parameters', form=form)
+    return render_template('changeparams.html', title='Change Parameters', form=form, config=config)
 
 
-@app.route('/customTitle', methods=['GET'])
+@app.route('/customTitle')
 @login_required
 def customtitle():
     """
@@ -491,15 +549,20 @@ def customtitle():
     if request.args.get("title"):
         args = {
             'title': request.args.get("title"),
+            'title_manual': request.args.get("title"),
             'year': request.args.get("year")
         }
+        notification = models.Notifications(f"Job: {job.job_id} was updated",
+                                            f'Title: {job.title} ({job.year}) was updated to '
+                                            f'{request.args.get("title")} ({request.args.get("year")})')
+        db.session.add(notification)
         ui_utils.database_updater(args, job)
         flash(f'Custom title changed. Title={job.title}, Year={job.year}.', "success")
         return redirect(url_for('home'))
     return render_template('customTitle.html', title='Change Title', form=form, job=job)
 
 
-@app.route('/list_titles', methods=['GET'])
+@app.route('/list_titles')
 @login_required
 def list_titles():
     """
@@ -530,8 +593,8 @@ def list_titles():
                            form=form, title=title, year=year)
 
 
-@app.route('/gettitle', methods=['GET'])
-@app.route('/select_title', methods=['GET'])
+@app.route('/gettitle')
+@app.route('/select_title')
 @login_required
 def gettitle():
     """
@@ -554,7 +617,7 @@ def gettitle():
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
 
-@app.route('/updatetitle', methods=['GET'])
+@app.route('/updatetitle')
 @login_required
 def updatetitle():
     """
@@ -572,6 +635,10 @@ def updatetitle():
     job.imdb_id = job.imdb_id_manual = request.args.get('imdbID')
     job.poster_url = job.poster_url_manual = request.args.get('poster')
     job.hasnicetitle = True
+    notification = models.Notifications(f"Job: {job.job_id} was updated",
+                                        f'Title: {old_title} ({old_year}) was updated to '
+                                        f'{request.args.get("title")} ({request.args.get("year")})')
+    db.session.add(notification)
     db.session.commit()
     flash(f'Title: {old_title} ({old_year}) was updated to '
           f'{request.args.get("title")} ({request.args.get("year")})', "success")
@@ -669,7 +736,7 @@ def import_movies():
 
     for movie in movie_dirs:
         # will match 'Movie (0000)'
-        regex = r"([\w\ \'\.\-\&\,]*?) \(([0-9]{2,4})\)"
+        regex = r"([\w\ \'\.\-\&\,]*?) \((\d{2,4})\)"
         # get our match
         matched = re.match(regex, movie)
         # if we can match the standard arm output format "Movie (year)"
@@ -713,7 +780,7 @@ def import_movies():
                               mimetype=constants.JSON_TYPE)
 
 
-@app.route('/send_movies', methods=['GET'])
+@app.route('/send_movies')
 @login_required
 def send_movies():
     """

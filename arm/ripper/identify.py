@@ -112,7 +112,6 @@ def identify_dvd(job):
         dvd_title = f"{job.label}_{crc64}"
         logging.info(f"DVD CRC64 hash is: {crc64}")
         job.crc_id = str(crc64)
-        # TODO there was a bug with this db - we need to fix it by looking up the imdb of the result
         urlstring = f"https://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
         logging.debug(urlstring)
         dvd_info_xml = urllib.request.urlopen(urlstring).read()
@@ -144,8 +143,6 @@ def identify_dvd(job):
     year = re.sub(r"\D", "", str(job.year)) if job.year else None
     # next line is not really needed, but we don't want to leave an x somewhere
     dvd_title = job.label.replace("16x9", "")
-    # Rip out any not alpha chars replace with &nbsp;
-    dvd_title = re.sub(r"[^a-zA-Z _-]", "", dvd_title)
     logging.debug(f"dvd_title ^a-z _-: {dvd_title}")
     # rip out any SKU's at the end of the line
     dvd_title = re.sub(r"SKU\b", "", dvd_title)

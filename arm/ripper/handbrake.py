@@ -10,7 +10,6 @@ import shlex
 
 from arm.ripper import utils
 from arm.ui import app, db  # noqa E402
-from arm.config.config import cfg
 
 PROCESS_COMPLETE = "Handbrake processing complete"
 
@@ -30,10 +29,10 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     logging.debug(f"\n\r{job.pretty_table()}")
 
     utils.database_updater({'status': "waiting_transcode"}, job)
-    utils.sleep_check_process("HandBrakeCLI", int(cfg["MAX_CONCURRENT_TRANSCODES"]))
+    utils.sleep_check_process("HandBrakeCLI", int(job.config.MAX_CONCURRENT_TRANSCODES))
     logging.debug("Setting job status to 'transcoding'")
     utils.database_updater({'status': "transcoding"}, job)
-    filename = os.path.join(basepath, job.title + "." + cfg["DEST_EXT"])
+    filename = os.path.join(basepath, job.title + "." + job.config.DEST_EXT)
     filepathname = os.path.join(basepath, filename)
     logging.info(f"Ripping title main_feature to {shlex.quote(filepathname)}")
 
@@ -49,13 +48,13 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     db.session.commit()
 
     if job.disctype == "dvd":
-        hb_args = cfg["HB_ARGS_DVD"]
-        hb_preset = cfg["HB_PRESET_DVD"]
+        hb_args = job.config.HB_ARGS_DVD
+        hb_preset = job.config.HB_PRESET_DVD
     elif job.disctype == "bluray":
-        hb_args = cfg["HB_ARGS_BD"]
-        hb_preset = cfg["HB_PRESET_BD"]
+        hb_args = job.config.HB_ARGS_BD
+        hb_preset = job.config.HB_PRESET_BD
 
-    cmd = f'nice {cfg["HANDBRAKE_CLI"]} -i {shlex.quote(srcpath)} -o {shlex.quote(filepathname)} ' \
+    cmd = f'nice {job.config.HANDBRAKE_CLI} -i {shlex.quote(srcpath)} -o {shlex.quote(filepathname)} ' \
           f'--main-feature --preset "{hb_preset}" {hb_args} >> {logfile} 2>&1'
 
     logging.debug(f"Sending command: {cmd}")
@@ -91,7 +90,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
     # Wait until there is a spot to transcode
     job.status = "waiting_transcode"
     db.session.commit()
-    utils.sleep_check_process("HandBrakeCLI", int(cfg["MAX_CONCURRENT_TRANSCODES"]))
+    utils.sleep_check_process("HandBrakeCLI", int(job.config.MAX_CONCURRENT_TRANSCODES))
     job.status = "transcoding"
     db.session.commit()
     logging.info("Starting BluRay/DVD transcoding - All titles")
@@ -104,20 +103,20 @@ def handbrake_all(srcpath, basepath, logfile, job):
 
     for track in job.tracks:
 
-        if track.length < int(cfg["MINLENGTH"]):
+        if track.length < int(job.config.MINLENGTH):
             # too short
             logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
-                         f"Length ({track.length}) is less than minimum length ({cfg['MINLENGTH']}).  Skipping")
-        elif track.length > int(cfg["MAXLENGTH"]):
+                         f"Length ({track.length}) is less than minimum length ({job.config.MINLENGTH}).  Skipping")
+        elif track.length > int(job.config.MAXLENGTH):
             # too long
             logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
-                         f"Length ({track.length}) is greater than maximum length ({cfg['MAXLENGTH']}).  Skipping")
+                         f"Length ({track.length}) is greater than maximum length ({job.config.MAXLENGTH}).  Skipping")
         else:
             # just right
             logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. "
                          f"Length is {track.length} seconds.")
 
-            filename = "title_" + str.zfill(str(track.track_number), 2) + "." + cfg["DEST_EXT"]
+            filename = "title_" + str.zfill(str(track.track_number), 2) + "." + job.config.DEST_EXT
             filepathname = os.path.join(basepath, filename)
 
             logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
@@ -125,7 +124,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
             track.filename = track.orig_filename = filename
             db.session.commit()
 
-            cmd = f'nice {cfg["HANDBRAKE_CLI"]} -i {shlex.quote(srcpath)} -o {shlex.quote(filepathname)} ' \
+            cmd = f'nice {job.config.HANDBRAKE_CLI} -i {shlex.quote(srcpath)} -o {shlex.quote(filepathname)} ' \
                   f'--preset "{hb_preset}" -t {str(track.track_number)} {hb_args}>> {logfile} 2>&1'
 
             logging.debug(f"Sending command: {cmd}")
@@ -160,11 +159,11 @@ def correct_hb_settings(job):
     hb_args = ""
     hb_preset = ""
     if job.disctype == "dvd":
-        hb_args = cfg["HB_ARGS_DVD"]
-        hb_preset = cfg["HB_PRESET_DVD"]
+        hb_args = job.config.HB_ARGS_DVD
+        hb_preset = job.config.HB_PRESET_DVD
     elif job.disctype == "bluray":
-        hb_args = cfg["HB_ARGS_BD"]
-        hb_preset = cfg["HB_PRESET_BD"]
+        hb_args = job.config.HB_ARGS_BD
+        hb_preset = job.config.HB_PRESET_BD
     return hb_args, hb_preset
 
 
@@ -180,7 +179,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
     # Added to limit number of transcodes
     job.status = "waiting_transcode"
     db.session.commit()
-    utils.sleep_check_process("HandBrakeCLI", int(cfg["MAX_CONCURRENT_TRANSCODES"]))
+    utils.sleep_check_process("HandBrakeCLI", int(job.config.MAX_CONCURRENT_TRANSCODES))
     job.status = "transcoding"
     db.session.commit()
     hb_args, hb_preset = correct_hb_settings(job)
@@ -189,12 +188,12 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
     for files in os.listdir(srcpath):
         srcpathname = os.path.join(srcpath, files)
         destfile = os.path.splitext(files)[0]
-        filename = os.path.join(basepath, destfile + "." + cfg["DEST_EXT"])
+        filename = os.path.join(basepath, destfile + "." + job.config.DEST_EXT)
         filepathname = os.path.join(basepath, filename)
 
         logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(filepathname)}")
 
-        cmd = f'nice {cfg["HANDBRAKE_CLI"]} -i {shlex.quote(srcpathname)} -o {shlex.quote(filepathname)} ' \
+        cmd = f'nice {job.config.HANDBRAKE_CLI} -i {shlex.quote(srcpathname)} -o {shlex.quote(filepathname)} ' \
               f'--preset "{hb_preset}" {hb_args}>> {logfile} 2>&1'
 
         logging.debug(f"Sending command: {cmd}")
@@ -224,7 +223,7 @@ def get_track_info(srcpath, job):
     """
     logging.info("Using HandBrake to get information on all the tracks on the disc.  This will take a few minutes...")
 
-    cmd = f'{cfg["HANDBRAKE_CLI"]} -i {shlex.quote(srcpath)} -t 0 --scan'
+    cmd = f'{job.config.HANDBRAKE_CLI} -i {shlex.quote(srcpath)} -t 0 --scan'
 
     logging.debug(f"Sending command: {cmd}")
     hand_break_output = handbrake_char_encoding(cmd)

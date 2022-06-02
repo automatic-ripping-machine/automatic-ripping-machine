@@ -119,6 +119,10 @@
     </div>
     <script type="application/javascript" src="static/js/common.js"></script>
     <script type="application/javascript" src="static/js/jobRefresh.js"></script>
-
+    <script type="application/javascript">
+    $(document).ready(function () {
+        const intervalId = window.setInterval(refreshJobs, {{ armui_cfg['index_refresh'] }});
+    });
+</script>
 {% endblock %}
 {% block js %}{{ super() }}{% endblock %}
