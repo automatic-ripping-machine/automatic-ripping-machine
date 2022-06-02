@@ -1,4 +1,5 @@
-import os
+"""Main run page for armui"""
+import os  # noqa: F401
 import sys
 
 # set the PATH to /arm/arm so we can handle imports properly
@@ -26,4 +27,3 @@ if host == 'x.x.x.x':
 
 if __name__ == '__main__':
     app.run(host=host, port=cfg.arm_config['WEBSERVER_PORT'], debug=True)
-    # app.run(debug=True)

@@ -13,9 +13,10 @@ ARM_NAME: ""
 # Should be full protocol, path, and port: http://192.168.0.100:8080
 ARM_CHILDREN: ""
 
-# Prevent ARM from wasting time on 99 Title protected DVDs.
+# Workaround for Track 99
 # A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.
-# When set to "true" affected DVDs will be autoejected on insertion.
+# When set to "false" affected DVDs will be passed to MakeMKV for ripping, but this can crash or hang
+# Setting this to true will eject the disc and log only to the system logging
 PREVENT_99: true
 
 # Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.
@@ -63,7 +64,7 @@ MANUAL_WAIT_TIME: 60
 
 # Allows you to format the date/time to your own liking
 # This will be used throughout ARM and ARMui
-DATE_FORMAT: "%d-%m-%Y %H:%M:%S"
+DATE_FORMAT: "%m-%d-%Y %H:%M:%S"
 
 ## Do you want to allow Rips of the same disk multiple times
 ## With this set as false the task will exit if it recognises the same movie being ripped
@@ -77,6 +78,7 @@ ALLOW_DUPLICATES: false
 MAX_CONCURRENT_TRANSCODES: 0
 
 # Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
+# "status=progress" to log progress
 DATA_RIP_PARAMETERS: ""
 
 # This selects the metadata provider, Each provider has their own ups and downs
@@ -173,11 +175,12 @@ CHOWN_GROUP:
 ## MakeMKV Parameters ##
 ########################
 
-# Method of MakeMKV to use for Blu Ray discs.  Options are "mkv" or "backup".
-# backup decrypts the dvd and then copies it to the hard drive.  This allows HandBrake to apply some of it's
-# analytical abilities such as the main-feature identification.  This method seems to offer success on bluray 
-# discs that fail in "mkv" mode. *** NOTE: MakeMKV only supports the backup method on BluRay discs.  ARM does
-# not use MakeMKV for DVDs.   
+# Method of MakeMKV to use for Blu-ray discs
+# Options are "mkv" or "backup".
+# backup decrypts the dvd and then copies it to the hard drive.
+# This allows HandBrake to apply some of its analytical abilities such as the main-feature identification.
+# This method seems to offer success on Blu-ray discs that fail in "mkv" mode.
+# *** NOTE: MakeMKV only supports the backup method on BluRay discs.
 RIPMETHOD: "backup"
 
 # MakeMKV Arguments

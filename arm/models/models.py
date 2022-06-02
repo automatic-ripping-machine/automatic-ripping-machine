@@ -1,22 +1,32 @@
+"""
+Hold all models for ARM
+"""
+import datetime
 import os
 import subprocess
-import pyudev
-import psutil
 import logging
 import time
-import arm.config.config as cfg
+import pyudev
+import psutil
 
+from prettytable import PrettyTable
+from flask_login import LoginManager, current_user, login_user, UserMixin  # noqa: F401
 from arm.ripper import music_brainz
 from arm.ui import db
-from flask_login import LoginManager, current_user, login_user, UserMixin  # noqa: F401
-from prettytable import PrettyTable
+import arm.config.config as cfg
 
-hidden_attribs = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD", "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
-                  "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY", "TMDB_API_KEY")
+hidden_attribs = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD",
+                  "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                  "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY",
+                  "TMDB_API_KEY", "_sa_instance_state")
 HIDDEN_VALUE = "<hidden>"
 
 
 class Job(db.Model):
+    """
+    Job Class hold most of the details for each job
+    connects to track, config
+    """
     job_id = db.Column(db.Integer, primary_key=True)
     arm_version = db.Column(db.String(20))
     crc_id = db.Column(db.String(63))
@@ -68,12 +78,25 @@ class Job(db.Model):
             self.video_type = cfg.arm_config['VIDEOTYPE']
         self.parse_udev()
         self.get_pid()
+        self.stage = str(round(time.time() * 100))
 
         if self.disctype == "dvd" and not self.label:
             logging.info("No disk label Available. Trying lsdvd")
             command = f"lsdvd {devpath} | grep 'Disc Title' | cut -d ' ' -f 3-"
             lsdvdlbl = str(subprocess.check_output(command, shell=True).strip(), 'utf-8')
             self.label = lsdvdlbl
+
+    def __str__(self):
+        """Returns a string of the object"""
+
+        return_string = self.__class__.__name__ + ": "
+        for attr, value in self.__dict__.items():
+            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
+
+        return return_string
+
+    def __repr__(self):
+        return f'<Job {self.label}>'
 
     def parse_udev(self):
         """Parse udev for properties of current disc"""
@@ -96,12 +119,21 @@ class Job(db.Model):
                 continue
 
     def get_pid(self):
+        """
+        Get the jobs process id
+        :return: None
+        """
         pid = os.getpid()
-        p = psutil.Process(pid)
+        process_id = psutil.Process(pid)
         self.pid = pid
-        self.pid_hash = hash(p)
+        self.pid_hash = hash(process_id)
 
     def get_disc_type(self, found_hvdvd_ts):
+        """
+        Checks/corrects the current disc-type
+        :param found_hvdvd_ts:  gets pushed in from utils - saves importing utils
+        :return: None
+        """
         if self.disctype == "music":
             logging.debug("Disc is music.")
             self.label = music_brainz.main(self)
@@ -121,7 +153,7 @@ class Job(db.Model):
             logging.debug("Found file: HVDVD_TS")
             # do something here too
         else:
-            logging.debug("Did not find valid dvd/bd files. Changing disctype to 'data'")
+            logging.debug("Did not find valid dvd/bd files. Changing disc-type to 'data'")
             self.disctype = "data"
 
     def identify_audio_cd(self):
@@ -147,54 +179,49 @@ class Job(db.Model):
         logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
         return logfile
 
-    def __str__(self):
-        """Returns a string of the object"""
-
-        s = self.__class__.__name__ + ": "
-        for attr, value in self.__dict__.items():
-            s = s + "(" + str(attr) + "=" + str(value) + ") "
-
-        return s
-
     def pretty_table(self):
         """Returns a string of the prettytable"""
-        x = PrettyTable()
-        x.field_names = ["Config", "Value"]
-        x._max_width = {"Config": 50, "Value": 60}
+        pretty_table = PrettyTable()
+        pretty_table.field_names = ["Config", "Value"]
+        pretty_table._max_width = {"Config": 50, "Value": 60}
         for attr, value in self.__dict__.items():
             if attr == "config":
-                x.add_row([str(attr), str(value.pretty_table())])
+                pretty_table.add_row([str(attr), str(value.pretty_table())])
             else:
-                x.add_row([str(attr), str(value)])
-        return str(x.get_string())
+                pretty_table.add_row([str(attr), str(value)])
+        return str(pretty_table.get_string())
 
     def get_d(self):
-        r = {}
+        """
+        Return a dict of class - exclude the _sa_instance_state
+        :return: dict containing all attribs from class
+        """
+        return_dict = {}
         for key, value in self.__dict__.items():
             if '_sa_instance_state' not in key:
-                r[str(key)] = str(value)
-        return r
-
-    def __repr__(self):
-        return '<Job {}>'.format(self.label)
+                return_dict[str(key)] = str(value)
+        return return_dict
 
     def eject(self):
         """Eject disc if it hasn't previously been ejected"""
         if not self.ejected:
             self.ejected = True
             try:
-                if os.system("umount " + self.devpath):
-                    logging.debug("we unmounted disc" + self.devpath)
-                if os.system("eject " + self.devpath):
-                    logging.debug("we ejected disc" + self.devpath)
-                    self.ejected = True
+                # This might always return true
+                if bool(os.system("umount " + self.devpath)):
+                    logging.debug(f"Unmounted disc {self.devpath}")
                 else:
-                    logging.debug("failed to eject" + self.devpath)
-            except Exception as e:
-                logging.debug(self.devpath + " couldn't be ejected " + str(e))
+                    logging.debug(f"Failed to unmount {self.devpath}")
+                if bool(os.system("eject -sv " + self.devpath)):
+                    logging.debug(f"Ejected disc {self.devpath}")
+                else:
+                    logging.debug(f"Failed to eject {self.devpath}")
+            except Exception as error:
+                logging.debug(f"{self.devpath} couldn't be ejected {error}")
 
 
 class Track(db.Model):
+    """ Holds all the individual track details for each job """
     track_id = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('job.job_id'))
     track_number = db.Column(db.String(4))
@@ -211,7 +238,8 @@ class Track(db.Model):
     error = db.Column(db.Text)
     source = db.Column(db.String(32))
 
-    def __init__(self, job_id, track_number, length, aspect_ratio, fps, main_feature, source, basename, filename):
+    def __init__(self, job_id, track_number, length, aspect_ratio,
+                 fps, main_feature, source, basename, filename):
         """Return a track object"""
         self.job_id = job_id
         self.track_number = track_number
@@ -225,10 +253,16 @@ class Track(db.Model):
         self.ripped = False
 
     def __repr__(self):
-        return '<Post {}>'.format(self.track_number)
+        return f'<Track {self.track_number}>'
+
+    def __str__(self):
+        """Returns a string of the object"""
+        return self.__class__.__name__ + ": " + self.track_number
 
 
 class Config(db.Model):
+    """ Holds all the config settings for each job
+    as these may change between each job """
     CONFIG_ID = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('job.job_id'))
     ARM_CHECK_UDF = db.Column(db.Boolean)
@@ -289,48 +323,55 @@ class Config(db.Model):
         self.__dict__.update(c)
         self.job_id = job_id
 
-    def list_params(self):
-        """Returns a string of the object"""
-        s = self.__class__.__name__ + ": "
-        for attr, value in self.__dict__.items():
-            if s:
-                s = s + "\n"
-            if str(attr) in hidden_attribs and value:
-                value = HIDDEN_VALUE
-            s = s + str(attr) + ":" + str(value)
-
-        return s
-
     def __str__(self):
         """Returns a string of the object"""
-        s = self.__class__.__name__ + ": "
+        return_string = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
             if str(attr) in hidden_attribs and value:
                 value = HIDDEN_VALUE
-            s = s + "(" + str(attr) + "=" + str(value) + ") "
+            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
 
-        return s
+        return return_string
+
+    def list_params(self):
+        """Returns a string of the object"""
+        return_string = self.__class__.__name__ + ": "
+        for attr, value in self.__dict__.items():
+            if return_string:
+                return_string = return_string + "\n"
+            if str(attr) in hidden_attribs and value:
+                value = HIDDEN_VALUE
+            return_string = return_string + str(attr) + ":" + str(value)
+
+        return return_string
 
     def pretty_table(self):
-        """Returns a string of the prettytable"""
-        x = PrettyTable()
-        x.field_names = ["Config", "Value"]
-        x._max_width = {"Config": 20, "Value": 30}
+        """Returns a string of the PrettyTable"""
+        pretty_table = PrettyTable()
+        pretty_table.field_names = ["Config", "Value"]
+        pretty_table._max_width = {"Config": 20, "Value": 30}
         for attr, value in self.__dict__.items():
             if str(attr) in hidden_attribs and value:
                 value = HIDDEN_VALUE
-            x.add_row([str(attr), str(value)])
-        return str(x.get_string())
+            pretty_table.add_row([str(attr), str(value)])
+        return str(pretty_table.get_string())
 
     def get_d(self):
-        r = {}
+        """
+        Return a dict of class - exclude the any sensitive info
+        :return: dict containing all attribs from class
+        """
+        return_dict = {}
         for key, value in self.__dict__.items():
             if str(key) not in hidden_attribs:
-                r[str(key)] = str(value)
-        return r
+                return_dict[str(key)] = str(value)
+        return return_dict
 
 
 class User(db.Model, UserMixin):
+    """
+    Class to hold admin users
+    """
     user_id = db.Column(db.Integer, index=True, primary_key=True)
     email = db.Column(db.String(64))
     password = db.Column(db.String(128))
@@ -342,20 +383,39 @@ class User(db.Model, UserMixin):
         self.hash = hashed
 
     def __repr__(self):
-        return '<User %r>' % (self.email)
+        """ Return users name """
+        return f'<User {self.email}>'
+
+    def __str__(self):
+        """Returns a string of the object"""
+        return self.__class__.__name__ + ": " + self.email
 
     def get_id(self):
+        """ Return users id """
         return self.user_id
 
 
 class AlembicVersion(db.Model):
+    """
+    Class to hold the A.R.M db version
+    """
     version_num = db.Column(db.String(36), autoincrement=False, primary_key=True)
 
     def __init__(self, version=None):
         self.version_num = version
 
+    def __repr__(self):
+        return f'<AlembicVersion: {self.version_num}>'
+
+    def __str__(self):
+        """Returns a string of the object"""
+        return self.__class__.__name__ + ": " + self.version_num
+
 
 class UISettings(db.Model):
+    """
+    Class to hold the A.R.M ui settings
+    """
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     use_icons = db.Column(db.Boolean)
     save_remote_images = db.Column(db.Boolean)
@@ -364,7 +424,8 @@ class UISettings(db.Model):
     index_refresh = db.Column(db.Integer)
     database_limit = db.Column(db.Integer)
 
-    def __init__(self, use_icons=None, save_remote_images=None, bootstrap_skin=None, language=None, index_refresh=None,
+    def __init__(self, use_icons=None, save_remote_images=None,
+                 bootstrap_skin=None, language=None, index_refresh=None,
                  database_limit=None):
         self.use_icons = use_icons
         self.save_remote_images = save_remote_images
@@ -374,20 +435,59 @@ class UISettings(db.Model):
         self.database_limit = database_limit
 
     def __repr__(self):
-        return '<UISettings %r>' % self.id
+        return f'<UISettings {self.id}>'
 
     def __str__(self):
         """Returns a string of the object"""
 
-        s = self.__class__.__name__ + ": "
+        return_string = self.__class__.__name__ + ": "
         for attr, value in self.__dict__.items():
-            s = s + "(" + str(attr) + "=" + str(value) + ") "
+            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
 
-        return s
+        return return_string
 
     def get_d(self):
-        r = {}
+        """ Returns a dict of the object"""
+        return_dict = {}
         for key, value in self.__dict__.items():
             if '_sa_instance_state' not in key:
-                r[str(key)] = str(value)
-        return r
+                return_dict[str(key)] = str(value)
+        return return_dict
+
+
+class Notifications(db.Model):
+    """
+    Class to hold the A.R.M notifications
+    """
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    seen = db.Column(db.Boolean)
+    trigger_time = db.Column(db.DateTime)
+    dismiss_time = db.Column(db.DateTime)
+    title = db.Column(db.String(256))
+    message = db.Column(db.String(256))
+
+    def __init__(self, title=None, message=None):
+        self.seen = False
+        self.trigger_time = datetime.datetime.now()
+        self.title = title
+        self.message = message
+
+    def __repr__(self):
+        return f'<Notification {self.id}>'
+
+    def __str__(self):
+        """Returns a string of the object"""
+
+        return_string = self.__class__.__name__ + ": "
+        for attr, value in self.__dict__.items():
+            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
+
+        return return_string
+
+    def get_d(self):
+        """ Returns a dict of the object"""
+        return_dict = {}
+        for key, value in self.__dict__.items():
+            if '_sa_instance_state' not in key:
+                return_dict[str(key)] = str(value)
+        return return_dict

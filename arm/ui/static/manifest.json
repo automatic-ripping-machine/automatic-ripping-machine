@@ -1,5 +1,6 @@
 {
-    "name": "",
+    "short_name": "ARM",
+    "name": "Automatic Ripping Machine",
     "icons": [
         {
             "src": "/static/img/arm80.png",
@@ -20,7 +21,7 @@
             "src":"/static/img/android-chrome-512x512.png",
             "sizes":"512x512",
             "type":"image/png"
-        }]
+        }],
     "theme_color": "#446e9b",
     "background_color": "#3a3f51",
     "display": "standalone"

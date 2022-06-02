@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-
+"""yaml config loader"""
 import os
 import yaml
 
