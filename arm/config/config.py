@@ -3,12 +3,16 @@
 import os
 import yaml
 
-abcde_config_path = os.path.join("/etc/arm/config", ".abcde.yaml")
+abcde_config_path = os.path.join("/etc/arm/config", ".abcde.conf")
 apprise_config_path = os.path.join("/etc/arm/config", "apprise.yaml")
 arm_config_path = os.path.join("/etc/arm/config", "arm.yaml")
 
-with open(arm_config_path, "r") as f:
-    try:
-        arm_config = yaml.load(f, Loader=yaml.FullLoader)
-    except Exception:
-        arm_config = yaml.safe_load(f)  # For older versions use this
+
+def _load_config(fp):
+    with open(fp, "r") as yaml_file:
+        config = yaml.safe_load(yaml_file)
+    return config
+
+
+apprise_config = _load_config(apprise_config_path)
+arm_config = _load_config(arm_config_path)
