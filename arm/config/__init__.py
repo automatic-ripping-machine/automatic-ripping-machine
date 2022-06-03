@@ -1,1 +1,1 @@
-from . import config
+from . import config  # noqa: F401
