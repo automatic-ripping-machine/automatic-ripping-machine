@@ -9,7 +9,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_wtf import CSRFProtect
-from getpass import getpass  # noqa: F401
 
 from flask_login import LoginManager
 import bcrypt  # noqa: F401
