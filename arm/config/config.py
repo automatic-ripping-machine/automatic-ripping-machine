@@ -3,9 +3,10 @@
 import os
 import yaml
 
-abcde_config_path = os.path.join("/etc/arm/config", ".abcde.conf")
-apprise_config_path = os.path.join("/etc/arm/config", "apprise.yaml")
-arm_config_path = os.path.join("/etc/arm/config", "arm.yaml")
+CONFIG_LOCATION = "/etc/arm/config"
+abcde_config_path = os.path.join(CONFIG_LOCATION, ".abcde.conf")
+apprise_config_path = os.path.join(CONFIG_LOCATION, "apprise.yaml")
+arm_config_path = os.path.join(CONFIG_LOCATION, "arm.yaml")
 
 
 def _load_config(fp):
