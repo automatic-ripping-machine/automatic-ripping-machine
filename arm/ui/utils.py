@@ -720,7 +720,8 @@ def get_abcde_cfg(abcde_cfg_file):
 
 def get_git_revision_hash() -> str:
     """Get full hash of current git commit"""
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD'],
+                                   cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
 
 
 def get_git_revision_short_hash() -> str:

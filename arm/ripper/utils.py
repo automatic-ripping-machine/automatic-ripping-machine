@@ -231,7 +231,7 @@ def scan_emby():
 
     if cfg.arm_config["EMBY_REFRESH"]:
         logging.info("Sending Emby library scan request")
-        url = f"http://{cfg.arm_config['EMBY_SERVER']}:{cfg.arm_config['EMBY_PORT']}/Library/Refresh?api_key={cfg.arm_config['EMBY_API_KEY']}"
+        url = f"http://{cfg.arm_config['EMBY_SERVER']}:{cfg.arm_config['EMBY_PORT']}/Library/Refresh?api_key={cfg.arm_config['EMBY_API_KEY']}"  # noqa: E501
         try:
             req = requests.post(url)
             if req.status_code > 299:

@@ -105,11 +105,13 @@ def handbrake_all(srcpath, basepath, logfile, job):
         if track.length < int(cfg.arm_config["MINLENGTH"]):
             # too short
             logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
-                         f"Length ({track.length}) is less than minimum length ({cfg.arm_config['MINLENGTH']}).  Skipping")
+                         f"Length ({track.length}) is less than minimum length ({cfg.arm_config['MINLENGTH']}). "
+                         f"Skipping...")
         elif track.length > int(cfg.arm_config["MAXLENGTH"]):
             # too long
             logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
-                         f"Length ({track.length}) is greater than maximum length ({cfg.arm_config['MAXLENGTH']}).  Skipping")
+                         f"Length ({track.length}) is greater than maximum length ({cfg.arm_config['MAXLENGTH']}). "
+                         f"Skipping...")
         else:
             # just right
             logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. "
