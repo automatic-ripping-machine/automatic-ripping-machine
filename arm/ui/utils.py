@@ -18,11 +18,8 @@ import requests
 from werkzeug.routing import ValidationError
 import yaml
 from flask.logging import default_handler  # noqa: F401
+
 import arm.config.config as cfg
-
-from pathlib import Path
-from flask.logging import default_handler  # noqa: F401
-
 from arm.ui import app, db
 from arm.models import models
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
