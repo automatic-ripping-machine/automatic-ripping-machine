@@ -161,9 +161,9 @@ function install_arm_live_env() {
 }
 
 function setup_config_files() {
-    ##### Setup ARM config files if not found
+    ##### Setup ARM-specific config files if not found
     sudo mkdir -p /etc/arm/config
-    CONFS="arm.yaml apprise.yaml .abcde.conf"
+    CONFS="arm.yaml apprise.yaml"
     for conf in $CONFS; do
         thisConf="/etc/arm/config/${conf}"
         if [[ ! -f "${thisConf}" ]] ; then
@@ -173,6 +173,10 @@ function setup_config_files() {
         fi
     done
     chown -R arm:arm /etc/arm/
+
+    # abcde.conf is expected in /etc by the abcde installation
+    cp --no-clobber "/opt/arm/setup/.abcde.conf" "/etc/.abcde.conf"
+    chown arm:arm "/etc/.abcde.conf"
 
     if [[ $port_flag ]]; then
         echo -e "${RED}Non-default port specified, updating arm config...${NC}"
