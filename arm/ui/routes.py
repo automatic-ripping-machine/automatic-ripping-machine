@@ -23,7 +23,7 @@ from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
     SettingsForm, UiSettingsForm, SetupForm, AbcdeForm
 from arm.ui.metadata import get_omdb_poster
 
-ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg['DBFILE'])
+ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
 ROUTE_ERROR = "error.html"
 ROUTE_INDEX = '/index'
 ROUTE_SETUP_STAGE2 = '/setup-stage2'
@@ -94,7 +94,7 @@ def setup():
     if perm_file.exists() and ui_utils.setup_database():
         flash(f"{perm_file} exists, setup cannot continue. To re-install please delete this file.", "danger")
         return redirect("/")
-    dir0 = Path(PurePath(cfg['DBFILE']).parent)
+    dir0 = Path(PurePath(cfg.arm_config['DBFILE']).parent)
     dir1 = Path(cfg.arm_config['RAW_PATH'])
     dir2 = Path(cfg.arm_config['TRANSCODE_PATH'])
     dir3 = Path(cfg.arm_config['COMPLETED_PATH'])
@@ -228,7 +228,7 @@ def database():
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
     return render_template('database.html', jobs=jobs.items,
-                           date_format=cfg['DATE_FORMAT'], pages=jobs)
+                           date_format=cfg.arm_config['DATE_FORMAT'], pages=jobs)
 
 
 @app.route('/json', methods=['GET'])
@@ -247,7 +247,7 @@ def feed_json():
     valid_data = {
         'j_id': request.args.get('job'),
         'searchq': request.args.get('q'),
-        'logpath': cfg['LOGPATH'],
+        'logpath': cfg.arm_config['LOGPATH'],
         'fail': 'fail',
         'success': 'success',
         'joblist': 'joblist',
@@ -296,7 +296,7 @@ def settings():
     This loads slow, needs to be optimised...
     """
     # stats for info page
-    with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
+    with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
     failed_rips = models.Job.query.filter_by(status="fail").count()
     total_rips = models.Job.query.filter_by().count()
@@ -319,7 +319,7 @@ def settings():
     arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     current_cfg = ui_utils.get_settings(arm_cfg_file)
     # load abcde config
-    abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE']).strip()
+    abcde_cfg = ui_utils.get_abcde_cfg(cfg.arm_config['ABCDE_CONFIG_FILE']).strip()
     form = SettingsForm()
     return render_template('settings.html', settings=current_cfg, ui_settings=armui_cfg,
                            form=form, jsoncomments=comments, abcde_cfg=abcde_cfg, stats=stats)
@@ -383,7 +383,7 @@ def save_abcde():
     Save abcde config settings from post
     """
     # Path to abcde.conf
-    abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE'])
+    abcde_cfg = ui_utils.get_abcde_cfg(cfg.arm_config['ABCDE_CONFIG_FILE'])
     success = False
     abcde_cfg_str = ""
     form = AbcdeForm()
@@ -391,7 +391,7 @@ def save_abcde():
         app.logger.debug(f"routes.save_abcde: Saving new abcde.conf: {abcde_cfg}")
         abcde_cfg_str = str(form.abcdeConfig.data).strip()
         # Save updated abcde.conf
-        with open(cfg['ABCDE_CONFIG_FILE'], "w") as abcde_file:
+        with open(cfg.arm_config['ABCDE_CONFIG_FILE'], "w") as abcde_file:
             abcde_file.write(abcde_cfg_str)
             abcde_file.close()
         success = True
@@ -429,7 +429,7 @@ def listlogs(path):
 
     # Get all files in directory
     files = ui_utils.get_info(full_path)
-    return render_template('logfiles.html', files=files, date_format=cfg['DATE_FORMAT'])
+    return render_template('logfiles.html', files=files, date_format=cfg.arm_config['DATE_FORMAT'])
 
 
 @app.route('/logreader')
@@ -730,7 +730,7 @@ def import_movies():
              that doesn't match ARM identified folder format.
     .. note:: This should eventually be moved to /json page load times are too long
     """
-    my_path = cfg['COMPLETED_PATH']
+    my_path = cfg.arm_config['COMPLETED_PATH']
     app.logger.debug(my_path)
     movies = {0: {'notfound': {}}}
     i = 1
