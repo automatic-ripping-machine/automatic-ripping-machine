@@ -6,7 +6,6 @@ import os
 import logging
 import subprocess
 import shlex
-import arm.config.config as cfg
 
 from arm.ripper import utils  # noqa: E402
 from arm.ui import db  # noqa: F401, E402
