@@ -24,7 +24,6 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     :param job: Disc object\n
     :return: None
     """
-    hb_args = hb_preset = ""
     logging.info("Starting DVD Movie main_feature processing")
     logging.debug("Handbrake starting: ")
     logging.debug(f"\n\r{job.pretty_table()}")
@@ -49,13 +48,7 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     track.filename = track.orig_filename = filename
     db.session.commit()
 
-    if job.disctype == "dvd":
-        hb_args = cfg.arm_config["HB_ARGS_DVD"]
-        hb_preset = cfg.arm_config["HB_PRESET_DVD"]
-    elif job.disctype == "bluray":
-        hb_args = cfg.arm_config["HB_ARGS_BD"]
-        hb_preset = cfg.arm_config["HB_PRESET_BD"]
-
+    hb_args, hb_preset = correct_hb_settings(job)
     cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
           f"-i {shlex.quote(srcpath)} " \
           f"-o {shlex.quote(filepathname)} " \
@@ -102,13 +95,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
     db.session.commit()
     logging.info("Starting BluRay/DVD transcoding - All titles")
 
-    if job.disctype == "dvd":
-        hb_args = cfg.arm_config["HB_ARGS_DVD"]
-        hb_preset = cfg.arm_config["HB_PRESET_DVD"]
-    elif job.disctype == "bluray":
-        hb_args = cfg.arm_config["HB_ARGS_BD"]
-        hb_preset = cfg.arm_config["HB_PRESET_BD"]
-
+    hb_args, hb_preset = correct_hb_settings(job)
     get_track_info(srcpath, job)
 
     logging.debug(f"Total number of tracks is {job.no_of_titles}")
