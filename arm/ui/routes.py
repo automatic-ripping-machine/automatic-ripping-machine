@@ -24,9 +24,6 @@ from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
 from arm.ui.metadata import get_omdb_poster
 
 ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
-ROUTE_ERROR = "error.html"
-ROUTE_INDEX = '/index'
-ROUTE_SETUP_STAGE2 = '/setup-stage2'
 
 
 login_manager = LoginManager()
