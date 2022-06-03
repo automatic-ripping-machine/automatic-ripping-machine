@@ -56,14 +56,10 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
         hb_args = cfg.arm_config["HB_ARGS_BD"]
         hb_preset = cfg.arm_config["HB_PRESET_BD"]
 
-    cmd = 'nice {0} -i {1} -o {2} --main-feature --preset "{3}" {4} >> {5} 2>&1'.format(
-        cfg.arm_config["HANDBRAKE_CLI"],
-        shlex.quote(srcpath),
-        shlex.quote(filepathname),
-        hb_preset,
-        hb_args,
-        logfile
-    )
+    cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} -i {shlex.quote(srcpath)} " \
+          f"-o {shlex.quote(filepathname)} --main-feature " \
+          f"--preset \"{hb_preset}\" {hb_args} " \
+          f">> {logfile} 2>&1"
 
     logging.debug(f"Sending command: {cmd}")
 
