@@ -6,7 +6,7 @@ import requests
 from flask.logging import default_handler  # noqa: F401
 
 from arm.ui import app
-from arm.config.config import cfg
+import arm.config.config as cfg
 
 TMDB_YEAR_REGEX = r"-\d{0,2}-\d{0,2}"
 
@@ -21,7 +21,7 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
     :param plot: if plot should be short/full. Defaults "short"
     :return: dict of
     """
-    omdb_api_key = cfg['OMDB_API_KEY']
+    omdb_api_key = cfg.arm_config['OMDB_API_KEY']
     title_info = None
     # Default url
     str_url = f"https://www.omdbapi.com/?s={title}&plot={plot}&r=json&apikey={omdb_api_key}"
@@ -62,7 +62,7 @@ def get_omdb_poster(title=None, year=None, imdb_id=None, plot="short"):
     :param plot: short or full plot
     :return: [poster_link, imdb_id]
     """
-    omdb_api_key = cfg['OMDB_API_KEY']
+    omdb_api_key = cfg.arm_config['OMDB_API_KEY']
     if imdb_id:
         str_url = f"https://www.omdbapi.com/?i={imdb_id}&plot={plot}&r=json&apikey={omdb_api_key}"
         str_url_2 = ""
@@ -101,7 +101,7 @@ def get_tmdb_poster(search_query=None, year=None):
     :param year: year of movie/show
     :return: dict of search results
     """
-    tmdb_api_key = cfg['TMDB_API_KEY']
+    tmdb_api_key = cfg.arm_config['TMDB_API_KEY']
     search_results, poster_base, response = tmdb_fetch_results(search_query, year, tmdb_api_key)
 
     # if status_code is in search_results we know there was an error
@@ -153,7 +153,7 @@ def tmdb_search(search_query=None, year=None):
     :param year: year of release
     :return: json/dict of search results
     """
-    tmdb_api_key = cfg['TMDB_API_KEY']
+    tmdb_api_key = cfg.arm_config['TMDB_API_KEY']
     search_results, poster_base, response = tmdb_fetch_results(search_query, year, tmdb_api_key)
     app.logger.debug(f"Search results - movie - {search_results}")
     if 'status_code' in search_results:
@@ -210,7 +210,7 @@ def tmdb_get_imdb(tmdb_id):
     """
     # https://api.themoviedb.org/3/movie/78?api_key=
     # &append_to_response=alternative_titles,changes,credits,images,keywords,lists,releases,reviews,similar,videos
-    tmdb_api_key = cfg['TMDB_API_KEY']
+    tmdb_api_key = cfg.arm_config['TMDB_API_KEY']
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={tmdb_api_key}&" \
           f"append_to_response=alternative_titles,credits,images,keywords,releases,reviews,similar,videos,external_ids"
     url_tv = f"https://api.themoviedb.org/3/tv/{tmdb_id}/external_ids?api_key={tmdb_api_key}"
@@ -235,7 +235,7 @@ def tmdb_find(imdb_id):
     :param str imdb_id: the IMDB id to lookup
     :return: dict in the standard 'arm' format
     """
-    tmdb_api_key = cfg['TMDB_API_KEY']
+    tmdb_api_key = cfg.arm_config['TMDB_API_KEY']
     url = f"https://api.themoviedb.org/3/find/{imdb_id}?api_key={tmdb_api_key}&external_source=imdb_id"
     poster_size = "original"
     poster_base = f"https://image.tmdb.org/t/p/{poster_size}"
