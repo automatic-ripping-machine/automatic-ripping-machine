@@ -6,6 +6,7 @@ For help please visit https://github.com/automatic-ripping-machine/automatic-rip
 """
 import sys
 import argparse  # noqa: E402
+import os  # noqa: E402
 import logging  # noqa: E402
 import logging.handlers  # noqa: E402
 from logging import config  # noqa: E402
@@ -151,7 +152,7 @@ if __name__ == "__main__":
         arm_log.info("ARM is trying to write a job to the empty.log, or NAS**.log")
         sys.exit()
     # Check the db is current, if not update it
-    utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
+    utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
     # Sometimes drives trigger twice this stops multi runs from 1 udev trigger
     utils.duplicate_run_check(devpath)
 
@@ -177,7 +178,7 @@ if __name__ == "__main__":
     logging.info(("Python version: " + sys.version).replace('\n', ""))
     logging.info(f"User is: {getpass.getuser()}")
     # Delete old log files
-    logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg["LOGLIFE"])
+    logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])
     logging.info(f"Job: {job.label}")  # This will sometimes be none
     # Check for zombie jobs and update status to failed
     utils.clean_old_jobs()
