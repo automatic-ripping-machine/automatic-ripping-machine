@@ -56,9 +56,12 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
         hb_args = cfg.arm_config["HB_ARGS_BD"]
         hb_preset = cfg.arm_config["HB_PRESET_BD"]
 
-    cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} -i {shlex.quote(srcpath)} " \
-          f"-o {shlex.quote(filepathname)} --main-feature " \
-          f"--preset \"{hb_preset}\" {hb_args} " \
+    cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
+          f"-i {shlex.quote(srcpath)} " \
+          f"-o {shlex.quote(filepathname)} " \
+          f"--main-feature " \
+          f"--preset \"{hb_preset}\" " \
+          f"{hb_args} " \
           f">> {logfile} 2>&1"
 
     logging.debug(f"Sending command: {cmd}")
@@ -125,7 +128,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
             logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. "
                          f"Length is {track.length} seconds.")
 
-            filename = "title_" + str.zfill(str(track.track_number), 2) + "." + cfg.arm_config["DEST_EXT"]
+            filename = f"title_{track.track_number:02}.{cfg.arm_config['DEST_EXT']}"
             filepathname = os.path.join(basepath, filename)
 
             logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
@@ -133,8 +136,13 @@ def handbrake_all(srcpath, basepath, logfile, job):
             track.filename = track.orig_filename = filename
             db.session.commit()
 
-            cmd = f'nice {cfg.arm_config["HANDBRAKE_CLI"]} -i {shlex.quote(srcpath)} -o {shlex.quote(filepathname)} ' \
-                  f'--preset "{hb_preset}" -t {str(track.track_number)} {hb_args}>> {logfile} 2>&1'
+            cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
+                  f"-i {shlex.quote(srcpath)} " \
+                  f"-o {shlex.quote(filepathname)} " \
+                  f"--preset \"{hb_preset}\" " \
+                  f"-t {str(track.track_number)} " \
+                  f"{hb_args} " \
+                  f">> {logfile} 2>&1"
 
             logging.debug(f"Sending command: {cmd}")
 
