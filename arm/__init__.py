@@ -1,3 +1,3 @@
 import arm.config
 import arm.ripper
-import arm.ui
+import arm.ui  # noqa: F401
