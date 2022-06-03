@@ -104,7 +104,7 @@ RIP_POSTER: false
 
 # Location of your ABCDE config file
 # This over-rides any other abcde.conf files
-ABCDE_CONFIG_FILE: "/etc/abcde.conf"
+ABCDE_CONFIG_FILE: "/etc/arm/config/abcde.conf"
 
 # Path to raw MakeMKV directory
 # Destination for MakeMKV and source for HandBrake
