@@ -36,13 +36,13 @@ def setup_logging(job):
     # Remove any root loggers
     clean_loggers()
     # Debug formatting
-    if cfg['LOGLEVEL'] == "DEBUG":
+    if cfg.arm_config['LOGLEVEL'] == "DEBUG":
         logging.basicConfig(filename=log_full,
                             format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
-                            datefmt=cfg.arm_config['DATE_FORMAT'], level=cfg['LOGLEVEL'])
+                            datefmt=cfg.arm_config['DATE_FORMAT'], level=cfg.arm_config['LOGLEVEL'])
     else:
         logging.basicConfig(filename=log_full, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
-                            datefmt=cfg.arm_config['DATE_FORMAT'], level=cfg['LOGLEVEL'])
+                            datefmt=cfg.arm_config['DATE_FORMAT'], level=cfg.arm_config['LOGLEVEL'])
 
     # These stop apprise and others spitting our secret keys if users post log online
     logging.getLogger("apprise").setLevel(logging.WARN)
