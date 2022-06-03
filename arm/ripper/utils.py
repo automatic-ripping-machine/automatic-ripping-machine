@@ -62,8 +62,8 @@ def notify(job, title, body):
 
     if cfg.arm_config["APPRISE"] != "":
         try:
-            apprise_bulk.apprise_notify(cfg["APPRISE"], title, body)
-            logging.debug(f"apprise-config: {cfg['APPRISE']}")
+            apprise_bulk.apprise_notify(cfg.arm_config["APPRISE"], title, body)
+            logging.debug(f"apprise-config: {cfg.arm_config['APPRISE']}")
         except Exception as error:  # noqa: E722
             logging.error(f"Failed sending apprise notifications. {error}")
 
@@ -229,9 +229,9 @@ def move_movie_poster(final_directory, hb_out_path):
 def scan_emby():
     """Trigger a media scan on Emby"""
 
-    if cfg["EMBY_REFRESH"]:
+    if cfg.arm_config["EMBY_REFRESH"]:
         logging.info("Sending Emby library scan request")
-        url = f"http://{cfg['EMBY_SERVER']}:{cfg['EMBY_PORT']}/Library/Refresh?api_key={cfg['EMBY_API_KEY']}"
+        url = f"http://{cfg.arm_config['EMBY_SERVER']}:{cfg.arm_config['EMBY_PORT']}/Library/Refresh?api_key={cfg.arm_config['EMBY_API_KEY']}"
         try:
             req = requests.post(url)
             if req.status_code > 299:
@@ -249,7 +249,7 @@ def delete_raw_files(dir_list):
     :param list dir_list: Python list containing strings of the folders to be deleted
 
     """
-    if cfg["DELRAWFILES"]:
+    if cfg.arm_config["DELRAWFILES"]:
         for raw_folder in dir_list:
             try:
                 logging.info(f"Removing raw path - {raw_folder}")
@@ -402,7 +402,7 @@ def rip_data(job):
     make_dir(final_path)
     logging.info(f"Ripping data disc to: {incomplete_filename}")
     # Added from pull 366
-    cmd = f'dd if="{job.devpath}" of="{incomplete_filename}" {cfg["DATA_RIP_PARAMETERS"]} 2>> ' \
+    cmd = f'dd if="{job.devpath}" of="{incomplete_filename}" {cfg.arm_config["DATA_RIP_PARAMETERS"]} 2>> ' \
           f'{os.path.join(job.config.LOGPATH, job.logfile)}'
     logging.debug(f"Sending command: {cmd}")
     try:
@@ -432,20 +432,20 @@ def set_permissions(directory_to_traverse):
     :param directory_to_traverse: directory to fix permissions
     :return: False if fails
     """
-    if not cfg['SET_MEDIA_PERMISSIONS']:
+    if not cfg.arm_config['SET_MEDIA_PERMISSIONS']:
         return False
     try:
-        corrected_chmod_value = int(str(cfg["CHMOD_VALUE"]), 8)
-        logging.info(f"Setting permissions to: {cfg['CHMOD_VALUE']} on: {directory_to_traverse}")
+        corrected_chmod_value = int(str(cfg.arm_config["CHMOD_VALUE"]), 8)
+        logging.info(f"Setting permissions to: {cfg.arm_config['CHMOD_VALUE']} on: {directory_to_traverse}")
         os.chmod(directory_to_traverse, corrected_chmod_value)
 
         for dirpath, l_directories, l_files in os.walk(directory_to_traverse):
             for cur_dir in l_directories:
-                logging.debug(f"Setting path: {cur_dir} to permissions value: {cfg['CHMOD_VALUE']}")
+                logging.debug(f"Setting path: {cur_dir} to permissions value: {cfg.arm_config['CHMOD_VALUE']}")
                 os.chmod(os.path.join(dirpath, cur_dir), corrected_chmod_value)
 
             for cur_file in l_files:
-                logging.debug(f"Setting file: {cur_file} to permissions value: {cfg['CHMOD_VALUE']}")
+                logging.debug(f"Setting file: {cur_file} to permissions value: {cfg.arm_config['CHMOD_VALUE']}")
                 os.chmod(os.path.join(dirpath, cur_file), corrected_chmod_value)
 
         logging.info("Permissions set successfully: True")
@@ -538,7 +538,7 @@ def try_add_default_user():
         pass1 = "password".encode('utf-8')
         hashed = bcrypt.gensalt(12)
         database_adder(models.User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed))
-        perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
+        perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
         write_permission_file = open(perm_file, "w")
         write_permission_file.write("boop!")
         write_permission_file.close()
@@ -589,12 +589,12 @@ def arm_setup(arm_log):
     :arguments: None
     :return: None
     """
-    arm_directories = [cfg['RAW_PATH'], cfg['TRANSCODE_PATH'],
-                       cfg['COMPLETED_PATH'], cfg['LOGPATH']]
+    arm_directories = [cfg.arm_config['RAW_PATH'], cfg.arm_config['TRANSCODE_PATH'],
+                       cfg.arm_config['COMPLETED_PATH'], cfg.arm_config['LOGPATH']]
     try:
         # Check db file is writeable
-        if not os.access(cfg['DBFILE'], os.W_OK):
-            arm_log.error(f"Cant write to database file! Permission ERROR: {cfg['DBFILE']} - ARM Will Fail!")
+        if not os.access(cfg.arm_config['DBFILE'], os.W_OK):
+            arm_log.error(f"Cant write to database file! Permission ERROR: {cfg.arm_config['DBFILE']} - ARM Will Fail!")
             raise IOError
         # Check directories for read/write permission -> create if they don't exist
         for folder in arm_directories:
@@ -738,8 +738,8 @@ def check_ip():
         none
         return: the ip of the host or 127.0.0.1
     """
-    if cfg['WEBSERVER_IP'] != 'x.x.x.x':
-        return cfg['WEBSERVER_IP']
+    if cfg.arm_config['WEBSERVER_IP'] != 'x.x.x.x':
+        return cfg.arm_config['WEBSERVER_IP']
     # autodetect host IP address
     ip_list = []
     for interface in interfaces():
@@ -791,7 +791,7 @@ def save_disc_poster(final_directory, job):
     :param job: Current Job
     :return: None
     """
-    if job.disctype == "dvd" and cfg["RIP_POSTER"]:
+    if job.disctype == "dvd" and cfg.arm_config["RIP_POSTER"]:
         os.system(f"mount {job.devpath}")
         if os.path.isfile(job.mountpoint + "/JACKET_P/J00___5L.MP2"):
             logging.info("Converting NTSC Poster Image")
@@ -815,9 +815,9 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
         logging.info(f"Output directory \"{hb_out_path}\" already exists.")
         # Only begin ripping if we are allowed to make duplicates
         # Or the successful rip of the disc is not found in our database
-        logging.debug(f"Value of ALLOW_DUPLICATES: {cfg['ALLOW_DUPLICATES']}")
+        logging.debug(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
         logging.debug(f"Value of have_dupes: {have_dupes}")
-        if cfg["ALLOW_DUPLICATES"] or not have_dupes:
+        if cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
             hb_out_path = hb_out_path + " " + job.stage
 
             if (make_dir(hb_out_path)) is False:
