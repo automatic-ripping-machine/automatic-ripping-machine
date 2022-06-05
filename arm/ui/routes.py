@@ -490,7 +490,7 @@ def history():
     if os.path.isfile(cfg['DBFILE']):
         # after roughly 175 entries firefox readermode will break
         # jobs = Job.query.filter_by().limit(175).all()
-        jobs = Job.query.order_by().paginate(page, 100, False)
+        jobs = Job.query.order_by(Job.start_time.desc()).paginate(page, 100, False)
     else:
         app.logger.error('ERROR: /history database file doesnt exist')
         jobs = {}
