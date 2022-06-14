@@ -181,6 +181,10 @@ def main(logfile, job):
 
     utils.notify_entry(job)
 
+    if cfg["UMASK"]:
+        logging.info(f"Setting umask to {cfg['UMASK']}")
+        os.umask(int(cfg["UMASK"], 8))
+
     #  If we have have waiting for user input enabled
     if cfg["MANUAL_WAIT"]:
         logging.info(f"Waiting {cfg['MANUAL_WAIT_TIME']} seconds for manual override.")
