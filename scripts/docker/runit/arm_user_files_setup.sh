@@ -45,7 +45,7 @@ for dir in $SUBDIRS ; do
 done
 
     ##### Setup ARM-specific config files if not found
-    sudo mkdir -p /etc/arm/config
+    mkdir -p /etc/arm/config
     CONFS="arm.yaml apprise.yaml"
     for conf in $CONFS; do
         thisConf="/etc/arm/config/${conf}"
