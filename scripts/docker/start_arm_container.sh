@@ -15,4 +15,3 @@ docker run -d \
     --privileged \
     --restart "always" \
     --name "arm-rippers" \
-    $IMAGE
