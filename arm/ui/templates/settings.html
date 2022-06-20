@@ -69,6 +69,11 @@
                                role="tab"
                                aria-controls="uiSettingsTab" aria-selected="false">Ui Settings</a>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="apprise-tab" data-toggle="tab" href="#appriseTab"
+                               role="tab"
+                               aria-controls="appriseTab" aria-selected="false">Apprise config</a>
+                        </li>
                     </ul>
 
                     <!-- Tab Panes -->
@@ -93,14 +98,14 @@
                                             <li class="list-group-item">Update Available:
                                             <!-- Update A.R.M -->
                                                 {% if stats['updated'] %}
-                                                    <img src="static/img/success.png"
+                                                    <img src="{{ url_for('static', filename='/img/success.png') }}"
                                                      alt="update image" width="20px" height="20px">  You are on the latest version
                                                 {% else %}
-                                                    <img src="static/img/fail.png"
+                                                    <img src="{{ url_for('static', filename='/img/fail.png') }}"
                                                      alt="update image" width="20px" height="20px">
                                                     <form id="updateArm" name="updateArm" method="post" action="">
                                                         {{ form.hidden_tag() }}
-                                                        <button title="Not implemented yet!"
+                                                        <button title="Update A.R.M Via git"
                                                                 class="btn btn-primary float-right" type="submit">Update
                                                             A.R.M
                                                         </button>
@@ -133,7 +138,7 @@
                                             </a></div>
                                             <div class="col-lg-4 rounded"><a target="_blank" rel="noopener"
                                                                              class="stretched-link text-center"
-                                                                             href="https://discord.gg/BCarpwC7qC">
+                                                                             href="https://discord.gg/FUSrn8jUcR">
                                                 <img class="rounded mx-auto d-block mt-2"
                                                      src="{{ url_for('static', filename='/img/discord/discord-128.png') }}"
                                                      alt="Discord">
@@ -186,7 +191,7 @@
                                         <a class="popovers" onClick='return false;' href=""
                                            data-content="{{ jsoncomments[k]| replace("#", "\n") }}" rel="popover"
                                            data-placement="top" data-original-title="{{ k }}">
-                                            <img title="More information" src="static/img/info.png" width="30px"
+                                            <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
                                                  height="35px" alt="More Info">
                                         </a>
                                     </div>
@@ -211,7 +216,7 @@
                                        data-content="{{ jsoncomments['index_refresh']| replace("#", "\n") }}"
                                        rel="popover"
                                        data-placement="top" data-original-title="index_refresh">
-                                        <img title="More information" src="static/img/info.png" width="30px"
+                                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
                                              height="35px" alt="More info">
                                     </a>
                                 </div>
@@ -225,7 +230,7 @@
                                     <a class="popovers" onClick='return false;' href=""
                                        data-content="{{ jsoncomments['use_icons']| replace("#", "\n") }}" rel="popover"
                                        data-placement="top" data-original-title="use_icons">
-                                        <img title="More information" src="static/img/info.png" width="30px"
+                                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
                                              height="35px" alt="More info">
                                     </a>
                                 </div>
@@ -241,7 +246,7 @@
                                        data-content="{{ jsoncomments['save_remote_images']| replace("#", "\n") }}"
                                        rel="popover"
                                        data-placement="top" data-original-title="save_remote_images">
-                                        <img title="More information" src="static/img/info.png" width="30px"
+                                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
                                              height="35px" alt="More info">
                                     </a>
                                 </div>
@@ -257,7 +262,7 @@
                                        data-content="{{ jsoncomments['bootstrap_skin']| replace("#", "\n") }}"
                                        rel="popover"
                                        data-placement="top" data-original-title="bootstrap_skin">
-                                        <img title="More information" src="static/img/info.png" width="30px"
+                                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
                                              height="35px" alt="More info">
                                     </a>
                                 </div>
@@ -272,7 +277,7 @@
                                     <a class="popovers" onClick='return false;' href=""
                                        data-content="{{ jsoncomments['language']| replace("#", "\n") }}" rel="popover"
                                        data-placement="top" data-original-title="language">
-                                        <img title="More information" src="static/img/info.png" width="30px"
+                                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
                                              height="35px" alt="More info">
                                     </a>
                                 </div>
@@ -288,7 +293,7 @@
                                        data-content="{{ jsoncomments['database_limit']| replace("#", "\n") }}"
                                        rel="popover"
                                        data-placement="top" data-original-title="database_limit">
-                                        <img title="More information" src="static/img/info.png" width="30px"
+                                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
                                              height="35px" alt="More info">
                                     </a>
                                 </div>
@@ -297,6 +302,14 @@
                                     Submit
                                 </button>
                             </form>
+                        </div>
+                        <!-- Apprise config -->
+                        <div class="tab-pane pt-5" id="appriseTab" role="tabpanel" aria-labelledby="apprise-tab">
+                            <div class="row">
+                                <div class="col-md-8 mx-auto">
+                                    To be added
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
