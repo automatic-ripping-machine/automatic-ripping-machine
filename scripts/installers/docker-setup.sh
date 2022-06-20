@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 RED='\033[1;31m'
 NC='\033[0m' # No Color
@@ -84,7 +84,7 @@ function save_start_command() {
 # start here
 install_reqs
 add_arm_user
-install_docker
+launch_setup
 pull_image
 setup_mountpoints
 save_start_command
