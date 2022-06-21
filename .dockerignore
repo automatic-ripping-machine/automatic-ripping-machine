@@ -212,7 +212,6 @@ dmypy.json
 cython_debug/
 
 # ARM-specific
-.git/
 .github/
 .dockerignore
 .gitignore
