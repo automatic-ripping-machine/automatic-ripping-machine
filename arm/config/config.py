@@ -17,3 +17,5 @@ def _load_config(fp):
 
 apprise_config = _load_config(apprise_config_path)
 arm_config = _load_config(arm_config_path)
+with open(abcde_config_path, "r") as abcde_read_file:
+    abcde_config = abcde_read_file.read()

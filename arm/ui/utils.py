@@ -16,7 +16,6 @@ from time import strftime, localtime, time, sleep
 import bcrypt
 import requests
 from werkzeug.routing import ValidationError
-import yaml
 from flask.logging import default_handler  # noqa: F401
 
 import arm.config.config as cfg
@@ -469,25 +468,6 @@ def trigger_restart():
     set_file_last_modified(arm_main, now)
 
 
-def get_settings(arm_cfg_file):
-    """
-    yaml file loader - is used for loading fresh arm.yaml config\n
-    :param arm_cfg_file: full path to arm.yaml
-    :return: the loaded yaml file
-    """
-    try:
-        with open(arm_cfg_file, "r") as yaml_file:
-            try:
-                yaml_cfg = yaml.load(yaml_file, Loader=yaml.FullLoader)
-            except Exception as error:
-                app.logger.debug(error)
-                yaml_cfg = yaml.safe_load(yaml_file)  # For older versions use this
-    except FileNotFoundError as error:
-        app.logger.debug(error)
-        yaml_cfg = {}
-    return yaml_cfg
-
-
 def build_arm_cfg(form_data, comments):
     """
     Main function for saving new updated arm.yaml\n
@@ -704,18 +684,6 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
     app.logger.debug(new_movie)
     db.session.add(new_movie)
     return movie_dict
-
-
-def get_abcde_cfg(abcde_cfg_file):
-    """
-    load and return as string abcde.cfg
-    """
-    try:
-        with open(abcde_cfg_file, "r") as abcde_read_file:
-            abcde = abcde_read_file.read()
-    except FileNotFoundError:
-        abcde = "File not found"
-    return abcde
 
 
 def get_git_revision_hash() -> str:

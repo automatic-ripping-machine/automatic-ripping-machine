@@ -312,14 +312,9 @@ def settings():
              }
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
-    # Get the current config, so we can show the current values
-    arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
-    current_cfg = ui_utils.get_settings(arm_cfg_file)
-    # load abcde config
-    abcde_cfg = ui_utils.get_abcde_cfg(cfg.arm_config['ABCDE_CONFIG_FILE']).strip()
     form = SettingsForm()
-    return render_template('settings.html', settings=current_cfg, ui_settings=armui_cfg,
-                           form=form, jsoncomments=comments, abcde_cfg=abcde_cfg, stats=stats)
+    return render_template('settings.html', settings=cfg.arm_config, ui_settings=armui_cfg,
+                           form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config, stats=stats)
 
 
 @app.route('/save_settings', methods=['POST'])
@@ -328,8 +323,6 @@ def save_settings():
     """
     Save arm ripper settings from post
     """
-    # Path to arm.yaml
-    arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
     success = False
@@ -339,7 +332,7 @@ def save_settings():
         # Build the new arm.yaml with updated values from the user
         arm_cfg = ui_utils.build_arm_cfg(request.form.to_dict(), comments)
         # Save updated arm.yaml
-        with open(arm_cfg_file, "w") as settings_file:
+        with open(cfg.arm_config_path, "w") as settings_file:
             settings_file.write(arm_cfg)
             settings_file.close()
         success = True
@@ -379,16 +372,14 @@ def save_abcde():
     """
     Save abcde config settings from post
     """
-    # Path to abcde.conf
-    abcde_cfg = ui_utils.get_abcde_cfg(cfg.arm_config['ABCDE_CONFIG_FILE'])
     success = False
     abcde_cfg_str = ""
     form = AbcdeForm()
     if form.validate():
-        app.logger.debug(f"routes.save_abcde: Saving new abcde.conf: {abcde_cfg}")
+        app.logger.debug(f"routes.save_abcde: Saving new abcde.conf: {cfg.abcde_config_path}")
         abcde_cfg_str = str(form.abcdeConfig.data).strip()
         # Save updated abcde.conf
-        with open(cfg.arm_config['ABCDE_CONFIG_FILE'], "w") as abcde_file:
+        with open(cfg.abcde_config_path, "w") as abcde_file:
             abcde_file.write(abcde_cfg_str)
             abcde_file.close()
         success = True
