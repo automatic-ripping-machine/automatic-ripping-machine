@@ -19,12 +19,12 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
 from arm.models import models as models
 from arm.config.config import cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm, SettingsForm, UiSettingsForm, SetupForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm, SettingsForm, UiSettingsForm, SetupForm, SystemInfoDrives
 from arm.ui.metadata import get_omdb_poster
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-server = models.ServerInfo()
+server = models.SystemInfo()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -577,7 +577,7 @@ def updatetitle():
           f'{request.args.get("title")} ({request.args.get("year")})', "success")
     return redirect("/")
 
-@app.route('/systeminfo')
+@app.route('/systeminfo', methods=['GET', 'POST'])
 @login_required
 def systeminfo():
     """
@@ -586,15 +586,22 @@ def systeminfo():
     #System details in class server
     arm_path = cfg['TRANSCODE_PATH']
     media_path = cfg['COMPLETED_PATH']
-    #disks
-    drive_name = "LG DVD"
-    drive_type = "DVD/CD"
-    drive_mount = "/dev/sr0"
-    drive_status = "Closed"
-    drive_job = "None"
 
-    return render_template('systeminfo.html', server = server, arm_path=arm_path, media_path=media_path,
-                            drive_name=drive_name, drive_type=drive_type, drive_mount=drive_mount, drive_status=drive_status, drive_job=drive_job)
+    #System Drives (CD/DVD/Blueray drives)
+    formDrive = SystemInfoDrives(request.form)
+    if request.method == 'POST' and formDrive.validate():
+        app.logger.debug("Drive id: " + str(formDrive.id.data) + " Updated db description: " + formDrive.description.data)
+        drive = models.SystemDrives.query.filter_by(drive_id=formDrive.id.data).first()
+        drive.description = str(formDrive.description.data).strip()
+        db.session.commit()
+        #return to systeminfo page (refresh page)
+        return redirect('/systeminfo')
+
+    #when no POST data
+    drives = models.SystemDrives.query.all()
+    return render_template('systeminfo.html', server = server, drives = drives, formDrive = formDrive,
+                            arm_path=arm_path, media_path=media_path)
+
 
 @app.route('/')
 @app.route('/index.html')

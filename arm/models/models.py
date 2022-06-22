@@ -438,9 +438,9 @@ class UISettings(db.Model):
                 return_dict[str(key)] = str(value)
         return return_dict
 
-class ServerInfo:
+class SystemInfo():
     """
-    Class to hold the system information and cd/dvd/bluray drive information
+    Class to hold the system information
     """
 
     cpu_name = "N/A"
@@ -536,3 +536,23 @@ class ServerInfo:
                   "Setup can be started by visiting <a href=\"/setup\">setup page</a> ARM will not work correctly until"
                   "you have added an admin account", "danger")
         return disk_space, disk_percent
+
+class SystemDrives(db.Model):
+    """
+    Class to hold the system information
+    """
+    drive_id = db.Column(db.Integer, index=True, primary_key=True)
+    name = db.Column(db.String(100))
+    type = db.Column(db.String(20))
+    mount = db.Column(db.String(100))
+    open = db.Column(db.Boolean)
+    job_id = db.Column(db.Integer)
+    description = db.Column(db.Unicode(200))
+
+    def __init__(self, name, type, mount, open, job_id, description):
+        self.name = name
+        self.type = type
+        self.mount = mount
+        self.open = True
+        self.job_id = job_id
+        self.description = description

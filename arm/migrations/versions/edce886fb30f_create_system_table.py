@@ -18,7 +18,7 @@ depends_on = None
 
 def upgrade():
     op.create_table(
-        'system',
+        'SystemInfo',
             sa.Column('system_id', sa.Integer(), primary_key=True),
             sa.Column('system_name', sa.String(length=100), nullable=False),
             sa.Column('cpu_name', sa.String(length=100), nullable=False),
@@ -26,7 +26,7 @@ def upgrade():
             sa.Column('mem_total', sa.Float(), nullable=False),
         )
     op.create_table(
-        'drives',
+        'SystemDrives',
             sa.Column('drive_id', sa.Integer(), primary_key=True),
             sa.Column('name', sa.String(length=100), nullable=False),
             sa.Column('type', sa.String(length=20), nullable=False),
