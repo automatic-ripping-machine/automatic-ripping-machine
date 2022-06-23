@@ -59,4 +59,4 @@ done
 
     # abcde.conf is expected in /etc by the abcde installation
     cp --no-clobber "/opt/arm/setup/.abcde.conf" "/etc/arm/config/.abcde.conf"
-    chown arm:arm "/etc/.abcde.conf"
+    chown arm:arm "/etc/arm/config/.abcde.conf"
