@@ -21,10 +21,10 @@ from arm.models import models as models
 from arm.config.config import cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, SettingsForm, UiSettingsForm, SetupForm, SystemInfoDrives
 from arm.ui.metadata import get_omdb_poster
+from arm.ui.serverutil import ServerUtil
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-server = models.SystemInfo()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -112,6 +112,10 @@ def setup():
             write_permission_file = open(perm_file, "w")
             write_permission_file.write("boop!")
             write_permission_file.close()
+            #define system info and load to db
+            server = models.SystemInfo()
+            db.session.add(server)
+            db.session.commit()
             return redirect(constants.HOME_PAGE)
         flash("Couldn't setup database", "danger")
         app.logger.debug("Couldn't setup database")
@@ -579,27 +583,33 @@ def updatetitle():
 
 @app.route('/systeminfo', methods=['GET', 'POST'])
 @login_required
-def systeminfo():
+def serverinfo():
     """
     Server System information and details on connected CD, DVD and/or BluRay Drives
     """
     #System details in class server
+    server = models.SystemInfo.query.filter_by(id="1").first()
+    serverutil = ServerUtil()
+    serverutil.getUpdate()
+    #directories
     arm_path = cfg['TRANSCODE_PATH']
     media_path = cfg['COMPLETED_PATH']
-
     #System Drives (CD/DVD/Blueray drives)
     formDrive = SystemInfoDrives(request.form)
     if request.method == 'POST' and formDrive.validate():
+        #return for POST
         app.logger.debug("Drive id: " + str(formDrive.id.data) + " Updated db description: " + formDrive.description.data)
         drive = models.SystemDrives.query.filter_by(drive_id=formDrive.id.data).first()
         drive.description = str(formDrive.description.data).strip()
         db.session.commit()
         #return to systeminfo page (refresh page)
         return redirect('/systeminfo')
+    else:
+        #return for GET
+        drives = models.SystemDrives.query.all()
 
-    #when no POST data
-    drives = models.SystemDrives.query.all()
-    return render_template('systeminfo.html', server = server, drives = drives, formDrive = formDrive,
+    return render_template('systeminfo.html', server = server, serverutil = serverutil,
+                            drives = drives, formDrive = formDrive,
                             arm_path=arm_path, media_path=media_path)
 
 
@@ -612,11 +622,16 @@ def home():
     The main homepage showing current rips and server stats
     """
     # Force a db update
-    ui_utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
+    #Why is this being run on the main page/ingex?
+    #ui_utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
     """
     Server System information and details on connected CD, DVD and/or BluRay Drives
     """
+    #System details in class server
+    server = models.SystemInfo.query.filter_by(id="1").first()
+    serverutil = ServerUtil()
+    serverutil.getUpdate()
     #System details in class server
     arm_path = cfg['TRANSCODE_PATH']
     media_path = cfg['COMPLETED_PATH']
@@ -635,7 +650,7 @@ def home():
         jobs = {}
 
     return render_template('index.html', jobs=jobs, armname=armname, children=cfg['ARM_CHILDREN'],
-                        server = server, arm_path=arm_path, media_path=media_path)
+                        server = server, serverutil = serverutil, arm_path=arm_path, media_path=media_path)
 
 @app.route('/import_movies')
 @login_required

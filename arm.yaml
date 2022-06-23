@@ -67,7 +67,7 @@ DATE_FORMAT: "%m-%d-%Y %H:%M:%S"
 
 ## Do you want to allow Rips of the same disk multiple times
 ## With this set as false the task will exit if it recognises the same movie being ripped
-## recommended to set to true for series
+## recommended to set to true for series 
 ALLOW_DUPLICATES: false
 
 # Number of Transcodes that runs at the same time.
@@ -80,8 +80,8 @@ MAX_CONCURRENT_TRANSCODES: 0
 DATA_RIP_PARAMETERS: ""
 
 # This selects the metadata provider, Each provider has their own ups and downs
-# But a general rule would be
-# OMDB for movies and shows
+# But a general rule would be 
+# OMDB for movies and shows 
 # TMDB for movies only
 # You will still need to provide an api key for the provider you have selected
 METADATA_PROVIDER: "omdb"
@@ -119,7 +119,7 @@ COMPLETED_PATH: "/home/arm/media/completed/"
 # For Plex see https://support.plex.tv/hc/en-us/articles/200220677
 EXTRAS_SUB: "extras"
 
-# Path to installation of ARM
+# Path to installation of ARM 
 INSTALLPATH: "/opt/arm/"
 
 # Path to directory to hold log files
@@ -168,9 +168,9 @@ CHOWN_GROUP: "None"
 ########################
 # Method of MakeMKV to use for Blu Ray discs.  Options are "mkv" or "backup".
 # backup decrypts the dvd and then copies it to the hard drive.  This allows HandBrake to apply some of it's
-# analytical abilities such as the main-feature identification.  This method seems to offer success on bluray
+# analytical abilities such as the main-feature identification.  This method seems to offer success on bluray 
 # discs that fail in "mkv" mode. *** NOTE: MakeMKV only supports the backup method on BluRay discs.  ARM does
-# not use MakeMKV for DVDs.
+# not use MakeMKV for DVDs.   
 RIPMETHOD: "backup"
 
 # MakeMKV Arguments
@@ -203,9 +203,9 @@ HANDBRAKE_CLI: "HandBrakeCLI"
 
 # Have HandBrake transcode the main feature only.  BluRay discs must have RIPMETHOD="backup" for this to work.
 # If MAINFEATURE is true, blurays will be backed up to the HD and then HandBrake will go to work on the backed up
-# files.
+# files.  
 # This will require libdvdcss2 be installed.
-# NOTE: For the most part, HandBrake correctly identifies the main feature on movie DVD's, although it is not perfect.
+# NOTE: For the most part, HandBrake correctly identifies the main feature on movie DVD's, although it is not perfect. 
 # However, it does not handle tv shows well at all.  This setting is only used when the video is identified as a movie.
 MAINFEATURE: false
 
@@ -241,12 +241,12 @@ EMBY_USERNAME: ""
 EMBY_USERID: ""
 
 # This is the SHA1 encrypted password for the username above.  You can generate the SHA1 hash of your password by executing the following at
-# the command line:
+# the command line: 
 # echo -n your-password | sha1sum | awk '{print $1}'
 # or using an online generator like the one located at http://www.sha1-online.com/
 EMBY_PASSWORD: ""
 
-# Emby API key.  This can be found (generated) by going to Advanced/Security in the
+# Emby API key.  This can be found (generated) by going to Advanced/Security in the 
 # Emby dashboard
 EMBY_API_KEY: ""
 
