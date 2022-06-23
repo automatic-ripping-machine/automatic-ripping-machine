@@ -76,9 +76,9 @@ jobs:
     - name: Fix config files
       run: |
         cp setup/arm.yaml arm.yaml
-        mkdir -p /etc/arm/config/
-        cp setup/arm.yaml /etc/arm/config/arm.yaml
-        cp setup/apprise.yaml /etc/arm/config/apprise.yaml
-        cp setup/.abcde.conf /etc/arm/config/.abcde.conf
+        sudo mkdir -p /etc/arm/config/
+        sudo cp setup/arm.yaml /etc/arm/config/arm.yaml
+        sudo cp setup/apprise.yaml /etc/arm/config/apprise.yaml
+        sudo cp setup/.abcde.conf /etc/arm/config/.abcde.conf
     - name: Run A.R.M ui
       run: timeout 1 python ./arm/runui.py || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
