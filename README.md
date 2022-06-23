@@ -20,8 +20,6 @@
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/django)
 
-![Discord](https://img.shields.io/discord/576479573886107699)
-
 ## Overview
 
 Insert an optical disc (Blu-ray, DVD, CD) and checks to see if it's audio, video (Movie or TV), or data, then rips it.
