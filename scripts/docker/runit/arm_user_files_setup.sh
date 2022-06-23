@@ -58,5 +58,5 @@ done
     chown -R arm:arm /etc/arm/
 
     # abcde.conf is expected in /etc by the abcde installation
-    cp --no-clobber "/opt/arm/setup/.abcde.conf" "/etc/.abcde.conf"
+    cp --no-clobber "/opt/arm/setup/.abcde.conf" "/etc/arm/config/.abcde.conf"
     chown arm:arm "/etc/.abcde.conf"
