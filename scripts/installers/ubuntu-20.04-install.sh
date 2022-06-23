@@ -66,7 +66,6 @@ function install_arm_requirements() {
     echo -e "${RED}Installing ARM requirments${NC}"
     sudo add-apt-repository ppa:mc3man/focal6 -y
     sudo add-apt-repository ppa:heyarje/makemkv-beta -y
-    sudo add-apt-repository ppa:stebbins/handbrake-releases -y
     sudo apt update -y
 
     sudo apt install -y \
