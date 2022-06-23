@@ -1,6 +1,6 @@
 ###########################################################
 # setup default directories and configs
-FROM shitwolfymakes/arm-dependencies AS base
+FROM 1337-server/arm-dependencies AS base
 
 # Setup folders and fstab
 RUN \
