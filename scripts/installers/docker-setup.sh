@@ -3,7 +3,7 @@ set -eo pipefail
 
 RED='\033[1;31m'
 NC='\033[0m' # No Color
-FORK=shitwolfymakes
+FORK=1337server
 TAG=latest
 function usage() {
     echo -e "\nUsage: docker_setup.sh [OPTIONS]"
@@ -74,7 +74,7 @@ function setup_mountpoints() {
 }
 
 function save_start_command() {
-    url="https://raw.githubusercontent.com/$FORK/automatic-ripping-machine/main/scripts/docker/start_arm_container.sh"
+    url="https://raw.githubusercontent.com/1337-server/automatic-ripping-machine/v2_devel/scripts/docker/start_arm_container.sh"
     cd ~arm
     sudo -u arm curl -fsSL "$url" -o start_arm_container.sh
     chmod +x start_arm_container.sh
