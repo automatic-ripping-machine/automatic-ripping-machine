@@ -10,7 +10,7 @@ import logging
 import logging.handlers
 import time
 
-from arm.config.config import cfg
+import arm.config.config as cfg
 
 
 def setup_logging(job):
@@ -25,24 +25,24 @@ def setup_logging(job):
         else:
             logfile = "empty.log"
         # set a log_full for empty.log and music_cd.log
-        log_full = os.path.join(cfg['LOGPATH'], logfile)
+        log_full = os.path.join(cfg.arm_config['LOGPATH'], logfile)
     else:
         log_file_name = f"{job.label}.log"
         new_log_file = f"{job.label}_{job.stage}.log"
-        temp_log_full = os.path.join(cfg['LOGPATH'], log_file_name)
+        temp_log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file_name)
         log_file = new_log_file if os.path.isfile(temp_log_full) else log_file_name
-        log_full = os.path.join(cfg['LOGPATH'], log_file)
+        log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file)
         job.logfile = log_file
     # Remove any root loggers
     clean_loggers()
     # Debug formatting
-    if cfg['LOGLEVEL'] == "DEBUG":
+    if cfg.arm_config['LOGLEVEL'] == "DEBUG":
         logging.basicConfig(filename=log_full,
                             format='[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
-                            datefmt=cfg['DATE_FORMAT'], level=cfg['LOGLEVEL'])
+                            datefmt=cfg.arm_config['DATE_FORMAT'], level=cfg.arm_config['LOGLEVEL'])
     else:
         logging.basicConfig(filename=log_full, format='[%(asctime)s] %(levelname)s ARM: %(message)s',
-                            datefmt=cfg['DATE_FORMAT'], level=cfg['LOGLEVEL'])
+                            datefmt=cfg.arm_config['DATE_FORMAT'], level=cfg.arm_config['LOGLEVEL'])
 
     # These stop apprise and others spitting our secret keys if users post log online
     logging.getLogger("apprise").setLevel(logging.WARN)

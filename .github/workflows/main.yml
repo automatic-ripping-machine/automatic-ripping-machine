@@ -6,9 +6,9 @@ name: "Quality Checks"
 on:
   # Triggers the workflow on push or pull request events but only for the v2.5.0_dev branch
   push:
-    branches: [ v2_devel, v2_master ]
+    branches: [ main, v2_devel, v2_master ]
   pull_request:
-    branches: [ v2_devel, v2_master]
+    branches: [ main, v2_devel, v2_master]
 
 
   # Allows you to run this workflow manually from the Actions tab
@@ -75,6 +75,6 @@ jobs:
         #flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Fix config files
       run: |
-        cp docs/arm.yaml.sample arm.yaml
+        cp setup/arm.yaml arm.yaml
     - name: Run A.R.M ui
       run: timeout 1 python ./arm/runui.py || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi

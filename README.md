@@ -18,6 +18,9 @@
 [![Wiki](https://img.shields.io/badge/Wiki-Get%20Help-brightgreen)](https://github.com/1337-server/automatic-ripping-machine/wiki)
 [![Discord](https://img.shields.io/discord/576479573886107699)](https://discord.gg/FUSrn8jUcR)
 
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/django)
+
+![Discord](https://img.shields.io/discord/576479573886107699)
 
 ## Overview
 

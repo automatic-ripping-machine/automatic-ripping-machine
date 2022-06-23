@@ -1,13 +1,15 @@
 """Main run page for armui"""
 import os  # noqa: F401
 import sys
+
+# set the PATH to /arm/arm so we can handle imports properly
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
+import arm.config.config as cfg  # noqa E402
 from arm.ui import app  # noqa E402
-from arm.config.config import cfg  # noqa E402
 import arm.ui.routes  # noqa E402
 
-host = cfg['WEBSERVER_IP']
+host = cfg.arm_config['WEBSERVER_IP']
 if host == 'x.x.x.x':
     # autodetect host IP address
     from netifaces import interfaces, ifaddresses, AF_INET
@@ -24,4 +26,4 @@ if host == 'x.x.x.x':
         host = '127.0.0.1'
 
 if __name__ == '__main__':
-    app.run(host=host, port=cfg['WEBSERVER_PORT'], debug=True)
+    app.run(host=host, port=cfg.arm_config['WEBSERVER_PORT'], debug=True)

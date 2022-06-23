@@ -152,11 +152,7 @@ if [ -d /opt/arm/.git ]; then
 	git fetch
 	cd /opt
 else
-	git clone --recurse-submodules https://github.com/1337-server/automatic-ripping-machine.git arm
-  cd arm
-  git submodule update --init --recursive
-  git submodule update --recursive --remote
-  cd ..
+	git clone https://github.com/1337-server/automatic-ripping-machine.git arm
 
 	###stock
 	#git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git arm

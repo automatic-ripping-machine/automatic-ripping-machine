@@ -9,12 +9,13 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_wtf import CSRFProtect
+
 from flask_login import LoginManager
 import bcrypt  # noqa: F401
-from arm.config.config import cfg
+import arm.config.config as cfg
 
+sqlitefile = 'sqlite:///' + cfg.arm_config['DBFILE']
 
-sqlitefile = 'sqlite:///' + cfg['DBFILE']
 dictConfig({
     'version': 1,
     'formatters': {'default': {
@@ -30,6 +31,7 @@ dictConfig({
         'handlers': ['wsgi']
     }
 })
+
 app = Flask(__name__)
 csrf = CSRFProtect()
 csrf.init_app(app)
@@ -42,7 +44,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # We should really generate a key for each system
 app.config['SECRET_KEY'] = "Big secret key"
-app.config['LOGIN_DISABLED'] = cfg['DISABLE_LOGIN']
+app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
 
 db = SQLAlchemy(app)
 
