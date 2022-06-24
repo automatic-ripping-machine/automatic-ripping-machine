@@ -18,7 +18,7 @@ depends_on = None
 
 def upgrade():
     op.create_table(
-        'SystemInfo',
+        'system_info',
             sa.Column('id', sa.Integer(), primary_key=True),
             sa.Column('name', sa.String(length=100), nullable=False),
             sa.Column('cpu', sa.String(length=100), nullable=False),
@@ -26,16 +26,17 @@ def upgrade():
             sa.Column('mem_total', sa.Float(), nullable=False),
         )
     op.create_table(
-        'SystemDrives',
+        'system_drives',
             sa.Column('drive_id', sa.Integer(), primary_key=True),
             sa.Column('name', sa.String(length=100), nullable=False),
             sa.Column('type', sa.String(length=20), nullable=False),
             sa.Column('mount', sa.String(length=100), nullable=False),
             sa.Column('open', sa.Boolean(), nullable=False),
             sa.Column('job_id', sa.Integer(), nullable=True),
+            sa.Column('job_id_previous', sa.Integer(), nullable=True),
             sa.Column('description', sa.Unicode(length=200), nullable=False)
         )
 
 def downgrade():
-    op.drop_table('SystemInfo')
-    op.drop_table('SystemDrives')
+    op.drop_table('system_info')
+    op.drop_table('system_drives')

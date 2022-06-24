@@ -495,7 +495,7 @@ class SystemInfo(db.Model):
 
 class SystemDrives(db.Model):
     """
-    Class to hold the system information
+    Class to hold the system cd/dvd/blueray drive information
     """
     drive_id = db.Column(db.Integer, index=True, primary_key=True)
     name = db.Column(db.String(100))
@@ -503,12 +503,14 @@ class SystemDrives(db.Model):
     mount = db.Column(db.String(100))
     open = db.Column(db.Boolean)
     job_id = db.Column(db.Integer)
+    job_id_previous = db.Column(db.Integer)
     description = db.Column(db.Unicode(200))
 
-    def __init__(self, name, type, mount, open, job_id, description):
+    def __init__(self, name, type, mount, open, job_id, job_id_previous, description):
         self.name = name
         self.type = type
         self.mount = mount
         self.open = True
         self.job_id = job_id
+        self.job_id_previous = job_id_previous
         self.description = description

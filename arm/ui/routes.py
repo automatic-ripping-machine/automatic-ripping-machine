@@ -116,6 +116,11 @@ def setup():
             server = models.SystemInfo()
             db.session.add(server)
             db.session.commit()
+            #get system drives and load to db
+            #change this to pull from the OS
+            drive = models.SystemDrives("CD Drive", "CD Burner", "/dev/sr0", True, "3", "2", "Classic burner")
+            db.session.add(drive)
+            db.session.commit()
             return redirect(constants.HOME_PAGE)
         flash("Couldn't setup database", "danger")
         app.logger.debug("Couldn't setup database")
@@ -594,6 +599,21 @@ def serverinfo():
     #directories
     arm_path = cfg['TRANSCODE_PATH']
     media_path = cfg['COMPLETED_PATH']
+    #flags
+    flags = {
+        "settings": True     #show all system settings/details
+    }
+    #job names
+    # if server.job_id:
+    #     job_current = models.Job.query.filter_by(job_id=server.job_id).first()
+    # if server.job_id_previous:
+    #     job_previous = models.Job.query.filter_by(job_id=server.job_id).first()
+    # job_details = {
+    #     "title": job_current.title,
+    #     "year": job_current.year,
+    #     "previous_title": job_previous.title,
+    #     "previous_year": job_previous.year,
+    # }
     #System Drives (CD/DVD/Blueray drives)
     formDrive = SystemInfoDrives(request.form)
     if request.method == 'POST' and formDrive.validate():
@@ -608,7 +628,7 @@ def serverinfo():
         #return for GET
         drives = models.SystemDrives.query.all()
 
-    return render_template('systeminfo.html', server = server, serverutil = serverutil,
+    return render_template('systeminfo.html', server = server, serverutil = serverutil, flags = flags,
                             drives = drives, formDrive = formDrive,
                             arm_path=arm_path, media_path=media_path)
 
@@ -622,12 +642,12 @@ def home():
     The main homepage showing current rips and server stats
     """
     # Force a db update
-    #Why is this being run on the main page/ingex?
+    #Microtechno9000 comment:
+    #-Why is this being run on the main page/ingex?
+    #-If the database is missing, the below function fails as alembic does not have a dabase to writ into.
+    #-To run the below, /setup needs to be run, otherwise it errors out
     #ui_utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
-    """
-    Server System information and details on connected CD, DVD and/or BluRay Drives
-    """
     #System details in class server
     server = models.SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
@@ -635,7 +655,10 @@ def home():
     #System details in class server
     arm_path = cfg['TRANSCODE_PATH']
     media_path = cfg['COMPLETED_PATH']
-
+    #flags
+    flags = {
+        "settings": False #don't show all system settings/details
+    }
     armname = ""
     if cfg['ARM_NAME'] != "":
         armname = f"[{cfg['ARM_NAME']}] - "
@@ -650,7 +673,7 @@ def home():
         jobs = {}
 
     return render_template('index.html', jobs=jobs, armname=armname, children=cfg['ARM_CHILDREN'],
-                        server = server, serverutil = serverutil, arm_path=arm_path, media_path=media_path)
+                        server = server, serverutil = serverutil, flags = flags, arm_path=arm_path, media_path=media_path)
 
 @app.route('/import_movies')
 @login_required
