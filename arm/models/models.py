@@ -1,6 +1,7 @@
 """
 Hold all models for ARM
 """
+import datetime
 import os
 import subprocess
 import logging
@@ -15,6 +16,7 @@ from flask_login import LoginManager, current_user, login_user, UserMixin  # noq
 from arm.ripper import music_brainz
 from arm.ui import db
 from arm.config.config import cfg
+
 hidden_attribs = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD",
                   "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
                   "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY",
@@ -25,7 +27,7 @@ HIDDEN_VALUE = "<hidden>"
 class Job(db.Model):
     """
     Job Class hold most of the details for each job
-    connects to tracks, config
+    connects to track, config
     """
     job_id = db.Column(db.Integer, primary_key=True)
     arm_version = db.Column(db.String(20))
@@ -78,12 +80,25 @@ class Job(db.Model):
             self.video_type = cfg['VIDEOTYPE']
         self.parse_udev()
         self.get_pid()
+        self.stage = str(round(time.time() * 100))
 
         if self.disctype == "dvd" and not self.label:
             logging.info("No disk label Available. Trying lsdvd")
             command = f"lsdvd {devpath} | grep 'Disc Title' | cut -d ' ' -f 3-"
             lsdvdlbl = str(subprocess.check_output(command, shell=True).strip(), 'utf-8')
             self.label = lsdvdlbl
+
+    def __str__(self):
+        """Returns a string of the object"""
+
+        return_string = self.__class__.__name__ + ": "
+        for attr, value in self.__dict__.items():
+            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
+
+        return return_string
+
+    def __repr__(self):
+        return f'<Job {self.label}>'
 
     def parse_udev(self):
         """Parse udev for properties of current disc"""
@@ -166,15 +181,6 @@ class Job(db.Model):
         logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
         return logfile
 
-    def __str__(self):
-        """Returns a string of the object"""
-
-        return_string = self.__class__.__name__ + ": "
-        for attr, value in self.__dict__.items():
-            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
-
-        return return_string
-
     def pretty_table(self):
         """Returns a string of the prettytable"""
         pretty_table = PrettyTable()
@@ -198,9 +204,6 @@ class Job(db.Model):
                 return_dict[str(key)] = str(value)
         return return_dict
 
-    def __repr__(self):
-        return f'<Job {self.label}>'
-
     def eject(self):
         """Eject disc if it hasn't previously been ejected"""
         if not self.ejected:
@@ -220,7 +223,7 @@ class Job(db.Model):
 
 
 class Track(db.Model):
-    """ Holds all of the individual track details for each job """
+    """ Holds all the individual track details for each job """
     track_id = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('job.job_id'))
     track_number = db.Column(db.String(4))
@@ -252,11 +255,15 @@ class Track(db.Model):
         self.ripped = False
 
     def __repr__(self):
-        return f'<Post {self.track_number}>'
+        return f'<Track {self.track_number}>'
+
+    def __str__(self):
+        """Returns a string of the object"""
+        return self.__class__.__name__ + ": " + self.track_number
 
 
 class Config(db.Model):
-    """ Holds all of the config settings for each job
+    """ Holds all the config settings for each job
     as these may change between each job """
     CONFIG_ID = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('job.job_id'))
@@ -318,6 +325,16 @@ class Config(db.Model):
         self.__dict__.update(c)
         self.job_id = job_id
 
+    def __str__(self):
+        """Returns a string of the object"""
+        return_string = self.__class__.__name__ + ": "
+        for attr, value in self.__dict__.items():
+            if str(attr) in hidden_attribs and value:
+                value = HIDDEN_VALUE
+            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
+
+        return return_string
+
     def list_params(self):
         """Returns a string of the object"""
         return_string = self.__class__.__name__ + ": "
@@ -327,16 +344,6 @@ class Config(db.Model):
             if str(attr) in hidden_attribs and value:
                 value = HIDDEN_VALUE
             return_string = return_string + str(attr) + ":" + str(value)
-
-        return return_string
-
-    def __str__(self):
-        """Returns a string of the object"""
-        return_string = self.__class__.__name__ + ": "
-        for attr, value in self.__dict__.items():
-            if str(attr) in hidden_attribs and value:
-                value = HIDDEN_VALUE
-            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
 
         return return_string
 
@@ -381,6 +388,10 @@ class User(db.Model, UserMixin):
         """ Return users name """
         return f'<User {self.email}>'
 
+    def __str__(self):
+        """Returns a string of the object"""
+        return self.__class__.__name__ + ": " + self.email
+
     def get_id(self):
         """ Return users id """
         return self.user_id
@@ -394,6 +405,13 @@ class AlembicVersion(db.Model):
 
     def __init__(self, version=None):
         self.version_num = version
+
+    def __repr__(self):
+        return f'<AlembicVersion: {self.version_num}>'
+
+    def __str__(self):
+        """Returns a string of the object"""
+        return self.__class__.__name__ + ": " + self.version_num
 
 
 class UISettings(db.Model):
@@ -420,6 +438,44 @@ class UISettings(db.Model):
 
     def __repr__(self):
         return f'<UISettings {self.id}>'
+
+    def __str__(self):
+        """Returns a string of the object"""
+
+        return_string = self.__class__.__name__ + ": "
+        for attr, value in self.__dict__.items():
+            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
+
+        return return_string
+
+    def get_d(self):
+        """ Returns a dict of the object"""
+        return_dict = {}
+        for key, value in self.__dict__.items():
+            if '_sa_instance_state' not in key:
+                return_dict[str(key)] = str(value)
+        return return_dict
+
+
+class Notifications(db.Model):
+    """
+    Class to hold the A.R.M notifications
+    """
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    seen = db.Column(db.Boolean)
+    trigger_time = db.Column(db.DateTime)
+    dismiss_time = db.Column(db.DateTime)
+    title = db.Column(db.String(256))
+    message = db.Column(db.String(256))
+
+    def __init__(self, title=None, message=None):
+        self.seen = False
+        self.trigger_time = datetime.datetime.now()
+        self.title = title
+        self.message = message
+
+    def __repr__(self):
+        return f'<Notification {self.id}>'
 
     def __str__(self):
         """Returns a string of the object"""

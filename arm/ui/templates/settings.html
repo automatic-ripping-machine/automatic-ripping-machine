@@ -4,84 +4,366 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
+<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <style>
+        .popover {
+            white-space: pre-line;
+        }
 
-<style>
-.popover {
-    white-space: pre-line;    
-}
-.popover-body {
-    white-space: pre-wrap;
-	font-weight: bold;
-}
+        .popover-body {
+            white-space: pre-wrap;
+            font-weight: bold;
+        }
 
-.popover-header  {
-	background-color: #f2f2f2;
-	border-bottom: 1px solid #EBEBEB;
-	border-radius: 5px 5px 0 0;
-	font-size: 20px;
-	line-height: 18px;
-	margin: 0;
-	padding: 8px 14px;
-	font-weight: bold;
-	text-align: center;
-}
-</style>
-<!-- We keep this here incase we need it later -->
-<div class="alert alert-success d-none" role="alert" id="success">
-  <h4 class="alert-heading">Settings were saved successfully</h4>
-</div>
-<div class="alert alert-danger d-none" role="alert" id="fail">
-  <h4 class="alert-heading">There was an error saving settings</h4>
-  <hr>
-  <h3> {{ raw }}</h3>
-</div>
-<!-- END - We keep this here incase we need it later -->
-<div class="container" style="max-width: initial!important;">
-    <div class="row">
+        .popover-header {
+            background-color: #f2f2f2;
+            border-bottom: 1px solid #EBEBEB;
+            border-radius: 5px 5px 0 0;
+            font-size: 20px;
+            line-height: 18px;
+            margin: 0;
+            padding: 8px 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        div a label {
+            display: grid;
+            font-weight: bolder;
+            margin: 1rem;
+            font-size: 25px;
+        }
+    </style>
+    <!-- MESSAGES - We keep this here incase we need it later -->
+    <div class="alert alert-success d-none" role="alert" id="success">
+        <h4 class="alert-heading">Settings were saved successfully</h4>
+    </div>
+    <div class="alert alert-danger d-none" role="alert" id="fail">
+        <h4 class="alert-heading">There was an error saving settings</h4>
+    </div>
+    <!-- END MESSAGES - We keep this here incase we need it later -->
+    <div class="container" style="max-width: initial!important;">
+        <div class="row">
             <div class="col">
                 <div class="jumbotron" style="padding-top: 1rem;">
-					<div class="col-sm-12  rounded text-center">
-						<img src="static/img/arm80.png" alt="Automatic Ripping Machine">
-						<h2> ARM - Settings </h2>
-					</div>
-				
-					<div class="container pt-4">
-						<form id="form1" name="form1" method="post" action="/settings">
-						    {{ form.hidden_tag() }}
-							{% for k, v in settings.items() %}
-							<div class="input-group mb-3">
-								<div class="input-group-prepend">
-									<span class="input-group-text" id="{{ k }}">{{ k }}: </span>
-								</div>
-								<input type="text" class="form-control" aria-label="{{ k }}" name="{{ k }}" placeholder="{{ v}}" value="{{ v }}" aria-describedby="{{ k }}">
-								 <a class="popovers" onClick='return false;' href="" data-content="{{ jsoncomments[k]| replace("#", "\n")  }}" rel="popover"
-									data-placement="top" data-original-title="{{ k }}">
-									<img title="More information" src="static/img/info.png" width="30px" height="35px" alt="More Info">
-								</a>
-							</div>
-							{% endfor %}
-								<button class="btn btn-secondary btn-lg btn-block" form="form1" type="submit">Submit</button>
-                        </form>
-					</div>
+                    <div class="col-sm-12  rounded text-center">
+                        <img src="{{ url_for('static', filename='/img/arm80.png') }}" alt="Automatic Ripping Machine">
+                        <h2> ARM - Settings </h2>
+                    </div>
+                    <!-- Nav Tabs -->
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab"
+                               aria-controls="home" aria-selected="true">General Info</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="abcde-tab" data-toggle="tab" href="#abcde" role="tab"
+                               aria-controls="abcde" aria-selected="false">abcde Config</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="settings-tab" data-toggle="tab" href="#settings" role="tab"
+                               aria-controls="settings" aria-selected="false">Ripper Settings</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="uiSettingsTab-tab" data-toggle="tab" href="#uiSettingsTab"
+                               role="tab"
+                               aria-controls="uiSettingsTab" aria-selected="false">Ui Settings</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="apprise-tab" data-toggle="tab" href="#appriseTab"
+                               role="tab"
+                               aria-controls="appriseTab" aria-selected="false">Apprise config</a>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Panes -->
+                    <div class="tab-content">
+                        <!-- General Info -->
+                        <div class="tab-pane active pt-5" id="home" role="tabpanel" aria-labelledby="home-tab">
+                            <div class="card-deck">
+                                <!--Left Card-->
+                                <div class="card">
+                                    <div class="card-header">Server details</div>
+                                    <div class="card-body col">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item">Python
+                                                version: {{ stats['python_version'] }}</li>
+                                            <li class="list-group-item">A.R.M
+                                                version: {{ stats['arm_version'] }}</li>
+                                            <li class="list-group-item">
+                                                <label class="w-100">Current git version:<br>
+                                                    <input disabled value="{{ stats['git_commit'] }}"
+                                                           class="form-control">
+                                                </label></li>
+                                            <li class="list-group-item">Update Available:
+                                            <!-- Update A.R.M -->
+                                                {% if stats['updated'] %}
+                                                    <img src="{{ url_for('static', filename='/img/success.png') }}"
+                                                     alt="update image" width="20px" height="20px">  You are on the latest version
+                                                {% else %}
+                                                    <img src="{{ url_for('static', filename='/img/fail.png') }}"
+                                                     alt="update image" width="20px" height="20px">
+                                                    <form id="updateArm" name="updateArm" method="post" action="">
+                                                        {{ form.hidden_tag() }}
+                                                        <button title="Update A.R.M Via git"
+                                                                class="btn btn-primary float-right" type="submit">Update
+                                                            A.R.M
+                                                        </button>
+                                                    </form>New updates are available!
+                                                {% endif %}
+                                            </li>
+                                            <!-- Rip stats -->
+                                            <li class="list-group-item">Total rips:
+                                                <code>{{ stats['total_rips'] }}</code></li>
+                                            <li class="list-group-item">Movies ripped:
+                                                <code>{{ stats['movies_ripped'] }}</code></li>
+                                            <li class="list-group-item">Series ripped:
+                                                <code>{{ stats['series_ripped'] }}</code></li>
+                                            <li class="list-group-item">Audios ripped:
+                                                <code>{{ stats['cds_ripped'] }}</code></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!--Right Card-->
+                                <div class="card">
+                                    <div class="card-header">Get help</div>
+                                    <div class="card-body no-gutters">
+                                        <div class="row">
+                                            <div class="col-lg-4"><a class="stretched-link text-center" target="_blank" rel="noopener"
+                                                                     href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">
+                                                <img class="rounded mx-auto d-block mt-2" alt="GitHub"
+                                                     src="{{ url_for('static', filename='/img/github/GitHub-Mark-120px-plus.png') }}">
+                                                <label>Github
+                                                </label>
+                                            </a></div>
+                                            <div class="col-lg-4 rounded"><a target="_blank" rel="noopener"
+                                                                             class="stretched-link text-center"
+                                                                             href="https://discord.gg/FUSrn8jUcR">
+                                                <img class="rounded mx-auto d-block mt-2"
+                                                     src="{{ url_for('static', filename='/img/discord/discord-128.png') }}"
+                                                     alt="Discord">
+                                                <label>Discord
+                                                </label>
+                                            </a>
+                                            </div>
+                                            <div class="col-lg-4"><a class="stretched-link text-center" target="_blank" rel="noopener"
+                                                                     href="https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki">
+                                                <img class="rounded mx-auto d-block mt-2"
+                                                     src="{{ url_for('static', filename='/img/github/GitHub-Mark-120px-plus.png') }}"
+                                                     alt="A.R.M Wiki - Help">
+                                                <label>A.R.M Wiki
+                                                </label>
+                                            </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- abcde config -->
+                        <div class="tab-pane pt-5" id="abcde" role="tabpanel" aria-labelledby="abcde-tab">
+                            <div class="row">
+                                <div class="col-md-8 mx-auto">
+                                    <form id="abcdeSettings" name="abcdeSettings" method="post" action="">
+                                        {{ form.hidden_tag() }}
+                                        <label for="abcdeConfigText">ABCDE Config:</label>
+                                        <textarea id="abcdeConfigText" name="abcdeConfig" spellcheck="false"
+                                                  class="w-100 form-control min-vh-100">{{ abcde_cfg }}</textarea>
+                                        <br>
+                                        <button id="abcdeConfigSubmit" class="btn btn-secondary btn-lg btn-block"
+                                                form="abcdeSettings">Submit
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Ripper settings -->
+                        <div class="tab-pane pt-5" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+                            <form id="ripperSettings" name="ripperSettings" method="post" action="">
+                                {{ form.hidden_tag() }}
+                                {% for k, v in settings.items() %}
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text" id="{{ k }}">{{ k }}: </span>
+                                        </div>
+                                        <input type="text" class="form-control" aria-label="{{ k }}" name="{{ k }}"
+                                               placeholder="{{ v }}" value="{{ v }}" aria-describedby="{{ k }}">
+                                        <a class="popovers" onClick='return false;' href=""
+                                           data-content="{{ jsoncomments[k]| replace("#", "\n") }}" rel="popover"
+                                           data-placement="top" data-original-title="{{ k }}">
+                                            <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
+                                                 height="35px" alt="More Info">
+                                        </a>
+                                    </div>
+                                {% endfor %}
+                                <button id="settings" class="btn btn-secondary btn-lg btn-block" form="ripperSettings"
+                                        type="submit">Submit
+                                </button>
+                            </form>
+                        </div>
+                        <!-- UI settings -->
+                        <div class="tab-pane pt-5" id="uiSettingsTab" role="tabpanel" aria-labelledby="uiSettings-tab">
+                            <form id="uiSettings" name="uiSettings" action="">
+                                {{ form.hidden_tag() }}
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="index_refresh">index_refresh: </span>
+                                    </div>
+                                    <input type="text" class="form-control" aria-label="index_refresh"
+                                           name="index_refresh" placeholder="" value="{{ ui_settings.index_refresh }}"
+                                           aria-describedby="index_refresh">
+                                    <a class="popovers" onClick='return false;' href=""
+                                       data-content="{{ jsoncomments['index_refresh']| replace("#", "\n") }}"
+                                       rel="popover"
+                                       data-placement="top" data-original-title="index_refresh">
+                                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
+                                             height="35px" alt="More info">
+                                    </a>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="use_icons">use_icons: </span>
+                                    </div>
+                                    <input type="text" class="form-control" aria-label="use_icons" name="use_icons"
+                                           value="{{ ui_settings.use_icons }}">
+
+                                    <a class="popovers" onClick='return false;' href=""
+                                       data-content="{{ jsoncomments['use_icons']| replace("#", "\n") }}" rel="popover"
+                                       data-placement="top" data-original-title="use_icons">
+                                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
+                                             height="35px" alt="More info">
+                                    </a>
+                                </div>
+
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"
+                                              id="save_remote_images">save_remote_images: </span>
+                                    </div>
+                                    <input type="text" class="form-control" aria-label="save_remote_images"
+                                           name="save_remote_images" value="{{ ui_settings.save_remote_images }}">
+                                    <a class="popovers" onClick='return false;' href=""
+                                       data-content="{{ jsoncomments['save_remote_images']| replace("#", "\n") }}"
+                                       rel="popover"
+                                       data-placement="top" data-original-title="save_remote_images">
+                                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
+                                             height="35px" alt="More info">
+                                    </a>
+                                </div>
+
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="bootstrap_skin">bootstrap_skin: </span>
+                                    </div>
+                                    <input type="text" class="form-control" aria-label="bootstrap_skin"
+                                           name="bootstrap_skin" placeholder="" value="{{ ui_settings.bootstrap_skin }}"
+                                           aria-describedby="bootstrap_skin">
+                                    <a class="popovers" onClick='return false;' href=""
+                                       data-content="{{ jsoncomments['bootstrap_skin']| replace("#", "\n") }}"
+                                       rel="popover"
+                                       data-placement="top" data-original-title="bootstrap_skin">
+                                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
+                                             height="35px" alt="More info">
+                                    </a>
+                                </div>
+
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="language">language: </span>
+                                    </div>
+                                    <input type="text" class="form-control" aria-label="language" name="language"
+                                           placeholder="" value="{{ ui_settings.language }}"
+                                           aria-describedby="language">
+                                    <a class="popovers" onClick='return false;' href=""
+                                       data-content="{{ jsoncomments['language']| replace("#", "\n") }}" rel="popover"
+                                       data-placement="top" data-original-title="language">
+                                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
+                                             height="35px" alt="More info">
+                                    </a>
+                                </div>
+
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="database_limit">database_limit: </span>
+                                    </div>
+                                    <input type="text" class="form-control" aria-label="database_limit"
+                                           name="database_limit" placeholder="" value="{{ ui_settings.database_limit }}"
+                                           aria-describedby="database_limit">
+                                    <a class="popovers" onClick='return false;' href=""
+                                       data-content="{{ jsoncomments['database_limit']| replace("#", "\n") }}"
+                                       rel="popover"
+                                       data-placement="top" data-original-title="database_limit">
+                                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
+                                             height="35px" alt="More info">
+                                    </a>
+                                </div>
+                                <button id="uiSubmit" class="btn btn-secondary btn-lg btn-block" form="uiSettings"
+                                        type="submit">
+                                    Submit
+                                </button>
+                            </form>
+                        </div>
+                        <!-- Apprise config -->
+                        <div class="tab-pane pt-5" id="appriseTab" role="tabpanel" aria-labelledby="apprise-tab">
+                            <div class="row">
+                                <div class="col-md-8 mx-auto">
+                                    To be added
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-</div>
+    </div>
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
-{{ super() }}
-<script type="application/javascript">
-	$(function () {
-		$(".popovers").popover({ 
-			trigger: "hover",
-		});
-	{% if form.errors %}
-		{% for k in form.errors %}
-			$("[name='{{k}}']").addClass("is-invalid");
-		{% endfor %}
-	{% endif %}
-	activeTab("armsettings");
-	});
-</script>
+    {{ super() }}
+    <script type="application/javascript">
+        $(function () {
+            let toastCount = 0;
+            function sendSettings(formToSend, sendTo) {
+                $.ajax({
+                    type: 'POST',
+                    url: sendTo,
+                    data: formToSend.serialize()
+                }).done(function (data) {
+                    if (data.success === true) {
+                        console.log(data)
+                        var dt = new Date();
+                        var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
+                        addToast("Saved Successfully",`Saved ${data.form} settings at ${time}`, toastCount);
+                        toastCount++;
+                    }
+                });
+            }
+
+            $("#uiSettings").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#uiSettings"), "/save_ui_settings");
+            });
+            $("#settings").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#ripperSettings"), "/save_settings");
+            })
+            $("#abcdeSettings").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#abcdeSettings"), "/save_abcde_settings");
+            });
+            $("#updateArm").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#updateArm"), "/update_arm")
+            })
+            $(".popovers").popover({
+                trigger: "hover",
+            });
+            {% if form.errors %}
+                {% for k in form.errors %}
+                    $("[name='{{k}}']").addClass("is-invalid");
+                {% endfor %}
+            {% endif %}
+            activeTab("armsettings");
+        });
+    </script>
 {% endblock %}

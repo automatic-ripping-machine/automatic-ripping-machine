@@ -2,6 +2,7 @@
 import sys  # noqa: F401
 import os  # noqa: F401
 from getpass import getpass  # noqa: F401
+from logging.config import dictConfig
 from flask import Flask, logging, current_app  # noqa: F401
 from flask.logging import default_handler  # noqa: F401
 from flask_sqlalchemy import SQLAlchemy
@@ -12,8 +13,23 @@ from flask_login import LoginManager
 import bcrypt  # noqa: F401
 from arm.config.config import cfg
 
-sqlitefile = 'sqlite:///' + cfg['DBFILE']
 
+sqlitefile = 'sqlite:///' + cfg['DBFILE']
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['wsgi']
+    }
+})
 app = Flask(__name__)
 csrf = CSRFProtect()
 csrf.init_app(app)
@@ -24,7 +40,7 @@ login_manager.init_app(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# We should really gen a key for each system
+# We should really generate a key for each system
 app.config['SECRET_KEY'] = "Big secret key"
 app.config['LOGIN_DISABLED'] = cfg['DISABLE_LOGIN']
 

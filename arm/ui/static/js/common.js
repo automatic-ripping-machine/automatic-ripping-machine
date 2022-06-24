@@ -37,9 +37,9 @@ function addJobItem(job) {
     x += `<div class="card-header row no-gutters justify-content-center"><strong id="jobId${job.job_id}_header">${titleManual(job)}</strong></div>`;
     // Main holder for the 3 sections of info - includes 1 section (Poster img)
     // We need to check if idsplit is undefined, database page doesn't have splitid's
-    if(idsplit[1] === undefined){
+    if (idsplit[1] === undefined) {
         x += `<div class="row no-gutters"><div class="col-lg-4"><a href="/jobdetail?job_id=${job.job_id}">${posterCheck(job)}</a></div>`;
-    }else {
+    } else {
         x += `<div class="row no-gutters"><div class="col-lg-4"><a href="${job.server_url}/jobdetail?job_id=${idsplit[1]}">${posterCheck(job)}</a></div>`;
     }
     // Section 2 (Middle)  Contains Job info (status, type, device, start time, progress)
@@ -51,7 +51,7 @@ function addJobItem(job) {
 }
 
 function transcodingCheck(job) {
-    let x="";
+    let x = "";
     if (job.status === "transcoding" && job.stage !== "" && job.progress || job.disctype === "music" && job.stage !== "") {
         x += `<div id="jobId${job.job_id}_stage"><strong>Stage: </strong>${job.stage}</div>`;
         x += `<div id="jobId${job.job_id}_progress" >`;
@@ -61,7 +61,7 @@ function transcodingCheck(job) {
               <div id="jobId${job.job_id}_eta"><strong>ETA: </strong>${job.eta}</div>`;
     }
     // YYYY-MM-DD
-    const d  = new Date(Date.parse(job.start_time));
+    const d = new Date(Date.parse(job.start_time));
     const datestring = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
 
     x += `<strong>Start Date:</strong> ${datestring}<br>`;
@@ -71,7 +71,7 @@ function transcodingCheck(job) {
 }
 
 function musicCheck(job, idsplit) {
-    let x="";
+    let x = "";
     if (job.video_type !== "Music") {
         x = `<a href="titlesearch?job_id=${idsplit[1]}" class="btn btn-primary">Title Search</a>
              <a href="customTitle?job_id=${idsplit[1]}" class="btn btn-primary">Custom Title</a>
@@ -115,11 +115,11 @@ function buildMiddleSection(job) {
 function buildRightSection(job, idsplit) {
     let x;
     // idsplit[1] should only be undefined on the /database page
-    if (idsplit[1] === undefined){
+    if (idsplit[1] === undefined) {
         console.log("idsplit undefined... fixing");
         idsplit[0] = "0";
         idsplit[1] = job.job_id
-    }else{
+    } else {
         console.log(`idsplit ${idsplit[0]} - ${idsplit[1]}`);
     }
     // Section 3 (Right Top) Contains Config.values
@@ -142,29 +142,29 @@ function buildRightSection(job, idsplit) {
 }
 
 
-function updateModal(modal, modalTitle="", modalBody="") {
+function updateModal(modal, modalTitle = "", modalBody = "") {
     switch (actionType) {
         case "abandon":
-           modalTitle = "Abandon This Job ?";
-           modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?";
+            modalTitle = "Abandon This Job ?";
+            modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?";
             break;
         case "delete":
-           modalTitle = "Delete this job forever ?";
-           modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?";
+            modalTitle = "Delete this job forever ?";
+            modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?";
             break;
         case "fixperms":
-           modalTitle = "Try to fix this jobs folder permissions ?";
-           modalBody = "This will try to set the chmod values from your arm.yaml. It wont always work, you may need to do this manually";
+            modalTitle = "Try to fix this jobs folder permissions ?";
+            modalBody = "This will try to set the chmod values from your arm.yaml. It wont always work, you may need to do this manually";
             break;
         case "search":
-           modalTitle = "Search the database";
-           modalBody = `<div class="input-group mb-3"><div class="input-group-prepend"><span class="input-group-text" id="searchlabel">Search </span></div>
+            modalTitle = "Search the database";
+            modalBody = `<div class="input-group mb-3"><div class="input-group-prepend"><span class="input-group-text" id="searchlabel">Search </span></div>
                        <input type="text" class="form-control" id="searchquery" aria-label="searchquery" name="searchquery" placeholder="Search...."
                        value="" aria-describedby="searchlabel"><div id="validationServer03Feedback" class="invalid-feedback">Search string too short.</div></div>`;
             break;
         default:
-             modalTitle = "Do you want to leave this page ?";
-             modalBody = "To view the log file you need to leave this page. Would you like to leave ?";
+            modalTitle = "Do you want to leave this page ?";
+            modalBody = "To view the log file you need to leave this page. Would you like to leave ?";
     }
     modal.find(".modal-title").text(modalTitle);
     modal.find(".modal-body").html(modalBody);
@@ -178,3 +178,36 @@ function hideModal() {
     $('#message3').addClass('d-none');
 }
 
+function pingReadNotify(toastId) {
+    $.ajax({
+        url: "/json?mode=read_notification&notify_id=" + toastId,
+        type: "get",
+        timeout: 2000,
+        success: function (data) {
+            console.log(data)
+        }
+    });
+}
+
+function addToast(title, body, toastId) {
+    const toast = `<div id="toast${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-autohide="false" style="z-index:1000">
+        <div class="toast-header">
+            <img src="static/img/success.png" class="rounded mr-2" alt="arm message" height="20px" width="20px">
+                <strong class="mr-auto">${title}</strong>
+                <small class="text-muted">just now</small>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+        </div>
+        <div class="toast-body">
+            ${body}
+        </div>
+    </div>`;
+    $("#toastHolder").append(toast);
+    const newToast = $(`#toast${toastId}`);
+    newToast.toast('show');
+    newToast.on('hidden.bs.toast', function () {
+        // do something...
+        pingReadNotify(toastId)
+    })
+}

@@ -8,7 +8,7 @@ from flask.logging import default_handler  # noqa: F401
 from arm.ui import app
 from arm.config.config import cfg
 
-TMDB_YEAR_REGEX = "-[0-9]{0,2}-[0-9]{0,2}"
+TMDB_YEAR_REGEX = r"-\d{0,2}-\d{0,2}"
 
 
 def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):

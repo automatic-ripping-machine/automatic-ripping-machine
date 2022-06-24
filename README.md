@@ -16,7 +16,7 @@
 [![Publish Main Docker Image](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/workflow.yml/badge.svg)](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/workflow.yml)
 
 [![Wiki](https://img.shields.io/badge/Wiki-Get%20Help-brightgreen)](https://github.com/1337-server/automatic-ripping-machine/wiki)
-[![Discord](https://img.shields.io/discord/576479573886107699)](https://discord.gg/BCarpwC7qC)
+[![Discord](https://img.shields.io/discord/576479573886107699)](https://discord.gg/FUSrn8jUcR)
 
 
 ## Overview
