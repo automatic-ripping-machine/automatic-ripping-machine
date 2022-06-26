@@ -52,8 +52,9 @@ elif [ "$ID_CDROM_MEDIA_CD" == "1" ]; then
 elif [ "$ID_FS_TYPE" != "" ]; then
 	  echo "[ARM] Starting ARM for Data Disk on ${DEVNAME} with File System ${ID_FS_TYPE}" | logger -t ARM -s
 else
-	  echo "[ARM] Not CD, Bluray, DVD or Data. Bailing out on ${DEVNAME}" | logger -t ARM -s
+	  echo "[ARM] Not CD, Blu-ray, DVD or Data. Bailing out on ${DEVNAME}" | logger -t ARM -s
+	  eject "${DEVNAME}"
 	  exit #bail out
 fi
-
+cd /home/arm
 /usr/bin/python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" | logger -t ARM -s

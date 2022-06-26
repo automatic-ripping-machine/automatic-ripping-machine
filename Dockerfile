@@ -42,6 +42,6 @@ EXPOSE 8080
 FROM base as automatic-ripping-machine
 
 CMD ["/sbin/my_init"]
-
+WORKDIR /home/arm
 LABEL org.opencontainers.image.source=https://github.com/1337-server/automatic-ripping-machine
 LABEL org.opencontainers.image.license=MIT
