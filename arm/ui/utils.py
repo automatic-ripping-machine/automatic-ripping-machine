@@ -79,37 +79,38 @@ def check_db_version(install_path, db_file):
 
         if not os.path.isfile(db_file):
             app.logger.debug("Can't create database file.  This could be a permissions issue.  Exiting...")
-
-    # check to see if db is at current revision
-    head_revision = script.get_current_head()
-    app.logger.debug("Head is: " + head_revision)
-
-    conn = sqlite3.connect(db_file)
-    c = conn.cursor()
-
-    c.execute('SELECT version_num FROM alembic_version')
-    db_version = c.fetchone()[0]
-    app.logger.debug(f"Database version is: {db_version}")
-    if head_revision == db_version:
-        app.logger.info("Database is up to date")
-    else:
-        app.logger.info(
-            f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
-        with app.app_context():
-            unique_stamp = round(time() * 100)
-            app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
-            shutil.copy(db_file, db_file + "_" + str(unique_stamp))
-            flask_migrate.upgrade(mig_dir)
-        app.logger.info("Upgrade complete.  Validating version level...")
-
-        c.execute("SELECT version_num FROM alembic_version")
-        db_version = c.fetchone()[0]
-        app.logger.debug(f"Database version is: {db_version}")
-        if head_revision == db_version:
-            app.logger.info("Database is now up to date")
         else:
-            app.logger.error(f"Database is still out of date. "
-                             f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
+            #only run the below if the db exists
+            # check to see if db is at current revision
+            head_revision = script.get_current_head()
+            app.logger.debug("Alembic Head is: " + head_revision)
+
+            conn = sqlite3.connect(db_file)
+            c = conn.cursor()
+
+            c.execute('SELECT version_num FROM alembic_version')
+            db_version = c.fetchone()[0]
+            app.logger.debug(f"Database version is: {db_version}")
+            if head_revision == db_version:
+                app.logger.info("Database is up to date")
+            else:
+                app.logger.info(
+                    f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
+                with app.app_context():
+                    unique_stamp = round(time() * 100)
+                    app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
+                    shutil.copy(db_file, db_file + "_" + str(unique_stamp))
+                    flask_migrate.upgrade(mig_dir)
+                app.logger.info("Upgrade complete.  Validating version level...")
+
+                c.execute("SELECT version_num FROM alembic_version")
+                db_version = c.fetchone()[0]
+                app.logger.debug(f"Database version is: {db_version}")
+                if head_revision == db_version:
+                    app.logger.info("Database is now up to date")
+                else:
+                    app.logger.error(f"Database is still out of date. "
+                                     f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
 
 
 def make_dir(path):
@@ -232,6 +233,8 @@ def setup_database():
     """
     Try to get the db.User if not we nuke everything
     """
+    from alembic.script import ScriptDirectory
+
     # This checks for a user table
     try:
         admins = models.User.query.all()
@@ -253,14 +256,17 @@ def setup_database():
         db.create_all()
         db.session.commit()
         #  push the database version arm is looking for
-        version = models.AlembicVersion('f1054468c1c7')
+        script = ScriptDirectory.from_config(config)
+        head_revision = script.get_current_head()
+        app.logger.debug("Alembic Head is: " + head_revision)
+        alembicversion = models.AlembicVersion(head_revision)
         ui_config = models.UISettings(1, 1, "spacelab", "en", 2000, 200)
         # Create default user to save problems with ui and ripper having diff setups
         hashed = bcrypt.gensalt(12)
         default_user = models.User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
                                    hashed=hashed)
         db.session.add(ui_config)
-        db.session.add(version)
+        db.session.add(alembicversion)
         db.session.add(default_user)
         db.session.commit()
         return True

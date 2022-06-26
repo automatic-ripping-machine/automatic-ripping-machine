@@ -1,0 +1,53 @@
+{% block ripper %}
+    <div class="tab-pane active pt-5" id="home" role="tabpanel" aria-labelledby="home-tab">
+        <div class="card-deck">
+            <!--Left Card-->
+            <div class="card">
+                <div class="card-header">Server details</div>
+                <div class="card-body col">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">Python
+                            version: {{ stats['python_version'] }}</li>
+                        <li class="list-group-item">A.R.M
+                            version: {{ stats['arm_version'] }}</li>
+                        <li class="list-group-item">
+                            <label class="w-100">Current git version:<br>
+                                <input disabled value="{{ stats['git_commit'] }}"
+                                       class="form-control">
+                            </label></li>
+                        <li class="list-group-item">Update Available:
+                        <!-- Update A.R.M -->
+                            {% if stats['updated'] %}
+                                <img src="{{ url_for('static', filename='/img/success.png') }}"
+                                 alt="update image" width="20px" height="20px">  You are on the latest version
+                            {% else %}
+                                <img src="{{ url_for('static', filename='/img/fail.png') }}"
+                                 alt="update image" width="20px" height="20px">
+                                <form id="updateArm" name="updateArm" method="post" action="">
+                                    {{ form.hidden_tag() }}
+                                    <button title="Update A.R.M Via git"
+                                            class="btn btn-primary float-right" type="submit">Update
+                                        A.R.M
+                                    </button>
+                                </form>New updates are available!
+                            {% endif %}
+                        </li>
+                        <!-- Rip stats -->
+                        <li class="list-group-item">Total rips:
+                            <code>{{ stats['total_rips'] }}</code></li>
+                        <li class="list-group-item">Movies ripped:
+                            <code>{{ stats['movies_ripped'] }}</code></li>
+                        <li class="list-group-item">Series ripped:
+                            <code>{{ stats['series_ripped'] }}</code></li>
+                        <li class="list-group-item">Audios ripped:
+                            <code>{{ stats['cds_ripped'] }}</code></li>
+                    </ul>
+                </div>
+            </div>
+            <!--Right Card-->
+            <div class="card">
+                {% include 'settings/drives.html' %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

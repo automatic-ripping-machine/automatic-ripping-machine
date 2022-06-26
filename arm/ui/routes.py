@@ -20,8 +20,7 @@ from arm.ui import app, db, constants, json_api
 from arm.models import models as models
 from arm.config.config import cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
-    SettingsForm, UiSettingsForm, SetupForm, AbcdeForm
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm, SettingsForm, UiSettingsForm, SetupForm, SystemInfoDrives
+    SettingsForm, UiSettingsForm, SetupForm, AbcdeForm, SystemInfoDrives
 from arm.ui.metadata import get_omdb_poster
 from arm.ui.serverutil import ServerUtil
 
@@ -318,6 +317,9 @@ def settings():
              'total_rips': total_rips,
              'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash())
              }
+    #System Drives (CD/DVD/Blueray drives)
+    #formDrive = SystemInfoDrives(request.form)
+    drives = models.SystemDrives.query.all()
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
     # Get the current config, so we can show the current values
@@ -327,8 +329,8 @@ def settings():
     abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE']).strip()
     form = SettingsForm()
     return render_template('settings.html', settings=current_cfg, ui_settings=armui_cfg,
-                           form=form, jsoncomments=comments, abcde_cfg=abcde_cfg, stats=stats)
-
+                           form=form, jsoncomments=comments, abcde_cfg=abcde_cfg, stats=stats,
+                           drives=drives)
 
 @app.route('/save_settings', methods=['POST'])
 @login_required

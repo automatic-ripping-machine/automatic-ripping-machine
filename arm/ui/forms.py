@@ -76,6 +76,7 @@ class SystemInfoDrives(FlaskForm):
     """
     SystemInformation Form, to update system drive name (nick name) and description
       - /systeminfo
+      - /settings
     """
     id = IntegerField('id',validators=[DataRequired()])
     description = StringField('description',validators=[DataRequired()])
