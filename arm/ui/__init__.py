@@ -59,5 +59,5 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 # Remove GET/page loads from logging
-import logging  # noqa: F402
+import logging  # noqa: E402,F811
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
