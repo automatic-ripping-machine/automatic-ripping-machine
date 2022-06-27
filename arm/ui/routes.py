@@ -314,7 +314,8 @@ def settings():
     comments = ui_utils.generate_comments()
     form = SettingsForm()
     return render_template('settings.html', settings=cfg.arm_config, ui_settings=armui_cfg,
-                           form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config, stats=stats)
+                           form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config,
+                           stats=stats, apprise_cfg=cfg.apprise_config)
 
 
 @app.route('/save_settings', methods=['POST'])

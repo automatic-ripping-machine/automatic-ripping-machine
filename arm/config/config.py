@@ -4,7 +4,7 @@ import os
 import yaml
 
 CONFIG_LOCATION = "/etc/arm/config"
-abcde_config_path = os.path.join(CONFIG_LOCATION, ".abcde.conf")
+abcde_config_path = os.path.join(CONFIG_LOCATION, "abcde.conf")
 apprise_config_path = os.path.join(CONFIG_LOCATION, "apprise.yaml")
 arm_config_path = os.path.join(CONFIG_LOCATION, "arm.yaml")
 
