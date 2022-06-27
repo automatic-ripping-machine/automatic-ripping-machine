@@ -53,7 +53,7 @@ See: https://b3n.org/automatic-ripping-machine
 
 ## Requirements
 
-- Ubuntu Server 18.04 (should work with other Linux distros) - Needs Multiverse and Universe repositories
+- Ubuntu Server 20.04 (should work with other Linux distros) - Needs Multiverse and Universe repositories
 - One or more optical drives to rip Blu-rays, DVDs, and CDs
 - Lots of drive space (I suggest using a NAS like FreeNAS) to store your movies
 
