@@ -45,3 +45,4 @@ CMD ["/sbin/my_init"]
 WORKDIR /home/arm
 LABEL org.opencontainers.image.source=https://github.com/1337-server/automatic-ripping-machine
 LABEL org.opencontainers.image.license=MIT
+LABEL org.opencontainers.image.description='Automatic Ripping Machine for fully automated Blu-ray, DVD and audio disc ripping.'
