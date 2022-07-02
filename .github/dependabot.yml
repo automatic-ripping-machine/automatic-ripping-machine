@@ -11,14 +11,14 @@ updates:
     schedule:
       interval: "daily"
     # Allow up to 10 open pull requests for pip dependencies
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 20
   # Maintain dependencies for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "daily"
     # Allow up to 10 open pull requests for pip dependencies
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 20
   - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
@@ -29,4 +29,4 @@ updates:
     schedule:
       interval: "daily"
     # Allow up to 10 open pull requests for pip dependencies
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 20
