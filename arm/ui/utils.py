@@ -16,9 +16,9 @@ from time import strftime, localtime, time, sleep
 import bcrypt
 import requests
 from werkzeug.routing import ValidationError
-import yaml
 from flask.logging import default_handler  # noqa: F401
-from arm.config.config import cfg
+
+import arm.config.config as cfg
 from arm.ui import app, db
 from arm.models import models
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
@@ -144,8 +144,8 @@ def get_info(directory):
             file_size = os.path.getsize(os.path.join(directory, i))
             file_size = round((file_size / 1024), 1)
             file_size = f"{file_size :,.1f}"
-            create_time = strftime(cfg['DATE_FORMAT'], localtime(file_stats.st_ctime))
-            access_time = strftime(cfg['DATE_FORMAT'], localtime(file_stats.st_atime))
+            create_time = strftime(cfg.arm_config['DATE_FORMAT'], localtime(file_stats.st_ctime))
+            access_time = strftime(cfg.arm_config['DATE_FORMAT'], localtime(file_stats.st_atime))
             # [file,most_recent_access,created, file_size]
             file_list.append([i, access_time, create_time, file_size])
     return file_list
@@ -316,7 +316,7 @@ def metadata_selector(func, query="", year="", imdb_id=""):
     :return: json/dict object
     """
     return_function = None
-    if cfg['METADATA_PROVIDER'].lower() == "tmdb":
+    if cfg.arm_config['METADATA_PROVIDER'].lower() == "tmdb":
         app.logger.debug(f"provider tmdb - function: {func}")
         if func == "search":
             return_function = tmdb_search(str(query), str(year))
@@ -329,7 +329,7 @@ def metadata_selector(func, query="", year="", imdb_id=""):
                 return_function = tmdb_find(imdb_id)
             app.logger.debug("No title or imdb provided")
 
-    elif cfg['METADATA_PROVIDER'].lower() == "omdb":
+    elif cfg.arm_config['METADATA_PROVIDER'].lower() == "omdb":
         app.logger.debug(f"provider omdb - function: {func}")
         if func == "search":
             return_function = call_omdb_api(str(query), str(year))
@@ -361,9 +361,9 @@ def fix_permissions(j_id):
     # If there is no path saved in the job
     if not job.path:
         # Check logfile still exists
-        validate_logfile(job.logfile, "true", Path(os.path.join(cfg['LOGPATH'], job.logfile)))
+        validate_logfile(job.logfile, "true", Path(os.path.join(cfg.arm_config['LOGPATH'], job.logfile)))
         # Find the correct path to use for fixing perms
-        directory_to_traverse = find_folder_in_log(os.path.join(cfg['LOGPATH'], job.logfile),
+        directory_to_traverse = find_folder_in_log(os.path.join(cfg.arm_config['LOGPATH'], job.logfile),
                                                    os.path.join(job.config.COMPLETED_PATH,
                                                                 f"{job.title} ({job.year})"))
     else:
@@ -411,7 +411,7 @@ def send_to_remote_db(job_id):
     """
     job = models.Job.query.get(job_id)
     return_dict = {}
-    api_key = cfg['ARM_API_KEY']
+    api_key = cfg.arm_config['ARM_API_KEY']
 
     # This allows easy updates to the API url
     base_url = "https://1337server.pythonanywhere.com"
@@ -466,25 +466,6 @@ def trigger_restart():
     now = datetime.now()
     arm_main = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routes.py")
     set_file_last_modified(arm_main, now)
-
-
-def get_settings(arm_cfg_file):
-    """
-    yaml file loader - is used for loading fresh arm.yaml config\n
-    :param arm_cfg_file: full path to arm.yaml
-    :return: the loaded yaml file
-    """
-    try:
-        with open(arm_cfg_file, "r") as yaml_file:
-            try:
-                yaml_cfg = yaml.load(yaml_file, Loader=yaml.FullLoader)
-            except Exception as error:
-                app.logger.debug(error)
-                yaml_cfg = yaml.safe_load(yaml_file)  # For older versions use this
-    except FileNotFoundError as error:
-        app.logger.debug(error)
-        yaml_cfg = {}
-    return yaml_cfg
 
 
 def build_arm_cfg(form_data, comments):
@@ -705,33 +686,22 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
     return movie_dict
 
 
-def get_abcde_cfg(abcde_cfg_file):
-    """
-    load and return as string abcde.cfg
-    """
-    try:
-        with open(abcde_cfg_file, "r") as abcde_read_file:
-            abcde = abcde_read_file.read()
-    except FileNotFoundError:
-        abcde = "File not found"
-    return abcde
-
-
 def get_git_revision_hash() -> str:
     """Get full hash of current git commit"""
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=cfg['INSTALLPATH']).decode('ascii').strip()
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD'],
+                                   cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
 
 
 def get_git_revision_short_hash() -> str:
     """Get short hash of current git commit"""
     return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
-                                   cwd=cfg['INSTALLPATH']).decode('ascii').strip()
+                                   cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
 
 
 def git_check_updates(current_hash) -> bool:
     """Check if we are on latest commit"""
     git_update = subprocess.run(['git', 'fetch', 'https://github.com/1337-server/automatic-ripping-machine'],
-                                cwd=cfg['INSTALLPATH'], check=False)
+                                cwd=cfg.arm_config['INSTALLPATH'], check=False)
     # git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1
     git_log = subprocess.check_output('git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1',
                                       shell=True, cwd="/opt/arm").decode('ascii').strip()
@@ -744,6 +714,6 @@ def git_check_updates(current_hash) -> bool:
 
 def git_get_updates() -> dict:
     """update arm"""
-    git_log = subprocess.run(['git', 'pull'], cwd=cfg['INSTALLPATH'], check=False)
+    git_log = subprocess.run(['git', 'pull'], cwd=cfg.arm_config['INSTALLPATH'], check=False)
     return {'stdout': git_log.stdout, 'stderr': git_log.stderr,
             'return_code': git_log.returncode, 'form': 'ARM Update', "success": (git_log.returncode == 0)}

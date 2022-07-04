@@ -13,7 +13,7 @@ from prettytable import PrettyTable
 from flask_login import LoginManager, current_user, login_user, UserMixin  # noqa: F401
 from arm.ripper import music_brainz
 from arm.ui import db
-from arm.config.config import cfg
+import arm.config.config as cfg
 
 hidden_attribs = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD",
                   "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
@@ -74,8 +74,8 @@ class Job(db.Model):
         self.video_type = "unknown"
         self.ejected = False
         self.updated = False
-        if cfg['VIDEOTYPE'] != "auto":
-            self.video_type = cfg['VIDEOTYPE']
+        if cfg.arm_config['VIDEOTYPE'] != "auto":
+            self.video_type = cfg.arm_config['VIDEOTYPE']
         self.parse_udev()
         self.get_pid()
         self.stage = str(round(time.time() * 100))
@@ -175,7 +175,7 @@ class Job(db.Model):
             logfile = f"{mb_title}.log"
             new_log_file = f"{mb_title}_{round(time.time() * 100)}.log"
 
-        temp_log_full = os.path.join(cfg['LOGPATH'], logfile)
+        temp_log_full = os.path.join(cfg.arm_config['LOGPATH'], logfile)
         logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
         return logfile
 

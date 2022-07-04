@@ -2,19 +2,18 @@
 
 set -eo pipefail
 
+RED='\033[1;31m'
+NC='\033[0m' # No Color
+PORT=8080
+
 function usage() {
     echo -e "\nUsage: ubuntu-20.04-install.sh [OPTIONS]"
-    echo -e "\t-d\t\tInstall the ARM Development Environment"
-    echo -e "\t-p [PORT]\tOverwrite the default WEBSERVER_PORT"
+    echo -e " -d \tInstall the ARM Development Environment"
+    echo -e " -p <port>\tSpecify the port arm will serve on. \n\t\tDefault is \"$PORT\""
 }
-
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-NC='\033[0m' # No Color
 
 dev_env_flag=
 port_flag=
-PORT=8080
 while getopts 'dp:' OPTION
 do
     case $OPTION in
@@ -26,7 +25,7 @@ do
           if ! [[ $PORT -gt 0 && $PORT -le 65535 ]]; then
               echo -e "\nERROR: ${PORT} is not a port"
               usage
-              exit 1
+              exit 2
           fi
           ;;
     ?)    usage
@@ -47,7 +46,7 @@ function install_os_tools() {
 function add_arm_user() {
     echo -e "${RED}Adding arm user${NC}"
     # create arm group if it doesn't already exist
-    if ! [[ $(getent group arm) ]]; then
+    if ! [[ "$(getent group arm)" ]]; then
         sudo groupadd arm
     else
         echo -e "${RED}arm group already exists, skipping...${NC}"
@@ -67,7 +66,6 @@ function install_arm_requirements() {
     echo -e "${RED}Installing ARM requirments${NC}"
     sudo add-apt-repository ppa:mc3man/focal6 -y
     sudo add-apt-repository ppa:heyarje/makemkv-beta -y
-    sudo add-apt-repository ppa:stebbins/handbrake-releases -y
     sudo apt update -y
 
     sudo apt install -y \
@@ -131,59 +129,63 @@ function clone_arm() {
     sudo find /opt/arm/scripts/ -type f -iname "*.sh" -exec chmod +x {} \;
 }
 
-function create_abcde_symlink() {
-    if ! [[ -z $(find /home/arm/ -type l -ls | grep ".abcde.conf") ]]; then
-        rm /home/arm/.abcde.conf
-    fi
-    sudo ln -sf /opt/arm/setup/.abcde.conf /home/arm/
-}
+function install_arm_dev_env() {
+    ##### Install ARM development stack
+    echo -e "${RED}Installing ARM for Development${NC}"
+    clone_arm
 
-function create_arm_config_symlink() {
-    if [[ $port_flag ]]; then
-        echo -e "${RED}Non-default port specified, updating arm config...${NC}"
-        # replace the default 8080 port with the specified port
-        sed -e s"/\(^WEBSERVER_PORT:\) 8080/\1 ${PORT}/" -i /opt/arm/arm.yaml
+    # install docker
+    if [ -e /usr/bin/docker ]; then
+        echo -e "${RED}Docker installation detected, skipping...${NC}"
+    else
+        echo -e "${RED}Installing Docker${NC}"
+        # the convenience script auto-detects OS and handles install accordingly
+        curl -sSL https://get.docker.com | bash
+        sudo usermod -aG docker arm
     fi
 
-    if ! [[ -z $(find /etc/arm/ -type l -ls | grep "arm.yaml") ]]; then
-        rm /etc/arm/arm.yaml
+    # install pycharm community, if professional not installed already
+    if [[ -z $(snap find pycharm-professional) ]]; then
+        sudo snap install pycharm-community --classic
     fi
-    sudo ln -sf /opt/arm/arm.yaml /etc/arm/
 }
 
 function install_arm_live_env() {
-    echo -e "${RED}Installing ARM:Automatic Ripping Machine${NC}"
-    cd /opt
+    ##### Install ARM live environment
+    echo -e "${RED}Installing Automatic Ripping Machine${NC}"
     clone_arm
-    cd arm
-    sudo pip3 install -r requirements.txt
+
     sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
-    create_abcde_symlink
-    sudo cp docs/arm.yaml.sample arm.yaml
-    sudo chown arm:arm arm.yaml
-    sudo mkdir -p /etc/arm/
-    create_arm_config_symlink
-    sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
-    sudo chmod +x /opt/arm/scripts/update_key.sh
+    sudo udevadm control --reload
 }
 
-function install_arm_dev_env() {
-    # install arm without automation and with PyCharm
-    echo -e "${RED}Installing ARM for Development${NC}"
-    cd /home/arm
-    sudo snap install pycharm-community --classic
-    cd /opt
-    clone_arm
-    cd arm
-    sudo pip3 install -r requirements.txt
-    create_abcde_symlink
-    sudo cp docs/arm.yaml.sample arm.yaml
-    sudo chown arm:arm arm.yaml
-    sudo mkdir -p /etc/arm/
-    create_arm_config_symlink
+function setup_config_files() {
+    ##### Setup ARM-specific config files if not found
+    sudo mkdir -p /etc/arm/config
+    CONFS="arm.yaml apprise.yaml"
+    for conf in $CONFS; do
+        thisConf="/etc/arm/config/${conf}"
+        if [[ ! -f "${thisConf}" ]] ; then
+            echo "creating config file ${thisConf}"
+            # Don't overwrite with defaults during reinstall
+            cp --no-clobber "/opt/arm/setup/${conf}" "${thisConf}"
+        fi
+    done
+    chown -R arm:arm /etc/arm/
 
-    # allow developer to write to the installation
-    sudo chmod -R 777 /opt/arm
+    # abcde.conf is expected in /etc by the abcde installation
+    cp --no-clobber "/opt/arm/setup/.abcde.conf" "/etc/.abcde.conf"
+    chown arm:arm "/etc/.abcde.conf"
+
+    if [[ $port_flag ]]; then
+        echo -e "${RED}Non-default port specified, updating arm config...${NC}"
+        # replace the default 8080 port with the specified port
+        sed -E s"/(^WEBSERVER_PORT:) 8080/\1 ${PORT}/" -i /etc/arm/config/arm.yaml
+    else
+        # reset the port number in the config since it's no longer being
+        # overwritten which each run of this installer
+        sed -E s"/(^WEBSERVER_PORT:) [0-9]+/\1 8080/" -i /etc/arm/config/arm.yaml
+    fi
 }
 
 function install_python_requirements {
@@ -196,16 +198,16 @@ function install_python_requirements {
 }
 
 function setup_autoplay() {
-    ######## Adding new line to fstab, needed for the autoplay to work.
-    ######## also creating mount points (why loop twice)
+    ##### Add new line to fstab, needed for the autoplay to work.
     echo -e "${RED}Adding fstab entry and creating mount points${NC}"
     for dev in /dev/sr?; do
-        if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
+        if grep -q "${dev}  /mnt${dev}  udf,iso9660  users,noauto,exec,utf8  0  0" /etc/fstab; then
             echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
         else
-            echo -e "\n${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 \n" | sudo tee -a /etc/fstab
+            echo -e "\n${dev}  /mnt${dev}  udf,iso9660  users,noauto,exec,utf8  0  0 \n" | sudo tee -a /etc/fstab
         fi
         sudo mkdir -p "/mnt$dev"
+        sudo chown arm:arm "/mnt$dev"
     done
 }
 
@@ -215,20 +217,19 @@ function setup_syslog_rule() {
         echo -e "${RED}ARM syslog rule found. Overwriting...${NC}"
         sudo rm /etc/rsyslog.d/30-arm.conf
     fi
-    sudo cp ./setup/30-arm.conf /etc/rsyslog.d/30-arm.conf
+    sudo cp /opt/arm/setup/30-arm.conf /etc/rsyslog.d/30-arm.conf
+    sudo chown arm:arm /etc/rsyslog.d/30-arm.conf
 }
 
 function install_armui_service() {
-    ##### Run the ARM UI as a service
+    ##### Install the ArmUI service
     echo -e "${RED}Installing ARM service${NC}"
     sudo mkdir -p /etc/systemd/system
-    sudo cp ./setup/armui.service /etc/systemd/system/armui.service
+    sudo cp /opt/arm/setup/armui.service /etc/systemd/system/armui.service
+    sudo chmod 644 /etc/systemd/system/armui.service
 
+    # reload the daemon and then start service
     sudo systemctl daemon-reload
-    sudo chmod u+x /etc/systemd/system/armui.service
-    sudo chmod 600 /etc/systemd/system/armui.service
-
-    #reload the daemon and then start ui
     sudo systemctl start armui.service
     sudo systemctl enable armui.service
     sudo sysctl -p
@@ -236,16 +237,11 @@ function install_armui_service() {
 
 function launch_setup() {
     echo -e "${RED}Launching ArmUI first-time setup${NC}"
-    # HOTFIX for DB issue #169
-    sudo -u arm mkdir -p /home/arm/logs/
-    sudo -u arm touch /home/arm/logs/arm.log
-    sudo -u arm /usr/bin/python3 /opt/arm/arm/ripper/main.py -d sr0 | at now
-    sleep 5  # Waits 5 seconds, This gives time for service to start
     site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:${PORT}")
     if [[ -z "$site_addr" ]]; then
         echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}"
     else
-        echo -e "${GREEN}ArmUI site is running on http://$site_addr\n${RED}Launching setup...${NC}"
+        echo -e "${RED}ArmUI site is running on http://$site_addr. Launching setup...${NC}"
         sudo -u arm nohup xdg-open "http://$site_addr/setup" > /dev/null 2>&1 &
     fi
 }
@@ -262,6 +258,7 @@ else
     install_arm_live_env
 fi
 
+setup_config_files
 install_python_requirements
 setup_autoplay
 setup_syslog_rule
