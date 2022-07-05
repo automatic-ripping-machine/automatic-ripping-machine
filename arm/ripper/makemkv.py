@@ -194,7 +194,8 @@ def get_track_info(mdisc, job):
     :param job: Job instance
     :return: None
 
-    .. note:: For help with MakeMKV codes: https://github.com/1337-server/automatic-ripping-machine/wiki/MakeMKV-Codes
+    .. note:: For help with MakeMKV codes:
+    https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/MakeMKV-Codes
     """
 
     logging.info("Using MakeMKV to get information on all the tracks on the disc. This will take a few minutes...")

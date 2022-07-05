@@ -700,7 +700,8 @@ def get_git_revision_short_hash() -> str:
 
 def git_check_updates(current_hash) -> bool:
     """Check if we are on latest commit"""
-    git_update = subprocess.run(['git', 'fetch', 'https://github.com/1337-server/automatic-ripping-machine'],
+    git_update = subprocess.run(['git', 'fetch',
+                                 'https://github.com/automatic-ripping-machine/automatic-ripping-machine'],
                                 cwd=cfg.arm_config['INSTALLPATH'], check=False)
     # git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1
     git_log = subprocess.check_output('git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1',
