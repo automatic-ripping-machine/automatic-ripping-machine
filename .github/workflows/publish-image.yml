@@ -40,9 +40,9 @@ jobs:
                 name: Set tag for non-default branch
                 if: steps.branch-name.outputs.is_default == 'false'
                 run: |
-                    echo "Branch name is ${{ steps.branch-name.outputs.ref_branch }}"
+                    echo "Branch name is ${{ steps.branch-name.outputs.current_branch }}"
                     echo "Main name is ${{ steps.branch-name.outputs.default_branch }}"
-                    echo "TAG=${{ steps.branch-name.outputs.ref_branch }}" >> $GITHUB_ENV
+                    echo "TAG=${{ steps.branch-name.outputs.current_branch }}" >> $GITHUB_ENV
 
             # Workaround: https://github.com/docker/build-push-action/issues/461
             -
