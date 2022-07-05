@@ -55,7 +55,7 @@ jobs:
                 uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b
                 with:
                     registry: ${{ env.REGISTRY }}
-                    username: ${{ github.actor }}
+                    username: ${{ github.repository_owner }}
                     password: ${{ secrets.GITHUB_TOKEN }}
 
             -
@@ -94,4 +94,4 @@ jobs:
                 with:
                     src: docker.io/${{ env.IMAGE_NAME }}:${{ env.TAG }}
                     # make sure the github name is correct
-                    dst: ${{ env.REGISTRY }}/${{ github.actor }}/${{ github.event.repository.name }}:${{ env.TAG }}
+                    dst: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ env.TAG }}
