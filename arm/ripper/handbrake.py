@@ -117,7 +117,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
             logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. "
                          f"Length is {track.length} seconds.")
 
-            filename = f"title_{track.track_number:02}.{cfg.arm_config['DEST_EXT']}"
+            filename = f"title_{track.track_number}.{cfg.arm_config['DEST_EXT']}"
             filepathname = os.path.join(basepath, filename)
 
             logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
