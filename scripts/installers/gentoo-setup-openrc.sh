@@ -160,6 +160,7 @@ else
     git submodule update --init --recursive
     git submodule update --recursive --remote
     cd ..
+
 fi
 
 chown -R arm:arm arm
