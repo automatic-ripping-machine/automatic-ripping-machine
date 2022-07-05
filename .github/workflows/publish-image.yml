@@ -60,7 +60,6 @@ jobs:
 
             -
                 name: Login to DockerHub
-                if: github.event_name != 'pull_request'
                 uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b
                 with:
                     username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -90,6 +89,7 @@ jobs:
 
             -
                 name: retag and push multiplatform images to multiple registries
+                if: github.event_name != 'pull_request'
                 uses: akhilerm/tag-push-action@v2.0.0
                 with:
                     src: docker.io/${{ env.IMAGE_NAME }}:${{ env.TAG }}
