@@ -65,5 +65,5 @@ done
 
 echo "setting makemkv app-Key"
 if ! [[ -z "${MAKEMKV_APP_KEY}" ]] ; then
-  echo "app_Key = \"${MAKEMKV_APP_KEY}\"" > "${HOME}/.MakeMKV/settings.conf"
+  echo "app_Key = \"${MAKEMKV_APP_KEY}\"" > "${ARM_HOME}/.MakeMKV/settings.conf"
 fi
