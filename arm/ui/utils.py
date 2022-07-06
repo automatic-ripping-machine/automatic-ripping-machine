@@ -476,8 +476,8 @@ def build_arm_cfg(form_data, comments):
     :return: full new arm.yaml as a String
     """
     arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
-    # TODO: This is not the safest way to do things.
-    #  It assumes the user isn't trying to mess with us.
+    # This is not the safest way to do things.
+    # It assumes the user isn't trying to mess with us.
     # This really should be hard coded.
     app.logger.debug("save_settings: START")
     for key, value in form_data.items():
@@ -518,7 +518,9 @@ def arm_yaml_test_bool(key, value):
         if key == "WEBSERVER_IP":
             arm_cfg = f"{key}: {value.lower()}\n"
         else:
-            arm_cfg = f"{key}: \"{value}\"\n"
+            # This isn't intended to be safe, it's to stop breakages
+            escaped = re.sub(r"(?<!\\)[\"\'`]", r'\"', value)
+            arm_cfg = f"{key}: \"{escaped}\"\n"
     return arm_cfg
 
 
