@@ -19,43 +19,53 @@
                                                         {{ formDrive.hidden_tag() }}
                                                     {% endif %}
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label">Name</label>
-                                                        <label class="col-sm col-form-label">{{ drive.name }}</label>
+                                                        <label class="col-sm-3 col-form-label px-1">Name</label>
+                                                        <label class="col-sm col-form-label px-1">{{ drive.name }}</label>
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label">Mount Path</label>
-                                                        <label class="col-sm col-form-label">{{ drive.mount }}</label>
+                                                        <label class="col-sm-3 col-form-label px-1 px-1">Mount Path</label>
+                                                        <label class="col-sm col-form-label px-1">{{ drive.mount }}</label>
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label">Current Job</label>
-                                                        <label class="col-sm col-form-label"><a href="/jobdetail?job_id={{ drive.job_id }}"> {{ drive.job_id }} </a></label>
+                                                        <label class="col-sm-3 col-form-label px-1">Current Job</label>
+                                                        <label class="col-sm col-form-label px-1 px-1 px-1"><a href="/jobdetail?job_id={{ drive.job_id }}"> {{ drive.title }} </a></label>
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label">Previous Job</label>
-                                                        <label class="col-sm col-form-label"><a href="/jobdetail?job_id={{ drive.job_id_previous }}">{{ drive.job_id_previous }} </a></label>
+                                                        <label class="col-sm-3 col-form-label px-1 px-1">Previous Job</label>
+                                                        <label class="col-sm col-form-label px-1"><a href="/jobdetail?job_id={{ drive.job_id_previous }}">{{ drive.job_id_previous }} </a></label>
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label for="driveDescription" class="col-sm-3 col-form-label">Description</label>
+                                                        <label for="driveDescription" class="col-sm-3 col-form-label px-1">Description</label>
                                                         <div class="col-sm">
-                                                            <input class="form-control form-control-sm" type="text" id="description" name="description" value="{{ drive.description }}">
+                                                            <input class="form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}">
                                                             <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
                                                         </div>
                                                     </div>
                                                     <div class="form-group row my-0">
                                                         <div class="col">
                                                             <div class="float-right">
-                                                                <button type="submit" class="btn btn-primary btn-sm" name="submit">Update</button>
-                                                                <button type="submit" class="btn btn-outline-danger btn-sm" name="remove">Remove</button>
+                                                                {% if formDrive: %}
+                                                                    <button type="submit" class="btn btn-primary btn-sm" name="submit">Update</button>
+                                                                    <button type="submit" class="btn btn-outline-danger btn-sm" name="remove">Remove</button>
+                                                                {% else %}
+                                                                    <button type="submit" class="btn btn-primary btn-sm" name="submit" disabled>Update</button>
+                                                                    <button type="submit" class="btn btn-outline-danger btn-sm" name="remove" disabled>Remove</button>
+                                                                {% endif %}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </form>
                                             </div>
                                             <div class="col-2 d-flex">
-                                                {% if drive.open: %}
-                                                    <img src="static/img/drive-optical_open.svg" class="p-flex align-items-center" style="max-width:100px; min-width:50px" alt="Drive Open">
-                                                {% else %}
-                                                    <img src="static/img/drive-optical_closed.svg" class="p-flex align-items-center" style="max-width:100px; min-width:50px" alt="Drive Closed">
+                                                <div class="row">
+                                                    <a href="#" class="my-0">Edit</a>
+                                                </div>
+                                                <div class="row">
+                                                    {% if drive.open: %}
+                                                        <img src="static/img/drive-optical_open.svg" class="p-flex align-items-center" style="max-width:100px; min-width:50px" alt="Drive Open">
+                                                    {% else %}
+                                                        <img src="static/img/drive-optical_closed.svg" class="p-flex align-items-center" style="max-width:100px; min-width:50px" alt="Drive Closed">
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

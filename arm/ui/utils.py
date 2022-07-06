@@ -81,7 +81,7 @@ def check_db_version(install_path, db_file):
             app.logger.debug("Can't create database file.  This could be a permissions issue.  Exiting...")
         else:
             #only run the below if the db exists
-            # check to see if db is at current revision
+            #check to see if db is at current revision
             head_revision = script.get_current_head()
             app.logger.debug("Alembic Head is: " + head_revision)
 
@@ -229,11 +229,12 @@ def generate_arm_cat(full_path):
                 sleep(1)
 
 
-def setup_database():
+def setup_database(install_path):
     """
     Try to get the db.User if not we nuke everything
     """
     from alembic.script import ScriptDirectory
+    from alembic.config import Config  # noqa: F811
 
     # This checks for a user table
     try:
@@ -256,6 +257,9 @@ def setup_database():
         db.create_all()
         db.session.commit()
         #  push the database version arm is looking for
+        mig_dir = os.path.join(install_path, "arm/migrations")
+        config = Config()
+        config.set_main_option("script_location", mig_dir)
         script = ScriptDirectory.from_config(config)
         head_revision = script.get_current_head()
         app.logger.debug("Alembic Head is: " + head_revision)

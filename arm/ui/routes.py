@@ -86,7 +86,7 @@ def setup():
     perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
     app.logger.debug("perm " + str(perm_file))
     # Check for install file and that db is correctly setup
-    if perm_file.exists() and ui_utils.setup_database():
+    if perm_file.exists() and ui_utils.setup_database(cfg['INSTALLPATH']):
         flash(f"{perm_file} exists, setup cannot continue. To re-install please delete this file.", "danger")
         return redirect("/")
     dir0 = Path(PurePath(cfg['DBFILE']).parent)
@@ -109,7 +109,7 @@ def setup():
         app.logger.debug("Successfully created all of the ARM directories")
 
     try:
-        if ui_utils.setup_database():
+        if ui_utils.setup_database(cfg['INSTALLPATH']):
             flash("Setup of the database was successful.", "success")
             app.logger.debug("Setup of the database was successful.")
             perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
@@ -318,8 +318,10 @@ def settings():
              'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash())
              }
     #System Drives (CD/DVD/Blueray drives)
-    #formDrive = SystemInfoDrives(request.form)
-    drives = models.SystemDrives.query.all()
+    formDrive = SystemInfoDrives(request.form)
+    #drives = models.SystemDrives.query.all()
+    drives = db.session.query(models.SystemDrives, models.Job).filter(models.SystemDrives.job_id == models.Job.job_id).all()
+    #drives = db.session.query(models.SystemDrives).join(models.SystemDrives, models.Job).filter(models.SystemDrives.job_id == models.Job.job_id).all()
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
     # Get the current config, so we can show the current values
@@ -329,7 +331,7 @@ def settings():
     abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE']).strip()
     form = SettingsForm()
     return render_template('settings.html', settings=current_cfg, ui_settings=armui_cfg,
-                           form=form, jsoncomments=comments, abcde_cfg=abcde_cfg, stats=stats,
+                           form=form, formDrive=formDrive, jsoncomments=comments, abcde_cfg=abcde_cfg, stats=stats,
                            drives=drives)
 
 @app.route('/save_settings', methods=['POST'])
@@ -656,7 +658,7 @@ def updatetitle():
           f'{request.args.get("title")} ({request.args.get("year")})', "success")
     return redirect("/")
 
-@app.route('/systeminfo', methods=['GET', 'POST'])
+@app.route('/systeminfo', methods=['POST'])
 @login_required
 def serverinfo():
     """
@@ -693,14 +695,15 @@ def serverinfo():
         drive.description = str(formDrive.description.data).strip()
         db.session.commit()
         #return to systeminfo page (refresh page)
-        return redirect('/systeminfo')
+        return redirect('/settings')
     else:
         #return for GET
-        drives = models.SystemDrives.query.all()
+        return redirect('/settings')
+        #drives = models.SystemDrives.query.all()
 
-    return render_template('systeminfo.html', server = server, serverutil = serverutil, flags = flags,
-                            drives = drives, formDrive = formDrive,
-                            arm_path=arm_path, media_path=media_path)
+    #return render_template('systeminfo.html', server = server, serverutil = serverutil, flags = flags,
+    #                        drives = drives, formDrive = formDrive,
+    #                        arm_path=arm_path, media_path=media_path)
 
 
 @app.route('/')
@@ -714,9 +717,7 @@ def home():
     # Force a db update
     #Microtechno9000 comment:
     #-Why is this being run on the main page/ingex?
-    #-If the database is missing, the below function fails as alembic does not have a dabase to writ into.
-    #-To run the below, /setup needs to be run, otherwise it errors out
-    #ui_utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
+    ui_utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
     #System details in class server
     server = models.SystemInfo.query.filter_by(id="1").first()
@@ -743,7 +744,7 @@ def home():
         jobs = {}
 
     return render_template('index.html', jobs=jobs, armname=armname, children=cfg['ARM_CHILDREN'],
-                        server = server, serverutil = serverutil, flags = flags, arm_path=arm_path, media_path=media_path)
+                        server=server, serverutil=serverutil, flags=flags, arm_path=arm_path, media_path=media_path)
 
 @app.route('/import_movies')
 @login_required

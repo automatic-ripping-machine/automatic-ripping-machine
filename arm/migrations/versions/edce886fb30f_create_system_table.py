@@ -18,7 +18,7 @@ depends_on = None
 
 def upgrade():
     op.create_table(
-        'systeminfo',
+        'system_info',
             sa.Column('id', sa.Integer(), primary_key=True),
             sa.Column('name', sa.String(length=100), nullable=False),
             sa.Column('cpu', sa.String(length=100), nullable=False),
@@ -26,7 +26,7 @@ def upgrade():
             sa.Column('mem_total', sa.Float(), nullable=False),
         )
     op.create_table(
-        'systemdrives',
+        'system_drives',
             sa.Column('drive_id', sa.Integer(), primary_key=True),
             sa.Column('name', sa.String(length=100), nullable=False),
             sa.Column('type', sa.String(length=20), nullable=False),
@@ -34,7 +34,9 @@ def upgrade():
             sa.Column('open', sa.Boolean(), nullable=False),
             sa.Column('job_id', sa.Integer(), nullable=True),
             sa.Column('job_id_previous', sa.Integer(), nullable=True),
-            sa.Column('description', sa.Unicode(length=200), nullable=False)
+            sa.Column('description', sa.Unicode(length=200), nullable=False),
+            sa.ForeignKeyConstraint(['job_id'], ['job.job_id'], ),
+            sa.ForeignKeyConstraint(['job_id_previous'], ['job.job_id'], )
         )
 
 def downgrade():

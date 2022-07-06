@@ -4,18 +4,19 @@
 ## ARM Options ##
 #################
 
-
 # A friendly name for this machine. Useful if you are running multiple instances.
 # Used in notification titles.
 ARM_NAME: ""
 
+# ARM_CHILDREN
 # Comma delimited list of child ARM servers to display on the Home Page
-# Should be full protocol, path, and port: http://192.168.0.100:8080/
+# Should be full protocol, path, and port: http://192.168.0.100:8080
 ARM_CHILDREN: ""
 
-# Prevent ARM from wasting time on 99 Title protected DVDs.
+# Workaround for Track 99
 # A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.
-# When set to "true" affected DVDs will be autoejected on insertion.
+# When set to "false" affected DVDs will be passed to MakeMKV for ripping, but this can crash or hang
+# Setting this to true will eject the disc and log only to the system logging
 PREVENT_99: true
 
 # Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.
@@ -33,7 +34,7 @@ ARM_API_KEY: ""
 # True will leave all of the pages open to be editable/viewable by anyone
 # False will require you to login to view/edit jobs or settings from the ui
 # ARMui will need to be restared for this to update
-DISABLE_LOGIN: true
+DISABLE_LOGIN: false
 
 # Skip transcoding if you want the original MakeMKV files as your final output
 # This will produce the highest quality videos (and use the most storage)
@@ -49,11 +50,11 @@ SKIP_TRANSCODE: false
 VIDEOTYPE: "auto"
 
 # Minimum length of track for ARM rip (in seconds)
-MINLENGTH: 600
+MINLENGTH: "600"
 
 # Maximum length of track for ARM rip (in seconds)
 # Use "99999" to indicate no maximum length
-MAXLENGTH: 99999
+MAXLENGTH: "99999"
 
 # Wait for manual identification
 MANUAL_WAIT: true
@@ -67,7 +68,7 @@ DATE_FORMAT: "%m-%d-%Y %H:%M:%S"
 
 ## Do you want to allow Rips of the same disk multiple times
 ## With this set as false the task will exit if it recognises the same movie being ripped
-## recommended to set to true for series 
+## recommended to set to true for series
 ALLOW_DUPLICATES: false
 
 # Number of Transcodes that runs at the same time.
@@ -77,12 +78,13 @@ ALLOW_DUPLICATES: false
 MAX_CONCURRENT_TRANSCODES: 0
 
 # Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
+# "status=progress" to log progress
 DATA_RIP_PARAMETERS: ""
 
 # This selects the metadata provider, Each provider has their own ups and downs
-# But a general rule would be 
-# OMDB for movies and shows 
-# TMDB for movies only
+# But a general rule would be
+#    OMDB for movies and shows
+#    TMDB for movies only
 # You will still need to provide an api key for the provider you have selected
 METADATA_PROVIDER: "omdb"
 
@@ -95,7 +97,13 @@ GET_AUDIO_TITLE: "musicbrainz"
 # Requires FFmpeg
 RIP_POSTER: false
 
+
+#####################
+## Directory setup ##
+#####################
+
 # Location of your ABCDE config file
+# This over-rides any other abcde.conf files
 ABCDE_CONFIG_FILE: "/etc/abcde.conf"
 
 # Path to raw MakeMKV directory
@@ -106,9 +114,6 @@ RAW_PATH: "/home/arm/media/raw/"
 # Destination for HandBrake
 TRANSCODE_PATH: "/home/arm/media/transcode/"
 
-#####################
-## Directory setup ##
-#####################
 # Final directory of transcoded files
 # Ripped and transcoded files end up here
 COMPLETED_PATH: "/home/arm/media/completed/"
@@ -138,9 +143,11 @@ LOGLIFE: 1
 # Path to ARM database file
 DBFILE: "/home/arm/db/arm.db"
 
+
 ##################
 ##  Web Server  ##
 ##################
+
 # IP address of web server (this machine)
 # Use x.x.x.x to autodetect the IP address to use
 WEBSERVER_IP: x.x.x.x
@@ -152,25 +159,28 @@ WEBSERVER_PORT: 8080
 ########################
 ##  File Permissions  ##
 ########################
+
 # Enabling this setting will allow you to adjust the default file permissions of the outputted files
 # The default value is set to 777 for read/write/execute for all users, but can be changed below using the "CHMOD_VALUE" setting
 # This setting is helpful when storing the data locally on the system
 SET_MEDIA_PERMISSIONS: false
 CHMOD_VALUE: 777
 
-# Don't bother. This does not do anything yet
 SET_MEDIA_OWNER: false
-CHOWN_USER: "None"
-CHOWN_GROUP: "None"
+CHOWN_USER: 
+CHOWN_GROUP: 
+
 
 ########################
 ## MakeMKV Parameters ##
 ########################
-# Method of MakeMKV to use for Blu Ray discs.  Options are "mkv" or "backup".
-# backup decrypts the dvd and then copies it to the hard drive.  This allows HandBrake to apply some of it's
-# analytical abilities such as the main-feature identification.  This method seems to offer success on bluray 
-# discs that fail in "mkv" mode. *** NOTE: MakeMKV only supports the backup method on BluRay discs.  ARM does
-# not use MakeMKV for DVDs.   
+
+# Method of MakeMKV to use for Blu-ray discs
+# Options are "mkv" or "backup".
+# backup decrypts the dvd and then copies it to the hard drive.
+# This allows HandBrake to apply some of its analytical abilities such as the main-feature identification.
+# This method seems to offer success on Blu-ray discs that fail in "mkv" mode.
+# *** NOTE: MakeMKV only supports the backup method on BluRay discs.
 RIPMETHOD: "backup"
 
 # MakeMKV Arguments
@@ -184,9 +194,11 @@ MKV_ARGS: ""
 # Remove the files created by MakeMKV after processing is complete
 DELRAWFILES: true
 
+
 ##########################
 ## HandBrake Parameters ##
 ##########################
+
 # Handbrake preset profile for DVDs
 # Execute "HandBrakeCLI -z" to see a list of all presets
 HB_PRESET_DVD: "HQ 720p30 Surround"
@@ -196,10 +208,10 @@ HB_PRESET_DVD: "HQ 720p30 Surround"
 HB_PRESET_BD: "HQ 1080p30 Surround"
 
 # Extension of the final video file
-DEST_EXT: "mkv"
+DEST_EXT: mkv
 
 # Handbrake binary to call
-HANDBRAKE_CLI: "HandBrakeCLI"
+HANDBRAKE_CLI: HandBrakeCLI
 
 # Have HandBrake transcode the main feature only.  BluRay discs must have RIPMETHOD="backup" for this to work.
 # If MAINFEATURE is true, blurays will be backed up to the HD and then HandBrake will go to work on the backed up
@@ -215,9 +227,11 @@ HB_ARGS_DVD: "--subtitle scan -F"
 # Additional Handbrake arguments for Bluray Discs.
 HB_ARGS_BD: "--subtitle scan -F --subtitle-burned --audio-lang-list eng --all-audio"
 
+
 #####################
 ## Emby Parameters ##
 #####################
+
 # Parameters to enable automatic library scan in Emby.  This will trigger only if MainFeature is true above.
 # Scan emby library after successful placement of mainfeature (see above)
 EMBY_REFRESH: false
@@ -225,10 +239,9 @@ EMBY_REFRESH: false
 # Server parameters
 # Server can be ip address or domain name
 EMBY_SERVER: ""
-EMBY_PORT: 8096
+EMBY_PORT: "8096"
 
 # Emby authentication fluff parameters.  These can be anything.
-
 EMBY_CLIENT: "ARM"
 EMBY_DEVICE: "ARM"
 EMBY_DEVICEID: "ARM"
@@ -250,9 +263,11 @@ EMBY_PASSWORD: ""
 # Emby dashboard
 EMBY_API_KEY: ""
 
+
 #############################
 ## Notification Parameters ##
 #############################
+
 # Notify after Rip?
 NOTIFY_RIP: true
 
@@ -296,8 +311,11 @@ TMDB_API_KEY: ""
 # Url to send Notifications to in JSON format
 JSON_URL: ""
 
+
 #################################################
 ##            APPRISE NOTIFICATIONS            ##
 #################################################
+
 # File location of your apprise.yaml file
+# Leave blank to disable
 APPRISE: ""
