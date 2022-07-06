@@ -18,12 +18,14 @@ from flask_login import LoginManager, login_required, \
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
 from arm.models import models as models
-from arm.config.config import cfg
+import arm.config.config as cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
     SettingsForm, UiSettingsForm, SetupForm, AbcdeForm
 from arm.ui.metadata import get_omdb_poster
 
-ui_utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
+ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
+
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
@@ -83,17 +85,17 @@ def setup():
     This function will do various checks to make sure everything can be setup for ARM
     Directory ups, create the db, etc
     """
-    perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
+    perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
     app.logger.debug("perm " + str(perm_file))
     # Check for install file and that db is correctly setup
     if perm_file.exists() and ui_utils.setup_database():
         flash(f"{perm_file} exists, setup cannot continue. To re-install please delete this file.", "danger")
         return redirect("/")
-    dir0 = Path(PurePath(cfg['DBFILE']).parent)
-    dir1 = Path(cfg['RAW_PATH'])
-    dir2 = Path(cfg['TRANSCODE_PATH'])
-    dir3 = Path(cfg['COMPLETED_PATH'])
-    dir4 = Path(cfg['LOGPATH'])
+    dir0 = Path(PurePath(cfg.arm_config['DBFILE']).parent)
+    dir1 = Path(cfg.arm_config['RAW_PATH'])
+    dir2 = Path(cfg.arm_config['TRANSCODE_PATH'])
+    dir3 = Path(cfg.arm_config['COMPLETED_PATH'])
+    dir4 = Path(cfg.arm_config['LOGPATH'])
     arm_directories = [dir0, dir1, dir2, dir3, dir4]
 
     try:
@@ -112,7 +114,7 @@ def setup():
         if ui_utils.setup_database():
             flash("Setup of the database was successful.", "success")
             app.logger.debug("Setup of the database was successful.")
-            perm_file = Path(PurePath(cfg['INSTALLPATH'], "installed"))
+            perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
             write_permission_file = open(perm_file, "w")
             write_permission_file.write("boop!")
             write_permission_file.close()
@@ -216,14 +218,14 @@ def database():
     page = request.args.get('page', 1, type=int)
     app.logger.debug(armui_cfg)
     # Check for database file
-    if os.path.isfile(cfg['DBFILE']):
+    if os.path.isfile(cfg.arm_config['DBFILE']):
         jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page,
                                                                               int(armui_cfg.database_limit), False)
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
     return render_template('database.html', jobs=jobs.items,
-                           date_format=cfg['DATE_FORMAT'], pages=jobs)
+                           date_format=cfg.arm_config['DATE_FORMAT'], pages=jobs)
 
 
 @app.route('/json', methods=['GET'])
@@ -242,7 +244,7 @@ def feed_json():
     valid_data = {
         'j_id': request.args.get('job'),
         'searchq': request.args.get('q'),
-        'logpath': cfg['LOGPATH'],
+        'logpath': cfg.arm_config['LOGPATH'],
         'fail': 'fail',
         'success': 'success',
         'joblist': 'joblist',
@@ -291,7 +293,7 @@ def settings():
     This loads slow, needs to be optimised...
     """
     # stats for info page
-    with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
+    with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
     failed_rips = models.Job.query.filter_by(status="fail").count()
     total_rips = models.Job.query.filter_by().count()
@@ -310,14 +312,10 @@ def settings():
              }
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
-    # Get the current config, so we can show the current values
-    arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
-    current_cfg = ui_utils.get_settings(arm_cfg_file)
-    # load abcde config
-    abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE']).strip()
     form = SettingsForm()
-    return render_template('settings.html', settings=current_cfg, ui_settings=armui_cfg,
-                           form=form, jsoncomments=comments, abcde_cfg=abcde_cfg, stats=stats)
+    return render_template('settings.html', settings=cfg.arm_config, ui_settings=armui_cfg,
+                           form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config,
+                           stats=stats, apprise_cfg=cfg.apprise_config)
 
 
 @app.route('/save_settings', methods=['POST'])
@@ -326,8 +324,6 @@ def save_settings():
     """
     Save arm ripper settings from post
     """
-    # Path to arm.yaml
-    arm_cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
     success = False
@@ -337,12 +333,12 @@ def save_settings():
         # Build the new arm.yaml with updated values from the user
         arm_cfg = ui_utils.build_arm_cfg(request.form.to_dict(), comments)
         # Save updated arm.yaml
-        with open(arm_cfg_file, "w") as settings_file:
+        with open(cfg.arm_config_path, "w") as settings_file:
             settings_file.write(arm_cfg)
             settings_file.close()
         success = True
     # If we get to here there was no post data
-    return {'success': success, 'settings': arm_cfg, 'form': 'arm ripper settings'}
+    return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
 
 
 @app.route('/save_ui_settings', methods=['POST'])
@@ -377,16 +373,14 @@ def save_abcde():
     """
     Save abcde config settings from post
     """
-    # Path to abcde.conf
-    abcde_cfg = ui_utils.get_abcde_cfg(cfg['ABCDE_CONFIG_FILE'])
     success = False
     abcde_cfg_str = ""
     form = AbcdeForm()
     if form.validate():
-        app.logger.debug(f"routes.save_abcde: Saving new abcde.conf: {abcde_cfg}")
+        app.logger.debug(f"routes.save_abcde: Saving new abcde.conf: {cfg.abcde_config_path}")
         abcde_cfg_str = str(form.abcdeConfig.data).strip()
         # Save updated abcde.conf
-        with open(cfg['ABCDE_CONFIG_FILE'], "w") as abcde_file:
+        with open(cfg.abcde_config_path, "w") as abcde_file:
             abcde_file.write(abcde_cfg_str)
             abcde_file.close()
         success = True
@@ -415,7 +409,7 @@ def listlogs(path):
     The 'View logs' page - show a list of logfiles in the log folder with creation time and size
     Gives the user links to tail/arm/Full/download
     """
-    base_path = cfg['LOGPATH']
+    base_path = cfg.arm_config['LOGPATH']
     full_path = os.path.join(base_path, path)
 
     # Deal with bad data
@@ -424,7 +418,7 @@ def listlogs(path):
 
     # Get all files in directory
     files = ui_utils.get_info(full_path)
-    return render_template('logfiles.html', files=files, date_format=cfg['DATE_FORMAT'])
+    return render_template('logfiles.html', files=files, date_format=cfg.arm_config['DATE_FORMAT'])
 
 
 @app.route('/logreader')
@@ -436,7 +430,7 @@ def logreader():
     This will display or allow downloading the requested logfile
     This is where the XHR requests are sent when viewing /logs?=logfile
     """
-    log_path = cfg['LOGPATH']
+    log_path = cfg.arm_config['LOGPATH']
     mode = request.args.get('mode')
     # We should use the job id and not get the raw logfile from the user
     # Maybe search database and see if we can match the logname with a previous rip ?
@@ -475,17 +469,17 @@ def history():
 
     """
     page = request.args.get('page', 1, type=int)
-    if os.path.isfile(cfg['DBFILE']):
+    if os.path.isfile(cfg.arm_config['DBFILE']):
         # after roughly 175 entries firefox readermode will break
         # jobs = Job.query.filter_by().limit(175).all()
         jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page, 100, False)
     else:
         app.logger.error('ERROR: /history database file doesnt exist')
         jobs = {}
-    app.logger.debug(f"Date format - {cfg['DATE_FORMAT']}")
+    app.logger.debug(f"Date format - {cfg.arm_config['DATE_FORMAT']}")
 
     return render_template('history.html', jobs=jobs.items,
-                           date_format=cfg['DATE_FORMAT'], pages=jobs)
+                           date_format=cfg.arm_config['DATE_FORMAT'], pages=jobs)
 
 
 @app.route('/jobdetail')
@@ -654,16 +648,16 @@ def home():
     The main homepage showing current rips and server stats
     """
     # Force a db update
-    ui_utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
+    ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
 
     # Hard drive space
     try:
-        freegb = psutil.disk_usage(cfg['TRANSCODE_PATH']).free
+        freegb = psutil.disk_usage(cfg.arm_config['TRANSCODE_PATH']).free
         freegb = round(freegb / 1073741824, 1)
-        arm_percent = psutil.disk_usage(cfg['TRANSCODE_PATH']).percent
-        mfreegb = psutil.disk_usage(cfg['COMPLETED_PATH']).free
+        arm_percent = psutil.disk_usage(cfg.arm_config['TRANSCODE_PATH']).percent
+        mfreegb = psutil.disk_usage(cfg.arm_config['COMPLETED_PATH']).free
         mfreegb = round(mfreegb / 1073741824, 1)
-        media_percent = psutil.disk_usage(cfg['COMPLETED_PATH']).percent
+        media_percent = psutil.disk_usage(cfg.arm_config['COMPLETED_PATH']).percent
     except FileNotFoundError:
         freegb = 0
         arm_percent = 0
@@ -681,8 +675,8 @@ def home():
     ram_percent = memory.percent
 
     armname = ""
-    if cfg['ARM_NAME'] != "":
-        armname = f"[{cfg['ARM_NAME']}] - "
+    if cfg.arm_config['ARM_NAME'] != "":
+        armname = f"[{cfg.arm_config['ARM_NAME']}] - "
 
     #  get out cpu info
     try:
@@ -698,7 +692,7 @@ def home():
     except KeyError:
         temp = temps = None
 
-    if os.path.isfile(cfg['DBFILE']):
+    if os.path.isfile(cfg.arm_config['DBFILE']):
         try:
             jobs = db.session.query(models.Job).filter(models.Job.status.notin_(['fail', 'success'])).all()
         except Exception:
@@ -711,7 +705,7 @@ def home():
                            arm_percent=arm_percent, media_percent=media_percent,
                            jobs=jobs, cpu=our_cpu, cputemp=temp, cpu_usage=cpu_usage,
                            ram=mem_total, ramused=mem_used, ramfree=mem_free, ram_percent=ram_percent,
-                           ramdump=str(temps), armname=armname, children=cfg['ARM_CHILDREN'])
+                           ramdump=str(temps), armname=armname, children=cfg.arm_config['ARM_CHILDREN'])
 
 
 @app.route('/import_movies')
@@ -725,7 +719,7 @@ def import_movies():
              that doesn't match ARM identified folder format.
     .. note:: This should eventually be moved to /json page load times are too long
     """
-    my_path = cfg['COMPLETED_PATH']
+    my_path = cfg.arm_config['COMPLETED_PATH']
     app.logger.debug(my_path)
     movies = {0: {'notfound': {}}}
     i = 1

@@ -2,7 +2,6 @@
 """Identification of dvd/bluray"""
 
 import os
-import sys  # noqa # pylint: disable=unused-import
 import logging
 import urllib
 import re
@@ -12,9 +11,10 @@ import json
 import pydvdid
 import xmltodict
 
+import arm.config.config as cfg
+
 from arm.ripper import utils
 from arm.ui import db
-from arm.config.config import cfg
 
 # flake8: noqa: W605
 from arm.ui import utils as ui_utils
@@ -36,7 +36,7 @@ def identify(job):
 
         logging.info("Disc identified as video")
 
-        if cfg["GET_VIDEO_TITLE"]:
+        if cfg.arm_config["GET_VIDEO_TITLE"]:
             res = False
             if job.disctype == "dvd":
                 res = identify_dvd(job)
@@ -228,18 +228,18 @@ def metadata_selector(job, title=None, year=None):
     :return: json/dict object or None
     """
     search_results = None
-    if cfg['METADATA_PROVIDER'].lower() == "tmdb":
+    if cfg.arm_config['METADATA_PROVIDER'].lower() == "tmdb":
         logging.debug("provider tmdb")
         search_results = ui_utils.tmdb_search(title, year)
         if search_results is not None:
             update_job(job, search_results)
-    elif cfg['METADATA_PROVIDER'].lower() == "omdb":
+    elif cfg.arm_config['METADATA_PROVIDER'].lower() == "omdb":
         logging.debug("provider omdb")
         search_results = ui_utils.call_omdb_api(str(title), str(year))
         if search_results is not None:
             update_job(job, search_results)
     else:
-        logging.debug(cfg['METADATA_PROVIDER'])
+        logging.debug(cfg.arm_config['METADATA_PROVIDER'])
         logging.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
     return search_results
 
