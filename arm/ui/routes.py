@@ -5,7 +5,7 @@ import platform
 import re
 import json
 from pathlib import Path, PurePath
-
+import importlib
 import bcrypt
 import psutil
 from werkzeug.exceptions import HTTPException
@@ -337,6 +337,7 @@ def save_settings():
             settings_file.write(arm_cfg)
             settings_file.close()
         success = True
+        importlib.reload(cfg)
     # If we get to here there was no post data
     return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
 
