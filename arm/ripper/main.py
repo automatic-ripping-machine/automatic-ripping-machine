@@ -15,11 +15,14 @@ import datetime  # noqa: E402
 import re  # noqa: E402
 import getpass  # noqa E402
 import pyudev  # noqa: E402
+import getpass  # noqa E402
+import psutil  # noqa E402
 
+# set the PATH to /opt/arm so we can handle imports properly
 sys.path.append("/opt/arm")
 
 from arm.ripper import logger, utils, identify, arm_ripper  # noqa: E402
-from arm.config.config import cfg  # noqa: E402
+import arm.config.config as cfg  # noqa E402
 from arm.models.models import Job, Config  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
 
@@ -61,7 +64,7 @@ def log_arm_params(job):
                 "COMPLETED_PATH", "EXTRAS_SUB", "EMBY_REFRESH", "EMBY_SERVER",
                 "EMBY_PORT", "NOTIFY_RIP", "NOTIFY_TRANSCODE",
                 "MAX_CONCURRENT_TRANSCODES"):
-        logging.info(f"{key.lower()}: {str(cfg.get(key, '<not given>'))}")
+        logging.info(f"{key.lower()}: {str(cfg.arm_config.get(key, '<not given>'))}")
     logging.info("******************* End of config parameters *******************")
 
 
@@ -85,6 +88,7 @@ def main(logfile, job, protection=0):
     """main disc processing function"""
     logging.info("Starting Disc identification")
     identify.identify(job)
+
     # Check db for entries matching the crc and successful
     have_dupes = utils.job_dupe_check(job)
     logging.debug(f"Value of have_dupes: {have_dupes}")
@@ -95,6 +99,7 @@ def main(logfile, job, protection=0):
 
     log_arm_params(job)
     check_fstab()
+
     # Entry point for dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
         arm_ripper.rip_visual_media(have_dupes, job, logfile, protection)
@@ -147,7 +152,7 @@ if __name__ == "__main__":
         arm_log.info("ARM is trying to write a job to the empty.log, or NAS**.log")
         sys.exit()
     # Check the db is current, if not update it
-    utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
+    utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
     # Sometimes drives trigger twice this stops multi runs from 1 udev trigger
     utils.duplicate_run_check(devpath)
 
@@ -161,10 +166,10 @@ if __name__ == "__main__":
     # Sleep to lower chances of db locked - unlikely to be needed
     time.sleep(1)
     # Add the job.config to db
-    config = Config(cfg, job_id=job.job_id)  # noqa: F811
+    config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
     utils.database_adder(config)
     # Log version number
-    with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
+    with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
     # Add the git commit number to logging
     utils.get_git_commit()
@@ -173,7 +178,7 @@ if __name__ == "__main__":
     logging.info(("Python version: " + sys.version).replace('\n', ""))
     logging.info(f"User is: {getpass.getuser()}")
     # Delete old log files
-    logger.clean_up_logs(cfg["LOGPATH"], cfg["LOGLIFE"])
+    logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])
     logging.info(f"Job: {job.label}")  # This will sometimes be none
     # Check for zombie jobs and update status to failed
     utils.clean_old_jobs()

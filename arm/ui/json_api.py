@@ -10,7 +10,8 @@ from pathlib import Path
 import datetime
 import psutil
 from flask import request
-from arm.config.config import cfg
+
+import arm.config.config as cfg
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, Notifications
 from arm.ui.forms import ChangeParamsForm
@@ -43,7 +44,7 @@ def get_x_jobs(job_status):
     i = 0
     for j in jobs:
         job_results[i] = {}
-        job_log = os.path.join(cfg['LOGPATH'], str(j.logfile))
+        job_log = os.path.join(cfg.arm_config['LOGPATH'], str(j.logfile))
         process_logfile(job_log, j, job_results[i])
         try:
             job_results[i]['config'] = j.config.get_d()
@@ -59,7 +60,7 @@ def get_x_jobs(job_status):
         app.logger.debug("jobs  - we have " + str(len(job_results)) + " jobs")
         success = True
     return {"success": success, "mode": job_status,
-            "results": job_results, "arm_name": cfg['ARM_NAME']}
+            "results": job_results, "arm_name": cfg.arm_config['ARM_NAME']}
 
 
 def process_logfile(logfile, job, job_results):
@@ -166,7 +167,7 @@ def process_audio_logfile(logfile, job, job_results):
     :return:
     """
     # \((track[^[]+)(?!track)
-    line = read_all_log_lines(os.path.join(cfg["LOGPATH"], logfile))
+    line = read_all_log_lines(os.path.join(cfg.arm_config["LOGPATH"], logfile))
     for one_line in line:
         job_stage_index = re.search(r"\(track([^[]+)", str(one_line))
         if job_stage_index:
@@ -262,9 +263,9 @@ def delete_job(job_id, mode):
             # The user can only access this by typing it manually
             if job_id == 'all':
                 #  # if this gets put in final, the DB will need optimised
-                #  if os.path.isfile(cfg['DBFILE']):  # noqa: S125
+                #  if os.path.isfile(cfg.arm_config['DBFILE']):  # noqa: S125
                 #    # Make a backup of the database file
-                #    cmd = f"cp {cfg['DBFILE']} {cfg['DBFILE'])}.bak"
+                #    cmd = f"cp {cfg.arm_config['DBFILE']} {cfg.arm_config['DBFILE'])}.bak"
                 #    app.logger.info(f"cmd  -  {cmd}")
                 #    os.system(cmd)
                 #  Track.query.delete()
@@ -415,11 +416,11 @@ def change_job_params(config_id):
     if form.validate():
         app.logger.debug("Valid")
         job.disctype = format(form.DISCTYPE.data)
-        cfg["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
-        cfg["MAXLENGTH"] = config.MAXLENGTH = format(form.MAXLENGTH.data)
-        cfg["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
+        cfg.arm_config["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
+        cfg.arm_config["MAXLENGTH"] = config.MAXLENGTH = format(form.MAXLENGTH.data)
+        cfg.arm_config["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
         # must be 1 for True 0 for False
-        cfg["MAINFEATURE"] = config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
+        cfg.arm_config["MAINFEATURE"] = config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
         args = {'disctype': job.disctype}
         message = f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},' \
                   f'Minimum Length={config.MINLENGTH}, Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}'
