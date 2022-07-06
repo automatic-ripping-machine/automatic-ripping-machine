@@ -2,6 +2,9 @@
 # setup default directories and configs
 FROM 1337server/arm-dependencies AS base
 
+# override at runtime to change makemkv key
+ENV MAKEMKV_APP_KEY=""
+
 # Setup folders and fstab
 RUN \
     mkdir -m 0777 -p /home/arm /home/arm/config /mnt/dev/sr0 /mnt/dev/sr1 /mnt/dev/sr2 /mnt/dev/sr3 /mnt/dev/sr5 \
