@@ -1,6 +1,6 @@
 ###########################################################
 # setup default directories and configs
-FROM 1337server/arm-dependencies AS base
+FROM 1337server/arm-dependencies:main AS base
 
 # override at runtime to change makemkv key
 ENV MAKEMKV_APP_KEY=""
