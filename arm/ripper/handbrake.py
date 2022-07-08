@@ -199,7 +199,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
 
         logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(filepathname)}")
 
-        cmd = f'nice {cfg.arm_config["HANDBRAKE_CLI"]}' \
+        cmd = f'nice {cfg.arm_config["HANDBRAKE_CLI"]} ' \
               f'-i {shlex.quote(srcpathname)} ' \
               f'-o {shlex.quote(filepathname)} ' \
               f'--preset "{hb_preset}" {hb_args} >> {logfile} 2>&1'
