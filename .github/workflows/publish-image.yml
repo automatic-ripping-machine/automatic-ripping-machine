@@ -11,7 +11,7 @@ on:
         - cron: '0 0 * * *'
     push:
     pull_request:
-        branches: [ main, v2_devel ]
+        branches: [ main, dev ]
             # Allows you to run this workflow manually from the Actions tab
     workflow_dispatch:
 
@@ -43,8 +43,9 @@ jobs:
                 name: Set tag for non-default branch
                 if: steps.branch-name.outputs.is_default == 'false'
                 run: |
-                    echo "Branch name is ${GITHUB_REF##*/}"
-                    echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+                    echo "Branch name is ${{ steps.branch-name.outputs.ref_branch }}"
+                    echo "Main name is ${{ steps.branch-name.outputs.default_branch }}"
+                    echo "TAG=${{ steps.branch-name.outputs.ref_branch }}" >> $GITHUB_ENV
 
             # Workaround: https://github.com/docker/build-push-action/issues/461
             -
