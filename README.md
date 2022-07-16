@@ -15,7 +15,7 @@
 [![Docker](https://img.shields.io/docker/pulls/1337server/automatic-ripping-machine.svg)](https://hub.docker.com/r/1337server/automatic-ripping-machine)
 [![Publish Main Docker Image](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/workflow.yml/badge.svg)](https://github.com/1337-server/automatic-ripping-machine/actions/workflows/workflow.yml)
 
-[![Wiki](https://img.shields.io/badge/Wiki-Get%20Help-brightgreen)](https://github.com/1337-server/automatic-ripping-machine/wiki)
+[![Wiki](https://img.shields.io/badge/Wiki-Get%20Help-brightgreen)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki)
 [![Discord](https://img.shields.io/discord/576479573886107699)](https://discord.gg/FUSrn8jUcR)
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/django)
@@ -62,18 +62,18 @@ See: https://b3n.org/automatic-ripping-machine
 
 ## Install
 
-For normal installation please see the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/).
+For normal installation please see the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
 
-For docker installation please see [here](https://github.com/1337-server/automatic-ripping-machine/wiki/docker).
+For docker installation please see [here](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
 
 ## Troubleshooting
- Please see the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki/).
+ Please see the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
 
 ## Contributing
 
-Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/1337-server/automatic-ripping-machine/wiki/Contributing-Guide)
+Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contributing-Guide)
 
-If you set ARM up in a different environment (hardware/OS/virtual/etc.), please consider submitting a howto to the [wiki](https://github.com/1337-server/automatic-ripping-machine/wiki).
+If you set ARM up in a different environment (hardware/OS/virtual/etc.), please consider submitting a howto to the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).
 
 ## License
 
