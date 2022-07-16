@@ -1,4 +1,4 @@
-name: publish-image
+name: "Publish Docker Image"
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -80,8 +80,14 @@ jobs:
             -
                 name: Set Version number
                 run: |
+                    if [[ ${{ env.TAG }} == 'latest' ]]; then
                     VER=$(cat VERSION)
                     echo "VERSION=$VER" >> $GITHUB_ENV
+                    else
+                    echo "VERSION=${{ env.TAG }}" >> $GITHUB_ENV
+                    echo ${{ env.TAG }} > ./VERSION
+                    fi
+
             -
                 name: Set build datetime
                 run: |
