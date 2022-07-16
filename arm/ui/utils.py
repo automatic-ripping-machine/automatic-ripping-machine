@@ -518,7 +518,7 @@ def arm_yaml_test_bool(key, value):
         if key == "WEBSERVER_IP":
             arm_cfg = f"{key}: {value.lower()}\n"
         else:
-            # This isn't intended to be safe, it's to stop breakages
+            # This isn't intended to be safe, it's to stop breakages - replace all non escaped quotes with escaped
             escaped = re.sub(r"(?<!\\)[\"\'`]", r'\"', value)
             arm_cfg = f"{key}: \"{escaped}\"\n"
     return arm_cfg
