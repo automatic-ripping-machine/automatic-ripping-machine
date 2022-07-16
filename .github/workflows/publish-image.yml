@@ -81,11 +81,11 @@ jobs:
                 name: Set Version number
                 run: |
                     if [[ ${{ env.TAG }} == 'latest' ]]; then
-                    VER=$(cat VERSION)
-                    echo "VERSION=$VER" >> $GITHUB_ENV
+                      VER=$(cat VERSION)
+                      echo "VERSION=$VER" >> $GITHUB_ENV
                     else
-                    echo "VERSION=${{ env.TAG }}" >> $GITHUB_ENV
-                    echo ${{ env.TAG }} > ./VERSION
+                      echo "VERSION=${{ env.TAG }}" >> $GITHUB_ENV
+                      echo "${{ env.TAG }}" > ./VERSION
                     fi
 
             -
