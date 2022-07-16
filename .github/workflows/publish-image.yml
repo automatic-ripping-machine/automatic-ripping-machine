@@ -80,7 +80,7 @@ jobs:
             -
                 name: Set Version number
                 run: |
-                    if [[ ${{ env.TAG }} == 'latest' ]]; then
+                    if ${{ steps.branch-name.outputs.is_default }}; then
                       VER=$(cat VERSION)
                       echo "VERSION=$VER" >> $GITHUB_ENV
                     else
