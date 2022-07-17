@@ -1,0 +1,59 @@
+name: "Bump version"
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the v2.5.0_dev branch
+  push:
+    branches: [ main, v2_devel, v2_master]
+  pull_request:
+    branches: [ main, v2_devel, v2_master]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-20.04
+    name: Setup
+    steps:
+      - name: git checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: Get changed files
+        id: changed_files
+        if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'dependencies')
+        uses: lots0logs/gh-action-get-changed-files@2.1.4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check modified files
+        id: check_modified
+        if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'dependencies')
+        run: |
+          echo "::set-output name=version_modified::$(jq '. | contains(["actions-runner/VERSION"])' ${HOME}/files_modified.json)"
+
+      - name: Increment version and changelog
+        if: ${{ !steps.check_modified.outputs.version_modified && github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'dependencies') }}
+        run: |
+          SEM_VER=$(cat VERSION | awk -F. -v OFS=. 'NF==1{print ++$NF}; NF>1{if(length($NF+1)>length($NF))$(NF-1)++; $NF=sprintf("%0*d", length($NF), ($NF+1)%(10^length($NF))); print}')
+          COMMIT_MSG=$(git log --format=%B -n 1 ${{ github.event.after }})
+
+          # Write files
+          echo $SEM_VER > VERSION
+          sed -i "12i ## [${SEM_VER}]\n### Changed\n* ${COMMIT_MSG}" CHANGELOG.md
+
+          # Add new git commit
+          git add VERSION
+          git add CHANGELOG.md
+          git config --global user.name "dependabot[bot]"
+          git config --global user.email "dependabot[bot]@users.noreply.github.com"
+          git commit -m "[Automated] Increment Version"
+        working-directory: actions-runner
+
+      - name: Push increment version commit
+        if: ${{ !steps.check_modified.outputs.version_modified && github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'dependencies') }}
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.head_ref }}
