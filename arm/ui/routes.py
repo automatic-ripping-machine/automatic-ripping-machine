@@ -20,12 +20,11 @@ from arm.ui import app, db, constants, json_api
 from arm.models import models as models
 import arm.config.config as cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
-    SettingsForm, UiSettingsForm, SetupForm, AbcdeForm, SystemInfoDrives
+    SettingsForm, UiSettingsForm, SetupForm, AbcdeForm, SystemInfoDrives, DBUpdate
 from arm.ui.metadata import get_omdb_poster
 from arm.ui.serverutil import ServerUtil
 
-ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
-
+#ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -118,15 +117,6 @@ def setup():
             write_permission_file = open(perm_file, "w")
             write_permission_file.write("boop!")
             write_permission_file.close()
-            #define system info and load to db
-            server = models.SystemInfo()
-            db.session.add(server)
-            db.session.commit()
-            #get system drives and load to db
-            #change this to pull from the OS
-            drive = models.SystemDrives("CD Drive", "CD Burner", "/dev/sr0", True, "3", "2", "Classic burner")
-            db.session.add(drive)
-            db.session.commit()
             return redirect(constants.HOME_PAGE)
         flash("Couldn't setup database", "danger")
         app.logger.debug("Couldn't setup database")
@@ -181,11 +171,19 @@ def login():
         # If we don't raise an exception but the usr table is empty
         if not user_list:
             app.logger.debug("No admin found")
-            return_redirect = redirect(constants.SETUP_STAGE_2)
+            #Microtechno9000: setup not used anymore
+            #return_redirect = redirect(constants.SETUP_STAGE_2)
+            dbform = DBUpdate(request.form)
+            return render_template('support/databaseupdate.html', db_update=db_update, dbform=dbform)
     except Exception:
         flash(constants.NO_ADMIN_ACCOUNT, "danger")
         app.logger.debug(constants.NO_ADMIN_ACCOUNT)
-        return_redirect = redirect(constants.SETUP_STAGE_2)
+        #Microtechno9000: setup not used anymore
+        #return_redirect = redirect(constants.SETUP_STAGE_2)
+        dbform = DBUpdate(request.form)
+        return render_template('support/databaseupdate.html', db_update=db_update, dbform=dbform)
+
+
 
     # if user is logged in
     if current_user.is_authenticated:
@@ -277,9 +275,9 @@ def feed_json():
     }
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
-        app.logger.debug(args)
+        #app.logger.debug(args)
         return_json = valid_modes[mode]['funct'](*args)
-    app.logger.debug(f"Json - {return_json}")
+    #app.logger.debug(f"Json - {return_json}")
     return_json['notes'] = json_api.get_notifications()
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
@@ -321,18 +319,17 @@ def settings():
              }
     #System Drives (CD/DVD/Blueray drives)
     formDrive = SystemInfoDrives(request.form)
-    #drives = models.SystemDrives.query.all()
-    drives = db.session.query(models.SystemDrives, models.Job).filter(models.SystemDrives.job_id == models.Job.job_id).all()
+    drives = models.SystemDrives.query.all()
+    #drives = db.session.query(models.SystemDrives, models.Job).filter(models.SystemDrives.job_id == models.Job.job_id).all()
     #drives = db.session.query(models.SystemDrives).join(models.SystemDrives, models.Job).filter(models.SystemDrives.job_id == models.Job.job_id).all()
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
     form = SettingsForm()
-                           form=form, formDrive=formDrive, jsoncomments=comments, abcde_cfg=abcde_cfg, stats=stats,
-                           drives=drives)
-    return render_template('settings.html', settings=current_cfg, ui_settings=armui_cfg,
-                           stats=stats, apprise_cfg=cfg.apprise_config)
-                           form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config,
+
     return render_template('settings.html', settings=cfg.arm_config, ui_settings=armui_cfg,
+                           stats=stats, apprise_cfg=cfg.apprise_config,
+                           form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config,
+                           drives=drives)
 
 @app.route('/save_settings', methods=['POST'])
 @login_required
@@ -654,54 +651,6 @@ def updatetitle():
           f'{request.args.get("title")} ({request.args.get("year")})', "success")
     return redirect("/")
 
-@app.route('/systeminfo', methods=['POST'])
-@login_required
-def serverinfo():
-    """
-    Server System information and details on connected CD, DVD and/or BluRay Drives
-    """
-    #System details in class server
-    server = models.SystemInfo.query.filter_by(id="1").first()
-    serverutil = ServerUtil()
-    serverutil.getUpdate()
-    #directories
-    arm_path = cfg['TRANSCODE_PATH']
-    media_path = cfg['COMPLETED_PATH']
-    #flags
-    flags = {
-        "settings": True     #show all system settings/details
-    }
-    #job names
-    # if server.job_id:
-    #     job_current = models.Job.query.filter_by(job_id=server.job_id).first()
-    # if server.job_id_previous:
-    #     job_previous = models.Job.query.filter_by(job_id=server.job_id).first()
-    # job_details = {
-    #     "title": job_current.title,
-    #     "year": job_current.year,
-    #     "previous_title": job_previous.title,
-    #     "previous_year": job_previous.year,
-    # }
-    #System Drives (CD/DVD/Blueray drives)
-    formDrive = SystemInfoDrives(request.form)
-    if request.method == 'POST' and formDrive.validate():
-        #return for POST
-        app.logger.debug("Drive id: " + str(formDrive.id.data) + " Updated db description: " + formDrive.description.data)
-        drive = models.SystemDrives.query.filter_by(drive_id=formDrive.id.data).first()
-        drive.description = str(formDrive.description.data).strip()
-        db.session.commit()
-        #return to systeminfo page (refresh page)
-        return redirect('/settings')
-    else:
-        #return for GET
-        return redirect('/settings')
-        #drives = models.SystemDrives.query.all()
-
-    #return render_template('systeminfo.html', server = server, serverutil = serverutil, flags = flags,
-    #                        drives = drives, formDrive = formDrive,
-    #                        arm_path=arm_path, media_path=media_path)
-
-
 @app.route('/')
 @app.route('/index.html')
 @app.route('/index')
@@ -713,15 +662,21 @@ def home():
     # Force a db update
     #Microtechno9000 comment:
     #-Why is this being run on the main page/ingex?
-    ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
+    #ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
+
+    #Check the database is current
+    db_update = ui_utils.arm_db_check()
+    if not db_update["db_current"] or not db_update["db_exists"]:
+        dbform = DBUpdate(request.form)
+        return render_template('support/databaseupdate.html', db_update=db_update, dbform=dbform)
 
     #System details in class server
     server = models.SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
     serverutil.getUpdate()
     #System details in class server
-    arm_path = cfg['TRANSCODE_PATH']
-    media_path = cfg['COMPLETED_PATH']
+    arm_path = cfg.arm_config['TRANSCODE_PATH']
+    media_path = cfg.arm_config['COMPLETED_PATH']
     #flags
     flags = {
         "settings": False #don't show all system settings/details
@@ -739,9 +694,8 @@ def home():
     else:
         jobs = {}
 
-    return render_template('index.html', jobs=jobs, armname=armname, children=cfg['ARM_CHILDREN'],
+    return render_template('index.html', jobs=jobs, armname=armname, children=cfg.arm_config['ARM_CHILDREN'],
                         server=server, serverutil=serverutil, flags=flags, arm_path=arm_path, media_path=media_path)
-                           ramdump=str(temps), armname=armname, children=cfg.arm_config['ARM_CHILDREN'])
 
 @app.route('/import_movies')
 @login_required
@@ -847,3 +801,88 @@ def handle_exception(sent_error):
                                   mimetype=constants.JSON_TYPE)
 
     return render_template(constants.ERROR_PAGE, error=sent_error), 500
+
+@app.route('/systeminfo', methods=['POST'])
+@login_required
+def serverinfo():
+    """
+    Server System information and details on connected CD, DVD and/or BluRay Drives
+    """
+    #System details in class server
+    server = models.SystemInfo.query.filter_by(id="1").first()
+    serverutil = ServerUtil()
+    serverutil.getUpdate()
+    #directories
+    arm_path = cfg['TRANSCODE_PATH']
+    media_path = cfg['COMPLETED_PATH']
+    #flags
+    flags = {
+        "settings": True     #show all system settings/details
+    }
+    #job names
+    # if server.job_id:
+    #     job_current = models.Job.query.filter_by(job_id=server.job_id).first()
+    # if server.job_id_previous:
+    #     job_previous = models.Job.query.filter_by(job_id=server.job_id).first()
+    # job_details = {
+    #     "title": job_current.title,
+    #     "year": job_current.year,
+    #     "previous_title": job_previous.title,
+    #     "previous_year": job_previous.year,
+    # }
+    #System Drives (CD/DVD/Blueray drives)
+    formDrive = SystemInfoDrives(request.form)
+    if request.method == 'POST' and formDrive.validate():
+        #return for POST
+        app.logger.debug("Drive id: " + str(formDrive.id.data) + " Updated db description: " + formDrive.description.data)
+        drive = models.SystemDrives.query.filter_by(drive_id=formDrive.id.data).first()
+        drive.description = str(formDrive.description.data).strip()
+        db.session.commit()
+        #return to systeminfo page (refresh page)
+        return redirect('/settings')
+    else:
+        #return for GET
+        return redirect('/settings')
+        #drives = models.SystemDrives.query.all()
+
+    #return render_template('systeminfo.html', server = server, serverutil = serverutil, flags = flags,
+    #                        drives = drives, formDrive = formDrive,
+    #                        arm_path=arm_path, media_path=media_path)
+
+
+@app.route('/systemdrivescan')
+def test_systemdrivescan():
+    """
+    Server System  - scan for a change in system, addition of drives
+    """
+    #update to scan for changes from system
+    new_count = ui_utils.drives_update()
+    flash(f"ARM found {new_count} new drives", "success")
+
+    return redirect('/settings')
+
+@app.route('/dbupdate', methods=['POST'])
+def update_database():
+    """
+    Update the ARM database when changes are made or the arm db file is missing
+    """
+    form = DBUpdate(request.form)
+    if request.method == 'POST' and form.validate():
+        if form.dbfix.data == "migrate":
+            app.logger.debug("User requested - Database migration")
+            ui_utils.arm_db_migrate()
+            flash("ARM database migration successful!", "success")
+        elif form.dbfix.data == "new":
+            app.logger.debug("User requested - New database")
+            #Microtechno9000 note:
+            #this appears to be handled by ARM on start/restart of arm_ui
+            flash("ARM database setup successful!", "success")
+        else:
+            #no method defined
+            app.logger.debug(f"No update method defined from DB Update - {form.dbfix.data}")
+            flash("Error no update method specified, report this as a bug.", "error")
+
+        return redirect('/index')
+    else:
+        #catch for GET requests of the page, redirect to index
+        return redirect('/index')

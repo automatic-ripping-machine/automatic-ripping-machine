@@ -81,3 +81,11 @@ class SystemInfoDrives(FlaskForm):
     id = IntegerField('id',validators=[DataRequired()])
     description = StringField('description',validators=[DataRequired()])
     submit = SubmitField('Submit')
+
+class DBUpdate(FlaskForm):
+    """
+    Update or re-install the arm DB file
+      - /db_update  (called from /index)
+    """
+    dbfix = StringField('dbfix',validators=[DataRequired()])
+    submit = SubmitField('Submit')

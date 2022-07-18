@@ -4,7 +4,7 @@ Class definition
 """
 import logging
 import psutil
-from arm.config.config import cfg
+import arm.config.config as cfg
 
 class ServerUtil():
     cpu_util = 0.0
@@ -26,8 +26,8 @@ class ServerUtil():
         self.get_cpu_util()
         self.get_cpu_temp()
         self.get_memory()
-        self.storage_transcode_free, self.storage_transcode_percent = self.get_disk_space(cfg['TRANSCODE_PATH'])
-        self.storage_completed_free, self.storage_completed_percent = self.get_disk_space(cfg['COMPLETED_PATH'])
+        self.storage_transcode_free, self.storage_transcode_percent = self.get_disk_space(cfg.arm_config['TRANSCODE_PATH'])
+        self.storage_completed_free, self.storage_completed_percent = self.get_disk_space(cfg.arm_config['COMPLETED_PATH'])
 
     def get_cpu_util(self):
         try:

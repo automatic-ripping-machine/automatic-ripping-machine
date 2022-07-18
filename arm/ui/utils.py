@@ -23,6 +23,9 @@ from arm.ui import app, db
 from arm.models import models
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
 
+import pyudev
+import re
+from pyudev import Context
 
 def database_updater(args, job, wait_time=90):
     """
@@ -88,30 +91,153 @@ def check_db_version(install_path, db_file):
             conn = sqlite3.connect(db_file)
             c = conn.cursor()
 
-            c.execute('SELECT version_num FROM alembic_version')
+        c.execute('SELECT version_num FROM alembic_version')
+        db_version = c.fetchone()[0]
+        app.logger.debug(f"Database version is: {db_version}")
+        if head_revision == db_version:
+            app.logger.info("Database is up to date")
+        else:
+            app.logger.info(
+                f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
+            with app.app_context():
+                unique_stamp = round(time() * 100)
+                app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
+                shutil.copy(db_file, db_file + "_" + str(unique_stamp))
+                flask_migrate.upgrade(mig_dir)
+            app.logger.info("Upgrade complete.  Validating version level...")
+
+            c.execute("SELECT version_num FROM alembic_version")
             db_version = c.fetchone()[0]
             app.logger.debug(f"Database version is: {db_version}")
             if head_revision == db_version:
-                app.logger.info("Database is up to date")
+                app.logger.info("Database is now up to date")
             else:
-                app.logger.info(
-                    f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
-                with app.app_context():
-                    unique_stamp = round(time() * 100)
-                    app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
-                    shutil.copy(db_file, db_file + "_" + str(unique_stamp))
-                    flask_migrate.upgrade(mig_dir)
-                app.logger.info("Upgrade complete.  Validating version level...")
+                app.logger.error(f"Database is still out of date. "
+                                 f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
 
-                c.execute("SELECT version_num FROM alembic_version")
-                db_version = c.fetchone()[0]
-                app.logger.debug(f"Database version is: {db_version}")
-                if head_revision == db_version:
-                    app.logger.info("Database is now up to date")
-                else:
-                    app.logger.error(f"Database is still out of date. "
-                                     f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
+def arm_alembic_get():
+    """
+    Get the Alembic Head revision
+    """
+    from alembic.script import ScriptDirectory
+    from alembic.config import Config
 
+    install_path = cfg.arm_config['INSTALLPATH']
+    db_file = cfg.arm_config['DBFILE']
+
+    #get the arm alembic current head revision
+    mig_dir = os.path.join(install_path, "arm/migrations")
+    config = Config()
+    config.set_main_option("script_location", mig_dir)
+    script = ScriptDirectory.from_config(config)
+    head_revision = script.get_current_head()
+    app.logger.debug(f"Alembic Head is: {head_revision}")
+    return head_revision
+
+def arm_db_get():
+    """
+    Get the Alembic Head revision
+    """
+    alembic_db = models.AlembicVersion()
+    db_revision = alembic_db.query.first()
+    app.logger.debug(f"Database Head is: {db_revision.version_num}")
+    return db_revision
+
+def arm_db_check():
+    """
+    Check if db exists and is up to date.
+    """
+    #Microtechno9000 note:
+    # function check_db_version() not needed, function not removed as unsure where else it may be used
+    # database management should be wrapped up into a class/funciton set to manage upgrades and migrations neatly
+
+    db_file = cfg.arm_config['DBFILE']
+    db_exists = False
+    db_current = False
+    head_revision = None
+    db_revision = None
+
+    head_revision = arm_alembic_get()
+
+    #check if the db file exists
+    if os.path.isfile(db_file):
+        db_exists = True
+        #get the database alembic version
+        db_revision = arm_db_get()
+        if db_revision.version_num == head_revision:
+            db_current = True
+            app.logger.debug(f"Database is current. Head: {head_revision} DB: {db_revision.version_num}")
+        else:
+            db_current = False
+            app.logger.info(f"Database is not current, update required. Head: {head_revision} DB: {db_revision.version_num}")
+    else:
+        db_exists = False
+        db_current = False
+        head_revision = None
+        db_revision = None
+        app.logger.debug(f"Database file is not present: {db_file}")
+
+    db = {
+        "db_exists": db_exists,
+        "db_current": db_current,
+        "head_revision": head_revision,
+        "db_revision": db_revision,
+        "db_file": db_file
+    }
+    return db
+
+def arm_db_migrate():
+    """
+    Migrate the existing database to the newest version, keeping user data
+    """
+    import flask_migrate
+
+    install_path = cfg.arm_config['INSTALLPATH']
+    db_file = cfg.arm_config['DBFILE']
+    mig_dir = os.path.join(install_path, "arm/migrations")
+
+    head_revision = arm_alembic_get()
+    db_revision = arm_db_get()
+
+    app.logger.info(
+        f"Database out of date. Head is {head_revision} and database is {db_revision.version_num}.  Upgrading database...")
+    with app.app_context():
+        time = datetime.now()
+        timestamp = time.strftime("%Y-%m-%d_%H%M")
+        app.logger.info(f"Backing up database '{db_file}' to '{db_file}_migration_{timestamp}'.")
+        shutil.copy(db_file, db_file + "_migration_" + timestamp)
+        flask_migrate.upgrade(mig_dir)
+    app.logger.info("Upgrade complete.  Validating version level...")
+
+    #check the update worked
+    db_revision = arm_db_get()
+    app.logger.info(f"ARM head: {head_revision} database: {db_revision.version_num}")
+    if head_revision == db_revision.version_num:
+        app.logger.info("Database is now up to date")
+        arm_db_initialise()
+    else:
+        app.logger.error(f"Database is still out of date. "
+                         f"Head is {head_revision} and database is {db_revision.version_num}.  Exiting arm.")
+
+def arm_db_initialise():
+    """
+    Initialise the ARM DB, ensure system values and disk drives are loaded
+    """
+    #check system/server information is loaded
+    if not models.SystemInfo.query.filter_by(id="1").first():
+        #define system info and load to db
+        server = models.SystemInfo()
+        app.logger.debug("****** System Information ******")
+        app.logger.debug(f"Name: {server.name}")
+        app.logger.debug(f"CPU: {server.cpu}")
+        app.logger.debug(f"Description: {server.description}")
+        app.logger.debug(f"Memory Total: {server.mem_total}")
+        app.logger.debug("****** End System Information ******")
+        db.session.add(server)
+        db.session.commit()
+
+    #scan and load drives to database
+    drives_update()
 
 def make_dir(path):
     """
@@ -728,3 +854,57 @@ def git_get_updates() -> dict:
     git_log = subprocess.run(['git', 'pull'], cwd=cfg.arm_config['INSTALLPATH'], check=False)
     return {'stdout': git_log.stdout, 'stderr': git_log.stderr,
             'return_code': git_log.returncode, 'form': 'ARM Update', "success": (git_log.returncode == 0)}
+
+def drives_search():
+    """
+    Search the system for any drives
+    """
+    udev_drives = []
+
+    context = pyudev.Context()
+
+    for device in context.list_devices(subsystem='block'):
+        regexoutput = re.search('(\/dev\/sr[0-9])', device.device_node)
+        if regexoutput:
+            app.logger.debug(f"regex output: {regexoutput.group()}")
+            udev_drives.append(regexoutput.group())
+
+    if len(udev_drives) > 0:
+        app.logger.info(f"System disk scan, found {len(udev_drives)} drives for ARM")
+        for disk in udev_drives:
+            app.logger.debug(f"disk: {disk}")
+    else:
+        app.logger.info("System disk scan, no drives attached to ARM server")
+
+    return udev_drives
+
+def drives_update():
+    """
+    scan the system for new cd/dvd/blueray drives
+    """
+    udev_drives = drives_search()
+    i = 1
+    new_count = 0
+    for drive_mount in udev_drives:
+        #check drive doesnt already exist
+        if not models.SystemDrives.query.filter_by(mount=drive_mount).first():
+            db_drive = models.SystemDrives(f"Drive {i}", "Drive Type", drive_mount, True, None, None, "Classic burner")
+            app.logger.debug("****** Drive Information ******")
+            app.logger.debug(f"Name: {db_drive.name}")
+            app.logger.debug(f"Type: {db_drive.type}")
+            app.logger.debug(f"Description: {db_drive.mount}")
+            app.logger.debug("****** End Drive Information ******")
+            db.session.add(db_drive)
+            db.session.commit()
+            db_drive = None
+            i+= 1
+            new_count+= 1
+        else:
+            i+= 1
+
+    if new_count > 0:
+        app.logger.info(f"Added {new_count} drives for ARM.")
+    else:
+        app.logger.info("No new drives found on the system.")
+
+    return new_count
