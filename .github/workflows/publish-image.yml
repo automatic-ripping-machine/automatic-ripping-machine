@@ -19,7 +19,7 @@ env:
     # Use docker.io for Docker Hub if empty
     REGISTRY: ghcr.io
     # use DOCKERHUB_USERNAME as the name maybe different from the github username
-    IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
+    IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/automatic-ripping-machine
     TAG: latest
 
 jobs:
@@ -116,5 +116,5 @@ jobs:
                     src: docker.io/${{ env.IMAGE_NAME }}:${{ env.TAG }}
                     # make sure the github name is correct
                     dst: |
-                         ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ env.TAG }}
-                         ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ env.VERSION }}
+                         ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.TAG }}
+                         ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.VERSION }}
