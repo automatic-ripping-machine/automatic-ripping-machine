@@ -1,4 +1,4 @@
-name: publish-image
+name: "Publish Docker Image"
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -6,9 +6,12 @@ name: publish-image
 # documentation.
 
 on:
+    # run every day at midnight
+    schedule:
+        - cron: '0 0 * * *'
     push:
     pull_request:
-        branches: [ main, v2_devel, docker ]
+        branches: [ main, dev ]
             # Allows you to run this workflow manually from the Actions tab
     workflow_dispatch:
 
@@ -16,7 +19,7 @@ env:
     # Use docker.io for Docker Hub if empty
     REGISTRY: ghcr.io
     # use DOCKERHUB_USERNAME as the name maybe different from the github username
-    IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
+    IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/automatic-ripping-machine
     TAG: latest
 
 jobs:
@@ -38,11 +41,11 @@ jobs:
 
             -
                 name: Set tag for non-default branch
-                if: steps.branch-name.outputs.is_default == 'false'
+                if: steps.branch-name.outputs.is_default == 'false' && steps.branch-name.outputs.default_branch != ''
                 run: |
-                    echo "Branch name is ${{ steps.branch-name.outputs.current_branch }}"
+                    echo "Branch name is ${{ steps.branch-name.outputs.ref_branch }}"
                     echo "Main name is ${{ steps.branch-name.outputs.default_branch }}"
-                    echo "TAG=${{ steps.branch-name.outputs.current_branch }}" >> $GITHUB_ENV
+                    echo "TAG=${{ steps.branch-name.outputs.ref_branch }}" >> $GITHUB_ENV
 
             # Workaround: https://github.com/docker/build-push-action/issues/461
             -
@@ -74,7 +77,22 @@ jobs:
                 uses: docker/metadata-action@69f6fc9d46f2f8bf0d5491e4aabe0bb8c6a4678a
                 with:
                     images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            -
+                name: Set Version number
+                run: |
+                    if [ ${{ steps.branch-name.outputs.is_default }} = true ]; then
+                      VER=$(cat VERSION)
+                      echo "VERSION=$VER" >> $GITHUB_ENV
+                    else
+                      echo "VERSION=${{ env.TAG }}" >> $GITHUB_ENV
+                      echo "${{ env.TAG }}" > ./VERSION
+                    fi
 
+            -
+                name: Set build datetime
+                run: |
+                    TIMESTAMP=$(date -u +'%Y-%m-%d T%H:%M:%SZ')
+                    echo "BUILD_DATE=$TIMESTAMP" >> $GITHUB_ENV
             # Build and push Docker image with Buildx
             # https://github.com/docker/build-push-action
             -
@@ -85,7 +103,9 @@ jobs:
                     context: .
                     push: ${{ github.event_name != 'pull_request' }}
                     platforms: linux/amd64,linux/arm64,linux/arm/v7
-                    tags: ${{ env.IMAGE_NAME }}:${{ env.TAG }}
+                    tags: |
+                      ${{ env.IMAGE_NAME }}:${{ env.TAG }}
+                      ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
                     labels: ${{ steps.meta.outputs.labels }}
 
             -
@@ -95,4 +115,6 @@ jobs:
                 with:
                     src: docker.io/${{ env.IMAGE_NAME }}:${{ env.TAG }}
                     # make sure the github name is correct
-                    dst: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ env.TAG }}
+                    dst: |
+                         ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.TAG }}
+                         ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.VERSION }}
