@@ -117,7 +117,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
             logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. "
                          f"Length is {track.length} seconds.")
 
-            filename = f"title_{track.track_number:02}.{cfg.arm_config['DEST_EXT']}"
+            filename = f"title_{track.track_number}.{cfg.arm_config['DEST_EXT']}"
             filepathname = os.path.join(basepath, filename)
 
             logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
@@ -129,7 +129,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
                   f"-i {shlex.quote(srcpath)} " \
                   f"-o {shlex.quote(filepathname)} " \
                   f"--preset \"{hb_preset}\" " \
-                  f"-t {str(track.track_number)} " \
+                  f"-t {track.track_number} " \
                   f"{hb_args} " \
                   f">> {logfile} 2>&1"
 
@@ -199,8 +199,10 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
 
         logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(filepathname)}")
 
-        cmd = f'nice {cfg.arm_config["HANDBRAKE_CLI"]} -i {shlex.quote(srcpathname)} -o {shlex.quote(filepathname)} ' \
-              f'--preset "{hb_preset}" {hb_args}>> {logfile} 2>&1'
+        cmd = f'nice {cfg.arm_config["HANDBRAKE_CLI"]} ' \
+              f'-i {shlex.quote(srcpathname)} ' \
+              f'-o {shlex.quote(filepathname)} ' \
+              f'--preset "{hb_preset}" {hb_args} >> {logfile} 2>&1'
 
         logging.debug(f"Sending command: {cmd}")
 
@@ -222,7 +224,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
 
 def get_track_info(srcpath, job):
     """
-    Use HandBrake to get track info and updatte Track class\n\n
+    Use HandBrake to get track info and update Track class\n\n
     :param srcpath: Path to disc\n
     :param job: Job instance\n
     :return: None
@@ -246,14 +248,11 @@ def get_track_info(srcpath, job):
 
         # get number of titles
         if result is None:
-            if job.disctype == "bluray":
-                result = re.search('scan: BD has (.*) title(s)', line)
-            else:
-                result = re.search('scan: DVD has (.*) title(s)', line)  # noqa: W605
+            # scan: DVD has 12 title(s)
+            result = re.search(r'scan: (BD|DVD) has (\d{1,3}) title\(s\)', line)
 
             if result:
-                titles = result.group(1)
-                titles = titles.strip()
+                titles = result.group(2).strip()
                 logging.debug(f"Line found is: {line}")
                 logging.info(f"Found {titles} titles")
                 job.no_of_titles = titles

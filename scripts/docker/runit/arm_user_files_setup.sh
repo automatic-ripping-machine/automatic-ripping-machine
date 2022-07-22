@@ -62,3 +62,8 @@ done
         ln -s /etc/arm/config/abcde.conf /etc/.abcde.conf
         chown arm:arm "/etc/arm/config/abcde.conf"
     fi
+
+echo "setting makemkv app-Key"
+if ! [[ -z "${MAKEMKV_APP_KEY}" ]] ; then
+  echo "app_Key = \"${MAKEMKV_APP_KEY}\"" > "${ARM_HOME}/.MakeMKV/settings.conf"
+fi

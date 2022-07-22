@@ -5,7 +5,7 @@ import platform
 import re
 import json
 from pathlib import Path, PurePath
-
+import importlib
 import bcrypt
 import psutil
 from werkzeug.exceptions import HTTPException
@@ -337,6 +337,7 @@ def save_settings():
             settings_file.write(arm_cfg)
             settings_file.close()
         success = True
+        importlib.reload(cfg)
     # If we get to here there was no post data
     return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
 
@@ -386,6 +387,26 @@ def save_abcde():
         success = True
     # If we get to here there was no post data
     return {'success': success, 'settings': abcde_cfg_str, 'form': 'abcde config'}
+
+
+@app.route('/save_apprise_cfg', methods=['POST'])
+@login_required
+def save_apprise_cfg():
+    """
+    Save apprise config settings from post
+    """
+    # Load up the comments.json, so we can comment the arm.yaml
+    success = False
+    form = SettingsForm()
+    if form.validate_on_submit():
+        # Save updated apprise.yaml
+        with open(cfg.apprise_config_path, "w") as settings_file:
+            settings_file.write(request.form.to_dict())
+            settings_file.close()
+        success = True
+        importlib.reload(cfg)
+    # If we get to here there was no post data
+    return {'success': success, 'settings': cfg.apprise_config, 'form': 'arm ripper settings'}
 
 
 @app.route('/logs')
