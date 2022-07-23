@@ -27,7 +27,7 @@ function parse_yaml {
    }'
 }
 
-eval "$(parse_yaml /etc/arm/arm.yaml "CONFIG_")"
+eval "$(parse_yaml /etc/arm/config/arm.yaml "CONFIG_")"
 
 #######################################################################################
 # Log Discovered Type and Start Rip
