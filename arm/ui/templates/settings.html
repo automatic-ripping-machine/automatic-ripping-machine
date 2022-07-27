@@ -57,6 +57,10 @@
                                aria-controls="home" aria-selected="true">General Info</a>
                         </li>
                         <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="system-tab" data-toggle="tab" href="#system" role="tab"
+                               aria-controls="system" aria-selected="false">System Info</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
                             <a class="nav-link" id="abcde-tab" data-toggle="tab" href="#abcde" role="tab"
                                aria-controls="abcde" aria-selected="false">abcde Config</a>
                         </li>
@@ -75,9 +79,9 @@
                                aria-controls="appriseTab" aria-selected="false">Apprise config</a>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <a class="nav-link" id="helpTab-tab" data-toggle="tab" href="#helpTab"
+                            <a class="nav-link" id="help-tab" data-toggle="tab" href="#help"
                                role="tab"
-                               aria-controls="helpTab" aria-selected="false">Help</a>
+                               aria-controls="help" aria-selected="false">Help</a>
                         </li>
                     </ul>
 
@@ -85,6 +89,8 @@
                     <div class="tab-content">
                         <!-- General Info -->
                         {% include 'settings/general.html' %}
+                        <!-- system information -->
+                        {% include 'settings/tab_sysinfo.html' %}
                         <!-- abcde config -->
                         {% include 'settings/abcde.html' %}
                         <!-- Ripper settings -->
@@ -92,36 +98,9 @@
                         <!-- UI settings -->
                         {% include 'settings/ui.html' %}
                         <!-- Apprise config -->
-                        <div class="tab-pane pt-5" id="appriseTab" role="tabpanel" aria-labelledby="apprise-tab">
-                            <div class="alert alert-primary" role="alert">
-                                These Settings Won't Save!
-                            </div>
-                            <div class="row">
-                                <div class="col-md-8 mx-auto">
-                                    <form id="appriseCfg" name="appriseCfg" method="post" action="">
-                                {{ form.hidden_tag() }}
-                                {% for k, v in apprise_cfg.items() %}
-                                    <div class="input-group mb-3">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text" id="{{ k }}">{{ k }}: </span>
-                                        </div>
-                                        <input type="text" class="form-control" aria-label="{{ k }}" name="{{ k }}"
-                                               placeholder="{{ v }}" value="{{ v }}" aria-describedby="{{ k }}">
-                                        <a class="popovers" onClick='return false;' href=""
-                                           data-content="{{ jsoncomments[k]| replace("#", "\n") }}" rel="popover"
-                                           data-placement="top" data-original-title="{{ k }}">
-                                            <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
-                                                 height="35px" alt="More Info">
-                                        </a>
-                                    </div>
-                                {% endfor %}
-                                <button id="apprise_cfg" class="btn btn-secondary btn-lg btn-block" form="appriseCfg"
-                                        type="submit">Submit
-                                </button>
-                            </form>
-                                </div>
-                            </div>
-                        </div>
+                        {% include 'settings/apprise.html' %}
+                        <!-- Help config -->
+                        {% include 'settings/help.html' %}
                     </div>
                 </div>
             </div>

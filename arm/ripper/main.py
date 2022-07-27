@@ -23,8 +23,9 @@ sys.path.append("/opt/arm")
 
 from arm.ripper import logger, utils, identify, arm_ripper  # noqa: E402
 import arm.config.config as cfg  # noqa E402
-from arm.models.models import Job, Config  # noqa: E402
+from arm.models.models import Job, Config, SystemDrives  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
+import ui.drivemanager as DriveManager
 
 
 def entry():
@@ -100,6 +101,9 @@ def main(logfile, job, protection=0):
     log_arm_params(job)
     check_fstab()
 
+    #update SystemDrive details
+    #DriveManager.new_job(job_id)
+
     # Entry point for dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
         arm_ripper.rip_visual_media(have_dupes, job, logfile, protection)
@@ -141,6 +145,8 @@ if __name__ == "__main__":
     job = Job(devpath)
     # Setup logging
     log_file = logger.setup_logging(job)
+    #associate the job with the drive in the database
+    utils.update_drive_job(job)
     # Exit if drive isn't ready
     if utils.get_cdrom_status(devpath) != 4:
         # This should really never trigger now as arm_wrapper should be taking care of this.

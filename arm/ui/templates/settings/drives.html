@@ -23,16 +23,28 @@
                                                         <label class="col-sm col-form-label px-1">{{ drive.name }}</label>
                                                     </div>
                                                     <div class="form-group row my-0">
+                                                        <label class="col-sm-3 col-form-label px-1">Type</label>
+                                                        <label class="col-sm col-form-label px-1">{{ drive.type }}</label>
+                                                    </div>
+                                                    <div class="form-group row my-0">
                                                         <label class="col-sm-3 col-form-label px-1 px-1">Mount Path</label>
-                                                        <label class="col-sm col-form-label px-1">{{ drive.mount }}</label>
+                                                        <label class="col-sm col-form-label px-1 small">{{ drive.mount }}</label>
                                                     </div>
                                                     <div class="form-group row my-0">
                                                         <label class="col-sm-3 col-form-label px-1">Current Job</label>
-                                                        <label class="col-sm col-form-label px-1 px-1 px-1"><a href="/jobdetail?job_id={{ drive.job_id }}"> {{ drive.title }} </a></label>
+                                                        {% if drive.job_id %}
+                                                        <label class="col-sm col-form-label px-1"><a href="/jobdetail?job_id={{ drive.job_id }}">{{ drive.job_current.video_type }} - {{ drive.job_current.title }} - {{ drive.job_current.year }} </a></label>
+                                                        {% else %}
+                                                            <label class="col-sm col-form-label px-1">No current job</label>
+                                                        {% endif %}
                                                     </div>
                                                     <div class="form-group row my-0">
                                                         <label class="col-sm-3 col-form-label px-1 px-1">Previous Job</label>
-                                                        <label class="col-sm col-form-label px-1"><a href="/jobdetail?job_id={{ drive.job_id_previous }}">{{ drive.job_id_previous }} </a></label>
+                                                        {% if drive.job_id_previous %}
+                                                            <label class="col-sm col-form-label px-1"><a href="/jobdetail?job_id={{ drive.job_id_previous }}">{{ drive.job_previous.video_type }} - {{ drive.job_previous.title }} - {{ drive.job_previous.year }} </a></label>
+                                                        {% else %}
+                                                            <label class="col-sm col-form-label px-1">N/A</label>
+                                                        {% endif %}
                                                     </div>
                                                     <div class="form-group row my-0">
                                                         <label for="driveDescription" class="col-sm-3 col-form-label px-1">Description</label>
@@ -62,9 +74,13 @@
                                                 </div>
                                                 <div class="row">
                                                     {% if drive.open: %}
-                                                        <img src="static/img/drive-optical_open.svg" class="p-flex align-items-center" style="max-width:100px; min-width:50px" alt="Drive Open">
+                                                        <a href="driveeject/{{ drive.drive_id }}">
+                                                            <img src="static/img/drive-optical_open.svg" class="p-flex align-items-center" style="max-width:100px; min-width:50px" alt="Drive Open">
+                                                        </a>
                                                     {% else %}
-                                                        <img src="static/img/drive-optical_closed.svg" class="p-flex align-items-center" style="max-width:100px; min-width:50px" alt="Drive Closed">
+                                                        <a href="driveeject/{{ drive.drive_id }}">
+                                                            <img src="static/img/drive-optical_closed.svg" class="p-flex align-items-center" style="max-width:100px; min-width:50px" alt="Drive Closed">
+                                                        </a>
                                                 </div>
                                             </div>
                                         </div>

@@ -317,11 +317,44 @@ def settings():
              'total_rips': total_rips,
              'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash())
              }
+
+    #System details in class server
+    server = models.SystemInfo.query.filter_by(id="1").first()
+    serverutil = ServerUtil()
+    serverutil.getUpdate()
+    #System details in class server
+    arm_path = cfg.arm_config['TRANSCODE_PATH']
+    media_path = cfg.arm_config['COMPLETED_PATH']
+
     #System Drives (CD/DVD/Blueray drives)
     formDrive = SystemInfoDrives(request.form)
+
     drives = models.SystemDrives.query.all()
-    #drives = db.session.query(models.SystemDrives, models.Job).filter(models.SystemDrives.job_id == models.Job.job_id).all()
-    #drives = db.session.query(models.SystemDrives).join(models.SystemDrives, models.Job).filter(models.SystemDrives.job_id == models.Job.job_id).all()
+    #join with job to get specific job details
+    #drives = db.session.query(models.SystemDrives, models.Job).filter(models.SystemDrives.job_id_previous == models.Job.job_id).all()
+    #drives = db.session.query(models.SystemDrives, models.Job).join(models.Job, models.Job.job_id == models.SystemDrives.job_id_previous, isouter=True).all()
+    #drives = db.session.query(models.SystemDrives, models.Job).outerjoin(models.Job, models.Job.job_id == models.SystemDrives.job_id_previous).all()
+
+    #drives = db.session.query(models.SystemDrives, models.Job).join(models.Job, models.Job.job_id == models.SystemDrives.job_id_previous).all()
+    #drives = db.session.query(models.SystemDrives).filter(models.SystemDrives.job_id_previous == models.Job.job_id).all()
+
+    for drive in drives:
+        app.logger.debug("*********")
+        app.logger.debug(f"Name: {drive.name}")
+        app.logger.debug(f"Type: {drive.type}")
+        app.logger.debug(f"Mount: {drive.mount}")
+        app.logger.debug(f"Job Current: {drive.job_id}")
+        if drive.job_id:
+            app.logger.debug(f"Job - Type: {drive.job_current.video_type}")
+            app.logger.debug(f"Job - Title: {drive.job_current.title}")
+            app.logger.debug(f"Job - Year: {drive.job_current.year}")
+        app.logger.debug(f"Job Previous: {drive.job_id_previous}")
+        if drive.job_id_previous:
+            app.logger.debug(f"Job - Type: {drive.job_previous.video_type}")
+            app.logger.debug(f"Job - Title: {drive.job_previous.title}")
+            app.logger.debug(f"Job - Year: {drive.job_previous.year}")
+    app.logger.debug("*********")
+
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
     form = SettingsForm()
@@ -329,7 +362,8 @@ def settings():
     return render_template('settings.html', settings=cfg.arm_config, ui_settings=armui_cfg,
                            stats=stats, apprise_cfg=cfg.apprise_config,
                            form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config,
-                           drives=drives)
+                           server=server, serverutil=serverutil, arm_path=arm_path, media_path=media_path,
+                           drives=drives, formDrive=formDrive)
 
 @app.route('/save_settings', methods=['POST'])
 @login_required
@@ -677,10 +711,6 @@ def home():
     #System details in class server
     arm_path = cfg.arm_config['TRANSCODE_PATH']
     media_path = cfg.arm_config['COMPLETED_PATH']
-    #flags
-    flags = {
-        "settings": False #don't show all system settings/details
-    }
     armname = ""
     if cfg.arm_config['ARM_NAME'] != "":
         armname = f"[{cfg.arm_config['ARM_NAME']}] - "
@@ -695,7 +725,7 @@ def home():
         jobs = {}
 
     return render_template('index.html', jobs=jobs, armname=armname, children=cfg.arm_config['ARM_CHILDREN'],
-                        server=server, serverutil=serverutil, flags=flags, arm_path=arm_path, media_path=media_path)
+                        server=server, serverutil=serverutil, arm_path=arm_path, media_path=media_path)
 
 @app.route('/import_movies')
 @login_required
@@ -804,7 +834,7 @@ def handle_exception(sent_error):
 
 @app.route('/systeminfo', methods=['POST'])
 @login_required
-def serverinfo():
+def server_info():
     """
     Server System information and details on connected CD, DVD and/or BluRay Drives
     """
@@ -815,10 +845,6 @@ def serverinfo():
     #directories
     arm_path = cfg['TRANSCODE_PATH']
     media_path = cfg['COMPLETED_PATH']
-    #flags
-    flags = {
-        "settings": True     #show all system settings/details
-    }
     #job names
     # if server.job_id:
     #     job_current = models.Job.query.filter_by(job_id=server.job_id).first()
@@ -845,19 +871,31 @@ def serverinfo():
         return redirect('/settings')
         #drives = models.SystemDrives.query.all()
 
-    #return render_template('systeminfo.html', server = server, serverutil = serverutil, flags = flags,
+    #return render_template('systeminfo.html', server = server, serverutil = serverutil,
     #                        drives = drives, formDrive = formDrive,
     #                        arm_path=arm_path, media_path=media_path)
 
 
 @app.route('/systemdrivescan')
-def test_systemdrivescan():
+def system_drive_scan():
     """
     Server System  - scan for a change in system, addition of drives
     """
     #update to scan for changes from system
     new_count = ui_utils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
+
+    return redirect('/settings')
+
+@app.route('/driveeject/<id>')
+@login_required
+def drive_eject(id):
+    """
+    Server System  - change state of CD/DVD/BluRay drive - toggle eject
+    """
+    drive = models.SystemDrives.query.filter_by(drive_id=id).first()
+    drive.open_close()
+    db.session.commit()
 
     return redirect('/settings')
 

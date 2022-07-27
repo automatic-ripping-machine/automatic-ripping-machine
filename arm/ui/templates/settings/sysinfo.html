@@ -1,26 +1,22 @@
 
-{% block drives %}
+{% block sysinfo %}
     <div class="container content">
         <div class="row">
             <div class="col pt-3">
                 <div class="card mx-auto">
                     <div class="card-header text-center">
-                        <strong>Processor</strong>
+                        <strong>System</strong>
                     </div>
                     <ul class="list-group list-group-flush">
-                        <!-- {% if flags.settings %}-->
-                            <li class="list-group-item">
-                                Name: {{ server.name }}
-                            </li>
-                        <!-- {% endif %} -->
+                        <li class="list-group-item">
+                            Name: {{ server.name }}
+                        </li>
+                        <li class="list-group-item">
+                            {{ server.description }}
+                        </li>
                         <li class="list-group-item">
                             CPU: {{ server.cpu }}
                         </li>
-                        <!-- {% if flags.settings %}-->
-                            <li class="list-group-item">
-                                {{ server.description }}
-                            </li>
-                        <!-- {% endif %} -->
                         <li class="list-group-item">
                             {% if serverutil.cpu_temp is not none %}
                                 <section class="{{ ' bg-danger text-white' if serverutil.cpu_temp > 70 }}">CPU Temp: {{ serverutil.cpu_temp }}&#176;C</section>

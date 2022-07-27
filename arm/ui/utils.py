@@ -888,11 +888,14 @@ def drives_update():
     for drive_mount in udev_drives:
         #check drive doesnt already exist
         if not models.SystemDrives.query.filter_by(mount=drive_mount).first():
-            db_drive = models.SystemDrives(f"Drive {i}", "Drive Type", drive_mount, True, None, None, "Classic burner")
+            #find the last job the drive ran, return the id
+            last_job = models.Job.query.order_by(db.desc(models.Job.job_id)).filter_by(devpath=drive_mount).first()
+            #create new disk (name, type, mount, open, job id, previos job id, description )
+            db_drive = models.SystemDrives(f"Drive {i}", drive_mount, None, last_job.job_id, "Classic burner")
             app.logger.debug("****** Drive Information ******")
             app.logger.debug(f"Name: {db_drive.name}")
             app.logger.debug(f"Type: {db_drive.type}")
-            app.logger.debug(f"Description: {db_drive.mount}")
+            app.logger.debug(f"Mount: {db_drive.mount}")
             app.logger.debug("****** End Drive Information ******")
             db.session.add(db_drive)
             db.session.commit()
