@@ -25,8 +25,6 @@ from arm.ripper import logger, utils, identify, arm_ripper  # noqa: E402
 import arm.config.config as cfg  # noqa E402
 from arm.models.models import Job, Config, SystemDrives  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
-import ui.drivemanager as DriveManager
-
 
 def entry():
     """ Entry to program, parses arguments"""

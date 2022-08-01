@@ -888,8 +888,9 @@ def update_drive_job(job):
     """
     Function to take current job task and update the associated drive ID into the database
     """
-    drive = models.drives.query.filter_by(mount=job.devpath).first()
+    drive = models.SystemDrives.query.filter_by(mount=job.devpath).first()
     drive.new_job(job.job_id)
+    logging.debug(f"Updating drive [{job.devpath}] current job, with id [{job.job_id}]")
     try:
         db.session.commit()
         logging.debug("Database update with new Job ID to associated drive")
