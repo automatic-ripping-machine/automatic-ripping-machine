@@ -4,7 +4,7 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
     <style>
         .popover {
             white-space: pre-line;
@@ -106,6 +106,7 @@
             </div>
         </div>
     </div>
+    </div>
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
@@ -113,6 +114,7 @@
     <script type="application/javascript">
         $(function () {
             let toastCount = 0;
+
             function sendSettings(formToSend, sendTo) {
                 $.ajax({
                     type: 'POST',
@@ -123,7 +125,7 @@
                         console.log(data)
                         var dt = new Date();
                         var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
-                        addToast("Saved Successfully",`Saved ${data.form} settings at ${time}`, toastCount);
+                        addToast("Saved Successfully", `Saved ${data.form} settings at ${time}`, toastCount);
                         toastCount++;
                     }
                 });
