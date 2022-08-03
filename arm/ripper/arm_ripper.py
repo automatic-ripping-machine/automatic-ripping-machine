@@ -185,6 +185,9 @@ def rip_with_mkv(current_job, protection=0):
     # Rip dvd with mode: mkv and mainfeature: false
     if current_job.disctype == "dvd" and (not current_job.config.MAINFEATURE and current_job.config.RIPMETHOD == "mkv"):
         mkv_ripped = True
+    # Rip dvds with skip transcode
+    if current_job.disctype == "dvd" and current_job.config.SKIP_TRANSCODE:
+        mkv_ripped = True
     # If dvd has 99 protection force MakeMKV to be used
     if protection:
         mkv_ripped = True
