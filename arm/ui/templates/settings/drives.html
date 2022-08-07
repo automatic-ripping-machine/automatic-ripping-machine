@@ -32,8 +32,8 @@
                                                     </div>
                                                     <div class="form-group row my-0">
                                                         <label class="col-sm-3 col-form-label px-1">Current Job</label>
-                                                        {% if drive.job_id %}
-                                                        <label class="col-sm col-form-label px-1"><a href="/jobdetail?job_id={{ drive.job_id }}">{{ drive.job_current.video_type }} - {{ drive.job_current.title }} - {{ drive.job_current.year }} </a></label>
+                                                        {% if drive.job_id_current %}
+                                                        <label class="col-sm col-form-label px-1"><a href="/jobdetail?job_id={{ drive.job_id_current }}">{{ drive.job_current.video_type }} - {{ drive.job_current.title }} - {{ drive.job_current.year }} </a></label>
                                                         {% else %}
                                                             <label class="col-sm col-form-label px-1">No current job</label>
                                                         {% endif %}
@@ -49,8 +49,14 @@
                                                     <div class="form-group row my-0">
                                                         <label for="driveDescription" class="col-sm-3 col-form-label px-1">Description</label>
                                                         <div class="col-sm">
+                                                            {% if formDrive: %}
                                                             <input class="form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}">
                                                             <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
+                                                            {% else %}
+                                                                <!-- Drives form not defined, no editing available -->
+                                                                <input class="form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}" readonly>
+                                                                <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
+                                                            {% endif %}
                                                         </div>
                                                     </div>
                                                     <div class="form-group row my-0">
@@ -60,8 +66,7 @@
                                                                     <button type="submit" class="btn btn-primary btn-sm" name="submit">Update</button>
                                                                     <button type="submit" class="btn btn-outline-danger btn-sm" name="remove">Remove</button>
                                                                 {% else %}
-                                                                    <button type="submit" class="btn btn-primary btn-sm" name="submit" disabled>Update</button>
-                                                                    <button type="submit" class="btn btn-outline-danger btn-sm" name="remove" disabled>Remove</button>
+                                                                    <!-- Drives form not defined, no editing available -->
                                                                 {% endif %}
                                                             </div>
                                                         </div>
@@ -70,7 +75,11 @@
                                             </div>
                                             <div class="col-2 d-flex">
                                                 <div class="row">
-                                                    <a href="#" class="my-0">Edit</a>
+                                                    {% if formDrive: %}
+                                                        <a href="#" class="my-0">Edit</a>
+                                                    {% else %}
+                                                        <!-- Drives form not defined, no editing available -->
+                                                    {% endif %}
                                                 </div>
                                                 <div class="row">
                                                     {% if drive.open: %}

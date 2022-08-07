@@ -913,3 +913,44 @@ def drives_update():
         app.logger.info("No new drives found on the system.")
 
     return new_count
+
+def drives_check_status():
+    """
+    Check the drive job status
+    """
+    drives = models.SystemDrives.query.all()
+    for drive in drives:
+        #check if the current job is active, if not remove current job_current id
+        if drive.job_id_current != None:
+            if drive.job_current.status == "success" or drive.job_current.status == "fail":
+                drive.job_finished()
+                db.session.commit()
+        #print the drive debug status
+        drive_status_debug(drive)
+
+    #requery data to ensure current if the drive status changed
+    drives = models.SystemDrives.query.all()
+    return drives
+
+def drive_status_debug(drive):
+    """
+    Report the current drive status (debug)
+    """
+    app.logger.debug("*********")
+    app.logger.debug(f"Name: {drive.name}")
+    app.logger.debug(f"Type: {drive.type}")
+    app.logger.debug(f"Mount: {drive.mount}")
+    app.logger.debug(f"Open: {drive.open}")
+    app.logger.debug(f"Job Current: {drive.job_id_current}")
+    if drive.job_id_current:
+        app.logger.debug(f"Job - Status: {drive.job_current.status}")
+        app.logger.debug(f"Job - Type: {drive.job_current.video_type}")
+        app.logger.debug(f"Job - Title: {drive.job_current.title}")
+        app.logger.debug(f"Job - Year: {drive.job_current.year}")
+    app.logger.debug(f"Job Previous: {drive.job_id_previous}")
+    if drive.job_id_previous:
+        app.logger.debug(f"Job - Status: {drive.job_previous.status}")
+        app.logger.debug(f"Job - Type: {drive.job_previous.video_type}")
+        app.logger.debug(f"Job - Title: {drive.job_previous.title}")
+        app.logger.debug(f"Job - Year: {drive.job_previous.year}")
+    app.logger.debug("*********")

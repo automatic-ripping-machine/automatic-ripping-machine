@@ -326,34 +326,10 @@ def settings():
     arm_path = cfg.arm_config['TRANSCODE_PATH']
     media_path = cfg.arm_config['COMPLETED_PATH']
 
-    #System Drives (CD/DVD/Blueray drives)
+    #todo, fix the form for the newer form layout
     formDrive = SystemInfoDrives(request.form)
-
-    drives = models.SystemDrives.query.all()
-    #join with job to get specific job details
-    #drives = db.session.query(models.SystemDrives, models.Job).filter(models.SystemDrives.job_id_previous == models.Job.job_id).all()
-    #drives = db.session.query(models.SystemDrives, models.Job).join(models.Job, models.Job.job_id == models.SystemDrives.job_id_previous, isouter=True).all()
-    #drives = db.session.query(models.SystemDrives, models.Job).outerjoin(models.Job, models.Job.job_id == models.SystemDrives.job_id_previous).all()
-
-    #drives = db.session.query(models.SystemDrives, models.Job).join(models.Job, models.Job.job_id == models.SystemDrives.job_id_previous).all()
-    #drives = db.session.query(models.SystemDrives).filter(models.SystemDrives.job_id_previous == models.Job.job_id).all()
-
-    for drive in drives:
-        app.logger.debug("*********")
-        app.logger.debug(f"Name: {drive.name}")
-        app.logger.debug(f"Type: {drive.type}")
-        app.logger.debug(f"Mount: {drive.mount}")
-        app.logger.debug(f"Job Current: {drive.job_id}")
-        if drive.job_id:
-            app.logger.debug(f"Job - Type: {drive.job_current.video_type}")
-            app.logger.debug(f"Job - Title: {drive.job_current.title}")
-            app.logger.debug(f"Job - Year: {drive.job_current.year}")
-        app.logger.debug(f"Job Previous: {drive.job_id_previous}")
-        if drive.job_id_previous:
-            app.logger.debug(f"Job - Type: {drive.job_previous.video_type}")
-            app.logger.debug(f"Job - Title: {drive.job_previous.title}")
-            app.logger.debug(f"Job - Year: {drive.job_previous.year}")
-    app.logger.debug("*********")
+    #System Drives (CD/DVD/Blueray drives)
+    drives = ui_utils.drives_check_status()
 
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
@@ -363,7 +339,7 @@ def settings():
                            stats=stats, apprise_cfg=cfg.apprise_config,
                            form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config,
                            server=server, serverutil=serverutil, arm_path=arm_path, media_path=media_path,
-                           drives=drives, formDrive=formDrive)
+                           drives=drives, formDrive=False)
 
 @app.route('/save_settings', methods=['POST'])
 @login_required
@@ -866,17 +842,7 @@ def server_info():
     #directories
     arm_path = cfg['TRANSCODE_PATH']
     media_path = cfg['COMPLETED_PATH']
-    #job names
-    # if server.job_id:
-    #     job_current = models.Job.query.filter_by(job_id=server.job_id).first()
-    # if server.job_id_previous:
-    #     job_previous = models.Job.query.filter_by(job_id=server.job_id).first()
-    # job_details = {
-    #     "title": job_current.title,
-    #     "year": job_current.year,
-    #     "previous_title": job_previous.title,
-    #     "previous_year": job_previous.year,
-    # }
+
     #System Drives (CD/DVD/Blueray drives)
     formDrive = SystemInfoDrives(request.form)
     if request.method == 'POST' and formDrive.validate():
@@ -891,11 +857,6 @@ def server_info():
         #return for GET
         return redirect('/settings')
         #drives = models.SystemDrives.query.all()
-
-    #return render_template('systeminfo.html', server = server, serverutil = serverutil,
-    #                        drives = drives, formDrive = formDrive,
-    #                        arm_path=arm_path, media_path=media_path)
-
 
 @app.route('/systemdrivescan')
 def system_drive_scan():
