@@ -188,6 +188,9 @@ def rip_with_mkv(current_job, protection=0):
     # If dvd has 99 protection force MakeMKV to be used
     if protection:
         mkv_ripped = True
+    # if backup_dvd, always use mkv
+    if current_job.config.RIPMETHOD == "backup_dvd":
+        mkv_ripped = True
     return mkv_ripped
 
 
