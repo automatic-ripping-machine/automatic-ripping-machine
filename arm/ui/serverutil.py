@@ -9,7 +9,6 @@ import arm.config.config as cfg
 class ServerUtil():
     cpu_util = 0.0
     cpu_temp = 0.0
-    #memory = {}
     memory_free = 0.0
     memory_used = 0.0
     memory_percent = 0.0

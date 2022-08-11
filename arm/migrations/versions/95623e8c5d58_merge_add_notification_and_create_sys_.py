@@ -18,7 +18,8 @@ depends_on = None
 
 def upgrade():
     pass
-
+    #nothing to upgrade or downgrade, merge two forked database migrations into one
 
 def downgrade():
     pass
+    #nothing to upgrade or downgrade, merge two forked database migrations into one
