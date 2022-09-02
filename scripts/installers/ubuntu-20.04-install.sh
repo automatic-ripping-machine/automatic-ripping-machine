@@ -122,7 +122,6 @@ function clone_arm() {
     echo -e "Arm latest stable version is v$ARM_LATEST. Pulling v$ARM_LATEST"
     git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "v$ARM_LATEST" arm
     cd arm
-    git checkout v2_master
     git submodule update --init --recursive
     git submodule update --recursive --remote
     cd ..
