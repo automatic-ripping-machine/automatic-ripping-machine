@@ -176,11 +176,12 @@ CHOWN_GROUP:
 ########################
 
 # Method of MakeMKV to use for Blu-ray discs
-# Options are "mkv" or "backup".
+# Options are "mkv", "backup", or "backup_dvd".
 # backup decrypts the dvd and then copies it to the hard drive.
 # This allows HandBrake to apply some of its analytical abilities such as the main-feature identification.
 # This method seems to offer success on Blu-ray discs that fail in "mkv" mode.
-# *** NOTE: MakeMKV only supports the backup method on BluRay discs.
+# *** NOTE: MakeMKV only supports the backup or backup_dvd method on BluRay discs.
+# backup_dvd forces arm to extract the dvd with MakeMKV prior to the Handbrake step
 RIPMETHOD: "backup"
 
 # MakeMKV Arguments
@@ -210,8 +211,10 @@ HB_PRESET_BD: "HQ 1080p30 Surround"
 # Extension of the final video file
 DEST_EXT: mkv
 
-# Handbrake binary to call
+# Handbrake binary to call.  These should be the same unless you are doing remote
+# processing
 HANDBRAKE_CLI: HandBrakeCLI
+HANDBRAKE_LOCAL: HandBrakeCLI
 
 # Have HandBrake transcode the main feature only.  BluRay discs must have RIPMETHOD="backup" for this to work.
 # If MAINFEATURE is true, blurays will be backed up to the HD and then HandBrake will go to work on the backed up
