@@ -71,6 +71,7 @@ function setup_mountpoints() {
     for dev in /dev/sr?; do
         sudo mkdir -p "/mnt$dev"
     done
+    sudo chown arm:arm /mnt/dev/sr*
 }
 
 function save_start_command() {
