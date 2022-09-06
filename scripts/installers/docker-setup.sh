@@ -63,7 +63,7 @@ function launch_setup() {
 
 function pull_image() {
     echo -e "${RED}Pulling image from $IMAGE${NC}"
-    docker pull "$IMAGE"
+    sudo -u arm docker pull "$IMAGE"
 }
 
 function setup_mountpoints() {
