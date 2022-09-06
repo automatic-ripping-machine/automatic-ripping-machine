@@ -69,8 +69,9 @@ function pull_image() {
 function setup_mountpoints() {
     echo -e "${RED}Creating mount points${NC}"
     for dev in /dev/sr?; do
-        sudo -u arm mkdir -p "/mnt$dev"
+        sudo mkdir -p "/mnt$dev"
     done
+    sudo chown arm:arm /mnt/dev/sr*
 }
 
 function save_start_command() {
