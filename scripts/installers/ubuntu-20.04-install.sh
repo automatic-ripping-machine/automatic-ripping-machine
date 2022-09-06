@@ -118,9 +118,14 @@ function clone_arm() {
         sudo rm -rf arm
     fi
 
-    ARM_LATEST=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' | grep 'automatic-ripping-machine/tree/*' | head -n 1 | sed -e 's/[^0-9\.]*//g')
-    echo -e "Arm latest stable version is v$ARM_LATEST. Pulling v$ARM_LATEST"
-    git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "v$ARM_LATEST" arm
+    if [ "$dev_env_flag" ]; then
+        git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine arm
+    else
+        ARM_LATEST=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' | grep 'automatic-ripping-machine/tree/*' | head -n 1 | sed -e 's/[^0-9\.]*//g')
+        echo -e "Arm latest stable version is v$ARM_LATEST. Pulling v$ARM_LATEST"
+        git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "v$ARM_LATEST" arm
+    fi
+
     cd arm
     git submodule update --init --recursive
     git submodule update --recursive --remote
