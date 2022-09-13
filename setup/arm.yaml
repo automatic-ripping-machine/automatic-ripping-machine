@@ -182,7 +182,7 @@ CHOWN_GROUP:
 # This method seems to offer success on Blu-ray discs that fail in "mkv" mode.
 # *** NOTE: MakeMKV only supports the backup or backup_dvd method on BluRay discs.
 # backup_dvd forces arm to extract the dvd with MakeMKV prior to the Handbrake step
-RIPMETHOD: "backup"
+RIPMETHOD: "mkv"
 
 # MakeMKV Arguments
 # MakeMKV Profile used for controlling Audio Track Selection.
