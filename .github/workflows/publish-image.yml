@@ -117,4 +117,4 @@ jobs:
                     # make sure the github name is correct
                     dst: |
                          ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.TAG }}
-                         ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.VERSION }}
+                    #    ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.VERSION }}
