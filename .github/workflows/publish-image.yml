@@ -106,15 +106,17 @@ jobs:
                     tags: |
                       ${{ env.IMAGE_NAME }}:${{ env.TAG }}
                       ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+                      ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.TAG }}
+                      ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.VERSION }}
                     labels: ${{ steps.meta.outputs.labels }}
 
-            -
-                name: retag and push multiplatform images to multiple registries
-                if: github.event_name != 'pull_request'
-                uses: akhilerm/tag-push-action@v2.0.0
-                with:
-                    src: docker.io/${{ env.IMAGE_NAME }}:${{ env.TAG }}
-                    # make sure the github name is correct
-                    dst: |
-                         ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.TAG }}
-                         ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.VERSION }}
+            #-
+            #    name: retag and push multiplatform images to multiple registries
+            #    if: github.event_name != 'pull_request'
+            #    uses: akhilerm/tag-push-action@v2.0.0
+            #    with:
+            #        src: docker.io/${{ env.IMAGE_NAME }}:${{ env.TAG }}
+            #        # make sure the github name is correct
+            #        dst: |
+            #             ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.TAG }}
+            #             ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.VERSION }}
