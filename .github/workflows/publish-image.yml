@@ -106,8 +106,8 @@ jobs:
                     tags: |
                       ${{ env.IMAGE_NAME }}:${{ env.TAG }}
                       ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
-                      ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.TAG }}
-                      ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.VERSION }}
+                    #  ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.TAG }}
+                    #  ${{ env.REGISTRY }}/${{ github.repository_owner }}/automatic-ripping-machine:${{ env.VERSION }}
                     labels: ${{ steps.meta.outputs.labels }}
 
             #-
