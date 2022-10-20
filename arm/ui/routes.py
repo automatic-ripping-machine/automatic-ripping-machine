@@ -1,4 +1,4 @@
-page_support_databaseupdate#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Main routes for the A.R.M ui"""
 import os
 import platform
@@ -31,7 +31,6 @@ armui_cfg = models.UISettings.query.get(1)
 app.jinja_env.globals.update(armui_cfg=armui_cfg)
 
 # Page definitions
-page_index = "index.html"
 page_settings = "settings.html"
 page_support_databaseupdate = "support/databaseupdate.html"
 redirect_settings = "/settings"
@@ -169,6 +168,8 @@ def login():
     Login page if login is enabled
     :return: redirect
     """
+    global page_support_databaseupdate
+
     return_redirect = None
     # if there is no user in the database
     try:
@@ -298,6 +299,8 @@ def settings():
     without needing to open a text editor\n
     This loads slow, needs to be optimised...
     """
+    global page_settings
+
     # stats for info page
     with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
@@ -721,7 +724,7 @@ def home():
     else:
         jobs = {}
 
-    return render_template(page_index, jobs=jobs, armname=armname, children=cfg.arm_config['ARM_CHILDREN'],
+    return render_template("index.html", jobs=jobs, armname=armname, children=cfg.arm_config['ARM_CHILDREN'],
                         server=server, serverutil=serverutil, arm_path=arm_path, media_path=media_path)
 
 
@@ -837,6 +840,8 @@ def server_info():
     """
     Server System information and details on connected CD, DVD and/or BluRay Drives
     """
+    global redirect_settings
+
     # System Drives (CD/DVD/Blueray drives)
     form_drive = SystemInfoDrives(request.form)
     if request.method == 'POST' and form_drive.validate():
@@ -859,6 +864,7 @@ def system_drive_scan():
     """
     Server System  - scan for a change in system, addition of drives
     """
+    global redirect_settings
     # Update to scan for changes from system
     new_count = ui_utils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
@@ -872,6 +878,8 @@ def drive_eject(id):
     """
     Server System  - change state of CD/DVD/BluRay drive - toggle eject
     """
+    global redirect_settings
+    
     drive = models.SystemDrives.query.filter_by(drive_id=id).first()
     drive.open_close()
     db.session.commit()
