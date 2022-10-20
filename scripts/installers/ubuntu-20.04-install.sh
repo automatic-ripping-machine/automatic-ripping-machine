@@ -119,7 +119,7 @@ function clone_arm() {
     fi
 
     if [ "$dev_env_flag" ]; then
-        git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine arm
+        git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "v2_devel" arm
     else
         ARM_LATEST=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' | grep 'automatic-ripping-machine/tree/*' | head -n 1 | sed -e 's/[^0-9\.]*//g')
         echo -e "Arm latest stable version is v$ARM_LATEST. Pulling v$ARM_LATEST"
