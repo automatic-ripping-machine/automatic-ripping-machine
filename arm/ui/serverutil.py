@@ -2,9 +2,10 @@
 Class definition
  Server - class for managing system utilisation
 """
-import logging
 import psutil
 import arm.config.config as cfg
+from arm.ui import app
+from flask import flash
 
 class ServerUtil():
     cpu_util = 0.0
@@ -12,7 +13,7 @@ class ServerUtil():
     memory_free = 0.0
     memory_used = 0.0
     memory_percent = 0.0
-    #hard drive space
+    # Hard drive space
     storage_transcode_free = 0
     storage_transcode_percent = 0.0
     storage_completed_free = 0
@@ -21,12 +22,14 @@ class ServerUtil():
     def __init__(self):
         self.getUpdate()
 
-    def getUpdate(self):
+    def get_update(self):
         self.get_cpu_util()
         self.get_cpu_temp()
         self.get_memory()
-        self.storage_transcode_free, self.storage_transcode_percent = self.get_disk_space(cfg.arm_config['TRANSCODE_PATH'])
-        self.storage_completed_free, self.storage_completed_percent = self.get_disk_space(cfg.arm_config['COMPLETED_PATH'])
+        self.storage_transcode_free, self.storage_transcode_percent = \
+            self.get_disk_space(cfg.arm_config['TRANSCODE_PATH'])
+        self.storage_completed_free, self.storage_completed_percent = \
+            self.get_disk_space(cfg.arm_config['COMPLETED_PATH'])
 
     def get_cpu_util(self):
         try:

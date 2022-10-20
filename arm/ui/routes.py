@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+page_support_databaseupdate#!/usr/bin/env python3
 """Main routes for the A.R.M ui"""
 import os
 import platform
@@ -24,13 +24,18 @@ from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
 from arm.ui.metadata import get_omdb_poster
 from arm.ui.serverutil import ServerUtil
 
-#ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
-
 login_manager = LoginManager()
 login_manager.init_app(app)
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
 armui_cfg = models.UISettings.query.get(1)
 app.jinja_env.globals.update(armui_cfg=armui_cfg)
+
+# Page definitions
+page_index = "index.html"
+page_settings = "settings.html"
+page_support_databaseupdate = "support/databaseupdate.html"
+redirect_settings = "/settings"
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -171,19 +176,15 @@ def login():
         # If we don't raise an exception but the usr table is empty
         if not user_list:
             app.logger.debug("No admin found")
-            #Microtechno9000: setup not used anymore
-            #return_redirect = redirect(constants.SETUP_STAGE_2)
             dbform = DBUpdate(request.form)
-            return render_template('support/databaseupdate.html', db_update=db_update, dbform=dbform)
+            db_update = ui_utils.arm_db_check()
+            return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
     except Exception:
         flash(constants.NO_ADMIN_ACCOUNT, "danger")
         app.logger.debug(constants.NO_ADMIN_ACCOUNT)
-        #Microtechno9000: setup not used anymore
-        #return_redirect = redirect(constants.SETUP_STAGE_2)
         dbform = DBUpdate(request.form)
-        return render_template('support/databaseupdate.html', db_update=db_update, dbform=dbform)
-
-
+        db_update = ui_utils.arm_db_check()
+        return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
 
     # if user is logged in
     if current_user.is_authenticated:
@@ -275,9 +276,7 @@ def feed_json():
     }
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
-        #app.logger.debug(args)
         return_json = valid_modes[mode]['funct'](*args)
-    #app.logger.debug(f"Json - {return_json}")
     return_json['notes'] = json_api.get_notifications()
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
@@ -318,28 +317,28 @@ def settings():
              'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash())
              }
 
-    #System details in class server
+    # System details in class server
     server = models.SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
-    serverutil.getUpdate()
-    #System details in class server
+    serverutil.get_update()
+    # System details in class server
     arm_path = cfg.arm_config['TRANSCODE_PATH']
     media_path = cfg.arm_config['COMPLETED_PATH']
 
-    #todo, fix the form for the newer form layout
-    formDrive = SystemInfoDrives(request.form)
-    #System Drives (CD/DVD/Blueray drives)
+    # form_drive = SystemInfoDrives(request.form)
+    # System Drives (CD/DVD/Blueray drives)
     drives = ui_utils.drives_check_status()
 
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
     form = SettingsForm()
 
-    return render_template('settings.html', settings=cfg.arm_config, ui_settings=armui_cfg,
+    return render_template(page_settings, settings=cfg.arm_config, ui_settings=armui_cfg,
                            stats=stats, apprise_cfg=cfg.apprise_config,
                            form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config,
                            server=server, serverutil=serverutil, arm_path=arm_path, media_path=media_path,
-                           drives=drives, formDrive=False)
+                           drives=drives, form_drive=False)
+
 
 @app.route('/save_settings', methods=['POST'])
 @login_required
@@ -682,6 +681,7 @@ def updatetitle():
           f'{request.args.get("title")} ({request.args.get("year")})', "success")
     return redirect("/")
 
+
 @app.route('/')
 @app.route('/index.html')
 @app.route('/index')
@@ -691,21 +691,21 @@ def home():
     The main homepage showing current rips and server stats
     """
     # Force a db update
-    #Microtechno9000 comment:
-    #-Why is this being run on the main page/ingex?
-    #ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
+    # Microtechno9000 comment:
+    # -Why is this being run on the main page/ingex?
+    # ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
 
-    #Check the database is current
+    # Check the database is current
     db_update = ui_utils.arm_db_check()
     if not db_update["db_current"] or not db_update["db_exists"]:
         dbform = DBUpdate(request.form)
-        return render_template('support/databaseupdate.html', db_update=db_update, dbform=dbform)
+        return render_template(page_datbaseupdate, db_update=db_update, dbform=dbform)
 
-    #System details in class server
+    # System details in class server
     server = models.SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
-    serverutil.getUpdate()
-    #System details in class server
+    serverutil.get_update()
+    # System details in class server
     arm_path = cfg.arm_config['TRANSCODE_PATH']
     media_path = cfg.arm_config['COMPLETED_PATH']
     armname = ""
@@ -721,8 +721,9 @@ def home():
     else:
         jobs = {}
 
-    return render_template('index.html', jobs=jobs, armname=armname, children=cfg.arm_config['ARM_CHILDREN'],
+    return render_template(page_index, jobs=jobs, armname=armname, children=cfg.arm_config['ARM_CHILDREN'],
                         server=server, serverutil=serverutil, arm_path=arm_path, media_path=media_path)
+
 
 @app.route('/import_movies')
 @login_required
@@ -829,45 +830,41 @@ def handle_exception(sent_error):
 
     return render_template(constants.ERROR_PAGE, error=sent_error), 500
 
+
 @app.route('/systeminfo', methods=['POST'])
 @login_required
 def server_info():
     """
     Server System information and details on connected CD, DVD and/or BluRay Drives
     """
-    #System details in class server
-    server = models.SystemInfo.query.filter_by(id="1").first()
-    serverutil = ServerUtil()
-    serverutil.getUpdate()
-    #directories
-    arm_path = cfg['TRANSCODE_PATH']
-    media_path = cfg['COMPLETED_PATH']
-
-    #System Drives (CD/DVD/Blueray drives)
-    formDrive = SystemInfoDrives(request.form)
-    if request.method == 'POST' and formDrive.validate():
-        #return for POST
-        app.logger.debug("Drive id: " + str(formDrive.id.data) + " Updated db description: " + formDrive.description.data)
-        drive = models.SystemDrives.query.filter_by(drive_id=formDrive.id.data).first()
-        drive.description = str(formDrive.description.data).strip()
+    # System Drives (CD/DVD/Blueray drives)
+    form_drive = SystemInfoDrives(request.form)
+    if request.method == 'POST' and form_drive.validate():
+        # Return for POST
+        app.logger.debug("Drive id: " + str(form_drive.id.data) + \
+            " Updated db description: " + form_drive.description.data)
+        drive = models.SystemDrives.query.
+            filter_by(drive_id=form_drive.id.data).first()
+        drive.description = str(form_drive.description.data).strip()
         db.session.commit()
-        #return to systeminfo page (refresh page)
-        return redirect('/settings')
+        # Return to systeminfo page (refresh page)
+        return redirect(redirect_settings)
     else:
-        #return for GET
-        return redirect('/settings')
-        #drives = models.SystemDrives.query.all()
+        # Return for GET
+        return redirect(redirect_settings)
+
 
 @app.route('/systemdrivescan')
 def system_drive_scan():
     """
     Server System  - scan for a change in system, addition of drives
     """
-    #update to scan for changes from system
+    # Update to scan for changes from system
     new_count = ui_utils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
 
-    return redirect('/settings')
+    return redirect(redirect_settings)
+
 
 @app.route('/driveeject/<id>')
 @login_required
@@ -879,7 +876,8 @@ def drive_eject(id):
     drive.open_close()
     db.session.commit()
 
-    return redirect('/settings')
+    return redirect(redirect_settings)
+
 
 @app.route('/dbupdate', methods=['POST'])
 def update_database():
@@ -894,15 +892,13 @@ def update_database():
             flash("ARM database migration successful!", "success")
         elif form.dbfix.data == "new":
             app.logger.debug("User requested - New database")
-            #Microtechno9000 note:
-            #this appears to be handled by ARM on start/restart of arm_ui
             flash("ARM database setup successful!", "success")
         else:
-            #no method defined
+            # No method defined
             app.logger.debug(f"No update method defined from DB Update - {form.dbfix.data}")
             flash("Error no update method specified, report this as a bug.", "error")
 
         return redirect('/index')
     else:
-        #catch for GET requests of the page, redirect to index
+        # Catch for GET requests of the page, redirect to index
         return redirect('/index')

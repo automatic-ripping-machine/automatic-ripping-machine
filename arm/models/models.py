@@ -495,6 +495,7 @@ class Notifications(db.Model):
                 return_dict[str(key)] = str(value)
         return return_dict
 
+
 class SystemInfo(db.Model):
     """
     Class to hold the system (server) information
@@ -551,6 +552,7 @@ class SystemInfo(db.Model):
         except EnvironmentError:
             self.mem_total = 0
 
+
 class SystemDrives(db.Model):
     """
     Class to hold the system cd/dvd/blueray drive information
@@ -564,7 +566,7 @@ class SystemDrives(db.Model):
     job_id_previous = db.Column(db.Integer, db.ForeignKey("job.job_id"))
     description = db.Column(db.Unicode(200))
 
-    #relationship - join current and previous jobs to the jobs table
+    # relationship - join current and previous jobs to the jobs table
     job_current = db.relationship("Job", backref="Current", foreign_keys=[job_id_current])
     job_previous = db.relationship("Job", backref="Previous", foreign_keys=[job_id_previous])
 
@@ -600,33 +602,26 @@ class SystemDrives(db.Model):
         """update Job IDs between current and previous jobs"""
         self.job_id_previous = self.job_id_current
         self.job_id_current = None
-        #eject drive (not implemented, as job.eject() decleared in a lot of places)
-        #self.open_close()
+        # eject drive (not implemented, as job.eject() decleared in a lot of places)
+        # self.open_close()
 
     def open_close(self):
         """Open or Close the drive"""
         if self.open:
-            #If open, then close the drive
+            # If open, then close the drive
             try:
                 os.system("eject -tv " + self.mount)
                 self.open = False
             except Exception as error:
                 logging.debug(f"{self.mount} unable to be closed {error}")
         else:
-            #if closed, open/eject the drive
+            # if closed, open/eject the drive
             if self.job_id_current:
                 logging.debug(f"{self.mount} unable to eject - current job [{self.job_id_current}] is in progress.")
             else:
                 try:
-                    #commented out, as eject umounts a drive if mounted
-                    # This might always return true
-                    #if bool(os.system("umount " + self.mount)):
-                    #    logging.debug(f"Unmounted disc {self.mount}")
-                    #else:
-                    #    logging.debug(f"Failed to unmount {self.mount}")
-
-                    #eject the drive
-                    #eject returns 0 for successful, 1 for failure
+                    # eject the drive
+                    # eject returns 0 for successful, 1 for failure
                     if not bool(os.system("eject -v " + self.mount)):
                         logging.debug(f"Ejected disc {self.mount}")
                     else:

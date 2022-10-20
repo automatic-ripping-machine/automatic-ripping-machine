@@ -72,6 +72,7 @@ class AbcdeForm(FlaskForm):
     abcdeConfig = StringField('abcdeConfig', validators=[DataRequired()])
     submit = SubmitField('Submit')
 
+
 class SystemInfoDrives(FlaskForm):
     """
     SystemInformation Form, to update system drive name (nick name) and description
@@ -79,13 +80,14 @@ class SystemInfoDrives(FlaskForm):
       - /settings
     """
     id = IntegerField('id',validators=[DataRequired()])
-    description = StringField('description',validators=[DataRequired()])
+    description = StringField('description', validators=[DataRequired()])
     submit = SubmitField('Submit')
+
 
 class DBUpdate(FlaskForm):
     """
     Update or re-install the arm DB file
       - /db_update  (called from /index)
     """
-    dbfix = StringField('dbfix',validators=[DataRequired()])
+    dbfix = StringField('dbfix', validators=[DataRequired()])
     submit = SubmitField('Submit')

@@ -1,4 +1,4 @@
-{% extends "support/base_simple.html" %}
+</em>{% extends "support/base_simple.html" %}
 {% block title %}ARM Database Update or Setup{% endblock %}
 
 {% block nav %}{{ super() }}{% endblock %}
@@ -31,8 +31,8 @@
                         <li>ARM Version: {{ db_update.head_revision}}</li>
                         <li>ARM DB Version: {{ db_update.db_revision.version_num}}</li>
                     </ul>
-                    <p> The database will be migrated: <i>{{ db_update.db_file }}</i> </p>
-                    <p> A backup of the file will be created within the same folder: <i>arm_migration_(timestamp).db</i></p>
+                    <p> The database will be migrated: <em>{{ db_update.db_file }}</em> </p>
+                    <p> A backup of the file will be created within the same folder: <em>arm_migration_(timestamp).db</em></p>
                     <br>
                     <form class="" action="dbupdate" method="post">
                         {{ dbform.hidden_tag() }}

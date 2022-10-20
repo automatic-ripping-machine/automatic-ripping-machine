@@ -883,6 +883,7 @@ def get_git_commit():
     if git_version:
         logging.info(f"Branch: {git_version.group(1)} - Commit: {git_version.group(2)}")
 
+
 def update_drive_job(job):
     """
     Function to take current job task and update the associated drive ID into the database

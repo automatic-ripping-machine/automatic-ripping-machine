@@ -23,7 +23,7 @@ sys.path.append("/opt/arm")
 
 from arm.ripper import logger, utils, identify, arm_ripper  # noqa: E402
 import arm.config.config as cfg  # noqa E402
-from arm.models.models import Job, Config, SystemDrives  # noqa: E402
+from arm.models.models import Job, Config  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
 
 def entry():
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     utils.database_adder(job)
     # Sleep to lower chances of db locked - unlikely to be needed
     time.sleep(1)
-    #associate the job with the drive in the database
+    # Associate the job with the drive in the database
     utils.update_drive_job(job)
     # Add the job.config to db
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
