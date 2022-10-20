@@ -21,7 +21,7 @@ class ServerUtil():
     storage_completed_percent = 0.0
 
     def __init__(self):
-        self.getUpdate()
+        self.get_update()
 
     def get_update(self):
         self.get_cpu_util()
