@@ -843,7 +843,7 @@ def server_info():
         # Return for POST
         app.logger.debug("Drive id: " + str(form_drive.id.data) + \
             " Updated db description: " + form_drive.description.data)
-        drive = models.SystemDrives.query.
+        drive = models.SystemDrives.query. \
             filter_by(drive_id=form_drive.id.data).first()
         drive.description = str(form_drive.description.data).strip()
         db.session.commit()

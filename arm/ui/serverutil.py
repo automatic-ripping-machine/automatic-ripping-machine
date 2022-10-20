@@ -7,6 +7,7 @@ import arm.config.config as cfg
 from arm.ui import app
 from flask import flash
 
+
 class ServerUtil():
     cpu_util = 0.0
     cpu_temp = 0.0
