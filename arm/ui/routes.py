@@ -723,9 +723,9 @@ def home():
         jobs = {}
 
     return render_template("index.html", jobs=jobs, armname=armname,
-                            children=cfg.arm_config['ARM_CHILDREN'],
-                            server=server, serverutil=serverutil,
-                            arm_path=arm_path, media_path=media_path)
+                           children=cfg.arm_config['ARM_CHILDREN'],
+                           server=server, serverutil=serverutil,
+                           arm_path=arm_path, media_path=media_path)
 
 
 @app.route('/import_movies')
@@ -846,10 +846,11 @@ def server_info():
     form_drive = SystemInfoDrives(request.form)
     if request.method == 'POST' and form_drive.validate():
         # Return for POST
-        app.logger.debug("Drive id: " + str(form_drive.id.data) +
+        app.logger.debug(
+                    "Drive id: " + str(form_drive.id.data) +
                     " Updated db description: " + form_drive.description.data)
-        drive = models.SystemDrives.query. \
-                    filter_by(drive_id=form_drive.id.data).first()
+        drive = models.SystemDrives.query.filter_by(
+                                            drive_id=form_drive.id.data).first()
         drive.description = str(form_drive.description.data).strip()
         db.session.commit()
         # Return to systeminfo page (refresh page)

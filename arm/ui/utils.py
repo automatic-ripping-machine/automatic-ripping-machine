@@ -165,11 +165,13 @@ def arm_db_check():
         db_revision = arm_db_get()
         if db_revision.version_num == head_revision:
             db_current = True
-            app.logger.debug(f"Database is current. Head: {head_revision}" +
+            app.logger.debug(
+                        f"Database is current. Head: {head_revision}" +
                         f"DB: {db_revision.version_num}")
         else:
             db_current = False
-            app.logger.info("Database is not current, update required." +
+            app.logger.info(
+                        "Database is not current, update required." +
                         f" Head: {head_revision} DB: {db_revision.version_num}")
     else:
         db_exists = False
@@ -201,13 +203,15 @@ def arm_db_migrate():
     head_revision = arm_alembic_get()
     db_revision = arm_db_get()
 
-    app.logger.info(f"Database out of date." +
+    app.logger.info(
+                "Database out of date." +
                 f" Head is {head_revision} and database is {db_revision.version_num}." +
-                f" Upgrading database...")
+                " Upgrading database...")
     with app.app_context():
         time = datetime.now()
         timestamp = time.strftime("%Y-%m-%d_%H%M")
-        app.logger.info(f"Backing up database '{db_file}' " +
+        app.logger.info(
+                    f"Backing up database '{db_file}' " +
                     f"to '{db_file}_migration_{timestamp}'.")
         shutil.copy(db_file, db_file + "_migration_" + timestamp)
         flask_migrate.upgrade(mig_dir)
@@ -220,7 +224,8 @@ def arm_db_migrate():
         app.logger.info("Database is now up to date")
         arm_db_initialise()
     else:
-        app.logger.error(f"Database is still out of date. " +
+        app.logger.error(
+                    "Database is still out of date. " +
                     f"Head is {head_revision} and database " +
                     f"is {db_revision.version_num}.  Exiting arm.")
 
@@ -873,7 +878,7 @@ def drives_search():
     context = pyudev.Context()
 
     for device in context.list_devices(subsystem='block'):
-        regexoutput = re.search('(/dev/sr\d)', device.device_node)
+        regexoutput = re.search(r'(/dev/sr\d)', device.device_node)
         if regexoutput:
             app.logger.debug(f"regex output: {regexoutput.group()}")
             udev_drives.append(regexoutput.group())
@@ -930,7 +935,7 @@ def drives_check_status():
     drives = models.SystemDrives.query.all()
     for drive in drives:
         # Check if the current job is active, if not remove current job_current id
-        if not drive.job_id_current == None:
+        if drive.job_id_current > 0:
             if drive.job_current.status == "success" or drive.job_current.status == "fail":
                 drive.job_finished()
                 db.session.commit()
