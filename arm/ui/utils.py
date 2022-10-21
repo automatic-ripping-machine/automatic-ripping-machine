@@ -8,6 +8,7 @@ import json
 import platform
 import subprocess
 import re
+import pyudev
 from datetime import datetime
 from pathlib import Path
 
@@ -22,8 +23,6 @@ import arm.config.config as cfg
 from arm.ui import app, db
 from arm.models import models
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
-
-from pyudev import Context
 
 # Path definitions
 path_migrations = "arm/migrations"
@@ -166,12 +165,12 @@ def arm_db_check():
         db_revision = arm_db_get()
         if db_revision.version_num == head_revision:
             db_current = True
-            app.logger.debug(f"Database is current. Head: {head_revision}" + \
-                f"DB: {db_revision.version_num}")
+            app.logger.debug(f"Database is current. Head: {head_revision}" +
+                        f"DB: {db_revision.version_num}")
         else:
             db_current = False
-            app.logger.info(f"Database is not current, update required." + \
-                f" Head: {head_revision} DB: {db_revision.version_num}")
+            app.logger.info("Database is not current, update required." +
+                        f" Head: {head_revision} DB: {db_revision.version_num}")
     else:
         db_exists = False
         db_current = False
@@ -202,14 +201,14 @@ def arm_db_migrate():
     head_revision = arm_alembic_get()
     db_revision = arm_db_get()
 
-    app.logger.info(f"Database out of date." + \
-        f" Head is {head_revision} and database is {db_revision.version_num}." + \
-        f" Upgrading database...")
+    app.logger.info(f"Database out of date." +
+                f" Head is {head_revision} and database is {db_revision.version_num}." +
+                f" Upgrading database...")
     with app.app_context():
         time = datetime.now()
         timestamp = time.strftime("%Y-%m-%d_%H%M")
-        app.logger.info(f"Backing up database '{db_file}' " + \
-            f"to '{db_file}_migration_{timestamp}'.")
+        app.logger.info(f"Backing up database '{db_file}' " +
+                    f"to '{db_file}_migration_{timestamp}'.")
         shutil.copy(db_file, db_file + "_migration_" + timestamp)
         flask_migrate.upgrade(mig_dir)
     app.logger.info("Upgrade complete.  Validating version level...")
@@ -221,9 +220,9 @@ def arm_db_migrate():
         app.logger.info("Database is now up to date")
         arm_db_initialise()
     else:
-        app.logger.error(f"Database is still out of date. " + \
-            f"Head is {head_revision} and database " + \
-            f"is {db_revision.version_num}.  Exiting arm.")
+        app.logger.error(f"Database is still out of date. " +
+                    f"Head is {head_revision} and database " +
+                    f"is {db_revision.version_num}.  Exiting arm.")
 
 
 def arm_db_initialise():
@@ -874,7 +873,7 @@ def drives_search():
     context = pyudev.Context()
 
     for device in context.list_devices(subsystem='block'):
-        regexoutput = re.search('(\/dev\/sr\d)', device.device_node)
+        regexoutput = re.search('(/dev/sr\d)', device.device_node)
         if regexoutput:
             app.logger.debug(f"regex output: {regexoutput.group()}")
             udev_drives.append(regexoutput.group())
@@ -931,7 +930,7 @@ def drives_check_status():
     drives = models.SystemDrives.query.all()
     for drive in drives:
         # Check if the current job is active, if not remove current job_current id
-        if drive.job_id_current != None:
+        if not drive.job_id_current == None:
             if drive.job_current.status == "success" or drive.job_current.status == "fail":
                 drive.job_finished()
                 db.session.commit()

@@ -7,7 +7,6 @@ import json
 from pathlib import Path, PurePath
 import importlib
 import bcrypt
-import psutil
 from werkzeug.exceptions import HTTPException
 from werkzeug.routing import ValidationError
 from flask import Flask, render_template, request, send_file, flash, \
@@ -177,9 +176,6 @@ def login():
         # If we don't raise an exception but the usr table is empty
         if not user_list:
             app.logger.debug("No admin found")
-            dbform = DBUpdate(request.form)
-            db_update = ui_utils.arm_db_check()
-            return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
     except Exception:
         flash(constants.NO_ADMIN_ACCOUNT, "danger")
         app.logger.debug(constants.NO_ADMIN_ACCOUNT)
@@ -693,6 +689,8 @@ def home():
     """
     The main homepage showing current rips and server stats
     """
+    global page_support_databaseupdate
+
     # Force a db update
     # Microtechno9000 comment:
     # -Why is this being run on the main page/ingex?
@@ -702,7 +700,7 @@ def home():
     db_update = ui_utils.arm_db_check()
     if not db_update["db_current"] or not db_update["db_exists"]:
         dbform = DBUpdate(request.form)
-        return render_template(page_datbaseupdate, db_update=db_update, dbform=dbform)
+        return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
 
     # System details in class server
     server = models.SystemInfo.query.filter_by(id="1").first()
@@ -724,8 +722,10 @@ def home():
     else:
         jobs = {}
 
-    return render_template("index.html", jobs=jobs, armname=armname, children=cfg.arm_config['ARM_CHILDREN'],
-                        server=server, serverutil=serverutil, arm_path=arm_path, media_path=media_path)
+    return render_template("index.html", jobs=jobs, armname=armname,
+                            children=cfg.arm_config['ARM_CHILDREN'],
+                            server=server, serverutil=serverutil,
+                            arm_path=arm_path, media_path=media_path)
 
 
 @app.route('/import_movies')
@@ -846,10 +846,10 @@ def server_info():
     form_drive = SystemInfoDrives(request.form)
     if request.method == 'POST' and form_drive.validate():
         # Return for POST
-        app.logger.debug("Drive id: " + str(form_drive.id.data) + \
-            " Updated db description: " + form_drive.description.data)
+        app.logger.debug("Drive id: " + str(form_drive.id.data) +
+                    " Updated db description: " + form_drive.description.data)
         drive = models.SystemDrives.query. \
-            filter_by(drive_id=form_drive.id.data).first()
+                    filter_by(drive_id=form_drive.id.data).first()
         drive.description = str(form_drive.description.data).strip()
         db.session.commit()
         # Return to systeminfo page (refresh page)
@@ -868,7 +868,6 @@ def system_drive_scan():
     # Update to scan for changes from system
     new_count = ui_utils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
-
     return redirect(redirect_settings)
 
 
@@ -879,11 +878,9 @@ def drive_eject(id):
     Server System  - change state of CD/DVD/BluRay drive - toggle eject
     """
     global redirect_settings
-    
     drive = models.SystemDrives.query.filter_by(drive_id=id).first()
     drive.open_close()
     db.session.commit()
-
     return redirect(redirect_settings)
 
 
