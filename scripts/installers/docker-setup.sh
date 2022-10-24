@@ -79,7 +79,7 @@ function save_start_command() {
     cd ~arm
     sudo -u arm curl -fsSL "$url" -o start_arm_container.sh
     chmod +x start_arm_container.sh
-    sed -i "s/IMAGE_NAME/${IMAGE}" start_arm_container.sh
+    sed -i "s|IMAGE_NAME|${IMAGE}|" start_arm_container.sh
 }
 
 
