@@ -40,7 +40,7 @@ function install_os_tools() {
     sudo apt install lsscsi net-tools -y
     sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
     sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install
-    sudo apt install git -y
+    sudo apt install git curl -y
 }
 
 function add_arm_user() {
