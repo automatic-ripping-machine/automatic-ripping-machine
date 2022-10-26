@@ -26,8 +26,18 @@ from arm.ui.serverutil import ServerUtil
 login_manager = LoginManager()
 login_manager.init_app(app)
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
-armui_cfg = models.UISettings.query.get(1)
-app.jinja_env.globals.update(armui_cfg=armui_cfg)
+db_update = ui_utils.arm_db_check()
+# Check if the databsee exists prior to creating global ui settings
+if not db_update["db_exists"]:
+    app.logger.debug("No armui cfg setup")
+    ui_utils.setup_database(cfg.arm_config['INSTALLPATH'])
+
+    armui_cfg = models.UISettings.query.get(1)
+    app.jinja_env.globals.update(armui_cfg=armui_cfg)
+
+else:
+    armui_cfg = models.UISettings.query.get(1)
+    app.jinja_env.globals.update(armui_cfg=armui_cfg)
 
 # Page definitions
 page_settings = "settings.html"
@@ -90,7 +100,7 @@ def setup():
     perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
     app.logger.debug("perm " + str(perm_file))
     # Check for install file and that db is correctly setup
-    if perm_file.exists() and ui_utils.setup_database(cfg['INSTALLPATH']):
+    if perm_file.exists() and ui_utils.setup_database(cfg.arm_config['INSTALLPATH']):
         flash(f"{perm_file} exists, setup cannot continue. To re-install please delete this file.", "danger")
         return redirect("/")
     dir0 = Path(PurePath(cfg.arm_config['DBFILE']).parent)
