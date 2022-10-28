@@ -1,5 +1,5 @@
-[submodule "arm-dependencies"]
-	path = arm-dependencies
+[submodule "arm-dependencies-old"]
+	path = arm-dependencies-old
 	url = https://github.com/automatic-ripping-machine/arm-dependencies
 	branch = main
 	update = rebase
