@@ -30,6 +30,7 @@ db_update = ui_utils.arm_db_check()
 # Check if the databsee exists prior to creating global ui settings
 if not db_update["db_exists"]:
     app.logger.debug("No armui cfg setup")
+    ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
     ui_utils.setup_database(cfg.arm_config['INSTALLPATH'])
 
     armui_cfg = models.UISettings.query.get(1)

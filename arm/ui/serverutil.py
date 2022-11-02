@@ -41,7 +41,10 @@ class ServerUtil():
     def get_cpu_temp(self):
         try:
             temps = psutil.sensors_temperatures()
-            self.cpu_temp = temps['coretemp'][0][1]
+            if not len(temps) == 0:
+                self.cpu_temp = temps['coretemp'][0][1]
+            else:
+                self.cpu_temp = 0
         except EnvironmentError:
             self.cpu_temp = 0
 
