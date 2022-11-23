@@ -384,32 +384,42 @@ def setup_database(install_path):
     else:
         app.logger.debug("Found User table but didnt find any admins... triggering db wipe")
     #  Wipe everything
-    try:
-        db.drop_all()
-    except Exception:
-        app.logger.debug("Couldn't drop all")
+    #try:
+    #    db.drop_all()
+    #except Exception:
+    #    app.logger.debug("Couldn't drop all")
     try:
         #  Recreate everything
         db.metadata.create_all(db.engine)
         db.create_all()
         db.session.commit()
-        #  push the database version arm is looking for
-        mig_dir = os.path.join(install_path, path_migrations)
-        config = Config()
-        config.set_main_option("script_location", mig_dir)
-        script = ScriptDirectory.from_config(config)
-        head_revision = script.get_current_head()
-        app.logger.debug("Alembic Head is: " + head_revision)
-        alembicversion = models.AlembicVersion(head_revision)
+        # Database Version
+        #mig_dir = os.path.join(install_path, path_migrations)
+        #config = Config()
+        #config.set_main_option("script_location", mig_dir)
+        #script = ScriptDirectory.from_config(config)
+        #head_revision = script.get_current_head()
+        #alembicversion = models.AlembicVersion(head_revision)
+        #db.session.add(alembicversion)
+        #app.logger.debug("DB Init - AlembicVersion loaded " + head_revision)
+        # UI Config
         ui_config = models.UISettings(1, 1, "spacelab", "en", 2000, 200)
+        db.session.add(ui_config)
+        app.logger.debug("DB Init - UI Config loaded")
         # Create default user to save problems with ui and ripper having diff setups
         hashed = bcrypt.gensalt(12)
         default_user = models.User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
                                    hashed=hashed)
-        db.session.add(ui_config)
-        db.session.add(alembicversion)
+        app.logger.debug("DB Init - Admin user loaded")
         db.session.add(default_user)
+        # Server config
+        server = models.SystemInfo()
+        db.session.add(server)
+        app.logger.debug("DB Init - Server info loaded")
         db.session.commit()
+        # Scan and load drives to database
+        drives_update()
+        app.logger.debug("DB Init - Drive info loaded")
         return True
     except Exception:
         app.logger.debug("Couldn't create all")
