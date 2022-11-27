@@ -818,7 +818,7 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
         logging.debug(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
         logging.debug(f"Value of have_dupes: {have_dupes}")
         if cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
-            hb_out_path = hb_out_path + " " + job.stage
+            hb_out_path = hb_out_path + "_" + job.stage
             if not (make_dir(hb_out_path)):
                 # We failed to make a random directory, most likely a permission issue
                 logging.exception(
