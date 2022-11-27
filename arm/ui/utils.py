@@ -370,7 +370,6 @@ def setup_database(install_path):
     """
     Try to get the db.User if not we nuke everything
     """
-    from alembic.script import ScriptDirectory
     from alembic.config import Config  # noqa: F811
 
     # This checks for a user table
@@ -382,12 +381,8 @@ def setup_database(install_path):
     except Exception:
         app.logger.debug("Couldn't find a user table")
     else:
-        app.logger.debug("Found User table but didnt find any admins... triggering db wipe")
-    #  Wipe everything
-    try:
-        db.drop_all()
-    except Exception:
-        app.logger.debug("Couldn't drop all")
+        app.logger.debug("Found User table but didnt find any admins...")
+
     try:
         #  Recreate everything
         db.metadata.create_all(db.engine)
@@ -904,10 +899,17 @@ def drives_update():
     for drive_mount in udev_drives:
         # Check drive doesnt already exist
         if not models.SystemDrives.query.filter_by(mount=drive_mount).first():
-            # Find the last job the drive ran, return the id
-            last_job = models.Job.query.order_by(db.desc(models.Job.job_id)).filter_by(devpath=drive_mount).first()
+            # Check if the Job database is empty
+            jobs = models.Job.query.all()
+            app.logger.debug(jobs)
+            if len(jobs) is not 0:
+                # Find the last job the drive ran, return the id
+                last_job_id = models.Job.query.order_by(db.desc(models.Job.job_id)).filter_by(devpath=drive_mount).first()
+                last_job = last_job.job_id
+            else:
+                last_job = None
             # Create new disk (name, type, mount, open, job id, previos job id, description )
-            db_drive = models.SystemDrives(f"Drive {i}", drive_mount, None, last_job.job_id, "Classic burner")
+            db_drive = models.SystemDrives(f"Drive {i}", drive_mount, None, last_job, "Classic burner")
             app.logger.debug("****** Drive Information ******")
             app.logger.debug(f"Name: {db_drive.name}")
             app.logger.debug(f"Type: {db_drive.type}")
