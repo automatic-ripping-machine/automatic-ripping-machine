@@ -370,7 +370,6 @@ def setup_database(install_path):
     """
     Try to get the db.User if not we nuke everything
     """
-    from alembic.config import Config  # noqa: F811
 
     # This checks for a user table
     try:
@@ -902,10 +901,11 @@ def drives_update():
             # Check if the Job database is empty
             jobs = models.Job.query.all()
             app.logger.debug(jobs)
-            if len(jobs) is not 0:
+            if len(jobs) != 0:
                 # Find the last job the drive ran, return the id
-                last_job_id = models.Job.query.order_by(db.desc(models.Job.job_id)).filter_by(devpath=drive_mount).first()
-                last_job = last_job.job_id
+                last_job_id = models.Job.query.order_by(db.desc(models.Job.job_id)).
+                                        filter_by(devpath=drive_mount).first()
+                last_job = last_job_id.job_id
             else:
                 last_job = None
             # Create new disk (name, type, mount, open, job id, previos job id, description )
