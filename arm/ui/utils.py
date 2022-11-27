@@ -903,7 +903,7 @@ def drives_update():
             app.logger.debug(jobs)
             if len(jobs) != 0:
                 # Find the last job the drive ran, return the id
-                last_job_id = models.Job.query.order_by(db.desc(models.Job.job_id)).
+                last_job_id = models.Job.query.order_by(db.desc(models.Job.job_id)). \
                                         filter_by(devpath=drive_mount).first()
                 last_job = last_job_id.job_id
             else:
