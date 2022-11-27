@@ -235,7 +235,7 @@ def get_track_info(srcpath, job):
     logging.debug(f"Sending command: {cmd}")
     hand_break_output = handbrake_char_encoding(cmd)
 
-    if hand_break_output is not none:
+    if hand_break_output is not None:
         t_pattern = re.compile(r'.*\+ title *')
         pattern = re.compile(r'.*duration:.*')
         seconds = 0
@@ -270,7 +270,6 @@ def get_track_info(srcpath, job):
         logging.info("HandBrake unable to get track information")
 
     utils.put_track(job, t_no, seconds, aspect, fps, main_feature, "HandBrake")
-
 
 
 def title_finder(aspect, fps, job, line, main_feature, seconds, t_no, t_pattern):
