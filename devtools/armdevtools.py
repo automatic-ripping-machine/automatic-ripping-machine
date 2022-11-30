@@ -45,7 +45,7 @@ def git_branch_change(git_branch):
 
             # Restart the UI once git has worked
             armui.start()
-        except:
+        except Error:
             log.error(f"Something has gone wrong, unable to check out {git_branch}")
             log.info("ARM UI currently stopped, fix git error then restart ARM UI")
 
@@ -72,9 +72,11 @@ parser.add_argument("-db_rem",
                     help="Database tool - remove current arm.db file",
                     action='store_true')
 parser.add_argument("-db_roll",
-                    help="Database tool - roll the current database back a version, input number of versions to roll back.")
+                    help="Database tool - roll the current database back a version," +
+                    "input number of versions to roll back.")
 parser.add_argument("-db_data",
-                    help="Database tool - populate the database with Lorem Ipsum data. Requires the active database to be the most current",
+                    help="Database tool - populate the database with Lorem Ipsum data. " +
+                    "Requires the active database to be the most current",
                     action='store_true')
 parser.add_argument("-v", help="ARM Dev Tools Version",
                     action='version',

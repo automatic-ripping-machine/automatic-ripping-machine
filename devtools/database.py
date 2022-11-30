@@ -5,8 +5,6 @@
     ARM UI management tools
 """
 
-import os
-import sys
 import log
 
 

@@ -6,7 +6,6 @@
 """
 
 import os
-import sys
 import log
 
 
@@ -17,7 +16,7 @@ def stop():
     try:
         os.system("sudo systemctl stop armui.service")
         log.info("ARM UI stopped")
-    except:
+    except Error:
         log.error("ARM UI unable to stop")
 
 
@@ -28,5 +27,5 @@ def start():
     try:
         os.system("sudo systemctl start armui.service")
         log.info("ARM UI started")
-    except:
+    except Error:
         log.error("ARM UI unable to start")
