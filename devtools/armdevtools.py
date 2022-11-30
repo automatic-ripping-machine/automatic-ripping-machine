@@ -45,7 +45,7 @@ def git_branch_change(git_branch):
 
             # Restart the UI once git has worked
             armui.start()
-        except Exception as error::
+        except Exception as error:
             log.error(f"Something has gone wrong, unable to check out {git_branch}")
             log.info("ARM UI currently stopped, fix git error then restart ARM UI")
 

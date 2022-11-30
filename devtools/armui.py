@@ -16,7 +16,7 @@ def stop():
     try:
         os.system("sudo systemctl stop armui.service")
         log.info("ARM UI stopped")
-    except Exception as error::
+    except Exception as error:
         log.error("ARM UI unable to stop")
 
 
