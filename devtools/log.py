@@ -38,4 +38,4 @@ def info(msg):
 #  INPUT: message
 #  OUTPUT: print to console with error
 def error(msg):
-    console(msg, 1)
+    console(f"ERROR: {msg}", 1)

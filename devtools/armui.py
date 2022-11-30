@@ -17,7 +17,7 @@ def stop():
         os.system("sudo systemctl stop armui.service")
         log.info("ARM UI stopped")
     except Exception as error:
-        log.error("ARM UI unable to stop")
+        log.error(f"ARM UI unable to stop - {error}")
 
 
 # Start the ARM UI
@@ -27,5 +27,5 @@ def start():
     try:
         os.system("sudo systemctl start armui.service")
         log.info("ARM UI started")
-    except Exception as error::
-        log.error("ARM UI unable to start")
+    except Exception as error:
+        log.error(f"ARM UI unable to start - {error}")
