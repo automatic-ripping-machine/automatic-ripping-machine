@@ -5,7 +5,6 @@
     log to cli and file manager
 """
 
-import os
 from colorama import Fore, Style
 
 
