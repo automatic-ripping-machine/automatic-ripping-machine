@@ -103,7 +103,7 @@ def process_single_tracks(job, logfile, rawpath):
             filepathname = os.path.join(rawpath, track.filename)
             logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
 
-            cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r --progress=-stdout --messages=-stdout' \
+            cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r --progress=-stdout --messages=-stdout ' \
                   f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)} ' \
                   f'--minlength={job.config.MINLENGTH}>> {logfile}'
             # Possibly update db to say track was ripped
