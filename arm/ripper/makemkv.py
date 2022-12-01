@@ -108,7 +108,7 @@ def process_tracks(job, logfile, rawpath):
             filepathname = os.path.join(rawpath, track.filename)
             logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
 
-            cmd = 'makemkvcon mkv {0} -r --progress=-stdout --messages=-stdout' \
+            cmd = 'makemkvcon mkv {0} -r --progress=-stdout --messages=-stdout ' \
                   'dev:{1} {2} {3} --minlength={4}>> {5}'.format(cfg["MKV_ARGS"],
                                                                  job.devpath,
                                                                  str(track.track_number),
