@@ -396,7 +396,9 @@ def save_ui_settings():
         arm_ui_cfg.database_limit = format(form.database_limit.data)
         db.session.commit()
         success = True
-    app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
+    # Masking the jinja update, otherwise an error is thrown
+    # sqlalchemy.orm.exc.DetachedInstanceError: Instance <UISettings at 0x7f294c109fd0>
+    # app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
     return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
 
 
