@@ -388,9 +388,7 @@ def setup_database(install_path):
         db.create_all()
         db.session.commit()
         # UI Config
-        ui_config = models.UISettings(1, 1, "spacelab", "en", 2000, 200)
-        db.session.add(ui_config)
-        app.logger.debug("DB Init - UI Config loaded")
+        # UI config is already set within the alembic migration file - 9cae4aa05dd7_create_settingsui_table.py
         # Create default user to save problems with ui and ripper having diff setups
         hashed = bcrypt.gensalt(12)
         default_user = models.User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),

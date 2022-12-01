@@ -34,6 +34,13 @@ def info(msg):
     console(f"INFO: {msg}")
 
 
+# Print info message to console
+#  INPUT: message
+#  OUTPUT: print to console
+def success(msg):
+    console(f"INFO: {msg}", 0)
+
+
 # Print error message
 #  INPUT: message
 #  OUTPUT: print to console with error

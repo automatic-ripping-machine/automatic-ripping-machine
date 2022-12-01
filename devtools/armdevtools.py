@@ -16,19 +16,6 @@ arm_home = "/home/arm"
 arm_install = "/opt/arm"
 
 
-# Dev Tools help output
-#  INPUT: None
-#  OUTPUT: to console
-def help():
-    print("Automatic Ripping Machine Development Tool Scripts\n")
-    print("Usage: armdevtools [options]")
-    print("OPTIONS:")
-    print("-b \t Name of the branch to move to, example -b v2_devel")
-    print("-d \t Clear the arm home folder, remove all directories and files")
-    print("-h \t This help")
-    print("-v \t Version")
-
-
 # Change the git repository branch to another
 #  INPUT: git_branch
 #  OUTPUT: none

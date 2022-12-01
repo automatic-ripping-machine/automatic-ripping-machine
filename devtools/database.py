@@ -5,7 +5,14 @@
     ARM UI management tools
 """
 
+import os
+import armui
 import log
+
+# DB variables
+arm_home = "/home/arm"
+path_db = arm_home + "/db/"
+file_db = "arm.db"
 
 
 # Remove the current ARM database file
@@ -13,7 +20,19 @@ import log
 #  OUTPUT: none
 def remove():
     # todo, make this do something
-    log.info("remove the arm db file")
+    log.info("Removing the ARM DB file")
+    # Stop the UI to avoid issues
+    armui.stop()
+    try:
+        os.system(f"rm {path_db}{file_db}")
+        log.success(f"ARM DB {path_db}{file_db} removed")
+
+        # Restart the UI once git has worked
+        armui.start()
+    except Exception as error:
+        log.error(f"Something has gone wrong, unable to remove {path_db}{file_db}")
+        log.error(f" - {error}")
+        log.info("ARM UI currently stopped, fix git error then restart ARM UI")
 
 
 # Roll back the current arm.db file
