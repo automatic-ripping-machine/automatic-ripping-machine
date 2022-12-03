@@ -2,4 +2,4 @@
 
 #requirements added for PR#551
 argparse==1.4.0
-colorama=0.4.4
+colorama==0.4.4
