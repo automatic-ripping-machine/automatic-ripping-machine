@@ -16,7 +16,7 @@ def _load_config(fp):
 
 
 def load_abcde(fp):
-    with open(abcde_config_path, "r") as abcde_read_file:
+    with open(fp, "r") as abcde_read_file:
         config = abcde_read_file.read()
     return config
 
