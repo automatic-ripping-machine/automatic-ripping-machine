@@ -15,7 +15,15 @@ def _load_config(fp):
     return config
 
 
+def load_abcde(fp):
+    with open(fp, "r") as abcde_read_file:
+        config = abcde_read_file.read()
+    return config
+
+
+# aprise config, open and read yaml contents
 apprise_config = _load_config(apprise_config_path)
+# arm config, open and read yaml contents
 arm_config = _load_config(arm_config_path)
-with open(abcde_config_path, "r") as abcde_read_file:
-    abcde_config = abcde_read_file.read()
+# abcde config file, open and read contents
+abcde_config = load_abcde(abcde_config_path)
