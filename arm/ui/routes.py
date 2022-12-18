@@ -385,6 +385,8 @@ def save_abcde():
             abcde_file.write(abcde_cfg_str)
             abcde_file.close()
         success = True
+        # Update the abcde config
+        cfg.abcde_config = abcde_cfg_str
     # If we get to here there was no post data
     return {'success': success, 'settings': abcde_cfg_str, 'form': 'abcde config'}
 
