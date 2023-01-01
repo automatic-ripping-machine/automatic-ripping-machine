@@ -706,11 +706,6 @@ def home():
     """
     global page_support_databaseupdate
 
-    # Force a db update
-    # Microtechno9000 comment:
-    # -Why is this being run on the main page/ingex?
-    # ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
-
     # Check the database is current
     db_update = ui_utils.arm_db_check()
     if not db_update["db_current"] or not db_update["db_exists"]:
