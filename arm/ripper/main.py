@@ -440,55 +440,56 @@ if __name__ == "__main__":
     if logfile.find("empty.log") != -1 or re.search("NAS_[0-9].?log", logfile) is not None:
         sys.exit()
     # This will kill any runs that have been triggered twice on the same device
-    running_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success']), Job.devpath == devpath).all()
-    if len(running_jobs) >= 1:
-        for j in running_jobs:
-            print(j.start_time - datetime.datetime.now())
-            z = int(round(abs(j.start_time - datetime.datetime.now()).total_seconds()) / 60)
-            if z <= 1:
-                logging.error(f"Job already running on {devpath}")
-                sys.exit(1)
+    with app.app_context():
+        running_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success']), Job.devpath == devpath).all()
+        if len(running_jobs) >= 1:
+            for j in running_jobs:
+                print(j.start_time - datetime.datetime.now())
+                z = int(round(abs(j.start_time - datetime.datetime.now()).total_seconds()) / 60)
+                if z <= 1:
+                    logging.error(f"Job already running on {devpath}")
+                    sys.exit(1)
 
-    logging.info(f"Starting ARM processing at {datetime.datetime.now()}")
+        logging.info(f"Starting ARM processing at {datetime.datetime.now()}")
 
-    utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
+        utils.check_db_version(cfg['INSTALLPATH'], cfg['DBFILE'])
 
-    # put in db
-    job.status = "active"
-    job.start_time = datetime.datetime.now()
-    utils.database_adder(job)
+        # put in db
+        job.status = "active"
+        job.start_time = datetime.datetime.now()
+        utils.database_adder(job)
 
-    time.sleep(1)
-    config = Config(cfg, job_id=job.job_id)
-    utils.database_adder(config)
+        time.sleep(1)
+        config = Config(cfg, job_id=job.job_id)
+        utils.database_adder(config)
 
-    # Log version number
-    with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
-        version = version_file.read().strip()
-    logging.info(f"ARM version: {version}")
-    job.arm_version = version
-    logging.info(("Python version: " + sys.version).replace('\n', ""))
-    logging.info(f"User is: {getpass.getuser()}")
-    logger.clean_up_logs(cfg["LOGPATH"], cfg["LOGLIFE"])
-    logging.info(f"Job: {job.label}")
-    utils.clean_old_jobs()
-    log_udev_params(devpath)
+        # Log version number
+        with open(os.path.join(cfg["INSTALLPATH"], 'VERSION')) as version_file:
+            version = version_file.read().strip()
+        logging.info(f"ARM version: {version}")
+        job.arm_version = version
+        logging.info(("Python version: " + sys.version).replace('\n', ""))
+        logging.info(f"User is: {getpass.getuser()}")
+        logger.clean_up_logs(cfg["LOGPATH"], cfg["LOGLIFE"])
+        logging.info(f"Job: {job.label}")
+        utils.clean_old_jobs()
+        log_udev_params(devpath)
 
-    try:
-        main(logfile, job)
-    except Exception as e:
-        logging.exception("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
-        utils.notify(job, NOTIFY_TITLE, "ARM encountered a fatal error processing "
-                                        f"{job.title}. Check the logs for more details. {e}")
-        job.status = "fail"
-        job.eject()
-    else:
-        job.status = "success"
-    finally:
-        job.stop_time = datetime.datetime.now()
-        joblength = job.stop_time - job.start_time
-        minutes, seconds = divmod(joblength.seconds + joblength.days * 86400, 60)
-        hours, minutes = divmod(minutes, 60)
-        total_len = '{:d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
-        job.job_length = total_len
-        db.session.commit()
+        try:
+            main(logfile, job)
+        except Exception as e:
+            logging.exception("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
+            utils.notify(job, NOTIFY_TITLE, "ARM encountered a fatal error processing "
+                                            f"{job.title}. Check the logs for more details. {e}")
+            job.status = "fail"
+            job.eject()
+        else:
+            job.status = "success"
+        finally:
+            job.stop_time = datetime.datetime.now()
+            joblength = job.stop_time - job.start_time
+            minutes, seconds = divmod(joblength.seconds + joblength.days * 86400, 60)
+            hours, minutes = divmod(minutes, 60)
+            total_len = '{:d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+            job.job_length = total_len
+            db.session.commit()
