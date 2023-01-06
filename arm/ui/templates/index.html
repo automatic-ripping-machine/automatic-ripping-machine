@@ -55,68 +55,12 @@
             </div>
         </div>
     </div>
-    <div class="row" style="height: 30px;"></div>
-    <div class="row h-100 mx-auto align-items-center">
-        <div class="col-sm-4 mx-auto"></div>
-        <div class="col-sm-4 text-center mx-auto">
-            <div class="card mx-auto">
-                <div class="card-header">
-                    <strong>Server Specs</strong>
-                </div>
-                <ul class="list-group list-group-flush">
-                    {% if mfreegb != freegb %}
-                        <li class="list-group-item">Free Space
-                            <br>ARM: {{ freegb }} GB
-                            <br>Media: {{ mfreegb }} GB
-                        </li>
-                    {% else %}
-                        <li class="list-group-item">
-                            <h6 class="progress-label" style="float: left;margin-right: 1em;">Storage Used: </h6>
-                            <div class="progress">
-                                <div class="progress-bar{{ ' bg-danger' if arm_percent > 80 }}" role="progressbar"
-                                     style="width: {{ arm_percent }}%;" aria-valuenow="{{ arm_percent }}"
-                                     aria-valuemin="0" aria-valuemax="100">{{ arm_percent }}%
-                                </div>
-                            </div>
-                            <br>
-                            <p>Free Space: {{ freegb }} GB</p>
-                        </li>
-                    {% endif %}
 
-                    <li class="list-group-item">CPU: {{ cpu }}
-                        {% if cputemp is not none %}
-                            <br>
-                            <p class="{{ ' bg-danger text-white' if cputemp > 70 }}">CPU Temp: {{ cputemp }}&#176;C</p>
-                        {% endif %}
-                        <h6 class="progress-label" style="float: left;margin-right: 1em;">CPU Usage: </h6>
-                        <div class="progress">
-                            <div class="progress-bar{{ ' bg-danger' if cpu_usage > 80 }}" role="progressbar"
-                                 style="width: {{ ' 10' if cpu_usage < 10 else cpu_usage }}%;"
-                                 aria-valuenow="{{ cpu_usage }}" aria-valuemin="10" aria-valuemax="100">{{ cpu_usage }}%
-                            </div>
-                        </div>
-                    </li>
-                    <li class="list-group-item">
-                        <h6 class="progress-label" style="float: left;margin-right: 1em;">RAM Usage: </h6>
-                        <div class="progress">
-                            <div class="progress-bar{{ ' bg-danger' if ram_percent > 80 }}" role="progressbar"
-                                 style="width: {{ ram_percent }}%;" aria-valuenow="{{ ram_percent }}" aria-valuemin="0"
-                                 aria-valuemax="100">{{ ram_percent }}%
-                            </div>
-                        </div>
-                        <br>{{ ram }} GB total
-                        <br> {{ ramfree }} GB free
-                        <br> {{ ramused }} GB Used
-                    </li>
-                    <li class="list-group-item" id="children">
-                        {{ children }}
-                    </li>
-                </ul>
-            </div>
-        </div>
-        <div class="col-sm-4 mx-auto"></div>
-    </div>
-    </div>
+    <div class="row" style="height: 30px;"></div>
+    <p class="text-center">
+        <h5 class="text-center"><strong>System Information</strong></h5>
+    </p>
+    {% include 'settings/sysinfo.html' %}
     <script type="application/javascript" src="static/js/common.js"></script>
     <script type="application/javascript" src="static/js/jobRefresh.js"></script>
     <script type="application/javascript">

@@ -1,0 +1,25 @@
+{% block ripper %}
+    <div class="tab-pane pt-5" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+        <form id="ripperSettings" name="ripperSettings" method="post" action="">
+            {{ form.hidden_tag() }}
+            {% for k, v in settings.items() %}
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text" id="{{ k }}">{{ k }}: </span>
+                    </div>
+                    <input type="text" class="form-control" aria-label="{{ k }}" name="{{ k }}"
+                           placeholder="{{ v }}" value="{{ v }}" aria-describedby="{{ k }}">
+                    <a class="popovers" onClick='return false;' href=""
+                       data-content="{{ jsoncomments[k]| replace("#", "\n") }}" rel="popover"
+                       data-placement="top" data-original-title="{{ k }}">
+                        <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
+                             height="35px" alt="More Info">
+                    </a>
+                </div>
+            {% endfor %}
+            <button id="settings" class="btn btn-secondary btn-lg btn-block" form="ripperSettings"
+                    type="submit">Submit
+            </button>
+        </form>
+    </div>
+{% endblock %}

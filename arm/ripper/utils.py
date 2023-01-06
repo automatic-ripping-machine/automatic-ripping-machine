@@ -818,7 +818,7 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
         logging.debug(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
         logging.debug(f"Value of have_dupes: {have_dupes}")
         if cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
-            hb_out_path = hb_out_path + " " + job.stage
+            hb_out_path = hb_out_path + "_" + job.stage
             if not (make_dir(hb_out_path)):
                 # We failed to make a random directory, most likely a permission issue
                 logging.exception(
@@ -882,3 +882,17 @@ def get_git_commit():
     git_version = re.search(r"^\* (\S+)\ncommit ([a-z\d]{5,7})", str(git_output))
     if git_version:
         logging.info(f"Branch: {git_version.group(1)} - Commit: {git_version.group(2)}")
+
+
+def update_drive_job(job):
+    """
+    Function to take current job task and update the associated drive ID into the database
+    """
+    drive = models.SystemDrives.query.filter_by(mount=job.devpath).first()
+    drive.new_job(job.job_id)
+    logging.debug(f"Updating drive [{job.devpath}] current job, with id [{job.job_id}]")
+    try:
+        db.session.commit()
+        logging.debug("Database update with new Job ID to associated drive")
+    except Exception as error:  # noqa: E722
+        logging.error(f"Failed to update the database with the associated drive. {error}")

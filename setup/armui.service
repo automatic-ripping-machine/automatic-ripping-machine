@@ -10,8 +10,8 @@ User=arm
 Group=arm
 ## Add your path to your logfiles if you want to enable logging
 ## Remember to remove the # at the start of the line
-#StandardOutput=append:/PATH-TO-MY-LOGFILES/WebUI.log
-#StandardError=append:/PATH-TO-MY-LOGFILES/WebUI.log
+StandardOutput=append:/home/arm/logs/WebUI.log
+StandardError=append:/home/arm/logs/WebUI.log
 Restart=always
 RestartSec=3
 ExecStartPre=/bin/bash -xc '/usr/bin/systemctl is-active --quiet armui.service && exit 1 || exit 0'

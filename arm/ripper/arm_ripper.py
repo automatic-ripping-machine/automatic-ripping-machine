@@ -115,11 +115,14 @@ def start_transcode(job, logfile, hb_in_path, hb_out_path, protection):
         if job.config.SKIP_TRANSCODE:
             logging.info("Transcoding is disabled, skipping transcode")
             return None
+        logging.debug(f"handbrake_mkv: {hb_in_path}, {hb_out_path}, {logfile}")
         handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
     elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
+        logging.debug(f"handbrake_main_feature: {hb_in_path}, {hb_out_path}, {logfile}")
         handbrake.handbrake_main_feature(hb_in_path, hb_out_path, logfile, job)
         job.eject()
     else:
+        logging.debug(f"handbrake_all: {hb_in_path}, {hb_out_path}, {logfile}")
         handbrake.handbrake_all(hb_in_path, hb_out_path, logfile, job)
         job.eject()
     logging.info("************* Finished Transcode With HandBrake *************")

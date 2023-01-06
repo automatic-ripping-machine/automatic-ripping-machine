@@ -7,7 +7,6 @@ import json
 from pathlib import Path, PurePath
 import importlib
 import bcrypt
-import psutil
 from werkzeug.exceptions import HTTPException
 from werkzeug.routing import ValidationError
 from flask import Flask, render_template, request, send_file, flash, \
@@ -20,17 +19,31 @@ from arm.ui import app, db, constants, json_api
 from arm.models import models as models
 import arm.config.config as cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
-    SettingsForm, UiSettingsForm, SetupForm, AbcdeForm
+    SettingsForm, UiSettingsForm, SetupForm, AbcdeForm, SystemInfoDrives, DBUpdate
 from arm.ui.metadata import get_omdb_poster
-
-ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
-
+from arm.ui.serverutil import ServerUtil
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
-armui_cfg = models.UISettings.query.get(1)
-app.jinja_env.globals.update(armui_cfg=armui_cfg)
+db_update = ui_utils.arm_db_check()
+# Check if the databsee exists prior to creating global ui settings
+if not db_update["db_exists"]:
+    app.logger.debug("No armui cfg setup")
+    ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
+    ui_utils.setup_database(cfg.arm_config['INSTALLPATH'])
+
+    armui_cfg = models.UISettings.query.get(1)
+    app.jinja_env.globals.update(armui_cfg=armui_cfg)
+
+else:
+    armui_cfg = models.UISettings.query.get(1)
+    app.jinja_env.globals.update(armui_cfg=armui_cfg)
+
+# Page definitions
+page_settings = "settings.html"
+page_support_databaseupdate = "support/databaseupdate.html"
+redirect_settings = "/settings"
 
 
 @login_manager.user_loader
@@ -88,7 +101,7 @@ def setup():
     perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
     app.logger.debug("perm " + str(perm_file))
     # Check for install file and that db is correctly setup
-    if perm_file.exists() and ui_utils.setup_database():
+    if perm_file.exists() and ui_utils.setup_database(cfg.arm_config['INSTALLPATH']):
         flash(f"{perm_file} exists, setup cannot continue. To re-install please delete this file.", "danger")
         return redirect("/")
     dir0 = Path(PurePath(cfg.arm_config['DBFILE']).parent)
@@ -111,7 +124,7 @@ def setup():
         app.logger.debug("Successfully created all of the ARM directories")
 
     try:
-        if ui_utils.setup_database():
+        if ui_utils.setup_database(cfg['INSTALLPATH']):
             flash("Setup of the database was successful.", "success")
             app.logger.debug("Setup of the database was successful.")
             perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
@@ -165,6 +178,8 @@ def login():
     Login page if login is enabled
     :return: redirect
     """
+    global page_support_databaseupdate
+
     return_redirect = None
     # if there is no user in the database
     try:
@@ -172,11 +187,12 @@ def login():
         # If we don't raise an exception but the usr table is empty
         if not user_list:
             app.logger.debug("No admin found")
-            return_redirect = redirect(constants.SETUP_STAGE_2)
     except Exception:
         flash(constants.NO_ADMIN_ACCOUNT, "danger")
         app.logger.debug(constants.NO_ADMIN_ACCOUNT)
-        return_redirect = redirect(constants.SETUP_STAGE_2)
+        dbform = DBUpdate(request.form)
+        db_update = ui_utils.arm_db_check()
+        return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
 
     # if user is logged in
     if current_user.is_authenticated:
@@ -268,9 +284,7 @@ def feed_json():
     }
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
-        app.logger.debug(args)
         return_json = valid_modes[mode]['funct'](*args)
-    app.logger.debug(f"Json - {return_json}")
     return_json['notes'] = json_api.get_notifications()
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
@@ -292,6 +306,8 @@ def settings():
     without needing to open a text editor\n
     This loads slow, needs to be optimised...
     """
+    global page_settings
+
     # stats for info page
     with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
@@ -310,12 +326,28 @@ def settings():
              'total_rips': total_rips,
              'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash())
              }
+
+    # System details in class server
+    server = models.SystemInfo.query.filter_by(id="1").first()
+    serverutil = ServerUtil()
+    serverutil.get_update()
+    # System details in class server
+    arm_path = cfg.arm_config['TRANSCODE_PATH']
+    media_path = cfg.arm_config['COMPLETED_PATH']
+
+    # form_drive = SystemInfoDrives(request.form)
+    # System Drives (CD/DVD/Blueray drives)
+    drives = ui_utils.drives_check_status()
+
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
     form = SettingsForm()
-    return render_template('settings.html', settings=cfg.arm_config, ui_settings=armui_cfg,
+
+    return render_template(page_settings, settings=cfg.arm_config, ui_settings=armui_cfg,
+                           stats=stats, apprise_cfg=cfg.apprise_config,
                            form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config,
-                           stats=stats, apprise_cfg=cfg.apprise_config)
+                           server=server, serverutil=serverutil, arm_path=arm_path, media_path=media_path,
+                           drives=drives, form_drive=False)
 
 
 @app.route('/save_settings', methods=['POST'])
@@ -364,7 +396,9 @@ def save_ui_settings():
         arm_ui_cfg.database_limit = format(form.database_limit.data)
         db.session.commit()
         success = True
-    app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
+    # Masking the jinja update, otherwise an error is thrown
+    # sqlalchemy.orm.exc.DetachedInstanceError: Instance <UISettings at 0x7f294c109fd0>
+    # app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
     return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
 
 
@@ -670,50 +704,24 @@ def home():
     """
     The main homepage showing current rips and server stats
     """
-    # Force a db update
-    ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
+    global page_support_databaseupdate
 
-    # Hard drive space
-    try:
-        freegb = psutil.disk_usage(cfg.arm_config['TRANSCODE_PATH']).free
-        freegb = round(freegb / 1073741824, 1)
-        arm_percent = psutil.disk_usage(cfg.arm_config['TRANSCODE_PATH']).percent
-        mfreegb = psutil.disk_usage(cfg.arm_config['COMPLETED_PATH']).free
-        mfreegb = round(mfreegb / 1073741824, 1)
-        media_percent = psutil.disk_usage(cfg.arm_config['COMPLETED_PATH']).percent
-    except FileNotFoundError:
-        freegb = 0
-        arm_percent = 0
-        mfreegb = 0
-        media_percent = 0
-        app.logger.debug("ARM folders not found")
-        flash("There was a problem accessing the ARM folders. Please make sure you have setup ARM<br/>"
-              "Setup can be started by visiting <a href=\"/setup\">setup page</a> ARM will not work correctly until"
-              "until you have added an admin account", "danger")
-    #  RAM
-    memory = psutil.virtual_memory()
-    mem_total = round(memory.total / 1073741824, 1)
-    mem_free = round(memory.available / 1073741824, 1)
-    mem_used = round(memory.used / 1073741824, 1)
-    ram_percent = memory.percent
+    # Check the database is current
+    db_update = ui_utils.arm_db_check()
+    if not db_update["db_current"] or not db_update["db_exists"]:
+        dbform = DBUpdate(request.form)
+        return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
 
+    # System details in class server
+    server = models.SystemInfo.query.filter_by(id="1").first()
+    serverutil = ServerUtil()
+    serverutil.get_update()
+    # System details in class server
+    arm_path = cfg.arm_config['TRANSCODE_PATH']
+    media_path = cfg.arm_config['COMPLETED_PATH']
     armname = ""
     if cfg.arm_config['ARM_NAME'] != "":
         armname = f"[{cfg.arm_config['ARM_NAME']}] - "
-
-    #  get out cpu info
-    try:
-        our_cpu = ui_utils.get_processor_name()
-        cpu_usage = psutil.cpu_percent()
-    except EnvironmentError:
-        our_cpu = "Not found"
-        cpu_usage = "0"
-
-    try:
-        temps = psutil.sensors_temperatures()
-        temp = temps['coretemp'][0][1]
-    except KeyError:
-        temp = temps = None
 
     if os.path.isfile(cfg.arm_config['DBFILE']):
         try:
@@ -724,11 +732,10 @@ def home():
     else:
         jobs = {}
 
-    return render_template('index.html', freegb=freegb, mfreegb=mfreegb,
-                           arm_percent=arm_percent, media_percent=media_percent,
-                           jobs=jobs, cpu=our_cpu, cputemp=temp, cpu_usage=cpu_usage,
-                           ram=mem_total, ramused=mem_used, ramfree=mem_free, ram_percent=ram_percent,
-                           ramdump=str(temps), armname=armname, children=cfg.arm_config['ARM_CHILDREN'])
+    return render_template("index.html", jobs=jobs, armname=armname,
+                           children=cfg.arm_config['ARM_CHILDREN'],
+                           server=server, serverutil=serverutil,
+                           arm_path=arm_path, media_path=media_path)
 
 
 @app.route('/import_movies')
@@ -835,3 +842,79 @@ def handle_exception(sent_error):
                                   mimetype=constants.JSON_TYPE)
 
     return render_template(constants.ERROR_PAGE, error=sent_error), 500
+
+
+@app.route('/systeminfo', methods=['POST'])
+@login_required
+def server_info():
+    """
+    Server System information and details on connected CD, DVD and/or BluRay Drives
+    """
+    global redirect_settings
+
+    # System Drives (CD/DVD/Blueray drives)
+    form_drive = SystemInfoDrives(request.form)
+    if request.method == 'POST' and form_drive.validate():
+        # Return for POST
+        app.logger.debug(
+                    "Drive id: " + str(form_drive.id.data) +
+                    " Updated db description: " + form_drive.description.data)
+        drive = models.SystemDrives.query.filter_by(
+                                            drive_id=form_drive.id.data).first()
+        drive.description = str(form_drive.description.data).strip()
+        db.session.commit()
+        # Return to systeminfo page (refresh page)
+        return redirect(redirect_settings)
+    else:
+        # Return for GET
+        return redirect(redirect_settings)
+
+
+@app.route('/systemdrivescan')
+def system_drive_scan():
+    """
+    Server System  - scan for a change in system, addition of drives
+    """
+    global redirect_settings
+    # Update to scan for changes from system
+    new_count = ui_utils.drives_update()
+    flash(f"ARM found {new_count} new drives", "success")
+    return redirect(redirect_settings)
+
+
+@app.route('/driveeject/<id>')
+@login_required
+def drive_eject(id):
+    """
+    Server System  - change state of CD/DVD/BluRay drive - toggle eject
+    """
+    global redirect_settings
+    drive = models.SystemDrives.query.filter_by(drive_id=id).first()
+    drive.open_close()
+    db.session.commit()
+    return redirect(redirect_settings)
+
+
+@app.route('/dbupdate', methods=['POST'])
+def update_database():
+    """
+    Update the ARM database when changes are made or the arm db file is missing
+    """
+    form = DBUpdate(request.form)
+    if request.method == 'POST' and form.validate():
+        if form.dbfix.data == "migrate":
+            app.logger.debug("User requested - Database migration")
+            ui_utils.arm_db_migrate()
+            flash("ARM database migration successful!", "success")
+        elif form.dbfix.data == "new":
+            app.logger.debug("User requested - New database")
+            flash("ARM database setup successful!", "success")
+        else:
+            # No method defined
+            app.logger.debug(f"No update method defined from DB Update - {form.dbfix.data}")
+            flash("Error no update method specified, report this as a bug.", "error")
+
+        return redirect('/index')
+    else:
+        # Catch for GET requests of the page, redirect to index
+        return redirect('/index')
