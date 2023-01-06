@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="viewport"
+          content="viewport-fit=cover, user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" crossorigin="use-credentials"/>
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}"/>
+    {% block head %}
+        <script src="https://code.jquery.com/jquery-3.5.1.min.js"
+                integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+                integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+                crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/{{  armui_cfg['bootstrap_skin'] if armui_cfg['bootstrap_skin'] != "" else "spacelab" }}/bootstrap.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js"
+                integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+                crossorigin="anonymous"></script>
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+        <script type="application/javascript">
+            function activeTab(tab) {
+                $("#nav" + tab).addClass("active");
+            }
+        </script>
+        <style>
+            .custom-control-input:checked ~ .custom-control-label::before {
+                color: #ced4da;
+                border-color: #e8e8e8;
+                background-color: #007bff;
+            }
+
+            div.custom-switch .custom-control-label {
+                color: #ced4da !important;
+            }
+        </style>
+        <title>{{ armname }}{% block title %}{% endblock %} - ARM</title>
+        {% block head_extra %}{% endblock %}
+    {% endblock %}
+</head>
+<body style="padding: 70px 15px 50px;">
+{% block nav %}
+    <!-- TOAST -->
+    <div aria-live="polite" aria-atomic="true">
+        <!-- Position it -->
+        <div id="toastHolder" style="position: fixed; top: 30%; right: 10%;z-index: 1000;">
+            <!-- TOASTS -->
+        </div>
+    </div>
+    <!-- Main -->
+    <div class="container h-100 mx-auto">
+        <nav class="navbar navbar-expand-md navbar-dark bg-primary justify-content-center fixed-top my-auto">
+            <a class="navbar-brand" href="index.html">
+                <img src="{{ url_for('static', filename='img/arm40nw.png') }}" width="114" height="40" alt="">
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav">
+                    <li id="navhome" class="nav-item">
+                        <a class="nav-link" href="index.html">Home</a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="darkSwitch"/>
+                <label class="custom-control-label align-left" for="darkSwitch">Dark Mode</label>
+            </div>
+            <script src="{{ url_for('static', filename='js/dark-mode-switch.min.js') }}"></script>
+            <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}">
+
+        </nav>
+    </div>
+{% endblock %}
+<!-- Errors -->
+<div id="content" class="h-100 content" style="width: 99%;padding-top: 51px;padding-left: 15px;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div id="message1" class="alert alert-{{ category if category !=" message
+    " else 'info' }} text-center"
+                     role="alert">
+                    <h4 class="alert-heading">{{ message|safe }}</h4>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}</div>
+<!-- Footer -->
+<div id="footer" class="container-fluid h-100">
+    <div class="row" style="height: 30px;"></div>
+    <div class="row h-100" style="height: 40px;">
+        <div class="col-sm-12 h-100">
+            {% block footer %}
+                <p class="text-center h-100" style="margin-bottom: auto; margin-top: auto"> Automatic Ripping Machine.
+                    Find us on <a
+                            href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">github</a>.
+                </p>
+            {% endblock %}
+        </div>
+    </div>
+</div>
+</div>
+{% block js %}
+{% endblock %}
+</body>
+</html>

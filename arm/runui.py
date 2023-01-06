@@ -24,6 +24,7 @@ if host == 'x.x.x.x':
         host = ip_list[0]
     else:
         host = '127.0.0.1'
+    app.logger.info(f"Starting ARMUI on interface address - {host}:{cfg.arm_config['WEBSERVER_PORT']}")
 
 if __name__ == '__main__':
     app.run(host=host, port=cfg.arm_config['WEBSERVER_PORT'], debug=True)

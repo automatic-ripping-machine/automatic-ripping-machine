@@ -165,6 +165,8 @@ if __name__ == "__main__":
     utils.database_adder(job)
     # Sleep to lower chances of db locked - unlikely to be needed
     time.sleep(1)
+    # Associate the job with the drive in the database
+    utils.update_drive_job(job)
     # Add the job.config to db
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
     utils.database_adder(config)
