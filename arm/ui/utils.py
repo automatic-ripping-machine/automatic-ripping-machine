@@ -209,6 +209,7 @@ def arm_db_cfg():
 
     return armui_cfg
 
+
 def arm_db_migrate():
     """
     Migrate the existing database to the newest version, keeping user data

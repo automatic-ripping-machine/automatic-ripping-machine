@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Main routes for the A.R.M ui"""
 import os
-import platform
 import re
 import json
 from pathlib import Path, PurePath
@@ -17,7 +16,7 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
 from arm.models import models as models
 import arm.config.config as cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm, DBUpdate
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm, DBUpdate, SetupForm
 from arm.ui.metadata import get_omdb_poster
 from arm.ui.serverutil import ServerUtil
 

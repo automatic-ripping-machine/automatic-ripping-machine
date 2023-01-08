@@ -15,11 +15,11 @@ import platform
 import importlib
 from flask_login import LoginManager, login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
-from flask import Flask, render_template, request, flash, \
+from flask import render_template, request, flash, \
     redirect, Blueprint
 
 import arm.ui.utils as ui_utils
-from arm.ui import app, db, constants
+from arm.ui import app, db
 from arm.models import models as models
 import arm.config.config as cfg
 from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives

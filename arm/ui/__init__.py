@@ -58,7 +58,8 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 # Register route blueprints
-from arm.ui.settings.settings import route_settings
+# loaded post database decleration to avoid circular loops
+from arm.ui.settings.settings import route_settings # noqa: E402,F811
 app.register_blueprint(route_settings)
 
 # Remove GET/page loads from logging
