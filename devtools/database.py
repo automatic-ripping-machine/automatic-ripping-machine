@@ -15,11 +15,12 @@ path_db = arm_home + "/db/"
 file_db = "arm.db"
 
 
-# Remove the current ARM database file
-#  INPUT: none
-#  OUTPUT: none
 def remove():
-    # todo, make this do something
+    """
+    Remove the current ARM database file
+        INPUT: none
+        OUTPUT: none
+    """
     log.info("Removing the ARM DB file")
     # Stop the UI to avoid issues
     armui.stop()
@@ -35,17 +36,23 @@ def remove():
         log.info("ARM UI currently stopped, fix git error then restart ARM UI")
 
 
-# Roll back the current arm.db file
-#  INPUT: roll_back int
-#  OUTPUT: none
 def roll(num):
+    """
+    Roll back the current arm.db file
+        INPUT: roll_back int
+        OUTPUT: none
+    """
     # todo, make this do something
-    log.info(f"roll back {num} versions")
+    # log.info(f"roll back {num} versions")
+    log.info("not currently supported")
 
 
-# Populate the current database with dummy test data
-#  INPUT: none
-#  OUTPUT: none
 def data():
+    """
+    Populate the current database with dummy test data
+        INPUT: none
+        OUTPUT: none
+    """
     # todo, make this do something
-    log.info("insert some data into the db")
+    # log.info("insert some data into the db")
+    log.info("not currently supported")
