@@ -190,6 +190,25 @@ def arm_db_check():
     return db
 
 
+def arm_db_cfg():
+    """
+    Check if the databsee exists prior to creating global ui settings
+    """
+    db_update = arm_db_check()
+    if not db_update["db_exists"]:
+        app.logger.debug("No armui cfg setup")
+        check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
+        setup_database(cfg.arm_config['INSTALLPATH'])
+
+        armui_cfg = models.UISettings.query.get(1)
+        app.jinja_env.globals.update(armui_cfg=armui_cfg)
+
+    else:
+        armui_cfg = models.UISettings.query.get(1)
+        app.jinja_env.globals.update(armui_cfg=armui_cfg)
+
+    return armui_cfg
+
 def arm_db_migrate():
     """
     Migrate the existing database to the newest version, keeping user data
