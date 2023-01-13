@@ -1,0 +1,47 @@
+{% extends "support/base_simple.html" %}
+{% block title %}ARM Database Update or Setup{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container content">
+    <div class="row">
+        <div class="col-sm-12 rounded text-center">
+            <h2 class="text-center">Automatic Ripping Machine Database Update</h2>
+        </div>
+        <p> A change to ARM has occured, either through an update or database corruption. Creation or migration of the database is required. Where possible, all existing user data will be maintained.</p>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-12 ">
+            {% if not db_update.db_exists: %}
+                <p><u> Missing database  </u></p>
+                <p> The ARM database is missing, the files is configured to be installed in: {{ db_update.db_file }}. </p>
+                <p> If the file exists, confirm the file ownership and permissions are configured corectly, as ARM is unable to read the file </p>
+                <form class="" action="dbupdate" method="post">
+                    {{ dbform.hidden_tag() }}
+                    <input type="hidden" id="dbfix" name="dbfix" value="new">
+                    <button type="button" class="btn btn-primary">Create the database</button>
+                </form>
+            {% else: %}
+                {% if not db_update.db_current: %}
+                    <p><u> Database Update Required  </u></p>
+                    <p> Database exists but requires an update/migration to continue working.</p>
+                    <ul>
+                        <li>ARM Version: {{ db_update.head_revision}}</li>
+                        <li>ARM DB Version: {{ db_update.db_revision.version_num}}</li>
+                    </ul>
+                    <p> The database will be migrated: <em>{{ db_update.db_file }}</em> </p>
+                    <p> A backup of the file will be created within the same folder: <em>arm_migration_(timestamp).db</em></p>
+                    <br>
+                    <form class="" action="dbupdate" method="post">
+                        {{ dbform.hidden_tag() }}
+                        <input type="hidden" id="dbfix" name="dbfix" value="migrate">
+                        <button type="submit" class="btn btn-primary">Migrate Database</button>
+                    </form>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

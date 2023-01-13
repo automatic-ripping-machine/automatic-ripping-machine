@@ -36,7 +36,7 @@ def upgrade():
                        'save_remote_images': 1,
                        'bootstrap_skin': "spacelab",
                        'language': "en",
-                       'index_refresh': 10,
+                       'index_refresh': 2000,
                        'database_limit': 200,
 
                    }])

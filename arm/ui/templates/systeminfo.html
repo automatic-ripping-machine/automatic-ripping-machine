@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}
+  <p class="text-center">
+      <h5 class="text-center"><strong>System Information</strong></h5>
+  </p>
+
+   {% include 'settings/sysinfo.html' %}
+   {% include 'settings/drives.html' %}
+
+{% endblock %}
+{% block js %}{{ super() }}{% endblock %}

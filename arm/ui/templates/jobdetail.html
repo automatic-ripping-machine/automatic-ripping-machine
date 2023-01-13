@@ -4,88 +4,8 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/job_details.css') }}">
     <style>
-        /*
-        Max width before this PARTICULAR table gets nasty
-        This query will take effect for any screen smaller than 760px
-        and also iPads specifically.
-        */
-        @media only screen and (max-width: 760px),
-        (min-device-width: 768px) and (max-device-width: 1024px) {
-
-            /* Force table to not be like tables anymore */
-            table, thead, tbody, th, td, tr {
-                display: block;
-                /*padding: .75rem;*/
-            }
-            caption{
-                width: 100%;
-                text-align: center;
-            }
-            /* Hide table headers (but not display: none;, for accessibility) */
-            thead tr {
-                position: absolute;
-                top: -9999px;
-                left: -9999px;
-            }
-
-            tr {
-                border: 1px solid #ccc;
-                margin-top: 5px;
-                border-radius: 7px;
-            }
-            th{
-                border-bottom: 1px solid #c5c6c8;
-            }
-
-            td {
-                white-space: normal !important;
-                /* Behave  like a "row" */
-                border: none;
-                border-bottom: 1px solid #eee;
-                position: relative;
-                padding-left: 50%;
-                padding-top: 3px;
-            }
-
-            td:before {
-                /* Now like a table header */
-                /* Top/left values mimic padding */
-                top: 6px;
-                width: 45%;
-                padding-right: 10px;
-                white-space: pre;
-            }
-            hr.test{
-                display: block!important;
-            }
-            table#tracktable:before{
-                content: "Tracks Table\A";
-            }
-            #tracktable td:nth-of-type(1):before {
-                content: "Track number:";
-            }
-
-            #tracktable td:nth-of-type(2):before {
-                content: "Length:";
-            }
-
-            #tracktable td:nth-of-type(3):before {
-                content: "FPS:";
-            }
-
-            #tracktable td:nth-of-type(4):before {
-                content: "Aspect Ratio:";
-            }
-
-            #tracktable td:nth-of-type(5):before {
-                content: "Main Feature:";
-            }
-
-            #tracktable td:nth-of-type(6):before {
-                content: "Ripped:";
-            }
-        }
         div.card div.background-poster {
             background-position: center;
             background-repeat: no-repeat;
@@ -408,6 +328,9 @@
                                 <thead class="bg-secondary">
                                 <tr>
                                     <th scope="col" style="text-align:left">Track #</th>
+                                    {% if jobs.video_type == "Music" %}
+                                        <th scope="col" style="text-align:left">Track Name</th>
+                                    {% endif %}
                                     <th scope="col" style="text-align:left">Length (sec)</th>
                                     <th scope="col" style="text-align:left">FPS</th>
                                     <th scope="col" style="text-align:left">Aspect Ratio</th>
@@ -419,7 +342,10 @@
                                 {% for track in tracks %}
                                     <tr>
                                         <td style="text-align:left"><strong>{{ track.track_number }}</strong></td>
-                                        <td style="text-align:left">{{ track.length }}</td>
+                                        {% if jobs.video_type == "Music" %}
+                                            <td style="text-align:left"><strong>{{ track.filename}}</strong></td>
+                                        {% endif %}
+                                        <td style="text-align:left">{{ track.length }} {{ " (Milliseconds)" if jobs.video_type == "Music" else "" }}</td>
                                         <td style="text-align:left">{{ track.fps }}</td>
                                         <td style="text-align:left">{{ track.aspect_ratio }}</td>
                                         <td style="text-align:left">{{ track.main_feature }}</td>

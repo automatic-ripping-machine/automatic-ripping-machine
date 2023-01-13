@@ -4,63 +4,35 @@
 /* jshint node: true */
 /* jshint strict: false */
 
-var hrrref = "";
-var wedeleted = "{{ success }}";
-var activeJob = null;
-var actionType = null;
+
+let hrrref = "";
+let activeJob = null;
+let actionType = null;
+var activeServers = [];
+var activeJobs = [];
+
 $(document).ready(function () {
-
-    activeServers.push(location.origin);
-    var childs = $("#children");
-    var children = childs.text().trim();
-    if(children) {
-        var childLinks = [];
-        var children_arr = children.split(",");
-        $.each(children_arr, function(index,value) {
-            activeServers.push(value);
-            childLinks.push("<a target='_blank' href='"+value+"'>"+value+"</a>");
-        });
-        childs.html("Children: <br />"+childLinks.join("<br />"));
-    }
-
+    pushChildServers();
     refreshJobs();
     activeTab("home");
 
-    $("#save-yes").bind('click', function () {
+    $("#save-yes").bind("click", function () {
         console.log(hrrref);
         if (hrrref !== "") {
             // Add the spinner to let them know we are loading
-            $("#m-body").append('<div class="d-flex justify-content-center">' +
-                                '<div class="spinner-border" role="status">' +
-                                '<span class="sr-only">Loading...</span>' +
-                                '</div>' +
-                                '</div>');
+            $("#m-body").append("<div class=\"d-flex justify-content-center\"><div class=\"spinner-border\" role=\"status\">" +
+                                "<span class=\"sr-only\">Loading...</span></div></div>");
             $.get(hrrref, function (data) {
                 console.log(data.success);
                 console.log("#jobId" + activeJob);
-                if (data.success === true) {
-                    if (data.mode === "abandon") {
-                        $("#id" + activeJob).remove();
-                        $("#message1 .alert-heading").html("Job was successfully abandoned");
-                        $('#exampleModal').modal('toggle');
-                        $('#message1').removeClass('d-none');
-                        $('#message2').addClass('d-none');
-                        $('#message3').addClass('d-none');
-                        setTimeout(
-                            function () {
-                                $('#message1').addClass('d-none');
-                            },
-                            5000
-                        );
-                    }
-                } else {
-                    $('#message3').removeClass('d-none');
-                    $('#message1').addClass('d-none');
-                    $('#message2').addClass('d-none');
-                    $('#exampleModal').modal('toggle');
+                if (data.success && data.mode === "abandon") {
+                    $("#id" + activeJob).remove();
+                    $("#message1 .alert-heading").html("Job was successfully abandoned");
+                    $(MODEL_ID).modal("toggle");
+                    $("#message1").removeClass("d-none");
                     setTimeout(
                         function () {
-                            $('#message3').addClass('d-none');
+                            $("#message1").addClass("d-none");
                         },
                         5000
                     );
@@ -68,289 +40,271 @@ $(document).ready(function () {
             }, "json");
         }
     });
-    $("#save-no").bind('click', function () {
-        if (hrrref === "entryWarn") {
-            console.log("user wants to go away");
-            window.location.href = "/";
-            return false;
-        } else {
-
-            console.log("user shouldn't be here...");
-            $('#exampleModal').modal('toggle');
-        }
+    $("#save-no").bind("click", function () {
+        $(MODEL_ID).modal("toggle");
     });
-    $('#exampleModal').on('show.bs.modal', function (event) {
-        var button = $(event.relatedTarget); // Button that triggered the modal
-        actionType = button.data('type'); // Extract info from data-* attributes
-        hrrref = button.data('href');
-        activeJob = button.data('jobid');
-        //jobId = job.job_id
-        console.log(hrrref);
-        console.log(activeJob);
-        console.log(actionType);
-
-        var modalTitle;
-        var modalBody;
-
-        if (actionType === "abandon") {
-            modalTitle = "Abandon This Job ?";
-            modalBody = "This item will be set to abandoned. You cannot set it back to active! Are you sure?";
-        } else if (actionType === "delete") {
-            modalTitle = "Delete this job forever ?";
-            modalBody = "This item will be permanently deleted and cannot be recovered. Are you sure?";
-        } else if (actionType === "search") {
-            modalTitle = "Search the database";
-            modalBody = '<div class="input-group mb-3">' +
-                        '<div class="input-group-prepend">' +
-                        '<span class="input-group-text" id="searchlabel">Search </span>' +
-                        '</div>' +
-                        '<input type="text" class="form-control" id="searchquery" aria-label="searchquery" name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">' +
-                        '<div id="validationServer03Feedback" class="invalid-feedback">Search string too short.</div>' +
-                        '</div>';
-        } else {
-            modalTitle = "Do you want to leave this page ?";
-            modalBody = "To view the log file you need to leave this page. Would you like to leave ?";
-        }
-        var modal = $(this);
-        modal.find('.modal-title').text(modalTitle);
-        modal.find('.modal-body').html(modalBody);
+    $(MODEL_ID).on("show.bs.modal", function (event) {
+        const button = $(event.relatedTarget); // Button that triggered the modal
+        actionType = button.data("type"); // Extract info from data-* attributes
+        hrrref = button.data("href");
+        activeJob = button.data("jobid");
+        const modal = $(this);
+        updateModal(modal);
     });
 });
 
-function addJobItem(job) {
-    var idsplit = job.job_id.split("_");
-    var x = '<div class="col-md-4" id="jobId' + job.job_id + '">' +
-            '<div class="card mb-3  mx-auto" style="min-height: 420px;">' +
-            '<div class="card-header row no-gutters justify-content-center">' +
-            '<strong id="jobId' + job.job_id + '_header">';
-    if (job.title_manual !== "None") {
-        x += job.title_manual + ' ('+job.year+')';
-    }else{
-        x += job.title + ' (' + job.year + ')';
-    }
-    x += '</strong>' +
-         '</div>' +
-         '<div class="row no-gutters">' +
-         '<div class="col-lg-4">' +
-         '<a href="jobdetail?job_id=' + idsplit[1] + '">';
-    // TODO: Fix above to link the correct server - for now it links to the main server
-    if(job.poster_url !== "None" && job.poster_url !== "N/A") {
-        x += '<img id="jobId' + job.job_id + '_poster_url" alt="poster img" src="' + job.poster_url + '" width="240px" class="img-thumbnail">';
-    }else{
-        x += '<img id="jobId' + job.job_id + '_poster_url" alt="poster img" src="/static/img/none.png" width="240px" class="img-thumbnail">';
-    }
-    x += '</a>' +
-         '</div>' +
-         '<div class="col-lg-4">' +
-         '<div class="card-body px-1 py-1">';
-
-    x += '<div id="jobId' + job.job_id + '_title"><b>' + job.title + '</b></div>';
-    x += '<div id="jobId' + job.job_id + '_year"><b>Year: </b>' + job.year +'</div>';
-    x += '<div id="jobId' + job.job_id + '_video_type"><b>Type: </b>' + job.video_type + '</div>';
-    x += '<div id="jobId' + job.job_id + '_devpath"><b>Device: </b>' + job.devpath + '</div>';
-    x += '<div><b>Status: </b><img id="jobId' + job.job_id + '_status" src="static/img/' + job.status + '.png" height="20px" alt="' + job.status + '" title="' + job.status + '"></div>';
-
-    x += '<div id="jobId' + job.job_id + '_progress_section">';
-    if (job.status === "transcoding" && job.stage !== '' && job.progress) {
-        x += '<div id="jobId' + job.job_id + '_stage"><b>Stage: </b>' + job.stage + '</div>';
-        x += '<div id="jobId' + job.job_id + '_progress" >';
-        x += '<div class="progress">' +
-            '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">' +
-            '<small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>' +
-            '</div>' +
-            '</div>' +
-            '</div>' +
-            '<div id="jobId' + job.job_id + '_eta"><b>ETA: </b>' + job.eta + '</div>';
-    }
-    x += '</div>' +
-         '</div>' +
-         '</div>' +
-         '<div class="col-lg-4">' +
-         '<div class="card-body px-1 py-1">';
-
-    x += '<div id="jobId' + job.job_id + '_RIPPER"><b>Ripper: </b>' + (job.ripper ? job.ripper : (idsplit[0] === "0" ? "Local" : "")) + '</div>';
-    x += '<div id="jobId' + job.job_id + '_RIPMETHOD"><b>Rip Method: </b>' + job.config.RIPMETHOD + '</div>';
-    x += '<div id="jobId' + job.job_id + '_MAINFEATURE"><b>Main Feature: </b>' + job.config.MAINFEATURE + '</div>';
-    x += '<div id="jobId' + job.job_id + '_MINLENGTH"><b>Min Length: </b>' + job.config.MINLENGTH + '</div>';
-    x += '<div id="jobId' + job.job_id + '_MAXLENGTH"><b>Max Length: </b>' + job.config.MAXLENGTH + '</div>';
-
-    x += '</div>' +
-         '<div class="card-body px-2 py-1">' +
-         '<div class="btn-group-vertical" role="group" aria-label="buttons" '+(idsplit[0]!=='0' ? 'style="display: none;"' : '')+'>' +
-         '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="' + idsplit[1] + '" data-href="json?job=' + idsplit[1] + '&mode=abandon">Abandon Job</button>' +
-         '<a href="logs?logfile=' + job.logfile + '&mode=full" class="btn btn-primary">View logfile</a>';
-    if (job.video_type !== "Music") {
-        x += '<a href="titlesearch?job_id=' + idsplit[1] + '" class="btn btn-primary">Title Search</a>' +
-             '<a href="customTitle?job_id=' + idsplit[1] + '" class="btn btn-primary">Custom Title</a>' +
-             '<a href="changeparams?config_id=' + idsplit[1]+ '" class="btn btn-primary">Edit Settings</a>';
-    }
-    x += '</div>' +
-         '</div>' +
-         '</div>' +
-         '</div>' +
-         '</div>' +
-         '</div></div>';
-    return x;
-}
-
+/**
+ * Function to update the current progress
+ * @param    {Class} job    current job
+ * @param    {Class} oldJob    Copy of old job
+ */
 function updateProgress(job, oldJob) {
-    let subProgressBar = '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="' + job.progress_round + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + job.progress_round + '%">' +
-                         '<small class="justify-content-center d-flex position-absolute w-100">' + job.progress + '%</small>' +
-                         '</div>' +
-                         '</div>';
-    let mainProgressBar = '<div id="jobId' + job.job_id + '_stage"><b>Stage: </b>' + job.stage + '</div>' +
-                         '<div id="jobId' + job.job_id + '_progress" >' +
-                         '<div class="progress">' +
-                         subProgressBar +
-                         '</div>' +
-                         '<div id="jobId' + job.job_id + '_eta"><b>ETA: </b>' + job.eta + '</div>';
-    let progressSection = $('#jobId' + job.job_id + '_progress_section');
-    let stage = $('#jobId' + job.job_id + '_stage');
-    let eta = $('#jobId' + job.job_id + '_eta');
-
-    if (job.status === "transcoding" && job.stage !== '' && job.progress) {
-        if (progressSection[0].innerHTML === "") {
+    const subProgressBar = `<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                             aria-valuenow="${job.progress_round}" aria-valuemin="0" aria-valuemax="100" 
+                             style="width: ${job.progress_round}%">
+                             <small class="justify-content-center d-flex position-absolute w-100">${job.progress}%</small></div></div>`;
+    const mainProgressBar = `<div id="jobId${job.job_id}_stage"><b>Stage: </b>${job.stage}</div>
+                             <div id="jobId${job.job_id}_progress" ><div class="progress">${subProgressBar}</div>
+                             <div id="jobId${job.job_id}_eta"><b>ETA: </b>${job.eta}</div>`;
+    const progressSection = $(`#jobId${job.job_id}_progress_section`);
+    const stage = $(`#jobId${job.job_id}_stage`);
+    const eta = $(`#jobId${job.job_id}_eta`);
+    const progressBarDiv = $(`#jobId${job.job_id}_progress`)
+    if (checkTranscodeStatus(job)) {
+        // Catch if the progress section is empty and populate it
+        if (progressSection[0].innerHTML === "" || !progressBarDiv.length) {
             progressSection[0].innerHTML = mainProgressBar;
         } else {
-            if (!stage[0].innerText.includes(job.stage)) {
-                stage[0].innerHTML = '<b>Device: </b>' + job.stage;
-            }
-
             if (job.progress_round !== oldJob.progress_round || job.progress !== oldJob.progress) {
-                $('#jobId' + job.job_id + '_progress')[0].innerHTML = '<div class="progress">' +
-                         subProgressBar;
+                progressBarDiv[0].innerHTML = `<div class="progress">${subProgressBar}`;
             }
-
-            if (!eta[0].innerText.includes(job.eta)) {
-                eta[0].innerHTML = '<b>ETA: </b>' + job.eta;
-            }
+            updateContents(stage, job, "Stage", job.stage);
+            updateContents(eta, job, "ETA", job.eta);
         }
     }
 }
 
-function updateJobItem(oldJob, job) {
-    let cardHeader = $('#jobId' + job.job_id + '_header');
-    let posterUrl = $('#jobId' + job.job_id + '_poster_url');
-    let jobTitle = $('#jobId' + job.job_id + '_title');
-    let jobYear = $('#jobId' + job.job_id + '_year');
-    let videoType = $('#jobId' + job.job_id + '_video_type');
-    let devPath = $('#jobId' + job.job_id + '_devpath');
-    let status = $('#jobId' + job.job_id + '_status');
-    let ripMethod = $('#jobId' + job.job_id + '_RIPMETHOD');
-    let mainFeature = $('#jobId' + job.job_id + '_MAINFEATURE');
-    let minLength = $('#jobId' + job.job_id + '_MINLENGTH');
-    let maxLength = $('#jobId' + job.job_id + '_MAXLENGTH');
-
-    if (cardHeader[0].innerText !== job.title + " (" + job.year + ")"){
-        cardHeader[0].innerText = job.title + " (" + job.year + ")";
+/**
+ * Checks if current job needs a stage/progress bar added
+ * This is enabled for music discs to enable current ripping track in job.stage
+ * @param job current job object
+ * @returns {boolean} True if job is transcoding or disc is an audio disc
+ */
+function checkTranscodeStatus(job) {
+    let status = false;
+    // HandBrake has the disc/files and should be outputting stage and eta
+    if (job.status === "transcoding") {
+        status = true;
     }
+    // MakeMKV has the disc and should be outputting stage and eta
+    if (job.status === "ripping" && job.stage !== "" && job.progress) {
+        status = true;
+    }
+    // abcde is ripping the audio disc and is outputting stage and eta
+    if (job.disctype === "music" && job.stage !== "") {
+        status = true;
+    }
+    return status;
+}
+
+/**
+ * Function to check and update the job values
+ * @param {jQuery} item    Dom item to update
+ * @param {Class} _job    Current job
+ * @param {String} keyString    String that pairs with config item for display purposes
+ * @param itemContents    item of job class to update
+ */
+function updateContents(item, _job, keyString, itemContents) {
+    if (item[0] === undefined) {
+        console.log(item)
+        return false;
+    }
+    if (item[0].innerText.includes(itemContents)) {
+        //console.log("nothing to do - values are current")
+    } else {
+        item[0].innerHTML = `<b> ${keyString}: </b>${itemContents}`;
+        console.log(`${item[0].innerText} - <b>${keyString}: </b>${itemContents}`)
+        console.log(item[0].innerText.includes(itemContents))
+    }
+    return true;
+}
+
+/**
+ * Function that goes through the whole job card and updates outdated values
+ * @param {Class} oldJob    Old job used to compare against fresh job from api
+ * @param {Class} job     Fresh job pulled from api
+ */
+function updateJobItem(oldJob, job) {
+    const cardHeader = $(`#jobId${job.job_id}_header`);
+    const posterUrl = $(`#jobId${job.job_id}_poster_url`);
+    const status = $(`#jobId${job.job_id}_status`);
+    // Update card header ( Title (Year) )
+    if (cardHeader[0].innerText !== `${job.title} (${job.year})`) {
+        cardHeader[0].innerText = `${job.title} (${job.year})`;
+    }
+    // Update card poster image
     if (job.poster_url !== posterUrl[0].src && job.poster_url !== "None" && job.poster_url !== "N/A") {
         posterUrl[0].src = job.poster_url;
     }
-    // TODO: Check against the auto title
-    if (job.title !== jobTitle[0].innerText) {
-        jobTitle[0].innerText = job.title;
-    }
-
-    if (!jobYear[0].innerText.includes(job.year)) {
-        jobYear[0].innerHTML = '<b>Year: </b>' + job.year;
-    }
-
-    if (!videoType[0].innerText.includes(job.video_type)) {
-        videoType[0].innerHTML = '<b>Type: </b>' + job.video_type;
-    }
-
-    if (!devPath[0].innerText.includes(job.devpath)) {
-        devPath[0].innerHTML = '<b>Device: </b>' + job.devpath;
-    }
+    // Update job status image
     if (job.status !== status[0].title) {
-        status[0].src = 'static/img/' + job.status + '.png';
+        status[0].src = `static/img/${job.status}.png`;
         status[0].alt = job.status;
         status[0].title = job.status;
     }
+    // Go through and update job values as needed
+    updateContents($(`#jobId${job.job_id}_year`), job, "Year", job.year);
+    updateContents($(`#jobId${job.job_id}_devpath`), job, "Device", job.devpath);
+    updateContents($(`#jobId${job.job_id}_video_type`), job, "Type", job.video_type);
     updateProgress(job, oldJob);
-
-    if (!ripMethod[0].innerText.includes(job.config.RIPMETHOD)) {
-        ripMethod[0].innerHTML = '<b>Rip Method: </b>' + job.config.RIPMETHOD;
-    }
-
-    if (!mainFeature[0].innerText.includes(job.config.MAINFEATURE)) {
-        mainFeature[0].innerHTML = '<b>Main Feature: </b>' + job.config.MAINFEATURE;
-    }
-
-    if (!minLength[0].innerText.includes(job.config.MINLENGTH)) {
-        minLength[0].innerHTML = '<b>Min Length: </b>' + job.config.MINLENGTH;
-    }
-
-    if (!maxLength[0].innerText.includes(job.config.MAXLENGTH)) {
-        maxLength[0].innerHTML = '<b>Max Length: </b>' + job.config.MAXLENGTH;
-    }
+    updateContents($(`#jobId${job.job_id}_RIPMETHOD`), job, "Rip Method", job.config.RIPMETHOD);
+    updateContents($(`#jobId${job.job_id}_MAINFEATURE`), job, "Main Feature", job.config.MAINFEATURE);
+    updateContents($(`#jobId${job.job_id}_MINLENGTH`), job, "Min Length", job.config.MINLENGTH);
+    updateContents($(`#jobId${job.job_id}_MAXLENGTH`), job, "Max Length", job.config.MAXLENGTH);
 }
 
+/**
+ * Removes a job from the card deck
+ * @param {Class} job
+ */
 function removeJobItem(job) {
-    $('#jobId' + job.job_id).remove();
+    $("#jobId" + job.job_id).remove();
 }
 
-function refreshJobs() {
+/**
+ * Function that runs after ajax request completes successfully
+ * Will check for inactive jobs and then remove them
+ * Then sorts the jobs in ascending order
+ */
+function refreshJobsComplete() {
+    // Loop through all active jobs and remove any that have finished
+    // Notes: This breaks when arm child servers are added
+    $.each(activeJobs, function (index, job) {
+        if (typeof (job) !== "undefined" && !job.active) {
+            console.log("Job isn't active:" + job.job_id.split("_")[1]);
+            console.log(job)
+            removeJobItem(job);
+            activeJobs.splice(index, 1);
+        }
+    });
 
-    let serverCount = activeServers.length;
+    $("#joblist .col-md-4").sort(function (a, b) {
+        if (a.id === b.id) {
+            return 0;
+        }
+        return (a.id < b.id ? -1 : 1);
+    }).each(function () {
+        const elem = $(this);
+        elem.remove();
+        $(elem).appendTo("#joblist");
+    });
+}
 
-    $.each(activeServers, function(server_index, server_url) {
-        $.each(activeJobs, function (index) {
-            activeJobs[index].active = false;
-        });
-
-        $.ajax({
-            url: server_url+"/json?mode=joblist",
-            type: "get",
-            timeout: 2000,
-            error: function() { --serverCount; },
-            complete: function() {
-                    console.log(activeJobs);
-                    $.each(activeJobs, function (index, job) {
-                        if (typeof(job) !== "undefined" && !job.active) {
-                            console.log("job isnt active");
-                            removeJobItem(job);
-                            activeJobs.splice(index, 1);
-                        }
-                    });
-
-                    $("#joblist .col-md-4").sort(function(a, b) {
-                        if(a.id === b.id) { return 0; }
-                        return a.id < b.id ? -1 : 1;
-                    }).each(function() {
-                        var elem = $(this);
-                        elem.remove();
-                        $(elem).appendTo("#joblist");
-                    });
-
-            },
-            success: function (data) {
-                $.each(data.results, function (index, job) {
-                    job.job_id = server_index+"_"+job.job_id;
-                    job.ripper = data.arm_name ? data.arm_name : "";
-
-                    if (activeJobs.some(e => e.job_id === job.job_id)) {
-                        var oldJob = activeJobs.find(e => e.job_id === job.job_id);
-
-                        job.active = true;
-                        activeJobs[activeJobs.indexOf(oldJob)] = job;
-
-                        updateJobItem(oldJob, job);
-                    } else {
-                        job.active = true;
-                        activeJobs.push(job);
-
-                        $('#joblist').append(addJobItem(job));
-                    }
-                    serverCount--;
-                });
+/**
+ * Function to check for active jobs from the return from api
+ * *** This doesn't work as it should when arm has child links
+ * @param data returned data from ajax
+ * @param serverIndex current server index count (added to the front of job id's)
+ */
+function checkActiveJobs(data, serverIndex) {
+    // Loop through each active job
+    $.each(activeJobs, function (AJIndex) {
+        // Turn off job active and re-enable it later if we find it
+        activeJobs[AJIndex].active = false;
+        // Loop through each result and search for our active job
+        $.each(data.results, function (_index, job) {
+            console.log(`Looking for ${activeJobs[AJIndex].job_id}!==${serverIndex}_${job.job_id}`)
+            // We found a match for the current job id and the active job id
+            if (activeJobs[AJIndex].job_id === `${serverIndex}_${job.job_id}`) {
+                console.log(`Match found for ${job.job_id}`)
+                activeJobs[AJIndex].active = true;
+                return false;
+            } else {
+                console.log(`No match: ${activeJobs[AJIndex].job_id}!==${serverIndex}_${job.job_id}`)
             }
         });
     });
 }
 
-var activeServers = [];
-var activeJobs = [];
+/**
+ * Function that is run when data is received back from json api
+ * @param data all data returned from the ajax request
+ * @param serverIndex
+ * @param serverUrl the url of the server the job is running on
+ * @param serverCount
+ * @returns {*}
+ */
+function refreshJobsSuccess(data, serverIndex, serverUrl, serverCount) {
+    checkActiveJobs(data, serverIndex);
+    $.each(data.results, function (_index, job) {
+        console.log(job.job_id)
+        job.job_id = `${serverIndex}_${job.job_id}`;
+        job.ripper = (data.arm_name ? data.arm_name : "");
+        job.server_url = serverUrl;
+        job.active = true;
+        if (activeJobs.some(e => e.job_id === job.job_id)) {
+            var oldJob = activeJobs.find(e => e.job_id === job.job_id);
+            activeJobs[activeJobs.indexOf(oldJob)] = job;
+            updateJobItem(oldJob, job);
+        } else {
+            activeJobs.push(job);
+            $("#joblist").append(addJobItem(job));
+        }
+        serverCount--;
+    });
+    return serverCount;
+}
 
-var intervalId = window.setInterval(refreshJobs, 5000);
+function checkNotifications(data) {
+    $.each(data.notes, function (notifyIndex, note) {
+        if ($(`#toast${note.id}`).length) {
+            // Exists.
+            console.log("element exists, skipping add");
+        }else {
+            console.log(note);
+            addToast(note.title, note.message, note.id);
+        }
+    });
+}
+
+/**
+ * Function set as an interval to update all jobs from api
+ */
+function refreshJobs() {
+    let serverCount = activeServers.length;
+    $.each(activeServers, function (serverIndex, serverUrl) {
+        $.ajax({
+            url: serverUrl + "/json?mode=joblist",
+            type: "get",
+            timeout: 2000,
+            error: function () {
+                --serverCount;
+            },
+            success: function (data) {
+                serverCount = refreshJobsSuccess(data, serverIndex, serverUrl, serverCount);
+            },
+            complete: function (data) {
+                refreshJobsComplete();
+                checkNotifications(data.responseJSON);
+            }
+        });
+    });
+}
+
+/**
+ * Function to push all child servers from arm.yaml config into links on the homepage
+ */
+function pushChildServers() {
+    activeServers.push(location.origin);
+    const childs = $("#children");
+    const children = childs.text().trim();
+    if (children) {
+        const childLinks = [];
+        const childrenArr = children.split(",");
+        $.each(childrenArr, function (_index, value) {
+            activeServers.push(value);
+            childLinks.push(`<a target="_blank" href="${value}">${value}</a>`);
+        });
+        childs.html(`Children: <br />${childLinks.join("<br />")}`);
+    }
+}

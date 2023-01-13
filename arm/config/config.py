@@ -1,12 +1,29 @@
 #!/usr/bin/python3
-
+"""yaml config loader"""
 import os
 import yaml
 
-yamlfile = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..", "arm.yaml")
+CONFIG_LOCATION = "/etc/arm/config"
+abcde_config_path = os.path.join(CONFIG_LOCATION, "abcde.conf")
+apprise_config_path = os.path.join(CONFIG_LOCATION, "apprise.yaml")
+arm_config_path = os.path.join(CONFIG_LOCATION, "arm.yaml")
 
-with open(yamlfile, "r") as f:
-    try:
-        cfg = yaml.load(f, Loader=yaml.FullLoader)
-    except Exception:
-        cfg = yaml.safe_load(f)  # For older versions use this
+
+def _load_config(fp):
+    with open(fp, "r") as yaml_file:
+        config = yaml.safe_load(yaml_file)
+    return config
+
+
+def load_abcde(fp):
+    with open(fp, "r") as abcde_read_file:
+        config = abcde_read_file.read()
+    return config
+
+
+# aprise config, open and read yaml contents
+apprise_config = _load_config(apprise_config_path)
+# arm config, open and read yaml contents
+arm_config = _load_config(arm_config_path)
+# abcde config file, open and read contents
+abcde_config = load_abcde(abcde_config_path)

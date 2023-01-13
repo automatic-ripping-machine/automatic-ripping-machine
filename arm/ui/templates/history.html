@@ -4,6 +4,7 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/job_details.css') }}">
 <style>
     /*
     Max width before this PARTICULAR table gets nasty
@@ -12,54 +13,6 @@
     */
     @media only screen and (max-width: 760px),
     (min-device-width: 768px) and (max-device-width: 1024px) {
-
-        /* Force table to not be like tables anymore */
-        table, thead, tbody, th, td, tr {
-            display: block;
-            /*padding: .75rem;*/
-        }
-
-        caption {
-            width: 100%;
-            text-align: center;
-        }
-
-        /* Hide table headers (but not display: none;, for accessibility) */
-        thead tr {
-            position: absolute;
-            top: -9999px;
-            left: -9999px;
-        }
-
-        tr {
-            border: 1px solid #ccc;
-            margin-top: 5px;
-            border-radius: 7px;
-        }
-
-        th {
-            border-bottom: 1px solid #c5c6c8;
-        }
-
-        td {
-            white-space: normal !important;
-            /* Behave  like a "row" */
-            border: none;
-            border-bottom: 1px solid #eee;
-            position: relative;
-            padding-left: 50%;
-            padding-top: 3px;
-        }
-
-        td:before {
-            /* Now like a table header */
-            /* Top/left values mimic padding */
-            top: 6px;
-            width: 45%;
-            padding-right: 10px;
-            white-space: pre;
-        }
-
         /*
         Label the data
         */
@@ -100,29 +53,10 @@
                         </div>
                     </div>
                     <br>
-                    <div class="row">
-                        <div class="col">
-                            <p class="text-left mt-3 d-block">Showing page {{ pages.page }} of {{ pages.pages }}</p>
-                        </div>
-                        <!-- Pagination Links-->
-                        <div class="col text-right">
-                                <a href="{{ url_for('history', page=pages.prev_num) }}" class="btn btn-outline-dark {% if pages.page == 1 %}disabled{% endif %}">&laquo;</a>
-                                <!-- Loop through the number of pages to display a link for each-->
-                                {% for page_num in pages.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                                    {% if page_num %}
-                                        <!-- Check for the active page and set the link to "Active"-->
-                                        {% if pages.page == page_num %}
-                                            <a href="{{ url_for('history', page=page_num) }}" class="btn btn-dark">{{ page_num }}</a>
-                                        {% else %}
-                                            <a href="{{ url_for('history', page=page_num) }}" class="btn btn-outline-dark">{{ page_num }}</a>
-                                        {% endif %}
-                                    {% else %}
-                                        ...
-                                    {% endif %}
-                                {% endfor %}
-                                <a href="{{ url_for('history', page=pages.next_num) }}" class="btn btn-outline-dark {% if pages.page == pages.pages %}disabled{% endif %}">&raquo;</a>
-                            </div>
-                    </div>
+                    {% with pages=pages, page_name="history" %}
+                        {% include "pagination.html" %}
+                    {% endwith %}
+                    <!-- Main Body -->
                     <div class="row">
                         <table class="table table-striped">
                             <caption>Previous rips</caption>
@@ -154,6 +88,9 @@
                             </tbody>
                         </table>
                     </div>
+                    {% with pages=pages, page_name="history" %}
+                        {% include "pagination.html" %}
+                    {% endwith %}
                 </div>
             </div>
         </div>
@@ -166,11 +103,8 @@
 
     <script type="application/javascript">
         $(document).ready(function () {
-            // call the tablesorter plugin
-            $("table").tablesorter({
-                // sort on the third column (startime, no format)
-                sortList: [[2, 1]]
-            });
+            $("table").tablesorter({});
+
         });
         activeTab("history");
     </script>
