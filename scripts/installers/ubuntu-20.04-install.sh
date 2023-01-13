@@ -98,6 +98,9 @@ function install_arm_requirements() {
         libdvd-pkg lsdvd
 
     sudo dpkg-reconfigure libdvd-pkg
+    
+    # create folders required to run the ARM service
+    sudo -u arm mkdir -p /home/arm/logs
 }
 
 function remove_existing_arm() {
