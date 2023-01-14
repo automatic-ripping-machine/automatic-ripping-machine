@@ -248,6 +248,8 @@ function install_armui_service() {
 
 function launch_setup() {
     echo -e "${RED}Launching ArmUI first-time setup${NC}"
+    echo "Giving ArmUI a moment to start, standby..."
+    sleep 30
     site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:${PORT}")
     if [[ -z "$site_addr" ]]; then
         echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}"
