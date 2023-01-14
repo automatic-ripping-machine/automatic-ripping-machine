@@ -36,10 +36,10 @@ eval "$(parse_yaml /etc/arm/config/arm.yaml "CONFIG_")"
 
 #######################################################################################
 # Log Discovered Type and Start Rip
+# ID_CDROM_MEDIA_BD = Blu-ray
+# ID_CDROM_MEDIA_CD = CD
+# ID_CDROM_MEDIA_DVD = DVD
 #######################################################################################
-ID_CDROM_MEDIA_BD = Blu-ray
-ID_CDROM_MEDIA_CD = CD
-ID_CDROM_MEDIA_DVD = DVD
 
 if [ "$ID_CDROM_MEDIA_DVD" == "1" ]; then
  numtracks=$(lsdvd "/dev/${DEVNAME}" 2> /dev/null | sed 's/,/ /' | cut -d ' ' -f 2 | grep -E '[0-9]+' | sort -r | head -n 1)#
