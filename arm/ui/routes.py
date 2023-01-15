@@ -133,6 +133,9 @@ def update_password():
     """
     updating password for the admin account
     """
+    #get current user
+    user = models.User.query.first()
+
     # After a login for is submitted
     form = SetupForm()
     if form.validate_on_submit():
@@ -155,7 +158,8 @@ def update_password():
                 flash(str(error), "danger")
         else:
             flash("Password couldn't be updated. Problem with old password", "danger")
-    return render_template('update_password.html', form=form)
+            app.logger.info("Password not updated, issue with old password")
+    return render_template('update_password.html', user=user.email, form=form)
 
 
 @app.route('/login', methods=['GET', 'POST'])
