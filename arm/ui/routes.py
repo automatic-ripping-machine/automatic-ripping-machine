@@ -133,7 +133,7 @@ def update_password():
     """
     updating password for the admin account
     """
-    #get current user
+    # get current user
     user = models.User.query.first()
 
     # After a login for is submitted
@@ -153,9 +153,11 @@ def update_password():
             try:
                 db.session.commit()
                 flash("Password successfully updated", "success")
+                app.log.info("Password successfully updated")
                 return redirect("logout")
             except Exception as error:
                 flash(str(error), "danger")
+                app.logger.debug(f"Error in updating password: {error}")
         else:
             flash("Password couldn't be updated. Problem with old password", "danger")
             app.logger.info("Password not updated, issue with old password")
