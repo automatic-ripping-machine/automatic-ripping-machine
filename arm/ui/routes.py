@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Main routes for the A.R.M ui"""
 import os
-import platform
 import re
 import json
 from pathlib import Path, PurePath
-import importlib
 import bcrypt
 from werkzeug.exceptions import HTTPException
 from werkzeug.routing import ValidationError
@@ -18,30 +16,18 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
 from arm.models import models as models
 import arm.config.config as cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm,\
-    SettingsForm, UiSettingsForm, SetupForm, AbcdeForm, SystemInfoDrives, DBUpdate
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm, DBUpdate, SetupForm
 from arm.ui.metadata import get_omdb_poster
 from arm.ui.serverutil import ServerUtil
 
+# Define the Flask login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
+
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
-db_update = ui_utils.arm_db_check()
-# Check if the databsee exists prior to creating global ui settings
-if not db_update["db_exists"]:
-    app.logger.debug("No armui cfg setup")
-    ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
-    ui_utils.setup_database(cfg.arm_config['INSTALLPATH'])
-
-    armui_cfg = models.UISettings.query.get(1)
-    app.jinja_env.globals.update(armui_cfg=armui_cfg)
-
-else:
-    armui_cfg = models.UISettings.query.get(1)
-    app.jinja_env.globals.update(armui_cfg=armui_cfg)
+armui_cfg = ui_utils.arm_db_cfg()
 
 # Page definitions
-page_settings = "settings.html"
 page_support_databaseupdate = "support/databaseupdate.html"
 redirect_settings = "/settings"
 
@@ -147,6 +133,9 @@ def update_password():
     """
     updating password for the admin account
     """
+    # get current user
+    user = models.User.query.first()
+
     # After a login for is submitted
     form = SetupForm()
     if form.validate_on_submit():
@@ -164,12 +153,15 @@ def update_password():
             try:
                 db.session.commit()
                 flash("Password successfully updated", "success")
+                app.log.info("Password successfully updated")
                 return redirect("logout")
             except Exception as error:
                 flash(str(error), "danger")
+                app.logger.debug(f"Error in updating password: {error}")
         else:
             flash("Password couldn't be updated. Problem with old password", "danger")
-    return render_template('update_password.html', form=form)
+            app.logger.info("Password not updated, issue with old password")
+    return render_template('update_password.html', user=user.email, form=form)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -230,7 +222,6 @@ def database():
     Outputs every job from the database
      this can cause serious slow-downs with + 3/4000 entries
     """
-
     page = request.args.get('page', 1, type=int)
     app.logger.debug(armui_cfg)
     # Check for database file
@@ -289,160 +280,6 @@ def feed_json():
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
                               mimetype=constants.JSON_TYPE)
-
-
-@app.route('/update_arm', methods=['POST'])
-@login_required
-def update_git():
-    """Update arm via git command line"""
-    return ui_utils.git_get_updates()
-
-
-@app.route('/settings')
-@login_required
-def settings():
-    """
-    The settings page - allows the user to update the all configs of A.R.M
-    without needing to open a text editor\n
-    This loads slow, needs to be optimised...
-    """
-    global page_settings
-
-    # stats for info page
-    with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
-        version = version_file.read().strip()
-    failed_rips = models.Job.query.filter_by(status="fail").count()
-    total_rips = models.Job.query.filter_by().count()
-    movies = models.Job.query.filter_by(video_type="movie").count()
-    series = models.Job.query.filter_by(video_type="series").count()
-    cds = models.Job.query.filter_by(disctype="music").count()
-    stats = {'python_version': platform.python_version(),
-             'arm_version': version,
-             'git_commit': ui_utils.get_git_revision_hash(),
-             'movies_ripped': movies,
-             'series_ripped': series,
-             'cds_ripped': cds,
-             'no_failed_jobs': failed_rips,
-             'total_rips': total_rips,
-             'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash())
-             }
-
-    # System details in class server
-    server = models.SystemInfo.query.filter_by(id="1").first()
-    serverutil = ServerUtil()
-    serverutil.get_update()
-    # System details in class server
-    arm_path = cfg.arm_config['TRANSCODE_PATH']
-    media_path = cfg.arm_config['COMPLETED_PATH']
-
-    # form_drive = SystemInfoDrives(request.form)
-    # System Drives (CD/DVD/Blueray drives)
-    drives = ui_utils.drives_check_status()
-
-    # Load up the comments.json, so we can comment the arm.yaml
-    comments = ui_utils.generate_comments()
-    form = SettingsForm()
-
-    return render_template(page_settings, settings=cfg.arm_config, ui_settings=armui_cfg,
-                           stats=stats, apprise_cfg=cfg.apprise_config,
-                           form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config,
-                           server=server, serverutil=serverutil, arm_path=arm_path, media_path=media_path,
-                           drives=drives, form_drive=False)
-
-
-@app.route('/save_settings', methods=['POST'])
-@login_required
-def save_settings():
-    """
-    Save arm ripper settings from post
-    """
-    # Load up the comments.json, so we can comment the arm.yaml
-    comments = ui_utils.generate_comments()
-    success = False
-    arm_cfg = {}
-    form = SettingsForm()
-    if form.validate_on_submit():
-        # Build the new arm.yaml with updated values from the user
-        arm_cfg = ui_utils.build_arm_cfg(request.form.to_dict(), comments)
-        # Save updated arm.yaml
-        with open(cfg.arm_config_path, "w") as settings_file:
-            settings_file.write(arm_cfg)
-            settings_file.close()
-        success = True
-        importlib.reload(cfg)
-    # If we get to here there was no post data
-    return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
-
-
-@app.route('/save_ui_settings', methods=['POST'])
-@login_required
-def save_ui_settings():
-    """
-    Save arm ui settings to db\n
-    - allows the user to update the armui_settings
-    This function needs to trigger a restart of flask for debugging to update the values
-    """
-    form = UiSettingsForm()
-    success = False
-    arm_ui_cfg = models.UISettings.query.get(1)
-    if form.validate_on_submit():
-        use_icons = (str(form.use_icons.data).strip().lower() == "true")
-        save_remote_images = (str(form.save_remote_images.data).strip().lower() == "true")
-        arm_ui_cfg.index_refresh = format(form.index_refresh.data)
-        arm_ui_cfg.use_icons = use_icons
-        arm_ui_cfg.save_remote_images = save_remote_images
-        arm_ui_cfg.bootstrap_skin = format(form.bootstrap_skin.data)
-        arm_ui_cfg.language = format(form.language.data)
-        arm_ui_cfg.database_limit = format(form.database_limit.data)
-        db.session.commit()
-        success = True
-    # Masking the jinja update, otherwise an error is thrown
-    # sqlalchemy.orm.exc.DetachedInstanceError: Instance <UISettings at 0x7f294c109fd0>
-    # app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
-    return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
-
-
-@app.route('/save_abcde_settings', methods=['POST'])
-@login_required
-def save_abcde():
-    """
-    Save abcde config settings from post
-    """
-    success = False
-    abcde_cfg_str = ""
-    form = AbcdeForm()
-    if form.validate():
-        app.logger.debug(f"routes.save_abcde: Saving new abcde.conf: {cfg.abcde_config_path}")
-        abcde_cfg_str = str(form.abcdeConfig.data).strip()
-        # Save updated abcde.conf
-        with open(cfg.abcde_config_path, "w") as abcde_file:
-            abcde_file.write(abcde_cfg_str)
-            abcde_file.close()
-        success = True
-        # Update the abcde config
-        cfg.abcde_config = abcde_cfg_str
-    # If we get to here there was no post data
-    return {'success': success, 'settings': abcde_cfg_str, 'form': 'abcde config'}
-
-
-@app.route('/save_apprise_cfg', methods=['POST'])
-@login_required
-def save_apprise_cfg():
-    """
-    Save apprise config settings from post
-    """
-    # Load up the comments.json, so we can comment the arm.yaml
-    success = False
-    form = SettingsForm()
-    if form.validate_on_submit():
-        # Save updated apprise.yaml
-        with open(cfg.apprise_config_path, "w") as settings_file:
-            settings_file.write(request.form.to_dict())
-            settings_file.close()
-        success = True
-        importlib.reload(cfg)
-    # If we get to here there was no post data
-    return {'success': success, 'settings': cfg.apprise_config, 'form': 'arm ripper settings'}
 
 
 @app.route('/logs')
@@ -844,42 +681,11 @@ def handle_exception(sent_error):
     return render_template(constants.ERROR_PAGE, error=sent_error), 500
 
 
-@app.route('/systeminfo', methods=['POST'])
+@app.route('/update_arm', methods=['POST'])
 @login_required
-def server_info():
-    """
-    Server System information and details on connected CD, DVD and/or BluRay Drives
-    """
-    global redirect_settings
-
-    # System Drives (CD/DVD/Blueray drives)
-    form_drive = SystemInfoDrives(request.form)
-    if request.method == 'POST' and form_drive.validate():
-        # Return for POST
-        app.logger.debug(
-                    "Drive id: " + str(form_drive.id.data) +
-                    " Updated db description: " + form_drive.description.data)
-        drive = models.SystemDrives.query.filter_by(
-                                            drive_id=form_drive.id.data).first()
-        drive.description = str(form_drive.description.data).strip()
-        db.session.commit()
-        # Return to systeminfo page (refresh page)
-        return redirect(redirect_settings)
-    else:
-        # Return for GET
-        return redirect(redirect_settings)
-
-
-@app.route('/systemdrivescan')
-def system_drive_scan():
-    """
-    Server System  - scan for a change in system, addition of drives
-    """
-    global redirect_settings
-    # Update to scan for changes from system
-    new_count = ui_utils.drives_update()
-    flash(f"ARM found {new_count} new drives", "success")
-    return redirect(redirect_settings)
+def update_git():
+    """Update arm via git command line"""
+    return ui_utils.git_get_updates()
 
 
 @app.route('/driveeject/<id>')

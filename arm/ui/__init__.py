@@ -55,8 +55,12 @@ os.environ["WERKZEUG_DEBUG_PIN"] = "12345"  # make this random!
 app.logger.debug("Debugging pin: " + os.environ["WERKZEUG_DEBUG_PIN"])
 
 db = SQLAlchemy(app)
-
 migrate = Migrate(app, db)
+
+# Register route blueprints
+# loaded post database decleration to avoid circular loops
+from arm.ui.settings.settings import route_settings  # noqa: E402,F811
+app.register_blueprint(route_settings)
 
 # Remove GET/page loads from logging
 import logging  # noqa: E402,F811

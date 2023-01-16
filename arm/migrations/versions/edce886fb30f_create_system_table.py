@@ -39,6 +39,7 @@ def upgrade():
             sa.ForeignKeyConstraint(['job_id_previous'], ['job.job_id'], )
         )
 
+
 def downgrade():
     op.drop_table('system_info')
     op.drop_table('system_drives')

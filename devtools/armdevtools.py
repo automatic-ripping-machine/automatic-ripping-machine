@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """Automatic-Ripping-Machine Development Tools"""
@@ -8,6 +8,7 @@ import argparse
 import armui
 import log
 import database
+import qacheck
 
 
 # global variables
@@ -16,10 +17,11 @@ arm_home = "/home/arm"
 arm_install = "/opt/arm"
 
 
-# Change the git repository branch to another
-#  INPUT: git_branch
-#  OUTPUT: none
 def git_branch_change(git_branch):
+    """Change the git repository branch to another
+        INPUT: git_branch
+        OUTPUT: none
+    """
     if git_branch:
         log.info(f"Change the current git branch to - {git_branch}")
         # Stop the UI to avoid issues
@@ -41,12 +43,15 @@ def git_branch_change(git_branch):
         log.error("No branch has been provided")
 
 
-# Clear data from the ARM home directory
-#  INPUT: git_branch
-#  OUTPUT: none
 def arm_clear_data():
+    """
+    Clear data from the ARM home directory
+        INPUT: git_branch
+        OUTPUT: none
+    """
     # todo, read the location from the arm config file
-    log.console(f"remove data from the home folder: {arm_home}")
+    # log.console(f"remove data from the home folder: {arm_home}")
+    log.info("not currently supported")
 
 
 # Commence reading from the input options
@@ -61,10 +66,14 @@ parser.add_argument("-db_rem",
                     action='store_true')
 parser.add_argument("-db_roll",
                     help="Database tool - roll the current database back a version," +
-                    "input number of versions to roll back.")
+                    "input number of versions to roll back.",
+                    action='store_true')
 parser.add_argument("-db_data",
                     help="Database tool - populate the database with Lorem Ipsum data. " +
                     "Requires the active database to be the most current",
+                    action='store_true')
+parser.add_argument("-qa",
+                    help="QA Checks - run Flake8 against ARM",
                     action='store_true')
 parser.add_argument("-v", help="ARM Dev Tools Version",
                     action='version',
@@ -90,3 +99,7 @@ if args.db_roll:
 # -db_data Database data insert
 if args.db_data:
     database.data()
+
+# -qa Quality Checks against ARM
+if args.db_data:
+    qacheck.flake8(arm_install)
