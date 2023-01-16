@@ -186,7 +186,7 @@ function setup_config_files() {
     cp --no-clobber "/opt/arm/setup/.abcde.conf" "/etc/.abcde.conf"
     chown arm:arm "/etc/.abcde.conf"
     # link to the new install location so runui.py doesn't break
-    sudo -u arm ln -sf /etc/.abdce.conf /etc/arm/config/abcde.conf 
+    sudo -u arm ln -sf /etc/.abcde.conf /etc/arm/config/abcde.conf 
 
     if [[ $port_flag ]]; then
         echo -e "${RED}Non-default port specified, updating arm config...${NC}"
@@ -248,7 +248,9 @@ function install_armui_service() {
 
 function launch_setup() {
     echo -e "${RED}Launching ArmUI first-time setup${NC}"
-    site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:${PORT}")
+    echo "Giving ArmUI a moment to start, standby..."
+    sleep 30
+    site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:${PORT}") || true
     if [[ -z "$site_addr" ]]; then
         echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}"
     else
