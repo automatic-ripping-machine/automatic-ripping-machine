@@ -69,5 +69,6 @@ class ServerUtil():
             disk_space = 0
             disk_percent = 0
             app.logger.debug("ARM folders not found")
-            flash(f"There was a problem accessing the ARM folder: '{filepath}'. Please make sure you have setup ARM", "danger")
+            flash("There was a problem accessing the ARM folder: "
+                  f"'{filepath}'. Please make sure you have setup ARM", "danger")
         return disk_space, disk_percent
