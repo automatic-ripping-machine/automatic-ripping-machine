@@ -61,8 +61,10 @@ migrate = Migrate(app, db)
 # loaded post database decleration to avoid circular loops
 from arm.ui.settings.settings import route_settings  # noqa: E402,F811
 from arm.ui.logs.logs import route_logs  # noqa: E402,F811
+from arm.ui.auth.auth import route_auth  # noqa: E402,F811
 app.register_blueprint(route_settings)
 app.register_blueprint(route_logs)
+app.register_blueprint(route_auth)
 
 # Remove GET/page loads from logging
 import logging  # noqa: E402,F811

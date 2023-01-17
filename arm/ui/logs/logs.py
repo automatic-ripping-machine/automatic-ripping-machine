@@ -7,18 +7,18 @@ Covers
 """
 
 import os
-from pathlib import Path, PurePath
+from pathlib import Path
 from flask_login import LoginManager, login_required  # noqa: F401
-from flask import render_template, request, Blueprint
+from flask import render_template, request, Blueprint, send_file
+from werkzeug.routing import ValidationError
 
 import arm.ui.utils as ui_utils
-from arm.ui import app, db
-from arm.models import models as models
+from arm.ui import app
 import arm.config.config as cfg
 
 route_logs = Blueprint('route_logs', __name__,
-                           template_folder='templates',
-                           static_folder='../static')
+                        template_folder='templates',
+                        static_folder='../static')
 
 
 @route_logs.route('/logs')

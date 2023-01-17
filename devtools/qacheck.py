@@ -21,7 +21,7 @@ def flake8(arm_path):
     # Stop the UI to avoid issues
     armui.stop()
     try:
-        command = f"flake8 {arm_path} --max-complexity=15 --max-line-length=120 --show-source --statistics"
+        command = f"flake8 {arm_path}/arm --max-complexity=15 --max-line-length=120 --show-source --statistics"
         log.info(f"Executing: {command}")
         os.system(f"{command}")
         log.success("ARM QA check completed")
