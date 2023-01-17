@@ -204,8 +204,8 @@ function install_python_requirements {
     echo -e "${RED}Installing up python requirements${NC}"
     cd /opt/arm
     # running pip with sudo can result in permissions errors, run as arm
-    sudo -u arm pip3 install --upgrade pip wheel setuptools psutil pyudev
-    sudo -u arm pip3 install --ignore-installed --prefer-binary -r requirements.txt
+    su - arm -c "pip3 install --upgrade pip wheel setuptools psutil pyudev"
+    su - arm -c "pip3 install --ignore-installed --prefer-binary -r /opt/arm/requirements.txt"
 }
 
 function setup_autoplay() {
@@ -259,6 +259,17 @@ function launch_setup() {
     fi
 }
 
+function create_folders() {
+    echo -e "${RED}Creating ARM folders${NC}"
+    arm_mkdir "/home/arm/media/transcode"
+    arm_mkdir "/home/arm/media/completed"
+}
+
+function arm_mkdir() {
+    echo -e "Creating $1"
+    su - arm -c "mkdir -p -v $1"
+}
+
 # start here
 install_os_tools
 add_arm_user
@@ -276,6 +287,7 @@ install_python_requirements
 setup_autoplay
 setup_syslog_rule
 install_armui_service
+create_folders
 launch_setup
 
 #advise to reboot
