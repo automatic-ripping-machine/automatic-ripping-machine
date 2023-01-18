@@ -2,7 +2,9 @@
 Class definition
  Server - class for managing system utilisation
 """
+
 import psutil
+
 import arm.config.config as cfg
 from arm.ui import app
 from flask import flash

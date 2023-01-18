@@ -23,7 +23,7 @@ from arm.ui import app, db
 from arm.models import models as models
 import arm.config.config as cfg
 from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
-from arm.ui.serverutil import ServerUtil
+from arm.ui.settings.ServerUtil import ServerUtil
 
 route_settings = Blueprint('route_settings', __name__,
                            template_folder='templates',

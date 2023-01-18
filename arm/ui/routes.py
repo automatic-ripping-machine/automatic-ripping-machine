@@ -16,7 +16,7 @@ from arm.models import models as models
 import arm.config.config as cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, DBUpdate
 from arm.ui.metadata import get_omdb_poster
-from arm.ui.serverutil import ServerUtil
+from arm.ui.settings.ServerUtil import ServerUtil
 
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
 armui_cfg = ui_utils.arm_db_cfg()
