@@ -141,27 +141,6 @@ def rips():
     return render_template('activerips.html', jobs=models.Job.query.filter_by(status="active"))
 
 
-@app.route('/history')
-@login_required
-def history():
-    """
-    Smaller much simpler output of previously run jobs
-
-    """
-    page = request.args.get('page', 1, type=int)
-    if os.path.isfile(cfg.arm_config['DBFILE']):
-        # after roughly 175 entries firefox readermode will break
-        # jobs = Job.query.filter_by().limit(175).all()
-        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page, 100, False)
-    else:
-        app.logger.error('ERROR: /history database file doesnt exist')
-        jobs = {}
-    app.logger.debug(f"Date format - {cfg.arm_config['DATE_FORMAT']}")
-
-    return render_template('history.html', jobs=jobs.items,
-                           date_format=cfg.arm_config['DATE_FORMAT'], pages=jobs)
-
-
 @app.route('/jobdetail')
 @login_required
 def jobdetail():
