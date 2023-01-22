@@ -419,28 +419,3 @@ def drive_eject(id):
     drive.open_close()
     db.session.commit()
     return redirect(redirect_settings)
-
-
-@app.route('/dbupdate', methods=['POST'])
-def update_database():
-    """
-    Update the ARM database when changes are made or the arm db file is missing
-    """
-    form = DBUpdate(request.form)
-    if request.method == 'POST' and form.validate():
-        if form.dbfix.data == "migrate":
-            app.logger.debug("User requested - Database migration")
-            ui_utils.arm_db_migrate()
-            flash("ARM database migration successful!", "success")
-        elif form.dbfix.data == "new":
-            app.logger.debug("User requested - New database")
-            flash("ARM database setup successful!", "success")
-        else:
-            # No method defined
-            app.logger.debug(f"No update method defined from DB Update - {form.dbfix.data}")
-            flash("Error no update method specified, report this as a bug.", "error")
-
-        return redirect('/index')
-    else:
-        # Catch for GET requests of the page, redirect to index
-        return redirect('/index')
