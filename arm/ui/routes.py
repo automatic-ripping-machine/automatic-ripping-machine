@@ -87,28 +87,6 @@ def setup():
         return redirect(constants.HOME_PAGE)
 
 
-@app.route('/database')
-@login_required
-def database():
-    """
-    The main database page
-
-    Outputs every job from the database
-     this can cause serious slow-downs with + 3/4000 entries
-    """
-    page = request.args.get('page', 1, type=int)
-    app.logger.debug(armui_cfg)
-    # Check for database file
-    if os.path.isfile(cfg.arm_config['DBFILE']):
-        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page,
-                                                                              int(armui_cfg.database_limit), False)
-    else:
-        app.logger.error('ERROR: /database no database, file doesnt exist')
-        jobs = {}
-    return render_template('database.html', jobs=jobs.items,
-                           date_format=cfg.arm_config['DATE_FORMAT'], pages=jobs)
-
-
 @app.route('/json', methods=['GET'])
 @login_required
 def feed_json():
