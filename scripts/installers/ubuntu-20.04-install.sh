@@ -154,7 +154,7 @@ function install_arm_dev_env() {
     fi
 
     # install pycharm community, if professional not installed already
-    if [[ -z $(snap find pycharm-professional) ]]; then
+    if [[ -z $(which pycharm-professional) ]]; then
         sudo snap install pycharm-community --classic
     fi
 }
