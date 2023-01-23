@@ -3,13 +3,13 @@
 Main routes for the A.R.M ui
 Covers
 - index [GET]
-- send_movies [GET]
 - error [GET]
 - errorhandler [GET]
 - setup [GET] -- penned for removal
 Other routes handled in flask blueprints
-- auth, database, history, jobs, logs, settings
+- auth, database, history, jobs, logs, sendmovies, settings
 """
+
 import os
 import json
 from pathlib import Path, PurePath
@@ -20,7 +20,7 @@ from flask.logging import default_handler  # noqa: F401
 from flask_login import login_required, UserMixin  # noqa: F401
 
 import arm.ui.utils as ui_utils
-from arm.ui import app, db, constants, json_api
+from arm.ui import app, db, constants
 from arm.models import models as models
 import arm.config.config as cfg
 from arm.ui.forms import DBUpdate
@@ -74,21 +74,6 @@ def home():
                            children=cfg.arm_config['ARM_CHILDREN'],
                            server=server, serverutil=serverutil,
                            arm_path=arm_path, media_path=media_path)
-
-
-@app.route('/send_movies')
-@login_required
-def send_movies():
-    """
-    function for sending all dvd crc64 ids to off-site api
-    This isn't very optimised and can be slow and causes a huge number of requests
-    """
-    if request.args.get('s') is None:
-        return render_template('send_movies_form.html')
-
-    job_list = db.session.query(models.Job).filter_by(hasnicetitle=True, disctype="dvd").all()
-    return_job_list = [job.job_id for job in job_list]
-    return render_template('send_movies.html', job_list=return_job_list)
 
 
 @app.route('/error')

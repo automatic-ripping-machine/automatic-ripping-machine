@@ -12,13 +12,15 @@ Covers
 - json [JSON GET]
 """
 
+import json
 from flask_login import LoginManager, login_required  # noqa: F401
 from flask import render_template, request, Blueprint, flash, redirect, url_for
 from werkzeug.routing import ValidationError
 
 import arm.ui.utils as ui_utils
-from arm.ui import app, db, constants
+from arm.ui import app, db, constants, json_api
 from arm.models import models as models
+import arm.config.config as cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm
 
 route_jobs = Blueprint('route_jobs', __name__,
