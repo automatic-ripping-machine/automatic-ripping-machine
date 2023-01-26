@@ -20,8 +20,8 @@ from arm.ui.metadata import get_omdb_poster
 from arm.ui.forms import DBUpdate
 
 route_database = Blueprint('route_database', __name__,
-                        template_folder='templates',
-                        static_folder='../static')
+                           template_folder='templates',
+                           static_folder='../static')
 
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
 armui_cfg = ui_utils.arm_db_cfg()

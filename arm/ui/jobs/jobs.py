@@ -24,8 +24,8 @@ import arm.config.config as cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm
 
 route_jobs = Blueprint('route_jobs', __name__,
-                        template_folder='templates',
-                        static_folder='../static')
+                       template_folder='templates',
+                       static_folder='../static')
 
 
 @route_jobs.route('/jobdetail')

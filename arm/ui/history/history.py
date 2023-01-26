@@ -14,8 +14,8 @@ from arm.models import models as models
 import arm.config.config as cfg
 
 route_history = Blueprint('route_history', __name__,
-                        template_folder='templates',
-                        static_folder='../static')
+                          template_folder='templates',
+                          static_folder='../static')
 
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
 armui_cfg = ui_utils.arm_db_cfg()

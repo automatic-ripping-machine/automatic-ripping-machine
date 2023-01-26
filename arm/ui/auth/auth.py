@@ -19,8 +19,8 @@ from arm.ui.forms import SetupForm, DBUpdate
 import arm.ui.utils as ui_utils
 
 route_auth = Blueprint('route_auth', __name__,
-                        template_folder='templates',
-                        static_folder='../static')
+                       template_folder='templates',
+                       static_folder='../static')
 
 # Define the Flask login manager
 login_manager = LoginManager()

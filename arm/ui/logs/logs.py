@@ -17,8 +17,8 @@ from arm.ui import app
 import arm.config.config as cfg
 
 route_logs = Blueprint('route_logs', __name__,
-                        template_folder='templates',
-                        static_folder='../static')
+                       template_folder='templates',
+                       static_folder='../static')
 
 
 @route_logs.route('/logs')

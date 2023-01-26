@@ -11,8 +11,8 @@ from arm.ui import db
 from arm.models import models as models
 
 route_sendmovies = Blueprint('route_sendmovies', __name__,
-                        template_folder='templates',
-                        static_folder='../static')
+                             template_folder='templates',
+                             static_folder='../static')
 
 
 @route_sendmovies.route('/send_movies')
