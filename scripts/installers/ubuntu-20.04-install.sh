@@ -204,7 +204,8 @@ function install_python_requirements {
     echo -e "${RED}Installing up python requirements${NC}"
     cd /opt/arm
     # running pip with sudo can result in permissions errors, run as arm
-    su - arm -c "pip3 install --upgrade pip wheel setuptools psutil pyudev"
+    su - arm -c "pip3 install --upgrade setuptools==65.7.0"
+    su - arm -c "pip3 install --upgrade pip wheel psutil pyudev"
     su - arm -c "pip3 install --ignore-installed --prefer-binary -r /opt/arm/requirements.txt"
 }
 
