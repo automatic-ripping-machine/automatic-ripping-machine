@@ -15,5 +15,5 @@ docker run -d \
     --privileged \
     --restart "always" \
     --name "arm-rippers" \
-    --cpus="6.5" \
+    --cpus="3" \
     IMAGE_NAME
