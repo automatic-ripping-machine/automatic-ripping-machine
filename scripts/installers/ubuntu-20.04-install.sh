@@ -40,7 +40,7 @@ function install_os_tools() {
     sudo apt install lsscsi net-tools -y
     sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
     sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install
-    sudo apt install git curl -y
+    sudo apt install git curl shellcheck -y
 }
 
 function add_arm_user() {
@@ -154,7 +154,8 @@ function install_arm_dev_env() {
     fi
 
     # install pycharm community, if professional not installed already
-    if [[ -z $(snap find pycharm-professional) ]]; then
+    # shellcheck disable=SC2230
+    if [[ -z $(which pycharm-professional) ]]; then
         sudo snap install pycharm-community --classic
     fi
 }
@@ -204,8 +205,19 @@ function install_python_requirements {
     echo -e "${RED}Installing up python requirements${NC}"
     cd /opt/arm
     # running pip with sudo can result in permissions errors, run as arm
-    sudo -u arm pip3 install --upgrade pip wheel setuptools psutil pyudev
-    sudo -u arm pip3 install --ignore-installed --prefer-binary -r requirements.txt
+    su - arm -c "pip3 install --upgrade setuptools==65.7.0"
+    su - arm -c "pip3 install --upgrade pip wheel psutil pyudev"
+    su - arm -c "pip3 install --ignore-installed --prefer-binary -r /opt/arm/requirements.txt"
+    
+    # add python install location to the PATH permanently
+    bin_dir="/home/arm/.local/bin"
+    if [[ $PATH != *"${bin_dir}"* ]]; then
+        echo -e "${RED}Updating PATH...${NC}"
+        PATH="${bin_dir}":$PATH
+        
+        #shellcheck source=/home/arm/.profile
+        source /home/arm/.profile
+    fi
 }
 
 function setup_autoplay() {
@@ -259,6 +271,17 @@ function launch_setup() {
     fi
 }
 
+function create_folders() {
+    echo -e "${RED}Creating ARM folders${NC}"
+    arm_mkdir "/home/arm/media/transcode"
+    arm_mkdir "/home/arm/media/completed"
+}
+
+function arm_mkdir() {
+    echo -e "Creating $1"
+    su - arm -c "mkdir -p -v $1"
+}
+
 # start here
 install_os_tools
 add_arm_user
@@ -276,6 +299,7 @@ install_python_requirements
 setup_autoplay
 setup_syslog_rule
 install_armui_service
+create_folders
 launch_setup
 
 #advise to reboot

@@ -43,8 +43,8 @@ class ServerUtil():
     def get_cpu_temp(self):
         try:
             temps = psutil.sensors_temperatures()
-            if not len(temps) == 0:
-                self.cpu_temp = temps['coretemp'][0][1]
+            if coretemp := temps.get('coretemp', None):
+                self.cpu_temp = coretemp[0][1]
             else:
                 self.cpu_temp = 0
         except EnvironmentError:
@@ -71,7 +71,6 @@ class ServerUtil():
             disk_space = 0
             disk_percent = 0
             app.logger.debug("ARM folders not found")
-            flash("There was a problem accessing the ARM folders. Please make sure you have setup ARM<br/>"
-                  "Setup can be started by visiting <a href=\"/setup\">setup page</a> ARM will not work correctly until"
-                  "you have added an admin account", "danger")
+            flash("There was a problem accessing the ARM folder: "
+                  f"'{filepath}'. Please make sure you have setup ARM", "danger")
         return disk_space, disk_percent
