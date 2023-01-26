@@ -154,6 +154,7 @@ function install_arm_dev_env() {
     fi
 
     # install pycharm community, if professional not installed already
+    # shellcheck disable=SC2230
     if [[ -z $(which pycharm-professional) ]]; then
         sudo snap install pycharm-community --classic
     fi
