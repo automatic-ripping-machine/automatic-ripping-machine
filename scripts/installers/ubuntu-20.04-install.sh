@@ -40,7 +40,7 @@ function install_os_tools() {
     sudo apt install lsscsi net-tools -y
     sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
     sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install
-    sudo apt install git curl -y
+    sudo apt install git curl shellcheck -y
 }
 
 function add_arm_user() {
@@ -154,6 +154,7 @@ function install_arm_dev_env() {
     fi
 
     # install pycharm community, if professional not installed already
+    # shellcheck disable=SC2230
     if [[ -z $(which pycharm-professional) ]]; then
         sudo snap install pycharm-community --classic
     fi
@@ -204,8 +205,19 @@ function install_python_requirements {
     echo -e "${RED}Installing up python requirements${NC}"
     cd /opt/arm
     # running pip with sudo can result in permissions errors, run as arm
-    su - arm -c "pip3 install --upgrade pip wheel setuptools psutil pyudev"
+    su - arm -c "pip3 install --upgrade setuptools==65.7.0"
+    su - arm -c "pip3 install --upgrade pip wheel psutil pyudev"
     su - arm -c "pip3 install --ignore-installed --prefer-binary -r /opt/arm/requirements.txt"
+    
+    # add python install location to the PATH permanently
+    bin_dir="/home/arm/.local/bin"
+    if [[ $PATH != *"${bin_dir}"* ]]; then
+        echo -e "${RED}Updating PATH...${NC}"
+        PATH="${bin_dir}":$PATH
+        
+        #shellcheck source=/home/arm/.profile
+        source /home/arm/.profile
+    fi
 }
 
 function setup_autoplay() {
