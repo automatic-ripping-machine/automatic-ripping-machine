@@ -208,6 +208,16 @@ function install_python_requirements {
     su - arm -c "pip3 install --upgrade setuptools==65.7.0"
     su - arm -c "pip3 install --upgrade pip wheel psutil pyudev"
     su - arm -c "pip3 install --ignore-installed --prefer-binary -r /opt/arm/requirements.txt"
+    
+    # add python install location to the PATH permanently
+    bin_dir="/home/arm/.local/bin"
+    if [[ $PATH != *"${bin_dir}"* ]]; then
+        echo -e "${RED}Updating PATH...${NC}"
+        PATH="${bin_dir}":$PATH
+        
+        #shellcheck source=/home/arm/.profile
+        source /home/arm/.profile
+    fi
 }
 
 function setup_autoplay() {
