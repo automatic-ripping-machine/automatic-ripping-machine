@@ -58,7 +58,7 @@ def title_search():
     form = TitleSearchForm(request.args, meta={'csrf': False})
     if form.validate():
         flash(f'Search for {request.args.get("title")}, year={request.args.get("year")}', 'success')
-        return redirect(url_for('list_titles', title=request.args.get("title"),
+        return redirect(url_for('route_jobs.list_titles', title=request.args.get("title"),
                                 year=request.args.get("year"), job_id=job_id))
     return render_template('titlesearch.html', title='Update Title', form=form, job=job)
 
