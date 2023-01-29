@@ -101,5 +101,5 @@ if args.db_data:
     database.data()
 
 # -qa Quality Checks against ARM
-if args.db_data:
+if args.qa:
     qacheck.flake8(arm_install)

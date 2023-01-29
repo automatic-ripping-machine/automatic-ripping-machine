@@ -8,6 +8,8 @@ Covers
 - save_apprise_cfg [POST]
 - systeminfo [POST]
 - systemdrivescan [GET]
+- update_arm [POST]
+- drive_eject [GET]
 """
 
 import os
@@ -23,7 +25,7 @@ from arm.ui import app, db
 from arm.models import models as models
 import arm.config.config as cfg
 from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
-from arm.ui.serverutil import ServerUtil
+from arm.ui.settings.ServerUtil import ServerUtil
 
 route_settings = Blueprint('route_settings', __name__,
                            template_folder='templates',
@@ -232,4 +234,24 @@ def system_drive_scan():
     # Update to scan for changes from system
     new_count = ui_utils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
+    return redirect(redirect_settings)
+
+
+@route_settings.route('/update_arm', methods=['POST'])
+@login_required
+def update_git():
+    """Update arm via git command line"""
+    return ui_utils.git_get_updates()
+
+
+@route_settings.route('/driveeject/<id>')
+@login_required
+def drive_eject(id):
+    """
+    Server System  - change state of CD/DVD/BluRay drive - toggle eject
+    """
+    global redirect_settings
+    drive = models.SystemDrives.query.filter_by(drive_id=id).first()
+    drive.open_close()
+    db.session.commit()
     return redirect(redirect_settings)

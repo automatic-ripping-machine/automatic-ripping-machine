@@ -5,8 +5,9 @@ Revises: edce886fb30f, f1054468c1c7
 Create Date: 2022-06-24 13:43:51.603433
 
 """
-from alembic import op
-import sqlalchemy as sa
+# no imports required, for the merge of forked databases
+# from alembic import op
+# import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
