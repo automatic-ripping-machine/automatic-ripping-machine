@@ -768,7 +768,7 @@ def clean_for_filename(string):
 
 def duplicate_run_check(dev_path):
     """
-    This will kill any runs that have been triggered twice on the same device\n
+    Kills this run if another run was triggered recently on the same device\n
     Some drives will trigger the udev twice causing 1 disc insert to add 2 jobs\n
     this stops that issue
     :return: None
@@ -779,7 +779,9 @@ def duplicate_run_check(dev_path):
         for j in running_jobs:
             print(j.start_time - datetime.datetime.now())
             mins_last_run = int(round(abs(j.start_time - datetime.datetime.now()).total_seconds()) / 60)
-            if mins_last_run <= 1:
+            # Some (older) devices can take at least 3 minutes to receive the
+            # duplicate event, treat two events within 3 minutes as duplicate.
+            if mins_last_run <= 3:
                 logging.error(f"Job already running on {dev_path}")
                 sys.exit(1)
 
