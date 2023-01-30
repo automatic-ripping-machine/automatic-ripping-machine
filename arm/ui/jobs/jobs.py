@@ -55,12 +55,15 @@ def title_search():
     """
     job_id = request.args.get('job_id')
     job = models.Job.query.get(job_id)
-    form = TitleSearchForm(request.args, meta={'csrf': False})
+    form = TitleSearchForm(request.args)
+
+    # redirect to results if form returns with valid data
     if form.validate():
         flash(f'Search for {request.args.get("title")}, year={request.args.get("year")}', 'success')
         return redirect(url_for('route_jobs.list_titles', title=request.args.get("title"),
                                 year=request.args.get("year"), job_id=job_id))
-    return render_template('titlesearch.html', title='Update Title', form=form, job=job)
+    else:
+        return render_template('titlesearch.html', title='Update Title', form=form, job=job)
 
 
 @route_jobs.route('/customTitle')

@@ -27,10 +27,10 @@
 		</form>
 	</div>
 </div>
-			{% if form.errors %}
-				{% for k in form.errors %}
-					<script>$("[name='{{k}}']").addClass("is-invalid");</script>
-				{% endfor %}
-			{% endif %}
+{% if form.errors %}
+	{% for k in form.errors %}
+		<script>$("[name='{{k}}']").addClass("is-invalid");</script>
+	{% endfor %}
+{% endif %}
 
 {% endblock %}

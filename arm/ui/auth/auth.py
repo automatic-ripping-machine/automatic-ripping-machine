@@ -81,7 +81,9 @@ def login():
         return_redirect = redirect(constants.HOME_PAGE)
 
     form = SetupForm()
-    if form.validate_on_submit():
+
+    # check the form is valid
+    if request.method == 'POST' and form.validate_on_submit():
         login_username = request.form['username']
         # we know there is only ever 1 admin account, so we can pull it and check against it locally
         admin = models.User.query.filter_by().first()
@@ -125,7 +127,7 @@ def update_password():
 
     # After a login for is submitted
     form = SetupForm()
-    if form.validate_on_submit():
+    if request.method == 'POST' and form.validate_on_submit():
         username = str(request.form['username']).strip()
         new_password = str(request.form['newpassword']).strip().encode('utf-8')
         user = models.User.query.filter_by(email=username).first()
