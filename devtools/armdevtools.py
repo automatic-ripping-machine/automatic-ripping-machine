@@ -11,7 +11,6 @@ import database
 import qacheck
 
 
-# global variables
 __version__ = '0.1'
 arm_home = "/home/arm"
 arm_install = "/opt/arm"
