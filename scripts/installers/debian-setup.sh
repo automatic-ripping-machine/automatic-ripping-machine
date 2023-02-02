@@ -69,7 +69,6 @@ apt install ffmpeg
 
 echo -e "${RED}Installing ARM requirments${NC}"
 apt install handbrake-cli libavcodec-extra
-apt install libdvdcss2
 apt install abcde flac imagemagick glyrc cdparanoia
 apt install at
 apt install python3 python3-pip

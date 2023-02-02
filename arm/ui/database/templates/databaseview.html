@@ -85,7 +85,7 @@
             </div>
         </div>
 
-        {% with pages=pages, page_name="database" %}
+        {% with pages=pages, page_name="route_database.view_database" %}
             {% include "pagination.html" %}
         {% endwith %}
         <!-- All jobs -->
@@ -192,7 +192,7 @@
             </div>
         </div>
 
-        {% with pages=pages, page_name="database" %}
+        {% with pages=pages, page_name="route_database.view_database" %}
             {% include "pagination.html" %}
         {% endwith %}
 
@@ -203,7 +203,7 @@
 {% block js %}
     {{ super() }}
 
-    <script type="application/javascript">activeTab("database");</script>
+    <script type="application/javascript">activeTab("databaseview");</script>
     <script type="application/javascript" src="static/js/common.js"></script>
     <script type="application/javascript" src="static/js/database.js"></script>
 {% endblock %}

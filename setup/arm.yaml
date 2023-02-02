@@ -22,6 +22,11 @@ PREVENT_99: true
 # Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.
 ARM_CHECK_UDF: true
 
+# Umask for created files (in RAW_PATH, TRANSCODE_PATH, and COMPLETED_PATH).
+# Setting this to 0o002 (octal) makes these files group writable.
+# For general information about umask, see for example https://en.wikipedia.org/wiki/Umask
+UMASK: 0o002
+
 # When enabled if the disc is a DVD use dvdid to calculate a crc64 and query Windows Media Meta Services for the Movie Title.
 # For BluRays attempts to extract the title from an XML file on the disc
 GET_VIDEO_TITLE: true
@@ -134,7 +139,7 @@ LOGPATH: "/home/arm/logs/"
 # Log level.  DEBUG, INFO, WARNING, ERROR, CRITICAL
 # The default is INFO
 # If you are experiencing difficulties set this to DEBUG
-LOGLEVEL: "DEBUG"
+LOGLEVEL: "INFO"
 
 # How long to let log files live before deleting (in days)
 # Set to 0 to disable
@@ -176,12 +181,15 @@ CHOWN_GROUP:
 ########################
 
 # Method of MakeMKV to use for Blu-ray discs
-# Options are "mkv" or "backup".
+# Options are "mkv", "backup", or "backup_dvd".
 # backup decrypts the dvd and then copies it to the hard drive.
 # This allows HandBrake to apply some of its analytical abilities such as the main-feature identification.
 # This method seems to offer success on Blu-ray discs that fail in "mkv" mode.
-# *** NOTE: MakeMKV only supports the backup method on BluRay discs.
-RIPMETHOD: "backup"
+# *** NOTE: MakeMKV only supports the backup or backup_dvd method on BluRay discs.
+# backup_dvd forces arm to extract the dvd with MakeMKV prior to the Handbrake step
+RIPMETHOD: "mkv"
+RIPMETHOD_DVD: "PLACEHOLDER"
+RIPMETHOD_BR: "PLACEHOLDER"
 
 # MakeMKV Arguments
 # MakeMKV Profile used for controlling Audio Track Selection.
@@ -210,8 +218,10 @@ HB_PRESET_BD: "HQ 1080p30 Surround"
 # Extension of the final video file
 DEST_EXT: mkv
 
-# Handbrake binary to call
+# Handbrake binary to call.  These should be the same unless you are doing remote
+# processing
 HANDBRAKE_CLI: HandBrakeCLI
+HANDBRAKE_LOCAL: HandBrakeCLI
 
 # Have HandBrake transcode the main feature only.  BluRay discs must have RIPMETHOD="backup" for this to work.
 # If MAINFEATURE is true, blurays will be backed up to the HD and then HandBrake will go to work on the backed up

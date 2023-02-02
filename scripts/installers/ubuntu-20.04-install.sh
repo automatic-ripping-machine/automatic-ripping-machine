@@ -40,7 +40,7 @@ function install_os_tools() {
     sudo apt install lsscsi net-tools -y
     sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
     sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install
-    sudo apt install git -y
+    sudo apt install git curl shellcheck -y
 }
 
 function add_arm_user() {
@@ -98,6 +98,9 @@ function install_arm_requirements() {
         libdvd-pkg lsdvd
 
     sudo dpkg-reconfigure libdvd-pkg
+    
+    # create folders required to run the ARM service
+    sudo -u arm mkdir -p /home/arm/logs
 }
 
 function remove_existing_arm() {
@@ -118,11 +121,15 @@ function clone_arm() {
         sudo rm -rf arm
     fi
 
-    ARM_LATEST=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' | grep 'automatic-ripping-machine/tree/*' | head -n 1 | sed -e 's/[^0-9\.]*//g')
-    echo -e "Arm latest stable version is v$ARM_LATEST. Pulling v$ARM_LATEST"
-    git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "v$ARM_LATEST" arm
+    if [ "$dev_env_flag" ]; then
+        git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "v2_devel" arm
+    else
+        ARM_LATEST=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' | grep 'automatic-ripping-machine/tree/*' | head -n 1 | sed -e 's/[^0-9\.]*//g')
+        echo -e "Arm latest stable version is v$ARM_LATEST. Pulling v$ARM_LATEST"
+        git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "v$ARM_LATEST" arm
+    fi
+
     cd arm
-    git checkout v2_master
     git submodule update --init --recursive
     git submodule update --recursive --remote
     cd ..
@@ -147,7 +154,8 @@ function install_arm_dev_env() {
     fi
 
     # install pycharm community, if professional not installed already
-    if [[ -z $(snap find pycharm-professional) ]]; then
+    # shellcheck disable=SC2230
+    if [[ -z $(which pycharm-professional) ]]; then
         sudo snap install pycharm-community --classic
     fi
 }
@@ -178,6 +186,8 @@ function setup_config_files() {
     # abcde.conf is expected in /etc by the abcde installation
     cp --no-clobber "/opt/arm/setup/.abcde.conf" "/etc/.abcde.conf"
     chown arm:arm "/etc/.abcde.conf"
+    # link to the new install location so runui.py doesn't break
+    sudo -u arm ln -sf /etc/.abcde.conf /etc/arm/config/abcde.conf 
 
     if [[ $port_flag ]]; then
         echo -e "${RED}Non-default port specified, updating arm config...${NC}"
@@ -195,8 +205,19 @@ function install_python_requirements {
     echo -e "${RED}Installing up python requirements${NC}"
     cd /opt/arm
     # running pip with sudo can result in permissions errors, run as arm
-    sudo -u arm pip3 install --upgrade pip wheel setuptools psutil pyudev
-    sudo -u arm pip3 install --ignore-installed --prefer-binary -r requirements.txt
+    su - arm -c "pip3 install --upgrade setuptools==65.7.0"
+    su - arm -c "pip3 install --upgrade pip wheel psutil pyudev"
+    su - arm -c "pip3 install --ignore-installed --prefer-binary -r /opt/arm/requirements.txt"
+    
+    # add python install location to the PATH permanently
+    bin_dir="/home/arm/.local/bin"
+    if [[ $PATH != *"${bin_dir}"* ]]; then
+        echo -e "${RED}Updating PATH...${NC}"
+        PATH="${bin_dir}":$PATH
+        
+        #shellcheck source=/home/arm/.profile
+        source /home/arm/.profile
+    fi
 }
 
 function setup_autoplay() {
@@ -239,13 +260,26 @@ function install_armui_service() {
 
 function launch_setup() {
     echo -e "${RED}Launching ArmUI first-time setup${NC}"
-    site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:${PORT}")
+    echo "Giving ArmUI a moment to start, standby..."
+    sleep 30
+    site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:${PORT}") || true
     if [[ -z "$site_addr" ]]; then
         echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}"
     else
         echo -e "${RED}ArmUI site is running on http://$site_addr. Launching setup...${NC}"
         sudo -u arm nohup xdg-open "http://$site_addr/setup" > /dev/null 2>&1 &
     fi
+}
+
+function create_folders() {
+    echo -e "${RED}Creating ARM folders${NC}"
+    arm_mkdir "/home/arm/media/transcode"
+    arm_mkdir "/home/arm/media/completed"
+}
+
+function arm_mkdir() {
+    echo -e "Creating $1"
+    su - arm -c "mkdir -p -v $1"
 }
 
 # start here
@@ -265,6 +299,7 @@ install_python_requirements
 setup_autoplay
 setup_syslog_rule
 install_armui_service
+create_folders
 launch_setup
 
 #advise to reboot

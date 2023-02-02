@@ -15,4 +15,5 @@ docker run -d \
     --privileged \
     --restart "always" \
     --name "arm-rippers" \
-    --cpuset-cpus='2,3,4,5,6,7...'
+    --cpuset-cpus='2,3,4,5,6,7...' \
+    IMAGE_NAME

@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <style>
+        .popover {
+            white-space: pre-line;
+        }
+
+        .popover-body {
+            white-space: pre-wrap;
+            font-weight: bold;
+        }
+
+        .popover-header {
+            background-color: #f2f2f2;
+            border-bottom: 1px solid #EBEBEB;
+            border-radius: 5px 5px 0 0;
+            font-size: 20px;
+            line-height: 18px;
+            margin: 0;
+            padding: 8px 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        div a label {
+            display: grid;
+            font-weight: bolder;
+            margin: 1rem;
+            font-size: 25px;
+        }
+    </style>
+    <!-- MESSAGES - We keep this here incase we need it later -->
+    <div class="alert alert-success d-none" role="alert" id="success">
+        <h4 class="alert-heading">Settings were saved successfully</h4>
+    </div>
+    <div class="alert alert-danger d-none" role="alert" id="fail">
+        <h4 class="alert-heading">There was an error saving settings</h4>
+    </div>
+    <!-- END MESSAGES - We keep this here incase we need it later -->
+    <div class="container" style="max-width: initial!important;">
+        <div class="row">
+            <div class="col">
+                <div class="jumbotron" style="padding-top: 1rem;">
+                    <div class="col-sm-12  rounded text-center">
+                        <img src="{{ url_for('static', filename='/img/arm80.png') }}" alt="Automatic Ripping Machine">
+                        <h2> ARM - Settings </h2>
+                    </div>
+                    <!-- Nav Tabs -->
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab"
+                               aria-controls="home" aria-selected="true">General Info</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="system-tab" data-toggle="tab" href="#system" role="tab"
+                               aria-controls="system" aria-selected="false">System Info</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="abcde-tab" data-toggle="tab" href="#abcde" role="tab"
+                               aria-controls="abcde" aria-selected="false">abcde Config</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="settings-tab" data-toggle="tab" href="#settings" role="tab"
+                               aria-controls="settings" aria-selected="false">Ripper Settings</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="uiSettingsTab-tab" data-toggle="tab" href="#uiSettingsTab"
+                               role="tab"
+                               aria-controls="uiSettingsTab" aria-selected="false">UI Settings</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="apprise-tab" data-toggle="tab" href="#appriseTab"
+                               role="tab"
+                               aria-controls="appriseTab" aria-selected="false">Apprise config</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="help-tab" data-toggle="tab" href="#help"
+                               role="tab"
+                               aria-controls="help" aria-selected="false">Help</a>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Panes -->
+                    <div class="tab-content">
+                        <!-- General Info -->
+                        {% include 'settings/general.html' %}
+                        <!-- system information -->
+                        {% include 'settings/tab_sysinfo.html' %}
+                        <!-- abcde config -->
+                        {% include 'settings/abcde.html' %}
+                        <!-- Ripper settings -->
+                        {% include 'settings/ripper.html' %}
+                        <!-- UI settings -->
+                        {% include 'settings/ui.html' %}
+                        <!-- Apprise config -->
+                        {% include 'settings/apprise.html' %}
+                        <!-- Help config -->
+                        {% include 'settings/help.html' %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+{% endblock %}
+{% block footer %}{{ super() }}{% endblock %}
+{% block js %}
+    {{ super() }}
+    <script type="application/javascript">
+        $(function () {
+            let toastCount = 0;
+
+            function sendSettings(formToSend, sendTo) {
+                $.ajax({
+                    type: 'POST',
+                    url: sendTo,
+                    data: formToSend.serialize()
+                }).done(function (data) {
+                    if (data.success === true) {
+                        console.log(data)
+                        var dt = new Date();
+                        var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
+                        addToast("Saved Successfully", `Saved ${data.form} settings at ${time}`, toastCount);
+                        toastCount++;
+                    }
+                });
+            }
+
+            $("#uiSettings").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#uiSettings"), "/save_ui_settings");
+            });
+            $("#settings").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#ripperSettings"), "/save_settings");
+            })
+            $("#abcdeSettings").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#abcdeSettings"), "/save_abcde_settings");
+            });
+            $("#appriseCfg").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#appriseCfg"), "/save_apprise_cfg");
+            });
+            $("#updateArm").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#updateArm"), "/update_arm")
+            })
+            $(".popovers").popover({
+                trigger: "hover",
+            });
+            {% if form.errors %}
+                {% for k in form.errors %}
+                    $("[name='{{k}}']").addClass("is-invalid");
+                {% endfor %}
+            {% endif %}
+            activeTab("armsettings");
+        });
+    </script>
+{% endblock %}

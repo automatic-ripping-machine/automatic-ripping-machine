@@ -115,11 +115,14 @@ def start_transcode(job, logfile, hb_in_path, hb_out_path, protection):
         if job.config.SKIP_TRANSCODE:
             logging.info("Transcoding is disabled, skipping transcode")
             return None
+        logging.debug(f"handbrake_mkv: {hb_in_path}, {hb_out_path}, {logfile}")
         handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
     elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
+        logging.debug(f"handbrake_main_feature: {hb_in_path}, {hb_out_path}, {logfile}")
         handbrake.handbrake_main_feature(hb_in_path, hb_out_path, logfile, job)
         job.eject()
     else:
+        logging.debug(f"handbrake_all: {hb_in_path}, {hb_out_path}, {logfile}")
         handbrake.handbrake_all(hb_in_path, hb_out_path, logfile, job)
         job.eject()
     logging.info("************* Finished Transcode With HandBrake *************")
@@ -185,8 +188,14 @@ def rip_with_mkv(current_job, protection=0):
     # Rip dvd with mode: mkv and mainfeature: false
     if current_job.disctype == "dvd" and (not current_job.config.MAINFEATURE and current_job.config.RIPMETHOD == "mkv"):
         mkv_ripped = True
+    # Rip dvds with skip transcode
+    if current_job.disctype == "dvd" and current_job.config.SKIP_TRANSCODE:
+        mkv_ripped = True
     # If dvd has 99 protection force MakeMKV to be used
     if protection:
+        mkv_ripped = True
+    # if backup_dvd, always use mkv
+    if current_job.config.RIPMETHOD == "backup_dvd":
         mkv_ripped = True
     return mkv_ripped
 

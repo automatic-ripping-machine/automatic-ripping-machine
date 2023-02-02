@@ -52,7 +52,7 @@ def makemkv(logfile, job):
     rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
     logging.info(f"Processing files to: {rawpath}")
     # Rip bluray
-    if job.config.RIPMETHOD == "backup" and job.disctype == "bluray":
+    if (job.config.RIPMETHOD == "backup" or job.config.RIPMETHOD == "backup_dvd") and job.disctype == "bluray":
         # backup method
         cmd = f'makemkvcon backup --minlength={job.config.MINLENGTH} --decrypt {job.config.MKV_ARGS} ' \
               f'-r disc:{mdisc.strip()} {shlex.quote(rawpath)}>> {logfile}'
@@ -103,7 +103,7 @@ def process_single_tracks(job, logfile, rawpath):
             filepathname = os.path.join(rawpath, track.filename)
             logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
 
-            cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r --progress=-stdout --messages=-stdout' \
+            cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r --progress=-stdout --messages=-stdout ' \
                   f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)} ' \
                   f'--minlength={job.config.MINLENGTH}>> {logfile}'
             # Possibly update db to say track was ripped

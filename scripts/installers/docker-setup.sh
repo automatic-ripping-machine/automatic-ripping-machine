@@ -63,14 +63,15 @@ function launch_setup() {
 
 function pull_image() {
     echo -e "${RED}Pulling image from $IMAGE${NC}"
-    docker pull "$IMAGE"
+    sudo -u arm docker pull "$IMAGE"
 }
 
 function setup_mountpoints() {
     echo -e "${RED}Creating mount points${NC}"
     for dev in /dev/sr?; do
-        sudo -u arm mkdir -p "/mnt$dev"
+        sudo mkdir -p "/mnt$dev"
     done
+    sudo chown arm:arm /mnt/dev/sr*
 }
 
 function save_start_command() {
@@ -78,7 +79,7 @@ function save_start_command() {
     cd ~arm
     sudo -u arm curl -fsSL "$url" -o start_arm_container.sh
     chmod +x start_arm_container.sh
-    echo -e "    $IMAGE\n" >> start_arm_container.sh
+    sed -i "s|IMAGE_NAME|${IMAGE}|" start_arm_container.sh
 }
 
 
@@ -90,4 +91,4 @@ pull_image
 setup_mountpoints
 save_start_command
 
-echo -e "${RED}Installation complete. A template command to run the ARM container is located in: $(echo ~arm) ${NC}"
+echo -e "${RED}Installation complete. A template command to run the ARM container is located in: $(~arm) ${NC}"
