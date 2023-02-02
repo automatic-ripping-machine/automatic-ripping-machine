@@ -104,7 +104,8 @@ function install_arm_requirements() {
         handbrake-cli \
         imagemagick \
         at \
-        libdvd-pkg lsdvd
+        libdvd-pkg \
+        lsdvd
     dpkg-reconfigure --frontend noninteractive libdvd-pkg
     build_makemkv
 }
@@ -282,6 +283,15 @@ function install_armui_service() {
     sysctl -p
 }
 
+function setup_folders(){
+   ##### create needed folders for arm
+   mkdir -p /home/arm/logs/
+   mkdir -p /home/arm/media/transcode/
+   mkdir -p /home/arm/media/completed/
+   mkdir -p /home/arm/media/raw/
+   chown -R arm:arm /home/arm 
+}
+
 function launch_setup() {
     echo -e "${RED}Launching ArmUI first-time setup${NC}"
     sleep 5  # Waits 5 seconds, This gives time for service to start
@@ -304,6 +314,7 @@ install_arm_live_env
 install_python_requirements
 setup_autoplay
 setup_syslog_rule
+setup_folders
 install_armui_service
 launch_setup
 
