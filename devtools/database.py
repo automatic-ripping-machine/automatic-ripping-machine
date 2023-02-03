@@ -43,7 +43,7 @@ def roll(num):
         OUTPUT: none
     """
     # todo, make this do something
-    # log.info(f"roll back {num} versions")
+    log.info(f"roll back {num} versions")
     log.info("not currently supported")
 
 
