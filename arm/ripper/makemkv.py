@@ -34,7 +34,7 @@ def makemkv(logfile, job):
     """
 
     # confirm MKV is working, beta key hasn't expired
-    prep_mkv(job)
+    prep_mkv()
     logging.info(f"Starting MakeMKV rip. Method is {cfg['RIPMETHOD']}")
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
@@ -147,7 +147,7 @@ def setup_rawpath(job, rawpath):
     return rawpath
 
 
-def prep_mkv(job):
+def prep_mkv():
     """Make sure the MakeMKV key is up-to-date
 
     Parameters:
