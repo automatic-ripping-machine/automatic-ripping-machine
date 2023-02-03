@@ -198,7 +198,7 @@ def arm_db_cfg():
     if not db_update["db_exists"]:
         app.logger.debug("No armui cfg setup")
         check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
-        setup_database(cfg.arm_config['INSTALLPATH'])
+        setup_database()
 
         armui_cfg = models.UISettings.query.get(1)
         app.jinja_env.globals.update(armui_cfg=armui_cfg)
@@ -386,7 +386,7 @@ def generate_arm_cat(full_path):
                 sleep(1)
 
 
-def setup_database(install_path):
+def setup_database():
     """
     Try to get the db.User if not we nuke everything
     """
@@ -956,11 +956,10 @@ def drives_check_status():
     drives = models.SystemDrives.query.all()
     for drive in drives:
         # Check if the current job is active, if not remove current job_current id
-        if drive.job_id_current is not None:
-            if drive.job_id_current > 0:
-                if drive.job_current.status == "success" or drive.job_current.status == "fail":
-                    drive.job_finished()
-                    db.session.commit()
+        if drive.job_id_current is not None and drive.job_id_current > 0:
+            if drive.job_current.status == "success" or drive.job_current.status == "fail":
+                drive.job_finished()
+                db.session.commit()
         # Print the drive debug status
         drive_status_debug(drive)
 

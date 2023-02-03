@@ -122,7 +122,7 @@ def setup():
     perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
     app.logger.debug("perm " + str(perm_file))
     # Check for install file and that db is correctly setup
-    if perm_file.exists() and ui_utils.setup_database(cfg.arm_config['INSTALLPATH']):
+    if perm_file.exists() and ui_utils.setup_database():
         flash(f"{perm_file} exists, setup cannot continue. To re-install please delete this file.", "danger")
         return redirect("/")
     dir0 = Path(PurePath(cfg.arm_config['DBFILE']).parent)
@@ -145,7 +145,7 @@ def setup():
         app.logger.debug("Successfully created all of the ARM directories")
 
     try:
-        if ui_utils.setup_database(cfg['INSTALLPATH']):
+        if ui_utils.setup_database():
             flash("Setup of the database was successful.", "success")
             app.logger.debug("Setup of the database was successful.")
             perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
