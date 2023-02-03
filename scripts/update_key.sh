@@ -12,3 +12,4 @@ echo "MakeMKV beta key for this month: $makemkv_serial"
 mkdir -p "/home/arm/.MakeMKV"
 chown arm:arm "/home/arm/.MakeMKV"
 echo "app_Key = \"$makemkv_serial\"" > /home/arm/.MakeMKV/settings.conf
+chown arm:arm "/home/arm/.MakeMKV/settings.conf"
