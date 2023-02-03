@@ -81,7 +81,7 @@ def login():
         return_redirect = redirect(constants.HOME_PAGE)
 
     form = SetupForm()
-    if form.validate_on_submit():
+    if request.method == 'POST' and form.validate_on_submit():
         login_username = request.form['username']
         # we know there is only ever 1 admin account, so we can pull it and check against it locally
         admin = models.User.query.filter_by().first()
@@ -97,8 +97,9 @@ def login():
             return_redirect = redirect(constants.HOME_PAGE)
         else:
             flash("Something isn't right", "danger")
+
     # If nothing has gone wrong give them the login page
-    if return_redirect is None:
+    if request.method == 'GET' or return_redirect is None:
         return_redirect = render_template('login.html', form=form)
     return return_redirect
 
@@ -125,7 +126,7 @@ def update_password():
 
     # After a login for is submitted
     form = SetupForm()
-    if form.validate_on_submit():
+    if request.method == 'POST' and form.validate_on_submit():
         username = str(request.form['username']).strip()
         new_password = str(request.form['newpassword']).strip().encode('utf-8')
         user = models.User.query.filter_by(email=username).first()
@@ -148,4 +149,5 @@ def update_password():
         else:
             flash("Password couldn't be updated. Problem with old password", "danger")
             app.logger.info("Password not updated, issue with old password")
+
     return render_template('update_password.html', user=user.email, form=form)

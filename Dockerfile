@@ -49,7 +49,7 @@ EXPOSE 8080
 
 ###########################################################
 # Final image pushed for use
-FROM base as automatic-ripping-machine
+FROM base AS automatic-ripping-machine
 
 CMD ["/sbin/my_init"]
 WORKDIR /home/arm
