@@ -137,7 +137,7 @@ def setup_rawpath(job, raw_path):
     return raw_path
 
 
-def prep_mkv(job):
+def prep_mkv():
     """Make sure the MakeMKV key is up-to-date
 
     Parameters:
