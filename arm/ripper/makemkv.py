@@ -34,7 +34,7 @@ def makemkv(logfile, job):
     """
 
     # confirm MKV is working, beta key hasn't expired
-    prep_mkv(job)
+    prep_mkv()
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
@@ -137,42 +137,11 @@ def setup_rawpath(job, raw_path):
     return raw_path
 
 
-def prep_mkv(job):
+def prep_mkv():
     """Make sure the MakeMKV key is up-to-date
 
     Parameters:
         job: job object\n
-    Raises:
-        MakeMkvRuntimeException
-    """
-    logging.info("Prepping MakeMkv for usage...")
-
-    cmd = f"makemkvcon info {job.devpath}"
-    try:
-        # check=True is needed to make the exception throw on a non-zero return
-        subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
-    except subprocess.CalledProcessError as mkv_error:
-        if mkv_error.returncode == 253:
-            # MakeMKV is out of date
-            logging.info("MakeMKV: return code is 253, MakeMKV beta key has expired.")
-            update_key()
-            try:
-                subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
-            except subprocess.CalledProcessError as mkv_redux_error:
-                if mkv_redux_error.returncode == 10:
-                    logging.info("MakeMKV beta key updated successfully!")
-                else:
-                    raise MakeMkvRuntimeError(mkv_redux_error) from mkv_error
-        elif mkv_error.returncode == 10:
-            # For some fucking reason the nominal return value for `makemkvcon info` is 10
-            logging.info("MakeMKV is working as expected!")
-        else:
-            raise MakeMkvRuntimeError(mkv_error) from mkv_error
-
-
-def update_key():
-    """Run a script to update the MakeMKV beta key after it expires.
-
     Raises:
         RuntimeError
     """
