@@ -25,10 +25,10 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.6"
+        python-version: "3.8.1"
     - name: Fix dependencies
       run: |
-        sudo apt update && sudo apt-get install libgnutls28-dev libcurl4-openssl-dev libssl-dev libdiscid-dev
+        sudo apt update && sudo apt upgrade && sudo apt-get install libgnutls28-dev libcurl4-openssl-dev libssl-dev libdiscid-dev
         echo "GITHUB_ACTIONS=True" >> $GITHUB_ENV
         pip3 install --ignore-installed --prefer-binary -r requirements.txt
         pip3 install flask-bcrypt flask-bcrypt flask_bcrypt --user
