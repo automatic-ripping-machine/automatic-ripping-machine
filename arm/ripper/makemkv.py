@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-import sys
+"""
+Main file for dealing with connecting to MakeMKV and handling errors
+"""
 import os
 import logging
 import subprocess
-import time
 import shlex
 
-from arm.config.config import cfg
 from arm.ripper import utils  # noqa: E402
 from arm.ui import db  # noqa: F401, E402
 
@@ -26,7 +26,7 @@ class MakeMkvRuntimeError(RuntimeError):
 
 def makemkv(logfile, job):
     """
-    Rip Blu-rays with MakeMKV\n\n
+    Rip Blu-rays/DVDs with MakeMKV\n\n
 
     :param logfile: Location of logfile to redirect MakeMKV logs to
     :param job: job object
@@ -34,8 +34,8 @@ def makemkv(logfile, job):
     """
 
     # confirm MKV is working, beta key hasn't expired
-    prep_mkv(job)
-    logging.info(f"Starting MakeMKV rip. Method is {cfg['RIPMETHOD']}")
+    prep_mkv()
+    logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
     cmd = f"makemkvcon -r info disc:9999  |grep {job.devpath} |grep -oP '(?<=:).*?(?=,)'"
@@ -49,31 +49,26 @@ def makemkv(logfile, job):
         raise MakeMkvRuntimeError(mdisc_error)
 
     # get filesystem in order
-    rawpath = setup_rawpath(job, os.path.join(str(cfg["RAW_PATH"]), str(job.title)))
-
-    # rip bluray
-    if cfg["RIPMETHOD"] == "backup" and job.disctype == "bluray":
+    rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
+    logging.info(f"Processing files to: {rawpath}")
+    # Rip bluray
+    if (job.config.RIPMETHOD == "backup" or job.config.RIPMETHOD == "backup_dvd") and job.disctype == "bluray":
         # backup method
-        cmd = f'makemkvcon backup --decrypt {cfg["MKV_ARGS"]} ' \
+        cmd = f'makemkvcon backup --minlength={job.config.MINLENGTH} --decrypt {job.config.MKV_ARGS} ' \
               f'-r disc:{mdisc.strip()} {shlex.quote(rawpath)}>> {logfile}'
         logging.info("Backup up disc")
         run_makemkv(cmd)
-    elif cfg["RIPMETHOD"] == "mkv" or job.disctype == "dvd":
-        # mkv method
+    # Rip DVD
+    elif job.config.RIPMETHOD == "mkv" or job.disctype == "dvd":
         get_track_info(mdisc, job)
 
         # if no maximum length, process the whole disc in one command
-        if int(cfg["MAXLENGTH"]) > 99998:
-            cmd = 'makemkvcon mkv {0} -r --progress=-stdout --messages=-stdout dev:{1} all {2} --minlength={3}>> {4}'.format(
-                cfg["MKV_ARGS"],
-                job.devpath,
-                shlex.quote(rawpath),
-                cfg["MINLENGTH"],
-                logfile
-            )
+        if int(job.config.MAXLENGTH) > 99998:
+            cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r --progress=-stdout --messages=-stdout ' \
+                  f'dev:{job.devpath} all {shlex.quote(rawpath)} --minlength={job.config.MINLENGTH}>> {logfile}'
             run_makemkv(cmd)
         else:
-            process_tracks(job, logfile, rawpath)
+            process_single_tracks(job, logfile, rawpath)
     else:
         logging.info("I'm confused what to do....  Passing on MakeMKV")
 
@@ -82,9 +77,9 @@ def makemkv(logfile, job):
     return rawpath
 
 
-def process_tracks(job, logfile, rawpath):
+def process_single_tracks(job, logfile, rawpath):
     """
-    For processing single tracks from MakeMKV
+    For processing single tracks from MakeMKV one at a time
     :param job: job object
     :param str logfile: path of logfile
     :param str rawpath:
@@ -92,14 +87,14 @@ def process_tracks(job, logfile, rawpath):
     """
     # process one track at a time based on track length
     for track in job.tracks:
-        if track.length < int(cfg["MINLENGTH"]):
+        if track.length < int(job.config.MINLENGTH):
             # too short
             logging.info(f"Track #{track.track_number} of {job.no_of_titles}. Length ({track.length}) "
-                         f"is less than minimum length ({cfg['MINLENGTH']}).  Skipping")
-        elif track.length > int(cfg["MAXLENGTH"]):
+                         f"is less than minimum length ({job.config.MINLENGTH}).  Skipping")
+        elif track.length > int(job.config.MAXLENGTH):
             # too long
             logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
-                         f"Length ({track.length}) is greater than maximum length ({cfg['MAXLENGTH']}).  "
+                         f"Length ({track.length}) is greater than maximum length ({job.config.MAXLENGTH}).  "
                          "Skipping")
         else:
             # just right
@@ -108,81 +103,45 @@ def process_tracks(job, logfile, rawpath):
             filepathname = os.path.join(rawpath, track.filename)
             logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
 
-            cmd = 'makemkvcon mkv {0} -r --progress=-stdout --messages=-stdout' \
-                  'dev:{1} {2} {3} --minlength={4}>> {5}'.format(cfg["MKV_ARGS"],
-                                                                 job.devpath,
-                                                                 str(track.track_number),
-                                                                 shlex.quote(rawpath),
-                                                                 cfg["MINLENGTH"],
-                                                                 logfile
-                                                                 )
+            cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r --progress=-stdout --messages=-stdout ' \
+                  f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)} ' \
+                  f'--minlength={job.config.MINLENGTH}>> {logfile}'
+            # Possibly update db to say track was ripped
             run_makemkv(cmd)
 
 
-def setup_rawpath(job, rawpath):
+def setup_rawpath(job, raw_path):
     """
     Checks if we need to create path and does so if needed\n\n
     :param job:
-    :param rawpath:
-    :return: rawpath
+    :param raw_path:
+    :return: raw_path
     """
 
-    logging.info(f"Destination is {rawpath}")
-    if not os.path.exists(rawpath):
+    logging.info(f"Destination is {raw_path}")
+    if not os.path.exists(raw_path):
         try:
-            os.makedirs(rawpath)
+            os.makedirs(raw_path)
         except OSError:
-            err = f"Couldn't create the base file path: {rawpath} Probably a permissions error"
-            logging.debug(err)
+            err = f"Couldn't create the base file path: {raw_path}. Probably a permissions error"
+            logging.error(err)
     else:
-        logging.info(f"{rawpath} exists.  Adding timestamp.")
-        ts = round(time.time() * 100)
-        rawpath = os.path.join(str(cfg["RAW_PATH"]), f"{job.title}_{ts}")
-        logging.info(f"rawpath is {rawpath}")
+        logging.info(f"{raw_path} exists.  Adding timestamp.")
+        raw_path = os.path.join(str(job.config.RAW_PATH), f"{job.title}_{job.stage}")
+        logging.info(f"raw_path is {raw_path}")
         try:
-            os.makedirs(rawpath)
+            os.makedirs(raw_path)
         except OSError:
-            err = f"Couldn't create the base file path: {rawpath} Probably a permissions error"
-            sys.exit(err)
-    return rawpath
+            err = f"Couldn't create the base file path: {raw_path}. Probably a permissions error"
+            raise OSError(err) from OSError
+    return raw_path
 
 
-def prep_mkv(job):
+def prep_mkv():
     """Make sure the MakeMKV key is up-to-date
 
     Parameters:
         job: job object\n
-    Raises:
-        MakeMkvRuntimeException
-    """
-    logging.info("Prepping MakeMkv for usage...")
-
-    cmd = f"makemkvcon info {job.devpath}"
-    try:
-        # check=True is needed to make the exception throw on a non-zero return
-        subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
-    except subprocess.CalledProcessError as mkv_error:
-        if mkv_error.returncode == 253:
-            # MakeMKV is out of date
-            logging.info("MakeMKV: return code is 253, MakeMKV beta key has expired.")
-            update_key()
-            try:
-                subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
-            except subprocess.CalledProcessError as mkv_redux_error:
-                if mkv_redux_error.returncode == 10:
-                    logging.info("MakeMKV beta key updated successfully!")
-                else:
-                    raise MakeMkvRuntimeError(mkv_redux_error)
-        elif mkv_error.returncode == 10:
-            # For some fucking reason the nominal return value for `makemkvcon info` is 10
-            logging.info("MakeMKV is working as expected!")
-        else:
-            raise MakeMkvRuntimeError(mkv_error)
-
-
-def update_key():
-    """Run a script to update the MakeMKV beta key after it expires.
-
     Raises:
         RuntimeError
     """
@@ -193,7 +152,7 @@ def update_key():
     except subprocess.CalledProcessError as update_err:
         err = f"Error updating MakeMKV key, return code: {update_err.returncode}"
         logging.error(err)
-        raise RuntimeError(err)
+        raise RuntimeError(err) from update_err
 
 
 def get_track_info(mdisc, job):
@@ -203,11 +162,15 @@ def get_track_info(mdisc, job):
     :param mdisc: MakeMKV disc number
     :param job: Job instance
     :return: None
+
+    .. note:: For help with MakeMKV codes:
+    https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/MakeMKV-Codes
     """
 
-    logging.info("Using MakeMKV to get information on all the tracks on the disc.  This will take a few minutes...")
+    logging.info("Using MakeMKV to get information on all the tracks on the disc. This will take a few minutes...")
 
-    cmd = f'makemkvcon -r --progress=-stdout --messages=-stdout --cache=1 info disc:{mdisc}'
+    cmd = f'makemkvcon -r --progress=-stdout --messages=-stdout --minlength={job.config.MINLENGTH} ' \
+          f'--cache=1 info disc:{mdisc}'
     logging.debug(f"Sending command: {cmd}")
     try:
         mkv = subprocess.check_output(
@@ -216,50 +179,97 @@ def get_track_info(mdisc, job):
             shell=True
         ).decode("utf-8").splitlines()
     except subprocess.CalledProcessError as mdisc_error:
-        raise MakeMkvRuntimeError(mdisc_error)
+        raise MakeMkvRuntimeError(mdisc_error) from mdisc_error
 
     track = 0
     fps = float(0)
     aspect = ""
     seconds = 0
     filename = ""
-
     for line in mkv:
+        # MSG:3028 - track was added (contains total length and chapter length)
+        # MSG:3025 - too short - track was skipped
+        # MSG:2003 - read error
         if line.split(":")[0] in ("MSG", "TCOUNT", "CINFO", "TINFO", "SINFO"):
             line_split = line.split(":", 1)
             msg_type = line_split[0]
             msg = line_split[1].split(",")
             line_track = int(msg[0])
-
+            # Total track count
             if msg_type == "TCOUNT":
-                titles = int(line_split[1].strip())
-                logging.info(f"Found {titles} titles")
-                utils.database_updater({'no_of_titles': titles}, job)
+                logging.info(f"Found {line_split[1].strip()} titles")
+                utils.database_updater({'no_of_titles': int(line_split[1].strip())}, job)
+            # Title info add track and get filename
             if msg_type == "TINFO":
-                if track != line_track:
-                    if line_track == int(0):
-                        pass
-                    else:
-                        utils.put_track(job, track, seconds, aspect, fps, False, "makemkv", filename)
-                    track = line_track
+                filename, track = add_track_filename(aspect, filename, fps, job,
+                                                     line_track, msg, seconds, track)
+            # Title length
+            seconds = find_track_length(msg, msg_type, seconds)
+            # Aspect ratio and fps
+            aspect, fps = find_aspect_fps(aspect, msg, msg_type, fps)
+    # If we haven't already added any tracks add one with what we have
+    utils.put_track(job, track, seconds, aspect, fps, False, "MakeMKV", filename)
 
-                if msg[1] == "27":
-                    filename = msg[3].replace('"', '').strip()
 
-            if msg_type == "TINFO" and msg[1] == "9":
-                len_hms = msg[3].replace('"', '').strip()
-                h, m, s = len_hms.split(':')
-                seconds = int(h) * 3600 + int(m) * 60 + int(s)
+def find_track_length(msg, msg_type, seconds):
+    """
+    Find the track length from TINFO msg from MakeMKV\n
+    :param msg: current MakeMKV line split by ','
+    :param msg_type: the message type from MakeMKV
+    :param seconds: length in seconds of file
+    :return: seconds of file
+    """
+    if msg_type == "TINFO" and msg[1] == "9":
+        len_hms = msg[3].replace('"', '').strip()
+        hour, mins, secs = len_hms.split(':')
+        seconds = int(hour) * 3600 + int(mins) * 60 + int(secs)
+    return seconds
 
-            if msg_type == "SINFO" and msg[1] == "0":
-                if msg[2] == "20":
-                    aspect = msg[4].replace('"', '').strip()
-                elif msg[2] == "21":
-                    fps = msg[4].split()[0]
-                    fps = fps.replace('"', '').strip()
-                    fps = float(fps)
 
-    utils.put_track(job, track, seconds, aspect, fps, False, "makemkv", filename)
+def find_aspect_fps(aspect, msg, msg_type, fps):
+    """
+    Search current line and find the file's aspect ratio and fps if msg_type is SINFO\n
+    :param str aspect: aspect ratio (stored as float but db wants string)
+    :param msg: current MakeMKV line split by ','
+    :param msg_type: the message type from MakeMKV
+    :param float fps: fps of file
+    :return: [aspect, fps]
+
+    .. note::
+           aspect.msg - ['0', '0', '20', '0', '"16:9"']\n
+           fps.msg - ['0', '0', '21', '0', '"25"']\n
+    """
+    if msg_type == "SINFO" and msg[1] == "0":
+        if msg[2] == "20":
+            # aspect comes wrapped in "" remove them
+            aspect = msg[4].replace('"', '').strip()
+        elif msg[2] == "21":
+            fps = msg[4].split()[0]
+            fps = fps.replace('"', '').strip()
+            fps = float(fps)
+    return aspect, fps
+
+
+def add_track_filename(aspect, filename, fps, job, line_track, msg, seconds, track):
+    """
+    Only add tracks that weren't previously added ? Also finds filename and removes quotes around it\n
+    :param aspect: Aspect ratio of file
+    :param filename: Filename of file
+    :param fps: FPS of file
+    :param job: Job the track belongs to
+    :param line_track: e.g TINFO: **3** ,8,0,"2"
+    :param msg: current line from MakeMKV split into array
+    :param int seconds: Length of track
+    :param track: Track number of current file
+    :return: [filename, track]
+    """
+    if track != line_track:
+        if line_track != int(0):
+            utils.put_track(job, track, seconds, aspect, fps, False, "MakeMKV", filename)
+        track = line_track
+    if msg[1] == "27":
+        filename = msg[3].replace('"', '').strip()
+    return filename, track
 
 
 def run_makemkv(cmd):
@@ -274,6 +284,7 @@ def run_makemkv(cmd):
 
     logging.debug(f"Ripping with the following command: {cmd}")
     try:
-        subprocess.run(cmd, capture_output=True, shell=True, check=True)  # noqa: F841
+        # need to check output for '"0 titles saved'
+        subprocess.run(cmd, capture_output=True, shell=True, check=True)
     except subprocess.CalledProcessError as mkv_error:
-        raise MakeMkvRuntimeError(mkv_error)
+        raise MakeMkvRuntimeError(mkv_error) from mkv_error

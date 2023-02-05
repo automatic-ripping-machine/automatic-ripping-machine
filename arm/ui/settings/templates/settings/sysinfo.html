@@ -1,0 +1,103 @@
+
+{% block sysinfo %}
+    <div class="container content">
+        <div class="row">
+            <div class="col pt-3">
+                <div class="card mx-auto">
+                    <div class="card-header text-center">
+                        <strong>System</strong>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            Name: {{ server.name }}
+                        </li>
+                        <li class="list-group-item">
+                            {{ server.description }}
+                        </li>
+                        <li class="list-group-item">
+                            CPU: {{ server.cpu }}
+                        </li>
+                        <li class="list-group-item">
+                            {% if serverutil.cpu_temp is not none %}
+                                <section class="{{ ' bg-danger text-white' if serverutil.cpu_temp > 70 }}">CPU Temp: {{ serverutil.cpu_temp }}&#176;C</section>
+                            {% else %}
+                              <section> Temp: not reported </section>
+                            {% endif %}
+                        </li>
+                        <li class="list-group-item">
+                            <h6 class="progress-label" style="float: left;margin-right: 1em;">Usage: </h6>
+                            <div class="progress">
+                                <div class="progress-bar{{ ' bg-danger' if serverutil.cpu_util > 80 }}" role="progressbar"
+                                     style="width: {{ ' 10' if serverutil.cpu_util < 10 else server.cpu_util }}%;"
+                                     aria-valuenow="{{ serverutil.cpu_util }}" aria-valuemin="10" aria-valuemax="100">{{ serverutil.cpu_util }}%
+                                </div>
+                            </div>
+                        </li>
+                  </ul>
+              </div>
+            </div>
+            <div class="col pt-3">
+                <div class="card mx-auto">
+                  <div class="card-header text-center">
+                      <strong>System Memory</strong>
+                  </div>
+                  <ul class="list-group list-group-flush">
+                      <li class="list-group-item">
+                        Total: {{ server.mem_total }} GB
+                        <br>Free:  {{ serverutil.memory_free }} GB
+                        <br>Used:  {{ serverutil.memory_used }} GB
+                      </li>
+                      <li class="list-group-item">
+                          <h6 class="progress-label" style="float: left;margin-right: 1em;">Usage: </h6>
+                          <div class="progress">
+                            <div class="progress-bar{{ ' bg-danger' if serverutil.memory_percent > 80 }}" role="progressbar"
+                                 style="width: {{ serverutil.memory_percent }}%;" aria-valuenow="{{ serverutil.memory_percent }}" aria-valuemin="0"
+                                 aria-valuemax="100">{{ serverutil.memory_percent }}%
+                            </div>
+                          </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col pt-3">
+                <div class="card mx-auto">
+                    <div class="card-header text-center">
+                        <strong>Storage</strong>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            {% if server.storage_transcode_free != 0 %}
+                                <h6 class="progress-label" style="float: left;margin-right: 1em;">Transcode: </h6>
+                                <div class="progress">
+                                    <div class="progress-bar{{ ' bg-danger' if serverutil.storage_transcode_percent > 80 }}" role="progressbar"
+                                           style="width: {{ serverutil.storage_transcode_percent }}%;" aria-valuenow="{{ serverutil.storage_transcode_percent }}"
+                                           aria-valuemin="0" aria-valuemax="100">{{ serverutil.storage_transcode_percent }}%
+                                    </div>
+                                </div>
+                                <br> Free Space: {{ serverutil.storage_completed_free }} GB
+                            {% else %}
+                                Transcode: Unable to get data on path
+                            {% endif %}
+                            <br>Path: {{ arm_path }}
+                        </li>
+                        <li class="list-group-item">
+                            {% if serverutil.storage_completed_free != 0 %}
+                                <h6 class="progress-label" style="float: left;margin-right: 1em;">Completed: </h6>
+                                <div class="progress">
+                                    <div class="progress-bar{{ ' bg-danger' if serverutil.storage_completed_percent > 80 }}" role="progressbar"
+                                        style="width: {{ serverutil.storage_completed_percent }}%;" aria-valuenow="{{ serverutil.storage_completed_percent }}"
+                                        aria-valuemin="0" aria-valuemax="100">{{ serverutil.storage_completed_percent }}%
+                                    </div>
+                                </div>
+                                <br> Free Space: {{ serverutil.storage_completed_free }} GB
+                            {% else %}
+                                Transcode: Unable to get data on path
+                            {% endif %}
+                            <br>Path: {{ media_path }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

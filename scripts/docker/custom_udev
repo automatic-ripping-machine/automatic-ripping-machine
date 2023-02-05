@@ -1,0 +1,256 @@
+#!/bin/sh -e
+### BEGIN INIT INFO
+# Provides:          udev
+# Required-Start:    mountkernfs
+# Required-Stop:     umountroot
+# Default-Start:     S
+# Default-Stop:      0 6
+# Short-Description: Start systemd-udevd, populate /dev and load drivers.
+### END INIT INFO
+
+PATH="/sbin:/bin"
+NAME="systemd-udevd"
+DAEMON="/lib/systemd/systemd-udevd"
+DESC="hotplug events dispatcher"
+PIDFILE="/run/udev.pid"
+CTRLFILE="/run/udev/control"
+OMITDIR="/run/sendsigs.omit.d"
+
+# we need to unmount /dev/pts/ and remount it later over the devtmpfs
+unmount_devpts() {
+  if mountpoint -q /dev/pts/; then
+    umount -n -l /dev/pts/
+  fi
+
+  if mountpoint -q /dev/shm/; then
+    umount -n -l /dev/shm/
+  fi
+}
+
+# mount a devtmpfs over /dev, if somebody did not already do it
+mount_devtmpfs() {
+  if grep -E -q "^[^[:space:]]+ /dev devtmpfs" /proc/mounts; then
+    mount -n -o remount,nosuid,size=$tmpfs_size,mode=0755 -t devtmpfs devtmpfs /dev
+    return
+  fi
+
+  if ! mount -n -o nosuid,size=$tmpfs_size,mode=0755 -t devtmpfs devtmpfs /dev; then
+    log_failure_msg "udev requires devtmpfs support, not started"
+    log_end_msg 1
+  fi
+
+  return 0
+}
+
+create_dev_makedev() {
+  if [ -e /sbin/MAKEDEV ]; then
+    ln -sf /sbin/MAKEDEV /dev/MAKEDEV
+  else
+    ln -sf /bin/true /dev/MAKEDEV
+  fi
+}
+
+# shell version of /usr/bin/tty
+my_tty() {
+  [ -x /bin/readlink ] || return 0
+  [ -e /proc/self/fd/0 ] || return 0
+  readlink --silent /proc/self/fd/0 || true
+}
+
+warn_if_interactive() {
+  if [ "$RUNLEVEL" = "S" -a "$PREVLEVEL" = "N" ]; then
+    return
+  fi
+
+  TTY=$(my_tty)
+  if [ -z "$TTY" -o "$TTY" = "/dev/console" -o "$TTY" = "/dev/null" ]; then
+    return
+  fi
+
+  printf "\n\n\nIt has been detected that the command\n\n\t$0 $*\n\n"
+  printf "has been run from an interactive shell.\n"
+  printf "It will probably not do what you expect, so this script will wait\n"
+  printf "60 seconds before continuing. Press ^C to stop it.\n"
+  printf "RUNNING THIS COMMAND IS HIGHLY DISCOURAGED!\n\n\n\n"
+  sleep 60
+}
+
+make_static_nodes() {
+  [ -e /lib/modules/$(uname -r)/modules.devname ] || return 0
+  [ -x /bin/kmod ] || return 0
+
+  /bin/kmod static-nodes --format=tmpfiles --output=/proc/self/fd/1 | \
+  while read type name mode uid gid age arg; do
+    [ -e $name ] && continue
+    case "$type" in
+      c|b|c!|b!) mknod -m $mode $name $type $(echo $arg | sed 's/:/ /') ;;
+      d|d!) mkdir $name ;;
+      *) echo "unparseable line ($type $name $mode $uid $gid $age $arg)" >&2 ;;
+    esac
+
+    if [ -x /sbin/restorecon ]; then
+      /sbin/restorecon $name
+    fi
+  done
+}
+
+
+##############################################################################
+
+
+[ -x $DAEMON ] || exit 0
+
+# defaults
+tmpfs_size="10M"
+
+if [ -e /etc/udev/udev.conf ]; then
+  . /etc/udev/udev.conf
+fi
+
+. /lib/lsb/init-functions
+
+if [ ! -e /proc/filesystems ]; then
+  log_failure_msg "udev requires a mounted procfs, not started"
+  log_end_msg 1
+fi
+
+if ! grep -q '[[:space:]]devtmpfs$' /proc/filesystems; then
+  log_failure_msg "udev requires devtmpfs support, not started"
+  log_end_msg 1
+fi
+
+if [ ! -d /sys/class/ ]; then
+  log_failure_msg "udev requires a mounted sysfs, not started"
+  log_end_msg 1
+fi
+
+#if [ ! -w /sys ]; then
+#  log_warning_msg "udev does not support containers, not started"
+#  exit 0
+#fi
+
+if [ -d /sys/class/mem/null -a ! -L /sys/class/mem/null ] || \
+   [ -e /sys/block -a ! -e /sys/class/block ]; then
+  log_warning_msg "CONFIG_SYSFS_DEPRECATED must not be selected"
+  log_warning_msg "Booting will continue in 30 seconds but many things will be broken"
+  sleep 30
+fi
+
+# When modifying this script, do not forget that between the time that the
+# new /dev has been mounted and udevadm trigger has been run there will be
+# no /dev/null. This also means that you cannot use the "&" shell command.
+
+case "$1" in
+    start)
+    #if [ ! -e "/run/udev/" ]; then
+    #    warn_if_interactive
+    #fi
+
+    if [ -w /sys/kernel/uevent_helper ]; then
+        echo > /sys/kernel/uevent_helper
+    fi
+
+    if ! mountpoint -q /dev/; then
+        unmount_devpts
+        mount_devtmpfs
+        [ -d /proc/1 ] || mount -n /proc
+    fi
+
+    make_static_nodes
+
+    # clean up parts of the database created by the initramfs udev
+    udevadm info --cleanup-db
+
+    # set the SELinux context for devices created in the initramfs
+    [ -x /sbin/restorecon ] && /sbin/restorecon -R /dev
+
+    log_daemon_msg "Starting $DESC" "$NAME"
+    if start-stop-daemon --start --name $NAME --user root --quiet \
+        --pidfile $PIDFILE --exec $DAEMON --background --make-pidfile \
+        --notify-await; then
+        # prevents udevd to be killed by sendsigs (see #791944)
+        mkdir -p $OMITDIR
+        ln -sf $PIDFILE $OMITDIR/$NAME
+        log_end_msg $?
+    else
+        log_warning_msg $?
+        log_warning_msg "Waiting 15 seconds and trying to continue anyway"
+        sleep 15
+    fi
+
+    log_action_begin_msg "Synthesizing the initial hotplug events (subsystems)"
+    if udevadm trigger --type=subsystems --action=add; then
+        log_action_end_msg $?
+    else
+        log_action_end_msg $?
+    fi
+    log_action_begin_msg "Synthesizing the initial hotplug events (devices)"
+    if udevadm trigger --type=devices --action=add; then
+        log_action_end_msg $?
+    else
+        log_action_end_msg $?
+    fi
+
+    create_dev_makedev
+
+    # wait for the systemd-udevd childs to finish
+    log_action_begin_msg "Waiting for /dev to be fully populated"
+    if udevadm settle; then
+        log_action_end_msg 0
+    else
+        log_action_end_msg 0 'timeout'
+    fi
+    ;;
+
+    stop)
+    log_daemon_msg "Stopping $DESC" "$NAME"
+    if start-stop-daemon --stop --name $NAME --user root --quiet \
+        --pidfile $PIDFILE --remove-pidfile --oknodo --retry 5; then
+        # prevents cryptsetup/dmsetup hangs (see #791944)
+        rm -f $CTRLFILE
+        log_end_msg $?
+    else
+        log_end_msg $?
+    fi
+    ;;
+
+    restart)
+    log_daemon_msg "Stopping $DESC" "$NAME"
+    if start-stop-daemon --stop --name $NAME --user root --quiet \
+        --pidfile $PIDFILE --remove-pidfile --oknodo --retry 5; then
+        # prevents cryptsetup/dmsetup hangs (see #791944)
+        rm -f $CTRLFILE
+        log_end_msg $?
+    else
+        log_end_msg $? || true
+    fi
+
+    log_daemon_msg "Starting $DESC" "$NAME"
+    if start-stop-daemon --start --name $NAME --user root --quiet \
+        --pidfile $PIDFILE --exec $DAEMON --background --make-pidfile \
+        --notify-await; then
+        # prevents udevd to be killed by sendsigs (see #791944)
+        mkdir -p $OMITDIR
+        ln -sf $PIDFILE $OMITDIR/$NAME
+        log_end_msg $?
+    else
+        log_end_msg $?
+    fi
+    ;;
+
+    reload|force-reload)
+    udevadm control --reload-rules
+    ;;
+
+    status)
+    status_of_proc $DAEMON $NAME && exit 0 || exit $?
+    ;;
+
+    *)
+    echo "Usage: /etc/init.d/udev {start|stop|restart|reload|force-reload|status}" >&2
+    exit 1
+    ;;
+esac
+
+exit 0
+

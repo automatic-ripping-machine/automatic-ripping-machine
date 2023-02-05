@@ -1,0 +1,53 @@
+# This is a basic workflow to help you get started with Actions
+
+name: "Test Debian installer"
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the v2.5.0_dev branch
+  push:
+    branches: [ main, v2_devel, v2_master ]
+    #paths:
+    #  - 'scripts/installers/debian-install.sh'
+  pull_request:
+    branches: [ main, v2_devel, v2_master]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  test-debian:
+    name: "Test Debian install"
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.8.1"
+    - name: Fix dependencies
+      run: |
+        sudo apt update && sudo apt upgrade && sudo apt-get install libgnutls28-dev libcurl4-openssl-dev libssl-dev libdiscid-dev
+        echo "GITHUB_ACTIONS=True" >> $GITHUB_ENV
+        pip3 install --ignore-installed --prefer-binary -r requirements.txt
+        pip3 install flask-bcrypt flask-bcrypt flask_bcrypt --user
+    - name: Run Installer
+      run: |
+        chmod +x scripts/installers/debian-install.sh
+        sudo ./scripts/installers/debian-install.sh
+    - name: Fix config files
+      run: |
+        cp setup/arm.yaml arm.yaml
+        sudo mkdir -p /etc/arm/config/
+        sudo cp setup/arm.yaml /etc/arm/config/arm.yaml
+        sudo cp setup/apprise.yaml /etc/arm/config/apprise.yaml
+        sudo cp setup/.abcde.conf /etc/arm/config/abcde.conf
+    - name: Run A.R.M ui
+      run: timeout 1 python ./arm/runui.py || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
+    - name: Test MakeMKV
+      run: makemkvcon | grep www.makemkv.com/developers || exit 1
+    - name: Test HandBrake
+      run: HandBrakeCLI --version || exit 1
+    - name: Test abcde
+      run: abcde -v || exit 1
