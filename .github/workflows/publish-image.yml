@@ -50,7 +50,7 @@ jobs:
             # Workaround: https://github.com/docker/build-push-action/issues/461
             -
                 name: Setup Docker buildx
-                uses: docker/setup-buildx-action@dc7b9719a96d48369863986a06765841d7ea23f6
+                uses: docker/setup-buildx-action@15c905b16b06416d2086efa066dd8e3a35cc7f98
 
             # Login against all registries
             # https://github.com/docker/login-action
