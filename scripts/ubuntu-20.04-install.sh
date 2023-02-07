@@ -252,7 +252,6 @@ remove_existing_arm
 install_arm_dev_env
 
 setup_config_files
-install_python_requirements
 setup_autoplay
 setup_syslog_rule
 install_armui_service
