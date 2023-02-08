@@ -8,17 +8,13 @@ PORT=8080
 
 function usage() {
     echo -e "\nUsage: ubuntu-20.04-install.sh [OPTIONS]"
-    echo -e " -d \tInstall the ARM Development Environment"
     echo -e " -p <port>\tSpecify the port arm will serve on. \n\t\tDefault is \"$PORT\""
 }
 
-dev_env_flag=
 port_flag=
-while getopts 'dp:' OPTION
+while getopts 'p:' OPTION
 do
     case $OPTION in
-    d)    dev_env_flag=1
-          ;;
     p)    port_flag=1
           PORT=$OPTARG
           # test if port is valid (DOES NOT WORK WITH `set -u` DECLARED)
@@ -121,13 +117,7 @@ function clone_arm() {
         sudo rm -rf arm
     fi
 
-    if [ "$dev_env_flag" ]; then
-        git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "v2_devel" arm
-    else
-        ARM_LATEST=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' | grep 'automatic-ripping-machine/tree/*' | head -n 1 | sed -e 's/[^0-9\.]*//g')
-        echo -e "Arm latest stable version is v$ARM_LATEST. Pulling v$ARM_LATEST"
-        git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "v$ARM_LATEST" arm
-    fi
+    git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "main" arm
 
     cd arm
     git submodule update --init --recursive
@@ -160,15 +150,6 @@ function install_arm_dev_env() {
     fi
 }
 
-function install_arm_live_env() {
-    ##### Install ARM live environment
-    echo -e "${RED}Installing Automatic Ripping Machine${NC}"
-    clone_arm
-
-    sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
-    sudo udevadm control --reload
-}
-
 function setup_config_files() {
     ##### Setup ARM-specific config files if not found
     sudo mkdir -p /etc/arm/config
@@ -197,26 +178,6 @@ function setup_config_files() {
         # reset the port number in the config since it's no longer being
         # overwritten which each run of this installer
         sed -E s"/(^WEBSERVER_PORT:) [0-9]+/\1 8080/" -i /etc/arm/config/arm.yaml
-    fi
-}
-
-function install_python_requirements {
-    ##### Install the python tools and requirements
-    echo -e "${RED}Installing up python requirements${NC}"
-    cd /opt/arm
-    # running pip with sudo can result in permissions errors, run as arm
-    su - arm -c "pip3 install --upgrade setuptools==65.7.0"
-    su - arm -c "pip3 install --upgrade pip wheel psutil pyudev"
-    su - arm -c "pip3 install --ignore-installed --prefer-binary -r /opt/arm/requirements.txt"
-    
-    # add python install location to the PATH permanently
-    bin_dir="/home/arm/.local/bin"
-    if [[ $PATH != *"${bin_dir}"* ]]; then
-        echo -e "${RED}Updating PATH...${NC}"
-        PATH="${bin_dir}":$PATH
-        
-        #shellcheck source=/home/arm/.profile
-        source /home/arm/.profile
     fi
 }
 
@@ -288,14 +249,9 @@ add_arm_user
 install_arm_requirements
 remove_existing_arm
 
-if [ "$dev_env_flag" ]; then
-    install_arm_dev_env
-else
-    install_arm_live_env
-fi
+install_arm_dev_env
 
 setup_config_files
-install_python_requirements
 setup_autoplay
 setup_syslog_rule
 install_armui_service
