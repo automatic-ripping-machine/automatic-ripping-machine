@@ -1,0 +1,21 @@
+name: "PR - Test Docker build"
+
+# This workflow builds a docker image for every pull request, to
+# confirm that the changes will still at least build even if the
+# OP has not tried it themselves or configured their fork to use
+# the included repos
+
+on:
+    pull_request:
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+        - 
+            uses: actions/checkout@v3
+            
+        - 
+            name: Build the Docker image
+            run: docker build . --file Dockerfile --tag "PR_#${{ github.event.number }}"
