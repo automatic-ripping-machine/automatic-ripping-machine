@@ -18,4 +18,4 @@ jobs:
             
         - 
             name: Build the Docker image
-            run: docker build . --file Dockerfile --tag "PR_#${{ github.event.number }}"
+            run: docker build . --file Dockerfile --tag "pr_#${{ github.event.number }}"
