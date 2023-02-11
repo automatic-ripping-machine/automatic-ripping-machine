@@ -1,0 +1,18 @@
+name: "Run ShellCheck"
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+    push:
+    pull_request:
+    workflow_dispatch:
+
+jobs:
+    shellcheck:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Run ShellCheck
+              uses: bewuethr/shellcheck-action@v2.1.2
