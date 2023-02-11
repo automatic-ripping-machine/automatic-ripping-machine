@@ -1,5 +1,10 @@
 
 {% block sysinfo %}
+    <style>
+        .progress-bar {
+            color: white !important;
+        }
+    </style>
     <div class="container content">
         <div class="row">
             <div class="col pt-3">
@@ -27,9 +32,8 @@
                         <li class="list-group-item">
                             <h6 class="progress-label" style="float: left;margin-right: 1em;">Usage: </h6>
                             <div class="progress">
-                                <div class="progress-bar{{ ' bg-danger' if serverutil.cpu_util > 80 }}" role="progressbar"
-                                     style="width: {{ ' 10' if serverutil.cpu_util < 10 else server.cpu_util }}%;"
-                                     aria-valuenow="{{ serverutil.cpu_util }}" aria-valuemin="10" aria-valuemax="100">{{ serverutil.cpu_util }}%
+                                <div class="progress-bar{{ ' bg-danger' if serverutil.cpu_util > 80 }}" role="progressbar" style="width: {{ ' 10' if serverutil.cpu_util < 10 else serverutil.cpu_util }}%;" aria-valuenow="{{ serverutil.cpu_util }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ serverutil.cpu_util }}%
                                 </div>
                             </div>
                         </li>
@@ -91,7 +95,7 @@
                                 </div>
                                 <br> Free Space: {{ serverutil.storage_completed_free }} GB
                             {% else %}
-                                Transcode: Unable to get data on path
+                                Completed: Unable to get data on path
                             {% endif %}
                             <br>Path: {{ media_path }}
                         </li>
