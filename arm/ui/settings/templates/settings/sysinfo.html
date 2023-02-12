@@ -32,7 +32,9 @@
                         <li class="list-group-item">
                             <h6 class="progress-label" style="float: left;margin-right: 1em;">Usage: </h6>
                             <div class="progress">
-                                <div class="progress-bar{{ ' bg-danger' if serverutil.cpu_util > 80 }}" role="progressbar" style="width: {{ ' 10' if serverutil.cpu_util < 10 else serverutil.cpu_util }}%;" aria-valuenow="{{ serverutil.cpu_util }}" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-bar{{ ' bg-danger' if serverutil.cpu_util > 80 }}" role="progressbar"
+                                style="width: {{ ' 10' if serverutil.cpu_util < 10 else serverutil.cpu_util }}%;"
+                                aria-valuenow="{{ serverutil.cpu_util }}" aria-valuemin="0" aria-valuemax="100">
                                     {{ serverutil.cpu_util }}%
                                 </div>
                             </div>
@@ -55,8 +57,9 @@
                           <h6 class="progress-label" style="float: left;margin-right: 1em;">Usage: </h6>
                           <div class="progress">
                             <div class="progress-bar{{ ' bg-danger' if serverutil.memory_percent > 80 }}" role="progressbar"
-                                 style="width: {{ serverutil.memory_percent }}%;" aria-valuenow="{{ serverutil.memory_percent }}" aria-valuemin="0"
-                                 aria-valuemax="100">{{ serverutil.memory_percent }}%
+                                 style="width: {{ serverutil.memory_percent }}%;"
+                                 aria-valuenow="{{ serverutil.memory_percent }}" aria-valuemin="0" aria-valuemax="100">
+                                 {{ serverutil.memory_percent }}%
                             </div>
                           </div>
                         </li>
