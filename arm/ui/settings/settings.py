@@ -24,6 +24,7 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db
 from arm.models import models as models
 import arm.config.config as cfg
+from arm.ui.settings import DriveUtils as drive_utils
 from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
 from arm.ui.settings.ServerUtil import ServerUtil
 
@@ -232,7 +233,7 @@ def system_drive_scan():
     """
     global redirect_settings
     # Update to scan for changes from system
-    new_count = ui_utils.drives_update()
+    new_count = drive_utils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
     return redirect(redirect_settings)
 
