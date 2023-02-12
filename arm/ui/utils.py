@@ -8,7 +8,6 @@ import json
 import platform
 import subprocess
 import re
-import pyudev
 from datetime import datetime
 from pathlib import Path
 

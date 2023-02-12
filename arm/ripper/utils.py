@@ -884,17 +884,3 @@ def get_git_commit():
     git_version = re.search(r"^\* (\S+)\ncommit ([a-z\d]{5,7})", str(git_output))
     if git_version:
         logging.info(f"Branch: {git_version.group(1)} - Commit: {git_version.group(2)}")
-
-
-def update_drive_job(job):
-    """
-    Function to take current job task and update the associated drive ID into the database
-    """
-    drive = models.SystemDrives.query.filter_by(mount=job.devpath).first()
-    drive.new_job(job.job_id)
-    logging.debug(f"Updating drive [{job.devpath}] current job, with id [{job.job_id}]")
-    try:
-        db.session.commit()
-        logging.debug("Database update with new Job ID to associated drive")
-    except Exception as error:  # noqa: E722
-        logging.error(f"Failed to update the database with the associated drive. {error}")

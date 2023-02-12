@@ -1,17 +1,21 @@
 """
 Functions to manage drives
+UI Utils
 - drives_search
 - drives_update
 - drives_check_status
 - drive_status_debug
+Ripper Utils
+- update_drive_job
 """
 
 import pyudev
 import re
+import logging
 
-import arm.config.config as cfg
-from arm.ui import app
+from arm.ui import app, db
 from arm.models import models
+
 
 def drives_search():
     """
@@ -121,3 +125,17 @@ def drive_status_debug(drive):
         app.logger.debug(f"Job - Title: {drive.job_previous.title}")
         app.logger.debug(f"Job - Year: {drive.job_previous.year}")
     app.logger.debug("*********")
+
+
+def update_drive_job(job):
+    """
+    Function to take current job task and update the associated drive ID into the database
+    """
+    drive = models.SystemDrives.query.filter_by(mount=job.devpath).first()
+    drive.new_job(job.job_id)
+    logging.debug(f"Updating drive [{job.devpath}] current job, with id [{job.job_id}]")
+    try:
+        db.session.commit()
+        logging.debug("Database update with new Job ID to associated drive")
+    except Exception as error:  # noqa: E722
+        logging.error(f"Failed to update the database with the associated drive. {error}")

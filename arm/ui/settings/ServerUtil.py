@@ -48,7 +48,6 @@ class ServerUtil():
                 self.cpu_temp = coretemp[0][1]
             else:
                 self.cpu_temp = 0
-                app.logger.debug(f"")
         except EnvironmentError:
             self.cpu_temp = 0
         app.logger.debug(f"Server CPU Temp:  {self.cpu_temp}")
