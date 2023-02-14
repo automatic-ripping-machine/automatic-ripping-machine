@@ -236,6 +236,7 @@ function create_folders() {
     echo -e "${RED}Creating ARM folders${NC}"
     arm_mkdir "/home/arm/media/transcode"
     arm_mkdir "/home/arm/media/completed"
+    arm_mkdir "/home/arm/media/raw"
 }
 
 function arm_mkdir() {
