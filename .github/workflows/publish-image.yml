@@ -55,7 +55,7 @@ jobs:
             # https://github.com/docker/login-action
             -
                 name: Log into registry ${{ env.REGISTRY }}
-                uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b
+                uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
                 with:
                     registry: ${{ env.REGISTRY }}
                     username: ${{ github.repository_owner }}
@@ -63,7 +63,7 @@ jobs:
 
             -
                 name: Login to DockerHub
-                uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b
+                uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
                 with:
                     username: ${{ secrets.DOCKERHUB_USERNAME }}
                     password: ${{ secrets.DOCKERHUB_TOKEN }}
