@@ -130,6 +130,8 @@ def identify_dvd(job):
                 'imdb_id_auto': arm_api_json['results']['0']['imdb_id'],
                 'video_type': arm_api_json['results']['0']['video_type'],
                 'video_type_auto': arm_api_json['results']['0']['video_type'],
+                'poster_url': arm_api_json['results']['0']['poster_img'],
+                'poster_url_auto': arm_api_json['results']['0']['poster_img'],
                 'hasnicetitle': True
             }
             utils.database_updater(args, job)
