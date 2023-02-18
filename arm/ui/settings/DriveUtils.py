@@ -5,6 +5,7 @@ UI Utils
 - drives_update
 - drives_check_status
 - drive_status_debug
+- job_cleanup
 Ripper Utils
 - update_drive_job
 """
@@ -98,8 +99,6 @@ def drives_check_status():
         # Print the drive debug status
         drive_status_debug(drive)
 
-    # Requery data to ensure current if the drive status changed
-    drives = models.SystemDrives.query.all()
     return drives
 
 
@@ -125,6 +124,16 @@ def drive_status_debug(drive):
         app.logger.debug(f"Job - Title: {drive.job_previous.title}")
         app.logger.debug(f"Job - Year: {drive.job_previous.year}")
     app.logger.debug("*********")
+
+
+def job_cleanup(job_id):
+    """
+    Function called when removing a job from the database, removing the data in the previous job field
+    """
+    job = models.Job.query.filter_by(job_id=job_id).first()
+    drive = models.SystemDrives.query.filter_by(mount=job.devpath).first()
+    drive.job_id_previous = None
+    app.logger.debug(f"Job {job.job_id} cleared from drive {drive.mount} previous")
 
 
 def update_drive_job(job):
