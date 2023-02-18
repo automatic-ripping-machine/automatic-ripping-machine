@@ -36,7 +36,7 @@ jobs:
             -
                 name: Get branch name
                 id: branch-name
-                uses: tj-actions/branch-names@v5.4
+                uses: tj-actions/branch-names@v6.4
 
             -
                 name: Set tag for non-default branch
