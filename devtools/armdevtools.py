@@ -56,16 +56,13 @@ def arm_clear_data():
 # Commence reading from the input options
 desc = "Automatic Ripping Machine Development Tool Scripts"
 parser = argparse.ArgumentParser(description=desc)
-parser.add_argument("-b", help="Name of the branch to move to, example -b v2_devel")
+parser.add_argument("-b",
+                    help="Name of the branch to move to, example -b v2_devel")
 parser.add_argument("-d",
                     help="Clear the arm home folder, remove all directories and files",
                     action='store_true')
 parser.add_argument("-db_rem",
                     help="Database tool - remove current arm.db file",
-                    action='store_true')
-parser.add_argument("-db_roll",
-                    help="Database tool - roll the current database back a version," +
-                    "input number of versions to roll back.",
                     action='store_true')
 parser.add_argument("-db_data",
                     help="Database tool - populate the database with Lorem Ipsum data. " +
@@ -90,10 +87,6 @@ if args.d:
 # -db_rem Database remove
 if args.db_rem:
     database.remove()
-
-# -db_roll Database rollback
-if args.db_roll:
-    database.roll(args.db_roll)
 
 # -db_data Database data insert
 if args.db_data:
