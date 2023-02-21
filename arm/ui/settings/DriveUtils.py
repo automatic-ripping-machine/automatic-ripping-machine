@@ -92,12 +92,15 @@ def drives_check_status():
     drives = models.SystemDrives.query.all()
     for drive in drives:
         # Check if the current job is active, if not remove current job_current id
-        if drive.job_id_current is not None and drive.job_id_current > 0:
+        if drive.job_id_current is not None and drive.job_id_current > 0  and drive.job_current:
             if drive.job_current.status == "success" or drive.job_current.status == "fail":
                 drive.job_finished()
                 db.session.commit()
         # Print the drive debug status
         drive_status_debug(drive)
+
+    # Requery data to ensure current pending job status change
+    drives = models.SystemDrives.query.all()
 
     return drives
 
