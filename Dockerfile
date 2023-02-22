@@ -1,6 +1,6 @@
 ###########################################################
 # setup default directories and configs
-FROM automaticrippingmachine/arm-dependencies:1.0.5 AS base
+FROM automaticrippingmachine/arm-dependencies:1.0.7 AS base
 
 # override at runtime to change makemkv key
 ENV MAKEMKV_APP_KEY=""

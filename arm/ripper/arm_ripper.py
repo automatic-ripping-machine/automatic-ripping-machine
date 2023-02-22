@@ -183,7 +183,7 @@ def rip_with_mkv(current_job, protection=0):
     """
     mkv_ripped = False
     # Rip bluray
-    if current_job.disctype == "bluray" and current_job.config.RIPMETHOD == "mkv":
+    if current_job.disctype == "bluray":
         mkv_ripped = True
     # Rip dvd with mode: mkv and mainfeature: false
     if current_job.disctype == "dvd" and (not current_job.config.MAINFEATURE and current_job.config.RIPMETHOD == "mkv"):
