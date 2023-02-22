@@ -180,6 +180,9 @@ CHOWN_GROUP:
 ## MakeMKV Parameters ##
 ########################
 
+# Storage for a purchased key the user may have paid for. Populating will prevent the beta key updater from running.
+MAKEMKV_PERMA_KEY:
+
 # Method of MakeMKV to use for Blu-ray discs
 # Options are "mkv", "backup", or "backup_dvd".
 # backup decrypts the dvd and then copies it to the hard drive.
