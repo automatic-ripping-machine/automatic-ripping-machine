@@ -9,6 +9,7 @@ import shlex
 
 from arm.ripper import utils  # noqa: E402
 from arm.ui import db  # noqa: F401, E402
+import arm.config.config as cfg  # noqa E402
 
 
 class MakeMkvRuntimeError(RuntimeError):
@@ -139,14 +140,18 @@ def setup_rawpath(job, raw_path):
 
 def prep_mkv():
     """Make sure the MakeMKV key is up-to-date
-
-    Parameters:
-        job: job object\n
     Raises:
         RuntimeError
     """
     try:
         logging.info("Updating MakeMKV key...")
+
+        # TODO: implement this
+        # if cfg['MAKEMKV_PERMA_KEY'] is not None:
+        #    run updater with MAKEMKV_PERMA_KEY
+        # else
+        #    run updater
+
         update_cmd = "/bin/bash /opt/arm/scripts/update_key.sh"
         subprocess.run(update_cmd, capture_output=True, shell=True, check=True)  # noqa: F841
     except subprocess.CalledProcessError as update_err:
