@@ -22,6 +22,7 @@ def _load_abcde(fp):
 
 
 # arm config, open and read yaml contents
+# TODO: implement arm.yaml migration here
 arm_config = _load_config(arm_config_path)
 
 # abcde config file, open and read contents
