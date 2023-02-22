@@ -148,9 +148,11 @@ def prep_mkv():
 
         # TODO: implement this
         # if cfg['MAKEMKV_PERMA_KEY'] is not None:
+        if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None or cfg.arm_config['MAKEMKV_PERMA_KEY'] is not "":
         #    run updater with MAKEMKV_PERMA_KEY
         # else
         #    run updater
+            pass
 
         update_cmd = "/bin/bash /opt/arm/scripts/update_key.sh"
         subprocess.run(update_cmd, capture_output=True, shell=True, check=True)  # noqa: F841

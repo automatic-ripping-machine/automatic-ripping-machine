@@ -11,6 +11,9 @@ makemkv_serial=$(curl -fsSL "$makemkv_serial_url" | grep -oP 'T-[\w\d@]{66}')
 echo "MakeMKV beta key for this month: $makemkv_serial"
 # TODO: implement this
 # if file exists OR grep doesn't find key string in settings
+SETTINGS_FILE="/home/arm/.MakeMKV/settings.conf"
+if [[ -f $SETTINGS_FILE ]] || grep -q "^app_Key.*" "$SETTINGS_FILE"; then
+    echo "Either $SETTINGS_FILE doesn't exist, or app_Key is not inside it"
 #     if run w/arg
 #         append permakey string to settings
 #     else
@@ -20,6 +23,8 @@ echo "MakeMKV beta key for this month: $makemkv_serial"
 #         sed replace key in settings w/permakey
 #     else
 #         sed replace key is settings w/beta key
+fi
+
 mkdir -p "/home/arm/.MakeMKV"
 chown arm:arm "/home/arm/.MakeMKV"
 echo "app_Key = \"$makemkv_serial\"" > /home/arm/.MakeMKV/settings.conf
