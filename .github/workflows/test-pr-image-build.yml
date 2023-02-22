@@ -32,4 +32,4 @@ jobs:
                 push: false
                 context: .
                 platforms: linux/amd64,linux/arm64,linux/arm/v7
-                tags: ${{ secrets.DOCKERHUB_USERNAME }}/automatic-ripping-machine:pr${{ github.event.number }}
+                tags: automatic-ripping-machine:pr${{ github.event.number }}
