@@ -41,7 +41,7 @@ for dir in $SUBDIRS ; do
     thisDir="$ARM_HOME/$dir"
     if [[ ! -d "$thisDir" ]] ; then
         echo "Creating dir: $thisDir"
-        mkdir -p 0777 "$thisDir"
+        mkdir -p "$thisDir"
     fi
     chown -R arm:arm "$thisDir"
 done
