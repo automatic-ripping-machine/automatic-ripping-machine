@@ -35,7 +35,7 @@ def makemkv(logfile, job):
     """
 
     # confirm MKV is working, beta key hasn't expired
-    prep_mkv()
+    prep_mkv(logfile)
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
@@ -138,7 +138,7 @@ def setup_rawpath(job, raw_path):
     return raw_path
 
 
-def prep_mkv():
+def prep_mkv(logfile):
     """Make sure the MakeMKV key is up-to-date
     Raises:
         RuntimeError
@@ -148,18 +148,17 @@ def prep_mkv():
         update_cmd = "/bin/bash /opt/arm/scripts/update_key.sh"
 
         # if MAKEMKV_PERMA_KEY is populated
-        if cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
+        logging.debug(f"MAKEMKV_PERMA_KEY is \"{cfg.arm_config['MAKEMKV_PERMA_KEY']}\"")
+        if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
             logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
-            # and MAKEMKV_PERMA_KEY as an argument to the command
+            # add MAKEMKV_PERMA_KEY as an argument to the command
             update_cmd = f"{update_cmd} {cfg.arm_config['MAKEMKV_PERMA_KEY']}"
 
-        logging.debug(f"update command is: \"{update_cmd}\"")
-        subprocess.run(update_cmd, capture_output=True, shell=True, check=True)  # noqa: F841
+        subprocess.run(f"{update_cmd} >> {logfile}", capture_output=True, shell=True, check=True)
     except subprocess.CalledProcessError as update_err:
         err = f"Error updating MakeMKV key, return code: {update_err.returncode}"
         logging.error(err)
         raise RuntimeError(err) from update_err
-
 
 def get_track_info(mdisc, job):
     """
