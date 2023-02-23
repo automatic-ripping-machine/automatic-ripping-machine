@@ -25,10 +25,10 @@ if [[ -f $SETTINGS_FILE ]] || ! grep -q "app_Key" "$SETTINGS_FILE"; then
     # if run w/arg
     if [ -n "$MAKEMKV_PERMA_KEY" ]; then
         # append permakey string to settings
-        echo "app_Key = \"$MAKEMKV_PERMA_KEY\"" > "/home/arm/.MakeMKV/settings.conf"
+        echo "app_Key = \"$MAKEMKV_PERMA_KEY\"" >> "/home/arm/.MakeMKV/settings.conf"
     else
         # append beta key to settings
-        echo "app_Key = \"$makemkv_serial\"" > /home/arm/.MakeMKV/settings.conf
+        echo "app_Key = \"$makemkv_serial\"" >> /home/arm/.MakeMKV/settings.conf
     fi
 else
     # if run w/arg
