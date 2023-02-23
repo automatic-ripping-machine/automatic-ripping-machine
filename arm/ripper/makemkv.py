@@ -145,16 +145,15 @@ def prep_mkv():
     """
     try:
         logging.info("Updating MakeMKV key...")
-
-        # TODO: implement this
-        # if cfg['MAKEMKV_PERMA_KEY'] is not None:
-        if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None or cfg.arm_config['MAKEMKV_PERMA_KEY'] is not "":
-        #    run updater with MAKEMKV_PERMA_KEY
-        # else
-        #    run updater
-            pass
-
         update_cmd = "/bin/bash /opt/arm/scripts/update_key.sh"
+
+        # if MAKEMKV_PERMA_KEY is populated
+        if cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
+            logging.debug(f"MAKEMKV_PERMA_KEY populated, using that...")
+            # and MAKEMKV_PERMA_KEY as an argument to the command
+            update_cmd = f"{update_cmd} {cfg.arm_config['MAKEMKV_PERMA_KEY']}"
+
+        logging.debug(f"update command is: \"{update_cmd}\"")
         subprocess.run(update_cmd, capture_output=True, shell=True, check=True)  # noqa: F841
     except subprocess.CalledProcessError as update_err:
         err = f"Error updating MakeMKV key, return code: {update_err.returncode}"
