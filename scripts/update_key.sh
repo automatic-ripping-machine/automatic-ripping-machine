@@ -8,6 +8,7 @@
 
 MAKEMKV_PERMA_KEY=
 if [ -n "$1" ]; then
+    echo "MAKEMKV_PERMA_KEY passed as arg"
     MAKEMKV_PERMA_KEY=$1
 fi
 
@@ -20,7 +21,7 @@ chown arm:arm "/home/arm/.MakeMKV"
 
 # if file exists OR grep doesn't find key string in settings
 SETTINGS_FILE="/home/arm/.MakeMKV/settings.conf"
-if [[ -f $SETTINGS_FILE ]] || ! grep -q "app_Key" "$SETTINGS_FILE"; then
+if [[ -f "$SETTINGS_FILE" ]] || ! grep -q "app_Key" "$SETTINGS_FILE"; then
     echo "Either $SETTINGS_FILE doesn't exist, or app_Key is not inside it"
     # if run w/arg
     if [ -n "$MAKEMKV_PERMA_KEY" ]; then
@@ -28,16 +29,16 @@ if [[ -f $SETTINGS_FILE ]] || ! grep -q "app_Key" "$SETTINGS_FILE"; then
         echo "app_Key = \"$MAKEMKV_PERMA_KEY\"" >> "/home/arm/.MakeMKV/settings.conf"
     else
         # append beta key to settings
-        echo "app_Key = \"$makemkv_serial\"" >> /home/arm/.MakeMKV/settings.conf
+        echo "app_Key = \"$makemkv_serial\"" >> "/home/arm/.MakeMKV/settings.conf"
     fi
 else
     # if run w/arg
     if [ -n "$MAKEMKV_PERMA_KEY" ]; then
         # sed replace key in settings w/permakey
-        sed -i "s|app_Key = \"T-.*\"|app_Key = \"$MAKEMKV_PERMA_KEY\"|" $SETTINGS_FILE
+        sed -i "s|app_Key = \"T-.*\"|app_Key = \"$MAKEMKV_PERMA_KEY\"|" "$SETTINGS_FILE"
     else
         # sed replace key is settings w/beta key
-        sed -i "s|app_Key = \"T-.*\"|app_Key = \"$makemkv_serial\"|" $SETTINGS_FILE
+        sed -i "s|app_Key = \"T-.*\"|app_Key = \"$makemkv_serial\"|" "$SETTINGS_FILE"
     fi
 fi
 
