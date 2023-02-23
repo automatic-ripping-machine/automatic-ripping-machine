@@ -149,7 +149,7 @@ def prep_mkv():
 
         # if MAKEMKV_PERMA_KEY is populated
         if cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
-            logging.debug(f"MAKEMKV_PERMA_KEY populated, using that...")
+            logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
             # and MAKEMKV_PERMA_KEY as an argument to the command
             update_cmd = f"{update_cmd} {cfg.arm_config['MAKEMKV_PERMA_KEY']}"
 
