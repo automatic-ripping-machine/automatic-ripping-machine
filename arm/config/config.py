@@ -8,7 +8,7 @@ import arm.config.config_utils as config_utils
 
 CONFIG_LOCATION = "/etc/arm/config"
 arm_config_path = os.path.join(CONFIG_LOCATION, "arm.yaml")
-default_arm_yaml_path = os.path.join("/opt/arm/setup/arm.yaml")
+default_arm_yaml_path = os.path.join("../setup/arm.yaml")
 abcde_config_path = os.path.join(CONFIG_LOCATION, "abcde.conf")
 apprise_config_path = os.path.join(CONFIG_LOCATION, "apprise.yaml")
 
