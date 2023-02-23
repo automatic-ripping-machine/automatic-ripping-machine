@@ -8,7 +8,6 @@ import arm.config.config_utils as config_utils
 
 CONFIG_LOCATION = "/etc/arm/config"
 arm_config_path = os.path.join(CONFIG_LOCATION, "arm.yaml")
-default_arm_yaml_path = os.path.relpath("../config/arm.yaml")
 abcde_config_path = os.path.join(CONFIG_LOCATION, "abcde.conf")
 apprise_config_path = os.path.join(CONFIG_LOCATION, "apprise.yaml")
 
@@ -29,7 +28,7 @@ def _load_abcde(fp):
 # handle arm.yaml migration here
 # 1. Load both current and template arm.yaml
 cur_cfg = _load_config(arm_config_path)
-new_cfg = _load_config(default_arm_yaml_path)
+new_cfg = _load_config("/opt/arm/config/arm.yaml")
 
 # 2. If the dicts do not have the same number of keys
 if len(cur_cfg) != len(new_cfg):
