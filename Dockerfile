@@ -2,6 +2,12 @@
 # setup default directories and configs
 FROM automaticrippingmachine/arm-dependencies:1.0.7 AS base
 
+LABEL org.opencontainers.image.source=https://github.com/automatic-ripping-machine/automatic-ripping-machine
+LABEL org.opencontainers.image.license=MIT
+LABEL org.opencontainers.image.description='Automatic Ripping Machine for fully automated Blu-ray, DVD and audio disc ripping.'
+
+EXPOSE 8080
+
 # Setup folders and fstab
 RUN \
     mkdir -m 0777 -p /home/arm /home/arm/config /mnt/dev/sr0 /mnt/dev/sr1 /mnt/dev/sr2 /mnt/dev/sr3 /mnt/dev/sr5 \
@@ -16,9 +22,6 @@ RUN \
     echo "/dev/sr7  /mnt/dev/sr7  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
     echo "/dev/sr8  /mnt/dev/sr8  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
     echo "/dev/sr9  /mnt/dev/sr9  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab
-
-# Copy over source code
-COPY . /opt/arm/
 
 # Remove SSH
 RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
@@ -38,18 +41,16 @@ RUN chmod +x /etc/my_init.d/*.sh
 COPY ./scripts/docker/custom_udev /etc/init.d/udev
 RUN chmod +x /etc/my_init.d/*.sh
 
-# Our docker udev rule
-RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
-
-EXPOSE 8080
-
 
 ###########################################################
 # Final image pushed for use
 FROM base AS automatic-ripping-machine
 
+# Copy over source code
+COPY . /opt/arm/
+
+# Our docker udev rule
+RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
+
 CMD ["/sbin/my_init"]
 WORKDIR /home/arm
-LABEL org.opencontainers.image.source=https://github.com/automaticrippingmachine/automatic-ripping-machine
-LABEL org.opencontainers.image.license=MIT
-LABEL org.opencontainers.image.description='Automatic Ripping Machine for fully automated Blu-ray, DVD and audio disc ripping.'
