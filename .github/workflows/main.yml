@@ -1,6 +1,8 @@
-# This is a basic workflow to help you get started with Actions
-
 name: "Quality Checks"
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 # Controls when the action will run. 
 on:
@@ -49,7 +51,7 @@ jobs:
     strategy:
       matrix:
         # in this example, there is a newer version already installed, 3.7.7, so the older version will be downloaded
-        python-version: ['3.6.0', '3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10']
     steps:
     - uses: actions/checkout@v3
       with:
