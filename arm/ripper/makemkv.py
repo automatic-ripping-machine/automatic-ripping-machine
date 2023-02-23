@@ -143,7 +143,6 @@ def prep_mkv(logfile):
 
     Parameters:
         logfile: Location of logfile to redirect MakeMKV logs to
-
     Raises:
         RuntimeError
     """
@@ -152,7 +151,6 @@ def prep_mkv(logfile):
         update_cmd = "/bin/bash /opt/arm/scripts/update_key.sh"
 
         # if MAKEMKV_PERMA_KEY is populated
-        logging.debug(f"MAKEMKV_PERMA_KEY is \"{cfg.arm_config['MAKEMKV_PERMA_KEY']}\"")
         if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
             logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
             # add MAKEMKV_PERMA_KEY as an argument to the command
@@ -295,7 +293,7 @@ def run_makemkv(cmd, logfile):
 
     logging.debug(f"Ripping with the following command: {cmd}")
     try:
-        # need to check output for '"0 titles saved'
+        # need to check output for '0 titles saved'
         subprocess.run(f"{cmd} >> {logfile}", capture_output=True, shell=True, check=True)
     except subprocess.CalledProcessError as mkv_error:
         raise MakeMkvRuntimeError(mkv_error) from mkv_error
