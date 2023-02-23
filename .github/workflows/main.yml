@@ -82,8 +82,8 @@ jobs:
         sudo cp setup/arm.yaml /etc/arm/config/arm.yaml
         sudo cp setup/apprise.yaml /etc/arm/config/apprise.yaml
         sudo cp setup/.abcde.conf /etc/arm/config/abcde.conf
-        sudo mkdir -p /opt/arm/arm /opt/arm/config
+        sudo mkdir -p /opt/arm/arm /opt/arm/setup
         sudo cp -r arm/migrations /opt/arm/arm
-        cp setup/arm.yaml /opt/arm/config/arm.yaml
+        cp setup/arm.yaml /opt/arm/setup/arm.yaml
     - name: Run A.R.M ui
       run: timeout 1 python ./arm/runui.py || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi

@@ -28,7 +28,7 @@ def _load_abcde(fp):
 # handle arm.yaml migration here
 # 1. Load both current and template arm.yaml
 cur_cfg = _load_config(arm_config_path)
-new_cfg = _load_config("/opt/arm/config/arm.yaml")
+new_cfg = _load_config("/opt/arm/setup/arm.yaml")
 
 # 2. If the dicts do not have the same number of keys
 if len(cur_cfg) != len(new_cfg):
