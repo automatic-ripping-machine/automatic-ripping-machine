@@ -28,7 +28,7 @@ def _load_abcde(fp):
 # handle arm.yaml migration here
 # 1. Load both current and template arm.yaml
 cur_cfg = _load_config(arm_config_path)
-new_cfg = _load_config("/opt/arm/setup/arm.yaml")
+new_cfg = _load_config(os.path.join("/opt/arm/setup/arm.yaml"))
 
 # 2. If the dicts do not have the same number of keys
 if len(cur_cfg) != len(new_cfg):
@@ -43,8 +43,6 @@ if len(cur_cfg) != len(new_cfg):
 
     arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
     for key, value in dict(new_cfg).items():
-        print(f"current key {key} = {value}")
-
         # Add any grouping comments
         arm_cfg += config_utils.arm_yaml_check_groups(comments, key)
         # Check for comments for this key in comments.json, add them if they exist
