@@ -39,7 +39,7 @@ def makemkv(logfile, job):
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
-    cmd = f"makemkvcon -r info disc:9999  |grep {job.devpath} |grep -oP '(?<=:).*?(?=,)'"
+    cmd = f"makemkvcon -r info disc:9999 | grep {job.devpath} | grep -oP '(?<=:).*?(?=,)'"
     try:
         mdisc = subprocess.check_output(
             cmd,
@@ -47,7 +47,7 @@ def makemkv(logfile, job):
         ).decode("utf-8")
         logging.info(f"MakeMKV disc number: {mdisc.strip()}")
     except subprocess.CalledProcessError as mdisc_error:
-        raise MakeMkvRuntimeError(mdisc_error)
+        raise MakeMkvRuntimeError(mdisc_error) from mdisc_error
 
     # get filesystem in order
     rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
