@@ -3,6 +3,7 @@
 
 import os
 import logging
+import subprocess
 import urllib
 import re
 import datetime
@@ -20,17 +21,36 @@ from arm.ui import db
 from arm.ui import utils as ui_utils
 
 
+def check_if_mounted(mounted):
+    """
+    Function to check if mounting disc was success
+     anything but 0 means we failed to mount disc
+    """
+    success = False
+    if mounted == 0:
+        logging.info("Mounting disc was successful")
+        success = True
+    else:
+        logging.error("Mounting failed! Rip might have problems")
+    return success
+
+
 def identify(job):
     """Identify disc attributes"""
     logging.debug("Identify Entry point --- job ----")
     logging.info(f"Mounting disc to: {job.mountpoint}")
     if not os.path.exists(str(job.mountpoint)):
         os.makedirs(str(job.mountpoint))
+    # Check and mount drive - log error if failed
+    mounted = check_if_mounted(os.system("mount " + job.devpath))
 
-    os.system("mount " + job.devpath)
-
-    # Check with the job class to get the correct disc type
-    job.get_disc_type(utils.find_file("HVDVD_TS", job.mountpoint))
+    drive_id = re.sub(r'\D', '', job.devpath)
+    output = subprocess.check_output(f"makemkvcon -r --cache=1 info disc:9999 | grep DRV:{drive_id}", shell=True)
+    logging.debug("program output: " + output.decode("utf-8"))
+    # get_disc_type() checks local files, no need to run unless we can mount
+    if mounted:
+        # Check with the job class to get the correct disc type
+        job.get_disc_type(utils.find_file("HVDVD_TS", job.mountpoint))
 
     if job.disctype in ["dvd", "bluray"]:
 
@@ -52,7 +72,7 @@ def identify(job):
                          f"year:{job.year} video_type:{job.video_type} "
                          f"disctype: {job.disctype}")
             logging.debug(f"identify.job.end ---- \n\r{job.pretty_table()}")
-
+    # No need to warn if we cant unmount
     os.system("umount " + job.devpath)
 
 
