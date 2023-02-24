@@ -75,7 +75,7 @@ function setup_mountpoints() {
 }
 
 function save_start_command() {
-    url="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/v2_devel/scripts/docker/start_arm_container.sh"
+    url="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/docker/start_arm_container.sh"
     cd ~arm
     sudo -u arm curl -fsSL "$url" -o start_arm_container.sh
     chmod +x start_arm_container.sh
