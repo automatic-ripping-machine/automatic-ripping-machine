@@ -51,6 +51,7 @@ if len(cur_cfg) != len(new_cfg):
         except KeyError:
             arm_cfg += "\n"
         # test if key value is an int
+        value = str(value)  # just change the type to keep things as expected
         try:
             post_value = int(value)
             arm_cfg += f"{key}: {post_value}\n"
