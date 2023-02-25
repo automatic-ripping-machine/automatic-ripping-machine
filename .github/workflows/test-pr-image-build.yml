@@ -1,5 +1,9 @@
 name: "PR - Test Docker Build"
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
 # This workflow builds a docker image for every pull request, to
 # confirm that the changes will still at least build even if the
 # OP has not tried it themselves or configured their fork to use
@@ -32,4 +36,4 @@ jobs:
                 push: false
                 context: .
                 platforms: linux/amd64,linux/arm64,linux/arm/v7
-                tags: ${{ secrets.DOCKERHUB_USERNAME }}/automatic-ripping-machine:pr${{ github.event.number }}
+                tags: automatic-ripping-machine:pr${{ github.event.number }}
