@@ -41,7 +41,7 @@ for dir in $SUBDIRS ; do
     thisDir="$ARM_HOME/$dir"
     if [[ ! -d "$thisDir" ]] ; then
         echo "Creating dir: $thisDir"
-        mkdir -p 0777 "$thisDir"
+        mkdir -p "$thisDir"
     fi
     chown -R arm:arm "$thisDir"
 done
@@ -63,8 +63,3 @@ done
     cp --no-clobber "/opt/arm/setup/.abcde.conf" "/etc/.abcde.conf"
     ln -sf /etc/.abcde.conf /etc/arm/config/abcde.conf
     chown arm:arm "/etc/.abcde.conf" "/etc/arm/config/abcde.conf"
-
-echo "setting makemkv app-Key"
-if ! [[ -z "${MAKEMKV_APP_KEY}" ]] ; then
-  echo "app_Key = \"${MAKEMKV_APP_KEY}\"" > "${ARM_HOME}/.MakeMKV/settings.conf"
-fi
