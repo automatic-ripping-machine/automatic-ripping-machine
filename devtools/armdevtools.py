@@ -71,6 +71,9 @@ parser.add_argument("-db_data",
 parser.add_argument("-qa",
                     help="QA Checks - run Flake8 against ARM",
                     action='store_true')
+parser.add_argument("-pr",
+                    help="Actions to run prior to commiting a PR against ARM on github",
+                    action="store_true")
 parser.add_argument("-v", help="ARM Dev Tools Version",
                     action='version',
                     version='%(prog)s {version}'.format(version=__version__))
@@ -95,3 +98,6 @@ if args.db_data:
 # -qa Quality Checks against ARM
 if args.qa:
     qacheck.flake8(arm_install)
+
+if args.pr:
+    qacheck.pr_update()
