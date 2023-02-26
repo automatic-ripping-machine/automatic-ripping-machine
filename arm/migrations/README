@@ -1,1 +1,10 @@
 Generic single-database configuration.
+
+Alembic documentation
+- https://alembic.sqlalchemy.org/en/latest/
+
+Adding a migration
+- from within the automatic-ripping-machine migration folder
+.../automatic-ripping-machine/arm/migrations
+
+alembic revision -m "description of the migration"

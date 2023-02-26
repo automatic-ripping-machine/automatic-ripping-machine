@@ -5,9 +5,10 @@ import hashlib
 import os
 import shutil
 import json
-import re
 import platform
 import subprocess
+import re
+import pyudev
 from datetime import datetime
 from pathlib import Path
 
@@ -19,9 +20,13 @@ from werkzeug.routing import ValidationError
 from flask.logging import default_handler  # noqa: F401
 
 import arm.config.config as cfg
+from arm.config import config_utils
 from arm.ui import app, db
 from arm.models import models
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
+
+# Path definitions
+path_migrations = "arm/migrations"
 
 
 def database_updater(args, job, wait_time=90):
@@ -64,7 +69,7 @@ def check_db_version(install_path, db_file):
     import sqlite3
     import flask_migrate
 
-    mig_dir = os.path.join(install_path, "arm/migrations")
+    mig_dir = os.path.join(install_path, path_migrations)
 
     config = Config()
     config.set_main_option("script_location", mig_dir)
@@ -79,42 +84,196 @@ def check_db_version(install_path, db_file):
 
         if not os.path.isfile(db_file):
             app.logger.debug("Can't create database file.  This could be a permissions issue.  Exiting...")
+        else:
+            # Only run the below if the db exists
+            # Check to see if db is at current revision
+            head_revision = script.get_current_head()
+            app.logger.debug("Alembic Head is: " + head_revision)
 
-    # check to see if db is at current revision
-    head_revision = script.get_current_head()
-    app.logger.debug("Head is: " + head_revision)
+            conn = sqlite3.connect(db_file)
+            c = conn.cursor()
 
-    conn = sqlite3.connect(db_file)
-    c = conn.cursor()
-
-    c.execute('SELECT version_num FROM alembic_version')
-    db_version = c.fetchone()[0]
-    app.logger.debug(f"Database version is: {db_version}")
-    if head_revision == db_version:
-        app.logger.info("Database is up to date")
-    else:
-        app.logger.info(
-            f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
-        with app.app_context():
-            unique_stamp = round(time() * 100)
-            app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
-            shutil.copy(db_file, db_file + "_" + str(unique_stamp))
-            flask_migrate.upgrade(mig_dir)
-        app.logger.info("Upgrade complete.  Validating version level...")
-
-        c.execute("SELECT version_num FROM alembic_version")
+        c.execute('SELECT version_num FROM alembic_version')
         db_version = c.fetchone()[0]
         app.logger.debug(f"Database version is: {db_version}")
         if head_revision == db_version:
-            app.logger.info("Database is now up to date")
+            app.logger.info("Database is up to date")
         else:
-            app.logger.error(f"Database is still out of date. "
-                             f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
+            app.logger.info(
+                f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
+            with app.app_context():
+                unique_stamp = round(time() * 100)
+                app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
+                shutil.copy(db_file, db_file + "_" + str(unique_stamp))
+                flask_migrate.upgrade(mig_dir)
+            app.logger.info("Upgrade complete.  Validating version level...")
+
+            c.execute("SELECT version_num FROM alembic_version")
+            db_version = c.fetchone()[0]
+            app.logger.debug(f"Database version is: {db_version}")
+            if head_revision == db_version:
+                app.logger.info("Database is now up to date")
+            else:
+                app.logger.error(f"Database is still out of date. "
+                                 f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
+
+
+def arm_alembic_get():
+    """
+    Get the Alembic Head revision
+    """
+    from alembic.script import ScriptDirectory
+    from alembic.config import Config
+
+    install_path = cfg.arm_config['INSTALLPATH']
+
+    # Get the arm alembic current head revision
+    mig_dir = os.path.join(install_path, path_migrations)
+    config = Config()
+    config.set_main_option("script_location", mig_dir)
+    script = ScriptDirectory.from_config(config)
+    head_revision = script.get_current_head()
+    app.logger.debug(f"Alembic Head is: {head_revision}")
+    return head_revision
+
+
+def arm_db_get():
+    """
+    Get the Alembic Head revision
+    """
+    alembic_db = models.AlembicVersion()
+    db_revision = alembic_db.query.first()
+    app.logger.debug(f"Database Head is: {db_revision.version_num}")
+    return db_revision
+
+
+def arm_db_check():
+    """
+    Check if db exists and is up to date.
+    """
+    db_file = cfg.arm_config['DBFILE']
+    db_exists = False
+    db_current = False
+    head_revision = None
+    db_revision = None
+
+    head_revision = arm_alembic_get()
+
+    # Check if the db file exists
+    if os.path.isfile(db_file):
+        db_exists = True
+        # Get the database alembic version
+        db_revision = arm_db_get()
+        if db_revision.version_num == head_revision:
+            db_current = True
+            app.logger.debug(
+                        f"Database is current. Head: {head_revision}" +
+                        f"DB: {db_revision.version_num}")
+        else:
+            db_current = False
+            app.logger.info(
+                        "Database is not current, update required." +
+                        f" Head: {head_revision} DB: {db_revision.version_num}")
+    else:
+        db_exists = False
+        db_current = False
+        head_revision = None
+        db_revision = None
+        app.logger.debug(f"Database file is not present: {db_file}")
+
+    db = {
+        "db_exists": db_exists,
+        "db_current": db_current,
+        "head_revision": head_revision,
+        "db_revision": db_revision,
+        "db_file": db_file
+    }
+    return db
+
+
+def arm_db_cfg():
+    """
+    Check if the databsee exists prior to creating global ui settings
+    """
+    db_update = arm_db_check()
+    if not db_update["db_exists"]:
+        app.logger.debug("No armui cfg setup")
+        check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
+        setup_database()
+
+        armui_cfg = models.UISettings.query.get(1)
+        app.jinja_env.globals.update(armui_cfg=armui_cfg)
+
+    else:
+        armui_cfg = models.UISettings.query.get(1)
+        app.jinja_env.globals.update(armui_cfg=armui_cfg)
+
+    return armui_cfg
+
+
+def arm_db_migrate():
+    """
+    Migrate the existing database to the newest version, keeping user data
+    """
+    import flask_migrate
+
+    install_path = cfg.arm_config['INSTALLPATH']
+    db_file = cfg.arm_config['DBFILE']
+    mig_dir = os.path.join(install_path, path_migrations)
+
+    head_revision = arm_alembic_get()
+    db_revision = arm_db_get()
+
+    app.logger.info(
+                "Database out of date." +
+                f" Head is {head_revision} and database is {db_revision.version_num}." +
+                " Upgrading database...")
+    with app.app_context():
+        time = datetime.now()
+        timestamp = time.strftime("%Y-%m-%d_%H%M")
+        app.logger.info(
+                    f"Backing up database '{db_file}' " +
+                    f"to '{db_file}_migration_{timestamp}'.")
+        shutil.copy(db_file, db_file + "_migration_" + timestamp)
+        flask_migrate.upgrade(mig_dir)
+    app.logger.info("Upgrade complete.  Validating version level...")
+
+    # Check the update worked
+    db_revision = arm_db_get()
+    app.logger.info(f"ARM head: {head_revision} database: {db_revision.version_num}")
+    if head_revision == db_revision.version_num:
+        app.logger.info("Database is now up to date")
+        arm_db_initialise()
+    else:
+        app.logger.error(
+                    "Database is still out of date. " +
+                    f"Head is {head_revision} and database " +
+                    f"is {db_revision.version_num}.  Exiting arm.")
+
+
+def arm_db_initialise():
+    """
+    Initialise the ARM DB, ensure system values and disk drives are loaded
+    """
+    # Check system/server information is loaded
+    if not models.SystemInfo.query.filter_by(id="1").first():
+        # Define system info and load to db
+        server = models.SystemInfo()
+        app.logger.debug("****** System Information ******")
+        app.logger.debug(f"Name: {server.name}")
+        app.logger.debug(f"CPU: {server.cpu}")
+        app.logger.debug(f"Description: {server.description}")
+        app.logger.debug(f"Memory Total: {server.mem_total}")
+        app.logger.debug("****** End System Information ******")
+        db.session.add(server)
+        db.session.commit()
+    # Scan and load drives to database
+    drives_update()
 
 
 def make_dir(path):
     """
-        Make a directory\n
+    Make a directory
     :param path: Path to directory
     :return: Boolean if successful
     """
@@ -232,6 +391,7 @@ def setup_database():
     """
     Try to get the db.User if not we nuke everything
     """
+
     # This checks for a user table
     try:
         admins = models.User.query.all()
@@ -241,28 +401,29 @@ def setup_database():
     except Exception:
         app.logger.debug("Couldn't find a user table")
     else:
-        app.logger.debug("Found User table but didnt find any admins... triggering db wipe")
-    #  Wipe everything
-    try:
-        db.drop_all()
-    except Exception:
-        app.logger.debug("Couldn't drop all")
+        app.logger.debug("Found User table but didnt find any admins...")
+
     try:
         #  Recreate everything
         db.metadata.create_all(db.engine)
         db.create_all()
         db.session.commit()
-        #  push the database version arm is looking for
-        version = models.AlembicVersion('f1054468c1c7')
-        ui_config = models.UISettings(1, 1, "spacelab", "en", 2000, 200)
+        # UI Config
+        # UI config is already set within the alembic migration file - 9cae4aa05dd7_create_settingsui_table.py
         # Create default user to save problems with ui and ripper having diff setups
         hashed = bcrypt.gensalt(12)
         default_user = models.User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
                                    hashed=hashed)
-        db.session.add(ui_config)
-        db.session.add(version)
+        app.logger.debug("DB Init - Admin user loaded")
         db.session.add(default_user)
+        # Server config
+        server = models.SystemInfo()
+        db.session.add(server)
+        app.logger.debug("DB Init - Server info loaded")
         db.session.commit()
+        # Scan and load drives to database
+        drives_update()
+        app.logger.debug("DB Init - Drive info loaded")
         return True
     except Exception:
         app.logger.debug("Couldn't create all")
@@ -485,7 +646,7 @@ def build_arm_cfg(form_data, comments):
         if key == "csrf_token":
             continue
         # Add any grouping comments
-        arm_cfg += arm_yaml_check_groups(comments, key)
+        arm_cfg += config_utils.arm_yaml_check_groups(comments, key)
         # Check for comments for this key in comments.json, add them if they exist
         try:
             arm_cfg += "\n" + comments[str(key)] + "\n" if comments[str(key)] != "" else ""
@@ -497,54 +658,8 @@ def build_arm_cfg(form_data, comments):
             arm_cfg += f"{key}: {post_value}\n"
         except ValueError:
             # Test if value is Boolean
-            arm_cfg += arm_yaml_test_bool(key, value)
+            arm_cfg += config_utils.arm_yaml_test_bool(key, value)
     app.logger.debug("save_settings: FINISH")
-    return arm_cfg
-
-
-def arm_yaml_test_bool(key, value):
-    """
-    we need to test if the key is a bool, as we need to lower() it for yaml\n\n
-    or check if key is the webserver ip. \nIf not we need to wrap the value with quotes\n
-    :param key: the current key
-    :param value: the current value
-    :return: the new updated arm.yaml config with new key: values
-    """
-    if value.lower() == 'false' or value.lower() == "true":
-        arm_cfg = f"{key}: {value.lower()}\n"
-    else:
-        # If we got here, the only key that doesn't need quotes is the webserver key
-        # everything else needs "" around the value
-        if key == "WEBSERVER_IP":
-            arm_cfg = f"{key}: {value.lower()}\n"
-        else:
-            # This isn't intended to be safe, it's to stop breakages - replace all non escaped quotes with escaped
-            escaped = re.sub(r"(?<!\\)[\"\'`]", r'\"', value)
-            arm_cfg = f"{key}: \"{escaped}\"\n"
-    return arm_cfg
-
-
-def arm_yaml_check_groups(comments, key):
-    """
-    Check the current key to be added to arm.yaml and insert the group
-    separator comment, if the key matches\n
-    :param comments: comments dict, containing all comments from the arm.yaml
-    :param key: the current post key from form.args
-    :return: arm.yaml config with any new comments added
-    """
-    comment_groups = {'COMPLETED_PATH': "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP'],
-                      'WEBSERVER_IP': "\n" + comments['ARM_CFG_GROUPS']['WEB_SERVER'],
-                      'SET_MEDIA_PERMISSIONS': "\n" + comments['ARM_CFG_GROUPS']['FILE_PERMS'],
-                      'RIPMETHOD': "\n" + comments['ARM_CFG_GROUPS']['MAKE_MKV'],
-                      'HB_PRESET_DVD': "\n" + comments['ARM_CFG_GROUPS']['HANDBRAKE'],
-                      'EMBY_REFRESH': "\n" + comments['ARM_CFG_GROUPS']['EMBY']
-                                      + "\n" + comments['ARM_CFG_GROUPS']['EMBY_ADDITIONAL'],
-                      'NOTIFY_RIP': "\n" + comments['ARM_CFG_GROUPS']['NOTIFY_PERMS'],
-                      'APPRISE': "\n" + comments['ARM_CFG_GROUPS']['APPRISE']}
-    if key in comment_groups:
-        arm_cfg = comment_groups[key]
-    else:
-        arm_cfg = ""
     return arm_cfg
 
 
@@ -720,3 +835,113 @@ def git_get_updates() -> dict:
     git_log = subprocess.run(['git', 'pull'], cwd=cfg.arm_config['INSTALLPATH'], check=False)
     return {'stdout': git_log.stdout, 'stderr': git_log.stderr,
             'return_code': git_log.returncode, 'form': 'ARM Update', "success": (git_log.returncode == 0)}
+
+
+def drives_search():
+    """
+    Search the system for any drives
+    """
+    udev_drives = []
+
+    context = pyudev.Context()
+
+    for device in context.list_devices(subsystem='block'):
+        regexoutput = re.search(r'(/dev/sr\d)', device.device_node)
+        if regexoutput:
+            app.logger.debug(f"regex output: {regexoutput.group()}")
+            udev_drives.append(regexoutput.group())
+
+    if len(udev_drives) > 0:
+        app.logger.info(f"System disk scan, found {len(udev_drives)} drives for ARM")
+        for disk in udev_drives:
+            app.logger.debug(f"disk: {disk}")
+    else:
+        app.logger.info("System disk scan, no drives attached to ARM server")
+
+    return udev_drives
+
+
+def drives_update():
+    """
+    scan the system for new cd/dvd/blueray drives
+    """
+    udev_drives = drives_search()
+    i = 1
+    new_count = 0
+    for drive_mount in udev_drives:
+        # Check drive doesnt already exist
+        if not models.SystemDrives.query.filter_by(mount=drive_mount).first():
+            # Check if the Job database is empty
+            jobs = models.Job.query.all()
+            app.logger.debug(jobs)
+            if len(jobs) != 0:
+                # Find the last job the drive ran, return the id
+                last_job_id = models.Job.query.order_by(db.desc(models.Job.job_id)). \
+                                        filter_by(devpath=drive_mount).first()
+                last_job = last_job_id.job_id
+            else:
+                last_job = None
+            # Create new disk (name, type, mount, open, job id, previos job id, description )
+            db_drive = models.SystemDrives(f"Drive {i}", drive_mount, None, last_job, "Classic burner")
+            app.logger.debug("****** Drive Information ******")
+            app.logger.debug(f"Name: {db_drive.name}")
+            app.logger.debug(f"Type: {db_drive.type}")
+            app.logger.debug(f"Mount: {db_drive.mount}")
+            app.logger.debug("****** End Drive Information ******")
+            db.session.add(db_drive)
+            db.session.commit()
+            db_drive = None
+            i += 1
+            new_count += 1
+        else:
+            i += 1
+
+    if new_count > 0:
+        app.logger.info(f"Added {new_count} drives for ARM.")
+    else:
+        app.logger.info("No new drives found on the system.")
+
+    return new_count
+
+
+def drives_check_status():
+    """
+    Check the drive job status
+    """
+    drives = models.SystemDrives.query.all()
+    for drive in drives:
+        # Check if the current job is active, if not remove current job_current id
+        if drive.job_id_current is not None and drive.job_id_current > 0:
+            if drive.job_current.status == "success" or drive.job_current.status == "fail":
+                drive.job_finished()
+                db.session.commit()
+        # Print the drive debug status
+        drive_status_debug(drive)
+
+    # Requery data to ensure current if the drive status changed
+    drives = models.SystemDrives.query.all()
+    return drives
+
+
+def drive_status_debug(drive):
+    """
+    Report the current drive status (debug)
+    """
+    app.logger.debug("*********")
+    app.logger.debug(f"Name: {drive.name}")
+    app.logger.debug(f"Type: {drive.type}")
+    app.logger.debug(f"Mount: {drive.mount}")
+    app.logger.debug(f"Open: {drive.open}")
+    app.logger.debug(f"Job Current: {drive.job_id_current}")
+    if drive.job_id_current:
+        app.logger.debug(f"Job - Status: {drive.job_current.status}")
+        app.logger.debug(f"Job - Type: {drive.job_current.video_type}")
+        app.logger.debug(f"Job - Title: {drive.job_current.title}")
+        app.logger.debug(f"Job - Year: {drive.job_current.year}")
+    app.logger.debug(f"Job Previous: {drive.job_id_previous}")
+    if drive.job_id_previous:
+        app.logger.debug(f"Job - Status: {drive.job_previous.status}")
+        app.logger.debug(f"Job - Type: {drive.job_previous.video_type}")
+        app.logger.debug(f"Job - Title: {drive.job_previous.title}")
+        app.logger.debug(f"Job - Year: {drive.job_previous.year}")
+    app.logger.debug("*********")

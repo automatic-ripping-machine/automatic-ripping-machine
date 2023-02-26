@@ -69,13 +69,13 @@ function pull_image() {
 function setup_mountpoints() {
     echo -e "${RED}Creating mount points${NC}"
     for dev in /dev/sr?; do
-        sudo mkdir -p "/mnt$dev"
+        mkdir -p "/mnt$dev"
     done
-    sudo chown arm:arm /mnt/dev/sr*
+    chown arm:arm /mnt/dev/sr*
 }
 
 function save_start_command() {
-    url="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/v2_devel/scripts/docker/start_arm_container.sh"
+    url="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/docker/start_arm_container.sh"
     cd ~arm
     sudo -u arm curl -fsSL "$url" -o start_arm_container.sh
     chmod +x start_arm_container.sh

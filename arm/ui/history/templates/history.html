@@ -36,6 +36,10 @@
             content: "Logfile:\A";
         }
     }
+
+    .hidden {
+        display: none;
+    }
 </style>
 <div class="container content">
     <div class="row">
@@ -49,7 +53,7 @@
                         </div>
                     </div>
                     <br>
-                    {% with pages=pages, page_name="history" %}
+                    {% with pages=pages, page_name="route_history.history" %}
                         {% include "pagination.html" %}
                     {% endwith %}
                     <!-- Main Body -->
@@ -72,6 +76,7 @@
                                     job.title|truncate(50, True) if job.title is not none else 'Title unknown' }}</a>
                                 </th>
                                 <td>{{ job.start_time.strftime(date_format) if job.start_time is not none }}</td>
+                                <td class="hidden">{{ job.start_time if job.start_time is not none }}</td>
                                 <td>{{ job.job_length }}</td>
                                 <td class="{{ job.status }}"><img src="static/img/{{ job.status }}.png" height="30px"
                                                                   width="30px" alt="{{ job.status }}"
@@ -83,7 +88,7 @@
                             </tbody>
                         </table>
                     </div>
-                    {% with pages=pages, page_name="history" %}
+                    {% with pages=pages, page_name="route_history.history" %}
                         {% include "pagination.html" %}
                     {% endwith %}
                 </div>
@@ -99,6 +104,7 @@
     <script type="application/javascript">
         $(document).ready(function () {
             $("table").tablesorter({});
+
         });
         activeTab("history");
     </script>

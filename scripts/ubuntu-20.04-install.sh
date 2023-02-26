@@ -8,17 +8,13 @@ PORT=8080
 
 function usage() {
     echo -e "\nUsage: ubuntu-20.04-install.sh [OPTIONS]"
-    echo -e " -d \tInstall the ARM Development Environment"
     echo -e " -p <port>\tSpecify the port arm will serve on. \n\t\tDefault is \"$PORT\""
 }
 
-dev_env_flag=
 port_flag=
-while getopts 'dp:' OPTION
+while getopts 'p:' OPTION
 do
     case $OPTION in
-    d)    dev_env_flag=1
-          ;;
     p)    port_flag=1
           PORT=$OPTARG
           # test if port is valid (DOES NOT WORK WITH `set -u` DECLARED)
@@ -40,7 +36,7 @@ function install_os_tools() {
     sudo apt install lsscsi net-tools -y
     sudo apt install avahi-daemon -y && sudo systemctl restart avahi-daemon
     sudo apt install ubuntu-drivers-common -y && sudo ubuntu-drivers install
-    sudo apt install git curl -y
+    sudo apt install git curl shellcheck -y
 }
 
 function add_arm_user() {
@@ -98,6 +94,9 @@ function install_arm_requirements() {
         libdvd-pkg lsdvd
 
     sudo dpkg-reconfigure libdvd-pkg
+    
+    # create folders required to run the ARM service
+    sudo -u arm mkdir -p /home/arm/logs
 }
 
 function remove_existing_arm() {
@@ -118,13 +117,7 @@ function clone_arm() {
         sudo rm -rf arm
     fi
 
-    if [ "$dev_env_flag" ]; then
-        git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "v2_devel" arm
-    else
-        ARM_LATEST=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' | grep 'automatic-ripping-machine/tree/*' | head -n 1 | sed -e 's/[^0-9\.]*//g')
-        echo -e "Arm latest stable version is v$ARM_LATEST. Pulling v$ARM_LATEST"
-        git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "v$ARM_LATEST" arm
-    fi
+    git clone --recurse-submodules https://github.com/automatic-ripping-machine/automatic-ripping-machine --branch "main" arm
 
     cd arm
     git submodule update --init --recursive
@@ -151,18 +144,10 @@ function install_arm_dev_env() {
     fi
 
     # install pycharm community, if professional not installed already
-    if [[ -z $(snap find pycharm-professional) ]]; then
+    # shellcheck disable=SC2230
+    if [[ -z $(which pycharm-professional) ]]; then
         sudo snap install pycharm-community --classic
     fi
-}
-
-function install_arm_live_env() {
-    ##### Install ARM live environment
-    echo -e "${RED}Installing Automatic Ripping Machine${NC}"
-    clone_arm
-
-    sudo cp /opt/arm/setup/51-automedia.rules /etc/udev/rules.d/
-    sudo udevadm control --reload
 }
 
 function setup_config_files() {
@@ -182,6 +167,8 @@ function setup_config_files() {
     # abcde.conf is expected in /etc by the abcde installation
     cp --no-clobber "/opt/arm/setup/.abcde.conf" "/etc/.abcde.conf"
     chown arm:arm "/etc/.abcde.conf"
+    # link to the new install location so runui.py doesn't break
+    sudo -u arm ln -sf /etc/.abcde.conf /etc/arm/config/abcde.conf 
 
     if [[ $port_flag ]]; then
         echo -e "${RED}Non-default port specified, updating arm config...${NC}"
@@ -192,15 +179,6 @@ function setup_config_files() {
         # overwritten which each run of this installer
         sed -E s"/(^WEBSERVER_PORT:) [0-9]+/\1 8080/" -i /etc/arm/config/arm.yaml
     fi
-}
-
-function install_python_requirements {
-    ##### Install the python tools and requirements
-    echo -e "${RED}Installing up python requirements${NC}"
-    cd /opt/arm
-    # running pip with sudo can result in permissions errors, run as arm
-    sudo -u arm pip3 install --upgrade pip wheel setuptools psutil pyudev
-    sudo -u arm pip3 install --ignore-installed --prefer-binary -r requirements.txt
 }
 
 function setup_autoplay() {
@@ -243,7 +221,9 @@ function install_armui_service() {
 
 function launch_setup() {
     echo -e "${RED}Launching ArmUI first-time setup${NC}"
-    site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:${PORT}")
+    echo "Giving ArmUI a moment to start, standby..."
+    sleep 30
+    site_addr=$(sudo netstat -tlpn | awk '{ print $4 }' | grep ".*:${PORT}") || true
     if [[ -z "$site_addr" ]]; then
         echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}"
     else
@@ -252,23 +232,31 @@ function launch_setup() {
     fi
 }
 
+function create_folders() {
+    echo -e "${RED}Creating ARM folders${NC}"
+    arm_mkdir "/home/arm/media/transcode"
+    arm_mkdir "/home/arm/media/completed"
+    arm_mkdir "/home/arm/media/raw"
+}
+
+function arm_mkdir() {
+    echo -e "Creating $1"
+    su - arm -c "mkdir -p -v $1"
+}
+
 # start here
 install_os_tools
 add_arm_user
 install_arm_requirements
 remove_existing_arm
 
-if [ "$dev_env_flag" ]; then
-    install_arm_dev_env
-else
-    install_arm_live_env
-fi
+install_arm_dev_env
 
 setup_config_files
-install_python_requirements
 setup_autoplay
 setup_syslog_rule
 install_armui_service
+create_folders
 launch_setup
 
 #advise to reboot
