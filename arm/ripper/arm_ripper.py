@@ -110,7 +110,7 @@ def start_transcode(job, logfile, hb_in_path, hb_out_path, protection):
     # Update db with transcoding status
     utils.database_updater({'status': "transcoding"}, job)
     logging.info("************* Starting Transcode With HandBrake *************")
-    if rip_with_mkv(job, protection):
+    if rip_with_mkv(job, protection) and job.config.RIPMETHOD == "mkv":
         # skip if transcode is disable
         if job.config.SKIP_TRANSCODE:
             logging.info("Transcoding is disabled, skipping transcode")
@@ -192,7 +192,7 @@ def rip_with_mkv(current_job, protection=0):
     if current_job.disctype == "dvd" and current_job.config.SKIP_TRANSCODE:
         mkv_ripped = True
     # If dvd has 99 protection force MakeMKV to be used
-    if protection:
+    if protection and current_job.disctype == "dvd":
         mkv_ripped = True
     # if backup_dvd, always use mkv
     if current_job.config.RIPMETHOD == "backup_dvd":
