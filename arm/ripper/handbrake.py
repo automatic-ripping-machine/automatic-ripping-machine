@@ -194,6 +194,15 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
     for files in os.listdir(srcpath):
         srcpathname = os.path.join(srcpath, files)
         destfile = os.path.splitext(files)[0]
+        # MakeMKV always saves in mkv we need to update the db with the new filename
+        logging.debug(destfile + ".mkv")
+        job_current_track = job.tracks.filter_by(filename=destfile + ".mkv")
+        for track in job_current_track:
+            logging.debug("filename: " + track.filename)
+            track.orig_filename = track.filename
+            track.filename = destfile + "." + cfg.arm_config["DEST_EXT"]
+            logging.debug("UPDATED filename: " + track.filename)
+            db.session.commit()
         filename = os.path.join(basepath, destfile + "." + cfg.arm_config["DEST_EXT"])
         filepathname = os.path.join(basepath, filename)
 
