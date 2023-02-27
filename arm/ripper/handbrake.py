@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Handbrake processing of dvd/blu-ray"""
 
-import sys
 import os
 import logging
 import subprocess
@@ -70,7 +69,7 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
         track.error = job.errors = err
         job.status = "fail"
         db.session.commit()
-        sys.exit(err)
+        raise subprocess.CalledProcessError(hb_error)
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
@@ -148,6 +147,8 @@ def handbrake_all(srcpath, basepath, logfile, job):
                 logging.error(err)
                 track.status = "fail"
                 track.error = err
+                db.session.commit()
+                raise subprocess.CalledProcessError(hb_error)
 
             track.ripped = True
             db.session.commit()
@@ -194,6 +195,15 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
     for files in os.listdir(srcpath):
         srcpathname = os.path.join(srcpath, files)
         destfile = os.path.splitext(files)[0]
+        # MakeMKV always saves in mkv we need to update the db with the new filename
+        logging.debug(destfile + ".mkv")
+        job_current_track = job.tracks.filter_by(filename=destfile + ".mkv")
+        for track in job_current_track:
+            logging.debug("filename: " + track.filename)
+            track.orig_filename = track.filename
+            track.filename = destfile + "." + cfg.arm_config["DEST_EXT"]
+            logging.debug("UPDATED filename: " + track.filename)
+            db.session.commit()
         filename = os.path.join(basepath, destfile + "." + cfg.arm_config["DEST_EXT"])
         filepathname = os.path.join(basepath, filename)
 
@@ -216,6 +226,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
             err = f"Handbrake encoding of file {shlex.quote(files)} failed with code: {hb_error.returncode}" \
                   f"({hb_error.output})"
             logging.error(err)
+            raise subprocess.CalledProcessError(hb_error)
             # job.errors.append(f)
 
     logging.info(PROCESS_COMPLETE)
