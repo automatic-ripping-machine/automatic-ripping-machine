@@ -33,6 +33,7 @@ def flake8(arm_path):
         log.error(f" - {error}")
         log.info("ARM UI currently stopped, fix error then restart ARM UI")
 
+
 def pr_update():
     """
     Run any commands required prior to raising a PR
