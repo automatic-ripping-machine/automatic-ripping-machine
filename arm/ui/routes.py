@@ -53,7 +53,7 @@ def home():
     # System details in class server
     server = models.SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
-    serverutil.get_update()
+
     # System details in class server
     arm_path = cfg.arm_config['TRANSCODE_PATH']
     media_path = cfg.arm_config['COMPLETED_PATH']
