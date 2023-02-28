@@ -183,7 +183,7 @@ def get_track_info(mdisc, job):
 
     logging.info("Using MakeMKV to get information on all the tracks on the disc. This will take a few minutes...")
 
-    cmd = f'makemkvcon -r --progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log' \
+    cmd = f'makemkvcon -r --progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log ' \
           f'--messages=-stdout --minlength={job.config.MINLENGTH} ' \
           f'--cache=1 info disc:{mdisc}'
     logging.debug(f"Sending command: {cmd}")
