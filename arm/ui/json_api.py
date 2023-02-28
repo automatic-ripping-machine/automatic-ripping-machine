@@ -16,6 +16,7 @@ from arm.ui import app, db
 from arm.models.models import Job, Config, Track, Notifications
 from arm.ui.forms import ChangeParamsForm
 from arm.ui.utils import job_id_validator, database_updater
+from arm.ui.settings import DriveUtils as drive_utils # noqa E402
 
 
 def get_notifications():
@@ -297,6 +298,7 @@ def delete_job(job_id, mode):
                     return {'success': False, 'job': 'invalid', 'mode': mode, 'error': 'Not a valid job'}
                 else:
                     app.logger.debug("No errors: job_id=" + str(post_value))
+                    drive_utils.job_cleanup(job_id)
                     Track.query.filter_by(job_id=job_id).delete()
                     Job.query.filter_by(job_id=job_id).delete()
                     Config.query.filter_by(job_id=job_id).delete()
