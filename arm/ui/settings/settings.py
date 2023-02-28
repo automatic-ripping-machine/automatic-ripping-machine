@@ -24,6 +24,7 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db
 from arm.models import models as models
 import arm.config.config as cfg
+from arm.ui.settings import DriveUtils as drive_utils
 from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
 from arm.ui.settings.ServerUtil import ServerUtil
 
@@ -72,14 +73,14 @@ def settings():
     # System details in class server
     server = models.SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
-    serverutil.get_update()
+
     # System details in class server
     arm_path = cfg.arm_config['TRANSCODE_PATH']
     media_path = cfg.arm_config['COMPLETED_PATH']
 
     # form_drive = SystemInfoDrives(request.form)
     # System Drives (CD/DVD/Blueray drives)
-    drives = ui_utils.drives_check_status()
+    drives = drive_utils.drives_check_status()
 
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
@@ -232,7 +233,7 @@ def system_drive_scan():
     """
     global redirect_settings
     # Update to scan for changes from system
-    new_count = ui_utils.drives_update()
+    new_count = drive_utils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
     return redirect(redirect_settings)
 

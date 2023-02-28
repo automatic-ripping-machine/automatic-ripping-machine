@@ -25,6 +25,7 @@ from arm.ripper import logger, utils, identify, arm_ripper  # noqa: E402
 import arm.config.config as cfg  # noqa E402
 from arm.models.models import Job, Config  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
+from arm.ui.settings import DriveUtils as drive_utils # noqa E402
 
 
 def entry():
@@ -166,7 +167,7 @@ if __name__ == "__main__":
     # Sleep to lower chances of db locked - unlikely to be needed
     time.sleep(1)
     # Associate the job with the drive in the database
-    utils.update_drive_job(job)
+    drive_utils.update_drive_job(job)
     # Add the job.config to db
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
     utils.database_adder(config)
