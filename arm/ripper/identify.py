@@ -3,7 +3,6 @@
 
 import os
 import logging
-import subprocess
 import urllib
 import re
 import datetime
@@ -11,7 +10,6 @@ import unicodedata
 import json
 import pydvdid
 import xmltodict
-
 import arm.config.config as cfg
 
 from arm.ripper import utils
@@ -43,10 +41,6 @@ def identify(job):
         os.makedirs(str(job.mountpoint))
     # Check and mount drive - log error if failed
     mounted = check_if_mounted(os.system("mount " + job.devpath))
-
-    drive_id = re.sub(r'\D', '', job.devpath)
-    output = subprocess.check_output(f"makemkvcon -r --cache=1 info disc:9999 | grep DRV:{drive_id}", shell=True)
-    logging.debug("program output: " + output.decode("utf-8"))
     # get_disc_type() checks local files, no need to run unless we can mount
     if mounted:
         # Check with the job class to get the correct disc type
