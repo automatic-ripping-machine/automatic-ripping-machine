@@ -92,13 +92,13 @@ def drives_check_status():
     drives = models.SystemDrives.query.all()
     for drive in drives:
         # Check if the current job is active, if not remove current job_current id
-        if drive.job_id_current is not None and drive.job_id_current > 0 and drive.job_current:
+        if drive.job_id_current is not None and drive.job_id_current > 0 and drive.job_current is not None:
             if drive.job_current.status == "success" or drive.job_current.status == "fail":
                 drive.job_finished()
                 db.session.commit()
 
         # Catch if a user has removed database entries and the previous job doesnt exist
-        if drive.job_previous.status is None:
+        if drive.job_previous is not None and drive.job_previous.status is None:
             drive.job_id_previous = None
             db.session.commit()
 
@@ -121,13 +121,13 @@ def drive_status_debug(drive):
     app.logger.debug(f"Mount: {drive.mount}")
     app.logger.debug(f"Open: {drive.open}")
     app.logger.debug(f"Job Current: {drive.job_id_current}")
-    if drive.job_id_current:
+    if drive.job_id_current and drive.job_current is not None:
         app.logger.debug(f"Job - Status: {drive.job_current.status}")
         app.logger.debug(f"Job - Type: {drive.job_current.video_type}")
         app.logger.debug(f"Job - Title: {drive.job_current.title}")
         app.logger.debug(f"Job - Year: {drive.job_current.year}")
     app.logger.debug(f"Job Previous: {drive.job_id_previous}")
-    if drive.job_id_previous:
+    if drive.job_id_previous and drive.job_previous is not None:
         app.logger.debug(f"Job - Status: {drive.job_previous.status}")
         app.logger.debug(f"Job - Type: {drive.job_previous.video_type}")
         app.logger.debug(f"Job - Title: {drive.job_previous.title}")

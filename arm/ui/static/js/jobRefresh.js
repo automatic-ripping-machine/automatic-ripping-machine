@@ -285,7 +285,9 @@ function refreshJobs() {
             },
             complete: function (data) {
                 refreshJobsComplete();
-                checkNotifications(data.responseJSON);
+                if(typeof data !== 'undefined' && data.responseJSON) {
+                    checkNotifications(data.responseJSON);
+                }
             }
         });
     });
