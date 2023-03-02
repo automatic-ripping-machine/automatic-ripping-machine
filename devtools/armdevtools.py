@@ -56,16 +56,13 @@ def arm_clear_data():
 # Commence reading from the input options
 desc = "Automatic Ripping Machine Development Tool Scripts"
 parser = argparse.ArgumentParser(description=desc)
-parser.add_argument("-b", help="Name of the branch to move to, example -b v2_devel")
+parser.add_argument("-b",
+                    help="Name of the branch to move to, example -b v2_devel")
 parser.add_argument("-d",
                     help="Clear the arm home folder, remove all directories and files",
                     action='store_true')
 parser.add_argument("-db_rem",
                     help="Database tool - remove current arm.db file",
-                    action='store_true')
-parser.add_argument("-db_roll",
-                    help="Database tool - roll the current database back a version," +
-                    "input number of versions to roll back.",
                     action='store_true')
 parser.add_argument("-db_data",
                     help="Database tool - populate the database with Lorem Ipsum data. " +
@@ -74,6 +71,9 @@ parser.add_argument("-db_data",
 parser.add_argument("-qa",
                     help="QA Checks - run Flake8 against ARM",
                     action='store_true')
+parser.add_argument("-pr",
+                    help="Actions to run prior to commiting a PR against ARM on github",
+                    action="store_true")
 parser.add_argument("-v", help="ARM Dev Tools Version",
                     action='version',
                     version='%(prog)s {version}'.format(version=__version__))
@@ -91,10 +91,6 @@ if args.d:
 if args.db_rem:
     database.remove()
 
-# -db_roll Database rollback
-if args.db_roll:
-    database.roll(args.db_roll)
-
 # -db_data Database data insert
 if args.db_data:
     database.data()
@@ -102,3 +98,6 @@ if args.db_data:
 # -qa Quality Checks against ARM
 if args.qa:
     qacheck.flake8(arm_install)
+
+if args.pr:
+    qacheck.pr_update()
