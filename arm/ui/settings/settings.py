@@ -56,6 +56,7 @@ def settings():
     movies = models.Job.query.filter_by(video_type="movie").count()
     series = models.Job.query.filter_by(video_type="series").count()
     cds = models.Job.query.filter_by(disctype="music").count()
+
     stats = {'python_version': platform.python_version(),
              'arm_version': version,
              'git_commit': ui_utils.get_git_revision_hash(),
