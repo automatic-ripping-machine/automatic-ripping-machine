@@ -1,1 +1,14 @@
 * text=auto
+
+*.txt         text eol=lf
+*.xml         text eol=lf
+*.json        text eol=lf
+*.properties  text eol=lf
+*.conf        text eol=lf
+
+*.awk  text eol=lf
+*.sed  text eol=lf
+*.sh   text eol=lf
+
+*.png  binary
+*.jpg  binary
