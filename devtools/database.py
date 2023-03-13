@@ -34,6 +34,7 @@ def remove():
     # Restart the UI once git has worked
     armui.start()
 
+
 def database_backup():
     try:
         # backup the current ARM DB

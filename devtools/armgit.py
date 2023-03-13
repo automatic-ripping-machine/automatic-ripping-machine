@@ -28,6 +28,7 @@ def flake8(arm_path):
     # Restart the UI once git has worked
     armui.start()
 
+
 def pr_update():
     """
     Run any commands required prior to raising a PR
@@ -44,6 +45,7 @@ def pr_update():
 
     # Restart the UI once git has worked
     armui.start()
+
 
 def git_branch_change(git_branch, arm_install):
     """Change the git repository branch to another

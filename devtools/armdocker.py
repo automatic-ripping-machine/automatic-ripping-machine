@@ -21,7 +21,7 @@ def docker_rebuild(docker_run_path, arm_install):
     # Stop the UI to avoid issues
     armui.stop()
 
-    log.info(f"Rebuilding docker image post ARM update")
+    log.info("Rebuilding docker image post ARM update")
 
     # Stop ARM container
     armui.run_command("docker stop automatic-ripping-machine", "ARM container stopped")
