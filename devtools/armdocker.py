@@ -6,7 +6,6 @@ Automatic-Ripping-Machine Development Tools
     Docker update and rebuild
 """
 
-import os
 import armui
 import log
 
