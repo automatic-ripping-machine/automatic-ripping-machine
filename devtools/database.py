@@ -23,20 +23,16 @@ def remove():
         INPUT: none
         OUTPUT: none
     """
-    log.info("Removing the ARM DB file")
     # Stop the UI to avoid issues
     armui.stop()
-    try:
-        os.system(f"rm {path_db}{file_db}")
-        log.success(f"ARM DB {path_db}{file_db} removed")
 
-        # Restart the UI
-        armui.start()
-    except Exception as error:
-        log.error(f"Something has gone wrong, unable to remove {path_db}{file_db}")
-        log.error(f" - {error}")
-        log.info("ARM UI currently stopped, fix error then restart ARM UI")
+    log.info("Removing the ARM DB file")
 
+    # Remove ARM DB file
+    armui.run_command(f"rm {path_db}{file_db}", f"ARM DB {path_db}{file_db} removed")
+
+    # Restart the UI once git has worked
+    armui.start()
 
 def database_backup():
     try:
