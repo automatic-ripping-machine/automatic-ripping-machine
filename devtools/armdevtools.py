@@ -21,17 +21,17 @@ parser = argparse.ArgumentParser(description=desc)
 parser.add_argument("-b",
                     help="Name of the branch to move to, example -b v2_devel")
 # parser.add_argument("-d",
-                    # help="Clear the arm home folder, remove all directories and files",
-                    # action='store_true')
+# help="Clear the arm home folder, remove all directories and files",
+# action='store_true')
 parser.add_argument("-dr",
                     help="Docker rebuild post ARM code update. Requires docker run script path to run.")
 parser.add_argument("-db_rem",
                     help="Database tool - remove current arm.db file",
                     action='store_true')
 # parser.add_argument("-db_data",
-                    # help="Database tool - populate the database with Lorem Ipsum data. " +
-                    # "Requires the active database to be the most current",
-                    # action='store_true')
+# help="Database tool - populate the database with Lorem Ipsum data. " +
+# "Requires the active database to be the most current",
+# action='store_true')
 parser.add_argument("-qa",
                     help="QA Checks - run Flake8 against ARM",
                     action='store_true')
@@ -47,9 +47,9 @@ args = parser.parse_args()
 if args.b:
     armgit.git_branch_change(args.b, arm_install)
 
-# -d Delete/Clear arm home drive data
+# -d Delete/Clear arm home drive data [currently unsupported]
 # if args.d:
-    # armgit.arm_clear_data()
+# armgit.arm_clear_data()
 
 # -dr Docker ARM update and rebuild
 if args.dr:
@@ -59,9 +59,9 @@ if args.dr:
 if args.db_rem:
     database.remove()
 
-# -db_data Database data insert
+# -db_data Database data insert [currently unsupported]
 # if args.db_data:
-    # database.data()
+# database.data()
 
 # -qa Quality Checks against ARM
 if args.qa:
