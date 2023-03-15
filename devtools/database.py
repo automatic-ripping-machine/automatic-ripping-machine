@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Automatic-Ripping-Machine Development Tools
+"""
+Automatic-Ripping-Machine Development Tools
     ARM UI management tools
 """
 
@@ -36,6 +37,11 @@ def remove():
 
 
 def database_backup():
+    """
+    Backup the arm database file, prior to removing
+        INPUT: none
+        OUTPUT: none
+    """
     try:
         # backup the current ARM DB
         log.info("Backing up the current ARM DB")

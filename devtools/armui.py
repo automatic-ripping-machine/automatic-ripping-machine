@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Automatic-Ripping-Machine Development Tools
+"""
+Automatic-Ripping-Machine Development Tools
     ARM UI management tools
 """
 
@@ -23,9 +24,6 @@ def stop():
         log.error(f"ARM UI unable to stop - {error}")
 
 
-# Start the ARM UI
-#  INPUT: none
-#  OUTPUT: none
 def start():
     """
     Stop the ARM UI
