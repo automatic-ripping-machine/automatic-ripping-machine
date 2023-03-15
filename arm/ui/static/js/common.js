@@ -190,7 +190,7 @@ function pingReadNotify(toastId) {
 }
 
 function addToast(title, body, toastId) {
-    const toast = `<div id="toast${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-autohide="false" style="z-index:1000">
+    const toast = `<div id="toast${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-autohide="true" data-animation="true" data-delay="6500" style="z-index:1000">
         <div class="toast-header">
             <img src="static/img/success.png" class="rounded mr-2" alt="arm message" height="20px" width="20px">
                 <strong class="mr-auto">${title}</strong>
