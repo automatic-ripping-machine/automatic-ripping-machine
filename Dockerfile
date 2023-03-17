@@ -1,6 +1,6 @@
 ###########################################################
 # setup default directories and configs
-FROM automaticrippingmachine/arm-dependencies:1.1.1 AS base
+FROM automaticrippingmachine/arm-dependencies:1.1.2 AS base
 
 LABEL org.opencontainers.image.source=https://github.com/automatic-ripping-machine/automatic-ripping-machine
 LABEL org.opencontainers.image.license=MIT
