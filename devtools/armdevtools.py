@@ -1,56 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""Automatic-Ripping-Machine Development Tools"""
+"""
+Automatic-Ripping-Machine Development Tools
+    To support development of ARM, some of the more tedious and repetitious development tasks
+    have been wrapped up into the ARM Development Tools. The developer tools (devtools)
+    are designed to help out anyone contributing to ARM and save time when testing
+    out any changes being made.
+    More details are captured in the wiki
+    https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/ARM-Development-Tools
+"""
 
-import os
 import argparse
-import armui
-import log
+
+import armgit
 import database
-import qacheck
+import armdocker
 
 
-__version__ = '0.1'
+__version__ = '0.2'
 arm_home = "/home/arm"
 arm_install = "/opt/arm"
-
-
-def git_branch_change(git_branch):
-    """Change the git repository branch to another
-        INPUT: git_branch
-        OUTPUT: none
-    """
-    if git_branch:
-        log.info(f"Change the current git branch to - {git_branch}")
-        # Stop the UI to avoid issues
-        armui.stop()
-
-        os.system(f"cd {arm_install}")
-        try:
-            os.system(f"git checkout {git_branch}")
-            log.info(f"ARM branch: {git_branch} checked out")
-
-            # Restart the UI once git has worked
-            armui.start()
-        except Exception as error:
-            log.error(f"Something has gone wrong, unable to check out {git_branch}")
-            log.error(f" - {error}")
-            log.info("ARM UI currently stopped, fix git error then restart ARM UI")
-
-    else:
-        log.error("No branch has been provided")
-
-
-def arm_clear_data():
-    """
-    Clear data from the ARM home directory
-        INPUT: git_branch
-        OUTPUT: none
-    """
-    # todo, read the location from the arm config file
-    # log.console(f"remove data from the home folder: {arm_home}")
-    log.info("not currently supported")
 
 
 # Commence reading from the input options
@@ -58,21 +28,16 @@ desc = "Automatic Ripping Machine Development Tool Scripts"
 parser = argparse.ArgumentParser(description=desc)
 parser.add_argument("-b",
                     help="Name of the branch to move to, example -b v2_devel")
-parser.add_argument("-d",
-                    help="Clear the arm home folder, remove all directories and files",
-                    action='store_true')
+parser.add_argument("-dr",
+                    help="Docker rebuild post ARM code update. Requires docker run script path to run.")
 parser.add_argument("-db_rem",
                     help="Database tool - remove current arm.db file",
-                    action='store_true')
-parser.add_argument("-db_data",
-                    help="Database tool - populate the database with Lorem Ipsum data. " +
-                    "Requires the active database to be the most current",
                     action='store_true')
 parser.add_argument("-qa",
                     help="QA Checks - run Flake8 against ARM",
                     action='store_true')
 parser.add_argument("-pr",
-                    help="Actions to run prior to commiting a PR against ARM on github",
+                    help="Actions to run prior to committing a PR against ARM on github",
                     action="store_true")
 parser.add_argument("-v", help="ARM Dev Tools Version",
                     action='version',
@@ -81,23 +46,19 @@ parser.add_argument("-v", help="ARM Dev Tools Version",
 args = parser.parse_args()
 # -b move to branch
 if args.b:
-    git_branch_change(args.b)
+    armgit.git_branch_change(args.b, arm_install)
 
-# -d Delete/Clear arm home drive data
-if args.d:
-    arm_clear_data()
+# -dr Docker ARM update and rebuild
+if args.dr:
+    armdocker.docker_rebuild(args.dr, arm_install)
 
 # -db_rem Database remove
 if args.db_rem:
     database.remove()
 
-# -db_data Database data insert
-if args.db_data:
-    database.data()
-
 # -qa Quality Checks against ARM
 if args.qa:
-    qacheck.flake8(arm_install)
+    armgit.flake8(arm_install)
 
 if args.pr:
-    qacheck.pr_update()
+    armgit.pr_update()
