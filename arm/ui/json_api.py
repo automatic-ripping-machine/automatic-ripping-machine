@@ -93,12 +93,11 @@ def percentage(part, whole):
 
 def process_makemkv_logfile(job, job_results):
     """
-    Process the logfile and find current status\n
+    Process the logfile and find current status and job progress percent\n
     :return: job_results dict
     """
     progress_log = os.path.join(job.config.LOGPATH, 'progress', str(job.job_id)) + '.log'
     lines = read_log_line(progress_log)
-    # PRGC:5057,3,"Analyzing seamless segments"
     # Correctly get last entry for progress bar
     for line in lines:
         job_progress_status = re.search(r"PRGV:(\d{3,}),(\d+),(\d{3,})", str(line))
