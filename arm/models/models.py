@@ -467,6 +467,7 @@ class Notifications(db.Model):
     dismiss_time = db.Column(db.DateTime)
     title = db.Column(db.String(256))
     message = db.Column(db.String(256))
+    diff_time = None
 
     def __init__(self, title=None, message=None):
         self.seen = False

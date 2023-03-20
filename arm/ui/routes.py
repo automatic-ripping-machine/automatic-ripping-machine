@@ -14,8 +14,8 @@ import os
 import json
 from pathlib import Path, PurePath
 from werkzeug.exceptions import HTTPException
-from flask import Flask, render_template, request, send_file, flash, \
-    redirect, url_for  # noqa: F401
+from flask import Flask, render_template, request, flash, \
+    redirect, url_for   # noqa: F401
 from flask.logging import default_handler  # noqa: F401
 from flask_login import login_required, UserMixin  # noqa: F401
 
