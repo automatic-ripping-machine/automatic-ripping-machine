@@ -36,11 +36,6 @@ def arm_notification():
     """
     function to display all current notifications
     """
-
-    #newnotification = models.Notifications("Test", f"this is a test at {datetime.now()}")
-    #db.session.add(newnotification)
-    #db.session.commit()
-
     notifications_new = models.Notifications.query.filter_by(seen='0').order_by(models.Notifications.id.desc()).all()
 
     if len(notifications_new) is not 0:

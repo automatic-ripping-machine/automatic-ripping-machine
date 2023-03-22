@@ -142,6 +142,7 @@ def save_ui_settings():
         arm_ui_cfg.bootstrap_skin = format(form.bootstrap_skin.data)
         arm_ui_cfg.language = format(form.language.data)
         arm_ui_cfg.database_limit = format(form.database_limit.data)
+        arm_ui_cfg.notify_refresh = format(form.notify_refresh.data)
         db.session.commit()
         success = True
     # Masking the jinja update, otherwise an error is thrown

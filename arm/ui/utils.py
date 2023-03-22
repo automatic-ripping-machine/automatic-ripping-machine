@@ -208,6 +208,8 @@ def arm_db_cfg():
         armui_cfg = models.UISettings.query.get(1)
         app.jinja_env.globals.update(armui_cfg=armui_cfg)
 
+    app.logger.debug(armui_cfg)
+
     return armui_cfg
 
 

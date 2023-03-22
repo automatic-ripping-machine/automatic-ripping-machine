@@ -19,6 +19,21 @@
             </div>
             <div class="input-group mb-3">
                 <div class="input-group-prepend">
+                    <span class="input-group-text" id="notify_refresh">Notification Timeout: </span>
+                </div>
+                <input type="text" class="form-control" aria-label="notify_refresh"
+                       name="notify_refresh" placeholder="" value="{{ ui_settings.notify_refresh }}"
+                       aria-describedby="notify_refresh">
+                <a class="popovers" onClick='return false;' href=""
+                   data-content="{{ jsoncomments['notify_refresh']| replace("#", "\n") }}"
+                   rel="popover"
+                   data-placement="top" data-original-title="notify_refresh">
+                    <img title="More information" src="{{ url_for('static', filename='/img/info.png') }}" width="30px"
+                         height="35px" alt="More info">
+                </a>
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
                     <span class="input-group-text" id="use_icons">use_icons: </span>
                 </div>
                 <input type="text" class="form-control" aria-label="use_icons" name="use_icons"

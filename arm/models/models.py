@@ -425,16 +425,18 @@ class UISettings(db.Model):
     language = db.Column(db.String(4))
     index_refresh = db.Column(db.Integer)
     database_limit = db.Column(db.Integer)
+    notify_refresh = db.Column(db.Integer)
 
     def __init__(self, use_icons=None, save_remote_images=None,
                  bootstrap_skin=None, language=None, index_refresh=None,
-                 database_limit=None):
+                 database_limit=None, notify_refresh=None):
         self.use_icons = use_icons
         self.save_remote_images = save_remote_images
         self.bootstrap_skin = bootstrap_skin
         self.language = language
         self.index_refresh = index_refresh
         self.database_limit = database_limit
+        self.notify_refresh = notify_refresh
 
     def __repr__(self):
         return f'<UISettings {self.id}>'
