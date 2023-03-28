@@ -7,16 +7,16 @@ Covers
 """
 
 from flask_login import login_required  # noqa: F401
-from flask import render_template, Blueprint, redirect, url_for, session
+from flask import render_template, Blueprint, redirect
 from datetime import datetime
 
 import arm.ui.utils as ui_utils
-from arm.ui import app, db, constants, json_api
+from arm.ui import app
 from arm.models import models as models
 
 route_notifications = Blueprint('route_notifications', __name__,
-                       template_folder='templates',
-                       static_folder='../static')
+                                template_folder='templates',
+                                static_folder='../static')
 
 
 @app.context_processor
@@ -38,10 +38,10 @@ def arm_notification():
     """
     notifications_new = models.Notifications.query.filter_by(seen='0').order_by(models.Notifications.id.desc()).all()
 
-    if len(notifications_new) is not 0:
+    if len(notifications_new) != 0:
         # get the current time for each notification and then save back into notification
         for notification in notifications_new:
-            notification.diff_time = datetime.now() - notification.trigger_time
+            notification.diff_time = datetime.now().replace(microsecond=0) - notification.trigger_time
     else:
         notifications_new = None
 
@@ -57,7 +57,7 @@ def arm_notification_close():
     """
     notifications = models.Notifications.query.filter_by(seen='0').all()
 
-    if len(notifications) is not 0:
+    if len(notifications) != 0:
         # get the current time for each notification and then save back into notification
         for notification in notifications:
             args = {

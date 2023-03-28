@@ -190,7 +190,9 @@ function pingReadNotify(toastId) {
 }
 
 function addToast(title, body, toastId) {
-    toast_timeout = 6500;
+    // Get the toast timeout from UISettings
+    var toast_timeout = getNotifyTimeout();
+
     const toast = `<div id="toast${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-autohide="true" data-animation="true" data-delay="${toast_timeout}" style="z-index:1000">
         <div class="toast-header">
             <img src="static/img/success.png" class="rounded mr-2" alt="arm message" height="20px" width="20px">
@@ -213,13 +215,18 @@ function addToast(title, body, toastId) {
     })
 }
 
+// Get the toast timeout settings from UI Settings via JSON
 function getNotifyTimeout() {
-        $.ajax({
+    var notify = 6500;
+
+    $.ajax({
         url: "/json?mode=notify_timeout",
         type: "get",
         timeout: 2000,
         success: function (data) {
-            console.log(data)
+            notify = parseInt(data.notify_timeout);
+            console.log("Notification timeout: " + notify);
         }
     });
+    return notify;
 }

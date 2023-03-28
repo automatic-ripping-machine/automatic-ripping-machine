@@ -454,10 +454,10 @@ def get_notify_timeout(notify_timeout):
                    'mode': 'notify_timeout',
                    'notify_timeout': ''}
 
-    armui_cfg = UISettings.query.get(1)
+    armui_cfg = UISettings.query.first()
 
-    if armui_cfg is not None:
-        return_json['notify_timeout'] = armui_cfg['notify_refresh']
+    if armui_cfg:
+        return_json['notify_timeout'] = armui_cfg.notify_refresh
     else:
         return_json['notify_timeout'] = '6500'
 
