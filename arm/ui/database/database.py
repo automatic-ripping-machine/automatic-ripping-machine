@@ -71,6 +71,9 @@ def update_database():
             app.logger.debug(f"No update method defined from DB Update - {form.dbfix.data}")
             flash("Error no update method specified, report this as a bug.", "error")
 
+        # Update the arm UI config from DB post update
+        ui_utils.arm_db_cfg()
+
         return redirect('/index')
     else:
         # Catch for GET requests of the page, redirect to index

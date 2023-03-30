@@ -87,5 +87,6 @@
   "save_remote_images": "Save job images locally ? \n# If True: A.R.M will copy remote images to a local directory and use the update the job to use the local version.",
   "bootstrap_skin": "Bootstrap remote skin \n# You can find all versions available from \n#https://www.bootstrapcdn.com/bootswatch/\n# You will need to refresh the page to see the updated bootstrap skin",
   "language": "What language do you want A.R.M to use ?",
-  "database_limit": "limit the number of jobs to show on each page, over 175 will make things go funky!"
+  "database_limit": "limit the number of jobs to show on each page, over 175 will make things go funky!",
+  "notify_refresh": "Set the Notification timeout value in milliseconds, values less than 1 second should be avoided."
 }
