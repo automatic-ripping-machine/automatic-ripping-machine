@@ -31,30 +31,7 @@ page_support_databaseupdate = "support/databaseupdate.html"
 redirect_settings = "/settings"
 
 
-@login_manager.user_loader
-def load_user(user_id):
-    """
-    Logged in check
-    :param user_id:
-    :return:
-    """
-    try:
-        return models.User.query.get(int(user_id))
-    except Exception:
-        app.logger.debug("Error getting user")
-        return None
-
-
-@login_manager.unauthorized_handler
-def unauthorized():
-    """
-    User isn't authorised to view the page
-    :return: Page redirect
-    """
-    return redirect('/login')
-
-
-@app.route('/login', methods=['GET', 'POST'])
+@route_auth.route('/login', methods=['GET', 'POST'])
 def login():
     """
     Login page if login is enabled
