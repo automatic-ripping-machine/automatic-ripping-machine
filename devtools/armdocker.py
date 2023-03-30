@@ -17,9 +17,6 @@ def docker_rebuild(docker_run_path, arm_install):
         OUTPUT: to cli
     """
 
-    # Stop the UI to avoid issues
-    armui.stop()
-
     log.info("Rebuilding docker image post ARM update")
 
     # Stop ARM container
@@ -33,6 +30,3 @@ def docker_rebuild(docker_run_path, arm_install):
 
     # Start the new container
     armui.run_command(f"{docker_run_path}", "ARM Docker container running")
-
-    # Restart the UI once git has worked
-    armui.start()
