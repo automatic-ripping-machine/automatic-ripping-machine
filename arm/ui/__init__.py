@@ -49,6 +49,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # We should really generate a key for each system
 app.config['SECRET_KEY'] = "Big secret key"  # make this random!
+# Set the global Flask Login state, set to True will ignore any @login_required
 app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
 # Set debug pin as it is hidden normally
 os.environ["WERKZEUG_DEBUG_PIN"] = "12345"  # make this random!
