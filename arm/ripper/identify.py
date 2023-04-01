@@ -10,7 +10,6 @@ import unicodedata
 import json
 import pydvdid
 import xmltodict
-
 import arm.config.config as cfg
 
 from arm.ripper import utils
@@ -20,17 +19,32 @@ from arm.ui import db
 from arm.ui import utils as ui_utils
 
 
+def check_if_mounted(mounted):
+    """
+    Function to check if mounting disc was success
+     anything but 0 means we failed to mount disc
+    """
+    success = False
+    if mounted == 0:
+        logging.info("Mounting disc was successful")
+        success = True
+    else:
+        logging.error("Mounting failed! Rip might have problems")
+    return success
+
+
 def identify(job):
     """Identify disc attributes"""
     logging.debug("Identify Entry point --- job ----")
     logging.info(f"Mounting disc to: {job.mountpoint}")
     if not os.path.exists(str(job.mountpoint)):
         os.makedirs(str(job.mountpoint))
-
-    os.system("mount " + job.devpath)
-
-    # Check with the job class to get the correct disc type
-    job.get_disc_type(utils.find_file("HVDVD_TS", job.mountpoint))
+    # Check and mount drive - log error if failed
+    mounted = check_if_mounted(os.system("mount " + job.devpath))
+    # get_disc_type() checks local files, no need to run unless we can mount
+    if mounted:
+        # Check with the job class to get the correct disc type
+        job.get_disc_type(utils.find_file("HVDVD_TS", job.mountpoint))
 
     if job.disctype in ["dvd", "bluray"]:
 
@@ -52,7 +66,7 @@ def identify(job):
                          f"year:{job.year} video_type:{job.video_type} "
                          f"disctype: {job.disctype}")
             logging.debug(f"identify.job.end ---- \n\r{job.pretty_table()}")
-
+    # No need to warn if we cant unmount
     os.system("umount " + job.devpath)
 
 

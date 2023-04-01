@@ -75,7 +75,7 @@ def process_logfile(logfile, job, job_results):
     app.logger.debug(job.status)
     if job.status == "ripping":
         app.logger.debug("using mkv - " + logfile)
-        job_results = process_makemkv_logfile(logfile, job, job_results)
+        job_results = process_makemkv_logfile(job, job_results)
     elif job.disctype == "music":
         app.logger.debug("using audio disc")
         process_audio_logfile(job.logfile, job, job_results)
@@ -91,13 +91,13 @@ def percentage(part, whole):
     return percent
 
 
-def process_makemkv_logfile(logfile, job, job_results):
+def process_makemkv_logfile(job, job_results):
     """
-    Process the logfile and find current status\n
+    Process the logfile and find current status and job progress percent\n
     :return: job_results dict
     """
-    lines = read_log_line(logfile)
-    # PRGC:5057,3,"Analyzing seamless segments"
+    progress_log = os.path.join(job.config.LOGPATH, 'progress', str(job.job_id)) + '.log'
+    lines = read_log_line(progress_log)
     # Correctly get last entry for progress bar
     for line in lines:
         job_progress_status = re.search(r"PRGV:(\d{3,}),(\d+),(\d{3,})", str(line))

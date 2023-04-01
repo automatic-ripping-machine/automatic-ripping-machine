@@ -78,11 +78,16 @@ def clean_up_logs(logpath, loglife):
     now = time.time()
     logging.info(f"Looking for log files older than {loglife} days old.")
 
-    for filename in os.listdir(logpath):
-        fullname = os.path.join(logpath, filename)
-        if fullname.endswith(".log") and os.stat(fullname).st_mtime < now - loglife * 86400:
-            logging.info(f"Deleting log file: {filename}")
-            os.remove(fullname)
+    logs_folders = [logpath, os.path.join(logpath, 'progress')]
+    # Loop through each log path
+    for log_dir in logs_folders:
+        logging.info(f"Checking path {log_dir} for old log files...")
+        # Loop through each file in current folder and remove files older than set in arm.yaml
+        for filename in os.listdir(log_dir):
+            fullname = os.path.join(log_dir, filename)
+            if fullname.endswith(".log") and os.stat(fullname).st_mtime < now - loglife * 86400:
+                logging.info(f"Deleting log file: {filename}")
+                os.remove(fullname)
     return True
 
 
