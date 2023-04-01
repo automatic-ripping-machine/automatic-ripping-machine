@@ -165,15 +165,17 @@ def save_abcde():
     if form.validate():
         app.logger.debug(f"routes.save_abcde: Saving new abcde.conf: {cfg.abcde_config_path}")
         abcde_cfg_str = str(form.abcdeConfig.data).strip()
+        # Windows machines can put \r\n instead of \n newlines, which corrupts the config file
+        clean_abcde_str = '\n'.join(abcde_cfg_str.splitlines())
         # Save updated abcde.conf
         with open(cfg.abcde_config_path, "w") as abcde_file:
-            abcde_file.write(abcde_cfg_str)
+            abcde_file.write(clean_abcde_str)
             abcde_file.close()
         success = True
         # Update the abcde config
-        cfg.abcde_config = abcde_cfg_str
+        cfg.abcde_config = clean_abcde_str
     # If we get to here there was no post data
-    return {'success': success, 'settings': abcde_cfg_str, 'form': 'abcde config'}
+    return {'success': success, 'settings': clean_abcde_str, 'form': 'abcde config'}
 
 
 @route_settings.route('/save_apprise_cfg', methods=['POST'])
