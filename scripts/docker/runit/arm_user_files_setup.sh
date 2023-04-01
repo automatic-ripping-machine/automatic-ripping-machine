@@ -36,7 +36,7 @@ usermod -a -G render arm
 chown -R arm:arm /opt/arm
 
 # setup needed/expected dirs if not found
-SUBDIRS="media media/completed media/raw media/movies media/transcode logs db Music .MakeMKV"
+SUBDIRS="media media/completed media/raw media/movies media/transcode logs logs/progress db Music .MakeMKV"
 for dir in $SUBDIRS ; do
     thisDir="$ARM_HOME/$dir"
     if [[ ! -d "$thisDir" ]] ; then
