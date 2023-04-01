@@ -10,11 +10,14 @@ Currently a work in progress.
 
 - Manage branch changes and the ARMUI
 - Clear data from the ARM main folder (/home/arm)
+- Docker
+    - Rebuild the docker image with updated ARM code
 - Database management
     - Remove the database file, test running of ARM on a new system
-    - Roll the database back a version, usefull for testing database migrations
     - Populate the database with generic data for testing
-
+- Quality Checks (runs Flake8 against all arm code)
+- PR Checks
+    - Run actions prior to commiting a PR
 
 
 ## Usage
@@ -28,11 +31,12 @@ options:
   -h, --help        show this help message and exit
   -b B              Name of the branch to move to, example -b v2_devel
   -d                Clear the arm home folder, remove all directories and files
+  -dr DR            Docker rebuild post ARM code update. Requires docker run script path to run.
   -db_rem           Database tool - remove current arm.db file
-  -db_roll DB_ROLL  Database tool - roll the current database back a version,input number of versions to roll
-                    back.
   -db_data          Database tool - populate the database with Lorem Ipsum data. Requires the active database to
                     be the most current
+  -qa               QA Checks - run Flake8 against ARM
+  -pr               Actions to run prior to commiting a PR against ARM on github
   -v                ARM Dev Tools Version
 
 
