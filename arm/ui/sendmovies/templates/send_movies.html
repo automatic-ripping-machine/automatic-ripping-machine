@@ -62,8 +62,8 @@
                 })
                 .always(function () {
                     ++currentJob;
-                    if (currentJob === jobItems.length) $(".loading-spinner").html("<h2 class='text-center'>Finished!</h2>")
-                        .addClass("alert-success").parent().removeClass("row")
+                    if (currentJob === jobItems.length) $(".loading-spinner").html("<h2 class='text-center'>Finished sending to API! Please check results below.</h2>")
+                        .addClass("alert-info").parent().removeClass("row")
                 });
         })
         activeTab("navsendmovies");
