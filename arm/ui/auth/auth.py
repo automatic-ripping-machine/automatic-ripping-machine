@@ -13,7 +13,7 @@ from flask import redirect, render_template, request, Blueprint, flash, app
 from flask_login import LoginManager, login_required, \
     current_user, login_user, logout_user  # noqa: F401
 
-from arm.ui import db, constants
+from arm.ui import app, db, constants
 from arm.models import models as models
 from arm.ui.forms import SetupForm, DBUpdate
 import arm.ui.utils as ui_utils
