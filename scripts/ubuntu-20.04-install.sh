@@ -237,6 +237,7 @@ function create_folders() {
     arm_mkdir "/home/arm/media/transcode"
     arm_mkdir "/home/arm/media/completed"
     arm_mkdir "/home/arm/media/raw"
+    arm_mkdir "/home/arm/logs/progress"
 }
 
 function arm_mkdir() {

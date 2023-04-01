@@ -55,7 +55,9 @@ def makemkv(logfile, job):
     # Rip bluray
     if (job.config.RIPMETHOD == "backup" or job.config.RIPMETHOD == "backup_dvd") and job.disctype == "bluray":
         # backup method
-        cmd = f'makemkvcon backup --minlength={job.config.MINLENGTH} --decrypt {job.config.MKV_ARGS} ' \
+        cmd = f'makemkvcon backup --decrypt {job.config.MKV_ARGS} --minlength={job.config.MINLENGTH}' \
+              f'--progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log ' \
+              f'--messages=-stdout ' \
               f'-r disc:{mdisc.strip()} {shlex.quote(rawpath)}'
         logging.info("Backup up disc")
         run_makemkv(cmd, logfile)
@@ -65,7 +67,9 @@ def makemkv(logfile, job):
 
         # if no maximum length, process the whole disc in one command
         if int(job.config.MAXLENGTH) > 99998:
-            cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r --progress=-stdout --messages=-stdout ' \
+            cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r ' \
+                  f'--progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log ' \
+                  f'--messages=-stdout ' \
                   f'dev:{job.devpath} all {shlex.quote(rawpath)} --minlength={job.config.MINLENGTH}'
             run_makemkv(cmd, logfile)
         else:
@@ -104,7 +108,9 @@ def process_single_tracks(job, logfile, rawpath):
             filepathname = os.path.join(rawpath, track.filename)
             logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
 
-            cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r --progress=-stdout --messages=-stdout ' \
+            cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r ' \
+                  f'--progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log ' \
+                  f'--messages=-stdout ' \
                   f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)} ' \
                   f'--minlength={job.config.MINLENGTH}'
             # Possibly update db to say track was ripped
@@ -177,7 +183,8 @@ def get_track_info(mdisc, job):
 
     logging.info("Using MakeMKV to get information on all the tracks on the disc. This will take a few minutes...")
 
-    cmd = f'makemkvcon -r --progress=-stdout --messages=-stdout --minlength={job.config.MINLENGTH} ' \
+    cmd = f'makemkvcon -r --progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log ' \
+          f'--messages=-stdout --minlength={job.config.MINLENGTH} ' \
           f'--cache=1 info disc:{mdisc}'
     logging.debug(f"Sending command: {cmd}")
     try:
