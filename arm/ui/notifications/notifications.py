@@ -28,7 +28,7 @@ def arm_nav_notify():
         notify_count = models.Notifications.query.filter_by(seen='0').count()
         app.logger.debug(notify_count)
 
-    except:
+    except Exception:
         notify_count = None
 
     return dict(notify_count=notify_count)
