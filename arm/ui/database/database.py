@@ -19,6 +19,7 @@ import arm.config.config as cfg
 from arm.ui.metadata import get_omdb_poster
 from arm.ui.forms import DBUpdate
 
+app.app_context().push()
 route_database = Blueprint('route_database', __name__,
                            template_folder='templates',
                            static_folder='../static')
@@ -41,8 +42,9 @@ def view_database():
 
     # Check for database file
     if os.path.isfile(cfg.arm_config['DBFILE']):
-        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page,
-                                                                              int(armui_cfg.database_limit), False)
+        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page=page,
+                                                                              max_per_page=int(armui_cfg.database_limit),
+                                                                              error_out=False)
     else:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
