@@ -7,7 +7,7 @@ Covers
 """
 
 from flask_login import login_required  # noqa: F401
-from flask import render_template, Blueprint, redirect
+from flask import render_template, Blueprint, redirect, flash
 from datetime import datetime
 
 import arm.ui.utils as ui_utils
@@ -25,7 +25,7 @@ def arm_nav_notify():
     inject the unread notification count to all pages for the navbar count
     """
     try:
-        notify_count = models.Notifications.query.filter_by(seen='0').count()
+        notify_count = models.Notifications.query.filter_by(cleared='0').count()
         app.logger.debug(notify_count)
 
     except Exception:
@@ -40,7 +40,7 @@ def arm_notification():
     """
     function to display all current notifications
     """
-    notifications_new = models.Notifications.query.filter_by(seen='0').order_by(models.Notifications.id.desc()).all()
+    notifications_new = models.Notifications.query.filter_by(cleared='0').order_by(models.Notifications.id.desc()).all()
 
     if len(notifications_new) != 0:
         # get the current time for each notification and then save back into notification
@@ -59,15 +59,19 @@ def arm_notification_close():
     """
     function to close all open notifications
     """
-    notifications = models.Notifications.query.filter_by(seen='0').all()
+    notifications = models.Notifications.query.filter_by(cleared='0').all()
 
     if len(notifications) != 0:
         # get the current time for each notification and then save back into notification
         for notification in notifications:
             args = {
-                'seen': True,
-                'dismiss_time': datetime.now()
+                'cleared': True,
+                'cleared_time': datetime.now()
             }
             ui_utils.database_updater(args, notification)
+
+        flash(f'Cleared {len(notifications)} Notifications', 'success')
+    else:
+        flash('No notifications to clear', 'error')
 
     return redirect("/notificationview")

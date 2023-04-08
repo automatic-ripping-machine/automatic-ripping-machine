@@ -25,6 +25,19 @@ def upgrade():
                   sa.Column('notify_refresh', sa.Integer(), server_default="6500")
                   )
 
+    """
+    add colums to the notifications table, set a cleared and cleared time value
+    For cleared, add the column, set nullable false and set a default of 0 - false
+    """
+    op.add_column('notifications',
+                  sa.Column('cleared', sa.Boolean(), nullable=False, server_default="0")
+                  )
+    op.add_column('notifications',
+                  sa.Column('cleared_time', sa.DateTime(), nullable=True)
+                  )
+
 
 def downgrade():
     op.drop_column('ui_settings', 'notify_refresh')
+    op.drop_column('notifications', 'cleared')
+    op.drop_column('notifications', 'cleared_time')

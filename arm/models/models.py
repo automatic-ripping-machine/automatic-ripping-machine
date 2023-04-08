@@ -470,6 +470,8 @@ class Notifications(db.Model):
     title = db.Column(db.String(256))
     message = db.Column(db.String(256))
     diff_time = None
+    cleared = db.Column(db.Boolean, default=False, nullable=False)
+    cleared_time = db.Column(db.DateTime)
 
     def __init__(self, title=None, message=None):
         self.seen = False
