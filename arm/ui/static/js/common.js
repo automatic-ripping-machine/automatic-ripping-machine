@@ -216,7 +216,7 @@ function addToast(title, body, toastId) {
 }
 
 // Get the toast timeout settings from UI Settings via JSON
-function getNotifyTimeout(notify) {
+function getNotifyTimeout(notify = 6500) {
     $.ajax({
         url: "/json?mode=notify_timeout",
         type: "get",
