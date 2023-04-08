@@ -690,46 +690,6 @@ def clean_old_jobs():
             database_updater({'status': "fail"}, job)
 
 
-def job_dupe_check(job):
-    """
-    function for checking the database to look for jobs that have completed
-    successfully with the same crc
-    :param job: The job obj so we can use the crc/title etc
-    :return: True/False, dict/None
-    """
-    if job.crc_id is None:
-        return False
-    logging.debug(f"trying to find jobs with crc64={job.crc_id}")
-    previous_rips = models.Job.query.filter_by(crc_id=job.crc_id, status="success", hasnicetitle=True)
-    results = {}
-    i = 0
-    for j in previous_rips:
-        # logging.debug(f"job obj= {j.get_d()}")
-        job_dict = j.get_d().items()
-        results[i] = {}
-        for key, value in iter(job_dict):
-            results[i][str(key)] = str(value)
-        i += 1
-
-    # logging.debug(f"previous rips = {results}")
-    if results:
-        logging.debug(f"we have {len(results)} jobs")
-        # This might need some tweaks to because of title/year manual
-        title = results[0]['title'] if results[0]['title'] else job.label
-        year = results[0]['year'] if results[0]['year'] != "" else ""
-        poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
-        hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
-        video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
-        active_rip = {
-            "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
-            "video_type": video_type}
-        database_updater(active_rip, job)
-        return True
-
-    logging.debug("We have no previous rips/jobs matching this crc64")
-    return False
-
-
 def check_ip():
     """
         Check if user has set an ip in the config file
@@ -842,6 +802,44 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
             sys.exit()
     logging.info(f"Final Output directory \"{hb_out_path}\"")
     return hb_out_path
+
+
+def job_dupe_check(job):
+    """
+    function for checking the database to look for jobs that have completed
+    successfully with the same label
+    :param job: The job obj so we can use the crc/title etc.
+    :return: True/False, dict/None
+    """
+    logging.debug(f"Trying to find jobs with matching Label={job.label}")
+    previous_rips = models.Job.query.filter_by(label=job.label, status="success")
+    results = {}
+    i = 0
+    for j in previous_rips:
+        # logging.debug(f"job obj= {j.get_d()}")
+        job_dict = j.get_d().items()
+        results[i] = {}
+        for key, value in iter(job_dict):
+            results[i][str(key)] = str(value)
+        i += 1
+
+    # logging.debug(f"previous rips = {results}")
+    if results:
+        logging.debug(f"we have {len(results)} jobs")
+        # This might need some tweaks to because of title/year manual
+        title = results[0]['title'] if results[0]['title'] else job.label
+        year = results[0]['year'] if results[0]['year'] != "" else ""
+        poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
+        hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
+        video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
+        active_rip = {
+            "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
+            "video_type": video_type}
+        database_updater(active_rip, job)
+        return True
+
+    logging.info("We have no previous rips/jobs matching this label")
+    return False
 
 
 def check_for_wait(job):
