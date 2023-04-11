@@ -191,9 +191,10 @@ function pingReadNotify(toastId) {
 
 function addToast(title, body, toastId) {
     // Get the toast timeout from UISettings
-    let toast_timeout = getNotifyTimeout(6500);
+    const toast_timeout = getNotifyTimeout();
+    console.log("Notification timeout: " + toast_timeout);
 
-    const toast = `<div id="toast${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-autohide="true" data-animation="true" data-delay="${toast_timeout}" style="z-index:1000">
+    const toast = `<div id="toast${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-autohide="true" data-animation="true" data-delay="${parseInt(toast_timeout)}" style="z-index:1000">
         <div class="toast-header">
             <img src="static/img/success.png" class="rounded mr-2" alt="arm message" height="20px" width="20px">
                 <strong class="mr-auto">${title}</strong>
@@ -216,15 +217,19 @@ function addToast(title, body, toastId) {
 }
 
 // Get the toast timeout settings from UI Settings via JSON
-function getNotifyTimeout(notify = 6500) {
+function getNotifyTimeout() {
+    // initilise notify and set a default of 6.5 seconds
+    let notify = 6500;
+
     $.ajax({
         url: "/json?mode=notify_timeout",
         type: "get",
         timeout: 2000,
         success: function (data) {
-            notify = parseInt(data.notify_timeout);
-            console.log("Notification timeout: " + notify);
+            console.log("UI timeout: " + data.notify_timeout);
+            notify = data.notify_timeout;
         }
     });
+
     return notify;
 }
