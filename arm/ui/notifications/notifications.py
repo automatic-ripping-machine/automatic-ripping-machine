@@ -43,6 +43,9 @@ def arm_notification():
     notifications_new = models.Notifications.query.filter_by(cleared='0').order_by(models.Notifications.id.desc()).all()
 
     if len(notifications_new) != 0:
+        if len(notifications_new) > 100:
+            flash(f'Please note clearing {len(notifications_new)} Notifications will take some time', 'warning')
+
         # get the current time for each notification and then save back into notification
         for notification in notifications_new:
             notification.diff_time = datetime.now().replace(microsecond=0) - notification.trigger_time
