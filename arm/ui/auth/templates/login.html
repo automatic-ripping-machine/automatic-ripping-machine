@@ -6,25 +6,25 @@
 {% block content %} 
 <div class="container">
     <div class="row h-100 mx-auto align-items-center">
-                <div class="col-sm-4 mx-auto" style="flex-wrap: nowrap">
-                    <form id="form1" name="form1" method="post" action="login">
-                        {{ form.hidden_tag() }}
-						<div class="input-group mb-3">
-							<div class="input-group-prepend">
-								<span class="input-group-text" id="usr">Username:</span>
-							</div>
-							<input type="text" class="form-control" aria-label="username" name="username" placeholder="username" value="" aria-describedby="usr">
-						</div>
-						<div class="input-group mb-3">
-							<div class="input-group-prepend">
-								<span class="input-group-text" id="basic-addon1">Password:</span>
-							</div>
-							<input type="password" class="form-control" name="password" aria-label="password" aria-describedby="basic-addon1">
-						</div>
-						<input class="form-control" name="save" value="save" hidden>
-						<button class="btn btn-secondary btn-lg btn-block" form="form1" type="submit">Login</button>
-                    </form>
-                </div>
+		<div class="col-sm-4 mx-auto" style="flex-wrap: nowrap">
+			<form id="form1" name="form1" method="post" action="login">
+				{{ form.hidden_tag() }}
+				<div class="input-group mb-3">
+					<div class="input-group-prepend">
+						<span class="input-group-text" id="usr">Username:</span>
+					</div>
+					<input type="text" class="form-control" aria-label="username" name="username" placeholder="username" value="" aria-describedby="usr">
+				</div>
+				<div class="input-group mb-3">
+					<div class="input-group-prepend">
+						<span class="input-group-text" id="basic-addon1">Password:</span>
+					</div>
+					<input type="password" class="form-control" name="password" aria-label="password" aria-describedby="basic-addon1">
+				</div>
+				<input class="form-control" name="save" value="save" hidden>
+				<button class="btn btn-secondary btn-lg btn-block" form="form1" type="submit">Login</button>
+			</form>
+		</div>
     </div>
 </div>
 {% endblock %}

@@ -36,6 +36,8 @@ def view_database():
     Outputs every job from the database
      this can cause serious slow-downs with + 3/4000 entries
     """
+    global armui_cfg
+
     page = request.args.get('page', 1, type=int)
     app.logger.debug(armui_cfg)
 
@@ -70,6 +72,9 @@ def update_database():
             # No method defined
             app.logger.debug(f"No update method defined from DB Update - {form.dbfix.data}")
             flash("Error no update method specified, report this as a bug.", "error")
+
+        # Update the arm UI config from DB post update
+        ui_utils.arm_db_cfg()
 
         return redirect('/index')
     else:

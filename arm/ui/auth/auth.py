@@ -9,11 +9,11 @@ Covers
 """
 
 import bcrypt
-from flask import redirect, render_template, request, Blueprint, flash
+from flask import redirect, render_template, request, Blueprint, flash, app
 from flask_login import LoginManager, login_required, \
     current_user, login_user, logout_user  # noqa: F401
 
-from arm.ui import app, db, constants
+from arm.ui import app, db, constants   # noqa: F811
 from arm.models import models as models
 from arm.ui.forms import SetupForm, DBUpdate
 import arm.ui.utils as ui_utils
@@ -31,36 +31,19 @@ page_support_databaseupdate = "support/databaseupdate.html"
 redirect_settings = "/settings"
 
 
-@login_manager.user_loader
-def load_user(user_id):
-    """
-    Logged in check
-    :param user_id:
-    :return:
-    """
-    try:
-        return models.User.query.get(int(user_id))
-    except Exception:
-        app.logger.debug("Error getting user")
-        return None
-
-
-@login_manager.unauthorized_handler
-def unauthorized():
-    """
-    User isn't authorised to view the page
-    :return: Page redirect
-    """
-    return redirect('/login')
-
-
-@app.route('/login', methods=['GET', 'POST'])
+@route_auth.route('/login', methods=['GET', 'POST'])
 def login():
     """
     Login page if login is enabled
     :return: redirect
     """
     global page_support_databaseupdate
+
+    # Check the database is current
+    db_update = ui_utils.arm_db_check()
+    if not db_update["db_current"] or not db_update["db_exists"]:
+        dbform = DBUpdate(request.form)
+        return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
 
     return_redirect = None
     # if there is no user in the database
@@ -101,6 +84,7 @@ def login():
     # If nothing has gone wrong give them the login page
     if request.method == 'GET' or return_redirect is None:
         return_redirect = render_template('login.html', form=form)
+
     return return_redirect
 
 
@@ -151,3 +135,26 @@ def update_password():
             app.logger.info("Password not updated, issue with old password")
 
     return render_template('update_password.html', user=user.email, form=form)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    """
+    Logged in check
+    :param user_id:
+    :return:
+    """
+    try:
+        return models.User.query.get(int(user_id))
+    except Exception:
+        app.logger.debug("Error getting user")
+        return None
+
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    """
+    User isn't authorised to view the page
+    :return: Page redirect
+    """
+    return redirect('/login')
