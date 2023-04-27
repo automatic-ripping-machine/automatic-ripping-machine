@@ -216,7 +216,8 @@ def feed_json():
         'joblist': 'joblist',
         'mode': mode,
         'config_id': request.args.get('config_id'),
-        'notify_id': request.args.get('notify_id')
+        'notify_id': request.args.get('notify_id'),
+        'notify_timeout': 'notify_timeout'
     }
     # Valid modes that should trigger functions
     valid_modes = {
@@ -230,7 +231,8 @@ def feed_json():
         'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
         'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)},
         'change_job_params': {'funct': json_api.change_job_params, 'args': ('config_id',)},
-        'read_notification': {'funct': json_api.read_notification, 'args': ('notify_id',)}
+        'read_notification': {'funct': json_api.read_notification, 'args': ('notify_id',)},
+        'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)}
     }
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
