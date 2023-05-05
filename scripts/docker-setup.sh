@@ -53,10 +53,13 @@ function launch_setup() {
     # install docker
     if [ -e /usr/bin/docker ]; then
         echo -e "${RED}Docker installation detected, skipping...${NC}"
+        echo -e "${RED}Adding user arm to docker user group${NC}"
+        usermod -aG docker arm
     else
         echo -e "${RED}Installing Docker${NC}"
         # the convenience script auto-detects OS and handles install accordingly
         curl -sSL https://get.docker.com | bash
+        echo -e "${RED}Adding user arm to docker user group${NC}"
         usermod -aG docker arm
     fi
 }
