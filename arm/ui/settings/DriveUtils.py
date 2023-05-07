@@ -27,7 +27,7 @@ def drives_search():
     context = pyudev.Context()
 
     for device in context.list_devices(subsystem='block'):
-        regexoutput = re.search(r'(/dev/sr\d)', device.device_node)
+        regexoutput = re.search(r'(\/dev\/sr\d{1,2})', device.device_node)
         if regexoutput:
             app.logger.debug(f"regex output: {regexoutput.group()}")
             udev_drives.append(regexoutput.group())
@@ -49,21 +49,20 @@ def drives_update():
     udev_drives = drives_search()
     i = 1
     new_count = 0
+
+    # Get the number of current drives in the database
+    drive_count = models.SystemDrives.query.count()
+
     for drive_mount in udev_drives:
         # Check drive doesnt already exist
         if not models.SystemDrives.query.filter_by(mount=drive_mount).first():
-            # Check if the Job database is empty
-            jobs = models.Job.query.all()
-            app.logger.debug(jobs)
-            if len(jobs) != 0:
-                # Find the last job the drive ran, return the id
-                last_job_id = models.Job.query.order_by(db.desc(models.Job.job_id)). \
-                                        filter_by(devpath=drive_mount).first()
-                last_job = last_job_id.job_id
-            else:
-                last_job = None
+            # New drive, set previous job to none
+            last_job = None
+            new_count += 1
+
             # Create new disk (name, type, mount, open, job id, previos job id, description )
-            db_drive = models.SystemDrives(f"Drive {i}", drive_mount, None, last_job, "Classic burner")
+            db_drive = models.SystemDrives(f"Drive {drive_count + new_count}",
+                                           drive_mount, None, last_job, "Classic burner")
             app.logger.debug("****** Drive Information ******")
             app.logger.debug(f"Name: {db_drive.name}")
             app.logger.debug(f"Type: {db_drive.type}")
@@ -73,7 +72,6 @@ def drives_update():
             db.session.commit()
             db_drive = None
             i += 1
-            new_count += 1
         else:
             i += 1
 
