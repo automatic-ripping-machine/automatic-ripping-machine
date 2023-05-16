@@ -24,7 +24,9 @@ arm_install = "/opt/arm"
 
 
 # Commence reading from the input options
-desc = "Automatic Ripping Machine Development Tool Scripts"
+desc = "Automatic Ripping Machine Development Tool Scripts. " \
+        "Note: scripts assume running on a bare metal server when running, " \
+        "unless running the specific docker rebuild scripts."
 parser = argparse.ArgumentParser(description=desc)
 parser.add_argument("-b",
                     help="Name of the branch to move to, example -b v2_devel")

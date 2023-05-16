@@ -425,16 +425,18 @@ class UISettings(db.Model):
     language = db.Column(db.String(4))
     index_refresh = db.Column(db.Integer)
     database_limit = db.Column(db.Integer)
+    notify_refresh = db.Column(db.Integer)
 
     def __init__(self, use_icons=None, save_remote_images=None,
                  bootstrap_skin=None, language=None, index_refresh=None,
-                 database_limit=None):
+                 database_limit=None, notify_refresh=None):
         self.use_icons = use_icons
         self.save_remote_images = save_remote_images
         self.bootstrap_skin = bootstrap_skin
         self.language = language
         self.index_refresh = index_refresh
         self.database_limit = database_limit
+        self.notify_refresh = notify_refresh
 
     def __repr__(self):
         return f'<UISettings {self.id}>'
@@ -467,6 +469,9 @@ class Notifications(db.Model):
     dismiss_time = db.Column(db.DateTime)
     title = db.Column(db.String(256))
     message = db.Column(db.String(256))
+    diff_time = None
+    cleared = db.Column(db.Boolean, default=False, nullable=False)
+    cleared_time = db.Column(db.DateTime)
 
     def __init__(self, title=None, message=None):
         self.seen = False

@@ -41,7 +41,7 @@ jobs:
             -
                 name: Get branch name
                 id: branch-name
-                uses: tj-actions/branch-names@v6.4
+                uses: tj-actions/branch-names@v7
 
             -
                 name: Set tag for non-default branch
@@ -78,7 +78,7 @@ jobs:
             -
                 name: Extract Docker metadata
                 id: meta
-                uses: docker/metadata-action@507c2f2dc502c992ad446e3d7a5dfbe311567a96
+                uses: docker/metadata-action@c4ee3adeed93b1fa6a762f209fb01608c1a22f1e
                 with:
                     images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
                     

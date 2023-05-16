@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}
+    <div class="container">
+    <div class="row">
+        <div class="col-12">
+            {% if notifications_new is not none: %}
+                    <div class="card">
+                        <div class="card-header">
+                            Clear All <a href="notificationclose">[x]</a>
+                        </div>
+                    </div>
+                {% for notification in notifications_new %}
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title"><b> {{ notification.title }} </b></h5>
+                            <h6 class="card-subtitle mb-2 text-muted">{{ notification.diff_time }} ({{ notification.trigger_time.strftime('%d-%b-%y %H:%M') }})</h6>
+                            <p class="card-text"> {{ notification.message }} </p>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="card">
+                    <div class="card-body">
+                        <p class="card-text"> No new notifications </p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+{% endblock %}

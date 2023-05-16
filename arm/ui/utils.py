@@ -201,12 +201,16 @@ def arm_db_cfg():
         check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
         setup_database()
 
+    # if the database has been updated
+    # UISettings could be incorrect, return None
+    try:
         armui_cfg = models.UISettings.query.get(1)
         app.jinja_env.globals.update(armui_cfg=armui_cfg)
+    except Exception as e:
+        app.logger.debug(f"arm_cfg request error {e}")
+        armui_cfg = None
 
-    else:
-        armui_cfg = models.UISettings.query.get(1)
-        app.jinja_env.globals.update(armui_cfg=armui_cfg)
+    app.logger.debug(armui_cfg)
 
     return armui_cfg
 
