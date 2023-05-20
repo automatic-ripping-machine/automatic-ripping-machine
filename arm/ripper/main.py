@@ -191,8 +191,8 @@ if __name__ == "__main__":
     try:
         main(log_file, job, args.protection)
     except Exception as error:
-        logging.error(error)
-        logging.error("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
+        logging.error("A fatal error has occurred and ARM is exiting.  See traceback below for details."
+                      f"Stack: {error}")
         utils.notify(job, constants.NOTIFY_TITLE, "ARM encountered a fatal error processing "
                                                   f"{job.title}. Check the logs for more details. {error}")
         job.status = "fail"
