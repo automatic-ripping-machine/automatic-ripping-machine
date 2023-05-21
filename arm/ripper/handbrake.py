@@ -101,7 +101,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
 
     for track in job.tracks:
         # Don't raise error if we past max titles, skip and continue till HandBrake finishes
-        if track.track_number > job.no_of_titles:
+        if int(track.track_number) > job.no_of_titles:
             continue
         if track.length < int(cfg.arm_config["MINLENGTH"]):
             # too short
