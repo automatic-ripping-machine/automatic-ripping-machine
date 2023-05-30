@@ -79,9 +79,13 @@
                         </div>
                         {% if not jobs.poster_url %}
                             <div class="card-header background-poster">
-
-                                <a id="posterClick" href="#">
+                                {% if jobs.video_type == "Music" %}
+                                    <a id="posterClick" href="#">
+                                    <img src="static/img/music.png" alt="Not found" width="240px" class="img-thumbnail"></a>
+                                {% else %}
+                                    <a id="posterClick" href="#">
                                     <img src="static/img/none.png" alt="Not found" width="240px" class="img-thumbnail"></a>
+                                {% endif %}
                                 {% if jobs.video_type != "Music" %}
                                     <div class="btn-group float-right mt-2" role="group">
                                         <a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title
