@@ -109,8 +109,8 @@
                                 <!-- Card Body -->
                                 <div class="row no-gutters">
                                     <div class="col-lg-4">
-                                        {% if not job.poster_url or poster_url = "None" %}
-                                            {% if jobs.video_type == "Music" %}
+                                        {% if not job.poster_url or poster_url == "None" %}
+                                            {% if job.video_type == "Music" %}
                                                 <a href="jobdetail?job_id={{ job.job_id }}"><img src="static/img/music.png"
                                                                                                 width="240px"
                                                                                                 class="img-thumbnail"
