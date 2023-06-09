@@ -1,8 +1,9 @@
 #!/bin/bash
 
 DEVNAME=$1
-
-echo "Entering docker wrapper" | logger -t ARM -s
+ARMLOG="/home/arm/logs/arm.log"
+echo "[ARM] Entering docker wrapper" | logger -t ARM -s
+echo "$(date) Entering docker wrapper" >> $ARMLOG
 
 #######################################################################################
 # YAML Parser to read Config
@@ -40,19 +41,25 @@ if [ "$ID_CDROM_MEDIA_DVD" == "1" ]; then
         numtracks=$(lsdvd /dev/"${DEVNAME}" 2> /dev/null | sed 's/,/ /' | cut -d ' ' -f 2 | grep -E '[0-9]+' | sort -r | head -n 1)
         if [ "$numtracks" == "99" ]; then
             echo "[ARM] ${DEVNAME} has 99 Track Protection. Bailing out and ejecting." | logger -t ARM -s
+            echo "$(date) [ARM] ${DEVNAME} has 99 Track Protection. Bailing out and ejecting." >> $ARMLOG
             eject "${DEVNAME}"
             exit
         fi
     fi
+    echo "$(date) [ARM] Starting ARM for DVD on ${DEVNAME}" >> $ARMLOG
     echo "[ARM] Starting ARM for DVD on ${DEVNAME}" | logger -t ARM -s
 elif [ "$ID_CDROM_MEDIA_BD" == "1" ]; then
-	  echo "[ARM] Starting ARM for Bluray on ${DEVNAME}" | logger -t ARM -s
+	  echo "[ARM] Starting ARM for Bluray on ${DEVNAME}" >> $ARMLOG
+	  echo "$(date) [[ARM] Starting ARM for Bluray on ${DEVNAME}" | logger -t ARM -s
 elif [ "$ID_CDROM_MEDIA_CD" == "1" ]; then
 	  echo "[ARM] Starting ARM for CD on ${DEVNAME}" | logger -t ARM -s
+	  echo "$(date) [[ARM] Starting ARM for CD on ${DEVNAME}" >> $ARMLOG
 elif [ "$ID_FS_TYPE" != "" ]; then
 	  echo "[ARM] Starting ARM for Data Disk on ${DEVNAME} with File System ${ID_FS_TYPE}" | logger -t ARM -s
+	  echo "$(date) [[ARM] Starting ARM for Data Disk on ${DEVNAME} with File System ${ID_FS_TYPE}" >> $ARMLOG
 else
 	  echo "[ARM] Not CD, Blu-ray, DVD or Data. Bailing out on ${DEVNAME}" | logger -t ARM -s
+	  echo "$(date) [ARM] Not CD, Blu-ray, DVD or Data. Bailing out on ${DEVNAME}" >> $ARMLOG
 	  eject "${DEVNAME}"
 	  exit #bail out
 fi
