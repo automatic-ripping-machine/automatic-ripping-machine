@@ -760,7 +760,7 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
     # Fake crc64 number
     hash_object = hashlib.md5(f"{movie}".strip().encode())
     # Check if we already have this in the db exit if we do
-    dupe_found, not_used_variable = job_dupe_check(hash_object.hexdigest())
+    dupe_found, _ = job_dupe_check(hash_object.hexdigest())
     if dupe_found:
         app.logger.debug("We found dupes breaking loop")
         return None
