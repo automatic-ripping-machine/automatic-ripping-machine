@@ -9,23 +9,22 @@ import argparse  # noqa: E402
 import os  # noqa: E402
 import logging  # noqa: E402
 import logging.handlers  # noqa: E402
-from logging import config  # noqa: E402
 import time  # noqa: E402
 import datetime  # noqa: E402
 import re  # noqa: E402
 import getpass  # noqa E402
 import pyudev  # noqa: E402
-import getpass  # noqa E402
 import psutil  # noqa E402
 
 # set the PATH to /opt/arm so we can handle imports properly
 sys.path.append("/opt/arm")
 
-from arm.ripper import logger, utils, identify, arm_ripper  # noqa: E402
+from arm.ripper import logger, utils, identify, arm_ripper, ARMInfo  # noqa: E402
 import arm.config.config as cfg  # noqa E402
 from arm.models.models import Job, Config  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
 from arm.ui.settings import DriveUtils as drive_utils # noqa E402
+import arm.config.config as cfg  # noqa E402
 
 
 def entry():
@@ -73,6 +72,8 @@ def check_fstab():
     """
     Check the fstab entries to see if ARM has been set up correctly
     :return: None
+
+    # todo: remove this from the ripper and add into the ARM UI with a warning
     """
     logging.info("Checking for fstab entry.")
     with open('/etc/fstab', 'r') as fstab:
@@ -101,9 +102,12 @@ def main(logfile, job, protection=0):
     log_arm_params(job)
     check_fstab()
 
-    # Entry point for dvd/bluray
+    # Ripper type assesment for the various media types
+    # Type: dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
         arm_ripper.rip_visual_media(have_dupes, job, logfile, protection)
+
+    # Type: Music
     elif job.disctype == "music":
         if utils.rip_music(job, logfile):
             utils.notify(job, constants.NOTIFY_TITLE, f"Music CD: {job.label} {constants.PROCESS_COMPLETE}")
@@ -117,6 +121,7 @@ def main(logfile, job, protection=0):
             db.session.commit()
         job.eject()
 
+    # Type: Data
     elif job.disctype == "data":
         logging.info("Disc identified as data")
         if utils.rip_data(job):
@@ -125,6 +130,7 @@ def main(logfile, job, protection=0):
             logging.info("Data rip failed.  See previous errors.  Exiting.")
         job.eject()
 
+    # Type: undefined
     else:
         logging.info("Couldn't identify the disc type. Exiting without any action.")
 
@@ -174,12 +180,14 @@ if __name__ == "__main__":
     # Log version number
     with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
-    # Add the git commit number to logging
-    utils.get_git_commit()
-    logging.info(f"ARM version: {version}")
-    job.arm_version = version
-    logging.info(("Python version: " + sys.version).replace('\n', ""))
-    logging.info(f"User is: {getpass.getuser()}")
+
+    # ARM Info
+    arminfo = ARMInfo(cfg.arm_config["INSTALLPATH"])
+    logging.info(f"ARM version: {arminfo.arm_version}")
+    job.arm_version = arminfo.arm_version
+    logging.info(f"Python version: {arminfo.python_version}")
+    logging.info(f"User is: {arminfo.user}")
+
     # Delete old log files
     logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])
     logging.info(f"Job: {job.label}")  # This will sometimes be none
