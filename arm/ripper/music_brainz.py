@@ -197,7 +197,12 @@ def process_tracks(job, mb_track_list):
     :return:
     """
     for track in mb_track_list:
-        u.put_track(job, track['number'], int(track['recording']['length']),
+        track_leng = 0
+        try:
+            track_leng = int(track['recording']['length'])
+        except ValueError:
+            logging.error("Failed to find track lenght")
+        u.put_track(job, track['number'], track_leng,
                     "n/a", 0.1, False, "ABCDE", track['recording']['title'])
 
 
