@@ -12,12 +12,13 @@ def arm_subprocess(cmd, in_shell):
     """
     arm_process = ""
     try:
-        arm_process = subprocess.check_output(
+        arm_process = subprocess.run(
             cmd,
             shell=in_shell
         )
     except subprocess.CalledProcessError as error:
         logging.error(f"Error executing command {cmd}")
         logging.error(f"Subprocess error {error}")
+        arm_process = None
 
     return arm_process

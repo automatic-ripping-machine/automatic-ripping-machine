@@ -44,6 +44,13 @@ def pr_update():
     # GIT submodule update
     armui.run_command("cd .. & git submodule update --remote", "ARM submodule updated")
 
+    # unittest - ripper
+    armui.run_command("python3 -m unittest discover -s /opt/arm/test/unittest -p 'test_ripper*.py' -v",
+                      "ARM ripper unittest completed")
+
+    # unittest - ui
+    # todo: add flask unittesting in here
+
     # Restart the UI once git has worked
     armui.start()
 

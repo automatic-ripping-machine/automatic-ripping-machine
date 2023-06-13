@@ -1,9 +1,8 @@
-import errno
 import unittest
 from unittest.mock import MagicMock, mock_open, patch
 import sys
 
-sys.path.insert(0,'/opt/arm')
+sys.path.insert(0, '/opt/arm')
 from arm.ripper.ARMInfo import ARMInfo
 
 class TestArmInfo(unittest.TestCase):
