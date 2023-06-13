@@ -19,8 +19,7 @@ import psutil  # noqa E402
 # set the PATH to /opt/arm so we can handle imports properly
 sys.path.append("/opt/arm")
 
-from arm.ripper import logger, utils, identify, arm_ripper, music_brainz  # noqa: E402
-from arm.ripper import logger, utils, identify, arm_ripper, ARMInfo  # noqa: E402
+from arm.ripper import logger, utils, identify, arm_ripper, ARMInfo, music_brainz # noqa: E402
 import arm.config.config as cfg  # noqa E402
 from arm.models.models import Job, Config  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
