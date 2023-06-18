@@ -1,10 +1,9 @@
 import unittest
 from unittest.mock import MagicMock, mock_open, patch
-from alembic.script import ScriptDirectory
-from alembic.config import Config
+import sys
 import sqlite3
 
-#sys.path.insert(0, '/opt/arm')
+sys.path.insert(0, '/opt/arm')
 from arm.ripper.ARMInfo import ARMInfo
 
 class TestArmInfo(unittest.TestCase):
