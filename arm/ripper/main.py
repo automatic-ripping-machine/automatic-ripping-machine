@@ -19,7 +19,7 @@ import psutil  # noqa E402
 # set the PATH to /opt/arm so we can handle imports properly
 sys.path.append("/opt/arm")
 
-from arm.ripper import logger, utils, identify, arm_ripper, ARMInfo, music_brainz # noqa: E402
+from arm.ripper import logger, utils, identify, arm_ripper, ARMInfo, music_brainz  # noqa: E402
 import arm.config.config as cfg  # noqa E402
 from arm.models.models import Job, Config  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
@@ -146,6 +146,8 @@ if __name__ == "__main__":
     # Get arguments from arg parser
     args = entry()
     devpath = f"/dev/{args.devpath}"
+
+    # ARM Job starts
     # Create new job
     job = Job(devpath)
     # Setup logging
@@ -160,8 +162,12 @@ if __name__ == "__main__":
     if log_file.find("empty.log") != -1 or re.search(r"(NAS|NAS1)_\d+\.log", log_file) is not None:
         arm_log.info("ARM is trying to write a job to the empty.log, or NAS**.log")
         sys.exit()
-    # Check the db is current, if not update it
-    utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
+
+    # Capture and report the ARM Info
+    arminfo = ARMInfo(cfg.arm_config["INSTALLPATH"], cfg.arm_config['DBFILE'])
+    job.arm_version = arminfo.arm_version
+    arminfo.get_values()
+
     # Sometimes drives trigger twice this stops multi runs from 1 udev trigger
     utils.duplicate_run_check(devpath)
 
@@ -182,13 +188,6 @@ if __name__ == "__main__":
     # Log version number
     with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
-
-    # ARM Info
-    arminfo = ARMInfo(cfg.arm_config["INSTALLPATH"])
-    logging.info(f"ARM version: {arminfo.arm_version}")
-    job.arm_version = arminfo.arm_version
-    logging.info(f"Python version: {arminfo.python_version}")
-    logging.info(f"User is: {arminfo.user}")
 
     # Delete old log files
     logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])

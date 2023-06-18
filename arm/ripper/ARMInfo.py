@@ -7,6 +7,9 @@ import sys
 import re
 import getpass  # noqa E402
 import logging  # noqa: E402
+import sqlite3
+from alembic.script import ScriptDirectory
+from alembic.config import Config
 
 from arm.ripper import ProcessHandler
 
@@ -19,13 +22,25 @@ class ARMInfo:
     user = ""
     userenv = ""
     install_path = ""
+    db_version = ""
+    head_version = ""
 
-    def __int__(self, install_path):
+    def __int__(self, install_path, db_file):
         self.install_path = install_path
+        self.db_file = db_file
         self.get_git_commit()
         self.get_arm_version()
         self.get_python_version()
         self.get_user_details()
+        self.get_db_head_version()
+        self.get_db_version()
+
+    def get_values(self):
+        logging.info(f"ARM version: {self.arm_version}")
+        logging.info(f"Python version: {self.python_version}")
+        logging.info(f"User is: {self.user}")
+        logging.info(f"Database head is: {self.head_version}")
+        logging.info(f"Database version is: {self.db_version}")
 
     def get_git_commit(self):
         """
@@ -56,7 +71,7 @@ class ARMInfo:
                 logging.info(f"ARM Version error: {e}")
                 self.arm_version = "unknown"
 
-        except (FileNotFoundError):
+        except FileNotFoundError:
             self.arm_version = "unknown"
 
     def get_python_version(self):
@@ -76,3 +91,29 @@ class ARMInfo:
             self.user = user
         else:
             self.user = "unknown"
+
+    def get_db_head_version(self):
+        """
+        Get the ARM database version from Alembic
+        """
+        try:
+            mig_dir = os.path.join(self.install_path, "arm/migrations")
+            config = Config()
+            config.set_main_option("script_location", mig_dir)
+            script = ScriptDirectory.from_config(config)
+            self.head_version = script.get_current_head()
+        except Exception as e:
+            logging.info(f"DB Head error: {e}")
+            self.head_version = "unknown"
+
+    def get_db_version(self):
+        """
+        Get the ARM database version from the database file
+        """
+        if not os.path.isfile(self.db_file):
+            conn = sqlite3.connect(self.db_file)
+            db_c = conn.cursor()
+            db_c.execute("SELECT version_num FROM alembic_version")
+            self.db_version = db_c.fetchone()[0]
+        else:
+            self.db_version = "unknown"

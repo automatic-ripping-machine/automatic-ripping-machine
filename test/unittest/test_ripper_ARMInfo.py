@@ -1,8 +1,10 @@
 import unittest
 from unittest.mock import MagicMock, mock_open, patch
-import sys
+from alembic.script import ScriptDirectory
+from alembic.config import Config
+import sqlite3
 
-sys.path.insert(0, '/opt/arm')
+#sys.path.insert(0, '/opt/arm')
 from arm.ripper.ARMInfo import ARMInfo
 
 class TestArmInfo(unittest.TestCase):
@@ -10,6 +12,7 @@ class TestArmInfo(unittest.TestCase):
     def setUp(self):
         self.arm_info = ARMInfo()
         self.arm_info.install_path = '/opt/arm'
+        self.arm_info.db_file = '/home/arm/db/arm.db'
 
     """
     ************************************************************
@@ -245,6 +248,112 @@ class TestArmInfo(unittest.TestCase):
                 self.arm_info.get_user_details()
 
         self.assertEqual(self.arm_info.user, data_check)
+
+    """
+    ************************************************************
+    Test - get_db_head_version
+    get_db_head_version_fail - check for bad value check
+    get_db_head_version_pass - check for normal behaviour
+    todo: fix these
+    ************************************************************
+    """
+    def test_get_db_head_version_fail(self):
+        """
+        CHECK "get_db_head_version" handles none values
+        data check:
+            path: None
+        """
+        with unittest.mock.patch("os.path.join", return_value="/arm/opt"):
+            self.arm_info.get_db_head_version()
+
+            self.assertEqual(self.arm_info.head_version, "unknown")
+
+
+    @patch('arm.ripper.ARMInfo.ScriptDirectory')
+    def test_get_db_head_version_pass(self, mock_script_dir):
+        """
+        CHECK "get_db_head_version" handles returning correct values
+        data check:
+            db: mockhead123
+        """
+        mock_head_version = "mockhead123"
+        with unittest.mock.patch("logging.info") as mock_logging:
+            mock_script_dir.from_config.return_value.get_current_head.return_value = mock_head_version
+
+            self.arm_info.get_db_head_version()
+
+            self.assertEqual(self.arm_info.head_version, 'mockhead123')
+            mock_logging.info.assert_not_called()
+
+    """
+    ************************************************************
+    Test - get_db_version
+    test_get_db_version_fail - check for bad value check
+    test_get_db_version_pass - check for normal behaviour
+    ************************************************************
+    """
+    def test_get_db_version_fail(self):
+        """
+        CHECK "get_db_version" handles none values
+        data check:
+            db: None
+        """
+        # Patch os.path.isfile to return False for the nonexistent database file
+        with unittest.mock.patch("os.path.isfile") as mock_isfile:
+            mock_isfile.return_value = True
+            self.arm_info.get_db_version()
+            self.assertEqual(self.arm_info.db_version, "unknown")
+
+
+    def test_get_db_version_pass(self):
+        """
+        CHECK "get_db_version" handles none values
+        data check:
+            db: None
+        """
+        # Create a temporary in-memory SQLite database for testing purposes
+        conn = sqlite3.connect(":memory:")
+        db_c = conn.cursor()
+        db_c.execute("CREATE TABLE alembic_version (version_num TEXT)")
+        db_c.execute("INSERT INTO alembic_version (version_num) VALUES ('mock_version')")
+        conn.commit()
+
+        # Patch os.path.isfile to return True for the existing database file
+        with unittest.mock.patch("os.path.isfile") as mock_isfile:
+            mock_isfile.return_value = False
+            with unittest.mock.patch("sqlite3.connect") as mock_connect:
+                mock_connect.return_value = conn
+                self.arm_info.get_db_version()
+                self.assertEqual(self.arm_info.db_version, "mock_version")
+
+    """
+    ************************************************************
+    Test - get_values
+    test_get_values_pass - check output is correct
+    ************************************************************
+    """
+    def test_get_values_pass(self):
+        """
+        CHECK "get_values" handles printing output
+        data check: (values as below)
+        """
+        # Set mock values for the variables
+        self.arm_info.arm_version = 'mock_arm_version'
+        self.arm_info.python_version = 'mock_python_version'
+        self.arm_info.user = 'mock_user'
+        self.arm_info.head_version = 'mock_head_version'
+        self.arm_info.db_version = 'mock_db_version'
+
+        with self.assertLogs(level='INFO') as cm:
+            self.arm_info.get_values()
+
+        # Assert that the log messages were written correctly
+        self.assertIn(f"INFO:root:ARM version: {self.arm_info.arm_version}", cm.output)
+        self.assertIn(f"INFO:root:Python version: {self.arm_info.python_version}", cm.output)
+        self.assertIn(f"INFO:root:User is: {self.arm_info.user}", cm.output)
+        self.assertIn(f"INFO:root:Database head is: {self.arm_info.head_version}", cm.output)
+        self.assertIn(f"INFO:root:Database version is: {self.arm_info.db_version}", cm.output)
+
 
 if __name__ == '__main__':
     unittest.main()
