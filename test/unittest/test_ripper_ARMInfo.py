@@ -4,7 +4,8 @@ import sys
 import sqlite3
 
 sys.path.insert(0, '/opt/arm')
-from arm.ripper.ARMInfo import ARMInfo
+from arm.ripper.ARMInfo import ARMInfo   # noqa E402
+
 
 class TestArmInfo(unittest.TestCase):
 
@@ -30,12 +31,11 @@ class TestArmInfo(unittest.TestCase):
         arm_subprocess_mock = MagicMock()
         arm_subprocess_mock.return_value = b" master\ncommit "
         with unittest.mock.patch('arm.ripper.ProcessHandler.arm_subprocess',
-                                arm_subprocess_mock):
-           self.arm_info.get_git_commit()
+                                 arm_subprocess_mock):
+            self.arm_info.get_git_commit()
 
         self.assertEqual(self.arm_info.git_branch, "unknown")
         self.assertEqual(self.arm_info.git_commit, "unknown")
-
 
     def test_get_git_commit_pass(self):
         """
@@ -47,12 +47,11 @@ class TestArmInfo(unittest.TestCase):
         arm_subprocess_mock = MagicMock()
         arm_subprocess_mock.return_value = b"* master\ncommit abc12de"
         with unittest.mock.patch('arm.ripper.ProcessHandler.arm_subprocess',
-                                arm_subprocess_mock):
-           self.arm_info.get_git_commit()
+                                 arm_subprocess_mock):
+            self.arm_info.get_git_commit()
 
         self.assertEqual(self.arm_info.git_branch, "master")
         self.assertEqual(self.arm_info.git_commit, "abc12de")
-
 
     def test_get_git_commit_bounds_low(self):
         """
@@ -64,8 +63,8 @@ class TestArmInfo(unittest.TestCase):
         arm_subprocess_mock = MagicMock()
         arm_subprocess_mock.return_value = b"* m\ncommit a"
         with unittest.mock.patch('arm.ripper.ProcessHandler.arm_subprocess',
-                                arm_subprocess_mock):
-           self.arm_info.get_git_commit()
+                                 arm_subprocess_mock):
+            self.arm_info.get_git_commit()
 
         self.assertEqual(self.arm_info.git_branch, "unknown")
         self.assertEqual(self.arm_info.git_commit, "unknown")
@@ -84,8 +83,8 @@ class TestArmInfo(unittest.TestCase):
         arm_subprocess_mock = MagicMock()
         arm_subprocess_mock.return_value = b"* thequickbrownfoxjumpedoverthelazydog\ncommit a1b2c3d4e5f6g7h8i9j10"
         with unittest.mock.patch('arm.ripper.ProcessHandler.arm_subprocess',
-                                arm_subprocess_mock):
-           self.arm_info.get_git_commit()
+                                 arm_subprocess_mock):
+            self.arm_info.get_git_commit()
 
         self.assertEqual(self.arm_info.git_branch, data_check_branch[0:branch_len]+"...")
         self.assertEqual(self.arm_info.git_commit, data_check_commit[0:commit_len])
@@ -184,7 +183,7 @@ class TestArmInfo(unittest.TestCase):
                                  data_check):
             self.arm_info.get_python_version()
 
-        self.assertEqual(self.arm_info.python_version,data_check)
+        self.assertEqual(self.arm_info.python_version, data_check)
 
     def test_get_python_version_bounds_low(self):
         """
@@ -197,7 +196,7 @@ class TestArmInfo(unittest.TestCase):
                                  data_check):
             self.arm_info.get_python_version()
 
-        self.assertEqual(self.arm_info.python_version,data_check)
+        self.assertEqual(self.arm_info.python_version, data_check)
 
     def test_get_python_version_bounds_high(self):
         """
@@ -210,7 +209,7 @@ class TestArmInfo(unittest.TestCase):
                                  data_check):
             self.arm_info.get_python_version()
 
-        self.assertEqual(self.arm_info.python_version,data_check)
+        self.assertEqual(self.arm_info.python_version, data_check)
 
     """
     ************************************************************
@@ -228,10 +227,9 @@ class TestArmInfo(unittest.TestCase):
         data_check = None
         getuser_mock = MagicMock(return_value=data_check)
         with unittest.mock.patch('getpass.getuser', getuser_mock):
-                self.arm_info.get_user_details()
+            self.arm_info.get_user_details()
 
         self.assertEqual(self.arm_info.user, 'unknown')
-
 
     def test_get_user_details_pass(self):
         """
@@ -242,7 +240,7 @@ class TestArmInfo(unittest.TestCase):
         data_check = "user1"
         getuser_mock = MagicMock(return_value=data_check)
         with unittest.mock.patch('getpass.getuser', getuser_mock):
-                self.arm_info.get_user_details()
+            self.arm_info.get_user_details()
 
         self.assertEqual(self.arm_info.user, data_check)
 
@@ -264,7 +262,6 @@ class TestArmInfo(unittest.TestCase):
             self.arm_info.get_db_head_version()
 
             self.assertEqual(self.arm_info.head_version, "unknown")
-
 
     @patch('arm.ripper.ARMInfo.ScriptDirectory')
     def test_get_db_head_version_pass(self, mock_script_dir):
@@ -300,7 +297,6 @@ class TestArmInfo(unittest.TestCase):
             mock_isfile.return_value = False
             self.arm_info.get_db_version()
             self.assertEqual(self.arm_info.db_version, "unknown")
-
 
     def test_get_db_version_pass(self):
         """

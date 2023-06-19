@@ -22,8 +22,18 @@ def flake8(arm_path):
 
     log.info(f"Running quality checks against ARM - {arm_path}")
 
-    # Run flake8 against ARM
-    armui.run_command(f"flake8 {arm_path}/arm --max-complexity=15 --max-line-length=120 --show-source --statistics",
+    flake_config = "--max-complexity=15 --max-line-length=120 --show-source --statistics"
+
+    # Run flake8 against ARM - arm
+    armui.run_command(f"flake8 {arm_path}/arm {flake_config}",
+                      "ARM QA check completed")
+
+    # Run flake8 against ARM - test
+    armui.run_command(f"flake8 {arm_path}/test {flake_config}",
+                      "ARM QA check completed")
+
+    # Run flake8 against ARM - devtools
+    armui.run_command(f"flake8 {arm_path}/devtools {flake_config}",
                       "ARM QA check completed")
 
     # Restart the UI once git has worked
