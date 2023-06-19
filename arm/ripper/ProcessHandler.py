@@ -12,7 +12,7 @@ def arm_subprocess(cmd, in_shell):
     """
     arm_process = ""
     try:
-        arm_process = subprocess.run(
+        arm_process = subprocess.check_output(
             cmd,
             shell=in_shell
         )

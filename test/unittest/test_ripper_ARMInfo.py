@@ -9,9 +9,7 @@ from arm.ripper.ARMInfo import ARMInfo
 class TestArmInfo(unittest.TestCase):
 
     def setUp(self):
-        self.arm_info = ARMInfo()
-        self.arm_info.install_path = '/opt/arm'
-        self.arm_info.db_file = '/home/arm/db/arm.db'
+        self.arm_info = ARMInfo('/opt/arm', '/home/arm/db/arm.db')
 
     """
     ************************************************************
@@ -299,7 +297,7 @@ class TestArmInfo(unittest.TestCase):
         """
         # Patch os.path.isfile to return False for the nonexistent database file
         with unittest.mock.patch("os.path.isfile") as mock_isfile:
-            mock_isfile.return_value = True
+            mock_isfile.return_value = False
             self.arm_info.get_db_version()
             self.assertEqual(self.arm_info.db_version, "unknown")
 
@@ -319,7 +317,7 @@ class TestArmInfo(unittest.TestCase):
 
         # Patch os.path.isfile to return True for the existing database file
         with unittest.mock.patch("os.path.isfile") as mock_isfile:
-            mock_isfile.return_value = False
+            mock_isfile.return_value = True
             with unittest.mock.patch("sqlite3.connect") as mock_connect:
                 mock_connect.return_value = conn
                 self.arm_info.get_db_version()
@@ -350,7 +348,7 @@ class TestArmInfo(unittest.TestCase):
         self.assertIn(f"INFO:root:ARM version: {self.arm_info.arm_version}", cm.output)
         self.assertIn(f"INFO:root:Python version: {self.arm_info.python_version}", cm.output)
         self.assertIn(f"INFO:root:User is: {self.arm_info.user}", cm.output)
-        self.assertIn(f"INFO:root:Database head is: {self.arm_info.head_version}", cm.output)
+        self.assertIn(f"INFO:root:Alembic head is: {self.arm_info.head_version}", cm.output)
         self.assertIn(f"INFO:root:Database version is: {self.arm_info.db_version}", cm.output)
 
 

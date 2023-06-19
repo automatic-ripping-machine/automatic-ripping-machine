@@ -25,7 +25,7 @@ class ARMInfo:
     db_version = ""
     head_version = ""
 
-    def __int__(self, install_path, db_file):
+    def __init__(self, install_path, db_file):
         self.install_path = install_path
         self.db_file = db_file
         self.get_git_commit()
@@ -39,7 +39,7 @@ class ARMInfo:
         logging.info(f"ARM version: {self.arm_version}")
         logging.info(f"Python version: {self.python_version}")
         logging.info(f"User is: {self.user}")
-        logging.info(f"Database head is: {self.head_version}")
+        logging.info(f"Alembic head is: {self.head_version}")
         logging.info(f"Database version is: {self.db_version}")
 
     def get_git_commit(self):
@@ -48,9 +48,9 @@ class ARMInfo:
         """
         branch_len = 10
         cmd = "cd /opt/arm && git branch && git log -1"
-        git_output = ProcessHandler.arm_subprocess(cmd, True).decode("utf-8")
+        git_output = ProcessHandler.arm_subprocess(cmd, True)
         git_regex = r"\*\s(\S+)\n(?:\s*\S*\n)*commit ([a-z\d]{5,7})"
-        git_match = re.search(git_regex, str(git_output))
+        git_match = re.search(git_regex, str(git_output.decode("utf-8")))
 
         if git_match:
             (self.git_branch, self.git_commit) = git_match.groups()
@@ -110,7 +110,7 @@ class ARMInfo:
         """
         Get the ARM database version from the database file
         """
-        if not os.path.isfile(self.db_file):
+        if os.path.isfile(self.db_file):
             conn = sqlite3.connect(self.db_file)
             db_c = conn.cursor()
             db_c.execute("SELECT version_num FROM alembic_version")

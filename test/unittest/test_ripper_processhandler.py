@@ -8,7 +8,7 @@ from arm.ripper.ProcessHandler import arm_subprocess    # noqa: E402
 
 
 class TestProcessHandler(unittest.TestCase):
-    @patch("subprocess.run")
+    @patch("subprocess.check_output")
     def test_arm_subprocess_success(self, mock_check_output):
         """
         CHECK "arm_subprocess" returns the correct output
@@ -25,7 +25,7 @@ class TestProcessHandler(unittest.TestCase):
         self.assertEqual(result, mock_output)
         mock_check_output.assert_called_once_with(cmd, shell=in_shell)
 
-    @patch("subprocess.run")
+    @patch("subprocess.check_output")
     def test_arm_subprocess_error(self, mock_check_output):
         """
         CHECK "arm_subprocess" handles errors

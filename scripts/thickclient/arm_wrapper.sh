@@ -4,7 +4,7 @@ set -eo pipefail
 
 DEVNAME=$1
 PROTECTION=""
-USER="arm"
+USER="mtech"
 
 #######################################################################################
 # YAML Parser to read Config
