@@ -83,7 +83,7 @@ function save_start_command() {
     if [ -e start_arm_container.sh ]
     then
         echo -e "'start_arm_container.sh' already exists.  Renaming old file to 'start_arm_container_OLD.sh'"
-        sudo mv /start_arm_container.sh ./start_arm_container_OLD.sh
+        sudo mv /start_arm_container.sh ./start_arm_container.sh.bak
     fi
     sudo -u arm curl -fsSL "$url" -o start_arm_container.sh
     chmod +x start_arm_container.sh
