@@ -67,7 +67,7 @@ class ARMInfo:
             try:
                 self.arm_version = version_file.read().strip()
 
-            except (OSError, IOError, FileNotFoundError) as e:
+            except (OSError, IOError) as e:
                 logging.info(f"ARM Version error: {e}")
                 self.arm_version = "unknown"
 

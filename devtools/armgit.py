@@ -26,15 +26,15 @@ def flake8(arm_path):
 
     # Run flake8 against ARM - arm
     armui.run_command(f"flake8 {arm_path}/arm {flake_config}",
-                      "ARM QA check completed")
+                      f"ARM QA check completed against {arm_path}/arm")
 
     # Run flake8 against ARM - test
     armui.run_command(f"flake8 {arm_path}/test {flake_config}",
-                      "ARM QA check completed")
+                      f"ARM QA check completed against {arm_path}/test")
 
     # Run flake8 against ARM - devtools
     armui.run_command(f"flake8 {arm_path}/devtools {flake_config}",
-                      "ARM QA check completed")
+                      f"ARM QA check completed against {arm_path}/devtools")
 
     # Restart the UI once git has worked
     armui.start()
