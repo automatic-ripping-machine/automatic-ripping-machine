@@ -107,6 +107,7 @@ class Job(db.Model):
         self.disctype = "unknown"
 
         for key, value in device.items():
+            logging.debug(f"pyudev: {key}: {value}")
             if key == "ID_FS_LABEL":
                 self.label = value
                 if value == "iso9660":
@@ -168,7 +169,10 @@ class Job(db.Model):
         """
         # Use the music label if we can find it - defaults to music_cd.log
         disc_id = music_brainz.get_disc_id(self)
+        logging.debug(f"music_id: {disc_id}")
         mb_title = music_brainz.get_title(disc_id, self)
+        logging.debug(f"mm_title: {mb_title}")
+
         if mb_title == "not identified":
             self.label = self.title = "not identified"
             logfile = "music_cd.log"
