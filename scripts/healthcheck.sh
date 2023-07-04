@@ -4,7 +4,7 @@ if [ ! -f /etc/arm/arm.yaml ]; then cp /opt/arm/migrations/config/arm.yaml /etc/
 if [ ! -f /etc/arm/apprise.yaml ]; then cp /opt/arm/migrations/config/apprise.yaml /etc/arm/apprise.yaml; fi || exit 1
 if [ ! -f /etc/arm/abcde.conf ]; then cp /opt/arm/migrations/config/abcde.conf /etc/arm/abcde.conf; fi || exit 1
 chown -R root:arm /etc/arm/* /var/lib/arm /var/log/arm || exit 1
-chmod -R ug=rw,o=r /etc/arm/* /var/lib/arm || exit 1
+chmod -R ug=rw,o=r /etc/arm/* /var/lib/arm /var/log/arm || exit 1
 chmod +x /etc/arm /var/lib/arm /var/lib/arm/data /var/log/arm || exit 1
 cp -n /opt/arm/devtools/* /opt/arm/tools/ || exit 1
 
