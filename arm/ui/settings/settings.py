@@ -65,7 +65,7 @@ def settings():
              'cds_ripped': cds,
              'no_failed_jobs': failed_rips,
              'total_rips': total_rips,
-             'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash())
+             #'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash())
              }
 
     # ARM UI config

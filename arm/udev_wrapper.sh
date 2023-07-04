@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DEVNAME=$1
-ARMLOG="/home/arm/logs/arm.log"
+ARMLOG="/var/log/arm/arm.log"
 echo "[ARM] Entering docker wrapper" | logger -t ARM -s
 echo "$(date) Entering docker wrapper" >> $ARMLOG
 
@@ -27,7 +27,7 @@ function parse_yaml {
       }
    }'
 }
-eval $(parse_yaml /etc/arm/config/arm.yaml "CONFIG_")
+eval $(parse_yaml /etc/arm/arm.yaml "CONFIG_")
 
 #######################################################################################
 # Log Discovered Type and Start Rip
@@ -40,9 +40,11 @@ if [ "$ID_CDROM_MEDIA_DVD" == "1" ]; then
     if [ "$CONFIG_PREVENT_99" != "false" ]; then
         numtracks=$(lsdvd /dev/"${DEVNAME}" 2> /dev/null | sed 's/,/ /' | cut -d ' ' -f 2 | grep -E '[0-9]+' | sort -r | head -n 1)
         if [ "$numtracks" == "99" ]; then
-            echo "[ARM] ${DEVNAME} has 99 Track Protection. Bailing out and ejecting." | logger -t ARM -s
-            echo "$(date) [ARM] ${DEVNAME} has 99 Track Protection. Bailing out and ejecting." >> $ARMLOG
-            eject "${DEVNAME}"
+            echo "[ARM] ${DEVNAME} has 99 Track Protection. Bailing out." | logger -t ARM -s
+            echo "$(date) [ARM] ${DEVNAME} has 99 Track Protection. Bailing out." >> $ARMLOG
+            if [ "$CONFIG_EJECT_DISK" != "false" ]; then
+                eject "${DEVNAME}"
+            fi
             exit
         fi
     fi
@@ -60,8 +62,10 @@ elif [ "$ID_FS_TYPE" != "" ]; then
 else
 	  echo "[ARM] Not CD, Blu-ray, DVD or Data. Bailing out on ${DEVNAME}" | logger -t ARM -s
 	  echo "$(date) [ARM] Not CD, Blu-ray, DVD or Data. Bailing out on ${DEVNAME}" >> $ARMLOG
-	  eject "${DEVNAME}"
+        if [ "$CONFIG_EJECT_DISK" != "false" ]; then
+            eject "${DEVNAME}"
+        fi
 	  exit #bail out
 fi
-cd /home/arm
-/usr/bin/python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" | logger -t ARM -s
+cd /var/lib/arm/raw
+/usr/bin/python3 /opt/arm/ripper/main.py -d "${DEVNAME}" | logger -t ARM -s

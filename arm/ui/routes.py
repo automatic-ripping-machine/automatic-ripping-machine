@@ -140,7 +140,7 @@ def setup():
     try:
         for arm_dir in arm_directories:
             if not Path.exists(arm_dir):
-                os.makedirs(arm_dir)
+                #os.makedirs(arm_dir)
                 flash(f"{arm_dir} was created successfully.", "success")
     except FileNotFoundError as error:
         flash(f"Creation of the directory {dir0} failed {error}", "danger")

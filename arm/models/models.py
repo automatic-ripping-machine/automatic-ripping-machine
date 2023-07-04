@@ -107,7 +107,6 @@ class Job(db.Model):
         self.disctype = "unknown"
 
         for key, value in device.items():
-            logging.debug(f"pyudev: {key}: {value}")
             if key == "ID_FS_LABEL":
                 self.label = value
                 if value == "iso9660":
@@ -169,10 +168,7 @@ class Job(db.Model):
         """
         # Use the music label if we can find it - defaults to music_cd.log
         disc_id = music_brainz.get_disc_id(self)
-        logging.debug(f"music_id: {disc_id}")
         mb_title = music_brainz.get_title(disc_id, self)
-        logging.debug(f"mm_title: {mb_title}")
-
         if mb_title == "not identified":
             self.label = self.title = "not identified"
             logfile = "music_cd.log"
@@ -210,20 +206,21 @@ class Job(db.Model):
 
     def eject(self):
         """Eject disc if it hasn't previously been ejected"""
-        if not self.ejected:
-            self.ejected = True
-            try:
-                # This might always return true
-                if bool(os.system("umount " + self.devpath)):
-                    logging.debug(f"Unmounted disc {self.devpath}")
-                else:
-                    logging.debug(f"Failed to unmount {self.devpath}")
-                if bool(os.system("eject -sv " + self.devpath)):
-                    logging.debug(f"Ejected disc {self.devpath}")
-                else:
-                    logging.debug(f"Failed to eject {self.devpath}")
-            except Exception as error:
-                logging.debug(f"{self.devpath} couldn't be ejected {error}")
+        if cfg.arm_config['EJECT_DISK']:
+            if not self.ejected:
+                self.ejected = True
+                try:
+                    # This might always return true
+                    if bool(os.system("umount " + self.devpath)):
+                        logging.debug(f"Unmounted disc {self.devpath}")
+                    else:
+                        logging.debug(f"Failed to unmount {self.devpath}")
+                    if bool(os.system("eject -sv " + self.devpath)):
+                        logging.debug(f"Ejected disc {self.devpath}")
+                    else:
+                        logging.debug(f"Failed to eject {self.devpath}")
+                except Exception as error:
+                    logging.debug(f"{self.devpath} couldn't be ejected {error}")
 
 
 class Track(db.Model):
@@ -271,6 +268,7 @@ class Config(db.Model):
     as these may change between each job """
     CONFIG_ID = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('job.job_id'))
+    EJECT_DISK = db.Column(db.Boolean)
     ARM_CHECK_UDF = db.Column(db.Boolean)
     GET_VIDEO_TITLE = db.Column(db.Boolean)
     SKIP_TRANSCODE = db.Column(db.Boolean)

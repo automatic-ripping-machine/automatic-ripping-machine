@@ -26,7 +26,7 @@ from arm.models import models
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
 
 # Path definitions
-path_migrations = "arm/migrations"
+path_migrations = "migrations"
 
 
 def database_updater(args, job, wait_time=90):
@@ -809,14 +809,13 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
 
 def get_git_revision_hash() -> str:
     """Get full hash of current git commit"""
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD'],
-                                   cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
-
-
-def get_git_revision_short_hash() -> str:
-    """Get short hash of current git commit"""
-    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
-                                   cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
+    return subprocess.check_output(
+        [
+            'git', 
+            'ls-remote', 
+            'https://github.com/automatic-ripping-machine/automatic-ripping-machine.git', 
+            'HEAD'
+        ]).decode('ascii').strip().split('HEAD')[0].strip()
 
 
 def git_check_updates(current_hash) -> bool:
@@ -826,7 +825,7 @@ def git_check_updates(current_hash) -> bool:
                                 cwd=cfg.arm_config['INSTALLPATH'], check=False)
     # git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1
     git_log = subprocess.check_output('git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1',
-                                      shell=True, cwd="/opt/arm").decode('ascii').strip()
+                                      shell=True, cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
     app.logger.debug(git_update.returncode)
     app.logger.debug(git_log)
     app.logger.debug(current_hash)

@@ -57,6 +57,7 @@ def upgrade():
     op.create_table('config',
                     sa.Column('CONFIG_ID', sa.Integer(), nullable=False),
                     sa.Column('job_id', sa.Integer(), nullable=True),
+                    sa.Column('EJECT_DISK', sa.Boolean(), nullable=True),
                     sa.Column('ARM_CHECK_UDF', sa.Boolean(), nullable=True),
                     sa.Column('GET_VIDEO_TITLE', sa.Boolean(), nullable=True),
                     sa.Column('SKIP_TRANSCODE', sa.Boolean(), nullable=True),

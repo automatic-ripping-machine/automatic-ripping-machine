@@ -7,7 +7,9 @@
 # Link: https://forum.makemkv.com/forum/viewtopic.php?p=119221#p119221
 
 makemkv_serial_url="https://forum.makemkv.com/forum/viewtopic.php?f=5&t=1053"
-MAKEMKV_PERMA_KEY=
+SETTINGS_PATH="/root/.MakeMKV"
+SETTINGS_FILE="$SETTINGS_PATH/settings.conf"
+
 
 # save passed MAKEMKV_PERMA_KEY or scrape this month's beta key
 if [ -n "$1" ]; then
@@ -16,27 +18,16 @@ if [ -n "$1" ]; then
 else
     makemkv_serial=$(curl -fsSL "$makemkv_serial_url" | grep -oP 'T-[\w\d@]{66}')
     echo "MakeMKV beta key for this month: $makemkv_serial"
-fi
-
-# create .MakeMKV dir if it doesn't already exist
-MAKEMKV_DIR="/home/arm/.MakeMKV"
-if [ ! -d "$MAKEMKV_DIR" ]; then
-    mkdir -p "$MAKEMKV_DIR"
-    chown arm:arm "$MAKEMKV_DIR"
+    MAKEMKV_PERMA_KEY=$makemkv_serial
 fi
 
 # if file doesn't exist OR grep doesn't find key string in settings
-SETTINGS_FILE="$MAKEMKV_DIR/settings.conf"
 if [[ ! -f "$SETTINGS_FILE" ]] || ! grep -q "app_Key" "$SETTINGS_FILE"; then
     echo "Either $SETTINGS_FILE doesn't exist, or app_Key is not inside it"
-    # if run w/arg
-    if [ -n "$MAKEMKV_PERMA_KEY" ]; then
-        # append permakey string to settings
-        echo "app_Key = \"$MAKEMKV_PERMA_KEY\"" >> "$SETTINGS_FILE"
-    else
-        # append beta key to settings
-        echo "app_Key = \"$makemkv_serial\"" >> "$SETTINGS_FILE"
-    fi
+    # append permakey string to settings
+    echo "Creating file"
+    mkdir -p "$SETTINGS_PATH"
+    echo "app_Key = \"$MAKEMKV_PERMA_KEY\"" >> "$SETTINGS_FILE"
 else
     echo "$SETTINGS_FILE exists, updating value of app_Key"
     # if run w/arg
@@ -49,4 +40,4 @@ else
     fi
 fi
 
-chown arm:arm "/home/arm/.MakeMKV/settings.conf"
+echo "Setting up to date"

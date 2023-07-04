@@ -8,15 +8,18 @@ import re
 import datetime
 import unicodedata
 import json
-import pydvdid
 import xmltodict
-import arm.config.config as cfg
 
-from arm.ripper import utils
-from arm.ui import db
+import pydvdid
+from pydvdid_m import DvdId
+
+
+import arm.config.config as cfg
 
 # flake8: noqa: W605
 from arm.ui import utils as ui_utils
+from arm.ui import db
+from arm.ripper import utils
 
 
 def check_if_mounted(mounted):
@@ -123,6 +126,7 @@ def identify_dvd(job):
         job.label = "not identified"
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
+        if len(crc64) < 1: crc64 = str(DvdId(str(job.devpath)).checksum).replace('|', '')
         dvd_title = f"{job.label}_{crc64}"
         logging.info(f"DVD CRC64 hash is: {crc64}")
         job.crc_id = str(crc64)

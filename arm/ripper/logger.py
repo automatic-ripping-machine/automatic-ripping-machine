@@ -12,6 +12,8 @@ import time
 
 import arm.config.config as cfg
 
+"""TODO: CHECK IF ALL NECESSARY DIRECTORY EXISTS"""
+
 
 def setup_logging(job):
     """Setup logging and return the path to the logfile for
@@ -23,7 +25,7 @@ def setup_logging(job):
         if job.disctype == "music":
             logfile = job.logfile = job.identify_audio_cd()
         else:
-            logfile = "empty.log"
+            logfile = job.disctype + ".log"
         # set a log_full for empty.log and music_cd.log
         log_full = os.path.join(cfg.arm_config['LOGPATH'], logfile)
     else:
@@ -116,7 +118,7 @@ def create_logger(app_name, log_level=logging.DEBUG, stdout=True, syslog=False, 
 
     if file:
         # create file logger handler
-        file_handler = logging.FileHandler('/home/arm/logs/arm.log')
+        file_handler = logging.FileHandler(os.path.join(cfg.arm_config['LOGPATH'], app_name + '.log'))
         file_handler.setLevel(log_level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)

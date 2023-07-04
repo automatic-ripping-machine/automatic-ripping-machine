@@ -21,7 +21,7 @@ import arm.config.config as cfg
 
 from netifaces import interfaces, ifaddresses, AF_INET
 from arm.ripper import apprise_bulk
-from arm.ui import db
+from arm.ui import app, db
 from arm.models import models
 
 NOTIFY_TITLE = "ARM notification"
@@ -454,6 +454,76 @@ def set_permissions(directory_to_traverse):
     return True
 
 
+def check_db_version(install_path, db_file):
+    """
+    Check if db exists and is up-to-date.\n
+    If it doesn't exist create it.\n
+    If it's out of date update it.\n
+    :param install_path: The installation path of arm - default path is /opt/arm
+    :param db_file: full path to the db file for arm
+    :return: None
+    """
+    from alembic.script import ScriptDirectory
+    from alembic.config import Config
+    import sqlite3
+    import flask_migrate
+
+    mig_dir = os.path.join(install_path, "migrations")
+
+    config = Config()
+    config.set_main_option("script_location", mig_dir)
+    script = ScriptDirectory.from_config(config)
+
+    # create db file if it doesn't exist
+    if not os.path.isfile(db_file):
+        logging.info("No database found.  Initializing arm.db...")
+        #  notify("", "No database was found!", "Trying to continue anyway")
+        make_dir(os.path.dirname(db_file))
+        with app.app_context():
+            flask_migrate.upgrade(mig_dir)
+
+        if not os.path.isfile(db_file):
+            error = "Can't create database file. This could be a permissions issue.  Exiting..."
+            logging.error(error)
+            raise IOError(error)
+
+    # check to see if db is at current revision
+    head_revision = script.get_current_head()
+    logging.debug(f"Head is: {head_revision}")
+
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+
+    c.execute("SELECT version_num FROM alembic_version")
+    db_version = c.fetchone()[0]
+    logging.debug(f"Database version is: {db_version}")
+    if head_revision == db_version:
+        logging.info("Database is up to date")
+        try_add_default_user()
+    else:
+        logging.info(
+            f"Database out of date. Head is {head_revision} and "
+            f"database is {db_version}. Upgrading database...")
+        with app.app_context():
+            random_time = round(time.time() * 100)
+            logging.info(f"Backuping up database '{db_file}' to '{db_file}_{random_time}'.")
+            shutil.copy(db_file, db_file + "_" + str(random_time))
+            flask_migrate.upgrade(mig_dir)
+        logging.info("Upgrade complete.  Validating version level...")
+
+        c.execute("SELECT version_num FROM alembic_version")
+        db_version = c.fetchone()[0]
+        logging.debug(f"Database version is: {db_version}")
+        try_add_default_user()
+        if head_revision == db_version:
+            logging.info("Database is now up to date")
+        else:
+            error = f"Database is still out of date. Head is {head_revision} and " \
+                    f"database is {db_version}. Exiting arm."
+            logging.error(error)
+            raise IOError(error)
+
+
 def try_add_default_user():
     """
     Added to fix missmatch from the armui and armripper\n
@@ -520,7 +590,8 @@ def arm_setup(arm_log):
     :return: None
     """
     arm_directories = [cfg.arm_config['RAW_PATH'], cfg.arm_config['TRANSCODE_PATH'],
-                       cfg.arm_config['COMPLETED_PATH'], cfg.arm_config['LOGPATH']]
+                       cfg.arm_config['COMPLETED_PATH'], cfg.arm_config['LOGPATH'], 
+                       os.path.join(cfg.arm_config['LOGPATH'], "progress")]
     try:
         # Check db file is writeable
         if not os.access(cfg.arm_config['DBFILE'], os.W_OK):
@@ -794,3 +865,21 @@ def check_for_wait(job):
                 database_updater({'status': "active", "hasnicetitle": True, "updated": True}, job)
                 break
         database_updater({'status': "active"}, job)
+
+
+def get_git_commit():
+    """
+    Function to get the current git version and log it in the arm logs
+    """
+    git_output = ""
+    cmd = "cd /opt/arm && git branch && git log -1"
+    try:
+        git_output = subprocess.check_output(
+            cmd,
+            shell=True
+        ).decode("utf-8")
+    except subprocess.CalledProcessError as _error:
+        logging.error(f"Error getting git version - {_error}")
+    git_version = re.search(r"^\* (\S+)\ncommit ([a-z\d]{5,7})", str(git_output))
+    if git_version:
+        logging.info(f"Branch: {git_version.group(1)} - Commit: {git_version.group(2)}")

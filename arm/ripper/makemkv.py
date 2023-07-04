@@ -156,7 +156,7 @@ def prep_mkv(logfile):
     """
     try:
         logging.info("Updating MakeMKV key...")
-        update_cmd = "/bin/bash /opt/arm/scripts/update_key.sh"
+        update_cmd = "/bin/bash /opt/arm/update_makemkv_key.sh"
 
         # if MAKEMKV_PERMA_KEY is populated
         if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":

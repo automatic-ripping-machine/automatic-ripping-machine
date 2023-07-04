@@ -2,8 +2,8 @@
 import os  # noqa: F401
 import sys
 
-# set the PATH to /arm/arm so we can handle imports properly
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+# set the PATH to /arm so we can handle imports properly
+sys.path.append("/opt")
 
 import arm.config.config as cfg  # noqa E402
 from arm.ui import app  # noqa E402
