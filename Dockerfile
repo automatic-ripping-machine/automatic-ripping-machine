@@ -188,13 +188,11 @@ RUN echo 'event_timeout=7200' > /etc/udev/udev.conf \
 # Final image preparation
 FROM arm-prepare AS arm-prepare-files
 
-# ARM configuration files
-COPY ./config/* /etc/arm/
 
 # ARM script
 COPY ./arm /opt/arm
-RUN chown -R root:arm /etc/arm /etc/arm/* /var/lib/arm /var/lib/arm/* /var/log/arm \
-&&  chmod -R ugo=r,ug=rw /etc/arm /etc/arm/* /var/log/arm /var/log/arm/* /var/lib/arm /var/lib/arm/* /opt/arm /opt/arm/* \
+RUN chown -R root:arm /etc/arm /var/lib/arm /var/lib/arm/* /var/log/arm \
+&&  chmod -R ugo=r,ug=rw /etc/arm /var/log/arm /var/log/arm/* /var/lib/arm /var/lib/arm/* /opt/arm /opt/arm/* \
 &&  chmod ugo+x /etc/arm /var/lib/arm /opt/arm \
 &&  chmod ugo+rx /opt/arm/*.sh \
 &&  find /opt/arm -type d -exec chmod ugo+x {} + \
@@ -220,6 +218,8 @@ HEALTHCHECK --interval=5s --timeout=2s --start-period=3s \
 
 
 EXPOSE 8080
+
+USER 0:$ARM_GID
 
 VOLUME [\
     "/sys/fs/cgroup", \

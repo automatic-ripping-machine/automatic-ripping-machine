@@ -282,14 +282,13 @@ def make_dir(path):
     :return: Boolean if successful
     """
     success = False
-    if not os.path.exists(path):
-        app.logger.debug("Creating directory: " + path)
-        try:
-            os.makedirs(path)
-            success = True
-        except OSError:
-            err = "Couldn't create a directory at path: " + path + " Probably a permissions error.  Exiting"
-            app.logger.error(err)
+    try:
+        os.makedirs(path, os.umask(0o002), True)
+        app.logger.debug("Directory created: " + path)
+        success = True
+    except OSError:
+        err = "Couldn't create a directory at path: " + path + " Probably a permissions error.  Exiting"
+        app.logger.error(err)
     return success
 
 
