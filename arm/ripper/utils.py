@@ -267,21 +267,19 @@ def delete_raw_files(dir_list):
 
 def make_dir(path):
     """
-    Make a directory\n
+    Make a directory
     :param path: Path to directory
-    :return: True if successful, false if the directory already exists
+    :return: Boolean if successful
     """
-    if not os.path.exists(path):
-        logging.debug(f"Creating directory: {path}")
-        try:
-            os.makedirs(path)
-            return True
-        except OSError as error:
-            err = f"Couldn't create a directory at path: {path} Probably a permissions error.  Exiting"
-            logging.error(err)
-            raise OSError from error
-    else:
-        return False
+    success = False
+    try:
+        os.makedirs(path, 0o775, True)
+        app.logger.debug("Directory available: " + path)
+        success = True
+    except OSError:
+        err = "Couldn't create a directory at path: " + path + " Probably a permissions error.  Exiting"
+        app.logger.error(err)
+    return success
 
 
 def get_cdrom_status(devpath):
@@ -599,14 +597,14 @@ def arm_setup(arm_log):
             raise IOError
         # Check directories for read/write permission -> create if they don't exist
         for folder in arm_directories:
+            if not make_dir(folder):
+                arm_log.error(f"Cant create folder: {folder} - ARM Will Fail!")
+                raise IOError
             if not os.access(folder, os.R_OK):
                 # don't raise as we may be able to create
                 arm_log.error(f"Cant read from folder, Permission ERROR: {folder} - ARM Will Fail!")
             if not os.access(folder, os.W_OK):
                 arm_log.error(f"Cant write to folder, Permission ERROR: {folder} - ARM Will Fail!")
-                raise IOError
-            if make_dir(folder):
-                arm_log.error(f"Cant create folder: {folder} - ARM Will Fail!")
                 raise IOError
     except IOError as error:
         arm_log.error(f"A fatal error has occurred. "

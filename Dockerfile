@@ -219,7 +219,7 @@ HEALTHCHECK --interval=5s --timeout=2s --start-period=3s \
 
 EXPOSE 8080
 
-USER 0:$ARM_GID
+USER 0:1000
 
 VOLUME [\
     "/sys/fs/cgroup", \
