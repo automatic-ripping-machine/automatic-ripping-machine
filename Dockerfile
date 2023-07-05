@@ -228,9 +228,9 @@ VOLUME [\
     "/var/lib/arm/data", \
     "/var/lib/arm/raw", \
     "/var/lib/arm/transcode", \
-    "/var/lib/arm/completed", \
     "/var/lib/arm/completed/movies", \
     "/var/lib/arm/completed/music", \
+    "/var/lib/arm/completed/unidentified", \
     "/opt/arm/tools" \
 ]
 
