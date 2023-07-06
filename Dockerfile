@@ -176,7 +176,7 @@ RUN ln -sv /lib/udev/rules.d/50-udev-default.rules /etc/udev/rules.d/ \
 
 # Service scripts
 COPY ./systemd/armui.service /lib/systemd/system/
-RUN echo 'event_timeout=7200' > /etc/udev/udev.conf \
+RUN echo 'event_timeout=21600' > /etc/udev/udev.conf \
 &&  echo '[Install]' >> /usr/lib/systemd/system/udev.service \
 &&  echo 'WantedBy=multi-user.target' >> /usr/lib/systemd/system/udev.service \
 &&  systemctl enable udev \
