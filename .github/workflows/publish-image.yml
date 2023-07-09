@@ -113,7 +113,7 @@ jobs:
                     labels: ${{ steps.meta.outputs.labels }}
             - 
                 name: Create Release    
-                uses: "lauravuo/action-automatic-releases@latest"
+                uses: "lauravuo/action-automatic-releases@test-changes"
                 with:
                     repo_token: "${{ secrets.GITHUB_TOKEN }}"
                     automatic_release_tag: "${{ env.VERSION }}"
