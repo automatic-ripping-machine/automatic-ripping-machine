@@ -7,6 +7,7 @@ import logging
 import subprocess
 import shlex
 
+from arm.models import models
 from arm.ripper import utils  # noqa: E402
 from arm.ui import db  # noqa: F401, E402
 import arm.config.config as cfg  # noqa E402
@@ -63,12 +64,15 @@ def makemkv(logfile, job):
               f'-r disc:{mdisc.strip()} {shlex.quote(rawpath)}'
         logging.info("Backing up disc")
         run_makemkv(cmd, logfile)
-    # Rip DVD
+    # Rip Blu-ray without enhanced protection or dvd disc
     elif job.config.RIPMETHOD == "mkv" or job.disctype == "dvd":
         get_track_info(mdisc, job)
-
+        if job.config.MAINFEATURE:
+            logging.info("Trying to find mainfeature")
+            track = models.Track.query.filter_by(job_id=job.job_id).order_by(models.Track.length.desc()).first()
+            rip_mainfeature(job, track, logfile, rawpath)
         # if no maximum length, process the whole disc in one command
-        if int(job.config.MAXLENGTH) > 99998:
+        elif int(job.config.MAXLENGTH) > 99998:
             cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r ' \
                   f'--progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log ' \
                   f'--messages=-stdout ' \
@@ -82,6 +86,21 @@ def makemkv(logfile, job):
     job.eject()
     logging.info(f"Exiting MakeMKV processing with return value of: {rawpath}")
     return rawpath
+
+
+def rip_mainfeature(job, track, logfile, rawpath):
+    """
+    Find and rip only the main feature when using Blu-rays
+    """
+    logging.info(f"Processing track #{track.track_number} as mainfeature. "
+                 f"Length is {track.length} seconds.")
+    filepathname = os.path.join(rawpath, track.filename)
+    logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
+    cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r --progress=-stdout --messages=-stdout ' \
+          f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)} ' \
+          f'--minlength={job.config.MINLENGTH}'
+    # Possibly update db to say track was ripped
+    run_makemkv(cmd, logfile)
 
 
 def process_single_tracks(job, logfile, rawpath):
