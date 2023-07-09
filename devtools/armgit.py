@@ -22,9 +22,19 @@ def flake8(arm_path):
 
     log.info(f"Running quality checks against ARM - {arm_path}")
 
-    # Run flake8 against ARM
-    armui.run_command(f"flake8 {arm_path}/arm --max-complexity=15 --max-line-length=120 --show-source --statistics",
-                      "ARM QA check completed")
+    flake_config = "--max-complexity=15 --max-line-length=120 --show-source --statistics"
+
+    # Run flake8 against ARM - arm
+    armui.run_command(f"flake8 {arm_path}/arm {flake_config}",
+                      f"ARM QA check completed against {arm_path}/arm")
+
+    # Run flake8 against ARM - test
+    armui.run_command(f"flake8 {arm_path}/test {flake_config}",
+                      f"ARM QA check completed against {arm_path}/test")
+
+    # Run flake8 against ARM - devtools
+    armui.run_command(f"flake8 {arm_path}/devtools {flake_config}",
+                      f"ARM QA check completed against {arm_path}/devtools")
 
     # Restart the UI once git has worked
     armui.start()
@@ -43,6 +53,13 @@ def pr_update():
 
     # GIT submodule update
     armui.run_command("cd .. & git submodule update --remote", "ARM submodule updated")
+
+    # unittest - ripper
+    armui.run_command("python3 -m unittest discover -s /opt/arm/test/unittest -p 'test_ripper*.py' -v",
+                      "ARM ripper unittest completed")
+
+    # unittest - ui
+    # todo: add flask unittesting in here
 
     # Restart the UI once git has worked
     armui.start()
