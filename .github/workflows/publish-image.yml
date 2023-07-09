@@ -118,7 +118,7 @@ jobs:
                     repo_token: "${{ secrets.GITHUB_TOKEN }}"
                     automatic_release_tag: "${{ env.VERSION }}"
                     prerelease: false
-                    generate_release_notes: true
+                    auto_generate_release_notes: true
                     title: "${{ env.VERSION }}"
                     files: |
                       LICENSE
