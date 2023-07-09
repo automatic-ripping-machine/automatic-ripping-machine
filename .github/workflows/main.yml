@@ -45,7 +45,7 @@ jobs:
       uses: github/codeql-action/analyze@v2
     
     - name: Create Release
-    - uses: "marvinpinto/action-automatic-releases@latest"
+      uses: "marvinpinto/action-automatic-releases@latest"
       with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "latest"
