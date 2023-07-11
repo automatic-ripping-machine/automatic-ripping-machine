@@ -201,12 +201,16 @@ def arm_db_cfg():
         check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
         setup_database()
 
+    # if the database has been updated
+    # UISettings could be incorrect, return None
+    try:
         armui_cfg = models.UISettings.query.get(1)
         app.jinja_env.globals.update(armui_cfg=armui_cfg)
+    except Exception as e:
+        app.logger.debug(f"arm_cfg request error {e}")
+        armui_cfg = None
 
-    else:
-        armui_cfg = models.UISettings.query.get(1)
-        app.jinja_env.globals.update(armui_cfg=armui_cfg)
+    app.logger.debug(armui_cfg)
 
     return armui_cfg
 
@@ -756,7 +760,7 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
     # Fake crc64 number
     hash_object = hashlib.md5(f"{movie}".strip().encode())
     # Check if we already have this in the db exit if we do
-    dupe_found, not_used_variable = job_dupe_check(hash_object.hexdigest())
+    dupe_found, _ = job_dupe_check(hash_object.hexdigest())
     if dupe_found:
         app.logger.debug("We found dupes breaking loop")
         return None

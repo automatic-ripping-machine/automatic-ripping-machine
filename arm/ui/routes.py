@@ -14,10 +14,11 @@ import os
 import json
 from pathlib import Path, PurePath
 from werkzeug.exceptions import HTTPException
-from flask import Flask, render_template, request, send_file, flash, \
-    redirect, url_for  # noqa: F401
+from flask import Flask, render_template, request, flash, \
+    redirect, url_for   # noqa: F401
 from flask.logging import default_handler  # noqa: F401
-from flask_login import login_required, UserMixin  # noqa: F401
+from flask_login import LoginManager, login_required, \
+    current_user, login_user, logout_user  # noqa: F401
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants
@@ -32,6 +33,10 @@ armui_cfg = ui_utils.arm_db_cfg()
 # Page definitions
 page_support_databaseupdate = "support/databaseupdate.html"
 redirect_settings = "/settings"
+
+# Define the Flask login manager
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 
 @app.route('/')
@@ -160,3 +165,26 @@ def setup():
         flash(str(error))
         app.logger.debug("Setup - " + str(error))
         return redirect(constants.HOME_PAGE)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    """
+    Logged in check
+    :param user_id:
+    :return:
+    """
+    try:
+        return models.User.query.get(int(user_id))
+    except Exception:
+        app.logger.debug("Error getting user")
+        return None
+
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    """
+    User isn't authorised to view the page
+    :return: Page redirect
+    """
+    return redirect('/login')

@@ -107,6 +107,7 @@ class Job(db.Model):
         self.disctype = "unknown"
 
         for key, value in device.items():
+            logging.debug(f"pyudev: {key}: {value}")
             if key == "ID_FS_LABEL":
                 self.label = value
                 if value == "iso9660":
@@ -168,7 +169,10 @@ class Job(db.Model):
         """
         # Use the music label if we can find it - defaults to music_cd.log
         disc_id = music_brainz.get_disc_id(self)
+        logging.debug(f"music_id: {disc_id}")
         mb_title = music_brainz.get_title(disc_id, self)
+        logging.debug(f"mm_title: {mb_title}")
+
         if mb_title == "not identified":
             self.label = self.title = "not identified"
             logfile = "music_cd.log"
@@ -425,16 +429,18 @@ class UISettings(db.Model):
     language = db.Column(db.String(4))
     index_refresh = db.Column(db.Integer)
     database_limit = db.Column(db.Integer)
+    notify_refresh = db.Column(db.Integer)
 
     def __init__(self, use_icons=None, save_remote_images=None,
                  bootstrap_skin=None, language=None, index_refresh=None,
-                 database_limit=None):
+                 database_limit=None, notify_refresh=None):
         self.use_icons = use_icons
         self.save_remote_images = save_remote_images
         self.bootstrap_skin = bootstrap_skin
         self.language = language
         self.index_refresh = index_refresh
         self.database_limit = database_limit
+        self.notify_refresh = notify_refresh
 
     def __repr__(self):
         return f'<UISettings {self.id}>'
@@ -467,6 +473,9 @@ class Notifications(db.Model):
     dismiss_time = db.Column(db.DateTime)
     title = db.Column(db.String(256))
     message = db.Column(db.String(256))
+    diff_time = None
+    cleared = db.Column(db.Boolean, default=False, nullable=False)
+    cleared_time = db.Column(db.DateTime)
 
     def __init__(self, title=None, message=None):
         self.seen = False
@@ -516,6 +525,7 @@ class SystemInfo(db.Model):
         function to collect and return some cpu info
         ideally want to return {name} @ {speed} Ghz
         """
+        self.cpu = "Unknown"
         if platform.system() == "Windows":
             self.cpu = platform.processor()
         elif platform.system() == "Darwin":
@@ -540,6 +550,10 @@ class SystemInfo(db.Model):
                 if amd_mhz:
                     amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
                     self.cpu = str(amd_name) + " @ " + str(amd_ghz) + " GHz"
+            # ARM64 CPU
+            arm_cpu = re.search(r"\\nmodel name\\t:(.*?)\\n", fulldump)
+            if arm_cpu:
+                self.cpu = str(arm_cpu.group(1))[:19]
         else:
             self.cpu = "N/A"
 

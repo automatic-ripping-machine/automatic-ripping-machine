@@ -13,7 +13,7 @@ from flask import request
 
 import arm.config.config as cfg
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track, Notifications
+from arm.models.models import Job, Config, Track, Notifications, UISettings
 from arm.ui.forms import ChangeParamsForm
 from arm.ui.utils import job_id_validator, database_updater
 from arm.ui.settings import DriveUtils as drive_utils # noqa E402
@@ -179,7 +179,9 @@ def process_audio_logfile(logfile, job, job_results):
                 job.progress = round(percentage(job_stage_index.group(1), job.no_of_titles + 1))
                 job.progress_round = round(job.progress)
             except Exception as error:
-                job.stage = f"Unknown -  {error}"
+                app.logger.debug("Error processing abcde logfile. Error dump"
+                                 f"-  {error}", exc_info=True)
+                job.stage = "Unknown"
                 job.eta = "Unknown"
                 job.progress = job.progress_round = 0
     return job_results
@@ -188,10 +190,14 @@ def process_audio_logfile(logfile, job, job_results):
 def calc_process_time(starttime, cur_iter, max_iter):
     """Modified from stackoverflow
     Get a rough estimate of ETA, return formatted String"""
-    time_elapsed = datetime.datetime.now() - starttime
-    time_estimated = (time_elapsed.seconds / int(cur_iter)) * int(max_iter)
-    finish_time = (starttime + datetime.timedelta(seconds=int(time_estimated)))
-    test = finish_time - datetime.datetime.now()
+    try:
+        time_elapsed = datetime.datetime.now() - starttime
+        time_estimated = (time_elapsed.seconds / int(cur_iter)) * int(max_iter)
+        finish_time = (starttime + datetime.timedelta(seconds=int(time_estimated)))
+        test = finish_time - datetime.datetime.now()
+    except TypeError:
+        app.logger.error("Failed to calculate processing time - Resetting to now, time wont be accurate!")
+        test = time_estimated = time_elapsed = finish_time = datetime.datetime.now()
     return f"{str(test).split('.', maxsplit=1)[0]} - @{finish_time.strftime('%H:%M:%S')}"
 
 
@@ -444,4 +450,21 @@ def read_notification(notify_id):
         return_json['success'] = True
     else:
         return_json['message'] = "Notification already read or not found!"
+    return return_json
+
+
+def get_notify_timeout(notify_timeout):
+    """Return the notification timeout UI setting"""
+
+    return_json = {'success': True,
+                   'mode': 'notify_timeout',
+                   'notify_timeout': ''}
+
+    armui_cfg = UISettings.query.first()
+
+    if armui_cfg:
+        return_json['notify_timeout'] = armui_cfg.notify_refresh
+    else:
+        return_json['notify_timeout'] = '6500'
+
     return return_json

@@ -69,7 +69,7 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
         track.error = job.errors = err
         job.status = "fail"
         db.session.commit()
-        raise subprocess.CalledProcessError(hb_error)
+        raise subprocess.CalledProcessError(hb_error.returncode, cmd)
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
@@ -100,7 +100,9 @@ def handbrake_all(srcpath, basepath, logfile, job):
     logging.debug(f"Total number of tracks is {job.no_of_titles}")
 
     for track in job.tracks:
-
+        # Don't raise error if we past max titles, skip and continue till HandBrake finishes
+        if int(track.track_number) > job.no_of_titles:
+            continue
         if track.length < int(cfg.arm_config["MINLENGTH"]):
             # too short
             logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
@@ -148,7 +150,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
                 track.status = "fail"
                 track.error = err
                 db.session.commit()
-                raise subprocess.CalledProcessError(hb_error)
+                raise subprocess.CalledProcessError(hb_error.returncode, cmd)
 
             track.ripped = True
             db.session.commit()
@@ -226,7 +228,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
             err = f"Handbrake encoding of file {shlex.quote(files)} failed with code: {hb_error.returncode}" \
                   f"({hb_error.output})"
             logging.error(err)
-            raise subprocess.CalledProcessError(hb_error)
+            raise subprocess.CalledProcessError(hb_error.returncode, cmd)
             # job.errors.append(f)
 
     logging.info(PROCESS_COMPLETE)

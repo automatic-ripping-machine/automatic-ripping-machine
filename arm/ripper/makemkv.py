@@ -40,12 +40,14 @@ def makemkv(logfile, job):
     # get MakeMKV disc number
     logging.debug("Getting MakeMKV disc number")
     cmd = f"makemkvcon -r info disc:9999 | grep {job.devpath} | grep -oP '(?<=:).*?(?=,)'"
+    logging.debug(f"Using command: {cmd}")
     try:
         mdisc = subprocess.check_output(
             cmd,
             shell=True
         ).decode("utf-8")
         logging.info(f"MakeMKV disc number: {mdisc.strip()}")
+        logging.debug(f"Disk raw number: {mdisc}")
     except subprocess.CalledProcessError as mdisc_error:
         raise MakeMkvRuntimeError(mdisc_error) from mdisc_error
 
@@ -59,7 +61,7 @@ def makemkv(logfile, job):
               f'--progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log ' \
               f'--messages=-stdout ' \
               f'-r disc:{mdisc.strip()} {shlex.quote(rawpath)}'
-        logging.info("Backup up disc")
+        logging.info("Backing up disc")
         run_makemkv(cmd, logfile)
     # Rip DVD
     elif job.config.RIPMETHOD == "mkv" or job.disctype == "dvd":

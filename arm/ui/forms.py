@@ -54,6 +54,7 @@ class UiSettingsForm(FlaskForm):
     bootstrap_skin = StringField('bootstrap_skin', validators=[DataRequired()])
     language = StringField('language', validators=[DataRequired()])
     database_limit = IntegerField('database_limit', validators=[DataRequired()])
+    notify_refresh = IntegerField('notify_refresh', validators=[DataRequired()])
     submit = SubmitField('Submit')
 
 

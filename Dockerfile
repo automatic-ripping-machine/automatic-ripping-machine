@@ -11,8 +11,8 @@ EXPOSE 8080
 # Setup folders and fstab
 RUN \
     mkdir -m 0777 -p /home/arm \
-    /home/arm/config \
-    /mnt/dev/sr0 /mnt/dev/sr1 /mnt/dev/sr2 /mnt/dev/sr3 \
+    /home/arm/config /mnt/dev/sr0 \
+    /mnt/dev/sr1 /mnt/dev/sr2 /mnt/dev/sr3 /mnt/dev/sr4 \
     /mnt/dev/sr5 /mnt/dev/sr6 /mnt/dev/sr7 /mnt/dev/sr8 \
     /mnt/dev/sr9 /mnt/dev/sr10 /mnt/dev/sr11 /mnt/dev/sr12 \
     /mnt/dev/sr13 /mnt/dev/sr14 /mnt/dev/sr15 /mnt/dev/sr16 \
@@ -69,6 +69,9 @@ COPY . /opt/arm/
 
 # Our docker udev rule
 RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
+
+# Allow git to be managed from the /opt/arm folders
+RUN git config --global --add safe.directory /opt/arm
 
 CMD ["/sbin/my_init"]
 WORKDIR /home/arm

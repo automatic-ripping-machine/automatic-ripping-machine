@@ -21,7 +21,7 @@ import arm.config.config as cfg
 
 from netifaces import interfaces, ifaddresses, AF_INET
 from arm.ripper import apprise_bulk
-from arm.ui import app, db
+from arm.ui import db
 from arm.models import models
 
 NOTIFY_TITLE = "ARM notification"
@@ -454,76 +454,6 @@ def set_permissions(directory_to_traverse):
     return True
 
 
-def check_db_version(install_path, db_file):
-    """
-    Check if db exists and is up-to-date.\n
-    If it doesn't exist create it.\n
-    If it's out of date update it.\n
-    :param install_path: The installation path of arm - default path is /opt/arm
-    :param db_file: full path to the db file for arm
-    :return: None
-    """
-    from alembic.script import ScriptDirectory
-    from alembic.config import Config
-    import sqlite3
-    import flask_migrate
-
-    mig_dir = os.path.join(install_path, "arm/migrations")
-
-    config = Config()
-    config.set_main_option("script_location", mig_dir)
-    script = ScriptDirectory.from_config(config)
-
-    # create db file if it doesn't exist
-    if not os.path.isfile(db_file):
-        logging.info("No database found.  Initializing arm.db...")
-        #  notify("", "No database was found!", "Trying to continue anyway")
-        make_dir(os.path.dirname(db_file))
-        with app.app_context():
-            flask_migrate.upgrade(mig_dir)
-
-        if not os.path.isfile(db_file):
-            error = "Can't create database file. This could be a permissions issue.  Exiting..."
-            logging.error(error)
-            raise IOError(error)
-
-    # check to see if db is at current revision
-    head_revision = script.get_current_head()
-    logging.debug(f"Head is: {head_revision}")
-
-    conn = sqlite3.connect(db_file)
-    c = conn.cursor()
-
-    c.execute("SELECT version_num FROM alembic_version")
-    db_version = c.fetchone()[0]
-    logging.debug(f"Database version is: {db_version}")
-    if head_revision == db_version:
-        logging.info("Database is up to date")
-        try_add_default_user()
-    else:
-        logging.info(
-            f"Database out of date. Head is {head_revision} and "
-            f"database is {db_version}. Upgrading database...")
-        with app.app_context():
-            random_time = round(time.time() * 100)
-            logging.info(f"Backuping up database '{db_file}' to '{db_file}_{random_time}'.")
-            shutil.copy(db_file, db_file + "_" + str(random_time))
-            flask_migrate.upgrade(mig_dir)
-        logging.info("Upgrade complete.  Validating version level...")
-
-        c.execute("SELECT version_num FROM alembic_version")
-        db_version = c.fetchone()[0]
-        logging.debug(f"Database version is: {db_version}")
-        try_add_default_user()
-        if head_revision == db_version:
-            logging.info("Database is now up to date")
-        else:
-            error = f"Database is still out of date. Head is {head_revision} and " \
-                    f"database is {db_version}. Exiting arm."
-            logging.error(error)
-            raise IOError(error)
-
-
 def try_add_default_user():
     """
     Added to fix missmatch from the armui and armripper\n
@@ -690,46 +620,6 @@ def clean_old_jobs():
             database_updater({'status': "fail"}, job)
 
 
-def job_dupe_check(job):
-    """
-    function for checking the database to look for jobs that have completed
-    successfully with the same crc
-    :param job: The job obj so we can use the crc/title etc
-    :return: True/False, dict/None
-    """
-    if job.crc_id is None:
-        return False
-    logging.debug(f"trying to find jobs with crc64={job.crc_id}")
-    previous_rips = models.Job.query.filter_by(crc_id=job.crc_id, status="success", hasnicetitle=True)
-    results = {}
-    i = 0
-    for j in previous_rips:
-        # logging.debug(f"job obj= {j.get_d()}")
-        job_dict = j.get_d().items()
-        results[i] = {}
-        for key, value in iter(job_dict):
-            results[i][str(key)] = str(value)
-        i += 1
-
-    # logging.debug(f"previous rips = {results}")
-    if results:
-        logging.debug(f"we have {len(results)} jobs")
-        # This might need some tweaks to because of title/year manual
-        title = results[0]['title'] if results[0]['title'] else job.label
-        year = results[0]['year'] if results[0]['year'] != "" else ""
-        poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
-        hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
-        video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
-        active_rip = {
-            "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
-            "video_type": video_type}
-        database_updater(active_rip, job)
-        return True
-
-    logging.debug("We have no previous rips/jobs matching this crc64")
-    return False
-
-
 def check_ip():
     """
         Check if user has set an ip in the config file
@@ -844,6 +734,44 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
     return hb_out_path
 
 
+def job_dupe_check(job):
+    """
+    function for checking the database to look for jobs that have completed
+    successfully with the same label
+    :param job: The job obj so we can use the crc/title etc.
+    :return: True/False, dict/None
+    """
+    logging.debug(f"Trying to find jobs with matching Label={job.label}")
+    previous_rips = models.Job.query.filter_by(label=job.label, status="success")
+    results = {}
+    i = 0
+    for j in previous_rips:
+        # logging.debug(f"job obj= {j.get_d()}")
+        job_dict = j.get_d().items()
+        results[i] = {}
+        for key, value in iter(job_dict):
+            results[i][str(key)] = str(value)
+        i += 1
+
+    # logging.debug(f"previous rips = {results}")
+    if results:
+        logging.debug(f"we have {len(results)} jobs")
+        # This might need some tweaks to because of title/year manual
+        title = results[0]['title'] if results[0]['title'] else job.label
+        year = results[0]['year'] if results[0]['year'] != "" else ""
+        poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
+        hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
+        video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
+        active_rip = {
+            "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
+            "video_type": video_type}
+        database_updater(active_rip, job)
+        return True
+
+    logging.info("We have no previous rips/jobs matching this label")
+    return False
+
+
 def check_for_wait(job):
     """
     Wait if we have waiting for user input updates\n\n
@@ -866,21 +794,3 @@ def check_for_wait(job):
                 database_updater({'status': "active", "hasnicetitle": True, "updated": True}, job)
                 break
         database_updater({'status': "active"}, job)
-
-
-def get_git_commit():
-    """
-    Function to get the current git version and log it in the arm logs
-    """
-    git_output = ""
-    cmd = "cd /opt/arm && git branch && git log -1"
-    try:
-        git_output = subprocess.check_output(
-            cmd,
-            shell=True
-        ).decode("utf-8")
-    except subprocess.CalledProcessError as _error:
-        logging.error(f"Error getting git version - {_error}")
-    git_version = re.search(r"^\* (\S+)\ncommit ([a-z\d]{5,7})", str(git_output))
-    if git_version:
-        logging.info(f"Branch: {git_version.group(1)} - Commit: {git_version.group(2)}")

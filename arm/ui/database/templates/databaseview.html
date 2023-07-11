@@ -109,11 +109,18 @@
                                 <!-- Card Body -->
                                 <div class="row no-gutters">
                                     <div class="col-lg-4">
-                                        {% if not job.poster_url %}
-                                            <a href="jobdetail?job_id={{ job.job_id }}"><img src="static/img/none.png"
-                                                                                             width="240px"
-                                                                                             class="img-thumbnail"
-                                                                                             alt="No Poster Image"></a>
+                                        {% if not job.poster_url or job.poster_url == "None" %}
+                                            {% if job.video_type == "Music" %}
+                                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="static/img/music.png"
+                                                                                                width="240px"
+                                                                                                class="img-thumbnail"
+                                                                                                alt="No Poster Image"></a>
+                                            {% else %}
+                                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="static/img/none.png"
+                                                                                                width="240px"
+                                                                                                class="img-thumbnail"
+                                                                                                alt="No Poster Image"></a>
+                                            {% endif %}
                                         {% else %}
                                             <a href="jobdetail?job_id={{ job.job_id }}"><img src="{{ job.poster_url }}"
                                                                                              width="240px"
