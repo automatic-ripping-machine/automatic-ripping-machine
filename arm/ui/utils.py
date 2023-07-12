@@ -19,6 +19,7 @@ from werkzeug.routing import ValidationError
 from flask.logging import default_handler  # noqa: F401
 
 import arm.config.config as cfg
+from arm.config.config_utils import arm_yaml_test_bool
 from arm.ui.settings import DriveUtils as drive_utils
 from arm.config import config_utils
 from arm.ui import app, db
@@ -665,6 +666,30 @@ def build_arm_cfg(form_data, comments):
             arm_cfg += config_utils.arm_yaml_test_bool(key, value)
     app.logger.debug("save_settings: FINISH")
     return arm_cfg
+
+
+def build_apprise_cfg(form_data):
+    """
+    Main function for saving new updated apprise.yaml\n
+    :param form_data: post data
+    :return: full new arm.yaml as a String
+    """
+    # This really should be hard coded.
+    app.logger.debug("save_apprise: START")
+    apprise_cfg = "\n\n"
+    for key, value in form_data.items():
+        app.logger.debug(f"save_apprise: current key {key} = {value} ")
+        if key == "csrf_token":
+            continue
+        # test if key value is an int
+        try:
+            post_value = int(value)
+            apprise_cfg += f"{key}: {post_value}\n"
+        except ValueError:
+            # Test if value is Boolean
+            apprise_cfg += arm_yaml_test_bool(key, value)
+    app.logger.debug("save_apprise: FINISH")
+    return apprise_cfg
 
 
 def get_processor_name():
