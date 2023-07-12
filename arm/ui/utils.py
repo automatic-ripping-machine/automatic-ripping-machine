@@ -193,7 +193,7 @@ def arm_db_check():
 
 def arm_db_cfg():
     """
-    Check if the databsee exists prior to creating global ui settings
+    Check if the database exists prior to creating global ui settings
     """
     db_update = arm_db_check()
     if not db_update["db_exists"]:

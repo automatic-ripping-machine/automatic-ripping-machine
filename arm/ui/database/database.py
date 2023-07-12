@@ -37,7 +37,8 @@ def view_database():
     Outputs every job from the database
      this can cause serious slow-downs with + 3/4000 entries
     """
-    global armui_cfg
+    # regenerate the armui_cfg we don't want old settings
+    armui_cfg = ui_utils.arm_db_cfg()
 
     page = request.args.get('page', 1, type=int)
     app.logger.debug(armui_cfg)
