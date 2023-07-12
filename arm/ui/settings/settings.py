@@ -115,11 +115,11 @@ def check_hw_transcode_support():
             app.logger.info("NVENC supported!")
             hw_support_status["nvidia"] = True
         # Intel QuickSync
-        if re.search(r'qsv:\sis(.*?)\n', str(hand_brake_output.stderr)):
+        if re.search(r'qsv:\sis(.*?)available\son', str(hand_brake_output.stderr)):
             app.logger.info("Intel QuickSync supported!")
             hw_support_status["intel"] = True
         # AMD VCN
-        if re.search(r'vcn:\sis(.*?)\n', str(hand_brake_output.stderr)):
+        if re.search(r'vcn:\sis(.*?)available\son', str(hand_brake_output.stderr)):
             app.logger.info("AMD VCN supported!")
             hw_support_status["amd"] = True
         app.logger.info("Handbrake call successful")
