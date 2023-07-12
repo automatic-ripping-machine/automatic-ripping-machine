@@ -28,11 +28,15 @@ def history():
     Smaller much simpler output of previously run jobs
 
     """
+    # regenerate the armui_cfg we don't want old settings
+    armui_cfg = ui_utils.arm_db_cfg()
     page = request.args.get('page', 1, type=int)
     if os.path.isfile(cfg.arm_config['DBFILE']):
         # after roughly 175 entries firefox readermode will break
         # jobs = Job.query.filter_by().limit(175).all()
-        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page, 100, False)
+        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page=page,
+                                                                              max_per_page=int(armui_cfg.database_limit),
+                                                                              error_out=False)
     else:
         app.logger.error('ERROR: /history database file doesnt exist')
         jobs = {}
