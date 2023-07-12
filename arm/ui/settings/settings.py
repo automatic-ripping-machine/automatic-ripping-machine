@@ -186,18 +186,19 @@ def save_apprise_cfg():
     Method - POST
     Overview - Save 'Apprise Config' page settings to database. Not a user page
     """
-    # Load up the comments.json, so we can comment the arm.yaml
     success = False
-    form = SettingsForm()
-    if form.validate_on_submit():
+    # Since we can't be sure of any values, we can't validate it
+    if request.method == 'POST':
         # Save updated apprise.yaml
+        # Build the new arm.yaml with updated values from the user
+        apprise_cfg = ui_utils.build_apprise_cfg(request.form.to_dict())
         with open(cfg.apprise_config_path, "w") as settings_file:
-            settings_file.write(request.form.to_dict())
+            settings_file.write(apprise_cfg)
             settings_file.close()
         success = True
         importlib.reload(cfg)
     # If we get to here there was no post data
-    return {'success': success, 'settings': cfg.apprise_config, 'form': 'arm ripper settings'}
+    return {'success': success, 'settings': cfg.apprise_config, 'form': 'Apprise config'}
 
 
 @route_settings.route('/systeminfo', methods=['POST'])
