@@ -525,6 +525,7 @@ class SystemInfo(db.Model):
         function to collect and return some cpu info
         ideally want to return {name} @ {speed} Ghz
         """
+        self.cpu = "Unknown"
         if platform.system() == "Windows":
             self.cpu = platform.processor()
         elif platform.system() == "Darwin":
@@ -549,6 +550,10 @@ class SystemInfo(db.Model):
                 if amd_mhz:
                     amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
                     self.cpu = str(amd_name) + " @ " + str(amd_ghz) + " GHz"
+            # ARM64 CPU
+            arm_cpu = re.search(r"\\nmodel name\\t:(.*?)\\n", fulldump)
+            if arm_cpu:
+                self.cpu = str(arm_cpu.group(1))[:19]
         else:
             self.cpu = "N/A"
 

@@ -88,15 +88,16 @@ def identify_bluray(job):
 
     try:
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
+        if not bluray_title:
+            bluray_title = job.label
     except KeyError:
         bluray_title = str(job.label)
-        bluray_year = ""
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
 
     bluray_modified_timestamp = os.path.getmtime(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml')
     bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))
 
-    bluray_title = unicodedata.normalize('NFKD', bluray_title).encode('ascii', 'ignore').decode()
+    bluray_title = unicodedata.normalize('NFKD', str(bluray_title)).encode('ascii', 'ignore').decode()
 
     bluray_title = bluray_title.replace(' - Blu-rayTM', '')
     bluray_title = bluray_title.replace(' Blu-rayTM', '')

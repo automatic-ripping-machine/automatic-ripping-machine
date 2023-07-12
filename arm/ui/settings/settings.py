@@ -15,6 +15,9 @@ Covers
 import os
 import platform
 import importlib
+import re
+import subprocess
+
 from flask_login import LoginManager, login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
 from flask import render_template, request, flash, \
@@ -65,7 +68,8 @@ def settings():
              'cds_ripped': cds,
              'no_failed_jobs': failed_rips,
              'total_rips': total_rips,
-             'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash())
+             'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash()),
+             'hw_support': check_hw_transcode_support()
              }
 
     # ARM UI config
@@ -92,6 +96,39 @@ def settings():
                            form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config,
                            server=server, serverutil=serverutil, arm_path=arm_path, media_path=media_path,
                            drives=drives, form_drive=False)
+
+
+def check_hw_transcode_support():
+    cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']}"
+
+    app.logger.debug(f"Sending command: {cmd}")
+    hw_support_status = {
+        "nvidia": False,
+        "intel": False,
+        "amd": False
+    }
+    try:
+        hand_brake_output = subprocess.run(f"{cmd}", capture_output=True, shell=True, check=True)
+
+        # NVENC
+        if re.search(r'nvenc: version ([0-9\\.]+) is available', str(hand_brake_output.stderr)):
+            app.logger.info("NVENC supported!")
+            hw_support_status["nvidia"] = True
+        # Intel QuickSync
+        if re.search(r'qsv:\sis(.*?)\n', str(hand_brake_output.stderr)):
+            app.logger.info("Intel QuickSync supported!")
+            hw_support_status["intel"] = True
+        # AMD VCN
+        if re.search(r'vcn:\sis(.*?)\n', str(hand_brake_output.stderr)):
+            app.logger.info("AMD VCN supported!")
+            hw_support_status["amd"] = True
+        app.logger.info("Handbrake call successful")
+        # Dump the whole CompletedProcess object
+        app.logger.debug(hand_brake_output)
+    except subprocess.CalledProcessError as hb_error:
+        err = f"Call to handbrake failed with code: {hb_error.returncode}({hb_error.output})"
+        app.logger.error(err)
+    return hw_support_status
 
 
 @route_settings.route('/save_settings', methods=['POST'])
@@ -186,18 +223,19 @@ def save_apprise_cfg():
     Method - POST
     Overview - Save 'Apprise Config' page settings to database. Not a user page
     """
-    # Load up the comments.json, so we can comment the arm.yaml
     success = False
-    form = SettingsForm()
-    if form.validate_on_submit():
+    # Since we can't be sure of any values, we can't validate it
+    if request.method == 'POST':
         # Save updated apprise.yaml
+        # Build the new arm.yaml with updated values from the user
+        apprise_cfg = ui_utils.build_apprise_cfg(request.form.to_dict())
         with open(cfg.apprise_config_path, "w") as settings_file:
-            settings_file.write(request.form.to_dict())
+            settings_file.write(apprise_cfg)
             settings_file.close()
         success = True
         importlib.reload(cfg)
     # If we get to here there was no post data
-    return {'success': success, 'settings': cfg.apprise_config, 'form': 'arm ripper settings'}
+    return {'success': success, 'settings': cfg.apprise_config, 'form': 'Apprise config'}
 
 
 @route_settings.route('/systeminfo', methods=['POST'])
@@ -215,10 +253,10 @@ def server_info():
     if request.method == 'POST' and form_drive.validate():
         # Return for POST
         app.logger.debug(
-                    "Drive id: " + str(form_drive.id.data) +
-                    " Updated db description: " + form_drive.description.data)
+            "Drive id: " + str(form_drive.id.data) +
+            " Updated db description: " + form_drive.description.data)
         drive = models.SystemDrives.query.filter_by(
-                                            drive_id=form_drive.id.data).first()
+            drive_id=form_drive.id.data).first()
         drive.description = str(form_drive.description.data).strip()
         db.session.commit()
         # Return to systeminfo page (refresh page)
