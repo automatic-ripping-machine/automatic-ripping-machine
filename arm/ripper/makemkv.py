@@ -96,7 +96,9 @@ def rip_mainfeature(job, track, logfile, rawpath):
                  f"Length is {track.length} seconds.")
     filepathname = os.path.join(rawpath, track.filename)
     logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
-    cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r --progress=-stdout --messages=-stdout ' \
+    cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r' \
+          f' --progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log' \
+          f' --messages=-stdout ' \
           f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)} ' \
           f'--minlength={job.config.MINLENGTH}'
     # Possibly update db to say track was ripped
