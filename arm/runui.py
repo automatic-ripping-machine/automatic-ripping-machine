@@ -2,15 +2,29 @@
 import os  # noqa: F401
 import sys
 
-# set the PATH to /arm/arm so we can handle imports properly
+# set the PATH to /arm/arm, so we can handle imports properly
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import arm.config.config as cfg  # noqa E402
 from arm.ui import app  # noqa E402
 import arm.ui.routes  # noqa E402
 
+
+def is_docker():
+    """
+    Test to check if running inside a docker/container
+    returns: Boolean
+    """
+    path = '/proc/self/cgroup'
+    return (
+            os.path.exists('/.dockerenv') or
+            os.path.isfile(path) and any('docker' in line for line in open(path))
+    )
+
+
 host = cfg.arm_config['WEBSERVER_IP']
-if host == 'x.x.x.x':
+# Check if auto ip address 'x.x.x.x' or if inside docker - set internal ip from host and use WEBSERVER_IP for notify
+if host == 'x.x.x.x' or is_docker():
     # autodetect host IP address
     from netifaces import interfaces, ifaddresses, AF_INET
     ip_list = []
