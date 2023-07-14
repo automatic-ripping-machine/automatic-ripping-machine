@@ -81,7 +81,7 @@ def home():
     return render_template("index.html", jobs=jobs, armname=armname,
                            children=cfg.arm_config['ARM_CHILDREN'],
                            server=server, serverutil=serverutil,
-                           arm_path=arm_path, media_path=media_path)
+                           arm_path=arm_path, media_path=media_path, stats=stats)
 
 
 @app.route('/error')
@@ -96,7 +96,7 @@ def was_error(error):
 @app.errorhandler(Exception)
 def handle_exception(sent_error):
     """
-    Exception handler - This breaks all of the normal debug functions \n
+    Exception handler - This breaks all the normal debug functions \n
     :param sent_error: error
     :return: error page
     """
