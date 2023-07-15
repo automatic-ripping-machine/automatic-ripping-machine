@@ -567,7 +567,7 @@ def database_updater(args, job, wait_time=90):
             db.session.commit()
         except Exception as error:
             if "locked" in str(error):
-                time.sleep(1)
+                time.sleep(random.randrange(1, 25))
                 logging.debug(f"database is locked - try {i}/{wait_time}")
             else:
                 logging.debug(f"Error: {error}")
@@ -591,12 +591,27 @@ def database_adder(obj_class):
             break
         except Exception as error:
             if "locked" in str(error):
-                time.sleep(1)
+                time.sleep(random.randrange(1, 25))
                 logging.debug(f"database is locked - try {i}/90")
             else:
                 logging.error(f"Error: {error}")
                 raise RuntimeError(str(error)) from error
     logging.debug(f"successfully written {type(obj_class).__name__} to the database")
+    return True
+
+
+def database_refresh(job, wait_time):
+    for i in range(wait_time):  # give up after the users wait period in seconds
+        try:
+            db.session.refresh(job)
+        except Exception as error:
+            if "locked" in str(error):
+                time.sleep(random.randrange(1, 25))
+                logging.debug(f"database is locked - try {i}/{wait_time}")
+            else:
+                logging.error(f"Error: {error}")
+                raise RuntimeError(str(error)) from error
+    logging.debug("successfully refreshed the database")
     return True
 
 
@@ -785,7 +800,7 @@ def check_for_wait(job):
         while sleep_time < job.config.MANUAL_WAIT_TIME:
             time.sleep(5)
             sleep_time += 5
-            db.session.refresh(job)
+            database_refresh(job, 100)
             if job.title_manual:
                 logging.info("Manual override found.  Overriding auto identification values.")
                 job.updated = True
