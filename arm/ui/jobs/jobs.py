@@ -217,7 +217,8 @@ def feed_json():
         'mode': mode,
         'config_id': request.args.get('config_id'),
         'notify_id': request.args.get('notify_id'),
-        'notify_timeout': 'notify_timeout'
+        'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)},
+        'restart': {'funct': json_api.restart_ui, 'args': ()},
     }
     # Valid modes that should trigger functions
     valid_modes = {
