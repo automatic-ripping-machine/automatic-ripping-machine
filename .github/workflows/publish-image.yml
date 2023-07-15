@@ -113,13 +113,12 @@ jobs:
                     labels: ${{ steps.meta.outputs.labels }}
             - 
                 name: Create Release    
-                uses: "marvinpinto/action-automatic-releases@latest"
+                uses: "lauravuo/action-automatic-releases@test-changes"
                 with:
                     repo_token: "${{ secrets.GITHUB_TOKEN }}"
                     automatic_release_tag: "${{ env.VERSION }}"
                     prerelease: false
-                    # This doesnt work yet, waiting for new verison to be merged
-                    generate_release_notes: true
+                    auto_generate_release_notes: true
                     title: "${{ env.VERSION }}"
                     files: |
                       LICENSE
