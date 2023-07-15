@@ -82,10 +82,16 @@ function musicCheck(job, idsplit) {
 
 function posterCheck(job) {
     let x;
+    let image;
     if (job.poster_url !== "None" && job.poster_url !== "N/A") {
         x = `<img id="jobId${job.job_id}_poster_url" alt="poster img" src="${job.poster_url}" width="240px" class="img-thumbnail">`;
     } else {
-        x = `<img id="jobId${job.job_id}_poster_url" alt="poster img" src="/static/img/none.png" width="240px" class="img-thumbnail">`;
+        if (job.video_type === "Music") {
+            image = 'music.png';
+        } else {
+            image = 'none.jpg';
+        }
+        x = `<img id="jobId${job.job_id}_poster_url" alt="poster img" src="/static/img/${image}" width="240px" class="img-thumbnail">`;
     }
     return x;
 }

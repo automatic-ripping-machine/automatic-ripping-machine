@@ -179,7 +179,9 @@ def process_audio_logfile(logfile, job, job_results):
                 job.progress = round(percentage(job_stage_index.group(1), job.no_of_titles + 1))
                 job.progress_round = round(job.progress)
             except Exception as error:
-                job.stage = f"Unknown -  {error}"
+                app.logger.debug("Error processing abcde logfile. Error dump"
+                                 f"-  {error}", exc_info=True)
+                job.stage = "Unknown"
                 job.eta = "Unknown"
                 job.progress = job.progress_round = 0
     return job_results
@@ -188,10 +190,14 @@ def process_audio_logfile(logfile, job, job_results):
 def calc_process_time(starttime, cur_iter, max_iter):
     """Modified from stackoverflow
     Get a rough estimate of ETA, return formatted String"""
-    time_elapsed = datetime.datetime.now() - starttime
-    time_estimated = (time_elapsed.seconds / int(cur_iter)) * int(max_iter)
-    finish_time = (starttime + datetime.timedelta(seconds=int(time_estimated)))
-    test = finish_time - datetime.datetime.now()
+    try:
+        time_elapsed = datetime.datetime.now() - starttime
+        time_estimated = (time_elapsed.seconds / int(cur_iter)) * int(max_iter)
+        finish_time = (starttime + datetime.timedelta(seconds=int(time_estimated)))
+        test = finish_time - datetime.datetime.now()
+    except TypeError:
+        app.logger.error("Failed to calculate processing time - Resetting to now, time wont be accurate!")
+        test = time_estimated = time_elapsed = finish_time = datetime.datetime.now()
     return f"{str(test).split('.', maxsplit=1)[0]} - @{finish_time.strftime('%H:%M:%S')}"
 
 

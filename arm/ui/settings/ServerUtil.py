@@ -44,8 +44,25 @@ class ServerUtil():
     def get_cpu_temp(self):
         try:
             temps = psutil.sensors_temperatures()
+            app.logger.debug(f"cpu_temp: {temps}")
+
+            # cpu temperature - intel systems
             if coretemp := temps.get('coretemp', None):
                 self.cpu_temp = coretemp[0][1]
+
+            # cpu temperature - AMD systems
+            elif atk0110 := temps.get('cpu_thermal', None):
+                self.cpu_temp = atk0110[0][1]
+
+            # cpu temperature - AMD systems (Phenom)
+            elif nct6797 := temps.get('cpu_thermal', None):
+                self.cpu_temp = nct6797[0][1]
+
+            # cpu temperature - PI
+            elif cpu_thermal := temps.get('cpu_thermal', None):
+                self.cpu_temp = cpu_thermal[0][1]
+
+            # cpu temperature - unknown devices
             else:
                 self.cpu_temp = 0
         except EnvironmentError:

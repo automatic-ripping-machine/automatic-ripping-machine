@@ -19,6 +19,7 @@ from werkzeug.routing import ValidationError
 from flask.logging import default_handler  # noqa: F401
 
 import arm.config.config as cfg
+from arm.config.config_utils import arm_yaml_test_bool
 from arm.ui.settings import DriveUtils as drive_utils
 from arm.config import config_utils
 from arm.ui import app, db
@@ -193,7 +194,7 @@ def arm_db_check():
 
 def arm_db_cfg():
     """
-    Check if the databsee exists prior to creating global ui settings
+    Check if the database exists prior to creating global ui settings
     """
     db_update = arm_db_check()
     if not db_update["db_exists"]:
@@ -667,6 +668,30 @@ def build_arm_cfg(form_data, comments):
     return arm_cfg
 
 
+def build_apprise_cfg(form_data):
+    """
+    Main function for saving new updated apprise.yaml\n
+    :param form_data: post data
+    :return: full new arm.yaml as a String
+    """
+    # This really should be hard coded.
+    app.logger.debug("save_apprise: START")
+    apprise_cfg = "\n\n"
+    for key, value in form_data.items():
+        app.logger.debug(f"save_apprise: current key {key} = {value} ")
+        if key == "csrf_token":
+            continue
+        # test if key value is an int
+        try:
+            post_value = int(value)
+            apprise_cfg += f"{key}: {post_value}\n"
+        except ValueError:
+            # Test if value is Boolean
+            apprise_cfg += arm_yaml_test_bool(key, value)
+    app.logger.debug("save_apprise: FINISH")
+    return apprise_cfg
+
+
 def get_processor_name():
     """
     function to collect and return some cpu info
@@ -760,7 +785,7 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
     # Fake crc64 number
     hash_object = hashlib.md5(f"{movie}".strip().encode())
     # Check if we already have this in the db exit if we do
-    dupe_found, not_used_variable = job_dupe_check(hash_object.hexdigest())
+    dupe_found, _ = job_dupe_check(hash_object.hexdigest())
     if dupe_found:
         app.logger.debug("We found dupes breaking loop")
         return None

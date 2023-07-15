@@ -53,10 +53,13 @@ function launch_setup() {
     # install docker
     if [ -e /usr/bin/docker ]; then
         echo -e "${RED}Docker installation detected, skipping...${NC}"
+        echo -e "${RED}Adding user arm to docker user group${NC}"
+        usermod -aG docker arm
     else
         echo -e "${RED}Installing Docker${NC}"
         # the convenience script auto-detects OS and handles install accordingly
         curl -sSL https://get.docker.com | bash
+        echo -e "${RED}Adding user arm to docker user group${NC}"
         usermod -aG docker arm
     fi
 }
@@ -77,6 +80,11 @@ function setup_mountpoints() {
 function save_start_command() {
     url="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/docker/start_arm_container.sh"
     cd ~arm
+    if [ -e start_arm_container.sh ]
+    then
+        echo -e "'start_arm_container.sh' already exists. Backing up..."
+        sudo mv /start_arm_container.sh ./start_arm_container.sh.bak
+    fi
     sudo -u arm curl -fsSL "$url" -o start_arm_container.sh
     chmod +x start_arm_container.sh
     sed -i "s|IMAGE_NAME|${IMAGE}|" start_arm_container.sh

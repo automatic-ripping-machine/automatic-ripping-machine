@@ -1,6 +1,6 @@
 ###########################################################
 # setup default directories and configs
-FROM automaticrippingmachine/arm-dependencies:1.1.2 AS base
+FROM automaticrippingmachine/arm-dependencies:1.1.5 AS base
 
 LABEL org.opencontainers.image.source=https://github.com/automatic-ripping-machine/automatic-ripping-machine
 LABEL org.opencontainers.image.license=MIT
@@ -69,6 +69,9 @@ COPY . /opt/arm/
 
 # Our docker udev rule
 RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
+
+# Allow git to be managed from the /opt/arm folders
+RUN git config --global --add safe.directory /opt/arm
 
 CMD ["/sbin/my_init"]
 WORKDIR /home/arm
