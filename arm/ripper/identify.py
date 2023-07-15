@@ -60,7 +60,7 @@ def identify(job):
                 get_video_details(job)
             else:
                 job.hasnicetitle = False
-                db.session.commit()
+                ui_utils.database_updater({'hasnicetitle': False}, job)
 
             logging.info(f"Disc title Post ident -  title:{job.title} "
                          f"year:{job.year} video_type:{job.video_type} "
@@ -83,7 +83,7 @@ def identify_bluray(job):
         # Maybe call OMdb with label when we can't find any ident on disc ?
         job.title = str(job.label)
         job.year = ""
-        db.session.commit()
+        ui_utils.database_updater({'year': '', 'title': str(job.label)}, job)
         return False
 
     try:
@@ -109,7 +109,7 @@ def identify_bluray(job):
 
     job.title = job.title_auto = bluray_title
     job.year = job.year_auto = bluray_year
-    db.session.commit()
+    ui_utils.database_updater({'year': job.year, 'title': job.title}, job)
 
     return True
 

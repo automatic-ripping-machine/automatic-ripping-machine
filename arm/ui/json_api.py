@@ -12,6 +12,7 @@ import psutil
 from flask import request
 
 import arm.config.config as cfg
+import arm.ripper.utils as ripper_utils
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, Notifications, UISettings
 from arm.ui.forms import ChangeParamsForm
@@ -111,7 +112,7 @@ def process_makemkv_logfile(job, job_results):
             try:
                 current_index = f"{(int(job_stage_index.group(1)) + 1)}/{job.no_of_titles} - {job_stage_index.group(2)}"
                 job.stage = job_results['stage'] = current_index
-                db.session.commit()
+                ripper_utils.database_updater({'stage': job.stage}, job)
             except Exception as error:
                 job.stage = f"Unknown -  {error}"
     job.eta = "Unknown"
@@ -299,8 +300,7 @@ def delete_job(job_id, mode):
                     app.logger.debug("Admin is requesting to delete a job but didnt provide a valid job ID")
                     notification = Notifications(f"Job: {job_id} couldn't be Deleted!",
                                                  "Couldn't find a job with that ID")
-                    db.session.add(notification)
-                    db.session.commit()
+                    ripper_utils.database_adder(notification)
                     return {'success': False, 'job': 'invalid', 'mode': mode, 'error': 'Not a valid job'}
                 else:
                     app.logger.debug("No errors: job_id=" + str(post_value))
@@ -310,8 +310,7 @@ def delete_job(job_id, mode):
                     Config.query.filter_by(job_id=job_id).delete()
                     notification = Notifications(f"Job: {job_id} was Deleted!",
                                                  f'Job with id: {job_id} was successfully deleted from the database')
-                    db.session.add(notification)
-                    db.session.commit()
+                    ripper_utils.database_adder(notification)
                     app.logger.debug("Admin deleting  job {} was successful")
                     json_return = {'success': True, 'job': job_id, 'mode': mode}
     # If we run into problems with the database changes
@@ -380,8 +379,7 @@ def abandon_job(job_id):
     if not job_id_validator(job_id):
         notification = Notifications(f"Job: {job_id} isn't a valid job!",
                                      f'Job with id: {job_id} doesnt match anything in the database')
-        db.session.add(notification)
-        db.session.commit()
+        ripper_utils.database_adder(notification)
         return json_return
 
     try:
@@ -391,8 +389,7 @@ def abandon_job(job_id):
         job_process.terminate()  # or p.kill()
         notification = Notifications(f"Job: {job_id} was Abandoned!",
                                      f'Job with id: {job_id} was successfully abandoned. No files were deleted!')
-        db.session.add(notification)
-        db.session.commit()
+        ripper_utils.database_adder(notification)
         json_return['success'] = True
         app.logger.debug(f"Job {job_id} was abandoned successfully")
         job.eject()
@@ -410,8 +407,7 @@ def abandon_job(job_id):
         json_return["Error"] = str(error)
     if 'Error' in json_return:
         notification = Notifications(f"Job ERROR: {job_id} couldn't be abandoned", json_return["Error"])
-        db.session.add(notification)
-        db.session.commit()
+        ripper_utils.database_adder(notification)
     return json_return
 
 

@@ -258,7 +258,7 @@ def server_info():
         drive = models.SystemDrives.query.filter_by(
             drive_id=form_drive.id.data).first()
         drive.description = str(form_drive.description.data).strip()
-        db.session.commit()
+        ui_utils.database_updater({'description': str(form_drive.description.data).strip()}, drive)
         # Return to systeminfo page (refresh page)
         return redirect(redirect_settings)
     else:
@@ -295,6 +295,5 @@ def drive_eject(id):
     """
     global redirect_settings
     drive = models.SystemDrives.query.filter_by(drive_id=id).first()
-    drive.open_close()
-    db.session.commit()
+    ui_utils.database_updater({'open': drive.open_close}, drive)
     return redirect(redirect_settings)

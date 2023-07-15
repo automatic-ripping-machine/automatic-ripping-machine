@@ -616,7 +616,6 @@ def clean_old_jobs():
             logging.info(f"Job #{job.job_id} with PID {job.pid} has been abandoned."
                          f"Updating job status to fail.")
             job.status = "fail"
-            db.session.commit()
             database_updater({'status': "fail"}, job)
 
 

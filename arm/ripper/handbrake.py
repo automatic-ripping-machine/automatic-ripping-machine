@@ -45,7 +45,7 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
         raise RuntimeError(msg)
 
     track.filename = track.orig_filename = filename
-    db.session.commit()
+    utils.database_updater({'filename': track.filename}, track)
 
     hb_args, hb_preset = correct_hb_settings(job)
     cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
@@ -68,13 +68,13 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
         track.status = "fail"
         track.error = job.errors = err
         job.status = "fail"
-        db.session.commit()
+        utils.database_updater({'status': 'fail'}, job)
         raise subprocess.CalledProcessError(hb_error.returncode, cmd)
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
     track.ripped = True
-    db.session.commit()
+    utils.database_updater({'ripped': True}, track)
 
 
 def handbrake_all(srcpath, basepath, logfile, job):
@@ -88,10 +88,10 @@ def handbrake_all(srcpath, basepath, logfile, job):
     """
     # Wait until there is a spot to transcode
     job.status = "waiting_transcode"
-    db.session.commit()
+    utils.database_updater({'status': job.status}, job)
     utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
     job.status = "transcoding"
-    db.session.commit()
+    utils.database_updater({'status': job.status}, job)
     logging.info("Starting BluRay/DVD transcoding - All titles")
 
     hb_args, hb_preset = correct_hb_settings(job)
@@ -124,7 +124,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
             logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
 
             track.filename = track.orig_filename = filename
-            db.session.commit()
+            utils.database_updater({'filename': track.filename}, track)
 
             cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
                   f"-i {shlex.quote(srcpath)} " \
@@ -149,11 +149,11 @@ def handbrake_all(srcpath, basepath, logfile, job):
                 logging.error(err)
                 track.status = "fail"
                 track.error = err
-                db.session.commit()
+                utils.database_updater({'error': track.error}, track)
                 raise subprocess.CalledProcessError(hb_error.returncode, cmd)
 
             track.ripped = True
-            db.session.commit()
+            utils.database_updater({'ripped': True}, track)
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
@@ -187,10 +187,10 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
     """
     # Added to limit number of transcodes
     job.status = "waiting_transcode"
-    db.session.commit()
+    utils.database_updater({'status': job.status}, job)
     utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
     job.status = "transcoding"
-    db.session.commit()
+    utils.database_updater({'status': job.status}, job)
     hb_args, hb_preset = correct_hb_settings(job)
 
     # This will fail if the directory raw gets deleted
@@ -205,7 +205,8 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
             track.orig_filename = track.filename
             track.filename = destfile + "." + cfg.arm_config["DEST_EXT"]
             logging.debug("UPDATED filename: " + track.filename)
-            db.session.commit()
+            utils.database_updater({'filename': track.filename}, track)
+
         filename = os.path.join(basepath, destfile + "." + cfg.arm_config["DEST_EXT"])
         filepathname = os.path.join(basepath, filename)
 
@@ -269,7 +270,7 @@ def get_track_info(srcpath, job):
                     logging.debug(f"Line found is: {line}")
                     logging.info(f"Found {titles} titles")
                     job.no_of_titles = titles
-                    db.session.commit()
+                    utils.database_updater({'no_of_titles': titles}, job)
 
             main_feature, t_no = title_finder(aspect, fps, job, line, main_feature, seconds, t_no, t_pattern)
             seconds = seconds_builder(line, pattern, seconds)

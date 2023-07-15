@@ -117,11 +117,11 @@ def main(logfile, job, protection=0):
             utils.scan_emby()
             # This shouldn't be needed. but to be safe
             job.status = "success"
-            db.session.commit()
+            utils.database_updater({'status': 'success'}, job)
         else:
             logging.info("Music rip failed.  See previous errors.  Exiting. ")
             job.status = "fail"
-            db.session.commit()
+            utils.database_updater({'status': 'fail'}, job)
         job.eject()
 
     # Type: Data

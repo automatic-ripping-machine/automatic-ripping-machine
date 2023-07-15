@@ -15,7 +15,7 @@ import json
 from pathlib import Path, PurePath
 from werkzeug.exceptions import HTTPException
 from flask import Flask, render_template, request, flash, \
-    redirect, url_for   # noqa: F401
+    redirect, url_for  # noqa: F401
 from flask.logging import default_handler  # noqa: F401
 from flask_login import LoginManager, login_required, \
     current_user, login_user, logout_user  # noqa: F401
@@ -78,7 +78,10 @@ def home():
     return render_template("index.html", jobs=jobs, armname=armname,
                            children=cfg.arm_config['ARM_CHILDREN'],
                            server=server, serverutil=serverutil,
-                           arm_path=arm_path, media_path=media_path)
+                           arm_path=arm_path, media_path=media_path,
+                           # TODO Merge #899 to fix and remove this
+                           stats=
+                           {'hw_support': {'intel': False, 'nvidia': False, 'amd': False}})
 
 
 @app.route('/error')

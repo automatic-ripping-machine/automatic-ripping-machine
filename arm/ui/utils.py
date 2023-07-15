@@ -271,7 +271,7 @@ def arm_db_initialise():
         app.logger.debug(f"Memory Total: {server.mem_total}")
         app.logger.debug("****** End System Information ******")
         db.session.add(server)
-        db.session.commit()
+        database_updater({'name': server.name}, server)
     # Scan and load drives to database
     drive_utils.drives_update()
 

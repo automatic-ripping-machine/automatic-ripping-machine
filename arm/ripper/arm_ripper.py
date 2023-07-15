@@ -48,7 +48,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
         logging.info("************* Ripping disc with MakeMKV *************")
         # Run MakeMKV and get path to output
         job.status = "ripping"
-        db.session.commit()
+        utils.database_updater({'status': job.status}, job)
         try:
             makemkv_out_path = makemkv.makemkv(logfile, job)
         except Exception as mkv_error:  # noqa: E722
@@ -59,7 +59,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
         if makemkv_out_path is None:
             logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
             job.status = "fail"
-            db.session.commit()
+            utils.database_updater({'status': job.status}, job)
             sys.exit()
         if job.config.NOTIFY_RIP:
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} rip complete. Starting transcode. ")

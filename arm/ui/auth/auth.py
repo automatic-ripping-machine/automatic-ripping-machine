@@ -123,7 +123,7 @@ def update_password():
             user.password = hashed_password
             user.hash = hashed
             try:
-                db.session.commit()
+                ui_utils.database_updater({'password': hashed_password, 'hash': hashed}, user)
                 flash("Password successfully updated", "success")
                 app.logger.info("Password successfully updated")
                 return redirect("logout")

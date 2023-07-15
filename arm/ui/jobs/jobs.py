@@ -135,7 +135,7 @@ def updatetitle():
                                         f'Title: {old_title} ({old_year}) was updated to '
                                         f'{request.args.get("title")} ({request.args.get("year")})')
     db.session.add(notification)
-    db.session.commit()
+    ui_utils.database_updater({'hasnicetitle': True}, job)
     flash(f'Title: {old_title} ({old_year}) was updated to '
           f'{request.args.get("title")} ({request.args.get("year")})', "success")
     return redirect("/")
