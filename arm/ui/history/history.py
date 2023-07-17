@@ -35,7 +35,8 @@ def history():
         # after roughly 175 entries firefox readermode will break
         # jobs = Job.query.filter_by().limit(175).all()
         jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page=page,
-                                                                              max_per_page=int(armui_cfg.database_limit),
+                                                                              max_per_page=int(
+                                                                                  armui_cfg.database_limit),
                                                                               error_out=False)
     else:
         app.logger.error('ERROR: /history database file doesnt exist')

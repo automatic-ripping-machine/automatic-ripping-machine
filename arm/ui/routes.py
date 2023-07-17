@@ -15,7 +15,7 @@ import json
 from pathlib import Path, PurePath
 from werkzeug.exceptions import HTTPException
 from flask import Flask, render_template, request, flash, \
-    redirect, url_for   # noqa: F401
+    redirect, url_for  # noqa: F401
 from flask.logging import default_handler  # noqa: F401
 from flask_login import LoginManager, login_required, \
     current_user, login_user, logout_user  # noqa: F401
@@ -26,6 +26,7 @@ from arm.models import models as models
 import arm.config.config as cfg
 from arm.ui.forms import DBUpdate
 from arm.ui.settings.ServerUtil import ServerUtil
+from arm.ui.settings.settings import check_hw_transcode_support
 
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
 armui_cfg = ui_utils.arm_db_cfg()
@@ -51,6 +52,8 @@ def home():
 
     # Check the database is current
     db_update = ui_utils.arm_db_check()
+    # Push out HW transcode status for homepage
+    stats = {'hw_support': check_hw_transcode_support()}
     if not db_update["db_current"] or not db_update["db_exists"]:
         dbform = DBUpdate(request.form)
         return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
@@ -78,7 +81,7 @@ def home():
     return render_template("index.html", jobs=jobs, armname=armname,
                            children=cfg.arm_config['ARM_CHILDREN'],
                            server=server, serverutil=serverutil,
-                           arm_path=arm_path, media_path=media_path)
+                           arm_path=arm_path, media_path=media_path, stats=stats)
 
 
 @app.route('/error')
@@ -90,29 +93,29 @@ def was_error(error):
     return render_template(constants.ERROR_PAGE, title='error', error=error)
 
 
-@app.errorhandler(Exception)
-def handle_exception(sent_error):
-    """
-    Exception handler - This breaks all of the normal debug functions \n
-    :param sent_error: error
-    :return: error page
-    """
-    # pass through HTTP errors
-    if isinstance(sent_error, HTTPException):
-        return sent_error
-
-    app.logger.debug(f"Error: {sent_error}")
-    if request.path.startswith('/json') or request.args.get('json'):
-        app.logger.debug(f"{request.path} - {sent_error}")
-        return_json = {
-            'path': request.path,
-            'Error': str(sent_error)
-        }
-        return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
-                                  status=200,
-                                  mimetype=constants.JSON_TYPE)
-
-    return render_template(constants.ERROR_PAGE, error=sent_error), 500
+# @app.errorhandler(Exception)
+# def handle_exception(sent_error):
+#     """
+#     Exception handler - This breaks all of the normal debug functions \n
+#     :param sent_error: error
+#     :return: error page
+#     """
+#     # pass through HTTP errors
+#     if isinstance(sent_error, HTTPException):
+#         return sent_error
+#
+#     app.logger.debug(f"Error: {sent_error}")
+#     if request.path.startswith('/json') or request.args.get('json'):
+#         app.logger.debug(f"{request.path} - {sent_error}")
+#         return_json = {
+#             'path': request.path,
+#             'Error': str(sent_error)
+#         }
+#         return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
+#                                   status=200,
+#                                   mimetype=constants.JSON_TYPE)
+#
+#     return render_template(constants.ERROR_PAGE, error=sent_error), 500
 
 
 @app.route('/setup')

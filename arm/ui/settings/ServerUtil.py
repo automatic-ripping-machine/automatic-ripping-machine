@@ -10,7 +10,7 @@ from arm.ui import app
 from flask import flash
 
 
-class ServerUtil():
+class ServerUtil:
     cpu_util = 0.0
     cpu_temp = 0.0
     memory_free = 0.0
@@ -98,3 +98,23 @@ class ServerUtil():
         app.logger.debug(f"Server {filepath} Space:  {disk_space}")
         app.logger.debug(f"Server {filepath} Percent:  {disk_percent}")
         return disk_space, disk_percent
+
+    def __repr__(self):
+        return f'<UISettings {self.id}>'
+
+    def __str__(self):
+        """Returns a string of the object"""
+
+        return_string = self.__class__.__name__ + ": "
+        for attr, value in self.__dict__.items():
+            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
+
+        return return_string
+
+    def get_d(self):
+        """ Returns a dict of the object"""
+        return_dict = {}
+        for key, value in self.__dict__.items():
+            if '_sa_instance_state' not in key:
+                return_dict[str(key)] = str(value)
+        return return_dict

@@ -565,6 +565,26 @@ class SystemInfo(db.Model):
         except EnvironmentError:
             self.mem_total = 0
 
+    def __repr__(self):
+        return f'<UISettings {self.id}>'
+
+    def __str__(self):
+        """Returns a string of the object"""
+
+        return_string = self.__class__.__name__ + ": "
+        for attr, value in self.__dict__.items():
+            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
+
+        return return_string
+
+    def get_d(self):
+        """ Returns a dict of the object"""
+        return_dict = {}
+        for key, value in self.__dict__.items():
+            if '_sa_instance_state' not in key:
+                return_dict[str(key)] = str(value)
+        return return_dict
+
 
 class SystemDrives(db.Model):
     """
@@ -615,7 +635,7 @@ class SystemDrives(db.Model):
         """update Job IDs between current and previous jobs"""
         self.job_id_previous = self.job_id_current
         self.job_id_current = None
-        # eject drive (not implemented, as job.eject() decleared in a lot of places)
+        # eject drive (not implemented, as job.eject() declared in a lot of places)
         # self.open_close()
 
     def open_close(self):

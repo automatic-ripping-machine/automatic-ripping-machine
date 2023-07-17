@@ -13,10 +13,12 @@ from flask import request
 
 import arm.config.config as cfg
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track, Notifications, UISettings
+from arm.models.models import Job, Config, Track, Notifications, UISettings, SystemInfo
 from arm.ui.forms import ChangeParamsForm
-from arm.ui.utils import job_id_validator, database_updater
-from arm.ui.settings import DriveUtils as drive_utils # noqa E402
+from arm.ui.utils import job_id_validator, database_updater, get_info
+from arm.ui.settings import DriveUtils as drive_utils  # noqa E402
+from arm.ui.settings.ServerUtil import ServerUtil
+from arm.ui.settings.settings import check_hw_transcode_support
 
 
 def get_notifications():
@@ -35,11 +37,22 @@ def get_x_jobs(job_status):
     :return: dict/json
     """
     success = False
+    # System details in class server
+    server = SystemInfo.query.filter_by(id="1").first()
+    app.logger.debug(str(server))
+    serverutil = ServerUtil()
     if job_status in ("success", "fail"):
         jobs = Job.query.filter_by(status=job_status)
+        app.logger.debug("success/fail")
     else:
-        # Get running jobs
-        jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+        if job_status == "database":
+            # Get all jobs
+            app.logger.debug("database")
+            jobs = Job.query.order_by(db.desc(Job.job_id)).all()
+        else:
+            # Get running jobs
+            app.logger.debug("Get running jobs")
+            jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
 
     job_results = {}
     i = 0
@@ -60,8 +73,16 @@ def get_x_jobs(job_status):
     if jobs:
         app.logger.debug("jobs  - we have " + str(len(job_results)) + " jobs")
         success = True
-    return {"success": success, "mode": job_status,
-            "results": job_results, "arm_name": cfg.arm_config['ARM_NAME']}
+    return {"success": success, "mode": job_status, 'server': server.get_d(), 'serverutil': serverutil.get_d(),
+            "results": job_results, "arm_name": cfg.arm_config['ARM_NAME'],
+            'hwsupport': check_hw_transcode_support()}
+
+
+def log_list(logs):
+    app.logger.debug(logs)
+    base_path = cfg.arm_config['LOGPATH']
+    files = get_info(base_path)
+    return {'success': True, 'files': files}
 
 
 def process_logfile(logfile, job, job_results):

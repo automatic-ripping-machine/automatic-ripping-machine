@@ -195,7 +195,6 @@ def list_titles():
 
 
 @route_jobs.route('/json', methods=['GET'])
-@login_required
 def feed_json():
     """
     json mini API
@@ -211,9 +210,11 @@ def feed_json():
         'j_id': request.args.get('job'),
         'searchq': request.args.get('q'),
         'logpath': cfg.arm_config['LOGPATH'],
+        'logs': 'logs',
         'fail': 'fail',
         'success': 'success',
         'joblist': 'joblist',
+        'database': 'database',
         'mode': mode,
         'config_id': request.args.get('config_id'),
         'notify_id': request.args.get('notify_id'),
@@ -224,11 +225,13 @@ def feed_json():
         'delete': {'funct': json_api.delete_job, 'args': ('j_id', 'mode')},
         'abandon': {'funct': json_api.abandon_job, 'args': ('j_id',)},
         'full': {'funct': json_api.generate_log, 'args': ('logpath', 'j_id')},
+        'logs': {'funct': json_api.log_list, 'args': ('logs',)},
         'search': {'funct': json_api.search, 'args': ('searchq',)},
         'getfailed': {'funct': json_api.get_x_jobs, 'args': ('fail',)},
         'getsuccessful': {'funct': json_api.get_x_jobs, 'args': ('success',)},
-        'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
         'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
+        'database': {'funct': json_api.get_x_jobs, 'args': ('database',)},
+        'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
         'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)},
         'change_job_params': {'funct': json_api.change_job_params, 'args': ('config_id',)},
         'read_notification': {'funct': json_api.read_notification, 'args': ('notify_id',)},
