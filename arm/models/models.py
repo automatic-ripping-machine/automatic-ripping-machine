@@ -565,18 +565,6 @@ class SystemInfo(db.Model):
         except EnvironmentError:
             self.mem_total = 0
 
-    def __repr__(self):
-        return f'<UISettings {self.id}>'
-
-    def __str__(self):
-        """Returns a string of the object"""
-
-        return_string = self.__class__.__name__ + ": "
-        for attr, value in self.__dict__.items():
-            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
-
-        return return_string
-
     def get_d(self):
         """ Returns a dict of the object"""
         return_dict = {}
@@ -662,3 +650,13 @@ class SystemDrives(db.Model):
                     self.open = True
                 except Exception as error:
                     logging.debug(f"{self.mount} couldn't be ejected {error}")
+
+    def get_d(self):
+        """ Returns a dict of the object"""
+        return_dict = {}
+        for key, value in self.__dict__.items():
+            if '_sa_instance_state' not in key:
+                return_dict[str(key)] = str(value)
+            if "job_previous" in key:
+                return_dict[str(key)] = {'fucked': value.get_d()}
+        return return_dict

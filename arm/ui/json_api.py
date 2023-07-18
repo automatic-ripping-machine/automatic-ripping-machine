@@ -15,7 +15,8 @@ import arm.config.config as cfg
 from arm.ui import app, db
 from arm.models.models import Job, Config, Track, Notifications, UISettings, SystemInfo
 from arm.ui.forms import ChangeParamsForm
-from arm.ui.utils import job_id_validator, database_updater, get_info
+from arm.ui.utils import job_id_validator, database_updater, get_info, git_check_updates, get_git_revision_hash,\
+    arm_db_cfg, generate_comments
 from arm.ui.settings import DriveUtils as drive_utils  # noqa E402
 from arm.ui.settings.ServerUtil import ServerUtil
 from arm.ui.settings.settings import check_hw_transcode_support
@@ -27,6 +28,42 @@ def get_notifications():
     notification = [a.get_d() for a in all_notification]
     return notification
 
+
+def get_stats(mode):
+    # stats for info page
+    with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
+        version = version_file.read().strip()
+    failed_rips = Job.query.filter_by(status="fail").count()
+    total_rips = Job.query.filter_by().count()
+    movies = Job.query.filter_by(video_type="movie").count()
+    series = Job.query.filter_by(video_type="series").count()
+    cds = Job.query.filter_by(disctype="music").count()
+    import platform
+    stats = {'python_version': platform.python_version(),
+             'arm_version': version,
+             'git_commit': get_git_revision_hash(),
+             'movies_ripped': movies,
+             'series_ripped': series,
+             'cds_ripped': cds,
+             'no_failed_jobs': failed_rips,
+             'total_rips': total_rips,
+             'updated': git_check_updates(get_git_revision_hash()),
+             'hw_support': check_hw_transcode_support(),
+             }
+    # form_drive = SystemInfoDrives(request.form)
+    # System Drives (CD/DVD/Blueray drives)
+    drives = drive_utils.drives_check_status()
+    json_drives = {}
+    i=0
+    for drive in drives:
+        json_drives[i] = {}
+        for key, value in drive.get_d().items():
+            json_drives[i][str(key)] = str(value)
+            # Will trigger error if no previous
+            json_drives[i]['job_previous'] = drive.job_previous.get_d()
+
+        i += 1
+    return {'success': True, 'stats': stats, 'mode': mode, 'drives': json_drives}
 
 def get_x_jobs(job_status):
     """
@@ -48,7 +85,7 @@ def get_x_jobs(job_status):
         if job_status == "database":
             # Get all jobs
             app.logger.debug("database")
-            jobs = Job.query.order_by(db.desc(Job.job_id)).all()
+            jobs = Job.query.order_by(db.desc(Job.job_id)).order_by(Job.job_id.desc()).limit(10)
         else:
             # Get running jobs
             app.logger.debug("Get running jobs")
@@ -83,6 +120,19 @@ def log_list(logs):
     base_path = cfg.arm_config['LOGPATH']
     files = get_info(base_path)
     return {'success': True, 'files': files}
+
+
+def get_abcde_conf(mode):
+    return  {'cfg': cfg.abcde_config, 'comments': generate_comments()}
+
+def get_ripper_conf(mode):
+    return  {'cfg': cfg.arm_config, 'comments': generate_comments()}
+
+def get_apprise_conf(mode):
+    return  {'cfg': cfg.apprise_config, 'comments': generate_comments()}
+
+def get_ui_conf(mode):
+    return {'cfg': arm_db_cfg().get_d(), 'comments': generate_comments()}
 
 
 def process_logfile(logfile, job, job_results):

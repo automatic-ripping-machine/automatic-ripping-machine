@@ -212,6 +212,11 @@ def feed_json():
         'logpath': cfg.arm_config['LOGPATH'],
         'logs': 'logs',
         'fail': 'fail',
+        'stats': 'stats',
+        'get_abcde':'get_abcde',
+        'get_apprise': 'get_apprise',
+        'get_ui': 'get_ui',
+        'get_ripper': 'get_ripper',
         'success': 'success',
         'joblist': 'joblist',
         'database': 'database',
@@ -226,16 +231,23 @@ def feed_json():
         'abandon': {'funct': json_api.abandon_job, 'args': ('j_id',)},
         'full': {'funct': json_api.generate_log, 'args': ('logpath', 'j_id')},
         'logs': {'funct': json_api.log_list, 'args': ('logs',)},
+        # Database
         'search': {'funct': json_api.search, 'args': ('searchq',)},
         'getfailed': {'funct': json_api.get_x_jobs, 'args': ('fail',)},
         'getsuccessful': {'funct': json_api.get_x_jobs, 'args': ('success',)},
         'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
         'database': {'funct': json_api.get_x_jobs, 'args': ('database',)},
+        # Various
         'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
         'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)},
         'change_job_params': {'funct': json_api.change_job_params, 'args': ('config_id',)},
         'read_notification': {'funct': json_api.read_notification, 'args': ('notify_id',)},
-        'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)}
+        'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)},
+        'stats': {'funct': json_api.get_stats, 'args': ('stats',)},
+        'get_abcde': {'funct': json_api.get_abcde_conf, 'args': ('get_abcde',)},
+        'get_apprise': {'funct': json_api.get_apprise_conf, 'args': ('get_apprise',)},
+        'get_ui_conf': {'funct': json_api.get_ui_conf, 'args': ('get_ui',)},
+        'get_ripper': {'funct': json_api.get_ripper_conf, 'args': ('get_ripper',)}
     }
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
