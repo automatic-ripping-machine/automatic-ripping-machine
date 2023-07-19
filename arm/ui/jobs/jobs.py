@@ -208,6 +208,7 @@ def feed_json():
     # Hold valid data (post/get data) we might receive from pages - not in here ? it's going to throw a key error
     valid_data = {
         'j_id': request.args.get('job'),
+        'job_id': request.args.get('job_id'),
         'searchq': request.args.get('q'),
         'logpath': cfg.arm_config['LOGPATH'],
         'logs': 'logs',
@@ -247,7 +248,9 @@ def feed_json():
         'get_abcde': {'funct': json_api.get_abcde_conf, 'args': ('get_abcde',)},
         'get_apprise': {'funct': json_api.get_apprise_conf, 'args': ('get_apprise',)},
         'get_ui_conf': {'funct': json_api.get_ui_conf, 'args': ('get_ui',)},
-        'get_ripper': {'funct': json_api.get_ripper_conf, 'args': ('get_ripper',)}
+        'get_ripper': {'funct': json_api.get_ripper_conf, 'args': ('get_ripper',)},
+        'get_job_details': {'funct': json_api.get_job_details, 'args': ('job_id', 'mode')},
+
     }
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]

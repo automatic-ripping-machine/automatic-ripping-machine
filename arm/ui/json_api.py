@@ -16,7 +16,7 @@ from arm.ui import app, db
 from arm.models.models import Job, Config, Track, Notifications, UISettings, SystemInfo
 from arm.ui.forms import ChangeParamsForm
 from arm.ui.utils import job_id_validator, database_updater, get_info, git_check_updates, get_git_revision_hash,\
-    arm_db_cfg, generate_comments
+    arm_db_cfg, generate_comments, metadata_selector
 from arm.ui.settings import DriveUtils as drive_utils  # noqa E402
 from arm.ui.settings.ServerUtil import ServerUtil
 from arm.ui.settings.settings import check_hw_transcode_support
@@ -113,6 +113,28 @@ def get_x_jobs(job_status):
     return {"success": success, "mode": job_status, 'server': server.get_d(), 'serverutil': serverutil.get_d(),
             "results": job_results, "arm_name": cfg.arm_config['ARM_NAME'],
             'hwsupport': check_hw_transcode_support()}
+
+
+def get_job_details(job_id, mode):
+    job_id = request.args.get('job_id')
+    job = Job.query.get(job_id)
+    jobs = job.get_d()
+    jobs['config'] = job.config.get_d()
+    tracks = job.tracks.all()
+    i=0
+    track_results={}
+    for track in tracks:
+        track_results[i] = {}
+        for key, value in track.get_d().items():
+            if key != "config":
+                track_results[i][str(key)] = str(value)
+        i += 1
+    app.logger.debug(job.get_d())
+    search_results = metadata_selector("get_details", job.title, job.year, job.imdb_id)
+    if search_results and 'Error' not in search_results:
+        job.plot = search_results['Plot'] if 'Plot' in search_results else "There was a problem getting the plot"
+        job.background = search_results['background_url'] if 'background_url' in search_results else None
+    return {'jobs': jobs, 'tracks': track_results, 'search_results': search_results, 'success': True, 'mode': mode, 'job id': job_id}
 
 
 def log_list(logs):

@@ -264,7 +264,16 @@ class Track(db.Model):
     def __str__(self):
         """Returns a string of the object"""
         return self.__class__.__name__ + ": " + self.track_number
-
+    def get_d(self):
+        """
+        Return a dict of class - exclude the _sa_instance_state
+        :return: dict containing all attribs from class
+        """
+        return_dict = {}
+        for key, value in self.__dict__.items():
+            if '_sa_instance_state' not in key:
+                return_dict[str(key)] = str(value)
+        return return_dict
 
 class Config(db.Model):
     """ Holds all the config settings for each job
