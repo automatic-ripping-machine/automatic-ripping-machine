@@ -16,7 +16,7 @@ from arm.ui import app, db
 from arm.models.models import Job, Config, Track, Notifications, UISettings, SystemInfo
 from arm.ui.forms import ChangeParamsForm
 from arm.ui.utils import job_id_validator, database_updater, get_info, git_check_updates, get_git_revision_hash,\
-    arm_db_cfg, generate_comments, metadata_selector
+    arm_db_cfg, generate_comments, metadata_selector,generate_arm_cat
 from arm.ui.settings import DriveUtils as drive_utils  # noqa E402
 from arm.ui.settings.ServerUtil import ServerUtil
 from arm.ui.settings.settings import check_hw_transcode_support
@@ -417,7 +417,7 @@ def delete_job(job_id, mode):
     return json_return
 
 
-def generate_log(logpath, job_id):
+def generate_log(logpath, mode, logfile, job_id):
     """
     Generate log for json api and return it in a valid form\n
     :param str logpath:
@@ -433,7 +433,15 @@ def generate_log(logpath, job_id):
     app.logger.debug("in logging")
     if job is None or job.logfile is None or job.logfile == "":
         app.logger.debug(f"Cant find the job {job_id}")
-        return {'success': False, 'job': job_id, 'log': 'Not found'}
+        #return {'success': False, 'job': job_id, 'log': 'Not found'}
+        # Hack to get around that we have no Job from database
+        class Job:
+            logfile = ""
+        job = Job()
+        job.logfile = logfile
+        job.title = "Unknown"
+        job.year = "unknown"
+        app.logger.debug(logpath)
     # Assemble full path
     fullpath = os.path.join(logpath, job.logfile)
     # Check if the logfile exists
@@ -441,7 +449,7 @@ def generate_log(logpath, job_id):
     if not my_file.is_file():
         # logfile doesnt exist throw out error template
         app.logger.debug("Couldn't find the logfile requested, Possibly deleted/moved")
-        return {'success': False, 'job': job_id, 'log': 'File not found'}
+        return {'success': False, 'job': job_id, 'log': 'File not found', 'mode': mode}
     try:
         with open(fullpath) as full_log:
             read_log = full_log.read()

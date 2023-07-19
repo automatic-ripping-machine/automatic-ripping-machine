@@ -30,7 +30,7 @@
     setInterval(function() {
         output.textContent = xhr.responseText;
         {% if mode == 'tail' %}
-            window.scrollTo(0, document.querySelector("#content").scrollHeight);
+            window.scrollTo(0, document.querySelector('#log').scrollHeight);
         {% endif %}
     }, 1000);
 

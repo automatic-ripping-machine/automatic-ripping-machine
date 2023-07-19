@@ -211,7 +211,10 @@ def feed_json():
         'job_id': request.args.get('job_id'),
         'searchq': request.args.get('q'),
         'logpath': cfg.arm_config['LOGPATH'],
+        'logfile': request.args.get('logfile'),
         'logs': 'logs',
+        'tail': 'tail',
+        'arm': 'arm',
         'fail': 'fail',
         'stats': 'stats',
         'get_abcde':'get_abcde',
@@ -230,7 +233,9 @@ def feed_json():
     valid_modes = {
         'delete': {'funct': json_api.delete_job, 'args': ('j_id', 'mode')},
         'abandon': {'funct': json_api.abandon_job, 'args': ('j_id',)},
-        'full': {'funct': json_api.generate_log, 'args': ('logpath', 'j_id')},
+        'full': {'funct': json_api.generate_log, 'args': ('logpath','mode', 'logfile', 'j_id')},
+        'armcat': {'funct': json_api.generate_log, 'args': ('logpath', 'mode', 'logfile', 'j_id')},
+        'tail': {'funct': json_api.generate_log, 'args': ('logpath','mode', 'logfile', 'j_id')},
         'logs': {'funct': json_api.log_list, 'args': ('logs',)},
         # Database
         'search': {'funct': json_api.search, 'args': ('searchq',)},
