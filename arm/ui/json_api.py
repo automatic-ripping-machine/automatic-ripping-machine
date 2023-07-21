@@ -16,10 +16,26 @@ from arm.ui import app, db
 from arm.models.models import Job, Config, Track, Notifications, UISettings, SystemInfo
 from arm.ui.forms import ChangeParamsForm
 from arm.ui.utils import job_id_validator, database_updater, get_info, git_check_updates, get_git_revision_hash,\
-    arm_db_cfg, generate_comments, metadata_selector,generate_arm_cat
+    arm_db_cfg, generate_comments, metadata_selector,generate_arm_cat, metadata_selector
 from arm.ui.settings import DriveUtils as drive_utils  # noqa E402
 from arm.ui.settings.ServerUtil import ServerUtil
 from arm.ui.settings.settings import check_hw_transcode_support
+
+
+def search_remote(title, year, mode, job_id):
+    search_results = metadata_selector("search", title, year)
+    if search_results is None or 'Error' in search_results or (
+            'Search' in search_results and len(search_results['Search']) < 1):
+        app.logger.debug("No results found. Trying without year")
+        search_results = metadata_selector("search", title, "")
+
+    if search_results is None or 'Error' in search_results or (
+            'Search' in search_results and len(search_results['Search']) < 1):
+        flash(f"No search results found for {title}", 'danger')
+    for result in search_results['Search']:
+        result['details'] = metadata_selector("get_details", title, year, result['imdbID'])
+    return {'title': title, 'year': year, 'success': True, 'mode': mode,
+            'job id': job_id, 'search_results': search_results}
 
 
 def get_notifications():
@@ -517,12 +533,12 @@ def abandon_job(job_id):
 
 
 def change_job_params(config_id):
-    """Update values for job"""
+    """Update values for job    """
     job = Job.query.get(config_id)
     config = job.config
     form = ChangeParamsForm(request.args, meta={'csrf': False})
     app.logger.debug("Before valid")
-    if form.validate():
+    if job.config and job:
         app.logger.debug("Valid")
         job.disctype = format(form.DISCTYPE.data)
         cfg.arm_config["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)

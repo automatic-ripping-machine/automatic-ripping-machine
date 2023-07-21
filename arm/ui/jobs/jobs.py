@@ -227,7 +227,9 @@ def feed_json():
         'mode': mode,
         'config_id': request.args.get('config_id'),
         'notify_id': request.args.get('notify_id'),
-        'notify_timeout': 'notify_timeout'
+        'notify_timeout': 'notify_timeout',
+        'title': request.args.get('title'),
+        'year': request.args.get('year'),
     }
     # Valid modes that should trigger functions
     valid_modes = {
@@ -255,6 +257,7 @@ def feed_json():
         'get_ui_conf': {'funct': json_api.get_ui_conf, 'args': ('get_ui',)},
         'get_ripper': {'funct': json_api.get_ripper_conf, 'args': ('get_ripper',)},
         'get_job_details': {'funct': json_api.get_job_details, 'args': ('job_id', 'mode')},
+        'search_remote': {'funct': json_api.search_remote, 'args': ('title', 'year', 'mode', 'job_id',)},
 
     }
     if mode in valid_modes:
