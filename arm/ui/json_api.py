@@ -53,7 +53,7 @@ def search_remote(title, year, mode, job_id):
 
     if search_results is None or 'Error' in search_results or (
             'Search' in search_results and len(search_results['Search']) < 1):
-        flash(f"No search results found for {title}", 'danger')
+        app.logger.debug(f"No search results found for {title}")
     for result in search_results['Search']:
         result['details'] = metadata_selector("get_details", title, year, result['imdbID'])
     return {'title': title, 'year': year, 'success': True, 'mode': mode,
