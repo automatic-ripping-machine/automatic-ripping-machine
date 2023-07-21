@@ -258,6 +258,7 @@ def feed_json():
         'get_ripper': {'funct': json_api.get_ripper_conf, 'args': ('get_ripper',)},
         'get_job_details': {'funct': json_api.get_job_details, 'args': ('job_id', 'mode')},
         'search_remote': {'funct': json_api.search_remote, 'args': ('title', 'year', 'mode', 'job_id',)},
+        'update_title': {'funct': json_api.update_title, 'args': ('title', 'year', 'mode', 'job_id',)},
 
     }
     if mode in valid_modes:

@@ -16,11 +16,33 @@ from arm.ui import app, db
 from arm.models.models import Job, Config, Track, Notifications, UISettings, SystemInfo
 from arm.ui.forms import ChangeParamsForm
 from arm.ui.utils import job_id_validator, database_updater, get_info, git_check_updates, get_git_revision_hash,\
-    arm_db_cfg, generate_comments, metadata_selector,generate_arm_cat, metadata_selector
+    arm_db_cfg, generate_comments, metadata_selector,generate_arm_cat, metadata_selector, clean_for_filename
 from arm.ui.settings import DriveUtils as drive_utils  # noqa E402
 from arm.ui.settings.ServerUtil import ServerUtil
 from arm.ui.settings.settings import check_hw_transcode_support
 
+
+def update_title(title, year, mode, job_id):
+    """
+    used to save the details from the search
+    """
+    success = False
+    # updatetitle?title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
+    #  poster=http://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
+    job = Job.query.get(job_id)
+    job.title = job.title_manual = clean_for_filename(title)
+    job.year = job.year_manual = year
+    job.video_type = job.video_type_manual = request.args.get('type')
+    job.imdb_id = job.imdb_id_manual = request.args.get('imdbID')
+    job.poster_url = job.poster_url_manual = request.args.get('poster')
+    job.hasnicetitle = True
+    try:
+        db.session.commit()
+        success = True
+    except Exception as error:
+        app.logger.debug(error)
+    return {'title': job.title, 'year': job.year, 'success': success, 'mode': mode,
+            'job id': job.job_id,'imdb_id':job.imdb_id}
 
 def search_remote(title, year, mode, job_id):
     search_results = metadata_selector("search", title, year)
@@ -101,7 +123,8 @@ def get_x_jobs(job_status):
         if job_status == "database":
             # Get all jobs
             app.logger.debug("database")
-            jobs = Job.query.order_by(db.desc(Job.job_id)).order_by(Job.job_id.desc()).limit(10)
+            armui_cfg = UISettings.query.first()
+            jobs = Job.query.order_by(db.desc(Job.job_id)).order_by(Job.job_id.desc()).limit(armui_cfg.database_limit)
         else:
             # Get running jobs
             app.logger.debug("Get running jobs")
@@ -132,7 +155,6 @@ def get_x_jobs(job_status):
 
 
 def get_job_details(job_id, mode):
-    job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
     jobs = job.get_d()
     jobs['config'] = job.config.get_d()
@@ -147,9 +169,9 @@ def get_job_details(job_id, mode):
         i += 1
     app.logger.debug(job.get_d())
     search_results = metadata_selector("get_details", job.title, job.year, job.imdb_id)
-    if search_results and 'Error' not in search_results:
-        job.plot = search_results['Plot'] if 'Plot' in search_results else "There was a problem getting the plot"
-        job.background = search_results['background_url'] if 'background_url' in search_results else None
+    if search_results:
+        jobs['plot'] = search_results['Plot'] if 'Plot' in search_results else "There was a problem getting the plot"
+        jobs['background'] = 'url('+search_results['background_url'] + ')' if 'background_url' in search_results else None
     return {'jobs': jobs, 'tracks': track_results, 'search_results': search_results, 'success': True, 'mode': mode, 'job id': job_id}
 
 
