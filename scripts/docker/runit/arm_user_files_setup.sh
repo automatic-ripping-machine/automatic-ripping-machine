@@ -12,7 +12,9 @@ set -euo pipefail
 export ARM_HOME="/home/arm"
 DEFAULT_UID=1000
 DEFAULT_GID=1000
-
+echo "export MYSQL_IP=${MYSQL_IP}" > /etc/profile
+echo "export MYSQL_USER=${MYSQL_USER}" >> /etc/profile
+echo "export MYSQL_PASSWORD=${MYSQL_PASSWORD}" >> /etc/profile
 ### Setup User
 if [[ $ARM_UID -ne $DEFAULT_UID ]]; then
     echo -e "Updating arm user id from $DEFAULT_UID to $ARM_UID..."
