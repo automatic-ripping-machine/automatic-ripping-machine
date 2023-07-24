@@ -159,7 +159,7 @@ def arm_db_get():
 
 def arm_db_check():
     """
-    Check if db exists and is up to date.
+    Check if db exists and is up-to-date.
     """
     setup_database()
     db_file = cfg.arm_config['DBFILE']
@@ -171,26 +171,20 @@ def arm_db_check():
     head_revision = arm_alembic_get()
 
     # Check if the db file exists
-    if os.path.isfile(db_file):
-        db_exists = True
-        # Get the database alembic version
-        db_revision = arm_db_get()
-        if db_revision.version_num == head_revision:
-            db_current = True
-            app.logger.debug(
-                        f"Database is current. Head: {head_revision}" +
-                        f"DB: {db_revision.version_num}")
-        else:
-            db_current = False
-            app.logger.info(
-                        "Database is not current, update required." +
-                        f" Head: {head_revision} DB: {db_revision.version_num}")
+    db_exists = True
+    # Get the database alembic version
+    # Check if the db file exists
+    db_exists = True
+    # Get the database alembic version
+    db_revision = arm_db_get()
+    if db_revision.version_num == head_revision:
+        db_current = True
+        app.logger.debug(f"Database is current. Head: {head_revision}" +
+                         f"DB: {db_revision.version_num}")
     else:
-        db_exists = False
         db_current = False
-        head_revision = None
-        db_revision = None
-        app.logger.debug(f"Database file is not present: {db_file}")
+        app.logger.info("Database is not current, update required." +
+                       f" Head: {head_revision} DB: {db_revision.version_num}")
 
     db = {
         "db_exists": db_exists,
