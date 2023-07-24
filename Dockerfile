@@ -70,6 +70,7 @@ FROM base AS automatic-ripping-machine
 # Copy over source code
 COPY . /opt/arm/
 
+RUN pip3 install -r requirements.txt
 # Our docker udev rule
 RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
 
