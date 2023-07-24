@@ -64,7 +64,11 @@ def check_db_version(install_path, db_file):
     """
     Check if db exists and is up to date.
     If it doesn't exist create it.  If it's out of date update it.
+
+
+    this kills mysql as it cant find file for db
     """
+    return True
     from alembic.script import ScriptDirectory
     from alembic.config import Config  # noqa: F811
     import sqlite3

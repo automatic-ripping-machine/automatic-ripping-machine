@@ -55,8 +55,12 @@ mysql_password = os.getenv("MYSQL_PASSWORD")
 mysql_ip = os.getenv("MYSQL_IP")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://' + mysql_user + ':' + mysql_password + '@' + mysql_ip + '/arm'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-db = SQLAlchemy(app)
+db = SQLAlchemy()
 db.init_app(app)
+with app.app_context():
+    db.create_all()
+migrate = Migrate(app, db)
+
 migrate = Migrate(app, db)
 
 # Register route blueprints
