@@ -54,10 +54,16 @@ app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
 # Set debug pin as it is hidden normally
 os.environ["WERKZEUG_DEBUG_PIN"] = "12345"  # make this random!
 app.logger.debug("Debugging pin: " + os.environ["WERKZEUG_DEBUG_PIN"])
-
-db = SQLAlchemy(app)
+mysql_user = os.getenv("MYSQL_USER", "root")
+mysql_password = os.getenv("MYSQL_PASSWORD", "example")
+mysql_ip = os.getenv("MYSQL_IP", "127.0.0.1")
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://' + mysql_user + ':' + mysql_password + '@' + mysql_ip + '/arm'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy()
+db.init_app(app)
+with app.app_context():
+    db.create_all()
 migrate = Migrate(app, db)
-
 # Register route blueprints
 # loaded post database decleration to avoid circular loops
 from arm.ui.settings.settings import route_settings  # noqa: E402,F811

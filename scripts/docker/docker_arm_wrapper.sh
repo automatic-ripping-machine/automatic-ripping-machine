@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -i
 
 DEVNAME=$1
 ARMLOG="/home/arm/logs/arm.log"
@@ -63,5 +63,6 @@ else
 	  eject "${DEVNAME}"
 	  exit #bail out
 fi
-cd /home/arm
-/usr/bin/python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" | logger -t ARM -s
+cd /opt/arm || exit
+/bin/su -m -p arm -c "/usr/bin/python3 /opt/arm/arm/ripper/main.py -d ${DEVNAME}" 2>&1 | tee $ARMLOG
+#/usr/bin/python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}"
