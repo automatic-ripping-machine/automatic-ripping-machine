@@ -48,12 +48,12 @@ def view_database():
     app.logger.debug(armui_cfg)
 
     # Check for database file
-    if os.path.isfile(cfg.arm_config['DBFILE']):
+    try:
         jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page=page,
                                                                               max_per_page=int(
                                                                                   armui_cfg.database_limit),
                                                                               error_out=False)
-    else:
+    except Exception:
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
 

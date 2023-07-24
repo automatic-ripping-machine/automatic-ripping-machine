@@ -170,8 +170,6 @@ def arm_db_check():
 
     head_revision = arm_alembic_get()
 
-    # Check if the db file exists
-    db_exists = True
     # Get the database alembic version
     # Check if the db file exists
     db_exists = True
