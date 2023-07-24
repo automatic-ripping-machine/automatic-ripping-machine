@@ -142,9 +142,14 @@ def arm_db_get():
     """
     Get the Alembic Head revision
     """
-    alembic_db = models.AlembicVersion()
-    db_revision = alembic_db.query.first()
-    app.logger.debug(f"Database Head is: {db_revision.version_num}")
+    db_revision = "Not found"
+    try:
+        alembic_db = models.AlembicVersion()
+        db_revision = alembic_db.query.first()
+        app.logger.debug(f"Database Head is: {db_revision.version_num}")
+    except AttributeError as error:
+        app.logger.debug(error)
+        setup_database()
     return db_revision
 
 
@@ -152,6 +157,7 @@ def arm_db_check():
     """
     Check if db exists and is up to date.
     """
+    setup_database()
     db_file = cfg.arm_config['DBFILE']
     db_exists = False
     db_current = False
@@ -412,9 +418,12 @@ def setup_database():
         #  Recreate everything
         db.metadata.create_all(db.engine)
         db.create_all()
-        db.session.commit()
         # UI Config
-        # UI config is already set within the alembic migration file - 9cae4aa05dd7_create_settingsui_table.py
+        # Mysql needs this here as data doesn't get added from the upgrade path
+        version = models.AlembicVersion('2e0dc31fcb2e')
+        ui_config = models.UISettings(1, 1, "spacelab", "en", 2000, 200)
+        db.session.add(ui_config)
+        db.session.add(version)
         # Create default user to save problems with ui and ripper having diff setups
         hashed = bcrypt.gensalt(12)
         default_user = models.User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
@@ -430,8 +439,9 @@ def setup_database():
         drive_utils.drives_update()
         app.logger.debug("DB Init - Drive info loaded")
         return True
-    except Exception:
+    except Exception as error:
         app.logger.debug("Couldn't create all")
+        app.logger.debug(error)
     return False
 
 

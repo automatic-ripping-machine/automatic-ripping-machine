@@ -25,8 +25,12 @@ route_database = Blueprint('route_database', __name__,
                            static_folder='../static')
 
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
-armui_cfg = ui_utils.arm_db_cfg()
-
+try:
+    armui_cfg = ui_utils.arm_db_cfg()
+except Exception as error:
+    # failed to get db config, setup db
+    app.logger.debug(error)
+    ui_utils.setup_database()
 
 @route_database.route('/database')
 @login_required

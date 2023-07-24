@@ -64,7 +64,7 @@ class Job(db.Model):
     ejected = db.Column(db.Boolean)
     updated = db.Column(db.Boolean)
     pid = db.Column(db.Integer)
-    pid_hash = db.Column(db.Integer)
+    pid_hash = db.Column(db.BigInteger)
     tracks = db.relationship('Track', backref='job', lazy='dynamic')
     config = db.relationship('Config', uselist=False, backref="job")
 

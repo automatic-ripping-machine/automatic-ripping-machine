@@ -5,3 +5,6 @@ argparse==1.4.0
 colorama==0.4.4
 #requirements added for PR#650
 flake8==6.0.0
+mysql-python
+mysqlclient==2.2.0
+mysql-connector-python

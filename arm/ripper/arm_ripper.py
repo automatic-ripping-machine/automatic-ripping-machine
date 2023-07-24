@@ -33,7 +33,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
     # Check folders for already ripped jobs -> creates folder
     hb_out_path = utils.check_for_dupe_folder(have_dupes, hb_out_path, job)
     # If dupes rips is disabled this might kill the run
-    final_directory = utils.check_for_dupe_folder(have_dupes, final_directory, job)
+    #final_directory = utils.check_for_dupe_folder(have_dupes, final_directory, job)
 
     # Update the job.path with the final directory
     utils.database_updater({'path': final_directory}, job)

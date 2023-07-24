@@ -7,6 +7,9 @@ LABEL org.opencontainers.image.license=MIT
 LABEL org.opencontainers.image.description='Automatic Ripping Machine for fully automated Blu-ray, DVD and audio disc ripping.'
 
 EXPOSE 8080
+ENV MYSQL_USER=root
+ENV MYSQL_PASSWORD=example
+ENV MYSQL_IP=127.0.0.1
 
 # Setup folders and fstab
 RUN \

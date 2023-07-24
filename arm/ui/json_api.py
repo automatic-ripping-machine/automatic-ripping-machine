@@ -3,6 +3,7 @@ Basic json api for access to A.R.M UI
 Also used to connect to both omdb and tmdb
 """
 import os
+import random
 import subprocess
 import re
 import html
@@ -21,6 +22,26 @@ from arm.ui.settings import DriveUtils as drive_utils  # noqa E402
 from arm.ui.settings.ServerUtil import ServerUtil
 from arm.ui.settings.settings import check_hw_transcode_support
 
+
+def enable_dev_mode(mode):
+    jobs = Job.query.order_by(db.desc(Job.job_id)).order_by(Job.job_id.desc())
+    app.logger.debug("Jobs number = " + str(jobs.count()))
+    r1 = random.randrange(0, jobs.count())
+    r2 = random.randrange(0, jobs.count())
+    r3 = random.randrange(0, jobs.count())
+    r4 = random.randrange(0, jobs.count())
+    for j in jobs:
+        if j.job_id == r1:
+            j.status = 'active'
+        if j.job_id == r2:
+            j.status = 'ripping'
+        if j.job_id == r3:
+            j.status = 'transcoding'
+        if j.job_id == r4:
+            j.status = 'waiting'
+        app.logger.debug(j.job_id)
+        db.session.commit()
+    return {'jobs': str(jobs), 'Mode': mode, 'count': jobs.count(), 'job_ids': [r1,r2,r3,r4]}
 
 def update_title(title, year, mode, job_id):
     """
@@ -183,16 +204,16 @@ def log_list(logs):
 
 
 def get_abcde_conf(mode):
-    return  {'cfg': cfg.abcde_config, 'comments': generate_comments()}
+    return  {'cfg': cfg.abcde_config, 'comments': generate_comments(), 'mode': mode}
 
 def get_ripper_conf(mode):
-    return  {'cfg': cfg.arm_config, 'comments': generate_comments()}
+    return  {'cfg': cfg.arm_config, 'comments': generate_comments(), 'mode': mode}
 
 def get_apprise_conf(mode):
-    return  {'cfg': cfg.apprise_config, 'comments': generate_comments()}
+    return  {'cfg': cfg.apprise_config, 'comments': generate_comments(), 'mode': mode}
 
 def get_ui_conf(mode):
-    return {'cfg': arm_db_cfg().get_d(), 'comments': generate_comments()}
+    return {'cfg': arm_db_cfg().get_d(), 'comments': generate_comments(), 'mode': mode}
 
 
 def process_logfile(logfile, job, job_results):

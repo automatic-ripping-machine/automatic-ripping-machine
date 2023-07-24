@@ -259,7 +259,7 @@ def feed_json():
         'get_job_details': {'funct': json_api.get_job_details, 'args': ('job_id', 'mode')},
         'search_remote': {'funct': json_api.search_remote, 'args': ('title', 'year', 'mode', 'job_id',)},
         'update_title': {'funct': json_api.update_title, 'args': ('title', 'year', 'mode', 'job_id',)},
-
+        'enable_dev_mode': {'funct': json_api.enable_dev_mode, 'args': ('mode',)},
     }
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
