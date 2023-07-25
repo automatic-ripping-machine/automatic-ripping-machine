@@ -64,11 +64,7 @@ def check_db_version(install_path, db_file):
     """
     Check if db exists and is up to date.
     If it doesn't exist create it.  If it's out of date update it.
-
-
-    this kills mysql as it cant find file for db
     """
-    return True
     from alembic.script import ScriptDirectory
     from alembic.config import Config  # noqa: F811
     import sqlite3
@@ -172,17 +168,11 @@ def arm_db_check():
 
     # Get the database alembic version
     # Check if the db file exists
-    db_exists = True
-    # Get the database alembic version
-    db_revision = arm_db_get()
-    if db_revision.version_num == head_revision:
-        db_current = True
-        app.logger.debug(f"Database is current. Head: {head_revision}" +
-                         f"DB: {db_revision.version_num}")
-    else:
-        db_current = False
-        app.logger.info("Database is not current, update required." +
-                       f" Head: {head_revision} DB: {db_revision.version_num}")
+    db_exists = False
+    db_current = False
+    head_revision = None
+    db_revision = None
+    app.logger.debug(f"Database file is not present: {db_file}")
 
     db = {
         "db_exists": db_exists,
@@ -216,46 +206,6 @@ def arm_db_cfg():
     app.logger.debug(armui_cfg)
 
     return armui_cfg
-
-
-def arm_db_migrate():
-    """
-    Migrate the existing database to the newest version, keeping user data
-    """
-    import flask_migrate
-
-    install_path = cfg.arm_config['INSTALLPATH']
-    db_file = cfg.arm_config['DBFILE']
-    mig_dir = os.path.join(install_path, path_migrations)
-
-    head_revision = arm_alembic_get()
-    db_revision = arm_db_get()
-
-    app.logger.info(
-                "Database out of date." +
-                f" Head is {head_revision} and database is {db_revision.version_num}." +
-                " Upgrading database...")
-    with app.app_context():
-        time = datetime.now()
-        timestamp = time.strftime("%Y-%m-%d_%H%M")
-        app.logger.info(
-                    f"Backing up database '{db_file}' " +
-                    f"to '{db_file}_migration_{timestamp}'.")
-        shutil.copy(db_file, db_file + "_migration_" + timestamp)
-        flask_migrate.upgrade(mig_dir)
-    app.logger.info("Upgrade complete.  Validating version level...")
-
-    # Check the update worked
-    db_revision = arm_db_get()
-    app.logger.info(f"ARM head: {head_revision} database: {db_revision.version_num}")
-    if head_revision == db_revision.version_num:
-        app.logger.info("Database is now up to date")
-        arm_db_initialise()
-    else:
-        app.logger.error(
-                    "Database is still out of date. " +
-                    f"Head is {head_revision} and database " +
-                    f"is {db_revision.version_num}.  Exiting arm.")
 
 
 def arm_db_initialise():
@@ -414,6 +364,7 @@ def setup_database():
         #  Recreate everything
         db.metadata.create_all(db.engine)
         db.create_all()
+        db.session.commit()
         # UI Config
         # Mysql needs this here as data doesn't get added from the upgrade path
         version = models.AlembicVersion('2e0dc31fcb2e')

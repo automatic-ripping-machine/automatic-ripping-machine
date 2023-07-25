@@ -14,6 +14,8 @@ from flask_login import LoginManager
 import bcrypt  # noqa: F401
 import arm.config.config as cfg
 
+sqlitefile = 'sqlite:///' + cfg.arm_config['DBFILE']
+
 # Setup logging, but because of werkzeug issues, we need to set up that later down file
 dictConfig({
     'version': 1,
@@ -43,6 +45,8 @@ CORS(app, resources={r"/*": {"origins": "*", "send_wildcard": "False"}})
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # We should really generate a key for each system
 app.config['SECRET_KEY'] = "Big secret key"  # make this random!
 # Set the global Flask Login state, set to True will ignore any @login_required
@@ -50,19 +54,16 @@ app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
 # Set debug pin as it is hidden normally
 os.environ["WERKZEUG_DEBUG_PIN"] = "12345"  # make this random!
 app.logger.debug("Debugging pin: " + os.environ["WERKZEUG_DEBUG_PIN"])
-mysql_user = os.getenv("MYSQL_USER")
-mysql_password = os.getenv("MYSQL_PASSWORD")
-mysql_ip = os.getenv("MYSQL_IP")
+mysql_user = os.getenv("MYSQL_USER", "root")
+mysql_password = os.getenv("MYSQL_PASSWORD", "example")
+mysql_ip = os.getenv("MYSQL_IP", "127.0.0.1")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://' + mysql_user + ':' + mysql_password + '@' + mysql_ip + '/arm'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy()
 db.init_app(app)
 with app.app_context():
     db.create_all()
 migrate = Migrate(app, db)
-
-migrate = Migrate(app, db)
-
 # Register route blueprints
 # loaded post database decleration to avoid circular loops
 from arm.ui.settings.settings import route_settings  # noqa: E402,F811

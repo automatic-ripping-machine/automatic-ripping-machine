@@ -29,8 +29,10 @@ from arm.ui.settings.ServerUtil import ServerUtil
 from arm.ui.settings.settings import check_hw_transcode_support
 
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
-armui_cfg = ui_utils.arm_db_cfg()
-
+try:
+    armui_cfg = ui_utils.arm_db_cfg()
+except Exception as error:
+    ui_utils.setup_database()
 # Page definitions
 page_support_databaseupdate = "support/databaseupdate.html"
 redirect_settings = "/settings"
@@ -50,13 +52,8 @@ def home():
     """
     global page_support_databaseupdate
 
-    # Check the database is current
-    db_update = ui_utils.arm_db_check()
     # Push out HW transcode status for homepage
     stats = {'hw_support': check_hw_transcode_support()}
-    if not db_update["db_current"] or not db_update["db_exists"]:
-        dbform = DBUpdate(request.form)
-        return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
 
     # System details in class server
     server = models.SystemInfo.query.filter_by(id="1").first()
@@ -96,7 +93,7 @@ def was_error(error):
 @app.errorhandler(Exception)
 def handle_exception(sent_error):
     """
-    Exception handler - This breaks all of the normal debug functions \n
+    Exception handler - This breaks all the normal debug functions \n
     :param sent_error: error
     :return: error page
     """
