@@ -70,7 +70,7 @@ RUN apt-get update && apt-get install -y curl sudo nginx
 RUN curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
 RUN apt-get install -y nodejs
 RUN echo "NODE Version:" && node --version
-RUN echo "NPM Version:" && npm --version
+RUN echo "NPM Version:" && npm --version && export SUDO_FORCE_REMOVE=yes && apt-get remove -y sudo
 
 WORKDIR /app
 COPY vuejs /app/vuejs
