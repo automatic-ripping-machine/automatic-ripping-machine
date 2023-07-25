@@ -1,0 +1,82 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Build arm-rippers" type="docker-deploy" factoryName="dockerfile" server-name="Docker">
+    <deployment type="dockerfile">
+      <settings>
+        <option name="imageTag" value="automaticrippingmachine/automatic-ripping-machine:test" />
+        <option name="containerName" value="arm-rippers" />
+        <option name="envVars">
+          <list>
+            <DockerEnvVarImpl>
+              <option name="name" value="ARM_GID" />
+              <option name="value" value="1001" />
+            </DockerEnvVarImpl>
+            <DockerEnvVarImpl>
+              <option name="name" value="ARM_UID" />
+              <option name="value" value="1001" />
+            </DockerEnvVarImpl>
+            <DockerEnvVarImpl>
+              <option name="name" value="DEBUG" />
+              <option name="value" value="1" />
+            </DockerEnvVarImpl>
+            <DockerEnvVarImpl>
+              <option name="name" value="MYSQL_IP" />
+              <option name="value" value="192.168.1.208" />
+            </DockerEnvVarImpl>
+            <DockerEnvVarImpl>
+              <option name="name" value="MYSQL_PASSWORD" />
+              <option name="value" value="example" />
+            </DockerEnvVarImpl>
+            <DockerEnvVarImpl>
+              <option name="name" value="MYSQL_USER" />
+              <option name="value" value="root" />
+            </DockerEnvVarImpl>
+            <DockerEnvVarImpl>
+              <option name="name" value="NVIDIA_DRIVER_CAPABILITIES" />
+              <option name="value" value="all" />
+            </DockerEnvVarImpl>
+          </list>
+        </option>
+        <option name="portBindings">
+          <list>
+            <DockerPortBindingImpl>
+              <option name="containerPort" value="8080" />
+              <option name="hostPort" value="8880" />
+            </DockerPortBindingImpl>
+            <DockerPortBindingImpl>
+              <option name="containerPort" value="80" />
+              <option name="hostPort" value="8889" />
+            </DockerPortBindingImpl>
+          </list>
+        </option>
+        <option name="commandLineOptions" value="-device /dev/sr0&#10;-device /dev/sg4&#10;--gpus all" />
+        <option name="showCommandPreview" value="true" />
+        <option name="sourceFilePath" value="Dockerfile" />
+        <option name="volumeBindings">
+          <list>
+            <DockerVolumeBindingImpl>
+              <option name="containerPath" value="$PROJECT_DIR$/../../../arm" />
+              <option name="hostPath" value="$PROJECT_DIR$/../../../arm" />
+            </DockerVolumeBindingImpl>
+            <DockerVolumeBindingImpl>
+              <option name="containerPath" value="$PROJECT_DIR$/../../../arm/Music" />
+              <option name="hostPath" value="$PROJECT_DIR$/../../../arm/Music" />
+            </DockerVolumeBindingImpl>
+            <DockerVolumeBindingImpl>
+              <option name="containerPath" value="$PROJECT_DIR$/../../../arm/media" />
+              <option name="hostPath" value="$PROJECT_DIR$/../../../arm/media" />
+            </DockerVolumeBindingImpl>
+            <DockerVolumeBindingImpl>
+              <option name="containerPath" value="/etc/arm/config" />
+              <option name="hostPath" value="/etc/arm/config" />
+            </DockerVolumeBindingImpl>
+            <DockerVolumeBindingImpl>
+              <option name="containerPath" value="$PROJECT_DIR$/../../../arm/logs" />
+              <option name="hostPath" value="$PROJECT_DIR$/../../../arm/logs" />
+            </DockerVolumeBindingImpl>
+          </list>
+        </option>
+      </settings>
+    </deployment>
+    <method v="2" />
+  </configuration>
+</component>
