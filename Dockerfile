@@ -1,16 +1,15 @@
 ###########################################################
 # setup default directories and configs
 FROM automaticrippingmachine/arm-dependencies:1.1.5 AS base
-
 LABEL org.opencontainers.image.source=https://github.com/automatic-ripping-machine/automatic-ripping-machine
 LABEL org.opencontainers.image.license=MIT
 LABEL org.opencontainers.image.description='Automatic Ripping Machine for fully automated Blu-ray, DVD and audio disc ripping.'
 
 EXPOSE 8080
+EXPOSE 80
 ENV MYSQL_USER=root
 ENV MYSQL_PASSWORD=example
 ENV MYSQL_IP=127.0.0.1
-
 # Setup folders and fstab
 RUN \
     mkdir -m 0777 -p /home/arm \
@@ -56,21 +55,38 @@ RUN chmod +x /etc/service/armui/run
 RUN mkdir -p /etc/my_init.d
 COPY ./scripts/docker/runit/arm_user_files_setup.sh /etc/my_init.d/arm_user_files_setup.sh
 COPY ./scripts/docker/runit/start_udev.sh /etc/my_init.d/start_udev.sh
+COPY ./scripts/docker/runit/armavue.sh /etc/my_init.d/armvueui.sh
 RUN chmod +x /etc/my_init.d/*.sh
 
 # We need to use a modified udev
 COPY ./scripts/docker/custom_udev /etc/init.d/udev
 RUN chmod +x /etc/my_init.d/*.sh
 
+########################################### build arm vuejs ############################################################
+# Core dependencies
+RUN apt-get update && apt-get install -y curl sudo nginx
 
+# Node
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+RUN apt-get install -y nodejs
+RUN echo "NODE Version:" && node --version
+RUN echo "NPM Version:" && npm --version
+
+WORKDIR /app
+COPY vuejs /app/vuejs
+WORKDIR /app/vuejs
+RUN npm install
+RUN ls -la ./
+RUN npm run build
 ###########################################################
 # Final image pushed for use
 FROM base AS automatic-ripping-machine
-
+RUN pip3 install mysql-connector-python
+COPY --from=base /app/vuejs/dist/ /var/www/html
+# For vuejs router - replace 404 location with new vuejs location
+RUN sed -i 's/z\|=404/\/index.html/' /etc/nginx/sites-available/default
 # Copy over source code
 COPY . /opt/arm/
-
-RUN pip3 install -r requirements.txt
 # Our docker udev rule
 RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
 
