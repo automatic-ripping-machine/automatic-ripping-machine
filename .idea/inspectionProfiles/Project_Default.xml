@@ -1,0 +1,60 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="47">
+            <item index="0" class="java.lang.String" itemvalue="alembic" />
+            <item index="1" class="java.lang.String" itemvalue="greenlet" />
+            <item index="2" class="java.lang.String" itemvalue="netifaces" />
+            <item index="3" class="java.lang.String" itemvalue="pycurl" />
+            <item index="4" class="java.lang.String" itemvalue="PyYAML" />
+            <item index="5" class="java.lang.String" itemvalue="tinydownload" />
+            <item index="6" class="java.lang.String" itemvalue="SQLAlchemy" />
+            <item index="7" class="java.lang.String" itemvalue="cffi" />
+            <item index="8" class="java.lang.String" itemvalue="wcwidth" />
+            <item index="9" class="java.lang.String" itemvalue="MarkupSafe" />
+            <item index="10" class="java.lang.String" itemvalue="pycparser" />
+            <item index="11" class="java.lang.String" itemvalue="requests" />
+            <item index="12" class="java.lang.String" itemvalue="Jinja2" />
+            <item index="13" class="java.lang.String" itemvalue="Flask-Login" />
+            <item index="14" class="java.lang.String" itemvalue="flake8" />
+            <item index="15" class="java.lang.String" itemvalue="apprise" />
+            <item index="16" class="java.lang.String" itemvalue="requests-oauthlib" />
+            <item index="17" class="java.lang.String" itemvalue="discid" />
+            <item index="18" class="java.lang.String" itemvalue="certifi" />
+            <item index="19" class="java.lang.String" itemvalue="oauthlib" />
+            <item index="20" class="java.lang.String" itemvalue="soupsieve" />
+            <item index="21" class="java.lang.String" itemvalue="xmltodict" />
+            <item index="22" class="java.lang.String" itemvalue="urllib3" />
+            <item index="23" class="java.lang.String" itemvalue="itsdangerous" />
+            <item index="24" class="java.lang.String" itemvalue="Markdown" />
+            <item index="25" class="java.lang.String" itemvalue="robobrowser" />
+            <item index="26" class="java.lang.String" itemvalue="Flask" />
+            <item index="27" class="java.lang.String" itemvalue="beautifulsoup4" />
+            <item index="28" class="java.lang.String" itemvalue="six" />
+            <item index="29" class="java.lang.String" itemvalue="Flask-Cors" />
+            <item index="30" class="java.lang.String" itemvalue="Werkzeug" />
+            <item index="31" class="java.lang.String" itemvalue="Flask-WTF" />
+            <item index="32" class="java.lang.String" itemvalue="pydvdid" />
+            <item index="33" class="java.lang.String" itemvalue="musicbrainzngs" />
+            <item index="34" class="java.lang.String" itemvalue="click" />
+            <item index="35" class="java.lang.String" itemvalue="Flask-SQLAlchemy" />
+            <item index="36" class="java.lang.String" itemvalue="argparse" />
+            <item index="37" class="java.lang.String" itemvalue="bcrypt" />
+            <item index="38" class="java.lang.String" itemvalue="psutil" />
+            <item index="39" class="java.lang.String" itemvalue="prettytable" />
+            <item index="40" class="java.lang.String" itemvalue="WTForms" />
+            <item index="41" class="java.lang.String" itemvalue="Flask-Migrate" />
+            <item index="42" class="java.lang.String" itemvalue="colorama" />
+            <item index="43" class="java.lang.String" itemvalue="pyudev" />
+            <item index="44" class="java.lang.String" itemvalue="charset-normalizer" />
+            <item index="45" class="java.lang.String" itemvalue="Mako" />
+            <item index="46" class="java.lang.String" itemvalue="idna" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
