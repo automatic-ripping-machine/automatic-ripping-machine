@@ -7,4 +7,4 @@
 /dataSources/
 /dataSources.local.xml
 /sonarlint/issuestore/f/9/f9e36158547e4116a1a5b8fc16f4183b64b0485a
-/.idea/
+*/.idea/
