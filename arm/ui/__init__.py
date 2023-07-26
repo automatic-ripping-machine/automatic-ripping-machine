@@ -45,8 +45,6 @@ CORS(app, resources={r"/*": {"origins": "*", "send_wildcard": "False"}})
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # We should really generate a key for each system
 app.config['SECRET_KEY'] = "Big secret key"  # make this random!
 # Set the global Flask Login state, set to True will ignore any @login_required

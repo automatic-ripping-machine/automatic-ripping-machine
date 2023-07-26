@@ -60,65 +60,6 @@ def database_updater(args, job, wait_time=90):
     return True
 
 
-def check_db_version(install_path, db_file):
-    """
-    Check if db exists and is up to date.
-    If it doesn't exist create it.  If it's out of date update it.
-    """
-    from alembic.script import ScriptDirectory
-    from alembic.config import Config  # noqa: F811
-    import sqlite3
-    import flask_migrate
-
-    mig_dir = os.path.join(install_path, path_migrations)
-
-    config = Config()
-    config.set_main_option("script_location", mig_dir)
-    script = ScriptDirectory.from_config(config)
-
-    # create db file if it doesn't exist
-    if not os.path.isfile(db_file):
-        app.logger.info("No database found.  Initializing arm.db...")
-        make_dir(os.path.dirname(db_file))
-        with app.app_context():
-            flask_migrate.upgrade(mig_dir)
-
-        if not os.path.isfile(db_file):
-            app.logger.debug("Can't create database file.  This could be a permissions issue.  Exiting...")
-        else:
-            # Only run the below if the db exists
-            # Check to see if db is at current revision
-            head_revision = script.get_current_head()
-            app.logger.debug("Alembic Head is: " + head_revision)
-
-            conn = sqlite3.connect(db_file)
-            c = conn.cursor()
-
-        c.execute('SELECT version_num FROM alembic_version')
-        db_version = c.fetchone()[0]
-        app.logger.debug(f"Database version is: {db_version}")
-        if head_revision == db_version:
-            app.logger.info("Database is up to date")
-        else:
-            app.logger.info(
-                f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
-            with app.app_context():
-                unique_stamp = round(time() * 100)
-                app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
-                shutil.copy(db_file, db_file + "_" + str(unique_stamp))
-                flask_migrate.upgrade(mig_dir)
-            app.logger.info("Upgrade complete.  Validating version level...")
-
-            c.execute("SELECT version_num FROM alembic_version")
-            db_version = c.fetchone()[0]
-            app.logger.debug(f"Database version is: {db_version}")
-            if head_revision == db_version:
-                app.logger.info("Database is now up to date")
-            else:
-                app.logger.error(f"Database is still out of date. "
-                                 f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
-
-
 def arm_alembic_get():
     """
     Get the Alembic Head revision
@@ -152,13 +93,6 @@ def arm_db_check():
     """
     Check if db exists and is up to date.
     """
-    db_file = cfg.arm_config['DBFILE']
-    db_exists = False
-    db_current = False
-    head_revision = None
-    db_revision = None
-
-    head_revision = arm_alembic_get()
 
     # Check if the db file exists
     db_exists = False
@@ -181,12 +115,6 @@ def arm_db_cfg():
     """
     Check if the database exists prior to creating global ui settings
     """
-    db_update = arm_db_check()
-    if not db_update["db_exists"]:
-        app.logger.debug("No armui cfg setup")
-        check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
-        setup_database()
-
     # if the database has been updated
     # UISettings could be incorrect, return None
     try:
@@ -195,7 +123,8 @@ def arm_db_cfg():
     except Exception as e:
         app.logger.debug(f"arm_cfg request error {e}")
         armui_cfg = None
-
+    if not armui_cfg:
+        raise ValidationError
     app.logger.debug(armui_cfg)
 
     return armui_cfg

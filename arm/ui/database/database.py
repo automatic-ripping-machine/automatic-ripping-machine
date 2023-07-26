@@ -43,8 +43,8 @@ def view_database():
     page = request.args.get('page', 1, type=int)
     app.logger.debug(armui_cfg)
 
-    # Check for database file
-    if os.path.isfile(cfg.arm_config['DBFILE']):
+    # If we have armui_config we have the db connection
+    if armui_cfg:
         jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page=page,
                                                                               max_per_page=int(
                                                                                   armui_cfg.database_limit),
