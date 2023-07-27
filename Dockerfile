@@ -49,6 +49,7 @@ RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 # Add ARMui service
 RUN mkdir /etc/service/armui
 COPY ./scripts/docker/runsv/armui.sh /etc/service/armui/run
+COPY ./scripts/docker/runit/fast_api.sh /etc/service/fast_api/run
 RUN chmod +x /etc/service/armui/run
 
 # Create our startup scripts
@@ -92,8 +93,12 @@ RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
 
 # Allow git to be managed from the /opt/arm folders
 RUN git config --global --add safe.directory /opt/arm
-
-RUN pip3 install mysql-connector-python
+############################################################
+WORKDIR /app
+COPY vuejs/api/requirements.txt /app/api/requirements.txt
+RUN apt-get install -yqq python3-dev default-libmysqlclient-dev build-essential && \
+    pip3 install --no-cache-dir --upgrade -r /app/api/requirements.txt
+COPY vuejs/api /app/api
 
 CMD ["/sbin/my_init"]
 WORKDIR /home/arm
