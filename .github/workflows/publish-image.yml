@@ -111,8 +111,19 @@ jobs:
                       ${{ env.IMAGE_NAME }}:${{ env.TAG }}
                       ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
                     labels: ${{ steps.meta.outputs.labels }}
+                  # Fetches all tags for the repo
             - 
-                name: Create Release    
+                name: Fetch tags
+                run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+            -
+                name: 'Check: version has corrosponding git tag'
+                id: tagged
+                shell: bash
+                run: git show-ref --tags --verify --quiet -- "refs/tags/${{ env.VERSION }}" && echo "::set-output name=tagged::0" || echo "::set-output name=tagged::1"
+
+            - 
+                name: Create Release
+                if: steps.tagged.outputs.tagged == 1
                 uses: "marvinpinto/action-automatic-releases@latest"
                 with:
                     repo_token: "${{ secrets.GITHUB_TOKEN }}"
