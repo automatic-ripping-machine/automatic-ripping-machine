@@ -111,15 +111,25 @@ jobs:
                       ${{ env.IMAGE_NAME }}:${{ env.TAG }}
                       ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
                     labels: ${{ steps.meta.outputs.labels }}
+                  # Fetches all tags for the repo
             - 
-                name: Create Release    
-                uses: "marvinpinto/action-automatic-releases@latest"
+                name: Fetch tags
+                run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+            -
+                name: 'Check: version has corrosponding git tag'
+                id: tagged
+                shell: bash
+                run: git show-ref --tags --verify --quiet -- "refs/tags/${{ env.VERSION }}" && echo "::set-output name=tagged::0" || echo "::set-output name=tagged::1"
+
+            - 
+                name: Create Release
+                if: steps.tagged.outputs.tagged == 1
+                uses: "lauravuo/action-automatic-releases@test-changes"
                 with:
                     repo_token: "${{ secrets.GITHUB_TOKEN }}"
                     automatic_release_tag: "${{ env.VERSION }}"
                     prerelease: false
-                    # This doesnt work yet, waiting for new verison to be merged
-                    generate_release_notes: true
+                    auto_generate_release_notes: true
                     title: "${{ env.VERSION }}"
                     files: |
                       LICENSE

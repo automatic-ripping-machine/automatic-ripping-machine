@@ -468,3 +468,15 @@ def get_notify_timeout(notify_timeout):
         return_json['notify_timeout'] = '6500'
 
     return return_json
+
+
+def restart_ui():
+    app.logger.debug("Arm ui shutdown....")
+    shutdown_code = subprocess.check_output(
+        "pkill python3",
+        shell=True
+    ).decode("utf-8")
+    # Nothing should work past here as the ui will die after running code above
+    app.logger.debug(f"Arm ui shutdown ran into a problem... exit code: {shutdown_code}")
+    return_json = {'success': False, 'error': f"Shutting down A.R.M UI....exit code: {shutdown_code}"}
+    return return_json
