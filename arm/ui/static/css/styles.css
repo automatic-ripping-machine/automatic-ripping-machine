@@ -1,11 +1,11 @@
-
+/*  General Navigation Bar Styles */
 .nav-link {
     display: flex !important;
     align-items: center;
     justify-content: center;
 }
 
-.nav-link li :hover {
+.nav-item :hover {
     color: white !important;
 }
 
@@ -18,19 +18,22 @@
     color: white !important;
 }
 
+ /* NavBar: To Big for Titles, but not collapsed */
+
 @media only screen and (max-width: 1500px) and (min-width: 768px){
     .nav-link span{
         display: none !important;
     }
 }
 
-
+ /* NavBar: Collapsed, but icons are misplaces */
 @media only screen and (max-width: 768px){
     .nav-item i {
         padding: .5rem 1rem;
     }
 }
 
+ /* NavBar: Custom Control element styling */
 .custom-control {
     padding-left: 4em !important;
 }
@@ -45,6 +48,7 @@ div.custom-switch .custom-control-label {
     color: #ced4da !important;
 }
 
+ /* NavBar: Github link */
 .github-link a{
     color: white !important;
     padding-left: 15px;
