@@ -1,0 +1,51 @@
+
+.nav-link {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-link li :hover {
+    color: white !important;
+}
+
+.nav-link i {
+    color: rgba(255, 255, 255, .75);
+    padding-right: 10px;
+}
+
+.nav-item, .active i {
+    color: white !important;
+}
+
+@media only screen and (max-width: 1500px) and (min-width: 768px){
+    .nav-link span{
+        display: none !important;
+    }
+}
+
+
+@media only screen and (max-width: 768px){
+    .nav-item i {
+        padding: .5rem 1rem;
+    }
+}
+
+.custom-control {
+    padding-left: 4em !important;
+}
+
+.custom-control-input:checked ~ .custom-control-label::before {
+    color: #ced4da;
+    border-color: #e8e8e8;
+    background-color: #007bff;
+}
+
+div.custom-switch .custom-control-label {
+    color: #ced4da !important;
+}
+
+.github-link a{
+    color: white !important;
+    padding-left: 15px;
+}

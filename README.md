@@ -73,6 +73,10 @@ Pull requests are welcome.  Please see the [Contributing Guide](https://github.c
 
 If you set ARM up in a different environment (harware/OS/virtual/etc), please consider submitting a howto to the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).
 
+### Icons:
+This Project uses [ForkAwesome](https://forkaweso.me/Fork-Awesome/)!
+
+
 ## License
 
 [MIT License](LICENSE)

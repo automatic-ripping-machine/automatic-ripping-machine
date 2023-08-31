@@ -129,6 +129,7 @@
                             <thead class="tablesorterhead thead-dark">
                             <tr style="margin: 0 auto">
                                 <th scope="col" style="cursor: pointer;">Title</th>
+                                <th scope="col" style="cursor: pointer;" class="hidden">Start Time</th>
                                 <th scope="col" style="cursor: pointer;">Start Time</th>
                                 <th scope="col" style="cursor: pointer;">Duration</th>
                                 <th scope="col" style="cursor: pointer;">Status</th>
@@ -169,7 +170,10 @@
             // call the tablesorter plugin
             $("table").tablesorter({
                 // sort on the third column (startime, no format)
-                sortList: [[2, 1]]
+                //sortList: [[2, 1]],
+                headers: {
+                  2: { sortInitialOrder: 'desc' }
+                }
             });
         });
         activeTab("history");

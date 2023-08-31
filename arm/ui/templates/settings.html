@@ -43,9 +43,13 @@
 									<span class="input-group-text" id="{{ k }}">{{ k }}: </span>
 								</div>
 								<input type="text" class="form-control" aria-label="{{ k }}" name={{ k }} placeholder="{{ v}}" value="{{ v }}" aria-describedby="{{ k }}">
-								 <a class="popovers" onClick='return false;' href="" data-content="{{ jsoncomments[k] }}" rel="popover" data-placement="top" data-original-title="{{ k }}">
-									<img title="More information" src="static/img/info.png" width="30px" height="35px" alt="More Info">
-								</a>
+								<div class="input-group-append">
+								    <span class="input-group-text">
+                                        <a class="popovers" onClick='return false;' href="" data-content="{{ jsoncomments[k] }}" rel="popover" data-placement="top" data-original-title="{{ k }}">
+                                            <i class="fa fa-question-circle-o fa-lg" aria-hidden="true"></i>
+                                        </a>
+                                    </span>
+                                </div>
 							</div>
 							{% endfor %}
 								<button class="btn btn-secondary btn-lg btn-block" form="form1" type="submit">Submit</button>
