@@ -136,7 +136,7 @@ def apprise_notify(apprise_cfg, title, body):
                 body,
                 title=title,
             )
-            logging.debug(f"Sent apprise to ntfy was successful")
+            logging.debug("Sent apprise to ntfy was successful")
         except Exception as error:  # noqa: E722
             logging.error(f"Failed sending ntfy apprise notification.  continuing  processing...{error}")
 
@@ -144,6 +144,6 @@ def apprise_notify(apprise_cfg, title, body):
     if cfg['BASH_SCRIPT'] != "":
         try:
             subprocess.run([cfg['BASH_SCRIPT'], title, body])
-            logging.debug(f"Sent bash notification successful")
+            logging.debug("Sent bash notification successful")
         except Exception as error:  # noqa: E722
             logging.error(f"Failed sending notification via bash.  continuing  processing...{error}")
