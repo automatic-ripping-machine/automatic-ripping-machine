@@ -6,7 +6,6 @@ Automatic-Ripping-Machine Development Tools
     ARM Notify test tools
 """
 
-import os
 import log
 from arm.ripper import utils
 from arm.models.models import Job
