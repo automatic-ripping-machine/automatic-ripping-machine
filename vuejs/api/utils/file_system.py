@@ -5,11 +5,13 @@ import json
 import os
 from time import strftime, localtime, time, sleep
 
+
 def log_list(logs):
     print(logs)
     base_path = ""  # cfg.arm_config['LOGPATH']
     files = get_info(base_path)
     return {'success': True, 'files': files}
+
 
 def get_info(directory):
     """

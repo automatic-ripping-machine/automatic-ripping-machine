@@ -142,6 +142,7 @@ def get_dvd_jobs(session: Session):
     job_list = session.query(Job).filter_by(hasnicetitle=True, disctype="dvd").all()
     return [job.job_id for job in job_list]
 
+
 def search(session: Session, search_query: str):
     """ Queries ARMui db for the movie/show matching the query"""
     safe_search = re.sub(r'[^a-zA-Z\d]', '', search_query)
@@ -167,7 +168,7 @@ def search(session: Session, search_query: str):
     return {'success': True, 'mode': 'search', 'results': search_results}
 
 
-def get_jobs_by_status(session: Session, job_status: str)-> List[Job]:
+def get_jobs_by_status(session: Session, job_status: str) -> List[Job]:
     if job_status in ("success", "fail"):
         jobs = session.query(Job).filter_by(status=job_status).all()
     else:
@@ -191,7 +192,7 @@ def delete_log(logfile):
 ################################# Settings ################################################
 
 def update_password(session, post_json):
-    return_json = {'success': False }
+    return_json = {'success': False}
     print(post_json.username, post_json.old_password, post_json.new_password)
     user = session.query(User).filter_by(username=post_json.username).first()
     print(user.__dict__)
@@ -211,6 +212,7 @@ def update_password(session, post_json):
     else:
         return_json['error'] = "Password not updated, issue with old password"
     return return_json
+
 
 def get_ripper_settings(session) -> RipperConfig:
     ripper_settings = session.query(RipperConfig).first()
@@ -255,6 +257,8 @@ def update_apprise_settings(session, new_settings):
         setattr(apprise_settings, key, value)
     session.commit()
     return apprise_settings
+
+
 def get_ui_settings(session: Session) -> UISettings:
     """
     Update/create the ui settings if needed
@@ -271,7 +275,7 @@ def get_ui_settings(session: Session) -> UISettings:
     return session.query(UISettings).first()
 
 
-def update_ui_settings(session: Session, info_update, config_id:int  = 1):
+def update_ui_settings(session: Session, info_update, config_id: int = 1):
     """
     Update/create the ui settings if needed
     :param config_id:
@@ -358,7 +362,8 @@ def enable_dev_mode(mode, session):
             j.status = 'waiting'
         print(j.job_id)
         session.commit()
-    return {'jobs': str(jobs), 'Mode': mode, 'count': jobs.count(), 'job_ids': [r1,r2,r3,r4]}
+    return {'jobs': str(jobs), 'Mode': mode, 'count': jobs.count(), 'job_ids': [r1, r2, r3, r4]}
+
 
 def crud_get_notifications(session):
     """Get all current notifications"""
@@ -366,9 +371,11 @@ def crud_get_notifications(session):
     notification = [a.get_d() for a in all_notification]
     return notification
 
+
 def crud_get_all_notifications(session):
     """Get all current notifications"""
     return session.query(Notifications).order_by(Notifications.id.desc()).all()
+
 
 def crud_read_notification(session, notify_id):
     """Read notification, disable it from being show"""
@@ -382,6 +389,7 @@ def crud_read_notification(session, notify_id):
     else:
         return_json['message'] = "Notification already read or not found!"
     return return_json
+
 
 def get_stats(session):
     # stats for info page
@@ -397,32 +405,34 @@ def get_stats(session):
     cds = session.query(Job).filter_by(disctype="music").count()
     stats = {'python_version': platform.python_version(),
              'arm_version': version,
-             #'git_commit': get_git_revision_hash(),
+             # 'git_commit': get_git_revision_hash(),
              'movies_ripped': movies,
              'series_ripped': series,
              'cds_ripped': cds,
              'no_failed_jobs': failed_rips,
              'total_rips': total_rips,
-             #'updated': git_check_updates(get_git_revision_hash()),
+             # 'updated': git_check_updates(get_git_revision_hash()),
              'hw_support': check_hw_transcode_support(),
              }
     # form_drive = SystemInfoDrives(request.form)
     # System Drives (CD/DVD/Blueray drives)
-    json_drives = {} # check_for_drives()
+    json_drives = check_for_drives(session)  # check_for_drives()
     return {'success': True, 'stats': stats, 'drives': json_drives}
 
 
-def check_for_drives():
+def check_for_drives(session):
     from utils.DriveUtils import drives_check_status
-    drives = drives_check_status()
+    drives = drives_check_status(session)
     json_drives = {}
-    i=0
+    i = 0
     for drive in drives:
         json_drives[i] = {}
         for key, value in drive.get_d().items():
             json_drives[i][str(key)] = str(value)
             # Will trigger error if no previous
-            json_drives[i]['job_previous'] = drive.job_previous.get_d()
-
+            if drive.job_previous:
+                json_drives[i]['job_previous'] = drive.job_previous.get_d()
+            else:
+                json_drives[i]['job_previous'] = "None"
         i += 1
     return json_drives

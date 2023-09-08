@@ -1,5 +1,4 @@
 import os
-import hashlib
 import bcrypt
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -31,12 +30,20 @@ def get_db():
 
 async def init_db():
     try:
+        # Create the tables
         Base.metadata.create_all(bind=db_engine)
-        from models import User
+        from models import User, SystemInfo
+        # Connect to the database
         db = SessionLocal()
         hashed = bcrypt.gensalt(12)
+        # Create the server info
+        server = SystemInfo()
+        # Add the primary user
         db.add(User(username="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
                     hash=hashed, disabled=False))
+        # Add the server details
+        db.add(server)
+        # Commit and close connection
         db.commit()
         db.close()
     except Exception as e:

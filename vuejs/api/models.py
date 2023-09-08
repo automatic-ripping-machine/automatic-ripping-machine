@@ -664,7 +664,10 @@ class SystemDrives(Base):
             if '_sa_instance_state' not in key:
                 return_dict[str(key)] = str(value)
             if "job_previous" in key:
-                return_dict[str(key)] = {'fucked': value.get_d()}
+                if value:
+                    return_dict[str(key)] = {'fucked': value.get_d()}
+                else:
+                    return_dict[str(key)] = {'fucked': "none"}
         return return_dict
 
 
