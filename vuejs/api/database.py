@@ -36,7 +36,7 @@ async def init_db():
         db = SessionLocal()
         hashed = bcrypt.gensalt(12)
         db.add(User(username="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
-                    hash="12474365", disabled=False))
+                    hash=hashed, disabled=False))
         db.commit()
         db.close()
     except Exception as e:
