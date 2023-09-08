@@ -5,7 +5,7 @@ LABEL org.opencontainers.image.source=https://github.com/automatic-ripping-machi
 LABEL org.opencontainers.image.license=MIT
 LABEL org.opencontainers.image.description='Automatic Ripping Machine for fully automated Blu-ray, DVD and audio disc ripping.'
 
-EXPOSE 8080
+EXPOSE 81
 EXPOSE 80
 ENV MYSQL_USER=root
 ENV MYSQL_PASSWORD=example
@@ -48,15 +48,16 @@ RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 
 # Add ARMui service
 RUN mkdir /etc/service/armui
-COPY ./scripts/docker/runsv/armui.sh /etc/service/armui/run
-COPY ./scripts/docker/runit/fast_api.sh /etc/service/fast_api/run
-RUN chmod +x /etc/service/armui/run
+#COPY ./scripts/docker/runsv/armui.sh /etc/service/armui/run
+#COPY ./scripts/docker/runit/fast_api.sh /etc/service/fast_api/run
+#RUN chmod +x /etc/service/armui/run
 
 # Create our startup scripts
 RUN mkdir -p /etc/my_init.d
 COPY ./scripts/docker/runit/arm_user_files_setup.sh /etc/my_init.d/arm_user_files_setup.sh
 COPY ./scripts/docker/runit/start_udev.sh /etc/my_init.d/start_udev.sh
 COPY ./scripts/docker/runit/armavue.sh /etc/my_init.d/armvueui.sh
+COPY ./scripts/docker/runit/fast_api.sh /etc/my_init.d/fast_api.sh
 RUN chmod +x /etc/my_init.d/*.sh
 
 # We need to use a modified udev

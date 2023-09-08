@@ -24,14 +24,16 @@ export default {
   methods: {
     async getData(jobid) {
       try {
-        let jobUrl = this.arm_API + "/json?mode=get_job_details&job_id="+ jobid
+        let jobUrl = this.arm_API + "/jobs/"+ jobid
         const response = await axios.get(jobUrl);
         // JSON responses are automatically parsed.
-        this.jobs = response.data.jobs;
-        this.jsoncomments = response.data.comments
+        this.jobs = response.data;
+        console.log(response.data)
+        //this.jsoncomments = response.data.comments
         this.tracks = response.data.tracks
-        this.config = response.data.jobs.config
-        this.jobs_background = response.data.jobs.background
+        console.log(this.tracks)
+        this.config = response.data.config
+        this.jobs_background = response.data.background
       } catch (error) {
         console.log(error);
       }
@@ -236,7 +238,7 @@ export default {
                 </tbody>
               </table>
               <hr class="test d-none">
-             <TrackList :jobs="jobs" :tracks="tracks"/>
+             <TrackList :tracks="tracks"/>
             </div>
           </div>
         </div>

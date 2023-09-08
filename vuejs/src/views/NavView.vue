@@ -1,4 +1,4 @@
-<script setup>
+<script>
 import CloseMenuIcon from '../components/icons/CloseMenu.vue'
 import HomeIcon from '../components/icons/Home.vue'
 import HistoryIcon from '../components/icons/History.vue'
@@ -9,22 +9,78 @@ import ChangePasswordIcon from "@/components/icons/ChangePassword.vue";
 import ViewLogsIcon from "@/components/icons/ViewLogs.vue";
 import NaviAccordionSettings from "@/components/NaviAccordionSettings.vue";
 import {ref} from 'vue'
+import NotificationIcon from "@/components/icons/NotificationIcon.vue";
+import {defineComponent} from "vue";
+import axios from "axios";
 
-let isShow = ref(true)
-let isOpen = ref(false)
+export default defineComponent({
+  components: {NotificationIcon,
+    NaviAccordionSettings,
+    ViewLogsIcon,
+    ChangePasswordIcon,
+    SendToApiIcon,
+    ArmSettingsIcon,
+    DatabaseIcon,
+    HistoryIcon,
+    HomeIcon,
+    CloseMenuIcon
+  },
+  data() {
+    return {
+      // Main menu open/close
+      isShow: ref(true),
+      // Sub menu open/close
+      isOpen: ref(false),
+      // Notification count
+      notifyCount: ref(0),
+      arm_API: this.armapi
+    }
+  },
+  mounted() {
+    let refreshList = setInterval(this.refreshNotes, 5000)
+    this.$nextTick(() => {
+      this.message = "No data yet....Loading please wait";
+      console.log(this.message);
+    });
+  },
+  unmounted() {
+    console.log("Clearing timers")
+    clearInterval(refreshList);
+  },
+  methods: {
+    refreshNotes: function () {
+      console.log("Timer" + Math.floor(Math.random() * (25)) + 1)
+      axios
+          .get(this.arm_API + '/get_notifications').then((response) => {
+        console.log(response.data);
+        this.notifyCount = response.data.length
+        //response.data
+      }, (error) => {
+        console.log(error);
+      });
+      return this
+    }
+  }
+})
 </script>
 <template>
   <nav>
-    <div class="rounded">
+    <div class="rounded" :class="{ 'd-flex': isShow }">
     <a @click="isShow = !isShow;">
       <div class="rounded nav-icon">
         <CloseMenuIcon/>
       </div>
     </a>
+      <router-link class="rounded" to="/notifications" title="View Notifications">
+        <div class="rounded nav-icon">
+          <NotificationIcon/>
+          <span v-show="notifyCount > 0" class="badge badge-light">{{ notifyCount }}</span>
+        </div>
+      </router-link>
     </div>
     <hr>
 
-    <router-link class="rounded" to="/" title="Open/Close menu">
+    <router-link class="rounded" to="/" title="Home">
       <div class="rounded nav-icon">
         <HomeIcon/>
       </div>
@@ -74,7 +130,7 @@ let isOpen = ref(false)
 }
 nav a:hover .nav-icon, nav a.router-link-exact-active:hover .nav-icon, .nav-icon:hover{
   color: #061215;
-  background-color: rgba(22, 199, 255, 0.99);
+  background-color: rgba(22, 199, 255, 0.3);
 }
 nav a:hover .nav-icon svg path,
 nav a:hover .nav-icon svg line,
@@ -100,11 +156,12 @@ nav {
     left: 0;
     z-index: 1000;
     width: 100%;
+    opacity: 0.8;
   }
 }
 
 nav a.router-link-exact-active, nav a.router-link-exact-active svg {
-  color: #42b983;
+  color: #d2d2d2;
 }
 nav a.router-link-exact-active .nav-icon svg path,
 nav a.router-link-exact-active .nav-icon svg line,

@@ -1,5 +1,5 @@
 <script setup>
-import JobCardLeft from "@/components/jobcards/JobCardLeft.vue";
+import JobCardLeft from "@/components/jobcards/Job Card Ideas/JobCardBlurayCase.vue";
 
 defineEmits(['abandon', 'fixPerms'])
 defineProps({
@@ -10,8 +10,9 @@ defineProps({
 })
 
 function titleManual(job) {
+  console.log( "title man = "+job.title_manual)
   let x;
-  if (job.title_manual !== "None") {
+  if (job.title_manual !== "None" && job.title_manual !== null) {
     x = `${job.title_manual}(${job.year})`;
   } else {
     x = `${job.title}(${job.year})`;
@@ -32,13 +33,16 @@ function titleManual(job) {
 
 <style>
 .wrapper{
-  margin: 30px;
+  margin: 11px;
 }
 .click_details{
   border-radius: 0 8% 8% 0;
   float: inline-end;
   width: 100%;
   height: 100%;
+}
+.btn-primary{
+  background-image: linear-gradient(#6d94bf, #1b6eca 50%, #113b6a);
 }
 .main_card {
   color: #fff;
@@ -55,7 +59,7 @@ function titleManual(job) {
   background: -o-linear-gradient(left, #1e519a, rgba(58, 63, 72, 0.98));
   background: linear-gradient(to right, rgba(13, 13, 13, 0.69), rgba(58, 63, 72, 0.6));
   -webkit-box-shadow: 0 0 40px rgba(0,0,0,0.3);
-  box-shadow: 3px 4px 8px rgb(31, 0, 183);
+  box-shadow: 3px 4px 8px #1b6eca;
   border-radius: 5% 8% 8% 5%;
   width: min-content;
 }
@@ -127,7 +131,7 @@ h1, h2 {
 }
 
 a{
-  color: #825582;
+  color: #1b3881;
   text-decoration: none;
 }
 </style>

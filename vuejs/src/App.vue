@@ -27,6 +27,26 @@
   opacity: 0;
 }
 </style>
-<script setup>
+<script>
+import axios from "axios";
+const token = JSON.parse( localStorage.getItem('token') );
+if( token ){
+  axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+}else{
+  // forward to login if not already in
+  if (window.location.pathname !== "/login"){
+    window.location.href = "/login";
+  }
+}
+import {defineComponent} from "vue";
 import NavView from "@/views/NavView.vue";
+
+export default defineComponent({
+  components: {NavView},
+  data() {
+    return {
+      arm_API: this.armapi
+    };
+  },
+})
 </script>

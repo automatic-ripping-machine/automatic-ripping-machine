@@ -1,6 +1,6 @@
 <template>
   <div class="container justify-content-center jumbotron mt-5">
-    <Modal v-show="currentLoading" title="Loading search..." v-bind:loadingContent="currentLoading"/>
+    <Modal v-show="modalOpen" title="Loading search..." @update-modal="modalOpen=!modalOpen"/>
     <div class="row justify-content-center" style="flex-wrap: nowrap">
       <HomeScreenGreeting msg="Search for Title" msg2="Search the api for correct title match"/>
     </div>
@@ -11,18 +11,17 @@
             <span class="input-group-text" id="searchtitle">Title</span>
           </div>
           <input type="text" class="form-control" aria-label="searchtitle" name="title"
-                 v-bind:value="job.title" aria-describedby="searchtitle">
+                 v-model="title" aria-describedby="searchtitle">
           <div class="invalid-tooltip">
             Search can't be blank
           </div>
           <div class="input-group-prepend">
             <span class="input-group-text" id="basic-addon1">Year</span>
           </div>
-          <input type="text" class="form-control" name="year" v-bind:value="job.year"
+          <input type="text" class="form-control" name="year" v-model="year"
                  aria-label="year" aria-describedby="basic-addon1">
         </div>
         <input class="form-control" name="mode" value="search_remote" hidden>
-        <input class="form-control" name="job_id" v-bind:value="job.job_id" hidden>
         <button class="btn btn-info btn-lg btn-block" type="submit">Search</button>
       </form>
     </div>
@@ -54,8 +53,11 @@ export default defineComponent({
   data() {
     return {
       job: {},
+      title: "",
+      year: "",
+      modalOpen: ref(false),
       results: ref(),
-      searchResults: ref(false),
+      searchResults: false,
       currentLoading: ref(false),
       arm_API: this.armapi
     };
@@ -64,39 +66,39 @@ export default defineComponent({
     async getData(jobid) {
       try {
         const response = await axios.get(
-            this.arm_API + "/json?mode=get_job_details&job_id=" + jobid
+            this.arm_API + "/jobs/" + jobid
         );
         // JSON responses are automatically parsed.
-        console.log(response.data)
-        this.job = response.data.jobs
-        this.joblist = response.data.results;
+        this.job = response.data
+        this.title = response.data.title
+        this.year = response.data.year
       } catch (error) {
         console.log(error);
       }
     },
     submit: function () {
-      this.currentLoading = true
-      const formData = new FormData(this.$refs['form']); // reference to form element
-      const data = {}; // need to convert it before using not with XMLHttpRequest
-      let getURL = ""
-      for (let [key, val] of formData.entries()) {
-        Object.assign(data, { [key]: val })
-        getURL += key + "=" + val + "&"
-      }
-      console.log(getURL);
-      axios.get(this.arm_API + '/json?' + getURL , data)
-          .then(res => this.search(res)).catch(
+      // Open the modal to show that data is being loaded
+      this.modalOpen = !this.modalOpen;
+      // Add the year as null, so it doesn't cause the api to error out
+      this.year = (this.year == null || this.year === "") ? 'null' : this.year
+      axios.get(this.arm_API + '/search_remote/' + this.title + "/" + this.year+ "/" + this.job.job_id)
+          .then(res => this.search(res),this.modalOpen = !this.modalOpen).catch(
               error => console.log("error:"+ error),
-          this.currentLoading = false)
+              this.modalOpen = !this.modalOpen
+       )
     },
     search: function (response) {
-      console.log(response.data.success)
+      console.log(response.data)
       if(response.data.success){
         this.searchResults = true
         this.currentLoading = false
         this.job.title = response.data.title
         this.job.year = response.data.year
         this.results = response.data.search_results.Search
+        // Only close the modal when we have results
+        if(this.results){
+          this.modalOpen = !this.modalOpen
+        }
       }
     }
   },

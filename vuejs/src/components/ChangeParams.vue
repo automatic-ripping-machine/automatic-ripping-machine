@@ -23,12 +23,12 @@ export default defineComponent({
     async getData(jobid) {
       try {
         const response = await axios.get(
-            this.arm_API + "/json?mode=get_job_details&job_id=" + jobid
+            this.arm_API + "/jobs/" + jobid
         );
         // JSON responses are automatically parsed.
         console.log(response.data)
-        this.job = response.data.jobs
-        this.config = response.data.jobs.config;
+        this.job = response.data
+        this.config = response.data.config;
         // Convert python bool string into js bool
         this.config.MAINFEATURE = this.config.MAINFEATURE === "False" ? false: true;
       } catch (error) {
@@ -46,7 +46,7 @@ export default defineComponent({
       // If MAINFEATURE doesn't exist set it to false
       data['MAINFEATURE'] = !data['MAINFEATURE'] ? false : true;
       console.log(getURL);
-      axios.get(this.arm_API + '/json?' + getURL + '&MAINFEATURE=' + data['MAINFEATURE'], data)
+      axios.get(this.arm_API + '/change_params/' + this.job.job_id + '?' + getURL + '&MAINFEATURE=' + data['MAINFEATURE'])
           .then(res => console.log(res.request.response))
     }
   },
@@ -135,9 +135,6 @@ export default defineComponent({
               Title can't be blank
             </div>
           </div>
-
-          <input name="mode" value="change_job_params" hidden>
-          <input name="config_id" v-bind:value="job.job_id" hidden>
           <button class="btn btn-info btn-lg btn-block" type="submit">Submit</button>
         </form>
       </div>

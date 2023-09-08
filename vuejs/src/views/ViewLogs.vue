@@ -122,12 +122,15 @@ export default {
     refreshJobs(){
       console.log("Timer" + Math.floor(Math.random() * (25)) + 1)
       axios
-          .get(this.arm_API + '/json?mode=logs').then((response) => {
+          .get(this.arm_API + '/logs').then((response) => {
         console.log(response.data);
         this.message = response.status
         console.log(response.data.results)
         this.files = response.data.files
-        console.log(JSON.parse(JSON.stringify(this.files)));
+        if(response.data.files === null){
+          console.log("No files found!")
+        }
+        //console.log(JSON.parse(JSON.stringify(this.files)));
       }, (error) => {
         console.log("Error!");
         console.log(error);

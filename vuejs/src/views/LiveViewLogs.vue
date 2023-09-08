@@ -8,7 +8,7 @@ function getData(logUrl, mode, job, container) {
   try {
     if (mode === 'tail' || mode === 'full') {
       //json?logfile=FAST_AND_FURIOUS_G51_168925026218.log&mode=full&job=98
-      logUrl = container.arm_API + '/json?logfile=' + logUrl + '&mode=' + mode + '&job=' + job;
+      logUrl = container.arm_API + '/logs/' + mode + '/' + logUrl + '/' + job;
     } else {
       logUrl = container.arm_API + '/logreader?logfile=' + logUrl + '&mode=' + mode + '&job=' + job;
     }

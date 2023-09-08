@@ -83,7 +83,7 @@ export default {
       console.log("search fired")
       console.log(this.modalOpen)
       this.modalTitle = "Get all failed jobs ?"
-      this.mode = "getfailed"
+      this.mode = "fail"
       this.modalBody = ""
 
       this.modalOpen = !this.modalOpen;
@@ -93,9 +93,8 @@ export default {
       console.log("search fired")
       console.log(this.modalOpen)
       this.modalTitle = "Get all successful jobs ?"
-      this.mode = "getsuccessful"
+      this.mode = "success"
       this.modalBody = ""
-
       this.modalOpen = !this.modalOpen;
       console.log(this.modalOpen)
     },
@@ -105,7 +104,7 @@ export default {
       console.log(job.job_id)
       this.currentJob = job.job_id
       this.modalTitle = "Try to fix this jobs folder permissions ?"
-      this.mode = "fixPerms"
+      this.mode = "fix_perms"
       this.modalBody = "This will try to set the chmod values from your arm.yaml. It wont always work, you may need to do this manually"
       this.modalOpen = !this.modalOpen;
       console.log(this.modalOpen)
@@ -119,9 +118,12 @@ export default {
       // Search has a diff query use that instead if we need
       if(this.mode === 'search'){
         console.log(this.query)
-        jobURl = this.arm_API + '/json?mode=search&q='+ this.query
-      }else {
-        jobURl = this.arm_API + '/json?mode=' + this.mode + '&job=' + this.currentJob
+        jobURl = this.arm_API + '/jobs/search/'+ this.query
+      }else if(this.mode === "abandon" || this.mode === "fix_perms"){
+        jobURl = this.arm_API + '/jobs/' +this.currentJob + '/'+ this.mode
+        console.log(jobURl)
+      } else {
+        jobURl = this.arm_API + '/database/?mode=' + this.mode
       }
       axios
           .get(jobURl).then((response) => {
@@ -144,16 +146,16 @@ export default {
     refreshJobs: function (){
       console.log("Timer" + Math.floor(Math.random() * (25)) + 1)
       axios
-          .get(this.arm_API+ '/json?mode=database').then((response) => {
+          .get(this.arm_API+ '/database').then((response) => {
         console.log(response.data);
         this.message = response.status
-        console.log(response.data.results)
+        console.log(response.data.data)
         this.joblist = response.data.results
         joblist = JSON.parse(JSON.stringify(this.joblist))
         console.log(JSON.parse(JSON.stringify(this.joblist)));
       }, (error) => {
         console.log("Error!");
-        console.log(error);
+        console.log(error.response);
       });
       //.then(response => (messageContainer.message = response))
       return this.joblist
@@ -184,14 +186,16 @@ export default {
     <!--PAGINATION-->
 
     <!-- All jobs -->
-    <div class="row m-auto">
+    <div class="container-fluid p-4">
+    <div class="row align-items-center p-4">
       <div class="col-md-12 mx-auto">
-        <div id="joblist" class="card-deck">
+        <div id="joblist" class="card-deck d-flex justify-content-center">
           <JobTemplate v-bind:joblist="joblist" v-on:update-modal="update"
                        v-on:abandon="abandon" v-on:fixPerms="fixPerms"/>
         </div>
     </div>
-  </div>
+    </div>
+    </div>
   </div>
   <!--PAGINATION-->
 
@@ -201,4 +205,22 @@ export default {
 .card{
   box-shadow: 7px 4px 6px #07070782;
 }
+.ribbon{
+  position: absolute;
+  padding: 0 3em;
+  font-size: 0.9em;
+  margin: 0 0 0 0;
+  line-height: 2em;
+  color: #e6e2c8;
+  min-width: 264px;
+  border-radius: 0 1.2em 0.156em 0;
+  background: rgb(27, 110, 202);
+  box-shadow: -1px 2px 3px rgba(0,0,0,0.5);
+  text-overflow: ellipsis;
+  max-width: min-content;
+}
+.PG {
+   line-height: 1;
+   font-size: 100%;
+ }
 </style>

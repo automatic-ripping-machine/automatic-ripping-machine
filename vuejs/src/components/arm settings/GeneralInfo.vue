@@ -28,9 +28,9 @@ export default {
   methods:{
     fetchStats: function () {
       axios
-          .get(this.arm_API + '/json?mode=stats').then((response) => {
+          .get(this.arm_API + '/settings/stats').then((response) => {
         this.message = response.status
-        console.log(response.data.results)
+        console.log(response.data)
         this.stats = response.data.stats
         this.drives = response.data.drives
       }, (error) => {

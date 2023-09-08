@@ -111,7 +111,7 @@ export default {
       // Send ping to mode with currentJob id
       console.log(this.currentJob)
       console.log(this.mode)
-      let jobURl = this.arm_API + '/json?job=' + this.currentJob + '&mode=' + this.mode
+      let jobURl = this.arm_API + '/jobs/' + this.currentJob + '/' + this.mode
       axios.get(jobURl).then((response) => {
         console.log(response.data);
         if (response.data.Error || !response.data.success) {
@@ -123,7 +123,7 @@ export default {
       });
     },
     seenNote: function (note_id) {
-      let url = this.arm_API +"/json?mode=read_notification&notify_id=" + note_id
+      let url = this.arm_API +"/read_notification/" + note_id
       axios.get(url).then((response) => {
         console.log(response.data);
         this.refreshJobs(this.arm_API)
@@ -138,7 +138,7 @@ export default {
         this.notes = response.data.notes
         this.server = response.data.server
         this.serverutil = response.data.serverutil
-        this.hwsupport = response.data.hwsupport
+        //this.hwsupport = response.data.hwsupport
         this.joblist = response.data.results
       }, (error) => {
         console.log(error);
@@ -159,7 +159,6 @@ export default {
   width: 228px;
   height: 85px;
 }
-
 h3 {
   font-size: 1.2rem;
 }

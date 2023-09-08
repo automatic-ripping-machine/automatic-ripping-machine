@@ -47,9 +47,9 @@ export default {
     updateJob: function (job, item) {
       console.log(job)
       console.log(item)
-      let getURL = 'title=' + item["Title"] + '&year=' + item["Year"] + '&imdbID=' + item["imdbID"] + '&type=' + item["Type"] + '&poster=' + item['Poster'] + '&job_id=' + job.job_id
+      let getURL = 'title=' + item["Title"] + '&year=' + item["Year"] + '&imdb_id=' + item["imdbID"] + '&type=' + item["Type"] + '&poster=' + item['Poster']
       console.log(getURL)
-      axios.get(this.arm_API +'/json?mode=update_title&' + getURL)
+      axios.get(this.arm_API +'/update_title/' + job.job_id + "?" +  getURL)
           .then(res => this.search(res))
     },
     search: function (response) {

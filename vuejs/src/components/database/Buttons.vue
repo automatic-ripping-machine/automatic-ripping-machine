@@ -1,6 +1,6 @@
 <template>
   <div class="row d-flex justify-content-end">
-    <div class="p-4 btn-group btn-group">
+    <div class="btn-group btn-group" style="padding: 1.96em !important;">
       <button id="save-get-success" type="button" class="btn btn-secondary btn-success" v-on:click="$emit('getSucc');" >Get all successful
         jobs
       </button>

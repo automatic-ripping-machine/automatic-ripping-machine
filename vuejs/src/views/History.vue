@@ -89,9 +89,10 @@ export default {
     async getData() {
       try {
         const response = await axios.get(
-            this.arm_API + "/json?mode=database"
+            this.arm_API + "/database"
         );
         // JSON responses are automatically parsed.
+        console.log(response.data.data)
         this.joblist = response.data.results;
       } catch (error) {
         console.log(error);

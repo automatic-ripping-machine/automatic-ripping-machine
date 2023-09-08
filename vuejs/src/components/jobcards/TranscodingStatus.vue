@@ -1,5 +1,5 @@
 <template>
-  <div v-bind:id="'jobId' + job.job_id + '_progress_section'" v-if="job.status === 'transcoding'">
+  <div v-if="(job.status === 'transcoding' && job.stage !== '')" v-bind:id="'jobId' + job.job_id + '_progress_section'">
     <div v-bind:id="'jobId' + job.job_id + '_stage'">
       <strong>Stage: </strong>{{ job.stage }}</div>
     <div v-bind:id="'jobId' + job.job_id + '_progress'" >
@@ -22,3 +22,14 @@ export default {
   }
 }
 </script>
+<style>
+.progress-bar{
+  background-color: #1b6eca;
+  box-shadow: 2px 2px 5px rgb(0, 0, 0) inset;
+}
+.progress{
+  background-color: #6c757d;
+  box-shadow: 2px 2px 5px rgb(0, 0, 0) inset;
+
+}
+</style>

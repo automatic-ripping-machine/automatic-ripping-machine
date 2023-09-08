@@ -31,12 +31,13 @@ export default {
     refreshJobs: function(){
       console.log("Timer" + Math.floor(Math.random() * (25)) + 1)
       axios
-          .get(this.arm_API+ '/json?mode=joblist').then((response) => {
+          .get(this.arm_API+ '/jobs').then((response) => {
         console.log(response.data);
         this.message = response.status
         this.server = response.data.server
         this.serverutil = response.data.serverutil
-        this.hwsupport = response.data.hwsupport
+        //this.hwsupport = response.data.hwsupport
+
       }, (error) => {
         console.log(error);
       });

@@ -1,7 +1,9 @@
 <script>
 import axios from "axios";
+import HomeScreenGreeting from "@/components/HomeScreenGreeting.vue";
 
 export default {
+  components: {HomeScreenGreeting},
   data() {
     return {
       liveConfig: [],
@@ -13,10 +15,10 @@ export default {
     async getData() {
       try {
         const response = await axios.get(
-            this.arm_API + "/json?mode=get_abcde"
+            this.arm_API + "/settings/get_apprise"
         );
         // JSON responses are automatically parsed.
-        this.liveConfig = response.data.cfg;
+        this.liveConfig = response.data;
       } catch (error) {
         console.log(error);
       }
@@ -30,9 +32,12 @@ export default {
 </script>
 
 <template>
-  <div class="tab-pane pt-5" id="abcde" role="tabpanel" aria-labelledby="abcde-tab">
-    <div class="row">
-      <div class="col-md-8 mx-auto">
+  <div class="container justify-content-center jumbotron mt-4">
+    <div class="col justify-content-center" style="flex-wrap: nowrap">
+      <HomeScreenGreeting msg="Change ABCDE Settings" msg2=""/>
+    </div>
+    <div class="row justify-content-center" style="flex-wrap: nowrap">
+      <div class="col-10">
         <form id="abcdeSettings" name="abcdeSettings" method="post" action="">
           <label for="abcdeConfigText">ABCDE Config:</label>
           <textarea id="abcdeConfigText" name="abcdeConfig" spellcheck="false"
