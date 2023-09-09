@@ -9,7 +9,7 @@ import shlex
 
 from arm.models import models
 from arm.ripper import utils  # noqa: E402
-from arm.ui import db  # noqa: F401, E402
+from arm.database import db  # noqa: F401, E402
 import arm.config.config as cfg  # noqa E402
 
 

@@ -57,4 +57,4 @@ def run_command(command, statement):
         log.error(f" - {error}")
         log.info("ARM UI currently stopped, fix error then restart ARM UI")
         log.info("-------------------------------------")
-        exit
+        exit()

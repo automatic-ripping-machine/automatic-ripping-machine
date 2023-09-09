@@ -47,16 +47,15 @@ RUN \
 RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 
 # Add ARMui service
-RUN mkdir /etc/service/armui
+#RUN mkdir /etc/service/armui
 #COPY ./scripts/docker/runsv/armui.sh /etc/service/armui/run
-#COPY ./scripts/docker/runit/fast_api.sh /etc/service/fast_api/run
 #RUN chmod +x /etc/service/armui/run
 
 # Create our startup scripts
 RUN mkdir -p /etc/my_init.d
 COPY ./scripts/docker/runit/arm_user_files_setup.sh /etc/my_init.d/arm_user_files_setup.sh
-COPY ./scripts/docker/runit/start_udev.sh /etc/my_init.d/start_udev.sh
-COPY ./scripts/docker/runit/armavue.sh /etc/my_init.d/armvueui.sh
+COPY ./scripts/docker/runit/arm_start_udev.sh /etc/my_init.d/arm_start_udev.sh
+COPY ./scripts/docker/runit/arma_vuejs.sh /etc/my_init.d/armvueui.sh
 COPY ./scripts/docker/runit/fast_api.sh /etc/my_init.d/fast_api.sh
 RUN chmod +x /etc/my_init.d/*.sh
 
@@ -69,10 +68,17 @@ RUN chmod +x /etc/my_init.d/*.sh
 RUN apt-get update && apt-get install -y curl sudo nginx
 
 # Node
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-RUN apt-get install -y nodejs
-RUN echo "NODE Version:" && node --version
-RUN echo "NPM Version:" && npm --version && export SUDO_FORCE_REMOVE=yes && apt-get remove -y sudo
+RUN set -uex; \
+    apt-get update; \
+    apt-get install -y ca-certificates curl gnupg; \
+    mkdir -p /etc/apt/keyrings; \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+     | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg; \
+    NODE_MAJOR=18; \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" \
+     > /etc/apt/sources.list.d/nodesource.list; \
+    apt-get update; \
+    apt-get install nodejs -y;
 
 WORKDIR /app
 COPY vuejs /app/vuejs

@@ -14,7 +14,7 @@ import re
 from prettytable import PrettyTable
 from flask_login import LoginManager, current_user, login_user, UserMixin  # noqa: F401
 from arm.ripper import music_brainz
-from arm.ui import db
+from arm.database import db
 import arm.config.config as cfg
 
 hidden_attribs = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD",

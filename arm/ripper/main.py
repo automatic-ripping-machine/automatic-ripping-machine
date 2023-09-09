@@ -9,23 +9,23 @@ import argparse  # noqa: E402
 import os  # noqa: E402
 import logging  # noqa: E402
 import logging.handlers  # noqa: E402
-import time  # noqa: E402
 import datetime  # noqa: E402
 import re  # noqa: E402
 import getpass  # noqa E402
 import pyudev  # noqa: E402
 import psutil  # noqa E402
 
-# set the PATH to /opt/arm so we can handle imports properly
+# set the PATH to /opt/arm, so we can handle imports properly
 sys.path.append("/opt/arm")
 
 from arm.ripper import logger, utils, identify, arm_ripper, music_brainz  # noqa: E402
 import arm.config.config as cfg  # noqa E402
 from arm.models.models import Job, Config  # noqa: E402
-from arm.ui import app, db, constants  # noqa E402
-from arm.ui.settings import DriveUtils as drive_utils # noqa E402
+from arm.ui import constants  # noqa E402
+#from arm.ui import DriveUtils as drive_utils  # noqa E402
 import arm.config.config as cfg  # noqa E402
 from arm.ripper.ARMInfo import ARMInfo  # noqa E402
+from arm.database import app, db  # noqa E402
 
 
 def entry():
@@ -178,14 +178,15 @@ if __name__ == "__main__":
     # put in job
     job.status = "active"
     job.start_time = datetime.datetime.now()
-    utils.database_adder(job)
-    # Sleep to lower chances of db locked - unlikely to be needed
-    time.sleep(1)
+    db.session.add(job)
+    db.session.commit()
     # Associate the job with the drive in the database
-    drive_utils.update_drive_job(job)
+    #drive_utils.update_drive_job(job)
     # Add the job.config to db
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
-    utils.database_adder(config)
+    db.session.add(config)
+    db.session.commit()
+
     # Log version number
     with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()

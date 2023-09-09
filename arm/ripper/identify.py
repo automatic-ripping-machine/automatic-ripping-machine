@@ -13,10 +13,10 @@ import xmltodict
 import arm.config.config as cfg
 
 from arm.ripper import utils
-from arm.ui import db
+from arm.database import db
 
 # flake8: noqa: W605
-from arm.ui import utils as ui_utils
+from arm.ui import metadata as ui_utils
 
 
 def check_if_mounted(mounted):

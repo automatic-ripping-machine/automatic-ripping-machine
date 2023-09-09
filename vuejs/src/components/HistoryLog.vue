@@ -8,8 +8,8 @@
     <td>{{ job.job_length }}</td>
     <td class="{{ job.status }}"><img v-bind:src="'/src/assets/img/'+ job.status +'.png'"
                                       height="30px"
-                                      width="30px" alt="{{ job.status }}"
-                                      title="{{ job.status }}"></td>
+                                      width="30px" v-bind:alt="job.status"
+                                      v-bind:title="job.status"></td>
     <td>
       <router-link :to="'logs/'+ job.logfile + '/full/' + job.job_id">{{ job.logfile }}</router-link>
     </td>

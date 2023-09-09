@@ -9,7 +9,7 @@ import shlex
 import arm.config.config as cfg
 
 from arm.ripper import utils
-from arm.ui import app, db  # noqa E402
+from arm.database import app, db  # noqa E402
 
 PROCESS_COMPLETE = "Handbrake processing complete"
 

@@ -21,7 +21,7 @@ import arm.config.config as cfg
 
 from netifaces import interfaces, ifaddresses, AF_INET
 from arm.ripper import apprise_bulk
-from arm.ui import db
+from arm.database import app, db
 from arm.models import models
 
 NOTIFY_TITLE = "ARM notification"

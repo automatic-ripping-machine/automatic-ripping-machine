@@ -7,7 +7,6 @@ import sys
 import re
 import getpass  # noqa E402
 import logging  # noqa: E402
-import sqlite3
 from alembic.script import ScriptDirectory
 from alembic.config import Config
 
@@ -110,10 +109,4 @@ class ARMInfo:
         """
         Get the ARM database version from the database file
         """
-        if os.path.isfile(self.db_file):
-            conn = sqlite3.connect(self.db_file)
-            db_c = conn.cursor()
-            db_c.execute("SELECT version_num FROM alembic_version")
-            self.db_version = db_c.fetchone()[0]
-        else:
-            self.db_version = "unknown"
+        self.db_version = "unknown"

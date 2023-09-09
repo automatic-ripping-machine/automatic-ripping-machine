@@ -8,7 +8,8 @@ import logging
 sys.path.append("/opt/arm")
 
 from arm.ripper import utils, makemkv, handbrake  # noqa E402
-from arm.ui import app, db, constants  # noqa E402
+from arm.ui import constants  # noqa E402
+from arm.database import app, db  # noqa E402
 
 
 def rip_visual_media(have_dupes, job, logfile, protection):
@@ -33,7 +34,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
     # Check folders for already ripped jobs -> creates folder
     hb_out_path = utils.check_for_dupe_folder(have_dupes, hb_out_path, job)
     # If dupes rips is disabled this might kill the run
-    #final_directory = utils.check_for_dupe_folder(have_dupes, final_directory, job)
+    # final_directory = utils.check_for_dupe_folder(have_dupes, final_directory, job)
 
     # Update the job.path with the final directory
     utils.database_updater({'path': final_directory}, job)

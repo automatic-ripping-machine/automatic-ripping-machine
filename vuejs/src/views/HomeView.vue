@@ -138,7 +138,7 @@ export default {
         this.notes = response.data.notes
         this.server = response.data.server
         this.serverutil = response.data.serverutil
-        //this.hwsupport = response.data.hwsupport
+        this.hwsupport = response.data.hwsupport
         this.joblist = response.data.results
       }, (error) => {
         console.log(error);
