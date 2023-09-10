@@ -10,9 +10,10 @@
           <p class="PG">{{ job.disctype }}</p>
           <p class="PG">{{ job.year }}</p>
           <p class="PG">{{ job.devpath }}</p>
-          <p class="PG"><img width="22px" height="22px" id="jobId67_status"
-                             v-bind:src="'/src/assets/img/' + job.status + '.png'" alt="transcoding"
-                             title="transcoding">
+          <p class="PG"><img width="22px" height="22px"
+                             v-bind:src="'/src/assets/img/' + job.status + '.png'"
+                             v-bind:alt="job.status"
+                             v-bind:title="job.status">
           </p>
         </div>
         <div class="disc">{{ job.plot }}

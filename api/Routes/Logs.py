@@ -10,8 +10,8 @@ from crud import get_all_logs, delete_log
 from database import get_db
 from schemas import PaginatedJobList
 
-from api.crud import get_ripper_settings
-from api.utils.file_system import get_info, log_list
+from crud import get_ripper_settings
+from utils.file_system import get_info, log_list
 
 router = APIRouter()
 

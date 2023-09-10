@@ -3,9 +3,9 @@
     <th scope="row" class="text-wrap">{{ file[0] }}</th>
     <td class="text-wrap">{{ file[2] }}</td>
     <td>{{ file[3] }}</td>
-    <td><router-link :to="'/logs/' + file[0] + '/tail/JOB_ID'">tail</router-link></td>
-    <td><router-link :to="'/logs/' + file[0] + '/armcat/JOB_ID'">arm</router-link></td>
-    <td><router-link :to="'/logs/' + file[0] + '/full/JOB_ID'">full</router-link></td>
+    <td><router-link :to="'/logs/' + file[0] + '/tail/0'">tail</router-link></td>
+    <td><router-link :to="'/logs/' + file[0] + '/armcat/0'">arm</router-link></td>
+    <td><router-link :to="'/logs/' + file[0] + '/full/0'">full</router-link></td>
     <td><router-link :to="'/logreader?logfile=' + file[0] + '&mode=download'">download</router-link></td>
   </tr>
 </template>

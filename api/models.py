@@ -779,14 +779,15 @@ class AppriseConfig(Base):
 
     def __str__(self):
         """Returns a string of the object"""
-        return self.__class__.__name__ + ": " +  str(self.__dict__)
+        return self.__class__.__name__ + ": " + str(self.__dict__)
+
 
 class RipperConfig(Base):
     __tablename__ = "ripper_config"
     """
     Class to hold the ripper config
     """
-    id = Column(Integer, autoincrement=True, primary_key=True , default=0)
+    id = Column(Integer, autoincrement=True, primary_key=True, default=0)
     ARM_NAME = Column(String(256))
     ARM_CHILDREN = Column(String(256))
     PREVENT_99 = Column(Boolean)
@@ -861,13 +862,11 @@ class RipperConfig(Base):
     TMDB_API_KEY = Column(String(256))
     JSON_URL = Column(String(256))
     APPRISE = Column(String(256))
-    
 
     def __init__(self, config_name=None, config_value=None, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.config_name = config_name
         self.config_value = config_value
-
 
     def __repr__(self):
         return f'<RipperConfig: {self.__dict__}>'

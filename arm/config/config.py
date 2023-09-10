@@ -5,6 +5,8 @@ import os
 import yaml
 
 import arm.config.config_utils as config_utils
+from arm.models.models import RipperConfig, AppriseConfig
+from arm.database import app, db  # noqa E402
 
 CONFIG_LOCATION = "/etc/arm/config"
 arm_config_path = os.path.join(CONFIG_LOCATION, "arm.yaml")
@@ -64,10 +66,11 @@ if len(cur_cfg) != len(new_cfg):
         settings_file.write(arm_cfg)
         settings_file.close()
 
-arm_config = _load_config(arm_config_path)
-
+arm_config = db.session.query(RipperConfig).get(1).__dict__  # _load_config(arm_config_path)
+arm_config.pop('_sa_instance_state', None)
 # abcde config file, open and read contents
 abcde_config = _load_abcde(abcde_config_path)
 
 # apprise config, open and read yaml contents
-apprise_config = _load_config(apprise_config_path)
+apprise_config = db.session.query(AppriseConfig).get(1).__dict__  # _load_config(apprise_config_path)
+apprise_config.pop('_sa_instance_state', None)

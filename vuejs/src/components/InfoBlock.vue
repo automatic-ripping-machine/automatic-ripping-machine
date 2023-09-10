@@ -106,7 +106,7 @@ defineProps({
               <div v-else>
               Transcode: Unable to get data on path
               </div>
-              <br>Path: {{  server.arm_path }}
+              <br>Path: {{  serverutil.arm_path }}
             </li>
             <li class="list-group-item">
               <div v-if="serverutil.storage_completed_free">
@@ -126,7 +126,7 @@ defineProps({
               <div v-else>
               Completed: Unable to get data on path
               </div>
-              <br>Path: {{ media_path }}
+              <br>Path: {{ serverutil.media_path }}
             </li>
           </ul>
         </div>

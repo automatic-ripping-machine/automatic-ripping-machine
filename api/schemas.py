@@ -205,7 +205,7 @@ class CreateAndUpdateRipper(BaseModel):
     VIDEOTYPE: str
     MINLENGTH: int
     MAXLENGTH: int
-    MANUAL_WAIT: int
+    MANUAL_WAIT: bool
     MANUAL_WAIT_TIME: int
     DATE_FORMAT: str
     ALLOW_DUPLICATES: int

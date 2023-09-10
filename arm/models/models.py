@@ -11,8 +11,11 @@ import psutil
 import platform
 import re
 
+from sqlalchemy.schema import Column
+from sqlalchemy.types import String, Integer, Boolean, Text
+from typing import Any
+
 from prettytable import PrettyTable
-from flask_login import LoginManager, current_user, login_user, UserMixin  # noqa: F401
 from arm.ripper import music_brainz
 from arm.database import db
 import arm.config.config as cfg
@@ -163,7 +166,7 @@ class Job(db.Model):
         """
         Get the title for audio cds to use for the logfile name.
 
-        Needs the job class passed into it so it can be forwarded to mb
+        Needs the job class passed into it, so it can be forwarded to mb
 
         return - only the logfile - setup_logging() adds the full path
         """
@@ -373,7 +376,7 @@ class Config(db.Model):
 
     def get_d(self):
         """
-        Return a dict of class - exclude the any sensitive info
+        Return a dict of class - exclude any sensitive info
         :return: dict containing all attribs from class
         """
         return_dict = {}
@@ -383,7 +386,7 @@ class Config(db.Model):
         return return_dict
 
 
-class User(db.Model, UserMixin):
+class User(db.Model):
     """
     Class to hold admin users
     """
@@ -585,7 +588,7 @@ class SystemInfo(db.Model):
 
 class SystemDrives(db.Model):
     """
-    Class to hold the system cd/dvd/blueray drive information
+    Class to hold the system cd/dvd/Blu-ray drive information
     """
     drive_id = db.Column(db.Integer, index=True, primary_key=True)
     name = db.Column(db.String(100))
@@ -610,7 +613,7 @@ class SystemDrives(db.Model):
         self.drive_type()
 
     def drive_type(self):
-        """find the Drive type (CD, DVD, Blueray) from the udev values"""
+        """find the Drive type (CD, DVD, Blu-ray) from the udev values"""
         context = pyudev.Context()
         device = pyudev.Devices.from_device_file(context, self.mount)
         temp = ""
@@ -669,3 +672,208 @@ class SystemDrives(db.Model):
             if "job_previous" in key:
                 return_dict[str(key)] = {'fucked': value.get_d()}
         return return_dict
+
+
+class AppriseConfig(db.Model):
+    __tablename__ = "apprise_config"
+    """
+    Class to hold the apprise config
+    """
+    id = Column(Integer, autoincrement=True, primary_key=True)
+    BOXCAR_KEY = Column(String(256))
+    BOXCAR_SECRET = Column(String(256))
+    DISCORD_WEBHOOK_ID = Column(String(256))
+    DISCORD_TOKEN = Column(String(256))
+    FAAST_TOKEN = Column(String(256))
+    FLOCK_TOKEN = Column(String(256))
+    GITTER_TOKEN = Column(String(256))
+    GITTER_ROOM = Column(String(256))
+    GOTIFY_TOKEN = Column(String(256))
+    GOTIFY_HOST = Column(String(256))
+    GROWL_HOST = Column(String(256))
+    GROWL_PASS = Column(String(256))
+    JOIN_API = Column(String(256))
+    JOIN_DEVICE = Column(String(256))
+    KODI_HOST = Column(String(256))
+    KODI_PORT = Column(String(256))
+    KODI_USER = Column(String(256))
+    KODI_PASS = Column(String(256))
+    KUMULOS_API = Column(String(256))
+    KUMULOS_SERVERKEY = Column(String(256))
+    LAMETRIC_MODE = Column(String(256))
+    LAMETRIC_API = Column(Text)
+    LAMETRIC_HOST = Column(Text)
+    LAMETRIC_APP_ID = Column(Text)
+    LAMETRIC_TOKEN = Column(Text)
+    MAILGUN_DOMAIN = Column(Text)
+    MAILGUN_USER = Column(Text)
+    MAILGUN_APIKEY = Column(Text)
+    MATRIX_HOST = Column(Text)
+    MATRIX_USER = Column(Text)
+    MATRIX_PASS = Column(Text)
+    MATRIX_TOKEN = Column(Text)
+    MSTEAMS_TOKENA = Column(Text)
+    MSTEAMS_TOKENB = Column(Text)
+    MSTEAMS_TOKENC = Column(Text)
+    NEXTCLOUD_HOST = Column(Text)
+    NEXTCLOUD_ADMINUSER = Column(Text)
+    NEXTCLOUD_ADMINPASS = Column(Text)
+    NEXTCLOUD_NOTIFY_USER = Column(Text)
+    NOTICA_TOKEN = Column(Text)
+    NOTIFICO_PROJECTID = Column(Text)
+    NOTIFICO_MESSAGEHOOK = Column(Text)
+    OFFICE365_TENANTID = Column(Text)
+    OFFICE365_ACCOUNTEMAIL = Column(Text)
+    OFFICE365_CLIENT_ID = Column(Text)
+    OFFICE365_CLIENT_SECRET = Column(Text)
+    POPCORN_API = Column(Text)
+    POPCORN_EMAIL = Column(Text)
+    POPCORN_PHONENO = Column(Text)
+    PROWL_API = Column(Text)
+    PROWL_PROVIDERKEY = Column(Text)
+    PUSHJET_HOST = Column(Text)
+    PUSHJET_SECRET = Column(Text)
+    PUSH_API = Column(Text)
+    PUSHED_APP_KEY = Column(Text)
+    PUSHED_APP_SECRET = Column(Text)
+    PUSHSAFER_KEY = Column(Text)
+    ROCKETCHAT_HOST = Column(Text)
+    ROCKETCHAT_USER = Column(Text)
+    ROCKETCHAT_PASS = Column(String(256))
+    ROCKETCHAT_WEBHOOK = Column(String(256))
+    RYVER_ORG = Column(String(256))
+    RYVER_TOKEN = Column(String(256))
+    SENDGRID_API = Column(String(256))
+    SENDGRID_FROMMAIL = Column(String(256))
+    SIMPLEPUSH_API = Column(String(256))
+    SLACK_TOKENA = Column(Text)
+    SLACK_TOKENB = Column(Text)
+    SLACK_TOKENC = Column(String(256))
+    SLACK_CHANNEL = Column(String(256))
+    SPARKPOST_API = Column(String(256))
+    SPARKPOST_HOST = Column(String(256))
+    SPARKPOST_USER = Column(String(256))
+    SPARKPOST_EMAIL = Column(String(256))
+    SPONTIT_API = Column(String(256))
+    SPONTIT_USER_ID = Column(String(256))
+    TELEGRAM_BOT_TOKEN = Column(String(256))
+    TELEGRAM_CHAT_ID = Column(String(256))
+    TWIST_EMAIL = Column(String(256))
+    TWIST_PASS = Column(String(256))
+    XBMC_HOST = Column(String(256))
+    XBMC_PORT = Column(String(256))
+    XBMC_USER = Column(String(256))
+    XBMC_PASS = Column(String(256))
+    XMPP_HOST = Column(String(256))
+    XMPP_PASS = Column(String(256))
+    XMPP_USER = Column(String(256))
+    WEBEX_TEAMS_TOKEN = Column(String(256))
+    ZILUP_CHAT_TOKEN = Column(String(256))
+    ZILUP_CHAT_BOTNAME = Column(String(256))
+    ZILUP_CHAT_ORG = Column(String(256))
+
+    def __init__(self, config_name=None, config_value=None, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.config_name = config_name
+        self.config_value = config_value
+
+    def __repr__(self):
+        return f'<AppriseConfig: {self.__dict__}>'
+
+    def __str__(self):
+        """Returns a string of the object"""
+        return self.__class__.__name__ + ": " + str(self.__dict__)
+
+
+class RipperConfig(db.Model):
+    __tablename__ = "ripper_config"
+    """
+    Class to hold the ripper config
+    """
+    id = Column(Integer, autoincrement=True, primary_key=True, default=0)
+    ARM_NAME = Column(String(256))
+    ARM_CHILDREN = Column(String(256))
+    PREVENT_99 = Column(Boolean)
+    ARM_CHECK_UDF = Column(Boolean)
+    UMASK = Column(String(256))
+    GET_VIDEO_TITLE = Column(Boolean)
+    ARM_API_KEY = Column(String(256))
+    DISABLE_LOGIN = Column(Boolean)
+    SKIP_TRANSCODE = Column(Boolean)
+    VIDEOTYPE = Column(String(256))
+    MINLENGTH = Column(Integer)
+    MAXLENGTH = Column(Integer)
+    MANUAL_WAIT = Column(Boolean)
+    MANUAL_WAIT_TIME = Column(Integer)
+    DATE_FORMAT = Column(String(256))
+    ALLOW_DUPLICATES = Column(Boolean)
+    MAX_CONCURRENT_TRANSCODES = Column(Integer)
+    DATA_RIP_PARAMETERS = Column(String(256))
+    METADATA_PROVIDER = Column(String(256))
+    GET_AUDIO_TITLE = Column(String(256))
+    RIP_POSTER = Column(Boolean)
+    ABCDE_CONFIG_FILE = Column(String(256))
+    RAW_PATH = Column(String(256))
+    TRANSCODE_PATH = Column(String(256))
+    COMPLETED_PATH = Column(String(256))
+    EXTRAS_SUB = Column(String(256))
+    INSTALLPATH = Column(String(256))
+    LOGPATH = Column(String(256))
+    LOGLEVEL = Column(String(256))
+    LOGLIFE = Column(Integer)
+    DBFILE = Column(String(256))
+    WEBSERVER_IP = Column(String(256))
+    WEBSERVER_PORT = Column(Integer)
+    SET_MEDIA_PERMISSIONS = Column(Boolean)
+    CHMOD_VALUE = Column(Integer)
+    SET_MEDIA_OWNER = Column(Boolean)
+    CHOWN_USER = Column(String(256))
+    CHOWN_GROUP = Column(String(256))
+    MAKEMKV_PERMA_KEY = Column(String(256))
+    RIPMETHOD = Column(String(256))
+    RIPMETHOD_DVD = Column(String(256))
+    RIPMETHOD_BR = Column(String(256))
+    MKV_ARGS = Column(String(256))
+    DELRAWFILES = Column(Boolean)
+    HB_PRESET_DVD = Column(String(256))
+    HB_PRESET_BD = Column(String(256))
+    DEST_EXT = Column(String(256))
+    HANDBRAKE_CLI = Column(String(256))
+    HANDBRAKE_LOCAL = Column(String(256))
+    MAINFEATURE = Column(Boolean)
+    HB_ARGS_DVD = Column(String(256))
+    HB_ARGS_BD = Column(String(256))
+    EMBY_REFRESH = Column(Boolean)
+    EMBY_SERVER = Column(String(256))
+    EMBY_PORT = Column(Integer)
+    EMBY_CLIENT = Column(String(256))
+    EMBY_DEVICE = Column(String(256))
+    EMBY_DEVICEID = Column(String(256))
+    EMBY_USERNAME = Column(String(256))
+    EMBY_USERID = Column(String(256))
+    EMBY_PASSWORD = Column(String(256))
+    EMBY_API_KEY = Column(String(256))
+    NOTIFY_RIP = Column(Boolean)
+    NOTIFY_TRANSCODE = Column(Boolean)
+    NOTIFY_JOBID = Column(Boolean)
+    PB_KEY = Column(String(256))
+    IFTTT_KEY = Column(String(256))
+    IFTTT_EVENT = Column(String(256))
+    PO_USER_KEY = Column(String(256))
+    PO_APP_KEY = Column(String(256))
+    OMDB_API_KEY = Column(String(256))
+    TMDB_API_KEY = Column(String(256))
+    JSON_URL = Column(String(256))
+    APPRISE = Column(String(256))
+
+    def __init__(self, config_name=None, config_value=None, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.config_name = config_name
+        self.config_value = config_value
+
+    def __repr__(self):
+        return f'<RipperConfig: {self.__dict__}>'
+
+    def __str__(self):
+        """Returns a string of the object"""
+        return self.__class__.__name__ + ": " + str(self.__dict__)

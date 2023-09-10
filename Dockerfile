@@ -102,10 +102,10 @@ RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
 RUN git config --global --add safe.directory /opt/arm
 ############################################################
 WORKDIR /app
-COPY vuejs/api/requirements.txt /app/api/requirements.txt
+COPY api/requirements.txt /app/api/requirements.txt
 RUN apt-get install -yqq python3-dev default-libmysqlclient-dev build-essential && \
     pip3 install --no-cache-dir --upgrade -r /app/api/requirements.txt
-COPY vuejs/api /app/api
+COPY api /app/api
 
 CMD ["/sbin/my_init"]
 WORKDIR /home/arm

@@ -215,10 +215,11 @@ def update_password(session, post_json):
 
 
 def get_ripper_settings(session) -> RipperConfig:
-    ripper_settings = session.query(RipperConfig).first()
+    ripper_settings = session.query(RipperConfig).get(1)
     print(ripper_settings)
     # If not ripper settings create and insert default values
     if not ripper_settings:
+        print("Ripper config not found.... Creating config")
         import requests
         import urllib
         # NOT SAFE DO NOT LINK REMOTE!
@@ -236,16 +237,20 @@ def get_ripper_settings(session) -> RipperConfig:
 
         session.add(ripper_settings)
         session.commit()
-    print(ripper_settings)
+        print("New config:", ripper_settings)
     return ripper_settings
 
 
 def update_ripper_settings(session, new_settings):
-    ripper_settings = session.query(RipperConfig).get(0)
+    ripper_settings = get_ripper_settings(session)
+    print(ripper_settings)
     print(new_settings)
     for key, value in new_settings:
         print(f"setting {key} = {value}")
-        setattr(ripper_settings, key, value)
+        try:
+            setattr(ripper_settings, key, value)
+        except AttributeError:
+            print("attrib error")
     session.commit()
     return ripper_settings
 

@@ -4,25 +4,6 @@ import {ref} from "vue";
 
 let fetchLog;
 let job_id;
-function getData(logUrl, mode, job, container) {
-  try {
-    if (mode === 'tail' || mode === 'full') {
-      //json?logfile=FAST_AND_FURIOUS_G51_168925026218.log&mode=full&job=98
-      logUrl = container.arm_API + '/logs/' + mode + '/' + logUrl + '/' + job;
-    } else {
-      logUrl = container.arm_API + '/logreader?logfile=' + logUrl + '&mode=' + mode + '&job=' + job;
-    }
-    console.log(logUrl)
-    axios.get(logUrl).then(function (response) {
-      // JSON responses are automatically parsed.
-      container.job_title = response.data.job_title;
-      container.job_id = response.data.job
-      container.jsonLog = response.data.log;
-    });
-  } catch (error) {
-    console.log(error);
-  }
-}
 export default {
   components: {},
   props: ['file', 'mode', 'job'],
@@ -40,7 +21,7 @@ export default {
   methods: {
     async getData(logUrl, mode, job) {
       try {
-        logUrl = this.arm_API + '/json?logfile=' + logUrl + '&mode=' + mode + '&job=' + job;
+        logUrl = this.arm_API + '/logs/'+ mode + '/' + logUrl + '/' + job;
         console.log(logUrl)
         let response = await axios.get(logUrl)
         // JSON responses are automatically parsed.
@@ -61,7 +42,7 @@ export default {
     const job = this.$route.params.job
     if(mode === 'tail') {
       fetchLog = setInterval(() => {
-        getData(file, mode, job, this);
+        this.getData(file, mode, job, this);
         window.scrollTo(0, document.querySelector("#log").scrollHeight);
       }, 3000);
     }

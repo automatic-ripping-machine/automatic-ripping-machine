@@ -522,10 +522,6 @@ def arm_setup(arm_log):
     arm_directories = [cfg.arm_config['RAW_PATH'], cfg.arm_config['TRANSCODE_PATH'],
                        cfg.arm_config['COMPLETED_PATH'], cfg.arm_config['LOGPATH']]
     try:
-        # Check db file is writeable
-        if not os.access(cfg.arm_config['DBFILE'], os.W_OK):
-            arm_log.error(f"Cant write to database file! Permission ERROR: {cfg.arm_config['DBFILE']} - ARM Will Fail!")
-            raise IOError
         # Check directories for read/write permission -> create if they don't exist
         for folder in arm_directories:
             if not os.access(folder, os.R_OK):
