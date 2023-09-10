@@ -67,7 +67,7 @@ def drives_update(db):
             logging.info("****** End Drive Information ******")
             db.add(db_drive)
             db.commit()
-            db_drive = None
+            None
 
     if new_count > 0:
         logging.info(f"Added {new_count} drives for ARM.")
@@ -91,7 +91,7 @@ def drives_check_status(db):
                 drive.job_finished()
                 db.session.commit()
 
-        # Catch if a user has removed database entries and the previous job doesnt exist
+        # Catch if a user has removed database entries and the previous job doesn't exist
         if drive.job_previous is not None and drive.job_previous.status is None:
             drive.job_id_previous = None
             db.session.commit()

@@ -15,6 +15,7 @@ class JobAlreadyExistError(JobException):
         self.status_code = 409
         self.detail = "Job with those details already exists"
 
+
 class UISettingsNotFoundError(JobException):
     def __init__(self):
         self.status_code = 404

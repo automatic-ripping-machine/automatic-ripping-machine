@@ -63,7 +63,7 @@ class ServerUtil:
                 self.cpu_temp = 0
         except EnvironmentError:
             self.cpu_temp = 0
-        # catch for #1271 in psutil github
+        # catch for #1271 in psutil GitHub
         except AttributeError:
             self.cpu_temp = 0
         print(f"Server CPU Temp:  {self.cpu_temp}")
@@ -91,8 +91,8 @@ class ServerUtil:
         except FileNotFoundError:
             disk_space = 0
             disk_percent = 0
-            print("ARM folders not found","There was a problem accessing the ARM folder: "
-                  f"'{filepath}'. Please make sure you have setup ARM", "danger")
+            print("ARM folders not found", "There was a problem accessing the ARM folder: "
+                                           f"'{filepath}'. Please make sure you have setup ARM", "danger")
         print(f"Server {filepath} Space:  {disk_space}")
         print(f"Server {filepath} Percent:  {disk_percent}")
         return disk_space, disk_percent

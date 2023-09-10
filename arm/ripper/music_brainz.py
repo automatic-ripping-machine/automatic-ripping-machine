@@ -123,7 +123,7 @@ def get_title(discid, job):
     :param job: the job object for the database entry
     :return: the label of the disc as a string or "" if nothing was found
 
-    Notes: dont try to use logging here -  doing so will break the arm setup_logging() function
+    Notes: don't try to use logging here -  doing so will break the arm setup_logging() function
     """
     mb.set_useragent("arm", "v2_devel")
     try:
@@ -151,14 +151,14 @@ def get_cd_art(job, infos):
 
     :param job: the job object for the database entry
     :param infos: object/json returned from musicbrainz.org api
-    :return:     True if we find the cd art - False if we didnt find the art
+    :return:     True if we find the cd art - False if we didn't find the art
     """
     try:
         # Use the build-in images from coverartarchive if available
         if infos['disc']['release-list'][0]['cover-art-archive']['artwork'] != "false":
             artlist = mb.get_image_list(job.crc_id)
             for image in artlist["images"]:
-                # We dont care if its verified ?
+                # We don't care if its verified ?
                 if "image" in image:
                     args = {
                         'poster_url': str(image["image"]),

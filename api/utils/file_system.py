@@ -19,7 +19,8 @@ def get_info(directory, cfg):
     Used to read stats from files
     -Used for view logs page
     :param directory:
-    :return: list containing a list with each files stats
+    :param cfg:
+    :return: list containing a list with each file's stats
     """
     file_list = []
     for i in os.listdir(directory):

@@ -5,6 +5,7 @@ import apprise
 
 
 # TODO: Refactor this to leverage apprise_config stored in config.py
+# noinspection GrazieInspection
 def build_apprise_sent(cfg):
     """
     Build dict for processing

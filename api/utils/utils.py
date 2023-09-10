@@ -220,7 +220,11 @@ def generate_log(logpath, mode, logfile, job_id, session):
     """
     Generate log for json api and return it in a valid form\n
     :param str logpath:
+    :param logfile: the logfile requested
     :param str job_id:
+    :param session: the connection to the database
+    :param mode: the move selected for viewing logfile
+
     :return:
     """
     from models import Job

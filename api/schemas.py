@@ -1,6 +1,4 @@
 from datetime import datetime
-from pydoc import text
-
 from pydantic import BaseModel
 from typing import List
 from pydantic.schema import Optional, Dict

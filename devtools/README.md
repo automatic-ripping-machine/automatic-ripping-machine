@@ -2,9 +2,9 @@
 
 ## Overview
 
-Development tools to help automate testing and fault finding when making changes the ARM main code.
-Aim of this code is to be independant of the main ARM Repo, such that no libraries are pulled into support the test code. With the intent that it is possible to run the ARM Devtools as a standalone python script. This is to avoid introducing errors into the main code from the test tool.
-Currently a work in progress.
+Development tools to help automate testing and fault-finding when making changes the ARM main code.
+Aim of this code is to be independent of the main ARM Repo, such that no libraries are pulled into support the test code. With the intent that it is possible to run the ARM Devtools as a standalone python script. This is to avoid introducing errors into the main code from the test tool.
+Currently, a work in progress.
 
 ## Features
 

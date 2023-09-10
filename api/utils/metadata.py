@@ -13,6 +13,7 @@ OMDB_API_KEY = "OMDB_API_KEY"
 TMDB_API_KEY = "TMDB_API_KEY"
 METADATA_PROVIDER = "METADATA_PROVIDER"
 
+
 def call_omdb_api(cfg, title=None, year=None, imdb_id=None, plot="short"):
     """
     Queries OMDbapi.org for title information and parses if it's a movie
@@ -21,6 +22,7 @@ def call_omdb_api(cfg, title=None, year=None, imdb_id=None, plot="short"):
     :param year: year if supplied
     :param imdb_id: imdb if supplied
     :param plot: if plot should be short/full. Defaults "short"
+    :param cfg: the config object for arm
     :return: dict of
     """
     print(cfg.OMDB_API_KEY)
@@ -102,6 +104,7 @@ def get_tmdb_poster(search_query=None, year=None, cfg=None):
     Queries api.themoviedb.org for the poster and backdrop for movie
     :param search_query: title of movie/show
     :param year: year of movie/show
+    :param cfg: the config object for arm
     :return: dict of search results
     """
     tmdb_api_key = cfg.TMDB_API_KEY
@@ -154,6 +157,7 @@ def tmdb_search(search_query=None, year=None, cfg=None):
     Queries api.themoviedb.org for movies close to the query
     :param search_query: title of movie or tv show
     :param year: year of release
+    :param cfg: the config object for arm
     :return: json/dict of search results
     """
     print(TMDB_API_KEY)
@@ -308,6 +312,7 @@ def tmdb_fetch_results(search_query, year, tmdb_api_key):
     return_json = json.loads(response.text)
     return return_json, poster_base, response
 
+
 def metadata_selector(func, cfg, query="", year="", imdb_id=""):
     """
     Used to switch between OMDB or TMDB as the metadata provider
@@ -330,10 +335,10 @@ def metadata_selector(func, cfg, query="", year="", imdb_id=""):
         elif func == "get_details":
             if query:
                 print("provider tmdb - using: get_tmdb_poster")
-                return_function = get_tmdb_poster(str(query), str(year),cfg)
+                return_function = get_tmdb_poster(str(query), str(year), cfg)
             elif imdb_id:
                 print("provider tmdb - using: tmdb_find")
-                return_function = tmdb_find(imdb_id,cfg)
+                return_function = tmdb_find(imdb_id, cfg)
             print("No title or imdb provided")
 
     elif cfg.METADATA_PROVIDER.lower() == "omdb":

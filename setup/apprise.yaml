@@ -91,7 +91,7 @@ NEXTCLOUD_ADMINUSER: ""
 NEXTCLOUD_ADMINPASS: ""
 NEXTCLOUD_NOTIFY_USER: ""
 
-## Self hosted wont work
+## Self-hosted won't work
 NOTICA_TOKEN: ""
 
 NOTIFICO_PROJECTID: ""

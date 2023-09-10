@@ -71,7 +71,7 @@ def identify(job):
 
 
 def identify_bluray(job):
-    """ Get's Blu-Ray title by parsing XML in bdmt_eng.xml """
+    """ Gets Blu-Ray title by parsing XML in bdmt_eng.xml """
 
     try:
         with open(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:

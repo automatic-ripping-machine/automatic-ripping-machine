@@ -1,3 +1,4 @@
+#file: noinspection GrazieInspection
 # ARM (Automatic Ripping Machine) config file
 
 #################
@@ -35,10 +36,10 @@ GET_VIDEO_TITLE: true
 # This is only needed if you would like to send movies to the database
 ARM_API_KEY: ""
 
-# Do you want to be forced to login to view/edit jobs
-# True will leave all of the pages open to be editable/viewable by anyone
-# False will require you to login to view/edit jobs or settings from the ui
-# ARMui will need to be restared for this to update
+# Do you want to be forced to log in to view/edit jobs
+# True will leave all the pages open to be editable/viewable by anyone
+# False will require you to log in to view/edit jobs or settings from the ui
+# ARMui will need to be restarted for this to update
 DISABLE_LOGIN: false
 
 # Skip transcoding if you want the original MakeMKV files as your final output
@@ -78,7 +79,7 @@ ALLOW_DUPLICATES: false
 
 # Number of Transcodes that runs at the same time.
 # Certain Video cards are limited to how many encodes they can run at the same time.
-# Also useful for diminishing returns on CPU based encodes.
+# Also, useful for diminishing returns on CPU based encodes.
 # Set to 0 to disable
 MAX_CONCURRENT_TRANSCODES: 0
 
@@ -272,7 +273,7 @@ EMBY_USERID: ""
 # or using an online generator like the one located at https://www.sha1-online.com/
 EMBY_PASSWORD: ""
 
-# Emby API key.  This can be found (generated) by going to Advanced/Security in the 
+# Emby API key.  This can be found (generated) by going to Advanced/Security in the
 # Emby dashboard
 EMBY_API_KEY: ""
 

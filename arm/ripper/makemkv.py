@@ -295,7 +295,7 @@ def add_track_filename(aspect, filename, fps, job, line_track, msg, seconds, tra
     :param filename: Filename of file
     :param fps: FPS of file
     :param job: Job the track belongs to
-    :param line_track: e.g TINFO: **3** ,8,0,"2"
+    :param line_track: e.g. TINFO: **3** ,8,0,"2"
     :param msg: current line from MakeMKV split into array
     :param int seconds: Length of track
     :param track: Track number of current file

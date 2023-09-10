@@ -22,7 +22,7 @@ on:
 env:
     # Use docker.io for Docker Hub if empty
     REGISTRY: ghcr.io
-    # use DOCKERHUB_USERNAME as the name maybe different from the github username
+    # use DOCKERHUB_USERNAME as the name maybe different from the GitHub username
     IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/automatic-ripping-machine
     TAG: latest
 
@@ -118,7 +118,7 @@ jobs:
                     repo_token: "${{ secrets.GITHUB_TOKEN }}"
                     automatic_release_tag: "${{ env.VERSION }}"
                     prerelease: false
-                    # This doesnt work yet, waiting for new verison to be merged
+                    # This doesn't work yet, waiting for new verison to be merged
                     generate_release_notes: true
                     title: "${{ env.VERSION }}"
                     files: |

@@ -7,7 +7,7 @@
     Now added the possibility for users to use [TMDB](https://developers.themoviedb.org/3/getting-started/introduction) as their metadata provider, this only works for movies at the moment. 
     In time this will have the same functionality as OMDB (movies and tv shows)
     The idea driving this is that users should be able to choose their metadata provider.
-    I also think this is safer route in the long term, its better to have multiple options than only focus on one provider.
+    I also think this is safer route in the long term, it's better to have multiple options than only focus on one provider.
     
     - Added method to let users send/submit their correctly identified movies to a new crc64 API (an api key required)
     - Added check for crc64 from remote database
@@ -24,7 +24,7 @@
 
 ## v2.3.4 - v2.4.5
  - Adding bypass for db.session.commit() error for movies (WIP only MakeMKV and part of handbrake is coded)
- - Abandon job option added to main ARM ui page (for now this only sets job to failed no processes are cancelled)
+ - Abandon job option added to main ARM ui page (for now this only sets job to fail, no processes are cancelled)
  - Typo fixes (ARM ui images has/had some typos these have been updated and corrected)
  - ARM ui now shows CPU temps
  - ARM ui now uses percentage bars to more clearly display storage and RAM usage 
@@ -44,7 +44,7 @@
 
 ## v2.3.4
  - Travisci/flake8 code fixes
- - github actions added
+ - GitHub actions added
  - Bugfix(small bugfix for datadiscs)
  - Bugfix (old versions of yaml would cause Exceptions)
  - Bugfix (db connections are now closed properly for CD's)
@@ -84,11 +84,11 @@
   - Added user table to the sqlite db
   - Added Debian Installer Script
   - Added Ubuntu Installer Script
-  - Added Auto Identfy of music CD's
-  - Made changes to the setup logging to allow music CD's to use the their artist name and album name as the log file 
-  - Added abcde config file overide (This lets you give a custom config file to abcde from anywhere)
-  - Added log cleaner function to strip out secret keys (This isnt complete yet)
-  - Bugfix (datadiscs with no label no longer fail) 
+  - Added Auto Identify of music CD's
+  - Made changes to the setup logging to allow music CD's to use the artist name and album name as the log file 
+  - Added abcde config file override (This lets you give a custom config file to abcde from anywhere)
+  - Added log cleaner function to strip out secret keys (This isn't complete yet)
+  - Bugfix (data-discs with no label no longer fail) 
   - Bugfix (NONE_(timestamp).log will no longer be generated ) 
 
 ## v2.1.0
@@ -115,7 +115,7 @@
 -  Auto download latest keys_hashed.txt and KEYDB.cfg
 
 ## v1.3.0
- - Get Title for DVD and Blu-Rays so that media servesr can identify them easily.
+ - Get Title for DVD and Blu-rays so that media server can identify them easily.
  - Determine if video is Movie or TV-Show from OMDB API query so that different actions can be taken (TV shows usually require manual episode identification)
  - Option for MakeMKV to rip using backup method.
  - Option to rip only main feature if so desired.

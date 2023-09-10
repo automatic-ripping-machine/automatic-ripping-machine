@@ -85,7 +85,8 @@ def abandon_job_crud(session: Session, _id: int, ) -> dict:
         job_process = psutil.Process(job_info.pid)
         job_process.terminate()  # or p.kill()
         notification = Notifications(title=f"Job: {job_info.job_id} was Abandoned!",
-                                     message=f'Job with id: {job_info.job_id} was successfully abandoned. No files were deleted!')
+                                     message=f'Job with id: {job_info.job_id} '
+                                             f'was successfully abandoned. No files were deleted!')
         session.add(notification)
         session.commit()
     except psutil.NoSuchProcess:

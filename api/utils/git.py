@@ -3,6 +3,8 @@ import re
 import subprocess
 
 INSTALLPATH = "/opt/arm"
+
+
 def get_git_revision_hash() -> str:
     """Get full hash of current git commit"""
     return subprocess.check_output(['git', 'rev-parse', 'HEAD'],

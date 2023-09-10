@@ -61,12 +61,12 @@ class Settings:
     # Get apprise config
     @router.get("/settings/get_apprise")
     def get_apprise(self):
-        return { 'cfg': get_apprise_settings(self.session), 'comments': generate_comments()}
+        return {'cfg': get_apprise_settings(self.session), 'comments': generate_comments()}
 
     # Save apprise config
     @router.put("/settings/get_apprise")
     def save_apprise_config(self, new_info: CreateAndUpdateApprise):
-        return { 'cfg': update_apprise_settings(self.session, new_info), 'comments': generate_comments()}
+        return {'cfg': update_apprise_settings(self.session, new_info), 'comments': generate_comments()}
 
     # Get ui config
     @router.get("/settings/get_ui_conf")

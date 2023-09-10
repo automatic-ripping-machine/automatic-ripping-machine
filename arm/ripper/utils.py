@@ -327,7 +327,7 @@ def find_largest_file(files, mkv_out_path):
     Step through given dir and return the largest file name\n
     :param files: dir in os.listdir() format
     :param mkv_out_path: RAW_PATH
-    :return: largest file name
+    :return: the largest file name
     """
     largest_file_name = ""
     for file in files:
@@ -576,7 +576,7 @@ def database_adder(obj_class):
     """
     Adds model item to db\n
     Used to stop database locked error\n
-    :param obj_class: Job/Config/Track/ etc
+    :param obj_class: Job/Config/Track/ etc.
     :return: True if success
     """
     for i in range(90):  # give up after the users wait period in seconds
@@ -707,7 +707,7 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
         logging.debug(f"Value of have_dupes: {have_dupes}")
         if cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
             hb_out_path = hb_out_path + "_" + job.stage
-            logging.debug("Trying to create: "+ hb_out_path)
+            logging.debug("Trying to create: " + hb_out_path)
             if not (make_dir(hb_out_path)):
                 # We failed to make a random directory, most likely a permission issue
                 logging.debug("Failed to create: " + hb_out_path)
@@ -737,7 +737,7 @@ def job_dupe_check(job):
     """
     function for checking the database to look for jobs that have completed
     successfully with the same label
-    :param job: The job obj so we can use the crc/title etc.
+    :param job: The job obj, so we can use the crc/title etc.
     :return: True/False, dict/None
     """
     logging.debug(f"Trying to find jobs with matching Label={job.label}")

@@ -365,5 +365,5 @@ def handbrake_char_encoding(cmd):
             logging.error("Couldn't find a valid track. "
                           "Try running the command manually to see more specific errors.")
             logging.error(f"Specific error is: {hb_error}")
-            # If it doesn't work now we either have bad encoding or HB has ran into issues
+            # If it doesn't work now we either have bad encoding or HB has run into issues
     return hand_brake_output

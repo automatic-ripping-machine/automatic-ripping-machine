@@ -149,7 +149,7 @@ class Job(Base):
         """
         Get the title for audio cds to use for the logfile name.
 
-        Needs the job class passed into it so it can be forwarded to mb
+        Needs the job class passed into it, so it can be forwarded to mb
 
         return - only the logfile - setup_logging() adds the full path
         """
@@ -366,7 +366,7 @@ class Config(Base):
 
     def get_d(self):
         """
-        Return a dict of class - exclude the any sensitive info
+        Return a dict of class - exclude any sensitive info
         :return: dict containing all attribs from class
         """
         return_dict = {}
@@ -617,7 +617,7 @@ class SystemDrives(Base):
         self.drive_type()
 
     def drive_type(self):
-        """find the Drive type (CD, DVD, Blueray) from the udev values"""
+        """find the Drive type (CD, DVD, Blu-ray) from the udev values"""
         temp = ""
         self.type = temp
 

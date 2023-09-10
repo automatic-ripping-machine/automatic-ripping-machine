@@ -22,7 +22,7 @@ from arm.ripper import logger, utils, identify, arm_ripper, music_brainz  # noqa
 import arm.config.config as cfg  # noqa E402
 from arm.models.models import Job, Config  # noqa: E402
 from arm.ui import constants  # noqa E402
-#from arm.ui import DriveUtils as drive_utils  # noqa E402
+# from arm.ui import DriveUtils as drive_utils  # noqa E402
 from arm.ripper.ARMInfo import ARMInfo  # noqa E402
 from arm.database import app, db  # noqa E402
 
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     db.session.add(job)
     db.session.commit()
     # Associate the job with the drive in the database
-    #drive_utils.update_drive_job(job)
+    # drive_utils.update_drive_job(job)
     # Add the job.config to db
     print(cfg.arm_config)
     logging.debug(cfg.arm_config)

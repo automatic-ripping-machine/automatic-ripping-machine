@@ -43,7 +43,7 @@ def drives_search():
 
 def drives_update():
     """
-    scan the system for new cd/dvd/blueray drives
+    scan the system for new cd/dvd/Blu-ray drives
     """
     udev_drives = drives_search()
     i = 1
@@ -53,7 +53,7 @@ def drives_update():
     drive_count = models.SystemDrives.query.count()
 
     for drive_mount in udev_drives:
-        # Check drive doesnt already exist
+        # Check drive doesn't already exist
         if not models.SystemDrives.query.filter_by(mount=drive_mount).first():
             # New drive, set previous job to none
             last_job = None
@@ -69,7 +69,7 @@ def drives_update():
             logging.debug("****** End Drive Information ******")
             db.session.add(db_drive)
             db.session.commit()
-            db_drive = None
+            None
             i += 1
         else:
             i += 1
@@ -94,7 +94,7 @@ def drives_check_status():
                 drive.job_finished()
                 db.session.commit()
 
-        # Catch if a user has removed database entries and the previous job doesnt exist
+        # Catch if a user has removed database entries and the previous job doesn't exist
         if drive.job_previous is not None and drive.job_previous.status is None:
             drive.job_id_previous = None
             db.session.commit()
