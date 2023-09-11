@@ -116,7 +116,7 @@ class CreateAndUpdateJob(BaseModel):
     video_type: str
     video_type_auto: Optional[str]
     video_type_manual: Optional[str]
-    imdb_id: str
+    imdb_id: Optional[str]
     imdb_id_auto: Optional[str]
     imdb_id_manual: Optional[str]
     poster_url: str
@@ -127,7 +127,7 @@ class CreateAndUpdateJob(BaseModel):
     hasnicetitle: bool
     errors: Optional[str]
     disctype: str
-    label: str
+    label: Optional[str]
     path: Optional[str]
     ejected: bool
     updated: bool

@@ -69,7 +69,6 @@ def drives_update():
             logging.debug("****** End Drive Information ******")
             db.session.add(db_drive)
             db.session.commit()
-            None
             i += 1
         else:
             i += 1

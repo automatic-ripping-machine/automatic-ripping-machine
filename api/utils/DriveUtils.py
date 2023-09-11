@@ -67,7 +67,6 @@ def drives_update(db):
             logging.info("****** End Drive Information ******")
             db.add(db_drive)
             db.commit()
-            None
 
     if new_count > 0:
         logging.info(f"Added {new_count} drives for ARM.")

@@ -182,8 +182,6 @@ if __name__ == "__main__":
     # Associate the job with the drive in the database
     # drive_utils.update_drive_job(job)
     # Add the job.config to db
-    print(cfg.arm_config)
-    logging.debug(cfg.arm_config)
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
     db.session.add(config)
     db.session.commit()
