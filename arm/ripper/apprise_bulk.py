@@ -2,7 +2,6 @@
 import logging
 import yaml
 import apprise
-import subprocess
 
 
 # TODO: Refactor this to leverage apprise_config stored in config.py
