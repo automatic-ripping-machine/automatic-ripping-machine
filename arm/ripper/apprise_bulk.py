@@ -104,7 +104,8 @@ def apprise_notify(apprise_cfg, title, body):
 
 
 def ntfy_notify(cfg, title, body):
-    # ntfy can require additional processing to make https work. In addition, there are multiple available valid schemes.
+    # ntfy can require additional processing to make https work.
+    # In addition, there are multiple available valid schemes.
     if cfg['NTFY_TOPIC'] != "":
         try:
             apobj = apprise.Apprise()
@@ -144,7 +145,7 @@ def ntfy_notify(cfg, title, body):
             )
             logging.debug("Sent apprise to ntfy was successful")
         except Exception as error:  # noqa: E722
-            logging.error(f"Failed sending ntfy apprise notification.  continuing  processing...{error}")
+            logging.error(f"Failed sending ntfy apprise notification. Continuing  processing...{error}")
 
 
 def bash_notify(cfg, title, body):
@@ -154,4 +155,4 @@ def bash_notify(cfg, title, body):
             subprocess.run([cfg['BASH_SCRIPT'], title, body])
             logging.debug("Sent bash notification successful")
         except Exception as error:  # noqa: E722
-            logging.error(f"Failed sending notification via bash.  continuing  processing...{error}")
+            logging.error(f"Failed sending notification via bash. Continuing  processing...{error}")
