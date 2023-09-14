@@ -5,13 +5,6 @@
 BOXCAR_KEY: ""
 BOXCAR_SECRET: ""
 
-## Specify a script to be called.
-# We will call the script with two arguments:
-# First Argument: Title
-# Second Argument: Body
-# This does not use apprise!
-BASH_SCRIPT: ""
-
 ## Discord bot
 ## Full info @ https://github.com/caronc/apprise/wiki/Notify_discord
 ## Leave DISCORD_WEBHOOK_ID blank to disable

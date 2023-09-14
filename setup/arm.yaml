@@ -306,6 +306,14 @@ IFTTT_EVENT: "arm_event"
 PO_USER_KEY: ""
 PO_APP_KEY: ""
 
+
+## Specify a script to be called.
+# We will call the script with two arguments:
+# First Argument: Title
+# Second Argument: Body
+BASH_SCRIPT: ""
+
+
 # OMDB_API_KEY
 # omdbapi.com API Key
 # See README-OMDBAPI for background and info

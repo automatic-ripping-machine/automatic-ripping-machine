@@ -85,8 +85,6 @@ def apprise_notify(apprise_cfg, title, body):
     with open(apprise_cfg, "r") as yaml_file:
         cfg = yaml.safe_load(yaml_file)
 
-    bash_notify(cfg, title, body)
-
     sent_cfg = build_apprise_sent(cfg)
     for host, string in sent_cfg.items():
         try:
@@ -146,13 +144,3 @@ def ntfy_notify(cfg, title, body):
             logging.debug("Sent apprise to ntfy was successful")
         except Exception as error:  # noqa: E722
             logging.error(f"Failed sending ntfy apprise notification. Continuing  processing...{error}")
-
-
-def bash_notify(cfg, title, body):
-    # bash notifications use subprocess instead of apprise.
-    if cfg['BASH_SCRIPT'] != "":
-        try:
-            subprocess.run([cfg['BASH_SCRIPT'], title, body])
-            logging.debug("Sent bash notification successful")
-        except Exception as error:  # noqa: E722
-            logging.error(f"Failed sending notification via bash. Continuing  processing...{error}")
