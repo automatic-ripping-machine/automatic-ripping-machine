@@ -85,6 +85,8 @@ def apprise_notify(apprise_cfg, title, body):
     with open(apprise_cfg, "r") as yaml_file:
         cfg = yaml.safe_load(yaml_file)
 
+    bash_notify(cfg, title, body)
+
     sent_cfg = build_apprise_sent(cfg)
     for host, string in sent_cfg.items():
         try:
@@ -98,7 +100,10 @@ def apprise_notify(apprise_cfg, title, body):
         except Exception as error:  # noqa: E722
             logging.error(f"Failed sending {host} apprise notification.  continuing  processing...{error}")
 
-    # ntfy can require additional processing to make https work. Also there are multiple available valid schemes.
+    ntfy_notify(cfg, title, body)
+
+def ntfy_notify(cfg, title, body):
+    # ntfy can require additional processing to make https work. In addition, there are multiple available valid schemes.
     if cfg['NTFY_TOPIC'] != "":
         try:
             apobj = apprise.Apprise()
@@ -140,6 +145,7 @@ def apprise_notify(apprise_cfg, title, body):
         except Exception as error:  # noqa: E722
             logging.error(f"Failed sending ntfy apprise notification.  continuing  processing...{error}")
 
+def bash_notify(cfg, title, body):
     # bash notifications use subprocess instead of apprise.
     if cfg['BASH_SCRIPT'] != "":
         try:
