@@ -16,6 +16,7 @@ import argparse
 import armgit
 import database
 import armdocker
+import armnotify
 
 
 __version__ = '0.2'
@@ -41,6 +42,9 @@ parser.add_argument("-qa",
 parser.add_argument("-pr",
                     help="Actions to run prior to committing a PR against ARM on github",
                     action="store_true")
+parser.add_argument("-n",
+                    help="Notification tool - show a test notification",
+                    action="store_true")
 parser.add_argument("-v", help="ARM Dev Tools Version",
                     action='version',
                     version='%(prog)s {version}'.format(version=__version__))
@@ -64,3 +68,6 @@ if args.qa:
 
 if args.pr:
     armgit.pr_update()
+
+if args.n:
+    armnotify.test()
