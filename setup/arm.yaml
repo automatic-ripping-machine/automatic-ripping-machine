@@ -102,6 +102,11 @@ GET_AUDIO_TITLE: "musicbrainz"
 # Requires FFmpeg
 RIP_POSTER: false
 
+# Auto-eject unidentified discs (blank etc)
+# May want to set this to false on certain (Pioneer slim) drives to prevent the immediate eject
+# issue (https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/779)
+UNIDENTIFIED_EJECT: true
+
 
 #####################
 ## Directory setup ##
@@ -305,6 +310,14 @@ IFTTT_EVENT: "arm_event"
 # Leave User key empty to disable Pushover notifications
 PO_USER_KEY: ""
 PO_APP_KEY: ""
+
+
+## Specify a script to be called.
+# We will call the script with two arguments:
+# First Argument: Title
+# Second Argument: Body
+BASH_SCRIPT: ""
+
 
 # OMDB_API_KEY
 # omdbapi.com API Key
