@@ -23,7 +23,7 @@ Currently a work in progress.
 ## Usage
 
 $python3 armdevtools.py -h
-usage: armdevtools.py [-h] [-b B] [-d] [-db_rem] [-db_roll DB_ROLL] [-db_data] [-v]
+usage: armdevtools.py [-h] [-b B] [-d] [-db_rem] [-db_roll DB_ROLL] [-db_data] [-v] [-n]
 
 Automatic Ripping Machine Development Tool Scripts
 
@@ -37,6 +37,7 @@ options:
                     be the most current
   -qa               QA Checks - run Flake8 against ARM
   -pr               Actions to run prior to commiting a PR against ARM on github
+  -pr               Run a testnotification
   -v                ARM Dev Tools Version
 
 
