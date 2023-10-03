@@ -44,6 +44,8 @@ def notify(job, title, body):
     notification = models.Notifications(title, body)
     database_adder(notification)
 
+    bash_notify(cfg.arm_config, title, body)
+
     # Sent to remote sites
     # Create an Apprise instance
     apobj = apprise.Apprise()
@@ -66,6 +68,16 @@ def notify(job, title, body):
             logging.debug(f"apprise-config: {cfg.arm_config['APPRISE']}")
         except Exception as error:  # noqa: E722
             logging.error(f"Failed sending apprise notifications. {error}")
+
+
+def bash_notify(cfg, title, body):
+    # bash notifications use subprocess instead of apprise.
+    if cfg['BASH_SCRIPT'] != "":
+        try:
+            subprocess.run(["/usr/bin/bash", cfg['BASH_SCRIPT'], title, body])
+            logging.debug("Sent bash notification successful")
+        except Exception as error:  # noqa: E722
+            logging.error(f"Failed sending notification via bash. Continuing  processing...{error}")
 
 
 def notify_entry(job):

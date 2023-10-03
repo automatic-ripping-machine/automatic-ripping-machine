@@ -97,6 +97,13 @@ NOTICA_TOKEN: ""
 NOTIFICO_PROJECTID: ""
 NOTIFICO_MESSAGEHOOK: ""
 
+## ntfy Notifications
+NTFY_TOPIC: ""
+NTFY_URL: ""   # Optional. Prepend http/https!
+NTFY_PORT: ""   # Optional. Must have URL!
+NTFY_USER: ""   # Optional.
+NTFY_PASS: ""   # Optional. Must have User!
+
 ## All of these are required || leave OFFICE365_TENANTID blank to disable
 OFFICE365_TENANTID: ""
 OFFICE365_ACCOUNTEMAIL: ""
