@@ -96,3 +96,50 @@ def apprise_notify(apprise_cfg, title, body):
                 logging.debug(f"Sent apprise to {host} was successful")
         except Exception as error:  # noqa: E722
             logging.error(f"Failed sending {host} apprise notification.  continuing  processing...{error}")
+
+    ntfy_notify(cfg, title, body)
+
+
+def ntfy_notify(cfg, title, body):
+    # ntfy can require additional processing to make https work.
+    # In addition, there are multiple available valid schemes.
+    if cfg['NTFY_TOPIC'] != "":
+        try:
+            apobj = apprise.Apprise()
+            ntfy_serverstring = 'ntfy://'
+
+            host = cfg['NTFY_URL']
+
+            if host.startswith("https://"):
+                ntfy_serverstring = 'ntfys://'
+                host = host.replace("https://", "")
+
+            if host.startswith("http://"):
+                host = host.replace("http://", "")
+
+            if cfg['NTFY_USER'] != "" and cfg['NTFY_PASS'] != "" and host != "":
+                ntfy_serverstring += cfg['NTFY_USER'] + ':' + cfg['NTFY_PASS'] + '@' + host
+
+            elif cfg['NTFY_USER'] != "" and host != "":
+                ntfy_serverstring += cfg['NTFY_USER'] + '@' + host
+
+            elif host != "":
+                ntfy_serverstring += host
+
+            if host != "" and cfg['NTFY_PORT'] != "":
+                ntfy_serverstring += ':' + cfg['NTFY_PORT'] + '/'
+            else:
+                if ntfy_serverstring != 'ntfy://':
+                    ntfy_serverstring += '/'
+
+            ntfy_serverstring += cfg['NTFY_TOPIC']
+
+            print(ntfy_serverstring)
+            apobj.add(ntfy_serverstring)
+            apobj.notify(
+                body,
+                title=title,
+            )
+            logging.debug("Sent apprise to ntfy was successful")
+        except Exception as error:  # noqa: E722
+            logging.error(f"Failed sending ntfy apprise notification. Continuing  processing...{error}")
