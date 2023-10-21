@@ -81,10 +81,20 @@ def identify_bluray(job):
                       "Disc cannot be identified.  Error "
                       f"number is: {error.errno}")
         # Maybe call OMdb with label when we can't find any ident on disc ?
-        job.title = str(job.label)
-        job.year = ""
-        db.session.commit()
-        return False
+        # Attempt to parse label
+        if str(job.label) == "":
+            job.title = str(job.label)
+            job.year = ""
+            db.session.commit()
+            return False
+        else:
+            bluray_title = str(job.label)
+            bluray_title = bluray_title.replace('_', ' ')
+            bluray_title = bluray_title.title()
+            job.title = job.title_auto = bluray_title
+            job.year = ""
+            db.session.commit()
+            return True
 
     try:
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
