@@ -1,5 +1,6 @@
 {% block apprise %}
 <div class="tab-pane pt-5" id="appriseTab" role="tabpanel" aria-labelledby="apprise-tab">
+<a class="btn btn-primary float-left" href="testapprise">Send Test Notification</a>
     <form id="appriseCfg" name="appriseCfg" method="post" action="">
         {{ form.hidden_tag() }}
         {% for k, v in apprise_cfg.items() %}
