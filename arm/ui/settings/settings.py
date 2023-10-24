@@ -300,6 +300,7 @@ def drive_eject(id):
     drive.open_close()
     db.session.commit()
     return redirect(redirect_settings)
+    
 
 @route_settings.route('/testapprise')
 def testapprise():
@@ -313,3 +314,4 @@ def testapprise():
     ripper_utils.notify("/dev/null", "ARM notification", "This is a notification by the ARM-Notification Test!")
     flash("Test notification sent ", "success")
     return redirect(redirect_settings)
+ 
