@@ -42,4 +42,4 @@ if host == 'x.x.x.x' or is_docker():
 
 if __name__ == '__main__':
     from waitress import serve
-    serve(app, host=host, port=cfg['WEBSERVER_PORT'])
+    serve(app, host=host, port=cfg.arm_config['WEBSERVER_PORT'])
