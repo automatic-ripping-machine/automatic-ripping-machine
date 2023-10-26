@@ -10,6 +10,7 @@ Covers
 - systemdrivescan [GET]
 - update_arm [POST]
 - drive_eject [GET]
+- testapprise [GET]
 """
 
 import os
@@ -30,6 +31,7 @@ import arm.config.config as cfg
 from arm.ui.settings import DriveUtils as drive_utils
 from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
 from arm.ui.settings.ServerUtil import ServerUtil
+import arm.ripper.utils as ripper_utils
 
 route_settings = Blueprint('route_settings', __name__,
                            template_folder='templates',
@@ -297,4 +299,18 @@ def drive_eject(id):
     drive = models.SystemDrives.query.filter_by(drive_id=id).first()
     drive.open_close()
     db.session.commit()
+    return redirect(redirect_settings)
+
+
+@route_settings.route('/testapprise')
+def testapprise():
+    """
+    Page - testapprise
+    Method - GET
+    Overview - Send a test notification to Apprise.
+    """
+    global redirect_settings
+    # Send a sample notification
+    ripper_utils.notify("/dev/null", "ARM notification", "This is a notification by the ARM-Notification Test!")
+    flash("Test notification sent ", "success")
     return redirect(redirect_settings)
