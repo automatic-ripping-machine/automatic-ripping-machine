@@ -7,6 +7,8 @@ Automatic-Ripping-Machine Development Tools
 """
 
 import log
+import sys
+sys.path.insert(0, '/opt/arm')
 from arm.ripper import utils
 from arm.models.models import Job
 
