@@ -9,8 +9,8 @@ Automatic-Ripping-Machine Development Tools
 import log
 import sys
 sys.path.insert(0, '/opt/arm')
-from arm.ripper import utils
-from arm.models.models import Job
+from arm.ripper import utils        # noqa E402
+from arm.models.models import Job   # noqa E402
 
 
 def test():
