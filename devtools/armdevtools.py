@@ -9,6 +9,9 @@ Automatic-Ripping-Machine Development Tools
     out any changes being made.
     More details are captured in the wiki
     https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/ARM-Development-Tools
+
+    Note if making changes to this code, avoid pulling in modules from the main arm code
+    doing so causes issues as arm has may linked modules, scripts and dependencies
 """
 
 import argparse
@@ -19,7 +22,7 @@ import armdocker
 import armnotify
 
 
-__version__ = '0.2'
+__version__ = '0.3'
 arm_home = "/home/arm"
 arm_install = "/opt/arm"
 
