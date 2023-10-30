@@ -41,4 +41,5 @@ if host == 'x.x.x.x' or is_docker():
     app.logger.info(f"Starting ARMUI on interface address - {host}:{cfg.arm_config['WEBSERVER_PORT']}")
 
 if __name__ == '__main__':
-    app.run(host=host, port=cfg.arm_config['WEBSERVER_PORT'], debug=True)
+    from waitress import serve
+    serve(app, host=host, port=cfg.arm_config['WEBSERVER_PORT'])
