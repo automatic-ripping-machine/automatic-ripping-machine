@@ -44,7 +44,7 @@
   "DBFILE": "# Path to ARM database file",
   "WEBSERVER_IP": "# IP address of web server (this machine)\n# Use x.x.x.x to autodetect the IP address to use",
   "WEBSERVER_PORT": "# Port for web server",
-  "UI_BASE_URL": "The display URL to use in notifications. Must include protocol (e.g. http:// or https://)",
+  "UI_BASE_URL": "# Base URL to use for notifications and display purposes\n#Be sure to include protocol and port if needed (e.g. http://example.com:8091 or https://example.com)",
   "SET_MEDIA_PERMISSIONS": "# Enabling this setting will allow you to adjust the default file permissions of the outputted files\n# The default value is set to 777 for read/write/execute for all users, but can be changed below using the \"CHMOD_VALUE\" setting\n# This setting is helpful when storing the data locally on the system",
   "CHMOD_VALUE": "",
   "SET_MEDIA_OWNER": "# Don't bother. This does not do anything yet",

@@ -95,7 +95,7 @@ def notify_entry(job):
         if cfg.arm_config["UI_BASE_URL"] == "":
             display_address = (f"http://{check_ip()}:{job.config.WEBSERVER_PORT}")
         else:
-            display_address = str(cfg.arm_config["UI_BASE_URL"]);
+            display_address = str(cfg.arm_config["UI_BASE_URL"])
         # Send the notifications
         notify(job, NOTIFY_TITLE,
                f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {job.config.MAINFEATURE}."
