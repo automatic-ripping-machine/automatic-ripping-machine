@@ -769,7 +769,7 @@ def job_dupe_check(job):
     if results:
         logging.debug(f"we have {len(results)} jobs")
         # Check if results too large (over 1), skip if too many
-        if len(results) > 1:
+        if len(results) == 1:
             # This might need some tweaks to because of title/year manual
             title = results[0]['title'] if results[0]['title'] else job.label
             year = results[0]['year'] if results[0]['year'] != "" else ""
