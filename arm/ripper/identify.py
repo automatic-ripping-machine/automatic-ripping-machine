@@ -25,6 +25,7 @@ def check_if_mounted(mounted):
      anything but 0 means we failed to mount disc
     """
     success = False
+    logging.debug(f"OS mounted value: {mounted}")
     if mounted == 0:
         logging.info("Mounting disc was successful")
         success = True
@@ -40,6 +41,7 @@ def identify(job):
     if not os.path.exists(str(job.mountpoint)):
         os.makedirs(str(job.mountpoint))
     # Check and mount drive - log error if failed
+    logging.debug(f"os system mount: mount {job.devpath}")
     mounted = check_if_mounted(os.system("mount " + job.devpath))
     # get_disc_type() checks local files, no need to run unless we can mount
     if mounted:
