@@ -9,7 +9,10 @@ from prettytable import PrettyTable
 from arm.ripper import music_brainz
 from arm.ui import db
 import arm.config.config as cfg
+
+# THESE IMPORTS ARE REQUIRED FOR THE db.Relationships to work
 from arm.models.track import Track
+from arm.models.config import Config
 
 
 class Job(db.Model):
