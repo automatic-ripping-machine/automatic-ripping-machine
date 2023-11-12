@@ -24,6 +24,7 @@ from arm.ui.settings import DriveUtils as drive_utils
 from arm.config import config_utils
 from arm.ui import app, db
 from arm.models import models
+from arm.models.job import Job
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
 
 # Path definitions
@@ -448,7 +449,7 @@ def job_dupe_check(crc_id):
     """
     if crc_id is None:
         return False, None
-    jobs = models.Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
+    jobs = Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
     # app.logger.debug("search - posts=" + str(jobs))
     return_results = {}
     i = 0
@@ -521,7 +522,7 @@ def fix_permissions(j_id):
 
     # Validate job is valid
     job_id_validator(j_id)
-    job = models.Job.query.get(j_id)
+    job = Job.query.get(j_id)
     if not job:
         raise TypeError("Job Has Been Deleted From The Database")
     # If there is no path saved in the job
@@ -575,7 +576,7 @@ def send_to_remote_db(job_id):
     :param job_id: Job id
     :return: dict/json to return to user
     """
-    job = models.Job.query.get(job_id)
+    job = Job.query.get(job_id)
     return_dict = {}
     api_key = cfg.arm_config['ARM_API_KEY']
 
@@ -812,7 +813,7 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
     }
     app.logger.debug(movie_dict)
     # Create the new job and use the found values
-    new_movie = models.Job("/dev/sr0")
+    new_movie = Job("/dev/sr0")
     new_movie.title = movie_dict['title']
     new_movie.year = movie_dict['year']
     new_movie.crc_id = hash_object.hexdigest()

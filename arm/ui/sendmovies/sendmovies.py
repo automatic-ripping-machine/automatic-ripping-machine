@@ -8,7 +8,7 @@ from flask_login import LoginManager, login_required  # noqa: F401
 from flask import render_template, request, Blueprint
 
 from arm.ui import db
-from arm.models import models as models
+from arm.models.job import Job
 
 route_sendmovies = Blueprint('route_sendmovies', __name__,
                              template_folder='templates',
@@ -25,6 +25,6 @@ def send_movies():
     if request.args.get('s') is None:
         return render_template('send_movies_form.html')
 
-    job_list = db.session.query(models.Job).filter_by(hasnicetitle=True, disctype="dvd").all()
+    job_list = db.session.query(Job).filter_by(hasnicetitle=True, disctype="dvd").all()
     return_job_list = [job.job_id for job in job_list]
     return render_template('send_movies.html', job_list=return_job_list)
