@@ -16,6 +16,7 @@ from flask_login import LoginManager, current_user, login_user, UserMixin  # noq
 from arm.ripper import music_brainz
 from arm.ui import db
 import arm.config.config as cfg
+from arm.models.job import Job
 
 class AlembicVersion(db.Model):
     """

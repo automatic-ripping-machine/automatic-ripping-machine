@@ -25,6 +25,7 @@ from arm.ui import db
 from arm.models import models
 from arm.models.job import Job
 from arm.models.track import Track
+from arm.models.user import User
 
 NOTIFY_TITLE = "ARM notification"
 
@@ -481,7 +482,7 @@ def try_add_default_user():
         username = "admin"
         pass1 = "password".encode('utf-8')
         hashed = bcrypt.gensalt(12)
-        database_adder(models.User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed))
+        database_adder(User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed))
         perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
         write_permission_file = open(perm_file, "w")
         write_permission_file.write("boop!")
