@@ -27,6 +27,7 @@ from flask import render_template, request, flash, \
 import arm.ui.utils as ui_utils
 from arm.ui import app, db
 from arm.models import models as models
+from arm.models.job import Job
 import arm.config.config as cfg
 from arm.ui.settings import DriveUtils as drive_utils
 from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
@@ -56,11 +57,11 @@ def settings():
     # stats for info page
     with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
-    failed_rips = models.Job.query.filter_by(status="fail").count()
-    total_rips = models.Job.query.filter_by().count()
-    movies = models.Job.query.filter_by(video_type="movie").count()
-    series = models.Job.query.filter_by(video_type="series").count()
-    cds = models.Job.query.filter_by(disctype="music").count()
+    failed_rips = Job.query.filter_by(status="fail").count()
+    total_rips = Job.query.filter_by().count()
+    movies = Job.query.filter_by(video_type="movie").count()
+    series = Job.query.filter_by(video_type="series").count()
+    cds = Job.query.filter_by(disctype="music").count()
 
     stats = {'python_version': platform.python_version(),
              'arm_version': version,

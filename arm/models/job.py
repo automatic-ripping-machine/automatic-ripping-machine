@@ -8,7 +8,6 @@ import time
 from prettytable import PrettyTable
 from arm.ripper import music_brainz
 from arm.ui import db
-
 import arm.config.config as cfg
 
 

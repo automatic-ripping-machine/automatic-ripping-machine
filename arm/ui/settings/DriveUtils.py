@@ -16,6 +16,7 @@ import logging
 
 from arm.ui import app, db
 from arm.models import models
+from arm.models.job import Job
 
 
 def drives_search():
@@ -137,7 +138,7 @@ def job_cleanup(job_id):
     """
     Function called when removing a job from the database, removing the data in the previous job field
     """
-    job = models.Job.query.filter_by(job_id=job_id).first()
+    job = Job.query.filter_by(job_id=job_id).first()
     drive = models.SystemDrives.query.filter_by(mount=job.devpath).first()
     drive.job_id_previous = None
     app.logger.debug(f"Job {job.job_id} cleared from drive {drive.mount} previous")

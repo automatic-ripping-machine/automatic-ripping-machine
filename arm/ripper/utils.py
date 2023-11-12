@@ -23,6 +23,7 @@ from netifaces import interfaces, ifaddresses, AF_INET
 from arm.ripper import apprise_bulk
 from arm.ui import db
 from arm.models import models
+from arm.models.job import Job
 
 NOTIFY_TITLE = "ARM notification"
 
@@ -621,7 +622,7 @@ def clean_old_jobs():
     Check for running jobs - Update failed jobs that are no longer running\n
     :return: None
     """
-    active_jobs = db.session.query(models.Job).filter(models.Job.status.notin_(['fail', 'success'])).all()
+    active_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
     # Clean up abandoned jobs
     for job in active_jobs:
         if psutil.pid_exists(job.pid):
@@ -679,8 +680,8 @@ def duplicate_run_check(dev_path):
     this stops that issue
     :return: None
     """
-    running_jobs = db.session.query(models.Job).filter(
-        models.Job.status.notin_(['fail', 'success']), models.Job.devpath == dev_path).all()
+    running_jobs = db.session.query(Job).filter(
+        Job.status.notin_(['fail', 'success']), Job.devpath == dev_path).all()
     if len(running_jobs) >= 1:
         for j in running_jobs:
             print(j.start_time - datetime.datetime.now())
@@ -758,7 +759,7 @@ def job_dupe_check(job):
     :return: True/False, dict/None
     """
     logging.debug(f"Trying to find jobs with matching Label={job.label}")
-    previous_rips = models.Job.query.filter_by(label=job.label, status="success")
+    previous_rips = Job.query.filter_by(label=job.label, status="success")
     results = {}
     i = 0
     for j in previous_rips:

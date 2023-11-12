@@ -23,6 +23,7 @@ from flask_login import LoginManager, login_required, \
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants
 from arm.models import models as models
+from arm.models.job import Job
 import arm.config.config as cfg
 from arm.ui.forms import DBUpdate
 from arm.ui.settings.ServerUtil import ServerUtil
@@ -71,7 +72,7 @@ def home():
 
     if os.path.isfile(cfg.arm_config['DBFILE']):
         try:
-            jobs = db.session.query(models.Job).filter(models.Job.status.notin_(['fail', 'success'])).all()
+            jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
         except Exception:
             # db isn't setup
             return redirect(url_for('setup'))
