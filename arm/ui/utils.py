@@ -25,6 +25,7 @@ from arm.config import config_utils
 from arm.ui import app, db
 from arm.models import models
 from arm.models.job import Job
+from arm.models.user import User
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
 
 # Path definitions
@@ -400,7 +401,7 @@ def setup_database():
 
     # This checks for a user table
     try:
-        admins = models.User.query.all()
+        admins = User.query.all()
         app.logger.debug(f"Number of admins: {len(admins)}")
         if len(admins) > 0:
             return True
@@ -418,7 +419,7 @@ def setup_database():
         # UI config is already set within the alembic migration file - 9cae4aa05dd7_create_settingsui_table.py
         # Create default user to save problems with ui and ripper having diff setups
         hashed = bcrypt.gensalt(12)
-        default_user = models.User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
+        default_user = User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
                                    hashed=hashed)
         app.logger.debug("DB Init - Admin user loaded")
         db.session.add(default_user)
