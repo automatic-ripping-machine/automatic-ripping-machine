@@ -13,7 +13,8 @@ from flask import request
 
 import arm.config.config as cfg
 from arm.models.job import Job
-from arm.models.models import Config, Track, Notifications, UISettings
+from arm.models.models import Config, Notifications, UISettings
+from arm.models.track import Track
 from arm.ui import app, db
 from arm.ui.forms import ChangeParamsForm
 from arm.ui.utils import job_id_validator, database_updater

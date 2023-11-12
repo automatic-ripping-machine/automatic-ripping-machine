@@ -9,6 +9,7 @@ from prettytable import PrettyTable
 from arm.ripper import music_brainz
 from arm.ui import db
 import arm.config.config as cfg
+from arm.models.track import Track
 
 
 class Job(db.Model):
@@ -211,5 +212,3 @@ class Job(db.Model):
                     logging.debug(f"Failed to eject {self.devpath}")
             except Exception as error:
                 logging.debug(f"{self.devpath} couldn't be ejected {error}")
-
-
