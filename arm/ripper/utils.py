@@ -24,6 +24,7 @@ from arm.ripper import apprise_bulk
 from arm.ui import db
 from arm.models import models
 from arm.models.job import Job
+from arm.models.track import Track
 
 NOTIFY_TITLE = "ARM notification"
 
@@ -513,7 +514,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         f"Track #{int(t_no):02} Length: {seconds: >4} fps: {float(fps):2.3f} "
         f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source}")
 
-    job_track = models.Track(
+    job_track = Track(
         job_id=job.job_id,
         track_number=t_no,
         length=seconds,
