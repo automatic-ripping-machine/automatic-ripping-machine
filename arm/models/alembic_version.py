@@ -1,5 +1,6 @@
 from arm.ui import db
 
+
 class AlembicVersion(db.Model):
     """
     Class to hold the A.R.M db version
