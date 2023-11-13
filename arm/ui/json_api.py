@@ -12,9 +12,9 @@ import psutil
 from flask import request
 
 import arm.config.config as cfg
-from arm.models.job import Job
-from arm.models.models import Notifications
 from arm.models.config import Config
+from arm.models.job import Job
+from arm.models.notifications import Notifications
 from arm.models.track import Track
 from arm.models.ui_settings import UISettings
 from arm.ui import app, db
