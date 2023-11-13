@@ -28,6 +28,7 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db
 from arm.models import models as models
 from arm.models.job import Job
+from arm.models.ui_settings import UISettings
 import arm.config.config as cfg
 from arm.ui.settings import DriveUtils as drive_utils
 from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
@@ -172,7 +173,7 @@ def save_ui_settings():
     """
     form = UiSettingsForm()
     success = False
-    arm_ui_cfg = models.UISettings.query.get(1)
+    arm_ui_cfg = UISettings.query.get(1)
     if form.validate_on_submit():
         use_icons = (str(form.use_icons.data).strip().lower() == "true")
         save_remote_images = (str(form.save_remote_images.data).strip().lower() == "true")
