@@ -26,6 +26,7 @@ from arm.ui import app, db
 from arm.models import models
 from arm.models.alembic_version import AlembicVersion
 from arm.models.job import Job
+from arm.models.ui_settings import UISettings
 from arm.models.user import User
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
 
@@ -208,7 +209,7 @@ def arm_db_cfg():
     # if the database has been updated
     # UISettings could be incorrect, return None
     try:
-        armui_cfg = models.UISettings.query.get(1)
+        armui_cfg = UISettings.query.get(1)
         app.jinja_env.globals.update(armui_cfg=armui_cfg)
     except Exception as e:
         app.logger.debug(f"arm_cfg request error {e}")
