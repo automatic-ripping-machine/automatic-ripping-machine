@@ -21,6 +21,7 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
 from arm.models import models as models
 from arm.models.job import Job
+from arm.models.notifications import Notifications
 import arm.config.config as cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm
 
@@ -80,9 +81,9 @@ def customtitle():
             'title_manual': request.args.get("title"),
             'year': request.args.get("year")
         }
-        notification = models.Notifications(f"Job: {job.job_id} was updated",
-                                            f'Title: {job.title} ({job.year}) was updated to '
-                                            f'{request.args.get("title")} ({request.args.get("year")})')
+        notification = Notifications(f"Job: {job.job_id} was updated",
+                                     f'Title: {job.title} ({job.year}) was updated to '
+                                     f'{request.args.get("title")} ({request.args.get("year")})')
         db.session.add(notification)
         ui_utils.database_updater(args, job)
         flash(f'Custom title changed. Title={job.title}, Year={job.year}.', "success")
@@ -132,9 +133,9 @@ def updatetitle():
     job.imdb_id = job.imdb_id_manual = request.args.get('imdbID')
     job.poster_url = job.poster_url_manual = request.args.get('poster')
     job.hasnicetitle = True
-    notification = models.Notifications(f"Job: {job.job_id} was updated",
-                                        f'Title: {old_title} ({old_year}) was updated to '
-                                        f'{request.args.get("title")} ({request.args.get("year")})')
+    notification = Notifications(f"Job: {job.job_id} was updated",
+                                 f'Title: {old_title} ({old_year}) was updated to '
+                                 f'{request.args.get("title")} ({request.args.get("year")})')
     db.session.add(notification)
     db.session.commit()
     flash(f'Title: {old_title} ({old_year}) was updated to '

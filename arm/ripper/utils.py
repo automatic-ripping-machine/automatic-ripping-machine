@@ -24,6 +24,7 @@ from arm.ripper import apprise_bulk
 from arm.ui import db
 from arm.models import models
 from arm.models.job import Job
+from arm.models.notifications import Notifications
 from arm.models.track import Track
 from arm.models.user import User
 
@@ -44,7 +45,7 @@ def notify(job, title, body):
     if cfg.arm_config["NOTIFY_JOBID"]:
         title = f"{title} - {job.job_id}"
     # Send to local db
-    notification = models.Notifications(title, body)
+    notification = Notifications(title, body)
     database_adder(notification)
 
     bash_notify(cfg.arm_config, title, body)
@@ -90,9 +91,9 @@ def notify_entry(job):
     :return: None
     """
     # TODO make this better or merge with notify/class
-    notification = models.Notifications(f"New Job: {job.job_id} has started. Disctype: {job.disctype}",
-                                        f"New job has started to rip - {job.label},"
-                                        f"{job.disctype} at {datetime.datetime.now()}")
+    notification = Notifications(f"New Job: {job.job_id} has started. Disctype: {job.disctype}",
+                                 f"New job has started to rip - {job.label},"
+                                 f"{job.disctype} at {datetime.datetime.now()}")
     database_adder(notification)
     if job.disctype in ["dvd", "bluray"]:
         if cfg.arm_config["UI_BASE_URL"] == "":
