@@ -24,6 +24,7 @@ from arm.ui.settings import DriveUtils as drive_utils
 from arm.config import config_utils
 from arm.ui import app, db
 from arm.models import models
+from arm.models.alembic_version import AlembicVersion
 from arm.models.job import Job
 from arm.models.user import User
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
@@ -64,7 +65,7 @@ def database_updater(args, job, wait_time=90):
 
 def check_db_version(install_path, db_file):
     """
-    Check if db exists and is up to date.
+    Check if db exists and is up-to-date.
     If it doesn't exist create it.  If it's out of date update it.
     """
     from alembic.script import ScriptDirectory
@@ -144,7 +145,7 @@ def arm_db_get():
     """
     Get the Alembic Head revision
     """
-    alembic_db = models.AlembicVersion()
+    alembic_db = AlembicVersion()
     db_revision = alembic_db.query.first()
     app.logger.debug(f"Database Head is: {db_revision.version_num}")
     return db_revision
@@ -152,7 +153,7 @@ def arm_db_get():
 
 def arm_db_check():
     """
-    Check if db exists and is up to date.
+    Check if db exists and is up-to-date.
     """
     db_file = cfg.arm_config['DBFILE']
     db_exists = False

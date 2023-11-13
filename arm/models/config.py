@@ -108,7 +108,7 @@ class Config(db.Model):
 
     def get_d(self):
         """
-        Return a dict of class - exclude the any sensitive info
+        Return a dict of class - exclude any sensitive info
         :return: dict containing all attribs from class
         """
         return_dict = {}
