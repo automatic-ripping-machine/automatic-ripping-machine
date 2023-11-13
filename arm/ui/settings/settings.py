@@ -28,6 +28,7 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db
 from arm.models import models as models
 from arm.models.job import Job
+from arm.models.system_info import SystemInfo
 from arm.models.ui_settings import UISettings
 import arm.config.config as cfg
 from arm.ui.settings import DriveUtils as drive_utils
@@ -80,7 +81,7 @@ def settings():
     armui_cfg = ui_utils.arm_db_cfg()
 
     # System details in class server
-    server = models.SystemInfo.query.filter_by(id="1").first()
+    server = SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
 
     # System details in class server
