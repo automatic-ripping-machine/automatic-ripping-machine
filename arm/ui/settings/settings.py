@@ -26,12 +26,12 @@ from flask import render_template, request, flash, \
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db
-from arm.models import models as models
 from arm.models.job import Job
+from arm.models.system_drives import SystemDrives
 from arm.models.system_info import SystemInfo
 from arm.models.ui_settings import UISettings
 import arm.config.config as cfg
-from arm.ui.settings import DriveUtils as drive_utils
+from arm.ui.settings import DriveUtils
 from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
 from arm.ui.settings.ServerUtil import ServerUtil
 import arm.ripper.utils as ripper_utils
@@ -90,7 +90,7 @@ def settings():
 
     # form_drive = SystemInfoDrives(request.form)
     # System Drives (CD/DVD/Blueray drives)
-    drives = drive_utils.drives_check_status()
+    drives = DriveUtils.drives_check_status()
 
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
@@ -260,8 +260,7 @@ def server_info():
         app.logger.debug(
             "Drive id: " + str(form_drive.id.data) +
             " Updated db description: " + form_drive.description.data)
-        drive = models.SystemDrives.query.filter_by(
-            drive_id=form_drive.id.data).first()
+        drive = SystemDrives.query.filter_by(drive_id=form_drive.id.data).first()
         drive.description = str(form_drive.description.data).strip()
         db.session.commit()
         # Return to systeminfo page (refresh page)
@@ -276,11 +275,11 @@ def system_drive_scan():
     """
     Page - systemdrivescan
     Method - GET
-    Overview - Scan for a to the system drives and update the databse.
+    Overview - Scan for the system drives and update the database.
     """
     global redirect_settings
     # Update to scan for changes from system
-    new_count = drive_utils.drives_update()
+    new_count = DriveUtils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
     return redirect(redirect_settings)
 
@@ -299,7 +298,7 @@ def drive_eject(id):
     Server System  - change state of CD/DVD/BluRay drive - toggle eject
     """
     global redirect_settings
-    drive = models.SystemDrives.query.filter_by(drive_id=id).first()
+    drive = SystemDrives.query.filter_by(drive_id=id).first()
     drive.open_close()
     db.session.commit()
     return redirect(redirect_settings)
