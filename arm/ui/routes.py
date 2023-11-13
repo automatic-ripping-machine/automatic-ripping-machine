@@ -22,8 +22,8 @@ from flask_login import LoginManager, login_required, \
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants
-from arm.models import models as models
 from arm.models.job import Job
+from arm.models.system_info import SystemInfo
 from arm.models.user import User
 import arm.config.config as cfg
 from arm.ui.forms import DBUpdate
@@ -61,7 +61,7 @@ def home():
         return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
 
     # System details in class server
-    server = models.SystemInfo.query.filter_by(id="1").first()
+    server = SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
 
     # System details in class server

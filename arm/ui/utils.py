@@ -23,9 +23,9 @@ from arm.config.config_utils import arm_yaml_test_bool
 from arm.ui.settings import DriveUtils as drive_utils
 from arm.config import config_utils
 from arm.ui import app, db
-from arm.models import models
 from arm.models.alembic_version import AlembicVersion
 from arm.models.job import Job
+from arm.models.system_info import SystemInfo
 from arm.models.ui_settings import UISettings
 from arm.models.user import User
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
@@ -265,9 +265,9 @@ def arm_db_initialise():
     Initialise the ARM DB, ensure system values and disk drives are loaded
     """
     # Check system/server information is loaded
-    if not models.SystemInfo.query.filter_by(id="1").first():
+    if not SystemInfo.query.filter_by(id="1").first():
         # Define system info and load to db
-        server = models.SystemInfo()
+        server = SystemInfo()
         app.logger.debug("****** System Information ******")
         app.logger.debug(f"Name: {server.name}")
         app.logger.debug(f"CPU: {server.cpu}")
@@ -303,7 +303,7 @@ def get_info(directory):
     Used to read stats from files
     -Used for view logs page
     :param directory:
-    :return: list containing a list with each files stats
+    :return: list containing a list with each file's stats
     """
     file_list = []
     for i in os.listdir(directory):
@@ -426,7 +426,7 @@ def setup_database():
         app.logger.debug("DB Init - Admin user loaded")
         db.session.add(default_user)
         # Server config
-        server = models.SystemInfo()
+        server = SystemInfo()
         db.session.add(server)
         app.logger.debug("DB Init - Server info loaded")
         db.session.commit()
