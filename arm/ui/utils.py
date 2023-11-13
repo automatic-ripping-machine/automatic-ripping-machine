@@ -20,15 +20,15 @@ from flask.logging import default_handler  # noqa: F401
 
 import arm.config.config as cfg
 from arm.config.config_utils import arm_yaml_test_bool
-from arm.ui.settings import DriveUtils as drive_utils
 from arm.config import config_utils
-from arm.ui import app, db
 from arm.models.alembic_version import AlembicVersion
 from arm.models.job import Job
 from arm.models.system_info import SystemInfo
 from arm.models.ui_settings import UISettings
 from arm.models.user import User
+from arm.ui import app, db
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
+from arm.ui.settings import DriveUtils
 
 # Path definitions
 path_migrations = "arm/migrations"
@@ -277,7 +277,7 @@ def arm_db_initialise():
         db.session.add(server)
         db.session.commit()
     # Scan and load drives to database
-    drive_utils.drives_update()
+    DriveUtils.drives_update()
 
 
 def make_dir(path):
@@ -431,7 +431,7 @@ def setup_database():
         app.logger.debug("DB Init - Server info loaded")
         db.session.commit()
         # Scan and load drives to database
-        drive_utils.drives_update()
+        DriveUtils.drives_update()
         app.logger.debug("DB Init - Drive info loaded")
         return True
     except Exception:

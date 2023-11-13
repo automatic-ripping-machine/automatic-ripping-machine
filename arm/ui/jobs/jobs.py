@@ -19,7 +19,6 @@ from werkzeug.routing import ValidationError
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
-from arm.models import models as models
 from arm.models.job import Job
 from arm.models.notifications import Notifications
 import arm.config.config as cfg

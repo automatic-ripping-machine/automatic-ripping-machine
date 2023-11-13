@@ -17,16 +17,16 @@ import bcrypt
 import requests
 import apprise
 import psutil
-import arm.config.config as cfg
 
 from netifaces import interfaces, ifaddresses, AF_INET
-from arm.ripper import apprise_bulk
-from arm.ui import db
-from arm.models import models
+
+import arm.config.config as cfg
+from arm.ui import db # needs to be imported before models
 from arm.models.job import Job
 from arm.models.notifications import Notifications
 from arm.models.track import Track
 from arm.models.user import User
+from arm.ripper import apprise_bulk
 
 NOTIFY_TITLE = "ARM notification"
 
