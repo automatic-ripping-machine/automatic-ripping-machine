@@ -21,7 +21,7 @@ import psutil
 from netifaces import interfaces, ifaddresses, AF_INET
 
 import arm.config.config as cfg
-from arm.ui import db # needs to be imported before models
+from arm.ui import db  # needs to be imported before models
 from arm.models.job import Job
 from arm.models.notifications import Notifications
 from arm.models.track import Track
