@@ -421,8 +421,7 @@ def setup_database():
         # UI config is already set within the alembic migration file - 9cae4aa05dd7_create_settingsui_table.py
         # Create default user to save problems with ui and ripper having diff setups
         hashed = bcrypt.gensalt(12)
-        default_user = User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
-                                   hashed=hashed)
+        default_user = User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed), hashed=hashed)
         app.logger.debug("DB Init - Admin user loaded")
         db.session.add(default_user)
         # Server config

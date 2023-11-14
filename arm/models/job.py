@@ -11,8 +11,8 @@ from arm.ui import db
 import arm.config.config as cfg
 
 # THESE IMPORTS ARE REQUIRED FOR THE db.Relationships to work
-from arm.models.track import Track
-from arm.models.config import Config
+from arm.models.track import Track  # noqa: F401
+from arm.models.config import Config  # noqa: F401
 
 
 class Job(db.Model):
