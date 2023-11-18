@@ -17,12 +17,16 @@ import bcrypt
 import requests
 import apprise
 import psutil
-import arm.config.config as cfg
 
 from netifaces import interfaces, ifaddresses, AF_INET
+
+import arm.config.config as cfg
+from arm.ui import db  # needs to be imported before models
+from arm.models.job import Job
+from arm.models.notifications import Notifications
+from arm.models.track import Track
+from arm.models.user import User
 from arm.ripper import apprise_bulk
-from arm.ui import db
-from arm.models import models
 
 NOTIFY_TITLE = "ARM notification"
 
@@ -41,7 +45,7 @@ def notify(job, title, body):
     if cfg.arm_config["NOTIFY_JOBID"]:
         title = f"{title} - {job.job_id}"
     # Send to local db
-    notification = models.Notifications(title, body)
+    notification = Notifications(title, body)
     database_adder(notification)
 
     bash_notify(cfg.arm_config, title, body)
@@ -87,9 +91,9 @@ def notify_entry(job):
     :return: None
     """
     # TODO make this better or merge with notify/class
-    notification = models.Notifications(f"New Job: {job.job_id} has started. Disctype: {job.disctype}",
-                                        f"New job has started to rip - {job.label},"
-                                        f"{job.disctype} at {datetime.datetime.now()}")
+    notification = Notifications(f"New Job: {job.job_id} has started. Disctype: {job.disctype}",
+                                 f"New job has started to rip - {job.label},"
+                                 f"{job.disctype} at {datetime.datetime.now()}")
     database_adder(notification)
     if job.disctype in ["dvd", "bluray"]:
         # Send the notifications
@@ -479,7 +483,7 @@ def try_add_default_user():
         username = "admin"
         pass1 = "password".encode('utf-8')
         hashed = bcrypt.gensalt(12)
-        database_adder(models.User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed))
+        database_adder(User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed))
         perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
         write_permission_file = open(perm_file, "w")
         write_permission_file.write("boop!")
@@ -508,7 +512,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         f"Track #{int(t_no):02} Length: {seconds: >4} fps: {float(fps):2.3f} "
         f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source}")
 
-    job_track = models.Track(
+    job_track = Track(
         job_id=job.job_id,
         track_number=t_no,
         length=seconds,
@@ -617,7 +621,7 @@ def clean_old_jobs():
     Check for running jobs - Update failed jobs that are no longer running\n
     :return: None
     """
-    active_jobs = db.session.query(models.Job).filter(models.Job.status.notin_(['fail', 'success'])).all()
+    active_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
     # Clean up abandoned jobs
     for job in active_jobs:
         if psutil.pid_exists(job.pid):
@@ -675,8 +679,8 @@ def duplicate_run_check(dev_path):
     this stops that issue
     :return: None
     """
-    running_jobs = db.session.query(models.Job).filter(
-        models.Job.status.notin_(['fail', 'success']), models.Job.devpath == dev_path).all()
+    running_jobs = db.session.query(Job).filter(
+        Job.status.notin_(['fail', 'success']), Job.devpath == dev_path).all()
     if len(running_jobs) >= 1:
         for j in running_jobs:
             print(j.start_time - datetime.datetime.now())
@@ -754,7 +758,7 @@ def job_dupe_check(job):
     :return: True/False, dict/None
     """
     logging.debug(f"Trying to find jobs with matching Label={job.label}")
-    previous_rips = models.Job.query.filter_by(label=job.label, status="success")
+    previous_rips = Job.query.filter_by(label=job.label, status="success")
     results = {}
     i = 0
     for j in previous_rips:

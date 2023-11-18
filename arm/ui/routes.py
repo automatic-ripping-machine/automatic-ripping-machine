@@ -22,7 +22,9 @@ from flask_login import LoginManager, login_required, \
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants
-from arm.models import models as models
+from arm.models.job import Job
+from arm.models.system_info import SystemInfo
+from arm.models.user import User
 import arm.config.config as cfg
 from arm.ui.forms import DBUpdate
 from arm.ui.settings.ServerUtil import ServerUtil
@@ -59,7 +61,7 @@ def home():
         return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
 
     # System details in class server
-    server = models.SystemInfo.query.filter_by(id="1").first()
+    server = SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
 
     # System details in class server
@@ -71,7 +73,7 @@ def home():
 
     if os.path.isfile(cfg.arm_config['DBFILE']):
         try:
-            jobs = db.session.query(models.Job).filter(models.Job.status.notin_(['fail', 'success'])).all()
+            jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
         except Exception:
             # db isn't setup
             return redirect(url_for('setup'))
@@ -178,7 +180,7 @@ def load_user(user_id):
     :return:
     """
     try:
-        return models.User.query.get(int(user_id))
+        return User.query.get(int(user_id))
     except Exception:
         app.logger.debug("Error getting user")
         return None

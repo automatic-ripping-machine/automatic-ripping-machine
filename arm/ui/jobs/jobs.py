@@ -19,7 +19,8 @@ from werkzeug.routing import ValidationError
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
-from arm.models import models as models
+from arm.models.job import Job
+from arm.models.notifications import Notifications
 import arm.config.config as cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm
 
@@ -38,7 +39,7 @@ def jobdetail():
     displays them in a clear and easy to ready format
     """
     job_id = request.args.get('job_id')
-    job = models.Job.query.get(job_id)
+    job = Job.query.get(job_id)
     tracks = job.tracks.all()
     search_results = ui_utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
     if search_results and 'Error' not in search_results:
@@ -54,7 +55,7 @@ def title_search():
     The initial search page
     """
     job_id = request.args.get('job_id')
-    job = models.Job.query.get(job_id)
+    job = Job.query.get(job_id)
     form = TitleSearchForm(request.args)
     if form.validate():
         flash(f'Search for {request.args.get("title")}, year={request.args.get("year")}', 'success')
@@ -71,7 +72,7 @@ def customtitle():
     """
     job_id = request.args.get('job_id')
     ui_utils.job_id_validator(job_id)
-    job = models.Job.query.get(job_id)
+    job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     if request.args.get("title"):
         args = {
@@ -79,9 +80,9 @@ def customtitle():
             'title_manual': request.args.get("title"),
             'year': request.args.get("year")
         }
-        notification = models.Notifications(f"Job: {job.job_id} was updated",
-                                            f'Title: {job.title} ({job.year}) was updated to '
-                                            f'{request.args.get("title")} ({request.args.get("year")})')
+        notification = Notifications(f"Job: {job.job_id} was updated",
+                                     f'Title: {job.title} ({job.year}) was updated to '
+                                     f'{request.args.get("title")} ({request.args.get("year")})')
         db.session.add(notification)
         ui_utils.database_updater(args, job)
         flash(f'Custom title changed. Title={job.title}, Year={job.year}.', "success")
@@ -122,7 +123,7 @@ def updatetitle():
     # updatetitle?title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
     #  poster=http://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
     job_id = request.args.get('job_id')
-    job = models.Job.query.get(job_id)
+    job = Job.query.get(job_id)
     old_title = job.title
     old_year = job.year
     job.title = job.title_manual = ui_utils.clean_for_filename(request.args.get('title'))
@@ -131,9 +132,9 @@ def updatetitle():
     job.imdb_id = job.imdb_id_manual = request.args.get('imdbID')
     job.poster_url = job.poster_url_manual = request.args.get('poster')
     job.hasnicetitle = True
-    notification = models.Notifications(f"Job: {job.job_id} was updated",
-                                        f'Title: {old_title} ({old_year}) was updated to '
-                                        f'{request.args.get("title")} ({request.args.get("year")})')
+    notification = Notifications(f"Job: {job.job_id} was updated",
+                                 f'Title: {old_title} ({old_year}) was updated to '
+                                 f'{request.args.get("title")} ({request.args.get("year")})')
     db.session.add(notification)
     db.session.commit()
     flash(f'Title: {old_title} ({old_year}) was updated to '
@@ -147,7 +148,7 @@ def rips():
     """
     This no longer works properly because of the 'transcoding' status
     """
-    return render_template('activerips.html', jobs=models.Job.query.filter_by(status="active"))
+    return render_template('activerips.html', jobs=Job.query.filter_by(status="active"))
 
 
 @route_jobs.route('/changeparams')
@@ -157,7 +158,7 @@ def changeparams():
     For updating Config params or changing/correcting job.disctype manually
     """
     config_id = request.args.get('config_id')
-    job = models.Job.query.get(config_id)
+    job = Job.query.get(config_id)
     config = job.config
     form = ChangeParamsForm(obj=config)
     return render_template('changeparams.html', title='Change Parameters', form=form, config=config)
@@ -178,7 +179,7 @@ def list_titles():
         app.logger.debug("list_titles - no job supplied")
         flash(constants.NO_JOB, "danger")
         raise ValidationError
-    job = models.Job.query.get(job_id)
+    job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     search_results = ui_utils.metadata_selector("search", title, year)
     if search_results is None or 'Error' in search_results or (
