@@ -762,7 +762,7 @@ def job_dupe_check(job):
         logging.info("Disc title 'None' not searched in database")
         return False
     else:
-    previous_rips = Job.query.filter_by(label=job.label, status="success")
+        previous_rips = Job.query.filter_by(label=job.label, status="success")
         results = {}
         i = 0
         for j in previous_rips:
