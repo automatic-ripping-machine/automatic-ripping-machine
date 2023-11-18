@@ -773,26 +773,26 @@ def job_dupe_check(job):
                 results[i][str(key)] = str(value)
             i += 1
 
-        # logging.debug(f"previous rips = {results}")
-        if results:
-            logging.debug(f"we have {len(results)} jobs")
-            # Check if results too large (over 1), skip if too many
-            if len(results) == 1:
-                # This might need some tweaks to because of title/year manual
-                title = results[0]['title'] if results[0]['title'] else job.label
-                year = results[0]['year'] if results[0]['year'] != "" else ""
-                poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
-                hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
-                video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
-                active_rip = {
-                    "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
-                    "video_type": video_type}
-                database_updater(active_rip, job)
-                return True
-            else:
-                logging.debug(f"Skipping - There are too many results [{len(results)}]")
-                return False
-
+    # logging.debug(f"previous rips = {results}")
+    if results:
+        logging.debug(f"we have {len(results)} jobs")
+        # Check if results too large (over 1), skip if too many
+        if len(results) == 1:
+            # This might need some tweaks to because of title/year manual
+            title = results[0]['title'] if results[0]['title'] else job.label
+            year = results[0]['year'] if results[0]['year'] != "" else ""
+            poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
+            hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
+            video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
+            active_rip = {
+                "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
+                "video_type": video_type}
+            database_updater(active_rip, job)
+            return True
+        else:
+            logging.debug(f"Skipping - There are too many results [{len(results)}]")
+            return False
+    else:
         logging.info("We have no previous rips/jobs matching this label")
         return False
 
