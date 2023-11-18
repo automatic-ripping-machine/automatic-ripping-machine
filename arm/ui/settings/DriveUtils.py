@@ -15,7 +15,8 @@ import re
 import logging
 
 from arm.ui import app, db
-from arm.models import models
+from arm.models.job import Job
+from arm.models.system_drives import SystemDrives
 
 
 def drives_search():
@@ -44,25 +45,25 @@ def drives_search():
 
 def drives_update():
     """
-    scan the system for new cd/dvd/blueray drives
+    scan the system for new cd/dvd/Blu-ray drives
     """
     udev_drives = drives_search()
     i = 1
     new_count = 0
 
     # Get the number of current drives in the database
-    drive_count = models.SystemDrives.query.count()
+    drive_count = SystemDrives.query.count()
 
     for drive_mount in udev_drives:
-        # Check drive doesnt already exist
-        if not models.SystemDrives.query.filter_by(mount=drive_mount).first():
+        # Check drive doesn't already exist
+        if not SystemDrives.query.filter_by(mount=drive_mount).first():
             # New drive, set previous job to none
             last_job = None
             new_count += 1
 
             # Create new disk (name, type, mount, open, job id, previos job id, description )
-            db_drive = models.SystemDrives(f"Drive {drive_count + new_count}",
-                                           drive_mount, None, last_job, "Classic burner")
+            db_drive = SystemDrives(f"Drive {drive_count + new_count}",
+                                    drive_mount, None, last_job, "Classic burner")
             app.logger.debug("****** Drive Information ******")
             app.logger.debug(f"Name: {db_drive.name}")
             app.logger.debug(f"Type: {db_drive.type}")
@@ -87,7 +88,7 @@ def drives_check_status():
     """
     Check the drive job status
     """
-    drives = models.SystemDrives.query.all()
+    drives = SystemDrives.query.all()
     for drive in drives:
         # Check if the current job is active, if not remove current job_current id
         if drive.job_id_current is not None and drive.job_id_current > 0 and drive.job_current is not None:
@@ -104,7 +105,7 @@ def drives_check_status():
         drive_status_debug(drive)
 
     # Requery data to ensure current pending job status change
-    drives = models.SystemDrives.query.all()
+    drives = SystemDrives.query.all()
 
     return drives
 
@@ -137,8 +138,8 @@ def job_cleanup(job_id):
     """
     Function called when removing a job from the database, removing the data in the previous job field
     """
-    job = models.Job.query.filter_by(job_id=job_id).first()
-    drive = models.SystemDrives.query.filter_by(mount=job.devpath).first()
+    job = Job.query.filter_by(job_id=job_id).first()
+    drive = SystemDrives.query.filter_by(mount=job.devpath).first()
     drive.job_id_previous = None
     app.logger.debug(f"Job {job.job_id} cleared from drive {drive.mount} previous")
 
@@ -147,7 +148,7 @@ def update_drive_job(job):
     """
     Function to take current job task and update the associated drive ID into the database
     """
-    drive = models.SystemDrives.query.filter_by(mount=job.devpath).first()
+    drive = SystemDrives.query.filter_by(mount=job.devpath).first()
     drive.new_job(job.job_id)
     logging.debug(f"Updating drive [{job.devpath}] current job, with id [{job.job_id}]")
     try:

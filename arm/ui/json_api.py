@@ -12,8 +12,12 @@ import psutil
 from flask import request
 
 import arm.config.config as cfg
+from arm.models.config import Config
+from arm.models.job import Job
+from arm.models.notifications import Notifications
+from arm.models.track import Track
+from arm.models.ui_settings import UISettings
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track, Notifications, UISettings
 from arm.ui.forms import ChangeParamsForm
 from arm.ui.utils import job_id_validator, database_updater
 from arm.ui.settings import DriveUtils as drive_utils # noqa E402

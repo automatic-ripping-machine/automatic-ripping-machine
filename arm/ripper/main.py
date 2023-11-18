@@ -21,7 +21,8 @@ sys.path.append("/opt/arm")
 
 from arm.ripper import logger, utils, identify, arm_ripper, music_brainz  # noqa: E402
 import arm.config.config as cfg  # noqa E402
-from arm.models.models import Job, Config  # noqa: E402
+from arm.models.config import Config  # noqa: E402
+from arm.models.job import Job  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
 from arm.ui.settings import DriveUtils as drive_utils # noqa E402
 import arm.config.config as cfg  # noqa E402
