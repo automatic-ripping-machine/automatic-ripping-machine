@@ -34,6 +34,7 @@ class Config(db.Model):
     DBFILE = db.Column(db.String(255))
     WEBSERVER_IP = db.Column(db.String(25))
     WEBSERVER_PORT = db.Column(db.Integer)
+    UI_BASE_URL = db.Column(db.String(128))
     SET_MEDIA_PERMISSIONS = db.Column(db.Boolean)
     CHMOD_VALUE = db.Column(db.Integer)
     SET_MEDIA_OWNER = db.Column(db.Boolean)

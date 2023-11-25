@@ -165,6 +165,9 @@ WEBSERVER_IP: x.x.x.x
 # Port for web server
 WEBSERVER_PORT: 8080
 
+# Base URL to use for notifications and display purposes
+# Be sure to include protocol and port if needed (e.g. http://example.com:8091 or https://example.com)
+UI_BASE_URL: ""
 
 ########################
 ##  File Permissions  ##
