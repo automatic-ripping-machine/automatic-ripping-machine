@@ -96,10 +96,14 @@ def notify_entry(job):
                                  f"{job.disctype} at {datetime.datetime.now()}")
     database_adder(notification)
     if job.disctype in ["dvd", "bluray"]:
+        if cfg.arm_config["UI_BASE_URL"] == "":
+            display_address = (f"http://{check_ip()}:{job.config.WEBSERVER_PORT}")
+        else:
+            display_address = str(cfg.arm_config["UI_BASE_URL"])
         # Send the notifications
         notify(job, NOTIFY_TITLE,
                f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {job.config.MAINFEATURE}."
-               f"Edit entry here: http://{check_ip()}:{job.config.WEBSERVER_PORT}/jobdetail?job_id={job.job_id}")
+               f"Edit entry here: {display_address}/jobdetail?job_id={job.job_id}")
     elif job.disctype == "music":
         notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks")
     elif job.disctype == "data":
