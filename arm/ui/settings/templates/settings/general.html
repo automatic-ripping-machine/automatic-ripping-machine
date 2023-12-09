@@ -18,10 +18,10 @@
                         <li class="list-group-item">Update Available:
                         <!-- Update A.R.M -->
                             {% if stats['updated'] %}
-                                <img src="{{ url_for('static', filename='/img/success.png') }}"
+                                <img src="{{ url_for('static', filename='img/success.png') }}"
                                  alt="update image" width="20px" height="20px">  You are on the latest version
                             {% else %}
-                                <img src="{{ url_for('static', filename='/img/fail.png') }}"
+                                <img src="{{ url_for('static', filename='img/fail.png') }}"
                                  alt="update image" width="20px" height="20px">
                                 <form id="updateArm" name="updateArm" method="post" action="">
                                     {{ form.hidden_tag() }}
