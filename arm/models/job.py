@@ -201,6 +201,9 @@ class Job(db.Model):
 
     def eject(self):
         """Eject disc if it hasn't previously been ejected"""
+        if not cfg.arm_config['AUTO_EJECT']:
+            logging.info("Skipping auto eject")
+            return
         if not self.ejected:
             self.ejected = True
             try:

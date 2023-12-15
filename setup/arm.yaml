@@ -108,6 +108,12 @@ RIP_POSTER: false
 UNIDENTIFIED_EJECT: true
 
 
+# Auto-ejects disks
+# Auto-ejects disks when complete etc
+# Set to false to disable auto-ejection
+AUTO_EJECT: true
+
+
 #####################
 ## Directory setup ##
 #####################
