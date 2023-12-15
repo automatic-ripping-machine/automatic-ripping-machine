@@ -49,23 +49,46 @@ def music_brainz(discid, job):
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits', 'recordings'])
         logging.debug(f"Infos: {infos}")
         logging.debug(f"discid = {discid}")
-        process_tracks(job, infos['disc']['release-list'][0]['medium-list'][0]['track-list'])
-        logging.debug("-" * 300)
-        release = infos['disc']['release-list'][0]
-        new_year = check_date(release)
-        title = str(release.get('title', 'no title'))
-        # Set out release id as the CRC_ID
-        args = {
-            'job_id': str(job.job_id),
-            'crc_id': release['id'],
-            'hasnicetitle': True,
-            'year': str(new_year),
-            'year_auto': str(new_year),
-            'title': title,
-            'title_auto': title
-        }
-        u.database_updater(args, job)
-        logging.debug(f"musicbrain works -  New title is {title}  New Year is: {new_year}")
+        if 'disc' in infos:
+            process_tracks(job, infos['disc']['release-list'][0]['medium-list'][0]['track-list'])
+            logging.debug("-" * 300)
+            release = infos['disc']['release-list'][0]
+            new_year = check_date(release)
+            title = str(release.get('title', 'no title'))
+            # Set out release id as the CRC_ID
+            args = {
+                'job_id': str(job.job_id),
+                'crc_id': release['id'],
+                'hasnicetitle': True,
+                'year': str(new_year),
+                'year_auto': str(new_year),
+                'title': title,
+                'title_auto': title
+            }
+            u.database_updater(args, job)
+            logging.debug(f"musicbrain works -  New title is {title}  New Year is: {new_year}")
+        elif 'cdstub' in infos:
+            process_tracks(job, infos['cdstub']['track-list'], is_stub=True)
+            title = str(infos['cdstub']['title'])
+            args = {
+                'job_id': str(job.job_id),
+                'crc_id': infos['cdstub']['id'],
+                'hasnicetitle': True,
+                'title': title,
+                'title_auto': title
+            }
+            u.database_updater(args, job)
+            logging.debug(f"musicbrain works, but stubbed -  New title is {title}")
+            if 'artist' in infos['cdstub']:
+                artist = infos['cdstub']['artist']
+                args = {
+                    'job_id': str(job.job_id),
+                    'crc_id': infos['cdstub']['id'],
+                    'hasnicetitle': True,
+                    'title': artist + " " + title,
+                    'title_auto': artist + " " + title
+                }
+                u.database_updater(args, job)
     except mb.WebServiceError as exc:
         logging.error(f"Cant reach MB or cd not found ? - ERROR: {exc}")
         u.database_updater(False, job)
@@ -128,19 +151,32 @@ def get_title(discid, job):
     mb.set_useragent("arm", "v2_devel")
     try:
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits'])
-        title = str(infos['disc']['release-list'][0]['title'])
-        # Start setting our db stuff
-        artist = str(infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name'])
+        logging.debug(f"Infos: {infos}")
+        logging.debug(f"discid = {discid}")
+        if 'disc' in infos:
+            title = str(infos['disc']['release-list'][0]['title'])
+            # Start setting our db stuff
+            artist = str(infos['disc']['release-list'][0]['artist-credit'][0]['artist']['name'])
+            crc_id = str(infos['disc']['release-list'][0]['id'])
+        elif 'cdstub' in infos:
+            title = str(infos['cdstub']['title'])
+            artist = str(infos['cdstub']['artist'])
+            # Different id format, but what can you do?
+            crc_id = str(infos['cdstub']['id'])
+        else:
+            u.database_updater(False, job)
+            return "not identified"
+
         clean_title = u.clean_for_filename(artist) + "-" + u.clean_for_filename(title)
         args = {
-            'crc_id': str(infos['disc']['release-list'][0]['id']),
+            'crc_id': crc_id,
             'title': str(artist + " " + title),
             'title_auto': str(artist + " " + title),
             'video_type': "Music"
         }
         u.database_updater(args, job)
         return clean_title
-    except mb.WebServiceError:
+    except (mb.WebServiceError, KeyError):
         u.database_updater(False, job)
         return "not identified"
 
@@ -155,7 +191,7 @@ def get_cd_art(job, infos):
     """
     try:
         # Use the build-in images from coverartarchive if available
-        if infos['disc']['release-list'][0]['cover-art-archive']['artwork'] != "false":
+        if 'disc' in infos and infos['disc']['release-list'][0]['cover-art-archive']['artwork'] != "false":
             artlist = mb.get_image_list(job.crc_id)
             for image in artlist["images"]:
                 # We dont care if its verified ?
@@ -189,21 +225,29 @@ def get_cd_art(job, infos):
         return False
 
 
-def process_tracks(job, mb_track_list):
+def process_tracks(job, mb_track_list, is_stub=False):
     """
 
     :param job:
     :param mb_track_list:
+    :param is_stub:
     :return:
     """
-    for track in mb_track_list:
+    for (idx, track) in enumerate(mb_track_list):
         track_leng = 0
         try:
-            track_leng = int(track['recording']['length'])
+            if is_stub:
+                track_leng = int(track['length'])
+            else:
+                track_leng = int(track['recording']['length'])
         except ValueError:
-            logging.error("Failed to find track lenght")
-        u.put_track(job, track['number'], track_leng,
-                    "n/a", 0.1, False, "ABCDE", track['recording']['title'])
+            logging.error("Failed to find track length")
+        trackno = track.get('number', idx + 1)
+        if is_stub:
+            title = track.get('title', f"Untitled track {trackno}")
+        else:
+            title = track['recording']['title']
+        u.put_track(job, trackno, track_leng, "n/a", 0.1, False, "ABCDE", title)
 
 
 if __name__ == "__main__":
