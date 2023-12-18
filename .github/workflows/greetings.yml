@@ -1,8 +1,15 @@
 name: Greetings
 
-on: [pull_request, issues]
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    branches: [main]
+    types: [opened]
 
-permissions: write-all
+permissions:
+  issues: write-all
+  pull-requests: write-all
 
 jobs:
   greeting:
