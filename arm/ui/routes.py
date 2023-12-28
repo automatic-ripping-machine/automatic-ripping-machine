@@ -58,6 +58,7 @@ def home():
     stats = {'hw_support': check_hw_transcode_support()}
     if not db_update["db_current"] or not db_update["db_exists"]:
         dbform = DBUpdate(request.form)
+        app.logger.debug(f"Error with ARM DB: [{db_update['db_current']}]-[{db_update['db_exists']}]")
         return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
 
     # System details in class server

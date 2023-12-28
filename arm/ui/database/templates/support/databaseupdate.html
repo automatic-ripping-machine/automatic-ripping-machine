@@ -21,7 +21,7 @@
                 <form class="" action="dbupdate" method="post">
                     {{ dbform.hidden_tag() }}
                     <input type="hidden" id="dbfix" name="dbfix" value="new">
-                    <button type="button" class="btn btn-primary">Create the database</button>
+                    <button type="submit" class="btn btn-primary">Create the database</button>
                 </form>
             {% else: %}
                 {% if not db_update.db_current %}
