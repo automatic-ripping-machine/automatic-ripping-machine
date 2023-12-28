@@ -67,5 +67,5 @@ chown arm:arm /etc/abcde.conf /etc/arm/config/abcde.conf
 
 # symlink $ARM_HOME/Music to $ARM_HOME/music because the config for abcde doesn't match the docker compose docs
 # separate rm and ln commands because "ln -sf" does the wrong thing if dest is a symlink to a directory
-rm -f $ARM_HOME/music
+rm -rf $ARM_HOME/music
 ln -s $ARM_HOME/Music $ARM_HOME/music
