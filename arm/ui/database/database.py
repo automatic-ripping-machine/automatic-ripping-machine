@@ -12,7 +12,6 @@ import re
 from flask_login import LoginManager, login_required  # noqa: F401
 from flask import render_template, request, Blueprint, flash, redirect, session
 
-import arm.config.config as cfg
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants
 from arm.models.job import Job
