@@ -22,7 +22,7 @@ import subprocess
 from flask_login import LoginManager, login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
 from flask import render_template, request, flash, \
-    redirect, Blueprint
+    redirect, Blueprint, session
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db
@@ -95,6 +95,8 @@ def settings():
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
     form = SettingsForm()
+
+    session["page_title"] = "Settings"
 
     return render_template(page_settings, settings=cfg.arm_config, ui_settings=armui_cfg,
                            stats=stats, apprise_cfg=cfg.apprise_config,

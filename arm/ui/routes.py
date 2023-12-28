@@ -15,7 +15,7 @@ import json
 from pathlib import Path, PurePath
 from werkzeug.exceptions import HTTPException
 from flask import Flask, render_template, request, flash, \
-    redirect, url_for   # noqa: F401
+    redirect, url_for, session   # noqa: F401
 from flask.logging import default_handler  # noqa: F401
 from flask_login import LoginManager, login_required, \
     current_user, login_user, logout_user  # noqa: F401
@@ -68,9 +68,10 @@ def home():
     # System details in class server
     arm_path = cfg.arm_config['TRANSCODE_PATH']
     media_path = cfg.arm_config['COMPLETED_PATH']
-    armname = ""
-    if cfg.arm_config['ARM_NAME'] != "":
-        armname = f"[{cfg.arm_config['ARM_NAME']}] - "
+
+    # Page titles
+    session["arm_name"] = cfg.arm_config['ARM_NAME']
+    session["page_title"] = "Home"
 
     if os.path.isfile(cfg.arm_config['DBFILE']):
         try:
@@ -81,7 +82,7 @@ def home():
     else:
         jobs = {}
 
-    return render_template("index.html", jobs=jobs, armname=armname,
+    return render_template("index.html", jobs=jobs,
                            children=cfg.arm_config['ARM_CHILDREN'],
                            server=server, serverutil=serverutil,
                            arm_path=arm_path, media_path=media_path, stats=stats)

@@ -9,7 +9,7 @@ Covers
 """
 
 import bcrypt
-from flask import redirect, render_template, request, Blueprint, flash, app
+from flask import redirect, render_template, request, Blueprint, flash, app, session
 from flask_login import LoginManager, login_required, \
     current_user, login_user, logout_user  # noqa: F401
 
@@ -107,6 +107,8 @@ def update_password():
     """
     # get current user
     user = User.query.first()
+
+    session["page_title"] = "Update Admin Password"
 
     # After a login for is submitted
     form = SetupForm()

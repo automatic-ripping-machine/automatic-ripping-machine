@@ -9,7 +9,7 @@ Covers
 import os
 from pathlib import Path
 from flask_login import LoginManager, login_required  # noqa: F401
-from flask import render_template, request, Blueprint, send_file
+from flask import render_template, request, Blueprint, send_file, session
 from werkzeug.routing import ValidationError
 
 import arm.ui.utils as ui_utils
@@ -31,6 +31,7 @@ def logs():
     """
     mode = request.args['mode']
     logfile = request.args['logfile']
+    session["page_title"] = "Logs"
 
     return render_template('logview.html', file=logfile, mode=mode)
 
@@ -44,6 +45,7 @@ def listlogs(path):
     """
     base_path = cfg.arm_config['LOGPATH']
     full_path = os.path.join(base_path, path)
+    session["page_title"] = "Logs"
 
     # Deal with bad data
     if not os.path.exists(full_path):
@@ -65,6 +67,8 @@ def logreader():
     """
     log_path = cfg.arm_config['LOGPATH']
     mode = request.args.get('mode')
+    session["page_title"] = "Logs"
+
     # We should use the job id and not get the raw logfile from the user
     # Maybe search database and see if we can match the logname with a previous rip ?
     full_path = os.path.join(log_path, request.args.get('logfile'))
