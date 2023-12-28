@@ -12,6 +12,7 @@ import re
 from flask_login import LoginManager, login_required  # noqa: F401
 from flask import render_template, request, Blueprint, flash, redirect
 
+import arm.config.config as cfg
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants
 from arm.models.job import Job
@@ -71,6 +72,7 @@ def update_database():
             flash("ARM database migration successful!", "success")
         elif form.dbfix.data == "new":
             app.logger.debug("User requested - New database")
+            ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
             flash("ARM database setup successful!", "success")
         else:
             # No method defined
