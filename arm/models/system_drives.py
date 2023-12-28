@@ -48,7 +48,8 @@ class SystemDrives(db.Model):
         self.type = temp
 
     def new_job(self, job_id):
-        """new job assigned to the drive, add the job id"""
+        """new job assigned to the drive, update with new job id, and previous job_id"""
+        self.job_id_previous = self.job_id_current
         self.job_id_current = job_id
 
     def job_finished(self):

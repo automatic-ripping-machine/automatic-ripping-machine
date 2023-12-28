@@ -28,10 +28,10 @@ def drives_search():
     context = pyudev.Context()
 
     for device in context.list_devices(subsystem='block'):
-        regexoutput = re.search(r'(\/dev\/sr\d{1,2})', device.device_node)
-        if regexoutput:
-            app.logger.debug(f"regex output: {regexoutput.group()}")
-            udev_drives.append(regexoutput.group())
+        regex_output = re.search(r'(/dev/sr\d{1,2})', device.device_node)
+        if regex_output:
+            app.logger.debug(f"regex output: {regex_output.group()}")
+            udev_drives.append(regex_output.group())
 
     if len(udev_drives) > 0:
         app.logger.info(f"System disk scan, found {len(udev_drives)} drives for ARM")
@@ -57,13 +57,11 @@ def drives_update():
     for drive_mount in udev_drives:
         # Check drive doesn't already exist
         if not SystemDrives.query.filter_by(mount=drive_mount).first():
-            # New drive, set previous job to none
-            last_job = None
             new_count += 1
 
-            # Create new disk (name, type, mount, open, job id, previos job id, description )
+            # Create new disk (name, type, mount, open, job id, previous job id, description )
             db_drive = SystemDrives(f"Drive {drive_count + new_count}",
-                                    drive_mount, None, last_job, "Classic burner")
+                                    drive_mount, None, None, "Classic burner")
             app.logger.debug("****** Drive Information ******")
             app.logger.debug(f"Name: {db_drive.name}")
             app.logger.debug(f"Type: {db_drive.type}")
@@ -96,7 +94,7 @@ def drives_check_status():
                 drive.job_finished()
                 db.session.commit()
 
-        # Catch if a user has removed database entries and the previous job doesnt exist
+        # Catch if a user has removed database entries and the previous job doesn't exist
         if drive.job_previous is not None and drive.job_previous.status is None:
             drive.job_id_previous = None
             db.session.commit()
@@ -150,7 +148,9 @@ def update_drive_job(job):
     """
     drive = SystemDrives.query.filter_by(mount=job.devpath).first()
     drive.new_job(job.job_id)
-    logging.debug(f"Updating drive [{job.devpath}] current job, with id [{job.job_id}]")
+    logging.debug(f"Updating Drive: ['{drive.name}'|'{drive.mount}']"
+                  f"Current Job: [{drive.job_id_current}"
+                  f"Previous Job: [{drive.job_id_previous}]")
     try:
         db.session.commit()
         logging.debug("Database update with new Job ID to associated drive")
