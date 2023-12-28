@@ -149,8 +149,8 @@ def update_drive_job(job):
     drive = SystemDrives.query.filter_by(mount=job.devpath).first()
     drive.new_job(job.job_id)
     app.logger.debug(f"Updating Drive: ['{drive.name}'|'{drive.mount}']"
-                  f"Current Job: [{drive.job_id_current}"
-                  f"Previous Job: [{drive.job_id_previous}]")
+                  f" Current Job: [{drive.job_id_current}]"
+                  f" Previous Job: [{drive.job_id_previous}]")
     try:
         db.session.commit()
         logging.debug("Database update with new Job ID to associated drive")
