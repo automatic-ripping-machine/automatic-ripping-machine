@@ -19,7 +19,7 @@ import argparse
 import armgit
 import database
 import armdocker
-import armnotify
+# import armnotify # this needs fixing, it can't call arm because it causes looping issues with dependencies
 
 
 __version__ = '0.3'
@@ -45,9 +45,10 @@ parser.add_argument("-qa",
 parser.add_argument("-pr",
                     help="Actions to run prior to committing a PR against ARM on github",
                     action="store_true")
-parser.add_argument("-n",
-                    help="Notification tool - show a test notification",
-                    action="store_true")
+# this needs fixing, it can't call arm because it causes looping issues with dependencies
+# parser.add_argument("-n",
+#                     help="Notification tool - show a test notification",
+#                     action="store_true")
 parser.add_argument("-v", help="ARM Dev Tools Version",
                     action='version',
                     version='%(prog)s {version}'.format(version=__version__))
@@ -72,5 +73,6 @@ if args.qa:
 if args.pr:
     armgit.pr_update()
 
-if args.n:
-    armnotify.test()
+# this needs fixing, it can't call arm because it causes looping issues with dependencies
+# if args.n:
+#     armnotify.test()
