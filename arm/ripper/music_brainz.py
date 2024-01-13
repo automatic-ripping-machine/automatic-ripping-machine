@@ -13,6 +13,7 @@ import werkzeug
 
 werkzeug.cached_property = werkzeug.utils.cached_property
 
+
 def main(disc):
     """
     Depending on the configuration musicbrainz is used
@@ -105,7 +106,7 @@ def music_brainz(discid, job):
         if 'disc' in infos:
             logging.debug(f"do have artwork?======{release['cover-art-archive']['artwork']}")
         elif 'cdstub' in infos:
-            logging.debug(f"do have artwork?======No (cdstub)")
+            logging.debug("do have artwork?======No (cdstub)")
         # Get our front cover if it exists
         if get_cd_art(job, infos):
             logging.debug("we got an art image")
@@ -200,7 +201,11 @@ def get_cd_art(job, infos):
     try:
         # Use the build-in images from coverartarchive if available
         if 'disc' in infos:
-            first_release_with_artwork = next((release for release in infos['disc']['release-list'] if release.get('cover-art-archive', {}).get('artwork') != "false"), None)
+            release_list = infos['disc']['release-list']
+            first_release_with_artwork = next(
+                (release for release in release_list if release.get('cover-art-archive', {}).get('artwork') != "false"),
+                None
+            )
 
             if first_release_with_artwork is not None:
                 artlist = mb.get_image_list(first_release_with_artwork['id'])
@@ -218,6 +223,7 @@ def get_cd_art(job, infos):
         u.database_updater(False, job)
         logging.error(f"get_cd_art ERROR: {exc}")
         return False
+
 
 def process_tracks(job, mb_track_list, is_stub=False):
     """
