@@ -12,7 +12,6 @@ from arm.ripper import utils as u
 import werkzeug
 
 werkzeug.cached_property = werkzeug.utils.cached_property
-from robobrowser import RoboBrowser  # noqa E402
 
 
 def main(disc):
@@ -95,9 +94,19 @@ def music_brainz(discid, job):
         return ""
     try:
         # We never make it to here if the mb fails
-        artist = release['artist-credit'][0]['artist']['name']
+        if 'disc' in infos:
+            artist = release['artist-credit'][0]['artist']['name']
+            no_of_titles = infos['disc']['offset-count']
+        elif 'cdstub' in infos:
+            artist = infos['cdstub']['artist']
+            no_of_titles = infos['cdstub']['track-count']
+            new_year = ''
+
         logging.debug(f"artist====={artist}")
-        logging.debug(f"do have artwork?======{release['cover-art-archive']['artwork']}")
+        if 'disc' in infos:
+            logging.debug(f"do have artwork?======{release['cover-art-archive']['artwork']}")
+        elif 'cdstub' in infos:
+            logging.debug("do have artwork?======No (cdstub)")
         # Get our front cover if it exists
         if get_cd_art(job, infos):
             logging.debug("we got an art image")
@@ -111,7 +120,7 @@ def music_brainz(discid, job):
             'year_auto': new_year,
             'title': artist_title,
             'title_auto': artist_title,
-            'no_of_titles': infos['disc']['offset-count']
+            'no_of_titles': no_of_titles
         }
         u.database_updater(args, job)
     except Exception as exc:
@@ -191,37 +200,28 @@ def get_cd_art(job, infos):
     """
     try:
         # Use the build-in images from coverartarchive if available
-        if 'disc' in infos and infos['disc']['release-list'][0]['cover-art-archive']['artwork'] != "false":
-            artlist = mb.get_image_list(job.crc_id)
-            for image in artlist["images"]:
-                # We dont care if its verified ?
-                if "image" in image:
-                    args = {
-                        'poster_url': str(image["image"]),
-                        'poster_url_auto': str(image["image"])
-                    }
-                    u.database_updater(args, job)
-                    return True
+        if 'disc' in infos:
+            release_list = infos['disc']['release-list']
+            first_release_with_artwork = next(
+                (release for release in release_list if release.get('cover-art-archive', {}).get('artwork') != "false"),
+                None
+            )
+
+            if first_release_with_artwork is not None:
+                artlist = mb.get_image_list(first_release_with_artwork['id'])
+                for image in artlist["images"]:
+                    # We dont care if its verified ?
+                    if "image" in image:
+                        args = {
+                            'poster_url': str(image["image"]),
+                            'poster_url_auto': str(image["image"])
+                        }
+                        u.database_updater(args, job)
+                        return True
+        return False
     except mb.WebServiceError as exc:
         u.database_updater(False, job)
         logging.error(f"get_cd_art ERROR: {exc}")
-    try:
-        # This uses roboBrowser to grab the amazon/3rd party image if it exists
-        browser = RoboBrowser(user_agent='ARM-v2_devel')
-        browser.open('https://musicbrainz.org/release/' + job.crc_id)
-        img = browser.select('.cover-art img')
-        # [<img src="https://images-eu.ssl-images-amazon.com/images/I/41SN9FK5ATL.jpg"/>]
-        # img[0].text
-        args = {
-            'poster_url': str(re.search(r'<img src="(.*)"', str(img)).group(1)),
-            'poster_url_auto': str(re.search(r'<img src="(.*)"', str(img)).group(1)),
-            'video_type': "Music"
-        }
-        u.database_updater(args, job)
-        return bool(job.poster_url)
-    except mb.WebServiceError as exc:
-        logging.error(f"get_cd_art ERROR: {exc}")
-        u.database_updater(False, job)
         return False
 
 
