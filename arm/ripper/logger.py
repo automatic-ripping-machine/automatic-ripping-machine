@@ -27,8 +27,9 @@ def setup_logging(job):
         # set a log_full for empty.log and music_cd.log
         log_full = os.path.join(cfg.arm_config['LOGPATH'], logfile)
     else:
-        log_file_name = f"{job.label}.log"
-        new_log_file = f"{job.label}_{job.stage}.log"
+        valid_label = job.label.replace("/", "_")
+        log_file_name = f"{valid_label}.log"
+        new_log_file = f"{valid_label}_{job.stage}.log"
         temp_log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file_name)
         log_file = new_log_file if os.path.isfile(temp_log_full) else log_file_name
         log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file)
