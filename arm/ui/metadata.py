@@ -47,7 +47,7 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
         if 'Error' in title_info or title_info['Response'] == "False":
             title_info = None
     except urllib.error.HTTPError as error:
-        app.logger.debug(f"omdb call failed with error - {error}")
+        app.logger.error(f"omdb call failed with error - {error}")
     else:
         app.logger.debug("omdb - call was successful")
     return title_info
@@ -89,7 +89,7 @@ def get_omdb_poster(title=None, year=None, imdb_id=None, plot="short"):
             if 'Error' not in title_info2:
                 return title_info2['Poster'], title_info2['imdbID']
         except Exception as error:
-            app.logger.debug(f"Failed to reach OMdb - {error}")
+            app.logger.error(f"Failed to reach OMdb - {error}")
 
     return None, None
 
@@ -157,7 +157,7 @@ def tmdb_search(search_query=None, year=None):
     search_results, poster_base, response = tmdb_fetch_results(search_query, year, tmdb_api_key)
     app.logger.debug(f"Search results - movie - {search_results}")
     if 'status_code' in search_results:
-        app.logger.debug(f"tmdb_fetch_results failed with error -  {search_results['status_message']}")
+        app.logger.error(f"tmdb_fetch_results failed with error -  {search_results['status_message']}")
         return None
     return_results = {}
     if search_results['total_results'] > 0:
