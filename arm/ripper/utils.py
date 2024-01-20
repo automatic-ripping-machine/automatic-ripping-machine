@@ -105,7 +105,7 @@ def notify_entry(job):
                f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {job.config.MAINFEATURE}."
                f"Edit entry here: {display_address}/jobdetail?job_id={job.job_id}")
     elif job.disctype == "music":
-        notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks")
+        notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks.")
     elif job.disctype == "data":
         notify(job, NOTIFY_TITLE, "Found data disc.  Copying data.")
     else:

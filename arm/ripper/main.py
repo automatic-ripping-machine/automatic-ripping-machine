@@ -114,7 +114,7 @@ def main(logfile, job, protection=0):
         # Try to recheck music disc for auto ident
         music_brainz.main(job)
         if utils.rip_music(job, logfile):
-            utils.notify(job, constants.NOTIFY_TITLE, f"Music CD: {job.label} {constants.PROCESS_COMPLETE}")
+            utils.notify(job, constants.NOTIFY_TITLE, f"Music CD: {job.title} {constants.PROCESS_COMPLETE}")
             utils.scan_emby()
             # This shouldn't be needed. but to be safe
             job.status = "success"

@@ -9,4 +9,4 @@ NO_JOB = "No job supplied"
 JSON_TYPE = "application/json"
 # Ripper
 NOTIFY_TITLE = "ARM notification"
-PROCESS_COMPLETE = " processing complete. "
+PROCESS_COMPLETE = "processing complete."
