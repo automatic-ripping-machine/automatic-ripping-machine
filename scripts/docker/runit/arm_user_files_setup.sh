@@ -85,3 +85,8 @@ if ! [ -h /etc/abcde.conf ]; then
   echo "/etc/abcde.conf link doesnt exist"
   ln -sf /etc/arm/config/abcde.conf /etc/abcde.conf
 fi
+
+# symlink $ARM_HOME/Music to $ARM_HOME/music because the config for abcde doesn't match the docker compose docs
+# separate rm and ln commands because "ln -sf" does the wrong thing if dest is a symlink to a directory
+# rm -rf $ARM_HOME/music
+# ln -s $ARM_HOME/Music $ARM_HOME/music
