@@ -46,7 +46,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 # We should really generate a key for each system
-app.config['SECRET_KEY'] = "Big secret key"  # make this random!
+app.config['SECRET_KEY'] = "Big secret key"  # TODO: make this random!
 # Set the global Flask Login state, set to True will ignore any @login_required
 app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
 # Set debug pin as it is hidden normally

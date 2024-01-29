@@ -83,7 +83,7 @@ function save_start_command() {
     if [ -e start_arm_container.sh ]
     then
         echo -e "'start_arm_container.sh' already exists. Backing up..."
-        sudo mv /start_arm_container.sh ./start_arm_container.sh.bak
+        sudo mv ./start_arm_container.sh ./start_arm_container.sh.bak
     fi
     sudo -u arm curl -fsSL "$url" -o start_arm_container.sh
     chmod +x start_arm_container.sh
@@ -99,4 +99,4 @@ pull_image
 setup_mountpoints
 save_start_command
 
-echo -e "${RED}Installation complete. A template command to run the ARM container is located in: $(~arm) ${NC}"
+echo -e "${RED}Installation complete. A template command to run the ARM container is located in: $(echo ~arm) ${NC}"

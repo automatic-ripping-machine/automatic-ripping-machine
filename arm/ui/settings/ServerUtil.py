@@ -62,6 +62,10 @@ class ServerUtil():
             elif cpu_thermal := temps.get('cpu_thermal', None):
                 self.cpu_temp = cpu_thermal[0][1]
 
+            # cpu temperature - AMD systems (generic)
+            elif k10temp := temps.get('k10temp', None):
+                self.cpu_temp = k10temp[0][1]
+
             # cpu temperature - unknown devices
             else:
                 self.cpu_temp = 0

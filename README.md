@@ -63,18 +63,18 @@ See: https://b3n.org/automatic-ripping-machine
 
 ## Install
 
-For normal installation please see the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
+[For normal installation please see the wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
 
-For docker installation please see [here](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
+[For docker installation please see here](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
 
 ## Troubleshooting
- Please see the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
+ [Please see the wiki for troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
 
 ## Contributing
 
 Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contributing-Guide)
 
-If you set ARM up in a different environment (hardware/OS/virtual/etc.), please consider submitting a howto to the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).
+If you set ARM up in a different environment (hardware/OS/virtual/etc.), please consider [submitting a howto to the wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).
 
 ## License
 

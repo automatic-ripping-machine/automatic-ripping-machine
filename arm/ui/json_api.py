@@ -12,8 +12,12 @@ import psutil
 from flask import request
 
 import arm.config.config as cfg
+from arm.models.config import Config
+from arm.models.job import Job
+from arm.models.notifications import Notifications
+from arm.models.track import Track
+from arm.models.ui_settings import UISettings
 from arm.ui import app, db
-from arm.models.models import Job, Config, Track, Notifications, UISettings
 from arm.ui.forms import ChangeParamsForm
 from arm.ui.utils import job_id_validator, database_updater
 from arm.ui.settings import DriveUtils as drive_utils # noqa E402
@@ -467,4 +471,16 @@ def get_notify_timeout(notify_timeout):
     else:
         return_json['notify_timeout'] = '6500'
 
+    return return_json
+
+
+def restart_ui():
+    app.logger.debug("Arm ui shutdown....")
+    shutdown_code = subprocess.check_output(
+        "pkill python3",
+        shell=True
+    ).decode("utf-8")
+    # Nothing should work past here as the ui will die after running code above
+    app.logger.debug(f"Arm ui shutdown ran into a problem... exit code: {shutdown_code}")
+    return_json = {'success': False, 'error': f"Shutting down A.R.M UI....exit code: {shutdown_code}"}
     return return_json

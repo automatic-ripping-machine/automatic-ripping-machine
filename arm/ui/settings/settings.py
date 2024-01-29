@@ -10,6 +10,7 @@ Covers
 - systemdrivescan [GET]
 - update_arm [POST]
 - drive_eject [GET]
+- testapprise [GET]
 """
 
 import os
@@ -25,11 +26,15 @@ from flask import render_template, request, flash, \
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db
-from arm.models import models as models
+from arm.models.job import Job
+from arm.models.system_drives import SystemDrives
+from arm.models.system_info import SystemInfo
+from arm.models.ui_settings import UISettings
 import arm.config.config as cfg
-from arm.ui.settings import DriveUtils as drive_utils
+from arm.ui.settings import DriveUtils
 from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
 from arm.ui.settings.ServerUtil import ServerUtil
+import arm.ripper.utils as ripper_utils
 
 route_settings = Blueprint('route_settings', __name__,
                            template_folder='templates',
@@ -54,11 +59,11 @@ def settings():
     # stats for info page
     with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
-    failed_rips = models.Job.query.filter_by(status="fail").count()
-    total_rips = models.Job.query.filter_by().count()
-    movies = models.Job.query.filter_by(video_type="movie").count()
-    series = models.Job.query.filter_by(video_type="series").count()
-    cds = models.Job.query.filter_by(disctype="music").count()
+    failed_rips = Job.query.filter_by(status="fail").count()
+    total_rips = Job.query.filter_by().count()
+    movies = Job.query.filter_by(video_type="movie").count()
+    series = Job.query.filter_by(video_type="series").count()
+    cds = Job.query.filter_by(disctype="music").count()
 
     stats = {'python_version': platform.python_version(),
              'arm_version': version,
@@ -76,7 +81,7 @@ def settings():
     armui_cfg = ui_utils.arm_db_cfg()
 
     # System details in class server
-    server = models.SystemInfo.query.filter_by(id="1").first()
+    server = SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
 
     # System details in class server
@@ -85,7 +90,7 @@ def settings():
 
     # form_drive = SystemInfoDrives(request.form)
     # System Drives (CD/DVD/Blueray drives)
-    drives = drive_utils.drives_check_status()
+    drives = DriveUtils.drives_check_status()
 
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
@@ -169,7 +174,7 @@ def save_ui_settings():
     """
     form = UiSettingsForm()
     success = False
-    arm_ui_cfg = models.UISettings.query.get(1)
+    arm_ui_cfg = UISettings.query.get(1)
     if form.validate_on_submit():
         use_icons = (str(form.use_icons.data).strip().lower() == "true")
         save_remote_images = (str(form.save_remote_images.data).strip().lower() == "true")
@@ -255,8 +260,7 @@ def server_info():
         app.logger.debug(
             "Drive id: " + str(form_drive.id.data) +
             " Updated db description: " + form_drive.description.data)
-        drive = models.SystemDrives.query.filter_by(
-            drive_id=form_drive.id.data).first()
+        drive = SystemDrives.query.filter_by(drive_id=form_drive.id.data).first()
         drive.description = str(form_drive.description.data).strip()
         db.session.commit()
         # Return to systeminfo page (refresh page)
@@ -271,11 +275,11 @@ def system_drive_scan():
     """
     Page - systemdrivescan
     Method - GET
-    Overview - Scan for a to the system drives and update the databse.
+    Overview - Scan for the system drives and update the database.
     """
     global redirect_settings
     # Update to scan for changes from system
-    new_count = drive_utils.drives_update()
+    new_count = DriveUtils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
     return redirect(redirect_settings)
 
@@ -294,7 +298,21 @@ def drive_eject(id):
     Server System  - change state of CD/DVD/BluRay drive - toggle eject
     """
     global redirect_settings
-    drive = models.SystemDrives.query.filter_by(drive_id=id).first()
+    drive = SystemDrives.query.filter_by(drive_id=id).first()
     drive.open_close()
     db.session.commit()
+    return redirect(redirect_settings)
+
+
+@route_settings.route('/testapprise')
+def testapprise():
+    """
+    Page - testapprise
+    Method - GET
+    Overview - Send a test notification to Apprise.
+    """
+    global redirect_settings
+    # Send a sample notification
+    ripper_utils.notify("/dev/null", "ARM notification", "This is a notification by the ARM-Notification Test!")
+    flash("Test notification sent ", "success")
     return redirect(redirect_settings)
