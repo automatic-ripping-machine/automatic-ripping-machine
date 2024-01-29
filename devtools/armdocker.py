@@ -10,7 +10,7 @@ import armui
 import log
 
 
-def docker_rebuild(docker_run_path, arm_install):
+def docker_rebuild(docker_run_path, arm_install, image_clean):
     """
     Run quality check against the ARM code and output
         INPUT: path to conduct the check against
@@ -24,6 +24,10 @@ def docker_rebuild(docker_run_path, arm_install):
 
     # Remove the ARM container
     armui.run_command("docker container rm automatic-ripping-machine", "ARM Docker container deleted")
+
+    # Remove ARM images
+    if image_clean:
+        armui.run_command("docker image rm automatic-ripping-machine", "ARM Docker images deleted")
 
     # ARM rebuild
     armui.run_command(f"docker build -t automatic-ripping-machine {arm_install}", "ARM Docker container rebuilt")

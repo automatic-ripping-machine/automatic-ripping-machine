@@ -580,7 +580,7 @@ def database_updater(args, job, wait_time=90):
     # Loop through our args and try to set any of our job variables
     for (key, value) in args.items():
         setattr(job, key, value)
-        logging.debug(f"{key}={value}:{type(value)}")
+        logging.debug(f"ID:{job.job_id} {key}={value}:{type(value)}")
 
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:

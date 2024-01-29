@@ -7,7 +7,7 @@ Covers
 """
 
 from flask_login import login_required  # noqa: F401
-from flask import render_template, Blueprint, redirect, flash
+from flask import render_template, Blueprint, redirect, flash, session
 from datetime import datetime
 
 import arm.ui.utils as ui_utils
@@ -51,6 +51,8 @@ def arm_notification():
             notification.diff_time = datetime.now().replace(microsecond=0) - notification.trigger_time
     else:
         notifications_new = None
+
+    session["page_title"] = "Notifications"
 
     return render_template('notificationview.html',
                            notifications_new=notifications_new)

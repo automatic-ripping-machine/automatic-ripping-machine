@@ -104,7 +104,7 @@ def main(logfile, job, protection=0):
     log_arm_params(job)
     check_fstab()
 
-    # Ripper type assesment for the various media types
+    # Ripper type assessment for the various media types
     # Type: dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
         arm_ripper.rip_visual_media(have_dupes, job, logfile, protection)

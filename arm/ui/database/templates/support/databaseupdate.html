@@ -9,22 +9,22 @@
         <div class="col-sm-12 rounded text-center">
             <h2 class="text-center">Automatic Ripping Machine Database Update</h2>
         </div>
-        <p> A change to ARM has occured, either through an update or database corruption. Creation or migration of the database is required. Where possible, all existing user data will be maintained.</p>
+        <p> A change to ARM has occurred, either through an update or database corruption. Creation or migration of the database is required. Where possible, all existing user data will be maintained.</p>
     </div>
 
     <div class="row">
         <div class="col-sm-12 ">
-            {% if not db_update.db_exists: %}
+            {% if not db_update.db_exists %}
                 <p><u> Missing database  </u></p>
                 <p> The ARM database is missing, the files is configured to be installed in: {{ db_update.db_file }}. </p>
-                <p> If the file exists, confirm the file ownership and permissions are configured corectly, as ARM is unable to read the file </p>
+                <p> If the file exists, confirm the file ownership and permissions are configured correctly, as ARM is unable to read the file </p>
                 <form class="" action="dbupdate" method="post">
                     {{ dbform.hidden_tag() }}
                     <input type="hidden" id="dbfix" name="dbfix" value="new">
-                    <button type="button" class="btn btn-primary">Create the database</button>
+                    <button type="submit" class="btn btn-primary">Create the database</button>
                 </form>
             {% else: %}
-                {% if not db_update.db_current: %}
+                {% if not db_update.db_current %}
                     <p><u> Database Update Required  </u></p>
                     <p> Database exists but requires an update/migration to continue working.</p>
                     <ul>
