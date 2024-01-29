@@ -6,7 +6,7 @@ Covers
 
 import os
 from flask_login import LoginManager, login_required  # noqa: F401
-from flask import render_template, request, Blueprint
+from flask import render_template, request, Blueprint, session
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db
@@ -42,6 +42,8 @@ def history():
         app.logger.error('ERROR: /history database file doesnt exist')
         jobs = {}
     app.logger.debug(f"Date format - {cfg.arm_config['DATE_FORMAT']}")
+
+    session["page_title"] = "History"
 
     return render_template('history.html', jobs=jobs.items,
                            date_format=cfg.arm_config['DATE_FORMAT'], pages=jobs)

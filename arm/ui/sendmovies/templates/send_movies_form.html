@@ -1,28 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Sending movies to API{% endblock %}
-
-{% block nav %}{{ super() }}{% endblock %}
 
 {% block content %} 
 <div class="container jumbotron alert-info">
     <div class="row h-100 mx-auto align-items-center">
-                <div class="col text-center" style="flex-wrap: nowrap">
-					<h2>This will take a LONG time with large databases!</h2>
-						<p>	To use this form you will need an API key for the ARM db. 
-							You can get one for free from <a href="https://1337server.pythonanywhere.com/request/key">here</a>. 
-							<br>You will need to add the API key to your arm.yaml
-						</p>
-						<p>By clicking "I understand" you agree to submitting all dvd entries from your own personal database to the ARM API.
-						<br>
-						No personal information is tracked, only the dvd's crc64, Title, Year, imdb id, hasnicetitle and the disc label
-						<br>
-						These are used to help others more easily identify dvds without the need for an external api or any user input.</p>
-                    <form id="form1" name="form1" action="send_movies?s=1">
-						<input class="form-control" name="s" value="1" hidden>
-						<button class="btn btn-secondary btn-lg btn-block" form="form1" type="submit">I understand</button>
+        <div class="col text-center" style="flex-wrap: nowrap">
+            <h2>This will take a LONG time with large databases!</h2>
+                <p>	To use this form you will need an API key for the ARM db.
+                    You can get one for free from <a href="https://1337server.pythonanywhere.com/request/key">here</a>.
+                    <br>You will need to add the API key to your arm.yaml
+                </p>
+                <p>By clicking "I understand" you agree to submitting all dvd entries from your own personal database to the ARM API.
+                <br>
+                No personal information is tracked, only the dvd's crc64, Title, Year, imdb id, hasnicetitle and the disc label
+                <br>
+                These are used to help others more easily identify dvds without the need for an external api or any user input.</p>
+            <form id="form1" name="form1" action="send_movies?s=1">
+                <input class="form-control" name="s" value="1" hidden>
+                <button class="btn btn-secondary btn-lg btn-block" form="form1" type="submit">I understand</button>
 
-                    </form>
-                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

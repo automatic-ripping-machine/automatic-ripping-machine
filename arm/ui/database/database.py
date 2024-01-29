@@ -10,7 +10,7 @@ import os
 import json
 import re
 from flask_login import LoginManager, login_required  # noqa: F401
-from flask import render_template, request, Blueprint, flash, redirect
+from flask import render_template, request, Blueprint, flash, redirect, session
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants
@@ -53,6 +53,8 @@ def view_database():
         app.logger.error('ERROR: /database no database, file doesnt exist')
         jobs = {}
 
+    session["page_title"] = "Database"
+
     return render_template('databaseview.html',
                            jobs=jobs.items, pages=jobs,
                            date_format=cfg.arm_config['DATE_FORMAT'])
@@ -71,6 +73,7 @@ def update_database():
             flash("ARM database migration successful!", "success")
         elif form.dbfix.data == "new":
             app.logger.debug("User requested - New database")
+            ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
             flash("ARM database setup successful!", "success")
         else:
             # No method defined
