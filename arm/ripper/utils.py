@@ -17,12 +17,16 @@ import bcrypt
 import requests
 import apprise
 import psutil
-import arm.config.config as cfg
 
 from netifaces import interfaces, ifaddresses, AF_INET
+
+import arm.config.config as cfg
+from arm.ui import db  # needs to be imported before models
+from arm.models.job import Job
+from arm.models.notifications import Notifications
+from arm.models.track import Track
+from arm.models.user import User
 from arm.ripper import apprise_bulk
-from arm.ui import db
-from arm.models import models
 
 NOTIFY_TITLE = "ARM notification"
 
@@ -41,8 +45,10 @@ def notify(job, title, body):
     if cfg.arm_config["NOTIFY_JOBID"]:
         title = f"{title} - {job.job_id}"
     # Send to local db
-    notification = models.Notifications(title, body)
+    notification = Notifications(title, body)
     database_adder(notification)
+
+    bash_notify(cfg.arm_config, title, body)
 
     # Sent to remote sites
     # Create an Apprise instance
@@ -68,6 +74,16 @@ def notify(job, title, body):
             logging.error(f"Failed sending apprise notifications. {error}")
 
 
+def bash_notify(cfg, title, body):
+    # bash notifications use subprocess instead of apprise.
+    if cfg['BASH_SCRIPT'] != "":
+        try:
+            subprocess.run(["/usr/bin/bash", cfg['BASH_SCRIPT'], title, body])
+            logging.debug("Sent bash notification successful")
+        except Exception as error:  # noqa: E722
+            logging.error(f"Failed sending notification via bash. Continuing  processing...{error}")
+
+
 def notify_entry(job):
     """
     Notify On Entry\n
@@ -75,17 +91,21 @@ def notify_entry(job):
     :return: None
     """
     # TODO make this better or merge with notify/class
-    notification = models.Notifications(f"New Job: {job.job_id} has started. Disctype: {job.disctype}",
-                                        f"New job has started to rip - {job.label},"
-                                        f"{job.disctype} at {datetime.datetime.now()}")
+    notification = Notifications(f"New Job: {job.job_id} has started. Disctype: {job.disctype}",
+                                 f"New job has started to rip - {job.label},"
+                                 f"{job.disctype} at {datetime.datetime.now()}")
     database_adder(notification)
     if job.disctype in ["dvd", "bluray"]:
+        if cfg.arm_config["UI_BASE_URL"] == "":
+            display_address = (f"http://{check_ip()}:{job.config.WEBSERVER_PORT}")
+        else:
+            display_address = str(cfg.arm_config["UI_BASE_URL"])
         # Send the notifications
         notify(job, NOTIFY_TITLE,
                f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {job.config.MAINFEATURE}."
-               f"Edit entry here: http://{check_ip()}:{job.config.WEBSERVER_PORT}/jobdetail?job_id={job.job_id}")
+               f"Edit entry here: {display_address}/jobdetail?job_id={job.job_id}")
     elif job.disctype == "music":
-        notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks")
+        notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks.")
     elif job.disctype == "data":
         notify(job, NOTIFY_TITLE, "Found data disc.  Copying data.")
     else:
@@ -467,7 +487,7 @@ def try_add_default_user():
         username = "admin"
         pass1 = "password".encode('utf-8')
         hashed = bcrypt.gensalt(12)
-        database_adder(models.User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed))
+        database_adder(User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed))
         perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
         write_permission_file = open(perm_file, "w")
         write_permission_file.write("boop!")
@@ -496,7 +516,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         f"Track #{int(t_no):02} Length: {seconds: >4} fps: {float(fps):2.3f} "
         f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source}")
 
-    job_track = models.Track(
+    job_track = Track(
         job_id=job.job_id,
         track_number=t_no,
         length=seconds,
@@ -605,7 +625,7 @@ def clean_old_jobs():
     Check for running jobs - Update failed jobs that are no longer running\n
     :return: None
     """
-    active_jobs = db.session.query(models.Job).filter(models.Job.status.notin_(['fail', 'success'])).all()
+    active_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
     # Clean up abandoned jobs
     for job in active_jobs:
         if psutil.pid_exists(job.pid):
@@ -663,8 +683,8 @@ def duplicate_run_check(dev_path):
     this stops that issue
     :return: None
     """
-    running_jobs = db.session.query(models.Job).filter(
-        models.Job.status.notin_(['fail', 'success']), models.Job.devpath == dev_path).all()
+    running_jobs = db.session.query(Job).filter(
+        Job.status.notin_(['fail', 'success']), Job.devpath == dev_path).all()
     if len(running_jobs) >= 1:
         for j in running_jobs:
             print(j.start_time - datetime.datetime.now())
@@ -738,38 +758,47 @@ def job_dupe_check(job):
     """
     function for checking the database to look for jobs that have completed
     successfully with the same label
-    :param job: The job obj so we can use the crc/title etc.
+    :param job: The job obj, so we can use the crc/title etc.
     :return: True/False, dict/None
     """
     logging.debug(f"Trying to find jobs with matching Label={job.label}")
-    previous_rips = models.Job.query.filter_by(label=job.label, status="success")
-    results = {}
-    i = 0
-    for j in previous_rips:
-        # logging.debug(f"job obj= {j.get_d()}")
-        job_dict = j.get_d().items()
-        results[i] = {}
-        for key, value in iter(job_dict):
-            results[i][str(key)] = str(value)
-        i += 1
+    if job.label is None:
+        logging.info("Disc title 'None' not searched in database")
+        return False
+    else:
+        previous_rips = Job.query.filter_by(label=job.label, status="success")
+        results = {}
+        i = 0
+        for j in previous_rips:
+            # logging.debug(f"job obj= {j.get_d()}")
+            job_dict = j.get_d().items()
+            results[i] = {}
+            for key, value in iter(job_dict):
+                results[i][str(key)] = str(value)
+            i += 1
 
     # logging.debug(f"previous rips = {results}")
     if results:
         logging.debug(f"we have {len(results)} jobs")
-        # This might need some tweaks to because of title/year manual
-        title = results[0]['title'] if results[0]['title'] else job.label
-        year = results[0]['year'] if results[0]['year'] != "" else ""
-        poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
-        hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
-        video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
-        active_rip = {
-            "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
-            "video_type": video_type}
-        database_updater(active_rip, job)
-        return True
-
-    logging.info("We have no previous rips/jobs matching this label")
-    return False
+        # Check if results too large (over 1), skip if too many
+        if len(results) == 1:
+            # This might need some tweaks to because of title/year manual
+            title = results[0]['title'] if results[0]['title'] else job.label
+            year = results[0]['year'] if results[0]['year'] != "" else ""
+            poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
+            hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
+            video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
+            active_rip = {
+                "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
+                "video_type": video_type}
+            database_updater(active_rip, job)
+            return True
+        else:
+            logging.debug(f"Skipping - There are too many results [{len(results)}]")
+            return False
+    else:
+        logging.info("We have no previous rips/jobs matching this label")
+        return False
 
 
 def check_for_wait(job):

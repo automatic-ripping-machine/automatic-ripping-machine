@@ -38,6 +38,7 @@ usermod -a -G render arm
 chown -R arm:arm /opt/arm
 
 # setup needed/expected dirs if not found
+chown arm:arm $ARM_HOME
 SUBDIRS="media media/completed media/raw media/movies media/transcode logs logs/progress db Music .MakeMKV"
 for dir in $SUBDIRS ; do
     thisDir="$ARM_HOME/$dir"
@@ -48,20 +49,25 @@ for dir in $SUBDIRS ; do
     chown -R arm:arm "$thisDir"
 done
 
-    ##### Setup ARM-specific config files if not found
-    mkdir -p /etc/arm/config
-    CONFS="arm.yaml apprise.yaml"
-    for conf in $CONFS; do
-        thisConf="/etc/arm/config/${conf}"
-        if [[ ! -f "${thisConf}" ]] ; then
-            echo "Config not found! Creating config file: ${thisConf}"
-            # Don't overwrite with defaults during reinstall
-            cp --no-clobber "/opt/arm/setup/${conf}" "${thisConf}"
-        fi
-    done
-    chown -R arm:arm /etc/arm/
-    
-    # abcde.conf is expected in /etc by the abcde installation
-    cp --no-clobber "/opt/arm/setup/.abcde.conf" "/etc/.abcde.conf"
-    ln -sf /etc/.abcde.conf /etc/arm/config/abcde.conf
-    chown arm:arm "/etc/.abcde.conf" "/etc/arm/config/abcde.conf"
+##### Setup ARM-specific config files if not found
+mkdir -p /etc/arm/config
+CONFS="arm.yaml apprise.yaml"
+for conf in $CONFS; do
+    thisConf="/etc/arm/config/${conf}"
+    if [[ ! -f "${thisConf}" ]] ; then
+        echo "Config not found! Creating config file: ${thisConf}"
+        # Don't overwrite with defaults during reinstall
+        cp --no-clobber "/opt/arm/setup/${conf}" "${thisConf}"
+    fi
+done
+chown -R arm:arm /etc/arm/
+
+# abcde.conf is expected in /etc by the abcde installation
+cp --no-clobber /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
+ln -sf /etc/arm/config/abcde.conf /etc/abcde.conf
+chown arm:arm /etc/abcde.conf /etc/arm/config/abcde.conf
+
+# symlink $ARM_HOME/Music to $ARM_HOME/music because the config for abcde doesn't match the docker compose docs
+# separate rm and ln commands because "ln -sf" does the wrong thing if dest is a symlink to a directory
+rm -f $ARM_HOME/music
+ln -s $ARM_HOME/Music $ARM_HOME/music

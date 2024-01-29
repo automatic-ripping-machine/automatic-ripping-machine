@@ -1,6 +1,6 @@
 """Forms used in the arm ui"""
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField,\
+from wtforms import StringField, SubmitField, SelectField, \
     IntegerField, BooleanField, PasswordField
 from wtforms.validators import DataRequired
 

@@ -24,6 +24,7 @@ def check_if_mounted(mounted):
     Function to check if mounting disc was success
      anything but 0 means we failed to mount disc
     """
+    logging.debug(f"OS mounted value: {mounted}")
     success = False
     if mounted == 0:
         logging.info("Mounting disc was successful")
@@ -40,7 +41,7 @@ def identify(job):
     if not os.path.exists(str(job.mountpoint)):
         os.makedirs(str(job.mountpoint))
     # Check and mount drive - log error if failed
-    mounted = check_if_mounted(os.system("mount " + job.devpath))
+    mounted = check_if_mounted(os.system(f"mount {job.devpath}"))
     # get_disc_type() checks local files, no need to run unless we can mount
     if mounted:
         # Check with the job class to get the correct disc type
@@ -81,10 +82,20 @@ def identify_bluray(job):
                       "Disc cannot be identified.  Error "
                       f"number is: {error.errno}")
         # Maybe call OMdb with label when we can't find any ident on disc ?
-        job.title = str(job.label)
-        job.year = ""
-        db.session.commit()
-        return False
+        # Attempt to parse label
+        if str(job.label) == "":
+            job.title = str(job.label)
+            job.year = ""
+            db.session.commit()
+            return False
+        else:
+            bluray_title = str(job.label)
+            bluray_title = bluray_title.replace('_', ' ')
+            bluray_title = bluray_title.title()
+            job.title = job.title_auto = bluray_title
+            job.year = ""
+            db.session.commit()
+            return True
 
     try:
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']

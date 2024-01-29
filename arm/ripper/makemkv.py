@@ -7,7 +7,7 @@ import logging
 import subprocess
 import shlex
 
-from arm.models import models
+from arm.models.track import Track
 from arm.ripper import utils  # noqa: E402
 from arm.ui import db  # noqa: F401, E402
 import arm.config.config as cfg  # noqa E402
@@ -69,7 +69,7 @@ def makemkv(logfile, job):
         get_track_info(mdisc, job)
         if job.config.MAINFEATURE:
             logging.info("Trying to find mainfeature")
-            track = models.Track.query.filter_by(job_id=job.job_id).order_by(models.Track.length.desc()).first()
+            track = Track.query.filter_by(job_id=job.job_id).order_by(Track.length.desc()).first()
             rip_mainfeature(job, track, logfile, rawpath)
         # if no maximum length, process the whole disc in one command
         elif int(job.config.MAXLENGTH) > 99998:

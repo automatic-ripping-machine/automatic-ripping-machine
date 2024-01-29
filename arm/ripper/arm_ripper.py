@@ -145,7 +145,7 @@ def notify_exit(job):
                          f"Title(s) {errlist} failed to complete. ")
             logging.info(f"Transcoding completed with errors.  Title(s) {errlist} failed to complete. ")
         else:
-            utils.notify(job, constants.NOTIFY_TITLE, str(job.title) + constants.PROCESS_COMPLETE)
+            utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} {constants.PROCESS_COMPLETE}")
 
 
 def move_files_post(hb_out_path, job):

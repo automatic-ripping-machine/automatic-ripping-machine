@@ -60,7 +60,9 @@ elif [ "$ID_FS_TYPE" != "" ]; then
 else
 	  echo "[ARM] Not CD, Blu-ray, DVD or Data. Bailing out on ${DEVNAME}" | logger -t ARM -s
 	  echo "$(date) [ARM] Not CD, Blu-ray, DVD or Data. Bailing out on ${DEVNAME}" >> $ARMLOG
-	  eject "${DEVNAME}"
+      if [ "$CONFIG_UNIDENTIFIED_EJECT" != "false" ]; then
+	    eject "${DEVNAME}"
+      fi
 	  exit #bail out
 fi
 cd /opt/arm || exit

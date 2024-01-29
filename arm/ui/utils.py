@@ -20,11 +20,15 @@ from flask.logging import default_handler  # noqa: F401
 
 import arm.config.config as cfg
 from arm.config.config_utils import arm_yaml_test_bool
-from arm.ui.settings import DriveUtils as drive_utils
 from arm.config import config_utils
+from arm.models.alembic_version import AlembicVersion
+from arm.models.job import Job
+from arm.models.system_info import SystemInfo
+from arm.models.ui_settings import UISettings
+from arm.models.user import User
 from arm.ui import app, db
-from arm.models import models
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
+from arm.ui.settings import DriveUtils
 
 # Path definitions
 path_migrations = "arm/migrations"
@@ -60,6 +64,65 @@ def database_updater(args, job, wait_time=90):
     return True
 
 
+def check_db_version(install_path, db_file):
+    """
+    Check if db exists and is up-to-date.
+    If it doesn't exist create it.  If it's out of date update it.
+    """
+    from alembic.script import ScriptDirectory
+    from alembic.config import Config  # noqa: F811
+    import sqlite3
+    import flask_migrate
+
+    mig_dir = os.path.join(install_path, path_migrations)
+
+    config = Config()
+    config.set_main_option("script_location", mig_dir)
+    script = ScriptDirectory.from_config(config)
+
+    # create db file if it doesn't exist
+    if not os.path.isfile(db_file):
+        app.logger.info("No database found.  Initializing arm.db...")
+        make_dir(os.path.dirname(db_file))
+        with app.app_context():
+            flask_migrate.upgrade(mig_dir)
+
+        if not os.path.isfile(db_file):
+            app.logger.debug("Can't create database file.  This could be a permissions issue.  Exiting...")
+        else:
+            # Only run the below if the db exists
+            # Check to see if db is at current revision
+            head_revision = script.get_current_head()
+            app.logger.debug("Alembic Head is: " + head_revision)
+
+            conn = sqlite3.connect(db_file)
+            c = conn.cursor()
+
+        c.execute('SELECT version_num FROM alembic_version')
+        db_version = c.fetchone()[0]
+        app.logger.debug(f"Database version is: {db_version}")
+        if head_revision == db_version:
+            app.logger.info("Database is up to date")
+        else:
+            app.logger.info(
+                f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
+            with app.app_context():
+                unique_stamp = round(time() * 100)
+                app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
+                shutil.copy(db_file, db_file + "_" + str(unique_stamp))
+                flask_migrate.upgrade(mig_dir)
+            app.logger.info("Upgrade complete.  Validating version level...")
+
+            c.execute("SELECT version_num FROM alembic_version")
+            db_version = c.fetchone()[0]
+            app.logger.debug(f"Database version is: {db_version}")
+            if head_revision == db_version:
+                app.logger.info("Database is now up to date")
+            else:
+                app.logger.error(f"Database is still out of date. "
+                                 f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
+
+
 def arm_alembic_get():
     """
     Get the Alembic Head revision
@@ -83,7 +146,7 @@ def arm_db_get():
     """
     Get the Alembic Head revision
     """
-    alembic_db = models.AlembicVersion()
+    alembic_db = AlembicVersion()
     db_revision = alembic_db.query.first()
     app.logger.debug(f"Database Head is: {db_revision.version_num}")
     return db_revision
@@ -118,7 +181,7 @@ def arm_db_cfg():
     # if the database has been updated
     # UISettings could be incorrect, return None
     try:
-        armui_cfg = models.UISettings.query.get(1)
+        armui_cfg = UISettings.query.get(1)
         app.jinja_env.globals.update(armui_cfg=armui_cfg)
     except Exception as e:
         app.logger.debug(f"arm_cfg request error {e}")
@@ -135,9 +198,9 @@ def arm_db_initialise():
     Initialise the ARM DB, ensure system values and disk drives are loaded
     """
     # Check system/server information is loaded
-    if not models.SystemInfo.query.filter_by(id="1").first():
+    if not SystemInfo.query.filter_by(id="1").first():
         # Define system info and load to db
-        server = models.SystemInfo()
+        server = SystemInfo()
         app.logger.debug("****** System Information ******")
         app.logger.debug(f"Name: {server.name}")
         app.logger.debug(f"CPU: {server.cpu}")
@@ -147,7 +210,7 @@ def arm_db_initialise():
         db.session.add(server)
         db.session.commit()
     # Scan and load drives to database
-    drive_utils.drives_update()
+    DriveUtils.drives_update()
 
 
 def make_dir(path):
@@ -173,7 +236,7 @@ def get_info(directory):
     Used to read stats from files
     -Used for view logs page
     :param directory:
-    :return: list containing a list with each files stats
+    :return: list containing a list with each file's stats
     """
     file_list = []
     for i in os.listdir(directory):
@@ -273,7 +336,7 @@ def setup_database():
 
     # This checks for a user table
     try:
-        admins = models.User.query.all()
+        admins = User.query.all()
         app.logger.debug(f"Number of admins: {len(admins)}")
         if len(admins) > 0:
             return True
@@ -295,17 +358,16 @@ def setup_database():
         db.session.add(version)
         # Create default user to save problems with ui and ripper having diff setups
         hashed = bcrypt.gensalt(12)
-        default_user = models.User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed),
-                                   hashed=hashed)
+        default_user = User(email="admin", password=bcrypt.hashpw("password".encode('utf-8'), hashed), hashed=hashed)
         app.logger.debug("DB Init - Admin user loaded")
         db.session.add(default_user)
         # Server config
-        server = models.SystemInfo()
+        server = SystemInfo()
         db.session.add(server)
         app.logger.debug("DB Init - Server info loaded")
         db.session.commit()
         # Scan and load drives to database
-        drive_utils.drives_update()
+        DriveUtils.drives_update()
         app.logger.debug("DB Init - Drive info loaded")
         return True
     except Exception:
@@ -326,7 +388,7 @@ def job_dupe_check(crc_id):
     """
     if crc_id is None:
         return False, None
-    jobs = models.Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
+    jobs = Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
     # app.logger.debug("search - posts=" + str(jobs))
     return_results = {}
     i = 0
@@ -399,7 +461,7 @@ def fix_permissions(j_id):
 
     # Validate job is valid
     job_id_validator(j_id)
-    job = models.Job.query.get(j_id)
+    job = Job.query.get(j_id)
     if not job:
         raise TypeError("Job Has Been Deleted From The Database")
     # If there is no path saved in the job
@@ -453,7 +515,7 @@ def send_to_remote_db(job_id):
     :param job_id: Job id
     :return: dict/json to return to user
     """
-    job = models.Job.query.get(job_id)
+    job = Job.query.get(job_id)
     return_dict = {}
     api_key = cfg.arm_config['ARM_API_KEY']
 
@@ -690,7 +752,7 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
     }
     app.logger.debug(movie_dict)
     # Create the new job and use the found values
-    new_movie = models.Job("/dev/sr0")
+    new_movie = Job("/dev/sr0")
     new_movie.title = movie_dict['title']
     new_movie.year = movie_dict['year']
     new_movie.crc_id = hash_object.hexdigest()

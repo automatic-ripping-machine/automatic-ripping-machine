@@ -9,6 +9,9 @@ Automatic-Ripping-Machine Development Tools
     out any changes being made.
     More details are captured in the wiki
     https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/ARM-Development-Tools
+
+    Note if making changes to this code, avoid pulling in modules from the main arm code
+    doing so causes issues as arm has may linked modules, scripts and dependencies
 """
 
 import argparse
@@ -16,9 +19,10 @@ import argparse
 import armgit
 import database
 import armdocker
+import armnotify
 
 
-__version__ = '0.2'
+__version__ = '0.3'
 arm_home = "/home/arm"
 arm_install = "/opt/arm"
 
@@ -40,6 +44,9 @@ parser.add_argument("-qa",
                     action='store_true')
 parser.add_argument("-pr",
                     help="Actions to run prior to committing a PR against ARM on github",
+                    action="store_true")
+parser.add_argument("-n",
+                    help="Notification tool - show a test notification",
                     action="store_true")
 parser.add_argument("-v", help="ARM Dev Tools Version",
                     action='version',
@@ -64,3 +71,6 @@ if args.qa:
 
 if args.pr:
     armgit.pr_update()
+
+if args.n:
+    armnotify.test()

@@ -102,6 +102,17 @@ GET_AUDIO_TITLE: "musicbrainz"
 # Requires FFmpeg
 RIP_POSTER: false
 
+# Auto-eject unidentified discs (blank etc)
+# May want to set this to false on certain (Pioneer slim) drives to prevent the immediate eject
+# issue (https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/779)
+UNIDENTIFIED_EJECT: true
+
+
+# Auto-ejects disks
+# Auto-ejects disks when complete etc
+# Set to false to disable auto-ejection
+AUTO_EJECT: true
+
 
 #####################
 ## Directory setup ##
@@ -160,6 +171,9 @@ WEBSERVER_IP: x.x.x.x
 # Port for web server
 WEBSERVER_PORT: 8080
 
+# Base URL to use for notifications and display purposes
+# Be sure to include protocol and port if needed (e.g. http://example.com:8091 or https://example.com)
+UI_BASE_URL: ""
 
 ########################
 ##  File Permissions  ##
@@ -305,6 +319,14 @@ IFTTT_EVENT: "arm_event"
 # Leave User key empty to disable Pushover notifications
 PO_USER_KEY: ""
 PO_APP_KEY: ""
+
+
+## Specify a script to be called.
+# We will call the script with two arguments:
+# First Argument: Title
+# Second Argument: Body
+BASH_SCRIPT: ""
+
 
 # OMDB_API_KEY
 # omdbapi.com API Key

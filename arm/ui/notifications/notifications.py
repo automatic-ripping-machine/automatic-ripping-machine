@@ -12,7 +12,7 @@ from datetime import datetime
 
 import arm.ui.utils as ui_utils
 from arm.ui import app
-from arm.models import models as models
+from arm.models.notifications import Notifications
 
 route_notifications = Blueprint('route_notifications', __name__,
                                 template_folder='templates',
@@ -25,7 +25,7 @@ def arm_nav_notify():
     inject the unread notification count to all pages for the navbar count
     """
     try:
-        notify_count = models.Notifications.query.filter_by(cleared='0').count()
+        notify_count = Notifications.query.filter_by(cleared='0').count()
         app.logger.debug(notify_count)
 
     except Exception:
@@ -40,7 +40,7 @@ def arm_notification():
     """
     function to display all current notifications
     """
-    notifications_new = models.Notifications.query.filter_by(cleared='0').order_by(models.Notifications.id.desc()).all()
+    notifications_new = Notifications.query.filter_by(cleared='0').order_by(Notifications.id.desc()).all()
 
     if len(notifications_new) != 0:
         if len(notifications_new) > 100:
@@ -62,7 +62,7 @@ def arm_notification_close():
     """
     function to close all open notifications
     """
-    notifications = models.Notifications.query.filter_by(cleared='0').all()
+    notifications = Notifications.query.filter_by(cleared='0').all()
 
     if len(notifications) != 0:
         # get the current time for each notification and then save back into notification
