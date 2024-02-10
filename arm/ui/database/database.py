@@ -14,7 +14,7 @@ from flask import render_template, request, Blueprint, flash, redirect, session
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants
-from arm.models import models as models
+from arm.models.job import Job
 import arm.config.config as cfg
 from arm.ui.metadata import get_omdb_poster
 from arm.ui.forms import DBUpdate
@@ -45,7 +45,7 @@ def view_database():
 
     # If we have armui_config we have the db connection
     if armui_cfg:
-        jobs = models.Job.query.order_by(db.desc(models.Job.job_id)).paginate(page=page,
+        jobs = Job.query.order_by(db.desc(Job.job_id)).paginate(page=page,
                                                                               max_per_page=int(
                                                                                   armui_cfg.database_limit),
                                                                               error_out=False)
