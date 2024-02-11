@@ -11,6 +11,8 @@ HIDDEN_VALUE = "<hidden>"
 
 
 class Config(db.Model):
+    __tablename__ = "config"
+
     """ Holds all the config settings for each job
     as these may change between each job """
     CONFIG_ID = db.Column(db.Integer, primary_key=True)

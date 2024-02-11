@@ -4,6 +4,8 @@ from arm.ui import db
 
 
 class User(db.Model, UserMixin):
+    __tablename__ = 'user'
+
     """
     Class to hold admin users
     """

@@ -7,6 +7,8 @@ from arm.ui import db
 
 
 class SystemDrives(db.Model):
+    __tablename__ = 'system_drives'
+
     """
     Class to hold the system cd/dvd/Blu-ray drive information
     """

@@ -2,6 +2,8 @@ from arm.ui import db
 
 
 class AlembicVersion(db.Model):
+    __tablename__ = 'alembic_version'
+
     """
     Class to hold the A.R.M db version
     """

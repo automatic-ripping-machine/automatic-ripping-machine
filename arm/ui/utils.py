@@ -186,8 +186,8 @@ def arm_db_cfg():
     except Exception as e:
         app.logger.debug(f"arm_cfg request error {e}")
         armui_cfg = None
-    if not armui_cfg:
-        raise ValidationError
+    # if not armui_cfg:
+    #     raise ValidationError
     app.logger.debug(armui_cfg)
 
     return armui_cfg

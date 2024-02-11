@@ -4,6 +4,8 @@ from arm.ui import db
 
 
 class Notifications(db.Model):
+    __tablename__ = 'notifications'
+
     """
     Class to hold the A.R.M notifications
     """

@@ -6,10 +6,6 @@ LABEL org.opencontainers.image.source=https://github.com/automatic-ripping-machi
 LABEL org.opencontainers.image.license=MIT
 LABEL org.opencontainers.image.description='Automatic Ripping Machine for fully automated Blu-ray, DVD and audio disc ripping.'
 
-#EXPOSE 8080
-#ENV MYSQL_IP="127.0.0.1"
-#ENV MYSQL_USER="root"
-#ENV MYSQL_PASSWORD="example"
 # Setup folders and fstab
 RUN \
     mkdir -m 0777 -p /home/arm \

@@ -9,11 +9,13 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_wtf import CSRFProtect
+from time import sleep
 
 from flask_login import LoginManager
 import bcrypt  # noqa: F401
 import arm.config.config as cfg
 
+# SQlite support required for migration from database file to MySQL
 sqlitefile = 'sqlite:///' + cfg.arm_config['DBFILE']
 
 # Setup logging, but because of werkzeug issues, we need to set up that later down file
@@ -52,18 +54,37 @@ app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
 # Set debug pin as it is hidden normally
 os.environ["WERKZEUG_DEBUG_PIN"] = "12345"  # make this random!
 app.logger.debug("Debugging pin: " + os.environ["WERKZEUG_DEBUG_PIN"])
+
+mysql_ip = os.getenv("MYSQL_IP", "arm-db")
 mysql_user = os.getenv("MYSQL_USER", "arm")
 mysql_password = os.getenv("MYSQL_PASSWORD", "example")
-mysql_ip = os.getenv("MYSQL_IP", "arm-db")
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://' + mysql_user + ':' + mysql_password + '@' + mysql_ip + '/arm'
+mysql_database = "arm"
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://' + mysql_user + ':' + mysql_password \
+                                        + '@' + mysql_ip + '/' + mysql_database + '?charset=utf8mb4'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.logger.debug(f"Mysql configuration: {app.config['SQLALCHEMY_DATABASE_URI']}")
 db = SQLAlchemy()
 db.init_app(app)
+# Import ARM Models for database build
+from arm.models.alembic_version import AlembicVersion
+from arm.models.config import Config
+from arm.models.job import Job
+from arm.models.notifications import Notifications
+from arm.models.system_drives import SystemDrives
+from arm.models.system_info import SystemInfo
+from arm.models.track import Track
+from arm.models.ui_settings import UISettings
+from arm.models.user import User
+app.logger.debug("ARM Paused - wait 90 seconds for MySQL container load")
+sleep(90)  # Sleep 2 minutes to allow the mysql container to start, before loading data
+app.logger.debug("ARM Resumed - here comes ARM!")
 with app.app_context():
     db.create_all()
+    app.logger.debug("Initialising the database, sending good vibes.")
 migrate = Migrate(app, db)
+
 # Register route blueprints
-# loaded post database decleration to avoid circular loops
+# loaded post database declaration to avoid circular loops
 from arm.ui.settings.settings import route_settings  # noqa: E402,F811
 from arm.ui.logs.logs import route_logs  # noqa: E402,F811
 from arm.ui.auth.auth import route_auth  # noqa: E402,F811

@@ -2,6 +2,8 @@ from arm.ui import db
 
 
 class UISettings(db.Model):
+    __tablename__ = 'ui_settings'
+
     """
     Class to hold the A.R.M ui settings
     """

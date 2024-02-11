@@ -2,6 +2,8 @@ from arm.ui import db
 
 
 class Track(db.Model):
+    __tablename__ = 'track'
+
     """ Holds all the individual track details for each job """
     track_id = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('job.job_id'))

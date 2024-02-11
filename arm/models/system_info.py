@@ -7,6 +7,8 @@ from arm.ui import db
 
 
 class SystemInfo(db.Model):
+    __tablename__ = 'system_info'
+
     """
     Class to hold the system (server) information
     """

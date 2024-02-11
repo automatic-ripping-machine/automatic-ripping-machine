@@ -16,8 +16,11 @@ from arm.models.config import Config  # noqa: F401
 
 
 class Job(db.Model):
+    __tablename__ = 'job'
+
     """
-    Job Class hold most of the details for each job
+    Job Class hold 
+    most of the details for each job
     connects to track, config
     """
     job_id = db.Column(db.Integer, primary_key=True)

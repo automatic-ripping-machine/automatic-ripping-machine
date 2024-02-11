@@ -40,6 +40,13 @@ parser.add_argument("-dr",
 parser.add_argument("--clean",
                     help="Docker - Remove all ARM docker images and containers before rebuilding.",
                     action="store_true")
+parser.add_argument("-dc",
+                    help="Docker-Compose - Remove all ARM docker images using docker-compose, rebuild and start ARM.",
+                    action="store_true")
+parser.add_argument("--monitor",
+                    help="Docker-Compose - Set the '-d' status, calling --monitor will not set '-d' and docker" \
+                         " will output all text to the console.",
+                    action="store_true")
 parser.add_argument("-db_rem",
                     help="Database tool - remove current arm.db file",
                     action='store_true')
@@ -60,10 +67,11 @@ if args.b:
 
 # -dr Docker ARM update and rebuild
 if args.dr:
-    if args.clean:
-        armdocker.docker_rebuild(args.dr, arm_install, True)
-    else:
-        armdocker.docker_rebuild(args.dr, arm_install, False)
+    armdocker.docker_rebuild(args.dr, arm_install, args.clean)
+
+# -dc docker-compose and options --monitor
+if args.dc:
+    armdocker.dockercompose_rebuild(args.monitor)
 
 # -db_rem Database remove
 if args.db_rem:
