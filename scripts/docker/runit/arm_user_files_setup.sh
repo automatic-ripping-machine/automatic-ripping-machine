@@ -25,7 +25,7 @@ fi
 if [[ $ARM_GID -ne $DEFAULT_GID ]]; then
   echo -e "Updating arm group id from $DEFAULT_GID to $ARM_GID..."
   groupmod -og "$ARM_GID" arm
-elif [[ $ARM_UID -eq $DEFAULT_GID ]]; then
+elif [[ $ARM_GID -eq $DEFAULT_GID ]]; then
   echo -e "Updating arm group id $ARM_GID to default (1000)..."
   groupmod -og $DEFAULT_GID arm
 fi
@@ -33,10 +33,16 @@ echo "Adding arm user to 'render' group"
 usermod -a -G render arm
 
 ### Setup Files
-chown -R arm:arm /opt/arm
+## Check ownership of the ARM /opt folder
+$check_dir="/opt/arm"
+if [$(stat -c "%U" $check_dir) != $ARM_UID] && [$(stat -c "%G" $check_dir) != $ARM_GID]; then
+  echo "---------------------------------------------"
+  echo "ERROR: ARM does not have permissions to $check_dir using $ARM_UID:$ARM_GID"
+  echo "Check your user permissions and restart ARM"
+  echo "---------------------------------------------"
+  exit 1
 
 # setup needed/expected dirs if not found
-chown arm:arm $ARM_HOME
 SUBDIRS="media media/completed media/raw media/movies media/transcode logs logs/progress db music .MakeMKV"
 for dir in $SUBDIRS ; do
   thisDir="$ARM_HOME/$dir"
@@ -44,7 +50,6 @@ for dir in $SUBDIRS ; do
     echo "Creating dir: $thisDir"
     mkdir -p "$thisDir"
   fi
-  chown -R arm:arm "$thisDir"
 done
 echo "Removing any link between music and Music"
 
@@ -64,7 +69,14 @@ for conf in $CONFS; do
     cp --no-clobber "/opt/arm/setup/${conf}" "${thisConf}"
   fi
 done
-chown -R arm:arm /etc/arm/
+## Check ownership of the /etc/arm folder
+$check_dir="/etc/arm"
+if [$(stat -c "%U" $check_dir) != $ARM_UID] && [$(stat -c "%G" $check_dir) != $ARM_GID]; then
+  echo "---------------------------------------------"
+  echo "ERROR: ARM does not have permissions to $check_dir using $ARM_UID:$ARM_GID"
+  echo "Check your user permissions and restart ARM"
+  echo "---------------------------------------------"
+  exit 1
 
 ##### abcde config setup
 # abcde.conf is expected in /etc by the abcde installation
@@ -78,7 +90,7 @@ fi
 if ! [ -f /etc/arm/config/abcde.conf ]; then
   echo "abcde.conf doesnt exist"
   cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
-  chown arm:arm /etc/arm/config/abcde.conf
+  # chown arm:arm /etc/arm/config/abcde.conf
 fi
 # The system link to the fake default file -not really needed but as a precaution to the -C variable being blank
 if ! [ -h /etc/abcde.conf ]; then
