@@ -55,7 +55,7 @@ usermod -a -G render arm
 ### Setup Files
 chown -R arm:arm /opt/arm
 
-+## Check ownership of the ARM home folder
+# Check ownership of the ARM home folder
 check_folder_ownership "/home/arm"
 
 # setup needed/expected dirs if not found
@@ -75,7 +75,9 @@ if [ -h /home/arm/Music ]; then
 fi
 
 ##### Setup ARM-specific config files if not found
+# Check ownership of the ARM config folder
 check_folder_ownership "/etc/arm/config"
+
 mkdir -p /etc/arm/config
 CONFS="arm.yaml apprise.yaml"
 for conf in $CONFS; do
