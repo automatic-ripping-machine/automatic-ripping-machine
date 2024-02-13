@@ -13,6 +13,26 @@ export ARM_HOME="/home/arm"
 DEFAULT_UID=1000
 DEFAULT_GID=1000
 
+
+# Function to check if the ARM user has ownership of the requested folder
+check_folder_ownership() {
+    local check_dir="$1"  # Get the folder path from the first argument
+    local folder_uid=$(stat -c "%u" "$check_dir")
+    local folder_gid=$(stat -c "%g" "$check_dir")
+
+    echo "Checking ownership of $check_dir"
+
+    if [ "$folder_uid" != "$ARM_UID" ] || [ "$folder_gid" != "$ARM_GID" ]; then
+        echo "---------------------------------------------"
+        echo "[ERROR]: ARM does not have permissions to $check_dir using $ARM_UID:$ARM_GID"
+        echo "Check your user permissions and restart ARM. Folder permissions--> $folder_uid:$folder_gid"
+        echo "---------------------------------------------"
+        exit 1
+    fi
+
+    echo "[OK]: ARM UID and GID set correctly, ARM has access to '$check_dir' using $ARM_UID:$ARM_GID"
+}
+
 ### Setup User
 if [[ $ARM_UID -ne $DEFAULT_UID ]]; then
   echo -e "Updating arm user id from $DEFAULT_UID to $ARM_UID..."
@@ -33,14 +53,10 @@ echo "Adding arm user to 'render' group"
 usermod -a -G render arm
 
 ### Setup Files
-## Check ownership of the ARM /opt folder
-$check_dir="/opt/arm"
-if [$(stat -c "%U" $check_dir) != $ARM_UID] && [$(stat -c "%G" $check_dir) != $ARM_GID]; then
-  echo "---------------------------------------------"
-  echo "ERROR: ARM does not have permissions to $check_dir using $ARM_UID:$ARM_GID"
-  echo "Check your user permissions and restart ARM"
-  echo "---------------------------------------------"
-  exit 1
+chown -R arm:arm /opt/arm
+
++## Check ownership of the ARM home folder
+check_folder_ownership "/home/arm"
 
 # setup needed/expected dirs if not found
 SUBDIRS="media media/completed media/raw media/movies media/transcode logs logs/progress db music .MakeMKV"
@@ -59,6 +75,7 @@ if [ -h /home/arm/Music ]; then
 fi
 
 ##### Setup ARM-specific config files if not found
+check_folder_ownership "/etc/arm/config"
 mkdir -p /etc/arm/config
 CONFS="arm.yaml apprise.yaml"
 for conf in $CONFS; do
@@ -69,14 +86,6 @@ for conf in $CONFS; do
     cp --no-clobber "/opt/arm/setup/${conf}" "${thisConf}"
   fi
 done
-## Check ownership of the /etc/arm folder
-$check_dir="/etc/arm"
-if [$(stat -c "%U" $check_dir) != $ARM_UID] && [$(stat -c "%G" $check_dir) != $ARM_GID]; then
-  echo "---------------------------------------------"
-  echo "ERROR: ARM does not have permissions to $check_dir using $ARM_UID:$ARM_GID"
-  echo "Check your user permissions and restart ARM"
-  echo "---------------------------------------------"
-  exit 1
 
 ##### abcde config setup
 # abcde.conf is expected in /etc by the abcde installation
