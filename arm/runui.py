@@ -38,8 +38,11 @@ if host == 'x.x.x.x' or is_docker():
         host = ip_list[0]
     else:
         host = '127.0.0.1'
-    app.logger.info(f"Starting ARMUI on interface address - {host}:{cfg.arm_config['WEBSERVER_PORT']}")
 
+app.logger.info(f"Starting ARM-UI on interface address - {host}:{cfg.arm_config['WEBSERVER_PORT']}")
+
+# Start ARM using waitress, default number of threads is "4", set ARM count to "40"
+# Higher thread count to accommodate slow blocking processes when the UI is polling the ripper during ripping
 if __name__ == '__main__':
     from waitress import serve
-    serve(app, host=host, port=cfg.arm_config['WEBSERVER_PORT'])
+    serve(app, host=host, port=cfg.arm_config['WEBSERVER_PORT'], threads=40)
