@@ -64,7 +64,7 @@ for dir in $SUBDIRS ; do
   thisDir="$ARM_HOME/$dir"
   if [[ ! -d "$thisDir" ]] ; then
     echo "Creating dir: $thisDir"
-    mkdir -p "$thisDir"
+    su - $(id -un $ARM_UID) -c "mkdir -p $thisDir"
   fi
 done
 echo "Removing any link between music and Music"
