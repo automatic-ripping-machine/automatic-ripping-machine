@@ -36,9 +36,10 @@
    - [Open An Issue](https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/new/choose)
 
 **Contributing to ARM**
-   - [Contribute](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute)
-   - [Docker Dev guide](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Dev-quickstart)
-   - [ARM Development Tools (devtools)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/ARM-Development-Tools)
+   - [ARM Code](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute)
+   - [ARM Wiki](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Wiki)
+   - [Docker Dev guide](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Docker)
+   - [ARM Development Tools (devtools)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-DevTools)
 
 **How ARM Works**
    - [ARM workflow diagram](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/workflow-diagram)
