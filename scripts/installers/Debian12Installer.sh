@@ -24,11 +24,9 @@ NC='\033[0m' # No Color
 
 #Script Error Codes
 ERROR_INSUFFICIENT_USER_PRIVILEGES=1
+ERROR_USER_PROVIDED_PASSWORD_MISMATCH=2
 
-dev_env_flag=
-port_flag=
-PORT=8080
-pass=1234
+#Script Variables
 Sudo_Flag=false
 
 #---
@@ -48,32 +46,65 @@ function Is_Effective_Root_User() {
 }
 
 function add_arm_user() {
-    echo -e "${YELLOW}Adding arm user${NC}"
+    echo -e "${YELLOW}Adding arm user & group${NC}"
     # create arm group if it doesn't already exist
-    if ! [[ $(getent group arm > /dev/null) ]]; then
+    if ! [[ $(getent group arm) ]]; then
         if ${Sudo_Flag}; then
           sudo groupadd arm;
         else
           groupadd arm;
         fi
+        echo -e "${YELLOW}Group 'arm' successfully created. \n${NC}"
     else
-        echo -e "${YELLOW}arm group already exists, skipping...${NC}"
+        echo -e "${YELLOW}arm group already exists, skipping...\n${NC}"
     fi
 
     # create arm user if it doesn't already exist
-    #if ! id arm >/dev/null 2>&1; then
-        #useradd -m arm -g arm
-        # If a password was specified use that, otherwise use default
-        #if [ "$pass" != "1234" ]; then
-            #echo "Password was supplied, using it."
-        #else
-            #echo "Password was not supplied, using 1234"
-        #fi
-        #echo -e "$pass\n$pass\n" | passwd arm
-    #else
-        #echo -e "${RED}arm user already exists, skipping creation...${NC}"
-    #fi
-    #usermod -aG cdrom,video arm
+    if ! id arm > /dev/null 2>&1 ; then
+      if ${Sudo_Flag}; then
+        sudo useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
+      else
+        useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
+      fi
+
+      echo -e "${YELLOW}User 'arm' successfully created. \n${NC}"
+      read -ep "$(echo -e "${YELLOW}Do you wish to provide a custom password for the 'arm' user? Y/n : ${NC}")" -r -n 1 UserWishesToEnterPassword
+      if [[ "${UserWishesToEnterPassword}" == "y"  ||  "${UserWishesToEnterPassword}" == "Y" ]] ; then
+        for (( i = 0 ; i < 3 ; i++ )); do
+          read -ep "$(echo -e "${YELLOW}Please Enter Password? : ${NC}")" -r -s pass
+          read -ep "$(echo -e "${YELLOW}Please Confirm Password? : ${NC}")" -r -s pass2
+          if [[ "${pass}" == "${pass2}" ]] ; then
+            break;
+          elif [[ $i -eq 2 ]] ; then
+            echo -e "${RED}\nThe Passwords did not match 3 consecutive times, exiting...\n"
+            exit ${ERROR_USER_PROVIDED_PASSWORD_MISMATCH}
+          else
+            echo -e "\n${RED}Passwords do not match, please try again\n${NC}"
+          fi
+        done
+      else
+        echo -e "${YELLOW}Using default password '1234' it is recommended that you change it after script completion. \n${NC}"
+        pass=1234
+        pass2=1234
+      fi
+
+      if ${Sudo_Flag}; then
+        echo -e "${pass}\n${pass2}\n" | sudo passwd -q arm
+      else
+        echo -e "${pass}\n${pass2}\n" | passwd -q arm
+      fi
+
+    else
+        echo -e "${YELLOW}'arm' user already exists, skipping creation...${NC}"
+    fi
+
+    # Make sure the 'arm' user is part of the 'cdrom', 'video' and 'render' groups.
+    if ${Sudo_Flag}; then
+        sudo usermod -aG cdrom,video arm
+      else
+        usermod -aG cdrom,video arm
+    fi
+
 }
 
 
