@@ -33,10 +33,12 @@ Sudo_Flag=false
 # Function Definitions
 #---
 
-#This script requires elevated privileges.
-#This function confirms that we can obtain needed privileges or that we already have them.
+###################################################
+#         Script eligibility functions            #
+###################################################
+
+#Determine if we are effectively a root user.  Return boolean values 'true' or 'false'.
 function Is_Effective_Root_User() {
-  #Is the script running as root (or effectively as root, meaning it was called with sudo)
   USERID=$(id -u)
   if [[ ${USERID} == 0 ]] ;  then
     true
@@ -45,66 +47,88 @@ function Is_Effective_Root_User() {
   fi
 }
 
-function add_arm_user() {
-    echo -e "${YELLOW}Adding arm user & group${NC}"
-    # create arm group if it doesn't already exist
-    if ! [[ $(getent group arm) ]]; then
-        if ${Sudo_Flag}; then
-          sudo groupadd arm;
-        else
-          groupadd arm;
-        fi
-        echo -e "${YELLOW}Group 'arm' successfully created. \n${NC}"
-    else
-        echo -e "${YELLOW}arm group already exists, skipping...\n${NC}"
-    fi
+###################################################
+#     User and Group related functions            #
+###################################################
 
-    # create arm user if it doesn't already exist
-    if ! id arm > /dev/null 2>&1 ; then
-      if ${Sudo_Flag}; then
-        sudo useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
-      else
-        useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
-      fi
+#Call all user and group related functions.
+function CreateArmUserAndGroup() {
+  echo -e "${YELLOW}Adding arm user & group${NC}"
+  CreateArmGroup
+  CreateArmUser
+  MakeArmUserPartOfRequiredGroups
+}
 
-      echo -e "${YELLOW}User 'arm' successfully created. \n${NC}"
-      read -ep "$(echo -e "${YELLOW}Do you wish to provide a custom password for the 'arm' user? Y/n : ${NC}")" -r -n 1 UserWishesToEnterPassword
-      if [[ "${UserWishesToEnterPassword}" == "y"  ||  "${UserWishesToEnterPassword}" == "Y" ]] ; then
-        for (( i = 0 ; i < 3 ; i++ )); do
-          read -ep "$(echo -e "${YELLOW}Please Enter Password? : ${NC}")" -r -s pass
-          read -ep "$(echo -e "${YELLOW}Please Confirm Password? : ${NC}")" -r -s pass2
-          if [[ "${pass}" == "${pass2}" ]] ; then
-            break;
-          elif [[ $i -eq 2 ]] ; then
-            echo -e "${RED}\nThe Passwords did not match 3 consecutive times, exiting...\n"
-            exit ${ERROR_USER_PROVIDED_PASSWORD_MISMATCH}
-          else
-            echo -e "\n${RED}Passwords do not match, please try again\n${NC}"
-          fi
-        done
-      else
-        echo -e "${YELLOW}Using default password '1234' it is recommended that you change it after script completion. \n${NC}"
-        pass=1234
-        pass2=1234
-      fi
-
-      if ${Sudo_Flag}; then
-        echo -e "${pass}\n${pass2}\n" | sudo passwd -q arm
-      else
-        echo -e "${pass}\n${pass2}\n" | passwd -q arm
-      fi
-
-    else
-        echo -e "${YELLOW}'arm' user already exists, skipping creation...${NC}"
-    fi
-
-    # Make sure the 'arm' user is part of the 'cdrom', 'video' and 'render' groups.
+#If the group exists, do nothing, if it does not exist create it.
+function CreateArmGroup() {
+  if ! [[ $(getent group arm) ]]; then
     if ${Sudo_Flag}; then
-        sudo usermod -aG cdrom,video arm
-      else
-        usermod -aG cdrom,video arm
+      sudo groupadd arm;
+    else
+      groupadd arm;
     fi
+    echo -e "${GREEN}Group 'arm' successfully created. \n${NC}"
+  else
+    echo -e "${GREEN}'arm' group already exists, skipping...\n${NC}"
+  fi
+}
 
+#If user exists, do nothing, if it does not exist create the user with default settings.
+function CreateArmUser() {
+  if ! id arm > /dev/null 2>&1 ; then
+    if ${Sudo_Flag}; then
+      sudo useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
+    else
+      useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
+    fi
+    echo -e "${GREEN}User 'arm' successfully created. \n${NC}"
+    PasswordProtectArmUser
+  else
+    echo -e "${GREEN}'arm' user already exists, skipping creation...${NC}"
+  fi
+}
+
+# Make sure the 'arm' user is part of the 'cdrom', 'video' and 'render' groups.
+function MakeArmUserPartOfRequiredGroups() {
+  if ${Sudo_Flag}; then
+    sudo usermod -aG cdrom,video,render arm
+  else
+    usermod -aG cdrom,video,render arm
+  fi
+}
+
+#Give the User the option of setting a custom password.  The User may decline, in which event
+#a default password of value '1234' is created.
+#If the default password value is used, advise the user to change the password at the next opportunity.
+function PasswordProtectArmUser() {
+  #Determine what the password is going to be and save it in the variables $Password_1 & $Password_2
+  PasswordQuestion="Do you wish to provide a custom password for the 'arm' user? Y/n : "
+  read -ep "$(echo -e "${PasswordQuestion}")" -r -n 1 UserWishesToEnterPassword
+  if [[ "${UserWishesToEnterPassword}" == "y"  ||  "${UserWishesToEnterPassword}" == "Y" ]] ; then
+    for (( i = 0 ; i < 3 ; i++ )); do
+      read -ep "$(echo -e "Please Enter Password_1? : ")" -r -s Password_1
+      read -ep "$(echo -e "Please Confirm Password_1? : ")" -r -s Password_2
+      if [[ "${Password_1}" == "${Password_2}" ]] ; then
+        echo -e "\n${GREEN}Password matched, running \`passwd\` utility. \n${NC}"
+        break;
+      elif [[ $i -eq 2 ]] ; then
+        echo -e "${RED}\nThe Passwords did not match 3 consecutive times, exiting...\n"
+        exit ${ERROR_USER_PROVIDED_PASSWORD_MISMATCH}
+      else
+        echo -e "\n${YELLOW}Passwords do not match, please try again\n${NC}"
+      fi
+    done
+  else
+    echo -e "${YELLOW}Using default password '1234' it is recommended that you change it after script's completion. \n${NC}"
+    Password_1=1234
+    Password_2=1234
+  fi
+  #Set User Password.
+  if ${Sudo_Flag}; then
+    echo -e "${Password_1}\n${Password_2}\n" | sudo passwd -q arm
+  else
+    echo -e "${Password_1}\n${Password_2}\n" | passwd -q arm
+  fi
 }
 
 
@@ -117,7 +141,7 @@ if ! (Is_Effective_Root_User); then
   #BASH has trouble setting Global Variables from inside functions, so we run this code procedurally :(
   #Script was not run with elevated privileges, Request user for said privileges...
   #Ask for Sudo Access
-  sudo -v -p 'Please Enter your SUDO Password: '
+  sudo -v -p 'Please Enter your SUDO Password_1: '
   SudoRequestResult=$?
   #Confirm we have Sudo Privileges...
   if [[ ${SudoRequestResult} == 0 ]] ; then
@@ -134,5 +158,5 @@ fi
 echo "Sudo Flag is ${Sudo_Flag}"
 
 #Confirm existence of / create arm user and group
-add_arm_user
+CreateArmUserAndGroup
 
