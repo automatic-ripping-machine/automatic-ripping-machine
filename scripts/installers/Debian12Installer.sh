@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
-#---
-#Set Execution Environment
-#---
+###################################################
+###################################################
+#              Scripting Settings                 #
+###################################################
+###################################################
 
 #Run apt in non-interactive mode, assume default answers.
 export DEBIAN_FRONTEND=noninteractive
@@ -10,11 +12,13 @@ export DEBIAN_FRONTEND=noninteractive
 #Cause the script to fail if an error code is provided while pipping commands (set -o pipefail)
 #Cause the script to fail when encountering undefined variable (set -u)
 #DEBUG MODE for Development only, Cause the script to print out every command executed (set -x)
-set -u -o pipefail
+set -eux -o pipefail
 
-#---
-#Global Variables
-#---
+###################################################
+###################################################
+#               Global Variables                  #
+###################################################
+###################################################
 
 #Text Color and Formatting Variables
 RED='\033[1;31m'
@@ -23,19 +27,32 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 #Script Error Codes
-ERROR_INSUFFICIENT_USER_PRIVILEGES=1
-ERROR_USER_PROVIDED_PASSWORD_MISMATCH=2
+readonly ERROR_INSUFFICIENT_USER_PRIVILEGES=1
+readonly ERROR_USER_PROVIDED_PASSWORD_MISMATCH=2
+readonly ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO=3
 
 #Script Variables
-Sudo_Flag=false
+##  $SUDO_FLAG  Is a Readonly Variable that is set in the Script Eligibility Code Section below (near the bottom).
+#               It is used throughout the script to choose between using sudo when calling a function or not.
 
-#---
-# Function Definitions
-#---
+###################################################
+###################################################
+#             Function Definitions                #
+###################################################
+###################################################
 
 ###################################################
 #         Script eligibility functions            #
 ###################################################
+
+#Confirm this script is running on Debian 12 (Bookworm).  Return boolean values 'true' or 'false'.
+function IsDebian12Distro() {
+  if [[ $(lsb_release -i | grep -o "Debian") == "Debian" ]] && [[ $(lsb_release -r | grep -o "12") -eq 12 ]] ; then
+    true
+  else
+    false
+  fi
+}
 
 #Determine if we are effectively a root user.  Return boolean values 'true' or 'false'.
 function Is_Effective_Root_User() {
@@ -46,6 +63,10 @@ function Is_Effective_Root_User() {
     false
   fi
 }
+
+###################################################
+#               Utility functions                 #
+###################################################
 
 ###################################################
 #     User and Group related functions            #
@@ -62,7 +83,7 @@ function CreateArmUserAndGroup() {
 #If the group exists, do nothing, if it does not exist create it.
 function CreateArmGroup() {
   if ! [[ $(getent group arm) ]]; then
-    if ${Sudo_Flag}; then
+    if ${SUDO_FLAG}; then
       sudo groupadd arm;
     else
       groupadd arm;
@@ -76,7 +97,7 @@ function CreateArmGroup() {
 #If user exists, do nothing, if it does not exist create the user with default settings.
 function CreateArmUser() {
   if ! id arm > /dev/null 2>&1 ; then
-    if ${Sudo_Flag}; then
+    if ${SUDO_FLAG}; then
       sudo useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
     else
       useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
@@ -90,7 +111,7 @@ function CreateArmUser() {
 
 # Make sure the 'arm' user is part of the 'cdrom', 'video' and 'render' groups.
 function MakeArmUserPartOfRequiredGroups() {
-  if ${Sudo_Flag}; then
+  if ${SUDO_FLAG}; then
     sudo usermod -aG cdrom,video,render arm
   else
     usermod -aG cdrom,video,render arm
@@ -124,39 +145,177 @@ function PasswordProtectArmUser() {
     Password_2=1234
   fi
   #Set User Password.
-  if ${Sudo_Flag}; then
+  if ${SUDO_FLAG}; then
     echo -e "${Password_1}\n${Password_2}\n" | sudo passwd -q arm
   else
     echo -e "${Password_1}\n${Password_2}\n" | passwd -q arm
   fi
 }
 
+###################################################
+#             Install Download Tools              #
+###################################################
 
-#---
-#Procedural Code Starts Here
-#---
+function InstallDownloadTools () {
+  if ${SUDO_FLAG}; then
+    sudo apt update && sudo apt -y install  curl git wget
+  else
+    apt update && apt install -y curl git wget
+  fi
+}
+
+###################################################
+#            Build & Install MakeMKV              #
+###################################################
+
+function InstallMakeMKV() {
+  InstallBuildEnvironment
+  BuildAndInstallMakeMKV
+}
+
+function InstallBuildEnvironment() {
+  if ${SUDO_FLAG}; then
+    sudo apt install -y build-essential \
+                        pkg-config \
+                        libc6-dev \
+                        libssl-dev \
+                        libexpat1-dev \
+                        libavcodec-dev \
+                        libgl1-mesa-dev \
+                        qtbase5-dev \
+                        zlib1g-dev \
+                        checkinstall
+  else
+    apt install -y  build-essential \
+                    pkg-config \
+                    libc6-dev \
+                    libssl-dev \
+                    libexpat1-dev \
+                    libavcodec-dev \
+                    libgl1-mesa-dev \
+                    qtbase5-dev \
+                    zlib1g-dev \
+                    checkinstall
+  fi
+}
+
+function BuildAndInstallMakeMKV() {
+  if ${SUDO_FLAG}; then
+    ArmUserHomeFolder=~arm
+    LatestMakeMKVVersion=$(curl -s https://www.makemkv.com/download/ | grep -o '[0-9.]*.txt' | sed 's/.txt//')
+    MakeMKVBuildFilesDirectory="${ArmUserHomeFolder}"/MakeMKVBuildFiles/"${LatestMakeMKVVersion}"
+    sudo -u arm mkdir -p "${MakeMKVBuildFilesDirectory}"
+    cd "${MakeMKVBuildFilesDirectory}"
+    sudo wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
+    sudo wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
+    sudo wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
+    grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
+    grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
+    sudo -u arm tar xzf makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
+    sudo -u arm tar xzf makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
+
+    cd makemkv-oss-"${LatestMakeMKVVersion}"
+    sudo mkdir -p ./tmp
+    sudo chmod 777 ./tmp
+    sudo ./configure 2>&1 >/dev/null
+    sudo make -s
+    sudo make install
+    sudo checkinstall -y
+
+    cd ../makemkv-bin-"${LatestMakeMKVVersion}"
+    sudo mkdir -p ./tmp
+    sudo chmod 777 ./tmp
+    sudo echo "yes" >> ./tmp/eula_accepted
+    sudo make -s
+    sudo make install
+    sudo checkinstall -y
+
+
+    sudo chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
+  else
+    ArmUserHomeFolder=~arm
+    LatestMakeMKVVersion=$(curl -s https://www.makemkv.com/download/ | grep -o '[0-9.]*.txt' | sed 's/.txt//')
+    MakeMKVBuildFilesDirectory="${ArmUserHomeFolder}"/MakeMKVBuildFiles/"${LatestMakeMKVVersion}"
+    mkdir -p "${MakeMKVBuildFilesDirectory}"
+    cd "${MakeMKVBuildFilesDirectory}"
+    wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
+    wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
+    wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
+    grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
+    grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
+    tar xzf makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
+    tar xzf makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
+
+    cd makemkv-oss-"${LatestMakeMKVVersion}"
+    mkdir -p ./tmp
+    ./configure 2>&1 >/dev/null
+    make -s
+    make install
+    checkinstall -y
+
+    cd ../makemkv-bin-"${LatestMakeMKVVersion}"
+    mkdir -p ./tmp
+    echo "yes" >> ./tmp/eula_accepted
+    make -s
+    make install
+    checkinstall -y
+
+    chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
+  fi
+
+}
+
+###################################################
+###################################################
+#         Procedural Code Starts Here             #
+###################################################
+###################################################
+
+###################################################
+#            Script eligibility code              #
+###################################################
+
+#Confirm we are in a Debian 12 (Bookworm) Linux Distro.
+if ! (IsDebian12Distro); then
+  NotDebian12Prompt="${YELLOW}WARNING, you are attempting to run this script in a environment other than Debian 12 (Bookworm)
+  This script was tested exclusively on Debian 12 (Bookworm)
+  Running it on another Linux distro may have unpredictable side effects.
+
+  ${NC}Do you wish to Continue? Y/n :"
+  read -p "$(echo -e "${NotDebian12Prompt}")" -r -n 1 ProceedWithScriptExecution
+  echo -e ""
+  if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
+    echo -e "Running Script in Linux Distro Other than Debian 12 (Bookworm)"
+  else
+    exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
+  fi
+fi
 
 #Confirm we can run this script.
 if ! (Is_Effective_Root_User); then
-  #BASH has trouble setting Global Variables from inside functions, so we run this code procedurally :(
   #Script was not run with elevated privileges, Request user for said privileges...
-  #Ask for Sudo Access
-  sudo -v -p 'Please Enter your SUDO Password_1: '
-  SudoRequestResult=$?
-  #Confirm we have Sudo Privileges...
-  if [[ ${SudoRequestResult} == 0 ]] ; then
-    Sudo_Flag=true
-    echo "Sudo Flag is ${Sudo_Flag}"
+  #Ask for Sudo Access and confirm we have Sudo Privileges.
+  if [[ $(sudo -v -p 'Please Enter your SUDO Password: ') -eq 0 ]] ; then
+    #Set $SUDO_FLAG Global Constant that will be used for the rest of the script.
+    readonly SUDO_FLAG=true
   else
+    #Cannot confirm sudo privileges, alert the user and exit the script with error code.
     echo -e "${RED}For this script to accomplish it's task, it requires elevated privileges.
 The current user doesn't have Sudo rights.
 Please contact an administrator to ask for Sudo rights or switch to a user with Sudo rights before running this script.${NC}"
     exit ${ERROR_INSUFFICIENT_USER_PRIVILEGES}
   fi
+else
+  readonly SUDO_FLAG=false
 fi
 
-echo "Sudo Flag is ${Sudo_Flag}"
 
 #Confirm existence of / create arm user and group
 CreateArmUserAndGroup
+
+#Install Required Download Tools
+InstallDownloadTools
+
+#Build and Install MakeMKV
+InstallMakeMKV
 
