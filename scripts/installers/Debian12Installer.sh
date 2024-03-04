@@ -30,6 +30,7 @@ NC='\033[0m' # No Color
 readonly ERROR_INSUFFICIENT_USER_PRIVILEGES=1
 readonly ERROR_USER_PROVIDED_PASSWORD_MISMATCH=2
 readonly ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO=3
+readonly ERROR_MISSING_CONTRIB_REPOSITORY=4
 
 #Script Variables
 ##  $SUDO_FLAG  Is a Readonly Variable that is set in the Script Eligibility Code Section below (near the bottom).
@@ -58,6 +59,35 @@ function IsDebian12Distro() {
 function Is_Effective_Root_User() {
   USERID=$(id -u)
   if [[ ${USERID} == 0 ]] ;  then
+    true
+  else
+    false
+  fi
+}
+
+#Confirm the presence of required package libraries.
+function IsContribRepoAvailable() {
+  #This functions is dependant on running "Debian 12 (Bookworm)"
+  #This function MUST be modified for any other version of Debian or other distributions of Linux
+  if [[ $(apt-cache policy | grep -o "bookworm/contrib") == "bookworm/contrib" ]] ; then
+    IncludesBookwormContrib=true
+  else
+    IncludesBookwormContrib=false
+  fi
+
+  if [[ $(apt-cache policy | grep -o "bookworm-updates/contrib") == "bookworm-updates/contrib" ]] ; then
+    IncludesBookwormUpdatesContrib=true
+  else
+    IncludesBookwormUpdatesContrib=false
+  fi
+
+  if [[ $(apt-cache policy | grep -o "bookworm-security/contrib") == "bookworm-security/contrib" ]] ; then
+    IncludesBookwormSecurityContrib=true
+  else
+    IncludesBookwormSecurityContrib=false
+  fi
+
+  if $IncludesBookwormContrib && $IncludesBookwormUpdatesContrib && $IncludesBookwormSecurityContrib ; then
     true
   else
     false
@@ -266,6 +296,65 @@ function BuildAndInstallMakeMKV() {
 }
 
 ###################################################
+#           Install Arm Dependencies              #
+###################################################
+
+function InstallArmDependencies() {
+  if ${SUDO_FLAG}; then
+    sudo apt install -y abcde \
+                        at \
+                        cdparanoia \
+                        default-jre-headless \
+                        eject \
+                        ffmpeg \
+                        flac \
+                        glyrc \
+                        handbrake-cli \
+                        imagemagick \
+                        libavcodec-extra \
+                        libcurl4-openssl-dev \
+                        libdvdcss2 \
+                        libssl-dev \
+                        python3 \
+                        python3-libdiscid \
+                        python3-pip
+
+    sudo DEBIAN_FRONTEND=noninteractive apt -y install libdvd-pkg
+    sudo dpkg-reconfigure --frontend noninteractive libdvd-pkg
+
+  else
+    apt install -y  abcde \
+                    at \
+                    cdparanoia \
+                    default-jre-headless \
+                    eject \
+                    ffmpeg \
+                    flac \
+                    glyrc \
+                    handbrake-cli \
+                    imagemagick \
+                    libavcodec-extra \
+                    libcurl4-openssl-dev \
+                    libdvdcss2 \
+                    libssl-dev \
+                    python3 \
+                    python3-libdiscid \
+                    python3-pip
+
+    DEBIAN_FRONTEND=noninteractive apt -y install libdvd-pkg
+    dpkg-reconfigure --frontend noninteractive libdvd-pkg
+  fi
+}
+
+###################################################
+#                Download Arm                     #
+###################################################
+
+function DownloadArm () {
+
+}
+
+###################################################
 ###################################################
 #         Procedural Code Starts Here             #
 ###################################################
@@ -289,6 +378,16 @@ if ! (IsDebian12Distro); then
   else
     exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
   fi
+else
+  #Confirm availability of contrib repository
+  if ! (IsContribRepoAvailable) ; then
+    echo -e "${RED}This script requires the presence of the contrib repositories;
+bookworm/contrib, bookworm-updates/contrib and bookworm-security/contrib
+Please add them to your installation and run the script again.
+You can learn how to add the necessary repository here: https://wiki.debian.org/SourcesList
+Exiting....${NC}"
+    exit ${ERROR_MISSING_CONTRIB_REPOSITORY}
+  fi
 fi
 
 #Confirm we can run this script.
@@ -302,20 +401,27 @@ if ! (Is_Effective_Root_User); then
     #Cannot confirm sudo privileges, alert the user and exit the script with error code.
     echo -e "${RED}For this script to accomplish it's task, it requires elevated privileges.
 The current user doesn't have Sudo rights.
-Please contact an administrator to ask for Sudo rights or switch to a user with Sudo rights before running this script.${NC}"
+Please contact an administrator to ask for Sudo rights or switch to a user with Sudo rights before running this script.
+Exiting....${NC}"
     exit ${ERROR_INSUFFICIENT_USER_PRIVILEGES}
   fi
 else
   readonly SUDO_FLAG=false
 fi
 
-
 #Confirm existence of / create arm user and group
-CreateArmUserAndGroup
+##CreateArmUserAndGroup
 
 #Install Required Download Tools
-InstallDownloadTools
+##InstallDownloadTools
 
 #Build and Install MakeMKV
-InstallMakeMKV
+##InstallMakeMKV
+
+#Install Arm Dependencies
+InstallArmDependencies
+
+#Install Arm
+
+#Post Arm Installation
 
