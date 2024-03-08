@@ -12,7 +12,7 @@ export DEBIAN_FRONTEND=noninteractive
 #Cause the script to fail if an error code is provided while pipping commands (set -o pipefail)
 #Cause the script to fail when encountering undefined variable (set -u)
 #DEBUG MODE for Development only, Cause the script to print out every command executed (set -x)
-set -eux -o pipefail
+set -eu -o pipefail
 
 ###################################################
 ###################################################
@@ -351,7 +351,158 @@ function InstallArmDependencies() {
 ###################################################
 
 function DownloadArm () {
+  #Get current version number of ARM
+  readonly ARM_LATEST=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' \
+                        | grep 'automatic-ripping-machine/tree/*' | head -n 1 | sed -e 's/[^0-9\.]*//g')
+  if ${SUDO_FLAG}; then
+    cd /opt
+    if [ -d arm ]; then
+      #Arm Installation found.
+      #Confirm it is a Git repo
+      #If Git Repo, update the repo to current release
 
+      #I chose git fetch and git checkout, but I am unsure if this could cause some issues...
+      #this method depends on the user not modifying the repo between running this script
+      #A big assumption.
+
+      #The Other method is to delete the directory completely and do a fresh git pull at the current branch.
+      #The problem here is that it would also delete the Python Virtual Environment that is created later in this script.
+      #It would force an update of Python, which I am unsure if it is the best option.
+
+      echo -e "${GREEN}Previous Arm Installation Found${NC}"
+
+      cd arm
+      sudo -u arm git fetch
+
+      if ! sudo -u arm git checkout "${ARM_LATEST}" ; then
+        #Git Checkout failed, likely because of a change in the repo.
+        #Running Git Restore all files and folders will return the repo to the state it was
+        #at the tagged checkout but will destroy all modifications added to the repo.
+
+        #Prompt User to confirm first
+        RestoreRepoPrompt="${YELLOW}WARNING, A previous installation of ARM was found on the system,
+        it's repository contains uncommitted changes.  These changes will be lost
+
+        ${NC}Do you wish to Continue? Y/n :"
+        read -p "$(echo -e "${RestoreRepoPrompt}")" -r -n 1 ProceedWithScriptExecution
+        echo -e ""
+        if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
+          echo -e "${GREEN}Restoring Repository...${NC}"
+          #Restore Repo
+          sudo -u arm git restore .
+          #Git Checkout the latest release branch
+          sudo -u arm git checkout "${ARM_LATEST}"
+        else
+          exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
+        fi
+      fi
+    else
+      #Fresh Arm installation
+      #Clone git repo, pin to latest release tag
+      sudo mkdir arm
+      sudo chown -R arm:arm arm
+
+      sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
+        https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
+
+      #Copy clean copies of config files to etc folder.
+      sudo mkdir -p /etc/arm/config
+      sudo cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
+      sudo cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
+      sudo cp /opt/arm/setup/.abcde.conf /etc/arm/config/.abcde.conf
+
+    fi
+
+    #Fix File and Folder Permissions
+    #chown -R arm:arm /opt/arm
+    sudo find /opt/arm/scripts/ -type f -iname "*.sh" -exec chmod +x {} \;
+    sudo chown -R arm:arm /etc/arm
+
+    #Copy clean copies of the config files to /etc/arm/config/*.default
+    #This is so that the user can find clean versions of each of the config files for references.
+    #It helps incase of a broken config file due to error, or some future update changes.
+
+    #Remove old (and possibly outdated) config default files.
+    sudo rm -f /etc/arm/config/*.default
+
+    sudo cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
+    sudo cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
+    sudo cp /opt/arm/setup/.abcde.conf /etc/arm/config/.abcde.conf.default
+  else
+    cd /opt
+    if [ -d arm ]; then
+      #Arm Installation found.
+      #Confirm it is a Git repo
+      #If Git Repo, update the repo to current release
+
+      #I chose git fetch and git checkout, but I am unsure if this could cause some issues...
+      #this method depends on the user not modifying the repo between running this script
+      #A big assumption.
+
+      #The Other method is to delete the directory completely and do a fresh git pull at the current branch.
+      #The problem here is that it would also delete the Python Virtual Environment that is created later in this script.
+      #It would force an update of Python, which I am unsure if it is the best option.
+
+      echo -e "${GREEN}Previous Arm Installation Found${NC}"
+
+      cd arm
+      sudo -u arm git fetch
+
+      if ! sudo -u arm git checkout "${ARM_LATEST}" ; then
+        #Git Checkout failed, likely because of a change in the repo.
+        #Running Git Restore all files and folders will return the repo to the state it was
+        #at the tagged checkout but will destroy all modifications added to the repo.
+
+        #Prompt User to confirm first
+        RestoreRepoPrompt="${YELLOW}WARNING, A previous installation of ARM was found on the system,
+        it's repository contains uncommitted changes.  These changes will be lost
+
+        ${NC}Do you wish to Continue? Y/n :"
+        read -p "$(echo -e "${RestoreRepoPrompt}")" -r -n 1 ProceedWithScriptExecution
+        echo -e ""
+        if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
+          echo -e "${GREEN}Restoring Repository...${NC}"
+          #Restore Repo
+          sudo -u arm git restore .
+          #Git Checkout the latest release branch
+          sudo -u arm git checkout "${ARM_LATEST}"
+        else
+          exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
+        fi
+      fi
+    else
+      #Fresh Arm installation
+      #Clone git repo, pin to latest release tag
+      mkdir arm
+      chown -R arm:arm arm
+
+      sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
+        https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
+
+      #Copy clean copies of config files to etc folder.
+      mkdir -p /etc/arm/config
+      cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
+      cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
+      cp /opt/arm/setup/.abcde.conf /etc/arm/config/.abcde.conf
+
+    fi
+
+    #Fix File and Folder Permissions
+    #chown -R arm:arm /opt/arm
+    find /opt/arm/scripts/ -type f -iname "*.sh" -exec chmod +x {} \;
+    chown -R arm:arm /etc/arm
+
+    #Copy clean copies of the config files to /etc/arm/config/*.default
+    #This is so that the user can find clean versions of each of the config files for references.
+    #It helps incase of a broken config file due to error, or some future update changes.
+
+    #Remove old (and possibly outdated) config default files.
+    rm -f /etc/arm/config/*.default
+
+    cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
+    cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
+    cp /opt/arm/setup/.abcde.conf /etc/arm/config/.abcde.conf.default
+  fi
 }
 
 ###################################################
@@ -419,9 +570,10 @@ fi
 ##InstallMakeMKV
 
 #Install Arm Dependencies
-InstallArmDependencies
+##InstallArmDependencies
 
 #Install Arm
+DownloadArm
 
 #Post Arm Installation
 
