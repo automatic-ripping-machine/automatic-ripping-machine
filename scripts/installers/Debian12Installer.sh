@@ -12,7 +12,7 @@ export DEBIAN_FRONTEND=noninteractive
 #Cause the script to fail if an error code is provided while pipping commands (set -o pipefail)
 #Cause the script to fail when encountering undefined variable (set -u)
 #DEBUG MODE for Development only, Cause the script to print out every command executed (set -x)
-set -eu -o pipefail
+set -eux -o pipefail
 
 ###################################################
 ###################################################
@@ -247,7 +247,7 @@ function BuildAndInstallMakeMKV() {
     cd makemkv-oss-"${LatestMakeMKVVersion}"
     sudo mkdir -p ./tmp
     sudo chmod 777 ./tmp
-    sudo ./configure 2>&1 >/dev/null
+    sudo ./configure >> /dev/null  2>&1
     sudo make -s
     sudo make install
     sudo checkinstall -y
@@ -255,7 +255,7 @@ function BuildAndInstallMakeMKV() {
     cd ../makemkv-bin-"${LatestMakeMKVVersion}"
     sudo mkdir -p ./tmp
     sudo chmod 777 ./tmp
-    sudo echo "yes" >> ./tmp/eula_accepted
+    sudo echo "yes" | sudo tee ./tmp/eula_accepted
     sudo make -s
     sudo make install
     sudo checkinstall -y
@@ -278,7 +278,7 @@ function BuildAndInstallMakeMKV() {
 
     cd makemkv-oss-"${LatestMakeMKVVersion}"
     mkdir -p ./tmp
-    ./configure 2>&1 >/dev/null
+    ./configure >> /dev/null  2>&1
     make -s
     make install
     checkinstall -y
@@ -561,16 +561,16 @@ else
 fi
 
 #Confirm existence of / create arm user and group
-##CreateArmUserAndGroup
+CreateArmUserAndGroup
 
 #Install Required Download Tools
-##InstallDownloadTools
+InstallDownloadTools
 
 #Build and Install MakeMKV
-##InstallMakeMKV
+InstallMakeMKV
 
 #Install Arm Dependencies
-##InstallArmDependencies
+InstallArmDependencies
 
 #Install Arm
 DownloadArm
