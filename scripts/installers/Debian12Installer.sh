@@ -12,7 +12,7 @@ export DEBIAN_FRONTEND=noninteractive
 #Cause the script to fail if an error code is provided while pipping commands (set -o pipefail)
 #Cause the script to fail when encountering undefined variable (set -u)
 #DEBUG MODE for Development only, Cause the script to print out every command executed (set -x)
-set -eux -o pipefail
+set -eu -o pipefail
 
 ###################################################
 ###################################################
@@ -31,6 +31,7 @@ readonly ERROR_INSUFFICIENT_USER_PRIVILEGES=1
 readonly ERROR_USER_PROVIDED_PASSWORD_MISMATCH=2
 readonly ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO=3
 readonly ERROR_MISSING_CONTRIB_REPOSITORY=4
+readonly ERROR_USER_DID_NOT_ACCEPT_SCRIPT_DISCLAIMER=5
 
 #Script Variables
 ##  $SUDO_FLAG  Is a Readonly Variable that is set in the Script Eligibility Code Section below (near the bottom).
@@ -45,6 +46,39 @@ readonly ERROR_MISSING_CONTRIB_REPOSITORY=4
 ###################################################
 #         Script eligibility functions            #
 ###################################################
+
+function UserAcceptedConditions() {
+  Disclaimer="${RED}
+************************************************************************************************************************
+** ${NC}                                                                                                                   ${RED}**
+** ${GREEN}                                           Automatic Ripping Machine (ARM)                                         ${RED}**
+** ${GREEN}                                    Installation Script for Debian 12 (Bookworm)                                   ${RED}**
+** ${YELLOW}  WARNING - ${NC}This installation method is no longer supported by the ARM development team. This script is provided   ${RED}**
+** ${NC} as is, without support.  If you experience issues with your ARM installation, you will need to reproduce it using ${RED}**
+** ${NC} an official ARM docker image before opening up an Issue on GitHub.  The installation instructions for ARM using   ${RED}**
+** ${NC} Docker can be found here: https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker      ${RED}**
+** ${NC}                                                                                                                   ${RED}**
+** ${NC} ARM uses MakeMKV. As of March 2024, MakeMKV is still in Beta and free to use while in Beta.                       ${RED}**
+** ${NC} You may, optionally, purchase a licence for MakeMKV at https://makemkv.com/buy/ Once purchased, you can go into   ${RED}**
+** ${NC} the ARM settings and paste in your key.  Instructions for entering your permanent key for MakeMKV in ARM can      ${RED}**
+** ${NC} be found here: [Wiki Link to instructions yet to be written]                                                      ${RED}**
+** ${NC}                                                                                                                   ${RED}**
+** ${NC} ARM is Open Source software licenced with the MIT licence:                                                        ${RED}**
+** ${NC} https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/main/LICENSE                          ${RED}**
+** ${NC}                                                                                                                   ${RED}**
+************************************************************************************************************************
+
+${YELLOW} Do you wish to proceed with this unsupported installation? Y/n :${NC}
+"
+
+  read -p "$(echo -e "${Disclaimer}")" -r -n 1 ProceedWithScriptExecution
+  echo -e ""
+  if ! [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
+    echo -e "${RED} Exiting Installation Script, No changes were made...${NC}"
+    exit ${ERROR_USER_DID_NOT_ACCEPT_SCRIPT_DISCLAIMER}
+  fi
+
+}
 
 #Confirm this script is running on Debian 12 (Bookworm).  Return boolean values 'true' or 'false'.
 function IsDebian12Distro() {
@@ -515,6 +549,10 @@ function DownloadArm () {
 #            Script eligibility code              #
 ###################################################
 
+#Inform the user that this is an unsupported installation method.  Inform them of the existence of the preferred
+#method, being the Docker image.
+UserAcceptedConditions
+
 #Confirm we are in a Debian 12 (Bookworm) Linux Distro.
 if ! (IsDebian12Distro); then
   NotDebian12Prompt="${YELLOW}WARNING, you are attempting to run this script in a environment other than Debian 12 (Bookworm)
@@ -561,19 +599,19 @@ else
 fi
 
 #Confirm existence of / create arm user and group
-CreateArmUserAndGroup
+###CreateArmUserAndGroup
 
 #Install Required Download Tools
-InstallDownloadTools
+###InstallDownloadTools
 
 #Build and Install MakeMKV
-InstallMakeMKV
+###InstallMakeMKV
 
 #Install Arm Dependencies
-InstallArmDependencies
+###InstallArmDependencies
 
 #Install Arm
-DownloadArm
+###DownloadArm
 
 #Post Arm Installation
 
