@@ -350,6 +350,7 @@ function InstallArmDependencies() {
                         libdvdcss2 \
                         libssl-dev \
                         python3 \
+                        python3-venv \
                         python3-libdiscid \
                         python3-pip
 
@@ -372,6 +373,7 @@ function InstallArmDependencies() {
                     libdvdcss2 \
                     libssl-dev \
                     python3 \
+                    python3-venv \
                     python3-libdiscid \
                     python3-pip
 
@@ -539,6 +541,13 @@ function DownloadArm () {
   fi
 }
 
+function CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies() {
+  cd /opt/arm
+  sudo -u arm python3 -m venv venv
+  sudo -u arm /opt/arm/venv/bin/pip3 install wheel
+  sudo -u arm /opt/arm/venv/bin/pip3 install -r requirements.txt
+}
+
 ###################################################
 ###################################################
 #         Procedural Code Starts Here             #
@@ -599,19 +608,20 @@ else
 fi
 
 #Confirm existence of / create arm user and group
-###CreateArmUserAndGroup
+CreateArmUserAndGroup
 
 #Install Required Download Tools
-###InstallDownloadTools
+InstallDownloadTools
 
 #Build and Install MakeMKV
-###InstallMakeMKV
+InstallMakeMKV
 
 #Install Arm Dependencies
-###InstallArmDependencies
+InstallArmDependencies
 
 #Install Arm
-###DownloadArm
+DownloadArm
+CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies
 
 #Post Arm Installation
 
