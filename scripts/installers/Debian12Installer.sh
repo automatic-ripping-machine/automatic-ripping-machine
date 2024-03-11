@@ -34,6 +34,7 @@ readonly ERROR_USER_PROVIDED_PASSWORD_MISMATCH=2
 readonly ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO=3
 readonly ERROR_MISSING_CONTRIB_REPOSITORY=4
 readonly ERROR_USER_DID_NOT_ACCEPT_SCRIPT_DISCLAIMER=5
+readonly ERROR_SUDO_NOT_INSTALLED=6
 
 #Script Variables
 ##  $SUDO_FLAG  Is a Readonly Variable that is set in the Script Eligibility Code Section below (near the bottom).
@@ -82,12 +83,13 @@ ${YELLOW} Do you wish to proceed with this unsupported installation? Y/n :${NC}
 
 }
 
-#Confirm this script is running on Debian 12 (Bookworm).  Return boolean values 'true' or 'false'.
-function IsDebian12Distro() {
-  if [[ $(lsb_release -i | grep -o "Debian") == "Debian" ]] && [[ $(lsb_release -r | grep -o "12") -eq 12 ]] ; then
-    true
-  else
-    false
+function IsSudoInstalled() {
+  if [[ $(dpkg -s sudo &> /dev/null) -ne 0 ]] ; then
+    echo -e "${RED} This script requires the that « sudo » be installed.
+    Please install sudo and provide the current user sudo privileges before running this script.
+
+    Exiting Installation Script, No changes were made...${NC}"
+    exit ${ERROR_SUDO_NOT_INSTALLED}
   fi
 }
 
@@ -100,6 +102,17 @@ function Is_Effective_Root_User() {
     false
   fi
 }
+
+#Confirm this script is running on Debian 12 (Bookworm).  Return boolean values 'true' or 'false'.
+function IsDebian12Distro() {
+  if [[ $(lsb_release -i | grep -o "Debian") == "Debian" ]] && [[ $(lsb_release -r | grep -o "12") -eq 12 ]] ; then
+    true
+  else
+    false
+  fi
+}
+
+
 
 #Confirm the presence of required package libraries.
 function IsContribRepoAvailable() {
@@ -286,7 +299,7 @@ function BuildAndInstallMakeMKV() {
     sudo ./configure >> /dev/null  2>&1
     sudo make -s
     sudo make install
-    sudo checkinstall -y
+    #sudo checkinstall -y
 
     cd ../makemkv-bin-"${LatestMakeMKVVersion}"
     sudo mkdir -p ./tmp
@@ -294,7 +307,7 @@ function BuildAndInstallMakeMKV() {
     sudo echo "yes" | sudo tee ./tmp/eula_accepted
     sudo make -s
     sudo make install
-    sudo checkinstall -y
+    #sudo checkinstall -y
 
 
     sudo chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
@@ -317,14 +330,14 @@ function BuildAndInstallMakeMKV() {
     ./configure >> /dev/null  2>&1
     make -s
     make install
-    checkinstall -y
+    #checkinstall -y
 
     cd ../makemkv-bin-"${LatestMakeMKVVersion}"
     mkdir -p ./tmp
     echo "yes" >> ./tmp/eula_accepted
     make -s
     make install
-    checkinstall -y
+    #checkinstall -y
 
     chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
   fi
@@ -460,7 +473,7 @@ function DownloadArm () {
       sudo mkdir -p /etc/arm/config
       sudo cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
       sudo cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
-      sudo cp /opt/arm/setup/.abcde.conf /etc/arm/config/.abcde.conf
+      sudo cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
 
     fi
 
@@ -478,7 +491,7 @@ function DownloadArm () {
 
     sudo cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
     sudo cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
-    sudo cp /opt/arm/setup/.abcde.conf /etc/arm/config/.abcde.conf.default
+    sudo cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf.default
   else
     cd /opt
     if [ -d arm ]; then
@@ -540,7 +553,7 @@ function DownloadArm () {
       mkdir -p /etc/arm/config
       cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
       cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
-      cp /opt/arm/setup/.abcde.conf /etc/arm/config/.abcde.conf
+      cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
 
     fi
 
@@ -558,7 +571,7 @@ function DownloadArm () {
 
     cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
     cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
-    cp /opt/arm/setup/.abcde.conf /etc/arm/config/.abcde.conf.default
+    cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf.default
   fi
 }
 
@@ -571,9 +584,9 @@ function CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies() {
 
 function CreateUDEVRules() {
   if ${SUDO_FLAG}; then
-    sudo ln -s /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
+    sudo ln -sf /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
   else
-    ln -s /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
+    ln -sf /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
   fi
 }
 
@@ -604,6 +617,7 @@ function MountDrives() {
 
 function SetupFolders() {
   sudo -u arm mkdir -p /home/arm/logs/
+  sudo -u arm mkdir -p /home/arm/logs/progress/
   sudo -u arm mkdir -p /home/arm/media/transcode/
   sudo -u arm mkdir -p /home/arm/media/completed/
   sudo -u arm mkdir -p /home/arm/media/raw/
@@ -612,16 +626,20 @@ function SetupFolders() {
 function CreateAndStartService() {
   echo -e "${RED}Installing ARM service${NC}"
   if ${SUDO_FLAG}; then
-    sudo ln -s /opt/arm/setup/arm.service /lib/systemd/system/armui.service
+    sudo ln -sf /opt/arm/setup/arm.service /lib/systemd/system/armui.service
     sudo systemctl daemon-reload
     sudo systemctl enable armui
     sudo systemctl start armui
   else
-    ln -s /opt/arm/setup/arm.service /lib/systemd/system/armui.service
+    ln -sf /opt/arm/setup/arm.service /lib/systemd/system/armui.service
     systemctl daemon-reload
     systemctl enable armui
     systemctl start armui
   fi
+}
+
+function LauchSetup() {
+  echo -e "${RED}Launching ArmUI first-time setup${NC}"
 }
 
 ###################################################
@@ -637,6 +655,27 @@ function CreateAndStartService() {
 #Inform the user that this is an unsupported installation method.  Inform them of the existence of the preferred
 #method, being the Docker image.
 UserAcceptedConditions
+
+IsSudoInstalled
+
+#Confirm we can run this script.
+if ! (Is_Effective_Root_User); then
+  #Script was not run with elevated privileges, Request user for said privileges...
+  #Ask for Sudo Access and confirm we have Sudo Privileges.
+  if [[ $(sudo -v -p 'Please Enter your SUDO Password: ') -eq 0 ]] ; then
+    #Set $SUDO_FLAG Global Constant that will be used for the rest of the script.
+    readonly SUDO_FLAG=true
+  else
+    #Cannot confirm sudo privileges, alert the user and exit the script with error code.
+    echo -e "${RED}For this script to accomplish it's task, it requires elevated privileges.
+The current user doesn't have Sudo rights.
+Please contact an administrator to ask for Sudo rights or switch to a user with Sudo rights before running this script.
+Exiting....${NC}"
+    exit ${ERROR_INSUFFICIENT_USER_PRIVILEGES}
+  fi
+else
+  readonly SUDO_FLAG=false
+fi
 
 #Confirm we are in a Debian 12 (Bookworm) Linux Distro.
 if ! (IsDebian12Distro); then
@@ -664,24 +703,7 @@ Exiting....${NC}"
   fi
 fi
 
-#Confirm we can run this script.
-if ! (Is_Effective_Root_User); then
-  #Script was not run with elevated privileges, Request user for said privileges...
-  #Ask for Sudo Access and confirm we have Sudo Privileges.
-  if [[ $(sudo -v -p 'Please Enter your SUDO Password: ') -eq 0 ]] ; then
-    #Set $SUDO_FLAG Global Constant that will be used for the rest of the script.
-    readonly SUDO_FLAG=true
-  else
-    #Cannot confirm sudo privileges, alert the user and exit the script with error code.
-    echo -e "${RED}For this script to accomplish it's task, it requires elevated privileges.
-The current user doesn't have Sudo rights.
-Please contact an administrator to ask for Sudo rights or switch to a user with Sudo rights before running this script.
-Exiting....${NC}"
-    exit ${ERROR_INSUFFICIENT_USER_PRIVILEGES}
-  fi
-else
-  readonly SUDO_FLAG=false
-fi
+
 
 #Confirm existence of / create arm user and group
 CreateArmUserAndGroup
@@ -704,3 +726,4 @@ CreateUDEVRules
 MountDrives
 SetupFolders
 CreateAndStartService
+LauchSetup
