@@ -21,6 +21,22 @@ When a disc is inserted, udev rules should launch a script (scripts/arm_wrapper.
 
     The default location is `/home/arm/db/`
 
+## Disk Tray Opens then Immediately Closes
+
+This can cause a disk to get ripped multiple times in a row,
+especially if `ALLOW_DUPLICATES` is `True` (which may be the case for ripping TV shows).
+
+To fix this issue (on systems that use `sysctl`), you can run the following command.
+This will create a settings file that disables autoclose on the disk tray,
+and reloads sysctl with that settings file.
+It requires `root` privileges via `sudo`,
+and will persist across reboots.
+
+```bash
+printf "# Fix issue with DVD tray being autoclosed after rip is complete\ndev.cdrom.autoclose=0\n" | sudo tee /etc/sysctl.d/arm-uneject-fix.conf >/dev/null && \
+  sudo sysctl --load=/etc/sysctl.d/arm-uneject-fix.conf
+```
+
 ## Other problems
 - Check ARM log files 
   - The default location is /home/arm/logs/ (unless this is changed in your arm.yaml file) and is named after the dvd. These are very verbose.  You can filter them a little by piping the log through grep.  Something like
