@@ -19,6 +19,8 @@ set -eu -o pipefail
 #               Global Variables                  #
 ###################################################
 ###################################################
+readonly SCRIPT_TESTING_REPO=true
+
 
 #Text Color and Formatting Variables
 RED='\033[1;31m'
@@ -349,6 +351,7 @@ function InstallArmDependencies() {
                         libcurl4-openssl-dev \
                         libdvdcss2 \
                         libssl-dev \
+                        lsdvd \
                         python3 \
                         python3-venv \
                         python3-libdiscid \
@@ -372,6 +375,7 @@ function InstallArmDependencies() {
                     libcurl4-openssl-dev \
                     libdvdcss2 \
                     libssl-dev \
+                    lsdvd \
                     python3 \
                     python3-venv \
                     python3-libdiscid \
@@ -388,8 +392,14 @@ function InstallArmDependencies() {
 
 function DownloadArm () {
   #Get current version number of ARM
-  readonly ARM_LATEST=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' \
+  if ${SCRIPT_TESTING_REPO} ; then
+    readonly ARM_LATEST="feature_Debian-12-Install-Script"
+  else
+    readonly ARM_LATEST=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' \
                         | grep 'automatic-ripping-machine/tree/*' | head -n 1 | sed -e 's/[^0-9\.]*//g')
+  fi
+
+
   if ${SUDO_FLAG}; then
     cd /opt
     if [ -d arm ]; then
@@ -438,8 +448,13 @@ function DownloadArm () {
       sudo mkdir arm
       sudo chown -R arm:arm arm
 
-      sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
-        https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
+      if ${SCRIPT_TESTING_REPO} ; then
+        sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
+          https://github.com/SylvainMT/automatic-ripping-machine  arm
+      else
+        sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
+          https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
+      fi
 
       #Copy clean copies of config files to etc folder.
       sudo mkdir -p /etc/arm/config
@@ -512,8 +527,14 @@ function DownloadArm () {
       mkdir arm
       chown -R arm:arm arm
 
-      sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
-        https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
+      if ${SCRIPT_TESTING_REPO} ; then
+        sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
+          https://github.com/SylvainMT/automatic-ripping-machine  arm
+      else
+        sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
+          https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
+      fi
+
 
       #Copy clean copies of config files to etc folder.
       mkdir -p /etc/arm/config
@@ -546,6 +567,61 @@ function CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies() {
   sudo -u arm python3 -m venv venv
   sudo -u arm /opt/arm/venv/bin/pip3 install wheel
   sudo -u arm /opt/arm/venv/bin/pip3 install -r requirements.txt
+}
+
+function CreateUDEVRules() {
+  if ${SUDO_FLAG}; then
+    sudo ln -s /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
+  else
+    ln -s /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
+  fi
+}
+
+function MountDrives() {
+  ######## Adding new line to fstab, needed for the autoplay to work.
+  ######## also creating mount points (why loop twice)
+  echo -e "${RED}Adding fstab entry and creating mount points${NC}"
+  if ${SUDO_FLAG}; then
+    for dev in /dev/sr?; do
+        if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
+            echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
+        else
+            echo -e "\n${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 \n" | sudo tee -a /etc/fstab
+        fi
+        sudo mkdir -p "/mnt$dev"
+    done
+  else
+    for dev in /dev/sr?; do
+        if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
+            echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
+        else
+            echo -e "\n${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 \n" | tee -a /etc/fstab
+        fi
+        mkdir -p "/mnt$dev"
+    done
+  fi
+}
+
+function SetupFolders() {
+  sudo -u arm mkdir -p /home/arm/logs/
+  sudo -u arm mkdir -p /home/arm/media/transcode/
+  sudo -u arm mkdir -p /home/arm/media/completed/
+  sudo -u arm mkdir -p /home/arm/media/raw/
+}
+
+function CreateAndStartService() {
+  echo -e "${RED}Installing ARM service${NC}"
+  if ${SUDO_FLAG}; then
+    sudo ln -s /opt/arm/setup/arm.service /etc/systemd/system/armui.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable armui
+    sudo systemctl start armui
+  else
+    ln -s /opt/arm/setup/arm.service /etc/systemd/system/armui.service
+    systemctl daemon-reload
+    systemctl enable armui
+    systemctl start armui
+  fi
 }
 
 ###################################################
@@ -624,4 +700,7 @@ DownloadArm
 CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies
 
 #Post Arm Installation
-
+CreateUDEVRules
+MountDrives
+SetupFolders
+CreateAndStartService

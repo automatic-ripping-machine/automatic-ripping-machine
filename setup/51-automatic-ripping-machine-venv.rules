@@ -1,0 +1,6 @@
+# ID_CDROM_MEDIA_BD = Bluray
+# ID_CDROM_MEDIA_DVD = DVD
+# ID_CDROM_MEDIA_CD = CD
+ACTION=="change", SUBSYSTEM=="block", RUN+="/opt/arm/scripts/thickclient/arm_venv_wrapper.sh %k"
+
+
