@@ -612,12 +612,12 @@ function SetupFolders() {
 function CreateAndStartService() {
   echo -e "${RED}Installing ARM service${NC}"
   if ${SUDO_FLAG}; then
-    sudo ln -s /opt/arm/setup/arm.service /etc/systemd/system/armui.service
+    sudo ln -s /opt/arm/setup/arm.service /lib/systemd/system/armui.service
     sudo systemctl daemon-reload
     sudo systemctl enable armui
     sudo systemctl start armui
   else
-    ln -s /opt/arm/setup/arm.service /etc/systemd/system/armui.service
+    ln -s /opt/arm/setup/arm.service /lib/systemd/system/armui.service
     systemctl daemon-reload
     systemctl enable armui
     systemctl start armui
