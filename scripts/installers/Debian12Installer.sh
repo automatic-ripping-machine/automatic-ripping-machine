@@ -19,6 +19,9 @@ set -eu -o pipefail
 #               Global Variables                  #
 ###################################################
 ###################################################
+
+#This needs to be DELETED and the accompanying if..fi checks deleted BEFORE pull request is complete.
+##TODO Make this a script variable instead...
 readonly SCRIPT_TESTING_REPO=true
 
 
@@ -84,12 +87,10 @@ ${YELLOW} Do you wish to proceed with this unsupported installation? Y/n :${NC}
 }
 
 function IsSudoInstalled() {
-  if [[ $(dpkg -s sudo &> /dev/null) -ne 0 ]] ; then
-    echo -e "${RED} This script requires the that « sudo » be installed.
-    Please install sudo and provide the current user sudo privileges before running this script.
-
-    Exiting Installation Script, No changes were made...${NC}"
-    exit ${ERROR_SUDO_NOT_INSTALLED}
+  if ! dpkg -s sudo > /dev/null 2>&1 ; then
+    true
+  else
+    false
   fi
 }
 
@@ -98,13 +99,31 @@ function Is_Effective_Root_User() {
   USERID=$(id -u)
   if [[ ${USERID} == 0 ]] ;  then
     true
+    if IsSudoInstalled ; then
+      echo -e "${RED} \nThis script requires the that « sudo » be installed.
+Please install sudo and run the script again.
+
+Exiting Installation Script, No changes were made...${NC}"
+      exit ${ERROR_SUDO_NOT_INSTALLED}
+    fi
+
   else
+    #Cannot confirm sudo privileges, alert the user and exit the script with error code.
+    echo -e "${RED}\nFor this script to accomplish it's task, it requires elevated privileges.
+Please run this script with « sudo /[path_to_script]/Debian12Installer.sh »
+
+Exiting Installation Script, No changes were made...${NC}"
+    exit ${ERROR_INSUFFICIENT_USER_PRIVILEGES}
     false
   fi
 }
 
 #Confirm this script is running on Debian 12 (Bookworm).  Return boolean values 'true' or 'false'.
 function IsDebian12Distro() {
+  if ! dpkg -s lsb-release > /dev/null 2>&1 ; then
+    apt update
+    apt install lsb-release -y
+  fi
   if [[ $(lsb_release -i | grep -o "Debian") == "Debian" ]] && [[ $(lsb_release -r | grep -o "12") -eq 12 ]] ; then
     true
   else
@@ -162,11 +181,11 @@ function CreateArmUserAndGroup() {
 #If the group exists, do nothing, if it does not exist create it.
 function CreateArmGroup() {
   if ! [[ $(getent group arm) ]]; then
-    if ${SUDO_FLAG}; then
-      sudo groupadd arm;
-    else
+#    if ${SUDO_FLAG}; then
+#      sudo groupadd arm;
+#    else
       groupadd arm;
-    fi
+#    fi
     echo -e "${GREEN}Group 'arm' successfully created. \n${NC}"
   else
     echo -e "${GREEN}'arm' group already exists, skipping...\n${NC}"
@@ -176,11 +195,11 @@ function CreateArmGroup() {
 #If user exists, do nothing, if it does not exist create the user with default settings.
 function CreateArmUser() {
   if ! id arm > /dev/null 2>&1 ; then
-    if ${SUDO_FLAG}; then
-      sudo useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
-    else
+#    if ${SUDO_FLAG}; then
+#      sudo useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
+#    else
       useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
-    fi
+#    fi
     echo -e "${GREEN}User 'arm' successfully created. \n${NC}"
     PasswordProtectArmUser
   else
@@ -190,11 +209,11 @@ function CreateArmUser() {
 
 # Make sure the 'arm' user is part of the 'cdrom', 'video' and 'render' groups.
 function MakeArmUserPartOfRequiredGroups() {
-  if ${SUDO_FLAG}; then
-    sudo usermod -aG cdrom,video,render arm
-  else
+#  if ${SUDO_FLAG}; then
+#    sudo usermod -aG cdrom,video,render arm
+#  else
     usermod -aG cdrom,video,render arm
-  fi
+#  fi
 }
 
 #Give the User the option of setting a custom password.  The User may decline, in which event
@@ -224,11 +243,11 @@ function PasswordProtectArmUser() {
     Password_2=1234
   fi
   #Set User Password.
-  if ${SUDO_FLAG}; then
-    echo -e "${Password_1}\n${Password_2}\n" | sudo passwd -q arm
-  else
+#  if ${SUDO_FLAG}; then
+#    echo -e "${Password_1}\n${Password_2}\n" | sudo passwd -q arm
+#  else
     echo -e "${Password_1}\n${Password_2}\n" | passwd -q arm
-  fi
+#  fi
 }
 
 ###################################################
@@ -236,11 +255,11 @@ function PasswordProtectArmUser() {
 ###################################################
 
 function InstallDownloadTools () {
-  if ${SUDO_FLAG}; then
-    sudo apt update && sudo apt -y install  curl git wget
-  else
+#  if ${SUDO_FLAG}; then
+#    sudo apt update && sudo apt -y install  curl git wget
+#  else
     apt update && apt install -y curl git wget
-  fi
+#  fi
 }
 
 ###################################################
@@ -253,18 +272,18 @@ function InstallMakeMKV() {
 }
 
 function InstallBuildEnvironment() {
-  if ${SUDO_FLAG}; then
-    sudo apt install -y build-essential \
-                        pkg-config \
-                        libc6-dev \
-                        libssl-dev \
-                        libexpat1-dev \
-                        libavcodec-dev \
-                        libgl1-mesa-dev \
-                        qtbase5-dev \
-                        zlib1g-dev \
-                        checkinstall
-  else
+#  if ${SUDO_FLAG}; then
+#    sudo apt install -y build-essential \
+#                        pkg-config \
+#                        libc6-dev \
+#                        libssl-dev \
+#                        libexpat1-dev \
+#                        libavcodec-dev \
+#                        libgl1-mesa-dev \
+#                        qtbase5-dev \
+#                        zlib1g-dev \
+#                        checkinstall
+#  else
     apt install -y  build-essential \
                     pkg-config \
                     libc6-dev \
@@ -275,43 +294,43 @@ function InstallBuildEnvironment() {
                     qtbase5-dev \
                     zlib1g-dev \
                     checkinstall
-  fi
+#  fi
 }
 
 function BuildAndInstallMakeMKV() {
-  if ${SUDO_FLAG}; then
-    ArmUserHomeFolder=~arm
-    LatestMakeMKVVersion=$(curl -s https://www.makemkv.com/download/ | grep -o '[0-9.]*.txt' | sed 's/.txt//')
-    MakeMKVBuildFilesDirectory="${ArmUserHomeFolder}"/MakeMKVBuildFiles/"${LatestMakeMKVVersion}"
-    sudo -u arm mkdir -p "${MakeMKVBuildFilesDirectory}"
-    cd "${MakeMKVBuildFilesDirectory}"
-    sudo wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
-    sudo wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
-    sudo wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
-    grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
-    grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
-    sudo -u arm tar xzf makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
-    sudo -u arm tar xzf makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
-
-    cd makemkv-oss-"${LatestMakeMKVVersion}"
-    sudo mkdir -p ./tmp
-    sudo chmod 777 ./tmp
-    sudo ./configure >> /dev/null  2>&1
-    sudo make -s
-    sudo make install
-    #sudo checkinstall -y
-
-    cd ../makemkv-bin-"${LatestMakeMKVVersion}"
-    sudo mkdir -p ./tmp
-    sudo chmod 777 ./tmp
-    sudo echo "yes" | sudo tee ./tmp/eula_accepted
-    sudo make -s
-    sudo make install
-    #sudo checkinstall -y
-
-
-    sudo chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
-  else
+#  if ${SUDO_FLAG}; then
+#    ArmUserHomeFolder=~arm
+#    LatestMakeMKVVersion=$(curl -s https://www.makemkv.com/download/ | grep -o '[0-9.]*.txt' | sed 's/.txt//')
+#    MakeMKVBuildFilesDirectory="${ArmUserHomeFolder}"/MakeMKVBuildFiles/"${LatestMakeMKVVersion}"
+#    sudo -u arm mkdir -p "${MakeMKVBuildFilesDirectory}"
+#    cd "${MakeMKVBuildFilesDirectory}"
+#    sudo wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
+#    sudo wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
+#    sudo wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
+#    grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
+#    grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
+#    sudo -u arm tar xzf makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
+#    sudo -u arm tar xzf makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
+#
+#    cd makemkv-oss-"${LatestMakeMKVVersion}"
+#    sudo mkdir -p ./tmp
+#    sudo chmod 777 ./tmp
+#    sudo ./configure >> /dev/null  2>&1
+#    sudo make -s
+#    sudo make install
+#    #sudo checkinstall -y
+#
+#    cd ../makemkv-bin-"${LatestMakeMKVVersion}"
+#    sudo mkdir -p ./tmp
+#    sudo chmod 777 ./tmp
+#    sudo echo "yes" | sudo tee ./tmp/eula_accepted
+#    sudo make -s
+#    sudo make install
+#    #sudo checkinstall -y
+#
+#
+#    sudo chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
+#  else
     ArmUserHomeFolder=~arm
     LatestMakeMKVVersion=$(curl -s https://www.makemkv.com/download/ | grep -o '[0-9.]*.txt' | sed 's/.txt//')
     MakeMKVBuildFilesDirectory="${ArmUserHomeFolder}"/MakeMKVBuildFiles/"${LatestMakeMKVVersion}"
@@ -340,7 +359,7 @@ function BuildAndInstallMakeMKV() {
     #checkinstall -y
 
     chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
-  fi
+#  fi
 
 }
 
@@ -349,31 +368,31 @@ function BuildAndInstallMakeMKV() {
 ###################################################
 
 function InstallArmDependencies() {
-  if ${SUDO_FLAG}; then
-    sudo apt install -y abcde \
-                        at \
-                        cdparanoia \
-                        default-jre-headless \
-                        eject \
-                        ffmpeg \
-                        flac \
-                        glyrc \
-                        handbrake-cli \
-                        imagemagick \
-                        libavcodec-extra \
-                        libcurl4-openssl-dev \
-                        libdvdcss2 \
-                        libssl-dev \
-                        lsdvd \
-                        python3 \
-                        python3-venv \
-                        python3-libdiscid \
-                        python3-pip
-
-    sudo DEBIAN_FRONTEND=noninteractive apt -y install libdvd-pkg
-    sudo dpkg-reconfigure --frontend noninteractive libdvd-pkg
-
-  else
+#  if ${SUDO_FLAG}; then
+#    sudo apt install -y abcde \
+#                        at \
+#                        cdparanoia \
+#                        default-jre-headless \
+#                        eject \
+#                        ffmpeg \
+#                        flac \
+#                        glyrc \
+#                        handbrake-cli \
+#                        imagemagick \
+#                        libavcodec-extra \
+#                        libcurl4-openssl-dev \
+#                        libdvdcss2 \
+#                        libssl-dev \
+#                        lsdvd \
+#                        python3 \
+#                        python3-venv \
+#                        python3-libdiscid \
+#                        python3-pip
+#
+#    sudo DEBIAN_FRONTEND=noninteractive apt -y install libdvd-pkg
+#    sudo dpkg-reconfigure --frontend noninteractive libdvd-pkg
+#
+#  else
     apt install -y  abcde \
                     at \
                     cdparanoia \
@@ -396,7 +415,7 @@ function InstallArmDependencies() {
 
     DEBIAN_FRONTEND=noninteractive apt -y install libdvd-pkg
     dpkg-reconfigure --frontend noninteractive libdvd-pkg
-  fi
+#  fi
 }
 
 ###################################################
@@ -413,86 +432,86 @@ function DownloadArm () {
   fi
 
 
-  if ${SUDO_FLAG}; then
-    cd /opt
-    if [ -d arm ]; then
-      #Arm Installation found.
-      #Confirm it is a Git repo
-      #If Git Repo, update the repo to current release
-
-      #I chose git fetch and git checkout, but I am unsure if this could cause some issues...
-      #this method depends on the user not modifying the repo between running this script
-      #A big assumption.
-
-      #The Other method is to delete the directory completely and do a fresh git pull at the current branch.
-      #The problem here is that it would also delete the Python Virtual Environment that is created later in this script.
-      #It would force an update of Python, which I am unsure if it is the best option.
-
-      echo -e "${GREEN}Previous Arm Installation Found${NC}"
-
-      cd arm
-      sudo -u arm git fetch
-
-      if ! sudo -u arm git checkout "${ARM_LATEST}" ; then
-        #Git Checkout failed, likely because of a change in the repo.
-        #Running Git Restore all files and folders will return the repo to the state it was
-        #at the tagged checkout but will destroy all modifications added to the repo.
-
-        #Prompt User to confirm first
-        RestoreRepoPrompt="${YELLOW}WARNING, A previous installation of ARM was found on the system,
-        it's repository contains uncommitted changes.  These changes will be lost
-
-        ${NC}Do you wish to Continue? Y/n :"
-        read -p "$(echo -e "${RestoreRepoPrompt}")" -r -n 1 ProceedWithScriptExecution
-        echo -e ""
-        if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
-          echo -e "${GREEN}Restoring Repository...${NC}"
-          #Restore Repo
-          sudo -u arm git restore .
-          #Git Checkout the latest release branch
-          sudo -u arm git checkout "${ARM_LATEST}"
-        else
-          exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
-        fi
-      fi
-    else
-      #Fresh Arm installation
-      #Clone git repo, pin to latest release tag
-      sudo mkdir arm
-      sudo chown -R arm:arm arm
-
-      if ${SCRIPT_TESTING_REPO} ; then
-        sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
-          https://github.com/SylvainMT/automatic-ripping-machine  arm
-      else
-        sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
-          https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
-      fi
-
-      #Copy clean copies of config files to etc folder.
-      sudo mkdir -p /etc/arm/config
-      sudo cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
-      sudo cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
-      sudo cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
-
-    fi
-
-    #Fix File and Folder Permissions
-    #chown -R arm:arm /opt/arm
-    sudo find /opt/arm/scripts/ -type f -iname "*.sh" -exec chmod +x {} \;
-    sudo chown -R arm:arm /etc/arm
-
-    #Copy clean copies of the config files to /etc/arm/config/*.default
-    #This is so that the user can find clean versions of each of the config files for references.
-    #It helps incase of a broken config file due to error, or some future update changes.
-
-    #Remove old (and possibly outdated) config default files.
-    sudo rm -f /etc/arm/config/*.default
-
-    sudo cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
-    sudo cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
-    sudo cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf.default
-  else
+#  if ${SUDO_FLAG}; then
+#    cd /opt
+#    if [ -d arm ]; then
+#      #Arm Installation found.
+#      #Confirm it is a Git repo
+#      #If Git Repo, update the repo to current release
+#
+#      #I chose git fetch and git checkout, but I am unsure if this could cause some issues...
+#      #this method depends on the user not modifying the repo between running this script
+#      #A big assumption.
+#
+#      #The Other method is to delete the directory completely and do a fresh git pull at the current branch.
+#      #The problem here is that it would also delete the Python Virtual Environment that is created later in this script.
+#      #It would force an update of Python, which I am unsure if it is the best option.
+#
+#      echo -e "${GREEN}Previous Arm Installation Found${NC}"
+#
+#      cd arm
+#      sudo -u arm git fetch
+#
+#      if ! sudo -u arm git checkout "${ARM_LATEST}" ; then
+#        #Git Checkout failed, likely because of a change in the repo.
+#        #Running Git Restore all files and folders will return the repo to the state it was
+#        #at the tagged checkout but will destroy all modifications added to the repo.
+#
+#        #Prompt User to confirm first
+#        RestoreRepoPrompt="${YELLOW}WARNING, A previous installation of ARM was found on the system,
+#        it's repository contains uncommitted changes.  These changes will be lost
+#
+#        ${NC}Do you wish to Continue? Y/n :"
+#        read -p "$(echo -e "${RestoreRepoPrompt}")" -r -n 1 ProceedWithScriptExecution
+#        echo -e ""
+#        if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
+#          echo -e "${GREEN}Restoring Repository...${NC}"
+#          #Restore Repo
+#          sudo -u arm git restore .
+#          #Git Checkout the latest release branch
+#          sudo -u arm git checkout "${ARM_LATEST}"
+#        else
+#          exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
+#        fi
+#      fi
+#    else
+#      #Fresh Arm installation
+#      #Clone git repo, pin to latest release tag
+#      sudo mkdir arm
+#      sudo chown -R arm:arm arm
+#
+#      if ${SCRIPT_TESTING_REPO} ; then
+#        sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
+#          https://github.com/SylvainMT/automatic-ripping-machine  arm
+#      else
+#        sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
+#          https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
+#      fi
+#
+#      #Copy clean copies of config files to etc folder.
+#      sudo mkdir -p /etc/arm/config
+#      sudo cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
+#      sudo cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
+#      sudo cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
+#
+#    fi
+#
+#    #Fix File and Folder Permissions
+#    #chown -R arm:arm /opt/arm
+#    sudo find /opt/arm/scripts/ -type f -iname "*.sh" -exec chmod +x {} \;
+#    sudo chown -R arm:arm /etc/arm
+#
+#    #Copy clean copies of the config files to /etc/arm/config/*.default
+#    #This is so that the user can find clean versions of each of the config files for references.
+#    #It helps incase of a broken config file due to error, or some future update changes.
+#
+#    #Remove old (and possibly outdated) config default files.
+#    sudo rm -f /etc/arm/config/*.default
+#
+#    sudo cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
+#    sudo cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
+#    sudo cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf.default
+#  else
     cd /opt
     if [ -d arm ]; then
       #Arm Installation found.
@@ -572,7 +591,7 @@ function DownloadArm () {
     cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
     cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
     cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf.default
-  fi
+#  fi
 }
 
 function CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies() {
@@ -583,27 +602,27 @@ function CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies() {
 }
 
 function CreateUDEVRules() {
-  if ${SUDO_FLAG}; then
-    sudo ln -sf /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
-  else
+#  if ${SUDO_FLAG}; then
+#    sudo ln -sf /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
+#  else
     ln -sf /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
-  fi
+#  fi
 }
 
 function MountDrives() {
   ######## Adding new line to fstab, needed for the autoplay to work.
   ######## also creating mount points (why loop twice)
   echo -e "${RED}Adding fstab entry and creating mount points${NC}"
-  if ${SUDO_FLAG}; then
-    for dev in /dev/sr?; do
-        if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
-            echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
-        else
-            echo -e "\n${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 \n" | sudo tee -a /etc/fstab
-        fi
-        sudo mkdir -p "/mnt$dev"
-    done
-  else
+#  if ${SUDO_FLAG}; then
+#    for dev in /dev/sr?; do
+#        if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
+#            echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
+#        else
+#            echo -e "\n${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 \n" | sudo tee -a /etc/fstab
+#        fi
+#        sudo mkdir -p "/mnt$dev"
+#    done
+#  else
     for dev in /dev/sr?; do
         if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
             echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
@@ -612,7 +631,7 @@ function MountDrives() {
         fi
         mkdir -p "/mnt$dev"
     done
-  fi
+#  fi
 }
 
 function SetupFolders() {
@@ -625,17 +644,17 @@ function SetupFolders() {
 
 function CreateAndStartService() {
   echo -e "${RED}Installing ARM service${NC}"
-  if ${SUDO_FLAG}; then
-    sudo ln -sf /opt/arm/setup/arm.service /lib/systemd/system/armui.service
-    sudo systemctl daemon-reload
-    sudo systemctl enable armui
-    sudo systemctl start armui
-  else
+#  if ${SUDO_FLAG}; then
+#    sudo ln -sf /opt/arm/setup/arm.service /lib/systemd/system/armui.service
+#    sudo systemctl daemon-reload
+#    sudo systemctl enable armui
+#    sudo systemctl start armui
+#  else
     ln -sf /opt/arm/setup/arm.service /lib/systemd/system/armui.service
     systemctl daemon-reload
     systemctl enable armui
     systemctl start armui
-  fi
+#  fi
 }
 
 function LauchSetup() {
@@ -656,26 +675,28 @@ function LauchSetup() {
 #method, being the Docker image.
 UserAcceptedConditions
 
-IsSudoInstalled
+#IsSudoInstalled
 
-#Confirm we can run this script.
-if ! (Is_Effective_Root_User); then
-  #Script was not run with elevated privileges, Request user for said privileges...
-  #Ask for Sudo Access and confirm we have Sudo Privileges.
-  if [[ $(sudo -v -p 'Please Enter your SUDO Password: ') -eq 0 ]] ; then
-    #Set $SUDO_FLAG Global Constant that will be used for the rest of the script.
-    readonly SUDO_FLAG=true
-  else
-    #Cannot confirm sudo privileges, alert the user and exit the script with error code.
-    echo -e "${RED}For this script to accomplish it's task, it requires elevated privileges.
-The current user doesn't have Sudo rights.
-Please contact an administrator to ask for Sudo rights or switch to a user with Sudo rights before running this script.
-Exiting....${NC}"
-    exit ${ERROR_INSUFFICIENT_USER_PRIVILEGES}
-  fi
-else
-  readonly SUDO_FLAG=false
-fi
+Is_Effective_Root_User
+
+##Confirm we can run this script.
+#if ! (Is_Effective_Root_User); then
+#  #Script was not run with elevated privileges, Request user for said privileges...
+#  #Ask for Sudo Access and confirm we have Sudo Privileges.
+#  if [[ $(sudo -v -p 'Please Enter your SUDO Password: ') -eq 0 ]] ; then
+#    #Set $SUDO_FLAG Global Constant that will be used for the rest of the script.
+#    readonly SUDO_FLAG=true
+#  else
+#    #Cannot confirm sudo privileges, alert the user and exit the script with error code.
+#    echo -e "${RED}For this script to accomplish it's task, it requires elevated privileges.
+#The current user doesn't have Sudo rights.
+#Please contact an administrator to ask for Sudo rights or switch to a user with Sudo rights before running this script.
+#Exiting....${NC}"
+#    exit ${ERROR_INSUFFICIENT_USER_PRIVILEGES}
+#  fi
+#else
+#  readonly SUDO_FLAG=false
+#fi
 
 #Confirm we are in a Debian 12 (Bookworm) Linux Distro.
 if ! (IsDebian12Distro); then
