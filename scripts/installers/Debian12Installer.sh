@@ -205,6 +205,7 @@ function MakeArmUserPartOfRequiredGroups() {
 #a default password of value '1234' is created.
 #If the default password value is used, advise the user to change the password at the next opportunity.
 function PasswordProtectArmUser() {
+  ##TODO Use script variable here maybe????
   #Determine what the password is going to be and save it in the variables $Password_1 & $Password_2
   PasswordQuestion="Do you wish to provide a custom password for the 'arm' user? Y/n : "
   read -ep "$(echo -e "${PasswordQuestion}")" -r -n 1 UserWishesToEnterPassword
@@ -237,6 +238,8 @@ function PasswordProtectArmUser() {
 ###################################################
 
 function InstallDownloadTools () {
+
+  ##TODO seperate the apt update call.  apt update should be done only once at the begenning of the script...
   apt update && apt install -y curl git wget
 }
 
@@ -258,9 +261,7 @@ function InstallBuildEnvironment() {
                   libavcodec-dev \
                   libgl1-mesa-dev \
                   qtbase5-dev \
-                  zlib1g-dev \
-                  checkinstall
-
+                  zlib1g-dev
 }
 
 function BuildAndInstallMakeMKV() {
@@ -290,6 +291,8 @@ function BuildAndInstallMakeMKV() {
   make install
 
   chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
+
+  ##TODO Save the necessary information to uninstall MakeMKV in a location TBD
 }
 
 ###################################################
@@ -327,6 +330,8 @@ function InstallArmDependencies() {
 
 function DownloadArm () {
   #Get current version number of ARM
+  ##TODO - This should default to official ARM Repo but script variable should allow for non-official Repo
+  ##TODO - Default to using the latest tag for the checkout branch.  But allow for user to specify Tag/Branch to check out via Script Variable.
   if ${SCRIPT_TESTING_REPO} ; then
     readonly ARM_LATEST="feature_Debian-12-Install-Script"
   else
@@ -381,6 +386,7 @@ function DownloadArm () {
     mkdir arm
     chown -R arm:arm arm
 
+    ##TODO This test should be here but at the top of the function, where a local variable can be used for Repo URL.
     if ${SCRIPT_TESTING_REPO} ; then
       sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
         https://github.com/SylvainMT/automatic-ripping-machine  arm
@@ -389,7 +395,8 @@ function DownloadArm () {
         https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
     fi
 
-
+    ##TODO Allow for user to specify custom port using script variable.  Default to port 8080.
+    ##TODO Pull system host and domain information and enter that in the Config file.
     #Copy clean copies of config files to etc folder.
     mkdir -p /etc/arm/config
     cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
@@ -438,6 +445,8 @@ function MountDrives() {
     fi
     mkdir -p "/mnt$dev"
   done
+
+  ##TODO Trouble shoot mount not applying causing ARM to not recognize the contents of the disk.
 }
 
 function SetupFolders() {
@@ -458,6 +467,7 @@ function CreateAndStartService() {
 
 function LauchSetup() {
   echo -e "${RED}Launching ArmUI first-time setup${NC}"
+  ##TODO Implement this method!!!! (Launch UI Setup)
 }
 
 ###################################################
@@ -498,6 +508,7 @@ Is_Effective_Root_User
 #fi
 
 #Confirm we are in a Debian 12 (Bookworm) Linux Distro.
+##TODO Make this into a function...
 if ! (IsDebian12Distro); then
   NotDebian12Prompt="${YELLOW}WARNING, you are attempting to run this script in a environment other than Debian 12 (Bookworm)
   This script was tested exclusively on Debian 12 (Bookworm)
