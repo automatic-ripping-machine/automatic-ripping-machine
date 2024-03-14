@@ -488,25 +488,6 @@ UserAcceptedConditions
 
 Is_Effective_Root_User
 
-##Confirm we can run this script.
-#if ! (Is_Effective_Root_User); then
-#  #Script was not run with elevated privileges, Request user for said privileges...
-#  #Ask for Sudo Access and confirm we have Sudo Privileges.
-#  if [[ $(sudo -v -p 'Please Enter your SUDO Password: ') -eq 0 ]] ; then
-#    #Set $SUDO_FLAG Global Constant that will be used for the rest of the script.
-#    readonly SUDO_FLAG=true
-#  else
-#    #Cannot confirm sudo privileges, alert the user and exit the script with error code.
-#    echo -e "${RED}For this script to accomplish it's task, it requires elevated privileges.
-#The current user doesn't have Sudo rights.
-#Please contact an administrator to ask for Sudo rights or switch to a user with Sudo rights before running this script.
-#Exiting....${NC}"
-#    exit ${ERROR_INSUFFICIENT_USER_PRIVILEGES}
-#  fi
-#else
-#  readonly SUDO_FLAG=false
-#fi
-
 #Confirm we are in a Debian 12 (Bookworm) Linux Distro.
 ##TODO Make this into a function...
 if ! (IsDebian12Distro); then
