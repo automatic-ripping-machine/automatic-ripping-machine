@@ -39,9 +39,6 @@ readonly ERROR_MISSING_CONTRIB_REPOSITORY=4
 readonly ERROR_USER_DID_NOT_ACCEPT_SCRIPT_DISCLAIMER=5
 readonly ERROR_SUDO_NOT_INSTALLED=6
 
-#Script Variables
-##  $SUDO_FLAG  Is a Readonly Variable that is set in the Script Eligibility Code Section below (near the bottom).
-#               It is used throughout the script to choose between using sudo when calling a function or not.
 
 ###################################################
 ###################################################
@@ -181,11 +178,7 @@ function CreateArmUserAndGroup() {
 #If the group exists, do nothing, if it does not exist create it.
 function CreateArmGroup() {
   if ! [[ $(getent group arm) ]]; then
-#    if ${SUDO_FLAG}; then
-#      sudo groupadd arm;
-#    else
-      groupadd arm;
-#    fi
+    groupadd arm;
     echo -e "${GREEN}Group 'arm' successfully created. \n${NC}"
   else
     echo -e "${GREEN}'arm' group already exists, skipping...\n${NC}"
@@ -195,11 +188,7 @@ function CreateArmGroup() {
 #If user exists, do nothing, if it does not exist create the user with default settings.
 function CreateArmUser() {
   if ! id arm > /dev/null 2>&1 ; then
-#    if ${SUDO_FLAG}; then
-#      sudo useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
-#    else
-      useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
-#    fi
+    useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
     echo -e "${GREEN}User 'arm' successfully created. \n${NC}"
     PasswordProtectArmUser
   else
@@ -209,11 +198,7 @@ function CreateArmUser() {
 
 # Make sure the 'arm' user is part of the 'cdrom', 'video' and 'render' groups.
 function MakeArmUserPartOfRequiredGroups() {
-#  if ${SUDO_FLAG}; then
-#    sudo usermod -aG cdrom,video,render arm
-#  else
-    usermod -aG cdrom,video,render arm
-#  fi
+  usermod -aG cdrom,video,render arm
 }
 
 #Give the User the option of setting a custom password.  The User may decline, in which event
@@ -242,12 +227,9 @@ function PasswordProtectArmUser() {
     Password_1=1234
     Password_2=1234
   fi
-  #Set User Password.
-#  if ${SUDO_FLAG}; then
-#    echo -e "${Password_1}\n${Password_2}\n" | sudo passwd -q arm
-#  else
-    echo -e "${Password_1}\n${Password_2}\n" | passwd -q arm
-#  fi
+
+  echo -e "${Password_1}\n${Password_2}\n" | passwd -q arm
+
 }
 
 ###################################################
@@ -255,11 +237,7 @@ function PasswordProtectArmUser() {
 ###################################################
 
 function InstallDownloadTools () {
-#  if ${SUDO_FLAG}; then
-#    sudo apt update && sudo apt -y install  curl git wget
-#  else
-    apt update && apt install -y curl git wget
-#  fi
+  apt update && apt install -y curl git wget
 }
 
 ###################################################
@@ -272,95 +250,46 @@ function InstallMakeMKV() {
 }
 
 function InstallBuildEnvironment() {
-#  if ${SUDO_FLAG}; then
-#    sudo apt install -y build-essential \
-#                        pkg-config \
-#                        libc6-dev \
-#                        libssl-dev \
-#                        libexpat1-dev \
-#                        libavcodec-dev \
-#                        libgl1-mesa-dev \
-#                        qtbase5-dev \
-#                        zlib1g-dev \
-#                        checkinstall
-#  else
-    apt install -y  build-essential \
-                    pkg-config \
-                    libc6-dev \
-                    libssl-dev \
-                    libexpat1-dev \
-                    libavcodec-dev \
-                    libgl1-mesa-dev \
-                    qtbase5-dev \
-                    zlib1g-dev \
-                    checkinstall
-#  fi
+  apt install -y  build-essential \
+                  pkg-config \
+                  libc6-dev \
+                  libssl-dev \
+                  libexpat1-dev \
+                  libavcodec-dev \
+                  libgl1-mesa-dev \
+                  qtbase5-dev \
+                  zlib1g-dev \
+                  checkinstall
+
 }
 
 function BuildAndInstallMakeMKV() {
-#  if ${SUDO_FLAG}; then
-#    ArmUserHomeFolder=~arm
-#    LatestMakeMKVVersion=$(curl -s https://www.makemkv.com/download/ | grep -o '[0-9.]*.txt' | sed 's/.txt//')
-#    MakeMKVBuildFilesDirectory="${ArmUserHomeFolder}"/MakeMKVBuildFiles/"${LatestMakeMKVVersion}"
-#    sudo -u arm mkdir -p "${MakeMKVBuildFilesDirectory}"
-#    cd "${MakeMKVBuildFilesDirectory}"
-#    sudo wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
-#    sudo wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
-#    sudo wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
-#    grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
-#    grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
-#    sudo -u arm tar xzf makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
-#    sudo -u arm tar xzf makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
-#
-#    cd makemkv-oss-"${LatestMakeMKVVersion}"
-#    sudo mkdir -p ./tmp
-#    sudo chmod 777 ./tmp
-#    sudo ./configure >> /dev/null  2>&1
-#    sudo make -s
-#    sudo make install
-#    #sudo checkinstall -y
-#
-#    cd ../makemkv-bin-"${LatestMakeMKVVersion}"
-#    sudo mkdir -p ./tmp
-#    sudo chmod 777 ./tmp
-#    sudo echo "yes" | sudo tee ./tmp/eula_accepted
-#    sudo make -s
-#    sudo make install
-#    #sudo checkinstall -y
-#
-#
-#    sudo chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
-#  else
-    ArmUserHomeFolder=~arm
-    LatestMakeMKVVersion=$(curl -s https://www.makemkv.com/download/ | grep -o '[0-9.]*.txt' | sed 's/.txt//')
-    MakeMKVBuildFilesDirectory="${ArmUserHomeFolder}"/MakeMKVBuildFiles/"${LatestMakeMKVVersion}"
-    mkdir -p "${MakeMKVBuildFilesDirectory}"
-    cd "${MakeMKVBuildFilesDirectory}"
-    wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
-    wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
-    wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
-    grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
-    grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
-    tar xzf makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
-    tar xzf makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
+  ArmUserHomeFolder=~arm
+  LatestMakeMKVVersion=$(curl -s https://www.makemkv.com/download/ | grep -o '[0-9.]*.txt' | sed 's/.txt//')
+  MakeMKVBuildFilesDirectory="${ArmUserHomeFolder}"/MakeMKVBuildFiles/"${LatestMakeMKVVersion}"
+  mkdir -p "${MakeMKVBuildFilesDirectory}"
+  cd "${MakeMKVBuildFilesDirectory}"
+  wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
+  wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
+  wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
+  grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
+  grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
+  tar xzf makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
+  tar xzf makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
 
-    cd makemkv-oss-"${LatestMakeMKVVersion}"
-    mkdir -p ./tmp
-    ./configure >> /dev/null  2>&1
-    make -s
-    make install
-    #checkinstall -y
+  cd makemkv-oss-"${LatestMakeMKVVersion}"
+  mkdir -p ./tmp
+  ./configure >> /dev/null  2>&1
+  make -s
+  make install
 
-    cd ../makemkv-bin-"${LatestMakeMKVVersion}"
-    mkdir -p ./tmp
-    echo "yes" >> ./tmp/eula_accepted
-    make -s
-    make install
-    #checkinstall -y
+  cd ../makemkv-bin-"${LatestMakeMKVVersion}"
+  mkdir -p ./tmp
+  echo "yes" >> ./tmp/eula_accepted
+  make -s
+  make install
 
-    chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
-#  fi
-
+  chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
 }
 
 ###################################################
@@ -368,54 +297,28 @@ function BuildAndInstallMakeMKV() {
 ###################################################
 
 function InstallArmDependencies() {
-#  if ${SUDO_FLAG}; then
-#    sudo apt install -y abcde \
-#                        at \
-#                        cdparanoia \
-#                        default-jre-headless \
-#                        eject \
-#                        ffmpeg \
-#                        flac \
-#                        glyrc \
-#                        handbrake-cli \
-#                        imagemagick \
-#                        libavcodec-extra \
-#                        libcurl4-openssl-dev \
-#                        libdvdcss2 \
-#                        libssl-dev \
-#                        lsdvd \
-#                        python3 \
-#                        python3-venv \
-#                        python3-libdiscid \
-#                        python3-pip
-#
-#    sudo DEBIAN_FRONTEND=noninteractive apt -y install libdvd-pkg
-#    sudo dpkg-reconfigure --frontend noninteractive libdvd-pkg
-#
-#  else
-    apt install -y  abcde \
-                    at \
-                    cdparanoia \
-                    default-jre-headless \
-                    eject \
-                    ffmpeg \
-                    flac \
-                    glyrc \
-                    handbrake-cli \
-                    imagemagick \
-                    libavcodec-extra \
-                    libcurl4-openssl-dev \
-                    libdvdcss2 \
-                    libssl-dev \
-                    lsdvd \
-                    python3 \
-                    python3-venv \
-                    python3-libdiscid \
-                    python3-pip
+  apt install -y  abcde \
+                  at \
+                  cdparanoia \
+                  default-jre-headless \
+                  eject \
+                  ffmpeg \
+                  flac \
+                  glyrc \
+                  handbrake-cli \
+                  imagemagick \
+                  libavcodec-extra \
+                  libcurl4-openssl-dev \
+                  libdvdcss2 \
+                  libssl-dev \
+                  lsdvd \
+                  python3 \
+                  python3-venv \
+                  python3-libdiscid \
+                  python3-pip
 
-    DEBIAN_FRONTEND=noninteractive apt -y install libdvd-pkg
-    dpkg-reconfigure --frontend noninteractive libdvd-pkg
-#  fi
+  DEBIAN_FRONTEND=noninteractive apt -y install libdvd-pkg
+  dpkg-reconfigure --frontend noninteractive libdvd-pkg
 }
 
 ###################################################
@@ -431,167 +334,85 @@ function DownloadArm () {
                         | grep 'automatic-ripping-machine/tree/*' | head -n 1 | sed -e 's/[^0-9\.]*//g')
   fi
 
+  cd /opt
+  if [ -d arm ]; then
+    #Arm Installation found.
+    #Confirm it is a Git repo
+    #If Git Repo, update the repo to current release
 
-#  if ${SUDO_FLAG}; then
-#    cd /opt
-#    if [ -d arm ]; then
-#      #Arm Installation found.
-#      #Confirm it is a Git repo
-#      #If Git Repo, update the repo to current release
-#
-#      #I chose git fetch and git checkout, but I am unsure if this could cause some issues...
-#      #this method depends on the user not modifying the repo between running this script
-#      #A big assumption.
-#
-#      #The Other method is to delete the directory completely and do a fresh git pull at the current branch.
-#      #The problem here is that it would also delete the Python Virtual Environment that is created later in this script.
-#      #It would force an update of Python, which I am unsure if it is the best option.
-#
-#      echo -e "${GREEN}Previous Arm Installation Found${NC}"
-#
-#      cd arm
-#      sudo -u arm git fetch
-#
-#      if ! sudo -u arm git checkout "${ARM_LATEST}" ; then
-#        #Git Checkout failed, likely because of a change in the repo.
-#        #Running Git Restore all files and folders will return the repo to the state it was
-#        #at the tagged checkout but will destroy all modifications added to the repo.
-#
-#        #Prompt User to confirm first
-#        RestoreRepoPrompt="${YELLOW}WARNING, A previous installation of ARM was found on the system,
-#        it's repository contains uncommitted changes.  These changes will be lost
-#
-#        ${NC}Do you wish to Continue? Y/n :"
-#        read -p "$(echo -e "${RestoreRepoPrompt}")" -r -n 1 ProceedWithScriptExecution
-#        echo -e ""
-#        if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
-#          echo -e "${GREEN}Restoring Repository...${NC}"
-#          #Restore Repo
-#          sudo -u arm git restore .
-#          #Git Checkout the latest release branch
-#          sudo -u arm git checkout "${ARM_LATEST}"
-#        else
-#          exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
-#        fi
-#      fi
-#    else
-#      #Fresh Arm installation
-#      #Clone git repo, pin to latest release tag
-#      sudo mkdir arm
-#      sudo chown -R arm:arm arm
-#
-#      if ${SCRIPT_TESTING_REPO} ; then
-#        sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
-#          https://github.com/SylvainMT/automatic-ripping-machine  arm
-#      else
-#        sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
-#          https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
-#      fi
-#
-#      #Copy clean copies of config files to etc folder.
-#      sudo mkdir -p /etc/arm/config
-#      sudo cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
-#      sudo cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
-#      sudo cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
-#
-#    fi
-#
-#    #Fix File and Folder Permissions
-#    #chown -R arm:arm /opt/arm
-#    sudo find /opt/arm/scripts/ -type f -iname "*.sh" -exec chmod +x {} \;
-#    sudo chown -R arm:arm /etc/arm
-#
-#    #Copy clean copies of the config files to /etc/arm/config/*.default
-#    #This is so that the user can find clean versions of each of the config files for references.
-#    #It helps incase of a broken config file due to error, or some future update changes.
-#
-#    #Remove old (and possibly outdated) config default files.
-#    sudo rm -f /etc/arm/config/*.default
-#
-#    sudo cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
-#    sudo cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
-#    sudo cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf.default
-#  else
-    cd /opt
-    if [ -d arm ]; then
-      #Arm Installation found.
-      #Confirm it is a Git repo
-      #If Git Repo, update the repo to current release
+    #I chose git fetch and git checkout, but I am unsure if this could cause some issues...
+    #this method depends on the user not modifying the repo between running this script
+    #A big assumption.
 
-      #I chose git fetch and git checkout, but I am unsure if this could cause some issues...
-      #this method depends on the user not modifying the repo between running this script
-      #A big assumption.
+    #The Other method is to delete the directory completely and do a fresh git pull at the current branch.
+    #The problem here is that it would also delete the Python Virtual Environment that is created later in this script.
+    #It would force an update of Python, which I am unsure if it is the best option.
 
-      #The Other method is to delete the directory completely and do a fresh git pull at the current branch.
-      #The problem here is that it would also delete the Python Virtual Environment that is created later in this script.
-      #It would force an update of Python, which I am unsure if it is the best option.
+    echo -e "${GREEN}Previous Arm Installation Found${NC}"
 
-      echo -e "${GREEN}Previous Arm Installation Found${NC}"
+    cd arm
+    sudo -u arm git fetch
 
-      cd arm
-      sudo -u arm git fetch
+    if ! sudo -u arm git checkout "${ARM_LATEST}" ; then
+      #Git Checkout failed, likely because of a change in the repo.
+      #Running Git Restore all files and folders will return the repo to the state it was
+      #at the tagged checkout but will destroy all modifications added to the repo.
 
-      if ! sudo -u arm git checkout "${ARM_LATEST}" ; then
-        #Git Checkout failed, likely because of a change in the repo.
-        #Running Git Restore all files and folders will return the repo to the state it was
-        #at the tagged checkout but will destroy all modifications added to the repo.
+      #Prompt User to confirm first
+      RestoreRepoPrompt="${YELLOW}WARNING, A previous installation of ARM was found on the system,
+      it's repository contains uncommitted changes.  These changes will be lost
 
-        #Prompt User to confirm first
-        RestoreRepoPrompt="${YELLOW}WARNING, A previous installation of ARM was found on the system,
-        it's repository contains uncommitted changes.  These changes will be lost
-
-        ${NC}Do you wish to Continue? Y/n :"
-        read -p "$(echo -e "${RestoreRepoPrompt}")" -r -n 1 ProceedWithScriptExecution
-        echo -e ""
-        if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
-          echo -e "${GREEN}Restoring Repository...${NC}"
-          #Restore Repo
-          sudo -u arm git restore .
-          #Git Checkout the latest release branch
-          sudo -u arm git checkout "${ARM_LATEST}"
-        else
-          exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
-        fi
-      fi
-    else
-      #Fresh Arm installation
-      #Clone git repo, pin to latest release tag
-      mkdir arm
-      chown -R arm:arm arm
-
-      if ${SCRIPT_TESTING_REPO} ; then
-        sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
-          https://github.com/SylvainMT/automatic-ripping-machine  arm
+      ${NC}Do you wish to Continue? Y/n :"
+      read -p "$(echo -e "${RestoreRepoPrompt}")" -r -n 1 ProceedWithScriptExecution
+      echo -e ""
+      if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
+        echo -e "${GREEN}Restoring Repository...${NC}"
+        #Restore Repo
+        sudo -u arm git restore .
+        #Git Checkout the latest release branch
+        sudo -u arm git checkout "${ARM_LATEST}"
       else
-        sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
-          https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
+        exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
       fi
+    fi
+  else
+    #Fresh Arm installation
+    #Clone git repo, pin to latest release tag
+    mkdir arm
+    chown -R arm:arm arm
 
-
-      #Copy clean copies of config files to etc folder.
-      mkdir -p /etc/arm/config
-      cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
-      cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
-      cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
-
+    if ${SCRIPT_TESTING_REPO} ; then
+      sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
+        https://github.com/SylvainMT/automatic-ripping-machine  arm
+    else
+      sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
+        https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
     fi
 
-    #Fix File and Folder Permissions
-    #chown -R arm:arm /opt/arm
-    find /opt/arm/scripts/ -type f -iname "*.sh" -exec chmod +x {} \;
-    chown -R arm:arm /etc/arm
 
-    #Copy clean copies of the config files to /etc/arm/config/*.default
-    #This is so that the user can find clean versions of each of the config files for references.
-    #It helps incase of a broken config file due to error, or some future update changes.
+    #Copy clean copies of config files to etc folder.
+    mkdir -p /etc/arm/config
+    cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
+    cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
+    cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
 
-    #Remove old (and possibly outdated) config default files.
-    rm -f /etc/arm/config/*.default
+  fi
 
-    cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
-    cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
-    cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf.default
-#  fi
+  #Fix File and Folder Permissions
+  #chown -R arm:arm /opt/arm
+  find /opt/arm/scripts/ -type f -iname "*.sh" -exec chmod +x {} \;
+  chown -R arm:arm /etc/arm
+
+  #Copy clean copies of the config files to /etc/arm/config/*.default
+  #This is so that the user can find clean versions of each of the config files for references.
+  #It helps incase of a broken config file due to error, or some future update changes.
+
+  #Remove old (and possibly outdated) config default files.
+  rm -f /etc/arm/config/*.default
+
+  cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
+  cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
+  cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf.default
 }
 
 function CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies() {
@@ -602,36 +423,21 @@ function CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies() {
 }
 
 function CreateUDEVRules() {
-#  if ${SUDO_FLAG}; then
-#    sudo ln -sf /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
-#  else
-    ln -sf /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
-#  fi
+  ln -sf /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
 }
 
 function MountDrives() {
   ######## Adding new line to fstab, needed for the autoplay to work.
   ######## also creating mount points (why loop twice)
   echo -e "${RED}Adding fstab entry and creating mount points${NC}"
-#  if ${SUDO_FLAG}; then
-#    for dev in /dev/sr?; do
-#        if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
-#            echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
-#        else
-#            echo -e "\n${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 \n" | sudo tee -a /etc/fstab
-#        fi
-#        sudo mkdir -p "/mnt$dev"
-#    done
-#  else
-    for dev in /dev/sr?; do
-        if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
-            echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
-        else
-            echo -e "\n${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 \n" | tee -a /etc/fstab
-        fi
-        mkdir -p "/mnt$dev"
-    done
-#  fi
+  for dev in /dev/sr?; do
+    if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
+        echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
+    else
+        echo -e "\n${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 \n" | tee -a /etc/fstab
+    fi
+    mkdir -p "/mnt$dev"
+  done
 }
 
 function SetupFolders() {
@@ -644,17 +450,10 @@ function SetupFolders() {
 
 function CreateAndStartService() {
   echo -e "${RED}Installing ARM service${NC}"
-#  if ${SUDO_FLAG}; then
-#    sudo ln -sf /opt/arm/setup/arm.service /lib/systemd/system/armui.service
-#    sudo systemctl daemon-reload
-#    sudo systemctl enable armui
-#    sudo systemctl start armui
-#  else
-    ln -sf /opt/arm/setup/arm.service /lib/systemd/system/armui.service
-    systemctl daemon-reload
-    systemctl enable armui
-    systemctl start armui
-#  fi
+  ln -sf /opt/arm/setup/arm.service /lib/systemd/system/armui.service
+  systemctl daemon-reload
+  systemctl enable armui
+  systemctl start armui
 }
 
 function LauchSetup() {
