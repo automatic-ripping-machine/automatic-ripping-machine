@@ -84,7 +84,7 @@
   "OMDB_API_KEY": "# OMDB_API_KEY\n# omdbapi.com API Key\n# See README-OMDBAPI for background and info\n# This is the API key for omdbapi.com queries.\n# More info at https://omdbapi.com/",
   "TMDB_API_KEY": "# TMDB_API_KEY\n# https://www.themoviedb.org/ API Key\n# See README-OMDBAPI for background and info\n# This is the API key for https://www.themoviedb.org/ queries.\n# More info at https://www.themoviedb.org/documentation/api",
   "JSON_URL": "# JSON_URL\n# Url to send Notifications to in JSON format",
-  "APPRISE": "# File location of your apprise.yaml file",
+  "APPRISE": "# File location of your apprise.yaml file. \n Docker default is '/etc/arm/config/apprise.yaml'.",
   "index_refresh": "How often to refresh the home page in milliseconds #\n (This updates jobs) #\n Default setting is '2000', updating the home page every 2 seconds.",
   "use_icons": "Use icons, if false A.R.M will use text \n##ripping|transcoding|etc",
   "save_remote_images": "Save job images locally ? \n# If True: A.R.M will copy remote images to a local directory and use the update the job to use the local version.",

@@ -321,6 +321,6 @@ def testapprise():
     """
     global redirect_settings
     # Send a sample notification
-    ripper_utils.notify("/dev/null", "ARM notification", "This is a notification by the ARM-Notification Test!")
+    ripper_utils.notify(None, "ARM notification", "This is a notification by the ARM-Notification Test!")
     flash("Test notification sent ", "success")
     return redirect(redirect_settings)

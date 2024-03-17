@@ -19,10 +19,10 @@
 **Configuration**
    - [Configuration](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Configuring-ARM)
    - **Configuration Files**
-      - [arm.yaml](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/arm.yaml)
-      - [apprise.yaml](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/apprise.yaml)
-      - [.abcde.conf](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/.abcde.conf)
-      - [Skins for ARM ui](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/ARM-ui-skins)
+      - [arm.yaml](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/config-arm.yaml)
+      - [apprise.yaml](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/config-apprise.yaml)
+      - [.abcde.conf](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/config-abcde.conf)
+      - [Skins for ARM ui](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/config-ui-skins)
 
 **Hardware Configuration**
    - [Adding Intel QSV Support](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/intel-qsv)
