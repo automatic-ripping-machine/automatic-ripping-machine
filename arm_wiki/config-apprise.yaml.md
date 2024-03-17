@@ -38,6 +38,17 @@ _NOTIFY_JOBID_
 - True: Reports the ARM Job ID in the notification
 - False: Reports only the status
 
+_UI_BASE_URL_ and _WEBSERVER_PORT_
+- Setting the UI Base URL and Webserver Port will send the server URL and Port rather than a docker localhost reference.
+    Any links with a URL will send as `http://yourserver.local:8080` rather than `http://127.0.0.1:8080`
+  - Testing with the values set will return a different Test Apprise message,
+    with the local URL set to confirm values are correct.
+
+    ```
+    [ServerTest] - ARM notification
+    This is a notification by the ARM-Notification Test! Server URL: http://yourserver.local:8080/
+    ```
+
 ## Notification Services
 
 [Apprise](https://github.com/caronc/apprise/wiki) does support more methods than are listed here. 
