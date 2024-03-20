@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 ###################################################
 ###################################################
@@ -20,9 +20,10 @@ set -eu -o pipefail
 ###################################################
 ###################################################
 
-#This needs to be DELETED and the accompanying if..fi checks deleted BEFORE pull request is complete.
-##TODO Make this a script variable instead...
-readonly SCRIPT_TESTING_REPO=true
+PortFlag=false
+Port=8080
+Fork='automatic-ripping-machine'
+Tag='latest'
 
 
 #Text Color and Formatting Variables
@@ -38,6 +39,88 @@ readonly ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO=3
 readonly ERROR_MISSING_CONTRIB_REPOSITORY=4
 readonly ERROR_USER_DID_NOT_ACCEPT_SCRIPT_DISCLAIMER=5
 readonly ERROR_SUDO_NOT_INSTALLED=6
+readonly ERROR_SCRIPT_PORT_OPTION_INVALID=7
+readonly ERROR_SCRIPT_UNKNOWN_OPTION=8
+readonly ERROR_CANNOT_CHECKOUT_ON_TOP_UNCLEAN_REPOSITORY=9
+readonly ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED=10
+
+function usage() {
+  local ERROR_CODE=${1}
+  UsageMessage="\nDebian 12 ARM Installer Script
+
+Usage: ./Debian12Installer.sh [-f <Fork_Name>] [-t <Tag_or_Branch_Name>] [-p <Port_Number>] [-h] [-H]
+
+-f  <Fork_Name>
+   The name of the fork or Automatic Ripping Machine to use for the installation
+   ***The Fork must be available publicly on GitHub***
+   Default: \"automatic-ripping-machine\"
+
+-t <Tag_or_Branch_Name>
+   The name of the tag or branch to checkout
+   Default: \"latest\"
+
+-p <Port_Number>
+  The port number to use to access ARM
+  **Must be greater than or equal to 1024**
+  **Must be less than or equal too 65535**
+  Default: 8080
+
+-h or -H
+  This Help Message"
+
+
+  case $ERROR_CODE in
+    0)
+      echo -e "${UsageMessage}"
+      ;;
+
+    "${ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED}")
+      echo -e "${RED}ERROR: Port (-p <Port_Number>) cannot be a system-reserved port.
+Acceptable values are between 1024 and 65535 inclusively.${NC}"
+      ;;
+
+    "${ERROR_SCRIPT_PORT_OPTION_INVALID}")
+      echo -e "${RED}ERROR: Port (-p <Port_Number>) must be a valid port number.
+Acceptable values are between 1024 and 65535 inclusively.${NC}"
+      ;;
+
+    "${ERROR_SCRIPT_UNKNOWN_OPTION}")
+      UnknownOption=${2}
+      echo -e "${RED}ERROR: The option \"${UnknownOption}\" is unknown. Please used a valid option.${NC}"
+      echo -e "\n${UsageMessage}"
+      ;;
+  esac
+
+  exit "${ERROR_CODE}"
+}
+
+while getopts ':f:hHp:t:' OPTION
+do
+  case ${OPTION} in
+    p)
+        Port=$OPTARG
+        if ! [[ ${Port} -gt 0 && ${Port} -le 65535 ]]; then
+          usage ${ERROR_SCRIPT_PORT_OPTION_INVALID}
+        fi
+        if [[ ${Port} -gt 0 && ${Port} -lt 1024 ]]; then
+          usage ${ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED}
+        fi
+        if ! [[ ${Port} -eq 8080 ]]; then
+          PortFlag=true
+        fi
+        ;;
+    f)
+        Fork=$OPTARG
+        ;;
+    t)
+        Tag=$OPTARG
+        ;;
+    h | H )
+        usage 0
+        ;;
+    ?)  usage ${ERROR_SCRIPT_UNKNOWN_OPTION} "${OPTION}"
+  esac
+done
 
 
 ###################################################
@@ -51,6 +134,7 @@ readonly ERROR_SUDO_NOT_INSTALLED=6
 ###################################################
 
 function UserAcceptedConditions() {
+  ##TODO Create Wiki entry explaining now to enter the permanent MakeMKV licence in ARM.
   Disclaimer="${RED}
 ************************************************************************************************************************
 ** ${NC}                                                                                                                   ${RED}**
@@ -92,7 +176,7 @@ function IsSudoInstalled() {
 }
 
 #Determine if we are effectively a root user.  Return boolean values 'true' or 'false'.
-function Is_Effective_Root_User() {
+function IsEffectiveRootUser() {
   USERID=$(id -u)
   if [[ ${USERID} == 0 ]] ;  then
     true
@@ -113,6 +197,12 @@ Exiting Installation Script, No changes were made...${NC}"
     exit ${ERROR_INSUFFICIENT_USER_PRIVILEGES}
     false
   fi
+}
+
+function RepositoryExists() {
+  ##TODO Test for the existence of the Repository using git ls-remote
+  # https://mirrors.edge.kernel.org/pub/software/scm/git/docs/git-ls-remote.html
+  echo "TEST NOT YET IMPLEMENTED"
 }
 
 #Confirm this script is running on Debian 12 (Bookworm).  Return boolean values 'true' or 'false'.
@@ -205,8 +295,10 @@ function MakeArmUserPartOfRequiredGroups() {
 #a default password of value '1234' is created.
 #If the default password value is used, advise the user to change the password at the next opportunity.
 function PasswordProtectArmUser() {
-  ##TODO Use script variable here maybe????
   #Determine what the password is going to be and save it in the variables $Password_1 & $Password_2
+  #Make these variables explicitly local, to prevent the variables escaping this function.
+  local Password_1
+  local Password_2
   PasswordQuestion="Do you wish to provide a custom password for the 'arm' user? Y/n : "
   read -ep "$(echo -e "${PasswordQuestion}")" -r -n 1 UserWishesToEnterPassword
   if [[ "${UserWishesToEnterPassword}" == "y"  ||  "${UserWishesToEnterPassword}" == "Y" ]] ; then
@@ -239,7 +331,7 @@ function PasswordProtectArmUser() {
 
 function InstallDownloadTools () {
 
-  ##TODO seperate the apt update call.  apt update should be done only once at the begenning of the script...
+  ##TODO separate the apt update call.  apt update should be done only once at the beginning of the script...
   apt update && apt install -y curl git wget
 }
 
@@ -330,12 +422,8 @@ function InstallArmDependencies() {
 
 function DownloadArm () {
   #Get current version number of ARM
-  ##TODO - This should default to official ARM Repo but script variable should allow for non-official Repo
-  ##TODO - Default to using the latest tag for the checkout branch.  But allow for user to specify Tag/Branch to check out via Script Variable.
-  if ${SCRIPT_TESTING_REPO} ; then
-    readonly ARM_LATEST="feature_Debian-12-Install-Script"
-  else
-    readonly ARM_LATEST=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' \
+  if ${Tag} == 'latest' ; then
+    Tag=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' \
                         | grep 'automatic-ripping-machine/tree/*' | head -n 1 | sed -e 's/[^0-9\.]*//g')
   fi
 
@@ -357,8 +445,9 @@ function DownloadArm () {
 
     cd arm
     sudo -u arm git fetch
-
-    if ! sudo -u arm git checkout "${ARM_LATEST}" ; then
+    ##TODO There is a possibility of an error here...  This assumes that one the branch is still present and two
+    ##TODO the fork is the same...  Some testing needs to be completed to eliminate those possible errors.
+    if ! sudo -u arm git checkout "${Tag}" ; then
       #Git Checkout failed, likely because of a change in the repo.
       #Running Git Restore all files and folders will return the repo to the state it was
       #at the tagged checkout but will destroy all modifications added to the repo.
@@ -375,9 +464,9 @@ function DownloadArm () {
         #Restore Repo
         sudo -u arm git restore .
         #Git Checkout the latest release branch
-        sudo -u arm git checkout "${ARM_LATEST}"
+        sudo -u arm git checkout "${Tag}"
       else
-        exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
+        exit ${ERROR_CANNOT_CHECKOUT_ON_TOP_UNCLEAN_REPOSITORY}
       fi
     fi
   else
@@ -386,22 +475,21 @@ function DownloadArm () {
     mkdir arm
     chown -R arm:arm arm
 
-    ##TODO This test should be here but at the top of the function, where a local variable can be used for Repo URL.
-    if ${SCRIPT_TESTING_REPO} ; then
-      sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
-        https://github.com/SylvainMT/automatic-ripping-machine  arm
-    else
-      sudo -u arm git clone --recurse-submodules --branch "${ARM_LATEST}" \
-        https://github.com/automatic-ripping-machine/automatic-ripping-machine  arm
-    fi
+    sudo -u arm git clone --recurse-submodules --branch "${Tag}" \
+      "https://github.com/${Fork}/automatic-ripping-machine"  arm
 
-    ##TODO Allow for user to specify custom port using script variable.  Default to port 8080.
-    ##TODO Pull system host and domain information and enter that in the Config file.
+
     #Copy clean copies of config files to etc folder.
     mkdir -p /etc/arm/config
     cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
     cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
     cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
+
+    if [[ $PortFlag ]] ; then
+      echo -e "${RED}Non-default port specified, updating arm config...${NC}"
+      # replace the default 8080 port with the specified port
+      sudo sed -e s"/\(^WEBSERVER_PORT:\) 8080/\1 ${Port}/" -i /etc/arm/config/arm.yaml
+    fi
 
   fi
 
@@ -445,8 +533,6 @@ function MountDrives() {
     fi
     mkdir -p "/mnt$dev"
   done
-
-  ##TODO Trouble shoot mount not applying causing ARM to not recognize the contents of the disk.
 }
 
 function SetupFolders() {
@@ -465,9 +551,26 @@ function CreateAndStartService() {
   systemctl start armui
 }
 
-function LauchSetup() {
+function LaunchSetup() {
   echo -e "${RED}Launching ArmUI first-time setup${NC}"
-  ##TODO Implement this method!!!! (Launch UI Setup)
+
+  sleep 5  # Waits 5 seconds, This gives time for service to start
+  #Find the external IP address of this server by finding the route to cloudflare's DNS servers.
+  site_addr=$(ip route get 1.1.1.1 | grep -oP 'src \K[^ ]+')
+  if [[ $Port -ne 80 ]] ; then
+    site_addr="${site_addr}:${Port}"
+  fi
+  echo site_addr
+  ArmUIServiceActive=$(systemctl is-active --quiet armui)
+  if [[ $ArmUIServiceActive -ne 0 ]]; then
+      echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}"
+  else
+      curl "http://${site_addr}/setup" -o /dev/null -s
+      echo -e "${GREEN} Installation Complete
+      Please click this link below to access your new Automatic Ripping Machine installation!
+      http://${site_addr}${NC}\n"
+  fi
+
 }
 
 ###################################################
@@ -484,9 +587,13 @@ function LauchSetup() {
 #method, being the Docker image.
 UserAcceptedConditions
 
-#IsSudoInstalled
+IsEffectiveRootUser
 
-Is_Effective_Root_User
+#Install Required Download Tools
+InstallDownloadTools
+
+#Test for the existence of the repository, fork and tab/branch
+RepositoryExists
 
 #Confirm we are in a Debian 12 (Bookworm) Linux Distro.
 ##TODO Make this into a function...
@@ -520,8 +627,7 @@ fi
 #Confirm existence of / create arm user and group
 CreateArmUserAndGroup
 
-#Install Required Download Tools
-InstallDownloadTools
+
 
 #Build and Install MakeMKV
 InstallMakeMKV
@@ -538,4 +644,4 @@ CreateUDEVRules
 MountDrives
 SetupFolders
 CreateAndStartService
-LauchSetup
+LaunchSetup
