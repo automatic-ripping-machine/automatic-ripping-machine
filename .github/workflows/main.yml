@@ -52,15 +52,15 @@ jobs:
     strategy:
       matrix:
         # in this example, there is a newer version already installed, 3.7.7, so the older version will be downloaded
-        python-version: ['3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: true
-    - name: Set up Python 3.10
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
-        python-version: "3.10"
+        python-version: ${{ matrix.python-version }}
     - name: Fix dependencies
       run: |
         sudo apt-get update && sudo apt-get install libgnutls28-dev libcurl4-openssl-dev libssl-dev libdiscid-dev
