@@ -24,7 +24,7 @@ jobs:
 
         -
             name: Setup Docker buildx
-            uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226
+            uses: docker/setup-buildx-action@2b51285047da1547ffb1b2203d8be4c0af6b1f20
 
         # Build Docker image with Buildx
         # https://github.com/docker/build-push-action
