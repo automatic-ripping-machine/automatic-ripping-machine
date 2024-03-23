@@ -44,6 +44,19 @@ readonly ERROR_SCRIPT_UNKNOWN_OPTION=8
 readonly ERROR_CANNOT_CHECKOUT_ON_TOP_UNCLEAN_REPOSITORY=9
 readonly ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED=10
 
+
+###################################################
+###################################################
+#         Usage Function and While Loop           #
+###################################################
+###################################################
+
+#Note that the Function must be defined before the while loop.
+
+#Usage Function.  Used to display useful error messages to the user
+#and to explain to the user how to use this script.
+#The function also exits the script.
+#Accepts one Parameter, ERROR_CODE an integer representing the error code generated.
 function usage() {
   local ERROR_CODE=${1}
   UsageMessage="\nDebian 12 ARM Installer Script
@@ -62,7 +75,7 @@ Usage: ./Debian12Installer.sh [-f <Fork_Name>] [-t <Tag_or_Branch_Name>] [-p <Po
 -p <Port_Number>
   The port number to use to access ARM
   **Must be greater than or equal to 1024**
-  **Must be less than or equal too 65535**
+  **Must be less than or equal to 65535**
   Default: 8080
 
 -h or -H
@@ -70,27 +83,37 @@ Usage: ./Debian12Installer.sh [-f <Fork_Name>] [-t <Tag_or_Branch_Name>] [-p <Po
 
 
   case $ERROR_CODE in
-    0)
+    0) #An Error Code of zero means that no errors were generated, therefore this function was called
+      #as a result of passing the -h or -H option to the script, asking for the help message.
       echo -e "${UsageMessage}"
       ;;
 
     "${ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED}")
+      #This Error Code indicates that the user selected the port option and then supplied a port
+      #between 0 and 1024.  While valid ports these are system reserved ports.
+      #An explanation in the wiki article explaining this script's usage will explain
+      #How one may set a system reserved port as a port for ARM.  It is outside the scope of this
+      #Script.
       echo -e "${RED}ERROR: Port (-p <Port_Number>) cannot be a system-reserved port.
 Acceptable values are between 1024 and 65535 inclusively.${NC}"
       ;;
 
     "${ERROR_SCRIPT_PORT_OPTION_INVALID}")
+      #The user used the port option but supplied an invalid port (less than or equal to 0 or
+      #greater than or equal to 65536)
       echo -e "${RED}ERROR: Port (-p <Port_Number>) must be a valid port number.
 Acceptable values are between 1024 and 65535 inclusively.${NC}"
       ;;
 
     "${ERROR_SCRIPT_UNKNOWN_OPTION}")
-      UnknownOption=${2}
-      echo -e "${RED}ERROR: The option \"${UnknownOption}\" is unknown. Please used a valid option.${NC}"
+      #The user supplied an option that was unknown to this function.  Throw and error
+      #and display the help message.
+      echo -e "${RED}ERROR: The option that was passed to this script is unknown. Please used a valid option.${NC}"
       echo -e "\n${UsageMessage}"
       ;;
   esac
 
+  #Exit the script using the supplied Error Code.
   exit "${ERROR_CODE}"
 }
 
@@ -133,6 +156,14 @@ done
 #         Script eligibility functions            #
 ###################################################
 
+#This script installs ARM in an unsupported and untested environment.
+#The task of supporting every environment is too great for the dev team. Therefore
+#inform the user that while this script does exist, if any bugs appear as a result of
+#it's use, the user must be able to reproduce the bug in the Docker Official Image
+#Before creating a bug report.  Take the opportunity to also mention the MIT licence
+#and to mention that MakeMKV is still in Beta.
+#
+#Get the user to agree to the conditions of using this script before continuing.
 function UserAcceptedConditions() {
   ##TODO Create Wiki entry explaining now to enter the permanent MakeMKV licence in ARM.
   Disclaimer="${RED}
@@ -167,6 +198,10 @@ ${YELLOW} Do you wish to proceed with this unsupported installation? Y/n :${NC}
 
 }
 
+#Function to confirm that the sudo package is installed. (Not eccentrically true for LXC containers.)
+#Even running this script as an effective root user, the Sudo Command is still required for the script
+#to run successfully.
+#Return true or false
 function IsSudoInstalled() {
   if ! dpkg -s sudo > /dev/null 2>&1 ; then
     true
@@ -176,6 +211,8 @@ function IsSudoInstalled() {
 }
 
 #Determine if we are effectively a root user.  Return boolean values 'true' or 'false'.
+#If the function is about to return false, the function exits the script with the
+#appropriate error code.
 function IsEffectiveRootUser() {
   USERID=$(id -u)
   if [[ ${USERID} == 0 ]] ;  then
@@ -203,6 +240,33 @@ function RepositoryExists() {
   ##TODO Test for the existence of the Repository using git ls-remote
   # https://mirrors.edge.kernel.org/pub/software/scm/git/docs/git-ls-remote.html
   echo "TEST NOT YET IMPLEMENTED"
+}
+
+function IsEligibleDistro() {
+  if ! (IsDebian12Distro); then
+    NotDebian12Prompt="${YELLOW}WARNING, you are attempting to run this script in a environment other than Debian 12 (Bookworm)
+    This script was tested exclusively on Debian 12 (Bookworm)
+    Running it on another Linux distro may have unpredictable side effects.
+
+    ${NC}Do you wish to Continue? Y/n :"
+    read -p "$(echo -e "${NotDebian12Prompt}")" -r -n 1 ProceedWithScriptExecution
+    echo -e ""
+    if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
+      echo -e "Running Script in Linux Distro Other than Debian 12 (Bookworm)"
+    else
+      exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
+    fi
+  else
+    #Confirm availability of contrib repository
+    if ! (IsContribRepoAvailable) ; then
+      echo -e "${RED}This script requires the presence of the contrib repositories;
+  bookworm/contrib, bookworm-updates/contrib and bookworm-security/contrib
+  Please add them to your installation and run the script again.
+  You can learn how to add the necessary repository here: https://wiki.debian.org/SourcesList
+  Exiting....${NC}"
+      exit ${ERROR_MISSING_CONTRIB_REPOSITORY}
+    fi
+  fi
 }
 
 #Confirm this script is running on Debian 12 (Bookworm).  Return boolean values 'true' or 'false'.
@@ -260,18 +324,24 @@ function IsContribRepoAvailable() {
 #Call all user and group related functions.
 function CreateArmUserAndGroup() {
   echo -e "${YELLOW}Adding arm user & group${NC}"
-  CreateArmGroup
-  CreateArmUser
+  if (CreateArmGroup && CreateArmUser) ; then
+    PasswordProtectArmUser true
+  else
+    PasswordProtectArmUser false
+  fi
   MakeArmUserPartOfRequiredGroups
 }
 
 #If the group exists, do nothing, if it does not exist create it.
 function CreateArmGroup() {
+  echo "Creating Groups...."
   if ! [[ $(getent group arm) ]]; then
-    groupadd arm;
+    groupadd arm
     echo -e "${GREEN}Group 'arm' successfully created. \n${NC}"
+    true
   else
     echo -e "${GREEN}'arm' group already exists, skipping...\n${NC}"
+    false
   fi
 }
 
@@ -280,10 +350,16 @@ function CreateArmUser() {
   if ! id arm > /dev/null 2>&1 ; then
     useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
     echo -e "${GREEN}User 'arm' successfully created. \n${NC}"
-    PasswordProtectArmUser
+    true
   else
     echo -e "${GREEN}'arm' user already exists, skipping creation...${NC}"
+    false
   fi
+}
+
+function DeleteArmUser() {
+  userdel arm
+  rm -R /home/arm
 }
 
 # Make sure the 'arm' user is part of the 'cdrom', 'video' and 'render' groups.
@@ -295,33 +371,52 @@ function MakeArmUserPartOfRequiredGroups() {
 #a default password of value '1234' is created.
 #If the default password value is used, advise the user to change the password at the next opportunity.
 function PasswordProtectArmUser() {
+  local NewUser=$1
   #Determine what the password is going to be and save it in the variables $Password_1 & $Password_2
   #Make these variables explicitly local, to prevent the variables escaping this function.
-  local Password_1
-  local Password_2
-  PasswordQuestion="Do you wish to provide a custom password for the 'arm' user? Y/n : "
+  local Password_1=''
+  local Password_2=''
+  if ($NewUser) ; then
+    PasswordQuestion="Do you wish to provide a custom password for the 'arm' user? Y/n : "
+  else
+    PasswordQuestion="The 'arm' user was already on the system.
+Do you wish to change it's password? Y/n : "
+  fi
   read -ep "$(echo -e "${PasswordQuestion}")" -r -n 1 UserWishesToEnterPassword
   if [[ "${UserWishesToEnterPassword}" == "y"  ||  "${UserWishesToEnterPassword}" == "Y" ]] ; then
+    #The User wishes to provide a custom password.  Give the user 3 times to provide one,
+    #This attempt limit is to prevent an infinite loop.
+    local PasswordConfirmed=false
     for (( i = 0 ; i < 3 ; i++ )); do
-      read -ep "$(echo -e "Please Enter Password_1? : ")" -r -s Password_1
-      read -ep "$(echo -e "Please Confirm Password_1? : ")" -r -s Password_2
+      read -ep "$(echo -e "Please Enter Password? : ")" -r -s Password_1
+      read -ep "$(echo -e "Please Confirm Password? : ")" -r -s Password_2
       if [[ "${Password_1}" == "${Password_2}" ]] ; then
         echo -e "\n${GREEN}Password matched, running \`passwd\` utility. \n${NC}"
+        PasswordConfirmed=true
         break;
-      elif [[ $i -eq 2 ]] ; then
-        echo -e "${RED}\nThe Passwords did not match 3 consecutive times, exiting...\n"
-        exit ${ERROR_USER_PROVIDED_PASSWORD_MISMATCH}
       else
         echo -e "\n${YELLOW}Passwords do not match, please try again\n${NC}"
       fi
     done
-  else
+    if ! ($PasswordConfirmed) ; then
+      #This is the 3rd attempt.  Exit script.
+      echo -e "${RED}\nThe Passwords did not match 3 consecutive times, exiting...\n${NC}"
+      if ($NewUser) ; then
+        echo -e "${YELLOW}Deleting newly created arm User Account.\n${NC}"
+        DeleteArmUser
+      else
+        echo -e "${YELLOW}Password for the arm user was not changed.\n${NC}"
+      fi
+      exit ${ERROR_USER_PROVIDED_PASSWORD_MISMATCH}
+    fi
+  elif ! ($NewUser); then
     echo -e "${YELLOW}Using default password '1234' it is recommended that you change it after script's completion. \n${NC}"
     Password_1=1234
     Password_2=1234
   fi
-
-  echo -e "${Password_1}\n${Password_2}\n" | passwd -q arm
+  if ($NewUser) || (! ($NewUser) && $PasswordConfirmed); then
+    echo -e "${Password_1}\n${Password_2}\n" | passwd -q arm > /dev/null 2>&1
+  fi
 
 }
 
@@ -330,7 +425,6 @@ function PasswordProtectArmUser() {
 ###################################################
 
 function InstallDownloadTools () {
-
   ##TODO separate the apt update call.  apt update should be done only once at the beginning of the script...
   apt update && apt install -y curl git wget
 }
@@ -595,53 +689,28 @@ InstallDownloadTools
 #Test for the existence of the repository, fork and tab/branch
 RepositoryExists
 
-#Confirm we are in a Debian 12 (Bookworm) Linux Distro.
-##TODO Make this into a function...
-if ! (IsDebian12Distro); then
-  NotDebian12Prompt="${YELLOW}WARNING, you are attempting to run this script in a environment other than Debian 12 (Bookworm)
-  This script was tested exclusively on Debian 12 (Bookworm)
-  Running it on another Linux distro may have unpredictable side effects.
-
-  ${NC}Do you wish to Continue? Y/n :"
-  read -p "$(echo -e "${NotDebian12Prompt}")" -r -n 1 ProceedWithScriptExecution
-  echo -e ""
-  if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
-    echo -e "Running Script in Linux Distro Other than Debian 12 (Bookworm)"
-  else
-    exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
-  fi
-else
-  #Confirm availability of contrib repository
-  if ! (IsContribRepoAvailable) ; then
-    echo -e "${RED}This script requires the presence of the contrib repositories;
-bookworm/contrib, bookworm-updates/contrib and bookworm-security/contrib
-Please add them to your installation and run the script again.
-You can learn how to add the necessary repository here: https://wiki.debian.org/SourcesList
-Exiting....${NC}"
-    exit ${ERROR_MISSING_CONTRIB_REPOSITORY}
-  fi
-fi
-
-
+#Test the Linux Distribution, if Debian 12, confirm presence of Contribs repos, if not, Give
+#User the option of attempting the installation anyway, even if it may fail.
+#(Reason for target Distro of Debian 12, is because of the known presence of the required
+#packages
+IsEligibleDistro
 
 #Confirm existence of / create arm user and group
 CreateArmUserAndGroup
 
-
-
 #Build and Install MakeMKV
-InstallMakeMKV
+#InstallMakeMKV
 
 #Install Arm Dependencies
-InstallArmDependencies
+#InstallArmDependencies
 
 #Install Arm
-DownloadArm
-CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies
+#DownloadArm
+#CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies
 
 #Post Arm Installation
-CreateUDEVRules
-MountDrives
-SetupFolders
-CreateAndStartService
-LaunchSetup
+#CreateUDEVRules
+#MountDrives
+#SetupFolders
+#CreateAndStartService
+#LaunchSetup
