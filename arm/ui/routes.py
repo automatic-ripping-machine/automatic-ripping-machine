@@ -56,7 +56,9 @@ def home():
 
     # Catch for missing MySql database
     if not armui_cfg:
-        return render_template("error-database.html")
+        arm_db_config = app.config['SQLALCHEMY_DATABASE_URI']
+        return render_template("error-database.html",
+                               arm_db_config=arm_db_config)
 
     # Push out HW transcode status for homepage
     stats = {'hw_support': check_hw_transcode_support()}

@@ -55,7 +55,7 @@ app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
 os.environ["WERKZEUG_DEBUG_PIN"] = "12345"  # make this random!
 app.logger.debug("Debugging pin: " + os.environ["WERKZEUG_DEBUG_PIN"])
 
-mysql_ip = os.getenv("MYSQL_IP", "arm-db")
+mysql_ip = os.getenv("MYSQL_IP", "127.0.0.1")
 mysql_user = os.getenv("MYSQL_USER", "arm")
 mysql_password = os.getenv("MYSQL_PASSWORD", "example")
 mysql_database = "arm"
