@@ -296,10 +296,6 @@ function IsEligibleDistro() {
 
 #Confirm this script is running on Debian 12 (Bookworm).  Return boolean values 'true' or 'false'.
 function IsDebian12Distro() {
-  if ! dpkg -s lsb-release > /dev/null 2>&1 ; then
-    apt update
-    apt install lsb-release -y
-  fi
   if [[ $(lsb_release -i | grep -o "Debian") == "Debian" ]] && [[ $(lsb_release -r | grep -o "12") -eq 12 ]] ; then
     true
   else
@@ -450,8 +446,7 @@ Do you wish to change it's password? Y/n : "
 ###################################################
 
 function InstallDownloadTools () {
-  ##TODO separate the apt update call.  apt update should be done only once at the beginning of the script...
-  apt update && apt install -y curl git wget
+  apt update && apt install -y curl git wget lsb-release
 }
 
 ###################################################
