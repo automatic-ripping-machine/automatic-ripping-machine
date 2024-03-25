@@ -43,6 +43,8 @@ readonly ERROR_SCRIPT_PORT_OPTION_INVALID=7
 readonly ERROR_SCRIPT_UNKNOWN_OPTION=8
 readonly ERROR_CANNOT_CHECKOUT_ON_TOP_UNCLEAN_REPOSITORY=9
 readonly ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED=10
+readonly ERROR_GIT_REPO_FORK_DOES_NOT_EXIST=11
+readonly ERROR_GIT_REPO_TAG_DOES_NOT_EXIST=12
 
 
 ###################################################
@@ -236,10 +238,33 @@ Exiting Installation Script, No changes were made...${NC}"
   fi
 }
 
+#If a Fork or Tag was passed to the script, we need to test for the existence of the fork and/or tag.
+#If either do not exist, exit the script with an error code and message.
 function RepositoryExists() {
-  ##TODO Test for the existence of the Repository using git ls-remote
-  # https://mirrors.edge.kernel.org/pub/software/scm/git/docs/git-ls-remote.html
-  echo "TEST NOT YET IMPLEMENTED"
+  local NotFound
+  local GitHubAPICall
+  local GitLsRemoteOutput
+  local GitLsRemoteURL
+
+  if [ "${Fork}" != "automatic-ripping-machine" ] ; then
+    echo "Custom Fork passed to the script, testing for existence..."
+    NotFound='"message": "Not Found",'
+    GitHubAPICall="https://api.github.com/repos/${Fork}/automatic-ripping-machine"
+    if [[ $(curl -s "${GitHubAPICall}" | grep -o "${NotFound}") == "${NotFound}" ]] ; then
+      echo -e "${RED}The Fork ${Fork} was not found, exitring the script...${NC}\n"
+      exit ${ERROR_GIT_REPO_FORK_DOES_NOT_EXIST}
+    fi
+  fi
+
+  #if [ "${Tag}" != "latest" ] ; then
+    echo "Custom Tag passed to the script, testing for existence"
+    GitLsRemoteURL="https://github.com/${Fork}/automatic-ripping-machine.git"
+    GitLsRemoteOutput=$(git ls-remote --quiet "${GitLsRemoteURL}" "${Tag}")
+    if [[ ${GitLsRemoteOutput} == "" ]] ; then
+      echo -e "${RED}The Tag or Branch ${Tag} was not found, exiting the script...${NC}\n"
+      exit ${ERROR_GIT_REPO_TAG_DOES_NOT_EXIST}
+    fi
+  #fi
 }
 
 function IsEligibleDistro() {
@@ -477,8 +502,6 @@ function BuildAndInstallMakeMKV() {
   make install
 
   chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
-
-  ##TODO Save the necessary information to uninstall MakeMKV in a location TBD
 }
 
 ###################################################
@@ -692,25 +715,25 @@ RepositoryExists
 #Test the Linux Distribution, if Debian 12, confirm presence of Contribs repos, if not, Give
 #User the option of attempting the installation anyway, even if it may fail.
 #(Reason for target Distro of Debian 12, is because of the known presence of the required
-#packages
+#packages)
 IsEligibleDistro
 
 #Confirm existence of / create arm user and group
 CreateArmUserAndGroup
 
 #Build and Install MakeMKV
-#InstallMakeMKV
+InstallMakeMKV
 
 #Install Arm Dependencies
-#InstallArmDependencies
+InstallArmDependencies
 
 #Install Arm
-#DownloadArm
-#CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies
+DownloadArm
+CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies
 
 #Post Arm Installation
-#CreateUDEVRules
-#MountDrives
-#SetupFolders
-#CreateAndStartService
-#LaunchSetup
+CreateUDEVRules
+MountDrives
+SetupFolders
+CreateAndStartService
+LaunchSetup
