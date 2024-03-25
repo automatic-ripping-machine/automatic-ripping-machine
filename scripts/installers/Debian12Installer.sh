@@ -41,7 +41,7 @@ readonly ERROR_USER_DID_NOT_ACCEPT_SCRIPT_DISCLAIMER=5
 readonly ERROR_SUDO_NOT_INSTALLED=6
 readonly ERROR_SCRIPT_PORT_OPTION_INVALID=7
 readonly ERROR_SCRIPT_UNKNOWN_OPTION=8
-readonly ERROR_CANNOT_CHECKOUT_ON_TOP_UNCLEAN_REPOSITORY=9
+readonly ERROR_FOUND_ARM_DIRECTORY_COULD_NOT_PROCEED=9
 readonly ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED=10
 readonly ERROR_GIT_REPO_FORK_DOES_NOT_EXIST=11
 readonly ERROR_GIT_REPO_TAG_DOES_NOT_EXIST=12
@@ -538,6 +538,12 @@ function InstallArmDependencies() {
 ###################################################
 
 function DownloadArm () {
+  local AlertUserOfExistenceOfAmrDirectory
+  local ProceedWithScriptExecution
+  local ExistingArmYamlFile
+  local ExistingAbcdeConfFile
+  local ExistingAppriseYamlFile
+
   #Get current version number of ARM
   if ${Tag} == 'latest' ; then
     Tag=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' \
@@ -546,68 +552,67 @@ function DownloadArm () {
 
   cd /opt
   if [ -d arm ]; then
-    #Arm Installation found.
-    #Confirm it is a Git repo
-    #If Git Repo, update the repo to current release
+    #Found a directory that may contain a repo.
 
-    #I chose git fetch and git checkout, but I am unsure if this could cause some issues...
-    #this method depends on the user not modifying the repo between running this script
-    #A big assumption.
+    #Query User, asking for permission to delete the directory and install arm.
+    AlertUserOfExistenceOfAmrDirectory="${YELLOW}WARNING, the script found that the directory /opt/arm already exists.
+    If you are attempting to update your arm installation, please us git to checkout the latest release.
+    In order to proceed, this script needs to delete the /opt/arm directory and checkout a fresh copy of arm
+    from the GitHub repository.  This is a non-reversible change.
 
-    #The Other method is to delete the directory completely and do a fresh git pull at the current branch.
-    #The problem here is that it would also delete the Python Virtual Environment that is created later in this script.
-    #It would force an update of Python, which I am unsure if it is the best option.
+    ${NC}Do you wish to Continue? Y/n :"
+    read -p "$(echo -e "${AlertUserOfExistenceOfAmrDirectory}")" -r -n 1 ProceedWithScriptExecution
+    echo -e ""
+    if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
+      #Since we know the /opt/arm directory exists.  There is a very strong possibility of previous config files
+      #existing.  We want to back these files up to give the user the chance to use those instead of the default ones.
 
-    echo -e "${GREEN}Previous Arm Installation Found${NC}"
 
-    cd arm
-    sudo -u arm git fetch
-    ##TODO There is a possibility of an error here...  This assumes that one the branch is still present and two
-    ##TODO the fork is the same...  Some testing needs to be completed to eliminate those possible errors.
-    if ! sudo -u arm git checkout "${Tag}" ; then
-      #Git Checkout failed, likely because of a change in the repo.
-      #Running Git Restore all files and folders will return the repo to the state it was
-      #at the tagged checkout but will destroy all modifications added to the repo.
+      ##TODO Test this behaviour!!!
 
-      #Prompt User to confirm first
-      RestoreRepoPrompt="${YELLOW}WARNING, A previous installation of ARM was found on the system,
-      it's repository contains uncommitted changes.  These changes will be lost
+      ExistingArmYamlFile="/etc/arm/config/arm.yaml"
+      ExistingAbcdeConfFile="/etc/arm/config/abcde.conf"
+      ExistingAppriseYamlFile="/etc/arm/config/apprise.yaml"
 
-      ${NC}Do you wish to Continue? Y/n :"
-      read -p "$(echo -e "${RestoreRepoPrompt}")" -r -n 1 ProceedWithScriptExecution
-      echo -e ""
-      if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
-        echo -e "${GREEN}Restoring Repository...${NC}"
-        #Restore Repo
-        sudo -u arm git restore .
-        #Git Checkout the latest release branch
-        sudo -u arm git checkout "${Tag}"
-      else
-        exit ${ERROR_CANNOT_CHECKOUT_ON_TOP_UNCLEAN_REPOSITORY}
+      if [[ -f ${ExistingAbcdeConfFile} ]] ; then
+        cp "${ExistingAbcdeConfFile}" "${ExistingAbcdeConfFile}.bck"
       fi
-    fi
-  else
-    #Fresh Arm installation
-    #Clone git repo, pin to latest release tag
-    mkdir arm
-    chown -R arm:arm arm
 
-    sudo -u arm git clone --recurse-submodules --branch "${Tag}" \
-      "https://github.com/${Fork}/automatic-ripping-machine"  arm
+      if [[ -f ${ExistingArmYamlFile} ]] ; then
+        cp "${ExistingArmYamlFile}" "${ExistingArmYamlFile}.bck"
+      fi
 
+      if [[ -f ${ExistingAppriseYamlFile} ]] ; then
+        cp "${ExistingAppriseYamlFile}" "${ExistingAppriseYamlFile}.bck"
+      fi
 
-    #Copy clean copies of config files to etc folder.
-    mkdir -p /etc/arm/config
-    cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
-    cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
-    cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
-
-    if [[ $PortFlag ]] ; then
-      echo -e "${RED}Non-default port specified, updating arm config...${NC}"
-      # replace the default 8080 port with the specified port
-      sudo sed -e s"/\(^WEBSERVER_PORT:\) 8080/\1 ${Port}/" -i /etc/arm/config/arm.yaml
+      echo -e "${RED} Deleting /opt/arm directory...${NC}"
+      rm -R /opt/arm
+    else
+      echo -e "${RED} Exiting Script, MakeMKV is installed, Arm is not installed...${NC}"
+      exit ${ERROR_FOUND_ARM_DIRECTORY_COULD_NOT_PROCEED}
     fi
 
+  fi
+
+  #Clone git repo, pin to latest release tag
+  mkdir arm
+  chown -R arm:arm arm
+
+  sudo -u arm git clone --recurse-submodules --branch "${Tag}" \
+    "https://github.com/${Fork}/automatic-ripping-machine"  arm
+
+
+  #Copy clean copies of config files to etc folder.
+  mkdir -p /etc/arm/config
+  cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
+  cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
+  cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
+
+  if [[ $PortFlag ]] ; then
+    echo -e "${RED}Non-default port specified, updating arm config...${NC}"
+    # replace the default 8080 port with the specified port
+    sudo sed -e s"/\(^WEBSERVER_PORT:\) 8080/\1 ${Port}/" -i /etc/arm/config/arm.yaml
   fi
 
   #Fix File and Folder Permissions
