@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ###################################################
 ###################################################
@@ -24,27 +24,31 @@ PortFlag=false
 Port=8080
 Fork='automatic-ripping-machine'
 Tag='latest'
+LinuxDistribution=''
+LinuxDistributionRelease=0
+LinuxDistributionCodename=''
 
 
 #Text Color and Formatting Variables
 RED='\033[1;31m'
 GREEN='\033[1;32m'
+BLUE='\033[1;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 #Script Error Codes
-readonly ERROR_INSUFFICIENT_USER_PRIVILEGES=1
-readonly ERROR_USER_PROVIDED_PASSWORD_MISMATCH=2
-readonly ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO=3
-readonly ERROR_MISSING_CONTRIB_REPOSITORY=4
-readonly ERROR_USER_DID_NOT_ACCEPT_SCRIPT_DISCLAIMER=5
-readonly ERROR_SUDO_NOT_INSTALLED=6
-readonly ERROR_SCRIPT_PORT_OPTION_INVALID=7
-readonly ERROR_SCRIPT_UNKNOWN_OPTION=8
-readonly ERROR_FOUND_ARM_DIRECTORY_COULD_NOT_PROCEED=9
-readonly ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED=10
-readonly ERROR_GIT_REPO_FORK_DOES_NOT_EXIST=11
-readonly ERROR_GIT_REPO_TAG_DOES_NOT_EXIST=12
+readonly ERROR_INSUFFICIENT_USER_PRIVILEGES=201
+readonly ERROR_USER_PROVIDED_PASSWORD_MISMATCH=202
+readonly ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO=203
+readonly ERROR_MISSING_CONTRIB_REPOSITORY=204
+readonly ERROR_USER_DID_NOT_ACCEPT_SCRIPT_DISCLAIMER=205
+readonly ERROR_SUDO_NOT_INSTALLED=206
+readonly ERROR_SCRIPT_PORT_OPTION_INVALID=207
+readonly ERROR_SCRIPT_UNKNOWN_OPTION=208
+readonly ERROR_FOUND_ARM_DIRECTORY_COULD_NOT_PROCEED=209
+readonly ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED=210
+readonly ERROR_GIT_REPO_FORK_DOES_NOT_EXIST=211
+readonly ERROR_GIT_REPO_TAG_DOES_NOT_EXIST=212
 
 
 ###################################################
@@ -130,7 +134,8 @@ do
         if [[ ${Port} -gt 0 && ${Port} -lt 1024 ]]; then
           usage ${ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED}
         fi
-        if ! [[ ${Port} -eq 8080 ]]; then
+        if [[ ${Port} -ne 8080 ]]; then
+          echo "Using Non-Standard Port ${Port}"
           PortFlag=true
         fi
         ;;
@@ -167,12 +172,12 @@ done
 #
 #Get the user to agree to the conditions of using this script before continuing.
 function UserAcceptedConditions() {
-  ##TODO Create Wiki entry explaining now to enter the permanent MakeMKV licence in ARM.
+  ##TODO Create Wiki entry explaining how to enter the permanent MakeMKV licence in ARM.
   Disclaimer="${RED}
 ************************************************************************************************************************
 ** ${NC}                                                                                                                   ${RED}**
 ** ${GREEN}                                           Automatic Ripping Machine (ARM)                                         ${RED}**
-** ${GREEN}                                    Installation Script for Debian 12 (Bookworm)                                   ${RED}**
+** ${GREEN}                                           Installation Script for Debian                                       ${RED}**
 ** ${YELLOW}  WARNING - ${NC}This installation method is no longer supported by the ARM development team. This script is provided   ${RED}**
 ** ${NC} as is, without support.  If you experience issues with your ARM installation, you will need to reproduce it using ${RED}**
 ** ${NC} an official ARM docker image before opening up an Issue on GitHub.  The installation instructions for ARM using   ${RED}**
@@ -188,16 +193,13 @@ function UserAcceptedConditions() {
 ** ${NC}                                                                                                                   ${RED}**
 ************************************************************************************************************************
 
-${YELLOW} Do you wish to proceed with this unsupported installation? Y/n :${NC}
+${BLUE} Do you wish to proceed with this unsupported installation? Y/n :${NC}
 "
 
-  read -p "$(echo -e "${Disclaimer}")" -r -n 1 ProceedWithScriptExecution
-  echo -e ""
-  if ! [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
+  if ! IsUserAnsweredYesToPrompt "${Disclaimer}" ; then
     echo -e "${RED} Exiting Installation Script, No changes were made...${NC}"
     exit ${ERROR_USER_DID_NOT_ACCEPT_SCRIPT_DISCLAIMER}
   fi
-
 }
 
 #Function to confirm that the sudo package is installed. (Not eccentrically true for LXC containers.)
@@ -256,7 +258,7 @@ function RepositoryExists() {
     fi
   fi
 
-  #if [ "${Tag}" != "latest" ] ; then
+  if [ "${Tag}" != "latest" ] ; then
     echo "Custom Tag passed to the script, testing for existence"
     GitLsRemoteURL="https://github.com/${Fork}/automatic-ripping-machine.git"
     GitLsRemoteOutput=$(git ls-remote --quiet "${GitLsRemoteURL}" "${Tag}")
@@ -264,31 +266,43 @@ function RepositoryExists() {
       echo -e "${RED}The Tag or Branch ${Tag} was not found, exiting the script...${NC}\n"
       exit ${ERROR_GIT_REPO_TAG_DOES_NOT_EXIST}
     fi
-  #fi
+  fi
+}
+
+function IsUserAnsweredYesToPrompt() {
+  local Prompt=$1
+  local Response
+  read -p "$(echo -e "${Prompt}")" -r -n 1 Response
+  echo -e ""
+  if [[ "${Response}" == "y" || "${Response}" == "Y" ]] ; then
+    true
+  else
+    false
+  fi
 }
 
 function IsEligibleDistro() {
-  if ! (IsDebian12Distro); then
-    NotDebian12Prompt="${YELLOW}WARNING, you are attempting to run this script in a environment other than Debian 12 (Bookworm)
-    This script was tested exclusively on Debian 12 (Bookworm)
-    Running it on another Linux distro may have unpredictable side effects.
+  if ! IsDebian12Distro; then
 
-    ${NC}Do you wish to Continue? Y/n :"
-    read -p "$(echo -e "${NotDebian12Prompt}")" -r -n 1 ProceedWithScriptExecution
-    echo -e ""
-    if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
-      echo -e "Running Script in Linux Distro Other than Debian 12 (Bookworm)"
+    NotDebian12Prompt="${YELLOW}WARNING, you are attempting to run this script in a environment other than Debian 10, 11 or 12
+This script was tested exclusively on Debian 12 (Bookworm), Debian 11 (Bullseye) and Debian 10 (Buster)
+Running it on another Linux distro may have unpredictable side effects.
+
+${BLUE}Do you wish to Continue? Y/n :${NC}"
+
+    if IsUserAnsweredYesToPrompt "${NotDebian12Prompt}" ; then
+      echo -e "${YELLOW}Running Script in Linux Distro Other than Debian 12 (Bookworm)${NC}"
     else
       exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
     fi
   else
     #Confirm availability of contrib repository
-    if ! (IsContribRepoAvailable) ; then
-      echo -e "${RED}This script requires the presence of the contrib repositories;
-  bookworm/contrib, bookworm-updates/contrib and bookworm-security/contrib
-  Please add them to your installation and run the script again.
-  You can learn how to add the necessary repository here: https://wiki.debian.org/SourcesList
-  Exiting....${NC}"
+    if ! IsContribRepoAvailable ; then
+      echo -e "${RED}One or more of the contrib repositories;
+are missing please add them to your installation and run the script again.
+You can learn how to add the necessary repository here: https://wiki.debian.org/SourcesList
+
+Exiting....${NC}"
       exit ${ERROR_MISSING_CONTRIB_REPOSITORY}
     fi
   fi
@@ -296,8 +310,21 @@ function IsEligibleDistro() {
 
 #Confirm this script is running on Debian 12 (Bookworm).  Return boolean values 'true' or 'false'.
 function IsDebian12Distro() {
-  if [[ $(lsb_release -i | grep -o "Debian") == "Debian" ]] && [[ $(lsb_release -r | grep -o "12") -eq 12 ]] ; then
-    true
+  ##TODO Rename Function
+  ##TODO remove Debian 10.  Default Python version in Debian 10 is 3.7, which is not a tested Python version.
+  ##TODO Modify this function to work with Debian 10 and 11 as well as 12...
+  LinuxDistribution=$(lsb_release -a | grep 'Distributor ID:' | awk '{print $3}')
+  LinuxDistributionRelease=$(lsb_release -a | grep 'Release:' | awk '{print $2}')
+  LinuxDistributionCodename=$(lsb_release -a | grep 'Codename:' | awk '{print $2}')
+  if [[ ${LinuxDistribution} == "Debian" ]] ; then
+    case ${LinuxDistributionRelease} in
+      '10' | '11' | '12' )
+        true
+        ;;
+      ?)
+        false
+        ;;
+    esac
   else
     false
   fi
@@ -307,29 +334,77 @@ function IsDebian12Distro() {
 
 #Confirm the presence of required package libraries.
 function IsContribRepoAvailable() {
-  #This functions is dependant on running "Debian 12 (Bookworm)"
-  #This function MUST be modified for any other version of Debian or other distributions of Linux
-  if [[ $(apt-cache policy | grep -o "bookworm/contrib") == "bookworm/contrib" ]] ; then
-    IncludesBookwormContrib=true
+  ##TODO Modify this function to work with Debian 10 and 11 as well as 12...
+  ##TODO Test running this script without the contrib repo.  (I am not sure it is needed?)
+  local IncludesContrib
+  local IncludesUpdatesContrib
+  local IncludesSecurityContrib
+  local Prompt
+
+  ## TEST for the presence of the Repos.
+  if [[ $(apt-cache policy | grep -o "${LinuxDistributionCodename}/contrib") == "${LinuxDistributionCodename}/contrib" ]] ; then
+    IncludesContrib=true
   else
-    IncludesBookwormContrib=false
+    IncludesContrib=false
   fi
 
-  if [[ $(apt-cache policy | grep -o "bookworm-updates/contrib") == "bookworm-updates/contrib" ]] ; then
-    IncludesBookwormUpdatesContrib=true
+  if [[ $(apt-cache policy | grep -o "${LinuxDistributionCodename}-updates/contrib") == "${LinuxDistributionCodename}-updates/contrib" ]] ; then
+    IncludesUpdatesContrib=true
   else
-    IncludesBookwormUpdatesContrib=false
+    IncludesUpdatesContrib=false
   fi
 
-  if [[ $(apt-cache policy | grep -o "bookworm-security/contrib") == "bookworm-security/contrib" ]] ; then
-    IncludesBookwormSecurityContrib=true
+  if [[ $(apt-cache policy | grep -o "${LinuxDistributionCodename}-security/contrib") == "${LinuxDistributionCodename}-security/contrib" ]] ; then
+    IncludesSecurityContrib=true
   else
-    IncludesBookwormSecurityContrib=false
+    IncludesSecurityContrib=false
   fi
 
-  if $IncludesBookwormContrib && $IncludesBookwormUpdatesContrib && $IncludesBookwormSecurityContrib ; then
-    true
+  #The only required Repo is the Contrib repo.  Updates/Contrib and Security/Contrib are strongly recommended but not
+  # required.  (This test is only relevant for Debian 12.  Since I did not find a way to test for Debian 11 and Debian 10
+  # Does not appear to have a contrib repo...
+  if $IncludesContrib ; then
+
+    #If this is Debian 12, test for the availability of the updates/contrib and security/contrib repos.  I have not
+    #Found a way to test for those repose with Debian 11 or 10.
+    if [[ "${LinuxDistributionRelease}" -eq 12 ]] ; then
+      Prompt=""
+      #Contrib repo is present, check for the optional ones, if one or both are missing, create a prompt to advice the user
+      #of the missing optional repo and confirm they with to proceed.
+      if ! $IncludesUpdatesContrib && ! $IncludesSecurityContrib ; then
+        echo -e "${RED}Missing ${LinuxDistributionCodename}-udpates/contrib and ${LinuxDistributionCodename}-security/contrib repository.${NC}"
+        Prompt="${YELLOW}WARNING: The \"updates/contrib\" and \"security/contrib\" repositories are missing. It is recommended
+that these repositories be present in order to keep A.R.M. dependencies up to date with the latest security fixes.
+
+${BLUE}Do you wish to Continue? Y/n: ${NC}"
+      elif ! $IncludesUpdatesContrib ; then
+        echo -e "${RED}Missing ${LinuxDistributionCodename}-updates/contrib repository.${NC}"
+        Prompt="${YELLOW}WARNING: The updates/contrib repository is missing. It is recommended that this repository
+be present in order to keep A.R.M. dependencies up to date.
+
+${BLUE}Do you wish to Continue? Y/n: ${NC}"
+      elif ! $IncludesSecurityContrib ; then
+        echo -e "${RED}Missing ${LinuxDistributionCodename}-security/contrib repository.${NC}"
+        Prompt="${YELLOW}WARNING: The security/contrib repository is missing. It is recommended that this repository
+be present in order to keep A.R.M. dependencies up to date with the latest security fixes.
+
+${BLUE}Do you wish to Continue? Y/n: ${NC}"
+      fi
+
+      if [[ "${Prompt}" == "" ]] || IsUserAnsweredYesToPrompt "${Prompt}" ; then
+        #No Repos are missing OR User wishes to proceed with missing repo(s)
+        true
+      else
+        #User wishes to cancel the installation.
+        false
+      fi
+    else
+      #Not Debian 12, therefore only test we care for is the main/contrib repo, which passed.
+      true
+    fi
   else
+    #Contrib repo is missing, return false.
+    echo -e "${RED}Missing ${LinuxDistributionCodename}/contrib repository.${NC}"
     false
   fi
 }
@@ -397,7 +472,7 @@ function PasswordProtectArmUser() {
   #Make these variables explicitly local, to prevent the variables escaping this function.
   local Password_1=''
   local Password_2=''
-  if ($NewUser) ; then
+  if $NewUser ; then
     PasswordQuestion="Do you wish to provide a custom password for the 'arm' user? Y/n : "
   else
     PasswordQuestion="The 'arm' user was already on the system.
@@ -419,10 +494,10 @@ Do you wish to change it's password? Y/n : "
         echo -e "\n${YELLOW}Passwords do not match, please try again\n${NC}"
       fi
     done
-    if ! ($PasswordConfirmed) ; then
+    if ! $PasswordConfirmed ; then
       #This is the 3rd attempt.  Exit script.
       echo -e "${RED}\nThe Passwords did not match 3 consecutive times, exiting...\n${NC}"
-      if ($NewUser) ; then
+      if $NewUser ; then
         echo -e "${YELLOW}Deleting newly created arm User Account.\n${NC}"
         DeleteArmUser
       else
@@ -430,12 +505,12 @@ Do you wish to change it's password? Y/n : "
       fi
       exit ${ERROR_USER_PROVIDED_PASSWORD_MISMATCH}
     fi
-  elif ! ($NewUser); then
+  elif $NewUser; then
     echo -e "${YELLOW}Using default password '1234' it is recommended that you change it after script's completion. \n${NC}"
     Password_1=1234
     Password_2=1234
   fi
-  if ($NewUser) || (! ($NewUser) && $PasswordConfirmed); then
+  if ($NewUser) || (! $NewUser && $PasswordConfirmed); then
     echo -e "${Password_1}\n${Password_2}\n" | passwd -q arm > /dev/null 2>&1
   fi
 
@@ -471,14 +546,27 @@ function InstallBuildEnvironment() {
 }
 
 function BuildAndInstallMakeMKV() {
+  local ArmUserHomeFolder=~arm
+  local LatestMakeMKVVersion
+  local MakeMKVBuildFilesDirectory
+  local cpuCount
+
   ArmUserHomeFolder=~arm
   LatestMakeMKVVersion=$(curl -s https://www.makemkv.com/download/ | grep -o '[0-9.]*.txt' | sed 's/.txt//')
   MakeMKVBuildFilesDirectory="${ArmUserHomeFolder}"/MakeMKVBuildFiles/"${LatestMakeMKVVersion}"
+  cpuCount=$(nproc --all)
+
   mkdir -p "${MakeMKVBuildFilesDirectory}"
   cd "${MakeMKVBuildFilesDirectory}"
-  wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
-  wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
-  wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
+  #wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
+  #wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
+  #wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
+  curl -# -o makemkv-sha-"${LatestMakeMKVVersion}".txt  \
+    https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
+  curl -# -o makemkv-bin-"${LatestMakeMKVVersion}".tar.gz \
+    https://www.makemkv.com/download/makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
+  curl -# -o makemkv-oss-"${LatestMakeMKVVersion}".tar.gz \
+    https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
   grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
   grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
   tar xzf makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
@@ -487,13 +575,13 @@ function BuildAndInstallMakeMKV() {
   cd makemkv-oss-"${LatestMakeMKVVersion}"
   mkdir -p ./tmp
   ./configure >> /dev/null  2>&1
-  make -s
+  make -s -j"${cpuCount}"
   make install
 
   cd ../makemkv-bin-"${LatestMakeMKVVersion}"
   mkdir -p ./tmp
   echo "yes" >> ./tmp/eula_accepted
-  make -s
+  make -s -j"${cpuCount}"
   make install
 
   chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
@@ -540,7 +628,7 @@ function DownloadArm () {
   local ExistingAppriseYamlFile
 
   #Get current version number of ARM
-  if ${Tag} == 'latest' ; then
+  if [[ ${Tag} == 'latest' ]] ; then
     Tag=$(curl --silent 'https://github.com/automatic-ripping-machine/automatic-ripping-machine/releases' \
                         | grep 'automatic-ripping-machine/tree/*' | head -n 1 | sed -e 's/[^0-9\.]*//g')
   fi
@@ -594,6 +682,7 @@ function DownloadArm () {
   mkdir arm
   chown -R arm:arm arm
 
+  ##TODO if Tab == Latest the script should find the latest version number...  Test is this is true
   sudo -u arm git clone --recurse-submodules --branch "${Tag}" \
     "https://github.com/${Fork}/automatic-ripping-machine"  arm
 
@@ -604,7 +693,8 @@ function DownloadArm () {
   cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
   cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
 
-  if [[ $PortFlag ]] ; then
+  ##TODO PortFlag needs to be verified.   At least one run claimed it was sent with it was not...
+  if $PortFlag ; then
     echo -e "${RED}Non-default port specified, updating arm config...${NC}"
     # replace the default 8080 port with the specified port
     sudo sed -e s"/\(^WEBSERVER_PORT:\) 8080/\1 ${Port}/" -i /etc/arm/config/arm.yaml
@@ -646,7 +736,7 @@ function MountDrives() {
     if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
         echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
     else
-        echo -e "\n${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 \n" | tee -a /etc/fstab
+        echo -e "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 " | tee -a /etc/fstab
     fi
     mkdir -p "/mnt$dev"
   done
@@ -662,7 +752,8 @@ function SetupFolders() {
 
 function CreateAndStartService() {
   echo -e "${RED}Installing ARM service${NC}"
-  ln -sf /opt/arm/setup/arm.service /lib/systemd/system/armui.service
+  #TODO Debian 11 has an issue here, test changing linking to a straight copy instead...
+  cp /opt/arm/setup/arm.service /lib/systemd/system/armui.service
   systemctl daemon-reload
   systemctl enable armui
   systemctl start armui
@@ -700,16 +791,17 @@ function LaunchSetup() {
 #            Script eligibility code              #
 ###################################################
 
-#Inform the user that this is an unsupported installation method.  Inform them of the existence of the preferred
-#method, being the Docker image.
+#######Inform the user that this is an unsupported installation method.  Inform them of the existence of the preferred
+########method, being the Docker image.
 UserAcceptedConditions
 
+######Confirm tha the script was called with sudo or was run as root user.
 IsEffectiveRootUser
 
-#Install Required Download Tools
+#######Install Required Download Tools (wget, curl, lsb-release and git)
 InstallDownloadTools
 
-#Test for the existence of the repository, fork and tab/branch
+######Test for the existence of the repository, fork and tab/branch
 RepositoryExists
 
 #Test the Linux Distribution, if Debian 12, confirm presence of Contribs repos, if not, Give
@@ -718,20 +810,20 @@ RepositoryExists
 #packages)
 IsEligibleDistro
 
-#Confirm existence of / create arm user and group
+######Confirm existence of / create arm user and group
 CreateArmUserAndGroup
 
-#Build and Install MakeMKV
+#######Build and Install MakeMKV
 InstallMakeMKV
 
-#Install Arm Dependencies
+#######Install Arm Dependencies
 InstallArmDependencies
 
-#Install Arm
+#######Install Arm
 DownloadArm
 CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies
 
-#Post Arm Installation
+#######Post Arm Installation
 CreateUDEVRules
 MountDrives
 SetupFolders
