@@ -334,8 +334,6 @@ function IsDebian12Distro() {
 
 #Confirm the presence of required package libraries.
 function IsContribRepoAvailable() {
-  ##TODO Modify this function to work with Debian 10 and 11 as well as 12...
-  ##TODO Test running this script without the contrib repo.  (I am not sure it is needed?)
   local IncludesContrib
   local IncludesUpdatesContrib
   local IncludesSecurityContrib
@@ -650,9 +648,6 @@ function DownloadArm () {
       #Since we know the /opt/arm directory exists.  There is a very strong possibility of previous config files
       #existing.  We want to back these files up to give the user the chance to use those instead of the default ones.
 
-
-      ##TODO Test this behaviour!!!
-
       ExistingArmYamlFile="/etc/arm/config/arm.yaml"
       ExistingAbcdeConfFile="/etc/arm/config/abcde.conf"
       ExistingAppriseYamlFile="/etc/arm/config/apprise.yaml"
@@ -682,7 +677,6 @@ function DownloadArm () {
   mkdir arm
   chown -R arm:arm arm
 
-  ##TODO if Tab == Latest the script should find the latest version number...  Test is this is true
   sudo -u arm git clone --recurse-submodules --branch "${Tag}" \
     "https://github.com/${Fork}/automatic-ripping-machine"  arm
 
@@ -693,7 +687,6 @@ function DownloadArm () {
   cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
   cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
 
-  ##TODO PortFlag needs to be verified.   At least one run claimed it was sent with it was not...
   if $PortFlag ; then
     echo -e "${RED}Non-default port specified, updating arm config...${NC}"
     # replace the default 8080 port with the specified port
@@ -743,6 +736,7 @@ function MountDrives() {
 }
 
 function SetupFolders() {
+  ##TODO Change this from HardCoded directories to using the arm user directories
   sudo -u arm mkdir -p /home/arm/logs/
   sudo -u arm mkdir -p /home/arm/logs/progress/
   sudo -u arm mkdir -p /home/arm/media/transcode/
@@ -752,7 +746,6 @@ function SetupFolders() {
 
 function CreateAndStartService() {
   echo -e "${RED}Installing ARM service${NC}"
-  #TODO Debian 11 has an issue here, test changing linking to a straight copy instead...
   cp /opt/arm/setup/arm.service /lib/systemd/system/armui.service
   systemctl daemon-reload
   systemctl enable armui
