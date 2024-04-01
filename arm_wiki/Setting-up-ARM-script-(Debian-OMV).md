@@ -14,6 +14,7 @@ This method for installing A.R.M. has been tested using;
 * Debian 11 (Bullseye)
 * OpenMediaVault 7.0
 * OpenMediaVault 6.5
+
 While this method may work with other Linux distributions, your mileage may vary. Note that this method was developed 
 for a bare-metal installation.
 
