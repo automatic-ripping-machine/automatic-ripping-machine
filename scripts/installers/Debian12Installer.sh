@@ -177,7 +177,7 @@ function UserAcceptedConditions() {
 ************************************************************************************************************************
 ** ${NC}                                                                                                                   ${RED}**
 ** ${GREEN}                                           Automatic Ripping Machine (ARM)                                         ${RED}**
-** ${GREEN}                                           Installation Script for Debian                                       ${RED}**
+** ${GREEN}                                           Installation Script for Debian                                          ${RED}**
 ** ${YELLOW}  WARNING - ${NC}This installation method is no longer supported by the ARM development team. This script is provided   ${RED}**
 ** ${NC} as is, without support.  If you experience issues with your ARM installation, you will need to reproduce it using ${RED}**
 ** ${NC} an official ARM docker image before opening up an Issue on GitHub.  The installation instructions for ARM using   ${RED}**
@@ -309,16 +309,13 @@ Exiting....${NC}"
 }
 
 #Confirm this script is running on Debian 12 (Bookworm).  Return boolean values 'true' or 'false'.
-function IsDebian12Distro() {
-  ##TODO Rename Function
-  ##TODO remove Debian 10.  Default Python version in Debian 10 is 3.7, which is not a tested Python version.
-  ##TODO Modify this function to work with Debian 10 and 11 as well as 12...
+function IsDebianDistro() {
   LinuxDistribution=$(lsb_release -a | grep 'Distributor ID:' | awk '{print $3}')
   LinuxDistributionRelease=$(lsb_release -a | grep 'Release:' | awk '{print $2}')
   LinuxDistributionCodename=$(lsb_release -a | grep 'Codename:' | awk '{print $2}')
   if [[ ${LinuxDistribution} == "Debian" ]] ; then
     case ${LinuxDistributionRelease} in
-      '10' | '11' | '12' )
+      '11' | '12' )
         true
         ;;
       ?)
@@ -556,9 +553,6 @@ function BuildAndInstallMakeMKV() {
 
   mkdir -p "${MakeMKVBuildFilesDirectory}"
   cd "${MakeMKVBuildFilesDirectory}"
-  #wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
-  #wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
-  #wget -nc -q --show-progress https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
   curl -# -o makemkv-sha-"${LatestMakeMKVVersion}".txt  \
     https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
   curl -# -o makemkv-bin-"${LatestMakeMKVVersion}".tar.gz \
@@ -633,6 +627,7 @@ function DownloadArm () {
 
   cd /opt
   if [ -d arm ]; then
+    ##TODO this check should be done earlier, much earlier, before the installation process started.
     #Found a directory that may contain a repo.
 
     #Query User, asking for permission to delete the directory and install arm.
@@ -736,12 +731,11 @@ function MountDrives() {
 }
 
 function SetupFolders() {
-  ##TODO Change this from HardCoded directories to using the arm user directories
-  sudo -u arm mkdir -p /home/arm/logs/
-  sudo -u arm mkdir -p /home/arm/logs/progress/
-  sudo -u arm mkdir -p /home/arm/media/transcode/
-  sudo -u arm mkdir -p /home/arm/media/completed/
-  sudo -u arm mkdir -p /home/arm/media/raw/
+  sudo -u arm mkdir -p ~arm/logs/
+  sudo -u arm mkdir -p ~arm/logs/progress/
+  sudo -u arm mkdir -p ~arm/media/transcode/
+  sudo -u arm mkdir -p ~arm/media/completed/
+  sudo -u arm mkdir -p ~arm/media/raw/
 }
 
 function CreateAndStartService() {
