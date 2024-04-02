@@ -46,6 +46,10 @@ These can be changed to suit your needs
     -v "/my-media-path:/home/arm/media" \
 ```
 
+## My volume paths point to a CIFS mount - but now the database is locked
+This is caused by a byte-range lock on the mount by default.
+To fix this, the CIFS mount of your host needs the `nobrl` flag. 
+
 ## NVENC doesn't work
 
 Be sure that both variables for `NVIDIA_DRIVER_CAPABILITIES=all`
