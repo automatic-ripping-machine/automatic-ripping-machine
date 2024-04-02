@@ -2,7 +2,7 @@
 
 ### **This is not compatible with the snap version of docker!**
 
-A pre-built image has been added to docker hub [HERE](https://hub.docker.com/repository/docker/automaticrippingmachine/automatic-ripping-machine).
+A pre-built image has been added to docker hub [HERE](https://hub.docker.com/r/automaticrippingmachine/automatic-ripping-machine).
 
 ## Installing Linux
 - Select the option to install all third-party drivers
