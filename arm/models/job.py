@@ -56,6 +56,7 @@ class Job(db.Model):
     updated = db.Column(db.Boolean)
     pid = db.Column(db.Integer)
     pid_hash = db.Column(db.Integer)
+    is_iso = db.Column(db.Boolean)
     tracks = db.relationship('Track', backref='job', lazy='dynamic')
     config = db.relationship('Config', uselist=False, backref="job")
 
