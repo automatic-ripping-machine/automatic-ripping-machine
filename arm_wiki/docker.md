@@ -111,7 +111,7 @@ An admin account is required to view rips and settings. A default one has been c
 
 
 ## Updating docker image
-To update the docker image to the latest released code follow these steps. Please note, the user running the command should be in the docker group. You can find out more from the [docker post install steps] (https://docs.docker.com/engine/install/linux-postinstall/).
+To update the docker image to the latest released code follow these steps. Please note, the user running the command should be in the docker group. You can find out more from the [docker post install steps](https://docs.docker.com/engine/install/linux-postinstall/).
 
 1. Stop the running ARM container
 
