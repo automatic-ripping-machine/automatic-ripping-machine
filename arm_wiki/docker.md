@@ -51,7 +51,7 @@ The script will now:
 
        Example: `-v "/home/arm:/home/arm"`
 
-    4. Fill in your CD, DVD and Blu-Ray drives. Each `--device="/dev/sr0:/dev/sr0" \` line gives A.R.M. access to an optical drive. Run the command `lsscsi -g`, this command will list all the drives (SSD, HD, Optical and others) found on your system.  For each Optical drive, the second column will have the "cd/dvd" entry, note the `/dev/sr#` (replace the pound sign # with the number) and add a device entry to your script.  By default the script has sr0 through sr3 entered.  Add or remove as necessary. You should have one entry for each "cd/dvd" that lsscsi -g finds.  
+    4. Fill in your CD, DVD and Blu-Ray drives. Each `--device="/dev/sr0:/dev/sr0" \` line gives A.R.M. access to an optical drive.  To list all the drives (SSD, HD, Optical and others) found on your system, Run the command `lsscsi -g`.  For each Optical drive, the second column will have the "cd/dvd" entry, note the `/dev/sr#` (replace the pound sign # with the number) and add a device entry to your script.  By default, the script has `/dev/sr0` through `/dev/sr3` pre-entered.  Add or remove entries as necessary. You should have one entry for each "cd/dvd" that `lsscsi -g` finds.  
 
     5. Fill in the list of CPU core threads to give the container in `--cpuset-cpus`. It's highly recommended to leave at least one core for the hypervisor to use, so the host machine doesn't get choked out during transcoding! Also, CPUs with multiple threads per core will be numbered in pairs. In the below example, only core #4 would be passed to ARM.
    
@@ -146,7 +146,7 @@ In the `start_arm_container.sh` script you will find these lines:
     -v "<path_to_media_folder>:/home/arm/media" \
     -v "<path_to_config_folder>:/etc/arm/config" \
 ```
-These create volumes. What are volumes? They are easily accessible locations on your computer where you can access, delete, and change files that are accessible by the A.R.M. docker container.  They are also persistent, meaning that you can delete the docker image as many times as you want (probably to update your version of arm described in the (Updating docker image)[#updating-docker-image] section above) without losing the contents of the volumes, as long as you rebuild the docker container (by re-running the `start_arm_container.sh` script) with these same volumes your previous settings, logs, database entries and completed rips will be there.  
+These create volumes. What are volumes? They are easily accessible locations on your computer where you can access, delete, and change files that are accessible by the A.R.M. docker container.  They are also persistent, meaning that you can delete the docker image as many times as you want (probably to update your version of arm described in the [Updating docker image](#updating-docker-image) section above) without losing the contents of the volumes, as long as you rebuild the docker container (by re-running the `start_arm_container.sh` script) with these same volumes your previous settings, logs, database entries and completed rips will be there.  
 
 ### Explaining the different parts of the volume options
 
@@ -168,9 +168,10 @@ Each volume specified in the default script is needed by A.R.M. The following is
     * This is where A.R.M. will store completed rips from Music CDs.  You can specify any location on your computer.
     * The default recommended is: `/home/arm/music/` for the "{Path_Outside_Of_Docker_Container}" of the volume definition.
 * `/home/arm/logs`
-    * This is where A.R.M. will store the logs it creates.  It creates one new log file for each "job" it has (each disk it rips). The default recommended is: `/home/arm/logs`
+    * This is where A.R.M. will store the logs it creates.  It creates one new log file for each "job" it has (each disk it rips).
+    * The default recommended is: `/home/arm/logs` for the "{Path_Outside_Of_Docker_Container}" of the volume definition.
 * `/home/arm/media`
-    * This is where A.R.M. will save your movies from DVDs and Blu-rays from completed rips as well as Data disk ISOs. A.R.M. will create subfolders in this directory, these are;
+    * This is where A.R.M. will save your completed rips from DVDs and Blu-rays as well as Data Disk ISOs. A.R.M. will create subfolders in this directory, these are;
         * `raw` - Where A.R.M. temporarily saves the files created by MakeMKV
         * `transcode` - Where A.R.M. temporarily saves the files created by HandBrake
         * `completed` - Where A.R.M. moves the files when it completes the rip
@@ -182,11 +183,28 @@ Each volume specified in the default script is needed by A.R.M. The following is
  
 ### An Important note about permissions.
 
-You can choose whichever location you want for each of these volumes. They can even be Mounted locations referring to network drives. However, every one of these volumes _**MUST**_ be readable and writable by the arm user.  For simplicity, we strongly recommend that these folders be created as the `arm` user. (Log in to your machine, as the arm user, create the folders, using the `mkdir` command and then add them to your `start_arm_container.sh` script.  After that start the container as described above.
+You can choose whichever location you want for each of these volumes. They can even be mounted in locations referring to network share. However, every one of these volumes _**MUST**_ be readable and writable by the arm user and group.  For simplicity, we strongly recommend that these folders be created as the `arm` user. (Log in to your machine, as the arm user, and create the folders, using the `mkdir` command.) If you are using all the suggested defaults, run these commands as the arm user:
+```
+mkdir /home/arm/logs
+mkdir /home/arm/music
+mkdir /home/arm/media
+mkdir /home/arm/config
+```
+Then add these volumes to your `start_arm_container.sh` script like so.  
+```
+-v "/home/arm:/home/arm" \
+-v "/home/arm/music:/home/arm/music" \
+-v "/home/arm/logs:/home/arm/logs" \
+-v "/home/arm/media:/home/arm/media" \
+-v "/home/arm/config:/etc/arm/config" \
+```
 
+After that start the A.R.M. container as described above.
+
+### Using Network Shares as volumes
 If using network shares, be aware that the performance of your A.R.M. installation will be greatly affected by how fast it can read and write to the network share.  If you want to use a network share for the _completed_ rips, a suggestion could be to create a mount point _inside_ the volume...
-*    `{media_volume_path}` is a location on the machine running on Fast SSD and plenty of space (20+ gigabytes for each concurrent Dual Layer DVDs or 100 gigabytes for each concurrent 4k blu-rays)
-*    `{media_volume_path}/completed` is a mounted network share
+*    `{media_volume_local_path}` is a location on the local machine running on Fast SSD and plenty of space (20+ gigabytes for each concurrent Dual Layer DVDs or 100 gigabytes for each concurrent 4k blu-rays)
+*    `{media_volume_local_path}/completed` is a mounted network share (for example, pointing to a Plex, Emby or Jellyfin media library folder)
 
-If using a network share for the `/home/arm` volume, read this [section](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Troubleshooting#my-volume-paths-point-to-a-cifs-mount---but-now-the-database-is-locked) from [Docker Troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Troubleshooting)
+If using a network share for the `/home/arm` volume, read this [section](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Troubleshooting#my-volume-paths-point-to-a-cifs-mount---but-now-the-database-is-locked) from [Docker Troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Troubleshooting) 
 
