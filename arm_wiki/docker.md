@@ -188,5 +188,5 @@ If using network shares, be aware that the performance of your A.R.M. installati
 *    `{media_volume_path}` is a location on the machine running on Fast SSD and plenty of space (20+ gigabytes for each concurrent Dual Layer DVDs or 100 gigabytes for each concurrent 4k blu-rays)
 *    `{media_volume_path}/completed` is a mounted network share
 
-If using a network share for the /home/arm volume, read this [section](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Troubleshooting#my-volume-paths-point-to-a-cifs-mount---but-now-the-database-is-locked) from [Docker Troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Troubleshooting)
+If using a network share for the `/home/arm` volume, read this [section](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Troubleshooting#my-volume-paths-point-to-a-cifs-mount---but-now-the-database-is-locked) from [Docker Troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Troubleshooting)
 
