@@ -23,6 +23,7 @@
       - [apprise.yaml](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/config-apprise.yaml)
       - [.abcde.conf](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/config-abcde.conf)
       - [Skins for ARM ui](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/config-ui-skins)
+      - [MakeMKV](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/MakeMKV-Info)
 
 **Hardware Configuration**
    - [Adding Intel QSV Support](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/intel-qsv)
