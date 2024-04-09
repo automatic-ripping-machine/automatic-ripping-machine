@@ -2,7 +2,7 @@ name: Publish ARM Wiki Update
 
 on:
   push:
-    branches: [Feature_MakeMKV_Wiki_Addition]
+    branches: [main]
     paths:
       - arm_wiki/**
   pull_request_review:
