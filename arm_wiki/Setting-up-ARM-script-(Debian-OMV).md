@@ -1,7 +1,8 @@
 # Automatic bare metal installation on Debian (11 & 12) and Open Media Vault (6.5 and 7)
 
 
-WARNING: Automatic Ripping Machine (A.R.M.) is only officially supported using the Docker Container. The only supported installation method is as a 
+> [!IMPORTANT]
+> Automatic Ripping Machine (A.R.M.) is only officially supported using the Docker Container. The only supported installation method is as a 
 Docker Container. Any different installation methods are not supported (including this one). In the event you experience 
 any issues with A.R.M. following this installation method first attempt to replicate the issue in a Docker Container 
 before opening an issue on the wiki. (An exception is if the error happened with the installation script itself). The 
@@ -19,6 +20,12 @@ While this method may work with other Linux distributions, your mileage may vary
 for a bare-metal installation.
 
 ## Installing A.R.M.
+### Pre-Installation steps
+1. Confirm the presence of the contrib repository to your `/etc/apt/sources.list` file
+   * Please read the official [Debian Wiki](https://wiki.debian.org/SourcesList) for help on adding the contrib repository if needed.
+2. Run `apt update && apt upgrade -y` to ensure your computer is up to date.  (if not root user, prefix the command with sudo `sudo update && sudo upgrade -y`
+3. Install any third-party drivers (for example; NVidia, AMD or Intel graphics drivers)
+### Installation steps
 If running as a root user remove the sudo calls.
 1. Download the script.
    * `wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/installers/DebianInstaller.sh`
@@ -77,6 +84,8 @@ these are system-reserved ports.
 fork. It looked for it on GitHub at: https://github.com/{ForkName}/automatic-ripping-machine
 * 212 – The script was called with the `[-t {TagName}]` option, but the script could not confirm the existence of the 
 tag or branch. It looked for it in the (named or default) fork on GitHub using the `git ls-remote` command.
+* 213 – The script found that SystemD is currently running the armui service and that it is currently active.  To prevent errors, please turn off the service with `systemctl stop armui` The script cannot continue if the service is running.
+* 214 – The installation script found that SystemD has a service loaded called armui but it is not currently running. However, the user chose to not proceed with the installation. 
 
 ## What the Automatic Installation Script does
 The Automatic Installation Script completes the following tasks.
