@@ -13,7 +13,6 @@ export DEBIAN_FRONTEND=noninteractive
 #Cause the script to fail when encountering undefined variable (set -u)
 #DEBUG MODE for Development only, Cause the script to print out every command executed (set -x)
 set -eu -o pipefail
-
 ###################################################
 ###################################################
 #               Global Variables                  #
@@ -27,6 +26,8 @@ Tag='latest'
 LinuxDistribution=''
 LinuxDistributionRelease=0
 LinuxDistributionCodename=''
+PreviousInstallationFound=false
+UseExistingConfigFiles=false
 
 
 #Text Color and Formatting Variables
@@ -49,6 +50,8 @@ readonly ERROR_FOUND_ARM_DIRECTORY_COULD_NOT_PROCEED=209
 readonly ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED=210
 readonly ERROR_GIT_REPO_FORK_DOES_NOT_EXIST=211
 readonly ERROR_GIT_REPO_TAG_DOES_NOT_EXIST=212
+readonly ERROR_FOUND_ACTIVE_ARMUI_SERVICE=213
+readonly ERROR_FOUND_AMRUI_SERVICE_USER_DECLINED_TO_CONTINUE=214
 
 
 ###################################################
@@ -172,7 +175,6 @@ done
 #
 #Get the user to agree to the conditions of using this script before continuing.
 function UserAcceptedConditions() {
-  ##TODO Create Wiki entry explaining how to enter the permanent MakeMKV licence in ARM.
   Disclaimer="${RED}
 ************************************************************************************************************************
 ** ${NC}                                                                                                                   ${RED}**
@@ -186,7 +188,7 @@ function UserAcceptedConditions() {
 ** ${NC} ARM uses MakeMKV. As of March 2024, MakeMKV is still in Beta and free to use while in Beta.                       ${RED}**
 ** ${NC} You may, optionally, purchase a licence for MakeMKV at https://makemkv.com/buy/ Once purchased, you can go into   ${RED}**
 ** ${NC} the ARM settings and paste in your key.  Instructions for entering your permanent key for MakeMKV in ARM can      ${RED}**
-** ${NC} be found here: [Wiki Link to instructions yet to be written]                                                      ${RED}**
+** ${NC} be found here: https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/MakeMKV-Info                                                      ${RED}**
 ** ${NC}                                                                                                                   ${RED}**
 ** ${NC} ARM is Open Source software licenced with the MIT licence:                                                        ${RED}**
 ** ${NC} https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/main/LICENSE                          ${RED}**
@@ -272,17 +274,21 @@ function RepositoryExists() {
 function IsUserAnsweredYesToPrompt() {
   local Prompt=$1
   local Response
-  read -p "$(echo -e "${Prompt}")" -r -n 1 Response
+  echo ""
+  read -p "$(echo -e "${Prompt}")" -r Response
   echo -e ""
   if [[ "${Response}" == "y" || "${Response}" == "Y" ]] ; then
+    echo ""
     true
   else
+    echo ""
     false
   fi
+
 }
 
 function IsEligibleDistro() {
-  if ! IsDebian12Distro; then
+  if ! IsDebianDistro; then
 
     NotDebian12Prompt="${YELLOW}WARNING, you are attempting to run this script in a environment other than Debian 10, 11 or 12
 This script was tested exclusively on Debian 12 (Bookworm), Debian 11 (Bullseye) and Debian 10 (Buster)
@@ -404,6 +410,53 @@ ${BLUE}Do you wish to Continue? Y/n: ${NC}"
   fi
 }
 
+function FoundPreviousInstallation() {
+  if [[ $(systemctl --all --type service | grep -q -F "armui.service") -eq 0 ]]  ; then
+    echo "Found Armui Service"
+    if systemctl is-active --quiet armui ; then
+      echo -e "${RED}The installation script found that there is an armui service running under SystemD. Which seems
+to indicate that you are currently running an ARM installation and it is active.  It is recommended to not run
+the installation script on a machine that is already running ARM.  It may have unpredictable effects.  However,
+if you wish to continue, you must first manually stop and disable the armui service and run this script again.
+Doing so will erase your /opt/arm directory to install a fresh copy, and you may loose your configurations as
+well. ${NC}"
+      exit ${ERROR_FOUND_ACTIVE_ARMUI_SERVICE}
+    fi
+
+    Prompt="${YELLOW}WARNING, Found the armui service in SystemD but it is currently inactive.  Proceeding with this
+installation may have unpredictable effects and is not recommended.
+
+${BLUE}Do you wish to proceed? Y/n ${NC}"
+
+    if IsUserAnsweredYesToPrompt "${Prompt}" ; then
+      if [[ -d "/opt/arm" ]] ; then
+        echo "Found Arm Installation Directory"
+        AlertUserOfExistenceOfAmrDirectory="${YELLOW}WARNING, the script found that the directory /opt/arm already exists.
+If you are attempting to update your arm installation, please us git to checkout the latest release.
+In order to proceed, this script needs to delete the /opt/arm directory and checkout a fresh copy of arm
+from the GitHub repository.  This is a non-reversible change.
+
+${BLUE}Do you wish to Continue? Y/n :${NC}"
+        if IsUserAnsweredYesToPrompt "${AlertUserOfExistenceOfAmrDirectory}" ; then
+          PreviousInstallationFound=true
+          AskUserIfConfigFilesShouldBeSetDefault="${BLUE} Keep existing A.R.M. config files? Y/n :${NC}"
+          if IsUserAnsweredYesToPrompt "${AskUserIfConfigFilesShouldBeSetDefault}" ; then
+            UseExistingConfigFiles=true
+          fi
+        else
+          echo -e "${RED} Exiting Script...${NC}"
+          exit ${ERROR_FOUND_ARM_DIRECTORY_COULD_NOT_PROCEED}
+        fi
+      fi
+    else
+      echo -e "${RED} Exiting Script...${NC}"
+      exit ${ERROR_FOUND_AMRUI_SERVICE_USER_DECLINED_TO_CONTINUE}
+    fi
+  fi
+
+
+}
+
 ###################################################
 #               Utility functions                 #
 ###################################################
@@ -468,13 +521,12 @@ function PasswordProtectArmUser() {
   local Password_1=''
   local Password_2=''
   if $NewUser ; then
-    PasswordQuestion="Do you wish to provide a custom password for the 'arm' user? Y/n : "
+    PasswordQuestion="${BLUE}Do you wish to provide a custom password for the 'arm' user? Y/n : ${NC}"
   else
-    PasswordQuestion="The 'arm' user was already on the system.
-Do you wish to change it's password? Y/n : "
+    PasswordQuestion="${BLUE}The 'arm' user was already on the system.
+Do you wish to change it's password? Y/n : ${NC}"
   fi
-  read -ep "$(echo -e "${PasswordQuestion}")" -r -n 1 UserWishesToEnterPassword
-  if [[ "${UserWishesToEnterPassword}" == "y"  ||  "${UserWishesToEnterPassword}" == "Y" ]] ; then
+  if IsUserAnsweredYesToPrompt "${PasswordQuestion}" ; then
     #The User wishes to provide a custom password.  Give the user 3 times to provide one,
     #This attempt limit is to prevent an infinite loop.
     local PasswordConfirmed=false
@@ -626,49 +678,35 @@ function DownloadArm () {
   fi
 
   cd /opt
-  if [ -d arm ]; then
-    ##TODO this check should be done earlier, much earlier, before the installation process started.
-    #Found a directory that may contain a repo.
 
-    #Query User, asking for permission to delete the directory and install arm.
-    AlertUserOfExistenceOfAmrDirectory="${YELLOW}WARNING, the script found that the directory /opt/arm already exists.
-    If you are attempting to update your arm installation, please us git to checkout the latest release.
-    In order to proceed, this script needs to delete the /opt/arm directory and checkout a fresh copy of arm
-    from the GitHub repository.  This is a non-reversible change.
+  if $PreviousInstallationFound ; then
 
-    ${NC}Do you wish to Continue? Y/n :"
-    read -p "$(echo -e "${AlertUserOfExistenceOfAmrDirectory}")" -r -n 1 ProceedWithScriptExecution
-    echo -e ""
-    if [[ "${ProceedWithScriptExecution}" == "y"  ||  "${ProceedWithScriptExecution}" == "Y" ]] ; then
-      #Since we know the /opt/arm directory exists.  There is a very strong possibility of previous config files
-      #existing.  We want to back these files up to give the user the chance to use those instead of the default ones.
+    ExistingArmYamlFile="/etc/arm/config/arm.yaml"
+    ExistingAbcdeConfFile="/etc/arm/config/abcde.conf"
+    ExistingAppriseYamlFile="/etc/arm/config/apprise.yaml"
 
-      ExistingArmYamlFile="/etc/arm/config/arm.yaml"
-      ExistingAbcdeConfFile="/etc/arm/config/abcde.conf"
-      ExistingAppriseYamlFile="/etc/arm/config/apprise.yaml"
-
-      if [[ -f ${ExistingAbcdeConfFile} ]] ; then
-        cp "${ExistingAbcdeConfFile}" "${ExistingAbcdeConfFile}.bck"
-      fi
-
-      if [[ -f ${ExistingArmYamlFile} ]] ; then
-        cp "${ExistingArmYamlFile}" "${ExistingArmYamlFile}.bck"
-      fi
-
-      if [[ -f ${ExistingAppriseYamlFile} ]] ; then
-        cp "${ExistingAppriseYamlFile}" "${ExistingAppriseYamlFile}.bck"
-      fi
-
-      echo -e "${RED} Deleting /opt/arm directory...${NC}"
-      rm -R /opt/arm
-    else
-      echo -e "${RED} Exiting Script, MakeMKV is installed, Arm is not installed...${NC}"
-      exit ${ERROR_FOUND_ARM_DIRECTORY_COULD_NOT_PROCEED}
+    if [[ -f ${ExistingAbcdeConfFile} ]] && [[ "${UseExistingConfigFiles}" = false ]] ; then
+      echo "Backing up ABCDE.conf"
+      cp "${ExistingAbcdeConfFile}" "${ExistingAbcdeConfFile}.bck"
     fi
+
+    if [[ -f ${ExistingArmYamlFile} ]] && [[ "${UseExistingConfigFiles}" = false ]] ; then
+      echo "Backing up ARM.Yaml"
+      cp "${ExistingArmYamlFile}" "${ExistingArmYamlFile}.bck"
+    fi
+
+    if [[ -f ${ExistingAppriseYamlFile} ]] && [[ "${UseExistingConfigFiles}" = false ]] ; then
+      echo "Backing up Apprise.yaml"
+      cp "${ExistingAppriseYamlFile}" "${ExistingAppriseYamlFile}.bck"
+    fi
+
+    echo -e "${RED} Deleting /opt/arm directory...${NC}"
+    rm -R /opt/arm
 
   fi
 
   #Clone git repo, pin to latest release tag
+
   mkdir arm
   chown -R arm:arm arm
 
@@ -678,9 +716,13 @@ function DownloadArm () {
 
   #Copy clean copies of config files to etc folder.
   mkdir -p /etc/arm/config
-  cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
-  cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
-  cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
+
+  if ! $UseExistingConfigFiles ; then
+    echo "Copying Clean Config Files"
+    cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
+    cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
+    cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
+  fi
 
   if $PortFlag ; then
     echo -e "${RED}Non-default port specified, updating arm config...${NC}"
@@ -755,7 +797,7 @@ function LaunchSetup() {
   if [[ $Port -ne 80 ]] ; then
     site_addr="${site_addr}:${Port}"
   fi
-  echo site_addr
+  echo "${site_addr}"
   ArmUIServiceActive=$(systemctl is-active --quiet armui)
   if [[ $ArmUIServiceActive -ne 0 ]]; then
       echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}"
@@ -790,6 +832,9 @@ InstallDownloadTools
 
 ######Test for the existence of the repository, fork and tab/branch
 RepositoryExists
+
+#######Test to see if there is a previous installation of ARM
+FoundPreviousInstallation
 
 #Test the Linux Distribution, if Debian 12, confirm presence of Contribs repos, if not, Give
 #User the option of attempting the installation anyway, even if it may fail.
