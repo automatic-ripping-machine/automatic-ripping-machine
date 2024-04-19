@@ -149,17 +149,27 @@ if __name__ == "__main__":
     args = entry()
     devpath = f"/dev/{args.devpath}"
 
-    # ARM Job starts
-    # Create new job
-    job = Job(devpath)
-    # Setup logging
-    log_file = logger.setup_logging(job)
+    # With some drives and some disks, there is a race condition between creating the Job()
+    # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)
+    for i in range(10):
+        if utils.get_cdrom_status(devpath) != 4:
+            logging.info("Drive appears to be empty or is not ready.  Waiting 1s")
+            arm_log.info("Drive appears to be empty or is not ready.  Waiting 1s")
+            time.sleep(1)
+
     # Exit if drive isn't ready
     if utils.get_cdrom_status(devpath) != 4:
         # This should really never trigger now as arm_wrapper should be taking care of this.
         logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         arm_log.info("Drive appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
+
+    # ARM Job starts
+    # Create new job
+    job = Job(devpath)
+    # Setup logging
+    log_file = logger.setup_logging(job)
+
     # Don't put out anything if we are using the empty.log NAS_[0-9].log or NAS1_[0-9].log
     if log_file.find("empty.log") != -1 or re.search(r"(NAS|NAS1)_\d+\.log", log_file) is not None:
         arm_log.info("ARM is trying to write a job to the empty.log, or NAS**.log")
