@@ -38,7 +38,7 @@ if len(cur_cfg) != len(new_cfg):
             new_cfg[key] = cur_cfg[key]
 
     # 4. Save the dictionary
-    with open("/opt/arm/arm/ui/comments.json", "r") as comments_file:
+    with open("/arm/app/comments.json", "r") as comments_file:
         comments = json.load(comments_file)
 
     arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"

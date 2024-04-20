@@ -1,107 +1,38 @@
-"""Main arm ui file"""
-import sys  # noqa: F401
-import os  # noqa: F401
-from getpass import getpass  # noqa: F401
-from logging.config import dictConfig
-from flask import Flask, logging, current_app  # noqa: F401
-from flask.logging import default_handler  # noqa: F401
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+"""
+Automatic Ripping Machine - User Interface (UI)
+    Flask factory
+"""
+from flask import Flask
 from flask_cors import CORS
-from flask_wtf import CSRFProtect
-from time import sleep
 
-from flask_login import LoginManager
-import bcrypt  # noqa: F401
-import arm.config.config as cfg
+from ui_config import UIConfig
+from ui.setuplog import setuplog
+from ui.ui_setup import db, migrate, csrf, login_manager
+from ui.ui_blueprints import register_blueprints
 
-# SQlite support required for migration from database file to MySQL
-sqlitefile = 'sqlite:///' + cfg.arm_config['DBFILE']
 
-# Setup logging, but because of werkzeug issues, we need to set up that later down file
-dictConfig({
-    'version': 1,
-    'formatters': {'default': {
-        'format': '[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
-    }},
-    'handlers': {
-        'wsgi': {
-            'class': 'logging.StreamHandler',
-            'stream': 'ext://flask.logging.wsgi_errors_stream',
-            'formatter': 'default'
-        },
-        "console": {"class": "logging.StreamHandler", "level": "INFO"},
-        "null": {"class": "logging.NullHandler"},
-    },
-    'root': {
-        'level': 'DEBUG',
-        'handlers': ['wsgi']
-    },
-})
+def create_app(config_class=UIConfig):
+    # Setup logging
+    dictConfig = setuplog(config_class)
 
-app = Flask(__name__)
-csrf = CSRFProtect()
-csrf.init_app(app)
-CORS(app, resources={r"/*": {"origins": "*", "send_wildcard": "False"}})
+    app = Flask(__name__)
+    app.config.from_object(config_class)
+    csrf.init_app(app)
+    CORS(app, resources={r"/*": {"origins": "*", "send_wildcard": "False"}})
 
-login_manager = LoginManager()
-login_manager.init_app(app)
+    # Report system state for debugging
+    app.logger.debug("Debugging pin: " + config_class.WERKZEUG_DEBUG_PIN)
+    # app.logger.debug("Debugging pin: " + app.config["WERKZEUG_DEBUG_PIN"])
+    # app.logger.debug(f"Mysql configuration: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
-# We should really generate a key for each system
-app.config['SECRET_KEY'] = "Big secret key"  # TODO: make this random!
-# Set the global Flask Login state, set to True will ignore any @login_required
-app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
-# Set debug pin as it is hidden normally
-os.environ["WERKZEUG_DEBUG_PIN"] = "12345"  # make this random!
-app.logger.debug("Debugging pin: " + os.environ["WERKZEUG_DEBUG_PIN"])
+    # Initialise the Database and Flask Alembic
+    db.init_app(app)
+    # alembic.init_app(app)
+    migrate.init_app(app, db)
 
-mysql_ip = os.getenv("MYSQL_IP", "127.0.0.1")
-mysql_user = os.getenv("MYSQL_USER", "arm")
-mysql_password = os.getenv("MYSQL_PASSWORD", "example")
-mysql_database = "arm"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://' + mysql_user + ':' + mysql_password \
-                                        + '@' + mysql_ip + '/' + mysql_database + '?charset=utf8mb4'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.logger.debug(f"Mysql configuration: {app.config['SQLALCHEMY_DATABASE_URI']}")
-db = SQLAlchemy()
-db.init_app(app)
-# Import ARM Models for database build
-from arm.models.alembic_version import AlembicVersion
-from arm.models.config import Config
-from arm.models.job import Job
-from arm.models.notifications import Notifications
-from arm.models.system_drives import SystemDrives
-from arm.models.system_info import SystemInfo
-from arm.models.track import Track
-from arm.models.ui_settings import UISettings
-from arm.models.user import User
-app.logger.debug("ARM Paused - wait 90 seconds for MySQL container load")
-sleep(90)  # Sleep 2 minutes to allow the mysql container to start, before loading data
-app.logger.debug("ARM Resumed - here comes ARM!")
-with app.app_context():
-    db.create_all()
-    app.logger.debug("Initialising the database, sending good vibes.")
-migrate = Migrate(app, db)
+    login_manager.init_app(app)
 
-# Register route blueprints
-# loaded post database declaration to avoid circular loops
-from arm.ui.settings.settings import route_settings  # noqa: E402,F811
-from arm.ui.logs.logs import route_logs  # noqa: E402,F811
-from arm.ui.auth.auth import route_auth  # noqa: E402,F811
-from arm.ui.database.database import route_database  # noqa: E402,F811
-from arm.ui.history.history import route_history  # noqa: E402,F811
-from arm.ui.jobs.jobs import route_jobs  # noqa: E402,F811
-from arm.ui.sendmovies.sendmovies import route_sendmovies  # noqa: E402,F811
-from arm.ui.notifications.notifications import route_notifications  # noqa: E402,F811
-app.register_blueprint(route_settings)
-app.register_blueprint(route_logs)
-app.register_blueprint(route_auth)
-app.register_blueprint(route_database)
-app.register_blueprint(route_history)
-app.register_blueprint(route_jobs)
-app.register_blueprint(route_sendmovies)
-app.register_blueprint(route_notifications)
+    # Register route blueprints
+    register_blueprints(app)
 
-# Remove GET/page loads from logging
-import logging  # noqa: E402,F811
-logging.getLogger('werkzeug').setLevel(logging.ERROR)
+    return app
