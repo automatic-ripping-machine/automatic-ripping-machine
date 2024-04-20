@@ -1,11 +1,11 @@
--r arm-dependencies/requirements.txt
+#-r arm-dependencies/requirements.txt
 
 #requirements added for PR#551
 argparse==1.4.0
 colorama==0.4.4
 #requirements added for PR#650
 flake8==6.0.0
-waitress==2.1.2
+# waitress==2.1.2
 
 
 # For ARM v3.0 development
@@ -26,3 +26,6 @@ Flask-Migrate==4.0.7
 Flask-SQLAlchemy==3.1.1
 Flask-WTF==1.2.1
 waitress==2.1.2
+
+# Required for developers conducting testing
+pytest==8.1.1

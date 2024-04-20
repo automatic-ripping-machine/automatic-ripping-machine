@@ -23,12 +23,13 @@ class UIConfig:
     DEBUG: bool = True
     ENV: str = 'development'
     LOGIN_DISABLED: bool = cfg.arm_config['DISABLE_LOGIN']
+    TESTING: bool = False
 
     # Flask keys
     SECRET_KEY: str = "Big secret key"
     WERKZEUG_DEBUG_PIN: str = "12345"
 
-    # Define the databse configuration for ARM
+    # Define the database configuration for ARM
     sqlitefile: str = 'sqlite:///' + cfg.arm_config['DBFILE']
     mysql_ip = os.getenv("MYSQL_IP", "127.0.0.1")
     mysql_user = os.getenv("MYSQL_USER", "arm")
@@ -91,6 +92,7 @@ class Development(UIConfig):
 
     DEBUG = True
     ENV = 'dev'
+    TESTING = True
 
 
 class Staging(UIConfig):
@@ -100,6 +102,7 @@ class Staging(UIConfig):
 
     DEBUG = True
     ENV = 'staging'
+    TESTING = True
 
 
 class Production(UIConfig):
@@ -109,6 +112,7 @@ class Production(UIConfig):
 
     DEBUG = False
     ENV = 'production'
+    TESTING = False
 
 
 config = {
