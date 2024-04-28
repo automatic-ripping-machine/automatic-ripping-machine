@@ -1,12 +1,25 @@
-from arm.ui import db
+from ui.ui_setup import db
 
 
 class AlembicVersion(db.Model):
+    """
+    ARM Database Model - Alembic Version
+
+    Represents the version of the Alembic migration framework in the database.
+    The database stores the version number as a string.
+
+    Database Table:
+        alembic_version
+
+    Attributes:
+        version_num (str): The version number of the Alembic migration framework.
+            This serves as the primary key for identifying the Alembic version.
+
+    Relationships:
+        None
+    """
     __tablename__ = 'alembic_version'
 
-    """
-    Class to hold the A.R.M db version
-    """
     version_num = db.Column(db.String(36), autoincrement=False, primary_key=True)
 
     def __init__(self, version=None):

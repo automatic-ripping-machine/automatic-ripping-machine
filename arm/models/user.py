@@ -1,14 +1,29 @@
 from flask_login import UserMixin
 
-from arm.ui import db
+from ui.ui_setup import db
 
 
 class User(db.Model, UserMixin):
+    """
+    ARM Database Model - User
+
+    Holds the user model for ARM, currently ARM only supports a single user.
+    The model stores user details such as user ID, email, password hash, and a hash value.
+
+    Database Table:
+        user
+
+    Attributes:
+        user_id (int): The unique identifier for the user.
+        email (str): The email address associated with the user.
+        password (str): The hashed password of the user.
+        hash (str): Additional hash value associated with the user.
+
+    Relationships:
+        None
+    """
     __tablename__ = 'user'
 
-    """
-    Class to hold admin users
-    """
     user_id = db.Column(db.Integer, index=True, primary_key=True)
     email = db.Column(db.String(64))
     password = db.Column(db.String(128))

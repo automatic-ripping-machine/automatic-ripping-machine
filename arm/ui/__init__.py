@@ -8,7 +8,6 @@ from flask_cors import CORS
 from ui_config import UIConfig
 from ui.setuplog import setuplog
 from ui.ui_setup import db, migrate, csrf, login_manager
-from ui.ui_blueprints import register_blueprints
 
 
 def create_app(config_class=UIConfig):
@@ -33,6 +32,7 @@ def create_app(config_class=UIConfig):
     login_manager.init_app(app)
 
     # Register route blueprints
+    from ui.ui_blueprints import register_blueprints
     register_blueprints(app)
 
     return app

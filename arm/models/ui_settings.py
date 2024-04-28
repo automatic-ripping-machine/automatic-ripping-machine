@@ -1,12 +1,32 @@
-from arm.ui import db
+from ui.ui_setup import db
 
 
 class UISettings(db.Model):
+    """
+    ARM Database Model - UISettings
+
+    Holds various settings related to the user interface, such as whether to use icons,
+    whether to save remote images, the Bootstrap skin, the language preference, refresh intervals
+    for index and notifications, and a database limit setting.
+
+    Database Table:
+        ui_settings
+
+    Attributes:
+        id (int): The unique identifier for the UI settings entry.
+        use_icons (bool): Indicates whether to use icons in the user interface.
+        save_remote_images (bool): Indicates whether to save remote images.
+        bootstrap_skin (str): The selected Bootstrap skin for styling.
+        language (str): The language preference for the user interface.
+        index_refresh (int): The refresh interval for the index page, in milliseconds.
+        database_limit (int): Limit for database entries to display.
+        notify_refresh (int): The refresh interval for notifications, in milliseconds
+
+    Relationships:
+        None.
+    """
     __tablename__ = 'ui_settings'
 
-    """
-    Class to hold the A.R.M ui settings
-    """
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     use_icons = db.Column(db.Boolean)
     save_remote_images = db.Column(db.Boolean)

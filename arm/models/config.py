@@ -1,6 +1,6 @@
 from prettytable import PrettyTable
 
-from arm.ui import db
+from ui.ui_setup import db
 
 
 hidden_attribs = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD",
@@ -11,10 +11,80 @@ HIDDEN_VALUE = "<hidden>"
 
 
 class Config(db.Model):
+    """
+    ARM Database Model - Config
+
+    Represents configuration settings for each job.
+    This class stores configuration settings for each job, which may vary between jobs.
+    It includes various settings related to job execution, file paths, permissions,
+    media processing parameters, external service credentials, and notification preferences.
+
+    Database Table:
+        config
+
+    Attributes:
+        CONFIG_ID (int): The unique identifier for the configuration.
+        job_id (int): The identifier of the job associated with this configuration.
+        ARM_CHECK_UDF (bool): Indicates whether to check UDF when using ARM.
+        GET_VIDEO_TITLE (bool): Indicates whether to fetch video titles.
+        SKIP_TRANSCODE (bool): Indicates whether to skip transcoding.
+        VIDEOTYPE (str): Type of video.
+        MINLENGTH (str): Minimum length.
+        MAXLENGTH (str): Maximum length.
+        MANUAL_WAIT (bool): Indicates whether to manually wait.
+        MANUAL_WAIT_TIME (int): Time to wait manually.
+        RAW_PATH (str): Path for raw files.
+        TRANSCODE_PATH (str): Path for transcoded files.
+        COMPLETED_PATH (str): Path for completed files.
+        EXTRAS_SUB (str): Subtitle for extras.
+        INSTALLPATH (str): Installation path.
+        LOGPATH (str): Log path.
+        LOGLEVEL (str): Log level.
+        LOGLIFE (int): Log life.
+        DBFILE (str): Database file.
+        WEBSERVER_IP (str): Web server IP address.
+        WEBSERVER_PORT (int): Web server port.
+        UI_BASE_URL (str): Base URL for the user interface.
+        SET_MEDIA_PERMISSIONS (bool): Indicates whether to set media permissions.
+        CHMOD_VALUE (int): CHMOD value.
+        SET_MEDIA_OWNER (bool): Indicates whether to set media owner.
+        CHOWN_USER (str): User for CHOWN.
+        CHOWN_GROUP (str): Group for CHOWN.
+        RIPMETHOD (str): RIP method.
+        MKV_ARGS (str): Arguments for MKV.
+        DELRAWFILES (bool): Indicates whether to delete raw files.
+        HASHEDKEYS (bool): Indicates whether to use hashed keys.
+        HB_PRESET_DVD (str): Handbrake preset for DVD.
+        HB_PRESET_BD (str): Handbrake preset for Blu-ray.
+        DEST_EXT (str): Destination extension.
+        HANDBRAKE_CLI (str): Handbrake CLI.
+        MAINFEATURE (bool): Indicates whether to select the main feature.
+        HB_ARGS_DVD (str): Arguments for Handbrake DVD.
+        HB_ARGS_BD (str): Arguments for Handbrake Blu-ray.
+        EMBY_REFRESH (bool): Indicates whether to refresh Emby.
+        EMBY_SERVER (str): Emby server.
+        EMBY_PORT (str): Emby port.
+        EMBY_CLIENT (str): Emby client.
+        EMBY_DEVICE (str): Emby device.
+        EMBY_DEVICEID (str): Emby device ID.
+        EMBY_USERNAME (str): Emby username.
+        EMBY_USERID (str): Emby user ID.
+        EMBY_PASSWORD (str): Emby password.
+        EMBY_API_KEY (str): Emby API key.
+        NOTIFY_RIP (bool): Indicates whether to notify on rip.
+        NOTIFY_TRANSCODE (bool): Indicates whether to notify on transcoding.
+        PB_KEY (str): Pushbullet key.
+        IFTTT_KEY (str): IFTTT key.
+        IFTTT_EVENT (str): IFTTT event.
+        PO_USER_KEY (str): PO user key.
+        PO_APP_KEY (str): PO app key.
+        OMDB_API_KEY (str): OMDB API key.
+
+    Relationships:
+        None
+    """
     __tablename__ = "config"
 
-    """ Holds all the config settings for each job
-    as these may change between each job """
     CONFIG_ID = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('job.job_id'))
     ARM_CHECK_UDF = db.Column(db.Boolean)
