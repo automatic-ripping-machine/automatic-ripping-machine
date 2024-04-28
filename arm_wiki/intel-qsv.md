@@ -37,7 +37,7 @@ You can either follow along the [commands](https://raw.githubusercontent.com/aut
 
  ```
  sudo apt install wget
- wget https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/main/scripts/ubuntu-quicksync.sh
+ wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/ubuntu-quicksync.sh 
  sudo chmod +x ubuntu-quicksync.sh
  sudo ./ubuntu-quicksync.sh
  ```
