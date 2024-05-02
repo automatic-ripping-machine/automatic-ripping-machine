@@ -1,4 +1,4 @@
-from prettytable import PrettyTable
+# from prettytable import PrettyTable
 
 from ui.ui_setup import db
 
@@ -168,16 +168,17 @@ class Config(db.Model):
 
         return return_string
 
-    def pretty_table(self):
-        """Returns a string of the PrettyTable"""
-        pretty_table = PrettyTable()
-        pretty_table.field_names = ["Config", "Value"]
-        pretty_table._max_width = {"Config": 20, "Value": 30}
-        for attr, value in self.__dict__.items():
-            if str(attr) in hidden_attribs and value:
-                value = HIDDEN_VALUE
-            pretty_table.add_row([str(attr), str(value)])
-        return str(pretty_table.get_string())
+    # TODO: remove outside model definition
+    # def pretty_table(self):
+    #     """Returns a string of the PrettyTable"""
+    #     pretty_table = PrettyTable()
+    #     pretty_table.field_names = ["Config", "Value"]
+    #     pretty_table._max_width = {"Config": 20, "Value": 30}
+    #     for attr, value in self.__dict__.items():
+    #         if str(attr) in hidden_attribs and value:
+    #             value = HIDDEN_VALUE
+    #         pretty_table.add_row([str(attr), str(value)])
+    #     return str(pretty_table.get_string())
 
     def get_d(self):
         """

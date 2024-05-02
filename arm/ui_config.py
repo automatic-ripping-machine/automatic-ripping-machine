@@ -71,7 +71,8 @@ class UIConfig:
 
         return host_ip
 
-    def is_docker(self) -> bool:
+    @staticmethod
+    def is_docker() -> bool:
         """
         Test to check if running inside a docker/container
 
