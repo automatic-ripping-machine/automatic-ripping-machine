@@ -31,7 +31,6 @@ class Notifications(db.Model):
     """
     __tablename__ = 'notifications'
 
-
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     seen = db.Column(db.Boolean)
     trigger_time = db.Column(db.DateTime)
@@ -42,7 +41,7 @@ class Notifications(db.Model):
     cleared = db.Column(db.Boolean, default=False, nullable=False)
     cleared_time = db.Column(db.DateTime)
 
-    def __init__(self, title=None, message=None):
+    def __init__(self, title: str = None, message: str = None):
         self.seen = False
         self.trigger_time = datetime.datetime.now()
         self.title = title

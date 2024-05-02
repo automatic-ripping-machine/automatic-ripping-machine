@@ -1,7 +1,9 @@
 """
-ARM UI Test Configuration
+ARM UI Test - Blueprints
 
-Blueprint: main
+Blueprint:
+    main
+
 Tests:
     test_index - test the index page returns correctly
 """

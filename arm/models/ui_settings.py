@@ -36,9 +36,9 @@ class UISettings(db.Model):
     database_limit = db.Column(db.Integer)
     notify_refresh = db.Column(db.Integer)
 
-    def __init__(self, use_icons=None, save_remote_images=None,
-                 bootstrap_skin=None, language=None, index_refresh=None,
-                 database_limit=None, notify_refresh=None):
+    def __init__(self, use_icons: bool = None, save_remote_images: bool = None,
+                 bootstrap_skin: str = "", language: str = "", index_refresh: int = 2000,
+                 database_limit: int = 0, notify_refresh: int = 2000):
         self.use_icons = use_icons
         self.save_remote_images = save_remote_images
         self.bootstrap_skin = bootstrap_skin

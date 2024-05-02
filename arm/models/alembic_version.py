@@ -22,7 +22,7 @@ class AlembicVersion(db.Model):
 
     version_num = db.Column(db.String(36), autoincrement=False, primary_key=True)
 
-    def __init__(self, version=None):
+    def __init__(self, version: str = None):
         self.version_num = version
 
     def __repr__(self):

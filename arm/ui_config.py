@@ -94,6 +94,14 @@ class Development(UIConfig):
     ENV = 'dev'
     TESTING = True
 
+    mysql_ip = os.getenv("MYSQL_IP", "127.0.0.1")
+    mysql_user = os.getenv("MYSQL_USER", "arm")
+    mysql_password = os.getenv("MYSQL_PASSWORD", "example")
+    mysql_database = "arm"
+
+    SQLALCHEMY_DATABASE_URI: str = 'mysql+mysqlconnector://' + mysql_user + ':' + mysql_password \
+                                   + '@' + mysql_ip + '/' + mysql_database + '?charset=utf8mb4'
+
 
 class Staging(UIConfig):
     """

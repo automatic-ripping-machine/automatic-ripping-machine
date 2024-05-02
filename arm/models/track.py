@@ -50,9 +50,8 @@ class Track(db.Model):
     error = db.Column(db.Text)
     source = db.Column(db.String(32))
 
-    def __init__(self, job_id, track_number, length, aspect_ratio,
-                 fps, main_feature, source, basename, filename):
-        """Return a track object"""
+    def __init__(self, job_id: int, track_number: str, length: int, aspect_ratio: str,
+                 fps: float, main_feature: bool, source: str, basename: str, filename: str):
         self.job_id = job_id
         self.track_number = track_number
         self.length = length

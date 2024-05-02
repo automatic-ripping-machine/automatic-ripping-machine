@@ -6,16 +6,53 @@ import os
 import pytest
 
 from ui import create_app
+from ui.ui_setup import db
+from ui_config import Development
 
 
-@pytest.fixture(scope='module')
-def test_client():
+@pytest.fixture(scope='session')
+def test_app():
+    """
+    ARM UI Test Configuration
+
+    Setup and define the test app environment
+    """
     # Set the Testing configuration prior to creating the Flask application
     os.environ['CONFIG_TYPE'] = 'config.TestingConfig'
-    flask_app = create_app()
+    os.environ['MYSQL_IP'] = '127.0.0.1'
+    os.environ['MYSQL_USER'] = 'arm'
+    os.environ['MYSQL_PASSWORD'] = 'example'
 
+    flask_app = create_app(Development)
+    flask_app.config['TESTING'] = True
+    flask_app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
+    return flask_app
+
+
+@pytest.fixture(scope='session')
+def test_client(test_app):
+    """
+    ARM UI Test Configuration
+
+    Provide a flask test client instance
+    """
     # Create a test client using the Flask application configured for testing
-    with flask_app.test_client() as testing_client:
+    with test_app.test_client() as testing_client:
         # Establish an application context
-        with flask_app.app_context():
+        with test_app.app_context():
             yield testing_client  # this is where the testing happens!
+
+
+@pytest.fixture(scope='session')
+def init_db(test_app):
+    """
+    ARM UI Test Configuration
+
+    Provide a database instance
+    """
+    with test_app.app_context():
+        db.create_all()     # Create tables for testing
+        yield db            # Provide db to pytest session
+
+        db.session.remove()
+        db.drop_all()  # Drop all tables after testing

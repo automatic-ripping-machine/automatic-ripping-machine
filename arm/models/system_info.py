@@ -34,7 +34,7 @@ class SystemInfo(db.Model):
     description = db.Column(db.Unicode(200))
     mem_total = db.Column(db.Float())
 
-    def __init__(self, name="ARM Server", description="Automatic Ripping Machine main server"):
+    def __init__(self, name: str = "ARM Server", description: str = "Automatic Ripping Machine main server"):
         # self.get_cpu_info()
         # self.get_memory()
         self.name = name

@@ -142,7 +142,7 @@ class Config(db.Model):
     PO_APP_KEY = db.Column(db.String(64))
     OMDB_API_KEY = db.Column(db.String(64))
 
-    def __init__(self, c, job_id):
+    def __init__(self, c, job_id: int):
         self.__dict__.update(c)
         self.job_id = job_id
 

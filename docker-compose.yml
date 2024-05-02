@@ -50,7 +50,7 @@ services:
       MYSQL_PASSWORD: example
     volumes:
       # Volumes for ARM db 'local directory':'Mariadb directory - DON'T CHANGE'
-      - /home/arm/db:/var/lib/mysql
+      - /home/arm/db/mysql:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password
     networks:
       - arm-network

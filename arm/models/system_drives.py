@@ -45,14 +45,14 @@ class SystemDrives(db.Model):
     job_current = db.relationship("Job", backref="Current", foreign_keys=[job_id_current])
     job_previous = db.relationship("Job", backref="Previous", foreign_keys=[job_id_previous])
 
-    def __init__(self, name, mount, job, job_previous, description):
+    def __init__(self, name: str, mount: str, job: int, job_previous: int, description: str, type: str):
         self.name = name
         self.mount = mount
         self.open = False
         self.job_id_current = job
         self.job_id_previous = job_previous
         self.description = description
-        self.drive_type()
+        self.type = type
 
     # TODO: this is a flask dataclass and should not contain functions, remove to a new class or function file
     # def drive_type(self):

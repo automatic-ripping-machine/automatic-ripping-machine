@@ -117,20 +117,20 @@ class Job(db.Model):
     tracks = db.relationship('Track', backref='job', lazy='dynamic')
     config = db.relationship('Config', uselist=False, backref="job")
 
-    def __init__(self, devpath):
-        """Return a disc object"""
+    def __init__(self, devpath: str):
         self.devpath = devpath
         self.mountpoint = "/mnt" + devpath
         self.hasnicetitle = False
         self.video_type = "unknown"
         self.ejected = False
         self.updated = False
+        self.stage = str(round(time.time() * 100))
+
         # TODO: avoid importing config, pass the value
         # if cfg.arm_config['VIDEOTYPE'] != "auto":
         #     self.video_type = cfg.arm_config['VIDEOTYPE']
         # self.parse_udev()     # TODO: remove or pass in values
         # self.get_pid()        # TODO: remove or pass in values
-        self.stage = str(round(time.time() * 100))
 
         # TODO: remove or pass in values
         # if self.disctype == "dvd" and not self.label:

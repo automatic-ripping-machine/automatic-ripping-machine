@@ -29,7 +29,7 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(128))
     hash = db.Column(db.String(256))
 
-    def __init__(self, email=None, password=None, hashed=None):
+    def __init__(self, email: str, password: str, hashed: str):
         self.email = email
         self.password = password
         self.hash = hashed
