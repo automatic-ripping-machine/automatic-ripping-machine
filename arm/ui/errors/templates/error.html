@@ -1,0 +1,14 @@
+{% extends "base_simple.html" %}
+
+{% block title %}Error{% endblock %}
+
+{% block content %}
+    <h3> An Error has occurred </h3>
+    <div class="jumbotron">
+        <p>Error: </p>
+        {% if error is not none %}
+            <p>{{ error }}</p>
+        {% endif %}
+    </div>
+
+{% endblock %}

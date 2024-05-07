@@ -20,5 +20,5 @@ migrate = Migrate()
 # Initialise Cross-Site Request Forgery Protection
 csrf = CSRFProtect()
 
-# Initilise the login manager
+# Initialise the login manager
 login_manager = LoginManager()

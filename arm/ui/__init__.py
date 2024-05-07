@@ -20,16 +20,17 @@ def create_app(config_class=UIConfig):
     CORS(app, resources={r"/*": {"origins": "*", "send_wildcard": "False"}})
 
     # Report system state for debugging
-    app.logger.debug("Debugging pin: " + config_class.WERKZEUG_DEBUG_PIN)
-    # app.logger.debug("Debugging pin: " + app.config["WERKZEUG_DEBUG_PIN"])
-    # app.logger.debug(f"Mysql configuration: {app.config['SQLALCHEMY_DATABASE_URI']}")
+    app.logger.debug(f'Debugging pin: {app.config["WERKZEUG_DEBUG_PIN"]}')
+    app.logger.debug(f'Mysql configuration: {app.config["SQLALCHEMY_DATABASE_URI_SANITISED"]}')
 
     # Initialise the Database and Flask Alembic
     db.init_app(app)
     # alembic.init_app(app)
     migrate.init_app(app, db)
 
-    login_manager.init_app(app)
+    # Initialise the Flask-Login manager
+    # login_manager.init_app(app)
+    # Todo: resolve the error with the login manager and move to auth blueprint
 
     # Register route blueprints
     from ui.ui_blueprints import register_blueprints

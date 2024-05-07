@@ -1,0 +1,12 @@
+{% extends "base_simple.html" %}
+
+{% block title %}ARM - Error - 404 Page Not Found{% endblock %}
+
+{% block content %}
+    <div class="jumbotron">
+        <p>Page not Found</p>
+    </div>
+    {% if error is not none %}
+        <p>{{ error }}</p>
+    {% endif %}
+{% endblock %}
