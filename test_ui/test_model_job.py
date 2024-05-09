@@ -66,6 +66,7 @@ def setup_test_data(setup_config):
     job.updated = False
     job.pid = 123456789
     job.pid_hash = 987654321
+    job.is_iso = True
     job.tracks.append(track)    # link to track table
     # job.config - pulled in with setup_config
 
@@ -126,6 +127,7 @@ def test_create_job(setup_test_data):
     job.updated = False
     job.pid = 123456789
     job.pid_hash = 987654321
+    job.is_iso = False
     job.tracks.append(track)  # link to track table
     # job.config - pulled in with setup_config
 
@@ -173,5 +175,6 @@ def test_job_attributes(setup_test_data):
     assert job.updated is False
     assert job.pid == 123456789
     assert job.pid_hash == 987654321
+    assert job.is_iso is True
     # No test for job.tracks
     # No test for job.config

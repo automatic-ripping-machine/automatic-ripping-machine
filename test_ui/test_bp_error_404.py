@@ -16,7 +16,7 @@ def test_errors_404(test_client):
     # Check for a 404 page not found, and data on the 404.html page
     assert response.status_code == 404
     assert b"Page not Found" in response.data
-    
+
     # Check that the page is displaying base_simple not base
     assert b"Home" in response.data
     assert b"Settings" not in response.data
