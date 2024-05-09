@@ -18,7 +18,7 @@ def not_found(e):
     return render_template("404.html"), 404
 
 
-@route_error.app_errorhandler(werkzeug.exceptions.InternalServerError)
+@route_error.app_errorhandler(500)
 def error_500():
     return render_template("500.html"), 500
 
@@ -27,6 +27,6 @@ def error_500():
 def error_general(error=None):
     """
     Catch all error page
-    :return: Error page
+    :return: error.html
     """
     return render_template("error.html", error=error), 500
