@@ -11,17 +11,16 @@ be able to see the exact call out to each program.
 When submitting a bug, enhancement, or feature request please indicate if you are able/willing to make the changes yourself in a pull request.
 
 ## Pull Requests
-**Please submit pull request for bug fixes/features against the v2_devel branch.**
 
-To make a pull request fork this project into your own github repository and after making changes create a PR.  Read https://help.github.com/articles/creating-a-pull-request/
+To make a pull request fork this project into your own GitHub repository and after making changes create a PR.  Read https://help.github.com/articles/creating-a-pull-request/
 
-Test your changes locally to the best of your ability to make sure nothing broke.
+Test your changes locally to the best of your ability to make sure nothing broke. ARM uses [pytest](docs.pytest.org) to conduct unit testing against a lot of the code. See [ARM Testing](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Testing) for more details on how test ARM post any changes, and if your changes require an update to the test code.
 
-If you are making multiple changes, please create  separate pull requests so they can be evaluated and approved individually (obviously if changes are trivial, or multiple changes are dependent on each other then one PR is fine).
+If you are making multiple changes, please create separate pull requests so they can be evaluated and approved individually (obviously if changes are trivial, or multiple changes are dependent on each other then one PR is fine).
 
 Update the README file in your PR if your changes require them.
 
-After submitting your PR check that the Travis CI build passes, if it doesn't you can fix those issues with additional commits.
+After submitting your PR check that all CI builds and tests pass, if they don't you can fix those issues with additional commits.
 
 ## Hardware/OS Documentation
 The installation guide is for Ubuntu20.04/Debian Buster/OMVault(debian) and the devs run it in VMware, however, many are running ARM in different environments.  If you have successfully set ARM up in a different environment and would like to assist others, please submit a howto to the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).   

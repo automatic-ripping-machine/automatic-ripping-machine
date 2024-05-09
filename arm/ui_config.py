@@ -103,10 +103,13 @@ class Development(UIConfig):
     ARM Flask Development config
     """
 
-    # DEBUG = True
-    # ENV = 'dev'
-    # TESTING = True
-    #
+    # Define Flask system state
+    FLASK_DEBUG: bool = True
+    WERKZEUG_DEBUG: bool = True
+    ENV: str = 'development'
+    LOGIN_DISABLED: bool = True
+    TESTING: bool = True
+
     # mysql_ip = os.getenv("MYSQL_IP", "127.0.0.1")
     # mysql_user = os.getenv("MYSQL_USER", "arm")
     # mysql_password = os.getenv("MYSQL_PASSWORD", "example")

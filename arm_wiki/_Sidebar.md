@@ -13,8 +13,14 @@
        - [Open Media Vault/ Debian (Install script)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Setting-up-ARM-script-(Debian-OMV))
        - [Ubuntu 20.04 (install script)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Ubuntu-20.04-Automatic-Installation)
    - [Upgrading from old versions](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/upgrading)
+   - [Roadmap](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Roadmap)
 
-**[Known Issues](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Known-Issues)**
+**Troubleshooting**
+- [Known Issues](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Known-Issues)
+   - [FAQ](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/FAQ)
+   - [General Troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/General-Troubleshooting)
+   - [Docker Troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Troubleshooting)
+   - [Open An Issue](https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/new/choose)
 
 **Configuration**
    - [Configuration](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Configuring-ARM)
@@ -24,21 +30,15 @@
       - [.abcde.conf](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/config-abcde.conf)
       - [Skins for ARM ui](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/config-ui-skins)
       - [MakeMKV](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/MakeMKV-Info)
-
-**Hardware Configuration**
-   - [Adding Intel QSV Support](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/intel-qsv)
-   - [Adding AMD VCE Support](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/amd-vce)
-   - [NVIDIA NVENC support](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/nvidia)
-
-**Troubleshooting**
-   - [FAQ](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/FAQ)
-   - [General Troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/General-Troubleshooting)
-   - [Docker Troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Troubleshooting)
-   - [Open An Issue](https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/new/choose)
+   - **Hardware Configuration**
+      - [Adding Intel QSV Support](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/intel-qsv)
+      - [Adding AMD VCE Support](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/amd-vce)
+      - [NVIDIA NVENC support](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/nvidia)
 
 **Contributing to ARM**
    - [ARM Code](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute)
    - [ARM Wiki](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Wiki)
+   - [ARM Testing](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Testing)
    - [Docker Dev guide](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Docker)
    - [ARM Development Tools (devtools)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-DevTools)
 
