@@ -6,15 +6,15 @@
                 <div class="card-header">Server details</div>
                 <div class="card-body col">
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item">Python
-                            version: {{ stats['python_version'] }}</li>
-                        <li class="list-group-item">A.R.M
-                            version: {{ stats['arm_version'] }}</li>
                         <li class="list-group-item">
-                            <label class="w-100">Current git version:<br>
-                                <input disabled value="{{ stats['git_commit'] }}"
-                                       class="form-control">
-                            </label></li>
+                            Python version: {{ stats['python_version'] }}
+                        </li>
+                        <li class="list-group-item">
+                            A.R.M version: {{ stats['arm_version'] }}
+                        </li>
+                        <li class="list-group-item">
+                                Current git version: {{ stats['git_commit'] }}
+                        </li>
                         <li class="list-group-item">Update Available:
                         <!-- Update A.R.M -->
                             {% if stats['updated'] %}

@@ -57,8 +57,14 @@ def settings():
     global page_settings
 
     # stats for info page
-    with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
-        version = version_file.read().strip()
+    version = "Unknown"
+    try:
+        with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
+            version = version_file.read().strip()
+    except FileNotFoundError as e:
+        app.logger.debug(f"Error - ARM Version file not found: {e}")
+    except IOError as e:
+        app.logger.debug(f"Error - ARM Version file error: {e}")
     failed_rips = Job.query.filter_by(status="fail").count()
     total_rips = Job.query.filter_by().count()
     movies = Job.query.filter_by(video_type="movie").count()
@@ -315,6 +321,9 @@ def testapprise():
     """
     global redirect_settings
     # Send a sample notification
-    ripper_utils.notify("/dev/null", "ARM notification", "This is a notification by the ARM-Notification Test!")
+    message = "This is a notification by the ARM-Notification Test!"
+    if cfg.arm_config["UI_BASE_URL"] and cfg.arm_config["WEBSERVER_PORT"]:
+        message = message + f" Server URL: http://{cfg.arm_config['UI_BASE_URL']}:{cfg.arm_config['WEBSERVER_PORT']}"
+    ripper_utils.notify(None, "ARM notification", message)
     flash("Test notification sent ", "success")
     return redirect(redirect_settings)

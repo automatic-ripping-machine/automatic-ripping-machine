@@ -31,7 +31,7 @@ from arm.ripper import apprise_bulk
 NOTIFY_TITLE = "ARM notification"
 
 
-def notify(job, title, body):
+def notify(job, title: str, body: str):
     """
     Send notifications with apprise\n
     :param job: Current Job
@@ -39,12 +39,17 @@ def notify(job, title, body):
     :param body: body of the notification
     :return: None
     """
-    # Prepend Site Name if configured, append Job ID if configured
+
+    # Prepend Site Name if configured
     if cfg.arm_config["ARM_NAME"] != "":
         title = f"[{cfg.arm_config['ARM_NAME']}] - {title}"
-    if cfg.arm_config["NOTIFY_JOBID"]:
+
+    # append Job ID if configured
+    if cfg.arm_config["NOTIFY_JOBID"] and job is not None:
         title = f"{title} - {job.job_id}"
+
     # Send to local db
+    logging.debug(f"apprise message, title: {title} body: {body}")
     notification = Notifications(title, body)
     database_adder(notification)
 
@@ -66,6 +71,7 @@ def notify(job, title, body):
     except Exception as error:  # noqa: E722
         logging.error(f"Failed sending notifications. error:{error}. Continuing processing...")
 
+    # Bulk send notifications, using the config set on the ripper config page
     if cfg.arm_config["APPRISE"] != "":
         try:
             apprise_bulk.apprise_notify(cfg.arm_config["APPRISE"], title, body)

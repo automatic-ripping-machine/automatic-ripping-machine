@@ -1,5 +1,6 @@
 {% block ripper %}
     <div class="tab-pane pt-5" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+        <h4> Ripper ARM Settings </h4>
         <form id="ripperSettings" name="ripperSettings" method="post" action="">
             {{ form.hidden_tag() }}
             {% for k, v in settings.items() %}

@@ -164,6 +164,30 @@ def arm_db_check():
     db_revision = None
     app.logger.debug(f"Database file is not present: {db_file}")
 
+    head_revision = arm_alembic_get()
+
+    # Check if the db file exists
+    if os.path.isfile(db_file):
+        db_exists = True
+        # Get the database alembic version
+        db_revision = arm_db_get()
+        if db_revision.version_num == head_revision:
+            db_current = True
+            app.logger.debug(
+                f"Database is current. Head: {head_revision}" +
+                f"DB: {db_revision.version_num}")
+        else:
+            db_current = False
+            app.logger.info(
+                "Database is not current, update required." +
+                f" Head: {head_revision} DB: {db_revision.version_num}")
+    else:
+        db_exists = False
+        db_current = False
+        head_revision = None
+        db_revision = None
+        app.logger.debug(f"Database file is not present: {db_file}")
+
     db = {
         "db_exists": db_exists,
         "db_current": db_current,
@@ -191,6 +215,46 @@ def arm_db_cfg():
     app.logger.debug(armui_cfg)
 
     return armui_cfg
+
+
+def arm_db_migrate():
+    """
+    Migrate the existing database to the newest version, keeping user data
+    """
+    import flask_migrate
+
+    install_path = cfg.arm_config['INSTALLPATH']
+    db_file = cfg.arm_config['DBFILE']
+    mig_dir = os.path.join(install_path, path_migrations)
+
+    head_revision = arm_alembic_get()
+    db_revision = arm_db_get()
+
+    app.logger.info(
+        "Database out of date." +
+        f" Head is {head_revision} and database is {db_revision.version_num}." +
+        " Upgrading database...")
+    with app.app_context():
+        time = datetime.now()
+        timestamp = time.strftime("%Y-%m-%d_%H%M")
+        app.logger.info(
+            f"Backing up database '{db_file}' " +
+            f"to '{db_file}_migration_{timestamp}'.")
+        shutil.copy(db_file, db_file + "_migration_" + timestamp)
+        flask_migrate.upgrade(mig_dir)
+    app.logger.info("Upgrade complete.  Validating version level...")
+
+    # Check the update worked
+    db_revision = arm_db_get()
+    app.logger.info(f"ARM head: {head_revision} database: {db_revision.version_num}")
+    if head_revision == db_revision.version_num:
+        app.logger.info("Database is now up to date")
+        arm_db_initialise()
+    else:
+        app.logger.error(
+            "Database is still out of date. " +
+            f"Head is {head_revision} and database " +
+            f"is {db_revision.version_num}.  Exiting arm.")
 
 
 def arm_db_initialise():
@@ -467,7 +531,7 @@ def fix_permissions(j_id):
     # If there is no path saved in the job
     if not job.path:
         # Check logfile still exists
-        validate_logfile(job.logfile, "true", Path(os.path.join(cfg.arm_config['LOGPATH'], job.logfile)))
+        validate_logfile(job.logfile, "true", Path(os.path.join(str(cfg.arm_config['LOGPATH']), job.logfile)))
         # Find the correct path to use for fixing perms
         directory_to_traverse = find_folder_in_log(os.path.join(cfg.arm_config['LOGPATH'], job.logfile),
                                                    os.path.join(job.config.COMPLETED_PATH,
@@ -774,14 +838,29 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
 
 def get_git_revision_hash() -> str:
     """Get full hash of current git commit"""
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD'],
-                                   cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
+    git_hash: str = 'unknown'
+    try:
+        git_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD'],
+                                           cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
+        # Trunkate to seven characters (aligns with the github commit values reported)
+        git_hash = git_hash[:7]
+        app.logger.debug(f"GIT revision: {git_hash}")
+    except subprocess.CalledProcessError as e:
+        app.logger.debug(f"GIT revision error: {e}")
+
+    return git_hash
 
 
 def get_git_revision_short_hash() -> str:
     """Get short hash of current git commit"""
-    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
-                                   cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
+    git_hash: str = 'unknown'
+    try:
+        subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
+                                cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
+    except subprocess.CalledProcessError as e:
+        app.logger.debug(f"GIT revision error: {e}")
+
+    return git_hash
 
 
 def git_check_updates(current_hash) -> bool:
@@ -789,7 +868,6 @@ def git_check_updates(current_hash) -> bool:
     git_update = subprocess.run(['git', 'fetch',
                                  'https://github.com/automatic-ripping-machine/automatic-ripping-machine'],
                                 cwd=cfg.arm_config['INSTALLPATH'], check=False)
-    # git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1
     git_log = subprocess.check_output('git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1',
                                       shell=True, cwd="/opt/arm").decode('ascii').strip()
     app.logger.debug(git_update.returncode)
