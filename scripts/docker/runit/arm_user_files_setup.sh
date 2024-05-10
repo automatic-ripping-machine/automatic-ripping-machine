@@ -66,8 +66,9 @@ for dir in $SUBDIRS ; do
     echo "Creating dir: $thisDir"
     mkdir -p "$thisDir"
   fi
-  chown -R arm:arm "$thisDir"
 done
+# THIS LINE IS CRITICAL TO ENSURING PROPER PERMISSIONS
+chown -R arm:arm "$ARM_HOME"
 
 echo "Removing any link between music and Music"
 if [ -h /home/arm/Music ]; then
