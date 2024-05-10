@@ -66,9 +66,10 @@ for dir in $SUBDIRS ; do
     echo "Creating dir: $thisDir"
     mkdir -p "$thisDir"
   fi
+  chown -R arm:arm "$thisDir"
 done
-echo "Removing any link between music and Music"
 
+echo "Removing any link between music and Music"
 if [ -h /home/arm/Music ]; then
   echo "Music symbolic link found, removing link"
   unlink /home/arm/Music
