@@ -30,11 +30,10 @@ To install from a different repo, tag: `sudo ./docker-setup.sh -f automaticrippi
 
 The script will now:
 1. Create an `arm` user and group if they don't exist on the host
-2. Create the necessary folders and ensure they are owned by the `arm` user
-3. Install docker if it is not already found on the system
-4. Pull the appropriate image from Dockerhub
-5. Create host mountpoints for any DVD drives found on the system
-6. Save a copy of the template run command for the user to fill in to `~arm/start_arm_container.sh`
+2. Install docker if it is not already found on the system
+3. Pull the appropriate image from Dockerhub
+4. Create host mountpoints for any DVD drives found on the system
+5. Save a copy of the template run command for the user to fill in to `~arm/start_arm_container.sh`
 
 ## Post Install
 1. **ARM User ID**: In a terminal session, type `id -u arm` and make a note of the returned value
@@ -100,6 +99,8 @@ The script will now:
    ```bash
    sudo chown 1001:1001 -R /home/arm/config
    ```
+
+   Additionally, any folders the container creates during startup will be owned by the user specified in `start_arm_container.sh`. If the folder paths passed to the container are on a remote share (SMB, NFS, etc.) and do not already exist, this may result in the folders on the share not being owned by the same user.
 
 5. **Start ARM**: Run the container with `sudo ./start_arm_container.sh`
 
