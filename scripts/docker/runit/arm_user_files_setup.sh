@@ -65,10 +65,10 @@ for dir in $SUBDIRS ; do
   if [[ ! -d "$thisDir" ]] ; then
     echo "Creating dir: $thisDir"
     mkdir -p "$thisDir"
+    # Set the default ownership to arm instead of root
+    chown -R arm:arm "$thisDir"
   fi
 done
-# THIS LINE IS CRITICAL TO ENSURING PROPER PERMISSIONS
-chown -R arm:arm "$ARM_HOME"
 
 echo "Removing any link between music and Music"
 if [ -h /home/arm/Music ]; then
