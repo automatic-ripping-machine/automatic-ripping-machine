@@ -435,7 +435,7 @@ def rip_data(job):
         subprocess.check_output(cmd, shell=True).decode("utf-8")
         full_final_file = os.path.join(final_path, f"{str(job.label)}.iso")
         logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
-        os.rename(incomplete_filename, full_final_file)
+        move_files_main(incomplete_filename, full_final_file, final_path)
         logging.info("Data rip call successful")
         success = True
     except subprocess.CalledProcessError as dd_error:
