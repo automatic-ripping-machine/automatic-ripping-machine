@@ -48,7 +48,7 @@ To allow this to happen, ensure the title includes the below text:
 
 - MAJOR - not automatic, managed by core developer team
 - MINOR - [FEATURE] PR descriptive title
-- PATHC - [BUGFIX] PR descriptive title
+- PATCH - [BUGFIX] PR descriptive title
 
 On submitting your PR,
 GitHub will automatically run multiple checks against the code and report back on the code quality.
