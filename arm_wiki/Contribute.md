@@ -3,33 +3,72 @@
 Thank you for contributing to the Automatic Ripping Machine.
 
 ## Issues, Bugs, and Feature Requests
-If you find a bug, please delete the existing log for that rip, change the log level to DEBUG in your arm.yaml file and then run the rip again to get a clean log for analysis.  You can drag and drop the log onto an issue comment to attach it to the issue.
+If you find a bug, please delete the existing log for that rip,
+change the log level to DEBUG in your arm.yaml file and then run the rip again to get a clean log for analysis.  You can drag and drop the log onto an issue comment to attach it to the issue.
 
-Also, since ARM relies on software such a HandBrake and MakeMKV try running those programs manually to see if it's an issue there.  If you run ARM in DEBUG mode you should
-be able to see the exact call out to each program.
+Also, since ARM relies on software such as a HandBrake and MakeMKV,
+try running those programs manually to see if it's an issue there.
+If you run ARM in DEBUG mode you should
+be able to see the exact call-out to each program.
 
 When submitting a bug, enhancement, or feature request please indicate if you are able/willing to make the changes yourself in a pull request.
 
-## Pull Requests
-**Please submit pull request for bug fixes/features against the v2_devel branch.**
+## Making Code Changes
 
-To make a pull request fork this project into your own github repository and after making changes create a PR.  Read https://help.github.com/articles/creating-a-pull-request/
+To make changes to the code, fork this project into your own GitHub repository.
+Make the changes to the code, to implement the feature, or bug fix.
+More information can be found in the [GitHub docs](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo).
 
-Test your changes locally to the best of your ability to make sure nothing broke.
+Once the new feature or bugfix has been incorporated,
+test your changes locally to the best of your ability to ensure no new bugs have been introduced.
+See [Testing](#Testing) for more information.
 
-If you are making multiple changes, please create  separate pull requests so they can be evaluated and approved individually (obviously if changes are trivial, or multiple changes are dependent on each other then one PR is fine).
+If significant changes have been made to ARM, ensure the following:
+- Update the README file in your PR
+- Update the ARM Wiki, see [ARM Wiki](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Wiki)
 
-Update the README file in your PR if your changes require them.
+## Raise a Pull Request
 
-After submitting your PR check that the Travis CI build passes, if it doesn't you can fix those issues with additional commits.
+Once your code is ready, raise a new Pull Request (PR) within Github from your fork to the ARM main branch.
+For additional information, see the [GitHub Docs](https://help.github.com/articles/creating-a-pull-request/)
+
+To make it easier on the Developers reviewing any PR, avoid creating massive changes to the code base in one PR.
+Where possible, try to reduce changes to a small feature or bug fix for easy review.
+
+ARM versioning follows the [Semantic Versioning](https://semver.org/) standard.
+All versions follow the MAJOR.MINOR.PATCH numbering format recorded within the [VERSION](https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/main/VERSION) file.
+When developing changes, versioning should follow this format and be reflected within the file.
+
+- MAJOR version when you make incompatible API changes
+- MINOR version when you add functionality in a backward compatible manner
+- PATCH version when you make backward compatible bug fixes
+
+The GitHub actions will auto manage versions when creating raising a PR.
+To allow this to happen, ensure the title includes the below text:
+
+- MAJOR - not automatic, managed by core developer team
+- MINOR - [FEATURE] PR descriptive title
+- PATHC - [BUGFIX] PR descriptive title
+
+On submitting your PR,
+GitHub will automatically run multiple checks against the code and report back on the code quality.
+Should any issues be identified with the code,
+resolve them against the same branch used to raise the PR and push to GitHub.
+GitHub will do the rest, re-running all tests.
 
 ## Hardware/OS Documentation
-The installation guide is for Ubuntu20.04/Debian Buster/OMVault(debian) and the devs run it in VMware, however, many are running ARM in different environments.  If you have successfully set ARM up in a different environment and would like to assist others, please submit a howto to the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).   
+The installation guide is for Ubuntu20.04/Debian Buster/OMVault(debian) and the devs run it in VMware, however, many are running ARM in different environments. 
+If you have successfully set ARM up in a different environment and would like to assist others, please submit a howto to the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).   
 
-## Testing, Quality, etc.
+## Testing
  
- ARM is written to meed the Python style guide PEP8 (https://pep8.org/). On submitting a new PR to ARM, the new and modified code will be checked against PEP8 for compliance. Prior to loading up a new PR, it is recommended that the each new or modified file within the PR be run through PEP8 (now pycodestyle).
- ### Setting up pycodestyle
+ARM is written to meed the Python style guide PEP8 (https://pep8.org/. On submitting a new PR to ARM, the new and modified code will be checked against PEP8 for compliance.
+Prior to loading up a new PR, it is recommended that the new or modified file within the PR be run through PEP8 (now pycodestyle).
+
+The ARM Devs have developed some usefull tools for testing and scripting some of the development process.
+Check out the [ARM Development Tools (devtools)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-DevTools)
+ 
+### Setting up pycodestyle
  
  You can install, upgrade, and uninstall pycodestyle.py with these commands:
  
