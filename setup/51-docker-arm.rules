@@ -1,5 +1,4 @@
 # ID_CDROM_MEDIA_BD = Bluray
 # ID_CDROM_MEDIA_DVD = DVD
 # ID_CDROM_MEDIA_CD = CD
-ACTION=="change", SUBSYSTEM=="block", RUN+="/sbin/setuser arm /opt/arm/scripts/docker/docker_arm_wrapper.sh %k"
-
+KERNEL=="sr[0-9]", ACTION=="change", SUBSYSTEM=="block", ENV{ID_CDROM_MEDIA_STATE}!="blank", RUN+="/sbin/setuser arm /opt/arm/scripts/docker/docker_arm_wrapper.sh %k"
