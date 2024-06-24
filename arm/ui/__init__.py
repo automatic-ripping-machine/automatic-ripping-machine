@@ -45,6 +45,11 @@ CORS(app, resources={r"/*": {"origins": "*", "send_wildcard": "False"}})
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+# Set log level per arm.yml config
+app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
+app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
+
+# Set Flask database connection configurations
 app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # We should really generate a key for each system

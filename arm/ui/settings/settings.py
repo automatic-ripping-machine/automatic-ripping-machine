@@ -166,6 +166,10 @@ def save_settings():
             settings_file.close()
         success = True
         importlib.reload(cfg)
+        # Set the ARM Log level to the config
+        app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
+        app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
+
     # If we get to here there was no post data
     return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
 
