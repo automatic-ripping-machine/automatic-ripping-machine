@@ -29,7 +29,7 @@ To install default: `sudo ./docker-setup.sh`
 To install from a different repo, tag: `sudo ./docker-setup.sh -f automaticrippingmachine -t dev_build`
 
 The script will now:
-1. Create an `arm` user and group if they don't exist
+1. Create an `arm` user and group if they don't exist on the host
 2. Install docker if it is not already found on the system
 3. Pull the appropriate image from Dockerhub
 4. Create host mountpoints for any DVD drives found on the system
@@ -99,6 +99,8 @@ The script will now:
    ```bash
    sudo chown 1001:1001 -R /home/arm/config
    ```
+
+   Additionally, any folders the container creates during startup will be owned by the user specified in `start_arm_container.sh`. If the folder paths passed to the container are on a remote share (SMB, NFS, etc.) and do not already exist, this may result in the folders on the share not being owned by the same user.
 
 5. **Start ARM**: Run the container with `sudo ./start_arm_container.sh`
 

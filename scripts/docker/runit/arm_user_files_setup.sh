@@ -68,10 +68,12 @@ for dir in $SUBDIRS ; do
   if [[ ! -d "$thisDir" ]] ; then
     echo "Creating dir: $thisDir"
     mkdir -p "$thisDir"
+    # Set the default ownership to arm instead of root
+    chown -R arm:arm "$thisDir"
   fi
 done
-echo "Removing any link between music and Music"
 
+echo "Removing any link between music and Music"
 if [ -h /home/arm/Music ]; then
   echo "Music symbolic link found, removing link"
   unlink /home/arm/Music

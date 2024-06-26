@@ -20,7 +20,7 @@ If you use an unsupported operating system and can't or don't want to reimage, t
 
 
 ## Get Started
-[Getting Started](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Getting-Started on your journey with ARM
+[Getting Started](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Getting-Started) on your journey with ARM
 
 ## Current Features
 
