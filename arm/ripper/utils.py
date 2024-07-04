@@ -453,6 +453,61 @@ def rip_data(job):
         logging.error(f"Error: {error.filename} - {error.strerror}.")
     return success
 
+def rip_hybrid(job):
+    """
+    Rip hybrid audio/data disc using cdrdao on the command line\n
+    :param job: Current job
+    :return: True/False for success/fail
+    """
+    success = False
+    if job.label == "" or job.label is None:
+        job.label = "data-disc"
+    # get filesystem in order
+    raw_path = os.path.join(job.config.RAW_PATH, str(job.label))
+    final_path = os.path.join(job.config.COMPLETED_PATH, convert_job_type(job.video_type))
+    final_file_name = str(job.label)
+
+    if (make_dir(raw_path)) is False:
+        random_time = str(round(time.time() * 100))
+        raw_path = os.path.join(job.config.RAW_PATH, str(job.label) + "_" + random_time)
+        final_file_name = f"{job.label}_{random_time}"
+        if (make_dir(raw_path)) is False:
+            logging.info(f"Could not create data directory: {raw_path}  Exiting ARM. ")
+            args = {'status': 'fail', 'errors': "Couldn't create data directory"}
+            database_updater(args, job)
+            sys.exit()
+
+    final_path = os.path.join(final_path, final_file_name)
+    incomplete_filename = os.path.join(raw_path, str(job.label) + ".part")
+    incomplete_filename_toc = os.path.join(raw_path, str(job.label) + ".toc.part")
+    
+    make_dir(final_path)
+    logging.info(f"Ripping data disc to: {incomplete_filename}")
+    # Added from pull 366
+    cmd = f'cdrdao read-cd --device "{job.devpath}" --datafile "{incomplete_filename}" "{incomplete_filename_toc}" {cfg.arm_config["HYBRID_RIP_PARAMETERS"]} 2>> ' \
+          f'{os.path.join(job.config.LOGPATH, job.logfile)}'
+    logging.debug(f"Sending command: {cmd}")
+    try:
+        subprocess.check_output(cmd, shell=True).decode("utf-8")
+        subprocess.run(f'toc2cue "{incomplete_filename_toc}" "{final_path}\{str(job.label)}.cue" 2>> {os.path.join(job.config.LOGPATH, job.logfile)}')
+        full_final_file = os.path.join(final_path, f"{str(job.label)}.bin")
+        logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
+        move_files_main(incomplete_filename, full_final_file, final_path)
+        logging.info("Data rip call successful")
+        success = True
+    except subprocess.CalledProcessError as dd_error:
+        err = f"Data rip failed with code: {dd_error.returncode}({dd_error.output})"
+        logging.error(err)
+        os.unlink(incomplete_filename)
+        args = {'status': 'fail', 'errors': err}
+        database_updater(args, job)
+    try:
+        logging.info(f"Trying to remove raw_path: '{raw_path}'")
+        shutil.rmtree(raw_path)
+    except OSError as error:
+        logging.error(f"Error: {error.filename} - {error.strerror}.")
+    return success
+
 
 def set_permissions(directory_to_traverse):
     """
