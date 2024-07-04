@@ -130,6 +130,7 @@ class Job(db.Model):
         :return: None
         """
         if self.disctype == "music":
+            # Assumption here is get_disc_type only gets called for a mountable FS, therefore if we're here and disctype is "music" then we're hybrid
             logging.debug("Disc is hybrid Data+Audio.")
             self.disctype = "hybrid"
         elif os.path.isdir(self.mountpoint + "/VIDEO_TS"):
