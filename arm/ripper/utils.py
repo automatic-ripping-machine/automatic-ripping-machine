@@ -484,7 +484,7 @@ def rip_hybrid(job):
     make_dir(final_path)
     logging.info(f"Ripping data disc to: {incomplete_filename}")
     # Added from pull 366
-    cmd = f'cdrdao read-cd --device "{job.devpath}" --datafile "{incomplete_filename}" "{incomplete_filename_toc}" {cfg.arm_config["HYBRID_RIP_PARAMETERS"]} 2>> ' \
+    cmd = f'cdrdao read-cd --device "{job.devpath}" --datafile "{incomplete_filename}" {cfg.arm_config["HYBRID_RIP_PARAMETERS"]} "{incomplete_filename_toc}" 2>> ' \
           f'{os.path.join(job.config.LOGPATH, job.logfile)}'
     logging.debug(f"Sending command: {cmd}")
     try:
