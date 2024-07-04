@@ -114,6 +114,8 @@ def notify_entry(job):
         notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks.")
     elif job.disctype == "data":
         notify(job, NOTIFY_TITLE, "Found data disc.  Copying data.")
+    elif job.disctype == "hybrid":
+        notify(job, NOTIFY_TITLE, "Found hybrid disc.  Copying data only.")
     else:
         notify(job, NOTIFY_TITLE, "Could not identify disc.  Exiting.")
         args = {'status': 'fail', 'errors': "Could not identify disc."}
