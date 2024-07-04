@@ -138,7 +138,7 @@ def main(logfile, job, protection=0):
     # Type: Hybrid data+audio
     elif job.disctype == "hybrid":
         logging.info("Disc identified as hybrid data+audio")
-        if utils.rip_data(job):
+        if utils.rip_hybrid(job):
             utils.notify(job, constants.NOTIFY_TITLE, f"Data disc: {job.label} copying complete. ")
         else:
             logging.info("Data rip failed.  See previous errors.  Exiting.")
