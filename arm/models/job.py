@@ -130,8 +130,8 @@ class Job(db.Model):
         :return: None
         """
         if self.disctype == "music":
-            logging.debug("Disc is music.")
-            self.label = music_brainz.main(self)
+            logging.debug("Disc is hybrid Data+Audio.")
+            self.disctype = "hybrid"
         elif os.path.isdir(self.mountpoint + "/VIDEO_TS"):
             logging.debug(f"Found: {self.mountpoint}/VIDEO_TS")
             self.disctype = "dvd"
