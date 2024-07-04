@@ -23,6 +23,9 @@ def create_app(config_class=UIConfig):
     app.logger.debug(f'Debugging pin: {app.config["WERKZEUG_DEBUG_PIN"]}')
     app.logger.debug(f'Mysql configuration: {app.config["SQLALCHEMY_DATABASE_URI_SANITISED"]}')
 
+# Set log level per arm.yml config
+app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
+app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
     # Initialise the Database and Flask Alembic
     db.init_app(app)
     # alembic.init_app(app)
