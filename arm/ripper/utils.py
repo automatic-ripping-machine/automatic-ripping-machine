@@ -489,7 +489,7 @@ def rip_hybrid(job):
     logging.debug(f"Sending command: {cmd}")
     try:
         subprocess.check_output(cmd, shell=True).decode("utf-8")
-        subprocess.run(f'toc2cue "{incomplete_filename_toc}" "{final_path}\{str(job.label)}.cue" 2>> {os.path.join(job.config.LOGPATH, job.logfile)}')
+        subprocess.run(f'toc2cue "{incomplete_filename_toc}" "{final_path}/{str(job.label)}.cue" 2>> {os.path.join(job.config.LOGPATH, job.logfile)}')
         full_final_file = os.path.join(final_path, f"{str(job.label)}.bin")
         logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
         move_files_main(incomplete_filename, full_final_file, final_path)
