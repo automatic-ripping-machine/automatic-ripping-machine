@@ -68,6 +68,8 @@ class UIConfig:
     LOGIN_DISABLED: bool = cfg.arm_config['DISABLE_LOGIN']
     TESTING: bool = False
 
+    LOGLEVEL: str = cfg.arm_config['LOGLEVEL']
+
     # Flask keys
     SECRET_KEY: str = "Big secret key"
     WERKZEUG_DEBUG_PIN: str = "12345"
