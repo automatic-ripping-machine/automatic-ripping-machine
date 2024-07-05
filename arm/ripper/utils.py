@@ -30,6 +30,19 @@ from arm.ripper import apprise_bulk
 
 NOTIFY_TITLE = "ARM notification"
 
+def fix_cue_file(file):
+    new_cue_file=""
+    with open(file,'r') as cue_file:
+        for line in cue_file.readlines():
+            if line[:6] == 'FILE "' and line[-9:] == '" BINARY\n':
+                filename = line[6:-9]
+                trimmed_filename = os.path.basename(filename)
+                new_line = f'FILE "{trimmed_filename}" BINARY\n'
+            else:
+                new_line = line
+            new_cue_file = new_cue_file + new_line
+    with open(file,'w') as cue_file:
+        cue_file.write(new_cue_file)
 
 def notify(job, title: str, body: str):
     """
@@ -505,6 +518,8 @@ def rip_hybrid(job):
         # os.unlink(incomplete_filename_toc)
         full_final_file = os.path.join(final_path, f"{str(job.label)}.bin")
         full_final_file_cue = os.path.join(final_path, f"{str(job.label)}.cue")
+        logging.info(f"Fixing cue file")
+        fix_cue_file(incomplete_filename_cue)
         logging.info(f"Moving data+audio from '{incomplete_filename}' to '{full_final_file}'")
         move_files_main(incomplete_filename_bin, full_final_file, final_path)
         logging.info(f"Moving data+audio cue sheet from '{incomplete_filename_cue}' to '{full_final_file_cue}'")
