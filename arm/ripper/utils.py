@@ -115,7 +115,7 @@ def notify_entry(job):
     elif job.disctype == "data":
         notify(job, NOTIFY_TITLE, "Found data disc.  Copying data.")
     elif job.disctype == "hybrid":
-        notify(job, NOTIFY_TITLE, "Found hybrid disc.  Copying data only.")
+        notify(job, NOTIFY_TITLE, "Found hybrid disc.  Copying data+audio to bin/cue.")
     else:
         notify(job, NOTIFY_TITLE, "Could not identify disc.  Exiting.")
         args = {'status': 'fail', 'errors': "Could not identify disc."}
@@ -504,11 +504,12 @@ def rip_hybrid(job):
         # os.unlink(incomplete_filename)
         # os.unlink(incomplete_filename_toc)
         full_final_file = os.path.join(final_path, f"{str(job.label)}.bin")
-        full_final_file_cue = os.path.join(final_path, f"{str(job.label)}.bin")
-        logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
+        full_final_file_cue = os.path.join(final_path, f"{str(job.label)}.cue")
+        logging.info(f"Moving data+audio from '{incomplete_filename}' to '{full_final_file}'")
         move_files_main(incomplete_filename_bin, full_final_file, final_path)
+        logging.info(f"Moving data+audio cue sheet from '{incomplete_filename_cue}' to '{full_final_file_cue}'")
         move_files_main(incomplete_filename_cue, full_final_file_cue, final_path)
-        logging.info("Data rip call successful")
+        logging.info("Data+audio rip call successful")
         success = True
     except subprocess.CalledProcessError as dao_error:
         err = f"Data rip failed with code: {dao_error.returncode}({dao_error.output})"
