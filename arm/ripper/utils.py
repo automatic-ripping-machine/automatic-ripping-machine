@@ -479,26 +479,41 @@ def rip_hybrid(job):
 
     final_path = os.path.join(final_path, final_file_name)
     incomplete_filename = os.path.join(raw_path, str(job.label) + ".part")
-    incomplete_filename_toc = os.path.join(raw_path, str(job.label) + ".toc.part")
+    incomplete_filename_toc = os.path.join(raw_path, str(job.label) + ".toc")
+    incomplete_filename_cue = os.path.join(raw_path, str(job.label) + ".cue")
+    incomplete_filename_bin = os.path.join(raw_path, str(job.label) + ".bin")
     
     make_dir(final_path)
     logging.info(f"Ripping data disc to: {incomplete_filename}")
     # Added from pull 366
     cmd = f'cdrdao read-cd --device "{job.devpath}" --datafile "{incomplete_filename}" "{incomplete_filename_toc}" 2>> ' \
           f'{os.path.join(job.config.LOGPATH, job.logfile)}'
+    toc_cmd = f'toc2cue -s -C "{incomplete_filename_bin}" "{incomplete_filename_toc}" "{incomplete_filename_cue}" 2>> ' \
+              f'{os.path.join(job.config.LOGPATH, job.logfile)}'
     logging.debug(f"Sending command: {cmd}")
     try:
         subprocess.check_output(cmd, shell=True).decode("utf-8")
+        try:
+            subprocess.check_output(toc_cmd, shell=True).decode("utf-8")
+        except subprocess.CalledProcessError as tc_error:
+            err = f"toc2cue failed with code: {tc_error.returncode}({tc_error.output})"
+            logging.error(err)
+            # os.unlink(incomplete_filename)
+            args = {'status': 'fail', 'errors': err}
+            database_updater(args, job)
+        # os.unlink(incomplete_filename)
+        # os.unlink(incomplete_filename_toc)
         full_final_file = os.path.join(final_path, f"{str(job.label)}.bin")
+        full_final_file_cue = os.path.join(final_path, f"{str(job.label)}.bin")
         logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
-        move_files_main(incomplete_filename, full_final_file, final_path)
-        subprocess.run(f'toc2cue "{incomplete_filename_toc}" "{final_path}/{str(job.label)}.cue" 2>> {os.path.join(job.config.LOGPATH, job.logfile)}')
+        move_files_main(incomplete_filename_bin, full_final_file, final_path)
+        move_files_main(incomplete_filename_cue, full_final_file_cue, final_path)
         logging.info("Data rip call successful")
         success = True
-    except subprocess.CalledProcessError as dd_error:
-        err = f"Data rip failed with code: {dd_error.returncode}({dd_error.output})"
+    except subprocess.CalledProcessError as dao_error:
+        err = f"Data rip failed with code: {dao_error.returncode}({dao_error.output})"
         logging.error(err)
-        os.unlink(incomplete_filename)
+        # os.unlink(incomplete_filename)
         args = {'status': 'fail', 'errors': err}
         database_updater(args, job)
     try:
