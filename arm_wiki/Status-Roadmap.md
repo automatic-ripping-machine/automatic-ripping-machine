@@ -6,12 +6,77 @@ The aim of this page is to provide some information around where the developers 
 
 ---
 
-## Goals and Objectives
+## v2.x Goals and Objectives
+ARM version 2.x is the current released codebase.
+The goals and objectives for any v2.x software is:
+
+1. Maintain the software, resolving any bugs
+2. Resolve any security issues as they arise
+3. Implement small features as requested by the community
+
+---
+
+## v3.x Goals and Objectives
 The primary goals and objectives of the ARM development roadmap are:
 
 1. Improve system performance and stability
-2. Move from docker to docker-compose and database to MySQL
-3. Implementation of Sessions
+   1. Rewrite of ARM Ripper Code
+   2. Rewrite of ARM UI code
+2. Move from docker to docker-compose
+3. Move the database from SQLite to MySQL
+4. Implementation of Sessions
+
+---
+
+## v3.x Implementation Checklist
+
+Checklist for the developers of v3.x to check the current status of development.
+
+1. Improve system performance and stability
+   1. Rewrite of ARM Ripper Code
+      - [ ] Pending
+      
+   2. Rewrite of ARM UI code
+      - [x] Refactor to Flask Factory
+      - [x] Refactor Models to remove links to ripper code
+         - [x] Models refactor
+         - [x] Models Unit Test
+      - [ ] Refactor Blueprints to align with Models
+         - [ ] Blueprint - auth
+         - [ ] Blueprint - auth - Unit Test
+         - [ ] Blueprint - database
+         - [ ] Blueprint - database - Unit Test
+         - [x] Blueprint - errors
+         - [x] Blueprint - errors - Unit Test
+         - [ ] Blueprint - history
+         - [ ] Blueprint - history - Unit Test
+         - [ ] Blueprint - jobs
+         - [ ] Blueprint - jobs - Unit Test
+         - [ ] Blueprint - logs
+         - [ ] Blueprint - logs - Unit Test
+         - [ ] Blueprint - main
+         - [ ] Blueprint - main - Unit Test
+         - [ ] Blueprint - notifications
+         - [ ] Blueprint - notifications - Unit Test
+         - [ ] Blueprint - sendmovies
+         - [ ] Blueprint - sendmovies - Unit Test
+         - [ ] Blueprint - settings
+         - [ ] Blueprint - settings - Unit Test
+
+2. Move from docker to docker-compose
+   - [x] Implemented, docker-compose.yml created and configured
+   - [x] Create separate ARM DB Container
+   - [ ] Create separate ARM Ripper Container
+   - [ ] Create separate ARM UI Container
+
+3. Move the database from SQLite to MySQL
+   - [x] Create MySQL container
+   - [x] Migrate ARM UI
+   - [ ] Migrate ARM Ripper
+
+4. Implementation of Sessions
+   - [ ] Pending ARM UI and Ripper rewrite
+   - [x] Create DB structure
 
 ---
 
@@ -22,7 +87,13 @@ The primary goals and objectives of the ARM development roadmap are:
 
 ### Move from docker to docker-compose
 - **1:** Update docker build and run files to docker-compose
-- **2:** Implement MySQL docker container as a new standalone image
+- **2:** Split the ARM Ripper and ARM UI into separate containers
+- **3:** Implement MySQL docker container as a new standalone image
+- **4:** Implement container networking between containers
+
+### Move the database from SQLite to MySQL
+- **1:** Migrate the current database from SQLite to MySQL
+- **2:** Support user migration of existing databases to the new container
 
 ### Implementation of Sessions 
 Implementation of sessions to be conducted once both the rewrite and docker-compose completed
