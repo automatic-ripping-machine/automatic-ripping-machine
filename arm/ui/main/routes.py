@@ -8,8 +8,10 @@ Covers
 """
 import datetime
 from flask import render_template, redirect
+from flask import current_app as app
 
 from ui.main import route_main
+from models.ui_settings import UISettings
 
 
 @route_main.route('/')
@@ -17,6 +19,9 @@ from ui.main import route_main
 @route_main.route('/index')
 # @login_required
 def home():
-
+    # this is broken due to the flask factory
+    with app.app_context():
+        ui_settings = UISettings().query.first()
+    app.logger.debug(ui_settings)
 
     return render_template('base_simple.html')

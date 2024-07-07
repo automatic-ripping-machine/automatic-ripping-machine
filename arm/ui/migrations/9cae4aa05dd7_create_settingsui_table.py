@@ -17,7 +17,7 @@ depends_on = None
 
 def upgrade():
     op.add_column('job',
-                  sa.Column('path', sa.String())
+                  sa.Column('path', sa.String(length=512))
                   )
     setting_table = op.create_table('ui_settings',
                                     sa.Column('id', sa.Integer(), nullable=False),
@@ -29,6 +29,7 @@ def upgrade():
                                     sa.Column('database_limit', sa.Integer(), nullable=False),
                                     sa.PrimaryKeyConstraint('id')
                                     )
+
     op.bulk_insert(setting_table,
                    [{
                        'id': 1,

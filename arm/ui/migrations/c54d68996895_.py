@@ -18,7 +18,7 @@ depends_on = None
 
 def upgrade():
     op.add_column('job',
-                  sa.Column('stage', sa.String())
+                  sa.Column('stage', sa.String(length=255), nullable=True)
                   )
 
 

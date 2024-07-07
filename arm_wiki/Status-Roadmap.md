@@ -54,8 +54,8 @@ Checklist for the developers of v3.x to check the current status of development.
          - [ ] Blueprint - jobs - Unit Test
          - [ ] Blueprint - logs
          - [ ] Blueprint - logs - Unit Test
-         - [ ] Blueprint - main
-         - [ ] Blueprint - main - Unit Test
+         - [x] Blueprint - main
+         - [x] Blueprint - main - Unit Test
          - [ ] Blueprint - notifications
          - [ ] Blueprint - notifications - Unit Test
          - [ ] Blueprint - sendmovies

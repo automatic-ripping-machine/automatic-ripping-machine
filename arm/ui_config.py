@@ -1,3 +1,14 @@
+"""
+Automatic Ripping Machine - User Interface (UI)
+    UI Flask Configuration Settings
+
+    Functions:
+    - is_docker - test if ARM running in docker container
+    - host_ip - return the host's IP address
+
+    Class
+    - UIConfig - Config class for the Flask Settings
+"""
 import os
 from config import config as cfg
 
@@ -47,7 +58,7 @@ def host_ip(host) -> str:
 class UIConfig:
     """
     ARM UI Flask Configuration Class
-    Class configures the Flask config variables required based on input from the arm.yml config file
+    This class configures the Flask config variables required based on input from the arm.yml config file
 
     input: None
     returns: None all values called within Class
@@ -76,7 +87,6 @@ class UIConfig:
 
     # Define the database configuration for ARM
     # sqlitefile: str = 'sqlite:///' + cfg.arm_config['DBFILE']
-
     mysql_connector: str = 'mysql+mysqlconnector://'
     mysql_ip: str = os.getenv("MYSQL_IP", "127.0.0.1")
     mysql_user: str = os.getenv("MYSQL_USER", "arm")

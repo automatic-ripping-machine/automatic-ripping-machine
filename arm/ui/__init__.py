@@ -2,13 +2,14 @@
 Automatic Ripping Machine - User Interface (UI)
     Flask factory
 """
+import os
 from flask import Flask
 from flask_cors import CORS
 
 from ui_config import UIConfig
 from ui.setuplog import setuplog
-from ui.ui_setup import db, migrate, csrf, login_manager
-
+from ui.ui_setup import db, migrate, csrf, login_manager, alembic
+from ui.ui_initialise import initialise_arm
 
 def create_app(config_class=UIConfig):
     # Setup logging
@@ -28,9 +29,12 @@ def create_app(config_class=UIConfig):
     app.logger.setLevel(app.config['LOGLEVEL'])
 
     # Initialise the Database and Flask Alembic
-    db.init_app(app)
-    # alembic.init_app(app)
-    migrate.init_app(app, db)
+    db.init_app(app)            # Initialise database
+    alembic.init_app(app, db)   # Create Flask-Alembic
+    with app.app_context():     # Create tables from Migrations
+        app.logger.debug(f'Alembic Migration Folder: {app.config["ALEMBIC"]["script_location"]}')
+        alembic.upgrade()
+    migrate.init_app(app, db)   # Migrate, not sure if still needed
 
     # Initialise the Flask-Login manager
     # login_manager.init_app(app)
@@ -39,5 +43,8 @@ def create_app(config_class=UIConfig):
     # Register route blueprints
     from ui.ui_blueprints import register_blueprints
     register_blueprints(app)
+
+    # Initialise ARM
+    initialise_arm(app, db)
 
     return app

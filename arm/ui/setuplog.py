@@ -1,5 +1,6 @@
 from logging.config import dictConfig
 
+
 def setuplog(config):
     # Setup logging, but because of werkzeug issues, we need to set up that later down file
     dictConfig({

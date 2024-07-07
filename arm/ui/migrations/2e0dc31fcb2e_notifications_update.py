@@ -26,7 +26,7 @@ def upgrade():
                   )
 
     """
-    add colums to the notifications table, set a cleared and cleared time value
+    add columns to the notifications table, set a cleared and cleared time value
     For cleared, add the column, set nullable false and set a default of 0 - false
     """
     op.add_column('notifications',

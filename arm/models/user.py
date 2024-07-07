@@ -35,7 +35,7 @@ class User(db.Model, UserMixin):
         self.hash = hashed
 
     def __repr__(self):
-        """ Return users name """
+        """ Return users' name """
         return f'<User {self.email}>'
 
     def __str__(self):
