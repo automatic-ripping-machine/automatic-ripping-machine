@@ -499,7 +499,7 @@ def rip_hybrid(job):
     make_dir(final_path)
     logging.info(f"Ripping data disc to: {incomplete_filename}")
     # Added from pull 366
-    cmd = f'cdrdao read-cd --device "{job.devpath}" --datafile "{incomplete_filename}" "{incomplete_filename_toc}" 2>> ' \
+    cmd = f'cdrdao read-cd --read-raw --device "{job.devpath}" --datafile "{incomplete_filename}" "{incomplete_filename_toc}" 2>> ' \
           f'{os.path.join(job.config.LOGPATH, job.logfile)}'
     toc_cmd = f'toc2cue -s -C "{incomplete_filename_bin}" "{incomplete_filename_toc}" "{incomplete_filename_cue}" 2>> ' \
               f'{os.path.join(job.config.LOGPATH, job.logfile)}'
@@ -511,11 +511,11 @@ def rip_hybrid(job):
         except subprocess.CalledProcessError as tc_error:
             err = f"toc2cue failed with code: {tc_error.returncode}({tc_error.output})"
             logging.error(err)
-            # os.unlink(incomplete_filename)
+            os.unlink(incomplete_filename)
             args = {'status': 'fail', 'errors': err}
             database_updater(args, job)
-        # os.unlink(incomplete_filename)
-        # os.unlink(incomplete_filename_toc)
+        os.unlink(incomplete_filename)
+        os.unlink(incomplete_filename_toc)
         full_final_file = os.path.join(final_path, f"{str(job.label)}.bin")
         full_final_file_cue = os.path.join(final_path, f"{str(job.label)}.cue")
         logging.info(f"Fixing cue file")
