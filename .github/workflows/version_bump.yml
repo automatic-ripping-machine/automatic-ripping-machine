@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   version:
@@ -24,11 +25,17 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch main branch
+        run: |
+          git fetch origin main:main
 
       - name: Check for version bump
         id: version-check
         run: |
-          if ! git diff origin/main --name-only | grep -q 'VERSION'; then
+          if ! git diff main --name-only | grep -q 'VERSION'; then
             echo "VERSION_UPDATED=false" >> "$GITHUB_ENV"
             echo "No Version update found in commit"
           else
@@ -41,11 +48,14 @@ jobs:
         id: determine-version
         run: |
           PR_TITLE=$(jq -r '.pull_request.title' "$GITHUB_EVENT_PATH")
+          echo "PR Title: $PR_TITLE"
           if [[ "$PR_TITLE" == *"[FEATURE]"* ]]; then
             VERSION_TYPE="minor"
+            echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
             echo "PR set to FEATURE updating minor version"
           elif [[ "$PR_TITLE" == *"[BUGFIX]"* ]]; then
             VERSION_TYPE="patch"
+            echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
             echo "PR set to BUGFIX updating patch version"
           else
             echo "No version bump flag found in PR title. Exiting."
@@ -65,6 +75,11 @@ jobs:
           echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
           echo "New Version: " $NEW_VERSION
 
+      - name: Pull latest changes from remote
+        if: env.VERSION_UPDATED == 'false'
+        run: |
+          git pull --rebase origin ${{ github.head_ref }}
+
       - name: Update VERSION file
         if: env.VERSION_UPDATED == 'false'
         run: |
@@ -72,7 +87,11 @@ jobs:
           git add VERSION
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -m "[Automated] Increment Version from $CURRENT_VERSION to $NEW_VERSION"
+          git commit -m "[Automated] Release: ${VERSION_TYPE} - Version from $CURRENT_VERSION to $NEW_VERSION"
+
+      - name: Push changes
+        if: env.VERSION_UPDATED == 'false'
+        run: |
           git push origin ${{ github.head_ref }}
 
       - name: Comment on PR
@@ -83,11 +102,13 @@ jobs:
           script: |
             const prNumber = context.issue.number;
             const newVersion = process.env.NEW_VERSION;
+            const currentVersion = process.env.CURRENT_VERSION;
+            const versionType = process.env.VERSION_TYPE;
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: `The version has been incremented from ${process.env.CURRENT_VERSION} to ${newVersion} based on the PR title flag.`
+              body: `Release type: ${versionType}. The version has been incremented from ${currentVersion} to ${newVersion} based on the PR title flag.`
             })
 
       - name: Set tag for non-default branch
