@@ -14,8 +14,14 @@
                     <div class="card-body"><strong>Full Plot:</strong> {{ results["Plot"] }}</div>
                     <div class="card-footer">
 						<a href="titlesearch?job_id={{ job_id }}" class="btn btn-primary">New Search</a>   
-						<a href="updatetitle?title={{ results['Title'] }}&year={{ results['Year'] }}&imdbID={{ results['imdbID'] }}&type={{ results['Type'] }}&poster={{ results['Poster'] }}&job_id={{ job_id }}" class="btn btn-primary">Update Title</a>
-					</div>
+                        <a href="{{ url_for('route_jobs.updatetitle',
+                                            title=results['Title'],
+                                            year=results['Year'],
+                                            imdbID=results['imdbID'],
+                                            type=results['Type'],
+                                            poster=results['Poster'],
+                                            job_id=job_id) }}" class="btn btn-primary">Update Title</a>
+                    </div>
                 </div>
             </div>
         <div class="col-sm-3"></div>     
