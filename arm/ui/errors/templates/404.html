@@ -4,9 +4,16 @@
 
 {% block content %}
     <div class="jumbotron">
-        <p>Page not Found</p>
+        <h1>Error 404</h1>
+        <p>Odd seems ARM cannot find the page you are after.</p>
+        <p><b>Requested Page:</b></p>
+            <p class="pl-4">{{ requested_url }}</p>
+        <p> If this was not an error, Raise an issue on <a href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">GitHub</a></p>
+        <div>
+            <p><b>ARM Reports Error: </b></p>
+            {% if error is not none %}
+                <p class="pl-4">{{ error }}</p>
+            {% endif %}
+        </div>
     </div>
-    {% if error is not none %}
-        <p>{{ error }}</p>
-    {% endif %}
 {% endblock %}

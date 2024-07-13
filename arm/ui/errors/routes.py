@@ -8,18 +8,23 @@ Covers
 - error_general Errors [GET] - general or other server error
 """
 import werkzeug
-from flask import render_template
+from flask import render_template, request
 
 from ui.errors import route_error
 
 
 @route_error.app_errorhandler(404)
 def not_found(e):
-    return render_template("404.html"), 404
+    # Requested URL
+    requested_url = request.url
+
+    return render_template("404.html",
+                           error=e,
+                           requested_url=requested_url), 404
 
 
 @route_error.app_errorhandler(500)
-def error_500():
+def error_500(e):
     return render_template("500.html"), 500
 
 
