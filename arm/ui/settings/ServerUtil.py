@@ -4,9 +4,9 @@ Class definition
 """
 
 import psutil
+from flask import current_app as app
 
 import arm.config.config as cfg
-from arm.ui import app
 from flask import flash
 
 

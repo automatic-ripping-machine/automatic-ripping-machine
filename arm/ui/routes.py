@@ -13,28 +13,34 @@ Other routes handled in flask blueprints
 import os
 import json
 from pathlib import Path, PurePath
+
+import flask
 from werkzeug.exceptions import HTTPException
 from flask import Flask, render_template, request, flash, \
-    redirect, url_for, session   # noqa: F401
-from flask.logging import default_handler  # noqa: F401
+    redirect, url_for, session
+from flask.logging import default_handler
 from flask_login import LoginManager, login_required, \
-    current_user, login_user, logout_user  # noqa: F401
+    current_user, login_user, logout_user
+from flask import current_app as app
 
-import arm.ui.utils as ui_utils
-from arm.ui import app, db, constants
+# import arm.ui.utils as ui_utils
+# from arm.ui import app, db, constants
 from arm.models.job import Job
 from arm.models.system_info import SystemInfo
+from arm.models.ui_settings import UISettings
 from arm.models.user import User
 import arm.config.config as cfg
-from arm.ui.forms import DBUpdate
-from arm.ui.settings.ServerUtil import ServerUtil
-from arm.ui.settings.settings import check_hw_transcode_support
+# from arm.ui.forms import DBUpdate
+import arm.ui.settings.ServerUtil
+from arm.ui.settings.routes import check_hw_transcode_support
 
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
-try:
-    armui_cfg = ui_utils.arm_db_cfg()
-except Exception as error:
-    ui_utils.setup_database()
+# try:
+#     armui_cfg = ui_utils.arm_db_cfg()
+# except Exception as error:
+#     ui_utils.setup_database()
+
+
 # Page definitions
 page_support_databaseupdate = "support/databaseupdate.html"
 redirect_settings = "/settings"
@@ -54,18 +60,29 @@ def home():
     """
     global page_support_databaseupdate
 
+    # Set UI Config values
+    armui_cfg = UISettings.query.filter_by().first()
+    # response = flask.make_response()
+    # response.set_cookie("use_icons", value=f"{armui_cfg.use_icons}")
+    # response.set_cookie("save_remote_images", value=f"{armui_cfg.save_remote_images}")
+    # response.set_cookie("bootstrap_skin", value=f"{armui_cfg.bootstrap_skin}")
+    # response.set_cookie("language", value=f"{armui_cfg.language}")
+    # response.set_cookie("index_refresh", value=f"{armui_cfg.index_refresh}")
+    # response.set_cookie("database_limit", value=f"{armui_cfg.database_limit}")
+    # response.set_cookie("notify_refresh", value=f"{armui_cfg.notify_refresh}")
+
     # Catch for missing MySql database
-    if not armui_cfg:
-        arm_db_config = app.config['SQLALCHEMY_DATABASE_URI']
-        return render_template("error-database.html",
-                               arm_db_config=arm_db_config)
+    # if not armui_cfg:
+    #     arm_db_config = app.config['SQLALCHEMY_DATABASE_URI']
+    #     return render_template("error-database.html",
+    #                            arm_db_config=arm_db_config)
 
     # Push out HW transcode status for homepage
     stats = {'hw_support': check_hw_transcode_support()}
 
     # System details in class server
     server = SystemInfo.query.filter_by(id="1").first()
-    serverutil = ServerUtil()
+    serverutil = arm.ui.settings.ServerUtil.ServerUtil()
 
     # System details in class server
     arm_path = cfg.arm_config['TRANSCODE_PATH']
@@ -75,80 +92,87 @@ def home():
     session["arm_name"] = cfg.arm_config['ARM_NAME']
     session["page_title"] = "Home"
 
-    if os.path.isfile(cfg.arm_config['DBFILE']):
-        try:
-            jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
-        except Exception:
-            # db isn't setup
-            return redirect(url_for('setup'))
-    else:
-        jobs = {}
+    # if os.path.isfile(cfg.arm_config['DBFILE']):
+    #     jobs = {}
+    #     # try:
+    #     #     jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+    #     # except Exception:
+    #     #     # db isn't setup
+    #     #     return redirect(url_for('setup'))
+    # else:
+    jobs = {}
 
-    return render_template("index.html", jobs=jobs,
-                           children=cfg.arm_config['ARM_CHILDREN'],
-                           server=server, serverutil=serverutil,
-                           arm_path=arm_path, media_path=media_path, stats=stats)
-
-
-@app.route('/error')
-def was_error(error):
-    """
-    Catch all error page
-    :return: Error page
-    """
-    return render_template(constants.ERROR_PAGE, title='error', error=error)
+    response = flask.make_response(render_template("index.html",
+                                                   jobs=jobs,
+                                                   children=cfg.arm_config['ARM_CHILDREN'],
+                                                   server=server,
+                                                   serverutil=serverutil,
+                                                   arm_path=arm_path,
+                                                   media_path=media_path,
+                                                   stats=stats))
+    response.set_cookie("index_refresh", value=f"{armui_cfg.index_refresh}")
+    return response
 
 
-@app.route('/setup')
-def setup():
-    """
-    This is the initial setup page for fresh installs
-    This is no longer recommended for upgrades
-
-    This function will do various checks to make sure everything can be setup for ARM
-    Directory ups, create the db, etc
-    """
-    perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
-    app.logger.debug("perm " + str(perm_file))
-    # Check for install file and that db is correctly setup
-    if perm_file.exists() and ui_utils.setup_database():
-        flash(f"{perm_file} exists, setup cannot continue. To re-install please delete this file.", "danger")
-        return redirect("/")
-    dir0 = Path(PurePath(cfg.arm_config['DBFILE']).parent)
-    dir1 = Path(cfg.arm_config['RAW_PATH'])
-    dir2 = Path(cfg.arm_config['TRANSCODE_PATH'])
-    dir3 = Path(cfg.arm_config['COMPLETED_PATH'])
-    dir4 = Path(cfg.arm_config['LOGPATH'])
-    arm_directories = [dir0, dir1, dir2, dir3, dir4]
-
-    try:
-        for arm_dir in arm_directories:
-            if not Path.exists(arm_dir):
-                os.makedirs(arm_dir)
-                flash(f"{arm_dir} was created successfully.", "success")
-    except FileNotFoundError as error:
-        flash(f"Creation of the directory {dir0} failed {error}", "danger")
-        app.logger.debug(f"Creation of the directory failed - {error}")
-    else:
-        flash("Successfully created all of the ARM directories", "success")
-        app.logger.debug("Successfully created all of the ARM directories")
-
-    try:
-        if ui_utils.setup_database():
-            flash("Setup of the database was successful.", "success")
-            app.logger.debug("Setup of the database was successful.")
-            perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
-            write_permission_file = open(perm_file, "w")
-            write_permission_file.write("boop!")
-            write_permission_file.close()
-            return redirect(constants.HOME_PAGE)
-        flash("Couldn't setup database", "danger")
-        app.logger.debug("Couldn't setup database")
-        return redirect("/error")
-    except Exception as error:
-        flash(str(error))
-        app.logger.debug("Setup - " + str(error))
-        return redirect(constants.HOME_PAGE)
+# @app.route('/error')
+# def was_error(error):
+#     """
+#     Catch all error page
+#     :return: Error page
+#     """
+#     return render_template(constants.ERROR_PAGE, title='error', error=error)
+#
+#
+# @app.route('/setup')
+# def setup():
+#     """
+#     This is the initial setup page for fresh installs
+#     This is no longer recommended for upgrades
+#
+#     This function will do various checks to make sure everything can be setup for ARM
+#     Directory ups, create the db, etc
+#     """
+#     perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
+#     app.logger.debug("perm " + str(perm_file))
+#     # Check for install file and that db is correctly setup
+#     if perm_file.exists() and ui_utils.setup_database():
+#         flash(f"{perm_file} exists, setup cannot continue. To re-install please delete this file.", "danger")
+#         return redirect("/")
+#     dir0 = Path(PurePath(cfg.arm_config['DBFILE']).parent)
+#     dir1 = Path(cfg.arm_config['RAW_PATH'])
+#     dir2 = Path(cfg.arm_config['TRANSCODE_PATH'])
+#     dir3 = Path(cfg.arm_config['COMPLETED_PATH'])
+#     dir4 = Path(cfg.arm_config['LOGPATH'])
+#     arm_directories = [dir0, dir1, dir2, dir3, dir4]
+#
+#     try:
+#         for arm_dir in arm_directories:
+#             if not Path.exists(arm_dir):
+#                 os.makedirs(arm_dir)
+#                 flash(f"{arm_dir} was created successfully.", "success")
+#     except FileNotFoundError as error:
+#         flash(f"Creation of the directory {dir0} failed {error}", "danger")
+#         app.logger.debug(f"Creation of the directory failed - {error}")
+#     else:
+#         flash("Successfully created all of the ARM directories", "success")
+#         app.logger.debug("Successfully created all of the ARM directories")
+#
+#     try:
+#         if ui_utils.setup_database():
+#             flash("Setup of the database was successful.", "success")
+#             app.logger.debug("Setup of the database was successful.")
+#             perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
+#             write_permission_file = open(perm_file, "w")
+#             write_permission_file.write("boop!")
+#             write_permission_file.close()
+#             return redirect(constants.HOME_PAGE)
+#         flash("Couldn't setup database", "danger")
+#         app.logger.debug("Couldn't setup database")
+#         return redirect("/error")
+#     except Exception as error:
+#         flash(str(error))
+#         app.logger.debug("Setup - " + str(error))
+#         return redirect(constants.HOME_PAGE)
 
 
 @login_manager.user_loader
@@ -169,6 +193,8 @@ def load_user(user_id):
 def unauthorized():
     """
     User isn't authorised to view the page
-    :return: Page redirect
+
+    :return:
+        Page redirect
     """
     return redirect('/login')

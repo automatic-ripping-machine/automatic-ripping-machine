@@ -26,6 +26,7 @@ class UISettings(db.Model):
         None.
     """
     __tablename__ = 'ui_settings'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     use_icons = db.Column(db.Boolean)

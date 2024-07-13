@@ -1,22 +1,21 @@
 """
-ARM route blueprint for notifications pages
+Automatic Ripping Machine - User Interface (UI) - Blueprint
+    Notifications
+
 Covers
-- arm_nav_notify [GET]
-- arm_notification [GET]
-- arm_notification_close [GET}
+    - arm_nav_notify [GET]
+    - arm_notification [GET]
+    - arm_notification_close [GET}
 """
 
 from flask_login import login_required  # noqa: F401
 from flask import render_template, Blueprint, redirect, flash, session
 from datetime import datetime
+from flask import current_app as app
 
-import arm.ui.utils as ui_utils
-from arm.ui import app
-from arm.models.notifications import Notifications
-
-route_notifications = Blueprint('route_notifications', __name__,
-                                template_folder='templates',
-                                static_folder='../static')
+# import arm.ui.utils as ui_utils
+from ui.notifications import route_notifications
+from models.notifications import Notifications
 
 
 @app.context_processor

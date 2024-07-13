@@ -34,17 +34,16 @@ def create_app(config_class=UIConfig):
     with app.app_context():     # Create tables from Migrations
         app.logger.debug(f'Alembic Migration Folder: {app.config["ALEMBIC"]["script_location"]}')
         alembic.upgrade()
-    migrate.init_app(app, db)   # Migrate, not sure if still needed
+        migrate.init_app(app, db)   # Migrate, not sure if still needed
 
-    # Initialise the Flask-Login manager
-    # login_manager.init_app(app)
-    # Todo: resolve the error with the login manager and move to auth blueprint
+        # Initialise the Flask-Login manager
+        login_manager.init_app(app)
 
-    # Register route blueprints
-    from ui.ui_blueprints import register_blueprints
-    register_blueprints(app)
+        # Register route blueprints
+        from ui.ui_blueprints import register_blueprints
+        register_blueprints(app)
 
-    # Initialise ARM
-    initialise_arm(app, db)
+        # Initialise ARM
+        initialise_arm(app, db)
 
-    return app
+        return app

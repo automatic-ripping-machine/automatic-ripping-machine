@@ -23,6 +23,7 @@ class User(db.Model, UserMixin):
         None
     """
     __tablename__ = 'user'
+    __table_args__ = {'extend_existing': True}
 
     user_id = db.Column(db.Integer, index=True, primary_key=True)
     email = db.Column(db.String(64))

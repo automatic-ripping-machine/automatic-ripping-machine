@@ -62,9 +62,28 @@
     <script type="application/javascript" src="static/js/common.js"></script>
     <script type="application/javascript" src="static/js/jobRefresh.js"></script>
     <script type="application/javascript">
-    $(document).ready(function () {
-        const intervalId = window.setInterval(refreshJobs, {{ armui_cfg['index_refresh'] }});
-    });
-</script>
+        // Function to get a cookie by name
+        function getCookie(name) {
+            let matches = document.cookie.match(new RegExp(
+                "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+            ));
+            return matches ? decodeURIComponent(matches[1]) : undefined;
+        }
+
+        $(document).ready(function () {
+            // Get the index_refresh value from the cookie
+            const indexRefresh = getCookie('index_refresh');
+
+            // Convert the cookie value to an integer
+            const interval = parseInt(indexRefresh, 10);
+
+            // Check if the interval is a valid number before setting it
+            if (!isNaN(interval) && interval > 0) {
+                const intervalId = window.setInterval(refreshJobs, interval);
+            } else {
+                console.error('Invalid index_refresh interval:', indexRefresh);
+            }
+        });
+    </script>
 {% endblock %}
 {% block js %}{{ super() }}{% endblock %}
