@@ -17,15 +17,26 @@ from ui.errors import route_error
 def not_found(e):
     # Requested URL
     requested_url = request.url
+    error_title = "404"
+    error_message = "When convention and science offer us no answers, might we not finally turn to the fantastic as a plausibility?"
 
-    return render_template("404.html",
+    return render_template("error.html",
+                           error_title=error_title,
+                           error_message=error_message,
                            error=e,
                            requested_url=requested_url), 404
 
 
 @route_error.app_errorhandler(500)
 def error_500(e):
-    return render_template("500.html"), 500
+    error_title = "500"
+    error_message = "Server Error - I am sorry Dave, I'm afraid I can't do that! "
+
+    return render_template("error.html",
+                           error_title=error_title,
+                           error_message=error_message,
+                           error=e,
+                           ), 500
 
 
 @route_error.route('/error')

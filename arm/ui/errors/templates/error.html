@@ -1,14 +1,25 @@
 {% extends "base_simple.html" %}
 
-{% block title %}Error{% endblock %}
+{% block title %}ARM - Error{% endblock %}
 
 {% block content %}
-    <h3> ARM has encountered an Error </h3>
     <div class="jumbotron">
-        <p>Error: </p>
-        {% if error is not none %}
-            <p>{{ error }}</p>
+        <h1>{{ error_title }}</h1>
+        <p>{{ error_message }}</p>
+        {% if requested_url %}
+            <div>
+                <p><b>Requested Page:</b></p>
+                <p class="pl-4">{{ requested_url }}</p>
+            </div>
         {% endif %}
+        <div>
+            <p> If this was not an error, Raise an issue on <a href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">GitHub</a></p>
+        </div>
+        <div>
+            <p><b>ARM Reports Error: </b></p>
+            {% if error is not none %}
+                <p class="pl-4">{{ error }}</p>
+            {% endif %}
+        </div>
     </div>
-
 {% endblock %}
