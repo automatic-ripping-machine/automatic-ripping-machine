@@ -37,6 +37,7 @@
 
 **Contributing to ARM**
    - [ARM Code](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute)
+   - [ARM VENV](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-VENV)
    - [ARM Wiki](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Wiki)
    - [ARM Testing](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Testing)
    - [Docker Dev guide](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Docker)

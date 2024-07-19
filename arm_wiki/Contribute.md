@@ -1,8 +1,11 @@
 # Contributing Guide
+
 ## Introduction
+
 Thank you for contributing to the Automatic Ripping Machine.
 
 ## Issues, Bugs, and Feature Requests
+
 If you find a bug, please delete the existing log for that rip,
 change the log level to DEBUG in your arm.yaml file and then run the rip again to get a clean log for analysis.  You can drag and drop the log onto an issue comment to attach it to the issue.
 
@@ -12,6 +15,14 @@ If you run ARM in DEBUG mode you should
 be able to see the exact call-out to each program.
 
 When submitting a bug, enhancement, or feature request please indicate if you are able/willing to make the changes yourself in a pull request.
+
+## Environment Setup
+
+ARM uses Docker to host the database, ripper and User Interface.
+Instructions on how to configure docker and virtual environments
+- Configure the ARM virtual environment [ARM VENV](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-VENV)
+- Configure Docker for ARM [Docker Dev guide](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Docker)
+- Configure ARM for a Wiki update only [ARM Wiki](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Wiki)
 
 ## Making Code Changes
 
@@ -129,4 +140,4 @@ Check out the [ARM Development Tools (devtools)](https://github.com/automatic-ri
  
 ### Testing out ARM
  
- If you are interested in helping out with testing, quality, etc. please let us know.
+ If you are interested in helping out with testing, quality, reach out to one of the developers.
