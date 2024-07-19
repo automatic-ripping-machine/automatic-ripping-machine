@@ -2,7 +2,6 @@
 Automatic Ripping Machine - User Interface (UI)
     UI Flask Blueprints
 """
-import ui.routes
 from ui.main import route_main
 from ui.errors import route_error
 from ui.settings import route_settings
