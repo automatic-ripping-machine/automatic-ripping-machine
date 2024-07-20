@@ -2,14 +2,14 @@
 Automatic Ripping Machine - User Interface (UI)
     Flask factory
 """
-import os
 from flask import Flask
 from flask_cors import CORS
 
-from ui_config import UIConfig
 from ui.setuplog import setuplog
-from ui.ui_setup import db, migrate, csrf, login_manager, alembic
 from ui.ui_initialise import initialise_arm
+from ui.ui_setup import db, migrate, csrf, login_manager, alembic
+from ui_config import UIConfig
+
 
 def create_app(config_class=UIConfig):
     # Setup logging

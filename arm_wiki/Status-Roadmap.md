@@ -48,7 +48,7 @@ Checklist for the developers of v3.x to check the current status of development.
          - [ ] Blueprint - database - Unit Test
          - [x] Blueprint - errors
          - [x] Blueprint - errors - Unit Test
-         - [ ] Blueprint - history
+         - [x] Blueprint - history
          - [ ] Blueprint - history - Unit Test
          - [ ] Blueprint - jobs
          - [ ] Blueprint - jobs - Unit Test
