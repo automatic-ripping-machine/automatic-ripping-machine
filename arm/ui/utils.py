@@ -294,26 +294,26 @@ def make_dir(path):
             app.logger.error(err)
     return success
 
-
-def get_info(directory):
-    """
-    Used to read stats from files
-    -Used for view logs page
-    :param directory:
-    :return: list containing a list with each file's stats
-    """
-    file_list = []
-    for i in os.listdir(directory):
-        if os.path.isfile(os.path.join(directory, i)):
-            file_stats = os.stat(os.path.join(directory, i))
-            file_size = os.path.getsize(os.path.join(directory, i))
-            file_size = round((file_size / 1024), 1)
-            file_size = f"{file_size :,.1f}"
-            create_time = strftime(cfg.arm_config['DATE_FORMAT'], localtime(file_stats.st_ctime))
-            access_time = strftime(cfg.arm_config['DATE_FORMAT'], localtime(file_stats.st_atime))
-            # [file,most_recent_access,created, file_size]
-            file_list.append([i, access_time, create_time, file_size])
-    return file_list
+# moved to logs/utils
+# def get_info(directory):
+#     """
+#     Used to read stats from files
+#     -Used for view logs page
+#     :param directory:
+#     :return: list containing a list with each file's stats
+#     """
+#     file_list = []
+#     for i in os.listdir(directory):
+#         if os.path.isfile(os.path.join(directory, i)):
+#             file_stats = os.stat(os.path.join(directory, i))
+#             file_size = os.path.getsize(os.path.join(directory, i))
+#             file_size = round((file_size / 1024), 1)
+#             file_size = f"{file_size :,.1f}"
+#             create_time = strftime(cfg.arm_config['DATE_FORMAT'], localtime(file_stats.st_ctime))
+#             access_time = strftime(cfg.arm_config['DATE_FORMAT'], localtime(file_stats.st_atime))
+#             # [file,most_recent_access,created, file_size]
+#             file_list.append([i, access_time, create_time, file_size])
+#     return file_list
 
 
 def clean_for_filename(string):
@@ -356,41 +356,43 @@ def generate_comments():
     return comments
 
 
-def generate_full_log(full_path):
-    """
-    Gets/tails all lines from log file
-    :param full_path: full path to job logfile
-    :return: None
-    """
-    try:
-        with open(full_path) as read_log_file:
-            while True:
-                yield read_log_file.read()
-                sleep(1)
-    except Exception:
-        try:
-            with open(full_path, encoding="utf8", errors='ignore') as read_log_file:
-                while True:
-                    yield read_log_file.read()
-                    sleep(1)
-        except FileNotFoundError as error:
-            raise FileNotFoundError("Not found with utf8 encoding") from error
+# moved to logs utils
+# def generate_full_log(full_path):
+#     """
+#     Gets/tails all lines from log file
+#     :param full_path: full path to job logfile
+#     :return: None
+#     """
+#     try:
+#         with open(full_path) as read_log_file:
+#             while True:
+#                 yield read_log_file.read()
+#                 sleep(1)
+#     except Exception:
+#         try:
+#             with open(full_path, encoding="utf8", errors='ignore') as read_log_file:
+#                 while True:
+#                     yield read_log_file.read()
+#                     sleep(1)
+#         except FileNotFoundError as error:
+#             raise FileNotFoundError("Not found with utf8 encoding") from error
 
 
-def generate_arm_cat(full_path):
-    """
-    Read from log file and only output ARM: logs
-    :param full_path: full path to job logfile
-    :return: None
-    """
-    read_log_file = open(full_path)
-    while True:
-        new = read_log_file.readline()
-        if new:
-            if "ARM:" in new:
-                yield new
-            else:
-                sleep(1)
+# Moved to logs utils
+# def generate_arm_cat(full_path):
+#     """
+#     Read from log file and only output ARM: logs
+#     :param full_path: full path to job logfile
+#     :return: None
+#     """
+#     read_log_file = open(full_path)
+#     while True:
+#         new = read_log_file.readline()
+#         if new:
+#             if "ARM:" in new:
+#                 yield new
+#             else:
+#                 sleep(1)
 
 
 def setup_database():
@@ -730,22 +732,23 @@ def get_processor_name():
     return cpu_info
 
 
-def validate_logfile(logfile, mode, my_file):
-    """
-    check if logfile we got from the user is valid
-    :param logfile: logfile name
-    :param mode: This is used by the json.api
-    :param my_file: full base path using Path()
-    :return: None
-    :raise ValidationError: if logfile has "/" or "../" in it or "mode" is None
-    :raise FileNotFoundError: if logfile cant be found in arm log folder
-    """
-    app.logger.debug(f"Logfile: {logfile}")
-    if logfile is None or "../" in logfile or mode is None or logfile.find("/") != -1:
-        raise ValidationError("logfile doesnt pass sanity checks")
-    if not my_file.is_file():
-        # logfile doesnt exist throw out error template
-        raise FileNotFoundError("File not found")
+# moved to logs utils
+# def validate_logfile(logfile, mode, my_file):
+#     """
+#     check if logfile we got from the user is valid
+#     :param logfile: logfile name
+#     :param mode: This is used by the json.api
+#     :param my_file: full base path using Path()
+#     :return: None
+#     :raise ValidationError: if logfile has "/" or "../" in it or "mode" is None
+#     :raise FileNotFoundError: if logfile cant be found in arm log folder
+#     """
+#     app.logger.debug(f"Logfile: {logfile}")
+#     if logfile is None or "../" in logfile or mode is None or logfile.find("/") != -1:
+#         raise ValidationError("logfile doesnt pass sanity checks")
+#     if not my_file.is_file():
+#         # logfile doesnt exist throw out error template
+#         raise FileNotFoundError("File not found")
 
 
 def job_id_validator(job_id):
