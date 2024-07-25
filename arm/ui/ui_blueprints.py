@@ -11,7 +11,7 @@ from ui.database import route_database
 from ui.history import route_history
 # from arm.ui.jobs.jobs import route_jobs  # noqa: E402,F811
 # from arm.ui.sendmovies.sendmovies import route_sendmovies  # noqa: E402,F811
-from arm.ui.notifications import route_notifications  # noqa: E402,F811
+from ui.notifications import route_notifications
 
 
 def register_blueprints(app):

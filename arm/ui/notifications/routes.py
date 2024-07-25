@@ -5,18 +5,17 @@ Automatic Ripping Machine - User Interface (UI) - Blueprint
 Covers
     - arm_nav_notify [GET]
     - arm_notification [GET]
-    - arm_notification_close [GET}
+    - arm_notification_close [GET]
 """
 
-from flask_login import login_required  # noqa: F401
-from flask import render_template, Blueprint, redirect, flash, session
+from flask_login import login_required
+from flask import render_template, redirect, flash, session
 from datetime import datetime
 from flask import current_app as app
 
-# import arm.ui.utils as ui_utils
 from ui.notifications import route_notifications
 from models.notifications import Notifications
-
+from ui.ui_setup import db
 
 @app.context_processor
 def arm_nav_notify():
@@ -72,7 +71,10 @@ def arm_notification_close():
                 'cleared': True,
                 'cleared_time': datetime.now()
             }
-            ui_utils.database_updater(args, notification)
+
+            # Update database
+            db.session.add(notifications)
+            db.session.commit()
 
         flash(f'Cleared {len(notifications)} Notifications', 'success')
     else:

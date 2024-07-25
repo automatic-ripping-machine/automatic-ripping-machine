@@ -42,7 +42,7 @@ Checklist for the developers of v3.x to check the current status of development.
          - [x] Models refactor
          - [x] Models Unit Test
       - [ ] Refactor Blueprints to align with Models
-         - [ ] Blueprint - auth
+         - [x] Blueprint - auth
          - [ ] Blueprint - auth - Unit Test
          - [x] Blueprint - database
          - [ ] Blueprint - database - Unit Test
@@ -52,11 +52,11 @@ Checklist for the developers of v3.x to check the current status of development.
          - [ ] Blueprint - history - Unit Test
          - [x] Blueprint - jobs
          - [ ] Blueprint - jobs - Unit Test
-         - [ ] Blueprint - logs
+         - [x] Blueprint - logs
          - [ ] Blueprint - logs - Unit Test
          - [x] Blueprint - main
          - [x] Blueprint - main - Unit Test
-         - [ ] Blueprint - notifications
+         - [x] Blueprint - notifications
          - [ ] Blueprint - notifications - Unit Test
          - [ ] Blueprint - sendmovies
          - [ ] Blueprint - sendmovies - Unit Test
