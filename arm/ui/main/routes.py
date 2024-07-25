@@ -8,26 +8,16 @@ Covers
 """
 import flask
 from flask import render_template, redirect, session
-from flask_login import LoginManager, login_required, \
-    current_user, login_user, logout_user
+from flask_login import login_required
 from flask import current_app as app
 
 from arm.models.job import Job
 from arm.models.system_info import SystemInfo
 from arm.models.ui_settings import UISettings
-from arm.models.user import User
 import arm.config.config as cfg
 import arm.ui.settings.ServerUtil
 from arm.ui.settings.routes import check_hw_transcode_support
 # from arm.ui.forms import DBUpdate
-
-
-# This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
-# remove this once all blueprints finalised
-# try:
-#     armui_cfg = ui_utils.arm_db_cfg()
-# except Exception as error:
-#     ui_utils.setup_database()
 
 
 @app.route('/')
@@ -88,31 +78,6 @@ def home():
     # response.set_cookie("database_limit", value=f"{armui_cfg.database_limit}")
     # response.set_cookie("notify_refresh", value=f"{armui_cfg.notify_refresh}")
     return response
-
-
-@app.login_manager.user_loader
-def load_user(user_id):
-    """
-    Logged in check
-    :param user_id:
-    :return:
-    """
-    try:
-        return User.query.get(int(user_id))
-    except Exception:
-        app.logger.debug("Error getting user")
-        return None
-
-
-@app.login_manager.unauthorized_handler
-def unauthorized():
-    """
-    User isn't authorised to view the page
-
-    :return:
-        Page redirect
-    """
-    return redirect('/login')
 
 
 # Update to manage migrations of the database

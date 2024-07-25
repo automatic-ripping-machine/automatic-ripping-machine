@@ -7,8 +7,8 @@ Covers
 """
 from flask_login import login_required
 from flask import render_template, request, session, flash
-from flask import current_app as app
 from sqlalchemy import desc, exc
+from flask import current_app as app
 
 from ui.history import route_history
 import arm.config.config as cfg

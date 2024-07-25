@@ -30,8 +30,8 @@ def initialise_arm(app, db):
         app.logger.debug("Adding Default ARM User")
         hashed = bcrypt.gensalt(12)
         default_user = User("admin",
-                            str(bcrypt.hashpw("password".encode('utf-8'), hashed)),
-                            str(hashed),
+                            bcrypt.hashpw("password".encode('utf-8'), hashed).decode('utf-8'),
+                            hashed.decode('utf-8'),
                             )
         with app.app_context():
             db.session.add(default_user)

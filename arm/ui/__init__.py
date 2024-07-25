@@ -23,6 +23,7 @@ def create_app(config_class=UIConfig):
     # Report system state for debugging
     app.logger.debug(f'Debugging pin: {app.config["WERKZEUG_DEBUG_PIN"]}')
     app.logger.debug(f'Mysql configuration: {app.config["SQLALCHEMY_DATABASE_URI_SANITISED"]}')
+    app.logger.debug(f'Login Disabled: {app.config["LOGIN_DISABLED"]}')
 
     # Set log level per arm.yml config
     app.logger.info(f"Setting log level to: {app.config['LOGLEVEL']}")
