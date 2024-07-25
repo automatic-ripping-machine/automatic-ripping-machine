@@ -44,13 +44,13 @@ Checklist for the developers of v3.x to check the current status of development.
       - [ ] Refactor Blueprints to align with Models
          - [ ] Blueprint - auth
          - [ ] Blueprint - auth - Unit Test
-         - [ ] Blueprint - database
+         - [x] Blueprint - database
          - [ ] Blueprint - database - Unit Test
          - [x] Blueprint - errors
          - [x] Blueprint - errors - Unit Test
          - [x] Blueprint - history
          - [ ] Blueprint - history - Unit Test
-         - [ ] Blueprint - jobs
+         - [x] Blueprint - jobs
          - [ ] Blueprint - jobs - Unit Test
          - [ ] Blueprint - logs
          - [ ] Blueprint - logs - Unit Test

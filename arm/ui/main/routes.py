@@ -4,6 +4,7 @@ Automatic Ripping Machine - User Interface (UI) - Blueprint
 
 Covers
     - index [GET]
+    - dbupdate [POST]
 """
 import flask
 from flask import render_template, redirect, session
@@ -18,6 +19,7 @@ from arm.models.user import User
 import arm.config.config as cfg
 import arm.ui.settings.ServerUtil
 from arm.ui.settings.routes import check_hw_transcode_support
+# from arm.ui.forms import DBUpdate
 
 
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
@@ -111,3 +113,33 @@ def unauthorized():
         Page redirect
     """
     return redirect('/login')
+
+
+# Update to manage migrations of the database
+# @route_database.route('/dbupdate', methods=['POST'])
+# def update_database():
+#     """
+#     Update the ARM database when changes are made or the arm db file is missing
+#     """
+#     form = DBUpdate(request.form)
+#     if request.method == 'POST' and form.validate():
+#         if form.dbfix.data == "migrate":
+#             app.logger.debug("User requested - Database migration")
+#             ui_utils.arm_db_migrate()
+#             flash("ARM database migration successful!", "success")
+#         elif form.dbfix.data == "new":
+#             app.logger.debug("User requested - New database")
+#             ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
+#             flash("ARM database setup successful!", "success")
+#         else:
+#             # No method defined
+#             app.logger.debug(f"No update method defined from DB Update - {form.dbfix.data}")
+#             flash("Error no update method specified, report this as a bug.", "error")
+#
+#         # Update the arm UI config from DB post update
+#         ui_utils.arm_db_cfg()
+#
+#         return redirect('/index')
+#     else:
+#         # Catch for GET requests of the page, redirect to index
+#         return redirect('/index')
