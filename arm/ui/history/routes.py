@@ -10,7 +10,7 @@ from flask import render_template, request, session, flash
 from sqlalchemy import desc, exc
 from flask import current_app as app
 
-from ui.history import route_history
+from arm.ui.history import route_history
 import arm.config.config as cfg
 from arm.models.ui_settings import UISettings
 from arm.models.job import Job

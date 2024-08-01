@@ -14,7 +14,7 @@ from flask import redirect, render_template, request, flash, app, session
 from flask_login import login_required, current_user, login_user, logout_user
 from flask import current_app as app
 
-from ui.auth import route_auth
+from arm.ui.auth import route_auth
 # from arm.ui import app, db, constants   # noqa: F811
 from arm.models.user import User
 from arm.ui.forms import SetupForm, DBUpdate

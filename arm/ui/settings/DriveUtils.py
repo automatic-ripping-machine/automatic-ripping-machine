@@ -13,8 +13,9 @@ Ripper Utils
 import pyudev
 import re
 import logging
+from flask import current_app as app
 
-from arm.ui import app, db
+from arm.ui import db
 from arm.models.job import Job
 from arm.models.system_drives import SystemDrives
 

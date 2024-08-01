@@ -13,9 +13,10 @@ from flask import render_template, redirect, flash, session
 from datetime import datetime
 from flask import current_app as app
 
-from ui.notifications import route_notifications
-from models.notifications import Notifications
-from ui.ui_setup import db
+from arm.ui.notifications import route_notifications
+from arm.models.notifications import Notifications
+from arm.ui import db
+
 
 @app.context_processor
 def arm_nav_notify():

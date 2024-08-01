@@ -11,7 +11,7 @@ from flask import render_template, request, flash, redirect, session
 from sqlalchemy import desc, exc
 from flask import current_app as app
 
-from ui.database import route_database
+from arm.ui.database import route_database
 import arm.config.config as cfg
 from arm.models.job import Job
 from arm.models.ui_settings import UISettings

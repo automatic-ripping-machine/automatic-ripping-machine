@@ -4,4 +4,4 @@ route_error = Blueprint('errors', __name__,
                        template_folder='templates',
                        static_folder='../static')
 
-from ui.errors import routes  # noqa: E402, F401
+from arm.ui.errors import routes  # noqa: E402, F401
