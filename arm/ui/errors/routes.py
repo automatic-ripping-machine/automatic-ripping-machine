@@ -7,7 +7,6 @@ Covers
 - error_500 [GET] - server error
 - error_general Errors [GET] - general or other server error
 """
-import werkzeug
 from flask import render_template, request
 
 from arm.ui.errors import route_error

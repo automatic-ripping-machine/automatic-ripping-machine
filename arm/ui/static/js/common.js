@@ -200,19 +200,23 @@ function addToast(title, body, toastId) {
     const toast_timeout = getNotifyTimeout();
     console.log("Notification timeout: " + toast_timeout);
 
-    const toast = `<div id="toast${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-autohide="true" data-animation="true" data-delay="${parseInt(toast_timeout)}" style="z-index:1000">
-        <div class="toast-header">
-            <img src="static/img/success.png" class="rounded mr-2" alt="arm message" height="20px" width="20px">
-                <strong class="mr-auto">${title}</strong>
-                <small class="text-muted">just now</small>
-                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-        </div>
-        <div class="toast-body">
-            ${body}
-        </div>
-    </div>`;
+    // Change the image if Error to fail
+    const imageSrc = title === 'Error' ? 'static/img/fail.png' : 'static/img/success.png';
+
+    const toast =
+        `<div id="toast${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-autohide="true" data-animation="true" data-delay="${parseInt(toast_timeout)}" style="z-index:1000">
+            <div class="toast-header">
+                <img src="${imageSrc}" class="rounded mr-2" alt="arm message" height="20px" width="20px">
+                    <strong class="mr-auto">${title}</strong>
+                    <small class="text-muted">just now</small>
+                    <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+            </div>
+            <div class="toast-body">
+                ${body}
+            </div>
+        </div>`;
     $("#toastHolder").append(toast);
     const newToast = $(`#toast${toastId}`);
     newToast.toast('show');

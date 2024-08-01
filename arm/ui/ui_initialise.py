@@ -53,8 +53,8 @@ def initialise_arm(app, db):
         create_uisettings = True
 
     if create_uisettings:
-        ui_config = UISettings(1,
-                               1,
+        ui_config = UISettings(True,
+                               True,
                                "spacelab",
                                "en",
                                2000,

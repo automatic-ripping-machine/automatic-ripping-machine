@@ -7,16 +7,17 @@ Covers
     - dbupdate [POST]
 """
 import flask
-from flask import render_template, redirect, session
-from flask_login import login_required
 from flask import current_app as app
+from flask import render_template, session
+from flask_login import login_required
 
-from arm.models.job import Job
-from arm.models.system_info import SystemInfo
-from arm.models.ui_settings import UISettings
 import arm.config.config as cfg
 import arm.ui.settings.ServerUtil
+from arm.models.system_info import SystemInfo
+from arm.models.ui_settings import UISettings
 from arm.ui.settings.routes import check_hw_transcode_support
+
+
 # from arm.ui.forms import DBUpdate
 
 

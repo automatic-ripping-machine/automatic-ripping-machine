@@ -58,9 +58,9 @@ Checklist for the developers of v3.x to check the current status of development.
          - [x] Blueprint - main - Unit Test
          - [x] Blueprint - notifications
          - [ ] Blueprint - notifications - Unit Test
-         - [ ] Blueprint - sendmovies
+         - [x] Blueprint - sendmovies
          - [ ] Blueprint - sendmovies - Unit Test
-         - [ ] Blueprint - settings
+         - [x] Blueprint - settings
          - [ ] Blueprint - settings - Unit Test
 
 2. Move from docker to docker-compose

@@ -1,4 +1,11 @@
-"""File to hold all functions pertaining to apprise"""
+"""
+ARM Apprise Functions
+
+Functions
+    - build_apprise_sent - Build Dict for apprise
+    - apprise_notify - apprise notification
+    - ntfy_notify - notify
+"""
 import logging
 import yaml
 import apprise

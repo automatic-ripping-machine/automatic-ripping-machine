@@ -56,13 +56,17 @@ def drives_update():
     drive_count = SystemDrives.query.count()
 
     for drive_mount in udev_drives:
-        # Check drive doesn't already exist
+        # Check drive doesn't exist
         if not SystemDrives.query.filter_by(mount=drive_mount).first():
             new_count += 1
 
             # Create new disk (name, type, mount, open, job id, previous job id, description )
-            db_drive = SystemDrives(f"Drive {drive_count + new_count}",
-                                    drive_mount, None, None, "Classic burner")
+            db_drive = SystemDrives(name=f"Drive {drive_count + new_count}",
+                                    mount=drive_mount,
+                                    job=0,
+                                    job_previous=0,
+                                    type="CD",
+                                    description="Classic burner")
             app.logger.debug("****** Drive Information ******")
             app.logger.debug(f"Name: {db_drive.name}")
             app.logger.debug(f"Type: {db_drive.type}")

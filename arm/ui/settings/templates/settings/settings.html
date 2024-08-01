@@ -36,7 +36,7 @@
         <h4 class="alert-heading">Settings were saved successfully</h4>
     </div>
     <div class="alert alert-danger d-none" role="alert" id="fail">
-        <h4 class="alert-heading">There was an error saving settings</h4>
+        <h4 class="alert-heading">There was an error saving the ARM settings</h4>
     </div>
     <!-- END MESSAGES - We keep this here incase we need it later -->
     <div class="container" style="max-width: initial!important;">
@@ -119,6 +119,11 @@
                         var dt = new Date();
                         var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
                         addToast("Saved Successfully", `Saved ${data.form} settings at ${time}`, toastCount);
+                        toastCount++;
+                    }
+                    if (data.success === false) {
+                        console.log(data)
+                        addToast("Error", data.error, toastCount);
                         toastCount++;
                     }
                 });

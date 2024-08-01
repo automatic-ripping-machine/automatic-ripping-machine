@@ -6,15 +6,16 @@ Covers
     - database [GET]
     - import_movies [JSON]
 """
-from flask_login import login_required
-from flask import render_template, request, flash, redirect, session
-from sqlalchemy import desc, exc
 from flask import current_app as app
+from flask import render_template, request, flash, session
+from flask_login import login_required
+from sqlalchemy import desc, exc
 
-from arm.ui.database import route_database
 import arm.config.config as cfg
 from arm.models.job import Job
 from arm.models.ui_settings import UISettings
+from arm.ui.database import route_database
+
 
 # todo: what is this used for?
 # app.app_context().push()
