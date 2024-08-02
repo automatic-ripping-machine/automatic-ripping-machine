@@ -3,9 +3,9 @@ import urllib
 import json
 import re
 import requests
-from flask.logging import default_handler  # noqa: F401
+# from flask.logging import default_handler
+from flask import current_app as app
 
-from arm.ui import app
 import arm.config.config as cfg
 
 TMDB_YEAR_REGEX = r"-\d{0,2}-\d{0,2}"

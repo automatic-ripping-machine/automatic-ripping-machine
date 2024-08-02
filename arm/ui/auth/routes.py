@@ -10,21 +10,14 @@ Covers
     - update_password [GET, POST]
 """
 import bcrypt
-from flask import current_app as app
 from flask import redirect, render_template, request, flash, app, session
 from flask_login import login_required, current_user, login_user, logout_user
+from flask import current_app as app
 
 from arm.ui import db
 from arm.models.user import User
 from arm.ui.auth import route_auth
 from arm.ui.forms import SetupForm
-
-# import arm.ui.utils as ui_utils
-
-
-# Define the Flask login manager
-# login_manager = LoginManager()
-# login_manager.init_app(app)
 
 # Page definitions
 page_support_databaseupdate = "support/databaseupdate.html"

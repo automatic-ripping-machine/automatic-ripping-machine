@@ -18,9 +18,6 @@ from arm.models.ui_settings import UISettings
 from arm.ui.settings.routes import check_hw_transcode_support
 
 
-# from arm.ui.forms import DBUpdate
-
-
 @app.route('/')
 @app.route('/index.html')
 @app.route('/index')

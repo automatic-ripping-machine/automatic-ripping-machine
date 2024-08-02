@@ -9,7 +9,7 @@ from arm.ui.logs import route_logs
 from arm.ui.auth import route_auth
 from arm.ui.database import route_database
 from arm.ui.history import route_history
-# from arm.ui.jobs.jobs import route_jobs  # noqa: E402,F811
+from arm.ui.jobs import route_jobs
 from arm.ui.sendmovies import route_sendmovies
 from arm.ui.notifications import route_notifications
 
@@ -22,6 +22,6 @@ def register_blueprints(app):
     app.register_blueprint(route_auth)
     app.register_blueprint(route_database)
     app.register_blueprint(route_history)
-    # app.register_blueprint(route_jobs)
+    app.register_blueprint(route_jobs)
     app.register_blueprint(route_sendmovies)
     app.register_blueprint(route_notifications)

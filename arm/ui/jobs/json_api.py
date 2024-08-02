@@ -1,5 +1,5 @@
 """
-Basic json api for access to A.R.M UI
+Basic json api for access to ARM UI
 Also used to connect to both omdb and tmdb
 """
 import os
@@ -10,17 +10,17 @@ from pathlib import Path
 import datetime
 import psutil
 from flask import request
+from flask import current_app as app
 
 import arm.config.config as cfg
-from arm.models.config import Config
-from arm.models.job import Job
-from arm.models.notifications import Notifications
-from arm.models.track import Track
-from arm.models.ui_settings import UISettings
-from arm.ui import app, db
+from arm.ui import db
 from arm.ui.forms import ChangeParamsForm
-from arm.ui.utils import job_id_validator, database_updater
-from arm.ui.settings import DriveUtils as drive_utils # noqa E402
+from arm.ui.jobs.utils import job_id_validator
+from arm.ui.settings import DriveUtils
+from arm.models.job import Job
+# Job imports Config and Track as dependencies
+from arm.models.notifications import Notifications
+from arm.models.ui_settings import UISettings
 
 
 def get_notifications():
@@ -308,7 +308,7 @@ def delete_job(job_id, mode):
                     return {'success': False, 'job': 'invalid', 'mode': mode, 'error': 'Not a valid job'}
                 else:
                     app.logger.debug("No errors: job_id=" + str(post_value))
-                    drive_utils.job_cleanup(job_id)
+                    DriveUtils.job_cleanup(job_id)
                     Track.query.filter_by(job_id=job_id).delete()
                     Job.query.filter_by(job_id=job_id).delete()
                     Config.query.filter_by(job_id=job_id).delete()
@@ -439,7 +439,7 @@ def change_job_params(config_id):
         # We don't need to set the config as they are set with job commit
         notification = Notifications(f"Job: {job.job_id} Config updated!", message)
         db.session.add(notification)
-        database_updater(args, job)
+        db.commit()
 
         return {'message': message, 'form': 'change_job_params', "success": True}
     return {'return': '', 'success': False}
@@ -450,7 +450,7 @@ def read_notification(notify_id):
     return_json = {'success': False, 'mode': 'read_notification', 'message': ""}
     notification = Notifications.query.filter_by(id=notify_id, seen=0).first()
     if notification:
-        database_updater({'seen': 1, 'dismiss_time': datetime.datetime.now()}, notification)
+        db.commit()
         return_json['success'] = True
     else:
         return_json['message'] = "Notification already read or not found!"

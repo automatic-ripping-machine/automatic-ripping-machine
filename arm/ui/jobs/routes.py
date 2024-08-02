@@ -1,32 +1,31 @@
 """
-ARM route blueprint for jobs pages
+Automatic Ripping Machine - User Interface (UI) - Blueprint
+    Jobs
+
 Covers
-- jobdetail [GET]
-- titlesearch [GET]
-- custometitle [GET]
-- gettitle / customtitle [GET]
-- updatetitle [GET]
-- activerips [GET]
-- changeparams [GET]
-- list_titles [GET]
-- json [JSON GET]
+    - jobdetail [GET]
+    - titlesearch [GET]
+    - custometitle [GET]
+    - gettitle / customtitle [GET]
+    - updatetitle [GET]
+    - activerips [GET]
+    - changeparams [GET]
+    - list_titles [GET]
+    - json [JSON GET]
 """
-
 import json
-from flask_login import LoginManager, login_required  # noqa: F401
-from flask import render_template, request, Blueprint, flash, redirect, url_for
+from flask_login import login_required
+from flask import render_template, request, flash, redirect, url_for
 from werkzeug.routing import ValidationError
+from flask import current_app as app
 
-import arm.ui.utils as ui_utils
-from arm.ui import app, db, constants, json_api
-from arm.models.job import Job
-from arm.models.notifications import Notifications
+from arm.ui.jobs import route_jobs
+from arm.ui.jobs import utils, json_api
+from arm.ui import db, constants
 import arm.config.config as cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm
-
-route_jobs = Blueprint('route_jobs', __name__,
-                       template_folder='templates',
-                       static_folder='../static')
+from arm.models.job import Job
+from arm.models.notifications import Notifications
 
 
 @route_jobs.route('/jobdetail')
@@ -41,7 +40,7 @@ def jobdetail():
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
     tracks = job.tracks.all()
-    search_results = ui_utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
+    search_results = utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
     if search_results and 'Error' not in search_results:
         job.plot = search_results['Plot'] if 'Plot' in search_results else "There was a problem getting the plot"
         job.background = search_results['background_url'] if 'background_url' in search_results else None
@@ -71,7 +70,7 @@ def customtitle():
     For setting custom title for series with multiple discs
     """
     job_id = request.args.get('job_id')
-    ui_utils.job_id_validator(job_id)
+    utils.job_id_validator(job_id)
     job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     if request.args.get("title"):
@@ -84,7 +83,7 @@ def customtitle():
                                      f'Title: {job.title} ({job.year}) was updated to '
                                      f'{request.args.get("title")} ({request.args.get("year")})')
         db.session.add(notification)
-        ui_utils.database_updater(args, job)
+        db.commit()
         flash(f'Custom title changed. Title={job.title}, Year={job.year}.', "success")
         return redirect(url_for('home'))
     return render_template('customTitle.html', title='Change Title', form=form, job=job)
@@ -110,7 +109,7 @@ def gettitle():
         app.logger.debug("gettitle - no job supplied")
         flash(constants.NO_JOB, "danger")
         raise ValidationError(constants.NO_JOB)
-    dvd_info = ui_utils.metadata_selector("get_details", None, None, imdb_id)
+    dvd_info = utils.metadata_selector("get_details", None, None, imdb_id)
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
 
@@ -126,7 +125,7 @@ def updatetitle():
     job = Job.query.get(job_id)
     old_title = job.title
     old_year = job.year
-    job.title = job.title_manual = ui_utils.clean_for_filename(request.args.get('title'))
+    job.title = job.title_manual = utils.clean_for_filename(request.args.get('title'))
     job.year = job.year_manual = request.args.get('year')
     job.video_type = job.video_type_manual = request.args.get('type')
     job.imdb_id = job.imdb_id_manual = request.args.get('imdbID')
@@ -181,12 +180,12 @@ def list_titles():
         raise ValidationError
     job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
-    search_results = ui_utils.metadata_selector("search", title, year)
+    search_results = utils.metadata_selector("search", title, year)
     if search_results is None or 'Error' in search_results or (
             'Search' in search_results and len(search_results['Search']) < 1):
         app.logger.debug("No results found. Trying without year")
         flash(f"No search results found for {title} ({year})<br/> Trying without year", 'danger')
-        search_results = ui_utils.metadata_selector("search", title, "")
+        search_results = utils.metadata_selector("search", title, "")
 
     if search_results is None or 'Error' in search_results or (
             'Search' in search_results and len(search_results['Search']) < 1):
@@ -229,9 +228,9 @@ def feed_json():
         'search': {'funct': json_api.search, 'args': ('searchq',)},
         'getfailed': {'funct': json_api.get_x_jobs, 'args': ('fail',)},
         'getsuccessful': {'funct': json_api.get_x_jobs, 'args': ('success',)},
-        'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
+        'fixperms': {'funct': utils.fix_permissions, 'args': ('j_id',)},
         'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
-        'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)},
+        'send_item': {'funct': utils.send_to_remote_db, 'args': ('j_id',)},
         'change_job_params': {'funct': json_api.change_job_params, 'args': ('config_id',)},
         'read_notification': {'funct': json_api.read_notification, 'args': ('notify_id',)},
         'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)}
