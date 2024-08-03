@@ -68,14 +68,10 @@ def arm_notification_close():
     if len(notifications) != 0:
         # get the current time for each notification and then save back into notification
         for notification in notifications:
-            args = {
-                'cleared': True,
-                'cleared_time': datetime.now()
-            }
-
-            # Update database
-            db.session.add(notifications)
-            db.session.commit()
+            notification.cleared = True
+            notification.cleared_time = datetime.now()
+        # Update database
+        db.session.commit()
 
         flash(f'Cleared {len(notifications)} Notifications', 'success')
     else:

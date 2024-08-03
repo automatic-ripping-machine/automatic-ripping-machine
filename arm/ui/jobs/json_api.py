@@ -439,7 +439,7 @@ def change_job_params(config_id):
         # We don't need to set the config as they are set with job commit
         notification = Notifications(f"Job: {job.job_id} Config updated!", message)
         db.session.add(notification)
-        db.commit()
+        db.session.commit()
 
         return {'message': message, 'form': 'change_job_params', "success": True}
     return {'return': '', 'success': False}
@@ -450,7 +450,9 @@ def read_notification(notify_id):
     return_json = {'success': False, 'mode': 'read_notification', 'message': ""}
     notification = Notifications.query.filter_by(id=notify_id, seen=0).first()
     if notification:
-        db.commit()
+        notification.seen = True
+        notification.dismiss_time = datetime.datetime.now()
+        db.session.commit()
         return_json['success'] = True
     else:
         return_json['message'] = "Notification already read or not found!"
