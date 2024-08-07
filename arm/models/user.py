@@ -1,9 +1,10 @@
 from flask_login import UserMixin
 
+from models.arm_models import ARMModel
 from ui.ui_setup import db
 
 
-class User(db.Model, UserMixin):
+class User(ARMModel, UserMixin):
     """
     ARM Database Model - User
 

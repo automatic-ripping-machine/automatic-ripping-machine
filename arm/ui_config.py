@@ -86,19 +86,32 @@ class UIConfig:
     WERKZEUG_DEBUG_PIN: str = "12345"
 
     # Define the database configuration for ARM
-    # sqlitefile: str = 'sqlite:///' + cfg.arm_config['DBFILE']
+    sqlitefile: str = 'sqlite:///' + cfg.arm_config['DBFILE']
     mysql_connector: str = 'mysql+mysqlconnector://'
     mysql_ip: str = os.getenv("MYSQL_IP", "127.0.0.1")
     mysql_user: str = os.getenv("MYSQL_USER", "arm")
     mysql_password: str = os.getenv("MYSQL_PASSWORD", "example")
     mysql_database: str = "arm"
     mysql_charset: str = '?charset=utf8mb4'
-    SQLALCHEMY_DATABASE_URI_SANITISED: str = mysql_connector + mysql_user + ':*******' + '@' + mysql_ip \
-                                             + '/' + mysql_database + mysql_charset
-
-    SQLALCHEMY_DATABASE_URI: str = mysql_connector + mysql_user + ':' + mysql_password + '@' + mysql_ip \
+    mysql_uri: str = mysql_connector + mysql_user + ':' + mysql_password + '@' + mysql_ip \
                                    + '/' + mysql_database + mysql_charset
+    mysql_uri_sanitised: str = mysql_connector + mysql_user + ':*******' + '@' + mysql_ip \
+                               + '/' + mysql_database + mysql_charset
+
+    # Default database connection is MYSQL, required for Alembic
+    SQLALCHEMY_DATABASE_URI: str = mysql_uri
+    # Create binds for swapping between databases during imports
+    SQLALCHEMY_BINDS = {
+        'sqlite':   sqlitefile,
+        'mysql':    mysql_uri
+    }
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
+
+    # Alembic config
+    alembic_migrations_dir: str = "ui/migrations"
+    ALEMBIC = {
+        'script_location': alembic_migrations_dir
+    }
 
     # ARM UI configuration
     # HOME_PAGE = '/index'

@@ -3,10 +3,11 @@
 # import re
 # import subprocess
 
+from models.arm_models import ARMModel
 from ui.ui_setup import db
 
 
-class SystemInfo(db.Model):
+class SystemInfo(ARMModel):
     """
     ARM Database Model - System Information
 

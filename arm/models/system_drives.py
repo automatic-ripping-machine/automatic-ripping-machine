@@ -2,10 +2,11 @@
 # import os
 # import pyudev
 
+from models.arm_models import ARMModel
 from ui.ui_setup import db
 
 
-class SystemDrives(db.Model):
+class SystemDrives(ARMModel):
     """
     ARM Database Model - System Drives
 

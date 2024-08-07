@@ -1,7 +1,8 @@
+from models.arm_models import ARMModel
 from ui.ui_setup import db
 
 
-class Track(db.Model):
+class Track(ARMModel):
     """
     ARM Database Model - Track
 

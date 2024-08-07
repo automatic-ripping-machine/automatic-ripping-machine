@@ -22,20 +22,24 @@ def create_app(config_class=UIConfig):
 
     # Report system state for debugging
     app.logger.debug(f'Debugging pin: {app.config["WERKZEUG_DEBUG_PIN"]}')
-    app.logger.debug(f'Mysql configuration: {app.config["SQLALCHEMY_DATABASE_URI_SANITISED"]}')
+    app.logger.debug(f'Mysql configuration: {config_class.mysql_uri_sanitised}')
+    app.logger.debug(f'SQLite Configuration: {config_class.sqlitefile}')
     app.logger.debug(f'Login Disabled: {app.config["LOGIN_DISABLED"]}')
 
     # Set log level per arm.yml config
     app.logger.info(f"Setting log level to: {app.config['LOGLEVEL']}")
     app.logger.setLevel(app.config['LOGLEVEL'])
 
+    db.init_app(app)  # Initialise database
+    alembic.init_app(app, db)  # Create Flask-Alembic
+
     # Initialise the Database and Flask Alembic
-    db.init_app(app)            # Initialise database
-    alembic.init_app(app, db)   # Create Flask-Alembic
-    with app.app_context():     # Create tables from Migrations
-        app.logger.debug(f'Alembic Migration Folder: {app.config["ALEMBIC"]["script_location"]}')
-        alembic.upgrade()
-        migrate.init_app(app, db)   # Migrate, not sure if still needed
+    with app.app_context():
+        app.logger.debug(f'Alembic Migration Folder: {config_class.alembic_migrations_dir}')
+        migrate.init_app(app, db, directory=config_class.alembic_migrations_dir)
+
+        # Initialise Alembic, create DB Migrations at startup
+        # alembic.upgrade()
 
         # Initialise the Flask-Login manager
         login_manager.init_app(app)
@@ -44,7 +48,7 @@ def create_app(config_class=UIConfig):
         from ui.ui_blueprints import register_blueprints
         register_blueprints(app)
 
-        # Initialise ARM
+        # Initialise ARM and ensure tables are set
         initialise_arm(app, db)
 
         return app

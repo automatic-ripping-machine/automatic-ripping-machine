@@ -1,9 +1,10 @@
 import datetime
 
+from models.arm_models import ARMModel
 from ui.ui_setup import db
 
 
-class Notifications(db.Model):
+class Notifications(ARMModel):
     """
     ARM Database Model - Notifications
 

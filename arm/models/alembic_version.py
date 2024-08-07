@@ -1,7 +1,8 @@
+from models.arm_models import ARMModel
 from ui.ui_setup import db
 
 
-class AlembicVersion(db.Model):
+class AlembicVersion(ARMModel):
     """
     ARM Database Model - Alembic Version
 

@@ -1,5 +1,6 @@
 # from prettytable import PrettyTable
 
+from models.arm_models import ARMModel
 from ui.ui_setup import db
 
 
@@ -10,7 +11,7 @@ hidden_attribs = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD",
 HIDDEN_VALUE = "<hidden>"
 
 
-class Config(db.Model):
+class Config(ARMModel):
     """
     ARM Database Model - Config
 

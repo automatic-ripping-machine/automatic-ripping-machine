@@ -5,6 +5,7 @@
 # import subprocess
 import time
 
+from models.arm_models import ARMModel
 # from prettytable import PrettyTable
 # from arm.ripper import music_brainz
 from ui.ui_setup import db
@@ -15,7 +16,7 @@ from models.track import Track  # noqa: F401
 from models.config import Config  # noqa: F401
 
 
-class Job(db.Model):
+class Job(ARMModel):
     """
     ARM Database Model - Job
 
@@ -139,6 +140,20 @@ class Job(db.Model):
         #     command = f"lsdvd {devpath} | grep 'Disc Title' | cut -d ' ' -f 3-"
         #     lsdvdlbl = str(subprocess.check_output(command, shell=True).strip(), 'utf-8')
         #     self.label = lsdvdlbl
+
+    @classmethod
+    def change_binds(cls, bind_key):
+        """
+        Define the bind for related tables Track and Config
+        Set Track and Config bind when setting Job bind
+
+        Attributes:
+            bind_key: reference to the database config to use.
+        """
+        cls.__bind_key__ = bind_key
+        Track.__bind_key__ = bind_key
+        Config.__bind_key__ = bind_key
+        return cls
 
     def __str__(self):
         """Returns a string of the object"""

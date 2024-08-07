@@ -1,7 +1,8 @@
+from models.arm_models import ARMModel
 from ui.ui_setup import db
 
 
-class UISettings(db.Model):
+class UISettings(ARMModel):
     """
     ARM Database Model - UISettings
 
