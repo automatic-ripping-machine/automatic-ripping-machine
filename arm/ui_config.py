@@ -109,9 +109,9 @@ class UIConfig:
 
     # Alembic config
     alembic_migrations_dir: str = "ui/migrations"
-    ALEMBIC = {
-        'script_location': alembic_migrations_dir
-    }
+    # ALEMBIC = {
+    #     'script_location': alembic_migrations_dir
+    # }
 
     # ARM UI configuration
     # HOME_PAGE = '/index'

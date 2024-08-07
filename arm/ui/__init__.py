@@ -31,7 +31,7 @@ def create_app(config_class=UIConfig):
     app.logger.setLevel(app.config['LOGLEVEL'])
 
     db.init_app(app)  # Initialise database
-    alembic.init_app(app, db)  # Create Flask-Alembic
+    # alembic.init_app(app, db)  # Create Flask-Alembic
 
     # Initialise the Database and Flask Alembic
     with app.app_context():
