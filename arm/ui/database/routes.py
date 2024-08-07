@@ -120,7 +120,7 @@ def database_migrate():
             mysql_job.ejected = sqlite_job.ejected
             mysql_job.updated = sqlite_job.updated
             mysql_job.pid = sqlite_job.pid
-            # mysql_job.pid_hash = abs(sqlite_job.pid_hash)
+            mysql_job.pid_hash = abs(sqlite_job.pid_hash)
             mysql_job.is_iso = sqlite_job.is_iso
 
             db.session.add(mysql_job)
