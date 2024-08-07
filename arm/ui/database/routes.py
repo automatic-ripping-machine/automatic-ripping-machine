@@ -6,15 +6,16 @@ Covers
     - database [GET]
     - import_movies [JSON]
 """
-from flask import current_app as app
+from flask import render_template, request, flash, session, redirect
 from flask import render_template, request, flash, session
 from flask_login import login_required
 from sqlalchemy import desc, exc
+from flask import current_app as app
 
-import arm.config.config as cfg
-from arm.models.job import Job
-from arm.models.ui_settings import UISettings
-from arm.ui.database import route_database
+import config.config as cfg
+from ui import db
+from models.job import Job
+# from models.track import Track
 
 
 # todo: what is this used for?

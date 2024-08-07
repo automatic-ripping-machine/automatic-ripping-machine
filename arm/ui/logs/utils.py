@@ -14,7 +14,7 @@ from time import strftime, localtime, sleep
 from werkzeug.routing import ValidationError
 from flask import current_app as app
 
-import arm.config.config as cfg
+import config.config as cfg
 
 
 def get_info(directory: str) -> list[list]:

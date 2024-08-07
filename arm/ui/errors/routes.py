@@ -9,7 +9,7 @@ Covers
 """
 from flask import render_template, request
 
-from arm.ui.errors import route_error
+from ui.errors import route_error
 
 
 @route_error.app_errorhandler(404)

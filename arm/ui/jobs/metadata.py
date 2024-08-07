@@ -6,7 +6,7 @@ import requests
 # from flask.logging import default_handler
 from flask import current_app as app
 
-import arm.config.config as cfg
+import config.config as cfg
 
 TMDB_YEAR_REGEX = r"-\d{0,2}-\d{0,2}"
 

@@ -14,9 +14,9 @@ from flask import render_template, request, send_file, session
 from werkzeug.routing import ValidationError
 from flask import current_app as app
 
-from arm.ui.logs import route_logs
-import arm.config.config as cfg
-from arm.ui.logs import utils
+from ui.logs import route_logs
+import config.config as cfg
+from ui.logs import utils
 
 
 @route_logs.route('/logs')

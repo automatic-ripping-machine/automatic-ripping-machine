@@ -4,7 +4,7 @@ import json
 import os
 import yaml
 
-import arm.config.config_utils as config_utils
+import config.config_utils as config_utils
 
 CONFIG_LOCATION = "/etc/arm/config"
 arm_config_path = os.path.join(CONFIG_LOCATION, "arm.yaml")

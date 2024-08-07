@@ -9,10 +9,10 @@ import apprise
 import subprocess
 from flask import current_app as app
 
-from arm.ui.notifications.apprise_bulk import apprise_notify
-from arm.ui import db
+from ui.notifications.apprise_bulk import apprise_notify
+from ui import db
 from config import config as cfg
-from arm.models.notifications import Notifications
+from models.notifications import Notifications
 
 
 def notify(job, title: str, body: str):

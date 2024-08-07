@@ -12,15 +12,15 @@ import psutil
 from flask import request
 from flask import current_app as app
 
-import arm.config.config as cfg
-from arm.ui import db
-from arm.ui.forms import ChangeParamsForm
-from arm.ui.jobs.utils import job_id_validator
-from arm.ui.settings import DriveUtils
-from arm.models.job import Job
+import config.config as cfg
+from ui import db
+from ui.forms import ChangeParamsForm
+from ui.jobs.utils import job_id_validator
+from ui.settings import DriveUtils
+from models.job import Job
 # Job imports Config and Track as dependencies
-from arm.models.notifications import Notifications
-from arm.models.ui_settings import UISettings
+from models.notifications import Notifications
+from models.ui_settings import UISettings
 
 
 def get_notifications():

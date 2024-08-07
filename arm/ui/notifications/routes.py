@@ -13,9 +13,9 @@ from flask import render_template, redirect, flash, session
 from datetime import datetime
 from flask import current_app as app
 
-from arm.ui.notifications import route_notifications
-from arm.models.notifications import Notifications
-from arm.ui import db
+from ui.notifications import route_notifications
+from models.notifications import Notifications
+from ui import db
 
 
 @app.context_processor

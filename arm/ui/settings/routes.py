@@ -23,18 +23,18 @@ from flask_login import login_required
 from flask import render_template, request, flash, redirect, session
 from flask import current_app as app
 
-from arm.ui.settings import route_settings
-from arm.ui.settings import utils
-from arm.ui import db
-from arm.models.job import Job
-from arm.models.system_drives import SystemDrives
-from arm.models.system_info import SystemInfo
-from arm.models.ui_settings import UISettings
-import arm.config.config as cfg
-from arm.ui.settings import DriveUtils
-from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
-from arm.ui.settings.ServerUtil import ServerUtil
-from arm.ui.notifications.utils import notify
+from ui.settings import route_settings
+from ui.settings import utils
+from ui import db
+from models.job import Job
+from models.system_drives import SystemDrives
+from models.system_info import SystemInfo
+from models.ui_settings import UISettings
+import config.config as cfg
+from ui.settings import DriveUtils
+from ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
+from ui.settings.ServerUtil import ServerUtil
+from ui.notifications.utils import notify
 
 
 # Page definitions

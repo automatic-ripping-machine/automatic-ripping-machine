@@ -2,16 +2,16 @@
 Automatic Ripping Machine - User Interface (UI)
     UI Flask Blueprints
 """
-from arm.ui.main import route_main
-from arm.ui.errors import route_error
-from arm.ui.settings import route_settings
-from arm.ui.logs import route_logs
-from arm.ui.auth import route_auth
-from arm.ui.database import route_database
-from arm.ui.history import route_history
-from arm.ui.jobs import route_jobs
-from arm.ui.sendmovies import route_sendmovies
-from arm.ui.notifications import route_notifications
+from ui.main import route_main
+from ui.errors import route_error
+from ui.settings import route_settings
+from ui.logs import route_logs
+from ui.auth import route_auth
+from ui.database import route_database
+from ui.history import route_history
+from ui.jobs import route_jobs
+from ui.sendmovies import route_sendmovies
+from ui.notifications import route_notifications
 
 
 def register_blueprints(app):

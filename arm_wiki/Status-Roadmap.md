@@ -47,7 +47,7 @@ Checklist for the developers of v3.x to check the current status of development.
          - [x] Blueprint - database
          - [ ] Blueprint - database - Unit Test
          - [x] Blueprint - errors
-         - [x] Blueprint - errors - Unit Test
+         - [ ] Blueprint - errors - Unit Test
          - [x] Blueprint - history
          - [ ] Blueprint - history - Unit Test
          - [x] Blueprint - jobs
@@ -55,7 +55,7 @@ Checklist for the developers of v3.x to check the current status of development.
          - [x] Blueprint - logs
          - [ ] Blueprint - logs - Unit Test
          - [x] Blueprint - main
-         - [x] Blueprint - main - Unit Test
+         - [ ] Blueprint - main - Unit Test
          - [x] Blueprint - notifications
          - [ ] Blueprint - notifications - Unit Test
          - [x] Blueprint - sendmovies

@@ -6,7 +6,7 @@ Class definition
 import psutil
 from flask import current_app as app
 
-import arm.config.config as cfg
+import config.config as cfg
 from flask import flash
 
 

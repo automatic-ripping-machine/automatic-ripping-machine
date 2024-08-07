@@ -17,10 +17,10 @@ import json
 from pathlib import Path
 from flask import current_app as app
 
-import arm.config.config as cfg
-from arm.ui.jobs.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
-from arm.ui.logs.utils import validate_logfile
-from arm.models.job import Job
+import config.config as cfg
+from ui.jobs.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
+from ui.logs.utils import validate_logfile
+from models.job import Job
 
 
 def metadata_selector(func, query="", year="", imdb_id=""):

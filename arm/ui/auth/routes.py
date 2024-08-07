@@ -14,10 +14,10 @@ from flask import redirect, render_template, request, flash, app, session
 from flask_login import login_required, current_user, login_user, logout_user
 from flask import current_app as app
 
-from arm.ui import db
-from arm.models.user import User
-from arm.ui.auth import route_auth
-from arm.ui.forms import SetupForm
+from ui import db
+from models.user import User
+from ui.auth import route_auth
+from ui.forms import SetupForm
 
 # Page definitions
 page_support_databaseupdate = "support/databaseupdate.html"

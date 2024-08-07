@@ -19,13 +19,13 @@ from flask import render_template, request, flash, redirect, url_for
 from werkzeug.routing import ValidationError
 from flask import current_app as app
 
-from arm.ui.jobs import route_jobs
-from arm.ui.jobs import utils, json_api
-from arm.ui import db, constants
-import arm.config.config as cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm
-from arm.models.job import Job
-from arm.models.notifications import Notifications
+from ui.jobs import route_jobs
+from ui.jobs import utils, json_api
+from ui import db, constants
+import config.config as cfg
+from ui.forms import TitleSearchForm, ChangeParamsForm
+from models.job import Job
+from models.notifications import Notifications
 
 
 @route_jobs.route('/jobdetail')

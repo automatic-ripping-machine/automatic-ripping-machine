@@ -11,11 +11,11 @@ from flask import current_app as app
 from flask import render_template, session
 from flask_login import login_required
 
-import arm.config.config as cfg
-import arm.ui.settings.ServerUtil
-from arm.models.system_info import SystemInfo
-from arm.models.ui_settings import UISettings
-from arm.ui.settings.routes import check_hw_transcode_support
+import config.config as cfg
+import ui.settings.ServerUtil
+from models.system_info import SystemInfo
+from models.ui_settings import UISettings
+from ui.settings.routes import check_hw_transcode_support
 
 
 @app.route('/')
@@ -39,7 +39,7 @@ def home():
 
     # System details in class server
     server = SystemInfo.query.filter_by(id="1").first()
-    serverutil = arm.ui.settings.ServerUtil.ServerUtil()
+    serverutil = ui.settings.ServerUtil.ServerUtil()
 
     # System details in class server
     arm_path = cfg.arm_config['TRANSCODE_PATH']

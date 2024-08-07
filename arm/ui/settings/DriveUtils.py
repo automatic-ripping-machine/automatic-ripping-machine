@@ -15,9 +15,9 @@ import re
 import logging
 from flask import current_app as app
 
-from arm.ui import db
-from arm.models.job import Job
-from arm.models.system_drives import SystemDrives
+from ui import db
+from models.job import Job
+from models.system_drives import SystemDrives
 
 
 def drives_search():
