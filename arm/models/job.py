@@ -155,18 +155,6 @@ class Job(ARMModel):
         Config.__bind_key__ = bind_key
         return cls
 
-    def __str__(self):
-        """Returns a string of the object"""
-
-        return_string = self.__class__.__name__ + ": "
-        for attr, value in self.__dict__.items():
-            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
-
-        return return_string
-
-    def __repr__(self):
-        return f'<Job {self.label}>'
-
     # TODO: remove code from model, move to class or function
     # def parse_udev(self):
     #     """Parse udev for properties of current disc"""
@@ -264,18 +252,7 @@ class Job(ARMModel):
     #         else:
     #             pretty_table.add_row([str(attr), str(value)])
     #     return str(pretty_table.get_string())
-    #
-    # def get_d(self):
-    #     """
-    #     Return a dict of class - exclude the _sa_instance_state
-    #     :return: dict containing all attribs from class
-    #     """
-    #     return_dict = {}
-    #     for key, value in self.__dict__.items():
-    #         if '_sa_instance_state' not in key:
-    #             return_dict[str(key)] = str(value)
-    #     return return_dict
-    #
+
     # def eject(self):
     #     """Eject disc if it hasn't previously been ejected"""
     #     if not cfg.arm_config['AUTO_EJECT']:

@@ -36,14 +36,6 @@ class User(ARMModel, UserMixin):
         self.password = password
         self.hash = hashed
 
-    def __repr__(self):
-        """ Return users' name """
-        return f'<User {self.email}>'
-
-    def __str__(self):
-        """Returns a string of the object"""
-        return self.__class__.__name__ + ": " + self.email
-
     def get_id(self):
         """ Return users id """
         return self.user_id

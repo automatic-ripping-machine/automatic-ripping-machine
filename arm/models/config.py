@@ -4,13 +4,6 @@ from models.arm_models import ARMModel
 from ui.ui_setup import db
 
 
-hidden_attribs = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD",
-                  "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
-                  "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY",
-                  "TMDB_API_KEY", "_sa_instance_state")
-HIDDEN_VALUE = "<hidden>"
-
-
 class Config(ARMModel):
     """
     ARM Database Model - Config
@@ -86,6 +79,12 @@ class Config(ARMModel):
     """
     __tablename__ = "config"
 
+    hidden_attribs: tuple = ("OMDB_API_KEY", "EMBY_USERID", "EMBY_PASSWORD",
+                             "EMBY_API_KEY", "PB_KEY", "IFTTT_KEY", "PO_KEY",
+                             "PO_USER_KEY", "PO_APP_KEY", "ARM_API_KEY",
+                             "TMDB_API_KEY", "_sa_instance_state")
+    HIDDEN_VALUE: str = "<hidden>"
+
     CONFIG_ID = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('job.job_id'))
     ARM_CHECK_UDF = db.Column(db.Boolean)
@@ -147,28 +146,6 @@ class Config(ARMModel):
         self.__dict__.update(c)
         self.job_id = job_id
 
-    def __str__(self):
-        """Returns a string of the object"""
-        return_string = self.__class__.__name__ + ": "
-        for attr, value in self.__dict__.items():
-            if str(attr) in hidden_attribs and value:
-                value = HIDDEN_VALUE
-            return_string = return_string + "(" + str(attr) + "=" + str(value) + ") "
-
-        return return_string
-
-    def list_params(self):
-        """Returns a string of the object"""
-        return_string = self.__class__.__name__ + ": "
-        for attr, value in self.__dict__.items():
-            if return_string:
-                return_string = return_string + "\n"
-            if str(attr) in hidden_attribs and value:
-                value = HIDDEN_VALUE
-            return_string = return_string + str(attr) + ":" + str(value)
-
-        return return_string
-
     # TODO: remove outside model definition
     # def pretty_table(self):
     #     """Returns a string of the PrettyTable"""
@@ -181,13 +158,13 @@ class Config(ARMModel):
     #         pretty_table.add_row([str(attr), str(value)])
     #     return str(pretty_table.get_string())
 
-    def get_d(self):
-        """
-        Return a dict of class - exclude any sensitive info
-        :return: dict containing all attribs from class
-        """
-        return_dict = {}
-        for key, value in self.__dict__.items():
-            if str(key) not in hidden_attribs:
-                return_dict[str(key)] = str(value)
-        return return_dict
+    # def get_d(self):
+    #     """
+    #     Return a dict of class - exclude any sensitive info
+    #     :return: dict containing all attribs from class
+    #     """
+    #     return_dict = {}
+    #     for key, value in self.__dict__.items():
+    #         if str(key) not in hidden_attribs:
+    #             return_dict[str(key)] = str(value)
+    #     return return_dict

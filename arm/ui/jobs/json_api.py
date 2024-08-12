@@ -32,9 +32,9 @@ def get_notifications():
 
 def get_x_jobs(job_status):
     """
-    function for getting all Failed/Successful jobs \n
-    or\n
-    currently active jobs from the database\n
+    function for getting all Failed/Successful jobs
+    or
+    currently active jobs from the database
 
     :return: dict/json
     """

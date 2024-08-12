@@ -63,10 +63,3 @@ class Track(ARMModel):
         self.basename = basename
         self.filename = filename
         self.ripped = False
-
-    def __repr__(self):
-        return f'<Track {self.track_number}>'
-
-    def __str__(self):
-        """Returns a string of the object"""
-        return self.__class__.__name__ + ": " + self.track_number
