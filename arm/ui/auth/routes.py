@@ -93,15 +93,8 @@ def login():
         # user details from database
         user_name = db_user.email
         user_password = db_user.password
-        user_hash = db_user.hash
         app.logger.debug("user= " + str(user_name))
-        app.logger.debug("user password = " + user_password)
-        app.logger.debug("user hash= " + user_hash)
 
-        # hashed pass the user provided
-        # login_hashed = bcrypt.hashpw(login_password.encode('utf-8'), user_hash)
-
-        # if login_hashed == user_password and login_username == user_name:
         if bcrypt.checkpw(login_password.encode('utf-8'), user_password.encode('utf-8')):
             login_user(db_user)
             app.logger.debug("user was logged in - redirecting")
@@ -132,7 +125,7 @@ def logout():
 @login_required
 def update_password():
     """
-    updating password for the admin account
+    Update the password for the admin account
     """
     # get current user
     user = User.query.first()
@@ -142,17 +135,18 @@ def update_password():
     # After a login for is submitted
     form = SetupForm()
     if request.method == 'POST' and form.validate_on_submit():
-        username = str(request.form['username']).strip()
+        # Get the new detail from the web form
+        form_username = str(request.form['username']).strip()
+        form_password = str(request.form['password']).strip().encode('utf-8')
         new_password = str(request.form['newpassword']).strip().encode('utf-8')
-        user = User.query.filter_by(email=username).first()
-        password = user.password
-        hashed = user.hash
-        # our new one
-        login_hashed = bcrypt.hashpw(str(request.form['password']).strip().encode('utf-8'), hashed)
-        if login_hashed == password:
-            hashed_password = bcrypt.hashpw(new_password, hashed)
+
+        # Get the current details from the database
+        user = User.query.filter_by(email=form_username).first()
+
+        # Check the current password is correct, if so, update
+        if bcrypt.checkpw(form_password, user.password.encode('utf-8')):
+            hashed_password = bcrypt.hashpw(new_password, user.hash.encode('utf-8'))
             user.password = hashed_password
-            user.hash = hashed
             try:
                 db.session.commit()
                 flash("Password successfully updated", "success")
