@@ -38,7 +38,7 @@ from ui.notifications.utils import notify
 
 
 # Page definitions
-page_settings = "settings/settings.html"
+page_settings = "settings.html"
 redirect_settings = "/settings"
 
 
