@@ -9,25 +9,13 @@ Covers
 from flask import render_template, request, flash, session, redirect
 from flask_login import login_required
 from sqlalchemy import desc, exc
-from sqlalchemy.orm import scoped_session, sessionmaker
 from flask import current_app as app
 
-import config.config as cfg
-from ui import db
-from models.job import Job
-# from models.track import Track
-# from models.config import Config
-from models.ui_settings import UISettings
 from ui.database import route_database
-
-
-# todo: what is this used for?
-# app.app_context().push()
-
-def get_session(bind_key=None):
-    engine = db.get_engine(app,bind=bind_key)
-    session_factory = sessionmaker(bind=engine)
-    return scoped_session(session_factory)
+from ui.database import utils
+import config.config as cfg
+from models.job import Job
+from models.ui_settings import UISettings
 
 
 @route_database.route('/database')
@@ -60,6 +48,36 @@ def view_database():
                            date_format=cfg.arm_config['DATE_FORMAT'])
 
 
+# Update to manage migrations of the database
+# @route_database.route('/dbupdate', methods=['POST'])
+# def update_database():
+#     """
+#     Update the ARM database when changes are made or the arm db file is missing
+#     """
+#     form = DBUpdate(request.form)
+#     if request.method == 'POST' and form.validate():
+#         if form.dbfix.data == "migrate":
+#             app.logger.debug("User requested - Database migration")
+#             ui_utils.arm_db_migrate()
+#             flash("ARM database migration successful!", "success")
+#         elif form.dbfix.data == "new":
+#             app.logger.debug("User requested - New database")
+#             ui_utils.check_db_version(cfg.arm_config['INSTALLPATH'], cfg.arm_config['DBFILE'])
+#             flash("ARM database setup successful!", "success")
+#         else:
+#             # No method defined
+#             app.logger.debug(f"No update method defined from DB Update - {form.dbfix.data}")
+#             flash("Error no update method specified, report this as a bug.", "error")
+#
+#         # Update the arm UI config from DB post update
+#         ui_utils.arm_db_cfg()
+#
+#         return redirect('/index')
+#     else:
+#         # Catch for GET requests of the page, redirect to index
+#         return redirect('/index')
+
+
 @app.route('/databasemigrate')
 @login_required
 def database_migrate():
@@ -67,74 +85,27 @@ def database_migrate():
     Migrate ARM jobs from SQLite to MYSQL Database
     User-driven option
     """
-    error = False
-    count = 0
-    message = ""
+    error: bool = False
+    count: int = 0
+    message: str = "Error: Unable to migrate jobs."
     sqlite_data = None
 
-    try:
-        # Set the database to use sqlite
-        arm_sqlite_db = Job.change_binds(bind_key='sqlite')
-        sqlite_session = get_session(bind_key='sqlite')
-        sqlite_data = sqlite_session.query(arm_sqlite_db).all()
-        # app.logger.debug(sqlite_data)
-        sqlite_session.remove()
-    except exc.SQLAlchemyError as e:
-        app.logger.error(f"ERROR: Unable to retrieve data from SQLite file. {e}")
+    # Check that the arm.db file exists before starting a migration
+    file_exists = utils.check_sqlite_file(cfg.arm_config['DBFILE'])
+    if not file_exists:
+        error = True
+        message = f"Unable to access arm.db sqlite database file. <br>Location {cfg.arm_config['DBFILE']}"
 
-    if sqlite_data:
-        for sqlite_job in sqlite_data:
-            mysql_job = Job(devpath = sqlite_job.devpath)
-
-            mysql_job.arm_version = sqlite_job.arm_version
-            mysql_job.crc_id = sqlite_job.crc_id
-            mysql_job.logfile = sqlite_job.logfile
-            mysql_job.start_time = sqlite_job.start_time
-            mysql_job.stop_time = sqlite_job.stop_time
-            mysql_job.job_length = sqlite_job.job_length
-            mysql_job.status = sqlite_job.status
-            mysql_job.stage = sqlite_job.stage
-            mysql_job.no_of_titles = sqlite_job.no_of_titles
-            mysql_job.title = sqlite_job.title
-            mysql_job.title_auto = sqlite_job.title_auto
-            mysql_job.title_manual = sqlite_job.title_manual
-            mysql_job.year = sqlite_job.year
-            mysql_job.year_auto = sqlite_job.year_auto
-            mysql_job.year_manual = sqlite_job.year_manual
-            mysql_job.video_type = sqlite_job.video_type
-            mysql_job.video_type_auto = sqlite_job.video_type_auto
-            mysql_job.video_type_manual = sqlite_job.video_type_manual
-            mysql_job.imdb_id = sqlite_job.imdb_id
-            mysql_job.imdb_id_auto = sqlite_job.imdb_id_auto
-            mysql_job.imdb_id_manual = sqlite_job.imdb_id_manual
-            mysql_job.poster_url = sqlite_job.poster_url
-            mysql_job.poster_url_auto = sqlite_job.poster_url_auto
-            mysql_job.poster_url_manual = sqlite_job.poster_url_manual
-            # mysql_job.devpath = sqlite_job.devpath
-            mysql_job.mountpoint = sqlite_job.mountpoint
-            mysql_job.hasnicetitle = sqlite_job.hasnicetitle
-            mysql_job.errors = sqlite_job.errors
-            mysql_job.disctype = sqlite_job.disctype
-            mysql_job.label = sqlite_job.label
-            mysql_job.path = sqlite_job.path
-            mysql_job.ejected = sqlite_job.ejected
-            mysql_job.updated = sqlite_job.updated
-            mysql_job.pid = sqlite_job.pid
-            mysql_job.pid_hash = abs(sqlite_job.pid_hash)
-            mysql_job.is_iso = sqlite_job.is_iso
-
-            db.session.add(mysql_job)
-            db.session.commit()
-
-            count += 1
-
+    # Migrate data from arm.db
+    if not error:
+        count = utils.migrate_data()
         message = f'Migrated {count} jobs from SQLite to MYSQL Database'
         app.logger.debug(message)
     else:
         error = True
 
     if error:
-        flash("Error: Unable to migrate jobs.", category='info')
+        flash(message, category='danger')
     else:
         flash(message, category='success')
 
