@@ -23,7 +23,7 @@ from ui.jobs import route_jobs
 from ui.jobs import utils, json_api
 from ui import db, constants
 import config.config as cfg
-from ui.forms import TitleSearchForm, ChangeParamsForm
+from ui.jobs.forms import TitleSearchForm, ChangeParamsForm
 from models.job import Job
 from models.notifications import Notifications
 

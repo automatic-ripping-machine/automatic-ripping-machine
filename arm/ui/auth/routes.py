@@ -17,7 +17,7 @@ from flask import current_app as app
 from ui import db
 from models.user import User
 from ui.auth import route_auth
-from ui.forms import SetupForm
+from ui.auth.forms import SetupForm
 
 # Page definitions
 page_support_databaseupdate = "support/databaseupdate.html"

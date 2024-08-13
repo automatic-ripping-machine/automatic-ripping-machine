@@ -14,7 +14,7 @@ from flask import current_app as app
 
 import config.config as cfg
 from ui import db
-from ui.forms import ChangeParamsForm
+from ui.jobs.forms import ChangeParamsForm
 from ui.jobs.utils import job_id_validator
 from ui.settings import DriveUtils
 from models.job import Job

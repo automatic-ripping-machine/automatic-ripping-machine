@@ -32,7 +32,7 @@ from models.system_info import SystemInfo
 from models.ui_settings import UISettings
 import config.config as cfg
 from ui.settings import DriveUtils
-from ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
+from ui.settings.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
 from ui.settings.ServerUtil import ServerUtil
 from ui.notifications.utils import notify
 
