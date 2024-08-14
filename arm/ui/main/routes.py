@@ -8,14 +8,16 @@ Covers
 """
 import flask
 from flask import current_app as app
-from flask import render_template, session
+from flask import render_template, session, redirect
 from flask_login import login_required
 
 import config.config as cfg
-import ui.settings.ServerUtil
+from ui import db
+from ui.main.forms import SystemInfoLoad
+from ui.settings.ServerUtil import ServerUtil
+from ui.settings.routes import check_hw_transcode_support
 from models.system_info import SystemInfo
 from models.ui_settings import UISettings
-from ui.settings.routes import check_hw_transcode_support
 
 
 @app.route('/')
@@ -26,7 +28,6 @@ def home():
     """
     The main homepage showing current rips and server stats
     """
-
     # Set UI Config values for cookies
     # the database should be available and data loaded by this point
     try:
@@ -34,12 +35,14 @@ def home():
     except Exception as error:
         return render_template('error.html', error=error)
 
+    # Check if system info is populated, otherwise go to system setup
+    server = SystemInfo.query.filter_by().first()
+    server_util = ServerUtil()
+    if not server:
+        return redirect('/systemsetup')
+
     # Push out HW transcode status for homepage
     stats = {'hw_support': check_hw_transcode_support()}
-
-    # System details in class server
-    server = SystemInfo.query.filter_by(id="1").first()
-    serverutil = ui.settings.ServerUtil.ServerUtil()
 
     # System details in class server
     arm_path = cfg.arm_config['TRANSCODE_PATH']
@@ -49,21 +52,13 @@ def home():
     session["arm_name"] = cfg.arm_config['ARM_NAME']
     session["page_title"] = "Home"
 
-    # if os.path.isfile(cfg.arm_config['DBFILE']):
-    #     jobs = {}
-    #     # try:
-    #     #     jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
-    #     # except Exception:
-    #     #     # db isn't setup
-    #     #     return redirect(url_for('setup'))
-    # else:
     jobs = {}
 
     response = flask.make_response(render_template("index.html",
                                                    jobs=jobs,
                                                    children=cfg.arm_config['ARM_CHILDREN'],
                                                    server=server,
-                                                   serverutil=serverutil,
+                                                   serverutil=server_util,
                                                    arm_path=arm_path,
                                                    media_path=media_path,
                                                    stats=stats))
@@ -76,3 +71,34 @@ def home():
     # response.set_cookie("database_limit", value=f"{armui_cfg.database_limit}")
     # response.set_cookie("notify_refresh", value=f"{armui_cfg.notify_refresh}")
     return response
+
+
+@app.route('/systemsetup', methods=['GET', 'POST'])
+@login_required
+def system_info_load():
+    """
+    Load system initial system info
+    """
+    form = SystemInfoLoad()
+
+    if form.validate_on_submit():
+        app.logger.debug("*******SystemInfo*******")
+        app.logger.debug(f"name: {str(form.name.data)}")
+        app.logger.debug(f"cpu: {str(form.cpu.data)}")
+        app.logger.debug(f"description: {str(form.description.data)}")
+        app.logger.debug(f"mem_total: {str(form.mem_total.data)}")
+        app.logger.debug("************************")
+
+        system_info = SystemInfo(name=str(form.name.data),
+                                 description=str(form.description.data))
+        system_info.cpu = str(form.cpu.data)
+        system_info.mem_total = form.mem_total.data
+        db.session.add(system_info)
+        db.session.commit()
+
+        return redirect("/index")
+
+    server_util = ServerUtil()
+    return render_template("systemsetup.html",
+                           form=form,
+                           server_util=server_util)
