@@ -85,7 +85,7 @@ def settings():
     armui_cfg = UISettings.query.filter_by().first()
 
     # System details in class server
-    server = SystemInfo.query.filter_by(id="1").first()
+    server = SystemInfo.query.filter_by().first()
     serverutil = ServerUtil()
 
     # System details in class server
