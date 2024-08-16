@@ -31,16 +31,19 @@ The primary goals and objectives of the ARM development roadmap are:
 ## v3.x Implementation Checklist
 
 Checklist for the developers of v3.x to check the current status of development.
+The following information is intended for the developers (or anyone wishing to help out), to see current status.
 
 1. Improve system performance and stability
    1. Rewrite of ARM Ripper Code
-      - [ ] Pending
+      - [ ] Break out of tasks required
       
    2. Rewrite of ARM UI code
       - [x] Refactor to Flask Factory
       - [x] Refactor Models to remove links to ripper code
          - [x] Models refactor
          - [x] Models Unit Test
+      - [ ] Move Models out of ARM and into a separate ARM library
+      - [ ] Move Config out of ARM and into a separate ARM library
       - [ ] Refactor Blueprints to align with Models
          - [x] Blueprint - auth
          - [ ] Blueprint - auth - Unit Test

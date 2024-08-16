@@ -7,7 +7,7 @@ Covers
 - error_500 [GET] - server error
 - error_general Errors [GET] - general or other server error
 """
-from flask import render_template, request
+from flask import abort, render_template, request
 
 from ui.errors import route_error
 
@@ -44,4 +44,4 @@ def error_general(error=None):
     Catch all error page
     :return: error.html
     """
-    return render_template("error.html", error=error), 500
+    abort(500)

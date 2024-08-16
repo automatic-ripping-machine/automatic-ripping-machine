@@ -7,7 +7,7 @@ import pytest
 
 from ui import create_app
 from ui.ui_setup import db
-from ui_config import Development
+from ui_config import Testing
 
 
 @pytest.fixture(scope='session')
@@ -18,14 +18,11 @@ def test_app():
     Setup and define the test app environment
     """
     # Set the Testing configuration prior to creating the Flask application
-    os.environ['CONFIG_TYPE'] = 'config.TestingConfig'
     os.environ['MYSQL_IP'] = '127.0.0.1'
     os.environ['MYSQL_USER'] = 'arm'
     os.environ['MYSQL_PASSWORD'] = 'example'
 
-    flask_app = create_app(Development)
-    flask_app.config['TESTING'] = True
-    flask_app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
+    flask_app = create_app('testing')
     return flask_app
 
 

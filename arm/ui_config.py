@@ -75,7 +75,7 @@ class UIConfig:
     # Define Flask system state
     FLASK_DEBUG: bool = True
     WERKZEUG_DEBUG: bool = True
-    ENV: str = 'development'
+    ENV: str = 'default'
     LOGIN_DISABLED: bool = cfg.arm_config['DISABLE_LOGIN']
     TESTING: bool = False
 
@@ -127,45 +127,34 @@ class Development(UIConfig):
     """
     ARM Flask Development config
     """
-
-    # Define Flask system state
     FLASK_DEBUG: bool = True
     WERKZEUG_DEBUG: bool = True
     ENV: str = 'development'
     LOGIN_DISABLED: bool = True
+
+
+class Testing(UIConfig):
+    """
+    ARM Flask Development config
+    """
+    FLASK_DEBUG: bool = True
+    WERKZEUG_DEBUG: bool = True
+    ENV: str = 'testing'
+    LOGIN_DISABLED: bool = True
     TESTING: bool = True
-
-    # mysql_ip = os.getenv("MYSQL_IP", "127.0.0.1")
-    # mysql_user = os.getenv("MYSQL_USER", "arm")
-    # mysql_password = os.getenv("MYSQL_PASSWORD", "example")
-    # mysql_database = "arm"
-    #
-    # SQLALCHEMY_DATABASE_URI: str = mysql_connector + mysql_user + ':' + mysql_password \
-    #                                + '@' + mysql_ip + '/' + mysql_database + mysql_charset
-
-
-class Staging(UIConfig):
-    """
-    ARM Flask Staging config
-    """
-
-    DEBUG = True
-    ENV = 'staging'
-    TESTING = True
 
 
 class Production(UIConfig):
     """
     ARM Flask Production config
     """
-
     DEBUG = False
     ENV = 'production'
     TESTING = False
 
 
-config = {
+config_classes = {
     'development': Development,
-    'staging': Staging,
+    'testing': Testing,
     'production': Production,
 }
