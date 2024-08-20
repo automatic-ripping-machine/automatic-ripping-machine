@@ -247,12 +247,13 @@ def feed_json():
         valid_modes = {
             'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
         }
-
+    # prepare JSON data
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
         return_json = valid_modes[mode]['funct'](*args)
     return_json['notes'] = json_api.get_notifications()
-    
+
+    # return JSON data
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
                               mimetype=constants.JSON_TYPE)
