@@ -10,6 +10,7 @@ from pathlib import Path
 import datetime
 import psutil
 from flask import request
+from flask_login import current_user
 
 import arm.config.config as cfg
 from arm.models.config import Config
@@ -64,8 +65,11 @@ def get_x_jobs(job_status):
     if jobs:
         app.logger.debug("jobs  - we have " + str(len(job_results)) + " jobs")
         success = True
-    return {"success": success, "mode": job_status,
-            "results": job_results, "arm_name": cfg.arm_config['ARM_NAME']}
+    return {"success": success,
+            "mode": job_status,
+            "results": job_results,
+            "arm_name": cfg.arm_config['ARM_NAME'],
+            "authenticated": current_user.is_authenticated}
 
 
 def process_logfile(logfile, job, job_results):
