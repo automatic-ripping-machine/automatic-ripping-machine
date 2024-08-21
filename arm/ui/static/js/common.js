@@ -28,7 +28,7 @@ function getRipperName(job, idsplit) {
     return ripperName;
 }
 
-function addJobItem(job) {
+function addJobItem(job, authenticated) {
     // Local server or remote
     const idsplit = job.job_id.split("_");
     console.log(`${idsplit[1]} - ${idsplit[0]}`)
@@ -44,7 +44,7 @@ function addJobItem(job) {
     }
     // Section 2 (Middle)  Contains Job info (status, type, device, start time, progress)
     x += buildMiddleSection(job);
-    x += buildRightSection(job, idsplit);
+    x += buildRightSection(job, idsplit, authenticated);
     // Close Job.card
     x += "</div></div></div></div></div></div></div>";
     return x;
@@ -118,7 +118,7 @@ function buildMiddleSection(job) {
     return x;
 }
 
-function buildRightSection(job, idsplit) {
+function buildRightSection(job, idsplit, authenticated) {
     let x;
     // idsplit[1] should only be undefined on the /database page
     if (idsplit[1] === undefined) {
@@ -137,13 +137,19 @@ function buildRightSection(job, idsplit) {
     x += `<div id="jobId${job.job_id}_MAXLENGTH"><strong>Max Length: </strong>${job.config.MAXLENGTH}</div>`;
     x += "</div>";
     // Section 3 (Right Bottom) Contains Buttons for arm json api
-    x += `<div class="card-body px-2 py-1"><div class="btn-group-vertical" role="group" aria-label="buttons" ${idsplit[0] !== "0" ? "style=\"display: none;\"" : ""}>
-          <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="${idsplit[1]}" 
-          data-href="json?job=${idsplit[1]}&mode=abandon">Abandon Job</button>
-          <a href="logs?logfile=${job.logfile}&mode=full" class="btn btn-primary">View logfile</a>`;
-    x += musicCheck(job, idsplit);
-    x += `<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="fixperms" 
-          data-jobid="${idsplit[1]}" data-href="json?mode=fixperms&job=${idsplit[1]}">Fix Permissions</button>`;
+    // Only show when authenticated
+    x += `<div class="card-body px-2 py-1">`;
+    if (authenticated === true) {
+        x += `<div class="btn-group-vertical" role="group" aria-label="buttons" ${idsplit[0] !== "0" ? "style=\"display: none;\"" : ""}>
+              <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="${idsplit[1]}" 
+              data-href="json?job=${idsplit[1]}&mode=abandon">Abandon Job</button>
+              <a href="logs?logfile=${job.logfile}&mode=full" class="btn btn-primary">View logfile</a>`;
+        x += musicCheck(job, idsplit);
+        x += `<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="fixperms" 
+              data-jobid="${idsplit[1]}" data-href="json?mode=fixperms&job=${idsplit[1]}">Fix Permissions</button>`;
+        x += `</div>`;
+    }
+    x += `</div>`;
     return x;
 }
 

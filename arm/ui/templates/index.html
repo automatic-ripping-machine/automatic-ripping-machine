@@ -1,5 +1,8 @@
-{% extends "base.html" %}
-
+{% if authenticated %}
+    {% extends "base.html" %}
+{% else %}
+    {% extends "support/base_simple.html" %}
+{% endif %}
 {% block content %}
     <style>
         .progress-bar {
