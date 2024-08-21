@@ -119,18 +119,41 @@ def gettitle():
 def updatetitle():
     """
     used to save the details from the search
+    Example URL
+    updatetitle?title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
+    poster=http://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
+
+    args
+    title - new movie title
+    year - new movie year
+    imdbID - new movie IMDB reference
+    type - new movie type
+    poster - new movie poster URL
+    job_id - job to update
     """
-    # updatetitle?title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
-    #  poster=http://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
+    #
+
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
     old_title = job.title
     old_year = job.year
-    job.title = job.title_manual = ui_utils.clean_for_filename(request.args.get('title'))
+    app.logger.debug(f"Old Title and Year: {old_title}, {old_year}")
+
+    app.logger.debug(f"New Title: {request.args.get('title')}")
+    new_title = ui_utils.clean_for_filename(request.args.get('title'))
+    app.logger.debug(f"Cleaned New Title: {new_title}")
+    job.title = job.title_manual = new_title
+
+    app.logger.debug(f"New Year: {request.args.get('year')}")
+    app.logger.debug(f"New Type: {request.args.get('type')}")
+    app.logger.debug(f"New IMDB: {request.args.get('imdbID')}")
+    app.logger.debug(f"New Poster: {request.args.get('poster')}")
+
     job.year = job.year_manual = request.args.get('year')
     job.video_type = job.video_type_manual = request.args.get('type')
     job.imdb_id = job.imdb_id_manual = request.args.get('imdbID')
     job.poster_url = job.poster_url_manual = request.args.get('poster')
+
     job.hasnicetitle = True
     notification = Notifications(f"Job: {job.job_id} was updated",
                                  f'Title: {old_title} ({old_year}) was updated to '
