@@ -3,6 +3,7 @@ Automatic Ripping Machine - User Interface (UI)
     Flask factory
 """
 import os
+from time import sleep
 from flask import Flask
 from flask_cors import CORS
 from flask_migrate import upgrade
@@ -31,12 +32,25 @@ def create_app(config_name=os.getenv("FLASK_ENV", "production")):
     app.logger.debug(f'Mysql configuration: {config_class.mysql_uri_sanitised}')
     app.logger.debug(f'SQLite Configuration: {config_class.sqlitefile}')
     app.logger.debug(f'Login Disabled: {app.config["LOGIN_DISABLED"]}')
+    if config_class.DOCKER:
+        app.logger.info('ARM UI Running within Docker, ignoring any config in arm.yml')
     app.logger.info(f'Starting ARM UI on interface address - {app.config["SERVER_HOST"]}:{app.config["SERVER_PORT"]}')
 
     # Set log level per arm.yml config
     app.logger.info(f"Setting log level to: {app.config['LOGLEVEL']}")
     app.logger.setLevel(app.config['LOGLEVEL'])
 
+    # Pause ARM to ensure ARM DB is up and running
+    if config_class.DOCKER:
+        app.logger.info("Sleeping for 60 seconds to ensure ARM DB is active")
+        sleep(55)
+        for i in range(5,0,-1):
+            app.logger.info(f"Starting in ... {i}")
+            sleep(1)
+
+        app.logger.info("Starting ARM")
+
+    # Initilise connection to databases
     db.init_app(app)  # Initialise database
     app.logger.debug(f'Alembic Migration Folder: {config_class.alembic_migrations_dir}')
     migrate.init_app(app, db, directory=config_class.alembic_migrations_dir)
