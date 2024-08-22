@@ -41,16 +41,15 @@ def create_app(config_name=os.getenv("FLASK_ENV", "production")):
     app.logger.setLevel(app.config['LOGLEVEL'])
 
     # Pause ARM to ensure ARM DB is up and running
-    if config_class.DOCKER:
+    if config_class.DOCKER and config_class.ENV != 'development':
         app.logger.info("Sleeping for 60 seconds to ensure ARM DB is active")
         sleep(55)
         for i in range(5,0,-1):
             app.logger.info(f"Starting in ... {i}")
             sleep(1)
-
         app.logger.info("Starting ARM")
 
-    # Initilise connection to databases
+    # Initialise connection to databases
     db.init_app(app)  # Initialise database
     app.logger.debug(f'Alembic Migration Folder: {config_class.alembic_migrations_dir}')
     migrate.init_app(app, db, directory=config_class.alembic_migrations_dir)

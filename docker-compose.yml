@@ -3,16 +3,17 @@ version: '3'
 
 services:
   # Image for Automatic Ripping Machine
-  arm_main:
+  arm-main:
     build:
       context: ./
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile-UI
     image: automaticrippingmachine/automatic-ripping-machine:3.0
     ports:
-      - 8080:8080
+      - "8080:8080"
     environment:
       - ARM_UID=1001    # Set this to the ARM user id
       - ARM_GID=1001    # Set this to the ARM user group id
+      - FLASK_ENV=development   # leave this commented out unless running in development or there are UI bugs
       - MYSQL_IP=arm-db
       - MYSQL_USER=arm
       - MYSQL_PASSWORD=example

@@ -197,7 +197,7 @@ class UIConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
 
     # Alembic config
-    alembic_migrations_dir: str = "ui/migrations"
+    alembic_migrations_dir: str = "/opt/arm/arm/ui/migrations"
 
 
 class Development(UIConfig):

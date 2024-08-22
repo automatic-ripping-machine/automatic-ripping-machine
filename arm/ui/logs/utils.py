@@ -17,7 +17,7 @@ from flask import current_app as app
 import config.config as cfg
 
 
-def get_info(directory: str) -> list[list]:
+def get_info(directory: str):
     """
     Retrieve statistics for files in a specified directory.
 
