@@ -10,7 +10,6 @@ from pathlib import Path
 import datetime
 import psutil
 from flask import request
-from flask_login import current_user
 
 import arm.config.config as cfg
 from arm.models.config import Config
