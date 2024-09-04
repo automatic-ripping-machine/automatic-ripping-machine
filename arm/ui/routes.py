@@ -45,7 +45,6 @@ login_manager.init_app(app)
 @app.route('/')
 @app.route('/index.html')
 @app.route('/index')
-@login_required
 def home():
     """
     The main homepage showing current rips and server stats
@@ -82,7 +81,9 @@ def home():
     else:
         jobs = {}
 
-    return render_template("index.html", jobs=jobs,
+    return render_template("index.html",
+                           authenticated=current_user.is_authenticated,
+                           jobs=jobs,
                            children=cfg.arm_config['ARM_CHILDREN'],
                            server=server, serverutil=serverutil,
                            arm_path=arm_path, media_path=media_path, stats=stats)
