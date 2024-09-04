@@ -81,8 +81,13 @@ def home():
     else:
         jobs = {}
 
+    # Set authentication state for index
+    authenticated = ui_utils.authenticated_state()
+
+    app.logger.debug(f'Authentication state: {authenticated}')
+
     return render_template("index.html",
-                           authenticated=current_user.is_authenticated,
+                           authenticated=authenticated,
                            jobs=jobs,
                            children=cfg.arm_config['ARM_CHILDREN'],
                            server=server, serverutil=serverutil,
