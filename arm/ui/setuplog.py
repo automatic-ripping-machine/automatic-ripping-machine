@@ -1,9 +1,8 @@
-from logging.config import dictConfig
 
 
-def setuplog(config):
+def setuplog():
     # Setup logging, but because of werkzeug issues, we need to set up that later down file
-    dictConfig({
+    config = ({
         'version': 1,
         'formatters': {'default': {
             'format': '[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
@@ -23,4 +22,4 @@ def setuplog(config):
         },
     })
 
-    return dictConfig
+    return config

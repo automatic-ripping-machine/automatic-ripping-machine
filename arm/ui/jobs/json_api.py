@@ -309,9 +309,9 @@ def delete_job(job_id, mode):
                 else:
                     app.logger.debug("No errors: job_id=" + str(post_value))
                     DriveUtils.job_cleanup(job_id)
-                    Track.query.filter_by(job_id=job_id).delete()
+                    Job.tracks.query.filter_by(job_id=job_id).delete()
                     Job.query.filter_by(job_id=job_id).delete()
-                    Config.query.filter_by(job_id=job_id).delete()
+                    Job.config.query.filter_by(job_id=job_id).delete()
                     notification = Notifications(f"Job: {job_id} was Deleted!",
                                                  f'Job with id: {job_id} was successfully deleted from the database')
                     db.session.add(notification)
@@ -433,7 +433,7 @@ def change_job_params(config_id):
         cfg.arm_config["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
         # must be 1 for True 0 for False
         cfg.arm_config["MAINFEATURE"] = config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
-        args = {'disctype': job.disctype}
+        # args = {'disctype': job.disctype}
         message = f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},' \
                   f'Minimum Length={config.MINLENGTH}, Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}'
         # We don't need to set the config as they are set with job commit

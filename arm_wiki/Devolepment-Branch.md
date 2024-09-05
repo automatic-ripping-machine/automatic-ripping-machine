@@ -57,6 +57,8 @@ The following information is intended for the developers (or anyone wishing to h
       - [x] Refactor Blueprints to align with Models
       - [ ] Add Unit Testing in for UI pages and key functions
         - completed in part
+      - Code cleanup
+        - [ ] Remove ui/utils, once code moved out
 
 
 2. Move from docker to docker-compose

@@ -147,8 +147,8 @@ class UIConfig:
         mysql_uri (str): Full URI for connecting to the MySQL database.
         mysql_uri_sanitised (str): Sanitised URI for MySQL connection, with the password obscured.
         SQLALCHEMY_DATABASE_URI (str): The default database URI for SQLAlchemy.
-        SQLALCHEMY_BINDS (dict): A dictionary of database URIs for different database connections (e.g., SQLite and MySQL).
-        SQLALCHEMY_TRACK_MODIFICATIONS (bool): If `False`, disables tracking of modifications to objects, which can save memory.
+        SQLALCHEMY_BINDS (dict): A dictionary of database URIs for different database connections
+        SQLALCHEMY_TRACK_MODIFICATIONS (bool): If `False`, disables tracking of mods to objects, which can save memory.
         alembic_migrations_dir (str): Directory where Alembic migration scripts are stored.
     """
     # Define the ARM Server UI
@@ -182,17 +182,21 @@ class UIConfig:
     mysql_password: str = os.getenv("MYSQL_PASSWORD", "example")
     mysql_database: str = "arm"
     mysql_charset: str = '?charset=utf8mb4'
-    mysql_uri: str = mysql_connector + mysql_user + ':' + mysql_password + '@' + mysql_ip \
-                                   + '/' + mysql_database + mysql_charset
-    mysql_uri_sanitised: str = mysql_connector + mysql_user + ':*******' + '@' + mysql_ip \
-                               + '/' + mysql_database + mysql_charset
+    mysql_uri: str = (
+        mysql_connector + mysql_user + ':' + mysql_password + '@' + mysql_ip
+        + '/' + mysql_database + mysql_charset
+    )
+    mysql_uri_sanitised: str = (
+        mysql_connector + mysql_user + ':*******' + '@' + mysql_ip
+        + '/' + mysql_database + mysql_charset
+    )
 
     # Default database connection is MYSQL, required for Alembic
     SQLALCHEMY_DATABASE_URI: str = mysql_uri
     # Create binds for swapping between databases during imports
     SQLALCHEMY_BINDS = {
-        'sqlite':   sqlitefile,
-        'mysql':    mysql_uri
+        'sqlite': sqlitefile,
+        'mysql': mysql_uri
     }
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
 

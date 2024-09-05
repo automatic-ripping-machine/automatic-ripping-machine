@@ -10,7 +10,7 @@ Covers
     - update_password [GET, POST]
 """
 import bcrypt
-from flask import redirect, render_template, request, flash, app, session
+from flask import redirect, render_template, request, flash, session
 from flask_login import login_required, current_user, login_user, logout_user
 from flask import current_app as app
 
@@ -83,7 +83,7 @@ def login():
 
     form = SetupForm()
     if request.method == 'POST' and form.validate_on_submit():
-        login_username = request.form['username']
+        # login_username = request.form['username']
         login_password = str(request.form['password']).strip()
 
         # we know there is only ever 1 admin account, so we can pull it and check against it locally

@@ -27,11 +27,10 @@ __version__ = '0.3'
 arm_home = "/home/arm"
 arm_install = "/opt/arm"
 
-
 # Commence reading from the input options
 desc = "Automatic Ripping Machine Development Tool Scripts. " \
-        "Note: scripts assume running on a bare metal server when running, " \
-        "unless running the specific docker rebuild scripts."
+       "Note: scripts assume running on a bare metal server when running, " \
+       "unless running the specific docker rebuild scripts."
 parser = argparse.ArgumentParser(description=desc)
 parser.add_argument("-b",
                     help="Name of the branch to move to, example -b v2_devel")
@@ -44,7 +43,7 @@ parser.add_argument("-dc",
                     help="Docker-Compose - Remove all ARM docker images using docker-compose, rebuild and start ARM.",
                     action="store_true")
 parser.add_argument("--monitor",
-                    help="Docker-Compose - Set the '-d' status, calling --monitor will not set '-d' and docker" \
+                    help="Docker-Compose - Set the '-d' status, calling --monitor will not set '-d' and docker"
                          " will output all text to the console.",
                     action="store_true")
 parser.add_argument("-db_rem",

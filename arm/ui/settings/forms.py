@@ -71,7 +71,8 @@ class UiSettingsForm(FlaskForm):
         submit (SubmitField): A button to submit the form.
 
     Validators:
-        - `DataRequired()`: Ensures that the fields `index_refresh`, `bootstrap_skin`, `language`, `database_limit`, and `notify_refresh` are provided.
+        - `DataRequired()`: Ensures that the fields `index_refresh`, `bootstrap_skin`, `language`,
+                `database_limit`, and `notify_refresh` are provided.
 
     Usage:
         This form is utilized on the following page:

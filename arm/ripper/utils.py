@@ -15,7 +15,7 @@ from pathlib import Path, PurePath
 
 import bcrypt
 import requests
-import apprise
+# import apprise
 import psutil
 
 from netifaces import interfaces, ifaddresses, AF_INET
@@ -26,7 +26,7 @@ from arm.models.job import Job
 from arm.models.notifications import Notifications
 from arm.models.track import Track
 from arm.models.user import User
-from arm.ripper import apprise_bulk
+# from arm.ripper import apprise_bulk
 
 NOTIFY_TITLE = "ARM notification"
 
@@ -106,7 +106,7 @@ def notify_entry(job):
     database_adder(notification)
     if job.disctype in ["dvd", "bluray"]:
         if cfg.arm_config["UI_BASE_URL"] == "":
-            display_address = (f"http://{check_ip()}:{job.config.WEBSERVER_PORT}")
+            display_address = f"http://{check_ip()}:{job.config.WEBSERVER_PORT}"
         else:
             display_address = str(cfg.arm_config["UI_BASE_URL"])
         # Send the notifications

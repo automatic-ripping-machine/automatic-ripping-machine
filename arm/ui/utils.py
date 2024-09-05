@@ -1,298 +1,298 @@
 """
 Main catch all pages for functions for the A.R.M ui
 """
-import hashlib
-import os
-import shutil
+# import hashlib
+# import os
+# import shutil
 # import json
-import platform
-import subprocess
-import re
-from datetime import datetime
+# import platform
+# import subprocess
+# import re
+# from datetime import datetime
 # from pathlib import Path
 
-from time import time, sleep
+# from time import time, sleep
 
-import bcrypt
-import requests
+# import bcrypt
+# import requests
 # from werkzeug.routing import ValidationError
-from flask.logging import default_handler  # noqa: F401
+# from flask.logging import default_handler  # noqa: F401
 
-import arm.config.config as cfg
+# import arm.config.config as cfg
 # from arm.config.config_utils import arm_yaml_test_bool
 # from arm.config import config_utils
-from arm.models.alembic_version import AlembicVersion
-from arm.models.job import Job
-from arm.models.system_info import SystemInfo
-from arm.models.ui_settings import UISettings
-from arm.models.user import User
-from arm.ui import app, db
+# from arm.models.alembic_version import AlembicVersion
+# from arm.models.job import Job
+# from arm.models.system_info import SystemInfo
+# from arm.models.ui_settings import UISettings
+# from arm.models.user import User
+# from arm.ui import app, db
 # from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
-from arm.ui.settings import DriveUtils
+# from arm.ui.settings import DriveUtils
 
 # Path definitions
-path_migrations = "arm/migrations"
+# path_migrations = "arm/migrations"
 
 
-def database_updater(args, job, wait_time=90):
-    """
-    Try to update our db for x seconds and handle it nicely if we cant\n
-
-    :param args: This needs to be a Dict with the key being the
-    job.method you want to change and the value being the new value.
-    :param job: This is the job object
-    :param wait_time: The time to wait in seconds
-    :returns : Boolean
-    """
-    # Loop through our args and try to set any of our job variables
-    for (key, value) in args.items():
-        setattr(job, key, value)
-        app.logger.debug(f"Setting {key}: {value}")
-    for i in range(wait_time):  # give up after the users wait period in seconds
-        try:
-            db.session.commit()
-        except Exception as error:
-            if "locked" in str(error):
-                sleep(1)
-                app.logger.debug(f"database is locked - trying in 1 second {i}/{wait_time} - {error}")
-            else:
-                app.logger.debug("Error: " + str(error))
-                db.session.rollback()
-                raise RuntimeError(str(error)) from error
-
-    app.logger.debug("successfully written to the database")
-    return True
-
-
-def check_db_version(install_path, db_file):
-    """
-    Check if db exists and is up-to-date.
-    If it doesn't exist create it.  If it's out of date update it.
-    """
-    from alembic.script import ScriptDirectory
-    from alembic.config import Config  # noqa: F811
-    import sqlite3
-    import flask_migrate
-
-    mig_dir = os.path.join(install_path, path_migrations)
-
-    config = Config()
-    config.set_main_option("script_location", mig_dir)
-    script = ScriptDirectory.from_config(config)
-
-    # create db file if it doesn't exist
-    if not os.path.isfile(db_file):
-        app.logger.info("No database found.  Initializing arm.db...")
-        make_dir(os.path.dirname(db_file))
-        with app.app_context():
-            flask_migrate.upgrade(mig_dir)
-
-        if not os.path.isfile(db_file):
-            app.logger.debug("Can't create database file.  This could be a permissions issue.  Exiting...")
-        else:
-            # Only run the below if the db exists
-            # Check to see if db is at current revision
-            head_revision = script.get_current_head()
-            app.logger.debug("Alembic Head is: " + head_revision)
-
-            conn = sqlite3.connect(db_file)
-            c = conn.cursor()
-
-        c.execute('SELECT version_num FROM alembic_version')
-        db_version = c.fetchone()[0]
-        app.logger.debug(f"Database version is: {db_version}")
-        if head_revision == db_version:
-            app.logger.info("Database is up to date")
-        else:
-            app.logger.info(
-                f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
-            with app.app_context():
-                unique_stamp = round(time() * 100)
-                app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
-                shutil.copy(db_file, db_file + "_" + str(unique_stamp))
-                flask_migrate.upgrade(mig_dir)
-            app.logger.info("Upgrade complete.  Validating version level...")
-
-            c.execute("SELECT version_num FROM alembic_version")
-            db_version = c.fetchone()[0]
-            app.logger.debug(f"Database version is: {db_version}")
-            if head_revision == db_version:
-                app.logger.info("Database is now up to date")
-            else:
-                app.logger.error(f"Database is still out of date. "
-                                 f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
+# def database_updater(args, job, wait_time=90):
+#     """
+#     Try to update our db for x seconds and handle it nicely if we cant\n
+#
+#     :param args: This needs to be a Dict with the key being the
+#     job.method you want to change and the value being the new value.
+#     :param job: This is the job object
+#     :param wait_time: The time to wait in seconds
+#     :returns : Boolean
+#     """
+#     # Loop through our args and try to set any of our job variables
+#     for (key, value) in args.items():
+#         setattr(job, key, value)
+#         app.logger.debug(f"Setting {key}: {value}")
+#     for i in range(wait_time):  # give up after the users wait period in seconds
+#         try:
+#             db.session.commit()
+#         except Exception as error:
+#             if "locked" in str(error):
+#                 sleep(1)
+#                 app.logger.debug(f"database is locked - trying in 1 second {i}/{wait_time} - {error}")
+#             else:
+#                 app.logger.debug("Error: " + str(error))
+#                 db.session.rollback()
+#                 raise RuntimeError(str(error)) from error
+#
+#     app.logger.debug("successfully written to the database")
+#     return True
 
 
-def arm_alembic_get():
-    """
-    Get the Alembic Head revision
-    """
-    from alembic.script import ScriptDirectory
-    from alembic.config import Config
-
-    install_path = cfg.arm_config['INSTALLPATH']
-
-    # Get the arm alembic current head revision
-    mig_dir = os.path.join(install_path, path_migrations)
-    config = Config()
-    config.set_main_option("script_location", mig_dir)
-    script = ScriptDirectory.from_config(config)
-    head_revision = script.get_current_head()
-    app.logger.debug(f"Alembic Head is: {head_revision}")
-    return head_revision
-
-
-def arm_db_get():
-    """
-    Get the Alembic Head revision
-    """
-    alembic_db = AlembicVersion()
-    db_revision = alembic_db.query.first()
-    app.logger.debug(f"Database Head is: {db_revision.version_num}")
-    return db_revision
-
-
-def arm_db_check():
-    """
-    Check if db exists and is up to date.
-    """
-
-    # Check if the db file exists
-    db_exists = False
-    db_current = False
-    head_revision = None
-    db_revision = None
-    app.logger.debug(f"Database file is not present: {db_file}")
-
-    head_revision = arm_alembic_get()
-
-    # Check if the db file exists
-    if os.path.isfile(db_file):
-        db_exists = True
-        # Get the database alembic version
-        db_revision = arm_db_get()
-        if db_revision.version_num == head_revision:
-            db_current = True
-            app.logger.debug(
-                f"Database is current. Head: {head_revision}" +
-                f"DB: {db_revision.version_num}")
-        else:
-            db_current = False
-            app.logger.info(
-                "Database is not current, update required." +
-                f" Head: {head_revision} DB: {db_revision.version_num}")
-    else:
-        db_exists = False
-        db_current = False
-        head_revision = None
-        db_revision = None
-        app.logger.debug(f"Database file is not present: {db_file}")
-
-    db = {
-        "db_exists": db_exists,
-        "db_current": db_current,
-        "head_revision": head_revision,
-        "db_revision": db_revision,
-        "db_file": db_file
-    }
-    return db
+# def check_db_version(install_path, db_file):
+#     """
+#     Check if db exists and is up-to-date.
+#     If it doesn't exist create it.  If it's out of date update it.
+#     """
+#     from alembic.script import ScriptDirectory
+#     from alembic.config import Config  # noqa: F811
+#     import sqlite3
+#     import flask_migrate
+#
+#     mig_dir = os.path.join(install_path, path_migrations)
+#
+#     config = Config()
+#     config.set_main_option("script_location", mig_dir)
+#     script = ScriptDirectory.from_config(config)
+#
+#     # create db file if it doesn't exist
+#     if not os.path.isfile(db_file):
+#         app.logger.info("No database found.  Initializing arm.db...")
+#         make_dir(os.path.dirname(db_file))
+#         with app.app_context():
+#             flask_migrate.upgrade(mig_dir)
+#
+#         if not os.path.isfile(db_file):
+#             app.logger.debug("Can't create database file.  This could be a permissions issue.  Exiting...")
+#         else:
+#             # Only run the below if the db exists
+#             # Check to see if db is at current revision
+#             head_revision = script.get_current_head()
+#             app.logger.debug("Alembic Head is: " + head_revision)
+#
+#             conn = sqlite3.connect(db_file)
+#             c = conn.cursor()
+#
+#         c.execute('SELECT version_num FROM alembic_version')
+#         db_version = c.fetchone()[0]
+#         app.logger.debug(f"Database version is: {db_version}")
+#         if head_revision == db_version:
+#             app.logger.info("Database is up to date")
+#         else:
+#             app.logger.info(
+#                 f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
+#             with app.app_context():
+#                 unique_stamp = round(time() * 100)
+#                 app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
+#                 shutil.copy(db_file, db_file + "_" + str(unique_stamp))
+#                 flask_migrate.upgrade(mig_dir)
+#             app.logger.info("Upgrade complete.  Validating version level...")
+#
+#             c.execute("SELECT version_num FROM alembic_version")
+#             db_version = c.fetchone()[0]
+#             app.logger.debug(f"Database version is: {db_version}")
+#             if head_revision == db_version:
+#                 app.logger.info("Database is now up to date")
+#             else:
+#                 app.logger.error(f"Database is still out of date. "
+#                                  f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
 
 
-def arm_db_cfg():
-    """
-    Check if the database exists prior to creating global ui settings
-    """
-    # if the database has been updated
-    # UISettings could be incorrect, return None
-    try:
-        armui_cfg = UISettings.query.get(1)
-        app.jinja_env.globals.update(armui_cfg=armui_cfg)
-    except Exception as e:
-        app.logger.debug(f"arm_cfg request error {e}")
-        armui_cfg = None
-    # if not armui_cfg:
-    #     raise ValidationError
-    app.logger.debug(armui_cfg)
-
-    return armui_cfg
-
-
-def arm_db_migrate():
-    """
-    Migrate the existing database to the newest version, keeping user data
-    """
-    import flask_migrate
-
-    install_path = cfg.arm_config['INSTALLPATH']
-    db_file = cfg.arm_config['DBFILE']
-    mig_dir = os.path.join(install_path, path_migrations)
-
-    head_revision = arm_alembic_get()
-    db_revision = arm_db_get()
-
-    app.logger.info(
-        "Database out of date." +
-        f" Head is {head_revision} and database is {db_revision.version_num}." +
-        " Upgrading database...")
-    with app.app_context():
-        time = datetime.now()
-        timestamp = time.strftime("%Y-%m-%d_%H%M")
-        app.logger.info(
-            f"Backing up database '{db_file}' " +
-            f"to '{db_file}_migration_{timestamp}'.")
-        shutil.copy(db_file, db_file + "_migration_" + timestamp)
-        flask_migrate.upgrade(mig_dir)
-    app.logger.info("Upgrade complete.  Validating version level...")
-
-    # Check the update worked
-    db_revision = arm_db_get()
-    app.logger.info(f"ARM head: {head_revision} database: {db_revision.version_num}")
-    if head_revision == db_revision.version_num:
-        app.logger.info("Database is now up to date")
-        arm_db_initialise()
-    else:
-        app.logger.error(
-            "Database is still out of date. " +
-            f"Head is {head_revision} and database " +
-            f"is {db_revision.version_num}.  Exiting arm.")
+# def arm_alembic_get():
+#     """
+#     Get the Alembic Head revision
+#     """
+#     from alembic.script import ScriptDirectory
+#     from alembic.config import Config
+#
+#     install_path = cfg.arm_config['INSTALLPATH']
+#
+#     # Get the arm alembic current head revision
+#     mig_dir = os.path.join(install_path, path_migrations)
+#     config = Config()
+#     config.set_main_option("script_location", mig_dir)
+#     script = ScriptDirectory.from_config(config)
+#     head_revision = script.get_current_head()
+#     app.logger.debug(f"Alembic Head is: {head_revision}")
+#     return head_revision
 
 
-def arm_db_initialise():
-    """
-    Initialise the ARM DB, ensure system values and disk drives are loaded
-    """
-    # Check system/server information is loaded
-    if not SystemInfo.query.filter_by(id="1").first():
-        # Define system info and load to db
-        server = SystemInfo()
-        app.logger.debug("****** System Information ******")
-        app.logger.debug(f"Name: {server.name}")
-        app.logger.debug(f"CPU: {server.cpu}")
-        app.logger.debug(f"Description: {server.description}")
-        app.logger.debug(f"Memory Total: {server.mem_total}")
-        app.logger.debug("****** End System Information ******")
-        db.session.add(server)
-        db.session.commit()
-    # Scan and load drives to database
-    DriveUtils.drives_update()
+# def arm_db_get():
+#     """
+#     Get the Alembic Head revision
+#     """
+#     alembic_db = AlembicVersion()
+#     db_revision = alembic_db.query.first()
+#     app.logger.debug(f"Database Head is: {db_revision.version_num}")
+#     return db_revision
 
 
-def make_dir(path):
-    """
-    Make a directory
-    :param path: Path to directory
-    :return: Boolean if successful
-    """
-    success = False
-    if not os.path.exists(path):
-        app.logger.debug("Creating directory: " + path)
-        try:
-            os.makedirs(path)
-            success = True
-        except OSError:
-            err = "Couldn't create a directory at path: " + path + " Probably a permissions error.  Exiting"
-            app.logger.error(err)
-    return success
+# def arm_db_check():
+#     """
+#     Check if db exists and is up to date.
+#     """
+#
+#     # Check if the db file exists
+#     db_exists = False
+#     db_current = False
+#     head_revision = None
+#     db_revision = None
+#     app.logger.debug(f"Database file is not present: {db_file}")
+#
+#     head_revision = arm_alembic_get()
+#
+#     # Check if the db file exists
+#     if os.path.isfile(db_file):
+#         db_exists = True
+#         # Get the database alembic version
+#         db_revision = arm_db_get()
+#         if db_revision.version_num == head_revision:
+#             db_current = True
+#             app.logger.debug(
+#                 f"Database is current. Head: {head_revision}" +
+#                 f"DB: {db_revision.version_num}")
+#         else:
+#             db_current = False
+#             app.logger.info(
+#                 "Database is not current, update required." +
+#                 f" Head: {head_revision} DB: {db_revision.version_num}")
+#     else:
+#         db_exists = False
+#         db_current = False
+#         head_revision = None
+#         db_revision = None
+#         app.logger.debug(f"Database file is not present: {db_file}")
+#
+#     db = {
+#         "db_exists": db_exists,
+#         "db_current": db_current,
+#         "head_revision": head_revision,
+#         "db_revision": db_revision,
+#         "db_file": db_file
+#     }
+#     return db
+
+
+# def arm_db_cfg():
+#     """
+#     Check if the database exists prior to creating global ui settings
+#     """
+#     # if the database has been updated
+#     # UISettings could be incorrect, return None
+#     try:
+#         armui_cfg = UISettings.query.get(1)
+#         app.jinja_env.globals.update(armui_cfg=armui_cfg)
+#     except Exception as e:
+#         app.logger.debug(f"arm_cfg request error {e}")
+#         armui_cfg = None
+#     # if not armui_cfg:
+#     #     raise ValidationError
+#     app.logger.debug(armui_cfg)
+#
+#     return armui_cfg
+
+
+# def arm_db_migrate():
+#     """
+#     Migrate the existing database to the newest version, keeping user data
+#     """
+#     import flask_migrate
+#
+#     install_path = cfg.arm_config['INSTALLPATH']
+#     db_file = cfg.arm_config['DBFILE']
+#     mig_dir = os.path.join(install_path, path_migrations)
+#
+#     head_revision = arm_alembic_get()
+#     db_revision = arm_db_get()
+#
+#     app.logger.info(
+#         "Database out of date." +
+#         f" Head is {head_revision} and database is {db_revision.version_num}." +
+#         " Upgrading database...")
+#     with app.app_context():
+#         time = datetime.now()
+#         timestamp = time.strftime("%Y-%m-%d_%H%M")
+#         app.logger.info(
+#             f"Backing up database '{db_file}' " +
+#             f"to '{db_file}_migration_{timestamp}'.")
+#         shutil.copy(db_file, db_file + "_migration_" + timestamp)
+#         flask_migrate.upgrade(mig_dir)
+#     app.logger.info("Upgrade complete.  Validating version level...")
+#
+#     # Check the update worked
+#     db_revision = arm_db_get()
+#     app.logger.info(f"ARM head: {head_revision} database: {db_revision.version_num}")
+#     if head_revision == db_revision.version_num:
+#         app.logger.info("Database is now up to date")
+#         arm_db_initialise()
+#     else:
+#         app.logger.error(
+#             "Database is still out of date. " +
+#             f"Head is {head_revision} and database " +
+#             f"is {db_revision.version_num}.  Exiting arm.")
+
+
+# def arm_db_initialise():
+#     """
+#     Initialise the ARM DB, ensure system values and disk drives are loaded
+#     """
+#     # Check system/server information is loaded
+#     if not SystemInfo.query.filter_by(id="1").first():
+#         # Define system info and load to db
+#         server = SystemInfo()
+#         app.logger.debug("****** System Information ******")
+#         app.logger.debug(f"Name: {server.name}")
+#         app.logger.debug(f"CPU: {server.cpu}")
+#         app.logger.debug(f"Description: {server.description}")
+#         app.logger.debug(f"Memory Total: {server.mem_total}")
+#         app.logger.debug("****** End System Information ******")
+#         db.session.add(server)
+#         db.session.commit()
+#     # Scan and load drives to database
+#     DriveUtils.drives_update()
+
+
+# def make_dir(path):
+#     """
+#     Make a directory
+#     :param path: Path to directory
+#     :return: Boolean if successful
+#     """
+#     success = False
+#     if not os.path.exists(path):
+#         app.logger.debug("Creating directory: " + path)
+#         try:
+#             os.makedirs(path)
+#             success = True
+#         except OSError:
+#             err = "Couldn't create a directory at path: " + path + " Probably a permissions error.  Exiting"
+#             app.logger.error(err)
+#     return success
 
 # todo: remove before rev 3.0 release
 # moved to logs/utils
@@ -331,12 +331,12 @@ def make_dir(path):
 #     return string
 
 
-def getsize(path):
-    """Simple function to get the free space left in a path"""
-    path_stats = os.statvfs(path)
-    free = (path_stats.f_bavail * path_stats.f_frsize)
-    free_gb = free / 1073741824
-    return free_gb
+# def getsize(path):
+#     """Simple function to get the free space left in a path"""
+#     path_stats = os.statvfs(path)
+#     free = (path_stats.f_bavail * path_stats.f_frsize)
+#     free_gb = free / 1073741824
+#     return free_gb
 
 
 # todo: remove before rev 3.0 release
@@ -401,84 +401,85 @@ def getsize(path):
 #                 sleep(1)
 
 
-def setup_database():
-    """
-    Try to get the db.User if not we nuke everything
-    """
+# def setup_database():
+#     """
+#     Try to get the db.User if not we nuke everything
+#     """
+#
+#     # This checks for a user table
+#     try:
+#         admins = User.query.all()
+#         app.logger.debug(f"Number of admins: {len(admins)}")
+#         if len(admins) > 0:
+#             return True
+#     except Exception:
+#         app.logger.debug("Couldn't find a user table")
+#     else:
+#         app.logger.debug("Found User table but didnt find any admins...")
+#
+#     try:
+#         #  Recreate everything
+#         db.metadata.create_all(db.engine)
+#         db.create_all()
+#         db.session.commit()
+#         # UI Config
+#         # Mysql needs this here as data doesn't get added from the upgrade path
+#         version = models.AlembicVersion('2e0dc31fcb2e')
+#         ui_config = models.UISettings(1, 1, "spacelab", "en", 2000, 200)
+#         db.session.add(ui_config)
+#         db.session.add(version)
+#         # Create default user to save problems with ui and ripper having diff setups
+#         hashed = bcrypt.gensalt(12)
+#         default_user = User(email="admin", password=str(bcrypt.hashpw("password".encode('utf-8'), hashed)),
+#           hashed=str(hashed))
+#         app.logger.debug("DB Init - Admin user loaded")
+#         db.session.add(default_user)
+#         # Server config
+#         server = SystemInfo()
+#         db.session.add(server)
+#         app.logger.debug("DB Init - Server info loaded")
+#         db.session.commit()
+#         # Scan and load drives to database
+#         DriveUtils.drives_update()
+#         app.logger.debug("DB Init - Drive info loaded")
+#         return True
+#     except Exception:
+#         app.logger.debug("Couldn't create all")
+#     return False
 
-    # This checks for a user table
-    try:
-        admins = User.query.all()
-        app.logger.debug(f"Number of admins: {len(admins)}")
-        if len(admins) > 0:
-            return True
-    except Exception:
-        app.logger.debug("Couldn't find a user table")
-    else:
-        app.logger.debug("Found User table but didnt find any admins...")
 
-    try:
-        #  Recreate everything
-        db.metadata.create_all(db.engine)
-        db.create_all()
-        db.session.commit()
-        # UI Config
-        # Mysql needs this here as data doesn't get added from the upgrade path
-        version = models.AlembicVersion('2e0dc31fcb2e')
-        ui_config = models.UISettings(1, 1, "spacelab", "en", 2000, 200)
-        db.session.add(ui_config)
-        db.session.add(version)
-        # Create default user to save problems with ui and ripper having diff setups
-        hashed = bcrypt.gensalt(12)
-        default_user = User(email="admin", password=str(bcrypt.hashpw("password".encode('utf-8'), hashed)), hashed=str(hashed))
-        app.logger.debug("DB Init - Admin user loaded")
-        db.session.add(default_user)
-        # Server config
-        server = SystemInfo()
-        db.session.add(server)
-        app.logger.debug("DB Init - Server info loaded")
-        db.session.commit()
-        # Scan and load drives to database
-        DriveUtils.drives_update()
-        app.logger.debug("DB Init - Drive info loaded")
-        return True
-    except Exception:
-        app.logger.debug("Couldn't create all")
-    return False
-
-
-def job_dupe_check(crc_id):
-    """
-    function for checking the database to look for jobs that have completed
-    successfully with the same crc
-
-    :param crc_id: The job obj so we can use the crc/title etc
-    :return: True if we have found dupes with the same crc
-              - Will also return a dict of all the jobs found.
-             False if we didnt find any with the same crc
-              - Will also return None as a secondary param
-    """
-    if crc_id is None:
-        return False, None
-    jobs = Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
-    # app.logger.debug("search - posts=" + str(jobs))
-    return_results = {}
-    i = 0
-    for j in jobs:
-        app.logger.debug("job obj= " + str(j.get_d()))
-        return_results[i] = {}
-        for key, value in iter(j.get_d().items()):
-            return_results[i][str(key)] = str(value)
-            # logging.debug(str(key) + "= " + str(value))
-        i += 1
-
-    app.logger.debug(return_results)
-    app.logger.debug("r len=" + str(len(return_results)))
-    if jobs is not None and len(return_results) > 0:
-        app.logger.debug("jobs is none or len(r) - we have jobs")
-        return True, return_results
-    app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
-    return False, None
+# def job_dupe_check(crc_id):
+#     """
+#     function for checking the database to look for jobs that have completed
+#     successfully with the same crc
+#
+#     :param crc_id: The job obj so we can use the crc/title etc
+#     :return: True if we have found dupes with the same crc
+#               - Will also return a dict of all the jobs found.
+#              False if we didnt find any with the same crc
+#               - Will also return None as a secondary param
+#     """
+#     if crc_id is None:
+#         return False, None
+#     jobs = Job.query.filter_by(crc_id=crc_id, status="success", hasnicetitle=True)
+#     # app.logger.debug("search - posts=" + str(jobs))
+#     return_results = {}
+#     i = 0
+#     for j in jobs:
+#         app.logger.debug("job obj= " + str(j.get_d()))
+#         return_results[i] = {}
+#         for key, value in iter(j.get_d().items()):
+#             return_results[i][str(key)] = str(value)
+#             # logging.debug(str(key) + "= " + str(value))
+#         i += 1
+#
+#     app.logger.debug(return_results)
+#     app.logger.debug("r len=" + str(len(return_results)))
+#     if jobs is not None and len(return_results) > 0:
+#         app.logger.debug("jobs is none or len(r) - we have jobs")
+#         return True, return_results
+#     app.logger.debug("jobs is none or len(r) is 0 - we have no jobs")
+#     return False, None
 
 
 # todo: remove before rev 3.0 release
@@ -634,21 +635,21 @@ def job_dupe_check(crc_id):
 #     return default_directory
 
 
-def trigger_restart():
-    """
-    We update the file modified time to get flask to restart
-    This only works if ARMui is running as a service & in debug mode
-
-    notes: This has been removed, breaks and causes errors when run as 'arm' user
-    """
-
-    def set_file_last_modified(file_path, date_time):
-        dt_epoch = date_time.timestamp()
-        os.utime(file_path, (dt_epoch, dt_epoch))
-
-    now = datetime.now()
-    arm_main = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routes.py")
-    set_file_last_modified(arm_main, now)
+# def trigger_restart():
+#     """
+#     We update the file modified time to get flask to restart
+#     This only works if ARMui is running as a service & in debug mode
+#
+#     notes: This has been removed, breaks and causes errors when run as 'arm' user
+#     """
+#
+#     def set_file_last_modified(file_path, date_time):
+#         dt_epoch = date_time.timestamp()
+#         os.utime(file_path, (dt_epoch, dt_epoch))
+#
+#     now = datetime.now()
+#     arm_main = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routes.py")
+#     set_file_last_modified(arm_main, now)
 
 # todo: remove before rev 3.0 release
 # moved to settings utils
@@ -711,38 +712,38 @@ def trigger_restart():
 #     return apprise_cfg
 
 
-def get_processor_name():
-    """
-    function to collect and return some cpu info
-    ideally want to return {name} @ {speed} Ghz
-    """
-    cpu_info = None
-    if platform.system() == "Windows":
-        cpu_info = platform.processor()
-    elif platform.system() == "Darwin":
-        cpu_info = subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
-    elif platform.system() == "Linux":
-        command = "cat /proc/cpuinfo"
-        fulldump = str(subprocess.check_output(command, shell=True).strip())
-        # Take any float trailing "MHz", some whitespace, and a colon.
-        speeds = re.search(r"\\nmodel name\\t:.*?GHz\\n", fulldump)
-        if speeds:
-            # We have intel CPU
-            speeds = str(speeds.group())
-            speeds = speeds.replace('\\n', ' ')
-            speeds = speeds.replace('\\t', ' ')
-            speeds = speeds.replace('model name :', '')
-            cpu_info = speeds
-
-        # AMD CPU
-        amd_name_full = re.search(r"model name\\t: (.*?)\\n", fulldump)
-        if amd_name_full:
-            amd_name = amd_name_full.group(1)
-            amd_mhz = re.search(r"cpu MHz(?:\\t)*: ([.0-9]*)\\n", fulldump)  # noqa: W605
-            if amd_mhz:
-                amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
-                cpu_info = str(amd_name) + " @ " + str(amd_ghz) + " GHz"
-    return cpu_info
+# def get_processor_name():
+#     """
+#     function to collect and return some cpu info
+#     ideally want to return {name} @ {speed} Ghz
+#     """
+#     cpu_info = None
+#     if platform.system() == "Windows":
+#         cpu_info = platform.processor()
+#     elif platform.system() == "Darwin":
+#         cpu_info = subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
+#     elif platform.system() == "Linux":
+#         command = "cat /proc/cpuinfo"
+#         fulldump = str(subprocess.check_output(command, shell=True).strip())
+#         # Take any float trailing "MHz", some whitespace, and a colon.
+#         speeds = re.search(r"\\nmodel name\\t:.*?GHz\\n", fulldump)
+#         if speeds:
+#             # We have intel CPU
+#             speeds = str(speeds.group())
+#             speeds = speeds.replace('\\n', ' ')
+#             speeds = speeds.replace('\\t', ' ')
+#             speeds = speeds.replace('model name :', '')
+#             cpu_info = speeds
+#
+#         # AMD CPU
+#         amd_name_full = re.search(r"model name\\t: (.*?)\\n", fulldump)
+#         if amd_name_full:
+#             amd_name = amd_name_full.group(1)
+#             amd_mhz = re.search(r"cpu MHz(?:\\t)*: ([.0-9]*)\\n", fulldump)  # noqa: W605
+#             if amd_mhz:
+#                 amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
+#                 cpu_info = str(amd_name) + " @ " + str(amd_ghz) + " GHz"
+#     return cpu_info
 
 # todo: remove before rev 3.0 release
 # moved to logs utils
@@ -778,79 +779,79 @@ def get_processor_name():
 #     return valid
 
 
-def generate_file_list(my_path):
-    """
-    Generate a list of files from given path\n
-    :param my_path: path to folder
-    :return: list of files
-    """
-    movie_dirs = [f for f in os.listdir(my_path) if os.path.isdir(os.path.join(my_path, f)) and not f.startswith(".")
-                  and os.path.isdir(os.path.join(my_path, f))]
-    app.logger.debug(movie_dirs)
-    return movie_dirs
+# def generate_file_list(my_path):
+#     """
+#     Generate a list of files from given path\n
+#     :param my_path: path to folder
+#     :return: list of files
+#     """
+#     movie_dirs = [f for f in os.listdir(my_path) if os.path.isdir(os.path.join(my_path, f)) and not f.startswith(".")
+#                   and os.path.isdir(os.path.join(my_path, f))]
+#     app.logger.debug(movie_dirs)
+#     return movie_dirs
 
 
-def import_movie_add(poster_image, imdb_id, movie_group, my_path):
-    """
-    Search the movie directory, make sure we have movie files and then import it into the db\n
-    :param poster_image:
-    :param imdb_id:
-    :param movie_group:
-    :param my_path:
-    :return:
-    """
-    app.logger.debug(f"Poster image: {poster_image}, IMDB: {imdb_id}, "
-                     f"Movie_group: {movie_group.group(0)}, Path: {my_path}")
-    # only used to add a non-unique crc64
-    movie = movie_group.group(0)
-    # Fake crc64 number
-    hash_object = hashlib.md5(f"{movie}".strip().encode())
-    # Check if we already have this in the db exit if we do
-    dupe_found, _ = job_dupe_check(hash_object.hexdigest())
-    if dupe_found:
-        app.logger.debug("We found dupes breaking loop")
-        return None
-    app.logger.debug(f"List dir = {os.listdir(my_path)}")
-
-    # Build file list with common video extension types
-    movie_files = [f for f in os.listdir(my_path)
-                   if os.path.isfile(os.path.join(my_path, f))
-                   and f.endswith((".mkv", ".avi", ".mp4", ".avi"))]
-    app.logger.debug(f"movie files = {movie_files}")
-
-    # This dict will be returned to the big list, so we can display to the user
-    movie_dict = {
-        'title': movie_group.group(1),
-        'year': movie_group.group(2),
-        'crc_id': hash_object.hexdigest(),
-        'imdb_id': imdb_id,
-        'poster': poster_image,
-        'status': 'success' if len(movie_files) >= 1 else 'fail',
-        'video_type': 'movie',
-        'disctype': 'unknown',
-        'hasnicetitle': True,
-        'no_of_titles': len(movie_files)
-    }
-    app.logger.debug(movie_dict)
-    # Create the new job and use the found values
-    new_movie = Job("/dev/sr0")
-    new_movie.title = movie_dict['title']
-    new_movie.year = movie_dict['year']
-    new_movie.crc_id = hash_object.hexdigest()
-    new_movie.imdb_id = imdb_id
-    new_movie.status = movie_dict['status']
-    new_movie.video_type = movie_dict['video_type']
-    new_movie.disctype = movie_dict['disctype']
-    new_movie.hasnicetitle = movie_dict['hasnicetitle']
-    new_movie.no_of_titles = movie_dict['no_of_titles']
-    new_movie.poster_url = movie_dict['poster']
-    new_movie.start_time = datetime.now()
-    new_movie.logfile = "imported.log"
-    new_movie.ejected = True
-    new_movie.path = my_path
-    app.logger.debug(new_movie)
-    db.session.add(new_movie)
-    return movie_dict
+# def import_movie_add(poster_image, imdb_id, movie_group, my_path):
+#     """
+#     Search the movie directory, make sure we have movie files and then import it into the db\n
+#     :param poster_image:
+#     :param imdb_id:
+#     :param movie_group:
+#     :param my_path:
+#     :return:
+#     """
+#     app.logger.debug(f"Poster image: {poster_image}, IMDB: {imdb_id}, "
+#                      f"Movie_group: {movie_group.group(0)}, Path: {my_path}")
+#     # only used to add a non-unique crc64
+#     movie = movie_group.group(0)
+#     # Fake crc64 number
+#     hash_object = hashlib.md5(f"{movie}".strip().encode())
+#     # Check if we already have this in the db exit if we do
+#     dupe_found, _ = job_dupe_check(hash_object.hexdigest())
+#     if dupe_found:
+#         app.logger.debug("We found dupes breaking loop")
+#         return None
+#     app.logger.debug(f"List dir = {os.listdir(my_path)}")
+#
+#     # Build file list with common video extension types
+#     movie_files = [f for f in os.listdir(my_path)
+#                    if os.path.isfile(os.path.join(my_path, f))
+#                    and f.endswith((".mkv", ".avi", ".mp4", ".avi"))]
+#     app.logger.debug(f"movie files = {movie_files}")
+#
+#     # This dict will be returned to the big list, so we can display to the user
+#     movie_dict = {
+#         'title': movie_group.group(1),
+#         'year': movie_group.group(2),
+#         'crc_id': hash_object.hexdigest(),
+#         'imdb_id': imdb_id,
+#         'poster': poster_image,
+#         'status': 'success' if len(movie_files) >= 1 else 'fail',
+#         'video_type': 'movie',
+#         'disctype': 'unknown',
+#         'hasnicetitle': True,
+#         'no_of_titles': len(movie_files)
+#     }
+#     app.logger.debug(movie_dict)
+#     # Create the new job and use the found values
+#     new_movie = Job("/dev/sr0")
+#     new_movie.title = movie_dict['title']
+#     new_movie.year = movie_dict['year']
+#     new_movie.crc_id = hash_object.hexdigest()
+#     new_movie.imdb_id = imdb_id
+#     new_movie.status = movie_dict['status']
+#     new_movie.video_type = movie_dict['video_type']
+#     new_movie.disctype = movie_dict['disctype']
+#     new_movie.hasnicetitle = movie_dict['hasnicetitle']
+#     new_movie.no_of_titles = movie_dict['no_of_titles']
+#     new_movie.poster_url = movie_dict['poster']
+#     new_movie.start_time = datetime.now()
+#     new_movie.logfile = "imported.log"
+#     new_movie.ejected = True
+#     new_movie.path = my_path
+#     app.logger.debug(new_movie)
+#     db.session.add(new_movie)
+#     return movie_dict
 
 # todo: remove before rev 3.0 release
 # Moved to settings utils
@@ -869,16 +870,16 @@ def import_movie_add(poster_image, imdb_id, movie_group, my_path):
 #     return git_hash
 
 
-def get_git_revision_short_hash() -> str:
-    """Get short hash of current git commit"""
-    git_hash: str = 'unknown'
-    try:
-        subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
-                                cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
-    except subprocess.CalledProcessError as e:
-        app.logger.debug(f"GIT revision error: {e}")
-
-    return git_hash
+# def get_git_revision_short_hash() -> str:
+#     """Get short hash of current git commit"""
+#     git_hash: str = 'unknown'
+#     try:
+#         subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
+#                                 cwd=cfg.arm_config['INSTALLPATH']).decode('ascii').strip()
+#     except subprocess.CalledProcessError as e:
+#         app.logger.debug(f"GIT revision error: {e}")
+#
+#     return git_hash
 
 # todo: remove before rev 3.0 release
 # Moved to settings utils

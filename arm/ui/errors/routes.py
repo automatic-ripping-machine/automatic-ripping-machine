@@ -17,7 +17,8 @@ def not_found(e):
     # Requested URL
     requested_url = request.url
     error_title = "404"
-    error_message = "When convention and science offer us no answers, might we not finally turn to the fantastic as a plausibility?"
+    error_message = "When convention and science offer us no answers, \
+                    might we not finally turn to the fantastic as a plausibility?"
 
     return render_template("error.html",
                            error_title=error_title,

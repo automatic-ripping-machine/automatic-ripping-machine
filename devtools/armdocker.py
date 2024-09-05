@@ -30,6 +30,7 @@ def docker_rebuild(docker_run_path, arm_install, image_clean):
     # Start the new container
     armui.run_command(f"{docker_run_path}", "ARM Docker container running")
 
+
 def dockercompose_rebuild(monitor):
     """
     Run quality check against the ARM code and output

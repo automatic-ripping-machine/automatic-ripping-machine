@@ -3,7 +3,6 @@ Class definition
  Server - class for managing system utilisation
 """
 import platform
-import psutil
 import re
 import subprocess
 import psutil

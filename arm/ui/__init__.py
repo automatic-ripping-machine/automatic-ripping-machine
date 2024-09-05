@@ -7,6 +7,7 @@ from time import sleep
 from flask import Flask
 from flask_cors import CORS
 from flask_migrate import upgrade
+from logging.config import dictConfig
 
 from ui.setuplog import setuplog
 from ui.ui_initialise import initialise_arm
@@ -19,7 +20,7 @@ def create_app(config_name=os.getenv("FLASK_ENV", "production")):
     config_class = config_classes.get(config_name.lower())
 
     # Setup logging
-    dictConfig = setuplog(config_class)
+    dictConfig(setuplog())
 
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -44,7 +45,7 @@ def create_app(config_name=os.getenv("FLASK_ENV", "production")):
     if config_class.DOCKER and config_class.ENV != 'development':
         app.logger.info("Sleeping for 60 seconds to ensure ARM DB is active")
         sleep(55)
-        for i in range(5,0,-1):
+        for i in range(5, 0, -1):
             app.logger.info(f"Starting in ... {i}")
             sleep(1)
         app.logger.info("Starting ARM")

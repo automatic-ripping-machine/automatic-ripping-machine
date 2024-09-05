@@ -88,7 +88,7 @@ def migrate_data() -> int:
 def migrate_jobs(sqlite_job) -> int:
     """
     Migrate the Job table
-    
+
     :param sqlite_job The Job table to migrate
     """
     mysql_job = Job(devpath=sqlite_job.devpath)
@@ -141,7 +141,7 @@ def migrate_config(job_id: int, sqlite_config):
     Migrate the config table
 
     Pass in the Job table, which references the Config table via foreign keys
-    
+
     :param job_id:int the job id for config to link the foreign key to
     :param sqlite_config: The Config from the SQLite database to be migrated.
     """
@@ -232,13 +232,13 @@ def migrate_tracks(job_id: int, sqlite_tracks):
             basename=sqlite_track.basename,
             filename=sqlite_track.filename
         )
-    
+
         # Set additional fields not in the __init__ method
         mysql_track.orig_filename = sqlite_track.orig_filename
         mysql_track.new_filename = sqlite_track.new_filename
         mysql_track.ripped = sqlite_track.ripped
         mysql_track.status = sqlite_track.status
         mysql_track.error = sqlite_track.error
-    
+
         db.session.add(mysql_track)
         db.session.commit()
