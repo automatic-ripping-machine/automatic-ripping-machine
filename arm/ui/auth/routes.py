@@ -83,7 +83,6 @@ def login():
 
     form = SetupForm()
     if request.method == 'POST' and form.validate_on_submit():
-        # login_username = request.form['username']
         login_password = str(request.form['password']).strip()
 
         # we know there is only ever 1 admin account, so we can pull it and check against it locally

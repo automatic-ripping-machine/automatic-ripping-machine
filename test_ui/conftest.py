@@ -7,7 +7,6 @@ import pytest
 
 from ui import create_app
 from ui.ui_setup import db
-from ui_config import Testing
 
 
 @pytest.fixture(scope='session')
@@ -23,6 +22,7 @@ def test_app():
     os.environ['MYSQL_PASSWORD'] = 'example'
 
     flask_app = create_app('testing')
+
     return flask_app
 
 

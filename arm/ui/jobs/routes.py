@@ -74,11 +74,6 @@ def customtitle():
     job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
     if request.args.get("title"):
-        # args = {
-        #     'title': request.args.get("title"),
-        #     'title_manual': request.args.get("title"),
-        #     'year': request.args.get("year")
-        # }
         notification = Notifications(f"Job: {job.job_id} was updated",
                                      f'Title: {job.title} ({job.year}) was updated to '
                                      f'{request.args.get("title")} ({request.args.get("year")})')

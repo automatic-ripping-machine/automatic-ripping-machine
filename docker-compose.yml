@@ -71,6 +71,7 @@ services:
 #      MYSQL_PASSWORD: example
 #    volumes:
 #      # Volumes for ARM db 'local directory':'MYSQL directory - DON'T CHANGE'
+#      # This must be a different folder to your main mysql-db directory, otherwise it will overwrite data
 #      - /home/arm/db/mysql_test:/var/lib/mysql
 #    command: --default-authentication-plugin=mysql_native_password
 #    networks:

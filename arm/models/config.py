@@ -1,5 +1,3 @@
-# from prettytable import PrettyTable
-
 from models.arm_models import ARMModel
 from ui.ui_setup import db
 
@@ -157,7 +155,6 @@ class Config(ARMModel):
     #             value = HIDDEN_VALUE
     #         pretty_table.add_row([str(attr), str(value)])
     #     return str(pretty_table.get_string())
-
     # def get_d(self):
     #     """
     #     Return a dict of class - exclude any sensitive info

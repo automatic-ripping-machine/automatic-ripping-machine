@@ -3,7 +3,6 @@ import urllib
 import json
 import re
 import requests
-# from flask.logging import default_handler
 from flask import current_app as app
 
 import config.config as cfg

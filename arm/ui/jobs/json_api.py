@@ -433,7 +433,6 @@ def change_job_params(config_id):
         cfg.arm_config["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
         # must be 1 for True 0 for False
         cfg.arm_config["MAINFEATURE"] = config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
-        # args = {'disctype': job.disctype}
         message = f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},' \
                   f'Minimum Length={config.MINLENGTH}, Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}'
         # We don't need to set the config as they are set with job commit
@@ -459,7 +458,7 @@ def read_notification(notify_id):
     return return_json
 
 
-def get_notify_timeout(notify_timeout):
+def get_notify_timeout():
     """Return the notification timeout UI setting"""
 
     return_json = {'success': True,

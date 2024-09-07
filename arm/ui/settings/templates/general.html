@@ -19,10 +19,10 @@
                         <!-- Update A.R.M -->
                             {% if stats['updated'] %}
                                 <img src="{{ url_for('static', filename='img/success.png') }}"
-                                 alt="update image" width="20px" height="20px">  You are on the latest version
+                                 alt="update" width="20px" height="20px">  You are on the latest version
                             {% else %}
                                 <img src="{{ url_for('static', filename='img/fail.png') }}"
-                                 alt="update image" width="20px" height="20px">
+                                 alt="update" width="20px" height="20px">
                                 <form id="updateArm" name="updateArm" method="post" action="">
                                     {{ form.hidden_tag() }}
                                     <button title="Update A.R.M Via git"

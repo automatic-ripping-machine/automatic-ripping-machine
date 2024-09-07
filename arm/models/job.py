@@ -1,15 +1,7 @@
-# import logging
-# import os
-# import psutil
-# import pyudev
-# import subprocess
 import time
 
 from models.arm_models import ARMModel
-# from prettytable import PrettyTable
-# from arm.ripper import music_brainz
 from ui.ui_setup import db
-# import arm.config.config as cfg
 
 # ARM Model relationship imports, required for db.Relationships to work
 from models.track import Track  # noqa: F401
@@ -252,7 +244,6 @@ class Job(ARMModel):
     #         else:
     #             pretty_table.add_row([str(attr), str(value)])
     #     return str(pretty_table.get_string())
-
     # def eject(self):
     #     """Eject disc if it hasn't previously been ejected"""
     #     if not cfg.arm_config['AUTO_EJECT']:

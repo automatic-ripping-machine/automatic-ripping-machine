@@ -49,7 +49,6 @@ def drives_update():
     scan the system for new cd/dvd/Blu-ray drives
     """
     udev_drives = drives_search()
-    i = 1
     new_count = 0
 
     # Get the number of current drives in the database
@@ -75,9 +74,6 @@ def drives_update():
             db.session.add(db_drive)
             db.session.commit()
             db_drive = None
-            i += 1
-        else:
-            i += 1
 
     if new_count > 0:
         app.logger.info(f"Added {new_count} drives for ARM.")

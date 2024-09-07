@@ -494,9 +494,9 @@ def try_add_default_user():
     """
     try:
         username = "admin"
-        pass1 = "password".encode('utf-8')
+        base_password = "password".encode('utf-8')
         hashed = bcrypt.gensalt(12)
-        database_adder(User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed))
+        database_adder(User(email=username, password=bcrypt.hashpw(base_password, hashed), hashed=hashed))
         perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
         write_permission_file = open(perm_file, "w")
         write_permission_file.write("boop!")

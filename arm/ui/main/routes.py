@@ -62,14 +62,7 @@ def home():
                                                    arm_path=arm_path,
                                                    media_path=media_path,
                                                    stats=stats))
-    # remove the unused cookies if not required by other functions/pages
-    # response.set_cookie("use_icons", value=f"{armui_cfg.use_icons}")
-    # response.set_cookie("save_remote_images", value=f"{armui_cfg.save_remote_images}")
-    # response.set_cookie("bootstrap_skin", value=f"{armui_cfg.bootstrap_skin}")
-    # response.set_cookie("language", value=f"{armui_cfg.language}")
     response.set_cookie("index_refresh", value=f"{armui_cfg.index_refresh}")
-    # response.set_cookie("database_limit", value=f"{armui_cfg.database_limit}")
-    # response.set_cookie("notify_refresh", value=f"{armui_cfg.notify_refresh}")
     return response
 
 

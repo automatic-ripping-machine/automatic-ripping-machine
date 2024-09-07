@@ -88,7 +88,6 @@ def database_migrate():
     error: bool = False
     count: int = 0
     message: str = "Error: Unable to migrate jobs."
-    # sqlite_data = None
 
     # Check that the arm.db file exists before starting a migration
     file_exists = utils.check_sqlite_file(cfg.arm_config['DBFILE'])

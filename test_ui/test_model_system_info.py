@@ -21,7 +21,8 @@ def setup_test_data():
     # Create a sample SystemInfo instance for testing
     system_info = SystemInfo("Test Server",
                              "Test server description")
-
+    system_info.cpu = "Phenom X4 9850 Black Edition"
+    system_info.mem_total = "24.0"
     db.session.add(system_info)
     db.session.commit()
 
@@ -36,7 +37,8 @@ def test_create_system_info(setup_test_data):
     # Create a sample SystemInfo instance for testing
     system_info = SystemInfo("Test Server",
                              "Test server description")
-
+    system_info.cpu = "Phenom X4 9850 Black Edition"
+    system_info.mem_total = "24.0"
     db.session.add(system_info)
     db.session.commit()
 
@@ -52,3 +54,5 @@ def test_query_system_info(setup_test_data):
     assert system_info is not None
     assert system_info.name == "Test Server"
     assert system_info.description == "Test server description"
+    assert system_info.cpu == "Phenom X4 9850 Black Edition"
+    assert system_info.mem_total == "24.0"
