@@ -56,6 +56,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = "Big secret key"  # TODO: make this random!
 # Set the global Flask Login state, set to True will ignore any @login_required
 app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
+app.logger.debug(f"Disable Login: {cfg.arm_config['DISABLE_LOGIN']}")
 # Set debug pin as it is hidden normally
 os.environ["WERKZEUG_DEBUG_PIN"] = "12345"  # make this random!
 app.logger.debug("Debugging pin: " + os.environ["WERKZEUG_DEBUG_PIN"])
@@ -64,7 +65,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 # Register route blueprints
-# loaded post database decleration to avoid circular loops
+# loaded post database declaration to avoid circular loops
 from arm.ui.settings.settings import route_settings  # noqa: E402,F811
 from arm.ui.logs.logs import route_logs  # noqa: E402,F811
 from arm.ui.auth.auth import route_auth  # noqa: E402,F811

@@ -229,7 +229,7 @@ def feed_json():
     """
     # Check if users is authenticated
     # Return data when authenticated, but allow basic job info when not
-    authenticated = current_user.is_authenticated
+    authenticated = ui_utils.authenticated_state()
     mode = str(request.args.get('mode'))
     return_json = {'mode': mode, 'success': False}
 
