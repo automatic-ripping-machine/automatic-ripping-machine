@@ -248,7 +248,7 @@ function refreshJobsSuccess(data, serverIndex, serverUrl, serverCount) {
             updateJobItem(oldJob, job);
         } else {
             activeJobs.push(job);
-            $("#joblist").append(addJobItem(job));
+            $("#joblist").append(addJobItem(job, data.authenticated));
         }
         serverCount--;
     });
