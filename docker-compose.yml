@@ -31,6 +31,11 @@ services:
       #- "/dev/sr3:/dev/sr3"
       #- "/dev/sr4:/dev/sr4"
       #- "/dev/sr5:/dev/sr5"
+    logging:
+      # Docker log rotate settings, max file size and number of files
+      options:
+        max-size: "10m"
+        max-file: "1"
     depends_on:
       - arm-db
     networks:
