@@ -1,0 +1,61 @@
+{% extends "base_simple.html" %}
+{% block title %}ARM UI Server Setup{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container content">
+    <div class="row">
+        <div class="col-sm-12 rounded text-center">
+            <h2 class="text-center">Automatic Ripping Machine UI Server Setup</h2>
+        </div>
+        <p>Seems the system has no configuration saved for the ARM UI Server.</p>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-12 ">
+                <p>ARM has automatically detected the following for your system.</p>
+        </div>
+    </div>
+    <form class="" action="systemsetup" method="post">
+        {{ form.hidden_tag() }}
+        <div class="row">
+            <div class="col-sm-4 ">
+                {{ form.name.label }}:
+            </div>
+            <div class="col-sm-8 ">
+                {{ form.name(value="ARM UI Server", size=30) }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-4 ">
+                {{ form.cpu.label }}:
+            </div>
+            <div class="col-sm-8 ">
+                {{ form.cpu(value=server_util.cpu, size=30) }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-4 ">
+                {{ form.description.label }}:
+            </div>
+            <div class="col-sm-8 ">
+                {{ form.description(value="ARM UI Server " + server_util.cpu, size=30) }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-4 ">
+                {{ form.mem_total.label }}:
+            </div>
+            <div class="col-sm-8 ">
+                {{ form.mem_total(value=server_util.mem_total, readonly=True, size=30) }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12 ">
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

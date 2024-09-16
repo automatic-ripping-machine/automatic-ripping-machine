@@ -1,116 +1,39 @@
 <!doctype html>
 <html lang="en">
-<head>
-    <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="mobile-web-app-capable" content="yes"/>
-    <meta name="apple-mobile-web-app-capable" content="yes"/>
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="viewport"
-          content="viewport-fit=cover, user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" crossorigin="use-credentials"/>
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}"/>
+    <!-- HTML Header -->
     {% include 'head.html' %}
-</head>
-<body style="padding: 70px 15px 50px;">
-{% block nav %}
-    <!-- TOAST -->
-    <div aria-live="polite" aria-atomic="true">
-        <!-- Position it -->
-        <div id="toastHolder" style="position: fixed; top: 30%; right: 10%;z-index: 1000;">
-            <!-- TOASTS -->
-        </div>
-    </div>
-    <!-- Main -->
-    <div class="container h-100 mx-auto">
-        <nav class="navbar navbar-expand-md navbar-dark bg-primary justify-content-center fixed-top my-auto">
-            <a class="navbar-brand" href="index.html">
-                <img src="{{ url_for('static', filename='img/arm40nw.png') }}" width="114" height="40" alt="">
-            </a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav">
-                    <li id="navhome" class="nav-item">
-                        <a class="nav-link" href="index.html">Home</a>
-                    </li>
-                    <li id="navhistory" class="nav-item">
-                        <a class="nav-link" href="history">History</a>
-                    </li>
-                    <li id="navviewlogs" class="nav-item">
-                        <a class="nav-link" href="listlogs">View Logs</a>
-                    </li>
-                    <li id="navdatabase" class="nav-item">
-                        <a class="nav-link" href="database">Database</a>
-                    </li>
-                    <li id="navarmsettings" class="nav-item">
-                        <a class="nav-link" href="settings"> Arm Settings</a>
-                    </li>
-                    <li id="navsendmovies" class="nav-item">
-                        <a class="nav-link" href="send_movies"> Send DVDs to API</a>
-                    </li>
-                    <li id="navchangepass" class="nav-item">
-                        <a class="nav-link" href="update_password"> Change admin password</a>
-                    </li>
-                    <li id="notificationview" class="nav-item">
-                        {% include 'navnotify.html' %}
-                    </li>
-                    <li id="restart" class="nav-item">
-                        <a class="nav-link" href="#">
-                            <button type="button" class="btn btn-primary position-relative" id="restartUi" >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                     fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"
-                                     stroke-linejoin="round">
-                                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
-                                    <line x1="12" y1="2" x2="12" y2="12"></line>
-                                </svg>
-                            </button>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="custom-control custom-switch">
-                <input type="checkbox" class="custom-control-input" id="darkSwitch"/>
-                <label class="custom-control-label align-left" for="darkSwitch">Dark Mode</label>
-            </div>
-            <script src="{{ url_for('static', filename='js/dark-mode-switch.min.js') }}"></script>
-            <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}">
-
-        </nav>
-    </div>
-{% endblock %}
-<!-- Errors -->
-<div id="content" class="h-100 content" style="width: 99%;padding-top: 51px;padding-left: 15px;">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div id="message1" class="alert alert-{{ category if category !=" message
-    " else 'info' }} text-center"
-                     role="alert">
-                    <h4 class="alert-heading">{{ message|safe }}</h4>
+    <body style="padding: 70px 15px 50px;">
+        <!-- HTML Navigation -->
+        {% include 'nav.html' %}
+        <!-- Errors -->
+        <div id="content" class="h-100 content" style="width: 99%;padding-top: 51px;padding-left: 15px;">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div id="message1" class="alert alert-{{ category if category !=" message
+            " else 'info' }} text-center"
+                             role="alert">
+                            <h4 class="alert-heading">{{ message|safe }}</h4>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}</div>
+        <!-- Footer -->
+        <div id="footer" class="container-fluid h-100">
+            <div class="row" style="height: 30px;"></div>
+            <div class="row h-100" style="height: 40px;">
+                <div class="col-sm-12 h-100">
+                    {% block footer %}
+                        <p class="text-center h-100" style="margin-bottom: auto; margin-top: auto"> Automatic Ripping Machine.
+                            Find us on <a
+                                    href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">github</a>.
+                        </p>
+                    {% endblock %}
                 </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}</div>
-<!-- Footer -->
-<div id="footer" class="container-fluid h-100">
-    <div class="row" style="height: 30px;"></div>
-    <div class="row h-100" style="height: 40px;">
-        <div class="col-sm-12 h-100">
-            {% block footer %}
-                <p class="text-center h-100" style="margin-bottom: auto; margin-top: auto"> Automatic Ripping Machine.
-                    Find us on <a
-                            href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">github</a>.
-                </p>
-            {% endblock %}
+            </div>
         </div>
-    </div>
-</div>
-</div>
-{% block js %}
-{% endblock %}
-</body>
+        {% block js %}
+        {% endblock %}
+    </body>
 </html>

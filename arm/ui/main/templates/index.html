@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <style>
+        .progress-bar {
+            color: #020202ba !important;
+        }
+    </style>
+    <div class="container-fluid h-100 mx-auto">
+        <!-- Modal -->
+        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle"
+             aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLongTitle">Abandon this job ??</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p><span class="ui-icon ui-icon-alert" style="margin:12px 12px 20px 0;"></span>
+                            <span id="m-body">This job will be abandoned. Are you sure?</span></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="save-no" type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                        <button id="save-yes" type="button" class="btn btn-primary">Yes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12 rounded text-center">
+                <p class="text-center">
+                <h2>Welcome to your Automatic Ripping Machine</h2>
+                </p>
+            </div>
+        </div>
+
+        <div class="row h-100 mx-auto align-items-center">
+            <div class="col-sm-12 mx-auto">
+                <p class="text-center">
+                <h5 class="text-center"><strong>Active Rips</strong></h5>
+                </p>
+            </div>
+        </div>
+        <div class="row h-100 align-items-center">
+            <div class="col-md-12 mx-auto">
+                <div id="joblist" class="card-deck"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" style="height: 30px;"></div>
+    <p class="text-center">
+        <h5 class="text-center"><strong>System Information</strong></h5>
+    </p>
+    {% include 'sysinfo.html' %}
+
+    <script type="application/javascript" src="static/js/common.js"></script>
+    <script type="application/javascript" src="static/js/jobRefresh.js"></script>
+    <script type="application/javascript">
+        // Function to get a cookie by name
+        function getCookie(name) {
+            let matches = document.cookie.match(new RegExp(
+                "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+            ));
+            return matches ? decodeURIComponent(matches[1]) : undefined;
+        }
+
+        $(document).ready(function () {
+            // Get the index_refresh value from the cookie
+            const indexRefresh = getCookie('index_refresh');
+
+            // Convert the cookie value to an integer
+            const interval = parseInt(indexRefresh, 10);
+
+            // Check if the interval is a valid number before setting it
+            if (!isNaN(interval) && interval > 0) {
+                const intervalId = window.setInterval(refreshJobs, interval);
+            } else {
+                console.error('Invalid index_refresh interval:', indexRefresh);
+            }
+        });
+    </script>
+{% endblock %}
+{% block js %}{{ super() }}{% endblock %}

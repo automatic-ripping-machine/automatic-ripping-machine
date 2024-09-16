@@ -13,10 +13,11 @@ Ripper Utils
 import pyudev
 import re
 import logging
+from flask import current_app as app
 
-from arm.ui import app, db
-from arm.models.job import Job
-from arm.models.system_drives import SystemDrives
+from ui import db
+from models.job import Job
+from models.system_drives import SystemDrives
 
 
 def drives_search():
@@ -28,10 +29,10 @@ def drives_search():
     context = pyudev.Context()
 
     for device in context.list_devices(subsystem='block'):
-        regexoutput = re.search(r'(\/dev\/sr\d{1,2})', device.device_node)
-        if regexoutput:
-            app.logger.debug(f"regex output: {regexoutput.group()}")
-            udev_drives.append(regexoutput.group())
+        regex_output = re.search(r'(/dev/sr\d{1,2})', device.device_node)
+        if regex_output:
+            app.logger.debug(f"regex output: {regex_output.group()}")
+            udev_drives.append(regex_output.group())
 
     if len(udev_drives) > 0:
         app.logger.info(f"System disk scan, found {len(udev_drives)} drives for ARM")
@@ -48,22 +49,23 @@ def drives_update():
     scan the system for new cd/dvd/Blu-ray drives
     """
     udev_drives = drives_search()
-    i = 1
     new_count = 0
 
     # Get the number of current drives in the database
     drive_count = SystemDrives.query.count()
 
     for drive_mount in udev_drives:
-        # Check drive doesn't already exist
+        # Check drive doesn't exist
         if not SystemDrives.query.filter_by(mount=drive_mount).first():
-            # New drive, set previous job to none
-            last_job = None
             new_count += 1
 
-            # Create new disk (name, type, mount, open, job id, previos job id, description )
-            db_drive = SystemDrives(f"Drive {drive_count + new_count}",
-                                    drive_mount, None, last_job, "Classic burner")
+            # Create new disk (name, type, mount, open, job id, previous job id, description )
+            db_drive = SystemDrives(name=f"Drive {drive_count + new_count}",
+                                    mount=drive_mount,
+                                    job=0,
+                                    job_previous=0,
+                                    type="CD",
+                                    description="Classic burner")
             app.logger.debug("****** Drive Information ******")
             app.logger.debug(f"Name: {db_drive.name}")
             app.logger.debug(f"Type: {db_drive.type}")
@@ -72,9 +74,6 @@ def drives_update():
             db.session.add(db_drive)
             db.session.commit()
             db_drive = None
-            i += 1
-        else:
-            i += 1
 
     if new_count > 0:
         app.logger.info(f"Added {new_count} drives for ARM.")
@@ -96,7 +95,7 @@ def drives_check_status():
                 drive.job_finished()
                 db.session.commit()
 
-        # Catch if a user has removed database entries and the previous job doesnt exist
+        # Catch if a user has removed database entries and the previous job doesn't exist
         if drive.job_previous is not None and drive.job_previous.status is None:
             drive.job_id_previous = None
             db.session.commit()
@@ -150,7 +149,9 @@ def update_drive_job(job):
     """
     drive = SystemDrives.query.filter_by(mount=job.devpath).first()
     drive.new_job(job.job_id)
-    logging.debug(f"Updating drive [{job.devpath}] current job, with id [{job.job_id}]")
+    app.logger.debug(f"Updating Drive: ['{drive.name}'|'{drive.mount}']"
+                     f" Current Job: [{drive.job_id_current}]"
+                     f" Previous Job: [{drive.job_id_previous}]")
     try:
         db.session.commit()
         logging.debug("Database update with new Job ID to associated drive")

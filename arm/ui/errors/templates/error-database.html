@@ -1,0 +1,26 @@
+{% extends "base_simple.html" %}
+{% block title %}ARM Database Update or Setup{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container content">
+    <div class="row">
+        <div class="col-sm-12 rounded text-center">
+            <h2 class="text-center">Automatic Ripping Machine Database Update</h2>
+        </div>
+        <p> A change to ARM has occurred, either through an update or database corruption. Creation or migration of the database is required. Where possible, all existing user data will be maintained.</p>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-12 ">
+            <p><u> Unable to connect to the MySQL database  </u></p>
+            <p> ARM is unable to connect to the MySQL instance configured. </p>
+            <p> Config below: </p>
+            <ul>
+                <li><b>MySQL Config:</b> {{ arm_db_config }} </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

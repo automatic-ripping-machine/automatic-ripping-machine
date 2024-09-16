@@ -1,86 +1,75 @@
-"""Main arm ui file"""
-import sys  # noqa: F401
-import os  # noqa: F401
-from getpass import getpass  # noqa: F401
-from logging.config import dictConfig
-from flask import Flask, logging, current_app  # noqa: F401
-from flask.logging import default_handler  # noqa: F401
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+"""
+Automatic Ripping Machine - User Interface (UI)
+    Flask factory
+"""
+import os
+from time import sleep
+from flask import Flask
 from flask_cors import CORS
-from flask_wtf import CSRFProtect
+from flask_migrate import upgrade
+from logging.config import dictConfig
 
-from flask_login import LoginManager
-import bcrypt  # noqa: F401
-import arm.config.config as cfg
+from ui.setuplog import setuplog
+from ui.ui_initialise import initialise_arm
+from ui.ui_setup import db, migrate, csrf, login_manager
+from ui_config import config_classes
 
-sqlitefile = 'sqlite:///' + cfg.arm_config['DBFILE']
 
-# Setup logging, but because of werkzeug issues, we need to set up that later down file
-dictConfig({
-    'version': 1,
-    'formatters': {'default': {
-        'format': '[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
-    }},
-    'handlers': {
-        'wsgi': {
-            'class': 'logging.StreamHandler',
-            'stream': 'ext://flask.logging.wsgi_errors_stream',
-            'formatter': 'default'
-        },
-        "console": {"class": "logging.StreamHandler", "level": "INFO"},
-        "null": {"class": "logging.NullHandler"},
-    },
-    'root': {
-        'level': 'DEBUG',
-        'handlers': ['wsgi']
-    },
-})
+def create_app(config_name=os.getenv("FLASK_ENV", "production")):
+    # Define the ui_config class
+    config_class = config_classes.get(config_name.lower())
 
-app = Flask(__name__)
-csrf = CSRFProtect()
-csrf.init_app(app)
-CORS(app, resources={r"/*": {"origins": "*", "send_wildcard": "False"}})
+    # Setup logging
+    dictConfig(setuplog())
 
-login_manager = LoginManager()
-login_manager.init_app(app)
+    app = Flask(__name__)
+    app.config.from_object(config_class)
+    csrf.init_app(app)
+    CORS(app, resources={r"/*": {"origins": "*", "send_wildcard": "False"}})
 
-# We should really generate a key for each system
-app.config['SECRET_KEY'] = "Big secret key"  # TODO: make this random!
-# Set the global Flask Login state, set to True will ignore any @login_required
-app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
-# Set debug pin as it is hidden normally
-os.environ["WERKZEUG_DEBUG_PIN"] = "12345"  # make this random!
-app.logger.debug("Debugging pin: " + os.environ["WERKZEUG_DEBUG_PIN"])
-mysql_user = os.getenv("MYSQL_USER", "root")
-mysql_password = os.getenv("MYSQL_PASSWORD", "example")
-mysql_ip = os.getenv("MYSQL_IP", "127.0.0.1")
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://' + mysql_user + ':' + mysql_password + '@' + mysql_ip + '/arm'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy()
-db.init_app(app)
-with app.app_context():
-    db.create_all()
-migrate = Migrate(app, db)
-# Register route blueprints
-# loaded post database decleration to avoid circular loops
-from arm.ui.settings.settings import route_settings  # noqa: E402,F811
-from arm.ui.logs.logs import route_logs  # noqa: E402,F811
-from arm.ui.auth.auth import route_auth  # noqa: E402,F811
-from arm.ui.database.database import route_database  # noqa: E402,F811
-from arm.ui.history.history import route_history  # noqa: E402,F811
-from arm.ui.jobs.jobs import route_jobs  # noqa: E402,F811
-from arm.ui.sendmovies.sendmovies import route_sendmovies  # noqa: E402,F811
-from arm.ui.notifications.notifications import route_notifications  # noqa: E402,F811
-app.register_blueprint(route_settings)
-app.register_blueprint(route_logs)
-app.register_blueprint(route_auth)
-app.register_blueprint(route_database)
-app.register_blueprint(route_history)
-app.register_blueprint(route_jobs)
-app.register_blueprint(route_sendmovies)
-app.register_blueprint(route_notifications)
+    # Report system state for debugging
+    app.logger.debug(f"Starting ARM in [{config_class.ENV}] mode")
+    app.logger.debug(f'Debugging pin: {app.config["WERKZEUG_DEBUG_PIN"]}')
+    app.logger.debug(f'Mysql configuration: {config_class.mysql_uri_sanitised}')
+    app.logger.debug(f'SQLite Configuration: {config_class.sqlitefile}')
+    app.logger.debug(f'Login Disabled: {app.config["LOGIN_DISABLED"]}')
+    if config_class.DOCKER:
+        app.logger.info('ARM UI Running within Docker, ignoring any config in arm.yml')
+    app.logger.info(f'Starting ARM UI on interface address - {app.config["SERVER_HOST"]}:{app.config["SERVER_PORT"]}')
 
-# Remove GET/page loads from logging
-import logging  # noqa: E402,F811
-logging.getLogger('werkzeug').setLevel(logging.ERROR)
+    # Set log level per arm.yml config
+    app.logger.info(f"Setting log level to: {app.config['LOGLEVEL']}")
+    app.logger.setLevel(app.config['LOGLEVEL'])
+
+    # Pause ARM to ensure ARM DB is up and running
+    if config_class.DOCKER and config_class.ENV != 'development':
+        app.logger.info("Sleeping for 60 seconds to ensure ARM DB is active")
+        sleep(55)
+        for i in range(5, 0, -1):
+            app.logger.info(f"Starting in ... {i}")
+            sleep(1)
+        app.logger.info("Starting ARM")
+
+    # Initialise connection to databases
+    db.init_app(app)  # Initialise database
+    app.logger.debug(f'Alembic Migration Folder: {config_class.alembic_migrations_dir}')
+    migrate.init_app(app, db, directory=config_class.alembic_migrations_dir)
+
+    # Initialise the Database and Flask Alembic
+    with app.app_context():
+        # Upgrade or load the ARM database to the latest head/version
+        upgrade(directory=config_class.alembic_migrations_dir,
+                revision='head')
+
+        # Initialise the Flask-Login manager
+        login_manager.init_app(app)
+
+        # Register route blueprints
+        from ui.ui_blueprints import register_blueprints
+        register_blueprints(app)
+
+        # Initialise ARM and ensure tables are set, when not in Test
+        if not config_class.TESTING:
+            initialise_arm(app, db)
+
+        return app

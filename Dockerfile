@@ -1,15 +1,11 @@
 ###########################################################
 # setup default directories and configs
-FROM automaticrippingmachine/arm-dependencies:1.1.5 AS base
+FROM automaticrippingmachine/arm-dependencies:1.1.8 AS base
 
 LABEL org.opencontainers.image.source=https://github.com/automatic-ripping-machine/automatic-ripping-machine
 LABEL org.opencontainers.image.license=MIT
 LABEL org.opencontainers.image.description='Automatic Ripping Machine for fully automated Blu-ray, DVD and audio disc ripping.'
 
-EXPOSE 8080
-ENV MYSQL_IP="127.0.0.1"
-ENV MYSQL_USER="root"
-ENV MYSQL_PASSWORD="example"
 # Setup folders and fstab
 RUN \
     mkdir -m 0777 -p /home/arm \
