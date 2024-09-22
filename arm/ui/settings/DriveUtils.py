@@ -13,6 +13,7 @@ Ripper Utils
 import pyudev
 import re
 import logging
+from sqlalchemy import desc
 
 from arm.ui import app, db
 from arm.models.job import Job
@@ -55,9 +56,15 @@ def drives_update():
     drive_count = SystemDrives.query.count()
 
     for drive_mount in udev_drives:
-        # Check drive doesn't already exist
+        # Check drive doesn't yet exist
         if not SystemDrives.query.filter_by(mount=drive_mount).first():
             new_count += 1
+            previous_id = None
+
+            # Check for last job (if user removed an existing drive)
+            old_job = Job.query.filter_by(devpath=drive_mount).order_by(desc(Job.job_id)).first()
+            if old_job:
+                previous_id = old_job.job_id
 
             # Create new disk (name, type, mount, open, job id, previous job id, description )
             db_drive = SystemDrives(f"Drive {drive_count + new_count}",
@@ -66,9 +73,14 @@ def drives_update():
             app.logger.debug(f"Name: {db_drive.name}")
             app.logger.debug(f"Type: {db_drive.type}")
             app.logger.debug(f"Mount: {db_drive.mount}")
+            if old_job:
+                db_drive.job_id_previous = previous_id
+                app.logger.debug(f"Previous Job ID: {db_drive.job_id_previous}")
             app.logger.debug("****** End Drive Information ******")
             db.session.add(db_drive)
             db.session.commit()
+
+            # Reset drive to None
             db_drive = None
             i += 1
         else:
