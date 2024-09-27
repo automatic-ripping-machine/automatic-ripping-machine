@@ -2,8 +2,8 @@
 
 ***
 This installation method is not supported or maintained by the ARM Developers.
-Please install ARM as a [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker) to receive support from the developers.
-This installation guide has been left within the Wiki, as some users do not install via docker.
+For full support and continued maintenance,
+recommend installing ARM via the supported [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
 
 **Use at your own risk** 
 
@@ -42,22 +42,28 @@ Prior versions of TrueNAS Scale have an issue with GPU Allocation, which Cobia f
    Continue down to the ‘Resource Reservation’ section and into the ‘GPU Configuration’
    If you have a supported GPU, allocate at least a single one of the GPUs to enable the NVENC(Geforce) or other encodings, it will show you multiple GPUs that you can allocate, choose at least one.
       - For NVIDIA GPUs, not only do need to allocate your GPU, but you must also add a pair of variables in the ‘Container Environment Variables’ section:
-        - name: ‘NVIDIA_VISIBLE_DEVICES’ value: ‘all’
-        - name: ‘NVIDIA_DRIVER_CAPABILITIES’ value: ‘all’
+        - name: `NVIDIA_VISIBLE_DEVICES` value: `all`
+        - name: `NVIDIA_DRIVER_CAPABILITIES` value: `all`
 
-6. (Optional) Enable Web Portal. Not a needed step, but this will create a button on the ARM app in TrueNAS Scale to allow quick access to the ARM Web GUI.
+6. (Optional) Enable Web Portal. Not a necessary step, but this will create a button on the ARM app in TrueNAS Scale
+to allow quick access to the ARM Web GUI.
+Web Portal access requires enabling of port forwarding. Under 'Enable WebUI Porta' configure port forwarding
 
-7. Click the ‘Install’ button at the bottom and wait for it to complete.
+    | Container Port | Node Port         |
+    |----------------|-------------------|
+    | 8080           | <port-of-choice>  |
 
-8. ARM requires the docker ARM internal user 'arm' default `uid:1000` and `gid:1000` to have read and write permissions
-    to the above directories (Step 4).
-    
-    THis requires the `ARM_UID` and `ARM_GID` environment variables to align to either:
-    - TrueNAS default apps ID `568`
-    - Existing or new user created in the 'Credentials' tab, with permissions to the mounted volumes
+7. The ARM container's internal user has User ID `uid 1000` and Group ID `gid 1000`.
+You will need to make sure the container has read and write permissions in the paths set in Step 4.
+You have 2 choices for this:
+   - **Preferred**: In the Container Environment Variables section add the variables `ARM_UID` and `ARM_GID`
+   and set both to `568` (TrueNAS' default apps user/group). 
+   - **Alternate**: Adjust the directory and file permissions to allow read/write access for user and group ID `1000`,
+   either through chowning the directories/files, or adding corresponding ACLs.
+
+8. Click the ‘Install’ button at the bottom and wait for it to complete.
 
 If everything was done properly, ARM should now work.
 Head into the WebGUI either using the Webportal button on the ARM app if you made one or using the ‘ip:port’ in the browser to check if ARM is working.
-
 
 There you go. Any other TrueNAS Scale users can update or correct as needed.

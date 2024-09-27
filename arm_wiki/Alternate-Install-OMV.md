@@ -2,7 +2,8 @@
 
 ***
 This installation method is not supported or maintained by the ARM Developers.
-Please install ARM as a [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker) to receive support from the developers.
+For full support and continued maintenance,
+recommend installing ARM via the supported [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
 This installation guide has been left within the Wiki, as some users do not install via docker.
 
 **Use at your own risk** 
