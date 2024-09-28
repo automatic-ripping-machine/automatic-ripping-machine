@@ -2,7 +2,6 @@
 
 > 
 > [!Important]
-> 
 > This installation method is not supported, maintained or tested by the ARM Developers during upgrades.
 
 This is a step-by-step walkthrough adding ARM (Automatic Ripping Machine) to a
@@ -17,9 +16,7 @@ Prior versions of TrueNAS Scale have an issue with GPU Allocation, which Cobia f
     Create a custom app via Apps → Discover Apps → Custom App 
 
     > [!TIP]
-    > 
     > Refer to the TrueNAS Documentation for additional information:
-    > 
     > [Documentation Hub](https://www.truenas.com/docs/scale/24.04/scaletutorials/apps/usingcustomapp/)
 
 
