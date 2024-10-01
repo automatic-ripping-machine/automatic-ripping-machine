@@ -1,7 +1,7 @@
 # TrueNAS Installation Guide
 
-> 
 > [!Important]
+> 
 > This installation method is not supported, maintained or tested by the ARM Developers during upgrades.
 
 This is a step-by-step walkthrough adding ARM (Automatic Ripping Machine) to a
@@ -15,9 +15,10 @@ Prior versions of TrueNAS Scale have an issue with GPU Allocation, which Cobia f
 
     Create a custom app via Apps → Discover Apps → Custom App 
 
-    > [!TIP]
-    > Refer to the TrueNAS Documentation for additional information:
-    > [Documentation Hub](https://www.truenas.com/docs/scale/24.04/scaletutorials/apps/usingcustomapp/)
+> [!TIP]
+> 
+> Refer to the TrueNAS Documentation for additional information:
+> [Documentation Hub](https://www.truenas.com/docs/scale/24.04/scaletutorials/apps/usingcustomapp/)
 
 
 2. **Set the App Name**
@@ -109,10 +110,11 @@ Prior versions of TrueNAS Scale have an issue with GPU Allocation, which Cobia f
     single one of the compatible GPUs to enable the NVENC.
     It will show you multiple GPUs that you can allocate, choose at least one.
 
-    > [!IMPORTANT]  
-    > For NVIDIA GPUs, not only do you need to allocate your GPU, but you must also add a pair of variables in the **Container Environment Variables** section:
-    > - Name: `NVIDIA_VISIBLE_DEVICES` Value: `all`
-    > - Name: `NVIDIA_DRIVER_CAPABILITIES` Value: `all`
+> [!IMPORTANT]  
+> 
+> For NVIDIA GPUs, not only do you need to allocate your GPU, but you must also add a pair of variables in the **Container Environment Variables** section:
+> - Name: `NVIDIA_VISIBLE_DEVICES` Value: `all`
+> - Name: `NVIDIA_DRIVER_CAPABILITIES` Value: `all`
 
 
 9. **Enable Web Portal** (Optional) 
