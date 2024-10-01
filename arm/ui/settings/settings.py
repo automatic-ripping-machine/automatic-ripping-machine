@@ -10,6 +10,7 @@ Covers
 - systemdrivescan [GET]
 - update_arm [POST]
 - drive_eject [GET]
+- drive_remove [GET]
 - testapprise [GET]
 """
 
@@ -45,7 +46,7 @@ page_settings = "settings/settings.html"
 redirect_settings = "/settings"
 
 
-@route_settings.route('/settings', methods=['GET','POST'])
+@route_settings.route('/settings')
 @login_required
 def settings():
     """
