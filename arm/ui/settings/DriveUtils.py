@@ -49,7 +49,6 @@ def drives_update():
     scan the system for new cd/dvd/Blu-ray drives
     """
     udev_drives = drives_search()
-    i = 1
     new_count = 0
 
     # Get the number of current drives in the database
@@ -73,6 +72,7 @@ def drives_update():
             app.logger.debug(f"Name: {db_drive.name}")
             app.logger.debug(f"Type: {db_drive.type}")
             app.logger.debug(f"Mount: {db_drive.mount}")
+            app.logger.debug(f"Description: {db_drive.description}")
             if old_job:
                 db_drive.job_id_previous = previous_id
                 app.logger.debug(f"Previous Job ID: {db_drive.job_id_previous}")
@@ -82,9 +82,6 @@ def drives_update():
 
             # Reset drive to None
             db_drive = None
-            i += 1
-        else:
-            i += 1
 
     if new_count > 0:
         app.logger.info(f"Added {new_count} drives for ARM.")
@@ -127,6 +124,7 @@ def drive_status_debug(drive):
     app.logger.debug("*********")
     app.logger.debug(f"Name: {drive.name}")
     app.logger.debug(f"Type: {drive.type}")
+    app.logger.debug(f"Description: {drive.description}")
     app.logger.debug(f"Mount: {drive.mount}")
     app.logger.debug(f"Open: {drive.open}")
     app.logger.debug(f"Job Current: {drive.job_id_current}")
@@ -156,7 +154,7 @@ def job_cleanup(job_id):
 
 def update_drive_job(job):
     """
-    Function to take current job task and update the associated drive ID into the database
+    Function to take the current job task and update the associated drive ID into the database
     """
     drive = SystemDrives.query.filter_by(mount=job.devpath).first()
     drive.new_job(job.job_id)

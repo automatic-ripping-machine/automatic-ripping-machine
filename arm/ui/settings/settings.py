@@ -45,7 +45,7 @@ page_settings = "settings/settings.html"
 redirect_settings = "/settings"
 
 
-@route_settings.route('/settings')
+@route_settings.route('/settings', methods=['GET','POST'])
 @login_required
 def settings():
     """
@@ -281,14 +281,18 @@ def server_info():
     if request.method == 'POST' and form_drive.validate():
         # Return for POST
         app.logger.debug(
-            "Drive id: " + str(form_drive.id.data) +
-            " Updated db description: " + form_drive.description.data)
+            f"Drive id: {str(form_drive.id.data)} " +
+            f"Updated name: [{str(form_drive.name.data)}] " +
+            f"Updated description: [{str(form_drive.description.data)}]")
         drive = SystemDrives.query.filter_by(drive_id=form_drive.id.data).first()
+        drive.name = str(form_drive.name.data).strip()
         drive.description = str(form_drive.description.data).strip()
         db.session.commit()
+        flash(f"Updated Drive { drive.mount } details", "success")
         # Return to systeminfo page (refresh page)
         return redirect(redirect_settings)
     else:
+        flash("Error: Unable to update drive details", "error")
         # Return for GET
         return redirect(redirect_settings)
 
@@ -301,7 +305,7 @@ def system_drive_scan():
     Overview - Scan for the system drives and update the database.
     """
     global redirect_settings
-    # Update to scan for changes from system
+    # Update to scan for changes to the ripper system
     new_count = DriveUtils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
     return redirect(redirect_settings)
@@ -329,9 +333,11 @@ def drive_remove(remove_id):
     global redirect_settings
     try:
         app.logger.debug(f"Removing drive {remove_id}")
+        drive = SystemDrives.query.filter_by(drive_id=remove_id).first()
+        dev_path = drive.mount
         SystemDrives.query.filter_by(drive_id=remove_id).delete()
         db.session.commit()
-        flash(f"Drive [{remove_id}] removed", "success")
+        flash(f"Removed drive [{dev_path}] from ARM", "success")
     except Exception as e:
         app.logger.error(f"Drive removal encountered an error: {e}")
         flash("Drive unable to be removed, check logs for error", "error")

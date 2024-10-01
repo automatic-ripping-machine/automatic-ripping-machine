@@ -8,8 +8,8 @@
                         <strong>Disk Drives</strong>
                     </div>
                     <ul class="list-group list-group-flush">
-                        {% if drives: %}
-                            {% for drive in drives: %}
+                        {% if drives %}
+                            {% for drive in drives %}
                                 <li class="list-group-item">
                                     <div class="container">
                                         <div class="row">
@@ -20,8 +20,14 @@
                                                         {{ form_drive.hidden_tag() }}
                                                     {% endif %}
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label px-1">Name</label>
-                                                        <label class="col-sm col-form-label px-1">{{ drive.name }}</label>
+                                                        <label for="driveName" class="col-sm-3 col-form-label px-1">Name</label>
+                                                        {% if form_drive %}
+                                                            <!-- Drives form defined, editing available -->
+                                                            <input class="col-sm-6 form-control form-control-sm px-1" type="text" id="name" name="name" value="{{ drive.name }}">
+                                                        {% else %}
+                                                            <!-- Drives form not defined, no editing available -->
+                                                            <label class="col-sm col-form-label px-1">{{ drive.name }}</label>
+                                                        {% endif %}
                                                     </div>
                                                     <div class="form-group row my-0">
                                                         <label class="col-sm-3 col-form-label px-1">Type</label>
@@ -49,17 +55,15 @@
                                                     </div>
                                                     <div class="form-group row my-0">
                                                         <label for="driveDescription" class="col-sm-3 col-form-label px-1">Description</label>
-                                                        <div class="col-sm">
-                                                            {% if form_drive %}
-                                                                <!-- Drives form defined, editing available -->
-                                                                <input class="form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}">
-                                                                <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
-                                                            {% else %}
-                                                                <!-- Drives form not defined, no editing available -->
-                                                                <input class="form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}" readonly>
-                                                                <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
-                                                            {% endif %}
-                                                        </div>
+                                                        {% if form_drive %}
+                                                            <!-- Drives form defined, editing available -->
+                                                            <input class="col-sm-6 form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}">
+                                                            <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
+                                                        {% else %}
+                                                            <!-- Drives form not defined, no editing available -->
+                                                            <input class="form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}" readonly>
+                                                            <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
+                                                        {% endif %}
                                                     </div>
                                                     <div class="form-group row my-0">
                                                         <div class="col">
@@ -78,7 +82,7 @@
                                             </div>
                                             <div class="col-2 d-flex">
                                                 <div class="row">
-                                                    {% if drive.open: %}
+                                                    {% if drive.open %}
                                                         <a href="drive/eject/{{ drive.drive_id }}">
                                                             <img src="static/img/drive-optical_open.svg" class="p-flex align-items-center" style="max-width:100px; min-width:50px" alt="Drive Open">
                                                         </a>

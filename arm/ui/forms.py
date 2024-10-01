@@ -81,6 +81,7 @@ class SystemInfoDrives(FlaskForm):
       - /settings
     """
     id = IntegerField('id', validators=[DataRequired()])
+    name = StringField('name', validators=[DataRequired()])
     description = StringField('description', validators=[DataRequired()])
     submit = SubmitField('Submit')
 
