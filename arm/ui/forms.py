@@ -76,11 +76,12 @@ class AbcdeForm(FlaskForm):
 
 class SystemInfoDrives(FlaskForm):
     """
-    SystemInformation Form, to update system drive name (nick name) and description
+    SystemInformation Form, to update system drive name (nickname) and description
       - /systeminfo
       - /settings
     """
     id = IntegerField('id', validators=[DataRequired()])
+    name = StringField('name', validators=[DataRequired()])
     description = StringField('description', validators=[DataRequired()])
     submit = SubmitField('Submit')
 
