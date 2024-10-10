@@ -30,6 +30,19 @@ from arm.ripper import apprise_bulk
 
 NOTIFY_TITLE = "ARM notification"
 
+def fix_cue_file(file):
+    new_cue_file=""
+    with open(file,'r') as cue_file:
+        for line in cue_file.readlines():
+            if line[:6] == 'FILE "' and line[-9:] == '" BINARY\n':
+                filename = line[6:-9]
+                trimmed_filename = os.path.basename(filename)
+                new_line = f'FILE "{trimmed_filename}" BINARY\n'
+            else:
+                new_line = line
+            new_cue_file = new_cue_file + new_line
+    with open(file,'w') as cue_file:
+        cue_file.write(new_cue_file)
 
 def notify(job, title: str, body: str):
     """
@@ -114,6 +127,8 @@ def notify_entry(job):
         notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks.")
     elif job.disctype == "data":
         notify(job, NOTIFY_TITLE, "Found data disc.  Copying data.")
+    elif job.disctype == "hybrid":
+        notify(job, NOTIFY_TITLE, "Found hybrid disc.  Copying data+audio to bin/cue.")
     else:
         notify(job, NOTIFY_TITLE, "Could not identify disc.  Exiting.")
         args = {'status': 'fail', 'errors': "Could not identify disc."}
@@ -442,6 +457,79 @@ def rip_data(job):
         err = f"Data rip failed with code: {dd_error.returncode}({dd_error.output})"
         logging.error(err)
         os.unlink(incomplete_filename)
+        args = {'status': 'fail', 'errors': err}
+        database_updater(args, job)
+    try:
+        logging.info(f"Trying to remove raw_path: '{raw_path}'")
+        shutil.rmtree(raw_path)
+    except OSError as error:
+        logging.error(f"Error: {error.filename} - {error.strerror}.")
+    return success
+
+def rip_hybrid(job):
+    """
+    Rip hybrid audio/data disc using cdrdao on the command line\n
+    :param job: Current job
+    :return: True/False for success/fail
+    """
+    success = False
+    if job.label == "" or job.label is None:
+        job.label = "data-disc"
+    # get filesystem in order
+    raw_path = os.path.join(job.config.RAW_PATH, str(job.label))
+    final_path = os.path.join(job.config.COMPLETED_PATH, convert_job_type(job.video_type))
+    final_file_name = str(job.label)
+
+    if (make_dir(raw_path)) is False:
+        random_time = str(round(time.time() * 100))
+        raw_path = os.path.join(job.config.RAW_PATH, str(job.label) + "_" + random_time)
+        final_file_name = f"{job.label}_{random_time}"
+        if (make_dir(raw_path)) is False:
+            logging.info(f"Could not create data directory: {raw_path}  Exiting ARM. ")
+            args = {'status': 'fail', 'errors': "Couldn't create data directory"}
+            database_updater(args, job)
+            sys.exit()
+
+    final_path = os.path.join(final_path, final_file_name)
+    incomplete_filename = os.path.join(raw_path, str(job.label) + ".part")
+    incomplete_filename_toc = os.path.join(raw_path, str(job.label) + ".toc")
+    incomplete_filename_cue = os.path.join(raw_path, str(job.label) + ".cue")
+    incomplete_filename_bin = os.path.join(raw_path, str(job.label) + ".bin")
+    
+    make_dir(final_path)
+    logging.info(f"Ripping data disc to: {incomplete_filename}")
+    # Added from pull 366
+    cmd = f'cdrdao read-cd --read-raw --device "{job.devpath}" --datafile "{incomplete_filename}" "{incomplete_filename_toc}" 2>> ' \
+          f'{os.path.join(job.config.LOGPATH, job.logfile)}'
+    toc_cmd = f'toc2cue -s -C "{incomplete_filename_bin}" "{incomplete_filename_toc}" "{incomplete_filename_cue}" 2>> ' \
+              f'{os.path.join(job.config.LOGPATH, job.logfile)}'
+    logging.debug(f"Sending command: {cmd}")
+    try:
+        subprocess.check_output(cmd, shell=True).decode("utf-8")
+        try:
+            subprocess.check_output(toc_cmd, shell=True).decode("utf-8")
+        except subprocess.CalledProcessError as tc_error:
+            err = f"toc2cue failed with code: {tc_error.returncode}({tc_error.output})"
+            logging.error(err)
+            os.unlink(incomplete_filename)
+            args = {'status': 'fail', 'errors': err}
+            database_updater(args, job)
+        os.unlink(incomplete_filename)
+        os.unlink(incomplete_filename_toc)
+        full_final_file = os.path.join(final_path, f"{str(job.label)}.bin")
+        full_final_file_cue = os.path.join(final_path, f"{str(job.label)}.cue")
+        logging.info(f"Fixing cue file")
+        fix_cue_file(incomplete_filename_cue)
+        logging.info(f"Moving data+audio from '{incomplete_filename}' to '{full_final_file}'")
+        move_files_main(incomplete_filename_bin, full_final_file, final_path)
+        logging.info(f"Moving data+audio cue sheet from '{incomplete_filename_cue}' to '{full_final_file_cue}'")
+        move_files_main(incomplete_filename_cue, full_final_file_cue, final_path)
+        logging.info("Data+audio rip call successful")
+        success = True
+    except subprocess.CalledProcessError as dao_error:
+        err = f"Data rip failed with code: {dao_error.returncode}({dao_error.output})"
+        logging.error(err)
+        # os.unlink(incomplete_filename)
         args = {'status': 'fail', 'errors': err}
         database_updater(args, job)
     try:
