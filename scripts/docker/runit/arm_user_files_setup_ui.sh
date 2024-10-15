@@ -52,8 +52,6 @@ elif [[ $ARM_GID -eq $DEFAULT_GID ]]; then
   echo -e "Updating arm group id $ARM_GID to default (1000)..."
   groupmod -og $DEFAULT_GID arm
 fi
-echo "Adding arm user to 'render' group"
-usermod -a -G render arm
 
 ### Setup Files
 chown -R arm:arm /opt/arm

@@ -2,12 +2,13 @@
 version: '3'
 
 services:
-  # Image for Automatic Ripping Machine
-  arm-main:
+  # Image for Automatic Ripping Machine User Interface (UI) AKA Webpage
+  arm-ui:
     build:
       context: ./
       dockerfile: Dockerfile-UI
-    image: automaticrippingmachine/automatic-ripping-machine:3.0
+    image: automaticrippingmachine/arm-ui:3.0.0_dev
+    container_name: arm-ui
     ports:
       - "8080:8080"
     environment:
@@ -26,13 +27,6 @@ services:
       - /home/arm/logs:/home/arm/logs
       - /home/arm/media:/home/arm/media
       - /home/arm/config:/etc/arm/config
-    #devices:
-     # - "/dev/sr0:/dev/sr0"
-     # - "/dev/sr1:/dev/sr1"
-     #- "/dev/sr2:/dev/sr2"
-     #- "/dev/sr3:/dev/sr3"
-     #- "/dev/sr4:/dev/sr4"
-     #- "/dev/sr5:/dev/sr5"
     logging:
       # Docker log rotate settings, max file size and number of files
       options:
@@ -43,6 +37,49 @@ services:
     networks:
       - arm-network
     restart: unless-stopped
+
+  # Image for Automatic Ripping Machine Ripper
+#  arm-ripper:
+#    build:
+#      context: ./
+#      dockerfile: Dockerfile-Ripper
+#    image: automaticrippingmachine/arm-ripper:3.0.0_dev
+#    container_name: arm-ripper:3.0.0_dev
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      # ARM environment variables and configuration
+#      - ARM_UID=1001            # Set this to the ARM user id
+#      - ARM_GID=1001            # Set this to the ARM user group id
+#      - FLASK_ENV=development   # leave this commented out unless running in development or there are UI bugs
+#      - MYSQL_IP=arm-db         # leave unless the ARM database is on another machine
+#      - MYSQL_USER=arm          # this should match the MySQL database user
+#      - MYSQL_PASSWORD=example  # this should match the MySQL database password
+#      - TZ=Etc/UTC              # set to your local timezone
+#    volumes:
+#      # Volumes for ARM 'local directory':'ARM container directory'
+#      - /home/arm:/home/arm
+#      - /home/arm/music:/home/arm/music
+#      - /home/arm/logs:/home/arm/logs
+#      - /home/arm/media:/home/arm/media
+#      - /home/arm/config:/etc/arm/config
+#      #devices:
+#      # - "/dev/sr0:/dev/sr0"
+#      # - "/dev/sr1:/dev/sr1"
+#      #- "/dev/sr2:/dev/sr2"
+#      #- "/dev/sr3:/dev/sr3"
+#      #- "/dev/sr4:/dev/sr4"
+#      #- "/dev/sr5:/dev/sr5"
+#    logging:
+#      # Docker log rotate settings, max file size and number of files
+#      options:
+#        max-size: "10m"
+#        max-file: "1"
+#    depends_on:
+#      - arm-db
+#    networks:
+#      - arm-network
+#    restart: unless-stopped
 
   # Image for the Automatic Ripping Machine Database, using MySql
   arm-db:
