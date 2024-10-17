@@ -1,0 +1,12 @@
+Generic single-database configuration
+Whilst ARM supports MYSQL and SQLite, the default is MYSQL with SQLite only supported for migration
+The default bind is against the MYSQL config
+
+Alembic documentation
+- https://alembic.sqlalchemy.org/en/latest/
+
+Adding a migration
+- from within the automatic-ripping-machine migration folder
+.../automatic-ripping-machine/arm/
+
+flask db migration -m "description of the migration"

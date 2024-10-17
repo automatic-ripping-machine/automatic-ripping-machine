@@ -15,7 +15,7 @@ from pathlib import Path, PurePath
 
 import bcrypt
 import requests
-import apprise
+# import apprise
 import psutil
 
 from netifaces import interfaces, ifaddresses, AF_INET
@@ -26,62 +26,71 @@ from arm.models.job import Job
 from arm.models.notifications import Notifications
 from arm.models.track import Track
 from arm.models.user import User
-from arm.ripper import apprise_bulk
+# from arm.ripper import apprise_bulk
 
 NOTIFY_TITLE = "ARM notification"
 
+# todo: remove before rev 3.0 release
+# moved to ui notification utils
+# def notify(job, title: str, body: str):
+#     """
+#     Send notifications with apprise\n
+#     :param job: Current Job
+#     :param title: title for notification
+#     :param body: body of the notification
+#     :return: None
+#     """
+#
+#     # Prepend Site Name if configured
+#     if cfg.arm_config["ARM_NAME"] != "":
+#         title = f"[{cfg.arm_config['ARM_NAME']}] - {title}"
+#
+#     # append Job ID if configured
+#     if cfg.arm_config["NOTIFY_JOBID"] and job is not None:
+#         title = f"{title} - {job.job_id}"
+#
+#     # Send to local db
+#     logging.debug(f"apprise message, title: {title} body: {body}")
+#     notification = Notifications(title, body)
+#     database_adder(notification)
+#
+#     bash_notify(cfg.arm_config, title, body)
+#
+#     # Sent to remote sites
+#     # Create an Apprise instance
+#     apobj = apprise.Apprise()
+#     if cfg.arm_config["PB_KEY"] != "":
+#         apobj.add('pbul://' + str(cfg.arm_config["PB_KEY"]))
+#     if cfg.arm_config["IFTTT_KEY"] != "":
+#         apobj.add('ifttt://' + str(cfg.arm_config["IFTTT_KEY"]) + "@" + str(cfg.arm_config["IFTTT_EVENT"]))
+#     if cfg.arm_config["PO_USER_KEY"] != "":
+#         apobj.add('pover://' + str(cfg.arm_config["PO_USER_KEY"]) + "@" + str(cfg.arm_config["PO_APP_KEY"]))
+#     if cfg.arm_config["JSON_URL"] != "":
+#         apobj.add(str(cfg.arm_config["JSON_URL"]).replace("http://", "json://").replace("https://", "jsons://"))
+#     try:
+#         apobj.notify(body, title=title)
+#     except Exception as error:  # noqa: E722
+#         logging.error(f"Failed sending notifications. error:{error}. Continuing processing...")
+#
+#     # Bulk send notifications, using the config set on the ripper config page
+#     if cfg.arm_config["APPRISE"] != "":
+#         try:
+#             apprise_bulk.apprise_notify(cfg.arm_config["APPRISE"], title, body)
+#             logging.debug(f"apprise-config: {cfg.arm_config['APPRISE']}")
+#         except Exception as error:  # noqa: E722
+#             logging.error(f"Failed sending apprise notifications. {error}")
 
-def notify(job, title, body):
-    """
-    Send notifications with apprise\n
-    :param job: Current Job
-    :param title: title for notification
-    :param body: body of the notification
-    :return: None
-    """
-    # Prepend Site Name if configured, append Job ID if configured
-    if cfg.arm_config["ARM_NAME"] != "":
-        title = f"[{cfg.arm_config['ARM_NAME']}] - {title}"
-    if cfg.arm_config["NOTIFY_JOBID"]:
-        title = f"{title} - {job.job_id}"
-    # Send to local db
-    notification = Notifications(title, body)
-    database_adder(notification)
 
-    bash_notify(cfg.arm_config, title, body)
-
-    # Sent to remote sites
-    # Create an Apprise instance
-    apobj = apprise.Apprise()
-    if cfg.arm_config["PB_KEY"] != "":
-        apobj.add('pbul://' + str(cfg.arm_config["PB_KEY"]))
-    if cfg.arm_config["IFTTT_KEY"] != "":
-        apobj.add('ifttt://' + str(cfg.arm_config["IFTTT_KEY"]) + "@" + str(cfg.arm_config["IFTTT_EVENT"]))
-    if cfg.arm_config["PO_USER_KEY"] != "":
-        apobj.add('pover://' + str(cfg.arm_config["PO_USER_KEY"]) + "@" + str(cfg.arm_config["PO_APP_KEY"]))
-    if cfg.arm_config["JSON_URL"] != "":
-        apobj.add(str(cfg.arm_config["JSON_URL"]).replace("http://", "json://").replace("https://", "jsons://"))
-    try:
-        apobj.notify(body, title=title)
-    except Exception as error:  # noqa: E722
-        logging.error(f"Failed sending notifications. error:{error}. Continuing processing...")
-
-    if cfg.arm_config["APPRISE"] != "":
-        try:
-            apprise_bulk.apprise_notify(cfg.arm_config["APPRISE"], title, body)
-            logging.debug(f"apprise-config: {cfg.arm_config['APPRISE']}")
-        except Exception as error:  # noqa: E722
-            logging.error(f"Failed sending apprise notifications. {error}")
-
-
-def bash_notify(cfg, title, body):
-    # bash notifications use subprocess instead of apprise.
-    if cfg['BASH_SCRIPT'] != "":
-        try:
-            subprocess.run(["/usr/bin/bash", cfg['BASH_SCRIPT'], title, body])
-            logging.debug("Sent bash notification successful")
-        except Exception as error:  # noqa: E722
-            logging.error(f"Failed sending notification via bash. Continuing  processing...{error}")
+# todo: remove before rev 3.0 release
+# moved to ui notification utils
+# def bash_notify(cfg, title, body):
+#     # bash notifications use subprocess instead of apprise.
+#     if cfg['BASH_SCRIPT'] != "":
+#         try:
+#             subprocess.run(["/usr/bin/bash", cfg['BASH_SCRIPT'], title, body])
+#             logging.debug("Sent bash notification successful")
+#         except Exception as error:  # noqa: E722
+#             logging.error(f"Failed sending notification via bash. Continuing  processing...{error}")
 
 
 def notify_entry(job):
@@ -97,7 +106,7 @@ def notify_entry(job):
     database_adder(notification)
     if job.disctype in ["dvd", "bluray"]:
         if cfg.arm_config["UI_BASE_URL"] == "":
-            display_address = (f"http://{check_ip()}:{job.config.WEBSERVER_PORT}")
+            display_address = f"http://{check_ip()}:{job.config.WEBSERVER_PORT}"
         else:
             display_address = str(cfg.arm_config["UI_BASE_URL"])
         # Send the notifications
@@ -429,7 +438,7 @@ def rip_data(job):
         subprocess.check_output(cmd, shell=True).decode("utf-8")
         full_final_file = os.path.join(final_path, f"{str(job.label)}.iso")
         logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
-        os.rename(incomplete_filename, full_final_file)
+        move_files_main(incomplete_filename, full_final_file, final_path)
         logging.info("Data rip call successful")
         success = True
     except subprocess.CalledProcessError as dd_error:
@@ -485,9 +494,9 @@ def try_add_default_user():
     """
     try:
         username = "admin"
-        pass1 = "password".encode('utf-8')
+        base_password = "password".encode('utf-8')
         hashed = bcrypt.gensalt(12)
-        database_adder(User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed))
+        database_adder(User(email=username, password=bcrypt.hashpw(base_password, hashed), hashed=hashed))
         perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
         write_permission_file = open(perm_file, "w")
         write_permission_file.write("boop!")
@@ -580,7 +589,7 @@ def database_updater(args, job, wait_time=90):
     # Loop through our args and try to set any of our job variables
     for (key, value) in args.items():
         setattr(job, key, value)
-        logging.debug(f"{key}={value}:{type(value)}")
+        logging.debug(f"ID:{job.job_id} {key}={value}:{type(value)}")
 
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:

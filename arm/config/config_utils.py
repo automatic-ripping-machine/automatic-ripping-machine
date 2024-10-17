@@ -5,7 +5,7 @@ def arm_yaml_check_groups(comments, key):
     """
     Check the current key to be added to arm.yaml and insert the group
     separator comment, if the key matches\n
-    :param comments: comments dict, containing all comments from the arm.yaml
+    :param comments: comment's dict, containing all comments from the arm.yaml
     :param key: the current post key from form.args
     :return: arm.yaml config with any new comments added
     """

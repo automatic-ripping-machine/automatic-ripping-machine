@@ -1,6 +1,4 @@
 {% extends "base.html" %}
-{% block title %}Database{% endblock %}
-{% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
 <style>
@@ -13,15 +11,6 @@
     }
 </style>
     <div class="container-fluid h-100 mx-auto">
-        <!-- Header image -->
-        <div class="row">
-            <div class="col-sm-12  rounded text-center">
-                <img src="static/img/arm80.png" alt="Automatic Ripping Machine">
-                <p class="text-center">
-                    <strong>Welcome to your Automatic Ripping Machine<br></strong>
-                </p>
-            </div>
-        </div>
         <div class="row h-100 mx-auto align-items-center">
             <div class="col-sm-12 mx-auto">
                 <p class="text-center">
@@ -74,13 +63,18 @@
         <!-- Buttons -->
         <div class="row d-flex justify-content-end">
             <div class="p-4">
-                <button id="save-get-success" type="button" class="btn btn-secondary btn-success">Get all successful
-                    jobs
+                <button id="save-get-success" type="button" class="btn btn-secondary btn-success">
+                    Get all successful jobs
                 </button>
-                <button id="save-get-failed" type="button" class="btn btn-secondary btn-danger">Get all failed jobs
+                <button id="save-get-failed" type="button" class="btn btn-secondary btn-danger">
+                    Get all failed jobs
                 </button>
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal"
-                        data-type="search" data-href="json?mode=search&q=">Search Database
+                        data-type="search" data-href="json?mode=search&q=">
+                    Search
+                </button>
+                <button onclick="location.href='databasemigrate';" type="button" class="btn btn-info">
+                    Migrate
                 </button>
             </div>
         </div>

@@ -4,7 +4,7 @@ import json
 import os
 import yaml
 
-import arm.config.config_utils as config_utils
+import config.config_utils as config_utils
 
 CONFIG_LOCATION = "/etc/arm/config"
 arm_config_path = os.path.join(CONFIG_LOCATION, "arm.yaml")
@@ -38,7 +38,7 @@ if len(cur_cfg) != len(new_cfg):
             new_cfg[key] = cur_cfg[key]
 
     # 4. Save the dictionary
-    with open("/opt/arm/arm/ui/comments.json", "r") as comments_file:
+    with open("/arm/app/comments.json", "r") as comments_file:
         comments = json.load(comments_file)
 
     arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"

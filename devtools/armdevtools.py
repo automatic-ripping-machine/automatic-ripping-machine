@@ -10,8 +10,11 @@ Automatic-Ripping-Machine Development Tools
     More details are captured in the wiki
     https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/ARM-Development-Tools
 
-    Note if making changes to this code, avoid pulling in modules from the main arm code
+    *************************************************************************************
+    Note:
+         if making changes to this code, avoid pulling in modules from the main arm code
     doing so causes issues as arm has may linked modules, scripts and dependencies
+    *************************************************************************************
 """
 
 import argparse
@@ -19,23 +22,30 @@ import argparse
 import armgit
 import database
 import armdocker
-import armnotify
-
 
 __version__ = '0.3'
 arm_home = "/home/arm"
 arm_install = "/opt/arm"
 
-
 # Commence reading from the input options
 desc = "Automatic Ripping Machine Development Tool Scripts. " \
-        "Note: scripts assume running on a bare metal server when running, " \
-        "unless running the specific docker rebuild scripts."
+       "Note: scripts assume running on a bare metal server when running, " \
+       "unless running the specific docker rebuild scripts."
 parser = argparse.ArgumentParser(description=desc)
 parser.add_argument("-b",
                     help="Name of the branch to move to, example -b v2_devel")
 parser.add_argument("-dr",
-                    help="Docker rebuild post ARM code update. Requires docker run script path to run.")
+                    help="Docker - Stop, Remove and Rebuild the ARM Docker image, leaving the container")
+parser.add_argument("--clean",
+                    help="Docker - Remove all ARM docker images and containers before rebuilding.",
+                    action="store_true")
+parser.add_argument("-dc",
+                    help="Docker-Compose - Remove all ARM docker images using docker-compose, rebuild and start ARM.",
+                    action="store_true")
+parser.add_argument("--monitor",
+                    help="Docker-Compose - Set the '-d' status, calling --monitor will not set '-d' and docker"
+                         " will output all text to the console.",
+                    action="store_true")
 parser.add_argument("-db_rem",
                     help="Database tool - remove current arm.db file",
                     action='store_true')
@@ -44,9 +54,6 @@ parser.add_argument("-qa",
                     action='store_true')
 parser.add_argument("-pr",
                     help="Actions to run prior to committing a PR against ARM on github",
-                    action="store_true")
-parser.add_argument("-n",
-                    help="Notification tool - show a test notification",
                     action="store_true")
 parser.add_argument("-v", help="ARM Dev Tools Version",
                     action='version',
@@ -59,7 +66,11 @@ if args.b:
 
 # -dr Docker ARM update and rebuild
 if args.dr:
-    armdocker.docker_rebuild(args.dr, arm_install)
+    armdocker.docker_rebuild(args.dr, arm_install, args.clean)
+
+# -dc docker-compose and options --monitor
+if args.dc:
+    armdocker.dockercompose_rebuild(args.monitor)
 
 # -db_rem Database remove
 if args.db_rem:
@@ -71,6 +82,3 @@ if args.qa:
 
 if args.pr:
     armgit.pr_update()
-
-if args.n:
-    armnotify.test()

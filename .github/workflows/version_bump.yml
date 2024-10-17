@@ -1,53 +1,119 @@
 name: "Version Increment"
 
 on:
-  push:
-      branches:
-          - '*'
-          - '!main'
+  # Run this action on any Pull Request raised against ARM
+  pull_request:
+    # Don't run on changes to the below paths
+    paths-ignore:
+      - 'arm_wiki/**'
+      - '.github/**'
+
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   version:
     runs-on: ubuntu-latest
     steps:
-          
-      -
-          name: Get branch name
-          id: branch-name
-          uses: tj-actions/branch-names@v8
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@v8
 
-
-      -
-          name: Set tag for non-default branch
-          if: steps.branch-name.outputs.is_default == 'false' && steps.branch-name.outputs.default_branch != ''
-          run: |
-                    echo "Branch name is ${{ steps.branch-name.outputs.ref_branch }}"
-                    echo "Main name is ${{ steps.branch-name.outputs.default_branch }}"
-                    echo "TAG=${{ steps.branch-name.outputs.current_branch }}" >> $GITHUB_ENV
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          ref: ${{ steps.branch-name.outputs.current_branch }}
           fetch-depth: 0
-      - run: |
-           echo "github ref = ${{ github.ref }} 
-           and ${{ steps.branch-name.outputs.current_branch }} 
-           and ${{ github.GITHUB_HEAD_REF }}"
-      - run: git switch ${{ steps.branch-name.outputs.current_branch }}
-      - name: Commit files
+
+      - name: Fetch main branch
         run: |
-          SEM_VER=$(cat VERSION | awk -F. -v OFS=. 'NF==1{print ++$NF}; NF>1{if(length($NF+1)>length($NF))$(NF-1)++; $NF=sprintf("%0*d", length($NF), ($NF+1)%(10^length($NF))); print}')
-          COMMIT_MSG=$(git log --format=%B -n 1 ${{ github.event.after }})
-          # Write files
-          echo $SEM_VER > VERSION
-          # Add new git commit
+          git fetch origin main:main
+
+      - name: Check for version bump
+        id: version-check
+        run: |
+          if ! git diff main --name-only | grep -q 'VERSION'; then
+            echo "VERSION_UPDATED=false" >> "$GITHUB_ENV"
+            echo "No Version update found in commit"
+          else
+            echo "VERSION_UPDATED=true" >> "$GITHUB_ENV"
+            echo "Version update found in commit"
+          fi
+
+      - name: Determine new version
+        if: env.VERSION_UPDATED == 'false'
+        id: determine-version
+        run: |
+          PR_TITLE=$(jq -r '.pull_request.title' "$GITHUB_EVENT_PATH")
+          echo "PR Title: $PR_TITLE"
+          if [[ "$PR_TITLE" == *"[FEATURE]"* ]]; then
+            VERSION_TYPE="minor"
+            echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
+            echo "PR set to FEATURE updating minor version"
+          elif [[ "$PR_TITLE" == *"[BUGFIX]"* ]]; then
+            VERSION_TYPE="patch"
+            echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
+            echo "PR set to BUGFIX updating patch version"
+          else
+            echo "No version bump flag found in PR title. Exiting."
+            echo "Edit your PR title to include either FEATURE or BUGFIX"
+            exit 1
+          fi
+          CURRENT_VERSION=$(cat VERSION)
+          IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+          if [ "$VERSION_TYPE" == "minor" ]; then
+            VERSION_PARTS[1]=$((VERSION_PARTS[1]+1))
+            VERSION_PARTS[2]=0
+          elif [ "$VERSION_TYPE" == "patch" ]; then
+            VERSION_PARTS[2]=$((VERSION_PARTS[2]+1))
+          fi
+          NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+          echo "New Version: " $NEW_VERSION
+
+      - name: Pull latest changes from remote
+        if: env.VERSION_UPDATED == 'false'
+        run: |
+          git pull --rebase origin ${{ github.head_ref }}
+
+      - name: Update VERSION file
+        if: env.VERSION_UPDATED == 'false'
+        run: |
+          echo "$NEW_VERSION" > VERSION
           git add VERSION
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -m "[Automated] Increment Version"      
+          git commit -m "[Automated] Release: ${VERSION_TYPE} - Version from $CURRENT_VERSION to $NEW_VERSION"
+
       - name: Push changes
-        uses: ad-m/github-push-action@master
+        if: env.VERSION_UPDATED == 'false'
+        run: |
+          git push origin ${{ github.head_ref }}
+
+      - name: Comment on PR
+        if: env.VERSION_UPDATED == 'false'
+        uses: actions/github-script@v7
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ steps.branch-name.outputs.current_branch }} 
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.issue.number;
+            const newVersion = process.env.NEW_VERSION;
+            const currentVersion = process.env.CURRENT_VERSION;
+            const versionType = process.env.VERSION_TYPE;
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: `Release type: ${versionType}. The version has been incremented from ${currentVersion} to ${newVersion} based on the PR title flag.`
+            })
+
+      - name: Set tag for non-default branch
+        if: steps.branch-name.outputs.is_default == 'false' && steps.branch-name.outputs.default_branch != ''
+        run: |
+          echo "Branch name is ${{ steps.branch-name.outputs.ref_branch }}"
+          echo "Main name is ${{ steps.branch-name.outputs.default_branch }}"
+          echo "TAG=${{ steps.branch-name.outputs.current_branch }}" >> $GITHUB_ENV
