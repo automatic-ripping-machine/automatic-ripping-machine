@@ -80,9 +80,19 @@ class SystemInfoDrives(FlaskForm):
       - /systeminfo
       - /settings
     """
-    id = IntegerField('id', validators=[DataRequired()])
-    name = StringField('name', validators=[DataRequired()])
-    description = StringField('description', validators=[DataRequired()])
+    id = IntegerField('Drive ID', validators=[DataRequired()])
+    name = StringField('Name', validators=[DataRequired()])
+    description = StringField('Description', validators=[DataRequired()])
+    drive_mode = SelectField('Drive Mode',
+                             validators=[DataRequired()],
+                             choices=[
+                                 ('auto', 'Auto'),
+                                 ('music', 'Music'),
+                                 ('data', 'Data'),
+                                 ('dvd', 'DVD'),
+                                 ('bluray', 'Bluray')
+                             ],
+                             )
     submit = SubmitField('Submit')
 
 

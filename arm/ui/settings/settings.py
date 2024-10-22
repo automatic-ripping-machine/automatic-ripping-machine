@@ -345,6 +345,17 @@ def drive_remove(remove_id):
     return redirect(redirect_settings)
 
 
+@route_settings.route('/drive/manual/<remove_id>')
+@login_required
+def drive_manual(remove_id):
+    """
+    Manually start a job on ARM
+    todo: complete function (current state, UI demo)
+    """
+    global redirect_settings
+    return redirect(redirect_settings)
+
+
 @route_settings.route('/update_arm', methods=['POST'])
 @login_required
 def update_git():

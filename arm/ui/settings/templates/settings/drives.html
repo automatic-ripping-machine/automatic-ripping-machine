@@ -15,66 +15,54 @@
                                         <div class="row">
                                             <div class="col">
                                                 <form id="systemForm" name="systemForm" action="/systeminfo" method="post">
-                                                    {% if form_drive %}
-                                                        <!-- Drives form defined, editing available -->
-                                                        {{ form_drive.hidden_tag() }}
-                                                    {% endif %}
+                                                    {{ form_drive.hidden_tag() }}
                                                     <div class="form-group row my-0">
                                                         <label for="driveName" class="col-sm-3 col-form-label px-1">Name</label>
-                                                        {% if form_drive %}
-                                                            <!-- Drives form defined, editing available -->
-                                                            <input class="col-sm-6 form-control form-control-sm px-1" type="text" id="name" name="name" value="{{ drive.name }}">
-                                                        {% else %}
-                                                            <!-- Drives form not defined, no editing available -->
-                                                            <label class="col-sm col-form-label px-1">{{ drive.name }}</label>
-                                                        {% endif %}
+                                                        <input class="col-sm-6 form-control form-control-sm px-1" type="text" id="driveName" name="name" value="{{ drive.name }}">
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label px-1">Type</label>
-                                                        <label class="col-sm col-form-label px-1">{{ drive.type }}</label>
+                                                        <label for="type" class="col-sm-3 col-form-label px-1">Type</label>
+                                                        <input class="col-sm-6 form-control form-control-sm px-1" type="text" id="type" name="type" value="{{ drive.type }}" readonly>
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label px-1 px-1">Mount Path</label>
-                                                        <label class="col-sm col-form-label px-1 small">{{ drive.mount }}</label>
+                                                        <label for="mount" class="col-sm-3 col-form-label px-1 px-1">Mount Path</label>
+                                                        <input class="col-sm-6 form-control form-control-sm px-1" type="text" id="mount" name="mount" value="{{ drive.mount }}" readonly>
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label px-1">Current Job</label>
+                                                        <label for="current_job" class="col-sm-3 col-form-label px-1">Current Job</label>
                                                         {% if drive.job_id_current %}
-                                                        <label class="col-sm col-form-label px-1"><a href="/jobdetail?job_id={{ drive.job_id_current }}">{{ drive.job_current.video_type }} - {{ drive.job_current.title }} - {{ drive.job_current.year }} </a></label>
+                                                            <text class="col-sm-6 form-control form-control-sm px-1" id="current_job" readonly>
+                                                                <a href="/jobdetail?job_id={{ drive.job_id_current }}">{{ drive.job_current.video_type }} - {{ drive.job_current.title }} - {{ drive.job_current.year }} </a>
+                                                            </text>
                                                         {% else %}
-                                                            <label class="col-sm col-form-label px-1">No current job</label>
+                                                            <text class="col-sm-6 form-control form-control-sm px-1" id="current_job" readonly> No current job </text>
                                                         {% endif %}
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label px-1 px-1">Previous Job</label>
+                                                        <label for="previous_job" class="col-sm-3 col-form-label px-1 px-1">Previous Job</label>
                                                         {% if drive.job_id_previous %}
-                                                            <label class="col-sm col-form-label px-1"><a href="/jobdetail?job_id={{ drive.job_id_previous }}">{{ drive.job_previous.video_type }} - {{ drive.job_previous.title }} - {{ drive.job_previous.year }} </a></label>
+                                                            <text class="col-sm-6 form-control form-control-sm px-1" id="previous_job" readonly>
+                                                                <a href="/jobdetail?job_id={{ drive.job_id_previous }}">{{ drive.job_previous.video_type }} - {{ drive.job_previous.title }} - {{ drive.job_previous.year }} </a>
+                                                            </text>
                                                         {% else %}
-                                                            <label class="col-sm col-form-label px-1">N/A</label>
+                                                            <text class="col-sm-6 form-control form-control-sm px-1" id="previous_job" readonly> No previous job </text>
                                                         {% endif %}
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label for="driveDescription" class="col-sm-3 col-form-label px-1">Description</label>
-                                                        {% if form_drive %}
-                                                            <!-- Drives form defined, editing available -->
-                                                            <input class="col-sm-6 form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}">
-                                                            <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
-                                                        {% else %}
-                                                            <!-- Drives form not defined, no editing available -->
-                                                            <input class="form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}" readonly>
-                                                            <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
-                                                        {% endif %}
+                                                        <label for="description" class="col-sm-3 col-form-label px-1">Description</label>
+                                                        <input class="col-sm-6 form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}">
+                                                        <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
+                                                    </div>
+                                                    <div class="form-group row my-0">
+                                                        <label for="drive_mode" class="col-sm-3 col-form-label px-1">Drive Mode</label>
+                                                        {{ form_drive.drive_mode(class_="col-sm-6 form-control form-control-sm px-1") }}
                                                     </div>
                                                     <div class="form-group row my-0">
                                                         <div class="col">
                                                             <div class="float-right">
-                                                                {% if form_drive %}
-                                                                    <!-- Drives form defined, editing available -->
-                                                                    <button type="submit" class="btn btn-primary btn-sm" name="submit">Update</button>
-                                                                    <a href="drive/remove/{{ drive.drive_id }}" class="btn btn-outline-danger btn-sm">Remove</a>
-                                                                {% else %}
-                                                                    <!-- Drives form not defined, no editing available -->
-                                                                {% endif %}
+                                                                <button type="submit" class="btn btn-primary btn-sm" name="submit">Update</button>
+                                                                <a href="drive/manual/{{ drive.drive_id }}" class="btn btn-secondary btn-sm">Manual</a>
+                                                                <a href="drive/remove/{{ drive.drive_id }}" class="btn btn-outline-danger btn-sm">Remove</a>
                                                             </div>
                                                         </div>
                                                     </div>
