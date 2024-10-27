@@ -345,14 +345,20 @@ def drive_remove(remove_id):
     return redirect(redirect_settings)
 
 
-@route_settings.route('/drive/manual/<remove_id>')
+@route_settings.route('/drive/manual/<manual_id>')
 @login_required
-def drive_manual(remove_id):
+def drive_manual(manual_id):
     """
     Manually start a job on ARM
-    todo: complete function (current state, UI demo)
     """
     global redirect_settings
+
+    drive = SystemDrives.query.filter_by(drive_id=manual_id).first()
+    dev_path = drive.mount
+
+    cmd = f"/usr/bin/python3 /opt/arm/arm/ripper/main.py -d {dev_path}"
+    app.logger.debug(f"Running command[{cmd}]")
+
     return redirect(redirect_settings)
 
 
