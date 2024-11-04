@@ -55,7 +55,7 @@ Especially for users with multiple drives in a system.
 | Current Job  | When the drive is processing a job, current jobs will be shown | System field   |
 | Previous Job | Once competed, previous or old jobs will be shown              | System field   |
 | Description  | User defined description for the drive                         | User editable  |
-| Drive Mode | Set ARM to Auto or Manual, to allow additional configuration | User editable |
+| Drive Mode   | Set ARM to Auto or Manual, to allow additional configuration   | User editable  |
 
 
 ### 3. Drive Options
@@ -68,8 +68,18 @@ There are a few options available against each drive
 
 #### 3.1. Eject or Close Drive
 
-From here you can click on a drive and control the drive open (eject) or close state.
-Handy if you have a lot of drives and still not quite sure which drive is what.
+Using the ARM webpage it is possible to open (eject) and close specific drives
+Handy if you have a lot of drives and still not quite sure which drive you need.
+On ejecting the drive, ARM reports the drive as being open, as shown below.
+
+**Drive Open**
+
+<img title="Drive Open" alt="drive open image" src="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/refs/heads/main/arm/ui/static/img/drive-optical_open.svg" width="100px" height=""/>
+
+**Drive Closed** _Default_
+
+<img title="Drive Open" alt="drive open image" src="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/refs/heads/main/arm/ui/static/img/drive-optical_closed.svg" width="100px" height=""/>
+
 
 #### 3.2. Update Fields
 
