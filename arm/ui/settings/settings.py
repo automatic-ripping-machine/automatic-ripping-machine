@@ -360,7 +360,8 @@ def drive_manual(manual_id):
     app.logger.debug(f"Running command[{cmd}]")
     message = f"Manually starting a job on Drive: '{drive.name}' Path: '{dev_path}'"
 
-    # subprocess.run(cmd, shell=True, check=True)
+    # Manually start ARM as a new non-blocking process
+    subprocess.Popen(cmd, shell=True)
 
     flash(message, "success")
     return redirect('/')
