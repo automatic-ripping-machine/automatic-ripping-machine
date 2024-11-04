@@ -87,10 +87,7 @@ class SystemInfoDrives(FlaskForm):
                              validators=[DataRequired()],
                              choices=[
                                  ('auto', 'Auto'),
-                                 ('music', 'Music'),
-                                 ('data', 'Data'),
-                                 ('dvd', 'DVD'),
-                                 ('bluray', 'Bluray')
+                                 ('manual', 'Manual')
                              ],
                              )
     submit = SubmitField('Submit')
