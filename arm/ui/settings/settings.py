@@ -354,13 +354,13 @@ def drive_manual(manual_id):
     """
 
     drive = SystemDrives.query.filter_by(drive_id=manual_id).first()
-    dev_path = drive.mount
+    dev_path = drive.mount.lstrip('/dev/')
 
     cmd = f"/usr/bin/python3 /opt/arm/arm/ripper/main.py -d {dev_path}"
     app.logger.debug(f"Running command[{cmd}]")
     message = f"Manually starting a job on Drive: '{drive.name}' Path: '{dev_path}'"
 
-    subprocess.run(cmd, shell=True, check=True)
+    # subprocess.run(cmd, shell=True, check=True)
 
     flash(message, "success")
     return redirect('/')
