@@ -288,6 +288,7 @@ def server_info():
         drive = SystemDrives.query.filter_by(drive_id=form_drive.id.data).first()
         drive.name = str(form_drive.name.data).strip()
         drive.description = str(form_drive.description.data).strip()
+        drive.drive_mode = str(form_drive.drive_mode.data).strip()
         db.session.commit()
         flash(f"Updated Drive { drive.mount } details", "success")
         # Return to systeminfo page (refresh page)
