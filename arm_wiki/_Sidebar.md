@@ -17,7 +17,7 @@
 **Web Page Overview**
   - _Coming Soon_
   - **Settings**
-    - [Drive Management](Settings-Drives.md)
+    - [Drive Management](Settings-Drives)
 
 **[Known Issues](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Known-Issues)**
 
