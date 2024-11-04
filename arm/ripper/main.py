@@ -153,15 +153,15 @@ if __name__ == "__main__":
     # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)
     for i in range(10):
         if utils.get_cdrom_status(devpath) != 4:
-            logging.info(f"[{i} of 10] Drive appears to be empty or is not ready.  Waiting 1s")
-            arm_log.info(f"[{i} of 10] Drive appears to be empty or is not ready.  Waiting 1s")
+            logging.info(f"[{i} of 10] Drive [{devpath}] appears to be empty or is not ready.  Waiting 1s")
+            arm_log.info(f"[{i} of 10] Drive [{devpath}] appears to be empty or is not ready.  Waiting 1s")
             time.sleep(1)
 
     # Exit if drive isn't ready
     if utils.get_cdrom_status(devpath) != 4:
         # This should really never trigger now as arm_wrapper should be taking care of this.
-        logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
-        arm_log.info("Drive appears to be empty or is not ready.  Exiting ARM.")
+        logging.info(f"Drive [{devpath}] appears to be empty or is not ready.  Exiting ARM.")
+        arm_log.info(f"Drive [{devpath}] appears to be empty or is not ready.  Exiting ARM.")
         sys.exit()
 
     # ARM Job starts
