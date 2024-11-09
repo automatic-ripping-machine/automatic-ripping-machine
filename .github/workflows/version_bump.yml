@@ -92,6 +92,11 @@ jobs:
           echo "PR_TITLE=$PR_TITLE" >> $GITHUB_ENV
           echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
 
+      - name: Configure Git user
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
       - name: Pull latest changes from remote
         if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
         run: |
@@ -102,8 +107,6 @@ jobs:
         run: |
           echo "$NEW_VERSION" > VERSION
           git add VERSION
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
           git commit -m "[Automated] Release: ${VERSION_TYPE} - Version from $CURRENT_VERSION to $NEW_VERSION"
 
       - name: Push changes
