@@ -87,7 +87,7 @@ jobs:
           # Set variables to global environment variables for later
           echo "TITLE_FLAG=$TITLE_FLAG" >> $GITHUB_ENV
           echo "PR_TITLE=$PR_TITLE" >> $GITHUB_ENV
-          echo "$VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
+          echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
 
       - name: Pull latest changes from remote
         if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
@@ -107,6 +107,13 @@ jobs:
         if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
         run: |
           git push origin ${{ github.head_ref }}
+
+      - name: Debug Environment Variables
+        run: |
+          echo "PR_TITLE=${{ env.PR_TITLE }}"
+          echo "NEW_VERSION=${{ env.NEW_VERSION }}"
+          echo "CURRENT_VERSION=${{ env.CURRENT_VERSION }}"
+          echo "VERSION_TYPE=${{ env.VERSION_TYPE }}"
 
       - name: Comment on PR
         if: env.VERSION_UPDATED == 'false'
