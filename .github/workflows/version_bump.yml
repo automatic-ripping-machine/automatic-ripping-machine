@@ -3,6 +3,8 @@ name: "Version Increment"
 on:
   # Run this action on any Pull Request raised against ARM
   pull_request:
+    # Ensure changes re-run the version script (i.e. title change)
+    types: [opened, edited, synchronize]
     # Don't run on changes to the below paths
     paths-ignore:
       - 'arm_wiki/**'
@@ -46,12 +48,13 @@ jobs:
       - name: Determine new version
         if: env.VERSION_UPDATED == 'false'
         id: determine-version
+        env:
+          # Safely get title (avoid injection attacks)
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # Set Title environment flag to false
           TITLE_FLAG="false"
           
-          # Get the title anc check if Feature or Bugfix
-          PR_TITLE="${{ github.event.pull_request.title }}"
           echo "PR Title: $PR_TITLE"
           if [[ "$PR_TITLE" == *"[FEATURE]"* ]]; then
             VERSION_TYPE="minor"
