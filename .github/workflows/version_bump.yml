@@ -47,33 +47,44 @@ jobs:
         if: env.VERSION_UPDATED == 'false'
         id: determine-version
         run: |
-          PR_TITLE=$(jq -r '.pull_request.title' "$GITHUB_EVENT_PATH")
+          # Set Title environment flag to false
+          TITLE_FLAG="false"
+          
+          # Get the title anc check if Feature or Bugfix
+          PR_TITLE="${{ github.event.pull_request.title }}"
           echo "PR Title: $PR_TITLE"
           if [[ "$PR_TITLE" == *"[FEATURE]"* ]]; then
             VERSION_TYPE="minor"
             echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
             echo "PR set to FEATURE updating minor version"
+            TITLE_FLAG="true"
           elif [[ "$PR_TITLE" == *"[BUGFIX]"* ]]; then
             VERSION_TYPE="patch"
             echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
             echo "PR set to BUGFIX updating patch version"
+            TITLE_FLAG="true"
           else
             echo "No version bump flag found in PR title. Exiting."
             echo "Edit your PR title to include either FEATURE or BUGFIX"
-            exit 1
           fi
-          CURRENT_VERSION=$(cat VERSION)
-          IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
-          if [ "$VERSION_TYPE" == "minor" ]; then
-            VERSION_PARTS[1]=$((VERSION_PARTS[1]+1))
-            VERSION_PARTS[2]=0
-          elif [ "$VERSION_TYPE" == "patch" ]; then
-            VERSION_PARTS[2]=$((VERSION_PARTS[2]+1))
+          # Set the Title Flag as an environment variable for PR comment
+          echo "TITLE_FLAG=$TITLE_FLAG" >> $GITHUB_ENV
+          
+          # If Feature or Bugfix update the version
+          if [[ "$TITLE_FLAG" == "true" ]]; then
+            CURRENT_VERSION=$(cat VERSION)
+            IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+            if [[ "$VERSION_TYPE" == "minor" ]]; then
+              VERSION_PARTS[1]=$((VERSION_PARTS[1]+1))
+              VERSION_PARTS[2]=0
+            elif [[ "$VERSION_TYPE" == "patch" ]]; then
+              VERSION_PARTS[2]=$((VERSION_PARTS[2]+1))
+            fi
+            NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
+            echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+            echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+            echo "New Version: " $NEW_VERSION
           fi
-          NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
-          echo "New Version: " $NEW_VERSION
 
       - name: Pull latest changes from remote
         if: env.VERSION_UPDATED == 'false'
@@ -100,6 +111,17 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            // Get the Title Flag from the GitHub environment
+            const titleFlag = process.env.TITLE_FLAG;
+            
+            // Check if the title and version are valid
+            if (titleFlag === "false") {
+              pr_body = `PR title: [${PR_TITLE}] must contain either [FEATURE] or [BUGFIX] to auto-increment the ARM version. Update the title and re-run the version script.`;
+            } else {
+              pr_body = `Release type: ${versionType}. The version has been incremented from ${currentVersion} to ${newVersion} based on the PR title flag.`;
+            }
+            
+            // Generate PR comment
             const prNumber = context.issue.number;
             const newVersion = process.env.NEW_VERSION;
             const currentVersion = process.env.CURRENT_VERSION;
@@ -108,7 +130,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: `Release type: ${versionType}. The version has been incremented from ${currentVersion} to ${newVersion} based on the PR title flag.`
+              body: pr_body
             })
 
       - name: Set tag for non-default branch
