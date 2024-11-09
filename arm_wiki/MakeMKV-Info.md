@@ -16,7 +16,21 @@ choose "Arm Settings" from the navigation bar, go to the "Ripper Settings" tab a
 If you leave the feild empty, A.R.M. will use a Beta key instead.
 
 ## MakeMKV Settings
-MakeMKV uses the concept of profiles to decide which audio tracks and which subtitle tracks to include in the 
+
+### `settings.conf`
+`makemkvcon` respects the `~/.MakeMKV/settings.conf` created by the MakeMKV GUI, which makes it possible to configure certain aspects of MakeMKV through the GUI on your Desktop.
+
+> [!WARNING]
+> It is however ***not*** recommended to simply copy an existing `settings.conf` into A.R.M.'s `~/.MakeMKV` directory as the file contains some machine-specific settings that may or may not interfere with ripping via A.R.M.
+
+Two specific settings that may be particularly useful to create or copy are the `app_DefaultSelectionString` and `app_DefaultOutputFileName` keys, which store the GUI's ["Default selection rule"](https://forum.makemkv.com/forum/viewtopic.php?t=4386) and ["Output file name template"](https://forum.makemkv.com/forum/viewtopic.php?t=18313) under Preferences > Advanced respectively. Check the linked MakeMKV forum threads for their syntax.
+
+> [!NOTE]
+> * While the `dvd_MinimumTitleLength` (corresponding to the GUIs Preferences > Video > "Minimum title length (seconds)" setting) is harmless to create, it has no effect as it is overriden by A.R.M.'s `MINLENGTH` setting.
+> * The `app_Key` should be left untouched. If you have a permanent key see [MakeMKV Licence](#makemkv-licence) above.
+
+### Profiles
+MakeMKV can also use the concept of profiles to decide which audio tracks and which subtitle tracks to include in the 
 *.mkv files. The defaults are usually sufficient. However, A.R.M. allows you to change these defaults if needed.  This is 
 considered advance usage of MakeMKV and A.R.M. The list below contains some information as to where to start, these 
 are links to MakeMKV forum pages.
