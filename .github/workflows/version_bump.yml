@@ -123,6 +123,7 @@ jobs:
           script: |
             // Retrieve variables from the environment
             const titleFlag = process.env.TITLE_FLAG;
+            const prNumber = context.issue.number;
             const prTitle = process.env.PR_TITLE;
             const newVersion = process.env.NEW_VERSION;
             const currentVersion = process.env.CURRENT_VERSION;
@@ -137,10 +138,6 @@ jobs:
             }
             
             // Generate PR comment
-            const prNumber = context.issue.number;
-            const newVersion = process.env.NEW_VERSION;
-            const currentVersion = process.env.CURRENT_VERSION;
-            const versionType = process.env.VERSION_TYPE;
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
