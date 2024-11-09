@@ -87,12 +87,12 @@ jobs:
           fi
 
       - name: Pull latest changes from remote
-        if: env.VERSION_UPDATED == 'false'
+        if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
         run: |
           git pull --rebase origin ${{ github.head_ref }}
 
       - name: Update VERSION file
-        if: env.VERSION_UPDATED == 'false'
+        if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
         run: |
           echo "$NEW_VERSION" > VERSION
           git add VERSION
@@ -101,7 +101,7 @@ jobs:
           git commit -m "[Automated] Release: ${VERSION_TYPE} - Version from $CURRENT_VERSION to $NEW_VERSION"
 
       - name: Push changes
-        if: env.VERSION_UPDATED == 'false'
+        if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
         run: |
           git push origin ${{ github.head_ref }}
 
@@ -134,7 +134,7 @@ jobs:
             })
 
       - name: Set tag for non-default branch
-        if: steps.branch-name.outputs.is_default == 'false' && steps.branch-name.outputs.default_branch != ''
+        if: steps.branch-name.outputs.is_default == 'false' && steps.branch-name.outputs.default_branch != '' && env.TITLE_FLAG == 'true'
         run: |
           echo "Branch name is ${{ steps.branch-name.outputs.ref_branch }}"
           echo "Main name is ${{ steps.branch-name.outputs.default_branch }}"
