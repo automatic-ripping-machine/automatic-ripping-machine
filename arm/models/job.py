@@ -57,6 +57,7 @@ class Job(db.Model):
     pid = db.Column(db.Integer)
     pid_hash = db.Column(db.Integer)
     is_iso = db.Column(db.Boolean)
+    manual_start = db.Column(db.Boolean)
     tracks = db.relationship('Track', backref='job', lazy='dynamic')
     config = db.relationship('Config', uselist=False, backref="job")
 
@@ -73,6 +74,7 @@ class Job(db.Model):
         self.parse_udev()
         self.get_pid()
         self.stage = str(round(time.time() * 100))
+        self.manual_start = False
 
         if self.disctype == "dvd" and not self.label:
             logging.info("No disk label Available. Trying lsdvd")
