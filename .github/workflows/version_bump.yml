@@ -112,7 +112,7 @@ jobs:
       - name: Push changes
         if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
         run: |
-          git push origin ${{ github.head_ref }}
+          git push origin ${{ steps.branch-name.outputs.current_branch }}
 
       - name: Debug Environment Variables
         run: |
