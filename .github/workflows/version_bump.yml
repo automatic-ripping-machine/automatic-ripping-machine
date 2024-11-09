@@ -102,17 +102,13 @@ jobs:
         run: |
           git pull --rebase origin ${{ github.head_ref }}
 
-      - name: Update VERSION file
+      - name: Update VERSION file and Push Changes
         if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
         run: |
           echo "$NEW_VERSION" > VERSION
           git add VERSION
           git commit -m "[Automated] Release: ${VERSION_TYPE} - Version from $CURRENT_VERSION to $NEW_VERSION"
-
-      - name: Push changes
-        if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
-        run: |
-          git push ${{ env.CURRENT_BRANCH }}
+          git push origin HEAD:${{ env.CURRENT_BRANCH }}
 
       - name: Debug Environment Variables
         run: |
