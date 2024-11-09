@@ -108,7 +108,13 @@ jobs:
           echo "$NEW_VERSION" > VERSION
           git add VERSION
           git commit -m "[Automated] Release: ${VERSION_TYPE} - Version from $CURRENT_VERSION to $NEW_VERSION"
-          git push origin HEAD:${{ env.CURRENT_BRANCH }}
+          
+          # Use the pull request's branch name to push changes
+          BRANCH="${{ github.head_ref }}"
+          echo "Pushing changes to branch: $BRANCH"
+          
+          # Push changes to the PR branch
+          git push origin HEAD:$BRANCH
 
       - name: Debug Environment Variables
         run: |
