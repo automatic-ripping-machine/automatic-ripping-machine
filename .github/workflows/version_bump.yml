@@ -133,7 +133,7 @@ jobs:
             if (titleFlag === "false") {
               prBody = `Version Bot\n **PR title:** ${prTitle}\n **No valid version flag found**. PR title must include either [FEATURE] or [BUGFIX] to auto-increment the version.\n **Please update the PR title** and re-run the workflow.`;
             } else {
-              prBody = `Version Bot:\n **PR title:** ${prTitle}\n Updated version: **${currentVersion}** to **${newVersion}**\n `Release version: **${versionType}**`;
+              prBody = `Version Bot:\n **PR title:** ${prTitle}\n Updated version: **${currentVersion}** to **${newVersion}**\n Release version: **${versionType}**`;
             }
             
             // Generate PR comment
