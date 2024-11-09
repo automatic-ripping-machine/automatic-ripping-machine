@@ -67,8 +67,6 @@ jobs:
             echo "No version bump flag found in PR title. Exiting."
             echo "Edit your PR title to include either FEATURE or BUGFIX"
           fi
-          # Set the Title Flag as an environment variable for PR comment
-          echo "TITLE_FLAG=$TITLE_FLAG" >> $GITHUB_ENV
           
           # If Feature or Bugfix update the version
           if [[ "$TITLE_FLAG" == "true" ]]; then
@@ -85,6 +83,11 @@ jobs:
             echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
             echo "New Version: " $NEW_VERSION
           fi
+          
+          # Set variables to global environment variables for later
+          echo "TITLE_FLAG=$TITLE_FLAG" >> $GITHUB_ENV
+          echo "PR_TITLE=$PR_TITLE" >> $GITHUB_ENV
+          echo "$VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
 
       - name: Pull latest changes from remote
         if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
@@ -111,14 +114,25 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // Get the Title Flag from the GitHub environment
+            // Retrieve variables from the environment
             const titleFlag = process.env.TITLE_FLAG;
+            const prTitle = process.env.PR_TITLE;
+            const newVersion = process.env.NEW_VERSION;
+            const currentVersion = process.env.CURRENT_VERSION;
+            const versionType = process.env.VERSION_TYPE;
             
-            // Check if the title and version are valid
+            // Prepare the message based on the title flag
+            let prBody;
             if (titleFlag === "false") {
-              pr_body = `PR title: [${PR_TITLE}] must contain either [FEATURE] or [BUGFIX] to auto-increment the ARM version. Update the title and re-run the version script.`;
+              prBody = (`Version Bot:
+**PR title:** ${prTitle}
+**No valid version flag found**. PR title must include either [FEATURE] or [BUGFIX] to auto-increment the version.
+**Please update the PR title** and re-run the workflow.`);
             } else {
-              pr_body = `Release type: ${versionType}. The version has been incremented from ${currentVersion} to ${newVersion} based on the PR title flag.`;
+              prBody = (`Version Bot:
+**PR title:** ${prTitle}
+Updated version: **${currentVersion}** to **${newVersion}**
+Release version: **${versionType}**`);
             }
             
             // Generate PR comment
@@ -130,7 +144,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: pr_body
+              body: prBody
             })
 
       - name: Set tag for non-default branch
