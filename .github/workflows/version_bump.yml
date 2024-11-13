@@ -3,6 +3,8 @@ name: "Version Increment"
 on:
   # Run this action on any Pull Request raised against ARM
   pull_request:
+    # Ensure changes re-run the version script (i.e. title change)
+    types: [opened, edited, synchronize]
     # Don't run on changes to the below paths
     paths-ignore:
       - 'arm_wiki/**'
@@ -46,53 +48,80 @@ jobs:
       - name: Determine new version
         if: env.VERSION_UPDATED == 'false'
         id: determine-version
+        env:
+          # Safely get title (avoid injection attacks)
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          PR_TITLE=$(jq -r '.pull_request.title' "$GITHUB_EVENT_PATH")
+          # Set Title environment flag to false
+          TITLE_FLAG="false"
+          
           echo "PR Title: $PR_TITLE"
           if [[ "$PR_TITLE" == *"[FEATURE]"* ]]; then
             VERSION_TYPE="minor"
             echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
             echo "PR set to FEATURE updating minor version"
+            TITLE_FLAG="true"
           elif [[ "$PR_TITLE" == *"[BUGFIX]"* ]]; then
             VERSION_TYPE="patch"
             echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
             echo "PR set to BUGFIX updating patch version"
+            TITLE_FLAG="true"
           else
             echo "No version bump flag found in PR title. Exiting."
             echo "Edit your PR title to include either FEATURE or BUGFIX"
-            exit 1
           fi
-          CURRENT_VERSION=$(cat VERSION)
-          IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
-          if [ "$VERSION_TYPE" == "minor" ]; then
-            VERSION_PARTS[1]=$((VERSION_PARTS[1]+1))
-            VERSION_PARTS[2]=0
-          elif [ "$VERSION_TYPE" == "patch" ]; then
-            VERSION_PARTS[2]=$((VERSION_PARTS[2]+1))
+          
+          # If Feature or Bugfix update the version
+          if [[ "$TITLE_FLAG" == "true" ]]; then
+            CURRENT_VERSION=$(cat VERSION)
+            IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+            if [[ "$VERSION_TYPE" == "minor" ]]; then
+              VERSION_PARTS[1]=$((VERSION_PARTS[1]+1))
+              VERSION_PARTS[2]=0
+            elif [[ "$VERSION_TYPE" == "patch" ]]; then
+              VERSION_PARTS[2]=$((VERSION_PARTS[2]+1))
+            fi
+            NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
+            echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+            echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+            echo "New Version: " $NEW_VERSION
           fi
-          NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
-          echo "New Version: " $NEW_VERSION
+          
+          # Set variables to global environment variables for later
+          echo "TITLE_FLAG=$TITLE_FLAG" >> $GITHUB_ENV
+          echo "PR_TITLE=$PR_TITLE" >> $GITHUB_ENV
+          echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
+
+      - name: Configure Git user
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
 
       - name: Pull latest changes from remote
-        if: env.VERSION_UPDATED == 'false'
+        if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
         run: |
           git pull --rebase origin ${{ github.head_ref }}
 
-      - name: Update VERSION file
-        if: env.VERSION_UPDATED == 'false'
+      - name: Update VERSION file and Push Changes
+        if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
         run: |
           echo "$NEW_VERSION" > VERSION
           git add VERSION
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
           git commit -m "[Automated] Release: ${VERSION_TYPE} - Version from $CURRENT_VERSION to $NEW_VERSION"
+          
+          # Use the pull request's branch name to push changes
+          BRANCH="${{ github.head_ref }}"
+          echo "Pushing changes to branch: $BRANCH"
+          
+          # Push changes to the PR branch
+          git push origin HEAD:$BRANCH
 
-      - name: Push changes
-        if: env.VERSION_UPDATED == 'false'
+      - name: Debug Environment Variables
         run: |
-          git push origin ${{ github.head_ref }}
+          echo "PR_TITLE=${{ env.PR_TITLE }}"
+          echo "NEW_VERSION=${{ env.NEW_VERSION }}"
+          echo "CURRENT_VERSION=${{ env.CURRENT_VERSION }}"
+          echo "VERSION_TYPE=${{ env.VERSION_TYPE }}"
 
       - name: Comment on PR
         if: env.VERSION_UPDATED == 'false'
@@ -100,19 +129,32 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            // Retrieve variables from the environment
+            const titleFlag = process.env.TITLE_FLAG;
             const prNumber = context.issue.number;
+            const prTitle = process.env.PR_TITLE;
             const newVersion = process.env.NEW_VERSION;
             const currentVersion = process.env.CURRENT_VERSION;
             const versionType = process.env.VERSION_TYPE;
+            
+            // Prepare the message based on the title flag
+            let prBody;
+            if (titleFlag === "false") {
+              prBody = `Version Bot\n **PR title:** ${prTitle}\n **No valid version flag found**. PR title must include either [FEATURE] or [BUGFIX] to auto-increment the version.\n **Please update the PR title** and re-run the workflow.`;
+            } else {
+              prBody = `Version Bot:\n **PR title:** ${prTitle}\n Updated version: **${currentVersion}** to **${newVersion}**\n Release version: **${versionType}**`;
+            }
+            
+            // Generate PR comment
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: `Release type: ${versionType}. The version has been incremented from ${currentVersion} to ${newVersion} based on the PR title flag.`
+              body: prBody
             })
 
       - name: Set tag for non-default branch
-        if: steps.branch-name.outputs.is_default == 'false' && steps.branch-name.outputs.default_branch != ''
+        if: steps.branch-name.outputs.is_default == 'false' && steps.branch-name.outputs.default_branch != '' && env.TITLE_FLAG == 'true'
         run: |
           echo "Branch name is ${{ steps.branch-name.outputs.ref_branch }}"
           echo "Main name is ${{ steps.branch-name.outputs.default_branch }}"
