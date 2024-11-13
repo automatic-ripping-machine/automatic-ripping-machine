@@ -9,7 +9,6 @@ import shlex
 from time import sleep
 
 from arm.models.track import Track
-from arm.models.system_drives import SystemDrives
 from arm.ripper import utils  # noqa: E402
 from arm.ui import db  # noqa: F401, E402
 import arm.config.config as cfg  # noqa E402
@@ -39,7 +38,7 @@ def makemkv(logfile, job):
     """
 
     # Get drive mode for the current drive
-    mode = get_drive_mode(job.devpath)
+    mode = utils.get_drive_mode(job.devpath)
     logging.info(f"Job running in {mode} mode")
 
     # confirm MKV is working, beta key hasn't expired
@@ -351,29 +350,6 @@ def run_makemkv(cmd, logfile):
         subprocess.run(f"{cmd} >> {logfile}", capture_output=True, shell=True, check=True)
     except subprocess.CalledProcessError as mkv_error:
         raise MakeMkvRuntimeError(mkv_error) from mkv_error
-
-
-def get_drive_mode(devpath: str) -> str:
-    """
-    Retrieve the drive mode for a specified device path.
-
-    This function queries the database for a drive associated with the provided
-    device path (`devpath`). If a drive is found, it returns the drive's mode;
-    otherwise, it defaults to 'auto'.
-
-    Parameters:
-        devpath (str): The device path used to identify the drive in the database.
-
-    Returns:
-        str: The drive mode associated with the specified device path if found;
-             otherwise, returns 'auto'.
-    """
-    drive = SystemDrives.query.filter_by(devpath=devpath).first()
-    if drive:
-        mode = drive.drive_mode
-    else:
-        mode = 'auto'
-    return mode
 
 
 def manual_wait(job) -> bool:

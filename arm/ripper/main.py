@@ -16,6 +16,8 @@ import getpass  # noqa E402
 import pyudev  # noqa: E402
 import psutil  # noqa E402
 
+from models.system_drives import SystemDrives
+
 # set the PATH to /opt/arm so we can handle imports properly
 sys.path.append("/opt/arm")
 
@@ -196,6 +198,12 @@ if __name__ == "__main__":
     drive_utils.update_drive_job(job)
     # Add the job.config to db
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
+    # Check if the drive mode is set to manual, and load to the job config for later use
+    drive_mode = SystemDrives.query.filter_by(devpath=job.devpath).first()
+    if drive_mode:
+        config.drive_mode = True
+    else:
+        config.drive_mode = False
     utils.database_adder(config)
     # Log version number
     with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
