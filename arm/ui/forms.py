@@ -1,7 +1,7 @@
 """Forms used in the arm ui"""
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, \
-    IntegerField, BooleanField, PasswordField
+    IntegerField, BooleanField, PasswordField, Form, FieldList, FormField, HiddenField
 from wtforms.validators import DataRequired
 
 
@@ -100,3 +100,19 @@ class DBUpdate(FlaskForm):
     """
     dbfix = StringField('dbfix', validators=[DataRequired()])
     submit = SubmitField('Submit')
+
+
+class TrackForm(Form):
+    """
+    ID and Checkbox status for fields in TrackFormDynamic
+    """
+    track_ref = HiddenField('ID')
+    checkbox = BooleanField('Checkbox')
+
+
+class TrackFormDynamic(FlaskForm):
+    """
+    Dynamic form for Job Tracks
+    - /jobdetail (called by jobs)
+    """
+    track_ref = FieldList(FormField(TrackForm), min_entries=1)
