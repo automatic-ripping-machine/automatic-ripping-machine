@@ -56,7 +56,7 @@ def log_arm_params(job):
     # log arm parameters
     logging.info("******************* Logging ARM variables *******************")
     for key in ("devpath", "mountpoint", "title", "year", "video_type",
-                "hasnicetitle", "label", "disctype"):
+                "hasnicetitle", "label", "disctype", "manual_mode"):
         logging.info(f"{key}: {str(getattr(job, key))}")
     logging.info("******************* End of ARM variables *******************")
 
@@ -201,9 +201,11 @@ if __name__ == "__main__":
     # Check if the drive mode is set to manual, and load to the job config for later use
     drive_mode = SystemDrives.query.filter_by(devpath=job.devpath).first()
     if drive_mode:
-        config.drive_mode = True
+        job.manual_mode = True
+        db.session.commit()
     else:
-        config.drive_mode = False
+        job.manual_mode = False
+        db.session.commit()
     utils.database_adder(config)
     # Log version number
     with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:

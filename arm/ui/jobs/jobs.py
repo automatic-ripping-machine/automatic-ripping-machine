@@ -21,8 +21,10 @@ import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
 from arm.models.job import Job
 from arm.models.notifications import Notifications
+from arm.models.system_drives import SystemDrives
 import arm.config.config as cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm
+
 
 route_jobs = Blueprint('route_jobs', __name__,
                        template_folder='templates',
@@ -38,14 +40,26 @@ def jobdetail():
     Shows Job/Config/Track class details
     displays them in a clear and easy to ready format
     """
+    manual_edit = False
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
     tracks = job.tracks.all()
     search_results = ui_utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
+
     if search_results and 'Error' not in search_results:
         job.plot = search_results['Plot'] if 'Plot' in search_results else "There was a problem getting the plot"
         job.background = search_results['background_url'] if 'background_url' in search_results else None
-    return render_template('jobdetail.html', jobs=job, tracks=tracks, s=search_results)
+
+    # Check if a manual job and status is active (waiting for action)
+    # drive = SystemDrives.query.filter_by(mount=job.devpath).first()
+    if job.status == "active" and job.config.manual_mode:
+        manual_edit = True
+
+    return render_template('jobdetail.html',
+                           jobs=job,
+                           tracks=tracks,
+                           s=search_results,
+                           manual_edit=manual_edit)
 
 
 @route_jobs.route('/titlesearch')
