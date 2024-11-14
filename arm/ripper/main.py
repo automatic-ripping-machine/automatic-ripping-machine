@@ -16,8 +16,6 @@ import getpass  # noqa E402
 import pyudev  # noqa: E402
 import psutil  # noqa E402
 
-from models.system_drives import SystemDrives
-
 # set the PATH to /opt/arm so we can handle imports properly
 sys.path.append("/opt/arm")
 
@@ -25,6 +23,7 @@ from arm.ripper import logger, utils, identify, arm_ripper, music_brainz  # noqa
 import arm.config.config as cfg  # noqa E402
 from arm.models.config import Config  # noqa: E402
 from arm.models.job import Job  # noqa: E402
+from arm.models.system_drives import SystemDrives
 from arm.ui import app, db, constants  # noqa E402
 from arm.ui.settings import DriveUtils as drive_utils # noqa E402
 import arm.config.config as cfg  # noqa E402
@@ -56,7 +55,7 @@ def log_arm_params(job):
     # log arm parameters
     logging.info("******************* Logging ARM variables *******************")
     for key in ("devpath", "mountpoint", "title", "year", "video_type",
-                "hasnicetitle", "label", "disctype", "manual_mode"):
+                "hasnicetitle", "label", "disctype", "manual_start"):
         logging.info(f"{key}: {str(getattr(job, key))}")
     logging.info("******************* End of ARM variables *******************")
 
@@ -199,7 +198,7 @@ if __name__ == "__main__":
     # Add the job.config to db
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
     # Check if the drive mode is set to manual, and load to the job config for later use
-    drive_mode = SystemDrives.query.filter_by(devpath=job.devpath).first()
+    drive_mode = SystemDrives.query.filter_by(mount=job.devpath).first()
     if drive_mode:
         job.manual_mode = True
         db.session.commit()

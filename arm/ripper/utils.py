@@ -847,7 +847,7 @@ def get_drive_mode(devpath: str) -> str:
         str: The drive mode associated with the specified device path if found;
              otherwise, returns 'auto'.
     """
-    drive = SystemDrives.query.filter_by(devpath=devpath).first()
+    drive = SystemDrives.query.filter_by(mount=devpath).first()
     if drive:
         mode = drive.drive_mode
     else:

@@ -47,8 +47,8 @@ def jobdetail():
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
 
-    # Check if a manual job and status is active (waiting for action)
-    if job.status == "active" and job.config.manual_mode:
+    # Check if a manual job and status is waiting (waiting for user)
+    if job.status == "waiting" and job.config.manual_mode:
         manual_edit = True
 
     # Get Job and Track data
@@ -60,7 +60,7 @@ def jobdetail():
     for track_row in tracks:
         track_form.track_ref.append_entry({'track_ref': track_row.track_id,
                                            'checkbox': track_row.process})
-    # For Jobs that are not active and in manual mode, disable the process checkbox
+    # For Jobs that are not waiting and in manual mode, disable the process checkbox
     if not manual_edit:
         for entry in track_form.track_ref.entries:
             entry.checkbox.render_kw = {'disabled': 'disabled'}

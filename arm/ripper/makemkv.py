@@ -80,6 +80,9 @@ def makemkv(logfile, job):
 
         # Run if mode is manual, user selects tracks
         elif mode == 'manual':
+            # Set job status to waiting
+            job.status = "waiting"
+            db.session.commit()
             # Alert User tracks are ready and wait
             job_state = manual_wait(job)
             # Process Tracks
@@ -379,14 +382,16 @@ def manual_wait(job) -> bool:
     wait_time: int = 30
 
     title = "Manual Mode Activated!"
-    message = f"Manual mode activated, ARM has taken it's hands off the wheels. You have {wait_time} to set the job."
+    message = f"Manual mode activated, ARM has taken it's hands off the wheels. You have {wait_time} minutes to set the job."
     notify(job, title, message)
 
     # Wait for the user to set the files and then start
-    title = f"Waiting for input job [{job.job_id}]"
+    title = "Waiting for input on job!"
     for i in range(wait_time, 0, -1):
         # Wait for a minute
         sleep(60)
+
+        logging.debug(f"Wait time logging: [{i}] mins")
 
         # Check the job state (true once ready)
         if job.manual_start:
@@ -394,7 +399,7 @@ def manual_wait(job) -> bool:
             break
         else:
             # If nothing has happened, remind the user every 10 minutes
-            if i % 10 == 0:
+            if i % 10 == 0 and i != wait_time:
                 body = f"Don't forget me, I need your help to continue doing ARM things!. You have {i} minutes."
                 notify(job, title, body)
 
