@@ -107,6 +107,11 @@ def jobdetail_load():
                 db_track.process = checkbox_value
                 db.session.commit()
 
+        # Set job to ready
+        job.manual_start = True
+        db.session.commit()
+        app.logger.debug(f"Setting [{job.job_id}] to [{job.manual_start}], lets get ripping")
+        
         flash("Tracks was updated", "success")
 
     return redirect(url_for('route_jobs.jobdetail', job_id=job_id))
