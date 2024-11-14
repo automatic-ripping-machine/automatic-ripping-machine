@@ -198,13 +198,13 @@ if __name__ == "__main__":
     # Add the job.config to db
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
     # Check if the drive mode is set to manual, and load to the job config for later use
-    drive_mode = SystemDrives.query.filter_by(mount=job.devpath).first()
-    logging.debug(f"drive_mode: {drive_mode}")
-    if drive_mode:
-        job.config.manual_mode = True
+    drive = SystemDrives.query.filter_by(mount=job.devpath).first()
+    logging.debug(f"drive_mode: {drive.drive_mode}")
+    if drive.drive_mode == 'manual':
+        job.manual_mode = True
         db.session.commit()
     else:
-        job.config.manual_mode = False
+        job.manual_mode = False
         db.session.commit()
     utils.database_adder(config)
     # Log version number
@@ -214,7 +214,7 @@ if __name__ == "__main__":
     # Delete old log files
     logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])
     logging.info(f"Job: {job.label}")  # This will sometimes be none
-    # Check for zombie jobs and update status to failed
+    # Check for zombie jobs and update status to 'failed'
     utils.clean_old_jobs()
     # Log all params/attribs from the drive
     log_udev_params(devpath)

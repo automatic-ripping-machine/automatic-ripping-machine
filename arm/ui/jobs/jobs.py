@@ -47,8 +47,8 @@ def jobdetail():
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
 
-    # Check if a manual job and status is waiting (waiting for user)
-    if job.status == "waiting" and job.config.manual_mode:
+    # Check if a manual job, waiting for input and user has not provided input
+    if job.manual_mode and job.status == "waiting" and not job.manual_start:
         manual_edit = True
 
     # Get Job and Track data

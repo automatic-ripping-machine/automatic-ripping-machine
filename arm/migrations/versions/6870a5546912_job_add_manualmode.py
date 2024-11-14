@@ -1,4 +1,4 @@
-"""config add manualmode
+"""job add manualmode
 
 Revision ID: 6870a5546912
 Revises: daab0c779980
@@ -18,16 +18,16 @@ depends_on = None
 
 def upgrade():
     """
-        Update Config table with manual mode
+        Update Job table with manual mode
         True when drive is set to manual
         False for all others
 
         manual_mode - boolean
         """
-    op.add_column('config',
+    op.add_column('job',
                   sa.Column('manual_mode', sa.Boolean(), nullable=True)
                   )
 
 
 def downgrade():
-    op.drop_column('config', 'manual_mode')
+    op.drop_column('job', 'manual_mode')
