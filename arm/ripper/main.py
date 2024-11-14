@@ -187,7 +187,7 @@ if __name__ == "__main__":
     logging.info(f"************* Starting ARM processing at {datetime.datetime.now()} *************")
     if args.protection:
         logging.warning("Found 99 Track protection system - Job may fail!")
-    # put in job
+    # Set job status and start time
     job.status = "active"
     job.start_time = datetime.datetime.now()
     utils.database_adder(job)
@@ -199,11 +199,12 @@ if __name__ == "__main__":
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
     # Check if the drive mode is set to manual, and load to the job config for later use
     drive_mode = SystemDrives.query.filter_by(mount=job.devpath).first()
+    logging.debug(f"drive_mode: {drive_mode}")
     if drive_mode:
-        job.manual_mode = True
+        job.config.manual_mode = True
         db.session.commit()
     else:
-        job.manual_mode = False
+        job.config.manual_mode = False
         db.session.commit()
     utils.database_adder(config)
     # Log version number
