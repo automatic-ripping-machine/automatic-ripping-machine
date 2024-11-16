@@ -83,11 +83,20 @@ def makemkv(logfile, job):
             # Set job status to waiting
             job.status = "waiting"
             db.session.commit()
-            # Alert User tracks are ready and wait
+            # Alert User tracks are ready and wait, waits for 30 minutes
             job_state = manual_wait(job)
             # Process Tracks
             if job_state:
+                # Response from user provided, process requested tracks
                 process_single_tracks(job, logfile, rawpath, mode)
+            else:
+                # Notify User, no action was taken
+                title = "ARM is Sad - Job Abandoned"
+                message = "You left me alone in the cold and dark, I forgot who I was. Your job has been abandoned."
+                notify(job, title, message)
+
+                # Setting rawpath to None to set the job as failed when returning to arm_ripper
+                rawpath = None
 
         # if no maximum length, process the whole disc in one command
         elif int(job.config.MAXLENGTH) > 99998:
