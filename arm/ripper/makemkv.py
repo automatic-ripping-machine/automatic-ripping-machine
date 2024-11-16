@@ -391,15 +391,20 @@ def manual_wait(job) -> bool:
         # Wait for a minute
         sleep(60)
 
-        logging.debug(f"Wait time logging: [{i}] mins")
+        # Refresh job data
+        db.session.refresh(job)
+        logging.debug(f"Wait time logging: [{i}] mins - Ready: [{job.manual_start}]")
 
         # Check the job state (true once ready)
         if job.manual_start:
             user_ready = True
+            title = "The Wait is Over"
+            message = "Thanks for not forgetting me, I am now processing your job."
+            notify(job, title, message)
             break
         else:
-            # If nothing has happened, remind the user every 10 minutes
-            if i % 10 == 0 and i != wait_time:
+            # If nothing has happened, remind the user every 5 minutes
+            if i % 5 == 0 and i != wait_time:
                 body = f"Don't forget me, I need your help to continue doing ARM things!. You have {i} minutes."
                 notify(job, title, body)
 
