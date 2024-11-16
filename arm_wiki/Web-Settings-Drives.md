@@ -47,6 +47,8 @@ Drive names and descriptions can be modified to help in finding the right drive.
 As great as knowing a drive is `sr0` or `sr1`, adding in a description like 'top disk - Blu-ray' can help put the disk in the right drive.
 Especially for users with multiple drives in a system.
 
+For more details on how jobs are processed, see [Jobs](Web-Jobs)
+
 | Field        | Details                                                        | System or User |
 |--------------|----------------------------------------------------------------|----------------|
 | Name         | Defaults to `Drive x` where x is the total number of drives    | User editable  |

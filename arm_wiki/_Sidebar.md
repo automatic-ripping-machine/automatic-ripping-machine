@@ -16,8 +16,10 @@
 
 **Web Page Overview**
   - _Coming Soon_
+  - **Jobs**
+    - [Jobs](Web-Jobs)
   - **Settings**
-    - [Drive Management](Settings-Drives)
+    - [Drive Management](Web-Settings-Drives)
 
 **[Known Issues](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Known-Issues)**
 
