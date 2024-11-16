@@ -33,6 +33,13 @@ See [UI Settings](Web-Settings-UI) for more details.
 
 The Jobs page shows any current or already completed jobs in detail.
 
+### Job Tracks
+
+The track listing against A.R.M jobs lists music or video files that are to be processed.
+When running in Manual mode, additional configuration options are provided (detailed below), to rip single tracks.
+
+<img title="Job track details" alt="Music job tracks" src="images/jobs_jobspage_music_tracks.png" width="50%" height=""/>
+
 ### Job Modes
 
 A.R.M has two modes, automatic (default) and manual, allowing for additional configuration over jobs and drives.
