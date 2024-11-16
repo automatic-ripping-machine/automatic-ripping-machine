@@ -137,30 +137,30 @@ def setup():
     This function will do various checks to make sure everything can be setup for ARM
     Directory ups, create the db, etc
     """
-    perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
-    app.logger.debug("perm " + str(perm_file))
-    # Check for install file and that db is correctly setup
-    if perm_file.exists() and ui_utils.setup_database():
-        flash(f"{perm_file} exists, setup cannot continue. To re-install please delete this file.", "danger")
-        return redirect("/")
-    dir0 = Path(PurePath(cfg.arm_config['DBFILE']).parent)
-    dir1 = Path(cfg.arm_config['RAW_PATH'])
-    dir2 = Path(cfg.arm_config['TRANSCODE_PATH'])
-    dir3 = Path(cfg.arm_config['COMPLETED_PATH'])
-    dir4 = Path(cfg.arm_config['LOGPATH'])
-    arm_directories = [dir0, dir1, dir2, dir3, dir4]
+    # perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
+    # app.logger.debug("perm " + str(perm_file))
+    # # Check for install file and that db is correctly setup
+    # if perm_file.exists() and ui_utils.setup_database():
+    #     flash(f"{perm_file} exists, setup cannot continue. To re-install please delete this file.", "danger")
+    #     return redirect("/")
+    # dir0 = Path(PurePath(cfg.arm_config['DBFILE']).parent)
+    # dir1 = Path(cfg.arm_config['RAW_PATH'])
+    # dir2 = Path(cfg.arm_config['TRANSCODE_PATH'])
+    # dir3 = Path(cfg.arm_config['COMPLETED_PATH'])
+    # dir4 = Path(cfg.arm_config['LOGPATH'])
+    # arm_directories = [dir0, dir1, dir2, dir3, dir4]
 
-    try:
-        for arm_dir in arm_directories:
-            if not Path.exists(arm_dir):
-                os.makedirs(arm_dir)
-                flash(f"{arm_dir} was created successfully.", "success")
-    except FileNotFoundError as error:
-        flash(f"Creation of the directory {dir0} failed {error}", "danger")
-        app.logger.debug(f"Creation of the directory failed - {error}")
-    else:
-        flash("Successfully created all of the ARM directories", "success")
-        app.logger.debug("Successfully created all of the ARM directories")
+    # try:
+    #     for arm_dir in arm_directories:
+    #         if not Path.exists(arm_dir):
+    #             os.makedirs(arm_dir)
+    #             flash(f"{arm_dir} was created successfully.", "success")
+    # except FileNotFoundError as error:
+    #     flash(f"Creation of the directory {dir0} failed {error}", "danger")
+    #     app.logger.debug(f"Creation of the directory failed - {error}")
+    # else:
+    #     flash("Successfully created all of the ARM directories", "success")
+    #     app.logger.debug("Successfully created all of the ARM directories")
 
     try:
         if ui_utils.setup_database():
