@@ -19,6 +19,7 @@ import platform
 import importlib
 import re
 import subprocess
+from datetime import datetime
 
 from flask_login import login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
@@ -73,7 +74,14 @@ def settings():
     series = Job.query.filter_by(video_type="series").count()
     cds = Job.query.filter_by(disctype="music").count()
 
-    stats = {'python_version': platform.python_version(),
+    # Get the current server time and timezone
+    current_time = datetime.now()
+    server_datetime = current_time.strftime(cfg.arm_config['DATE_FORMAT'])
+    server_timezone = current_time.astimezone().tzinfo
+
+    stats = {'server_datetime': server_datetime,
+             'server_timezone': server_timezone,
+             'python_version': platform.python_version(),
              'arm_version': version,
              'git_commit': ui_utils.get_git_revision_hash(),
              'movies_ripped': movies,
