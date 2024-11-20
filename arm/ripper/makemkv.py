@@ -391,7 +391,7 @@ def manual_wait(job) -> bool:
     wait_time: int = 30
 
     title = "Manual Mode Activated!"
-    message = f"Manual mode activated, ARM has taken it's hands off the wheels. You have {wait_time} minutes to set the job."
+    message = f"ARM has taken it's hands off the wheels. You have {wait_time} minutes to set the job."
     notify(job, title, message)
 
     # Wait for the user to set the files and then start
