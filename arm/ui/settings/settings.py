@@ -364,7 +364,7 @@ def drive_manual(manual_id):
     drive = SystemDrives.query.filter_by(drive_id=manual_id).first()
     dev_path = drive.mount.lstrip('/dev/')
 
-    cmd = f"/sbin/setuser arm /opt/arm/scripts/docker/docker_arm_wrapper.sh {dev_path}"
+    cmd = f"/opt/arm/scripts/docker/docker_arm_wrapper.sh {dev_path}"
     app.logger.debug(f"Running command[{cmd}]")
 
     # Manually start ARM if the udev rules are not working for some reason
@@ -384,6 +384,8 @@ def drive_manual(manual_id):
         status = "danger"
         app.logger.error(message)
         app.logger.error(f"error: {e}")
+        app.logger.error(f"stdout: {e.output}")
+        app.logger.error(f"stderr: {e.stderr}")
 
     flash(message, status)
     return redirect('/settings')
