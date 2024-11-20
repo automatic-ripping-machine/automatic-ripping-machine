@@ -356,15 +356,29 @@ def drive_manual(manual_id):
     drive = SystemDrives.query.filter_by(drive_id=manual_id).first()
     dev_path = drive.mount.lstrip('/dev/')
 
-    cmd = f"/usr/bin/python3 /opt/arm/arm/ripper/main.py -d {dev_path}"
+    cmd = f"/sbin/setuser arm /opt/arm/scripts/docker/docker_arm_wrapper.sh {dev_path}"
     app.logger.debug(f"Running command[{cmd}]")
-    message = f"Manually starting a job on Drive: '{drive.name}' Path: '{dev_path}'"
 
-    # Manually start ARM as a new non-blocking process
-    subprocess.Popen(cmd, shell=True)
+    # Manually start ARM if the udev rules are not working for some reason
+    try:
+        manual_process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stdout, stderr = manual_process.communicate()
 
-    flash(message, "success")
-    return redirect('/')
+        if manual_process.returncode != 0:
+            raise subprocess.CalledProcessError(manual_process.returncode, cmd, output=stdout, stderr=stderr)
+
+        message = f"Manually starting a job on Drive: '{drive.name}'"
+        status = "success"
+        app.logger.debug(stdout)
+
+    except subprocess.CalledProcessError as e:
+        message = f"Failed to start a job on Drive: '{drive.name}' See logs for info"
+        status = "danger"
+        app.logger.error(message)
+        app.logger.error(f"error: {e}")
+
+    flash(message, status)
+    return redirect('/settings')
 
 
 @route_settings.route('/update_arm', methods=['POST'])
