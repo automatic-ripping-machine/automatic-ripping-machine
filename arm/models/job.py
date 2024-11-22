@@ -205,7 +205,11 @@ class Job(db.Model):
         return return_dict
 
     def eject(self):
-        """Eject disc if it hasn't previously been ejected"""
+        """Eject disc if it hasn't previously been ejected
+
+        Note:
+            See `drive_utils.SystemDrives.open_close`
+        """
         if not cfg.arm_config['AUTO_EJECT']:
             logging.info("Skipping auto eject")
             return

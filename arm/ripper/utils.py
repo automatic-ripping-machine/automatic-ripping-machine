@@ -5,7 +5,6 @@ import os
 import sys
 import logging
 import logging.handlers
-import fcntl
 import subprocess
 import shutil
 import time
@@ -309,31 +308,6 @@ def make_dir(path):
             raise OSError from error
     else:
         return False
-
-
-def get_cdrom_status(devpath):
-    """
-    get the status of the cdrom drive\n
-    CDS_NO_INFO		0\n
-    CDS_NO_DISC		1\n
-    CDS_TRAY_OPEN		2\n
-    CDS_DRIVE_NOT_READY	3\n
-    CDS_DISC_OK		4\n
-
-    see linux/cdrom.h for specifics\n
-    :param devpath: path to cdrom
-    :return int:
-    """
-    try:
-        disc_check = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
-    except OSError:
-        # Sometimes ARM will log errors opening hard drives. this check should stop it
-        if not re.search(r'hd[a-j]|sd[a-j]|loop\d|nvme\d', devpath):
-            logging.info(f"Failed to open device {devpath} to check status.")
-        sys.exit(2)
-    result = fcntl.ioctl(disc_check, 0x5326, 0)
-
-    return result
 
 
 def find_file(filename, search_path):
