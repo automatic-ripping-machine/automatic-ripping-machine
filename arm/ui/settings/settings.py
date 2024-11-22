@@ -33,7 +33,7 @@ from arm.models.system_drives import SystemDrives
 from arm.models.system_info import SystemInfo
 from arm.models.ui_settings import UISettings
 import arm.config.config as cfg
-from arm.ui.settings import DriveUtils
+from arm.ui.settings import DriveUtils as drive_utils
 from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
 from arm.ui.settings.ServerUtil import ServerUtil
 import arm.ripper.utils as ripper_utils
@@ -105,7 +105,8 @@ def settings():
     media_path = cfg.arm_config['COMPLETED_PATH']
 
     # System Drives (CD/DVD/Blueray drives)
-    drives = DriveUtils.drives_check_status()
+    drive_utils.update_job_status()
+    drives = drive_utils.get_drives()
     form_drive = SystemInfoDrives(request.form)
 
     # Load up the comments.json, so we can comment the arm.yaml
@@ -291,14 +292,12 @@ def server_info():
         # Return for POST
         app.logger.debug(
             f"Drive id: {str(form_drive.id.data)} " +
-            f"Updated name: [{str(form_drive.name.data)}] " +
             f"Updated description: [{str(form_drive.description.data)}]")
         drive = SystemDrives.query.filter_by(drive_id=form_drive.id.data).first()
-        drive.name = str(form_drive.name.data).strip()
         drive.description = str(form_drive.description.data).strip()
         drive.drive_mode = str(form_drive.drive_mode.data).strip()
         db.session.commit()
-        flash(f"Updated Drive { drive.mount } details", "success")
+        flash(f"Updated Drive { drive.name } details", "success")
         # Return to systeminfo page (refresh page)
         return redirect(redirect_settings)
     else:
@@ -316,7 +315,7 @@ def system_drive_scan():
     """
     global redirect_settings
     # Update to scan for changes to the ripper system
-    new_count = DriveUtils.drives_update()
+    new_count = drive_utils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
     return redirect(redirect_settings)
 
@@ -328,9 +327,9 @@ def drive_eject(eject_id):
     Server System - change state of CD/DVD/BluRay drive - toggle eject
     """
     global redirect_settings
-    drive = SystemDrives.query.filter_by(drive_id=eject_id).first()
-    drive.open_close()
-    db.session.commit()
+    drive = SystemDrives.query.filter_by(drive_id=eject_id).one()
+    if output := drive.open_close(logger=app.logger):
+        flash(output, "error")
     return redirect(redirect_settings)
 
 
