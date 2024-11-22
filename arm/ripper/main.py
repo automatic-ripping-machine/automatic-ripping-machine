@@ -149,20 +149,22 @@ if __name__ == "__main__":
     # Get arguments from arg parser
     args = entry()
     devpath = f"/dev/{args.devpath}"
+    drive = SystemDrives.query.filter_by(mount=devpath).one()  # unique mounts
 
     # With some drives and some disks, there is a race condition between creating the Job()
     # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)
-    for i in range(10):
-        if utils.get_cdrom_status(devpath) != 4:
-            logging.info(f"[{i} of 10] Drive [{devpath}] appears to be empty or is not ready.  Waiting 1s")
-            arm_log.info(f"[{i} of 10] Drive [{devpath}] appears to be empty or is not ready.  Waiting 1s")
-            time.sleep(1)
-
-    # Exit if drive isn't ready
-    if utils.get_cdrom_status(devpath) != 4:
+    ready_count = 1
+    for num in range(1, 11):
+        if drive.ready:
+            break
+        time.sleep(1)
+        msg = f"[{num} of 10] Drive [{drive.mount}] appears to be empty or is not ready. Waiting 1s"
+        logging.info(msg)
+    else:
         # This should really never trigger now as arm_wrapper should be taking care of this.
-        logging.info(f"Drive [{devpath}] appears to be empty or is not ready.  Exiting ARM.")
-        arm_log.info(f"Drive [{devpath}] appears to be empty or is not ready.  Exiting ARM.")
+        msg = f"Failed to wait for drive ready (ioctl tray status: {drive.tray})."
+        logging.info(msg)
+        arm_log.info(msg)
         sys.exit()
 
     # ARM Job starts
@@ -198,7 +200,6 @@ if __name__ == "__main__":
     # Add the job.config to db
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
     # Check if the drive mode is set to manual, and load to the job config for later use
-    drive = SystemDrives.query.filter_by(mount=job.devpath).first()
     logging.debug(f"drive_mode: {drive.drive_mode}")
     if drive.drive_mode == 'manual':
         job.manual_mode = True
