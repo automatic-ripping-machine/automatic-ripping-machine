@@ -100,7 +100,7 @@
                             <div class="card-header background-poster">
                                 <a id="posterClick" href="#">
                                     <img src="{{ jobs.poster_url }}" width="240px" class="img-thumbnail"
-                                         alt="Poster image"></a>
+                                         alt="Movie Poster"></a>
                                 {% if jobs.video_type != "Music" %}
                                     <div class="btn-group float-right mt-2" role="group">
                                         <a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title
@@ -241,7 +241,7 @@
                                     <tr>
                                         <td style="text-align:left"><strong>poster_url</strong></td>
                                         <td style="text-align:left"><a href="{{ jobs.poster_url }}"><img
-                                                alt="Poster image"
+                                                alt="Movie Poster"
                                                 src="{{ jobs.poster_url }}" title="{{ jobs.poster_url }}"
                                                 width=50></a><br/>{{ jobs.poster_url }}
                                         </td>
@@ -249,7 +249,7 @@
                                     <tr>
                                         <td style="text-align:left"><strong>poster_url_auto</strong></td>
                                         <td style="text-align:left"><a href="{{ jobs.poster_url_auto }}"><img
-                                                alt="Poster image"
+                                                alt="Movie Poster"
                                                 src="{{ jobs.poster_url_auto }}" title="{{ jobs.poster_url_auto }}"
                                                 width=50></a><br/>{{ jobs.poster_url_auto }}
                                         </td>
@@ -257,7 +257,7 @@
                                     <tr>
                                         <td style="text-align:left"><strong>poster_url_manual</strong></td>
                                         <td style="text-align:left"><a href="{{ jobs.poster_url_manual }}"><img
-                                                alt="Poster image"
+                                                alt="Movie Poster"
                                                 src="{{ jobs.poster_url_manual }}" title="{{ jobs.poster_url_manual }}"
                                                 width=50> </a><br/>{{ jobs.poster_url_manual }}
                                         </td>
@@ -324,41 +324,65 @@
                                         <td style="text-align:left"><strong>HB_ARGS_BD</strong></td>
                                         <td style="text-align:left">{{ jobs.config.HB_ARGS_BD }}</td>
                                     </tr>
+                                    <tr>
+                                        <td style="text-align:left"><strong>Drive Mode</strong></td>
+                                        <td style="text-align:left">
+                                            {% if jobs.manual_mode %}
+                                                Manual
+                                            {% else %}
+                                                Auto
+                                            {% endif %}
+                                        </td>
+                                    </tr>
                                 {% endif %}
                                 </tbody>
                             </table>
                             <hr class="test d-none">
-                            <table id="tracktable" class="table table-striped" aria-label="Tracks">
-                                <thead class="bg-secondary">
-                                <tr>
-                                    <th scope="col" style="text-align:left">Track #</th>
-                                    {% if jobs.video_type == "Music" %}
-                                        <th scope="col" style="text-align:left">Track Name</th>
-                                    {% endif %}
-                                    <th scope="col" style="text-align:left">Length (sec)</th>
-                                    <th scope="col" style="text-align:left">FPS</th>
-                                    <th scope="col" style="text-align:left">Aspect Ratio</th>
-                                    <th scope="col" style="text-align:left">Main Feature</th>
-                                    <th scope="col" style="text-align:left">Ripped</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {% for track in tracks %}
+                            <form method="POST" action="/jobdetailload?job_id={{ jobs.job_id }}">
+                                <table id="tracktable" class="table table-striped" aria-label="Tracks">
+                                    <thead class="bg-secondary">
                                     <tr>
-                                        <td style="text-align:left"><strong>{{ track.track_number }}</strong></td>
+                                        <th scope="col" style="text-align:left">Track #</th>
                                         {% if jobs.video_type == "Music" %}
-                                            <td style="text-align:left"><strong>{{ track.filename}}</strong></td>
+                                            <th scope="col" style="text-align:left">Track Name</th>
                                         {% endif %}
-                                        <td style="text-align:left">{{ track.length }} {{ " (Milliseconds)" if jobs.video_type == "Music" else "" }}</td>
-                                        <td style="text-align:left">{{ track.fps }}</td>
-                                        <td style="text-align:left">{{ track.aspect_ratio }}</td>
-                                        <td style="text-align:left">{{ track.main_feature }}</td>
-                                        <td style="text-align:left">{{ track.ripped }}</td>
+                                        <th scope="col" style="text-align:left">Length (sec)</th>
+                                        <th scope="col" style="text-align:left">FPS</th>
+                                        <th scope="col" style="text-align:left">Aspect Ratio</th>
+                                        <th scope="col" style="text-align:left">Main Feature</th>
+                                        {% if jobs.video_type != "Music" %}
+                                            <th scope="col" style="text-align:left">Manual Process</th>
+                                        {% endif %}
+                                        <th scope="col" style="text-align:left">Ripped</th>
                                     </tr>
-                                {% endfor %}
-                                </tbody>
-
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                    {% for track in tracks %}
+                                        <tr>
+                                            <td style="text-align:left"><strong>{{ track.track_number }}</strong></td>
+                                            {% if jobs.video_type == "Music" %}
+                                                <td style="text-align:left"><strong>{{ track.filename}}</strong></td>
+                                            {% endif %}
+                                            <td style="text-align:left">{{ track.length }} {{ " (Milliseconds)" if jobs.video_type == "Music" else "" }}</td>
+                                            <td style="text-align:left">{{ track.fps }}</td>
+                                            <td style="text-align:left">{{ track.aspect_ratio }}</td>
+                                            <td style="text-align:left">{{ track.main_feature }}</td>
+                                            {% if jobs.video_type != "Music" %}
+                                                <td style="text-align:center">
+                                                        {{ form.track_ref[loop.index0].checkbox }}
+                                                        {{ form.track_ref[loop.index0].track_ref }}
+                                                </td>
+                                            {% endif %}
+                                            <td style="text-align:left">{{ track.ripped }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% if manual_edit  %}
+                                    {{ form.hidden_tag() }}
+                                    <button type="submit" class="btn btn-primary btn-sm" name="submit">Update</button>
+                                {% endif %}
+                            </form>
                         </div>
                     </div>
                 </div>

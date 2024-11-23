@@ -6,11 +6,13 @@ import os
 import logging
 import subprocess
 import shlex
+from time import sleep
 
 from arm.models.track import Track
 from arm.ripper import utils  # noqa: E402
 from arm.ui import db  # noqa: F401, E402
 import arm.config.config as cfg  # noqa E402
+from arm.ripper.utils import notify
 
 
 class MakeMkvRuntimeError(RuntimeError):
@@ -34,6 +36,10 @@ def makemkv(logfile, job):
     :param job: job object
     :return: path to ripped files.
     """
+
+    # Get drive mode for the current drive
+    mode = utils.get_drive_mode(job.devpath)
+    logging.info(f"Job running in {mode} mode")
 
     # confirm MKV is working, beta key hasn't expired
     prep_mkv(logfile)
@@ -71,6 +77,27 @@ def makemkv(logfile, job):
             logging.info("Trying to find mainfeature")
             track = Track.query.filter_by(job_id=job.job_id).order_by(Track.length.desc()).first()
             rip_mainfeature(job, track, logfile, rawpath)
+
+        # Run if mode is manual, user selects tracks
+        elif mode == 'manual':
+            # Set job status to waiting
+            job.status = "waiting"
+            db.session.commit()
+            # Alert User tracks are ready and wait, waits for 30 minutes
+            job_state = manual_wait(job)
+            # Process Tracks
+            if job_state:
+                # Response from user provided, process requested tracks
+                process_single_tracks(job, logfile, rawpath, mode)
+            else:
+                # Notify User, no action was taken
+                title = "ARM is Sad - Job Abandoned"
+                message = "You left me alone in the cold and dark, I forgot who I was. Your job has been abandoned."
+                notify(job, title, message)
+
+                # Setting rawpath to None to set the job as failed when returning to arm_ripper
+                rawpath = None
+
         # if no maximum length, process the whole disc in one command
         elif int(job.config.MAXLENGTH) > 99998:
             cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r ' \
@@ -79,7 +106,7 @@ def makemkv(logfile, job):
                   f'dev:{job.devpath} all {shlex.quote(rawpath)} --minlength={job.config.MINLENGTH}'
             run_makemkv(cmd, logfile)
         else:
-            process_single_tracks(job, logfile, rawpath)
+            process_single_tracks(job, logfile, rawpath, 'auto')
     else:
         logging.info("I'm confused what to do....  Passing on MakeMKV")
 
@@ -105,27 +132,37 @@ def rip_mainfeature(job, track, logfile, rawpath):
     run_makemkv(cmd, logfile)
 
 
-def process_single_tracks(job, logfile, rawpath):
+def process_single_tracks(job, logfile, rawpath, mode: str):
     """
     For processing single tracks from MakeMKV one at a time
     :param job: job object
     :param str logfile: path of logfile
     :param str rawpath:
+    :param str mode: drive mode (auto or manual)
     :return:
     """
     # process one track at a time based on track length
     for track in job.tracks:
-        if track.length < int(job.config.MINLENGTH):
-            # too short
-            logging.info(f"Track #{track.track_number} of {job.no_of_titles}. Length ({track.length}) "
-                         f"is less than minimum length ({job.config.MINLENGTH}).  Skipping")
-        elif track.length > int(job.config.MAXLENGTH):
-            # too long
-            logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
-                         f"Length ({track.length}) is greater than maximum length ({job.config.MAXLENGTH}).  "
-                         "Skipping")
-        else:
-            # just right
+        # Process single track automatically based on start and finish times
+        if mode == 'auto':
+            if track.length < int(job.config.MINLENGTH):
+                # too short
+                logging.info(f"Track #{track.track_number} of {job.no_of_titles}. Length ({track.length}) "
+                             f"is less than minimum length ({job.config.MINLENGTH}).  Skipping")
+                track.process = False
+
+            elif track.length > int(job.config.MAXLENGTH):
+                # too long
+                logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
+                             f"Length ({track.length}) is greater than maximum length ({job.config.MAXLENGTH}).  "
+                             "Skipping")
+                track.process = False
+            else:
+                # track is just right
+                track.process = True
+
+        # Rip the track if the user has set it to rip, or in auto mode and the time is good
+        if track.process:
             logging.info(f"Processing track #{track.track_number} of {(job.no_of_titles - 1)}. "
                          f"Length is {track.length} seconds.")
             filepathname = os.path.join(rawpath, track.filename)
@@ -134,9 +171,7 @@ def process_single_tracks(job, logfile, rawpath):
             cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r ' \
                   f'--progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log ' \
                   f'--messages=-stdout ' \
-                  f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)} ' \
-                  f'--minlength={job.config.MINLENGTH}'
-            # Possibly update db to say track was ripped
+                  f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)}'
             run_makemkv(cmd, logfile)
 
 
@@ -327,3 +362,63 @@ def run_makemkv(cmd, logfile):
         subprocess.run(f"{cmd} >> {logfile}", capture_output=True, shell=True, check=True)
     except subprocess.CalledProcessError as mkv_error:
         raise MakeMkvRuntimeError(mkv_error) from mkv_error
+
+
+def manual_wait(job) -> bool:
+    """
+    Pause execution to allow for user interaction and monitor job readiness.
+
+    This function initiates a manual wait mode for a specified job, notifying the user
+    to configure job parameters within a set time limit. The function sends periodic
+    reminders and checks the job's readiness state. If the job is set to `manual_start`
+    before the timeout, it exits early; otherwise, it continues until time expires.
+
+    Parameters:
+        job (Job): An instance of the job to monitor, which includes attributes
+                   such as `job_id` and `manual_start` indicating job readiness.
+
+    Returns:
+        bool: `True` if the user sets the job to ready (`manual_start` is enabled)
+              within the wait time, otherwise `False`.
+
+    Notes:
+        - The function checks in one minute intervals for state changes
+        - A reminder is sent every 10 minutes.
+        - A final notification is sent when one minute is left, warning of potential
+          cancellation.
+    """
+    user_ready = False
+    wait_time: int = 30
+
+    title = "Manual Mode Activated!"
+    message = f"ARM has taken it's hands off the wheels. You have {wait_time} minutes to set the job."
+    notify(job, title, message)
+
+    # Wait for the user to set the files and then start
+    title = "Waiting for input on job!"
+    for i in range(wait_time, 0, -1):
+        # Wait for a minute
+        sleep(60)
+
+        # Refresh job data
+        db.session.refresh(job)
+        logging.debug(f"Wait time logging: [{i}] mins - Ready: [{job.manual_start}]")
+
+        # Check the job state (true once ready)
+        if job.manual_start:
+            user_ready = True
+            title = "The Wait is Over"
+            message = "Thanks for not forgetting me, I am now processing your job."
+            notify(job, title, message)
+            break
+        else:
+            # If nothing has happened, remind the user every 5 minutes
+            if i % 5 == 0 and i != wait_time:
+                body = f"Don't forget me, I need your help to continue doing ARM things!. You have {i} minutes."
+                notify(job, title, body)
+
+            if i == 1:
+                body = "ARM is about to cancel this job!!! You have less than 1 minute left!"
+                notify(job, title, body)
+
+    return user_ready

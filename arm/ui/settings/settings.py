@@ -19,6 +19,7 @@ import platform
 import importlib
 import re
 import subprocess
+from datetime import datetime
 
 from flask_login import login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
@@ -73,7 +74,14 @@ def settings():
     series = Job.query.filter_by(video_type="series").count()
     cds = Job.query.filter_by(disctype="music").count()
 
-    stats = {'python_version': platform.python_version(),
+    # Get the current server time and timezone
+    current_time = datetime.now()
+    server_datetime = current_time.strftime(cfg.arm_config['DATE_FORMAT'])
+    server_timezone = current_time.astimezone().tzinfo
+
+    stats = {'server_datetime': server_datetime,
+             'server_timezone': server_timezone,
+             'python_version': platform.python_version(),
              'arm_version': version,
              'git_commit': ui_utils.get_git_revision_hash(),
              'movies_ripped': movies,
@@ -288,6 +296,7 @@ def server_info():
         drive = SystemDrives.query.filter_by(drive_id=form_drive.id.data).first()
         drive.name = str(form_drive.name.data).strip()
         drive.description = str(form_drive.description.data).strip()
+        drive.drive_mode = str(form_drive.drive_mode.data).strip()
         db.session.commit()
         flash(f"Updated Drive { drive.mount } details", "success")
         # Return to systeminfo page (refresh page)
@@ -343,6 +352,43 @@ def drive_remove(remove_id):
         app.logger.error(f"Drive removal encountered an error: {e}")
         flash("Drive unable to be removed, check logs for error", "error")
     return redirect(redirect_settings)
+
+
+@route_settings.route('/drive/manual/<manual_id>')
+@login_required
+def drive_manual(manual_id):
+    """
+    Manually start a job on ARM
+    """
+
+    drive = SystemDrives.query.filter_by(drive_id=manual_id).first()
+    dev_path = drive.mount.lstrip('/dev/')
+
+    cmd = f"/opt/arm/scripts/docker/docker_arm_wrapper.sh {dev_path}"
+    app.logger.debug(f"Running command[{cmd}]")
+
+    # Manually start ARM if the udev rules are not working for some reason
+    try:
+        manual_process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stdout, stderr = manual_process.communicate()
+
+        if manual_process.returncode != 0:
+            raise subprocess.CalledProcessError(manual_process.returncode, cmd, output=stdout, stderr=stderr)
+
+        message = f"Manually starting a job on Drive: '{drive.name}'"
+        status = "success"
+        app.logger.debug(stdout)
+
+    except subprocess.CalledProcessError as e:
+        message = f"Failed to start a job on Drive: '{drive.name}' See logs for info"
+        status = "danger"
+        app.logger.error(message)
+        app.logger.error(f"error: {e}")
+        app.logger.error(f"stdout: {e.output}")
+        app.logger.error(f"stderr: {e.stderr}")
+
+    flash(message, status)
+    return redirect('/settings')
 
 
 @route_settings.route('/update_arm', methods=['POST'])

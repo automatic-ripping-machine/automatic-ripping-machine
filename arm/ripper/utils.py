@@ -26,6 +26,7 @@ from arm.models.job import Job
 from arm.models.notifications import Notifications
 from arm.models.track import Track
 from arm.models.user import User
+from arm.models.system_drives import SystemDrives
 from arm.ripper import apprise_bulk
 
 NOTIFY_TITLE = "ARM notification"
@@ -829,3 +830,26 @@ def check_for_wait(job):
                 database_updater({'status': "active", "hasnicetitle": True, "updated": True}, job)
                 break
         database_updater({'status': "active"}, job)
+
+
+def get_drive_mode(devpath: str) -> str:
+    """
+    Retrieve the drive mode for a specified device path.
+
+    This function queries the database for a drive associated with the provided
+    device path (`devpath`). If a drive is found, it returns the drive's mode;
+    otherwise, it defaults to 'auto'.
+
+    Parameters:
+        devpath (str): The device path used to identify the drive in the database.
+
+    Returns:
+        str: The drive mode associated with the specified device path if found;
+             otherwise, returns 'auto'.
+    """
+    drive = SystemDrives.query.filter_by(mount=devpath).first()
+    if drive:
+        mode = drive.drive_mode
+    else:
+        mode = 'auto'
+    return mode

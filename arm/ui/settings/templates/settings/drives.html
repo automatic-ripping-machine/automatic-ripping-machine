@@ -12,99 +12,98 @@
                             {% for drive in drives %}
                                 <li class="list-group-item">
                                     <div class="container">
-                                        <div class="row">
-                                            <div class="col">
-                                                <form id="systemForm" name="systemForm" action="/systeminfo" method="post">
-                                                    {% if form_drive %}
-                                                        <!-- Drives form defined, editing available -->
-                                                        {{ form_drive.hidden_tag() }}
-                                                    {% endif %}
+                                        <form id="systemForm" name="systemForm" action="/systeminfo" method="post">
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    {{ form_drive.hidden_tag() }}
                                                     <div class="form-group row my-0">
-                                                        <label for="driveName" class="col-sm-3 col-form-label px-1">Name</label>
-                                                        {% if form_drive %}
-                                                            <!-- Drives form defined, editing available -->
-                                                            <input class="col-sm-6 form-control form-control-sm px-1" type="text" id="name" name="name" value="{{ drive.name }}">
-                                                        {% else %}
-                                                            <!-- Drives form not defined, no editing available -->
-                                                            <label class="col-sm col-form-label px-1">{{ drive.name }}</label>
-                                                        {% endif %}
+                                                        <label for="driveName" class="col-sm-4 col-form-label px-1">Name</label>
+                                                        <input class="col-sm-5 form-control form-control-sm px-1" type="text" id="driveName" name="name" value="{{ drive.name }}">
+                                                        <span class="col-2 ml-2">
+                                                            {% if drive.open %}
+                                                                <a href="drive/eject/{{ drive.drive_id }}">
+                                                                    <img src="static/img/drive-optical_open.svg" style="max-width:45px; min-width:45px" alt="Drive Open">
+                                                                </a>
+                                                            {% else %}
+                                                                <a href="drive/eject/{{ drive.drive_id }}">
+                                                                    <img src="static/img/drive-optical_closed.svg" style="max-width:45px; min-width:45px" alt="Drive Closed">
+                                                                </a>
+                                                            {% endif %}
+                                                    </span>
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label px-1">Type</label>
-                                                        <label class="col-sm col-form-label px-1">{{ drive.type }}</label>
+                                                        <label for="type" class="col-sm-4 col-form-label px-1">Type</label>
+                                                        <label class="col-sm-8 col-form-label px-1 small">{{ drive.type }}</label>
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label px-1 px-1">Mount Path</label>
-                                                        <label class="col-sm col-form-label px-1 small">{{ drive.mount }}</label>
+                                                        <label for="mount" class="col-sm-4 col-form-label px-1 px-1">Mount Path</label>
+                                                        <label class="col-sm-8 col-form-label px-1 small">{{ drive.mount }}</label>
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label px-1">Current Job</label>
+                                                        <label for="current_job" class="col-sm-4 col-form-label px-1">Current Job</label>
                                                         {% if drive.job_id_current %}
-                                                        <label class="col-sm col-form-label px-1"><a href="/jobdetail?job_id={{ drive.job_id_current }}">{{ drive.job_current.video_type }} - {{ drive.job_current.title }} - {{ drive.job_current.year }} </a></label>
+                                                        <label class="col-sm-8 col-form-label px-1 small">
+                                                            <a href="/jobdetail?job_id={{ drive.job_id_current }}">
+                                                                <span class="text-capitalize">{{ drive.job_current.video_type }}</span> - {{ drive.job_current.title }} - {{ drive.job_current.year }}
+                                                            </a>
+                                                        </label>
                                                         {% else %}
-                                                            <label class="col-sm col-form-label px-1">No current job</label>
+                                                            <label class="col-sm col-form-label px-1 small">No current job</label>
                                                         {% endif %}
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label class="col-sm-3 col-form-label px-1 px-1">Previous Job</label>
+                                                        <label for="previous_job" class="col-sm-4 col-form-label px-1 px-1">Previous Job</label>
                                                         {% if drive.job_id_previous %}
-                                                            <label class="col-sm col-form-label px-1"><a href="/jobdetail?job_id={{ drive.job_id_previous }}">{{ drive.job_previous.video_type }} - {{ drive.job_previous.title }} - {{ drive.job_previous.year }} </a></label>
+                                                            <label class="col-sm-8 col-form-label px-1 small">
+                                                                <a href="/jobdetail?job_id={{ drive.job_id_previous }}">
+                                                                    <span class="text-capitalize">{{ drive.job_previous.video_type }}</span> - {{ drive.job_previous.title }} - {{ drive.job_previous.year }}
+                                                                </a>
+                                                            </label>
                                                         {% else %}
-                                                            <label class="col-sm col-form-label px-1">N/A</label>
+                                                            <label class="col-sm col-form-label px-1 small">
+                                                                No Previous Job
+                                                            </label>
                                                         {% endif %}
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <label for="driveDescription" class="col-sm-3 col-form-label px-1">Description</label>
-                                                        {% if form_drive %}
-                                                            <!-- Drives form defined, editing available -->
-                                                            <input class="col-sm-6 form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}">
-                                                            <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
-                                                        {% else %}
-                                                            <!-- Drives form not defined, no editing available -->
-                                                            <input class="form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}" readonly>
-                                                            <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
-                                                        {% endif %}
+                                                        <label for="description" class="col-sm-4 col-form-label px-1">Description</label>
+                                                        <input class="col-sm-8 form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}">
+                                                        <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
                                                     </div>
                                                     <div class="form-group row my-0">
-                                                        <div class="col">
-                                                            <div class="float-right">
-                                                                {% if form_drive %}
-                                                                    <!-- Drives form defined, editing available -->
-                                                                    <button type="submit" class="btn btn-primary btn-sm" name="submit">Update</button>
-                                                                    <a href="drive/remove/{{ drive.drive_id }}" class="btn btn-outline-danger btn-sm">Remove</a>
-                                                                {% else %}
-                                                                    <!-- Drives form not defined, no editing available -->
-                                                                {% endif %}
-                                                            </div>
-                                                        </div>
+                                                        <label for="drive_mode" class="col-sm-4 col-form-label px-1">Drive Mode</label>
+                                                        <select id="drive_mode" name="drive_mode" class="col-sm-8 form-control form-control-sm px-1">
+                                                            <option value="auto" {% if drive.drive_mode == 'auto' %}selected{% endif %}>Auto</option>
+                                                            <option value="manual" {% if drive.drive_mode == 'manual' %}selected{% endif %}>Manual</option>
+                                                        </select>
                                                     </div>
-                                                </form>
-                                            </div>
-                                            <div class="col-2 d-flex">
-                                                <div class="row">
-                                                    {% if drive.open %}
-                                                        <a href="drive/eject/{{ drive.drive_id }}">
-                                                            <img src="static/img/drive-optical_open.svg" class="p-flex align-items-center" style="max-width:100px; min-width:50px" alt="Drive Open">
-                                                        </a>
-                                                    {% else %}
-                                                        <a href="drive/eject/{{ drive.drive_id }}">
-                                                            <img src="static/img/drive-optical_closed.svg" class="p-flex align-items-center" style="max-width:100px; min-width:50px" alt="Drive Closed">
-                                                        </a>
                                                 </div>
                                             </div>
-                                        </div>
+                                            <div class="row">
+                                                <div class="col-sm-12 d-grid gap-2">
+                                                    <button type="submit" class="btn btn-primary btn-sm text-nowrap" name="submit">
+                                                        Update
+                                                    </button>
+                                                    <a href="drive/manual/{{ drive.drive_id }}" class="btn btn-secondary btn-sm text-nowrap">
+                                                        Manual
+                                                    </a>
+                                                    <a href="drive/remove/{{ drive.drive_id }}" class="btn btn-outline-danger btn-sm text-nowrap">
+                                                        Remove
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </form>
                                     </div>
-                                {% endif %}
+                                </li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="list-group-item">
+                                No drives installed on this system.
                             </li>
-                        {% endfor %}
-                    {% else %}
+                        {% endif %}
                         <li class="list-group-item">
-                            No drives installed on this system.
+                            <a href="systemdrivescan">Scan for Drives</a>
                         </li>
-                    {% endif %}
-                    <li class="list-group-item">
-                        <a href="systemdrivescan">Scan for Drives</a>
-                    </li>
                     </ul>
                     <i><u>Note:</u> Ripping does not require drives to be listed in the UI here. However, if a drive does not show up, there may be an issue with the docker container settings.</i>
                 </div>

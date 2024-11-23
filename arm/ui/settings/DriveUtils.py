@@ -108,6 +108,11 @@ def drives_check_status():
             drive.job_id_previous = None
             db.session.commit()
 
+        # Check if drive mode is Null (default)
+        if drive.drive_mode is None:
+            drive.drive_mode = "auto"
+            db.session.commit()
+
         # Print the drive debug status
         drive_status_debug(drive)
 
@@ -139,6 +144,7 @@ def drive_status_debug(drive):
         app.logger.debug(f"Job - Type: {drive.job_previous.video_type}")
         app.logger.debug(f"Job - Title: {drive.job_previous.title}")
         app.logger.debug(f"Job - Year: {drive.job_previous.year}")
+    app.logger.debug(f"Drive Mode: {drive.drive_mode}")
     app.logger.debug("*********")
 
 

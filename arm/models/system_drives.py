@@ -18,6 +18,7 @@ class SystemDrives(db.Model):
     job_id_current = db.Column(db.Integer, db.ForeignKey("job.job_id"))
     job_id_previous = db.Column(db.Integer, db.ForeignKey("job.job_id"))
     description = db.Column(db.Unicode(200))
+    drive_mode = db.Column(db.String(100))
 
     # relationship - join current and previous jobs to the jobs table
     job_current = db.relationship("Job", backref="Current", foreign_keys=[job_id_current])
@@ -31,6 +32,7 @@ class SystemDrives(db.Model):
         self.job_id_previous = job_previous
         self.description = description
         self.drive_type()
+        self.drive_mode = "auto"
 
     def drive_type(self):
         """find the Drive type (CD, DVD, Blu-ray) from the udev values"""
