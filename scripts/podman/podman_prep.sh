@@ -11,7 +11,7 @@ loginctl enable-linger arm
 
 # Create arm and SystemD container directories
 mkdir -p ~arm/arm/{config,logs,media,music} ~arm/.config/containers/systemd
-cp arm.container ~/arm/.config/containers/systemd
+cp arm.container ~arm/.config/containers/systemd
 chown -R arm:arm ~arm
 
 # Update firewall-d to allow port 8080
