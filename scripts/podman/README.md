@@ -4,7 +4,7 @@ from the automatic-ripping machine git:
 podman build . -t arm:latest
 
 This puts the image in your local repo, which is called by these scripts
-if you'd like to use the public docker hub container, change the image to
+if you'd like to use the public docker hub container, change the IMAGE to
 
 docker.io/automaticrippingmachine/automatic-ripping-machine:latest
 
