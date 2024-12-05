@@ -1,0 +1,21 @@
+# Place this file in $HOME/.config/containers/systemd/
+# arm.container
+[Container]
+AddDevice=/dev/sr0:/dev/sr0
+AddDevice=/dev/sr1:/dev/sr1
+AddDevice=/dev/sr2:/dev/sr2
+AddDevice=/dev/sr3:/dev/sr3
+AddDevice=/dev/dri:/dev/dri
+ContainerName=arm
+Environment=ARM_UID=1000 ARM_GID=1000
+Image=localhost/arm:latest
+PublishPort=8080:8080
+UIDMap=+1000:@1000
+Volume=%h/arm:/home/arm:Z
+Volume=%h/arm/music:/home/arm/music:Z
+Volume=%h/arm/logs:/home/arm/logs:Z
+Volume=%h/arm/media:/home/arm/media:Z
+Volume=%h/arm/config:/etc/arm/config:Z
+
+[Service]
+Restart=always
