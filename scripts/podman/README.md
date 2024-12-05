@@ -13,5 +13,5 @@ this prevents arm from trying to change permissions of ~arm and running into
 a bunch of SELinux issues.
 
 This script / quadlet also work with Intel Quicksync as is - I'm passing a 
-Intel Corporation Raptor Lake-P [Iris Xe Graphics] into my VM. I have nto tested with
+Intel Corporation Raptor Lake-P [Iris Xe Graphics] into my VM. I have not tested with
 AMD VCN or Nvidia NVENC (yet)
