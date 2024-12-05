@@ -92,6 +92,7 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
     firmware = db.Column(db.String(10))
     location = db.Column(db.String(255))
     stale = db.Column(db.Boolean)  # indicate that this drive was not found.
+    mdisc = db.Column(db.SmallInteger)
 
     # cross references:
     job_id_current = db.Column(db.Integer, db.ForeignKey("job.job_id"))
@@ -107,6 +108,7 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
     def __init__(self):
         # mark drive info as outdated
         self.stale = True
+        self.mdisc = None
 
         # cross references
         self.job_id_current = None
@@ -139,6 +141,8 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
         self.location = drive.location
         # mark drive info as updated
         self.stale = False
+        # remove MakeMKV disc id
+        self.mdisc = None
 
     @property
     def type(self):
