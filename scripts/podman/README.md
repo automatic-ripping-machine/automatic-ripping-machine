@@ -1,6 +1,8 @@
 This is built off of the dev branch - so I built the container locally
 from the automatic-ripping machine git:
+
 podman build . -t arm:latest
+
 This puts the image in your local repo, which is called by these scripts
 if you'd like to use the public docker hub container, change the image to
 
