@@ -19,7 +19,7 @@ firewall-cmd --permanent --add-port=8080/tcp
 firewall-cmd --reload
 
 # Tell SELinux to allow containers to access devices
-sesetbool container_use_devices=true
+setsebool container_use_devices=true
 
 # Start arm - this depends on 4 CDROM Devices - sr0-sr03, if not there, it will fail.
 systemctl --user --machine=arm@ daemon-reload
