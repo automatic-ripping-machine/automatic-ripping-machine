@@ -2,6 +2,7 @@
 ARM route blueprint for jobs pages
 Covers
 - jobdetail [GET]
+- jobdetailload [POST]
 - titlesearch [GET]
 - custometitle [GET]
 - gettitle / customtitle [GET]
@@ -13,7 +14,7 @@ Covers
 """
 
 import json
-from flask_login import LoginManager, login_required  # noqa: F401
+from flask_login import LoginManager, login_required, current_user  # noqa: F401
 from flask import render_template, request, Blueprint, flash, redirect, url_for
 from werkzeug.routing import ValidationError
 
@@ -22,7 +23,7 @@ from arm.ui import app, db, constants, json_api
 from arm.models.job import Job
 from arm.models.notifications import Notifications
 import arm.config.config as cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm, TrackFormDynamic
 
 route_jobs = Blueprint('route_jobs', __name__,
                        template_folder='templates',
@@ -38,14 +39,81 @@ def jobdetail():
     Shows Job/Config/Track class details
     displays them in a clear and easy to ready format
     """
+    manual_edit = False
+
+    # Initialise form
+    track_form = TrackFormDynamic()
+
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
+
+    # Check if a manual job, waiting for input and user has not provided input
+    if job.manual_mode and job.status == "waiting" and not job.manual_start:
+        manual_edit = True
+
+    # Get Job and Track data
     tracks = job.tracks.all()
+    track_form.track_ref.min_entries = len(tracks)
+    app.logger.debug(f"Found [{len(tracks)}] tracks")
+    track_form.track_ref.entries.clear()
+    # Loop through each track entry and build the WTForms dynamically
+    for track_row in tracks:
+        track_form.track_ref.append_entry({'track_ref': track_row.track_id,
+                                           'checkbox': track_row.process})
+    # For Jobs that are not waiting and in manual mode, disable the process checkbox
+    if not manual_edit:
+        for entry in track_form.track_ref.entries:
+            entry.checkbox.render_kw = {'disabled': 'disabled'}
+
     search_results = ui_utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
+
     if search_results and 'Error' not in search_results:
         job.plot = search_results['Plot'] if 'Plot' in search_results else "There was a problem getting the plot"
         job.background = search_results['background_url'] if 'background_url' in search_results else None
-    return render_template('jobdetail.html', jobs=job, tracks=tracks, s=search_results)
+
+    return render_template('jobdetail.html',
+                           jobs=job,
+                           tracks=tracks,
+                           s=search_results,
+                           manual_edit=manual_edit,
+                           form=track_form)
+
+
+@route_jobs.route('/jobdetailload', methods=['POST'])
+@login_required
+def jobdetail_load():
+    """
+    Process updated track ID fields against a job and load to the ARM database if valid
+    All data passed via POST
+    """
+    # Initialise form
+    track_form = TrackFormDynamic()
+
+    job_id = request.args.get('job_id')
+    job = Job.query.get(job_id)
+
+    # Data passed back from webpage, process and update track fields
+    if request.method == 'POST' and track_form.validate_on_submit():
+        app.logger.debug(f"Job id [{job.job_id}]")
+        app.logger.debug(f"Returned [{len(track_form.track_ref.entries)}] tracks")
+        for track_row in track_form.track_ref.entries:
+            # app.logger.debug(f"Track deets [{track_row}]")
+            track_id = track_row.data['track_ref']
+            checkbox_value = track_row.data['checkbox']
+            app.logger.debug(f"Setting [{track_id}] to [{checkbox_value}]")
+
+            db_track = job.tracks.filter_by(track_id=track_id).first()
+            if db_track:
+                db_track.process = checkbox_value
+                db.session.commit()
+
+        # Set job to ready
+        job.manual_start = True
+        db.session.commit()
+        app.logger.debug(f"Setting [{job.job_id}] to [{job.manual_start}], lets get ripping")
+        flash("Tracks was updated", "success")
+
+    return redirect(url_for('route_jobs.jobdetail', job_id=job_id))
 
 
 @route_jobs.route('/titlesearch')
@@ -119,18 +187,41 @@ def gettitle():
 def updatetitle():
     """
     used to save the details from the search
+    Example URL
+    updatetitle?title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
+    poster=http://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
+
+    args
+    title - new movie title
+    year - new movie year
+    imdbID - new movie IMDB reference
+    type - new movie type
+    poster - new movie poster URL
+    job_id - job to update
     """
-    # updatetitle?title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
-    #  poster=http://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
+    #
+
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
     old_title = job.title
     old_year = job.year
-    job.title = job.title_manual = ui_utils.clean_for_filename(request.args.get('title'))
+    app.logger.debug(f"Old Title and Year: {old_title}, {old_year}")
+
+    app.logger.debug(f"New Title: {request.args.get('title')}")
+    new_title = ui_utils.clean_for_filename(request.args.get('title'))
+    app.logger.debug(f"Cleaned New Title: {new_title}")
+    job.title = job.title_manual = new_title
+
+    app.logger.debug(f"New Year: {request.args.get('year')}")
+    app.logger.debug(f"New Type: {request.args.get('type')}")
+    app.logger.debug(f"New IMDB: {request.args.get('imdbID')}")
+    app.logger.debug(f"New Poster: {request.args.get('poster')}")
+
     job.year = job.year_manual = request.args.get('year')
     job.video_type = job.video_type_manual = request.args.get('type')
     job.imdb_id = job.imdb_id_manual = request.args.get('imdbID')
     job.poster_url = job.poster_url_manual = request.args.get('poster')
+
     job.hasnicetitle = True
     notification = Notifications(f"Job: {job.job_id} was updated",
                                  f'Title: {old_title} ({old_year}) was updated to '
@@ -196,7 +287,6 @@ def list_titles():
 
 
 @route_jobs.route('/json', methods=['GET'])
-@login_required
 def feed_json():
     """
     json mini API
@@ -205,41 +295,56 @@ def feed_json():
     is your call
     You can then add a function inside utils to deal with the request
     """
+    # Check if users is authenticated
+    # Return data when authenticated, but allow basic job info when not
+    authenticated = ui_utils.authenticated_state()
     mode = str(request.args.get('mode'))
     return_json = {'mode': mode, 'success': False}
-    # Hold valid data (post/get data) we might receive from pages - not in here ? it's going to throw a key error
-    valid_data = {
-        'j_id': request.args.get('job'),
-        'searchq': request.args.get('q'),
-        'logpath': cfg.arm_config['LOGPATH'],
-        'fail': 'fail',
-        'success': 'success',
-        'joblist': 'joblist',
-        'mode': mode,
-        'config_id': request.args.get('config_id'),
-        'notify_id': request.args.get('notify_id'),
-        'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)},
-        'restart': {'funct': json_api.restart_ui, 'args': ()},
-    }
-    # Valid modes that should trigger functions
-    valid_modes = {
-        'delete': {'funct': json_api.delete_job, 'args': ('j_id', 'mode')},
-        'abandon': {'funct': json_api.abandon_job, 'args': ('j_id',)},
-        'full': {'funct': json_api.generate_log, 'args': ('logpath', 'j_id')},
-        'search': {'funct': json_api.search, 'args': ('searchq',)},
-        'getfailed': {'funct': json_api.get_x_jobs, 'args': ('fail',)},
-        'getsuccessful': {'funct': json_api.get_x_jobs, 'args': ('success',)},
-        'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
-        'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
-        'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)},
-        'change_job_params': {'funct': json_api.change_job_params, 'args': ('config_id',)},
-        'read_notification': {'funct': json_api.read_notification, 'args': ('notify_id',)},
-        'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)}
-    }
+
+    if authenticated:
+        # Hold valid data (post/get data) we might receive from pages - not in here ? it's going to throw a key error
+        valid_data = {
+            'j_id': request.args.get('job'),
+            'searchq': request.args.get('q'),
+            'logpath': cfg.arm_config['LOGPATH'],
+            'fail': 'fail',
+            'success': 'success',
+            'joblist': 'joblist',
+            'mode': mode,
+            'config_id': request.args.get('config_id'),
+            'notify_id': request.args.get('notify_id'),
+            'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)},
+            'restart': {'funct': json_api.restart_ui, 'args': ()},
+        }
+        # Valid modes that should trigger functions
+        valid_modes = {
+            'delete': {'funct': json_api.delete_job, 'args': ('j_id', 'mode')},
+            'abandon': {'funct': json_api.abandon_job, 'args': ('j_id',)},
+            'full': {'funct': json_api.generate_log, 'args': ('logpath', 'j_id')},
+            'search': {'funct': json_api.search, 'args': ('searchq',)},
+            'getfailed': {'funct': json_api.get_x_jobs, 'args': ('fail',)},
+            'getsuccessful': {'funct': json_api.get_x_jobs, 'args': ('success',)},
+            'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
+            'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
+            'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)},
+            'change_job_params': {'funct': json_api.change_job_params, 'args': ('config_id',)},
+            'read_notification': {'funct': json_api.read_notification, 'args': ('notify_id',)},
+            'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)}
+        }
+    else:
+        valid_data = {
+            'joblist': 'joblist',
+        }
+        valid_modes = {
+            'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
+        }
+    # prepare JSON data
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
         return_json = valid_modes[mode]['funct'](*args)
     return_json['notes'] = json_api.get_notifications()
+
+    # return JSON data
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
                               mimetype=constants.JSON_TYPE)

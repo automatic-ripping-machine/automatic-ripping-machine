@@ -23,6 +23,7 @@ from arm.ripper import logger, utils, identify, arm_ripper, music_brainz  # noqa
 import arm.config.config as cfg  # noqa E402
 from arm.models.config import Config  # noqa: E402
 from arm.models.job import Job  # noqa: E402
+from arm.models.system_drives import SystemDrives  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
 from arm.ui.settings import DriveUtils as drive_utils # noqa E402
 import arm.config.config as cfg  # noqa E402
@@ -54,7 +55,7 @@ def log_arm_params(job):
     # log arm parameters
     logging.info("******************* Logging ARM variables *******************")
     for key in ("devpath", "mountpoint", "title", "year", "video_type",
-                "hasnicetitle", "label", "disctype"):
+                "hasnicetitle", "label", "disctype", "manual_start"):
         logging.info(f"{key}: {str(getattr(job, key))}")
     logging.info("******************* End of ARM variables *******************")
 
@@ -149,17 +150,27 @@ if __name__ == "__main__":
     args = entry()
     devpath = f"/dev/{args.devpath}"
 
+    # With some drives and some disks, there is a race condition between creating the Job()
+    # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)
+    for i in range(10):
+        if utils.get_cdrom_status(devpath) != 4:
+            logging.info(f"[{i} of 10] Drive [{devpath}] appears to be empty or is not ready.  Waiting 1s")
+            arm_log.info(f"[{i} of 10] Drive [{devpath}] appears to be empty or is not ready.  Waiting 1s")
+            time.sleep(1)
+
+    # Exit if drive isn't ready
+    if utils.get_cdrom_status(devpath) != 4:
+        # This should really never trigger now as arm_wrapper should be taking care of this.
+        logging.info(f"Drive [{devpath}] appears to be empty or is not ready.  Exiting ARM.")
+        arm_log.info(f"Drive [{devpath}] appears to be empty or is not ready.  Exiting ARM.")
+        sys.exit()
+
     # ARM Job starts
     # Create new job
     job = Job(devpath)
     # Setup logging
     log_file = logger.setup_logging(job)
-    # Exit if drive isn't ready
-    if utils.get_cdrom_status(devpath) != 4:
-        # This should really never trigger now as arm_wrapper should be taking care of this.
-        logging.info("Drive appears to be empty or is not ready.  Exiting ARM.")
-        arm_log.info("Drive appears to be empty or is not ready.  Exiting ARM.")
-        sys.exit()
+
     # Don't put out anything if we are using the empty.log NAS_[0-9].log or NAS1_[0-9].log
     if log_file.find("empty.log") != -1 or re.search(r"(NAS|NAS1)_\d+\.log", log_file) is not None:
         arm_log.info("ARM is trying to write a job to the empty.log, or NAS**.log")
@@ -176,7 +187,7 @@ if __name__ == "__main__":
     logging.info(f"************* Starting ARM processing at {datetime.datetime.now()} *************")
     if args.protection:
         logging.warning("Found 99 Track protection system - Job may fail!")
-    # put in job
+    # Set job status and start time
     job.status = "active"
     job.start_time = datetime.datetime.now()
     utils.database_adder(job)
@@ -186,6 +197,15 @@ if __name__ == "__main__":
     drive_utils.update_drive_job(job)
     # Add the job.config to db
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
+    # Check if the drive mode is set to manual, and load to the job config for later use
+    drive = SystemDrives.query.filter_by(mount=job.devpath).first()
+    logging.debug(f"drive_mode: {drive.drive_mode}")
+    if drive.drive_mode == 'manual':
+        job.manual_mode = True
+        db.session.commit()
+    else:
+        job.manual_mode = False
+        db.session.commit()
     utils.database_adder(config)
     # Log version number
     with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
@@ -194,7 +214,7 @@ if __name__ == "__main__":
     # Delete old log files
     logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])
     logging.info(f"Job: {job.label}")  # This will sometimes be none
-    # Check for zombie jobs and update status to failed
+    # Check for zombie jobs and update status to 'failed'
     utils.clean_old_jobs()
     # Log all params/attribs from the drive
     log_udev_params(devpath)

@@ -11,7 +11,7 @@
 - For ARM to identify movie/tv titles register for an API key at OMDb API: http://www.omdbapi.com/apikey.aspx and set the OMDB_API_KEY parameter in the config file.
 
 
-**Email notifcations**
+**Email Notifications**
 
 A lot of random problems are found in the sysmail, email alerting is a most effective method for debugging and monitoring.
 

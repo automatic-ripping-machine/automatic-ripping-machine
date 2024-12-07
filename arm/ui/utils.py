@@ -17,6 +17,7 @@ import bcrypt
 import requests
 from werkzeug.routing import ValidationError
 from flask.logging import default_handler  # noqa: F401
+from flask_login import current_user
 
 import arm.config.config as cfg
 from arm.config.config_utils import arm_yaml_test_bool
@@ -881,3 +882,27 @@ def git_get_updates() -> dict:
     git_log = subprocess.run(['git', 'pull'], cwd=cfg.arm_config['INSTALLPATH'], check=False)
     return {'stdout': git_log.stdout, 'stderr': git_log.stderr,
             'return_code': git_log.returncode, 'form': 'ARM Update', "success": (git_log.returncode == 0)}
+
+
+def authenticated_state() -> bool:
+    """
+    Determines whether the current user is considered authenticated.
+
+    This function checks the application's configuration to see if login
+    authentication is disabled. If login is disabled, it automatically
+    returns `True`, indicating that the user is authenticated. Otherwise,
+    it checks the `current_user.is_authenticated` attribute provided by
+    Flask-Login to determine if the user is logged in.
+
+    Returns:
+        bool: `True` if the user is authenticated, either by bypassing
+        the login requirement or by being a logged-in user; `False` otherwise.
+    """
+    authenticated = False
+    if cfg.arm_config['DISABLE_LOGIN']:
+        authenticated = True
+    else:
+        if current_user.is_authenticated:
+            authenticated = True
+
+    return authenticated
