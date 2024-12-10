@@ -375,7 +375,7 @@ class Drive(DriveInformation):
                 self.media_bd = True
         match DriveVisible(self.visible):
             case DriveVisible.EMPTY:
-                pass
+                self.loaded = False
             case DriveVisible.OPEN:
                 self.open = True
             case DriveVisible.LOADED:
