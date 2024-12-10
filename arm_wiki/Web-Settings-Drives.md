@@ -14,53 +14,64 @@
 
 ## Overview
 
-The ARM Settings page provides an overview of the connected CD, DVD or Bluray drives connected to the system.
-Scanning for drives allows easier management, viewing and status of jobs running on the ARM system.
+The ARM Settings page provides an overview of connected CD, DVD, or Blu-ray
+drives on the system. Scanning for drives makes it easier to manage, view, and
+track the job status running on the ARM system.
 
 > [!NOTE]
-> For ARM to rip media the drives do not need to appear on the settings, drive page.
-> However, if ARM cannot find a drive following a scan, there may be issues with the docker configuration.
+> For ARM to rip media, the drives don't need to be visible on the settings
+> page. However, if ARM can't find a drive following a scan, there might be
+> issues with the docker configuration.
+
 
 <img title="ARM Settings Page" alt="Default ARM Settings page with no drives" src="images/arm_settings.png" width="80%" height=""/>
 
 ## Drive Settings
 
-The following options are available from the ARM settings page, for each of the connected CD, DVD or Blu-ray drives.
+The following options are available from the ARM Settings page:
 
 1. Scan for Drives
-2. Edit Drive Details
-3. Drive Options
+2. Drive Details
+3. Drive Status Icon
+4. Drive Options
 
 <img title="ARM Settings Page" alt="Default ARM Settings page with no drives" src="images/arm_settings_drives.png" width="80%" height=""/>
 
-### 1. Scanning For New Drives
+### 1. Scan for New Drives
 
-To add a new drive to the ARM system, select 'Scan for Drives'
-ARM will scan the system looking for any new drive on the system, and associate any previous jobs to the drive.
+To add a new drive to the ARM system, select 'Scan for Drives'. This will scan
+the system for any new drives and associate previous jobs with the drive.
 
-Once ARM has scanned the system, the following information will be presented as detailed below.
+Once ARM has scanned the system, the following information will be presented as
+detailed below.
 
 
-### 2. Edit Drive Details
+### 2. Drive Details
 
-Drive names and descriptions can be modified to help in finding the right drive.
-As great as knowing a drive is `sr0` or `sr1`, adding in a description like 'top disk - Blu-ray' can help put the disk in the right drive.
-Especially for users with multiple drives in a system.
+An optical drive has some information fixed and other information changes
+depending on the state of the system. Drive Maker, Model, and Serial Number can be considered as fixed information. This information is displayed on the top of the collapsible Drive Details Card. Other Information like Firmware Version may change but not very likely. The location of the drive on the SATA or USB hub is informative. For USB devices, this may change upon reconnecting the drive to a different USB port or hub. The mount path that is usally forwarded to the docker container changes frequently for USB devices on system reboot. SATA device may keep their names upon reboot but on linux, the /dev/srX locations are not fixed to hardware. ARM uses the drive id, reported by the kernel to identify a drive. This is also persitent between reboots or drive re-connects.
+
+The drive description can be modified to help in finding the right drive.  As
+great as knowing a drive's serial number, adding a description like 'top disk -
+Blu-ray' can help put the disk in the right drive. Especially for users with
+multiple drives in a system. You can use the eject button (the drive icon) to
+identify drives on the system.
 
 For more details on how jobs are processed, see [Jobs](Web-Jobs)
 
-| Field        | Details                                                        | System or User |
-|--------------|----------------------------------------------------------------|----------------|
-| Name         | Defaults to `Drive x` where x is the total number of drives    | User editable  |
-| Type         | Type of drive, CD, DVD or Bluray or combination of all three   | System field   |
-| Mount Path   | System mount path reported                                     | System field   |
-| Current Job  | When the drive is processing a job, current jobs will be shown | System field   |
-| Previous Job | Once competed, previous or old jobs will be shown              | System field   |
-| Description  | User defined description for the drive                         | User editable  |
-| Drive Mode   | Set ARM to Auto or Manual, to allow additional configuration   | User editable  |
+| Field        | Details                                                        | Type   | changes  |
+|--------------|----------------------------------------------------------------|--------|----------|
+| Name         | internally fixed to Maker, Model, and Serial Number            | System | fixed    |
+| Type         | Type of drive, CD, DVD or Bluray or combination of all three   | System | fixed    |
+| Connection   | Location of the device on the system hardware (USB/SATA)       | System | fixed    |
+| Mount Path   | System mount path reported                                     | System | reboot   |
+| Current Job  | When the drive is processing a job, current jobs will be shown | System | per job  |
+| Previous Job | Once competed, previous or old jobs will be shown              | System | per job  |
+| Description  | User defined description for the drive                         | User   | editable |
+| Drive Mode   | Set ARM to Auto or Manual, to allow additional configuration   | User   | editable |
 
 
-#### 3. Eject or Close Drive
+#### 3. Drive Icons
 
 Using the ARM webpage, it is possible to open (eject) and close specific drives
 Handy if you have a lot of drives and still not quite sure which drive you need.
@@ -73,6 +84,14 @@ On ejecting the drive, ARM reports the drive as being open, as shown below.
 **Drive Closed** _Default_
 
 <img title="Drive Open" alt="drive open image" src="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/refs/heads/main/arm/ui/static/img/drive-optical_closed.svg" width="100px" height=""/>
+
+If a drive was previously found on the system but not with the last scan, it is
+marked as stale and its mount point is cleared. It's job associations will stay
+as long as you delete it.
+
+**Drive Stale**
+
+<img title="Drive Open" alt="drive open image" src="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/refs/heads/main/arm/ui/static/img/drive-optical_stale.svg" width="100px" height=""/>
 
 ### 4. Drive Options
 

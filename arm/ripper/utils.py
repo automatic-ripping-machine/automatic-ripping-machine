@@ -5,7 +5,6 @@ import os
 import sys
 import logging
 import logging.handlers
-import fcntl
 import subprocess
 import shutil
 import time
@@ -122,31 +121,30 @@ def notify_entry(job):
         sys.exit()
 
 
-def sleep_check_process(process_str, transcode_limit):
+def sleep_check_process(process_str, max_processes, sleep=(20, 120, 10)):
     """
     New function to check for max_transcode from job.config and force obey limits\n
     :param str process_str: The process string from arm.yaml
-    :param int transcode_limit: The user defined limit for maximum transcodes
+    :param int max_processes: The user defined limit for maximum transcodes
+    :param tuple sleep: (min sleep time, max sleep time, step)
     :return bool: when we have space in the transcode queue
     """
-    if transcode_limit > 0:
-        loop_count = transcode_limit + 1
-        logging.debug(f"loop_count {loop_count}")
-        logging.info(f"Starting A sleep check of {process_str}")
-        while loop_count >= transcode_limit:
-            # Maybe send a notification that jobs are waiting ?
-            loop_count = sum(1 for proc in psutil.process_iter() if proc.name() == process_str)
-            logging.debug(f"Number of Processes running is: "
-                          f"{loop_count} going to waiting 12 seconds.")
-            if transcode_limit > loop_count:
-                return True
-            # Try to make each check at different times
-            random_time = random.randrange(20, 120, 10)
-            logging.debug(f"sleeping for {random_time} seconds")
-            time.sleep(random_time)
-    else:
-        logging.info("Transcode limit is disabled")
-    return False
+    if max_processes <= 0:
+        return False  # sleep limit disabled
+    loop_count = max_processes + 1
+    logging.debug(f"loop_count {loop_count}")
+    logging.info(f"Starting A sleep check of {process_str}")
+    while loop_count >= max_processes:
+        # Maybe send a notification that jobs are waiting ?
+        loop_count = sum(1 for proc in psutil.process_iter() if proc.name() == process_str)
+        logging.debug(f"Number of Processes running is: {loop_count}")
+        if max_processes > loop_count:
+            break
+        # Try to make each check at different times
+        random_time = random.randrange(*sleep)
+        logging.debug(f"sleeping for {random_time} seconds")
+        time.sleep(random_time)
+    return True
 
 
 def convert_job_type(video_type):
@@ -309,31 +307,6 @@ def make_dir(path):
             raise OSError from error
     else:
         return False
-
-
-def get_cdrom_status(devpath):
-    """
-    get the status of the cdrom drive\n
-    CDS_NO_INFO		0\n
-    CDS_NO_DISC		1\n
-    CDS_TRAY_OPEN		2\n
-    CDS_DRIVE_NOT_READY	3\n
-    CDS_DISC_OK		4\n
-
-    see linux/cdrom.h for specifics\n
-    :param devpath: path to cdrom
-    :return int:
-    """
-    try:
-        disc_check = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
-    except OSError:
-        # Sometimes ARM will log errors opening hard drives. this check should stop it
-        if not re.search(r'hd[a-j]|sd[a-j]|loop\d|nvme\d', devpath):
-            logging.info(f"Failed to open device {devpath} to check status.")
-        sys.exit(2)
-    result = fcntl.ioctl(disc_check, 0x5326, 0)
-
-    return result
 
 
 def find_file(filename, search_path):

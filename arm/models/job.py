@@ -61,6 +61,8 @@ class Job(db.Model):
     manual_mode = db.Column(db.Boolean)
     tracks = db.relationship('Track', backref='job', lazy='dynamic')
     config = db.relationship('Config', uselist=False, backref="job")
+    drive = db.relationship('SystemDrives', uselist=False, backref='Current',
+                            primaryjoin="Job.job_id == SystemDrives.job_id_current")
 
     def __init__(self, devpath):
         """Return a disc object"""
@@ -205,7 +207,11 @@ class Job(db.Model):
         return return_dict
 
     def eject(self):
-        """Eject disc if it hasn't previously been ejected"""
+        """Eject disc if it hasn't previously been ejected
+
+        Note:
+            See `drive_utils.SystemDrives.open_close`
+        """
         if not cfg.arm_config['AUTO_EJECT']:
             logging.info("Skipping auto eject")
             return
