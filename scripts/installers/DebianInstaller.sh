@@ -411,6 +411,7 @@ ${BLUE}Do you wish to Continue? Y/n: ${NC}"
 }
 
 function FoundPreviousInstallation() {
+  ##TODO There is an error here that I need to track down.
   if [[ $(systemctl --all --type service | grep -q -F "armui.service") -eq 0 ]]  ; then
     echo "Found Armui Service"
     if systemctl is-active --quiet armui ; then
@@ -576,11 +577,11 @@ function InstallDownloadTools () {
 ###################################################
 
 function InstallMakeMKV() {
-  InstallBuildEnvironment
+  InstallMakeMKVBuildEnvironment
   BuildAndInstallMakeMKV
 }
 
-function InstallBuildEnvironment() {
+function InstallMakeMKVBuildEnvironment() {
   apt install -y  build-essential \
                   pkg-config \
                   libc6-dev \
@@ -632,6 +633,75 @@ function BuildAndInstallMakeMKV() {
 }
 
 ###################################################
+#           Build & Install HandBrake             #
+###################################################
+
+function InstallHandBrakeCLI() {
+  InstallHandBrakeCLIBuildEnvironment
+  BuildAndInstallHandBrakeCLI
+}
+
+function InstallHandBrakeCLIBuildEnvironment() {
+  apt install -y  autoconf \
+                  automake \
+                  build-essential \
+                  cmake \
+                  git \
+                  libass-dev \
+                  libbz2-dev \
+                  libdrm-dev \
+                  libfontconfig-dev \
+                  libfreetype6-dev \
+                  libfribidi-dev \
+                  libharfbuzz-dev \
+                  libjansson-dev \
+                  liblzma-dev \
+                  libmp3lame-dev \
+                  libnuma-dev \
+                  libogg-dev \
+                  libopus-dev \
+                  libsamplerate0-dev \
+                  libspeex-dev \
+                  libtheora-dev \
+                  libtool \
+                  libtool-bin \
+                  libturbojpeg0-dev \
+                  libva-dev \
+                  libvorbis-dev \
+                  libx264-dev \
+                  libxml2-dev \
+                  libvpx-dev \
+                  m4 \
+                  make \
+                  meson \
+                  nasm \
+                  ninja-build \
+                  patch \
+                  pkg-config \
+                  python3 \
+                  tar \
+                  zlib1g-dev
+                  ## Note that the packages libva-dev and libdrm-dev are for Intel QuickSync Support only.
+}
+
+function BuildAndInstallHandBrakeCLI() {
+  local ArmUserHomeFolder=~arm
+  local HandBrakeCLIBuildFilesDirectory
+  local cpuCount
+
+  ArmUserHomeFolder=~arm
+  HandBrakeCLIBuildFilesDirectory="${ArmUserHomeFolder}"/HandBrakeCLIBuildFiles/
+  cpuCount=$(nproc --all)
+
+  mkdir -p "${HandBrakeCLIBuildFilesDirectory}"
+  cd "${HandBrakeCLIBuildFilesDirectory}"
+  git clone https://github.com/HandBrake/HandBrake.git
+  cd HandBrake
+  ./configure --launch-jobs="${cpuCount}" --launch --enable-qsv --enable-vce --disable-gtk
+  make --directory=build install
+}
+
+###################################################
 #           Install Arm Dependencies              #
 ###################################################
 
@@ -644,7 +714,6 @@ function InstallArmDependencies() {
                   ffmpeg \
                   flac \
                   glyrc \
-                  handbrake-cli \
                   imagemagick \
                   libavcodec-extra \
                   libcurl4-openssl-dev \
@@ -666,7 +735,6 @@ function InstallArmDependencies() {
 
 function DownloadArm () {
   local AlertUserOfExistenceOfAmrDirectory
-  local ProceedWithScriptExecution
   local ExistingArmYamlFile
   local ExistingAbcdeConfFile
   local ExistingAppriseYamlFile
@@ -847,6 +915,9 @@ CreateArmUserAndGroup
 
 #######Build and Install MakeMKV
 InstallMakeMKV
+
+#######Build and Install HandBrakeCLI  (The version packaged with Debian is OLD)
+InstallHandBrakeCLI
 
 #######Install Arm Dependencies
 InstallArmDependencies
