@@ -2,7 +2,7 @@
 
 #requirements added for PR#551
 argparse==1.4.0
-colorama==0.4.4
+colorama==0.4.6
 #requirements added for PR#650
-flake8==6.0.0
+flake8==7.1.1
 waitress==2.1.2

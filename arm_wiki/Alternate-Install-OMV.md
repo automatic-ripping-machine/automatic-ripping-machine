@@ -1,5 +1,16 @@
-# Automatic bare metal installation on Debian (11 & 12) and Open Media Vault (6.5 and 7)
+# IMPORTANT
 
+***
+This installation method is not supported or maintained by the ARM Developers.
+For full support and continued maintenance,
+recommend installing ARM via the supported [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
+This installation guide has been left within the Wiki, as some users do not install via docker.
+
+**Use at your own risk** 
+
+***
+
+# Auto Install Script For OpenMediaVault/Debian
 
 > [!IMPORTANT]
 > Automatic Ripping Machine (A.R.M.) is only officially supported using the Docker Container. The only supported installation method is as a 

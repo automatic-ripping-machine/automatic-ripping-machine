@@ -19,7 +19,7 @@ from arm.models.track import Track
 from arm.models.ui_settings import UISettings
 from arm.ui import app, db
 from arm.ui.forms import ChangeParamsForm
-from arm.ui.utils import job_id_validator, database_updater
+from arm.ui.utils import job_id_validator, database_updater, authenticated_state
 from arm.ui.settings import DriveUtils as drive_utils # noqa E402
 
 
@@ -64,8 +64,15 @@ def get_x_jobs(job_status):
     if jobs:
         app.logger.debug("jobs  - we have " + str(len(job_results)) + " jobs")
         success = True
-    return {"success": success, "mode": job_status,
-            "results": job_results, "arm_name": cfg.arm_config['ARM_NAME']}
+
+    # Get authentication state
+    authenticated = authenticated_state()
+
+    return {"success": success,
+            "mode": job_status,
+            "results": job_results,
+            "arm_name": cfg.arm_config['ARM_NAME'],
+            "authenticated": authenticated}
 
 
 def process_logfile(logfile, job, job_results):
