@@ -570,6 +570,8 @@ def makemkv(job):
     logging.info(f"Processing files to: {rawpath}")
     # Rip bluray
     if (job.config.RIPMETHOD in ("backup", "backup_dvd")) and job.disctype == "bluray":
+        job.status = "mkv_process_backup"
+        db.session.commit()
         # backup method
         cmd = [
             "backup",
@@ -603,6 +605,8 @@ def makemkv(job):
             # Process Tracks
             if manual_wait(job):  # Alert user: tracks are ready and wait for 30 minutes
                 # Response from user provided, process requested tracks
+                job.status = "mkv_process_single"
+                db.session.commit()
                 process_single_tracks(job, rawpath, mode)
             else:
                 # Notify User: no action was taken
@@ -615,6 +619,8 @@ def makemkv(job):
 
         # if no maximum length, process the whole disc in one command
         elif int(job.config.MAXLENGTH) > 99998:
+            job.status = "mkv_process_disc"
+            db.session.commit()
             cmd = [
                 "mkv",
             ]
@@ -630,10 +636,13 @@ def makemkv(job):
             logging.info("Process all tracks from disc.")
             collections.deque(run(cmd, OutputType.MSG), maxlen=0)
         else:
+            job.status = "mkv_process_single"
+            db.session.commit()
             process_single_tracks(job, rawpath, 'auto')
     else:
         logging.info("I'm confused what to do....  Passing on MakeMKV")
-
+    job.status = "mkv_finished"
+    db.session.commit()
     job.eject()
     logging.info(f"Exiting MakeMKV processing with return value of: {rawpath}")
     return rawpath
