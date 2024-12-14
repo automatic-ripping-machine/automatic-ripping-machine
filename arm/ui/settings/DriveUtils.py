@@ -88,9 +88,9 @@ class DriveInformationExtended(DriveInformation):
 
     def __post_init__(self):
         super().__post_init__()
-        self.read_cd = bool(self.read_cd == "1")
-        self.read_dvd = bool(self.read_dvd == "1")
-        self.read_bd = bool(self.read_bd == "1")
+        self.read_cd = bool(int(self.read_cd))
+        self.read_dvd = bool(int(self.read_dvd))
+        self.read_bd = bool(int(self.read_bd))
 
 
 DRIVE_INFORMATION_MEDIUM = (
@@ -121,10 +121,10 @@ class DriveInformationMedium(DriveInformationExtended):
 
     def __post_init__(self):
         super().__post_init__()
-        self.loaded = bool(self.loaded == "1")
-        self.media_cd = bool(self.media_cd == "1")
-        self.media_dvd = bool(self.media_dvd == "1")
-        self.media_bd = bool(self.media_bd == "1")
+        self.loaded = bool(int(self.loaded))
+        self.media_cd = bool(int(self.media_cd))
+        self.media_dvd = bool(int(self.media_dvd))
+        self.media_bd = bool(int(self.media_bd))
 
 
 def drives_search():
