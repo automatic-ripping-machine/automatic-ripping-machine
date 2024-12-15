@@ -73,12 +73,7 @@ def notify(job, title: str, body: str):
         logging.error(f"Failed sending notifications. error:{error}. Continuing processing...")
 
     # Bulk send notifications, using the config set on the ripper config page
-    if cfg.arm_config["APPRISE"] != "":
-        try:
-            apprise_bulk.apprise_notify(cfg.arm_config["APPRISE"], title, body)
-            logging.debug(f"apprise-config: {cfg.arm_config['APPRISE']}")
-        except Exception as error:  # noqa: E722
-            logging.error(f"Failed sending apprise notifications. {error}")
+    apprise_bulk.notify(title, body)
 
 
 def bash_notify(cfg, title, body):

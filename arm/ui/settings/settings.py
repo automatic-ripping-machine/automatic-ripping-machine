@@ -34,9 +34,10 @@ from arm.models.system_info import SystemInfo
 from arm.models.ui_settings import UISettings
 import arm.config.config as cfg
 from arm.ui.settings import DriveUtils
-from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
+from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, AppriseForm, SystemInfoDrives
 from arm.ui.settings.ServerUtil import ServerUtil
 import arm.ripper.utils as ripper_utils
+from arm.ripper import apprise_bulk
 
 route_settings = Blueprint('route_settings', __name__,
                            template_folder='templates',
@@ -118,7 +119,7 @@ def settings():
                            settings=cfg.arm_config,
                            ui_settings=armui_cfg,
                            stats=stats,
-                           apprise_cfg=cfg.apprise_config,
+                           apprise_cfg=apprise_bulk.load_config(),
                            form=form,
                            jsoncomments=comments,
                            abcde_cfg=cfg.abcde_config,
@@ -261,15 +262,19 @@ def save_apprise_cfg():
     Overview - Save 'Apprise Config' page settings to database. Not a user page
     """
     success = False
-    # Since we can't be sure of any values, we can't validate it
-    if request.method == 'POST':
-        # Save updated apprise.yaml
-        # Build the new arm.yaml with updated values from the user
-        apprise_cfg = ui_utils.build_apprise_cfg(request.form.to_dict())
-        with open(cfg.apprise_config_path, "w") as settings_file:
-            settings_file.write(apprise_cfg)
-            settings_file.close()
+    form = AppriseForm()
+    if form.validate():
+        app.logger.debug(f"routes.save_apprise: Saving new apprise configuration: {cfg.apprise_config_path}")
+
+        apprise_cfg_str = str(form.appriseConfig.data).strip()
+        # Windows machines can put \r\n instead of \n newlines, which corrupts the config file
+        clean_apprise_str = '\n'.join(apprise_cfg_str.splitlines())
+
+        apprise_bulk.save_config(clean_apprise_str)
+
         success = True
+        # Update the apprise config
+        cfg.apprise_config = clean_apprise_str
         importlib.reload(cfg)
     # If we get to here there was no post data
     return {'success': success, 'settings': cfg.apprise_config, 'form': 'Apprise config'}
