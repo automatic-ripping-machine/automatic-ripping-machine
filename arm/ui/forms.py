@@ -74,6 +74,13 @@ class AbcdeForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
+class AppriseForm(FlaskForm):
+    """abcde config form used on pages\n
+              - /settings"""
+    appriseConfig = StringField('appriseConfig', validators=[DataRequired()])
+    submit = SubmitField('Submit')
+
+
 class SystemInfoDrives(FlaskForm):
     """
     SystemInformation Form, to update system drive name (nickname) and description
