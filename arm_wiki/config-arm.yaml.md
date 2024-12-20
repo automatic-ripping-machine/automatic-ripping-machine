@@ -1,12 +1,12 @@
 # The arm.yaml config file
 
-This is the config file for almost all changeable settings of ARM, all of these are very well documented in the file itself.  
+This is the config file for almost all changeable settings of ARM, all of these are very well documented in the file itself.
 
 The default location for this file is `/etc/arm/config/arm.yaml`
- 
+
 However for clarity they are listed here.
 
-They include 
+They include
 
   - UDF disc check
   - Contacting [OMdb](http://www.omdbapi.com/)/auto identify movies or series
