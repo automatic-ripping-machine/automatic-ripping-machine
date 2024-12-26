@@ -21,6 +21,8 @@ import re
 import subprocess
 from datetime import datetime
 
+import sqlalchemy
+
 from flask_login import login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
 from flask import render_template, request, flash, \
@@ -327,9 +329,13 @@ def drive_eject(eject_id):
     Server System - change state of CD/DVD/BluRay drive - toggle eject
     """
     global redirect_settings
-    drive = SystemDrives.query.filter_by(drive_id=eject_id).one()
-    if output := drive.open_close(logger=app.logger):
-        flash(output, "error")
+    try:
+        drive = SystemDrives.query.filter_by(drive_id=eject_id).one()
+    except sqlalchemy.exc.NoResultFound as err:
+        flash(f"Cannot find drive {eject_id} in database.", "error")
+    else:
+        if output := drive.open_close(logger=app.logger):
+            flash(output, "error")
     return redirect(redirect_settings)
 
 
