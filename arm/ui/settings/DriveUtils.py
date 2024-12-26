@@ -55,14 +55,14 @@ class DriveInformation:
         Handle (encoded characters like \x20)
         """
         if isinstance(value, str):
-            return bytes(self.maker, encoding="utf-8").decode("unicode_escape")
+            return bytes(value, encoding="utf-8").decode("unicode_escape")
         if value is None:
             return ""
         return str(value)
 
     def __post_init__(self):
-        self.maker = _decode(self.maker)
-        self.model = _decode(self.model)
+        self.maker = self._decode(self.maker)
+        self.model = self._decode(self.model)
 
 
 DRIVE_INFORMATION_EXTENDED = (
