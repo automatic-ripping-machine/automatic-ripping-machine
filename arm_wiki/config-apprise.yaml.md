@@ -4,7 +4,7 @@
 
 Apprise allows ARM to send notifications via multiple communication methods, as a single notificaiton or using multiple services at once.
 The configuration file 'apprise.yaml' requires configuration to interact with the various notification services.
-Its **strongly** advised to set at least one of these up when first setting up ARM. These notifications make solving problems much easier. 
+Its **strongly** advised to set at least one of these up when first setting up ARM. These notifications make solving problems much easier.
 
 ## Setup
 
@@ -18,9 +18,9 @@ On installation ARM will copy the default (blank) configuration from the ARM set
     **APPRISE:** /etc/arm/config/apprise.yaml
 
 2. Save the configuration
-3. From the ARM Settings / Apprise Config page, set the ID, Code, Webhook or other details for the required service.
+3. From the ARM Settings / Apprise Config page fill in the configuration in the [Apprise YAML style](https://github.com/caronc/apprise/wiki/config_yaml).
 4. Save the configration.
-5. To test the configuration, from the ARM Settings / Apprise Config page select 'Send Test Notification'. 
+5. To test the configuration, from the ARM Settings / Apprise Config page select 'Send Test Notification'.
 
     ARM will send a test notification, like the below, via the configured service(s).
     ```
@@ -51,43 +51,5 @@ _UI_BASE_URL_ and _WEBSERVER_PORT_
 
 ## Notification Services
 
-[Apprise](https://github.com/caronc/apprise/wiki) does support more methods than are listed here. 
-If you would like a services added to ARM that is not yet listed here, please open an issue or submit a pull request.
-
-**Supported Services**. 
-
-  - LaMetric
-  - Mailgun
-  - Boxcar
-  - Discord
-  - Fast
-  - Flock
-  - Gitter
-  - Gotify
-  - Growl
-  - Join
-  - Kodi
-  - Kumulos
-  - Matrix
-  - Nextcloud
-  - Notica
-  - Notifico
-  - Office365
-  - Popcorn
-  - Prowl
-  - Pushjet
-  - Push
-  - Pushed
-  - Rocketchat
-  - Ryver 
-  - Sendgrid
-  - Simplepush
-  - Slack
-  - Spark
-  - Spontit
-  - Telegram
-  - Twist
-  - XBMC
-  - XMPP
-  - Webex teams
-  - Zilup
+[Apprise](https://github.com/caronc/apprise/wiki) supports myriad destinations. Some require additional python packages, but ARM only supports Apprise destinations that Apprise provides out of the box.
+If you would would like support for an Apprise destination that requires additional packages, please open an issue or submit a pull request.
