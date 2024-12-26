@@ -176,18 +176,21 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
         """Query and update tray status.
         """
         if self.stale:
-            status = None
+            self.tray = None
         else:
-            status = _tray_status(self.mount)
-        logging.debug(f"Drive '{self.mount}': tray status '{status}'")
-        self._tray = status
-        return status
+            self.tray = _tray_status(self.mount)
+        logging.debug(f"Drive '{self.mount}': tray status '{self.tray}'")
+        return self.tray
 
     @property
     def tray(self):
         """Tray Status EnumItem
         """
         return CDS(self._tray)
+
+    @tray.setter
+    def tray(self, value):
+        self._tray = CDS(value).value
 
     @property
     def open(self):
