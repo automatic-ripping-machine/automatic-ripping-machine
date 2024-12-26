@@ -114,7 +114,7 @@ def handle_exception(sent_error):
     if isinstance(sent_error, HTTPException):
         return sent_error
 
-    app.logger.debug(f"Error: {sent_error}")
+    app.logger.debug(f"Error: {sent_error}", exc_info=sent_error)
     if request.path.startswith('/json') or request.args.get('json'):
         app.logger.debug(f"{request.path} - {sent_error}")
         return_json = {
