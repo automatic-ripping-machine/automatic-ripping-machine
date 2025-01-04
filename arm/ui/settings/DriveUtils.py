@@ -241,7 +241,7 @@ def update_job_status():
     drives = SystemDrives.query.all()
     for drive in drives:
         # Check if the current job is active, if not remove current job_current id
-        if drive.job_id_current is not None and drive.job_id_current > 0 and drive.job_current is not None:
+        if drive.job_current is not None:
             if drive.job_current.status in ("success", "fail"):
                 drive.job_finished()
                 db.session.commit()
