@@ -552,7 +552,7 @@ def makemkv_info(job, select=None, index=9999, options=None):
             # give other processes time to use this function.
             sleep(wait_time)
         # sleep here until all processes finish (hopefully)
-        utils.sleep_check_process("makemkvcon", max_processes, sleep=(wait_time, wait_time + 1, 1))
+        utils.sleep_check_process("makemkvcon", max_processes, sleep=wait_time)
         job.status = JOB_STATUS_RIPPING
         db.session.commit()
 

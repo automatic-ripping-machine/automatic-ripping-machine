@@ -126,11 +126,15 @@ def sleep_check_process(process_str, max_processes, sleep=(20, 120, 10)):
     New function to check for max_transcode from job.config and force obey limits\n
     :param str process_str: The process string from arm.yaml
     :param int max_processes: The user defined limit for maximum transcodes
-    :param tuple sleep: (min sleep time, max sleep time, step)
+    :param (tuple, int) sleep: tuple: (min sleep time, max sleep time, step) or sleep time as int.
     :return bool: when we have space in the transcode queue
     """
     if max_processes <= 0:
         return False  # sleep limit disabled
+    if isinstance(sleep, int):
+        sleep = (sleep, sleep + 1, 1)
+    if not isinstance(sleep, tuple):
+        raise TypeError(sleep)
     loop_count = max_processes + 1
     logging.info(f"Starting sleep check of {process_str}")
     while loop_count >= max_processes:
