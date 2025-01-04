@@ -86,11 +86,17 @@ class DriveInformationExtended(DriveInformation):
     location: str
     """connection of device on hardware (changes on re-plugging)"""
 
+    @staticmethod
+    def _convert_bool(value):
+        if isinstance(value, (str, int, float, bool)):
+            return bool(int(value))
+        return False
+
     def __post_init__(self):
         super().__post_init__()
-        self.read_cd = bool(self.read_cd == "1")
-        self.read_dvd = bool(self.read_dvd == "1")
-        self.read_bd = bool(self.read_bd == "1")
+        self.read_cd = self._convert_bool(self.read_cd)
+        self.read_dvd = self._convert_bool(self.read_dvd)
+        self.read_bd = self._convert_bool(self.read_bd)
 
 
 DRIVE_INFORMATION_MEDIUM = (
@@ -121,10 +127,10 @@ class DriveInformationMedium(DriveInformationExtended):
 
     def __post_init__(self):
         super().__post_init__()
-        self.loaded = bool(self.loaded == "1")
-        self.media_cd = bool(self.media_cd == "1")
-        self.media_dvd = bool(self.media_dvd == "1")
-        self.media_bd = bool(self.media_bd == "1")
+        self.loaded = self._convert_bool(self.loaded)
+        self.media_cd = self._convert_bool(self.media_cd)
+        self.media_dvd = self._convert_bool(self.media_dvd)
+        self.media_bd = self._convert_bool(self.media_bd)
 
 
 def drives_search():
