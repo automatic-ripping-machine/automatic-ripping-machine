@@ -49,10 +49,20 @@ class DriveInformation:
     name: str
     """Drive Name (Maker+Model+Serial)"""
 
+    @staticmethod
+    def _decode(value):
+        """
+        Handle (encoded characters like \x20)
+        """
+        if isinstance(value, str):
+            return bytes(value, encoding="utf-8").decode("unicode_escape")
+        if value is None:
+            return ""
+        return str(value)
+
     def __post_init__(self):
-        # handle (encoded characters like \x20)
-        self.maker = bytes(self.maker, encoding="utf-8").decode("unicode_escape")
-        self.model = bytes(self.model, encoding="utf-8").decode("unicode_escape")
+        self.maker = self._decode(self.maker)
+        self.model = self._decode(self.model)
 
 
 DRIVE_INFORMATION_EXTENDED = (
