@@ -132,7 +132,6 @@ def sleep_check_process(process_str, max_processes, sleep=(20, 120, 10)):
     if max_processes <= 0:
         return False  # sleep limit disabled
     loop_count = max_processes + 1
-    logging.debug(f"loop_count {loop_count}")
     logging.info(f"Starting sleep check of {process_str}")
     while loop_count >= max_processes:
         # Maybe send a notification that jobs are waiting ?
