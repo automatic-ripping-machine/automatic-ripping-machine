@@ -558,7 +558,6 @@ def makemkv_backup(job, rawpath):
     cmd += [
         f"--minlength={job.config.MINLENGTH}",
         f"--progress={progress_log(job)}",
-        "--messages=-stdout",
         f"disc:{job.drive.mdisc:d}",
         rawpath,
     ]
@@ -615,7 +614,6 @@ def makemkv_mkv(job, rawpath):
         cmd += shlex.split(job.config.MKV_ARGS)
         cmd += [
             f"--progress={progress_log(job)}",
-            "--messages=-stdout",
             f"dev:{job.devpath}",
             "all",
             rawpath,
@@ -686,7 +684,6 @@ def rip_mainfeature(job, track, rawpath):
     cmd += shlex.split(job.config.MKV_ARGS)
     cmd += [
         f"--progress={progress_log(job)}",
-        "--messages=-stdout",
         f"dev:{job.devpath}",
         track.track_number,
         rawpath,
@@ -741,7 +738,6 @@ def process_single_tracks(job, rawpath, mode: str):
             cmd += shlex.split(job.config.MKV_ARGS)
             cmd += [
                 f"--progress={progress_log(job)}",
-                "--messages=-stdout",
                 f"dev:{job.devpath}",
                 track.track_number,
                 rawpath,
@@ -844,7 +840,6 @@ def get_track_info(index, job):
     logging.info("Using MakeMKV to get information on all the tracks on the disc. This will take a few minutes...")
     options = [
         f"--progress={progress_log(job)}",
-        "--messages=-stdout",
         f"--minlength={job.config.MINLENGTH}",
     ]
     track_id = 0
@@ -951,7 +946,12 @@ def run(options, select):
     if not isinstance(select, OutputType):
         raise TypeError(select)
     # robot process of makemkvcon with
-    cmd = ["/usr/local/bin/makemkvcon", "--robot"] + list(options)
+    cmd = [
+        "/usr/local/bin/makemkvcon",
+        "--robot",
+        "--messages=-stdout",
+    ]
+    cmd += list(options)
     buffer = []
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True) as proc:
         logging.debug(f"PID {proc.pid}: command: '{' '.join(cmd)}'")
