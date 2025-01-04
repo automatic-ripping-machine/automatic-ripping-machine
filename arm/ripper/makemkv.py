@@ -569,6 +569,7 @@ def makemkv_backup(job, rawpath):
 
     Parameters:
         job: arm.models.job.Job
+        rawpath:
     """
     # backup method
     cmd = [
@@ -592,6 +593,7 @@ def makemkv_mkv(job, rawpath):
 
     Parameters:
         job: arm.models.job.Job
+        rawpath:
     """
     # Get drive mode for the current drive
     mode = utils.get_drive_mode(job.devpath)
