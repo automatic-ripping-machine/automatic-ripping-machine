@@ -121,31 +121,30 @@ def notify_entry(job):
         sys.exit()
 
 
-def sleep_check_process(process_str, transcode_limit):
+def sleep_check_process(process_str, max_processes, sleep=(20, 120, 10)):
     """
     New function to check for max_transcode from job.config and force obey limits\n
     :param str process_str: The process string from arm.yaml
-    :param int transcode_limit: The user defined limit for maximum transcodes
+    :param int max_processes: The user defined limit for maximum transcodes
+    :param tuple sleep: (min sleep time, max sleep time, step)
     :return bool: when we have space in the transcode queue
     """
-    if transcode_limit > 0:
-        loop_count = transcode_limit + 1
-        logging.debug(f"loop_count {loop_count}")
-        logging.info(f"Starting A sleep check of {process_str}")
-        while loop_count >= transcode_limit:
-            # Maybe send a notification that jobs are waiting ?
-            loop_count = sum(1 for proc in psutil.process_iter() if proc.name() == process_str)
-            logging.debug(f"Number of Processes running is: "
-                          f"{loop_count} going to waiting 12 seconds.")
-            if transcode_limit > loop_count:
-                return True
-            # Try to make each check at different times
-            random_time = random.randrange(20, 120, 10)
-            logging.debug(f"sleeping for {random_time} seconds")
-            time.sleep(random_time)
-    else:
-        logging.info("Transcode limit is disabled")
-    return False
+    if max_processes <= 0:
+        return False  # sleep limit disabled
+    loop_count = max_processes + 1
+    logging.debug(f"loop_count {loop_count}")
+    logging.info(f"Starting A sleep check of {process_str}")
+    while loop_count >= max_processes:
+        # Maybe send a notification that jobs are waiting ?
+        loop_count = sum(1 for proc in psutil.process_iter() if proc.name() == process_str)
+        logging.debug(f"Number of Processes running is: {loop_count}")
+        if max_processes > loop_count:
+            break
+        # Try to make each check at different times
+        random_time = random.randrange(*sleep)
+        logging.debug(f"sleeping for {random_time} seconds")
+        time.sleep(random_time)
+    return True
 
 
 def convert_job_type(video_type):

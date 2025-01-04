@@ -50,6 +50,9 @@ def rip_visual_media(have_dupes, job, logfile, protection):
         logging.info("************* Ripping disc with MakeMKV *************")
         # Run MakeMKV and get path to output
         job.status = "ripping"
+        # Set wait time in makemkvcon info to match up with manual overrides.
+        # This may lead doubeling the overall wait time.
+        makemkv.MAKEMKV_INFO_WAIT_TIME = job.config.MANUAL_WAIT_TIME
         db.session.commit()
         try:
             makemkv_out_path = makemkv.makemkv(job)
