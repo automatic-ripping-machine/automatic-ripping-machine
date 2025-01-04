@@ -286,7 +286,7 @@ def server_info():
         drive.description = str(form_drive.description.data).strip()
         drive.drive_mode = str(form_drive.drive_mode.data).strip()
         db.session.commit()
-        flash(f"Updated Drive { drive.name } details", "success")
+        flash(f"Updated Drive {drive.name} details", "success")
         # Return to the systeminfo page (refresh page)
         return redirect(url_for('route_settings.settings'))
     else:

@@ -797,7 +797,7 @@ def prep_mkv():
     Make sure the MakeMKV key is up-to-date
 
     Raises:
-        RuntimeError
+        MakeMkvRuntimeError
     """
     try:
         logging.info("Updating MakeMKV key...")
@@ -814,9 +814,8 @@ def prep_mkv():
         logging.debug(proc.stdout)
     except subprocess.CalledProcessError as err:
         logging.debug(err.stdout)
-        err = f"Error updating MakeMKV key, return code: {err.returncode}"
-        logging.error(err)
-        raise RuntimeError(err) from err
+        logging.error(f"Error updating MakeMKV key, return code: {err.returncode}")
+        raise MakeMkvRuntimeError(err.returncode, cmd, output=err.stdout) from err
 
 
 def progress_log(job):
