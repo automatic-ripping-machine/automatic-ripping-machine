@@ -1,6 +1,7 @@
 """Database Model for Drive Information on the System
 """
 
+import enum
 import fcntl
 import logging
 import os
@@ -10,13 +11,23 @@ import subprocess
 from arm.ui import db
 
 
-# ioctl defines may (not very likely) change.
-# see https://github.com/torvalds/linux/blob/master/include/uapi/linux/cdrom.h
-CDS_NO_INFO = 0
-CDS_NO_DISC = 1
-CDS_TRAY_OPEN = 2
-CDS_DRIVE_NOT_READY = 3
-CDS_DISC_OK = 4
+class CDS(enum.Enum):
+    """CD Status
+
+    ioctl defines may (not very likely) change.
+    see https://github.com/torvalds/linux/blob/master/include/uapi/linux/cdrom.h
+    """
+    NO_INFO = 0
+    """CDS_NO_INFO"""
+    NO_DISC = 1
+    """CDS_NO_INFO"""
+    TRAY_OPEN = 2
+    """CDS_TRAY_OPEN"""
+    DRIVE_NOT_READY = 3
+    """CDS_DRIVE_NOT_READY"""
+    DISC_OK = 4
+    """CDS_DISC_OK"""
+    ERROR = None
 
 
 def _tray_status(devpath, logger=logging):
@@ -97,6 +108,7 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
     location = db.Column(db.String(255))
     stale = db.Column(db.Boolean)  # indicate that this drive was not found.
     mdisc = db.Column(db.SmallInteger)
+    _tray = None  # Numeric Tray Status
 
     # cross references:
     job_id_current = db.Column(db.Integer, db.ForeignKey("job.job_id"))
@@ -160,25 +172,35 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
             temp += "/BluRay"
         return temp
 
+    def tray_status(self):
+        """Query and update tray status.
+        """
+        if self.stale:
+            self.tray = None
+        else:
+            self.tray = _tray_status(self.mount)
+        logging.debug(f"Drive '{self.mount}': tray status '{self.tray}'")
+        return self.tray
+
     @property
     def tray(self):
-        """Numeric tray status.
-
-        See `_tray_status`
+        """Tray Status EnumItem
         """
-        status = _tray_status(self.mount)
-        logging.debug(f"Drive '{self.mount}': tray status '{status}'")
-        return status
+        return CDS(self._tray)
+
+    @tray.setter
+    def tray(self, value):
+        self._tray = CDS(value).value
 
     @property
     def open(self):
         """Drive tray open"""
-        return self.tray == CDS_TRAY_OPEN
+        return self.tray == CDS.TRAY_OPEN
 
     @property
     def ready(self):
         """Drive has medium loaded and is ready for reading."""
-        return self.tray == CDS_DISC_OK
+        return self.tray == CDS.DISC_OK
 
     def open_close(self, logger=logging):
         """Open or Close the drive

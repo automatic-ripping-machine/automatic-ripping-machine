@@ -36,18 +36,26 @@
                                                 </div>
                                                 <div class="col-sm-3">
                                                     <figure class="figure small float-right">
-                                                        {% if drive.stale %}
-                                                            <a href="drive/eject/{{ drive.drive_id }}">
-                                                                <!-- modified from source: https://openclipart.org/detail/36619/tango-audio-volume-muted -->
-                                                                <img class="img-fluid" src="static/img/drive-optical_stale.svg" alt="Drive Unavailable">
-                                                            </a>
+                                                        <!-- drive.tray queries (live) kernel drive status (blocking) -->
+                                                        {% if drive.stale or drive.tray is none %}
+                                                            <!-- image modified from source: https://openclipart.org/detail/36619/tango-audio-volume-muted -->
+                                                            <img
+                                                                class="img-fluid"
+                                                                src="static/img/drive-optical_stale.svg"
+                                                                alt="Drive Unavailable"
+                                                                {% if drive.stale %}
+                                                                    title="stale"
+                                                                {% else %}
+                                                                    title="{{ drive.tray }}"
+                                                                {% endif %}
+                                                            >
                                                         {% elif drive.open %}
                                                             <a href="drive/eject/{{ drive.drive_id }}">
-                                                                <img class="img-fluid" src="static/img/drive-optical_open.svg" alt="Drive Open">
+                                                                <img class="img-fluid" src="static/img/drive-optical_open.svg" alt="Drive Open" title="{{ drive.tray }}">
                                                             </a>
                                                         {% else %}
                                                             <a href="drive/eject/{{ drive.drive_id }}">
-                                                                <img class="img-fluid" src="static/img/drive-optical_closed.svg" alt="Drive Closed">
+                                                                <img class="img-fluid" src="static/img/drive-optical_closed.svg" alt="Drive Closed" title="{{ drive.tray }}">
                                                             </a>
                                                         {% endif %}
                                                         <figcaption class="figure-caption text-left invisible">Placeholder</figcaption>

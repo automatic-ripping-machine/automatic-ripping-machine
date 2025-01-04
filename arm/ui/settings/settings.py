@@ -109,6 +109,7 @@ def settings():
     # System Drives (CD/DVD/Blueray drives)
     drive_utils.update_job_status()
     drives = drive_utils.get_drives()
+    drive_utils.update_tray_status(drives)
     form_drive = SystemInfoDrives(request.form)
 
     # Load up the comments.json, so we can comment the arm.yaml
