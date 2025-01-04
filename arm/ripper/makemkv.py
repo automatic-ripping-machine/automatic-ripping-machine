@@ -864,11 +864,10 @@ def get_track_info(index, job):
         OutputType.TINFO
     )
     for message in makemkv_info(job, select=output_types, index=index, options=options):
-        if isinstance(message, (TInfo, SInfo)):
-            if track_id != message.tid:
-                # Next track was detected. Add current.
-                utils.put_track(job, track_id, seconds, aspect, str(fps), False, SOURCE, filename)
-                track_id = message.tid
+        if isinstance(message, (TInfo, SInfo)) and track_id != message.tid:
+            # Next track was detected. Add current.
+            utils.put_track(job, track_id, seconds, aspect, str(fps), False, SOURCE, filename)
+            track_id = message.tid
         if isinstance(message, SInfo):
             assert message.tid == track_id, message
             if message.id == StreamID.TYPE:
