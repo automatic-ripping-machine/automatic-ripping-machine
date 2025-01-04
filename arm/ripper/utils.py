@@ -133,17 +133,17 @@ def sleep_check_process(process_str, max_processes, sleep=(20, 120, 10)):
         return False  # sleep limit disabled
     loop_count = max_processes + 1
     logging.debug(f"loop_count {loop_count}")
-    logging.info(f"Starting A sleep check of {process_str}")
+    logging.info(f"Starting sleep check of {process_str}")
     while loop_count >= max_processes:
         # Maybe send a notification that jobs are waiting ?
         loop_count = sum(1 for proc in psutil.process_iter() if proc.name() == process_str)
-        logging.debug(f"Number of Processes running is: {loop_count}")
         if max_processes > loop_count:
             break
         # Try to make each check at different times
         random_time = random.randrange(*sleep)
-        logging.debug(f"sleeping for {random_time} seconds")
+        logging.debug(f"{loop_count} processes running. Sleeping for {random_time}s.")
         time.sleep(random_time)
+    logging.info(f"Exiting sleep check of {process_str}")
     return True
 
 
