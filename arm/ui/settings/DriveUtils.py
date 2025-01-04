@@ -45,8 +45,8 @@ class DriveInformation:
     """Device Model"""
     serial: str
     """Device Serial"""
-    name: str
-    """Drive Name (Maker+Model+Serial)"""
+    serial_id: str
+    """Drive Serial as id (Maker+Model+Serial)"""
 
     @staticmethod
     def _decode(value):
@@ -57,7 +57,7 @@ class DriveInformation:
             return bytes(value, encoding="utf-8").decode("unicode_escape")
         if value is None:
             return ""
-        return str(value)
+        return str(value).strip()
 
     def __post_init__(self):
         self.maker = self._decode(self.maker)
@@ -160,7 +160,7 @@ def drives_update():
     """
     scan the system for new cd/dvd/Blu-ray drives and update the database
 
-    - `name` is assumed persistent/unique.
+    - `serial_id` is assumed persistent/unique.
     - `mount` point may change for USB devices
     """
     drive_count = SystemDrives.query.count()
@@ -174,28 +174,29 @@ def drives_update():
     # Update drive information:
     for drive in sorted(drives_search()):  # sorted by mount point
         app.logger.debug(drive)
-        # Retrieve the drive matching `drive.name` from the
-        # database or create a new entry if it doesn't exist. Since
-        # `drive.name` *may* not be unique, we update only the first drive that
-        # misses the mdisc value and was not updated prior to this branch. The
-        # result is sorted by mount points to update only the drive with the
-        # alphabetically first mount point.
-        # If no `drive.name` is found (e.g. on first run), take the pre-existing
-        # mount point and update the name there.
+        # Retrieve the drive matching `drive.serial_id` from the database or
+        # create a new entry if it doesn't exist. Since `drive.serial_id` *may*
+        # not be unique, we update only the first drive that misses the mdisc
+        # value and was not updated prior to this branch. The result is sorted
+        # by mount points to update only the drive with the alphabetically
+        # first mount point.  If no `drive.serial_id` is found (e.g. on first
+        # run), take the pre-existing mount point and update the serial_id
+        # there.
         query = (
             SystemDrives
             .query
-            .filter_by(name=drive.name, stale=True)
+            .filter_by(serial_id=drive.serial_id, stale=True)
             .order_by(SystemDrives.mount)
         )
         if db_drive := query.first():
-            app.logger.debug("Update drive '%s' by serial.", drive.name)
+            app.logger.debug("Update drive '%s' by serial.", drive.serial_id)
         elif db_drive := SystemDrives.query.filter_by(mount=drive.mount).first():
             app.logger.debug("Update drive '%s' by mount path.", drive.mount)
         else:
             msg = "Create a new drive entity in the database for '%s' on '%s'."
-            app.logger.debug(msg, drive.name, drive.mount)
+            app.logger.debug(msg, drive.serial_id, drive.mount)
             db_drive = SystemDrives()
+            db_drive.name = drive.serial_id
         db_drive.update(drive)
         db.session.add(db_drive)
         db.session.commit()  # needed to get drive_id for new entities
@@ -220,7 +221,7 @@ def drives_update():
     stale_count = 0
     for stale_drive in SystemDrives.query.filter_by(stale=True).all():
         msg = "Drive '%s' on '%s' is not available."
-        app.logger.warning(msg, stale_drive.name, stale_drive.mount)
+        app.logger.warning(msg, stale_drive.serial_id, stale_drive.mount)
         if stale_drive.processing:
             app.logger.warning(f"Drive '{stale_drive.mount}' has an active job and might be blocked.")
             stale_drive.stale = False
@@ -289,7 +290,7 @@ def update_drive_job(job):
     """
     drive = SystemDrives.query.filter_by(mount=job.devpath).first()
     drive.new_job(job.job_id)
-    app.logger.debug(f"Updating Drive: ['{drive.name}'|'{drive.mount}']"
+    app.logger.debug(f"Updating Drive: ['{drive.serial_id}'|'{drive.mount}']"
                      f" Current Job: [{drive.job_id_current}]"
                      f" Previous Job: [{drive.job_id_previous}]")
     try:
@@ -308,4 +309,4 @@ def get_drives():
     """
     Wrapper around SystemDrives Database
     """
-    return SystemDrives.query.order_by(SystemDrives.description, SystemDrives.name).all()
+    return SystemDrives.query.order_by(SystemDrives.name, SystemDrives.description, SystemDrives.serial_id).all()

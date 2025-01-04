@@ -93,7 +93,7 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
     drive_id = db.Column(db.Integer, index=True, primary_key=True)
 
     # static information:
-    name = db.Column(db.String(100))  # maker+serial (static identification)
+    serial_id = db.Column(db.String(100))  # maker+serial (static identification)
     maker = db.Column(db.String(25))
     model = db.Column(db.String(50))
     serial = db.Column(db.String(25))
@@ -119,7 +119,8 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
     job_previous = db.relationship("Job", backref="Previous", foreign_keys=[job_id_previous])
 
     # user input:
-    description = db.Column(db.Unicode(200))  # user input
+    name = db.Column(db.String(100))
+    description = db.Column(db.Unicode(200))
 
     def __init__(self):
         # mark drive info as outdated
@@ -132,6 +133,7 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
 
         # user input
         self.description = ""
+        self.name = ""
         self.drive_mode = "auto"
 
     def update(self, drive):
@@ -143,7 +145,7 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
         drive: arm.ui.settings.DriveUtils.Drive
         """
         # static information
-        self.name = drive.name
+        self.serial_id = drive.serial_id
         self.maker = drive.maker
         self.model = drive.model
         self.serial = drive.serial
@@ -240,6 +242,7 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
         """
         logger.debug("*********")
         logger.debug(f"Name: '{self.name}'")
+        logger.debug(f"Drive: '{self.maker} {self.model} ({self.firmware})'")
         logger.debug(f"Type: {self.type}")
         logger.debug(f"Description: '{self.description}'")
         logger.debug(f"Mount: '{self.mount}'")

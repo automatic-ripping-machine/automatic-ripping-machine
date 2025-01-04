@@ -10,19 +10,25 @@
                             <div class="card">
                                 <form id="systemForm" name="systemForm" action="/systeminfo" method="post">
                                     {{ form_drive.hidden_tag() }}
-                                    <div class="card-header" id="{{ drive.name }}">
+                                    <div class="card-header" id="{{ drive.serial_id }}">
                                         <button class="btn" type="button" data-toggle="collapse" data-target="#drive{{drive.drive_id}}" aria-expanded="true" aria-controls="drive{{drive.drive_id}}">
-                                            {{ drive.maker }}
-                                            <i>{{drive.model}}</i>
-                                            {{drive.serial}}
-                                            (FW{{drive.firmware}})
-                                            {{drive.connection|upper or '' }}
+                                            {{ drive.name }}
                                         </button>
                                     </div>
-                                    <div id="drive{{drive.drive_id}}" class="collapse show" aria-labelledby="{{drive.name}}">
+                                    <div id="drive{{drive.drive_id}}" class="collapse show" aria-labelledby="{{drive.serial_id}}">
                                         <div class="card-body">
                                             <div class="row">
                                                 <div class="col-sm-9">
+                                                    <div class="form-group row my-0">
+                                                        <div class="col-sm-4 col-form-label px-1">Serial</div>
+                                                        <div class="col-sm-8 col-form-label px-1 small" id="type">
+                                                            {{ drive.maker }}
+                                                            <i>{{drive.model}}</i>
+                                                            {{drive.serial}}
+                                                            (FW{{drive.firmware}})
+                                                            {{drive.connection|upper or '' }}
+                                                        </div>
+                                                    </div>
                                                     <div class="form-group row my-0">
                                                         <div class="col-sm-4 col-form-label px-1">Type</div>
                                                         <div class="col-sm-8 col-form-label px-1 small" id="type">{{ drive.type }}</div>
@@ -107,8 +113,13 @@
                                                         </div>
                                                     {% endif %}
                                                     <div class="form-group row my-0">
+                                                        <label for="name" class="col-sm-3 col-form-label px-1">Name</label>
+                                                        <input class="col-sm-9 form-control form-control-sm px-1" type="text" id="name" name="name" maxlength="100" value="{{ drive.name }}">
+                                                        <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
+                                                    </div>
+                                                    <div class="form-group row my-0">
                                                         <label for="description" class="col-sm-3 col-form-label px-1">Description</label>
-                                                        <input class="col-sm-9 form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}">
+                                                        <input class="col-sm-9 form-control form-control-sm px-1" type="text" id="description" name="description" maxlength="200" value="{{ drive.description }}">
                                                         <input type="hidden" id="id" name="id" value="{{ drive.drive_id }}">
                                                     </div>
                                                     <div class="form-group row my-0">
