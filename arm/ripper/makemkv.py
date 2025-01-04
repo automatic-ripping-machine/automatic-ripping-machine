@@ -530,11 +530,17 @@ def makemkv_info(job, select=None, index=9999, options=None):
     info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}"]
     wait_time = job.config.MANUAL_WAIT_TIME
     max_processes = job.config.MAX_CONCURRENT_MAKEMKVINFO
+    job.status = JOB_STATUS_WAITING
+    db.session.commit()
     utils.sleep_check_process("makemkvcon", max_processes, (10, wait_time, 1))
+    job.status = JOB_STATUS_INFO
+    db.session.commit()
     try:
         yield from run(info_options, select)
     finally:
         logging.info("MakeMKV info exits.")
+        job.status = JOB_STATUS_WAITING
+        db.session.commit()
         if max_processes:
             logging.info(f"Penalty {wait_time}s")
             # makemkvcon info tends to crash makemkvcon backup|mkv
@@ -542,6 +548,8 @@ def makemkv_info(job, select=None, index=9999, options=None):
             sleep(wait_time)
         # sleep here until all processes finish (hopefully)
         utils.sleep_check_process("makemkvcon", max_processes, (10, wait_time, 1))
+        job.status = JOB_STATUS_RIPPING
+        db.session.commit()
 
 
 def get_drives(job):
@@ -562,8 +570,6 @@ def makemkv_backup(job, rawpath):
     Parameters:
         job: arm.models.job.Job
     """
-    job.status = JOB_STATUS_RIPPING
-    db.session.commit()
     # backup method
     cmd = [
         "backup",
@@ -591,11 +597,7 @@ def makemkv_mkv(job, rawpath):
     mode = utils.get_drive_mode(job.devpath)
     logging.info(f"Job running in {mode} mode")
     # Get track info form mkv rip
-    job.status = JOB_STATUS_INFO
-    db.session.commit()
     get_track_info(job.drive.mdisc, job)
-    job.status = JOB_STATUS_RIPPING
-    db.session.commit()
     # route to ripping functions.
     if job.config.MAINFEATURE:
         logging.info("Trying to find mainfeature")
@@ -651,8 +653,6 @@ def makemkv(job):
     prep_mkv()
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
-    job.status = JOB_STATUS_INFO
-    db.session.commit()
     if job.drive.mdisc is None:
         logging.debug("Storing new MakeMKV disc numbers to database.")
         for drive in get_drives(job):
@@ -661,8 +661,6 @@ def makemkv(job):
             db.session.add(db_drive)
         db.session.commit()
     logging.info(f"MakeMKV disc number: {job.drive.mdisc:d}")
-    job.status = JOB_STATUS_RIPPING
-    db.session.commit()
     # get filesystem in order
     rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
     logging.info(f"Processing files to: {rawpath}")
@@ -738,8 +736,6 @@ def process_single_tracks(job, rawpath, mode: str):
 
         # Rip the track if the user has set it to rip, or in auto mode and the time is good
         if track.process:
-            job.status = JOB_STATUS_RIPPING
-            db.session.commit()
             logging.info(f"Processing track #{track.track_number} of {(job.no_of_titles - 1)}. "
                          f"Length is {track.length} seconds.")
             filepathname = os.path.join(rawpath, track.filename)
