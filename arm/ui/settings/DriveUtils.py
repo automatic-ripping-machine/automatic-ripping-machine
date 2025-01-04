@@ -279,4 +279,4 @@ def get_drives():
     """
     Wrapper around SystemDrives Database
     """
-    return SystemDrives.query.order_by(SystemDrives.mount).all()
+    return SystemDrives.query.order_by(SystemDrives.description, SystemDrives.name).all()
