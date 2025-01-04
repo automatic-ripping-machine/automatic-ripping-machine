@@ -167,10 +167,7 @@ def drives_update():
 
     # Mark all drives as stale
     for db_drive in SystemDrives.query.all():
-        db_drive.location = ""
         db_drive.stale = True
-        # Note: mdisc is cleared every time the settings page is shown.
-        db_drive.mdisc = None
         db.session.add(db_drive)
     db.session.commit()
 
@@ -223,11 +220,18 @@ def drives_update():
     stale_count = 0
     for stale_drive in SystemDrives.query.filter_by(stale=True).all():
         msg = "Drive '%s' on '%s' is not available."
-        app.logger.debug(msg, stale_drive.name, stale_drive.mount)
-        stale_drive.mount = ""
-        stale_count += 1
+        app.logger.warning(msg, stale_drive.name, stale_drive.mount)
+        if stale_drive.processing:
+            app.logger.warning(f"Drive '{stale_drive.mount}' has an active job and might be blocked.")
+            stale_drive.stale = False
+        else:
+            stale_drive.mount = ""
+            stale_drive.location = ""
+            stale_drive.mdisc = None
+            stale_count += 1
         db.session.add(stale_drive)
         db.session.commit()
+        stale_drive.debug(logger=app.logger)
     if stale_count > 0:
         app.logger.info("%d drives are unavailable.", stale_count)
 

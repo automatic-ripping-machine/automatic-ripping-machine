@@ -256,6 +256,11 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
                 logger.debug(f"Job - Year: {job.year}")
         logger.debug("*********")
 
+    @property
+    def processing(self):
+        """Drive has an associated job."""
+        return self.job_current is not None
+
     def new_job(self, job_id):
         """new job assigned to the drive, update with new job id, and previous job_id"""
         if self.job_id_current is not None:  # Preserve previous job
