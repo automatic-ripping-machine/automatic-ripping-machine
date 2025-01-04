@@ -61,7 +61,7 @@ class Job(db.Model):
     manual_mode = db.Column(db.Boolean)
     tracks = db.relationship('Track', backref='job', lazy='dynamic')
     config = db.relationship('Config', uselist=False, backref="job")
-    drive = db.relationship('SystemDrives', uselist=False, backref='Current',
+    drive = db.relationship('SystemDrives', uselist=False, backref='Current', viewonly=True,
                             primaryjoin="Job.job_id == SystemDrives.job_id_current")
 
     def __init__(self, devpath):
