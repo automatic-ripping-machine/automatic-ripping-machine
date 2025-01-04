@@ -295,9 +295,12 @@ def server_info():
         # Return for POST
         app.logger.debug(
             f"Drive id: {str(form_drive.id.data)} " +
-            f"Updated description: [{str(form_drive.description.data)}]")
+            f"Updated name: {str(form_drive.name.data)} " +
+            f"Updated description: [{str(form_drive.description.data)}] " +
+            f"Updated mode: [{str(form_drive.drive_mode.data)}]")
         drive = SystemDrives.query.filter_by(drive_id=form_drive.id.data).first()
         drive.description = str(form_drive.description.data).strip()
+        drive.name = str(form_drive.name.data).strip()
         drive.drive_mode = str(form_drive.drive_mode.data).strip()
         db.session.commit()
         flash(f"Updated Drive {drive.name} details", "success")
