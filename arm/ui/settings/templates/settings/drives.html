@@ -70,21 +70,21 @@
                                                             <div class="col-sm-9 col-form-label px-1">{{ drive.location }}</div>
                                                         </div>
                                                     {% endif %}
-                                                    {% if drive.job_id_current %}
+                                                    {% if drive.job_current %}
                                                         <div class="form-group row my-0">
                                                             <div class="col-sm-3 col-form-label px-1">Current Job</div>
                                                             <div class="col-sm-9 col-form-label px-1 small">
-                                                                <a href="/jobdetail?job_id={{ drive.job_id_current }}">
+                                                                <a href="/jobdetail?job_id={{ drive.job_current.job_id }}">
                                                                     <span class="text-capitalize">{{ drive.job_current.video_type }}</span> - {{ drive.job_current.title }} - {{ drive.job_current.year }}
                                                                 </a>
                                                             </div>
                                                         </div>
                                                     {% endif %}
-                                                    {% if drive.job_id_previous %}
+                                                    {% if drive.job_previous %}
                                                         <div class="form-group row my-0">
                                                             <div class="col-sm-3 col-form-label px-1 px-1">Previous Job</div>
                                                             <div class="col-sm-9 col-form-label px-1 small">
-                                                                <a href="/jobdetail?job_id={{ drive.job_id_previous }}">
+                                                                <a href="/jobdetail?job_id={{ drive.job_previous.job_id }}">
                                                                     <span class="text-capitalize">{{ drive.job_previous.video_type }}</span> - {{ drive.job_previous.title }} - {{ drive.job_previous.year }}
                                                                 </a>
                                                             </div>
