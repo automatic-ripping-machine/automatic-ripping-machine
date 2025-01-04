@@ -24,13 +24,13 @@
                                             <div class="row">
                                                 <div class="col-sm-9">
                                                     <div class="form-group row my-0">
-                                                        <label for="type" class="col-sm-4 col-form-label px-1">Type</label>
-                                                        <label class="col-sm-8 col-form-label px-1 small" id="type">{{ drive.type }}</label>
+                                                        <div class="col-sm-4 col-form-label px-1">Type</div>
+                                                        <div class="col-sm-8 col-form-label px-1 small" id="type">{{ drive.type }}</div>
                                                     </div>
                                                     {% if drive.mount %}
                                                         <div class="form-group row my-0">
-                                                            <label for="mount" class="col-sm-4 col-form-label px-1 px-1">Mount Path</label>
-                                                            <label class="col-sm-8 col-form-label px-1 small" alt="test">{{ drive.mount }}</label>
+                                                            <div class="col-sm-4 col-form-label px-1 px-1">Mount Path</div>
+                                                            <div class="col-sm-8 col-form-label px-1 small" alt="test">{{ drive.mount }}</div>
                                                         </div>
                                                     {% endif %}
                                                 </div>
@@ -58,30 +58,30 @@
                                                 <div class="col-sm-12">
                                                     {% if drive.location %}
                                                         <div class="form-group row my-0">
-                                                            <label for="connection" class="col-sm-3 col-form-label px-1 px-1">Connection</label>
-                                                            <label class="col-sm-9 col-form-label px-1">{{ drive.location }}</label>
+                                                            <div class="col-sm-3 col-form-label px-1 px-1">Connection</div>
+                                                            <div class="col-sm-9 col-form-label px-1">{{ drive.location }}</div>
                                                         </div>
                                                     {% endif %}
-                                                    <div class="form-group row my-0">
-                                                        {% if drive.job_id_current %}
-                                                            <label for="current_job" class="col-sm-3 col-form-label px-1">Current Job</label>
-                                                            <label class="col-sm-9 col-form-label px-1 small">
+                                                    {% if drive.job_id_current %}
+                                                        <div class="form-group row my-0">
+                                                            <div class="col-sm-3 col-form-label px-1">Current Job</div>
+                                                            <div class="col-sm-9 col-form-label px-1 small">
                                                                 <a href="/jobdetail?job_id={{ drive.job_id_current }}">
                                                                     <span class="text-capitalize">{{ drive.job_current.video_type }}</span> - {{ drive.job_current.title }} - {{ drive.job_current.year }}
                                                                 </a>
-                                                            </label>
-                                                        {% endif %}
-                                                    </div>
-                                                    <div class="form-group row my-0">
-                                                        {% if drive.job_id_previous %}
-                                                            <label for="previous_job" class="col-sm-3 col-form-label px-1 px-1">Previous Job</label>
-                                                            <label class="col-sm-9 col-form-label px-1 small">
+                                                            </div>
+                                                        </div>
+                                                    {% endif %}
+                                                    {% if drive.job_id_previous %}
+                                                        <div class="form-group row my-0">
+                                                            <div class="col-sm-3 col-form-label px-1 px-1">Previous Job</div>
+                                                            <div class="col-sm-9 col-form-label px-1 small">
                                                                 <a href="/jobdetail?job_id={{ drive.job_id_previous }}">
                                                                     <span class="text-capitalize">{{ drive.job_previous.video_type }}</span> - {{ drive.job_previous.title }} - {{ drive.job_previous.year }}
                                                                 </a>
-                                                            </label>
-                                                        {% endif %}
-                                                    </div>
+                                                            </div>
+                                                        </div>
+                                                    {% endif %}
                                                     <div class="form-group row my-0">
                                                         <label for="description" class="col-sm-3 col-form-label px-1">Description</label>
                                                         <input class="col-sm-9 form-control form-control-sm px-1" type="text" id="description" name="description" value="{{ drive.description }}">
