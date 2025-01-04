@@ -480,11 +480,12 @@ def parse_line(line):
     return msg_type, message
 
 
-def makemkv_info(select=None, index=9999, options=None):
+def makemkv_info(job, select=None, index=9999, options=None):
     """
     Use MakeMKV info to search the system for optical drives
 
     Parameters:
+        job: arm.models.job.Job
         select (OutputType): Message Type (default: all)
         index: Makemkv disc index (default: all)
         options: Additional options to be passed to makemkvcon (default: [])
@@ -527,22 +528,29 @@ def makemkv_info(select=None, index=9999, options=None):
         raise TypeError(options)
     # 1MB cache size to get info on the specified disc(s)
     info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}"]
-    wait_time = MAKEMKV_INFO_WAIT_TIME
-    utils.sleep_check_process("makemkvcon", 1, (10, wait_time, 1))
+    wait_time = job.config.MANUAL_WAIT_TIME
+    max_processes = job.config.MAX_CONCURRENT_MAKEMKVINFO
+    utils.sleep_check_process("makemkvcon", max_processes, (10, wait_time, 1))
     try:
         yield from run(info_options, select)
     finally:
-        logging.info(f"MakeMKV info exits. Penalty {wait_time}s")
-        # makemkvcon info tends to crash makemkvcon backup|mkv
-        # give other processes time to use this function.
-        sleep(wait_time)
+        logging.info("MakeMKV info exits.")
+        if max_processes:
+            logging.info(f"Penalty {wait_time}s")
+            # makemkvcon info tends to crash makemkvcon backup|mkv
+            # give other processes time to use this function.
+            sleep(wait_time)
         # sleep here until all processes finish (hopefully)
-        utils.sleep_check_process("makemkvcon", 1, (10, wait_time, 1))
+        utils.sleep_check_process("makemkvcon", max_processes, (10, wait_time, 1))
 
 
-def get_drives():
-    """Get information for all active optical drives"""
-    for drive in makemkv_info(select=OutputType.DRV):
+def get_drives(job):
+    """Get information for all active optical drives
+
+    Parameters:
+        job: arm.models.job.Job
+    """
+    for drive in makemkv_info(job, select=OutputType.DRV):
         if drive.attached:
             yield drive
 
@@ -647,7 +655,7 @@ def makemkv(job):
     db.session.commit()
     if job.drive.mdisc is None:
         logging.debug("Storing new MakeMKV disc numbers to database.")
-        for drive in get_drives():
+        for drive in get_drives(job):
             db_drive = SystemDrives.query.filter_by(mount=drive.mount).one()
             db_drive.mdisc = drive.index
             db.session.add(db_drive)
@@ -859,7 +867,7 @@ def get_track_info(index, job):
         OutputType.TCOUNT |
         OutputType.TINFO
     )
-    for message in makemkv_info(select=output_types, index=index, options=options):
+    for message in makemkv_info(job, select=output_types, index=index, options=options):
         if isinstance(message, (TInfo, SInfo)):
             if track_id != message.tid:
                 # Next track was detected. Add current.
@@ -980,7 +988,7 @@ def run(options, select):
     if buffer:
         logging.warning(f"Cannot parse {len(buffer)} lines: {os.linesep.join(buffer)}")
         raise MakeMkvRuntimeError(proc.returncode, cmd, output=os.linesep.join(buffer))
-    logging.debug("MakeMKV exits gracefully.")
+    logging.info("MakeMKV exits gracefully.")
 
 
 def manual_wait(job) -> bool:
