@@ -213,7 +213,7 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
             cmd = ["--trayclose"]
         elif self.job_id_current:
             logger.debug(f"{self.mount} unable to eject. Job [{self.job_id_current}] in progress.")
-            return
+            return None
         cmd = ["eject"] + cmd + ["--verbose", self.mount]
         try:
             subprocess.run(cmd, check=True, capture_output=True, text=True)
