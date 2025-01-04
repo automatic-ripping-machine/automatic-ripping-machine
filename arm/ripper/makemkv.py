@@ -46,6 +46,11 @@ MAX_DEVICES = 16
 SOURCE = "MakeMKV"
 """Used as input argument for put_track"""
 
+ERROR_MESSAGE_OPERATION_RESULT = "Internal error - Operation result is incorrect (132)"
+ERROR_MESSAGE_TRAY_OPEN = "Scsi error - NOT READY:MEDIUM NOT PRESENT - TRAY OPEN"
+ERROR_MESSAGE_MEDIUM_ERROR = "Scsi error - MEDIUM ERROR:L-EC UNCORRECTABLE ERROR"
+ERROR_MESSAGE_HARDWARE_ERROR = "Scsi error - HARDWARE ERROR:441E"
+
 
 class OutputType(enum.Flag):
     """
@@ -916,12 +921,16 @@ def check_output(data: MakeMKVMessage):
         raise TypeError(data)
     if data.code == MessageID.READ_ERROR:
         error_message = data.sprintf[1]
-        if error_message == "Internal error - Operation result is incorrect (132)":
-            # possibly fatal, creating zombies
+        if error_message == ERROR_MESSAGE_OPERATION_RESULT:
+            logging.debug('error possibly fatal, creating zombie processes')
             logging.critical(data.message)
-        elif error_message == "Scsi error - NOT READY:MEDIUM NOT PRESENT - TRAY OPEN":
-            # non fatal
+        elif error_message == ERROR_MESSAGE_TRAY_OPEN:
+            logging.debug('error mostly non fatal')
             logging.info(error_message)
+        elif error_message in (ERROR_MESSAGE_MEDIUM_ERROR, ERROR_MESSAGE_HARDWARE_ERROR):
+            # errors are usually linked to each other.
+            logging.debug('error possibly fatal, medium removed during mkv backup')
+            logging.critical(data.message)
         else:
             # yet unknown, create warning
             logging.warning(error_message)
