@@ -10,14 +10,14 @@
                             <div class="card">
                                 <form id="systemForm" name="systemForm" action="/systeminfo" method="post">
                                     {{ form_drive.hidden_tag() }}
-									<div class="card-header" id="{{ drive.name }}">
-										<button class="btn" type="button" data-toggle="collapse" data-target="#drive{{drive.drive_id}}" aria-expanded="true" aria-controls="drive{{drive.drive_id}}">
-											{{ drive.maker }}
-											<i>{{drive.model}}</i>
-											{{drive.serial}}
-											(FW{{drive.firmware}})
-											{{drive.connection.upper()}}
-										</button>
+                                    <div class="card-header" id="{{ drive.name }}">
+                                        <button class="btn" type="button" data-toggle="collapse" data-target="#drive{{drive.drive_id}}" aria-expanded="true" aria-controls="drive{{drive.drive_id}}">
+                                            {{ drive.maker }}
+                                            <i>{{drive.model}}</i>
+                                            {{drive.serial}}
+                                            (FW{{drive.firmware}})
+                                            {{drive.connection|upper or '' }}
+                                        </button>
                                     </div>
                                     <div id="drive{{drive.drive_id}}" class="collapse show" aria-labelledby="{{drive.name}}">
                                         <div class="card-body">
