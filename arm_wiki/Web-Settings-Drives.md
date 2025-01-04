@@ -32,8 +32,12 @@ The following options are available from the ARM Settings page:
 
 1. Scan for Drives
 2. Drive Details
-3. Drive Status Icon
-4. Drive Options
+3. Drive Status (eject)
+4. Drive Actions
+5. User Editable
+6. Hover Information
+7. Job Information
+8. Serial Number
 
 <img title="ARM Settings Page" alt="Default ARM Settings page with no drives" src="images/arm_settings_drives.png" width="80%" height=""/>
 
@@ -49,19 +53,35 @@ detailed below.
 ### 2. Drive Details
 
 An optical drive has some information fixed and other information changes
-depending on the state of the system. Drive Maker, Model, and Serial Number can be considered as fixed information. This information is displayed on the top of the collapsible Drive Details Card. Other Information like Firmware Version may change but not very likely. The location of the drive on the SATA or USB hub is informative. For USB devices, this may change upon reconnecting the drive to a different USB port or hub. The mount path that is usally forwarded to the docker container changes frequently for USB devices on system reboot. SATA device may keep their names upon reboot but on linux, the /dev/srX locations are not fixed to hardware. ARM uses the drive id, reported by the kernel to identify a drive. This is also persitent between reboots or drive re-connects.
+depending on the state of the system. Drive Maker, Model, and Serial Number can
+be considered as fixed information. This information is displayed on the top of
+the collapsible Drive Details Card. Other Information like Firmware Version may
+change but not very likely. The location of the drive on the SATA or USB hub is
+informative. For USB devices, this may change upon reconnecting the drive to a
+different USB port or hub. The mount path that is usally forwarded to the
+docker container changes frequently for USB devices on system reboot. SATA
+device may keep their names upon reboot but on linux, the /dev/srX locations
+are not fixed to hardware. ARM uses the drive id, reported by the kernel to
+identify a drive. This is also persitent between reboots or drive re-connects.
 
-The drive description can be modified to help in finding the right drive.  As
-great as knowing a drive's serial number, adding a description like 'top disk -
-Blu-ray' can help put the disk in the right drive. Especially for users with
-multiple drives in a system. You can use the eject button (the drive icon) to
-identify drives on the system.
+The drive description and name can be modified to help in finding the right
+drive. As great as knowing a drive's serial number, adding a description like
+'top disk - Blu-ray' can help put the disk in the right drive. Especially for
+users with multiple drives in a system. You can click the eject button (the
+drive icon) to identify drives on the system. The eject is blocked whenever
+there is an active job going on, indicated by a green circle in the drive icon.
+If you do not have automatic eject enabled, you can eject the drive once the
+drive icon returns to normal.
+
+The last digits of the serial number displayed on this settings page is masked
+with asterisks but used internally to identify the drive.
 
 For more details on how jobs are processed, see [Jobs](Web-Jobs)
 
 | Field        | Details                                                        | Type   | changes  |
 |--------------|----------------------------------------------------------------|--------|----------|
-| Name         | internally fixed to Maker, Model, and Serial Number            | System | fixed    |
+| Name         | descriptive name of your drive (also used for sorting)         | User   | editable |
+| Serial       | internally fixed to Maker, Model, and Serial Number            | System | fixed    |
 | Type         | Type of drive, CD, DVD or Bluray or combination of all three   | System | fixed    |
 | Connection   | Location of the device on the system hardware (USB/SATA)       | System | fixed    |
 | Mount Path   | System mount path reported                                     | System | reboot   |
@@ -79,17 +99,31 @@ On ejecting the drive, ARM reports the drive as being open, as shown below.
 
 **Drive Open**
 
+Click this button to close the drive.
+
 <img title="Drive Open" alt="drive open image" src="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/refs/heads/main/arm/ui/static/img/drive-optical_open.svg" width="100px" height=""/>
 
 **Drive Closed** _Default_
 
-<img title="Drive Open" alt="drive open image" src="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/refs/heads/main/arm/ui/static/img/drive-optical_closed.svg" width="100px" height=""/>
+Click this button to open the drive. Hover over it to see the kernel status
+which gives you the information whether the drive contains a disc or not.
+
+<img title="Drive Closed" alt="drive closed image" src="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/refs/heads/main/arm/ui/static/img/drive-optical_closed.svg" width="100px" height=""/>
+
+**Drive Processing**
+
+A drive with a running job is indicated with a green cycle emblem. You cannot
+eject such a drive unless you abandon the associated job.
+
+<img title="Drive Processing" alt="drive processing image" src="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/refs/heads/main/arm/ui/static/img/drive-optical_closed_processing.svg" width="100px" height=""/>
+
+**Drive Stale**
 
 If a drive was previously found on the system but not with the last scan, it is
 marked as stale and its mount point is cleared. It's job associations will stay
-as long as you delete it.
-
-**Drive Stale**
+as long as you delete it. If a drive has an associated MakeMKV job, its status
+update is likely blocked. It will keep the current state until the job is
+released and the drive is visible again to the system.
 
 <img title="Drive Open" alt="drive open image" src="https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/refs/heads/main/arm/ui/static/img/drive-optical_stale.svg" width="100px" height=""/>
 
