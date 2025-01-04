@@ -158,7 +158,7 @@ class TrackID(enum.IntEnum):
 
 
 @dataclasses.dataclass
-class Message:
+class MakeMKVMessage:
     """
     Message output
 
@@ -182,7 +182,7 @@ class Message:
 
 
 @dataclasses.dataclass
-class Error(Message):
+class MakeMKVErrorMessage(MakeMKVMessage):
     """Error Message"""
     error: str
 
@@ -835,14 +835,14 @@ def convert_to_seconds(hms_value):
     return int(hour) * 3600 + int(mins) * 60 + int(secs)
 
 
-def check_output(data: Message):
+def check_output(data: MakeMKVMessage):
     """
     Check MakeMKV output messages for errors and log them.
 
     Parameters:
-        data (Message): the message to check.
+        data (MakeMKVMessage): the message to check.
     """
-    if not isinstance(data, Message):
+    if not isinstance(data, MakeMKVMessage):
         raise TypeError(data)
     match data.code:
         case MessageID.READ_ERROR:
@@ -857,7 +857,7 @@ def check_output(data: Message):
                 case _:
                     # yet unknown, create warning
                     logging.warning(error_message)
-            return Error(*data)
+            return MakeMKVErrorMessage(*data)
         case MessageID.WRITE_ERROR:
             error_message = data.sprintf[1]
             match error_message:
@@ -867,7 +867,7 @@ def check_output(data: Message):
                 case _:
                     # yet unknown, create warning
                     logging.warning(error_message)
-            return Error(*data)
+            return MakeMKVErrorMessage(*data)
         case _:
             logging.info(data.message)
             return data
@@ -909,7 +909,7 @@ def run(options, select):
             match msg_type:
                 case OutputType.MSG:
                     message = parse_content(content, 3, -1)
-                    data = check_output(Message(*itertools.islice(message, 4), list(message)))
+                    data = check_output(MakeMKVMessage(*itertools.islice(message, 4), list(message)))
                 case OutputType.PRGV:
                     data = ProgressBarValues(*parse_content(content, 2, 0))
                 case OutputType.PRGC:
