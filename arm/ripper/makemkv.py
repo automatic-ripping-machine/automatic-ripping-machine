@@ -1043,6 +1043,7 @@ def manual_wait(job) -> bool:
             title = "The Wait is Over"
             message = "Thanks for not forgetting me, I am now processing your job."
             notify(job, title, message)
+            break
         else:
             # If nothing has happened, remind the user every 5 minutes
             if i % 5 == 0 and i != wait_time:
