@@ -364,26 +364,26 @@ class Drive(DriveInformation):
 
     def __post_init__(self):
         super().__post_init__()
-        match DriveType(self.flags):
-            case DriveType.CD:
-                self.media_cd = True
-            case DriveType.DVD:
-                self.media_dvd = True
-            case DriveType.BD_TYPE1:
-                self.media_bd = True
-            case DriveType.BD_TYPE2:
-                self.media_bd = True
-        match DriveVisible(self.visible):
-            case DriveVisible.EMPTY:
-                self.loaded = False
-            case DriveVisible.OPEN:
-                self.open = True
-            case DriveVisible.LOADED:
-                self.loaded = True
-            case DriveVisible.LOADING:
-                self.loaded = True
-            case DriveVisible.NOT_ATTACHED:
-                self.attached = False
+        drive_type = DriveType(self.flags)
+        if drive_type == DriveType.CD:
+            self.media_cd = True
+        elif drive_type == DriveType.DVD:
+            self.media_dvd = True
+        elif drive_type == DriveType.BD_TYPE1:
+            self.media_bd = True
+        elif drive_type == DriveType.BD_TYPE2:
+            self.media_bd = True
+        drive_visible = DriveVisible(self.visible)
+        if drive_visible == DriveVisible.EMPTY:
+            self.loaded = False
+        elif drive_visible == DriveVisible.OPEN:
+            self.open = True
+        elif drive_visible == DriveVisible.LOADED:
+            self.loaded = True
+        elif drive_visible == DriveVisible.LOADING:
+            self.loaded = True
+        elif drive_visible == DriveVisible.NOT_ATTACHED:
+            self.attached = False
 
 
 class MakeMkvRuntimeError(RuntimeError):
@@ -844,33 +844,29 @@ def check_output(data: MakeMKVMessage):
     """
     if not isinstance(data, MakeMKVMessage):
         raise TypeError(data)
-    match data.code:
-        case MessageID.READ_ERROR:
-            error_message = data.sprintf[1]
-            match error_message:
-                case "Internal error - Operation result is incorrect (132)":
-                    # possibly fatal, creating zombies
-                    logging.critical(data.message)
-                case "Scsi error - NOT READY:MEDIUM NOT PRESENT - TRAY OPEN":
-                    # non fatal
-                    logging.info(error_message)
-                case _:
-                    # yet unknown, create warning
-                    logging.warning(error_message)
-            return MakeMKVErrorMessage(*data)
-        case MessageID.WRITE_ERROR:
-            error_message = data.sprintf[1]
-            match error_message:
-                case "Posix error - No such file or directory":
-                    # possibly fatal, something wrong with the directory
-                    logging.critical(data.message)
-                case _:
-                    # yet unknown, create warning
-                    logging.warning(error_message)
-            return MakeMKVErrorMessage(*data)
-        case _:
-            logging.info(data.message)
-            return data
+    if data.code == MessageID.READ_ERROR:
+        error_message = data.sprintf[1]
+        if error_message == "Internal error - Operation result is incorrect (132)":
+            # possibly fatal, creating zombies
+            logging.critical(data.message)
+        elif error_message == "Scsi error - NOT READY:MEDIUM NOT PRESENT - TRAY OPEN":
+            # non fatal
+            logging.info(error_message)
+        else:
+            # yet unknown, create warning
+            logging.warning(error_message)
+        return MakeMKVErrorMessage(*data)
+    if data.code == MessageID.WRITE_ERROR:
+        error_message = data.sprintf[1]
+        if error_message == "Posix error - No such file or directory":
+            # possibly fatal, something wrong with the directory
+            logging.critical(data.message)
+        else:
+            # yet unknown, create warning
+            logging.warning(error_message)
+        return MakeMKVErrorMessage(*data)
+    logging.info(data.message)
+    return data
 
 
 def run(options, select):
@@ -906,32 +902,31 @@ def run(options, select):
                 buffer.append(line)
                 continue
             msg_type = OutputType[msg_type]
-            match msg_type:
-                case OutputType.MSG:
-                    message = parse_content(content, 3, -1)
-                    data = check_output(MakeMKVMessage(*itertools.islice(message, 4), list(message)))
-                case OutputType.PRGV:
-                    data = ProgressBarValues(*parse_content(content, 2, 0))
-                case OutputType.PRGC:
-                    data = ProgressBarCurrent(*parse_content(content, 2, 0))
-                case OutputType.PRGV:
-                    data = ProgressBarTotal(*parse_content(content, 2, 0))
-                case OutputType.SINFO:
-                    sid, tid, *info = parse_content(content, 4, 0)
-                    data = SInfo(*info, tid, sid)
-                case OutputType.TINFO:
-                    tid, *info = parse_content(content, 3, 0)
-                    data = TInfo(*info, tid)
-                case OutputType.CINFO:
-                    data = CInfo(*parse_content(content, 2, 0))
-                case OutputType.DRV:
-                    data = Drive(*reversed(list(parse_content(content, 4, 2))))
-                case OutputType.TCOUNT:
-                    data = Titles(*parse_content(content, 0, 0))
-                case _:  # defined in OutputType but not in this parser
-                    logging.warning(f"Cannot handle '{msg_type}':'{content}'")
-                    buffer.append(line)
-                    continue
+            if msg_type == OutputType.MSG:
+                message = parse_content(content, 3, -1)
+                data = check_output(MakeMKVMessage(*itertools.islice(message, 4), list(message)))
+            elif msg_type == OutputType.PRGV:
+                data = ProgressBarValues(*parse_content(content, 2, 0))
+            elif msg_type == OutputType.PRGC:
+                data = ProgressBarCurrent(*parse_content(content, 2, 0))
+            elif msg_type == OutputType.PRGV:
+                data = ProgressBarTotal(*parse_content(content, 2, 0))
+            elif msg_type == OutputType.SINFO:
+                sid, tid, *info = parse_content(content, 4, 0)
+                data = SInfo(*info, tid, sid)
+            elif msg_type == OutputType.TINFO:
+                tid, *info = parse_content(content, 3, 0)
+                data = TInfo(*info, tid)
+            elif msg_type == OutputType.CINFO:
+                data = CInfo(*parse_content(content, 2, 0))
+            elif msg_type == OutputType.DRV:
+                data = Drive(*reversed(list(parse_content(content, 4, 2))))
+            elif msg_type == OutputType.TCOUNT:
+                data = Titles(*parse_content(content, 0, 0))
+            else:  # defined in OutputType but not in this parser
+                logging.warning(f"Cannot handle '{msg_type}':'{content}'")
+                buffer.append(line)
+                continue
             logging.debug(data)
             if msg_type in select:
                 yield data
