@@ -449,27 +449,29 @@ def parse_line(line):
         raise MakeMkvParserError(f"Cannot parse '{msg_type}':'{content}'")
     msg_type = OutputType[msg_type]
     if msg_type == OutputType.MSG:
-        message = parse_content(content, 3, -1)
-        return msg_type, check_output(MakeMKVMessage(*itertools.islice(message, 4), list(message)))
-    if msg_type == OutputType.PRGV:
-        return msg_type, ProgressBarValues(*parse_content(content, 2, 0))
-    if msg_type == OutputType.PRGC:
-        return msg_type, ProgressBarCurrent(*parse_content(content, 2, 0))
-    if msg_type == OutputType.PRGT:
-        return msg_type, ProgressBarTotal(*parse_content(content, 2, 0))
-    if msg_type == OutputType.SINFO:
+        temp = parse_content(content, 3, -1)
+        message = check_output(MakeMKVMessage(*itertools.islice(temp, 4), list(temp)))
+    elif msg_type == OutputType.PRGV:
+        message = ProgressBarValues(*parse_content(content, 2, 0))
+    elif msg_type == OutputType.PRGC:
+        message = ProgressBarCurrent(*parse_content(content, 2, 0))
+    elif msg_type == OutputType.PRGT:
+        message = ProgressBarTotal(*parse_content(content, 2, 0))
+    elif msg_type == OutputType.SINFO:
         sid, tid, *info = parse_content(content, 4, 0)
-        return msg_type, SInfo(*info, tid, sid)
-    if msg_type == OutputType.TINFO:
+        message = SInfo(*info, tid, sid)
+    elif msg_type == OutputType.TINFO:
         tid, *info = parse_content(content, 3, 0)
-        return msg_type, TInfo(*info, tid)
-    if msg_type == OutputType.CINFO:
-        return msg_type, CInfo(*parse_content(content, 2, 0))
-    if msg_type == OutputType.DRV:
-        return msg_type, Drive(*reversed(list(parse_content(content, 4, 2))))
-    if msg_type == OutputType.TCOUNT:
-        return msg_type, Titles(*parse_content(content, 0, 0))
-    raise MakeMkvParserError(f"Cannot handle '{msg_type}':'{content}'")
+        message = TInfo(*info, tid)
+    elif msg_type == OutputType.CINFO:
+        message = CInfo(*parse_content(content, 2, 0))
+    elif msg_type == OutputType.DRV:
+        message = Drive(*reversed(list(parse_content(content, 4, 2))))
+    elif msg_type == OutputType.TCOUNT:
+        message = Titles(*parse_content(content, 0, 0))
+    else:
+        raise MakeMkvParserError(f"Cannot handle '{msg_type}':'{content}'")
+    return msg_type, message
 
 
 def makemkv_info(select=None, index=9999, options=None):
