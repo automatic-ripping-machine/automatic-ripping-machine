@@ -8,8 +8,6 @@ Create Date: 2024-11-27 10:15:32.678332
 from alembic import op
 import sqlalchemy as sa
 
-from arm.ui.settings import DriveUtils as drive_utils
-
 
 # revision identifiers, used by Alembic.
 revision = '2986d3f7ecf9'
@@ -33,8 +31,6 @@ def upgrade():
     op.add_column('system_drives', sa.Column('firmware', sa.String(10)))
     op.add_column('system_drives', sa.Column('location', sa.String(255)))
     op.add_column('system_drives', sa.Column('stale', sa.Boolean))
-    # fill database with new information
-    drive_utils.drives_update()
 
 
 def downgrade():
