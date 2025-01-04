@@ -538,6 +538,95 @@ def get_drives():
             yield drive
 
 
+def makemkv_backup(job, rawpath):
+    """
+    Rip BluRay with Backup Method
+
+    Parameters:
+        job: arm.models.job.Job
+    """
+    job.status = "mkv_process_backup"
+    db.session.commit()
+    # backup method
+    cmd = [
+        "backup",
+        "--decrypt",
+    ]
+    cmd += shlex.split(job.config.MKV_ARGS)
+    cmd += [
+        f"--minlength={job.config.MINLENGTH}",
+        f"--progress={progress_log(job)}",
+        "--messages=-stdout",
+        f"disc:{job.drive.mdisc:d}",
+        rawpath,
+    ]
+    logging.info("Backing up disc")
+    collections.deque(run(cmd, OutputType.MSG), maxlen=0)
+
+
+def makemkv_mkv(job, rawpath):
+    """
+    Rip Blu-ray without enhanced protection or dvd disc
+
+    Parameters:
+        job: arm.models.job.Job
+    """
+    # Get drive mode for the current drive
+    mode = utils.get_drive_mode(job.devpath)
+    logging.info(f"Job running in {mode} mode")
+    # Get track info form mkv rip
+    job.status = "mkv_track_info"
+    db.session.commit()
+    get_track_info(job.drive.mdisc, job)
+    # route to ripping functions.
+    if job.config.MAINFEATURE:
+        logging.info("Trying to find mainfeature")
+        track = Track.query.filter_by(job_id=job.job_id).order_by(Track.length.desc()).first()
+        job.status = "mkv_mainfeature"
+        db.session.commit()
+        rip_mainfeature(job, track, rawpath)
+    elif mode == 'manual':  # Run if mode is manual, user selects tracks
+        # Set job status to waiting
+        job.status = "waiting"
+        db.session.commit()
+        # Process Tracks
+        if manual_wait(job):  # Alert user: tracks are ready and wait for 30 minutes
+            # Response from user provided, process requested tracks
+            job.status = "mkv_process_single"
+            db.session.commit()
+            process_single_tracks(job, rawpath, mode)
+        else:
+            # Notify User: no action was taken
+            title = "ARM is Sad - Job Abandoned"
+            message = "You left me alone in the cold and dark, I forgot who I was. Your job has been abandoned."
+            notify(job, title, message)
+
+            # Setting rawpath to None to set the job as failed when returning to arm_ripper
+            rawpath = None
+    # if no maximum length, process the whole disc in one command
+    elif int(job.config.MAXLENGTH) > 99998:
+        job.status = "mkv_process_disc"
+        db.session.commit()
+        cmd = [
+            "mkv",
+        ]
+        cmd += shlex.split(job.config.MKV_ARGS)
+        cmd += [
+            f"--progress={progress_log(job)}",
+            "--messages=-stdout",
+            f"dev:{job.devpath}",
+            "all",
+            rawpath,
+            f"--minlength={job.config.MINLENGTH}",
+        ]
+        logging.info("Process all tracks from disc.")
+        collections.deque(run(cmd, OutputType.MSG), maxlen=0)
+    else:
+        job.status = "mkv_process_single"
+        db.session.commit()
+        process_single_tracks(job, rawpath, 'auto')
+
+
 def makemkv(job):
     """
     Rip Blu-rays/DVDs with MakeMKV
@@ -547,11 +636,6 @@ def makemkv(job):
     Returns:
         str: path to ripped files.
     """
-
-    # Get drive mode for the current drive
-    mode = utils.get_drive_mode(job.devpath)
-    logging.info(f"Job running in {mode} mode")
-
     # confirm MKV is working, beta key hasn't expired
     prep_mkv()
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
@@ -564,81 +648,15 @@ def makemkv(job):
             db.session.add(db_drive)
         db.session.commit()
     logging.info(f"MakeMKV disc number: {job.drive.mdisc:d}")
-
     # get filesystem in order
     rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
     logging.info(f"Processing files to: {rawpath}")
-    # Rip bluray
+    # Rip BluRay
     if (job.config.RIPMETHOD in ("backup", "backup_dvd")) and job.disctype == "bluray":
-        job.status = "mkv_process_backup"
-        db.session.commit()
-        # backup method
-        cmd = [
-            "backup",
-            "--decrypt",
-        ]
-        cmd += shlex.split(job.config.MKV_ARGS)
-        cmd += [
-            f"--minlength={job.config.MINLENGTH}",
-            f"--progress={progress_log(job)}",
-            "--messages=-stdout",
-            f"disc:{job.drive.mdisc:d}",
-            rawpath,
-        ]
-        logging.info("Backing up disc")
-        collections.deque(run(cmd, OutputType.MSG), maxlen=0)
-    # Rip Blu-ray without enhanced protection or dvd disc
+        makemkv_backup(job, rawpath)
+    # Rip BluRay or DVD
     elif job.config.RIPMETHOD == "mkv" or job.disctype == "dvd":
-        job.status = "mkv_track_info"
-        db.session.commit()
-        get_track_info(job.drive.mdisc, job)
-        if job.config.MAINFEATURE:
-            logging.info("Trying to find mainfeature")
-            track = Track.query.filter_by(job_id=job.job_id).order_by(Track.length.desc()).first()
-            job.status = "mkv_mainfeature"
-            db.session.commit()
-            rip_mainfeature(job, track, rawpath)
-        elif mode == 'manual':  # Run if mode is manual, user selects tracks
-            # Set job status to waiting
-            job.status = "waiting"
-            db.session.commit()
-            # Process Tracks
-            if manual_wait(job):  # Alert user: tracks are ready and wait for 30 minutes
-                # Response from user provided, process requested tracks
-                job.status = "mkv_process_single"
-                db.session.commit()
-                process_single_tracks(job, rawpath, mode)
-            else:
-                # Notify User: no action was taken
-                title = "ARM is Sad - Job Abandoned"
-                message = "You left me alone in the cold and dark, I forgot who I was. Your job has been abandoned."
-                notify(job, title, message)
-
-                # Setting rawpath to None to set the job as failed when returning to arm_ripper
-                rawpath = None
-
-        # if no maximum length, process the whole disc in one command
-        elif int(job.config.MAXLENGTH) > 99998:
-            job.status = "mkv_process_disc"
-            db.session.commit()
-            cmd = [
-                "mkv",
-            ]
-            cmd += shlex.split(job.config.MKV_ARGS)
-            cmd += [
-                f"--progress={progress_log(job)}",
-                "--messages=-stdout",
-                f"dev:{job.devpath}",
-                "all",
-                rawpath,
-                f"--minlength={job.config.MINLENGTH}",
-            ]
-            logging.info("Process all tracks from disc.")
-            collections.deque(run(cmd, OutputType.MSG), maxlen=0)
-        else:
-            job.status = "mkv_process_single"
-            db.session.commit()
-            process_single_tracks(job, rawpath, 'auto')
+        makemkv_mkv(job, rawpath)
     else:
         logging.info("I'm confused what to do....  Passing on MakeMKV")
     job.status = "mkv_finished"
