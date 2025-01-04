@@ -18,7 +18,7 @@ import subprocess
 import shlex
 from time import sleep
 
-from arm.models.track import Track
+from arm.models import Track, SystemDrives
 from arm.ripper import utils
 from arm.ui import db
 import arm.config.config as cfg
@@ -26,6 +26,10 @@ import arm.config.config as cfg
 from arm.ripper.utils import notify
 
 
+MAKEMKV_INFO_WAIT_TIME = 60  # [s]
+"""Wait for concurrent MakeMKV info processes.
+This is introduced due to a race condition creating makemkvcon zombies
+"""
 MAKEMKV_UNKNOWN_DRV = 999
 """Currently the value is always 999"""
 
@@ -331,6 +335,7 @@ class DriveInformation:
     visible: bool
     """Drive Present"""
     index: int
+    """MakeMKV disc index"""
 
     def __post_init__(self):
         self.flags = int(self.flags)
@@ -477,8 +482,17 @@ def makemkv_info(select=None, index=9999, options=None):
     if not isinstance(options, list):
         raise TypeError(options)
     # 1MB cache size to get info on the specified disc(s)
-    info_options = ["--cache=1", "info", f"disc:{index:d}"]
-    yield from run(options + info_options, select)
+    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}"]
+    wait_time = MAKEMKV_INFO_WAIT_TIME
+    utils.sleep_check_process("makemkvcon", 1, (10, wait_time, 1))
+    try:
+        yield from run(info_options, select)
+    finally:
+        # makemkvcon info tends to crash makemkvcon backup|mkv
+        # give other processes time to use this function.
+        sleep(wait_time)
+        # sleep here until all processes finish (hopefully)
+        utils.sleep_check_process("makemkvcon", 1, (10, wait_time, 1))
 
 
 def get_drives():
@@ -506,9 +520,14 @@ def makemkv(job):
     prep_mkv()
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
-    logging.debug("Getting MakeMKV disc number")
-    index = next(filter(lambda x: x.mount == job.devpath, get_drives())).index
-    logging.info(f"MakeMKV disc number: {index:d}")
+    if job.drive.mdisc is None:
+        logging.debug("Storing new MakeMKV disc numbers to database.")
+        for drive in get_drives():
+            db_drive = SystemDrives.query.filter_by(mount=drive.mount).one()
+            db_drive.mdisc = drive.index
+            db.session.add(db_drive)
+        db.session.commit()
+    logging.info(f"MakeMKV disc number: {job.drive.mdisc:d}")
 
     # get filesystem in order
     rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
@@ -525,32 +544,32 @@ def makemkv(job):
             f"--minlength={job.config.MINLENGTH}",
             f"--progress={progress_log(job)}",
             "--messages=-stdout",
-            f"disc:{index:d}",
+            f"disc:{job.drive.mdisc:d}",
             rawpath,
         ]
         logging.info("Backing up disc")
         collections.deque(run(cmd, OutputType.MSG), maxlen=0)
     # Rip Blu-ray without enhanced protection or dvd disc
     elif job.config.RIPMETHOD == "mkv" or job.disctype == "dvd":
-        get_track_info(index, job)
+        job.status = "mkv_track_info"
+        db.session.commit()
+        get_track_info(job.drive.mdisc, job)
         if job.config.MAINFEATURE:
             logging.info("Trying to find mainfeature")
             track = Track.query.filter_by(job_id=job.job_id).order_by(Track.length.desc()).first()
+            job.status = "mkv_mainfeature"
+            db.session.commit()
             rip_mainfeature(job, track, rawpath)
-
-        # Run if mode is manual, user selects tracks
-        elif mode == 'manual':
+        elif mode == 'manual':  # Run if mode is manual, user selects tracks
             # Set job status to waiting
             job.status = "waiting"
             db.session.commit()
-            # Alert User tracks are ready and wait, waits for 30 minutes
-            job_state = manual_wait(job)
             # Process Tracks
-            if job_state:
+            if manual_wait(job):  # Alert user: tracks are ready and wait for 30 minutes
                 # Response from user provided, process requested tracks
                 process_single_tracks(job, rawpath, mode)
             else:
-                # Notify User, no action was taken
+                # Notify User: no action was taken
                 title = "ARM is Sad - Job Abandoned"
                 message = "You left me alone in the cold and dark, I forgot who I was. Your job has been abandoned."
                 notify(job, title, message)
@@ -644,6 +663,8 @@ def process_single_tracks(job, rawpath, mode: str):
 
         # Rip the track if the user has set it to rip, or in auto mode and the time is good
         if track.process:
+            job.status = "mkv_track_process"
+            db.session.commit()
             logging.info(f"Processing track #{track.track_number} of {(job.no_of_titles - 1)}. "
                          f"Length is {track.length} seconds.")
             filepathname = os.path.join(rawpath, track.filename)
@@ -875,17 +896,7 @@ def run(options, select):
         logging.debug(f"PID {proc.pid}: command: '{' '.join(cmd)}'")
         for line in proc.stdout:
             line = line.rstrip(os.linesep)
-
-            # ToDo: remove once everything is tested.
-            #       Create a new temp log file where we can write the output of
-            #       the MakeMKV command in order to debug mistakes.
-            #       Tasks:
-            #         - create Tempfile
-            #         - log message of path
-            #         - write all lines to file
-            #         - clean up with other log files
-
-            logging.debug(line)
+            logging.debug(line)  # Maybe write the raw output to a separate log
             if proc.returncode or ":" not in line:
                 buffer.append(line)
                 continue
