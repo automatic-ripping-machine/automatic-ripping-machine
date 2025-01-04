@@ -242,13 +242,13 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
         logger.debug(f"Name: '{self.name}'")
         logger.debug(f"Type: {self.type}")
         logger.debug(f"Description: '{self.description}'")
-        logger.debug(f"Mount: '{self.mount}'", self.mount)
+        logger.debug(f"Mount: '{self.mount}'")
         jobs = (
             ("Current", self.job_id_current, self.job_current),
             ("Previous", self.job_id_previous, self.job_previous),
         )
         for job_name, job_id, job in jobs:
-            logger.debug(f"Job {job_name}: {self.job_id_current})")
+            logger.debug(f"Job {job_name}: {job_id})")
             if job_id and job is not None:
                 logger.debug(f"Job - Status: {job.status}")
                 logger.debug(f"Job - Type: {job.video_type}")
