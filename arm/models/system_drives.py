@@ -61,6 +61,10 @@ def _tray_status(devpath, logger=logging):
         if re.search(r'hd[a-j]|sd[a-j]|loop\d|nvme\d', devpath):
             logger.critical(f"The device '{devpath}' is not an optical drive")
             return None  # inconsistency in SystemDrives.mount
+        # We queried a mount path that is not present any more.
+        if 'No such device or address' in str(err):
+            logger.critical(f"Drive Mount Path does not exist: '{err}'")
+            return None  # drive mount path missing. Should get cleared by `ui.settings.DriveUtils.drives_update`
         raise err
     try:
         return fcntl.ioctl(disk_check, 0x5326, 0)
