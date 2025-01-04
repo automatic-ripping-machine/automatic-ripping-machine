@@ -244,9 +244,9 @@ def update_job_status():
     """
     drives = SystemDrives.query.all()
     for drive in drives:
-        # Check if the current job is active, if not remove current job_current id
+        # Check if the current job is using the drive, if not remove job from drive.
         if drive.job_current is not None:
-            if drive.job_current.status in ("success", "fail"):
+            if drive.job_current.ripping_finished:
                 drive.job_finished()
                 db.session.commit()
 
