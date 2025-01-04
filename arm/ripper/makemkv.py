@@ -469,7 +469,7 @@ def parse_line(line):
     elif msg_type == OutputType.PRGT:
         message = ProgressBarTotal(*parse_content(content, 2, 0))
     elif msg_type == OutputType.SINFO:
-        sid, tid, *info = parse_content(content, 4, 0)
+        tid, sid, *info = parse_content(content, 4, 0)
         message = SInfo(*info, tid, sid)
     elif msg_type == OutputType.TINFO:
         tid, *info = parse_content(content, 3, 0)
