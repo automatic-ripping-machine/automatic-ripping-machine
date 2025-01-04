@@ -155,6 +155,7 @@ if __name__ == "__main__":
     # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)
     ready_count = 1
     for num in range(1, 11):
+        drive.tray_status()
         if drive.ready:
             break
         msg = f"[{num} of 10] Drive [{drive.mount}] appears to be empty or is not ready. Waiting 1s"

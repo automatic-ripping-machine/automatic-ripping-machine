@@ -275,6 +275,11 @@ def update_drive_job(job):
         logging.error(f"Failed to update the database with the associated drive. {error}")
 
 
+def update_tray_status(drives):
+    for drive in drives:
+        drive.tray_status()
+
+
 def get_drives():
     """
     Wrapper around SystemDrives Database
