@@ -319,10 +319,17 @@ def drive_eject(eject_id):
     except sqlalchemy.exc.NoResultFound as e:
         app.logger.error(f"Drive eject encountered an error: {e}")
         flash(f"Cannot find drive {eject_id} in database.", "error")
-    else:
-        if output := drive.open_close(logger=app.logger):
-            flash(output, "error")
-    return redirect(url_for('route_settings.settings'))
+        return redirect(url_for("route_settings.settings"))
+    # block for running jobs
+    if drive.job_id_current:
+        drive.tray_status()  # update tray status
+        if not drive.open:  # allow closing
+            flash(f"Job [{drive.job_id_current}] in progress. Cannot eject {eject_id}.", "error")
+            return redirect(url_for("route_settings.settings"))
+    # toggle open/close (with non-critical error)
+    if (error := drive.eject(method="toggle", logger=app.logger)) is not None:
+        flash(error, "error")
+    return redirect(url_for("route_settings.settings"))
 
 
 @route_settings.route('/drive/remove/<remove_id>')
