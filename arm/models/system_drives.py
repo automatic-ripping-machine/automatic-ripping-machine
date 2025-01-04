@@ -202,27 +202,36 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
         """Drive has medium loaded and is ready for reading."""
         return self.tray == CDS.DISC_OK
 
-    def open_close(self, logger=logging):
-        """Open or Close the drive
+    def eject(self, logger=logging, method="eject"):
+        """Open or close the drive
 
-        Note: --traytoggle is not ejecting for some drives and cannot check for
-              running jobs
+        Uses [eject](https://man7.org/linux/man-pages/man1/eject.1.html)
+
+        Parameters
+        ----------
+        logger: logging.Logger
+        method: str: eject (default), close, toggle
+
+        Returns
+        -------
+        str or None
+            Returns `None` if no (known) error occured and `str` with the error
+            message otherwise.
         """
-        cmd = []
-        if self.open:
-            cmd = ["--trayclose"]
-        elif self.job_id_current:
-            logger.debug(f"{self.mount} unable to eject. Job [{self.job_id_current}] in progress.")
-            return None
-        cmd = ["eject"] + cmd + ["--verbose", self.mount]
+        methods = {
+            "eject": [],
+            "close": ["--trayclose"],
+            "toggle": ["--traytoggle"],
+        }
+        options = ["--cdrom", "--scsi"]  # exclude floppy and tape drives
+        cmd = ["eject", "--verbose"] + options + methods[method] + [self.mount]
         try:
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
         except subprocess.CalledProcessError as err:
-            logger.debug(err.stdout + err.stderr)
-            logger.info(f"Failed to eject {self.mount}.")
+            logger.debug(err.stdout)
+            logger.error(err.stderr)
             return err.stderr
-        else:
-            logger.info(f"Ejected {self.mount}")
+        logger.debug(proc.stdout)
         return None
 
     def debug(self, logger=logging):

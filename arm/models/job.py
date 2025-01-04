@@ -208,24 +208,13 @@ class Job(db.Model):
 
     def eject(self):
         """Eject disc if it hasn't previously been ejected
-
-        Note:
-            See `drive_utils.SystemDrives.open_close`
         """
         if not cfg.arm_config['AUTO_EJECT']:
             logging.info("Skipping auto eject")
             return
-        if not self.ejected:
-            self.ejected = True
-            try:
-                # This might always return true
-                if bool(os.system("umount " + self.devpath)):
-                    logging.debug(f"Unmounted disc {self.devpath}")
-                else:
-                    logging.debug(f"Failed to unmount {self.devpath}")
-                if bool(os.system("eject -sv " + self.devpath)):
-                    logging.debug(f"Ejected disc {self.devpath}")
-                else:
-                    logging.debug(f"Failed to eject {self.devpath}")
-            except Exception as error:
-                logging.debug(f"{self.devpath} couldn't be ejected {error}")
+        if self.ejected:
+            logging.debug("The drive associated with this job has already been ejected.")
+            return
+        if (error := self.drive.eject(method="eject", logger=logging)) is not None:
+            logging.debug(f"{self.devpath} couldn't be ejected: {error}")
+        self.ejected = True
