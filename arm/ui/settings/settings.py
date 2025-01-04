@@ -49,6 +49,18 @@ page_settings = "settings/settings.html"
 redirect_settings = "/settings"
 
 
+def mask_last(value, n=4):
+    """
+    Replaces the last `n` characters of a string with asterisks.
+    """
+    if not isinstance(value, str):
+        return value
+    return value[:-n] + '*' * n if len(value) > n else '*' * len(value)
+
+
+route_settings.add_app_template_filter(mask_last, name='mask_last')
+
+
 @route_settings.route('/settings')
 @login_required
 def settings():

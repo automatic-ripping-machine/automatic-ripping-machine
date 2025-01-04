@@ -24,7 +24,7 @@
                                                         <div class="col-sm-8 col-form-label px-1 small" id="type">
                                                             {{ drive.maker }}
                                                             <i>{{drive.model}}</i>
-                                                            {{drive.serial}}
+                                                            {{drive.serial | mask_last(4)}}
                                                             (FW{{drive.firmware}})
                                                             {{drive.connection|upper or '' }}
                                                         </div>
