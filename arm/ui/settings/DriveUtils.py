@@ -160,7 +160,8 @@ def drives_update():
     for db_drive in SystemDrives.query.all():
         db_drive.location = ""
         db_drive.stale = True
-        db_drive.mdisc = None  # ToDo: Mdisc should not be updated every time the settings page is shown.
+        # Note: mdisc is cleared every time the settings page is shown.
+        db_drive.mdisc = None
         db.session.add(db_drive)
     db.session.commit()
 
