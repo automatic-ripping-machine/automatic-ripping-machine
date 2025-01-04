@@ -82,6 +82,13 @@ ALLOW_DUPLICATES: false
 # Set to 0 to disable
 MAX_CONCURRENT_TRANSCODES: 0
 
+# Number of concurrent makemkv info calls. For some drives makemkv info may
+# crash makemkv backup|mkv. Setting this to 1 waits for free makemkv slots and
+# uses the time set in MANUAL_WAIT_TIME after each call to makemkv info to
+# allow pending info processes to pick up a free slot.
+# Set to 0 to disable
+MAX_CONCURRENT_MAKEMKVINFO: 0
+
 # Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
 # "status=progress" to log progress
 DATA_RIP_PARAMETERS: ""
