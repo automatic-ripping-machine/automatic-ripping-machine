@@ -891,7 +891,7 @@ def check_output(data: MakeMKVMessage):
         else:
             # yet unknown, create warning
             logging.warning(error_message)
-        return MakeMKVErrorMessage(*data)
+        return MakeMKVErrorMessage(*dataclasses.astuple(data), error_message)
     if data.code == MessageID.WRITE_ERROR:
         error_message = data.sprintf[1]
         if error_message == "Posix error - No such file or directory":
@@ -900,7 +900,7 @@ def check_output(data: MakeMKVMessage):
         else:
             # yet unknown, create warning
             logging.warning(error_message)
-        return MakeMKVErrorMessage(*data)
+        return MakeMKVErrorMessage(*dataclasses.astuple(data), error_message)
     logging.info(data.message)
     return data
 
