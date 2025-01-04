@@ -157,9 +157,9 @@ if __name__ == "__main__":
     for num in range(1, 11):
         if drive.ready:
             break
-        time.sleep(1)
         msg = f"[{num} of 10] Drive [{drive.mount}] appears to be empty or is not ready. Waiting 1s"
         logging.info(msg)
+        time.sleep(1)
     else:
         # This should really never trigger now as arm_wrapper should be taking care of this.
         msg = f"Failed to wait for drive ready (ioctl tray status: {drive.tray})."
