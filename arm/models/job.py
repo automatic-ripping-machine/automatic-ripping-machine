@@ -218,3 +218,32 @@ class Job(db.Model):
         if (error := self.drive.eject(method="eject", logger=logging)) is not None:
             logging.debug(f"{self.devpath} couldn't be ejected: {error}")
         self.ejected = True
+
+    @property
+    def ripping_finished(self):
+        """Indicate that the ripping process has finished
+
+        Note: The possible Job.status states must be defined as constants or
+              enums to handle and group them better. Some come from CD, some
+              from DVD ripping. The order of the states is getting unclear. The
+              timestamps could also be saved particularily for each step to
+              save, for example, the pure transcoding time without the waiting
+              time.
+
+              Finished states:
+              - success
+              - fail
+              Ripping states:
+              - Video ripping states:
+                - ripping
+                - waiting
+                - info
+              - Audio ripping states
+                - active
+              Transcoding states:
+              - waiting_transcode
+              - transcoding
+        """
+        if self.ejected:
+            return True
+        return self.status in ("success", "fail", "waiting_transcode", "transcoding")
