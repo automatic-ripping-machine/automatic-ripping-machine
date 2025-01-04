@@ -386,6 +386,10 @@ class Drive(DriveInformation):
             self.attached = False
 
 
+class MakeMkvParserError(ValueError):
+    """Exception raised when the stdout line of makemkvcon cannot get parsed."""
+
+
 class MakeMkvRuntimeError(RuntimeError):
     """
     Exception raised when a CalledProcessError is thrown during execution of a
@@ -434,6 +438,38 @@ def parse_content(content, num_header, num_message):
     # (str) messages wrapped in double quotes *may* contain comma
     message = header[-1].split('","', maxsplit=num_message)
     return itertools.chain(header[:-1], map(lambda x: x.strip('"'), message))
+
+
+def parse_line(line):
+    """Parse MakeMkv Output Line to DataClasses"""
+    if ":" not in line:
+        raise MakeMkvParserError("No Message Type Detected")
+    msg_type, content = line.split(":", maxsplit=1)
+    if msg_type not in OutputType.__members__:
+        raise MakeMkvParserError(f"Cannot parse '{msg_type}':'{content}'")
+    msg_type = OutputType[msg_type]
+    if msg_type == OutputType.MSG:
+        message = parse_content(content, 3, -1)
+        return msg_type, check_output(MakeMKVMessage(*itertools.islice(message, 4), list(message)))
+    if msg_type == OutputType.PRGV:
+        return msg_type, ProgressBarValues(*parse_content(content, 2, 0))
+    if msg_type == OutputType.PRGC:
+        return msg_type, ProgressBarCurrent(*parse_content(content, 2, 0))
+    if msg_type == OutputType.PRGT:
+        return msg_type, ProgressBarTotal(*parse_content(content, 2, 0))
+    if msg_type == OutputType.SINFO:
+        sid, tid, *info = parse_content(content, 4, 0)
+        return msg_type, SInfo(*info, tid, sid)
+    if msg_type == OutputType.TINFO:
+        tid, *info = parse_content(content, 3, 0)
+        return msg_type, TInfo(*info, tid)
+    if msg_type == OutputType.CINFO:
+        return msg_type, CInfo(*parse_content(content, 2, 0))
+    if msg_type == OutputType.DRV:
+        return msg_type, Drive(*reversed(list(parse_content(content, 4, 2))))
+    if msg_type == OutputType.TCOUNT:
+        return msg_type, Titles(*parse_content(content, 0, 0))
+    raise MakeMkvParserError(f"Cannot handle '{msg_type}':'{content}'")
 
 
 def makemkv_info(select=None, index=9999, options=None):
@@ -893,38 +929,13 @@ def run(options, select):
         for line in proc.stdout:
             line = line.rstrip(os.linesep)
             logging.debug(line)  # Maybe write the raw output to a separate log
-            if proc.returncode or ":" not in line:
+            if proc.returncode:
                 buffer.append(line)
                 continue
-            msg_type, content = line.split(":", maxsplit=1)
-            if msg_type not in OutputType.__members__:
-                logging.warning(f"Cannot parse '{msg_type}':'{content}'")
-                buffer.append(line)
-                continue
-            msg_type = OutputType[msg_type]
-            if msg_type == OutputType.MSG:
-                message = parse_content(content, 3, -1)
-                data = check_output(MakeMKVMessage(*itertools.islice(message, 4), list(message)))
-            elif msg_type == OutputType.PRGV:
-                data = ProgressBarValues(*parse_content(content, 2, 0))
-            elif msg_type == OutputType.PRGC:
-                data = ProgressBarCurrent(*parse_content(content, 2, 0))
-            elif msg_type == OutputType.PRGV:
-                data = ProgressBarTotal(*parse_content(content, 2, 0))
-            elif msg_type == OutputType.SINFO:
-                sid, tid, *info = parse_content(content, 4, 0)
-                data = SInfo(*info, tid, sid)
-            elif msg_type == OutputType.TINFO:
-                tid, *info = parse_content(content, 3, 0)
-                data = TInfo(*info, tid)
-            elif msg_type == OutputType.CINFO:
-                data = CInfo(*parse_content(content, 2, 0))
-            elif msg_type == OutputType.DRV:
-                data = Drive(*reversed(list(parse_content(content, 4, 2))))
-            elif msg_type == OutputType.TCOUNT:
-                data = Titles(*parse_content(content, 0, 0))
-            else:  # defined in OutputType but not in this parser
-                logging.warning(f"Cannot handle '{msg_type}':'{content}'")
+            try:
+                msg_type, data = parse_line(line)
+            except MakeMkvParserError as err:
+                logging.warning(err)
                 buffer.append(line)
                 continue
             logging.debug(data)
