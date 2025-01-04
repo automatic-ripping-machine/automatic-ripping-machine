@@ -26,6 +26,12 @@ import arm.config.config as cfg
 from arm.ripper.utils import notify
 
 
+JOB_STATUS_RIPPING = "ripping"
+"""Indicate that makemkv is ripping."""
+JOB_STATUS_WAITING = "waiting"
+"""Indicate that the job waits for user input"""
+JOB_STATUS_INFO = "info"
+"""Indicate that the job calls makemkv info"""
 MAKEMKV_INFO_WAIT_TIME = 60  # [s]
 """Wait for concurrent MakeMKV info processes.
 This is introduced due to a race condition creating makemkvcon zombies
@@ -526,6 +532,7 @@ def makemkv_info(select=None, index=9999, options=None):
     try:
         yield from run(info_options, select)
     finally:
+        logging.info(f"MakeMKV info exits. Penalty {wait_time}s")
         # makemkvcon info tends to crash makemkvcon backup|mkv
         # give other processes time to use this function.
         sleep(wait_time)
@@ -547,7 +554,7 @@ def makemkv_backup(job, rawpath):
     Parameters:
         job: arm.models.job.Job
     """
-    job.status = "mkv_process_backup"
+    job.status = JOB_STATUS_RIPPING
     db.session.commit()
     # backup method
     cmd = [
@@ -576,24 +583,24 @@ def makemkv_mkv(job, rawpath):
     mode = utils.get_drive_mode(job.devpath)
     logging.info(f"Job running in {mode} mode")
     # Get track info form mkv rip
-    job.status = "mkv_track_info"
+    job.status = JOB_STATUS_INFO
     db.session.commit()
     get_track_info(job.drive.mdisc, job)
+    job.status = JOB_STATUS_RIPPING
+    db.session.commit()
     # route to ripping functions.
     if job.config.MAINFEATURE:
         logging.info("Trying to find mainfeature")
         track = Track.query.filter_by(job_id=job.job_id).order_by(Track.length.desc()).first()
-        job.status = "mkv_mainfeature"
-        db.session.commit()
         rip_mainfeature(job, track, rawpath)
     elif mode == 'manual':  # Run if mode is manual, user selects tracks
         # Set job status to waiting
-        job.status = "waiting"
+        job.status = JOB_STATUS_WAITING
         db.session.commit()
         # Process Tracks
         if manual_wait(job):  # Alert user: tracks are ready and wait for 30 minutes
             # Response from user provided, process requested tracks
-            job.status = "mkv_process_single"
+            job.status = JOB_STATUS_RIPPING
             db.session.commit()
             process_single_tracks(job, rawpath, mode)
         else:
@@ -606,8 +613,6 @@ def makemkv_mkv(job, rawpath):
             rawpath = None
     # if no maximum length, process the whole disc in one command
     elif int(job.config.MAXLENGTH) > 99998:
-        job.status = "mkv_process_disc"
-        db.session.commit()
         cmd = [
             "mkv",
         ]
@@ -622,8 +627,6 @@ def makemkv_mkv(job, rawpath):
         logging.info("Process all tracks from disc.")
         collections.deque(run(cmd, OutputType.MSG), maxlen=0)
     else:
-        job.status = "mkv_process_single"
-        db.session.commit()
         process_single_tracks(job, rawpath, 'auto')
 
 
@@ -640,6 +643,8 @@ def makemkv(job):
     prep_mkv()
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
+    job.status = JOB_STATUS_INFO
+    db.session.commit()
     if job.drive.mdisc is None:
         logging.debug("Storing new MakeMKV disc numbers to database.")
         for drive in get_drives():
@@ -648,6 +653,8 @@ def makemkv(job):
             db.session.add(db_drive)
         db.session.commit()
     logging.info(f"MakeMKV disc number: {job.drive.mdisc:d}")
+    job.status = JOB_STATUS_RIPPING
+    db.session.commit()
     # get filesystem in order
     rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
     logging.info(f"Processing files to: {rawpath}")
@@ -659,8 +666,6 @@ def makemkv(job):
         makemkv_mkv(job, rawpath)
     else:
         logging.info("I'm confused what to do....  Passing on MakeMKV")
-    job.status = "mkv_finished"
-    db.session.commit()
     job.eject()
     logging.info(f"Exiting MakeMKV processing with return value of: {rawpath}")
     return rawpath
@@ -725,7 +730,7 @@ def process_single_tracks(job, rawpath, mode: str):
 
         # Rip the track if the user has set it to rip, or in auto mode and the time is good
         if track.process:
-            job.status = "mkv_track_process"
+            job.status = JOB_STATUS_RIPPING
             db.session.commit()
             logging.info(f"Processing track #{track.track_number} of {(job.no_of_titles - 1)}. "
                          f"Length is {track.length} seconds.")
