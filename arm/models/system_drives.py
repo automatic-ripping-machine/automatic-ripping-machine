@@ -58,7 +58,7 @@ def _tray_status(devpath, logger=logging):
         return None  # inconsistency in SystemDrives.mount
     except OSError as err:
         # Sometimes ARM will log errors opening hard drives. this check should stop it
-        if not re.search(r'hd[a-j]|sd[a-j]|loop\d|nvme\d', devpath):
+        if re.search(r'hd[a-j]|sd[a-j]|loop\d|nvme\d', devpath):
             logger.critical(f"The device '{devpath}' is not an optical drive")
             return None  # inconsistency in SystemDrives.mount
         raise err
