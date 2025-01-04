@@ -45,7 +45,8 @@ def jobdetail():
     track_form = TrackFormDynamic()
 
     job_id = request.args.get('job_id')
-    job = Job.query.get(job_id)
+    if (job := Job.query.get(job_id)) is None:
+        raise ValueError('Job not found')
 
     # Check if a manual job, waiting for input and user has not provided input
     if job.manual_mode and job.status == "waiting" and not job.manual_start:
