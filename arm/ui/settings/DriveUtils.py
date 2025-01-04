@@ -203,6 +203,7 @@ def drives_update():
         db_drive.update(drive)
         db.session.add(db_drive)
         db.session.commit()  # needed to get drive_id for new entities
+        db_drive.debug(logger=app.logger)
 
         # Remove conflicting mount points in database to ensure that we have
         # a set of unique mount points entries.
