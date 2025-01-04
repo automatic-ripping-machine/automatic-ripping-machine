@@ -258,7 +258,8 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
 
     def new_job(self, job_id):
         """new job assigned to the drive, update with new job id, and previous job_id"""
-        self.job_id_previous = self.job_id_current
+        if self.job_id_current is not None:  # Preserve previous job
+            self.job_id_previous = self.job_id_current
         self.job_id_current = job_id
 
     def job_finished(self):
