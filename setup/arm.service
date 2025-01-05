@@ -16,6 +16,8 @@ Restart=always
 RestartSec=3
 ExecStartPre=/bin/bash -xc '/usr/bin/systemctl is-active --quiet armui.service && exit 1 || exit 0'
 ExecStart=/opt/arm/venv/bin/python3 /opt/arm/arm/runui.py
+## Allow ARM to run in protected ports (ei: ports 1~1024)
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target
