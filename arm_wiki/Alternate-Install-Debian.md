@@ -4,9 +4,9 @@
 
 > [!CAUTION]
 > This installation method is not supported or maintained by the ARM Developers.
-For full support and continued maintenance,
-recommend installing ARM via the supported [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
-This installation guide has been left within the Wiki, as some users do not install via docker.
+> For full support and continued maintenance,
+> we recommend installing ARM via the supported [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
+> This installation guide has been left within the Wiki, as some users do not install via docker.
 >
 > **Use at your own risk** 
 
@@ -53,7 +53,7 @@ The script may be called with these options;
 * `[-t <Tag_or_Branch_Name>]`
   * Replace `<Tag_or_Branch_Name>` with the name of the tag or branch you wish to use for this installation. The default value is: "latest" (Note that calling this script with a default value of fork and a tag value lower than 2.6.73 will result in an error that the script currently does not test for.)
 * `[-p <Port_Number>]`
-  * Replace `<Port_Number>` with any port number between 1024 and 65535. The default value is: 8080
+  * Replace `<Port_Number>` with any port number between 1 and 65535. The default value is: 8080
 * `[-h]` or `[-H]`
   * Display the script’s usage instructions message.
 
@@ -83,8 +83,6 @@ complete the installation of A.R.M. Please run apt install sudo -y as root.
 * 209 – The script found that /opt/arm directory existed, but the user declined to allow the script to delete it and 
 proceed with a fresh installation of A.R.M. The script exited without installing A.R.M., but having installed MakeMKV 
 and all of the Debian packages that are prerequisites.
-* 210 – The script was called with the `[-p {PortNumber}]` option, but the supplied port number was between 1 and 1024, 
-these are system-reserved ports.
 * 211 – The script was called with the `[-f {ForkName}]` option, but the script could not confirm the existence of the 
 fork. It looked for it on GitHub at: https://github.com/{ForkName}/automatic-ripping-machine
 * 212 – The script was called with the `[-t {TagName}]` option, but the script could not confirm the existence of the 
