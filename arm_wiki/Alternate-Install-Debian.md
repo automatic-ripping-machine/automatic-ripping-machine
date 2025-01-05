@@ -2,7 +2,7 @@
 
 
 
-> [!IMPORTANT]
+> [!CAUTION]
 > This installation method is not supported or maintained by the ARM Developers.
 For full support and continued maintenance,
 recommend installing ARM via the supported [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
@@ -17,6 +17,12 @@ This method for installing A.R.M. has been tested using;
 
 While this method may work with other Linux distributions, your mileage may vary. Note that this method was developed 
 for a bare-metal installation.
+
+> [!NOTE]
+> The Script builds a MakeMKV and HandBrake on your system.  There are no packages for MakeMKV and HandBrake packages 
+> are to be out of date.
+> 
+> This installation method can take a while complete, depending on your system.
 
 ## Installing A.R.M.
 ### Pre-Installation steps

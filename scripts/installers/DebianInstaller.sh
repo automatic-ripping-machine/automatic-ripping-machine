@@ -47,7 +47,6 @@ readonly ERROR_SUDO_NOT_INSTALLED=206
 readonly ERROR_SCRIPT_PORT_OPTION_INVALID=207
 readonly ERROR_SCRIPT_UNKNOWN_OPTION=208
 readonly ERROR_FOUND_ARM_DIRECTORY_COULD_NOT_PROCEED=209
-readonly ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED=210
 readonly ERROR_GIT_REPO_FORK_DOES_NOT_EXIST=211
 readonly ERROR_GIT_REPO_TAG_DOES_NOT_EXIST=212
 readonly ERROR_FOUND_ACTIVE_ARMUI_SERVICE=213
@@ -97,16 +96,6 @@ Usage: ./Debian12Installer.sh [-f <Fork_Name>] [-t <Tag_or_Branch_Name>] [-p <Po
       echo -e "${UsageMessage}"
       ;;
 
-    "${ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED}")
-      #This Error Code indicates that the user selected the port option and then supplied a port
-      #between 0 and 1024.  While valid ports these are system reserved ports.
-      #An explanation in the wiki article explaining this script's usage will explain
-      #How one may set a system reserved port as a port for ARM.  It is outside the scope of this
-      #Script.
-      echo -e "${RED}ERROR: Port (-p <Port_Number>) cannot be a system-reserved port.
-Acceptable values are between 1024 and 65535 inclusively.${NC}"
-      ;;
-
     "${ERROR_SCRIPT_PORT_OPTION_INVALID}")
       #The user used the port option but supplied an invalid port (less than or equal to 0 or
       #greater than or equal to 65536)
@@ -133,9 +122,6 @@ do
         Port=$OPTARG
         if ! [[ ${Port} -gt 0 && ${Port} -le 65535 ]]; then
           usage ${ERROR_SCRIPT_PORT_OPTION_INVALID}
-        fi
-        if [[ ${Port} -gt 0 && ${Port} -lt 1024 ]]; then
-          usage ${ERROR_SCRIPT_PORT_IS_SYSTEM_RESERVED}
         fi
         if [[ ${Port} -ne 8080 ]]; then
           echo "Using Non-Standard Port ${Port}"
@@ -185,10 +171,10 @@ function UserAcceptedConditions() {
 ** ${NC} an official ARM docker image before opening up an Issue on GitHub.  The installation instructions for ARM using   ${RED}**
 ** ${NC} Docker can be found here: https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker      ${RED}**
 ** ${NC}                                                                                                                   ${RED}**
-** ${NC} ARM uses MakeMKV. As of March 2024, MakeMKV is still in Beta and free to use while in Beta.                       ${RED}**
+** ${NC} ARM uses MakeMKV. As of January 2025, MakeMKV is still in Beta and free to use while in Beta.                     ${RED}**
 ** ${NC} You may, optionally, purchase a licence for MakeMKV at https://makemkv.com/buy/ Once purchased, you can go into   ${RED}**
 ** ${NC} the ARM settings and paste in your key.  Instructions for entering your permanent key for MakeMKV in ARM can      ${RED}**
-** ${NC} be found here: https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/MakeMKV-Info                                                      ${RED}**
+** ${NC} be found here: https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/MakeMKV-Info           ${RED}**
 ** ${NC}                                                                                                                   ${RED}**
 ** ${NC} ARM is Open Source software licenced with the MIT licence:                                                        ${RED}**
 ** ${NC} https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/main/LICENSE                          ${RED}**
@@ -290,8 +276,8 @@ function IsUserAnsweredYesToPrompt() {
 function IsEligibleDistro() {
   if ! IsDebianDistro; then
 
-    NotDebian12Prompt="${YELLOW}WARNING, you are attempting to run this script in a environment other than Debian 10, 11 or 12
-This script was tested exclusively on Debian 12 (Bookworm), Debian 11 (Bullseye) and Debian 10 (Buster)
+    NotDebian12Prompt="${YELLOW}WARNING, you are attempting to run this script in a environment other than Debian 11 or 12
+This script was tested exclusively on Debian 12 (Bookworm) and Debian 11 (Bullseye)
 Running it on another Linux distro may have unpredictable side effects.
 
 ${BLUE}Do you wish to Continue? Y/n :${NC}"
@@ -410,9 +396,19 @@ ${BLUE}Do you wish to Continue? Y/n: ${NC}"
   fi
 }
 
+
+function ServiceExists() {
+    local ServiceName=$1
+    if [[ $(systemctl list-units --all -t service --full --no-legend "$ServiceName.service" | sed 's/^\s*//g' | cut -f1 -d' ') == $ServiceName.service ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 function FoundPreviousInstallation() {
   ##TODO There is an error here that I need to track down.
-  if [[ $(systemctl --all --type service | grep -q -F "armui.service") -eq 0 ]]  ; then
+  if ServiceExists armui  ; then
     echo "Found Armui Service"
     if systemctl is-active --quiet armui ; then
       echo -e "${RED}The installation script found that there is an armui service running under SystemD. Which seems
