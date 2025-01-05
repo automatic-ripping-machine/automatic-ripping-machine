@@ -6,7 +6,8 @@
 > This installation method is not supported or maintained by the ARM Developers.
 > For full support and continued maintenance,
 > we recommend installing ARM via the supported [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
-> This installation guide has been left within the Wiki, as some users do not install via docker.
+> This installation method was developed for those that wish to use ARM without Docker.  Version 3 of ARM, 
+> currently in development, is expected to break bare metal installations.
 >
 > **Use at your own risk** 
 
@@ -15,14 +16,17 @@ This method for installing A.R.M. has been tested using;
 * Debian 12 (Bookworm) - *Fully Tested*
 * Debian 11 (Bullseye) - *Should work*
 
-While this method may work with other Linux distributions, your mileage may vary. Note that this method was developed 
-for a bare-metal installation.
+While this method may work with other Linux distributions, your mileage may vary. 
+
+## Intended Use
+This installation guide, is created for a bare metal installation, while the script can be used on a 
+virtual or containerized environment, the additional steps needed are not explained in this guide. For such environments
+one must first make full and unrestricted access to the optical drives and optionally the graphics processor
+(if Hardware Encoding is desired) to the environment before running this installation script.
 
 > [!NOTE]
-> The Script builds a MakeMKV and HandBrake on your system.  There are no packages for MakeMKV and HandBrake packages 
-> are to be out of date.
-> 
-> This installation method can take a while complete, depending on your system.
+> The Script builds a MakeMKV and HandBrake on your system.  
+> Building these applications is a processor intensive endeavour and may take a while complete, depending on your system.
 
 ## Installing A.R.M.
 ### Pre-Installation steps
@@ -30,6 +34,7 @@ for a bare-metal installation.
    * Please read the official [Debian Wiki](https://wiki.debian.org/SourcesList) for help on adding the contrib repository if needed.
 2. Run `apt update && apt upgrade -y` to ensure your computer is up to date.  (if not root user, prefix the command with sudo `sudo update && sudo upgrade -y`
 3. Install any third-party drivers (for example; NVidia, AMD or Intel graphics drivers)
+4. Make sure that sudo is installed.  (Even if running this script as root, sudo is required, so that the script may run commands as the arm user.)
 ### Installation steps
 If running as a root user remove the sudo calls.
 1. Download the script.
@@ -51,7 +56,7 @@ The script may be called with these options;
 * `[-f <Fork_Name>]`
   * Replace `<Fork Name>` with the name of the fork you wish to use for this installation. The default value is: automatic-ripping-machine
 * `[-t <Tag_or_Branch_Name>]`
-  * Replace `<Tag_or_Branch_Name>` with the name of the tag or branch you wish to use for this installation. The default value is: "latest" (Note that calling this script with a default value of fork and a tag value lower than 2.6.73 will result in an error that the script currently does not test for.)
+  * Replace `<Tag_or_Branch_Name>` with the name of the tag or branch you wish to use for this installation. The default value is: "latest" (Note that calling this script with a default value of fork and a tag value lower than 2.10.2 will result in an error that the script currently does not test for.)
 * `[-p <Port_Number>]`
   * Replace `<Port_Number>` with any port number between 1 and 65535. The default value is: 8080
 * `[-h]` or `[-H]`
