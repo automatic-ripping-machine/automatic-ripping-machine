@@ -1,3 +1,5 @@
+It is worth noting that you require an intel igpu (integrated GPU) to use Intel Quicksync.  You can check if your CPU is supported here: (https://www.intel.com/content/www/us/en/support/articles/000029338/graphics.html)
+
 # Adding Intel QuickSync Support
 
 Some distros may not enable Intel QuickSync Video by default in their packages of HandBrakeCLI. This needs to be added manually, this means rebuilding HandBrake from source.
