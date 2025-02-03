@@ -7,16 +7,25 @@ See: https://b3n.org/automatic-ripping-machine for a more detailed breakdown of 
 
 ## Supported Operating Systems
 
-This is a small project with few maintainers. As such we do not have the time to support a large number of distributions, and system's are chosen for support by most common use. We officially support the following operating systems:
+ARM is available as both a [Docker image](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker) as well as in a natively installed version. 
+
+### Docker image
+
+Due to the nature of Docker, the container can be run on any platform that supports a Docker installation. Please refer to the [Docker documentation](https://docs.docker.com/engine/install/) for further information. The current main development effort is also going into the Docker container, for minimal issues in deployment and setup use the provided Docker image.
+
+### Native installation
+
+This is a small project with few maintainers. As such we do not have the time to support a large number of distributions, and systems are chosen for support by most common use. We officially support the following operating systems:
 | Operating System | Versions     |
 |------------------|--------------|
 | Ubuntu Desktop   | 20.04 |
 
-The current main development effort is going into the Docker container, for minimal issues in deployment and setup use the provided docker image.
+> [!WARNING]
+> Please keep in mind that the regular support of Ubuntu 20.04 is end-of-life in April 2025. Due to this we ***highly*** recommend running a Docker container instead and a native installation is discouraged.
 
 Please note that if you open an issue to ask for help, if the OS you are using is not on this list you will be asked to reimage and try again or your issue will be closed.
 
-If you use an unsupported operating system and can't or don't want to reimage, that's okay! Please try our [Docker image](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker) instead.
+If you use an unsupported operating system and can't or don't want to reimage, that's okay! Please try our Docker image instead.
 
 
 ## Get Started
