@@ -10,6 +10,7 @@ Covers
 - systemdrivescan [GET]
 - update_arm [POST]
 - drive_eject [GET]
+- drive_remove [GET]
 - testapprise [GET]
 """
 
@@ -18,8 +19,9 @@ import platform
 import importlib
 import re
 import subprocess
+from datetime import datetime
 
-from flask_login import LoginManager, login_required, \
+from flask_login import login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
 from flask import render_template, request, flash, \
     redirect, Blueprint, session
@@ -65,13 +67,21 @@ def settings():
         app.logger.debug(f"Error - ARM Version file not found: {e}")
     except IOError as e:
         app.logger.debug(f"Error - ARM Version file error: {e}")
+
     failed_rips = Job.query.filter_by(status="fail").count()
     total_rips = Job.query.filter_by().count()
     movies = Job.query.filter_by(video_type="movie").count()
     series = Job.query.filter_by(video_type="series").count()
     cds = Job.query.filter_by(disctype="music").count()
 
-    stats = {'python_version': platform.python_version(),
+    # Get the current server time and timezone
+    current_time = datetime.now()
+    server_datetime = current_time.strftime(cfg.arm_config['DATE_FORMAT'])
+    server_timezone = current_time.astimezone().tzinfo
+
+    stats = {'server_datetime': server_datetime,
+             'server_timezone': server_timezone,
+             'python_version': platform.python_version(),
              'arm_version': version,
              'git_commit': ui_utils.get_git_revision_hash(),
              'movies_ripped': movies,
@@ -94,9 +104,9 @@ def settings():
     arm_path = cfg.arm_config['TRANSCODE_PATH']
     media_path = cfg.arm_config['COMPLETED_PATH']
 
-    # form_drive = SystemInfoDrives(request.form)
     # System Drives (CD/DVD/Blueray drives)
     drives = DriveUtils.drives_check_status()
+    form_drive = SystemInfoDrives(request.form)
 
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
@@ -104,11 +114,20 @@ def settings():
 
     session["page_title"] = "Settings"
 
-    return render_template(page_settings, settings=cfg.arm_config, ui_settings=armui_cfg,
-                           stats=stats, apprise_cfg=cfg.apprise_config,
-                           form=form, jsoncomments=comments, abcde_cfg=cfg.abcde_config,
-                           server=server, serverutil=serverutil, arm_path=arm_path, media_path=media_path,
-                           drives=drives, form_drive=False)
+    return render_template(page_settings,
+                           settings=cfg.arm_config,
+                           ui_settings=armui_cfg,
+                           stats=stats,
+                           apprise_cfg=cfg.apprise_config,
+                           form=form,
+                           jsoncomments=comments,
+                           abcde_cfg=cfg.abcde_config,
+                           server=server,
+                           serverutil=serverutil,
+                           arm_path=arm_path,
+                           media_path=media_path,
+                           drives=drives,
+                           form_drive=form_drive)
 
 
 def check_hw_transcode_support():
@@ -228,7 +247,8 @@ def save_abcde():
         success = True
         # Update the abcde config
         cfg.abcde_config = clean_abcde_str
-    # If we get to here there was no post data
+
+    # If we get to here, there was no post-data
     return {'success': success, 'settings': clean_abcde_str, 'form': 'abcde config'}
 
 
@@ -270,14 +290,19 @@ def server_info():
     if request.method == 'POST' and form_drive.validate():
         # Return for POST
         app.logger.debug(
-            "Drive id: " + str(form_drive.id.data) +
-            " Updated db description: " + form_drive.description.data)
+            f"Drive id: {str(form_drive.id.data)} " +
+            f"Updated name: [{str(form_drive.name.data)}] " +
+            f"Updated description: [{str(form_drive.description.data)}]")
         drive = SystemDrives.query.filter_by(drive_id=form_drive.id.data).first()
+        drive.name = str(form_drive.name.data).strip()
         drive.description = str(form_drive.description.data).strip()
+        drive.drive_mode = str(form_drive.drive_mode.data).strip()
         db.session.commit()
+        flash(f"Updated Drive {drive.mount} details", "success")
         # Return to systeminfo page (refresh page)
         return redirect(redirect_settings)
     else:
+        flash("Error: Unable to update drive details", "error")
         # Return for GET
         return redirect(redirect_settings)
 
@@ -290,10 +315,80 @@ def system_drive_scan():
     Overview - Scan for the system drives and update the database.
     """
     global redirect_settings
-    # Update to scan for changes from system
+    # Update to scan for changes to the ripper system
     new_count = DriveUtils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
     return redirect(redirect_settings)
+
+
+@route_settings.route('/drive/eject/<eject_id>')
+@login_required
+def drive_eject(eject_id):
+    """
+    Server System - change state of CD/DVD/BluRay drive - toggle eject
+    """
+    global redirect_settings
+    drive = SystemDrives.query.filter_by(drive_id=eject_id).first()
+    drive.open_close()
+    db.session.commit()
+    return redirect(redirect_settings)
+
+
+@route_settings.route('/drive/remove/<remove_id>')
+@login_required
+def drive_remove(remove_id):
+    """
+    Server System - remove a drive from the ARM UI
+    """
+    global redirect_settings
+    try:
+        app.logger.debug(f"Removing drive {remove_id}")
+        drive = SystemDrives.query.filter_by(drive_id=remove_id).first()
+        dev_path = drive.mount
+        SystemDrives.query.filter_by(drive_id=remove_id).delete()
+        db.session.commit()
+        flash(f"Removed drive [{dev_path}] from ARM", "success")
+    except Exception as e:
+        app.logger.error(f"Drive removal encountered an error: {e}")
+        flash("Drive unable to be removed, check logs for error", "error")
+    return redirect(redirect_settings)
+
+
+@route_settings.route('/drive/manual/<manual_id>')
+@login_required
+def drive_manual(manual_id):
+    """
+    Manually start a job on ARM
+    """
+
+    drive = SystemDrives.query.filter_by(drive_id=manual_id).first()
+    dev_path = drive.mount.lstrip('/dev/')
+
+    cmd = f"/opt/arm/scripts/docker/docker_arm_wrapper.sh {dev_path}"
+    app.logger.debug(f"Running command[{cmd}]")
+
+    # Manually start ARM if the udev rules are not working for some reason
+    try:
+        manual_process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stdout, stderr = manual_process.communicate()
+
+        if manual_process.returncode != 0:
+            raise subprocess.CalledProcessError(manual_process.returncode, cmd, output=stdout, stderr=stderr)
+
+        message = f"Manually starting a job on Drive: '{drive.name}'"
+        status = "success"
+        app.logger.debug(stdout)
+
+    except subprocess.CalledProcessError as e:
+        message = f"Failed to start a job on Drive: '{drive.name}' See logs for info"
+        status = "danger"
+        app.logger.error(message)
+        app.logger.error(f"error: {e}")
+        app.logger.error(f"stdout: {e.output}")
+        app.logger.error(f"stderr: {e.stderr}")
+
+    flash(message, status)
+    return redirect('/settings')
 
 
 @route_settings.route('/update_arm', methods=['POST'])
@@ -301,19 +396,6 @@ def system_drive_scan():
 def update_git():
     """Update arm via git command line"""
     return ui_utils.git_get_updates()
-
-
-@route_settings.route('/driveeject/<id>')
-@login_required
-def drive_eject(id):
-    """
-    Server System  - change state of CD/DVD/BluRay drive - toggle eject
-    """
-    global redirect_settings
-    drive = SystemDrives.query.filter_by(drive_id=id).first()
-    drive.open_close()
-    db.session.commit()
-    return redirect(redirect_settings)
 
 
 @route_settings.route('/testapprise')

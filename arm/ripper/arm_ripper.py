@@ -44,7 +44,9 @@ def rip_visual_media(have_dupes, job, logfile, protection):
     makemkv_out_path = None
     hb_in_path = str(job.devpath)
     # Do we need to use MakeMKV - Blu-rays, protected dvd's, and dvd with mainfeature off
-    if rip_with_mkv(job, protection):
+    use_make_mkv = rip_with_mkv(job, protection)
+    logging.debug(f"Using MakeMKV: [{use_make_mkv}]")
+    if use_make_mkv:
         logging.info("************* Ripping disc with MakeMKV *************")
         # Run MakeMKV and get path to output
         job.status = "ripping"
@@ -68,12 +70,16 @@ def rip_visual_media(have_dupes, job, logfile, protection):
         hb_in_path = makemkv_out_path
     # Begin transcoding section - only transcode if skip_transcode is false
     start_transcode(job, logfile, hb_in_path, hb_out_path, protection)
+
     # --------------- POST PROCESSING ---------------
-    if job.config.SKIP_TRANSCODE:
-        # Delete the transcode path and update the out path to RAW path
+    # If ripped with MakeMKV remove the 'out' folder and set the raw as the output
+    logging.debug(f"Transcode status: [{job.config.SKIP_TRANSCODE}] and MakeMKV Status: [{use_make_mkv}]")
+    if job.config.SKIP_TRANSCODE and use_make_mkv:
         utils.delete_raw_files([hb_out_path])
         hb_out_path = hb_in_path
+
     # Update final path if user has set a custom/manual title
+    logging.debug(f"Job title status: [{job.title_manual}]")
     if job.title_manual:
         # Remove the old final dir
         utils.delete_raw_files([final_directory])
@@ -81,6 +87,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
         final_directory = os.path.join(job.config.COMPLETED_PATH, type_sub_folder, job_title)
         # Update the job.path with the final directory
         utils.database_updater({'path': final_directory}, job)
+
     # Move to final folder
     move_files_post(hb_out_path, job)
     # Movie the movie poster if we have one - no longer needed, now handled by save_movie_poster

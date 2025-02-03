@@ -1,0 +1,23 @@
+[Unit]
+Description=Arm service
+## Added to force armui to wait for network
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=arm
+Group=arm
+## Add your path to your logfiles if you want to enable logging
+## Remember to remove the # at the start of the line
+StandardOutput=append:/home/arm/logs/WebUI.log
+StandardError=append:/home/arm/logs/WebUI.log
+Restart=always
+RestartSec=3
+ExecStartPre=/bin/bash -xc '/usr/bin/systemctl is-active --quiet armui.service && exit 1 || exit 0'
+ExecStart=/opt/arm/venv/bin/python3 /opt/arm/arm/runui.py
+## Allow ARM to run in protected ports (ei: ports 1~1024)
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target

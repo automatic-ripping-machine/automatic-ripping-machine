@@ -2,6 +2,7 @@
 ARM route blueprint for jobs pages
 Covers
 - jobdetail [GET]
+- jobdetailload [POST]
 - titlesearch [GET]
 - custometitle [GET]
 - gettitle / customtitle [GET]
@@ -22,7 +23,7 @@ from arm.ui import app, db, constants, json_api
 from arm.models.job import Job
 from arm.models.notifications import Notifications
 import arm.config.config as cfg
-from arm.ui.forms import TitleSearchForm, ChangeParamsForm
+from arm.ui.forms import TitleSearchForm, ChangeParamsForm, TrackFormDynamic
 
 route_jobs = Blueprint('route_jobs', __name__,
                        template_folder='templates',
@@ -38,14 +39,81 @@ def jobdetail():
     Shows Job/Config/Track class details
     displays them in a clear and easy to ready format
     """
+    manual_edit = False
+
+    # Initialise form
+    track_form = TrackFormDynamic()
+
     job_id = request.args.get('job_id')
     job = Job.query.get(job_id)
+
+    # Check if a manual job, waiting for input and user has not provided input
+    if job.manual_mode and job.status == "waiting" and not job.manual_start:
+        manual_edit = True
+
+    # Get Job and Track data
     tracks = job.tracks.all()
+    track_form.track_ref.min_entries = len(tracks)
+    app.logger.debug(f"Found [{len(tracks)}] tracks")
+    track_form.track_ref.entries.clear()
+    # Loop through each track entry and build the WTForms dynamically
+    for track_row in tracks:
+        track_form.track_ref.append_entry({'track_ref': track_row.track_id,
+                                           'checkbox': track_row.process})
+    # For Jobs that are not waiting and in manual mode, disable the process checkbox
+    if not manual_edit:
+        for entry in track_form.track_ref.entries:
+            entry.checkbox.render_kw = {'disabled': 'disabled'}
+
     search_results = ui_utils.metadata_selector("get_details", job.title, job.year, job.imdb_id)
+
     if search_results and 'Error' not in search_results:
         job.plot = search_results['Plot'] if 'Plot' in search_results else "There was a problem getting the plot"
         job.background = search_results['background_url'] if 'background_url' in search_results else None
-    return render_template('jobdetail.html', jobs=job, tracks=tracks, s=search_results)
+
+    return render_template('jobdetail.html',
+                           jobs=job,
+                           tracks=tracks,
+                           s=search_results,
+                           manual_edit=manual_edit,
+                           form=track_form)
+
+
+@route_jobs.route('/jobdetailload', methods=['POST'])
+@login_required
+def jobdetail_load():
+    """
+    Process updated track ID fields against a job and load to the ARM database if valid
+    All data passed via POST
+    """
+    # Initialise form
+    track_form = TrackFormDynamic()
+
+    job_id = request.args.get('job_id')
+    job = Job.query.get(job_id)
+
+    # Data passed back from webpage, process and update track fields
+    if request.method == 'POST' and track_form.validate_on_submit():
+        app.logger.debug(f"Job id [{job.job_id}]")
+        app.logger.debug(f"Returned [{len(track_form.track_ref.entries)}] tracks")
+        for track_row in track_form.track_ref.entries:
+            # app.logger.debug(f"Track deets [{track_row}]")
+            track_id = track_row.data['track_ref']
+            checkbox_value = track_row.data['checkbox']
+            app.logger.debug(f"Setting [{track_id}] to [{checkbox_value}]")
+
+            db_track = job.tracks.filter_by(track_id=track_id).first()
+            if db_track:
+                db_track.process = checkbox_value
+                db.session.commit()
+
+        # Set job to ready
+        job.manual_start = True
+        db.session.commit()
+        app.logger.debug(f"Setting [{job.job_id}] to [{job.manual_start}], lets get ripping")
+        flash("Tracks was updated", "success")
+
+    return redirect(url_for('route_jobs.jobdetail', job_id=job_id))
 
 
 @route_jobs.route('/titlesearch')
