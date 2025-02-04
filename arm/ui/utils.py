@@ -866,30 +866,34 @@ def get_git_revision_short_hash() -> str:
 def git_check_updates(current_hash) -> bool:
     """
     Check the ARM commit hash against the remote (GitHub) commit hash
-    :param current_hash: The git commit hash (local)
-    :return: Boolean value - True for no update, False for update possible
+    :param
+        current_hash: str - string of current ARM commit hash
+    :return:
+        arm_current: Bool - True for no update (or exceptions), False for update possible
     """
+    # GitHub API url - branch main
+    url = "https://api.github.com/repos/automatic-ripping-machine/automatic-ripping-machine/commits/main"
+    arm_current = True      # set True, any exceptions will return a true value
 
-    install_path = cfg.arm_config['INSTALLPATH']
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()  # Raise an error for HTTP failures (4xx, 5xx)
 
-    # Fetch ARM current commits from remote repository (but do not apply them)
-    git_update = subprocess.run(['git', 'fetch',
-                                 'https://github.com/automatic-ripping-machine/automatic-ripping-machine'],
-                                cwd=install_path, check=False)
-    # Get the latest remote commit hash
-    git_log = subprocess.check_output('git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1',
-                                      shell=True, cwd="/opt/arm"
-                                      ).decode('ascii').strip()
-    # Check if current_hash matches remote commit hash
-    # True - current version, False - out of date
-    current = bool(re.search(rf"\A{current_hash}", git_log))
+        latest_commit = response.json().get("sha", "").strip()
+        if not latest_commit:
+            app.logger.error("Failed to retrieve latest commit hash from GitHub API.")
 
-    app.logger.debug(f"Git return code: {git_update.returncode}")
-    app.logger.debug(f"Remote hash: {git_log}")
-    app.logger.debug(f"Local hash: {current_hash}")
-    app.logger.debug(f"ARM current: {current}")
+        # Compare local and remote hashes
+        arm_current = latest_commit.startswith(current_hash)
 
-    return current
+        app.logger.debug(f"Remote hash: {latest_commit}")
+        app.logger.debug(f"Local hash: {current_hash}")
+        app.logger.debug(f"ARM current: {arm_current}")
+
+    except requests.RequestException as e:
+        app.logger.error(f"GitHub API request failed: {e}")
+
+    return arm_current
 
 
 def git_check_version():

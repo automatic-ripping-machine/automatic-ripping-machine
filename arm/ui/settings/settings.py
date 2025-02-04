@@ -69,22 +69,21 @@ def settings():
     current_time = datetime.now()
     server_datetime = current_time.strftime(cfg.arm_config['DATE_FORMAT'])
     server_timezone = current_time.astimezone().tzinfo
-
-    # ARM Version
     [arm_version_local, arm_version_remote] = ui_utils.git_check_version()
+    local_git_hash = ui_utils.get_git_revision_hash()
 
     stats = {'server_datetime': server_datetime,
              'server_timezone': server_timezone,
              'python_version': platform.python_version(),
              'arm_version_local': arm_version_local,
              'arm_version_remote': arm_version_remote,
-             'git_commit': ui_utils.get_git_revision_hash(),
+             'git_commit': local_git_hash,
              'movies_ripped': movies,
              'series_ripped': series,
              'cds_ripped': cds,
              'no_failed_jobs': failed_rips,
              'total_rips': total_rips,
-             'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash()),
+             'updated': ui_utils.git_check_updates(local_git_hash),
              'hw_support': check_hw_transcode_support()
              }
 
