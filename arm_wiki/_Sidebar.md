@@ -11,10 +11,10 @@
 
 **Web Page Overview**
   - _Coming Soon_
-  - **Jobs**
-    - [Jobs](Web-Jobs)
-  - **Settings**
+  - [Jobs](Web-Jobs)
+  - [Settings](Web-Settings)
     - [Drive Management](Web-Settings-Drives)
+    - [UI Settings](Web-Settings-UI)
 
 **Configuration**
    - [Configuration](Configuring-ARM)
