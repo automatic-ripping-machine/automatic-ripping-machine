@@ -59,15 +59,6 @@ def settings():
     global page_settings
 
     # stats for info page
-    version = "Unknown"
-    try:
-        with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
-            version = version_file.read().strip()
-    except FileNotFoundError as e:
-        app.logger.debug(f"Error - ARM Version file not found: {e}")
-    except IOError as e:
-        app.logger.debug(f"Error - ARM Version file error: {e}")
-
     failed_rips = Job.query.filter_by(status="fail").count()
     total_rips = Job.query.filter_by().count()
     movies = Job.query.filter_by(video_type="movie").count()
@@ -79,10 +70,14 @@ def settings():
     server_datetime = current_time.strftime(cfg.arm_config['DATE_FORMAT'])
     server_timezone = current_time.astimezone().tzinfo
 
+    # ARM Version
+    [arm_version_local, arm_version_remote] = ui_utils.git_check_version()
+
     stats = {'server_datetime': server_datetime,
              'server_timezone': server_timezone,
              'python_version': platform.python_version(),
-             'arm_version': version,
+             'arm_version_local': arm_version_local,
+             'arm_version_remote': arm_version_remote,
              'git_commit': ui_utils.get_git_revision_hash(),
              'movies_ripped': movies,
              'series_ripped': series,
@@ -389,13 +384,6 @@ def drive_manual(manual_id):
 
     flash(message, status)
     return redirect('/settings')
-
-
-@route_settings.route('/update_arm', methods=['POST'])
-@login_required
-def update_git():
-    """Update arm via git command line"""
-    return ui_utils.git_get_updates()
 
 
 @route_settings.route('/testapprise')

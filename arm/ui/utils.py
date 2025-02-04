@@ -864,24 +864,72 @@ def get_git_revision_short_hash() -> str:
 
 
 def git_check_updates(current_hash) -> bool:
-    """Check if we are on latest commit"""
+    """
+    Check the ARM commit hash against the remote (GitHub) commit hash
+    :param current_hash: The git commit hash (local)
+    :return: Boolean value - True for no update, False for update possible
+    """
+
+    install_path = cfg.arm_config['INSTALLPATH']
+
+    # Fetch ARM current commits from remote repository (but do not apply them)
     git_update = subprocess.run(['git', 'fetch',
                                  'https://github.com/automatic-ripping-machine/automatic-ripping-machine'],
-                                cwd=cfg.arm_config['INSTALLPATH'], check=False)
+                                cwd=install_path, check=False)
+    # Get the latest remote commit hash
     git_log = subprocess.check_output('git for-each-ref refs/remotes/origin --sort="-committerdate" | head -1',
-                                      shell=True, cwd="/opt/arm").decode('ascii').strip()
-    app.logger.debug(git_update.returncode)
-    app.logger.debug(git_log)
-    app.logger.debug(current_hash)
-    app.logger.debug(bool(re.search(rf"\A{current_hash}", git_log)))
-    return bool(re.search(rf"\A{current_hash}", git_log))
+                                      shell=True, cwd="/opt/arm"
+                                      ).decode('ascii').strip()
+    # Check if current_hash matches remote commit hash
+    # True - current version, False - out of date
+    current = bool(re.search(rf"\A{current_hash}", git_log))
+
+    app.logger.debug(f"Git return code: {git_update.returncode}")
+    app.logger.debug(f"Remote hash: {git_log}")
+    app.logger.debug(f"Local hash: {current_hash}")
+    app.logger.debug(f"ARM current: {current}")
+
+    return current
 
 
-def git_get_updates() -> dict:
-    """update arm"""
-    git_log = subprocess.run(['git', 'pull'], cwd=cfg.arm_config['INSTALLPATH'], check=False)
-    return {'stdout': git_log.stdout, 'stderr': git_log.stderr,
-            'return_code': git_log.returncode, 'form': 'ARM Update', "success": (git_log.returncode == 0)}
+def git_check_version():
+    """
+    Check the current ARM version locally against the remote (GitHub) version.
+
+    This function compares the installed ARM version with the latest version available
+    in the remote GitHub repository.
+
+    :return:
+        tuple: (local_version, remote_version)
+            - local_version (str): The version currently installed locally (from the VERSION file).
+            - remote_version (str): The latest version available in the remote repository.
+    """
+
+    install_path = cfg.arm_config['INSTALLPATH']
+
+    # Read the local version from the VERSION file
+    version_file_path = os.path.join(install_path, 'VERSION')
+    try:
+        with open(version_file_path) as version_file:
+            local_version = version_file.read().strip()
+    except FileNotFoundError as e:
+        app.logger.debug(f"Error - ARM Local Version file not found: {e}")
+    except IOError as e:
+        app.logger.debug(f"Error - ARM Local Version file error: {e}")
+
+    # Read the remote version from Git (without modifying local files)
+    try:
+        remote_version = subprocess.check_output(
+            'git show origin/HEAD:VERSION', shell=True, cwd=install_path
+        ).decode('ascii').strip()
+    except subprocess.CalledProcessError:
+        app.logger.debug(f"Error - ARM Remote Version error: {e}")
+        remote_version = "Unknown"
+
+    app.logger.debug(f"Local version: {local_version}")
+    app.logger.debug(f"Remote version: {remote_version}")
+
+    return local_version, remote_version
 
 
 def authenticated_state() -> bool:
