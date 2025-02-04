@@ -10,7 +10,7 @@ import subprocess
 import re
 from datetime import datetime
 from pathlib import Path
-
+from sqlalchemy.exc import SQLAlchemyError
 from time import strftime, localtime, time, sleep
 
 import bcrypt
@@ -371,7 +371,7 @@ def generate_full_log(full_path):
             while True:
                 yield read_log_file.read()
                 sleep(1)
-    except Exception:
+    except IOError:
         try:
             with open(full_path, encoding="utf8", errors='ignore') as read_log_file:
                 while True:
@@ -408,7 +408,8 @@ def setup_database():
         app.logger.debug(f"Number of admins: {len(admins)}")
         if len(admins) > 0:
             return True
-    except Exception:
+    except SQLAlchemyError as e:
+        app.logger.debug(f"SQLAlchemy error: {e}")
         app.logger.debug("Couldn't find a user table")
     else:
         app.logger.debug("Found User table but didnt find any admins...")
@@ -434,7 +435,8 @@ def setup_database():
         DriveUtils.drives_update()
         app.logger.debug("DB Init - Drive info loaded")
         return True
-    except Exception:
+    except SQLAlchemyError as e:
+        app.logger.debug(f"SQLAlchemy error: {e}")
         app.logger.debug("Couldn't create all")
     return False
 
@@ -926,7 +928,7 @@ def git_check_version():
         remote_version = subprocess.check_output(
             'git show origin/HEAD:VERSION', shell=True, cwd=install_path
         ).decode('ascii').strip()
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         app.logger.debug(f"Error - ARM Remote Version error: {e}")
         remote_version = "Unknown"
 
