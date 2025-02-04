@@ -7,46 +7,21 @@
                 <div class="card-body col">
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item">
-                            Datetime: {{ stats['server_datetime'] }}
-                        </li>
-                        <li class="list-group-item">
+                            Datetime: {{ stats['server_datetime'] }} <br>
                             Timezone: {{ stats['server_timezone'] }}
                         </li>
                         <li class="list-group-item">
-                            Python version: {{ stats['python_version'] }}
-                        </li>
-                        <li class="list-group-item">
-                            A.R.M version: {{ stats['arm_version'] }}
-                        </li>
-                        <li class="list-group-item">
-                                Current git version: {{ stats['git_commit'] }}
-                        </li>
-                        <li class="list-group-item">Update Available:
-                        <!-- Update A.R.M -->
-                            {% if stats['updated'] %}
-                                <img src="{{ url_for('static', filename='img/success.png') }}"
-                                 alt="update image" width="20px" height="20px">  You are on the latest version
-                            {% else %}
-                                <img src="{{ url_for('static', filename='img/fail.png') }}"
-                                 alt="update image" width="20px" height="20px">
-                                <form id="updateArm" name="updateArm" method="post" action="">
-                                    {{ form.hidden_tag() }}
-                                    <button title="Update A.R.M Via git"
-                                            class="btn btn-primary float-right" type="submit">Update
-                                        A.R.M
-                                    </button>
-                                </form>New updates are available!
-                            {% endif %}
+                            Python version: <code>{{ stats['python_version'] }}</code><br>
+                            A.R.M version: <code>{{ stats['arm_version'] }}</code><br>
+                            Current git version: <code>{{ stats['git_commit'] }}</code><br>
                         </li>
                         <!-- Rip stats -->
-                        <li class="list-group-item">Total rips:
-                            <code>{{ stats['total_rips'] }}</code></li>
-                        <li class="list-group-item">Movies ripped:
-                            <code>{{ stats['movies_ripped'] }}</code></li>
-                        <li class="list-group-item">Series ripped:
-                            <code>{{ stats['series_ripped'] }}</code></li>
-                        <li class="list-group-item">Audios ripped:
-                            <code>{{ stats['cds_ripped'] }}</code></li>
+                        <li class="list-group-item">
+                            Total rips: <code>{{ stats['total_rips'] }}</code><br>
+                            Movies ripped: <code>{{ stats['movies_ripped'] }}</code><br>
+                            Series ripped: <code>{{ stats['series_ripped'] }}</code><br>
+                            Audio ripped: <code>{{ stats['cds_ripped'] }}</code>
+                        </li>
                     </ul>
                 </div>
             </div>
