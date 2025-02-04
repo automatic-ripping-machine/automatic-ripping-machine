@@ -4,7 +4,7 @@
    - [Getting Started](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Getting-Started)
 
    - **Docker**
-       - [Pull prebuilt image](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker)
+       - [Pull prebuilt image](Docker)
        - [Build from Dockerfile](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Building-ARM-docker-image-from-source)
 
    - **Manual Install**

@@ -1,16 +1,12 @@
-# IMPORTANT
+# Ubuntu Manual Install Guide
 
-***
-This installation method is not supported or maintained by the ARM Developers.
-For full support and continued maintenance,
-recommend installing ARM via the supported [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
-This installation guide has been left within the Wiki, as some users do not install via docker.
-
-**Use at your own risk** 
-
-***
-
-## Manual Install Guide
+> [!CAUTION]
+> This installation method is not supported or maintained by the ARM Developers.
+> For full support and continued maintenance,
+> we recommend installing ARM via the supported [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
+> This installation method was developed for those that wish to use ARM without Docker.
+>
+> **Use at your own risk** 
 
 ## Pre-Install (only if necessary)
 
