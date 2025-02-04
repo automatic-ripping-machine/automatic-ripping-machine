@@ -13,8 +13,6 @@ Covers
 - drive_remove [GET]
 - testapprise [GET]
 """
-
-import os
 import platform
 import importlib
 import re
