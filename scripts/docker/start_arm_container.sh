@@ -1,4 +1,15 @@
 #!/bin/bash
+set -e
+function join_by {
+  local d=${1-} f=${2-}
+  if shift 2; then
+    printf %s "$f" "${@/#/$d}"
+  fi
+}
+cores_minus_one=`nproc --ignore=1`
+cpu_array=`seq 1 1 $cores_minus_one`
+cpu_cores=$(join_by , ${cpu_array})
+
 docker run -d \
     -p "8080:8080" \
     -e ARM_UID="`id -u arm`" \
@@ -15,5 +26,5 @@ docker run -d \
     --privileged \
     --restart "always" \
     --name "arm-rippers" \
-    --cpuset-cpus='2,3,4,5,6,7...' \
+    --cpuset-cpus="$cpu_cores" \
     IMAGE_NAME
