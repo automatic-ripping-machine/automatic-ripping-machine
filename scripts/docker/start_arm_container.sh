@@ -26,6 +26,6 @@ docker run -d \
     --device="/dev/sr3:/dev/sr3" \
     --privileged \
     --restart "always" \
-    --name "arm-rippers" \
+    --name "automatic-ripping-machine" \
     --cpuset-cpus="$cpu_cores" \
     IMAGE_NAME
