@@ -36,35 +36,25 @@ The script will now:
 5. Save a copy of the template run command for the user to fill in to `~arm/start_arm_container.sh`
 
 ## Post Install
-1. **ARM User ID**: In a terminal session, type `id -u arm` and make a note of the returned value
-2. **ARM Group ID**: In a terminal session, type `id -g arm` and make a note of the returned value
-3. **Start Script**: Open up `start_arm_container.sh` in the text editor of your choice. 
-    1. If the ARM user id is not 1000, enter that value for `ARM_UID`. If the returned value is 1000, delete that line from the script.
-    
-       Example: `-e ARM_UID="1001"` 
-     
-    2. If the ARM group id is not 1000, enter that value for `ARM_GID`. If the returned value is 1000, delete that line from the script.
-    
-       Example: `-e ARM_GID="1001"`
-
-    3. Fill in the appropriate paths for the volumes being mounted. Only change the path on the left hand side, docker volumes are configured with "[local path]:[arm path]". More information about volumes is found below under the heading: [Understanding Docker Volumes for A.R.M.](#understanding-docker-volumes-for-arm)
+1. **Start Script**: Open up `start_arm_container.sh` in the text editor of your choice. 
+    1. Fill in the appropriate paths for the volumes being mounted. Only change the path on the left hand side, docker volumes are configured with "[local path]:[arm path]". More information about volumes is found below under the heading: [Understanding Docker Volumes for A.R.M.](#understanding-docker-volumes-for-arm)
 
        Example: `-v "/home/arm:/home/arm"`
 
-    4. Fill in your CD, DVD and Blu-Ray drives. Each `--device="/dev/sr0:/dev/sr0" \` line gives A.R.M. access to an optical drive.  To list all the drives (SSD, HD, Optical and others) found on your system, Run the command `lsscsi -g`.  For each Optical drive, the second column will have the "cd/dvd" entry, note the `/dev/sr#` (replace the pound sign # with the number) and add a device entry to your script.  By default, the script has `/dev/sr0` through `/dev/sr3` pre-entered.  Add or remove entries as necessary. You should have one entry for each "cd/dvd" that `lsscsi -g` finds.  
+    2. Fill in your CD, DVD and Blu-Ray drives. Each `--device="/dev/sr0:/dev/sr0" \` line gives A.R.M. access to an optical drive.  To list all the drives (SSD, HD, Optical and others) found on your system, Run the command `lsscsi -g`.  For each Optical drive, the second column will have the "cd/dvd" entry, note the `/dev/sr#` (replace the pound sign # with the number) and add a device entry to your script.  By default, the script has `/dev/sr0` through `/dev/sr3` pre-entered.  Add or remove entries as necessary. You should have one entry for each "cd/dvd" that `lsscsi -g` finds.  
 
-    5. Fill in the list of CPU core threads to give the container in `--cpuset-cpus`. It's highly recommended to leave at least one core for the hypervisor to use, so the host machine doesn't get choked out during transcoding! Also, CPUs with multiple threads per core will be numbered in pairs. In the below example, only core #4 would be passed to ARM.
+    3. Fill in the list of CPU core threads to give the container in `--cpuset-cpus`. It's highly recommended to leave at least one core for the hypervisor to use, so the host machine doesn't get choked out during transcoding! Also, CPUs with multiple threads per core will be numbered in pairs. In the below example, only core #4 would be passed to ARM.
    
        Example: `--cpuset-cpus='5,6'`
 
-   6. Set the name of the docker image, the default is below, but can be user configured.
+   4. Set the name of the docker image, the default is below, but can be user configured.
       
       Example: `--name "automatic-ripping-machine"`
    
-   7. Save and close
+   5. Save and close
 
 
-4. **Permissions**: When starting the ARM docker container, if the ARM user ID and group ID from steps 1 and 2 are not set correctly ARM will not start. If the container does not start, check the docker logs.
+2. **Permissions**: If the container does not start, check the docker logs.
    
    ```bash
    docker logs automatic-ripping-machine
@@ -102,7 +92,7 @@ The script will now:
 
    Additionally, any folders the container creates during startup will be owned by the user specified in `start_arm_container.sh`. If the folder paths passed to the container are on a remote share (SMB, NFS, etc.) and do not already exist, this may result in the folders on the share not being owned by the same user.
 
-5. **Start ARM**: Run the container with `sudo ./start_arm_container.sh`
+3. **Start ARM**: Run the container with `sudo ./start_arm_container.sh`
 
 You will then need to visit http://WEBSERVER_IP:PORT
 An admin account is required to view rips and settings. A default one has been created for you.
