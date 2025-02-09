@@ -187,7 +187,6 @@ def drives_update(startup=False):
     # Mark all drives as stale
     for db_drive in SystemDrives.query.all():
         db_drive.stale = True
-        db.session.add(db_drive)
         if startup:
             db_drive.mdisc = None
     db.session.commit()
@@ -218,8 +217,8 @@ def drives_update(startup=False):
             app.logger.debug(msg, drive.serial_id, drive.mount)
             db_drive = SystemDrives()
             db_drive.name = drive.serial_id
+            db.session.add(db_drive)
         db_drive.update(drive)
-        db.session.add(db_drive)
         db.session.commit()  # needed to get drive_id for new entities
         db_drive.debug(logger=app.logger)
 
@@ -235,7 +234,6 @@ def drives_update(startup=False):
         )
         for conflicting_drive in conflicting_drives.all():
             conflicting_drive.mount = ""
-            db.session.add(conflicting_drive)
         db.session.commit()
 
     # remove and log stale mount points
@@ -251,7 +249,6 @@ def drives_update(startup=False):
             stale_drive.location = ""
             stale_drive.mdisc = None
             stale_count += 1
-        db.session.add(stale_drive)
         db.session.commit()
         stale_drive.debug(logger=app.logger)
     if stale_count > 0:
@@ -296,11 +293,9 @@ def job_cleanup(job_id):
     """
     for drive in SystemDrives.query.filter_by(job_id_current=job_id):
         drive.job_id_current = None
-        db.session.add(drive)
         app.logger.debug(f"Current Job {job_id} cleared from drive {drive.mount}")
     for drive in SystemDrives.query.filter_by(job_id_previous=job_id):
         drive.job_id_previous = None
-        db.session.add(drive)
         app.logger.debug(f"Current Job {job_id} cleared from drive {drive.mount}")
     db.session.commit()
 
