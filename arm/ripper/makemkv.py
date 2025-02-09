@@ -665,7 +665,6 @@ def makemkv(job):
         for drive in get_drives(job):
             db_drive = SystemDrives.query.filter_by(mount=drive.mount).one()
             db_drive.mdisc = drive.index
-            db.session.add(db_drive)
         db.session.commit()
     logging.info(f"MakeMKV disc number: {job.drive.mdisc:d}")
     # get filesystem in order
