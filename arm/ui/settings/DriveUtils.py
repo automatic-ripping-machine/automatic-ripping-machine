@@ -17,6 +17,23 @@ from arm.models import SystemDrives
 from arm.ui import app, db
 
 
+class MaskSerialMeta(type):
+    def __init__(cls, name, bases, class_dict):
+        super().__init__(name, bases, class_dict)
+        cls._apply_masked_repr()
+
+    def _apply_masked_repr(cls):
+        original_repr = cls.__repr__ if hasattr(cls, '__repr__') else object.__repr__
+
+        def masked_repr(self):
+            """Mask the serial with asterisk in the repr"""
+            repr_str = original_repr(self)
+            mask_last = self.serial[:-6] + '*' * 6
+            return repr_str.replace(self.serial, mask_last)
+
+        cls.__repr__ = masked_repr
+
+
 DRIVE_INFORMATION = (
     "DEVNAME",
     "ID_VENDOR_ENC",  # ID_VENDOR (with encoded characters)
@@ -118,7 +135,7 @@ DRIVE_INFORMATION_MEDIUM = (
 
 
 @dataclasses.dataclass
-class DriveInformationMedium(DriveInformationExtended):
+class DriveInformationMedium(DriveInformationExtended, metaclass=MaskSerialMeta):
     """Drive Information that changes per disc
 
     for pyudev fields, see `DRIVE_INFORMATION_MEDIUM`
