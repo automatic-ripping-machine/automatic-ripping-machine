@@ -160,8 +160,6 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
         self.location = drive.location
         # mark drive info as updated
         self.stale = False
-        # remove MakeMKV disc id
-        self.mdisc = None
 
     @property
     def type(self):

@@ -173,12 +173,14 @@ def drives_search():
             yield DriveInformationMedium(*map(device.properties.get, fields))
 
 
-def drives_update():
+def drives_update(startup=False):
     """
     scan the system for new cd/dvd/Blu-ray drives and update the database
 
     - `serial_id` is assumed persistent/unique.
     - `mount` point may change for USB devices
+
+    on system startup, clear all mdisc (MakeMKV disc index) values.
     """
     drive_count = SystemDrives.query.count()
 
@@ -186,6 +188,8 @@ def drives_update():
     for db_drive in SystemDrives.query.all():
         db_drive.stale = True
         db.session.add(db_drive)
+        if startup:
+            db_drive.mdisc = None
     db.session.commit()
 
     # Update drive information:
