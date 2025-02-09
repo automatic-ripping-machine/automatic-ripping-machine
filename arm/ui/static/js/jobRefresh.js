@@ -59,7 +59,7 @@ $(document).ready(function () {
  * @param    {Class} oldJob    Copy of old job
  */
 function updateProgress(job, oldJob) {
-    const subProgressBar = `<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+    const subProgressBar = `<div class="progress-bar" role="progressbar"
                              aria-valuenow="${job.progress_round}" aria-valuemin="0" aria-valuemax="100" 
                              style="width: ${job.progress_round}%">
                              <small class="justify-content-center d-flex position-absolute w-100">${job.progress}%</small></div></div>`;

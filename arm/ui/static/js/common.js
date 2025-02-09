@@ -55,7 +55,7 @@ function transcodingCheck(job) {
     if (job.status === "transcoding" && job.stage !== "" && job.progress || job.disctype === "music" && job.stage !== "") {
         x += `<div id="jobId${job.job_id}_stage"><strong>Stage: </strong>${job.stage}</div>`;
         x += `<div id="jobId${job.job_id}_progress" >`;
-        x += `<div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+        x += `<div class="progress"><div class="progress-bar" role="progressbar"
               aria-valuenow="${job.progress_round}" aria-valuemin="0" aria-valuemax="100" style="width: ${job.progress_round}%">
               <small class="justify-content-center d-flex position-absolute w-100">${job.progress}%</small></div></div></div>
               <div id="jobId${job.job_id}_eta"><strong>ETA: </strong>${job.eta}</div>`;
