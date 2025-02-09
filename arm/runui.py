@@ -18,7 +18,7 @@ def startup():
     db_update = arm.ui.utils.arm_db_check()
     if db_update["db_current"]:
         app.logger.info("Updating Optical Drives")
-        arm.ui.settings.DriveUtils.drives_update()
+        arm.ui.settings.DriveUtils.drives_update(startup=True)
 
 
 def is_docker():
