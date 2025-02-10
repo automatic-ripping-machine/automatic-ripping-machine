@@ -323,7 +323,7 @@ def delete_job(job_id, mode):
                                                  f'Job with id: {job_id} was successfully deleted from the database')
                     db.session.add(notification)
                     db.session.commit()
-                    app.logger.debug("Admin deleting  job {} was successful")
+                    app.logger.debug(f"Admin deleting  job {job_id} was successful")
                     json_return = {'success': True, 'job': job_id, 'mode': mode}
     # If we run into problems with the database changes
     # error out to the log and roll back

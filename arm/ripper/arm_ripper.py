@@ -52,7 +52,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
         job.status = "ripping"
         db.session.commit()
         try:
-            makemkv_out_path = makemkv.makemkv(logfile, job)
+            makemkv_out_path = makemkv.makemkv(job)
         except Exception as mkv_error:  # noqa: E722
             logging.error(f"MakeMKV did not complete successfully.  Exiting ARM! "
                           f"Error: {mkv_error}")
