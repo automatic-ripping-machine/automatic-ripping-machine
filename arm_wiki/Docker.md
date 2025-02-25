@@ -113,31 +113,8 @@ An admin account is required to view rips and settings. A default one has been c
 
 
 ## Updating docker image
-To update the docker image to the latest released code follow these steps. Please note, the user running the command should be in the docker group. You can find out more from the [docker post install steps](https://docs.docker.com/engine/install/linux-postinstall/).
+Refer to [Docker Upgrading](Docker-Upgrading)
 
-1. Stop the running ARM container
-
-```bash
-docker stop automatic-ripping-machine
-```
-
-2. Pull the new version of ARM from Docker, this container is updated nightly following any new code changes made to ARM from Github
-
-```bash
-docker pull automaticrippingmachine/automatic-ripping-machine
-```
-
-3. Docker prune, this removes any unused containers, which when running step 4 will cause issues if not run. This doesn't delete any user configurations, only the docker container created from step 4
-
-```bash
-docker container prune
-```
-
-4. Re-run the start configuration for your ARM setup
-
-```bash
-sudo ./start_arm_container.sh
-```
 ## Understanding Docker Volumes for A.R.M.
 
 In the `start_arm_container.sh` script you will find these lines:

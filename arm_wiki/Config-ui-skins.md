@@ -1,8 +1,14 @@
+
+> [!CAUTION]
+> The UI Themes are located within the docker container and on restart any changes will be lost.
+> The docker containers themselves are not persistent, any changes made inside a container will be lost.
+> Work is being done with ARM v3.x to support additional themes via docker.
+
 ## For v2.4 or newer
 
 ARM makes use of [Bootstrap](https://getbootstrap.com) for alot of the heavy lifting with the ARM ui. One of the benefits of using this is that it allows users to easily customise all of the ARM ui thanks to themes/skins for bootstrap.
 
-You can get great selection of skins/Themes from here [bootswatch](https://bootswatch.com)
+You can get a great selection of skins/Themes from here [bootswatch](https://bootswatch.com)
 
 The process for updating the Skin/Theme is pretty simple
    - Find the Theme you like
@@ -10,7 +16,7 @@ The process for updating the Skin/Theme is pretty simple
    - Place the file inside (arm install path)/arm/ui/static/css
    - You should overwrite the previous file
    - Clear your browser cache (Shift + F5 on some browsers CTRL + F5 on others)
-   - Thats it!
+   - That's it!
 
 
 The default path for ARM unless you have changed it is `/opt/arm/`
