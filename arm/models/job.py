@@ -205,21 +205,43 @@ class Job(db.Model):
         return return_dict
 
     def eject(self):
-        """Eject disc if it hasn't previously been ejected"""
+        """Eject disc if it hasn't previously been ejected
+        """
         if not cfg.arm_config['AUTO_EJECT']:
             logging.info("Skipping auto eject")
             return
-        if not self.ejected:
-            self.ejected = True
-            try:
-                # This might always return true
-                if bool(os.system("umount " + self.devpath)):
-                    logging.debug(f"Unmounted disc {self.devpath}")
-                else:
-                    logging.debug(f"Failed to unmount {self.devpath}")
-                if bool(os.system("eject -sv " + self.devpath)):
-                    logging.debug(f"Ejected disc {self.devpath}")
-                else:
-                    logging.debug(f"Failed to eject {self.devpath}")
-            except Exception as error:
-                logging.debug(f"{self.devpath} couldn't be ejected {error}")
+        if self.ejected:
+            logging.debug("The drive associated with this job has already been ejected.")
+            return
+        if (error := self.drive.eject(method="eject", logger=logging)) is not None:
+            logging.debug(f"{self.devpath} couldn't be ejected: {error}")
+        self.ejected = True
+
+    @property
+    def ripping_finished(self):
+        """Indicate that the ripping process has finished
+
+        Note: The possible Job.status states must be defined as constants or
+              enums to handle and group them better. Some come from CD, some
+              from DVD ripping. The order of the states is getting unclear. The
+              timestamps could also be saved particularily for each step to
+              save, for example, the pure transcoding time without the waiting
+              time.
+
+              Finished states:
+              - success
+              - fail
+              Ripping states:
+              - Video ripping states:
+                - ripping
+                - waiting
+                - info
+              - Audio ripping states
+                - active
+              Transcoding states:
+              - waiting_transcode
+              - transcoding
+        """
+        if self.ejected:
+            return True
+        return self.status in ("success", "fail", "waiting_transcode", "transcoding")
