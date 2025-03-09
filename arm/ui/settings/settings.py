@@ -12,6 +12,7 @@ Covers
 - drive_eject [GET]
 - drive_remove [GET]
 - testapprise [GET]
+- updateCPU [GET]
 """
 
 import os
@@ -412,4 +413,35 @@ def testapprise():
         message = message + f" Server URL: http://{cfg.arm_config['UI_BASE_URL']}:{cfg.arm_config['WEBSERVER_PORT']}"
     ripper_utils.notify(None, "ARM notification", message)
     flash("Test notification sent ", "success")
+    return redirect(redirect_settings)
+
+
+@route_settings.route('/updatecpu')
+def update_cpu():
+    """
+    Update system CPU information
+    """
+    # Get current system information from database
+    current_system = SystemInfo.query.first()
+    # Query system for new information
+    new_system = SystemInfo()
+
+    app.logger.debug("****** System Information ******")
+    if current_system is not None:
+        app.logger.debug(f"Name old [{current_system.name}] new [{new_system.name}]")
+        app.logger.debug(f"Name old [{current_system.cpu}] new [{new_system.cpu}]")
+        current_system.name = new_system.name
+        current_system.cpu = new_system.cpu
+        db.session.add(current_system)
+
+    else:
+        app.logger.debug(f"Name old [] new [{new_system.name}]")
+        app.logger.debug(f"Name old [] new [{new_system.cpu}]")
+        db.session.add(new_system)
+
+    app.logger.debug("****** End System Information ******")
+    app.logger.info(f"Updated CPU Details with new info - {new_system.name} - {new_system.cpu}")
+
+    db.session.commit()
+
     return redirect(redirect_settings)
