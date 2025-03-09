@@ -14,7 +14,7 @@
 
 ## Overview
 
-The ARM Settings page provides an overview of the connected CD, DVD or Bluray drives connected to the system.
+The ARM Settings page 'General Info' tab provides an overview of the connected CD, DVD or Bluray drives connected to the system.
 Scanning for drives allows easier management, viewing and status of jobs running on the ARM system.
 
 > [!NOTE]
@@ -31,7 +31,7 @@ The following options are available from the ARM settings page, for each of the 
 2. Edit Drive Details
 3. Drive Options
 
-<img title="ARM Settings Page" alt="Default ARM Settings page with no drives" src="images/arm_settings_drives.png" width="80%" height=""/>
+<img title="ARM Settings - General Info Tab" alt="Default ARM Settings page with no drives" src="images/arm_settings_drives.png" width="80%" height=""/>
 
 ### 1. Scanning For New Drives
 
