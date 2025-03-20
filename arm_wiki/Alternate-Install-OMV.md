@@ -1,16 +1,12 @@
-# IMPORTANT
-
-***
-This installation method is not supported or maintained by the ARM Developers.
-For full support and continued maintenance,
-recommend installing ARM via the supported [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
-This installation guide has been left within the Wiki, as some users do not install via docker.
-
-**Use at your own risk** 
-
-***
-
 # Auto Install Script For OpenMediaVault/Debian
+
+> > [!CAUTION]
+> This installation method is not supported or maintained by the ARM Developers.
+> For full support and continued maintenance,
+> we recommend installing ARM via the supported [Docker Container](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
+> This installation method was developed for those that wish to use ARM without Docker.
+>
+> **Use at your own risk**
 
 This is **not recommended** for first time installations. This was only really intended to be used to reinstall on an environment you know works fully with ARM
 
