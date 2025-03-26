@@ -242,7 +242,15 @@ def process_tracks(job, mb_track_list, is_stub=False):
                 track_leng = int(track['recording']['length'])
         except ValueError:
             logging.error("Failed to find track length")
-        trackno = track.get('number', idx + 1)
+
+        # Get Track ID
+        # Check if track is returned as a string like 'A1' for Vinyl
+        if isinstance(track.get('number', idx + 1), str):
+            trackno = track.get('position', idx + 1)
+            logging.info(f"Using Track 'position' as 'number' <str> track: {trackno}")
+        else:
+            trackno = track.get('number', idx + 1)
+
         if is_stub:
             title = track.get('title', f"Untitled track {trackno}")
         else:
