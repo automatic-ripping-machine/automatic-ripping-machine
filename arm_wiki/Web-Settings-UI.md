@@ -1,12 +1,15 @@
 # Settings - User Interface (UI) Settings
 <!-- TOC -->
-* [ARM Job Management](#arm-job-management)
+* [Settings - User Interface (UI) Settings](#settings---user-interface-ui-settings)
   * [Overview](#overview)
-  * [Main Page](#main-page)
-  * [Jobs Page](#jobs-page)
-    * [Job Modes](#job-modes)
-      * [Auto (Default)](#auto-default)
-      * [Manual](#manual)
+  * [Settings](#settings)
+    * [Index Refresh](#index-refresh)
+    * [Notification Timeout](#notification-timeout)
+    * [Use Icons](#use-icons)
+    * [Save Remote Images](#save-remote-images)
+    * [Bootstrap Skin](#bootstrap-skin)
+    * [Language](#language)
+    * [Database Limit](#database-limit)
 <!-- TOC -->
 
 ## Overview
@@ -18,7 +21,7 @@ The UI settings configure update rates and presentation of the webpage.
 ### Index Refresh
 
 How often to refresh the home page in milliseconds, showing updates to any current jobs.
-Default setting is '2000', updating the home page every 2 seconds.
+The Default setting is '2000' ms, which updates the home page every 2 seconds.
 
 ### Notification Timeout
 

@@ -222,7 +222,10 @@ def get_video_details(job):
     logging.debug(f"Title: {title} | Year: {year}")
     logging.debug(f"Calling webservice with title: {title} and year: {year}")
 
-    identify_loop(job, None, title, year)
+    try:
+        identify_loop(job, None, title, year)
+    except Exception as error:
+        logging.info(f"Identification failed with the error: {error}. Continuing...")
 
 
 def update_job(job, search_results):
