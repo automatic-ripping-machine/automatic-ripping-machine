@@ -166,13 +166,29 @@ def process_single_tracks(job, logfile, rawpath, mode: str):
             logging.info(f"Processing track #{track.track_number} of {(job.no_of_titles - 1)}. "
                          f"Length is {track.length} seconds.")
             filepathname = os.path.join(rawpath, track.filename)
+            tmp_dir = os.path.join(rawpath, track.track_number)
+            os.mkdir(tmp_dir)
             logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
+
+            # Contrary to what it might seem makemvkcon might not save the file in rawpath with the name that we expect
+            # because we ran initially ran makemkvcon it has a filter on the length and this leads to different names
+            # This is especially important when you are doing manual mode and picking up tracks.
 
             cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r ' \
                   f'--progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log ' \
                   f'--messages=-stdout ' \
-                  f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)}'
+                  f'dev:{job.devpath} {track.track_number} {shlex.quote(tmp_dir)}'
+
             run_makemkv(cmd, logfile)
+            # Search the directory, normally we will just find one file
+            all_files = []
+            for root, dirs, files in os.walk(tmp_dir):
+                for file in files:
+                    all_files.append(os.path.join(root, file))
+
+            logging.info(all_files)
+
+            os.rename(all_files[0], filepathname)
 
 
 def setup_rawpath(job, raw_path):
