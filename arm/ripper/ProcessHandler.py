@@ -11,6 +11,7 @@ def arm_subprocess(cmd, in_shell, check=False):
     Handle creating new subprocesses and catch any errors
     """
     arm_process = None
+    logging.debug(f"Running command: {cmd}")
     try:
         arm_process = subprocess.check_output(
             cmd,
