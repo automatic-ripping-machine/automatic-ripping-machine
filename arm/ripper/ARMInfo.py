@@ -47,7 +47,7 @@ class ARMInfo:
         Function to get the current arm git version
         """
         branch_len = 10
-        cmd = "cd /opt/arm && git branch && git log -1"
+        cmd = f"cd {self.install_path} && git branch && git log -1"
         git_output = ProcessHandler.arm_subprocess(cmd, True)
         git_regex = r"\*\s(\S+)\n(?:\s*\S*\n){1,10}(?:commit )([a-z\d]{5,7})"
         git_match = re.search(git_regex, str(git_output.decode("utf-8")))

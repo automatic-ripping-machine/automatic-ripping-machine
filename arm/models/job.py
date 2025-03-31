@@ -136,7 +136,7 @@ class Job(db.Model):
     def __init__(self, devpath):
         """Return a disc object"""
         self.devpath = devpath
-        self.mountpoint = "/mnt" + devpath
+        self.mountpoint = os.environ.get("RUNTIME_DIRECTORY", "/mnt") + devpath
         self.hasnicetitle = False
         self.video_type = "unknown"
         self.ejected = False

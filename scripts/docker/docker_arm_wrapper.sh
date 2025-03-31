@@ -5,6 +5,10 @@ ARMLOG="/home/arm/logs/arm.log"
 echo "[ARM] Entering docker wrapper" | logger -t ARM -s
 echo "$(date) Entering docker wrapper" >> $ARMLOG
 
+set -a && source /etc/environment && set +a
+# ↑       ↑ set all env vars from this file (we need PATH, udev doesn't give it to us)
+# └ export all variables which are set
+
 #######################################################################################
 # YAML Parser to read Config
 #
@@ -66,4 +70,4 @@ else
 	  exit #bail out
 fi
 cd /home/arm
-/usr/bin/python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" | logger -t ARM -s
+python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" | logger -t ARM -s

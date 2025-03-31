@@ -85,7 +85,7 @@ def bash_notify(cfg, title, body):
     # bash notifications use subprocess instead of apprise.
     if cfg['BASH_SCRIPT'] != "":
         try:
-            subprocess.run(["/usr/bin/bash", cfg['BASH_SCRIPT'], title, body])
+            subprocess.run(["/usr/bin/env", "bash", cfg['BASH_SCRIPT'], title, body])
             logging.debug("Sent bash notification successful")
         except Exception as error:  # noqa: E722
             logging.error(f"Failed sending notification via bash. Continuing  processing...{error}")

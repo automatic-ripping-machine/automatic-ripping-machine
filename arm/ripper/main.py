@@ -13,11 +13,15 @@ import time  # noqa: E402
 import datetime  # noqa: E402
 import re  # noqa: E402
 import getpass  # noqa E402
+from importlib.util import find_spec
+from pathlib import Path
 import pyudev  # noqa: E402
 import psutil  # noqa E402
 
-# set the PATH to /opt/arm so we can handle imports properly
-sys.path.append("/opt/arm")
+# If the arm module can't be found, add the folder this file is in to PYTHONPATH
+# This is a bad workaround for non-existent packaging
+if find_spec("arm") is None:
+    sys.path.append(str(Path(__file__).parents[2]))
 
 from arm.ripper import logger, utils, identify, arm_ripper, music_brainz  # noqa: E402
 import arm.config.config as cfg  # noqa E402

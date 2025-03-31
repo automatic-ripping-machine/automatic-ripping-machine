@@ -14,6 +14,7 @@ Covers
 - testapprise [GET]
 - updateCPU [GET]
 """
+import os
 import platform
 import importlib
 import re
@@ -380,7 +381,10 @@ def drive_manual(manual_id):
     drive = SystemDrives.query.filter_by(drive_id=manual_id).first()
     dev_path = drive.mount.lstrip('/dev/')
 
-    cmd = f"/opt/arm/scripts/docker/docker_arm_wrapper.sh {dev_path}"
+    cmd = os.path.join(
+        cfg.arm_config["INSTALLPATH"],
+        "scripts/docker/docker_arm_wrapper.sh {dev_path}",
+    )
     app.logger.debug(f"Running command[{cmd}]")
 
     # Manually start ARM if the udev rules are not working for some reason

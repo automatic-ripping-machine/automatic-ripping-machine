@@ -4,8 +4,13 @@ It would help clear up main and make things easier to find
 import sys
 import os
 import logging
+from importlib.util import find_spec
+from pathlib import Path
 
-sys.path.append("/opt/arm")
+# If the arm module can't be found, add the folder this file is in to PYTHONPATH
+# This is a bad workaround for non-existent packaging
+if find_spec("arm") is None:
+    sys.path.append(str(Path(__file__).parents[2]))
 
 from arm.ripper import utils, makemkv, handbrake  # noqa E402
 from arm.ui import app, db, constants  # noqa E402

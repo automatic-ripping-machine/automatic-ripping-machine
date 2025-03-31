@@ -816,10 +816,7 @@ def prep_mkv():
     """
     try:
         logging.info("Updating MakeMKV key...")
-        cmd = [
-            "/bin/bash",
-            "/opt/arm/scripts/update_key.sh",
-        ]
+        cmd = [os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh")]
         # if MAKEMKV_PERMA_KEY is populated
         if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
             logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
@@ -1076,7 +1073,7 @@ def run(options, select):
         raise TypeError(select)
     # robot process of makemkvcon with
     cmd = [
-        "/usr/local/bin/makemkvcon",
+        "makemkvcon",
         "--robot",
         "--messages=-stdout",
     ]
