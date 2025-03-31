@@ -6,7 +6,7 @@ import logging
 import subprocess
 
 
-def arm_subprocess(cmd, in_shell):
+def arm_subprocess(cmd, in_shell, check=False):
     """
     Handle creating new subprocesses and catch any errors
     """
@@ -18,5 +18,7 @@ def arm_subprocess(cmd, in_shell):
         )
     except subprocess.CalledProcessError as error:
         logging.error(f"Error executing command `{cmd}`: {error}")
+        if check:
+            raise error
 
     return arm_process
