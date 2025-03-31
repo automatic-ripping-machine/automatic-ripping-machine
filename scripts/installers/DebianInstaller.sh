@@ -827,10 +827,10 @@ function MountDrives() {
   ######## also creating mount points (why loop twice)
   echo -e "${RED}Adding fstab entry and creating mount points${NC}"
   for dev in /dev/sr?; do
-    if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
+    if grep -q "${dev}    /mnt${dev}    udf,iso9660    defaults,users,utf8,ro    0    0" /etc/fstab; then
         echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
     else
-        echo -e "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 " | tee -a /etc/fstab
+        echo -e "${dev}    /mnt${dev}    udf,iso9660    defaults,users,utf8,ro    0    0 " | tee -a /etc/fstab
     fi
     mkdir -p "/mnt$dev"
   done
