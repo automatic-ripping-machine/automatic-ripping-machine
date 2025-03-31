@@ -117,7 +117,9 @@ def create_logger(app_name, log_level=logging.DEBUG, stdout=True, syslog=False, 
 
     if file:
         # create file logger handler
-        file_handler = logging.FileHandler('/home/arm/logs/arm.log')
+        file_handler = logging.FileHandler(
+            os.path.join(cfg.arm_config['LOGPATH'], 'arm.log')
+        )
         file_handler.setLevel(log_level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
