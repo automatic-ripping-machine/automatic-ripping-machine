@@ -10,7 +10,7 @@ def arm_subprocess(cmd, in_shell):
     """
     Handle creating new subprocesses and catch any errors
     """
-    arm_process = ""
+    arm_process = None
     try:
         arm_process = subprocess.check_output(
             cmd,
@@ -18,6 +18,5 @@ def arm_subprocess(cmd, in_shell):
         )
     except subprocess.CalledProcessError as error:
         logging.error(f"Error executing command `{cmd}`: {error}")
-        arm_process = None
 
     return arm_process
