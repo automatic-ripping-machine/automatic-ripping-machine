@@ -17,8 +17,7 @@ def arm_subprocess(cmd, in_shell):
             shell=in_shell
         )
     except subprocess.CalledProcessError as error:
-        logging.error(f"Error executing command {cmd}")
-        logging.error(f"Subprocess error {error}")
+        logging.error(f"Error executing command `{cmd}`: {error}")
         arm_process = None
 
     return arm_process
