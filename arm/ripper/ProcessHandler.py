@@ -18,7 +18,10 @@ def arm_subprocess(cmd, in_shell, check=False):
             shell=in_shell
         )
     except subprocess.CalledProcessError as error:
-        logging.error(f"Error executing command `{cmd}`: {error}")
+        logging.error(error)
+        logging.error("Output was:")
+        logging.error(error.output)
+        logging.debug(str(error.__traceback__))
         if check:
             raise error
 
