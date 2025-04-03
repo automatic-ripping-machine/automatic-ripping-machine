@@ -56,6 +56,10 @@ def mask_last(value, n=4):
     return value[:-n] + '*' * n if len(value) > n else '*' * len(value)
 
 
+def is_read_only(path: os.PathLike) -> bool:
+    return not os.access(path, os.W_OK)
+
+
 route_settings.add_app_template_filter(mask_last, name='mask_last')
 
 
@@ -134,7 +138,10 @@ def settings():
                            arm_path=arm_path,
                            media_path=media_path,
                            drives=drives,
-                           form_drive=form_drive)
+                           form_drive=form_drive,
+                           ripper_read_only=is_read_only(cfg.arm_config_path),
+                           apprise_read_only=is_read_only(cfg.apprise_config_path),
+                           abcde_read_only=is_read_only(cfg.abcde_config_path))
 
 
 def check_hw_transcode_support():
@@ -185,16 +192,19 @@ def save_settings():
         # Build the new arm.yaml with updated values from the user
         arm_cfg = ui_utils.build_arm_cfg(request.form.to_dict(), comments)
         # Save updated arm.yaml
-        with open(cfg.arm_config_path, "w") as settings_file:
-            settings_file.write(arm_cfg)
-            settings_file.close()
-        success = True
-        importlib.reload(cfg)
-        # Set the ARM Log level to the config
-        app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
-        app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
+        try:
+            with open(cfg.arm_config_path, "w") as settings_file:
+                settings_file.write(arm_cfg)
+                settings_file.close()
+            success = True
+            importlib.reload(cfg)
+            # Set the ARM Log level to the config
+            app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
+            app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
+        except OSError as e:
+            # arm.yaml is read-only
+            app.logger.error(f"{cfg.arm_config_path} is read-only", exc_info=e)
 
-    # If we get to here there was no post data
     return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
 
 
@@ -246,12 +256,15 @@ def save_abcde():
         # Windows machines can put \r\n instead of \n newlines, which corrupts the config file
         clean_abcde_str = '\n'.join(abcde_cfg_str.splitlines())
         # Save updated abcde.conf
-        with open(cfg.abcde_config_path, "w") as abcde_file:
-            abcde_file.write(clean_abcde_str)
-            abcde_file.close()
-        success = True
-        # Update the abcde config
-        cfg.abcde_config = clean_abcde_str
+        try:
+            with open(cfg.abcde_config_path, "w") as abcde_file:
+                abcde_file.write(clean_abcde_str)
+                abcde_file.close()
+            success = True
+            # Update the abcde config
+            cfg.abcde_config = clean_abcde_str
+        except OSError as e:
+            app.logger.error(f"{cfg.abcde_config_path} is read-only", exc_info=e)
 
     # If we get to here, there was no post-data
     return {'success': success,
@@ -273,11 +286,14 @@ def save_apprise_cfg():
         # Save updated apprise.yaml
         # Build the new arm.yaml with updated values from the user
         apprise_cfg = ui_utils.build_apprise_cfg(request.form.to_dict())
-        with open(cfg.apprise_config_path, "w") as settings_file:
-            settings_file.write(apprise_cfg)
-            settings_file.close()
-        success = True
-        importlib.reload(cfg)
+        try:
+            with open(cfg.apprise_config_path, "w") as settings_file:
+                settings_file.write(apprise_cfg)
+                settings_file.close()
+            success = True
+            importlib.reload(cfg)
+        except OSError as e:
+            app.logger.error(f"{cfg.apprise_config_path} is read-only", exc_info=e)
     # If we get to here there was no post data
     return {'success': success, 'settings': cfg.apprise_config, 'form': 'Apprise config'}
 
