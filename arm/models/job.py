@@ -148,6 +148,7 @@ class Job(db.Model):
         self.stage = str(round(time.time() * 100))
         self.manual_start = False
         self.manual_mode = False
+        self.has_track_99 = False
 
         if self.disctype == "dvd" and not self.label:
             logging.info("No disk label Available. Trying lsdvd")
