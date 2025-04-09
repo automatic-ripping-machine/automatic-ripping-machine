@@ -21,7 +21,7 @@ chmod +x ubuntu-20.04-install.sh
 The script defaults to installing a live version of ARM, but includes a `-d` flag that can be specified to install ARM in a development environment.
 
 To install ARM LIVE: `sudo ./ubuntu-20.04-install.sh`  
-To install ARM DEV: `sudo ./ubuntu-20.04-install.sh -d`
+--To install ARM DEV: `sudo ./ubuntu-20.04-install.sh -d`--
 
 After the script finishes, Firefox should open to `http:<machine_ip>:8080/setup` and prompt the user to create an admin account. If this doesn't happen, check the installer console log for error messages.
 

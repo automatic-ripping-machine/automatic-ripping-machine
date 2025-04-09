@@ -59,8 +59,13 @@ function add_arm_user() {
 }
 
 function install_arm_requirements() {
+    . /etc/os-release
+    MAJOR_VERSION=$(echo $VERSION_ID | cut -d '.' -f1)
+    echo -e "Ubuntu version found was: ${VERSION_ID}"
     echo -e "${RED}Installing ARM requirments${NC}"
-    sudo add-apt-repository ppa:mc3man/focal6 -y
+    if (( $MAJOR_VERSION == 20)); then
+        sudo add-apt-repository ppa:mc3man/focal6 -y
+    fi
     sudo add-apt-repository ppa:heyarje/makemkv-beta -y
     sudo apt update -y
 
@@ -73,7 +78,6 @@ function install_arm_requirements() {
         python3-dev \
         python3-pip \
         python3-wheel \
-        python-psutil \
         python3-pyudev \
         python3-testresources \
         abcde \
@@ -86,6 +90,11 @@ function install_arm_requirements() {
         glyrc \
         default-jre-headless \
         libavcodec-extra
+    if (( $MAJOR_VERSION == 20)); then
+        sudo apt install -y python-psutil
+    elif (( $MAJOR_VERSION > 20 )); then
+        sudo apt install -y python3-psutil
+    fi
 
     sudo apt install -y \
         handbrake-cli makemkv-bin makemkv-oss \
