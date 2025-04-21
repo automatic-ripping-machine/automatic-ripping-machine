@@ -7,7 +7,7 @@ Covers
 - logout [GET]
 - update_password [GET, POST]
 """
-
+from sqlite3 import OperationalError
 import bcrypt
 from flask import redirect, render_template, request, Blueprint, flash, app, session
 from flask_login import LoginManager, login_required, \
@@ -26,10 +26,6 @@ route_auth = Blueprint('route_auth', __name__,
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-# Page definitions
-page_support_databaseupdate = "support/databaseupdate.html"
-redirect_settings = "/settings"
-
 
 @route_auth.route('/login', methods=['GET', 'POST'])
 def login():
@@ -37,7 +33,7 @@ def login():
     Login page if login is enabled
     :return: redirect
     """
-    global page_support_databaseupdate
+    page_support_databaseupdate = "support/databaseupdate.html"
 
     # Check the database is current
     db_update = ui_utils.arm_db_check()
@@ -52,14 +48,16 @@ def login():
         # If we don't raise an exception but the usr table is empty
         if not user_list:
             app.logger.debug("No admin found")
-    except Exception:
+    except OperationalError as e:
+        # Handle no data found when querying the db
         flash(constants.NO_ADMIN_ACCOUNT, "danger")
         app.logger.debug(constants.NO_ADMIN_ACCOUNT)
+        app.logger.debug(f"ERROR: Missing Data in the ARM User Table: {e}")
         dbform = DBUpdate(request.form)
         db_update = ui_utils.arm_db_check()
         return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
 
-    # if user is logged in
+    # if a user is logged in
     if current_user.is_authenticated:
         return_redirect = redirect(constants.HOME_PAGE)
 
@@ -81,7 +79,7 @@ def login():
         else:
             flash("Something isn't right", "danger")
 
-    # If nothing has gone wrong give them the login page
+    # If nothing has gone wrong, give them the login page
     if request.method == 'GET' or return_redirect is None:
         return_redirect = render_template('login.html', form=form)
 
@@ -103,7 +101,7 @@ def logout():
 @login_required
 def update_password():
     """
-    updating password for the admin account
+    updating the password for the admin account
     """
     # get current user
     user = User.query.first()
@@ -148,15 +146,16 @@ def load_user(user_id):
     """
     try:
         return User.query.get(int(user_id))
-    except Exception:
+    except OperationalError as e:
         app.logger.debug("Error getting user")
+        app.logger.debug(f"ERROR: {e}")
         return None
 
 
 @login_manager.unauthorized_handler
 def unauthorized():
     """
-    User isn't authorised to view the page
-    :return: Page redirect
+    User isn't authorised to view the requested page
+    :return: redirect to login page
     """
     return redirect('/login')

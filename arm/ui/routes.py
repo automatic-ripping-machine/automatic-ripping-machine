@@ -9,7 +9,6 @@ Covers
 Other routes handled in flask blueprints
 - auth, database, history, jobs, logs, sendmovies, settings
 """
-
 import os
 import json
 from pathlib import Path, PurePath
@@ -19,6 +18,7 @@ from flask import Flask, render_template, request, flash, \
 from flask.logging import default_handler  # noqa: F401
 from flask_login import LoginManager, login_required, \
     current_user, login_user, logout_user  # noqa: F401
+from sqlalchemy.exc import SQLAlchemyError
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants
@@ -33,10 +33,6 @@ from arm.ui.settings.settings import check_hw_transcode_support
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
 armui_cfg = ui_utils.arm_db_cfg()
 
-# Page definitions
-page_support_databaseupdate = "support/databaseupdate.html"
-redirect_settings = "/settings"
-
 # Define the Flask login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -49,22 +45,20 @@ def home():
     """
     The main homepage showing current rips and server stats
     """
-    global page_support_databaseupdate
-
     # Check the database is current
     db_update = ui_utils.arm_db_check()
-    # Push out HW transcode status for homepage
+    # Push out HW transcode status for the homepage
     stats = {'hw_support': check_hw_transcode_support()}
     if not db_update["db_current"] or not db_update["db_exists"]:
         dbform = DBUpdate(request.form)
         app.logger.debug(f"Error with ARM DB: [{db_update['db_current']}]-[{db_update['db_exists']}]")
-        return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
+        return render_template("support/databaseupdate.html",
+                               db_update=db_update,
+                               dbform=dbform)
 
-    # System details in class server
+    # Get system details from Server Info and Config
     server = SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
-
-    # System details in class server
     arm_path = cfg.arm_config['TRANSCODE_PATH']
     media_path = cfg.arm_config['COMPLETED_PATH']
 
@@ -75,8 +69,9 @@ def home():
     if os.path.isfile(cfg.arm_config['DBFILE']):
         try:
             jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
-        except Exception:
+        except SQLAlchemyError as e:
             # db isn't setup
+            app.logger.debug(f"Error getting jobs from DB: {e}")
             return redirect(url_for('setup'))
     else:
         jobs = {}
