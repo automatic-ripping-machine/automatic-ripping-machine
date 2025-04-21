@@ -11,29 +11,28 @@
      - See Alternate Installations
    
    - **Automatic script install**
-       - [Open Media Vault/ Debian (Install script)](Setting-up-ARM-script-(Debian-OMV))
-       - [Ubuntu 20.04 (install script)](Ubuntu-20.04-Automatic-Installation)
-   - [Upgrading from old versions](upgrading)
-
+       - [Open Media Vault/ Debian (Install script)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Setting-up-ARM-script-(Debian-OMV))
+       - [Ubuntu 20.04 (install script)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Ubuntu-20.04-Automatic-Installation)
+   - [Upgrading from old versions](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/upgrading)
 
 **Web Page Overview**
   - _Coming Soon_
-  - **Jobs**
-    - [Jobs](Web-Jobs)
-  - **Settings**
+  - [Jobs](Web-Jobs)
+  - [Settings](Web-Settings)
     - [Drive Management](Web-Settings-Drives)
+    - [UI Settings](Web-Settings-UI)
     - [System Information](Web-Settings-System-Info)
 
-**[Known Issues](Known-Issues)**
+**[Known Issues](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Known-Issues)**
 
 **Configuration**
    - [Configuration](Configuring-ARM)
 
    - **Configuration Files**
-      - [arm.yaml](config-arm.yaml)
-      - [apprise.yaml](config-apprise.yaml)
-      - [.abcde.conf](config-abcde)
-      - [Skins for ARM ui](config-ui-skins)
+      - [arm.yaml](Config-arm.yaml)
+      - [apprise.yaml](Config-apprise.yaml)
+      - [.abcde.conf](Config-abcde.conf)
+      - [Skins for ARM ui](Config-ui-skins)
       - [MakeMKV](MakeMKV-Info)
      
    - **Alternate Installations**
@@ -62,9 +61,9 @@
 
 
 **Contributing to ARM**
-   - [ARM Code](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute)
-   - [ARM Wiki](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Wiki)
-   - [Docker Dev guide](http://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Docker)
+   - [ARM Code](Contribute)
+   - [ARM Wiki](Contribute-Wiki)
+   - [Docker Dev guide](Contribute-Docker)
    - [ARM Development Tools (devtools)](Contribute-DevTools)
 
 

@@ -1,7 +1,7 @@
-# ARM Drive Management
+# ARM Settings - Drive Management
+
 <!-- TOC -->
-* [ARM Drive Management](#arm-drive-management)
-  * [Overview](#overview)
+* [ARM Settings - Drive Management](#arm-settings---drive-management)
   * [Drive Settings](#drive-settings)
     * [1. Scanning For New Drives](#1-scanning-for-new-drives)
     * [2. Edit Drive Details](#2-edit-drive-details)
@@ -20,8 +20,6 @@ Scanning for drives allows easier management, viewing and status of jobs running
 > [!NOTE]
 > For ARM to rip media the drives do not need to appear on the settings, drive page.
 > However, if ARM cannot find a drive following a scan, there may be issues with the docker configuration.
-
-<img title="ARM Settings Page" alt="Default ARM Settings page with no drives" src="images/arm_settings.png" width="80%" height=""/>
 
 ## Drive Settings
 
@@ -93,11 +91,11 @@ This shouldn't be needed all the time, but sometimes it helps.
 
 **Manual job successful start**
 
-<img title="Manual Start - Success" alt="Manual start against drive 1, flash message success" src="images/arm_main_manual_start_success.png" width="60%" height=""/>
+<img title="Manual Start - Success" alt="Manual start against drive 1, flash message success" src="images/arm_main_manual_start_success.png" width="70%" height=""/>
 
 **Manual job failed to start**
 
-<img title="Manual Start - Success" alt="Manual start against drive 1, flash message success" src="images/arm_main_manual_start_failed.png" width="60%" height=""/>
+<img title="Manual Start - Success" alt="Manual start against drive 1, flash message success" src="images/arm_main_manual_start_failed.png" width="70%" height=""/>
 
 > [!NOTE]
 > Errors in manual starting will be reported to the ARM docker logs.
