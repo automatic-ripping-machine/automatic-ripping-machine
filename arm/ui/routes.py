@@ -71,7 +71,7 @@ def home():
             jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
         except SQLAlchemyError as e:
             # db isn't setup
-            app.logger.debug(f"Error getting jobs from DB: {e}")
+            app.logger.error(f"Error getting jobs from DB: {e}")
             return redirect(url_for('setup'))
     else:
         jobs = {}
@@ -171,7 +171,7 @@ def setup():
         return redirect("/error")
     except Exception as error:
         flash(str(error))
-        app.logger.debug("Setup - " + str(error))
+        app.logger.error("Setup - " + str(error))
         return redirect(constants.HOME_PAGE)
 
 
@@ -184,8 +184,9 @@ def load_user(user_id):
     """
     try:
         return User.query.get(int(user_id))
-    except Exception:
-        app.logger.debug("Error getting user")
+    except SQLAlchemyError as e:
+        app.logger.error("Error getting user")
+        app.logger.error(f"ERROR: {e}")
         return None
 
 

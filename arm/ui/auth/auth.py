@@ -1,7 +1,7 @@
 """
 ARM route blueprint for auth pages
 Covers
-- user_loader [..]
+- user_loader [GET, POST]
 - unauthorized_handler [GET]
 - login [GET, POST]
 - logout [GET]
@@ -47,12 +47,12 @@ def login():
         user_list = User.query.all()
         # If we don't raise an exception but the usr table is empty
         if not user_list:
-            app.logger.debug("No admin found")
+            app.logger.error("No admin found")
     except OperationalError as e:
         # Handle no data found when querying the db
         flash(constants.NO_ADMIN_ACCOUNT, "danger")
-        app.logger.debug(constants.NO_ADMIN_ACCOUNT)
-        app.logger.debug(f"ERROR: Missing Data in the ARM User Table: {e}")
+        app.logger.error(constants.NO_ADMIN_ACCOUNT)
+        app.logger.error(f"ERROR: Missing Data in the ARM User Table: {e}")
         dbform = DBUpdate(request.form)
         db_update = ui_utils.arm_db_check()
         return render_template(page_support_databaseupdate, db_update=db_update, dbform=dbform)
@@ -129,10 +129,10 @@ def update_password():
                 return redirect("logout")
             except Exception as error:
                 flash(str(error), "danger")
-                app.logger.debug(f"Error in updating password: {error}")
+                app.logger.error(f"Error in updating password: {error}")
         else:
             flash("Password couldn't be updated. Problem with old password", "danger")
-            app.logger.info("Password not updated, issue with old password")
+            app.logger.error("Password not updated, issue with old password")
 
     return render_template('update_password.html', user=user.email, form=form)
 
@@ -147,8 +147,8 @@ def load_user(user_id):
     try:
         return User.query.get(int(user_id))
     except OperationalError as e:
-        app.logger.debug("Error getting user")
-        app.logger.debug(f"ERROR: {e}")
+        app.logger.error("Error getting user")
+        app.logger.error(f"ERROR: {e}")
         return None
 
 
