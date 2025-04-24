@@ -60,6 +60,20 @@ If you have a desktop environment install drop the --gpgpu
 2. Reboot system
 `sudo reboot`
 
+## Installing NVIDIA drivers directly:
+If HandBrakeCLI lists the encoder but throws an error:
+`Driver does not support the required nvenc API version. Required: 13.0 Found: 12.1`
+you will need to install the latest driver from Nvidia directly.
+
+1. Find teh correct version of driver from https://www.nvidia.com/en-us/drivers/ to your server.
+e.g. : `wget https://us.download.nvidia.com/XFree86/Linux-x86_64/570.144/NVIDIA-Linux-x86_64-570.144.run`
+
+2. Install the driver with admin privilages:
+`sudo bash ./NVIDIA-Linux-x86_64-570.144.run`
+
+3. Reboot system
+`sudo reboot`
+
 ## Installing the NVIDIA Container Toolkit:
 Do this before point 5 in post installation guide for docker "Run the container with sudo ./start_arm_container.sh" 
 
