@@ -16,7 +16,7 @@ If running in a VM, make sure all disks are available to your distro via hardwar
 ```
 sudo apt install wget lsscsi
 lsscsi -g
-wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/docker-setup.sh
+wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/installers/docker-setup.sh
 sudo chmod +x docker-setup.sh
 ```
 

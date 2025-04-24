@@ -12,14 +12,14 @@ If you have these you can continue...
 
 Currently no distros enable AMD VCE by default in their packages of HandBrake/CLI. Not Even HandBrake themselves have it enabled for linux. It is considered bleeding edge and highly experimental. VCE support needs to be added manually, this means rebuilding HandBrake from source.
 
-## Ubuntu 20.04
+## Ubuntu 20.04 - 24.02
 I have made a script that will Install all the requirements for Intel QSV & enable AMD VCE from the HandBrake build.
-**This is only tested on Ubuntu 20.04**
-You can either follow along the [commands](https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/v2_devel/scripts/ubuntu-quicksync.sh) or you can run:
+**This is only tested on Ubuntu 20.04** **And BARELY tested on 24.02**
+You can either follow along the [commands](https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/v2_devel/scripts/installers/ubuntu-quicksync.sh) or you can run:
 
  ```
  sudo apt install wget
- wget https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/v2_devel/scripts/ubuntu-quicksync.sh 
+ wget https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/v2_devel/scripts/installers/ubuntu-quicksync.sh 
  sudo chmod +x ubuntu-quicksync.sh
  sudo ./ubuntu-quicksync.sh
  ```

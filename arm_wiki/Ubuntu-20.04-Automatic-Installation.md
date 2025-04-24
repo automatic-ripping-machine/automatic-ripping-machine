@@ -2,6 +2,7 @@
 
 # Automatically Install ARM on Ubuntu 20.04
 The ARM installation script supports both Ubuntu Desktop 20.04 and Ubuntu Server 20.04
+Initial testing on 24.02 has been successful.
 
 ## Installing Ubuntu
 - Select the option to install all third-party drivers

@@ -35,11 +35,11 @@ So you can either try to find the Intel Media SDK package from your distro or yo
 
 I have made a script that will Install all the requirements for Intel QSV to get up and running.
 
-You can either follow along the [commands](https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/ubuntu-quicksync.sh) or you can run:
+You can either follow along the [commands](https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/installers/ubuntu-quicksync.sh) or you can run:
 
  ```
  sudo apt install wget
- wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/ubuntu-quicksync.sh 
+ wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/installers/ubuntu-quicksync.sh 
  sudo chmod +x ubuntu-quicksync.sh
  sudo ./ubuntu-quicksync.sh
  ```
