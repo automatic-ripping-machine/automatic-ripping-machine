@@ -47,21 +47,25 @@ The script will now:
     
        Example: `-e ARM_GID="1001"`
 
-    3. Fill in the appropriate paths for the volumes being mounted. Only change the path on the left hand side, docker volumes are configured with "[local path]:[arm path]". More information about volumes is found below under the heading: [Understanding Docker Volumes for A.R.M.](#understanding-docker-volumes-for-arm)
+    3. To set the timezone, enter an acceptable value for `TZ`. If none is set, the default timezone is UTC.
+
+       Example: -e TZ=New_York`
+
+    4. Fill in the appropriate paths for the volumes being mounted. Only change the path on the left hand side, docker volumes are configured with "[local path]:[arm path]". More information about volumes is found below under the heading: [Understanding Docker Volumes for A.R.M.](#understanding-docker-volumes-for-arm)
 
        Example: `-v "/home/arm:/home/arm"`
 
-    4. Fill in your CD, DVD and Blu-Ray drives. Each `--device="/dev/sr0:/dev/sr0" \` line gives A.R.M. access to an optical drive.  To list all the drives (SSD, HD, Optical and others) found on your system, Run the command `lsscsi -g`.  For each Optical drive, the second column will have the "cd/dvd" entry, note the `/dev/sr#` (replace the pound sign # with the number) and add a device entry to your script.  By default, the script has `/dev/sr0` through `/dev/sr3` pre-entered.  Add or remove entries as necessary. You should have one entry for each "cd/dvd" that `lsscsi -g` finds.  
+    5. Fill in your CD, DVD and Blu-Ray drives. Each `--device="/dev/sr0:/dev/sr0" \` line gives A.R.M. access to an optical drive.  To list all the drives (SSD, HD, Optical and others) found on your system, Run the command `lsscsi -g`.  For each Optical drive, the second column will have the "cd/dvd" entry, note the `/dev/sr#` (replace the pound sign # with the number) and add a device entry to your script.  By default, the script has `/dev/sr0` through `/dev/sr3` pre-entered.  Add or remove entries as necessary. You should have one entry for each "cd/dvd" that `lsscsi -g` finds.  
 
-    5. Fill in the list of CPU core threads to give the container in `--cpuset-cpus`. It's highly recommended to leave at least one core for the hypervisor to use, so the host machine doesn't get choked out during transcoding! Also, CPUs with multiple threads per core will be numbered in pairs. In the below example, only core #4 would be passed to ARM.
+    6. Fill in the list of CPU core threads to give the container in `--cpuset-cpus`. It's highly recommended to leave at least one core for the hypervisor to use, so the host machine doesn't get choked out during transcoding! Also, CPUs with multiple threads per core will be numbered in pairs. In the below example, only core #4 would be passed to ARM.
    
        Example: `--cpuset-cpus='5,6'`
 
-   6. Set the name of the docker image, the default is below, but can be user configured.
+   7. Set the name of the docker image, the default is below, but can be user configured.
       
       Example: `--name "automatic-ripping-machine"`
    
-   7. Save and close
+   8. Save and close
 
 
 4. **Permissions**: When starting the ARM docker container, if the ARM user ID and group ID from steps 1 and 2 are not set correctly ARM will not start. If the container does not start, check the docker logs.
@@ -186,4 +190,3 @@ If using network shares, be aware that the performance of your A.R.M. installati
 *    `{media_volume_local_path}/completed` is a mounted network share (for example, pointing to a Plex, Emby or Jellyfin media library folder)
 
 If using a network share for the `/home/arm` volume, read this [section](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Troubleshooting#my-volume-paths-point-to-a-cifs-mount---but-now-the-database-is-locked) from [Docker Troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Troubleshooting) 
-
