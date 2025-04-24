@@ -28,7 +28,7 @@
      
    - **Alternate Installations**
      - [Ubuntu](Alternate-Install-Ubuntu)
-     - [Ubuntu 20.04 (install script)](Ubuntu-20.04-Automatic-Installation)
+     - ~~[Ubuntu 20.04 (install script)](Ubuntu-20.04-Automatic-Installation)~~ (Run the Debian script)
      - [Debian](Alternate-Install-Debian)
      - [Open Media Vault](Alternate-Install-OMV)
      - [TrueNAS](Alternate-Install-TrueNAS)

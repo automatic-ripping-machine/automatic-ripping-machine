@@ -8,29 +8,21 @@ The best way to setup ARM for a new user is to follow along from here [Debian](h
 **For the attended install use:**
  ```
  sudo apt install wget
- wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/v2_devel/scripts/debian-setup.sh
- sudo chmod +x debian-setup.sh
- sudo ./debian-setup.sh
- ```
- 
- **For the silent install use**
-  ```
- sudo apt -qqy install wget
- wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/v2_devel/scripts/deb-install-quiet.sh
- sudo chmod +x deb-install-quiet.sh
- sudo ./deb-install-quiet.sh
+ wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/v2_devel/scripts/installers/DebianInstaller.sh
+ sudo chmod +x DebianInstaller.sh
+ sudo ./DebianInstaller.sh
  ```
 
 Then ```reboot```  to complete installation.
 
 
-## Install Script For Ubuntu 20.04
+## Install Script For Ubuntu 20.04 & 24.02
 
  ```
 sudo apt install wget
- wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/v2_devel/scripts/ubuntu-20.04-install.sh
-sudo chmod +x ubuntu-20.04-install.sh
-sudo ./ubuntu-20.04-install.sh
+ wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/v2_devel/scripts/installers/DebianInstaller.sh
+sudo chmod +x DebianInstaller.sh
+sudo ./DebianInstaller.sh
  ```
 
 Then ```reboot```  to complete installation.
