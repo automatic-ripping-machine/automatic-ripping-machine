@@ -28,7 +28,7 @@
      
    - **Alternate Installations**
      - [Ubuntu](Alternate-Install-Ubuntu)
-     - [Ubuntu 20.04 (install script)](Ubuntu-20.04-Automatic-Installation)
+     - ~~[Ubuntu 20.04 (install script)](Ubuntu-20.04-Automatic-Installation)~~ (Run the Debian script)
      - [Debian](Alternate-Install-Debian)
      - [Open Media Vault](Alternate-Install-OMV)
      - [TrueNAS](Alternate-Install-TrueNAS)
@@ -65,4 +65,4 @@
       - [Related Projects and HowTos](related-howtos)
       - [Hardware/OS HowTo's](VMware)
       - [The ARM Change log](Change-Log)
-      - [The ARM License](https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/v2_devel/LICENSE)
+      - [The ARM License](https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/main/LICENSE)

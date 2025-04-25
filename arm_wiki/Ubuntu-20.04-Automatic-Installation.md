@@ -2,6 +2,7 @@
 
 # Automatically Install ARM on Ubuntu 20.04
 The ARM installation script supports both Ubuntu Desktop 20.04 and Ubuntu Server 20.04
+Initial testing on 24.02 has been successful.
 
 ## Installing Ubuntu
 - Select the option to install all third-party drivers
@@ -13,15 +14,15 @@ If running Ubuntu in a VM, make sure all disks are available to Ubuntu via hardw
 ```
 sudo apt install wget lsscsi
 lsscsi -g
-wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/ubuntu-20.04-install.sh
-chmod +x ubuntu-20.04-install.sh
+wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/installers/DebianInstaller.sh
+chmod +x installers/DebianInstaller.sh
 ```
 
 ## Install ARM
-The script defaults to installing a live version of ARM, but includes a `-d` flag that can be specified to install ARM in a development environment.
+The script defaults to installing a live version of ARM~~~, but includes a `-d` flag that can be specified to install ARM in a development environment.~~~
 
-To install ARM LIVE: `sudo ./ubuntu-20.04-install.sh`  
-To install ARM DEV: `sudo ./ubuntu-20.04-install.sh -d`
+To install ARM LIVE: `sudo ./DebianInstaller.sh`  
+~~To install ARM DEV: `sudo ./ubuntu-20.04-install.sh -d`~~
 
 After the script finishes, Firefox should open to `http:<machine_ip>:8080/setup` and prompt the user to create an admin account. If this doesn't happen, check the installer console log for error messages.
 
