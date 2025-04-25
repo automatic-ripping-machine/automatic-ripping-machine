@@ -65,4 +65,4 @@
       - [Related Projects and HowTos](related-howtos)
       - [Hardware/OS HowTo's](VMware)
       - [The ARM Change log](Change-Log)
-      - [The ARM License](https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/v2_devel/LICENSE)
+      - [The ARM License](https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/main/LICENSE)
