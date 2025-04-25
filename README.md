@@ -41,7 +41,7 @@ See: https://b3n.org/automatic-ripping-machine
     - Transcoding jobs are asynchronously batched from ripping
     - Send notifications via IFTTT, Pushbullet, Slack, Discord, and many more!
   - If audio (CD) - rip using abcde (get disc-data and album art from [musicbrainz](https://musicbrainz.org/))
-  - If data (Blu-ray, DVD, or CD) - make an ISO backup
+  - If data (Blu-ray, DVD, DVD-Audio or CD) - make an ISO backup
 - Headless, designed to be run from a server
 - Can rip from multiple-optical drives in parallel
 - Python Flask UI to interact with ripping jobs, view logs, update jobs, etc
