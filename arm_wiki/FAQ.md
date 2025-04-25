@@ -86,11 +86,13 @@ The reason these aren't enabled by default is that Rip method being set to mkv c
 
 - Make sure you only install drivers for your own graphics card. Installing incorrect drivers can cause issues with AMD VCE (personally mesa-vulkan-drivers caused a headache, your own may vary)
 
-- Did you compile HandBrakeCLI from source ? Currently, VCE in not enabled by default by any distro. To enable VCE you **MUST** Compile HandBrake from source with the `--enable-vce` flag set. You can see an example of the code [HERE](https://github.com/1337-server/automatic-ripping-machine/blob/v2.2_dev_ubuntu/scripts/ubuntu-quicksync.sh)
+- Did you compile HandBrakeCLI from source ? Currently, VCE in not enabled by default by any distro. To enable VCE you **MUST** Compile HandBrake from source with the `--enable-vce` flag set. You can see an example of the code [HERE](https://github.com/1337-server/automatic-ripping-machine/blob/v2.2_dev_ubuntu/scripts/installers/ubuntu-quicksync.sh)
 
 
 ## I cant get NVIDIA NVENC to work
  - I have no idea, and I can't test.
+ - Consider installing the latest driver from Nvidia and checking for certain your
+ - Have you checked our Nvidia notes [here](nvidia)
 
 ## Other problems
 - Check A.R.M log files 

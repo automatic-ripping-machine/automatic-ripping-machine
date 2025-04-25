@@ -7,7 +7,9 @@ Nvidia NVENC support comes with HandBrake in some distros, to check first make s
 
 Testing if HandBrake recognizes your GPU - Run
 
-`HandBrakeCLI --help | grep -A12 "Select video encoder"`
+`HandBrakeCLI --help | grep -A12 "Select video encoder"` 
+or 
+`HandBrakeCLI --help > /tmp/HandBrakeHelp && grep -A12 "Select video encoder" /tmp/HandBrakeHelp`
 
 into your ssh/terminal window
 
@@ -51,13 +53,30 @@ https://handbrake.fr/docs/en/latest/developer/install-dependencies-ubuntu.html
 and then when ready build handbrake following instructions from here: https://handbrake.fr/docs/en/latest/developer/build-linux.html
 
 ## Installing NVIDIA drivers:
-Recommended to do immediately after installing ubuntu
+We recommended to do a driver update immediately after installing ubuntu
 
 1. Installing the drivers on servers and/or for computing purposes
 `sudo ubuntu-drivers install --gpgpu`
 If you have a desktop environment install drop the --gpgpu
 
 2. Reboot system
+`sudo reboot`
+
+## Installing NVIDIA drivers directly:
+If HandBrakeCLI lists the encoder but throws an error like:
+`Driver does not support the required nvenc API version. Required: 13.0 Found: 12.1`
+you can install the latest driver from Nvidia directly to helpfully get a newer version of the driver
+
+1. Find the correct version of driver from https://www.nvidia.com/en-us/drivers/ to your server.
+2. Download the vendor provided installer 
+e.g. : `wget https://us.download.nvidia.com/XFree86/Linux-x86_64/570.144/NVIDIA-Linux-x86_64-570.144.run`
+
+3. Install the driver with admin privilages:
+`sudo bash ./NVIDIA-Linux-x86_64-570.144.run`
+
+4. Follow the prompts.
+
+5. Reboot system
 `sudo reboot`
 
 ## Installing the NVIDIA Container Toolkit:

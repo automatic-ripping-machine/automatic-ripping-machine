@@ -54,7 +54,7 @@ If you need any help feel free to open an issue.  Please see the wiki about post
 ## Changing logging to DEBUG mode
   - Debugging mode is not enabled by default, but it offers a lot more information. If you're experiencing problems the first thing you should do is change logging to DEBUG
 
-  - You can enable Debugging by changing `LOGLEVEL` in your [arm.yaml](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/arm.yaml) to `LOGLEVEL: "DEBUG"`
+  - You can enable Debugging by changing `LOGLEVEL` in your [arm.yaml](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Config-arm.yaml) to `LOGLEVEL: "DEBUG"`
 
   - This gives a lot more information to help track down any problems.
 
