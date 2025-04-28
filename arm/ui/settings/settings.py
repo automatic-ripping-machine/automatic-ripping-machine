@@ -83,6 +83,15 @@ def settings():
 
     # ARM UI config
     armui_cfg = ui_utils.arm_db_cfg()
+    ui_form = UiSettingsForm()
+    ui_form.use_icons.data = armui_cfg.use_icons
+    ui_form.save_remote_images.data = armui_cfg.save_remote_images
+    ui_form.bootstrap_skin.data = armui_cfg.bootstrap_skin
+    ui_form.language.data = armui_cfg.language
+    ui_form.index_refresh.data = armui_cfg.index_refresh
+    ui_form.database_limit.data = armui_cfg.database_limit
+    ui_form.notify_refresh.data = armui_cfg.notify_refresh
+    app.logger.debug(f"If the retrieved ui settings can be put into the form object correctly{ui_form.bootstrap_skin.label}:{ui_form.bootstrap_skin.data}\r\n {ui_form.use_icons.label}:{ui_form.use_icons.data}")
 
     # Get system details from Server Info and Config
     server = SystemInfo.query.filter_by(id="1").first()
@@ -102,7 +111,8 @@ def settings():
 
     return render_template("settings/settings.html",
                            settings=cfg.arm_config,
-                           ui_settings=armui_cfg,
+                        #    ui_settings=armui_cfg,
+                           ui_settings=ui_form,
                            stats=stats,
                            apprise_cfg=cfg.apprise_config,
                            form=form,
@@ -189,26 +199,25 @@ def save_ui_settings():
     Notes - This function needs to trigger a restart of flask for
         debugging to update the values
     """
-    form = UiSettingsForm()
+    ui_form = UiSettingsForm()
     success = False
     arm_ui_cfg = UISettings.query.get(1)
-    if form.validate_on_submit():
-        use_icons = (str(form.use_icons.data).strip().lower() == "true")
-        save_remote_images = (str(form.save_remote_images.data).strip().lower() == "true")
-        arm_ui_cfg.index_refresh = format(form.index_refresh.data)
+    if ui_form.validate_on_submit():
+        use_icons = (str(ui_form.use_icons.data).strip().lower() == "true")
+        save_remote_images = (str(ui_form.save_remote_images.data).strip().lower() == "true")
+        arm_ui_cfg.index_refresh = format(ui_form.index_refresh.data)
         arm_ui_cfg.use_icons = use_icons
         arm_ui_cfg.save_remote_images = save_remote_images
-        arm_ui_cfg.bootstrap_skin = format(form.bootstrap_skin.data)
-        arm_ui_cfg.language = format(form.language.data)
-        arm_ui_cfg.database_limit = format(form.database_limit.data)
-        arm_ui_cfg.notify_refresh = format(form.notify_refresh.data)
+        arm_ui_cfg.bootstrap_skin = format(ui_form.bootstrap_skin.data)
+        arm_ui_cfg.language = format(ui_form.language.data)
+        arm_ui_cfg.database_limit = format(ui_form.database_limit.data)
+        arm_ui_cfg.notify_refresh = format(ui_form.notify_refresh.data)
         db.session.commit()
         success = True
     # Masking the jinja update, otherwise an error is thrown
     # sqlalchemy.orm.exc.DetachedInstanceError: Instance <UISettings at 0x7f294c109fd0>
     # app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
     return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
-
 
 @route_settings.route('/save_abcde_settings', methods=['POST'])
 @login_required

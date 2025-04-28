@@ -1,0 +1,23 @@
+{% macro render_field(field) %}
+<div class="input-group mb-3">
+    <div class="input-group-prepend">
+        {{ field.label(class_="input-group-text")}}
+    </div>
+    <div>{{ field(class_="form-control")|safe}}
+        {% if field.errors %}
+        <ul class=errors>
+        {% for error in field.errors %}
+            <li>{{ error }}</li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    <a class="popovers" onClick='return false;' href=""
+        data-content=""
+        rel="popover"
+        data-placement="top" data-original-title="index_refresh">
+         <img title="More information" src="{{ url_for('static', filename='img/info.png') }}" width="30px"
+              height="35px" alt="More info">
+     </a>
+</div>
+{% endmacro %}

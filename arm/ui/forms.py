@@ -2,8 +2,12 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, \
     IntegerField, BooleanField, PasswordField, Form, FieldList, FormField, HiddenField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, ValidationError
+from os import path
 
+def validate_path_exists(field):
+    if not path.exists(field.data):
+        raise ValidationError(f"The path specified does not exist:\r\n {field}")
 
 class TitleSearchForm(FlaskForm):
     """Main title search form used on pages\n
@@ -31,26 +35,38 @@ class ChangeParamsForm(FlaskForm):
 class SettingsForm(FlaskForm):
     """settings form used on pages\n
               - /settings"""
-    MANUAL_WAIT = StringField('MANUAL_WAIT', validators=[DataRequired()])
+    MANUAL_WAIT = SelectField('Manual Wait', choices=[('True','True'),('False','False')])
     DATE_FORMAT = StringField('DATE_FORMAT', validators=[DataRequired()])
     HB_PRESET_DVD = StringField('HB_PRESET_DVD', validators=[DataRequired()])
     HB_PRESET_BD = StringField('HB_PRESET_BD', validators=[DataRequired()])
-    HANDBRAKE_CLI = StringField('HANDBRAKE_CLI', validators=[DataRequired()])
-    DBFILE = StringField('DBFILE', validators=[DataRequired()])
-    LOGPATH = StringField('LOGPATH', validators=[DataRequired()])
-    INSTALLPATH = StringField('INSTALLPATH', validators=[DataRequired()])
-    RAW_PATH = StringField('RAW_PATH', validators=[DataRequired()])
-    TRANSCODE_PATH = StringField('TRANSCODE_PATH', validators=[DataRequired()])
-    COMPLETED_PATH = StringField('COMPLETED_PATH', validators=[DataRequired()])
+    HANDBRAKE_CLI = StringField('HANDBRAKE_CLI', validators=[DataRequired(),validate_path_exists])
+    DBFILE = StringField('DBFILE', validators=[DataRequired(),validate_path_exists])
+    LOGPATH = StringField('LOGPATH', validators=[DataRequired(),validate_path_exists])
+    INSTALLPATH = StringField('INSTALLPATH', validators=[DataRequired(),validate_path_exists])
+    RAW_PATH = StringField('RAW_PATH', validators=[DataRequired(), validate_path_exists])
+    TRANSCODE_PATH = StringField('TRANSCODE_PATH', validators=[DataRequired(), validate_path_exists])
+    COMPLETED_PATH = StringField('COMPLETED_PATH', validators=[DataRequired(),validate_path_exists])
     submit = SubmitField('Submit')
 
 
 class UiSettingsForm(FlaskForm):
     """UI settings form, used on pages\n
                   - /ui_settings"""
-    index_refresh = IntegerField('index_refresh', validators=[DataRequired()])
-    use_icons = StringField('use_icons')
-    save_remote_images = StringField('save_remote_images')
+    index_refresh = IntegerField('Index Refresh Period', validators=[DataRequired()])
+    use_icons = SelectField('use_icons',
+                             validators=[DataRequired()],
+                             choices=[
+                                 ('True', 'True'),
+                                 ('False', 'False')
+                             ],
+                             )
+    save_remote_images = SelectField('save_remote_images',
+                             validators=[DataRequired()],
+                             choices=[
+                                 ('True', 'True'),
+                                 ('False', 'False')
+                             ],
+                             )
     bootstrap_skin = StringField('bootstrap_skin', validators=[DataRequired()])
     language = StringField('language', validators=[DataRequired()])
     database_limit = IntegerField('database_limit', validators=[DataRequired()])
