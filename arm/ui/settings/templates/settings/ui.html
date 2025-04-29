@@ -4,13 +4,13 @@
         <form id="uiSettings" name="uiSettings" action="">
             {{ form.hidden_tag() }}
             {% from "settings/_form_field.html" import render_field %}
-            {{ render_field(ui_settings.index_refresh) }}
-            {{ render_field(ui_settings.use_icons) }}
-            {{ render_field(ui_settings.save_remote_images) }}
-            {{ render_field(ui_settings.bootstrap_skin) }}
-            {{ render_field(ui_settings.language) }}
-            {{ render_field(ui_settings.database_limit) }}
-            {{ render_field(ui_settings.notify_refresh) }}
+            {% for field in ui_settings %}
+                {% if field.name != 'submit' %}
+                    {% if field.name != 'csrf_token' %}
+                    {{ render_field(field) }}
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
             <button id="uiSubmit" class="btn btn-secondary btn-lg btn-block" form="uiSettings"
                     type="submit">
                 Submit
