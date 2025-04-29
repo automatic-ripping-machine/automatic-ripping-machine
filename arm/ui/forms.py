@@ -53,23 +53,23 @@ class UiSettingsForm(FlaskForm):
     """UI settings form, used on pages\n
                   - /ui_settings"""
     index_refresh = IntegerField('Index Refresh Period', validators=[DataRequired()])
-    use_icons = SelectField('use_icons',
+    use_icons = SelectField('Use Icons',
                              validators=[DataRequired()],
                              choices=[
                                  ('True', 'True'),
                                  ('False', 'False')
                              ],
                              )
-    save_remote_images = SelectField('save_remote_images',
+    save_remote_images = SelectField('Save Remote Images',
                              validators=[DataRequired()],
                              choices=[
                                  ('True', 'True'),
                                  ('False', 'False')
                              ],
                              )
-    bootstrap_skin = StringField('bootstrap_skin', validators=[DataRequired()])
-    language = StringField('language', validators=[DataRequired()])
-    database_limit = IntegerField('database_limit', validators=[DataRequired()])
+    bootstrap_skin = StringField('Which bootstrap skin', validators=[DataRequired()])
+    language = StringField('language for Web UI', validators=[DataRequired()])
+    database_limit = IntegerField('Job Display limit', validators=[DataRequired()])
     notify_refresh = IntegerField('notify_refresh', validators=[DataRequired()])
     submit = SubmitField('Submit')
 
