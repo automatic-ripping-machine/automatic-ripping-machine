@@ -80,19 +80,31 @@ def settings():
              'updated': ui_utils.git_check_updates(local_git_hash),
              'hw_support': check_hw_transcode_support()
              }
-
+    # Load up the comments.json, so we can comment the arm.yaml
+    # jsoncomments is used by all config fields
+    comments = ui_utils.generate_comments()
     # ARM UI config
     armui_cfg = ui_utils.arm_db_cfg()
     ui_form = UiSettingsForm()
-    ui_form.use_icons.data = armui_cfg.use_icons
-    ui_form.save_remote_images.data = armui_cfg.save_remote_images
-    ui_form.bootstrap_skin.data = armui_cfg.bootstrap_skin
-    ui_form.language.data = armui_cfg.language
-    ui_form.index_refresh.data = armui_cfg.index_refresh
-    ui_form.database_limit.data = armui_cfg.database_limit
-    ui_form.notify_refresh.data = armui_cfg.notify_refresh
-    app.logger.debug(f"If the retrieved ui settings can be put into the form object correctly{ui_form.bootstrap_skin.label}:{ui_form.bootstrap_skin.data}\r\n {ui_form.use_icons.label}:{ui_form.use_icons.data}")
-
+    for field_name, field in ui_form._fields.items():
+        # app.logger.debug(f"field is:{field}")
+        if field_name == 'submit':
+            break
+        else:
+            app.logger.debug(f"field_name is:{field_name}, the pulled config value is {getattr(armui_cfg, field_name)}")
+            field.data = getattr(armui_cfg, field_name)
+            app.logger.debug(f"related comment is {comments[field_name]}")
+            app.logger.debug(f"dir field {dir(field.render_kw)}")
+            field.render_kw = {'title':comments[field_name]}
+    #Below replaced by above loop
+    # ui_form.use_icons.data = armui_cfg.use_icons
+    # ui_form.save_remote_images.data = armui_cfg.save_remote_images
+    # ui_form.bootstrap_skin.data = armui_cfg.bootstrap_skin
+    # ui_form.language.data = armui_cfg.language
+    # ui_form.index_refresh.data = armui_cfg.index_refresh
+    # ui_form.database_limit.data = armui_cfg.database_limit
+    # ui_form.notify_refresh.data = armui_cfg.notify_refresh
+    
     # Get system details from Server Info and Config
     server = SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
@@ -103,8 +115,6 @@ def settings():
     drives = DriveUtils.drives_check_status()
     form_drive = SystemInfoDrives(request.form)
 
-    # Load up the comments.json, so we can comment the arm.yaml
-    comments = ui_utils.generate_comments()
     form = SettingsForm()
 
     session["page_title"] = "Settings"

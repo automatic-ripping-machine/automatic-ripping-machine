@@ -13,9 +13,9 @@
         {% endif %}
     </div>
     <a class="popovers" onClick='return false;' href=""
-        data-content=""
+        data-content=" {{ field.render_kw.get('title', '') if field.render_kw else 'No help found' }} "
         rel="popover"
-        data-placement="top" data-original-title="index_refresh">
+        data-placement="top" data-original-title="{{ field.name }}">
          <img title="More information" src="{{ url_for('static', filename='img/info.png') }}" width="30px"
               height="35px" alt="More info">
      </a>
