@@ -69,11 +69,11 @@ See: https://b3n.org/automatic-ripping-machine
 [For docker installation please see here](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
 
 ## Troubleshooting
- [Please see the wiki for troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
+ [Please see the wiki for troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/General-Troubleshooting).
 
 ## Contributing
 
-Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute)
+Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contribute-Wiki)
 
 If you set ARM up in a different environment (hardware/OS/virtual/etc.), please consider [submitting a howto to the wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).
 
