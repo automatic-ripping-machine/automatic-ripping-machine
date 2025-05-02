@@ -1,9 +1,12 @@
 """Forms used in the arm ui"""
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, \
-    IntegerField, BooleanField, PasswordField, Form, FieldList, FormField, HiddenField
-from wtforms.validators import DataRequired, ValidationError, Optional
+    IntegerField, BooleanField, PasswordField, Form, FieldList, FormField, HiddenField, \
+    FormField, FloatField
+from wtforms.validators import DataRequired, ValidationError, IPAddress, Optional
 from os import path
+import arm.config.config as cfg
+from arm.ui import app
 
 def validate_path_exists(field):
     if not path.exists(field.data):
@@ -31,22 +34,58 @@ class ChangeParamsForm(FlaskForm):
     MAXLENGTH = IntegerField('Maximum Length: ')
     submit = SubmitField('Submit')
 
+# class SettingsForm():
+#     """settings form used on pages\n
+#               - /settings"""    
+#     # def  __init__(self):
+#     name = 'Ripper Settings'
 
-class SettingsForm(FlaskForm):
-    """settings form used on pages\n
-              - /settings"""
-    MANUAL_WAIT = SelectField('Manual Wait', choices=[('True','True'),('False','False')])
-    DATE_FORMAT = StringField('DATE_FORMAT', validators=[DataRequired()])
-    HB_PRESET_DVD = StringField('HB_PRESET_DVD', validators=[DataRequired()])
-    HB_PRESET_BD = StringField('HB_PRESET_BD', validators=[DataRequired()])
-    HANDBRAKE_CLI = StringField('HANDBRAKE_CLI', validators=[DataRequired(),validate_path_exists])
-    DBFILE = StringField('DBFILE', validators=[DataRequired(),validate_path_exists])
-    LOGPATH = StringField('LOGPATH', validators=[DataRequired(),validate_path_exists])
-    INSTALLPATH = StringField('INSTALLPATH', validators=[DataRequired(),validate_path_exists])
-    RAW_PATH = StringField('RAW_PATH', validators=[DataRequired(), validate_path_exists])
-    TRANSCODE_PATH = StringField('TRANSCODE_PATH', validators=[DataRequired(), validate_path_exists])
-    COMPLETED_PATH = StringField('COMPLETED_PATH', validators=[DataRequired(),validate_path_exists])
-    submit = SubmitField('Submit')
+#     submit = SubmitField('Submit')       
+
+    # Developing a dynamic rebuild of the Settings form, based on the information in the yaml
+    # MANUAL_WAIT = SelectField('Manual Wait', choices=[('True','True'),('False','False')])
+    # DATE_FORMAT = StringField('DATE_FORMAT', validators=[DataRequired()])
+    # HB_PRESET_DVD = StringField('HB_PRESET_DVD', validators=[DataRequired()])
+    # HB_PRESET_BD = StringField('HB_PRESET_BD', validators=[DataRequired()])
+    # HANDBRAKE_CLI = StringField('HANDBRAKE_CLI', validators=[DataRequired(),validate_path_exists])
+    # DBFILE = StringField('DBFILE', validators=[DataRequired(),validate_path_exists])
+    # LOGPATH = StringField('LOGPATH', validators=[DataRequired(),validate_path_exists])
+    # INSTALLPATH = StringField('INSTALLPATH', validators=[DataRequired(),validate_path_exists])
+    # RAW_PATH = StringField('RAW_PATH', validators=[DataRequired(), validate_path_exists])
+    # TRANSCODE_PATH = StringField('TRANSCODE_PATH', validators=[DataRequired(), validate_path_exists])
+    # COMPLETED_PATH = StringField('COMPLETED_PATH', validators=[DataRequired(),validate_path_exists])
+    # submit = SubmitField('Submit')
+
+def SettingsForm(dictFormFields:dict):
+    class SettingsForm(FlaskForm):
+        submit = SubmitField('Submit')
+        
+    for key, value in dictFormFields.items():
+        #Infer the type of form field based on the value type
+        app.logger.debug(f"Inferring form field type for {key}: {type(value)}")
+        if isinstance(value, bool):
+            f = BooleanField(label=key,
+                        description=key.replace("_", " "),
+                        default=value)
+        elif isinstance(value, int):
+            f = IntegerField(label=key,
+                        description=key.replace("_", " "),
+                        default=value)
+        elif isinstance(value, float):
+            f = FloatField(label=key,
+                        description=key.replace("_", " "),
+                        default=value)
+        elif isinstance(value, str):
+            f = StringField(label=key,
+                        description=key.replace("_", " "),
+                        default=value)
+        else:
+            app.logger.warning(f"Unknown type for {key}: {type(value)}, returning StringField")
+            f = StringField(label=key,
+                        description=key.replace("_", " "),
+                        default=str(value))  # fallback
+        setattr(SettingsForm, key, f)
+    return SettingsForm()
 
 
 class UiSettingsForm(FlaskForm):
