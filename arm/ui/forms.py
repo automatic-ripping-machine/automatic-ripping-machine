@@ -29,63 +29,60 @@ class ChangeParamsForm(FlaskForm):
     DISCTYPE = SelectField('Disc Type: ', choices=[('dvd', 'DVD'), ('bluray', 'Blu-ray'),
                                                    ('music', 'Music'), ('data', 'Data')])
     # "music", "dvd", "bluray" and "data"
-    MAINFEATURE = BooleanField('Main Feature: ')
-    MINLENGTH = IntegerField('Minimum Length: ')
-    MAXLENGTH = IntegerField('Maximum Length: ')
+    MAINFEATURE = BooleanField('Main Feature: ', DataRequired)
+    MINLENGTH = IntegerField('Minimum Length: ', DataRequired())
+    MAXLENGTH = IntegerField('Maximum Length: ', DataRequired())
     submit = SubmitField('Submit')
 
-# class SettingsForm():
-#     """settings form used on pages\n
-#               - /settings"""    
-#     # def  __init__(self):
-#     name = 'Ripper Settings'
 
-#     submit = SubmitField('Submit')       
-
-    # Developing a dynamic rebuild of the Settings form, based on the information in the yaml
-    # MANUAL_WAIT = SelectField('Manual Wait', choices=[('True','True'),('False','False')])
-    # DATE_FORMAT = StringField('DATE_FORMAT', validators=[DataRequired()])
-    # HB_PRESET_DVD = StringField('HB_PRESET_DVD', validators=[DataRequired()])
-    # HB_PRESET_BD = StringField('HB_PRESET_BD', validators=[DataRequired()])
-    # HANDBRAKE_CLI = StringField('HANDBRAKE_CLI', validators=[DataRequired(),validate_path_exists])
-    # DBFILE = StringField('DBFILE', validators=[DataRequired(),validate_path_exists])
-    # LOGPATH = StringField('LOGPATH', validators=[DataRequired(),validate_path_exists])
-    # INSTALLPATH = StringField('INSTALLPATH', validators=[DataRequired(),validate_path_exists])
-    # RAW_PATH = StringField('RAW_PATH', validators=[DataRequired(), validate_path_exists])
-    # TRANSCODE_PATH = StringField('TRANSCODE_PATH', validators=[DataRequired(), validate_path_exists])
-    # COMPLETED_PATH = StringField('COMPLETED_PATH', validators=[DataRequired(),validate_path_exists])
-    # submit = SubmitField('Submit')
-
-def SettingsForm(dictFormFields:dict):
+def SettingsForm(dictFormFields:dict, comments ={}):
     class SettingsForm(FlaskForm):
         submit = SubmitField('Submit')
         
     for key, value in dictFormFields.items():
         #Infer the type of form field based on the value type
         app.logger.debug(f"Inferring form field type for {key}: {type(value)}")
+        # Just in case the comment is empty, we will get the value for it, and
+        # if none, set it to string
+        comm_value = comments.get(key)
+        if comm_value is None: comm_value = ""
+        
         if isinstance(value, bool):
-            f = BooleanField(label=key,
-                        description=key.replace("_", " "),
-                        default=value)
+            f = BooleanField(label=key.replace("_", " "),
+                        description=comm_value,
+                        default=value,
+                        render_kw={'title':comm_value}
+                        )
         elif isinstance(value, int):
-            f = IntegerField(label=key,
-                        description=key.replace("_", " "),
-                        default=value)
+            f = IntegerField(label=key.replace("_", " "),
+                        description=comm_value,
+                        default=value,
+                        render_kw={'title':comm_value}
+                        )
         elif isinstance(value, float):
-            f = FloatField(label=key,
-                        description=key.replace("_", " "),
-                        default=value)
+            f = FloatField(label=key.replace("_", " "),
+                        description=comm_value,
+                        default=value,
+                        render_kw={'title':comm_value}
+                        )
         elif isinstance(value, str):
-            f = StringField(label=key,
-                        description=key.replace("_", " "),
-                        default=value)
+            f = StringField(label=key.replace("_", " "),
+                        description=comm_value,
+                        default=value,
+                        render_kw={'title':comm_value}
+                        )
+            # if "binary to call" in comments[key] or "Path to" in comments[key]:
+                # f.validators([DataRequired(),validate_path_exists()])
         else:
             app.logger.warning(f"Unknown type for {key}: {type(value)}, returning StringField")
-            f = StringField(label=key,
-                        description=key.replace("_", " "),
-                        default=str(value))  # fallback
+            f = StringField(label=key.replace("_", " "),
+                        description=comm_value,
+                        default=str(value),
+                        render_kw={'title':comm_value}
+                        )  # fallback
         setattr(SettingsForm, key, f)
     return SettingsForm()
+
 
 
 class UiSettingsForm(FlaskForm):
