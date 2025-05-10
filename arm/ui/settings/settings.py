@@ -12,9 +12,8 @@ Covers
 - drive_eject [GET]
 - drive_remove [GET]
 - testapprise [GET]
+- updateCPU [GET]
 """
-
-import os
 import platform
 import importlib
 import re
@@ -24,7 +23,7 @@ from datetime import datetime
 from flask_login import login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
 from flask import render_template, request, flash, \
-    redirect, Blueprint, session
+    redirect, Blueprint, session, url_for
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db
@@ -42,10 +41,6 @@ route_settings = Blueprint('route_settings', __name__,
                            template_folder='templates',
                            static_folder='../static')
 
-# Page definitions
-page_settings = "settings/settings.html"
-redirect_settings = "/settings"
-
 
 @route_settings.route('/settings')
 @login_required
@@ -56,18 +51,8 @@ def settings():
     Overview - allows the user to update the all configs of A.R.M without
     needing to open a text editor
     """
-    global page_settings
 
     # stats for info page
-    version = "Unknown"
-    try:
-        with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
-            version = version_file.read().strip()
-    except FileNotFoundError as e:
-        app.logger.debug(f"Error - ARM Version file not found: {e}")
-    except IOError as e:
-        app.logger.debug(f"Error - ARM Version file error: {e}")
-
     failed_rips = Job.query.filter_by(status="fail").count()
     total_rips = Job.query.filter_by().count()
     movies = Job.query.filter_by(video_type="movie").count()
@@ -78,29 +63,30 @@ def settings():
     current_time = datetime.now()
     server_datetime = current_time.strftime(cfg.arm_config['DATE_FORMAT'])
     server_timezone = current_time.astimezone().tzinfo
+    [arm_version_local, arm_version_remote] = ui_utils.git_check_version()
+    local_git_hash = ui_utils.get_git_revision_hash()
 
     stats = {'server_datetime': server_datetime,
              'server_timezone': server_timezone,
              'python_version': platform.python_version(),
-             'arm_version': version,
-             'git_commit': ui_utils.get_git_revision_hash(),
+             'arm_version_local': arm_version_local,
+             'arm_version_remote': arm_version_remote,
+             'git_commit': local_git_hash,
              'movies_ripped': movies,
              'series_ripped': series,
              'cds_ripped': cds,
              'no_failed_jobs': failed_rips,
              'total_rips': total_rips,
-             'updated': ui_utils.git_check_updates(ui_utils.get_git_revision_hash()),
+             'updated': ui_utils.git_check_updates(local_git_hash),
              'hw_support': check_hw_transcode_support()
              }
 
     # ARM UI config
     armui_cfg = ui_utils.arm_db_cfg()
 
-    # System details in class server
+    # Get system details from Server Info and Config
     server = SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
-
-    # System details in class server
     arm_path = cfg.arm_config['TRANSCODE_PATH']
     media_path = cfg.arm_config['COMPLETED_PATH']
 
@@ -114,7 +100,7 @@ def settings():
 
     session["page_title"] = "Settings"
 
-    return render_template(page_settings,
+    return render_template("settings/settings.html",
                            settings=cfg.arm_config,
                            ui_settings=armui_cfg,
                            stats=stats,
@@ -230,7 +216,7 @@ def save_abcde():
     """
     Page - save_abcde_settings
     Method - POST
-    Overview - Save 'abcde Config' page settings to database. Not a user page
+    Overview - Save 'abcde Config' page settings to the database. Not a user page
     """
     success = False
     abcde_cfg_str = ""
@@ -249,7 +235,9 @@ def save_abcde():
         cfg.abcde_config = clean_abcde_str
 
     # If we get to here, there was no post-data
-    return {'success': success, 'settings': clean_abcde_str, 'form': 'abcde config'}
+    return {'success': success,
+            'settings': clean_abcde_str,
+            'form': 'abcde config'}
 
 
 @route_settings.route('/save_apprise_cfg', methods=['POST'])
@@ -283,8 +271,6 @@ def server_info():
     Method - POST
     Overview - Save 'System Info' page settings to database. Not a user page
     """
-    global redirect_settings
-
     # System Drives (CD/DVD/Blueray drives)
     form_drive = SystemInfoDrives(request.form)
     if request.method == 'POST' and form_drive.validate():
@@ -299,12 +285,12 @@ def server_info():
         drive.drive_mode = str(form_drive.drive_mode.data).strip()
         db.session.commit()
         flash(f"Updated Drive {drive.mount} details", "success")
-        # Return to systeminfo page (refresh page)
-        return redirect(redirect_settings)
+        # Return to the systeminfo page (refresh page)
+        return redirect(url_for('route_settings.settings'))
     else:
         flash("Error: Unable to update drive details", "error")
         # Return for GET
-        return redirect(redirect_settings)
+        return redirect(url_for('route_settings.settings'))
 
 
 @route_settings.route('/systemdrivescan')
@@ -314,24 +300,22 @@ def system_drive_scan():
     Method - GET
     Overview - Scan for the system drives and update the database.
     """
-    global redirect_settings
     # Update to scan for changes to the ripper system
     new_count = DriveUtils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
-    return redirect(redirect_settings)
+    return redirect(url_for('route_settings.settings'))
 
 
 @route_settings.route('/drive/eject/<eject_id>')
 @login_required
 def drive_eject(eject_id):
     """
-    Server System - change state of CD/DVD/BluRay drive - toggle eject
+    Server System - change state of CD/DVD/BluRay drive - toggle eject status
     """
-    global redirect_settings
     drive = SystemDrives.query.filter_by(drive_id=eject_id).first()
     drive.open_close()
     db.session.commit()
-    return redirect(redirect_settings)
+    return redirect(url_for('route_settings.settings'))
 
 
 @route_settings.route('/drive/remove/<remove_id>')
@@ -340,7 +324,6 @@ def drive_remove(remove_id):
     """
     Server System - remove a drive from the ARM UI
     """
-    global redirect_settings
     try:
         app.logger.debug(f"Removing drive {remove_id}")
         drive = SystemDrives.query.filter_by(drive_id=remove_id).first()
@@ -351,7 +334,7 @@ def drive_remove(remove_id):
     except Exception as e:
         app.logger.error(f"Drive removal encountered an error: {e}")
         flash("Drive unable to be removed, check logs for error", "error")
-    return redirect(redirect_settings)
+    return redirect(url_for('route_settings.settings'))
 
 
 @route_settings.route('/drive/manual/<manual_id>')
@@ -391,13 +374,6 @@ def drive_manual(manual_id):
     return redirect('/settings')
 
 
-@route_settings.route('/update_arm', methods=['POST'])
-@login_required
-def update_git():
-    """Update arm via git command line"""
-    return ui_utils.git_get_updates()
-
-
 @route_settings.route('/testapprise')
 def testapprise():
     """
@@ -405,11 +381,41 @@ def testapprise():
     Method - GET
     Overview - Send a test notification to Apprise.
     """
-    global redirect_settings
     # Send a sample notification
     message = "This is a notification by the ARM-Notification Test!"
     if cfg.arm_config["UI_BASE_URL"] and cfg.arm_config["WEBSERVER_PORT"]:
         message = message + f" Server URL: http://{cfg.arm_config['UI_BASE_URL']}:{cfg.arm_config['WEBSERVER_PORT']}"
     ripper_utils.notify(None, "ARM notification", message)
     flash("Test notification sent ", "success")
-    return redirect(redirect_settings)
+    return redirect(url_for('route_settings.settings'))
+
+
+@route_settings.route('/updatecpu')
+def update_cpu():
+    """
+    Update system CPU information
+    """
+    # Get current system information from database
+    current_system = SystemInfo.query.first()
+    # Query system for new information
+    new_system = SystemInfo()
+
+    app.logger.debug("****** System Information ******")
+    if current_system is not None:
+        app.logger.debug(f"Name old [{current_system.name}] new [{new_system.name}]")
+        app.logger.debug(f"Name old [{current_system.cpu}] new [{new_system.cpu}]")
+        current_system.name = new_system.name
+        current_system.cpu = new_system.cpu
+        db.session.add(current_system)
+
+    else:
+        app.logger.debug(f"Name old [] new [{new_system.name}]")
+        app.logger.debug(f"Name old [] new [{new_system.cpu}]")
+        db.session.add(new_system)
+
+    app.logger.debug("****** End System Information ******")
+    app.logger.info(f"Updated CPU Details with new info - {new_system.name} - {new_system.cpu}")
+
+    db.session.commit()
+
+    return redirect(url_for('route_settings.settings'))

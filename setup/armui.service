@@ -15,7 +15,7 @@ StandardError=append:/home/arm/logs/WebUI.log
 Restart=always
 RestartSec=3
 ExecStartPre=/bin/bash -xc '/usr/bin/systemctl is-active --quiet armui.service && exit 1 || exit 0'
-ExecStart=python3 /opt/arm/arm/runui.py
+ExecStart=/opt/arm/venv/bin/python3 /opt/arm/arm/runui.py
 
 [Install]
 WantedBy=multi-user.target

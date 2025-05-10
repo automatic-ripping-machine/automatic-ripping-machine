@@ -136,6 +136,12 @@ class Job(db.Model):
         if self.disctype == "music":
             logging.debug("Disc is music.")
             self.label = music_brainz.main(self)
+        elif (os.path.isdir(self.mountpoint + "/AUDIO_TS")
+              and len(os.listdir(self.mountpoint + "/AUDIO_TS")) > 0) \
+            or (os.path.isdir(self.mountpoint + "/audio_ts")
+                and len(os.listdir(self.mountpoint + "/audio_ts")) > 0):
+            logging.debug(f"Found: {self.mountpoint}/AUDIO_TS")
+            self.disctype = "data"
         elif os.path.isdir(self.mountpoint + "/VIDEO_TS"):
             logging.debug(f"Found: {self.mountpoint}/VIDEO_TS")
             self.disctype = "dvd"
