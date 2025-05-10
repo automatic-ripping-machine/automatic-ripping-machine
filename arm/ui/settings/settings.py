@@ -109,8 +109,7 @@ def settings():
 
     # Build the dynamic form for the ripper settings
     # form = SettingsForm()
-    form = SettingsForm(cfg.arm_config,
-                        comments)
+    form = SettingsForm(comments=comments)
     
     session["page_title"] = "Settings"
 
@@ -177,7 +176,8 @@ def save_settings():
     success = False
     arm_cfg = {}
     # form = SettingsForm()
-    form = SettingsForm(request.form.to_dict(),
+    app.logger.debug(f"{request.form.to_dict()}")
+    form = SettingsForm(cfg.arm_config,
                         comments)
     app.logger.debug("Saving Ripper settings")
     if form.validate_on_submit():
