@@ -216,7 +216,7 @@ RIPMETHOD_BR: "PLACEHOLDER"
 # MKV_ARGS: "--debug=-stdout"  # this will enable more detailed logging
 MKV_ARGS: ""
 
-# Remove the files created by MakeMKV after processing is complete
+# Remove any files created in the raw and transcode paths for the job after processing is complete
 DELRAWFILES: true
 
 
