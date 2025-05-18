@@ -86,15 +86,12 @@ def settings():
     # ARM UI config
     armui_cfg = ui_utils.arm_db_cfg()
     ui_form = UiSettingsForm()
+    # Set the nicer attributes for the UI settings form.
     for field_name, field in ui_form._fields.items():
-        # app.logger.debug(f"field is:{field}")
         if field_name == 'submit':
             break
         else:
-            # app.logger.debug(f"field_name is:{field_name}, the pulled config value is {getattr(armui_cfg, field_name)}")
             field.data = getattr(armui_cfg, field_name)
-            # app.logger.debug(f"related comment is {comments[field_name]}")
-            # app.logger.debug(f"dir field {dir(field.render_kw)}")
             field.render_kw = {'title':comments[field_name]}
     
     # Get system details from Server Info and Config
@@ -109,7 +106,12 @@ def settings():
 
     # Build the dynamic form for the ripper settings
     # form = SettingsForm()
-    form = SettingsForm(comments=comments)
+    form = SettingsForm()
+    for field_name, field in form._fields.items():
+        if field_name == 'submit':
+            break
+        else:
+            field.data = cfg.arm_config[field_name.replace(" ", "_")]
     
     session["page_title"] = "Settings"
 
@@ -176,9 +178,8 @@ def save_settings():
     success = False
     arm_cfg = {}
     # form = SettingsForm()
-    app.logger.debug(f"{request.form.to_dict()}")
-    form = SettingsForm(cfg.arm_config,
-                        comments)
+    # app.logger.debug(f"{request.form.to_dict()}")
+    form = SettingsForm()
     app.logger.debug("Saving Ripper settings")
     if form.validate_on_submit():
         # Build the new arm.yaml with updated values from the user
