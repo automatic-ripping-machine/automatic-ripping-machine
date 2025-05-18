@@ -20,8 +20,8 @@ for key, value in config.items():
     comm_value = comments.get(key)
     if comm_value is None: comm_value = ""
     newConfig[key] = {
-        "default": value,
-        "comment": comm_value,
+        "defaultForInternalUse": value,
+        "commentForInternalUse": comm_value,
         "dataValidation": "",
         "formFieldType": str(type(value))
     }
