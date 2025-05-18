@@ -2,12 +2,15 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, \
     IntegerField, BooleanField, PasswordField, Form, FieldList, \
-    FormField, HiddenField, FloatField
-from wtforms.validators import DataRequired, ValidationError, IPAddress
+    FormField, HiddenField, FloatField, RadioField, IntegerRangeField
+from wtforms.validators import DataRequired, ValidationError, IPAddress, InputRequired
 from os import path
 import arm.config.config as cfg
 from arm.ui import app
+import arm.ui.utils as ui_utils
 import json
+
+### Custom Validators
 
 def validate_path_exists(form, field):
     if not path.exists(field.data):
@@ -26,6 +29,25 @@ def validate_umask(form, field):
             raise ValidationError("Umask must be a valid octal between 000 and 777.")
     except ValueError:
         raise ValidationError("Invalid octal number format.")
+
+def validate_non_manditory_string(form, field):
+    originalLength = len(field.data)
+    if originalLength > 0:
+        text = field.data.replace('<p>','').replace('</p>','').replace('&nbsp;','')\
+                         .replace('&ensp;','').replace('&emsp;','').replace('<br>','')
+        if len(text) == 0:
+            raise ValidationError("Field must not contain only HTML tags.")
+        # check for non-ASCII characters
+        if not all(ord(c) < 128 for c in text):
+            raise ValidationError("Field must not contain non-ASCII characters.")
+        # check for non-printable characters
+        if not all(c.isprintable() for c in text):
+            raise ValidationError("Field must not contain non-printable characters.")
+        # remove whitespace
+        text = text.strip().replace("\t","").replace("\n","").replace("\r","").replace("\f","").replace("\v","")
+        if len(text) == 0:
+            raise ValidationError("Field must not contain only whitespace.")
+
 
 class TitleSearchForm(FlaskForm):
     """Main title search form used on pages\n
@@ -49,56 +71,58 @@ class ChangeParamsForm(FlaskForm):
     MAXLENGTH = IntegerField('Maximum Length: ', DataRequired())
     submit = SubmitField('Submit')
 
-ripperSettingsConfigFile = '/opt/arm/arm/ui/ripperFormConfig.json'
-def SettingsForm(postRequestDict=None):
+def SettingsForm():
     class SettingsForm(FlaskForm):
         submit = SubmitField('Submit')
     
-    with open(ripperSettingsConfigFile, 'r') as ripperFormConfig:
-        dictFormFields = json.load(ripperFormConfig)
+    # move the ripper form settings config into ui.utils
+    # in this function, read the comments and the ripperFormConfigyou
+    dictFormFields = ui_utils.generate_ripperFormSettings()
+    comments = ui_utils.generate_comments()
     # request.form.to_dict() returns a dict with the form fields and the value. All as strings on empty.
     # so we need to return a form with default values populated
     # postRequestDict
 
     for key, value in dictFormFields.items():
-        if postRequestDict is not None:
-            if key == 'csrf_token':
-                # Skip the CSRF token field
-                continue
-        #Infer the type of form field based on the value type
-        app.logger.debug(f"Inferring form field type for {key}: {type(value)}")
-        # ripperFormConfig should have a dict per field: default, comment, dataValidation, formFieldType
-        commentValue = dictFormFields[key]["comment"]
-        if commentValue is None: commentValue = ""
-        if postRequestDict is not None:
-            fieldDefault = postRequestDict[key]
+        # if postRequestDict is not None:
+        #     if key == 'csrf_token':
+        #         # Skip the CSRF token field
+        #         continue
+        # #Infer the type of form field based on the value type
+        # app.logger.debug(f"Inferring form field type for {key}: {type(value['defaultForInternalUse'])}")
+        # ripperFormConfig should have a dict per field: defaultForInternalUse, commentForInternalUse, dataValidation, formFieldType
+        if key in comments:
+            commentValue = comments[key]
         else:
-            fieldDefault = dictFormFields[key]["default"]
+            app.logger.warning(f"Comment not found for {key}, using empty string")
+            commentValue = ""
         if commentValue is None: commentValue = ""
-        fieldType = dictFormFields[key]["formFieldType"]
+        fieldDefault = value["defaultForInternalUse"]
+        fieldType = value["formFieldType"]
         # The next is a bit tricky, getting a list of data validations, setting them up as objects
         # or functions depending on what was passed
-        if isinstance(dictFormFields[key]['dataValidation'], list) and len(dictFormFields[key]['dataValidation']) > 0:
-            validators = dictFormFields[key]['dataValidation']
-            for x in validators:
+        # app.logger.debug(f"commentValue: {commentValue}, fieldDefault: {fieldDefault}, fieldType: {fieldType}")
+        if isinstance(value['dataValidation'], list) and len(value['dataValidation']) > 0:
+            possible_validators = value['dataValidation']
+            validators = []
+            # DataRequired, ValidationError, IPAddress, validate_path_exists, validate_umask validate_non_manditory_string
+            for x in possible_validators:
                 if x == "validate_path_exists":
-                    validators.remove(x)
                     validators.append(validate_path_exists)
                 elif x == "validate_umask":
-                    validators.remove(x)
                     validators.append(validate_umask)
+                elif x == "validate_non_manditory_string":
+                    validators.append(validate_non_manditory_string)
                 else:
                     try:
                         n_v_c = globals()[x]
                         n_v_c = n_v_c()
-                        validators.remove(x)
                         validators.append(n_v_c)
                     except Exception as e:
                         app.logger.warning(f"Error adding validator {x} to {key}: {e}")
         else:
             validators = None
-        
-
+        app.logger.debug(f"validators: {validators}")
         if isinstance(fieldDefault, bool) and fieldType == "SelectField":
             f = SelectField(label=key.replace("_", " "),
                         description=commentValue,
@@ -110,7 +134,29 @@ def SettingsForm(postRequestDict=None):
                             ('False', 'False')
                             ],
                         )
+        elif isinstance(fieldDefault, bool) and fieldType == "RadioField":
+            f = RadioField(label=key.replace("_", " "),
+                        description=commentValue,
+                        default=str(fieldDefault).title(),
+                        render_kw={'title':commentValue},
+                        validators=validators,
+                        choices=[
+                            ('True', 'True'),
+                            ('False', 'False')
+                            ],
+                        )
+        elif fieldType == "RadioFeild":
+            # SelectField with a list of choices
+            paired_list = [(x, x) for x in fieldDefault]
+            f = RadioField(label=key.replace("_", " "),
+                        description=commentValue,
+                        # default=str(fieldDefault),
+                        render_kw={'title':commentValue},
+                        validators=validators,
+                        choices=paired_list,
+                        )
         elif fieldType == "SelectField":
+            # SelectField with a list of choices
             paired_list = [(x, x) for x in fieldDefault]
             f = SelectField(label=key.replace("_", " "),
                         description=commentValue,
