@@ -340,6 +340,30 @@ def getsize(path):
     free_gb = free / 1073741824
     return free_gb
 
+def jsonFile_to_dict(json_file):
+    """
+    Read a json file and return it as a dict
+    :param json_file: path to json file
+    :return: dict
+    """
+    if os.path.isfile(json_file):
+        if os.access(json_file, os.R_OK):
+            try:
+                app.logger.debug(f"Loading json file: {json_file}")
+                with open(json_file, "r") as read_file:
+                    try:
+                        data = json.load(read_file)
+                    except Exception as error:
+                        app.logger.debug(f"Error with json file. {error}")
+                        data = "{'error':'" + str(error) + "'}"
+            except Exception as error:
+                app.logger.exception(f"Was unable to load json file: {json_file}")
+                app.logger.exception(error)
+        else:
+            app.logger.exception(f"File exists but is not readable: {json_file}")
+    else:
+        app.logger.exception(f"File not found: {json_file}")
+    return data
 
 def generate_comments():
     """
@@ -348,17 +372,19 @@ def generate_comments():
     :return: json
     """
     comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
-    try:
-        with open(comments_file, "r") as comments_read_file:
-            try:
-                comments = json.load(comments_read_file)
-            except Exception as error:
-                app.logger.debug(f"Error with comments file. {error}")
-                comments = "{'error':'" + str(error) + "'}"
-    except FileNotFoundError:
-        comments = "{'error':'File not found'}"
+    comments = jsonFile_to_dict(comments_file)
     return comments
 
+ripperSettingsConfigFile = 'ripperFormConfig.json'
+def generate_ripperFormSettings():
+    """
+    load ripperSettingsConfigFile.json and use it for settings page
+    allows us to easily add more settings later
+    :return: json
+    """
+    ripperFormSettings = os.path.join(os.path.dirname(os.path.abspath(__file__)), ripperSettingsConfigFile)
+    ripperFormSettings = jsonFile_to_dict(ripperFormSettings)
+    return ripperFormSettings
 
 def generate_full_log(full_path):
     """
@@ -651,6 +677,13 @@ def build_arm_cfg(form_data, comments):
     # This is not the safest way to do things.
     # It assumes the user isn't trying to mess with us.
     # This really should be hard coded.
+    # if not all(ord(c) < 128 for c in text):
+    #         raise ValidationError("Field must not contain non-ASCII characters.")
+    #     # check for non-printable characters
+    #     if not all(c.isprintable() for c in text):
+    #         raise ValidationError("Field must not contain non-printable characters.")
+    #     # remove whitespace
+    #     text = text.strip().replace("\t","").replace("\n","").replace("\r","").replace("\f","").replace("\v","")
     app.logger.debug("save_settings: START")
     for key, value in form_data.items():
         app.logger.debug(f"save_settings: current key {key} = {value} ")
