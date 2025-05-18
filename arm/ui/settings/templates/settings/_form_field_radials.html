@@ -1,0 +1,28 @@
+{% macro render_radial_field(field) %}
+<div class="input-group mb-3">
+     <label class="form-label">{{ field.label.text }}</label>
+    <div class="btn-group btn-group-toggle mb-3" data-toggle="buttons">
+        {% for subfield in field %}
+            <label class="btn btn-outline-primary {% if subfield.checked %}active{% endif %}">
+                {{ subfield() }} {{ subfield.label.text }}
+            </label>
+        {% endfor %}
+    </div>
+    <div>{{ field(class_="form-control")|safe}}
+        {% if field.errors %}
+        <ul class=errors>
+        {% for error in field.errors %}
+            <li>{{ error }}</li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    <a class="popovers" onClick='return false;' href=""
+        data-content=" {{ field.render_kw.get('title', '') if field.render_kw else 'No help found' }} "
+        rel="popover"
+        data-placement="top" data-original-title="{{ field.name }}">
+         <img title="More information" src="{{ url_for('static', filename='img/info.png') }}" width="30px"
+              height="35px" alt="More info">
+     </a>
+</div>
+{% endmacro %}
