@@ -59,7 +59,7 @@ class SystemInfo(db.Model):
                     self.cpu = str(amd_name) + " @ " + str(amd_ghz) + " GHz"
 
             # ARM64 CPU
-            arm_cpu = re.search(r"\\nmodel name\\t:(.*?)\\n", fulldump)
+            arm_cpu = re.search(r"model name\s*:\s*(.*)n", fulldump)
             logging.debug(f"ARM64 output: {arm_cpu}")
             if arm_cpu:
                 self.cpu = str(arm_cpu.group(1))[:19]
