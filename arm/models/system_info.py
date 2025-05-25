@@ -37,7 +37,6 @@ class SystemInfo(db.Model):
             self.cpu = subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
         elif platform.system() == "Linux":
             command = "cat /proc/cpuinfo"
-            # fulldump = subprocess.check_output(command, shell=True).strip()
             fulldump = subprocess.check_output(command, shell=True).decode()
             # logging.debug(f"Full cpuinfo: {fulldump}")
 
