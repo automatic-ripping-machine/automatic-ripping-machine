@@ -15,13 +15,13 @@
         "defaultForInternalUse": true,
         "commentForInternalUse": "# Workaround for Track 99\n# A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.\n# When set to \"false\" affected DVDs will be passed to MakeMKV for ripping, but this can crash or hang\n# Setting this to true will eject the disc and log only to the system logging",
         "dataValidation": "DataRequired",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "ARM_CHECK_UDF": {
         "defaultForInternalUse": true,
         "commentForInternalUse": "# Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.",
         "dataValidation": "DataRequired",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "UMASK": {
         "defaultForInternalUse": "0o002",
@@ -33,7 +33,7 @@
         "defaultForInternalUse": true,
         "commentForInternalUse": "# When enabled if the disc is a DVD use dvdid to calculate a crc64 and query Windows Media Meta Services for the Movie Title.\n# For BluRays attempts to extract the title from an XML file on the disc",
         "dataValidation": "DataRequired",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "ARM_API_KEY": {
         "defaultForInternalUse": "",
@@ -45,19 +45,19 @@
         "defaultForInternalUse": false,
         "commentForInternalUse": "# Do you want to be forced to login to view/edit jobs\n# True will leave all of the pages open to be editable/viewable by anyone\n# False will require you to login to view/edit jobs or settings from the ui\n# ARMui will need to be restared for this to update",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "SKIP_TRANSCODE": {
         "defaultForInternalUse": false,
         "commentForInternalUse": "# Skip transcoding if you want the original MakeMKV files as your final output\n# This will produce the highest quality videos (and use the most storage)\n# Note: RIPMETHOD must be set to \"mkv\" for this feature to work\n# Note: The largest file will be considered to be the \"main feature\" but there are cases when this is not true\n# to avoid losing a desired track, use this feature with an EXTRAS_SUB value that is not \"None\"",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "VIDEOTYPE": {
         "defaultForInternalUse": ["auto", "series", "movie"],
         "commentForInternalUse": "# Video type identification.  Options are \"auto\", \"series\", \"movie\".\n# If \"auto\" then ARM will get the video type when querying the movie webservice.  This is defaultForInternalUse.\n# If the disc is not clearly a movie or series, or if ARM is having difficulty getting the right video type\n# you can override the automatic identification with \"series\" or \"movie\"",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "MINLENGTH": {
         "defaultForInternalUse": 20,
@@ -75,7 +75,7 @@
         "defaultForInternalUse": true,
         "commentForInternalUse": "# Wait for manual identification",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "MANUAL_WAIT_TIME": {
         "defaultForInternalUse": 300,
@@ -93,7 +93,7 @@
         "defaultForInternalUse": false,
         "commentForInternalUse": "## Do you want to allow Rips of the same disk multiple times\n## With this set as false the task will exit if it recognises the same movie being ripped\n## recommended to set to true for series ",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "MAX_CONCURRENT_TRANSCODES": {
         "defaultForInternalUse": 4,
@@ -123,42 +123,42 @@
         "defaultForInternalUse": true,
         "commentForInternalUse": "# Rip DVD Posters from JACKET_P folder\n# Requires FFmpeg",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "UNIDENTIFIED_EJECT": {
         "defaultForInternalUse": true,
         "commentForInternalUse": "# Auto-eject unidentified discs (blank etc)\n# May want to set this to false on certain (Pioneer slim) drives to prevent the immediate eject\n# issue (https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/779)",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "AUTO_EJECT": {
         "defaultForInternalUse": true,
         "commentForInternalUse": "# Auto-ejects disks\n# Auto-ejects disks when complete etc\n# Set to false to disable auto-ejection",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "ABCDE_CONFIG_FILE": {
         "defaultForInternalUse": "/etc/arm/config/abcde.conf",
         "commentForInternalUse": "# Location of your ABCDE config file",
-        "dataValidation": ["DataRequired","validate_file_exists"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "RAW_PATH": {
         "defaultForInternalUse": "/home/arm/media/raw/",
         "commentForInternalUse": "# Path to raw MakeMKV directory\n# Destination for MakeMKV and source for HandBrake",
-        "dataValidation": ["DataRequired","validate_file_exists"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "TRANSCODE_PATH": {
         "defaultForInternalUse": "/home/arm/media/transcode/",
         "commentForInternalUse": "# Intermediary directory for transcoding files\n# Destination for HandBrake",
-        "dataValidation": ["DataRequired","validate_file_exists"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "COMPLETED_PATH": {
         "defaultForInternalUse": "/mnt/raid0/completed_media/",
         "commentForInternalUse": "# Final directory of transcoded files\n# Ripped and transcoded files end up here",
-        "dataValidation": ["DataRequired","validate_file_exists"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "EXTRAS_SUB": {
@@ -170,20 +170,20 @@
     "INSTALLPATH": {
         "defaultForInternalUse": "/opt/arm/",
         "commentForInternalUse": "# Path to installation of ARM ",
-        "dataValidation": ["DataRequired","validate_file_exists"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "LOGPATH": {
         "defaultForInternalUse": "/home/arm/logs/",
         "commentForInternalUse": "# Path to directory to hold log files\n# Make sure to include trailing /",
-        "dataValidation": ["DataRequired","validate_file_exists"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "LOGLEVEL": {
         "defaultForInternalUse": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         "commentForInternalUse": "# Log level.  DEBUG, INFO, WARNING, ERROR, CRITICAL\n# The defaultForInternalUse is INFO\n# If you are experiencing difficulties set this to DEBUG",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "LOGLIFE": {
         "defaultForInternalUse": 1,
@@ -194,7 +194,7 @@
     "DBFILE": {
         "defaultForInternalUse": "/home/arm/db/arm.db",
         "commentForInternalUse": "# Path to ARM database file",
-        "dataValidation": ["DataRequired","validate_file_exists"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "WEBSERVER_IP": {
@@ -219,7 +219,7 @@
         "defaultForInternalUse": false,
         "commentForInternalUse": "# Enabling this setting will allow you to adjust the defaultForInternalUse file permissions of the outputted files\n# The defaultForInternalUse value is set to 777 for read/write/execute for all users, but can be changed below using the \"CHMOD_VALUE\" setting\n# This setting is helpful when storing the data locally on the system",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "CHMOD_VALUE": {
         "defaultForInternalUse": 777,
@@ -231,7 +231,7 @@
         "defaultForInternalUse": false,
         "commentForInternalUse": "# Don't bother. This does not do anything yet",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "CHOWN_USER": {
         "defaultForInternalUse": "None",
@@ -255,7 +255,7 @@
         "defaultForInternalUse": ["mkv", "backup", "backup_dvd"],
         "commentForInternalUse": "# Method of MakeMKV to use for Blu Ray discs.  Options are \"mkv\", \"backup\" or \"backup_dvd\".\n# backup decrypts the dvd and then copies it to the hard drive.  This allows HandBrake to apply some of it's\n# analytical abilities such as the main-feature identification.  This method seems to offer success on bluray \n# discs that fail in \"mkv\" mode. *** NOTE: MakeMKV only supports the backup or backup_dvd method on BluRay discs.\n# backup_dvd forces arm to extract the dvd with MakeMKV prior to the Handbrake step",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "RIPMETHOD_DVD": {
         "defaultForInternalUse": "PLACEHOLDER",
@@ -279,7 +279,7 @@
         "defaultForInternalUse": false,
         "commentForInternalUse": "# Remove the files created by MakeMKV after processing is complete",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "HB_PRESET_DVD": {
         "defaultForInternalUse": "Chromecast 1080p30 Surround",
@@ -302,20 +302,20 @@
     "HANDBRAKE_CLI": {
         "defaultForInternalUse": "/usr/bin/HandBrakeCLI",
         "commentForInternalUse": "# Handbrake binary to call.  These should be the same unless you are doing remote processing.",
-        "dataValidation": ["DataRequired","validate_file_exists"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "HANDBRAKE_LOCAL": {
         "defaultForInternalUse": "/usr/bin/HandBrakeCLI",
         "commentForInternalUse": "# Handbrake binary to call.  These should be the same unless you are doing remote processing.",
-        "dataValidation": ["DataRequired","validate_file_exists"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "MAINFEATURE": {
         "defaultForInternalUse": false,
         "commentForInternalUse": "# Have HandBrake transcode the main feature only.  BluRay discs must have RIPMETHOD=\"backup\" for this to work.\n# If MAINFEATURE is true, blurays will be backed up to the HD and then HandBrake will go to work on the backed up\n# files.  \n# This will require libdvdcss2 be installed.\n# NOTE: For the most part, HandBrake correctly identifies the main feature on movie DVD's, although it is not perfect. \n# However, it does not handle tv shows well at all.  This setting is only used when the video is identified as a movie.",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "HB_ARGS_DVD": {
         "defaultForInternalUse": "-O --markers -e nvenc_h265 --native-language eng --all-audio --audio-lang-list en, jpn, chi, zho, fr, ger, deu, spa, dut, sin, tam, swe --subtitle-burned=none --all-subtitles --subtitle scan -F --subtitle-lang-list en, jpn, chi, zho, fr, ger, deu, spa, dut, sin, tam, swe",
@@ -333,7 +333,7 @@
         "defaultForInternalUse": false,
         "commentForInternalUse": "# Scan emby library after successful placement of mainfeature (see above)",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "EMBY_SERVER": {
         "defaultForInternalUse": "",
@@ -393,19 +393,19 @@
         "defaultForInternalUse": true,
         "commentForInternalUse": "# Notify after Rip?",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "NOTIFY_TRANSCODE": {
         "defaultForInternalUse": true,
         "commentForInternalUse": "# Notify after transcode?",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "NOTIFY_JOBID": {
         "defaultForInternalUse": false,
         "commentForInternalUse": "# Add Job ID to Notification Title",
         "dataValidation": "",
-        "formFieldType": "RadioField"
+        "formFieldType": "SelectField"
     },
     "PB_KEY": {
         "defaultForInternalUse": "",
@@ -440,7 +440,7 @@
     "BASH_SCRIPT": {
         "defaultForInternalUse": "",
         "commentForInternalUse": "",
-        "dataValidation": ["validate_non_manditory_string","validate_file_exists"],
+        "dataValidation": ["validate_non_manditory_string","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "OMDB_API_KEY": {
