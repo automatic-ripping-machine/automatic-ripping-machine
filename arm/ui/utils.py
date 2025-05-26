@@ -340,7 +340,7 @@ def getsize(path):
     free_gb = free / 1073741824
     return free_gb
 
-def jsonFile_to_dict(json_file):
+def jsonFile_to_dict(json_file:str|Path) -> dict:
     """
     Read a json file and return it as a dict
     :param json_file: path to json file
@@ -363,7 +363,20 @@ def jsonFile_to_dict(json_file):
             app.logger.exception(f"File exists but is not readable: {json_file}")
     else:
         app.logger.exception(f"File not found: {json_file}")
+        raise Exception(f"File not found: {json_file}")
     return data
+
+def listCoPairedIntoTuple(list) -> list[tuple]:
+    """Takes a list of strings, and returns a list of tuples
+        [x, y, z] -> [(x,x),(y,y),(z,z)]
+
+    Args:
+        list (any): a list of any type
+
+    Returns:
+        list[tuple]: a list, containing tuples, each duplicated.
+    """    
+    return [(x, x) for x in list]
 
 def generate_comments():
     """
