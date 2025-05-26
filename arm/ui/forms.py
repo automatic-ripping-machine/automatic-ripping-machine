@@ -8,7 +8,6 @@ from os import path
 import arm.config.config as cfg
 from arm.ui import app
 import arm.ui.utils as ui_utils
-import json
 
 ### Custom Validators
 
@@ -66,31 +65,42 @@ class ChangeParamsForm(FlaskForm):
     DISCTYPE = SelectField('Disc Type: ', choices=[('dvd', 'DVD'), ('bluray', 'Blu-ray'),
                                                    ('music', 'Music'), ('data', 'Data')])
     # "music", "dvd", "bluray" and "data"
-    MAINFEATURE = BooleanField('Main Feature: ', DataRequired())
-    MINLENGTH = IntegerField('Minimum Length: ', DataRequired())
-    MAXLENGTH = IntegerField('Maximum Length: ', DataRequired())
+    MAINFEATURE = BooleanField(label='Main Feature: ', validators=[DataRequired()])
+    MINLENGTH = IntegerField(label='Minimum Length: ', validators=[DataRequired()])
+    MAXLENGTH = IntegerField(label='Maximum Length: ', validators=[DataRequired()])
     submit = SubmitField('Submit')
 
-def SettingsForm():
+def SettingsForm() -> FlaskForm:
+    """ A Function that returns a class instance.
+        It buids the class based on on the comments.json and RipperFormConfig
+        (Comments.json to make sure a central location exists for user comments)
+        The SettingsForm class is originally empty, but fields are added using setattr
+        ripperFormConfig should have a dict per field: 
+            defaultForInternalUse (Default / field value type indicator): 
+            commentForInternalUse: included in the ripperFormConfig to make it easier to design the form in json.
+            dataValidation: DataRequired, ValidationError, IPAddress, \
+                InputRequired, validate_non_manditory_string, validate_umask, validate_path_exists
+            **formFieldType**: RadioField (Experimental), SelectField, IntegerField, \ 
+                FloatField (Untested), StringField
+
+    Raises:
+        Exception: Unknown FIeld type
+
+    Returns:
+        FlaskForm: SettingsForm
+    """
     class SettingsForm(FlaskForm):
         submit = SubmitField('Submit')
     
-    # move the ripper form settings config into ui.utils
-    # in this function, read the comments and the ripperFormConfigyou
+    
     dictFormFields = ui_utils.generate_ripperFormSettings()
     comments = ui_utils.generate_comments()
-    # request.form.to_dict() returns a dict with the form fields and the value. All as strings on empty.
-    # so we need to return a form with default values populated
-    # postRequestDict
+    
 
     for key, value in dictFormFields.items():
-        # if postRequestDict is not None:
-        #     if key == 'csrf_token':
-        #         # Skip the CSRF token field
-        #         continue
         # #Infer the type of form field based on the value type
         # app.logger.debug(f"Inferring form field type for {key}: {type(value['defaultForInternalUse'])}")
-        # ripperFormConfig should have a dict per field: defaultForInternalUse, commentForInternalUse, dataValidation, formFieldType
+        # 
         if key in comments:
             commentValue = comments[key]
         else:
@@ -120,9 +130,10 @@ def SettingsForm():
                         validators.append(n_v_c)
                     except Exception as e:
                         app.logger.warning(f"Error adding validator {x} to {key}: {e}")
+            app.logger.debug(f"validators: {validators}")
         else:
             validators = None
-        app.logger.debug(f"validators: {validators}")
+
         if isinstance(fieldDefault, bool) and fieldType == "SelectField":
             f = SelectField(label=key.replace("_", " "),
                         description=commentValue,
@@ -147,7 +158,7 @@ def SettingsForm():
                         )
         elif fieldType == "RadioFeild":
             # SelectField with a list of choices
-            paired_list = [(x, x) for x in fieldDefault]
+            paired_list = ui_utils.listCoPairedIntoTuple(fieldDefault)
             f = RadioField(label=key.replace("_", " "),
                         description=commentValue,
                         # default=str(fieldDefault),
@@ -157,7 +168,7 @@ def SettingsForm():
                         )
         elif fieldType == "SelectField":
             # SelectField with a list of choices
-            paired_list = [(x, x) for x in fieldDefault]
+            paired_list = ui_utils.listCoPairedIntoTuple(fieldDefault)
             f = SelectField(label=key.replace("_", " "),
                         description=commentValue,
                         # default=str(fieldDefault),
@@ -188,6 +199,7 @@ def SettingsForm():
                         )
         else:
             app.logger.warning(f"Unknown type for {key}: {type(value)}, returning StringField")
+            raise Exception(f"Unknown type for {key}: {type(value)}, returning StringField")
         setattr(SettingsForm, key, f)
     return SettingsForm()
 
