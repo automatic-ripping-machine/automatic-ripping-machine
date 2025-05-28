@@ -118,11 +118,14 @@ def SettingsForm() -> FlaskForm:
             # DataRequired, ValidationError, IPAddress, validate_path_exists, validate_umask validate_non_manditory_string
             for x in possible_validators:
                 if x == "validate_path_exists":
-                    validators.append(validate_path_exists)
+                    app.logger.debug(f"Adding validate_path_exists to {key}")
+                    # validators.append(validate_path_exists)
                 elif x == "validate_umask":
-                    validators.append(validate_umask)
+                    app.logger.debug(f"Adding validate_umask to {key}")
+                    # validators.append(validate_umask)
                 elif x == "validate_non_manditory_string":
-                    validators.append(validate_non_manditory_string)
+                    app.logger.debug(f"Adding validate_non_manditory_string to {key}")
+                    # validators.append(validate_non_manditory_string)
                 else:
                     try:
                         n_v_c = globals()[x]
