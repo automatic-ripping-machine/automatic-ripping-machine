@@ -200,15 +200,20 @@ def save_settings():
     # form = SettingsForm()
     # app.logger.debug(f"{request.form.to_dict()}")
     form = SettingsForm()
-    app.logger.debug("Saving Ripper settings")
     if form.validate_on_submit():
+        app.logger.debug("Saving Ripper settings")
         # Build the new arm.yaml with updated values from the user
         arm_cfg = ui_utils.build_arm_cfg(request.form.to_dict(), comments)
         # Save updated arm.yaml
-        with open(cfg.arm_config_path, "w") as settings_file:
-            settings_file.write(arm_cfg)
-            settings_file.close()
-        success = True
+        try:
+            with open(cfg.arm_config_path, "w") as settings_file:
+                settings_file.write(arm_cfg)
+                settings_file.close()
+            success = True
+        except Exception as e:
+            app.logger.exception(f"Error saving arm.yaml: {e}")
+            flash(f"Error saving arm.yaml: {e}", "error")
+            return {'success': False, 'settings': str(cfg.arm_config), 'form': 'arm ripper settings'}
         importlib.reload(cfg)
         # Set the ARM Log level to the config
         app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
