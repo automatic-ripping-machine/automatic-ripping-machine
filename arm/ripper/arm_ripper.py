@@ -270,4 +270,3 @@ def skip_transcode_movie(files, job, raw_path):
                 utils.move_files(raw_path, file, job, False)
             else:
                 logging.info(f"Not moving extra: \"{file}\" - Sub folder is not set or named incorrectly")
-                
