@@ -135,7 +135,6 @@ def ffmpeg_all(srcpath, basepath, logfile, job):
                   f" {shlex.quote(filepathname)} " \
                   f" >> {logfile} 2>&1"
 
-
             logging.debug(f"Sending command: {cmd}")
 
             try:
@@ -373,7 +372,8 @@ def handbrake_char_encoding(cmd):
             # If it doesn't work now we either have bad encoding or HB has ran into issues
     return hand_brake_output
 
-def ffmpeg_mkv(srcpath, basepath, logfile,job):
+
+def ffmpeg_mkv(srcpath, basepath, logfile, job):
     """
     Process all mkv files in a directory.\n\n
     :param srcpath: Path to source for HB (dvd or files)\n
@@ -435,3 +435,4 @@ def ffmpeg_mkv(srcpath, basepath, logfile,job):
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
+    
