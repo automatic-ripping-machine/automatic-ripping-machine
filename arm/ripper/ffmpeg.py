@@ -48,12 +48,12 @@ def ffmpeg_main_feature(srcpath, basepath, logfile, job):
     db.session.commit()
 
     options = cfg.arm_config['FFMPEG_OPTIONS'].split(' ')
-    tmp = ' '.join(map(str,options))
+    tmp = ' '.join(map(str, options))
     cmd = f"nice ffmpeg " \
-              f"-i {shlex.quote(srcpathname)} " \
-              f" {tmp}" \
-              f" {shlex.quote(filepathname)} " \
-              f" >> {logfile} 2>&1"
+          f"-i {shlex.quote(srcpath)} " \
+          f" {tmp}" \
+          f" {shlex.quote(filepathname)} " \
+          f" >> {logfile} 2>&1"
 
     logging.debug(f"Sending command: {cmd}")
 
@@ -128,12 +128,12 @@ def ffmpeg_all(srcpath, basepath, logfile, job):
             db.session.commit()
 
             options = cfg.arm_config['FFMPEG_OPTIONS'].split(' ')
-            tmp = ' '.join(map(str,options))
+            tmp = ' '.join(map(str, options))
             cmd = f"nice ffmpeg " \
-              f"-i {shlex.quote(srcpathname)} " \
-              f" {tmp}" \
-              f" {shlex.quote(filepathname)} " \
-              f" >> {logfile} 2>&1"
+                  f"-i {shlex.quote(srcpath)} " \
+                  f" {tmp}" \
+                  f" {shlex.quote(filepathname)} " \
+                  f" >> {logfile} 2>&1"
 
 
             logging.debug(f"Sending command: {cmd}")
@@ -213,9 +213,8 @@ def ffmpeg_defualt(srcpath, basepath, logfile, job):
 
         logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(filepathname)}")
 
-        #marker
         options = cfg.arm_config['FFMPEG_ARGS'].split(' ')
-        tmp = ' '.join(map(str,options))
+        tmp = ' '.join(map(str, options))
         cmd = f"nice ffmpeg " \
               f"-i {shlex.quote(srcpathname)} " \
               f" {tmp}" \
@@ -410,7 +409,7 @@ def ffmpeg_mkv(srcpath, basepath, logfile,job):
         logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(filepathname)}")
 
         options = cfg.arm_config['FFMPEG_ARGS'].split(' ')
-        tmp = ' '.join(map(str,options))
+        tmp = ' '.join(map(str, options))
         cmd = f"nice ffmpeg " \
               f"-i {shlex.quote(srcpathname)} " \
               f" {tmp}" \
@@ -436,5 +435,3 @@ def ffmpeg_mkv(srcpath, basepath, logfile,job):
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
-
-
