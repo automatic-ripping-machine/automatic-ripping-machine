@@ -7,7 +7,7 @@ import logging
 
 sys.path.append("/opt/arm")
 
-from arm.ripper import utils, makemkv, handbrake  # noqa E402
+from arm.ripper import utils, makemkv, handbrake, ffmpeg  # noqa E402
 from arm.ui import app, db, constants  # noqa E402
 from arm.models.job import JobState  # noqa E402
 
@@ -115,28 +115,52 @@ def start_transcode(job, logfile, hb_in_path, hb_out_path, protection):
     :param protection: If disc has 99 track protection
     :return: None
     """
-    utils.database_updater({"status": JobState.IDLE.value}, job)
-    logging.info("************* Starting Transcode With HandBrake *************")
-    if rip_with_mkv(job, protection) and job.config.RIPMETHOD == "mkv":
-        # skip if transcode is disable
-        if job.config.SKIP_TRANSCODE:
-            logging.info("Transcoding is disabled, skipping transcode")
-            return None
-        logging.debug(f"handbrake_mkv: {hb_in_path}, {hb_out_path}, {logfile}")
-        handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
-    elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
-        logging.debug(f"handbrake_main_feature: {hb_in_path}, {hb_out_path}, {logfile}")
-        handbrake.handbrake_main_feature(hb_in_path, hb_out_path, logfile, job)
-        job.eject()
-        db.session.commit()
+    # Update db with transcoding status
+    utils.database_updater({'status': "transcoding"}, job)
+    if job.config.USE_FFMPEG:
+        logging.info("************* Starting Transcode With FFMPEG *************")
+        if rip_with_mkv(job, protection) and job.config.RIPMETHOD == "mkv":
+            if job.config.SKIP_TRANSCODE:
+                logging.info("Transcoding is disabled, skipping transcode")
+                return None
+            logging.debug(f"ffmpeg_mkv: {hb_in_path}, {hb_out_path}, {logfile}")
+            ffmpeg.ffmpeg_mkv(hb_in_path, hb_out_path, logfile, job)
+        elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
+            logging.debug(f"ffmpeg_main_feature: {hb_in_path}, {hb_out_path}, {logfile}")
+            ffmpeg.ffmpeg_main_feature(hb_in_path, hb_out_path, logfile, job)
+            job.eject()
+            db.session.commit()
+        else:
+            logging.debug(f"ffmpeg_all: {hb_in_path}, {hb_out_path}, {logfile}")
+            ffmpeg.ffmpeg_all(hb_in_path, hb_out_path, logfile, job)
+            job.eject()
+            db.session.commit()
+        logging.info("************* Finished Transcode With FFMPEG *************")
+        utils.database_updater({'status': "active"}, job)
+        return True
+
     else:
-        logging.debug(f"handbrake_all: {hb_in_path}, {hb_out_path}, {logfile}")
-        handbrake.handbrake_all(hb_in_path, hb_out_path, logfile, job)
-        job.eject()
-        db.session.commit()
-    logging.info("************* Finished Transcode With HandBrake *************")
-    utils.database_updater({"status": JobState.IDLE.value}, job)
-    return True
+        logging.info("************* Starting Transcode With HandBrake *************")
+        if rip_with_mkv(job, protection) and job.config.RIPMETHOD == "mkv":
+            # skip if transcode is disable
+            if job.config.SKIP_TRANSCODE:
+                logging.info("Transcoding is disabled, skipping transcode")
+                return None
+            logging.debug(f"handbrake_mkv: {hb_in_path}, {hb_out_path}, {logfile}")
+            handbrake.handbrake_mkv(hb_in_path, hb_out_path, logfile, job)
+        elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
+            logging.debug(f"handbrake_main_feature: {hb_in_path}, {hb_out_path}, {logfile}")
+            handbrake.handbrake_main_feature(hb_in_path, hb_out_path, logfile, job)
+            job.eject()
+            db.session.commit()
+        else:
+            logging.debug(f"handbrake_all: {hb_in_path}, {hb_out_path}, {logfile}")
+            handbrake.handbrake_all(hb_in_path, hb_out_path, logfile, job)
+            job.eject()
+            db.session.commit()
+        logging.info("************* Finished Transcode With HandBrake *************")
+        utils.database_updater({'status': "active"}, job)
+        return True
 
 
 def notify_exit(job):
@@ -246,3 +270,5 @@ def skip_transcode_movie(files, job, raw_path):
                 utils.move_files(raw_path, file, job, False)
             else:
                 logging.info(f"Not moving extra: \"{file}\" - Sub folder is not set or named incorrectly")
+
+
