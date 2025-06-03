@@ -171,7 +171,8 @@ def process_single_tracks(job, logfile, rawpath, mode: str):
             cmd = f'makemkvcon mkv {job.config.MKV_ARGS} -r ' \
                   f'--progress={os.path.join(job.config.LOGPATH, "progress", str(job.job_id))}.log ' \
                   f'--messages=-stdout ' \
-                  f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)}'
+                  f'dev:{job.devpath} {track.track_number} {shlex.quote(rawpath)} ' \
+                  f'--minlength={job.config.MINLENGTH}'
             run_makemkv(cmd, logfile)
 
 
