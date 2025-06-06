@@ -34,7 +34,7 @@ desc = "Automatic Ripping Machine Development Tool Scripts. " \
         "unless running the specific docker rebuild scripts."
 parser = argparse.ArgumentParser(description=desc)
 parser.add_argument("-b",
-                    help="Name of the branch to move to, example -b v2_devel")
+                    help="Name of the branch to move to, example -b bugfix_removecode")
 parser.add_argument("-dr",
                     help="Docker - Stop, Remove and Rebuild the ARM Docker image, leaving the container")
 parser.add_argument("--clean",
