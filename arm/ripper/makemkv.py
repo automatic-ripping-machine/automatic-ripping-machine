@@ -341,7 +341,8 @@ def add_track_filename(aspect, filename, fps, job, line_track, msg, seconds, tra
             utils.put_track(job, track, seconds, aspect, fps, False, "MakeMKV", filename)
         track = line_track
     if msg[1] == "27":
-        filename = msg[3].replace('"', '').strip()
+        # Get the filename between the quotes
+        filename = next(iter(msg[3].split('"')[1::2]), msg[3])
     return filename, track
 
 
