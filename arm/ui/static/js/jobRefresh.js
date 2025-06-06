@@ -62,7 +62,9 @@ function updateProgress(job, oldJob) {
     const subProgressBar = `<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
                              aria-valuenow="${job.progress_round}" aria-valuemin="0" aria-valuemax="100" 
                              style="width: ${job.progress_round}%">
-                             <small class="justify-content-center d-flex position-absolute w-100">${job.progress}%</small></div></div>`;
+                             <small class="justify-content-center d-flex position-absolute w-100" style="color: black; z-index: 2;">
+                             ${job.progress}%
+                             </small></div></div>`;
     const mainProgressBar = `<div id="jobId${job.job_id}_stage"><b>Stage: </b>${job.stage}</div>
                              <div id="jobId${job.job_id}_progress" ><div class="progress">${subProgressBar}</div>
                              <div id="jobId${job.job_id}_eta"><b>ETA: </b>${job.eta}</div>`;
