@@ -12,6 +12,11 @@
       * [3.3 Remove a Drive](#33-remove-a-drive)
 <!-- TOC -->
 
+## Overview
+
+The ARM Settings page 'General Info' tab provides an overview of the connected CD, DVD or Bluray drives connected to the system.
+Scanning for drives allows easier management, viewing and status of jobs running on the ARM system.
+
 > [!NOTE]
 > For ARM to rip media the drives do not need to appear on the settings, drive page.
 > However, if ARM cannot find a drive following a scan, there may be issues with the docker configuration.
@@ -24,7 +29,7 @@ The following options are available from the ARM settings page, for each of the 
 2. Edit Drive Details
 3. Drive Options
 
-<img title="ARM Settings Page" alt="Default ARM Settings page with no drives" src="images/settings_drives.png" width="80%" height=""/>
+<img title="ARM Settings - General Info Tab" alt="Default ARM Settings page with no drives" src="images/arm_settings_drives.png" width="80%" height=""/>
 
 ### 1. Scanning For New Drives
 

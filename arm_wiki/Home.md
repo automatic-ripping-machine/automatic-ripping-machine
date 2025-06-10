@@ -22,6 +22,7 @@ This is a small project with few maintainers. As such we do not have the time to
 
 > [!WARNING]
 > Please keep in mind that the regular support of Ubuntu 20.04 is end-of-life in April 2025. Due to this we ***highly*** recommend running a Docker container instead and a native installation is discouraged.
+> Ubuntu 24.02 has had initial testing.
 
 Please note that if you open an issue to ask for help, if the OS you are using is not on this list you will be asked to reimage and try again or your issue will be closed.
 

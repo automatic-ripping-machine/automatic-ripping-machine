@@ -3,6 +3,7 @@ docker run -d \
     -p "8080:8080" \
     -e ARM_UID="<id -u arm>" \
     -e ARM_GID="<id -g arm>" \
+    -e TZ="<timedatectl show -p Timezone --value>" \
     -v "<path_to_arm_user_home_folder>:/home/arm" \
     -v "<path_to_music_folder>:/home/arm/music" \
     -v "<path_to_logs_folder>:/home/arm/logs" \

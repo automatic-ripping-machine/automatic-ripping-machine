@@ -26,6 +26,8 @@ Operation of ARM does not require much in the way of system requirements, althou
       - 2 to 8 GB for transcoding high definition video (720p/1080p)
       - 6 to 16 GB or more for transcoding ultra high definition video (2160p 4K)
    - One or more optical drives to rip Blu-Rays, DVDs, and CDs
+   (Optional)
+   - a (GPU)[#Additional-Hardware-Setup]
 - Storage:
    - ARM Docker container 2-4 GB
    - Audio CD: <1GB per CD ripped

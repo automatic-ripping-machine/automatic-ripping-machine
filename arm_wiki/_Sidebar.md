@@ -2,12 +2,18 @@
 
 **Getting Started**
    - [Getting Started](Getting-Started)
-   - [Pull prebuilt image](Docker)
-   - [Build from Dockerfile](Docker-From-Source)
-   - [Upgrading from old versions](Docker-Upgrading)
+
+   - **Docker**
+       - [Pull prebuilt image](docker)
+       - [Build from Dockerfile](Building-ARM-docker-image-from-source)
 
    - **Manual Install**
      - See Alternate Installations
+   
+   - **Automatic script install**
+       - [Open Media Vault/ Debian (Install script)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Setting-up-ARM-script-(Debian-OMV))
+       - [Ubuntu 20.04 (install script)](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Ubuntu-20.04-Automatic-Installation)
+   - [Upgrading from old versions](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/upgrading)
 
 **Web Page Overview**
   - _Coming Soon_
@@ -15,6 +21,9 @@
   - [Settings](Web-Settings)
     - [Drive Management](Web-Settings-Drives)
     - [UI Settings](Web-Settings-UI)
+    - [System Information](Web-Settings-System-Info)
+
+**[Known Issues](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Known-Issues)**
 
 **Configuration**
    - [Configuration](Configuring-ARM)
@@ -28,16 +37,16 @@
      
    - **Alternate Installations**
      - [Ubuntu](Alternate-Install-Ubuntu)
-     - [Ubuntu 20.04 (install script)](Ubuntu-20.04-Automatic-Installation)
+     - ~~[Ubuntu 20.04 (install script)](Ubuntu-20.04-Automatic-Installation)~~ (Run the Debian script)
      - [Debian](Alternate-Install-Debian)
      - [Open Media Vault](Alternate-Install-OMV)
      - [TrueNAS](Alternate-Install-TrueNAS)
 
 
 **Hardware Configuration**
-   - [Adding Intel QSV Support](intel-qsv)
-   - [Adding AMD VCE Support](amd-vce)
-   - [NVIDIA NVENC support](nvidia)
+   - [Adding Intel QSV Support](Hardware-Transcode-Intel-QSV)
+   - [Adding AMD VCE Support](Hardware-Transcode-AMD-VCE)
+   - [NVIDIA NVENC support](Hardware-Transcode-Nvidia-NVENC)
 
 
 **Troubleshooting**
@@ -65,4 +74,4 @@
       - [Related Projects and HowTos](related-howtos)
       - [Hardware/OS HowTo's](VMware)
       - [The ARM Change log](Change-Log)
-      - [The ARM License](https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/v2_devel/LICENSE)
+      - [The ARM License](https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/main/LICENSE)
