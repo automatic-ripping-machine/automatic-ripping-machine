@@ -1,6 +1,7 @@
+from typing import Any, List
 """Forms used in the arm ui"""
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, \
+from wtforms import Form, Field, StringField, SubmitField, SelectField, \
     IntegerField, BooleanField, PasswordField, Form, FieldList, \
     FormField, HiddenField, FloatField, IntegerRangeField
 from wtforms.validators import DataRequired, ValidationError, IPAddress, InputRequired, Optional
@@ -11,11 +12,11 @@ import arm.ui.utils as ui_utils
 
 ### Custom Validators
 
-def validate_path_exists(form, field):
+def validate_path_exists(form:Form, field:Field):
     if not path.exists(field.data):
         raise ValidationError(f"The path specified does not exist:\r\n {field}")
 
-def validate_umask(form, field):
+def validate_umask(form:Form, field:Field):
     value = field.data
     try:
         # Accept both '002' and '0o002' formats
@@ -29,7 +30,7 @@ def validate_umask(form, field):
     except ValueError:
         raise ValidationError("Invalid octal number format.")
 
-def validate_non_manditory_string(form, field):
+def validate_non_manditory_string(form:Form, field:Field):
     originalLength = len(field.data)
     if originalLength > 0:
         text = field.data.replace('<p>','').replace('</p>','').replace('&nbsp;','')\
@@ -95,18 +96,23 @@ def SettingsForm() -> FlaskForm:
     
     dictFormFields = ui_utils.generate_ripperFormSettings()
     comments = ui_utils.generate_comments()
-    
+    if isinstance(dictFormFields, str):
+        app.logger.exception(f"Unable to generate the Settings Form because RipperForm config file doesn't work: {dictFormFields}")
+        raise Exception(f"Unable to generate the Settings Form because RipperForm config file doesn't work: {dictFormFields}")
+    if isinstance(comments, str):
+        app.logger.exception(f"Unable to generate the Settings Form because RipperForm config file doesn't work: {comments}")
+        raise Exception(f"Unable to generate the Settings Form because RipperForm config file doesn't work: {comments}")
 
     for key, value in dictFormFields.items():
         # #Infer the type of form field based on the value type
         # app.logger.debug(f"Inferring form field type for {key}: {type(value['defaultForInternalUse'])}")
         # 
         if key in comments:
-            commentValue = comments[key]
+            commentValue = str(comments[key])
         else:
             app.logger.warning(f"Comment not found for {key}, using empty string")
             commentValue = ""
-        if commentValue is None: commentValue = ""
+        if commentValue is None: commentValue = "" # type: ignore
         fieldDefault = value["defaultForInternalUse"]
         fieldType = value["formFieldType"]
         # The next is a bit tricky, getting a list of data validations, setting them up as objects
@@ -114,7 +120,7 @@ def SettingsForm() -> FlaskForm:
         # app.logger.debug(f"commentValue: {commentValue}, fieldDefault: {fieldDefault}, fieldType: {fieldType}")
         if isinstance(value['dataValidation'], list) and len(value['dataValidation']) > 0:
             possible_validators = value['dataValidation']
-            validators = []
+            validators: List[Field]|None = []
             # DataRequired, ValidationError, IPAddress, validate_path_exists, validate_umask validate_non_manditory_string
             for x in possible_validators:
                 if x == "validate_path_exists":
@@ -161,6 +167,9 @@ def SettingsForm() -> FlaskForm:
                         )
         elif fieldType == "RadioFeild":
             # SelectField with a list of choices
+            if not isinstance(fieldDefault, list):
+                app.logger.exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
+                raise Exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
             paired_list = ui_utils.listCoPairedIntoTuple(fieldDefault)
             f = RadioField(label=key.replace("_", " "),
                         description=commentValue,
@@ -171,6 +180,9 @@ def SettingsForm() -> FlaskForm:
                         )
         elif fieldType == "SelectField":
             # SelectField with a list of choices
+            if not isinstance(fieldDefault, list):
+                app.logger.exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
+                raise Exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
             paired_list = ui_utils.listCoPairedIntoTuple(fieldDefault)
             f = SelectField(label=key.replace("_", " "),
                         description=commentValue,

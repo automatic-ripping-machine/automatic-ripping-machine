@@ -8,6 +8,7 @@ import json
 import platform
 import subprocess
 import re
+from typing import Dict, Union, List, Tuple, TypedDict
 from datetime import datetime
 from pathlib import Path
 from sqlalchemy.exc import SQLAlchemyError
@@ -30,6 +31,7 @@ from arm.models.user import User
 from arm.ui import app, db
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
 from arm.ui.settings import DriveUtils
+
 
 # Path definitions
 path_migrations = "arm/migrations"
@@ -281,7 +283,7 @@ def arm_db_initialise():
     DriveUtils.drives_update()
 
 
-def make_dir(path):
+def make_dir(path:str|Path) -> bool:
     """
     Make a directory
     :param path: Path to directory
@@ -289,24 +291,24 @@ def make_dir(path):
     """
     success = False
     if not os.path.exists(path):
-        app.logger.debug("Creating directory: " + path)
+        app.logger.debug(f"Creating directory: {path}")
         try:
             os.makedirs(path)
             success = True
         except OSError:
-            err = "Couldn't create a directory at path: " + path + " Probably a permissions error.  Exiting"
+            err = f"Couldn't create a directory at path: {path} Probably a permissions error.  Exiting"
             app.logger.error(err)
     return success
 
 
-def get_info(directory):
+def get_info(directory:Path) -> List[List[Union[str, float]]]:
     """
     Used to read stats from files
     -Used for view logs page
     :param directory:
     :return: list containing a list with each file's stats
     """
-    file_list = []
+    file_list: List[List[Union[str, float]]] = []
     for i in os.listdir(directory):
         if os.path.isfile(os.path.join(directory, i)):
             file_stats = os.stat(os.path.join(directory, i))
@@ -320,7 +322,7 @@ def get_info(directory):
     return file_list
 
 
-def clean_for_filename(string):
+def clean_for_filename(string:str) -> str:
     """ Cleans up string for use in filename """
     string = re.sub(r'\s+', ' ', string)
     string = string.replace(' : ', ' - ')
@@ -333,14 +335,14 @@ def clean_for_filename(string):
     return string
 
 
-def getsize(path):
+def getsize(path:str|Path) -> float:
     """Simple function to get the free space left in a path"""
     path_stats = os.statvfs(path)
     free = (path_stats.f_bavail * path_stats.f_frsize)
     free_gb = free / 1073741824
     return free_gb
 
-def jsonFile_to_dict(json_file:str|Path) -> dict:
+def jsonFile_to_dict(json_file:str|Path) -> Dict[str, Union[str, int, bool]]|str:
     """
     Read a json file and return it as a dict
     :param json_file: path to json file
@@ -359,14 +361,16 @@ def jsonFile_to_dict(json_file:str|Path) -> dict:
             except Exception as error:
                 app.logger.exception(f"Was unable to load json file: {json_file}")
                 app.logger.exception(error)
+                data = f"Was unable to load json file: {json_file}"            
         else:
             app.logger.exception(f"File exists but is not readable: {json_file}")
+            data = f"File exists but is not readable: {json_file}"
     else:
         app.logger.exception(f"File not found: {json_file}")
-        raise Exception(f"File not found: {json_file}")
+        data = f"File not found: {json_file}"
     return data
 
-def listCoPairedIntoTuple(list) -> list[tuple]:
+def listCoPairedIntoTuple(list_of_strings:List[str]) -> list[Tuple[str, str]]:
     """Takes a list of strings, and returns a list of tuples
         [x, y, z] -> [(x,x),(y,y),(z,z)]
 
@@ -376,7 +380,7 @@ def listCoPairedIntoTuple(list) -> list[tuple]:
     Returns:
         list[tuple]: a list, containing tuples, each duplicated.
     """    
-    return [(x, x) for x in list]
+    return [(x, x) for x in list_of_strings]
 
 def generate_comments():
     """
@@ -388,8 +392,15 @@ def generate_comments():
     comments = jsonFile_to_dict(comments_file)
     return comments
 
+class FieldDict(TypedDict):
+    defaultForInternalUse: Union[str, int, bool,list[str]]
+    commentForInternalUse: str
+    dataValidation: Union[str, list[str]]
+    formFieldType: str
+
 ripperSettingsConfigFile = 'ripperFormConfig.json'
-def generate_ripperFormSettings():
+
+def generate_ripperFormSettings()-> Dict[str,FieldDict]:
     """
     load ripperSettingsConfigFile.json and use it for settings page
     allows us to easily add more settings later
@@ -399,7 +410,7 @@ def generate_ripperFormSettings():
     ripperFormSettings = jsonFile_to_dict(ripperFormSettings)
     return ripperFormSettings
 
-def generate_full_log(full_path):
+def generate_full_log(full_path: str | Path):
     """
     Gets/tails all lines from log file
     :param full_path: full path to job logfile

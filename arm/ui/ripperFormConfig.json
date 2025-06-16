@@ -156,7 +156,7 @@
         "formFieldType": "StringField"
     },
     "COMPLETED_PATH": {
-        "defaultForInternalUse": "/mnt/raid0/completed_media/",
+        "defaultForInternalUse": "/home/arm/media/completed_media/",
         "commentForInternalUse": "# Final directory of transcoded files\n# Ripped and transcoded files end up here",
         "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
@@ -246,7 +246,7 @@
         "formFieldType": "StringField"
     },
     "MAKEMKV_PERMA_KEY": {
-        "defaultForInternalUse": "M-GCR0EuVVbK4LjFEBP076oxoyX3g0WM41rqsWRVDE7lKnKGxUdZd9yznwyfD9uxfF@j",
+        "defaultForInternalUse": "M-@j",
         "commentForInternalUse": "# Storage for a purchased key the user may have paid for. Populating will prevent the beta key updater from running.",
         "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
@@ -444,13 +444,13 @@
         "formFieldType": "StringField"
     },
     "OMDB_API_KEY": {
-        "defaultForInternalUse": "fdb00c8c",
+        "defaultForInternalUse": "",
         "commentForInternalUse": "# OMDB_API_KEY\n# omdbapi.com API Key\n# See README-OMDBAPI for background and info\n# This is the API key for omdbapi.com queries.\n# More info at https://omdbapi.com/",
         "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "TMDB_API_KEY": {
-        "defaultForInternalUse": "e7a82907e9aba5cb1250ffa99aaae49d",
+        "defaultForInternalUse": "",
         "commentForInternalUse": "# TMDB_API_KEY\n# https://www.themoviedb.org/ API Key\n# See README-OMDBAPI for background and info\n# This is the API key for https://www.themoviedb.org/ queries.\n# More info at https://www.themoviedb.org/documentation/api",
         "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
