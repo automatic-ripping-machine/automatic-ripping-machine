@@ -710,7 +710,7 @@ def build_arm_cfg(form_data, comments):
     #     text = text.strip().replace("\t","").replace("\n","").replace("\r","").replace("\f","").replace("\v","")
     app.logger.debug("save_settings: START")
     for key, value in form_data.items():
-        app.logger.debug(f"save_settings: current key {key} = {value} ")
+        # app.logger.debug(f"save_settings: current key {key} = {value} ")
         if key == "csrf_token":
             continue
         # Add any grouping comments

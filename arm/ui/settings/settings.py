@@ -109,6 +109,7 @@ def settings():
         else:
             field.data = getattr(armui_cfg, field_name)
             field.render_kw = {'title':comments[field_name]}
+            app.logger.debug(f"Field {field_name} has value with value: {field.data}")
     
     # Get system details from Server Info and Config
     server = SystemInfo.query.filter_by(id="1").first()
@@ -123,13 +124,16 @@ def settings():
     form_drive = SystemInfoDrives(request.form)
 
     # Build the dynamic form for the ripper settings
-    # form = SettingsForm()
     form = SettingsForm()
-    for field_name, field in form._fields.items():
-        if field_name == 'submit':
-            break
-        else:
-            field.data = cfg.arm_config[field_name.replace(" ", "_")]
+    # now go through all teh arm config keys and set the form fields.data
+
+    for key, value in cfg.arm_config.items():
+        field = getattr(form, key, None)
+        if field:
+            app.logger.debug(f"Config key: {key} resolved to field: {field.name}, which contains value: {field.data}")
+            field.data = value
+            app.logger.debug(f"Field value is now: {field.data}")
+            
     
     session["page_title"] = "Settings"
 
