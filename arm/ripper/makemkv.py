@@ -118,6 +118,10 @@ class MessageID(enum.IntEnum):
     Known MakeMKV Message Codes
     """
 
+    LIBMKV_TRACE = 1002
+    """LIBMKV_TRACE: %1
+    - "Exception: Error in p->FetchFrames(1,false)"
+    """
     VERSION_INFO = 1005
     """%1 started"""
     GENERIC_INFO = 1011
@@ -144,10 +148,24 @@ class MessageID(enum.IntEnum):
     """File %1 was added as title #%2"""
     RIP_TITLE_ERROR = 5003
     """Failed to save title %1 to file %2"""
+    RIP_COMPLETED = 5004
+    """%1 titles saved, %2 failed"""
+    RIP_DISC_OPEN_ERROR = 5010
+    """Failed to open disc (mostly fatal)"""
     RIP_SUMMARY_BEFORE = 5014
     """Saving %1 titles into directory %2"""
     RIP_SUMMARY_AFTER = 5037
     """Copy complete. %1 titles saved, %2 failed."""
+    EVALUATION_PERIOD_EXPIRED_INFO = 5052
+    """Evaluation period has expired.
+    Please purchase an activation key if you've found this application useful.
+    You may still use all free functionality without any restrictions.
+    """
+    EVALUATION_PERIOD_EXPIRED_SHAREWARE = 5055
+    """Evaluation period has expired, shareware functionality unavailable."""
+    RIP_BACKUP_FAILED_PRE = 5096
+    RIP_BACKUP_FAILED = 5080
+    """Backup Mode Failed."""
 
 
 class StreamID(enum.IntEnum):
@@ -943,7 +961,24 @@ def check_output(data: MakeMKVMessage):
             # yet unknown, create warning
             logging.warning(error_message)
         return MakeMKVErrorMessage(*data)
-    logging.info(data.message)
+    if data.code == MessageID.EVALUATION_PERIOD_EXPIRED_SHAREWARE:
+        return MakeMKVErrorMessage(*dataclasses.astuple(data), data.message)
+    if data.code == MessageID.RIP_BACKUP_FAILED:
+        return MakeMKVErrorMessage(*dataclasses.astuple(data), data.message)
+    # The following errors will only get logged on higher log level than debug.
+    if data.code == MessageID.RIP_DISC_OPEN_ERROR:
+        # "Failed to open disc" is also happening for unattached drives.
+        logging.info(data.message)
+    elif data.code == MessageID.RIP_TITLE_ERROR:
+        logging.warning(data.message)
+    elif data.code == MessageID.RIP_COMPLETED:
+        logging.info(data.message)
+    elif data.code == MessageID.LIBMKV_TRACE:
+        logging.warning(data.message)
+    elif data.code == MessageID.RIP_BACKUP_FAILED_PRE:
+        logging.warning(data.message)
+    elif data.code == MessageID.EVALUATION_PERIOD_EXPIRED_INFO:
+        logging.warning(data.message)
     return data
 
 
