@@ -232,7 +232,10 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
             logger.debug(err.stdout)
             logger.error(err.stderr)
             return err.stderr
-        logger.debug(proc.stdout)
+        else:
+            logger.debug(proc.stdout)
+        finally:
+            self.release_current_job()
         return None
 
     def debug(self, logger=logging):
@@ -263,13 +266,15 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
         """Drive has an associated job."""
         return self.job_current is not None
 
+    def release_current_job(self):
+        if self.job_id_current is None:
+            return
+        logging.info("Releasing current job from drive")
+        # Preserve as previous job
+        self.job_id_previous = self.job_id_current
+
     def new_job(self, job_id):
         """new job assigned to the drive, update with new job id, and previous job_id"""
-        if self.job_id_current is not None:  # Preserve previous job
-            self.job_id_previous = self.job_id_current
+        logging.info("Creating new job for drive.")
+        self.release_current_job()
         self.job_id_current = job_id
-
-    def job_finished(self):
-        """update Job IDs between current and previous jobs"""
-        self.job_id_previous = self.job_id_current
-        self.job_id_current = None

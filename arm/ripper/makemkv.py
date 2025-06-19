@@ -19,6 +19,7 @@ import shlex
 from time import sleep
 
 from arm.models import Track, SystemDrives
+from arm.models.job import JobState
 from arm.ripper import utils
 from arm.ui import db
 import arm.config.config as cfg
@@ -26,12 +27,6 @@ import arm.config.config as cfg
 from arm.ripper.utils import notify
 
 
-JOB_STATUS_RIPPING = "ripping"
-"""Indicate that makemkv is ripping."""
-JOB_STATUS_WAITING = "waiting"
-"""Indicate that the job waits for user input"""
-JOB_STATUS_INFO = "info"
-"""Indicate that the job calls makemkv info"""
 MAKEMKV_INFO_WAIT_TIME = 60  # [s]
 """Wait for concurrent MakeMKV info processes.
 This is introduced due to a race condition creating makemkvcon zombies
@@ -553,16 +548,16 @@ def makemkv_info(job, select=None, index=9999, options=None):
     info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}"]
     wait_time = job.config.MANUAL_WAIT_TIME
     max_processes = job.config.MAX_CONCURRENT_MAKEMKVINFO
-    job.status = JOB_STATUS_WAITING
+    job.status = JobState.VIDEO_WAITING.value
     db.session.commit()
     utils.sleep_check_process("makemkvcon", max_processes, sleep=(10, wait_time, 10))
-    job.status = JOB_STATUS_INFO
+    job.status = JobState.VIDEO_INFO.value
     db.session.commit()
     try:
         yield from run(info_options, select)
     finally:
         logging.info("MakeMKV info exits.")
-        job.status = JOB_STATUS_WAITING
+        job.status = JobState.VIDEO_WAITING.value
         db.session.commit()
         if max_processes:
             logging.info(f"Penalty {wait_time}s")
@@ -571,7 +566,7 @@ def makemkv_info(job, select=None, index=9999, options=None):
             sleep(wait_time)
         # sleep here until all processes finish (hopefully)
         utils.sleep_check_process("makemkvcon", max_processes, sleep=wait_time)
-        job.status = JOB_STATUS_RIPPING
+        job.status = JobState.VIDEO_RIPPING.value
         db.session.commit()
 
 
@@ -630,12 +625,12 @@ def makemkv_mkv(job, rawpath):
         rip_mainfeature(job, track, rawpath)
     elif mode == 'manual':  # Run if mode is manual, user selects tracks
         # Set job status to waiting
-        job.status = JOB_STATUS_WAITING
+        job.status = JobState.VIDEO_WAITING.value
         db.session.commit()
         # Process Tracks
         if manual_wait(job):  # Alert user: tracks are ready and wait for 30 minutes
             # Response from user provided, process requested tracks
-            job.status = JOB_STATUS_RIPPING
+            job.status = JobState.VIDEO_RIPPING.value
             db.session.commit()
             process_single_tracks(job, rawpath, mode)
         else:

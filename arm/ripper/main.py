@@ -22,7 +22,7 @@ sys.path.append("/opt/arm")
 from arm.ripper import logger, utils, identify, arm_ripper, music_brainz  # noqa: E402
 import arm.config.config as cfg  # noqa E402
 from arm.models.config import Config  # noqa: E402
-from arm.models.job import Job  # noqa: E402
+from arm.models.job import Job, JobState  # noqa: E402
 from arm.models.system_drives import SystemDrives  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
 from arm.ui.settings import DriveUtils as drive_utils # noqa E402
@@ -118,11 +118,11 @@ def main(logfile, job, protection=0):
             utils.notify(job, constants.NOTIFY_TITLE, f"Music CD: {job.title} {constants.PROCESS_COMPLETE}")
             utils.scan_emby()
             # This shouldn't be needed. but to be safe
-            job.status = "success"
+            job.status = JobState.SUCCESS.value
             db.session.commit()
         else:
             logging.info("Music rip failed.  See previous errors.  Exiting. ")
-            job.status = "fail"
+            job.status = JobState.FAILURE.value
             db.session.commit()
         job.eject()
 
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     if args.protection:
         logging.warning("Found 99 Track protection system - Job may fail!")
     # Set job status and start time
-    job.status = "active"
+    job.status = JobState.IDLE.value
     job.start_time = datetime.datetime.now()
     utils.database_adder(job)
     # Sleep to lower chances of db locked - unlikely to be needed
@@ -228,13 +228,13 @@ if __name__ == "__main__":
         logging.error("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
         utils.notify(job, constants.NOTIFY_TITLE, "ARM encountered a fatal error processing "
                                                   f"{job.title}. Check the logs for more details. {error}")
-        job.status = "fail"
+        job.status = JobState.FAILURE.value
         job.errors = str(error)
-        job.eject()
         # Possibly add cleanup section here for failed job files
     else:
-        job.status = "success"
+        job.status = JobState.SUCCESS.value
     finally:
+        job.eject()  # each job stores its eject status, so it is safe to call.
         job.stop_time = datetime.datetime.now()
         job_length = job.stop_time - job.start_time
         minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)

@@ -264,10 +264,16 @@ def update_job_status():
     drives = SystemDrives.query.all()
     for drive in drives:
         # Check if the current job is using the drive, if not remove job from drive.
-        if drive.job_current is not None:
-            if drive.job_current.ripping_finished:
-                drive.job_finished()
+        if drive.processing and drive.job_current.ripping_finished:
+            # Note: it is not generally safe to release the job by any means.
+            # "transcoding" jobs may also use the drive so an
+            logging.info(f"A job is currently running on drive '{drive.name}'")
+            if drive.job_current.finished:
+                logging.warning(f"Releasing job from drive '{drive.name}'")
+                drive.release_current_job()
                 db.session.commit()
+                continue
+            logging.debug("If you want to release the job from the drive, press eject.")
 
         # Catch if a user has removed database entries and the previous job doesn't exist
         if drive.job_previous is not None and drive.job_previous.status is None:

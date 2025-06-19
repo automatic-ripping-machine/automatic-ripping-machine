@@ -13,7 +13,7 @@ from flask import request
 
 import arm.config.config as cfg
 from arm.models.config import Config
-from arm.models.job import Job
+from arm.models.job import Job, JobState, JOB_STATUS_FINISHED
 from arm.models.notifications import Notifications
 from arm.models.track import Track
 from arm.models.ui_settings import UISettings
@@ -39,11 +39,12 @@ def get_x_jobs(job_status):
     :return: dict/json
     """
     success = False
-    if job_status in ("success", "fail"):
+    if job_status == "joblist":
+        jobs = db.session.query(Job).filter(~Job.finished).all()
+    elif JobState(job_status) in JOB_STATUS_FINISHED:
         jobs = Job.query.filter_by(status=job_status)
     else:
-        # Get running jobs
-        jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+        raise ValueError(f"{job_status} is not a valid option")
 
     job_results = {}
     i = 0
@@ -83,16 +84,17 @@ def process_logfile(logfile, job, job_results):
         :param job_results: the {} of
         :return: should be dict for the json api
     """
-    app.logger.debug(job.status)
-    if job.status == "ripping":
-        app.logger.debug("using mkv - " + logfile)
-        job_results = process_makemkv_logfile(job, job_results)
-    elif job.disctype == "music":
+    app.logger.debug(f"Disc Type: {job.disctype}, Status: {job.status}")
+    if job.disctype in {"dvd", "bluray"}:
+        if job.status == JobState.VIDEO_RIPPING.value:
+            app.logger.debug("using mkv - " + logfile)
+            return process_makemkv_logfile(job, job_results)
+        if job.status == JobState.TRANSCODE_ACTIVE.value:
+            app.logger.debug("using handbrake")
+            return process_handbrake_logfile(logfile, job, job_results)
+    if job.disctype == "music" and job.status == JobState.AUDIO_RIPPING.value:
         app.logger.debug("using audio disc")
-        process_audio_logfile(job.logfile, job, job_results)
-    else:
-        app.logger.debug("using handbrake")
-        job_results = process_handbrake_logfile(logfile, job, job_results)
+        return process_audio_logfile(job.logfile, job, job_results)
     return job_results
 
 
@@ -397,7 +399,7 @@ def abandon_job(job_id):
 
     try:
         job = Job.query.get(int(job_id))
-        job.status = "fail"
+        job.status = JobState.FAILURE.value
         job_process = psutil.Process(job.pid)
         job_process.terminate()  # or p.kill()
         notification = Notifications(f"Job: {job_id} was Abandoned!",
