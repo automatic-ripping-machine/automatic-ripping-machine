@@ -219,6 +219,10 @@ class Job(db.Model):
         if self.ejected:
             logging.debug("The drive associated with this job has already been ejected.")
             return
+        if self.drive is None:
+            self.ejected = True
+            logging.debug("No drive is associated with this job!")
+            return
         if (error := self.drive.eject(method="eject", logger=logging)) is not None:
             logging.debug(f"{self.devpath} couldn't be ejected: {error}")
         self.ejected = True
