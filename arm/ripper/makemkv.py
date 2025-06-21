@@ -675,9 +675,11 @@ def makemkv(job):
     # get MakeMKV disc number
     if job.drive.mdisc is None:
         logging.debug("Storing new MakeMKV disc numbers to database.")
-        for drive in get_drives(job):
-            for db_drive in SystemDrives.query.filter_by(mount=drive.mount).all():
-                db_drive.mdisc = drive.index
+        with db.session.no_autoflush:
+            for drive in get_drives(job):
+                for db_drive in SystemDrives.query.filter_by(mount=drive.mount).all():
+                    db_drive.mdisc = drive.index
+                    db.session.add(db_drive)
         db.session.commit()
     logging.info(f"MakeMKV disc number: {job.drive.mdisc:d}")
     # get filesystem in order
