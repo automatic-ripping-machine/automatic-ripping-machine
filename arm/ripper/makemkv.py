@@ -474,7 +474,8 @@ def parse_line(line):
     msg_type = OutputType[msg_type]
     if msg_type == OutputType.MSG:
         temp = parse_content(content, 3, -1)
-        message = check_output(MakeMKVMessage(*itertools.islice(temp, 4), list(temp)))
+        data = MakeMKVMessage(*itertools.islice(temp, 4), list(temp))
+        message = MakeMKVOutputChecker(data).check()
     elif msg_type == OutputType.PRGV:
         message = ProgressBarValues(*parse_content(content, 2, 0))
     elif msg_type == OutputType.PRGC:
@@ -852,6 +853,97 @@ def progress_log(job):
     return shlex.quote(logfile)
 
 
+class TrackInfoProcessor:
+    """
+    Processes MakeMKV track info messages to update Track class.
+    """
+
+    def __init__(self, job, index):
+        self.job = job
+        self.index = index
+
+        # Initialize track-related state variables
+        self.track_id = None
+        self.seconds = 0
+        self.aspect = ""
+        self.fps = 0.0
+        self.filename = ""
+        self.stream_type = None
+
+    def process_messages(self):
+        output_types = (
+            OutputType.CINFO |
+            OutputType.SINFO |
+            OutputType.TCOUNT |
+            OutputType.TINFO
+        )
+        options = []  # add relevant options here if needed
+
+        for message in makemkv_info(self.job, select=output_types, index=self.index, options=options):
+            self._process_message(message)
+
+        # Add the last track if exists
+        self._add_track()
+
+    def _process_message(self, message):
+        if isinstance(message, (TInfo, SInfo)):
+            self._handle_track_or_stream_info(message)
+        elif isinstance(message, Titles):
+            self._handle_titles(message)
+
+    def _handle_track_or_stream_info(self, message):
+        # Detect new track, add previous one if changed
+        if self.track_id is not None and message.tid != self.track_id:
+            self._add_track()
+        self.track_id = message.tid
+
+        if isinstance(message, SInfo):
+            assert message.tid == self.track_id, message
+            self._handle_sinfo(message)
+        elif isinstance(message, TInfo):
+            assert message.tid == self.track_id, message
+            self._handle_tinfo(message)
+
+    def _handle_sinfo(self, message):
+        if message.id == StreamID.TYPE:
+            self.stream_type = message.code
+        elif self.stream_type == MAKEMKV_STREAM_CODE_TYPE_VIDEO:
+            if message.id == StreamID.ASPECT:
+                self.aspect = message.value.strip()
+            elif message.id == StreamID.FPS:
+                self.fps = float(message.value.split()[0])
+
+    def _handle_tinfo(self, message):
+        if message.id == TrackID.FILENAME:
+            # Extract filename between quotes
+            self.filename = next(iter(message.value.split('"')[1::2]), message.value)
+        elif message.id == TrackID.DURATION:
+            self.seconds = convert_to_seconds(message.value.strip())
+
+    def _handle_titles(self, message):
+        logging.info(f"Found {message.count:d} titles")
+        utils.database_updater({"no_of_titles": message.count}, self.job)
+
+    def _add_track(self):
+        if self.track_id is None:
+            return
+        utils.put_track(
+            self.job,
+            self.track_id,
+            self.seconds,
+            self.aspect,
+            str(self.fps),
+            False,
+            SOURCE,
+            self.filename
+        )
+        # Reset track info after adding if needed
+        self.seconds = 0
+        self.aspect = ""
+        self.fps = 0.0
+        self.filename = ""
+
+
 def get_track_info(index, job):
     """
     Use MakeMKV to get track info and update Track class
@@ -865,50 +957,8 @@ def get_track_info(index, job):
     .. note:: For help with MakeMKV codes:
     https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/MakeMKV-Codes
     """
-
-    logging.info("Using MakeMKV to get information on all the tracks on the disc. This will take a few minutes...")
-    options = [
-        f"--progress={progress_log(job)}",
-        f"--minlength={job.config.MINLENGTH}",
-    ]
-    track_id = 0
-    fps = float(0)
-    aspect = ""
-    seconds = 0
-    filename = ""
-    stream_type = MAKEMKV_STREAM_CODE_TYPE_VIDEO  # save to assume for track_id 0.
-    output_types = (
-        OutputType.CINFO |
-        OutputType.SINFO |
-        OutputType.TCOUNT |
-        OutputType.TINFO
-    )
-    for message in makemkv_info(job, select=output_types, index=index, options=options):
-        if isinstance(message, (TInfo, SInfo)) and track_id != message.tid:
-            # Next track was detected. Add current.
-            utils.put_track(job, track_id, seconds, aspect, str(fps), False, SOURCE, filename)
-            track_id = message.tid
-        if isinstance(message, SInfo):
-            assert message.tid == track_id, message
-            if message.id == StreamID.TYPE:
-                stream_type = message.code
-            elif stream_type == MAKEMKV_STREAM_CODE_TYPE_VIDEO:
-                if message.id == StreamID.ASPECT:
-                    aspect = message.value.strip()
-                elif message.id == StreamID.FPS:
-                    fps = float(message.value.split()[0])
-        elif isinstance(message, TInfo):
-            assert message.tid == track_id, message
-            if message.id == TrackID.FILENAME:
-                # Get the filename between the quotes
-                filename = next(iter(message.value.split('"')[1::2]), message.value)
-            elif message.id == TrackID.DURATION:
-                seconds = convert_to_seconds(message.value.strip())
-        elif isinstance(message, Titles):
-            logging.info(f"Found {message.count:d} titles")
-            utils.database_updater({"no_of_titles": message.count}, job)
-    # If we haven't already added any tracks add one with what we have
-    utils.put_track(job, track_id, seconds, aspect, str(fps), False, SOURCE, filename)
+    processor = TrackInfoProcessor(job, index)
+    processor.process_messages()
 
 
 def convert_to_seconds(hms_value):
@@ -924,59 +974,88 @@ def convert_to_seconds(hms_value):
     return int(hour) * 3600 + int(mins) * 60 + int(secs)
 
 
-def check_output(data: MakeMKVMessage):
+class MakeMKVOutputChecker:
     """
-    Check MakeMKV output messages for errors and log them.
+    Check MakeMKV output messages for errors and handle special cases.
 
     Parameters:
         data (MakeMKVMessage): the message to check.
     """
-    if not isinstance(data, MakeMKVMessage):
-        raise TypeError(data)
-    if data.code == MessageID.READ_ERROR:
-        error_message = data.sprintf[1]
-        if error_message == ERROR_MESSAGE_OPERATION_RESULT:
-            logging.debug('error possibly fatal, creating zombie processes')
-            logging.critical(data.message)
-        elif error_message == ERROR_MESSAGE_TRAY_OPEN:
-            logging.debug('error mostly non fatal')
-            logging.info(error_message)
-        elif error_message in (ERROR_MESSAGE_MEDIUM_ERROR, ERROR_MESSAGE_HARDWARE_ERROR):
-            # errors are usually linked to each other.
-            logging.debug('error possibly fatal, medium removed during mkv backup')
-            logging.critical(data.message)
+
+    READ_ERROR_MAP = {
+        ERROR_MESSAGE_OPERATION_RESULT: (logging.critical, 'error possibly fatal, creating zombie processes'),
+        ERROR_MESSAGE_TRAY_OPEN: (logging.info, 'error mostly non fatal'),
+        ERROR_MESSAGE_MEDIUM_ERROR: (logging.critical, 'error possibly fatal, medium removed during mkv backup'),
+        ERROR_MESSAGE_HARDWARE_ERROR: (logging.critical, 'error possibly fatal, medium removed during mkv backup'),
+    }
+
+    LOG_ONLY_CODES = {
+        MessageID.RIP_DISC_OPEN_ERROR: logging.info,
+        MessageID.RIP_TITLE_ERROR: logging.warning,
+        MessageID.RIP_COMPLETED: logging.info,
+        MessageID.LIBMKV_TRACE: logging.warning,
+        MessageID.RIP_BACKUP_FAILED_PRE: logging.warning,
+        MessageID.EVALUATION_PERIOD_EXPIRED_INFO: logging.warning,
+    }
+
+    SPECIAL_ERROR_CODES = {
+        MessageID.EVALUATION_PERIOD_EXPIRED_SHAREWARE,
+        MessageID.RIP_BACKUP_FAILED,
+    }
+
+    def __init__(self, data: MakeMKVMessage):
+        if not isinstance(data, MakeMKVMessage):
+            raise TypeError(f"Expected MakeMKVMessage, got {type(data)}")
+        self.data = data
+
+    def check(self):
+        """Dispatch processing based on message code."""
+        code = self.data.code
+
+        if code == MessageID.READ_ERROR:
+            return self.read_error()
+
+        if code == MessageID.WRITE_ERROR:
+            return self.write_error()
+
+        if code in self.SPECIAL_ERROR_CODES:
+            return self.special_error_code()
+
+        if code in self.LOG_ONLY_CODES:
+            return self.log_only_code()
+
+        # Default case: no action needed
+        return self.data
+
+    def read_error(self):
+        error_msg = self.data.sprintf[1]
+        log_func, debug_msg = self.READ_ERROR_MAP.get(error_msg, (logging.warning, None))
+
+        if debug_msg:
+            logging.debug(debug_msg)
+
+        # Choose message to log — prefer full message if debug_msg exists
+        log_message = self.data.message if debug_msg else error_msg
+        log_func(log_message)
+
+        return MakeMKVErrorMessage(*self.data)
+
+    def write_error(self):
+        error_msg = self.data.sprintf[1]
+        if error_msg == "Posix error - No such file or directory":
+            logging.critical(self.data.message)
         else:
-            # yet unknown, create warning
-            logging.warning(error_message)
-        return MakeMKVErrorMessage(*data)
-    if data.code == MessageID.WRITE_ERROR:
-        error_message = data.sprintf[1]
-        if error_message == "Posix error - No such file or directory":
-            # possibly fatal, something wrong with the directory
-            logging.critical(data.message)
-        else:
-            # yet unknown, create warning
-            logging.warning(error_message)
-        return MakeMKVErrorMessage(*data)
-    if data.code == MessageID.EVALUATION_PERIOD_EXPIRED_SHAREWARE:
-        return MakeMKVErrorMessage(*dataclasses.astuple(data), data.message)
-    if data.code == MessageID.RIP_BACKUP_FAILED:
-        return MakeMKVErrorMessage(*dataclasses.astuple(data), data.message)
-    # The following errors will only get logged on higher log level than debug.
-    if data.code == MessageID.RIP_DISC_OPEN_ERROR:
-        # "Failed to open disc" is also happening for unattached drives.
-        logging.info(data.message)
-    elif data.code == MessageID.RIP_TITLE_ERROR:
-        logging.warning(data.message)
-    elif data.code == MessageID.RIP_COMPLETED:
-        logging.info(data.message)
-    elif data.code == MessageID.LIBMKV_TRACE:
-        logging.warning(data.message)
-    elif data.code == MessageID.RIP_BACKUP_FAILED_PRE:
-        logging.warning(data.message)
-    elif data.code == MessageID.EVALUATION_PERIOD_EXPIRED_INFO:
-        logging.warning(data.message)
-    return data
+            logging.warning(error_msg)
+
+        return MakeMKVErrorMessage(*self.data)
+
+    def special_error_code(self):
+        return MakeMKVErrorMessage(*dataclasses.astuple(self.data), self.data.message)
+
+    def log_only_code(self):
+        log_func = self.LOG_ONLY_CODES[self.data.code]
+        log_func(self.data.message)
+        return self.data
 
 
 def run(options, select):
