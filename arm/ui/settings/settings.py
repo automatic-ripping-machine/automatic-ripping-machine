@@ -42,6 +42,7 @@ import arm.ripper.utils as ripper_utils
 route_settings = Blueprint('route_settings', __name__,
                            template_folder='templates',
                            static_folder='../static')
+REDIRECT_SETTINGS = "route_settings.settings"
 
 
 def mask_last(value, n=4):
@@ -303,11 +304,11 @@ def server_info():
         db.session.commit()
         flash(f"Updated Drive {drive.name} details", "success")
         # Return to the systeminfo page (refresh page)
-        return redirect(url_for('route_settings.settings'))
+        return redirect(url_for(REDIRECT_SETTINGS))
     else:
         flash("Error: Unable to update drive details", "error")
         # Return for GET
-        return redirect(url_for('route_settings.settings'))
+        return redirect(url_for(REDIRECT_SETTINGS))
 
 
 @route_settings.route('/systemdrivescan')
@@ -320,7 +321,7 @@ def system_drive_scan():
     # Update to scan for changes to the ripper system
     new_count = drive_utils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
-    return redirect(url_for('route_settings.settings'))
+    return redirect(url_for(REDIRECT_SETTINGS))
 
 
 @route_settings.route('/drive/eject/<eject_id>')
@@ -334,17 +335,17 @@ def drive_eject(eject_id):
     except sqlalchemy.exc.NoResultFound as e:
         app.logger.error(f"Drive eject encountered an error: {e}")
         flash(f"Cannot find drive {eject_id} in database.", "error")
-        return redirect(url_for("route_settings.settings"))
+        return redirect(url_for(REDIRECT_SETTINGS))
     # block for running jobs
     if drive.job_id_current:
         drive.tray_status()  # update tray status
         if not drive.open:  # allow closing
             flash(f"Job [{drive.job_id_current}] in progress. Cannot eject {eject_id}.", "error")
-            return redirect(url_for("route_settings.settings"))
+            return redirect(url_for(REDIRECT_SETTINGS))
     # toggle open/close (with non-critical error)
     if (error := drive.eject(method="toggle", logger=app.logger)) is not None:
         flash(error, "error")
-    return redirect(url_for("route_settings.settings"))
+    return redirect(url_for(REDIRECT_SETTINGS))
 
 
 @route_settings.route('/drive/remove/<remove_id>')
@@ -363,7 +364,7 @@ def drive_remove(remove_id):
     except Exception as e:
         app.logger.error(f"Drive removal encountered an error: {e}")
         flash("Drive unable to be removed, check logs for error", "error")
-    return redirect(url_for('route_settings.settings'))
+    return redirect(url_for(REDIRECT_SETTINGS))
 
 
 @route_settings.route('/drive/manual/<manual_id>')
@@ -416,7 +417,7 @@ def testapprise():
         message = message + f" Server URL: http://{cfg.arm_config['UI_BASE_URL']}:{cfg.arm_config['WEBSERVER_PORT']}"
     ripper_utils.notify(None, "ARM notification", message)
     flash("Test notification sent ", "success")
-    return redirect(url_for('route_settings.settings'))
+    return redirect(url_for(REDIRECT_SETTINGS))
 
 
 @route_settings.route('/updatecpu')
@@ -447,4 +448,4 @@ def update_cpu():
 
     db.session.commit()
 
-    return redirect(url_for('route_settings.settings'))
+    return redirect(url_for(REDIRECT_SETTINGS))
