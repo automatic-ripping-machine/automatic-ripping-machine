@@ -29,7 +29,7 @@ metal server when running, unless running the specific docker rebuild scripts.
 
 options:
   -h, --help  show this help message and exit
-  -b B        Name of the branch to move to, example -b v2_devel
+  -b B        Name of the branch to move to, example -b bugfix_removecode
   -dr DR      Docker rebuild post ARM code update. Requires docker run script path to run.
   -db_rem     Database tool - remove current arm.db file
   -qa         QA Checks - run Flake8 against ARM

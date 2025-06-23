@@ -10,79 +10,48 @@ and also iPads specifically.
 
     /* Force table to not be like tables anymore */
     table, thead, tbody, th, td, tr {
-
         display: block;
-
         /*padding: .75rem;*/
-
     }
 
     caption {
-
         width: 100%;
-
         text-align: center;
-
     }
 
     /* Hide table headers (but not display: none;, for accessibility) */
     thead tr {
-
         position: absolute;
-
         top: -9999px;
-
         left: -9999px;
-
     }
 
     tr {
-
         border: 1px solid #ccc;
-
         margin-top: 5px;
-
         border-radius: 7px;
-
     }
 
     th {
-
         border-bottom: 1px solid #c5c6c8;
-
     }
 
     td {
-
         white-space: normal !important;
-
         /* Behave  like a "row" */
-
         border: none;
-
         border-bottom: 1px solid #eee;
-
         position: relative;
-
         padding-left: 50%;
-
         padding-top: 3px;
-
     }
 
     td:before {
-
         /* Now like a table header */
-
         /* Top/left values mimic padding */
-
         top: 6px;
-
         width: 45%;
-
         padding-right: 10px;
-
         white-space: pre;
-
     }
 }

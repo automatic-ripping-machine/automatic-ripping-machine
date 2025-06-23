@@ -36,7 +36,7 @@ Automatic Ripping Machine Development Tool Scripts
 
 options:
   -h, --help  show this help message and exit
-  -b B        Name of the branch to move to, example -b v2_devel
+  -b B        Name of the branch to move to, example -b bugfix_removecode
   -dr DR      Docker rebuild post ARM code update. Requires docker run script path to run.
   -db_rem     Database tool - remove current arm.db file
   -qa         QA Checks - run Flake8 against ARM
@@ -48,22 +48,27 @@ options:
 Running this command provides a simple way to stop the ARM UI (if running on bare metal) and checkout a new branch. Whilst checking out a new git branch is a simple task, if the current ARM UI is not stopped prior to changing branches, strange things can occur. This script automates the change and aims to prevent spooky action at a distance.
 
 ```
-./armdevtools.py -b v2_devel
-INFO: Change the current git branch to - v2_devel
+./armdevtools.py -b bugfix_removecode
+INFO: Change the current git branch to - bugfix_removecode
 INFO: Going to stop ARMUI - requesting sudo
 INFO: ARM UI stopped    [Ok]
 M       arm-dependencies
-Branch 'v2_devel' set up to track remote branch 'v2_devel' from 'origin'.
-Switched to a new branch 'v2_devel'
-INFO: ARM branch: v2_devel checked out
+Branch 'bugfix_removecode' set up to track remote branch 'bugfix_removecode' from 'origin'.
+Switched to a new branch 'bugfix_removecode'
+INFO: ARM branch: bugfix_removecode checked out
 INFO: Going to restart ARMUI - requesting sudo
 INFO: ARM UI started    [Ok]
 ```
 
 ### [-dr DR] Docker Rebuild
-Following any code changes to ARM, testing the changes in the docker image can be a tedious process. This command automates some of the process to make that change easier. To run this command, a bash script needs to be provided that will, when run will create the ARM docker image. For more details on the docker run configuration, refer to [Building ARM docker image from source](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Building-ARM-docker-image-from-source)
+Following any code changes to ARM, testing the changes in the docker image can be a tedious process.
+This command automates some of the process to make that change easier.
+The script will stop the current container, remove the images (if specified), then restart the container.
+The script requires passing in the ARM docker container start script, in the below example `~/start_arm_container.sh`
 
-_Note: executing this script requires docker permissions, otherwise it will fail._
+For more details on the docker run configuration, refer to [Building ARM docker image from source](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Building-ARM-docker-image-from-source)
+
+_Note: executing this script requires the user to have docker permissions, otherwise it will fail._
 
 Running this command executes the following docker commands.
 1. Stops the ARM container
@@ -72,7 +77,7 @@ Running this command executes the following docker commands.
 4. Starts the ARM container, using the provided bash file/script
 
 ```
-./armdevtools.py -dr /home/arm/armdocker.bash 
+./armdevtools.py -dr ~/start_arm_container.sh
 INFO: Going to stop ARMUI - requesting sudo
 INFO: ARM UI stopped    [Ok]
 INFO: Rebuilding docker image post ARM update
@@ -100,7 +105,7 @@ Successfully built 58b643c79d04
 Successfully tagged automatic-ripping-machine:latest
 INFO: ARM Docker container rebuilt      [Ok]
 INFO: -------------------------------------
-INFO: Executing: /home/arm/armdocker.bash
+INFO: Executing: ~/start_arm_container.sh
 ec1f1c857f498c16f5149efaf305ed78828247577dd2c637c4c2bfd81525a449
 INFO: ARM Docker container running      [Ok]
 INFO: Going to restart ARMUI - requesting sudo
