@@ -22,7 +22,7 @@ sys.path.append("/opt/arm")
 from arm.ripper import logger, utils, identify, arm_ripper, music_brainz  # noqa: E402
 import arm.config.config as cfg  # noqa E402
 from arm.models.config import Config  # noqa: E402
-from arm.models.job import Job  # noqa: E402
+from arm.models.job import Job, JobState  # noqa: E402
 from arm.models.system_drives import SystemDrives  # noqa: E402
 from arm.ui import app, db, constants  # noqa E402
 from arm.ui.settings import DriveUtils as drive_utils # noqa E402
@@ -66,7 +66,7 @@ def log_arm_params(job):
                 "HB_ARGS_DVD", "HB_ARGS_BD", "RAW_PATH", "TRANSCODE_PATH",
                 "COMPLETED_PATH", "EXTRAS_SUB", "EMBY_REFRESH", "EMBY_SERVER",
                 "EMBY_PORT", "NOTIFY_RIP", "NOTIFY_TRANSCODE",
-                "MAX_CONCURRENT_TRANSCODES"):
+                "MAX_CONCURRENT_TRANSCODES", "MAX_CONCURRENT_MAKEMKVINFO"):
         logging.info(f"{key.lower()}: {str(cfg.arm_config.get(key, '<not given>'))}")
     logging.info("******************* End of config parameters *******************")
 
@@ -118,11 +118,11 @@ def main(logfile, job, protection=0):
             utils.notify(job, constants.NOTIFY_TITLE, f"Music CD: {job.title} {constants.PROCESS_COMPLETE}")
             utils.scan_emby()
             # This shouldn't be needed. but to be safe
-            job.status = "success"
+            job.status = JobState.SUCCESS.value
             db.session.commit()
         else:
             logging.info("Music rip failed.  See previous errors.  Exiting. ")
-            job.status = "fail"
+            job.status = JobState.FAILURE.value
             db.session.commit()
         job.eject()
 
@@ -149,20 +149,23 @@ if __name__ == "__main__":
     # Get arguments from arg parser
     args = entry()
     devpath = f"/dev/{args.devpath}"
+    drive = SystemDrives.query.filter_by(mount=devpath).one()  # unique mounts
 
     # With some drives and some disks, there is a race condition between creating the Job()
     # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)
-    for i in range(10):
-        if utils.get_cdrom_status(devpath) != 4:
-            logging.info(f"[{i} of 10] Drive [{devpath}] appears to be empty or is not ready.  Waiting 1s")
-            arm_log.info(f"[{i} of 10] Drive [{devpath}] appears to be empty or is not ready.  Waiting 1s")
-            time.sleep(1)
-
-    # Exit if drive isn't ready
-    if utils.get_cdrom_status(devpath) != 4:
+    ready_count = 1
+    for num in range(1, 11):
+        drive.tray_status()
+        if drive.ready:
+            break
+        msg = f"[{num} of 10] Drive [{drive.mount}] appears to be empty or is not ready. Waiting 1s"
+        logging.info(msg)
+        time.sleep(1)
+    else:
         # This should really never trigger now as arm_wrapper should be taking care of this.
-        logging.info(f"Drive [{devpath}] appears to be empty or is not ready.  Exiting ARM.")
-        arm_log.info(f"Drive [{devpath}] appears to be empty or is not ready.  Exiting ARM.")
+        msg = f"Failed to wait for drive ready (ioctl tray status: {drive.tray})."
+        logging.info(msg)
+        arm_log.info(msg)
         sys.exit()
 
     # ARM Job starts
@@ -188,7 +191,7 @@ if __name__ == "__main__":
     if args.protection:
         logging.warning("Found 99 Track protection system - Job may fail!")
     # Set job status and start time
-    job.status = "active"
+    job.status = JobState.IDLE.value
     job.start_time = datetime.datetime.now()
     utils.database_adder(job)
     # Sleep to lower chances of db locked - unlikely to be needed
@@ -198,7 +201,6 @@ if __name__ == "__main__":
     # Add the job.config to db
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
     # Check if the drive mode is set to manual, and load to the job config for later use
-    drive = SystemDrives.query.filter_by(mount=job.devpath).first()
     logging.debug(f"drive_mode: {drive.drive_mode}")
     if drive.drive_mode == 'manual':
         job.manual_mode = True
@@ -226,13 +228,13 @@ if __name__ == "__main__":
         logging.error("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
         utils.notify(job, constants.NOTIFY_TITLE, "ARM encountered a fatal error processing "
                                                   f"{job.title}. Check the logs for more details. {error}")
-        job.status = "fail"
+        job.status = JobState.FAILURE.value
         job.errors = str(error)
-        job.eject()
         # Possibly add cleanup section here for failed job files
     else:
-        job.status = "success"
+        job.status = JobState.SUCCESS.value
     finally:
+        job.eject()  # each job stores its eject status, so it is safe to call.
         job.stop_time = datetime.datetime.now()
         job_length = job.stop_time - job.start_time
         minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
