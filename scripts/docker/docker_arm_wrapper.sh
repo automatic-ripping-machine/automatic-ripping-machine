@@ -49,21 +49,25 @@ if [ "$ID_CDROM_MEDIA_DVD" == "1" ]; then
     echo "$(date) [ARM] Starting ARM for DVD on ${DEVNAME}" >> $ARMLOG
     echo "[ARM] Starting ARM for DVD on ${DEVNAME}" | logger -t ARM -s
 elif [ "$ID_CDROM_MEDIA_BD" == "1" ]; then
-	  echo "[ARM] Starting ARM for Bluray on ${DEVNAME}" >> $ARMLOG
-	  echo "$(date) [[ARM] Starting ARM for Bluray on ${DEVNAME}" | logger -t ARM -s
+    echo "[ARM] Starting ARM for Bluray on ${DEVNAME}" >> $ARMLOG
+    echo "$(date) [[ARM] Starting ARM for Bluray on ${DEVNAME}" | logger -t ARM -s
 elif [ "$ID_CDROM_MEDIA_CD" == "1" ]; then
-	  echo "[ARM] Starting ARM for CD on ${DEVNAME}" | logger -t ARM -s
-	  echo "$(date) [[ARM] Starting ARM for CD on ${DEVNAME}" >> $ARMLOG
+    echo "[ARM] Starting ARM for CD on ${DEVNAME}" | logger -t ARM -s
+    echo "$(date) [[ARM] Starting ARM for CD on ${DEVNAME}" >> $ARMLOG
 elif [ "$ID_FS_TYPE" != "" ]; then
-	  echo "[ARM] Starting ARM for Data Disk on ${DEVNAME} with File System ${ID_FS_TYPE}" | logger -t ARM -s
-	  echo "$(date) [[ARM] Starting ARM for Data Disk on ${DEVNAME} with File System ${ID_FS_TYPE}" >> $ARMLOG
+    echo "[ARM] Starting ARM for Data Disk on ${DEVNAME} with File System ${ID_FS_TYPE}" | logger -t ARM -s
+    echo "$(date) [[ARM] Starting ARM for Data Disk on ${DEVNAME} with File System ${ID_FS_TYPE}" >> $ARMLOG
 else
-	  echo "[ARM] Not CD, Blu-ray, DVD or Data. Bailing out on ${DEVNAME}" | logger -t ARM -s
-	  echo "$(date) [ARM] Not CD, Blu-ray, DVD or Data. Bailing out on ${DEVNAME}" >> $ARMLOG
-      if [ "$CONFIG_UNIDENTIFIED_EJECT" != "false" ]; then
-	    eject "${DEVNAME}"
-      fi
-	  exit #bail out
+    if [ "${2:-}" == "manual" ]; then
+        echo "[ARM] manual invocation on ${DEVNAME}, will let the ripper program figure out" | logger -t ARM -s
+    else
+        echo "[ARM] Not CD, Blu-ray, DVD or Data. Bailing out on ${DEVNAME}" | logger -t ARM -s
+        echo "$(date) [ARM] Not CD, Blu-ray, DVD or Data. Bailing out on ${DEVNAME}" >> $ARMLOG
+        if [ "$CONFIG_UNIDENTIFIED_EJECT" != "false" ]; then
+            eject "${DEVNAME}"
+        fi
+        exit #bail out
+    fi
 fi
 cd /home/arm
 /usr/bin/python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" | logger -t ARM -s
