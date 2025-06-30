@@ -30,9 +30,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch PR branch
-        run: git fetch origin ${{ github.head_ref }}
-
       - name: Check for version bump
         id: version-check
         run: |
