@@ -10,8 +10,24 @@ import arm.config.config as cfg
 
 from arm.ripper import utils
 from arm.ui import app, db  # noqa E402
+from arm.models.job import JobState
 
 PROCESS_COMPLETE = "Handbrake processing complete"
+
+
+def handbrake_sleep_check(job):
+    """Wait until there is a spot to transcode.
+
+    If handbrake is used as a ripping utility (the source path is a device),
+    this means that the drive is blocked. If we transcode after makemkv, the
+    drive associated to the job is ejected at this point.
+    """
+    logging.debug("Handbrake starting.")
+    utils.database_updater({"status": JobState.TRANSCODE_WAITING.value}, job)
+    # TODO: send a notification that jobs are waiting ?
+    utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
+    logging.debug(f"Setting job status to '{JobState.TRANSCODE_ACTIVE.value}'")
+    utils.database_updater({"status": JobState.TRANSCODE_ACTIVE.value}, job)
 
 
 def handbrake_main_feature(srcpath, basepath, logfile, job):
@@ -23,15 +39,9 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     :param job: Disc object\n
     :return: None
     """
+    handbrake_sleep_check(job)
     logging.info("Starting DVD Movie main_feature processing")
-    logging.debug("Handbrake starting: ")
-    logging.debug(f"\n\r{job.pretty_table()}")
 
-    utils.database_updater({'status': "waiting_transcode"}, job)
-    # TODO: send a notification that jobs are waiting ?
-    utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
-    logging.debug("Setting job status to 'transcoding'")
-    utils.database_updater({'status': "transcoding"}, job)
     filename = os.path.join(basepath, job.title + "." + cfg.arm_config["DEST_EXT"])
     filepathname = os.path.join(basepath, filename)
     logging.info(f"Ripping title main_feature to {shlex.quote(filepathname)}")
@@ -67,7 +77,7 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
         logging.error(err)
         track.status = "fail"
         track.error = job.errors = err
-        job.status = "fail"
+        job.status = JobState.FAILURE.value
         db.session.commit()
         raise subprocess.CalledProcessError(hb_error.returncode, cmd)
 
@@ -86,12 +96,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
     :param job: Disc object\n
     :return: None
     """
-    # Wait until there is a spot to transcode
-    job.status = "waiting_transcode"
-    db.session.commit()
-    utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
-    job.status = "transcoding"
-    db.session.commit()
+    handbrake_sleep_check(job)
     logging.info("Starting BluRay/DVD transcoding - All titles")
 
     hb_args, hb_preset = correct_hb_settings(job)
@@ -186,11 +191,8 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
     :return: None
     """
     # Added to limit number of transcodes
-    job.status = "waiting_transcode"
-    db.session.commit()
-    utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
-    job.status = "transcoding"
-    db.session.commit()
+    handbrake_sleep_check(job)
+    logging.info("Starting Handbrake for MKV files.")
     hb_args, hb_preset = correct_hb_settings(job)
 
     # This will fail if the directory raw gets deleted

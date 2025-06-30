@@ -20,7 +20,7 @@ from werkzeug.routing import ValidationError
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants, json_api
-from arm.models.job import Job
+from arm.models.job import Job, JobState
 from arm.models.notifications import Notifications
 import arm.config.config as cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, TrackFormDynamic
@@ -45,10 +45,11 @@ def jobdetail():
     track_form = TrackFormDynamic()
 
     job_id = request.args.get('job_id')
-    job = Job.query.get(job_id)
+    if (job := Job.query.get(job_id)) is None:
+        raise ValueError('Job not found')
 
     # Check if a manual job, waiting for input and user has not provided input
-    if job.manual_mode and job.status == "waiting" and not job.manual_start:
+    if job.manual_mode and job.status == JobState.MANUAL_WAIT_STARTED.value and not job.manual_start:
         manual_edit = True
 
     # Get Job and Track data
@@ -239,7 +240,8 @@ def rips():
     """
     This no longer works properly because of the 'transcoding' status
     """
-    return render_template('activerips.html', jobs=Job.query.filter_by(status="active"))
+    active_jobs = Job.query.filter_by(~Job.finished)
+    return render_template('activerips.html', jobs=active_jobs)
 
 
 @route_jobs.route('/changeparams')
@@ -322,8 +324,14 @@ def feed_json():
             'abandon': {'funct': json_api.abandon_job, 'args': ('j_id',)},
             'full': {'funct': json_api.generate_log, 'args': ('logpath', 'j_id')},
             'search': {'funct': json_api.search, 'args': ('searchq',)},
-            'getfailed': {'funct': json_api.get_x_jobs, 'args': ('fail',)},
-            'getsuccessful': {'funct': json_api.get_x_jobs, 'args': ('success',)},
+            'getfailed': {
+                'funct': json_api.get_x_jobs,
+                'args': (JobState.FAILURE.value,),
+            },
+            'getsuccessful': {
+                'funct': json_api.get_x_jobs,
+                'args': (JobState.SUCCESS.value,),
+            },
             'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
             'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
             'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)},
