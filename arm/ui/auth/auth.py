@@ -62,15 +62,16 @@ def login():
         return_redirect = redirect(constants.HOME_PAGE)
 
     form = SetupForm()
-    if request.method == 'POST' and form.validate_on_submit():
-        login_username = request.form['username']
+    if form.validate_on_submit():
+        login_username = form.username.data.strip()
+        login_password = form.password.data.strip().encode('utf-8')
         # we know there is only ever 1 admin account, so we can pull it and check against it locally
         admin = User.query.filter_by().first()
         app.logger.debug("user= " + str(admin))
         # our pass
         password = admin.password
         # hashed pass the user provided
-        login_hashed = bcrypt.hashpw(str(request.form['password']).strip().encode('utf-8'), admin.hash)
+        login_hashed = bcrypt.hashpw(login_password, admin.hash)
 
         if login_hashed == password and login_username == admin.email:
             login_user(admin)
