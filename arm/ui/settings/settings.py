@@ -410,10 +410,9 @@ def update_cpu():
         current_system.name = new_system.name
         current_system.cpu = new_system.cpu
         db.session.add(current_system)
-
     else:
-        app.logger.debug(f"Name old [] new [{new_system.name}]")
-        app.logger.debug(f"Name old [] new [{new_system.cpu}]")
+        app.logger.debug(f"Name old [No Info] new [{new_system.name}]")
+        app.logger.debug(f"Name old [No Info] new [{new_system.cpu}]")
         db.session.add(new_system)
 
     app.logger.debug("****** End System Information ******")
