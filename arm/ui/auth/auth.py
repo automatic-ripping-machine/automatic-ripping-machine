@@ -15,7 +15,7 @@ from flask_login import LoginManager, login_required, \
 
 from arm.ui import app, db, constants   # noqa: F811
 from arm.models.user import User
-from arm.ui.forms import SetupForm, DBUpdate
+from arm.ui.forms import SetupForm, DBUpdate, PasswordReset
 import arm.ui.utils as ui_utils
 
 route_auth = Blueprint('route_auth', __name__,
@@ -62,15 +62,16 @@ def login():
         return_redirect = redirect(constants.HOME_PAGE)
 
     form = SetupForm()
-    if request.method == 'POST' and form.validate_on_submit():
-        login_username = request.form['username']
+    if form.validate_on_submit():
+        login_username = form.username.data.strip()
+        login_password = form.password.data.strip().encode('utf-8')
         # we know there is only ever 1 admin account, so we can pull it and check against it locally
         admin = User.query.filter_by().first()
         app.logger.debug("user= " + str(admin))
         # our pass
         password = admin.password
         # hashed pass the user provided
-        login_hashed = bcrypt.hashpw(str(request.form['password']).strip().encode('utf-8'), admin.hash)
+        login_hashed = bcrypt.hashpw(login_password, admin.hash)
 
         if login_hashed == password and login_username == admin.email:
             login_user(admin)
@@ -105,20 +106,25 @@ def update_password():
     """
     # get current user
     user = User.query.first()
-
     session["page_title"] = "Update Admin Password"
 
     # After a login for is submitted
-    form = SetupForm()
-    if request.method == 'POST' and form.validate_on_submit():
-        username = str(request.form['username']).strip()
-        new_password = str(request.form['newpassword']).strip().encode('utf-8')
+    form = PasswordReset()
+
+    if form.validate_on_submit():
+        # Get form values
+        username = form.username.data.strip()
+        new_password = form.new_password.data.strip().encode('utf-8')
+        old_password = form.old_password.data.strip().encode('utf-8')
+
+        # Get current password and dehash
         user = User.query.filter_by(email=username).first()
-        password = user.password
+        current_password = user.password
         hashed = user.hash
-        # our new one
-        login_hashed = bcrypt.hashpw(str(request.form['password']).strip().encode('utf-8'), hashed)
-        if login_hashed == password:
+        login_hashed = bcrypt.hashpw(old_password, hashed)
+
+        # If user entered correct password
+        if login_hashed == current_password:
             hashed_password = bcrypt.hashpw(new_password, hashed)
             user.password = hashed_password
             user.hash = hashed
@@ -131,8 +137,8 @@ def update_password():
                 flash(str(error), "danger")
                 app.logger.error(f"Error in updating password: {error}")
         else:
-            flash("Password couldn't be updated. Problem with old password", "danger")
-            app.logger.error("Password not updated, issue with old password")
+            flash("Current password does not match", "danger")
+            app.logger.error("Current password does not match")
 
     return render_template('update_password.html', user=user.email, form=form)
 
