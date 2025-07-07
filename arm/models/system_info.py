@@ -38,31 +38,17 @@ class SystemInfo(db.Model):
         elif platform.system() == "Linux":
             command = "cat /proc/cpuinfo"
             fulldump = subprocess.check_output(command, shell=True).decode()
-            # logging.debug(f"Full cpuinfo: {fulldump}")
 
-            # Take any float trailing "MHz", some whitespace, and a colon.
-            # like: model name  : Intel(R) Celeron(R) G4930T CPU @ 3.00GHz
-            intel_match = re.search(r"model name\s*:\s*(.*?GHz)", fulldump)
-            logging.debug(f"Intel output: {intel_match}")
-            if intel_match:
-                self.cpu = intel_match.group(1)
+            # Find the CPU Model Name
+            # Intel     model name  : Intel(R) Celeron(R) G4930T CPU @ 3.00GHz
+            # amd       model name  : AMD Ryzen 5 3600 6-Core Processor
+            # arm       model name  : ARMv8 Processor rev 3 (v8l)
+            regex_match = re.search(r"model name\s*:\s*(.*)", fulldump)
+            logging.debug(f"Regex output: {regex_match}")
+            if regex_match:
+                self.cpu = regex_match.group(1)
 
-            # AMD CPU
-            amd_name_full = re.search(r"model name\s*:\s*(.*)", fulldump)
-            logging.debug(f"AMD output: {amd_name_full}")
-            if amd_name_full:
-                amd_name = amd_name_full.group(1)
-                amd_mhz = re.search(r"cpu MHz\s*:\s*([.0-9]+)", fulldump)  # noqa: W605
-                if amd_mhz:
-                    amd_ghz = round(float(amd_mhz.group(1)) / 1000, 2)  # this is a good idea
-                    self.cpu = str(amd_name) + " @ " + str(amd_ghz) + " GHz"
-
-            # ARM64 CPU
-            arm_cpu = re.search(r"model name\s*:\s*(.*)n", fulldump)
-            logging.debug(f"ARM64 output: {arm_cpu}")
-            if arm_cpu:
-                self.cpu = str(arm_cpu.group(1))[:19]
-
+        logging.debug(f"CPU Info: {self.cpu}")
         logging.debug("****************************")
 
     def get_memory(self):
