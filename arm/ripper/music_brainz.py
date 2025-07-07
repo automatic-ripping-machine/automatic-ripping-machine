@@ -233,7 +233,7 @@ def get_cd_art(job, infos):
                             'poster_url_auto': str(image["image"])
                         }
                         u.database_updater(args, job)
-                        logging.debug(f"poster_url: {args['poster_url']} poster_url_auto: {args['poster_url_auto']")
+                        logging.debug(f"poster_url: {args['poster_url']} poster_url_auto: {args['poster_url_auto']}")
                         return True
         return False
     except mb.WebServiceError as exc:
