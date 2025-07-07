@@ -210,13 +210,21 @@ def get_cd_art(job, infos):
         # Use the build-in images from coverartarchive if available
         if 'disc' in infos:
             release_list = infos['disc']['release-list']
+            logging.debug(f"release_list: {release_list}")
             first_release_with_artwork = next(
                 (release for release in release_list if release.get('cover-art-archive', {}).get('artwork') != "false"),
                 None
             )
+            logging.debug(f"first_release_with_artwork: {first_release_with_artwork}")
 
             if first_release_with_artwork is not None:
+                # Call function from https://python-musicbrainzngs.readthedocs.io/en/v0.7/api/#musicbrainzngs.get_image_list
+                # 400: Releaseid is not a valid UUID
+                # 404: No release exists with an MBID of releaseid
+                # 503: Ratelimit exceeded
                 artlist = mb.get_image_list(first_release_with_artwork['id'])
+                logging.debug(f"artlist: {artlist}")
+
                 for image in artlist["images"]:
                     # We dont care if its verified ?
                     if "image" in image:
@@ -225,6 +233,7 @@ def get_cd_art(job, infos):
                             'poster_url_auto': str(image["image"])
                         }
                         u.database_updater(args, job)
+                        logging.debug(f"poster_url: {args['poster_url']} poster_url_auto: {args['poster_url_auto']")
                         return True
         return False
     except mb.WebServiceError as exc:
