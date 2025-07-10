@@ -334,7 +334,7 @@ def get_title(discid: str, job) -> str:
         return "not identified"
 
 
-def get_cd_art(job, disc_info: str) -> str:
+def get_cd_art(job, disc_info: str) -> bool:
     """
     Retrieve and store CD artwork from MusicBrainz if available.
 
