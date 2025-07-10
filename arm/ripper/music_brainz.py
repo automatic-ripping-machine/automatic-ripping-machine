@@ -64,8 +64,6 @@ def music_brainz(discid: str, job) -> str:
     - Returns early with an empty string on error.
     """
 
-    discid = "fmAlyTnA0j.qTjeAVVnJN_2XNuQ-"
-
     disc_info = get_disc_info(job, discid)
     if disc_info == "":
         logging.error("ARM has encountered an error and stopping")
