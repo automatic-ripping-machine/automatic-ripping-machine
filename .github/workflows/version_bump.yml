@@ -50,6 +50,7 @@ jobs:
         run: |
           # Set Title environment flag to false
           TITLE_FLAG="false"
+          VERSION_TYPE="false"
           
           echo "PR Title: $PR_TITLE"
           if [[ "$PR_TITLE" == *"[FEATURE]"* ]]; then
@@ -69,6 +70,11 @@ jobs:
           
           # If Feature or Bugfix update the version
           if [[ "$TITLE_FLAG" == "true" ]]; then
+            # Abort script if version file missing
+            if [[ ! -f VERSION ]]; then
+              echo "VERSION file not found! Aborting."
+              exit 1
+            fi
             CURRENT_VERSION=$(cat VERSION)
             IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
             if [[ "$VERSION_TYPE" == "minor" ]]; then
@@ -88,33 +94,7 @@ jobs:
           echo "PR_TITLE=$PR_TITLE" >> $GITHUB_ENV
           echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
 
-      - name: Configure Git user
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-
-      - name: Update VERSION file and Push Changes
-        if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
-        run: |
-          echo "$NEW_VERSION" > VERSION
-          git add VERSION
-          git commit -m "[Automated] Release: ${VERSION_TYPE} - Version from $CURRENT_VERSION to $NEW_VERSION"
-          
-          # Use the pull request's branch name to push changes
-          BRANCH="${{ github.head_ref }}"
-          echo "Pushing changes to branch: $BRANCH"
-          
-          # Push changes to the PR branch
-          git push origin HEAD:$BRANCH
-
-      - name: Debug Environment Variables
-        run: |
-          echo "PR_TITLE=${{ env.PR_TITLE }}"
-          echo "NEW_VERSION=${{ env.NEW_VERSION }}"
-          echo "CURRENT_VERSION=${{ env.CURRENT_VERSION }}"
-          echo "VERSION_TYPE=${{ env.VERSION_TYPE }}"
-
-      - name: Comment on PR
+      - name: Comment on PR with no spam
         if: env.VERSION_UPDATED == 'false'
         uses: actions/github-script@v7
         with:
@@ -133,20 +113,45 @@ jobs:
             if (titleFlag === "false") {
               prBody = `Version Bot\n **PR title:** ${prTitle}\n **No valid version flag found**. PR title must include either [FEATURE] or [BUGFIX] to auto-increment the version.\n **Please update the PR title** and re-run the workflow.`;
             } else {
-              prBody = `Version Bot:\n **PR title:** ${prTitle}\n Updated version: **${currentVersion}** to **${newVersion}**\n Release version: **${versionType}**`;
+              prBody = `Version Bot:\n **PR title:** ${prTitle}\n Update the version: **${currentVersion}** to **${newVersion}**\n Release version: **${versionType}**`;
             }
-            
-            // Generate PR comment
-            github.rest.issues.createComment({
+
+            // Get existing comments
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: prBody
-            })
+              per_page: 100
+            });
 
-      - name: Set tag for non-default branch
-        if: steps.branch-name.outputs.is_default == 'false' && steps.branch-name.outputs.default_branch != '' && env.TITLE_FLAG == 'true'
-        run: |
-          echo "Branch name is ${{ steps.branch-name.outputs.ref_branch }}"
-          echo "Main name is ${{ steps.branch-name.outputs.default_branch }}"
-          echo "TAG=${{ steps.branch-name.outputs.current_branch }}" >> $GITHUB_ENV
+            // Check for existing version bot comments
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Version Bot')
+            );
+            
+            // Generate PR comment if not already there
+            if (botComment) {
+              // Check if comment aligns with expected output, otherwise update
+              if (botComment.body !== prBody) {
+                // Update the existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: prBody
+                });
+                console.log('Updated existing Version Bot comment.');
+              } else {
+                console.log('No comment update needed.');
+              }
+            } else {
+              // Creating new comment, no previous comments found
+              console.log('Creating new comment');
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: prBody
+              })
+            }
