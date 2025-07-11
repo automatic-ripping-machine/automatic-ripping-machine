@@ -19,6 +19,7 @@ import importlib
 import re
 import subprocess
 from datetime import datetime
+import os
 
 import sqlalchemy
 
@@ -75,9 +76,9 @@ def settings():
     cds = Job.query.filter_by(disctype="music").count()
 
     # Get the current server time and timezone
+    server_timezone = os.environ.get("TZ", "Etc/UTC")
     current_time = datetime.now()
     server_datetime = current_time.strftime(cfg.arm_config['DATE_FORMAT'])
-    server_timezone = current_time.astimezone().tzinfo
     [arm_version_local, arm_version_remote] = ui_utils.git_check_version()
     local_git_hash = ui_utils.get_git_revision_hash()
 
@@ -116,6 +117,8 @@ def settings():
     form = SettingsForm()
 
     session["page_title"] = "Settings"
+
+    app.logger.debug(f"stats: {stats}")
 
     return render_template("settings/settings.html",
                            settings=cfg.arm_config,
@@ -437,10 +440,9 @@ def update_cpu():
         current_system.name = new_system.name
         current_system.cpu = new_system.cpu
         db.session.add(current_system)
-
     else:
-        app.logger.debug(f"Name old [] new [{new_system.name}]")
-        app.logger.debug(f"Name old [] new [{new_system.cpu}]")
+        app.logger.debug(f"Name old [No Info] new [{new_system.name}]")
+        app.logger.debug(f"Name old [No Info] new [{new_system.cpu}]")
         db.session.add(new_system)
 
     app.logger.debug("****** End System Information ******")

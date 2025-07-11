@@ -30,10 +30,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch main branch
-        run: |
-          git fetch origin main:main
-
       - name: Check for version bump
         id: version-check
         run: |
@@ -96,11 +92,6 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-
-      - name: Pull latest changes from remote
-        if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
-        run: |
-          git pull --rebase origin ${{ github.head_ref }}
 
       - name: Update VERSION file and Push Changes
         if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
