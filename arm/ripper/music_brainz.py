@@ -43,7 +43,11 @@ def music_brainz(discid, job):
     :param job: the job class/obj
     :return: the label of the disc as a string or "" if nothing was found
     """
-    mb.set_useragent("arm", "v2_devel")
+
+    # Tell musicbrainz what your app is, and how to contact you
+    # (this step is required, as per the webservice access rules
+    # at http://wiki.musicbrainz.org/XML_Web_Service/Rate_Limiting )
+    mb.set_useragent(app="arm", version=str(job.arm_version), contact="https://github.com/automatic-ripping-machine")
     try:
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits', 'recordings'])
         logging.debug(f"Infos: {infos}")
@@ -155,9 +159,13 @@ def get_title(discid, job):
     :param job: the job object for the database entry
     :return: the label of the disc as a string or "" if nothing was found
 
-    Notes: dont try to use logging here -  doing so will break the arm setup_logging() function
+    Notes: dont try to use logging here - doing so will break the arm setup_logging() function
     """
-    mb.set_useragent("arm", "v2_devel")
+
+    # Tell musicbrainz what your app is, and how to contact you
+    # (this step is required, as per the webservice access rules
+    # at http://wiki.musicbrainz.org/XML_Web_Service/Rate_Limiting )
+    mb.set_useragent("arm", version=str(job.arm_version), contact="https://github.com/automatic-ripping-machine")
     try:
         infos = mb.get_releases_by_discid(discid, includes=['artist-credits'])
         logging.debug(f"Infos: {infos}")

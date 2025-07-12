@@ -13,7 +13,7 @@ from flask import request
 
 import arm.config.config as cfg
 from arm.models.config import Config
-from arm.models.job import Job
+from arm.models.job import Job, JobState, JOB_STATUS_FINISHED
 from arm.models.notifications import Notifications
 from arm.models.track import Track
 from arm.models.ui_settings import UISettings
@@ -39,11 +39,12 @@ def get_x_jobs(job_status):
     :return: dict/json
     """
     success = False
-    if job_status in ("success", "fail"):
+    if job_status == "joblist":
+        jobs = db.session.query(Job).filter(~Job.finished).all()
+    elif JobState(job_status) in JOB_STATUS_FINISHED:
         jobs = Job.query.filter_by(status=job_status)
     else:
-        # Get running jobs
-        jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+        raise ValueError(f"{job_status} is not a valid option")
 
     job_results = {}
     i = 0
@@ -83,16 +84,17 @@ def process_logfile(logfile, job, job_results):
         :param job_results: the {} of
         :return: should be dict for the json api
     """
-    app.logger.debug(job.status)
-    if job.status == "ripping":
-        app.logger.debug("using mkv - " + logfile)
-        job_results = process_makemkv_logfile(job, job_results)
-    elif job.disctype == "music":
+    app.logger.debug(f"Disc Type: {job.disctype}, Status: {job.status}")
+    if job.disctype in {"dvd", "bluray"}:
+        if job.status == JobState.VIDEO_RIPPING.value:
+            app.logger.debug("using mkv - " + logfile)
+            return process_makemkv_logfile(job, job_results)
+        if job.status == JobState.TRANSCODE_ACTIVE.value:
+            app.logger.debug("using handbrake")
+            return process_handbrake_logfile(logfile, job, job_results)
+    if job.disctype == "music" and job.status == JobState.AUDIO_RIPPING.value:
         app.logger.debug("using audio disc")
-        process_audio_logfile(job.logfile, job, job_results)
-    else:
-        app.logger.debug("using handbrake")
-        job_results = process_handbrake_logfile(logfile, job, job_results)
+        return process_audio_logfile(job.logfile, job, job_results)
     return job_results
 
 
@@ -107,25 +109,35 @@ def process_makemkv_logfile(job, job_results):
     Process the logfile and find current status and job progress percent\n
     :return: job_results dict
     """
+    job_progress_status = None
+    job_stage_index = None
     progress_log = os.path.join(job.config.LOGPATH, 'progress', str(job.job_id)) + '.log'
     lines = read_log_line(progress_log)
     # Correctly get last entry for progress bar
     for line in lines:
         job_progress_status = re.search(r"PRGV:(\d{3,}),(\d+),(\d{3,})", str(line))
         job_stage_index = re.search(r"PRGC:\d+,(\d+),\"([\w -]{2,})\"", str(line))
-        if job_progress_status:
-            job_progress = f"{percentage(job_progress_status.group(1), job_progress_status.group(3)):.2f}"
-            job.progress = job_results['progress'] = job_progress
-            job.progress_round = percentage(job_progress_status.group(1),
-                                            job_progress_status.group(3))
-        if job_stage_index:
-            try:
-                current_index = f"{(int(job_stage_index.group(1)) + 1)}/{job.no_of_titles} - {job_stage_index.group(2)}"
-                job.stage = job_results['stage'] = current_index
-                db.session.commit()
-            except Exception as error:
-                job.stage = f"Unknown -  {error}"
+
+    if job_progress_status is not None:
+        app.logger.debug(f"job_progress_status: {job_progress_status}")
+        job.progress = job_results['progress'] = \
+            f"{percentage(job_progress_status.group(1), job_progress_status.group(3)):.2f}"
+        job.progress_round = percentage(job_progress_status.group(1),
+                                        job_progress_status.group(3))
+    else:
+        app.logger.debug(f"Job [{job.job_id}] MakeMKV status not defined - setting progress to 0%")
+        job.progress = job.progress_round = job_results['progress'] = 0
+
+    if job_stage_index is not None:
+        try:
+            current_index = f"{(int(job_stage_index.group(1)) + 1)}/{job.no_of_titles} - {job_stage_index.group(2)}"
+            job.stage = job_results['stage'] = current_index
+            db.session.commit()
+        except Exception as error:
+            job.stage = f"Unknown -  {error}"
+
     job.eta = "Unknown"
+
     return job_results
 
 
@@ -146,16 +158,24 @@ def process_handbrake_logfile(logfile, job, job_results):
                                r"ETA ([\dhms]*?)\)(?!\\rEncod)", str(line))
         job_status_index = re.search(r"Processing track #(\d{1,2}) of (\d{1,2})"
                                      r"(?!.*Processing track #)", str(line))
-    if job_status:
+
+    # Check ARM can read the Handbrake library and get a status
+    if job_status is not None:
         app.logger.debug(job_status.group())
         job.stage = job_status.group(1)
         job.progress = job_status.group(2)
         job.eta = job_status.group(3)
         job.progress_round = int(float(job.progress))
-        job_results['stage'] = job.stage
-        job_results['progress'] = job.progress
-        job_results['eta'] = job.eta
-        job_results['progress_round'] = int(float(job_results['progress']))
+    else:
+        app.logger.debug(f"Job [{job.job_id}] handbrake status not defined - setting progress to 0%")
+        job.stage = "Unknown"
+        job.progress = job.progress_round = 0
+        job.eta = "Unknown"
+
+    job_results['stage'] = job.stage
+    job_results['progress'] = job.progress
+    job_results['eta'] = job.eta
+    job_results['progress_round'] = int(float(job_results['progress']))
 
     if job_status_index:
         try:
@@ -221,7 +241,7 @@ def read_log_line(log_file):
     try:
         line = subprocess.check_output(['tail', '-n', '20', log_file]).splitlines()
     except subprocess.CalledProcessError:
-        app.logger.debug("Error while reading logfile for ETA")
+        app.logger.debug(f"Error while reading {log_file}, unable to calculate ETA")
         line = ["", ""]
     return line
 
@@ -323,7 +343,7 @@ def delete_job(job_id, mode):
                                                  f'Job with id: {job_id} was successfully deleted from the database')
                     db.session.add(notification)
                     db.session.commit()
-                    app.logger.debug("Admin deleting  job {} was successful")
+                    app.logger.debug(f"Admin deleting  job {job_id} was successful")
                     json_return = {'success': True, 'job': job_id, 'mode': mode}
     # If we run into problems with the database changes
     # error out to the log and roll back
@@ -397,7 +417,7 @@ def abandon_job(job_id):
 
     try:
         job = Job.query.get(int(job_id))
-        job.status = "fail"
+        job.status = JobState.FAILURE.value
         job_process = psutil.Process(job.pid)
         job_process.terminate()  # or p.kill()
         notification = Notifications(f"Job: {job_id} was Abandoned!",
