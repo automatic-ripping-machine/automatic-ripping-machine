@@ -9,6 +9,7 @@ sys.path.append("/opt/arm")
 
 from arm.ripper import utils, makemkv, handbrake  # noqa E402
 from arm.ui import app, db, constants  # noqa E402
+from arm.models.job import JobState  # noqa E402
 
 
 def rip_visual_media(have_dupes, job, logfile, protection):
@@ -49,10 +50,10 @@ def rip_visual_media(have_dupes, job, logfile, protection):
     if use_make_mkv:
         logging.info("************* Ripping disc with MakeMKV *************")
         # Run MakeMKV and get path to output
-        job.status = "ripping"
+        job.status = JobState.VIDEO_RIPPING.value
         db.session.commit()
         try:
-            makemkv_out_path = makemkv.makemkv(logfile, job)
+            makemkv_out_path = makemkv.makemkv(job)
         except Exception as mkv_error:  # noqa: E722
             logging.error(f"MakeMKV did not complete successfully.  Exiting ARM! "
                           f"Error: {mkv_error}")
@@ -60,7 +61,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
 
         if makemkv_out_path is None:
             logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
-            job.status = "fail"
+            job.status = JobState.FAILURE.value
             db.session.commit()
             sys.exit()
         if job.config.NOTIFY_RIP:
@@ -114,8 +115,7 @@ def start_transcode(job, logfile, hb_in_path, hb_out_path, protection):
     :param protection: If disc has 99 track protection
     :return: None
     """
-    # Update db with transcoding status
-    utils.database_updater({'status': "transcoding"}, job)
+    utils.database_updater({"status": JobState.IDLE.value}, job)
     logging.info("************* Starting Transcode With HandBrake *************")
     if rip_with_mkv(job, protection) and job.config.RIPMETHOD == "mkv":
         # skip if transcode is disable
@@ -128,12 +128,14 @@ def start_transcode(job, logfile, hb_in_path, hb_out_path, protection):
         logging.debug(f"handbrake_main_feature: {hb_in_path}, {hb_out_path}, {logfile}")
         handbrake.handbrake_main_feature(hb_in_path, hb_out_path, logfile, job)
         job.eject()
+        db.session.commit()
     else:
         logging.debug(f"handbrake_all: {hb_in_path}, {hb_out_path}, {logfile}")
         handbrake.handbrake_all(hb_in_path, hb_out_path, logfile, job)
         job.eject()
+        db.session.commit()
     logging.info("************* Finished Transcode With HandBrake *************")
-    utils.database_updater({'status': "active"}, job)
+    utils.database_updater({"status": JobState.IDLE.value}, job)
     return True
 
 
