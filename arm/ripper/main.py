@@ -216,12 +216,16 @@ if __name__ == "__main__":
     try:
         # Delete old log files
         logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])
-        logging.info(f"Job: {job.label}")  # This will sometimes be none
-        # Check for zombie jobs and update status to 'failed'
-        utils.clean_old_jobs()
-        # Log all params/attribs from the drive
-        log_udev_params(devpath)
+    except Exception as error:
+        logging.error(error, exc_info=True)
 
+    logging.info(f"Job: {job.label}")  # This will sometimes be none
+    # Check for zombie jobs and update status to 'failed'
+    utils.clean_old_jobs()
+    # Log all params/attribs from the drive
+    log_udev_params(devpath)
+
+    try:
         main(log_file, job, args.protection)
     except Exception as error:
         logging.error(error, exc_info=True)
