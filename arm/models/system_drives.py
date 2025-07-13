@@ -272,6 +272,7 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
         logging.info("Releasing current job from drive")
         # Preserve as previous job
         self.job_id_previous = self.job_id_current
+        # Resetting current job to None in order to release it
         self.job_id_current = None
 
     def new_job(self, job_id):
