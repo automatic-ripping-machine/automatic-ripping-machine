@@ -24,7 +24,7 @@ def ffmpeg_main_feature(srcpath, basepath, logfile, job):
     :return: None
     """
     logging.info("Starting DVD Movie main_feature processing")
-    logging.debug("Handbrake starting: ")
+    logging.debug("FFMPEG starting: ")
     logging.debug(f"\n\r{job.pretty_table()}")
 
     utils.database_updater({'status': "waiting_transcode"}, job)
@@ -40,7 +40,7 @@ def ffmpeg_main_feature(srcpath, basepath, logfile, job):
 
     track = job.tracks.filter_by(main_feature=True).first()
     if track is None:
-        msg = "No main feature found by Handbrake. Turn main_feature to false in arm.yml and try again."
+        msg = "No main feature found by FFMPEG. Turn main_feature to false in arm.yml and try again."
         logging.error(msg)
         raise RuntimeError(msg)
 
@@ -61,10 +61,10 @@ def ffmpeg_main_feature(srcpath, basepath, logfile, job):
         cmd2 = f"nice mkdir -p {basepath} && chmod -R 777 {basepath}"
         subprocess.check_output(cmd2, shell=True).decode("utf-8")
         subprocess.check_output(cmd, shell=True).decode("utf-8")
-        logging.info("Handbrake call successful")
+        logging.info("FFMPEG call successful")
         track.status = "success"
     except subprocess.CalledProcessError as hb_error:
-        err = f"Call to handbrake failed with code: {hb_error.returncode}({hb_error.output})"
+        err = f"Call to FFMPEG failed with code: {hb_error.returncode}({hb_error.output})"
         logging.error(err)
         track.status = "fail"
         track.error = job.errors = err
@@ -90,6 +90,7 @@ def ffmpeg_all(srcpath, basepath, logfile, job):
     # Wait until there is a spot to transcode
     job.status = "waiting_transcode"
     db.session.commit()
+    #shouldent this be ffmpeg?
     utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
     job.status = "transcoding"
     db.session.commit()
@@ -101,7 +102,7 @@ def ffmpeg_all(srcpath, basepath, logfile, job):
     logging.debug(f"Total number of tracks is {job.no_of_titles}")
 
     for track in job.tracks:
-        # Don't raise error if we past max titles, skip and continue till HandBrake finishes
+        # Don't raise error if we past max titles, skip and continue till FFMPEG finishes
         if int(track.track_number) > job.no_of_titles:
             continue
         if track.length < int(cfg.arm_config["MINLENGTH"]):
@@ -142,10 +143,10 @@ def ffmpeg_all(srcpath, basepath, logfile, job):
                     cmd,
                     shell=True
                 ).decode("utf-8")
-                logging.debug(f"Handbrake exit code: {hand_brake_output}")
+                logging.debug(f"FFMPEG exit code: {hand_brake_output}")
                 track.status = "success"
             except subprocess.CalledProcessError as hb_error:
-                err = f"Handbrake encoding of title {track.track_number} failed with code: {hb_error.returncode}" \
+                err = f"FFMPEG encoding of title {track.track_number} failed with code: {hb_error.returncode}" \
                       f"({hb_error.output})"
                 logging.error(err)
                 track.status = "fail"
@@ -227,9 +228,9 @@ def ffmpeg_defualt(srcpath, basepath, logfile, job):
                 cmd,
                 shell=True
             ).decode("utf-8")
-            logging.debug(f"Handbrake exit code: {hand_break_output}")
+            logging.debug(f"FFMPEG exit code: {hand_break_output}")
         except subprocess.CalledProcessError as hb_error:
-            err = f"Handbrake encoding of file {shlex.quote(files)} failed with code: {hb_error.returncode}" \
+            err = f"FFMPEG encoding of file {shlex.quote(files)} failed with code: {hb_error.returncode}" \
                   f"({hb_error.output})"
             logging.error(err)
             raise subprocess.CalledProcessError(hb_error.returncode, cmd)
@@ -241,12 +242,12 @@ def ffmpeg_defualt(srcpath, basepath, logfile, job):
 
 def get_track_info(srcpath, job):
     """
-    Use HandBrake to get track info and update Track class\n\n
+    Use FFMPEG to get track info and update Track class\n\n
     :param srcpath: Path to disc\n
     :param job: Job instance\n
     :return: None
     """
-    logging.info("Using HandBrake to get information on all the tracks on the disc.  This will take a few minutes...")
+    logging.info("Using FFMPEG to get information on all the tracks on the disc.  This will take a few minutes...")
 
     cmd = f'{cfg.arm_config["HANDBRAKE_LOCAL"]} -i {shlex.quote(srcpath)} -t 0 --scan'
     logging.debug(f"Sending command: {cmd}")
