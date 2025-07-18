@@ -1074,14 +1074,18 @@ def run(options, select):
         raise TypeError(options)
     if not isinstance(select, OutputType):
         raise TypeError(select)
+    # Check makemkvcon path, resolves baremetal unique install issues
+    # Docker container uses /usr/local/bin/makemkvcon
+    makemkvcon_path = shutil.which("makemkvcon") or "/usr/local/bin/makemkvcon"
     # robot process of makemkvcon with
     cmd = [
-        "makemkvcon",
+        makemkvcon_path,
         "--robot",
         "--messages=-stdout",
     ]
     cmd += list(options)
     buffer = []
+    logging.debug(f"command: '{' '.join(cmd)}'")
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True) as proc:
         logging.debug(f"PID {proc.pid}: command: '{' '.join(cmd)}'")
         for line in proc.stdout:
