@@ -1076,7 +1076,7 @@ def run(options, select):
         raise TypeError(select)
     # robot process of makemkvcon with
     cmd = [
-        "/usr/local/bin/makemkvcon",
+        "makemkvcon",
         "--robot",
         "--messages=-stdout",
     ]
