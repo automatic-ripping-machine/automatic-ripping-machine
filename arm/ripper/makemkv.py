@@ -16,6 +16,7 @@ import os
 import subprocess
 
 import shlex
+import shutil
 from time import sleep
 
 from arm.models import Track, SystemDrives
