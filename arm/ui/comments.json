@@ -27,6 +27,7 @@
   "DATE_FORMAT": "# Allows you to format the date/time to your own liking\n# This will be used throughout ARM and ARMui",
   "ALLOW_DUPLICATES": "## Do you want to allow Rips of the same disk multiple times\n## With this set as false the task will exit if it recognises the same movie being ripped\n## recommended to set to true for series ",
   "MAX_CONCURRENT_TRANSCODES": "# Number of Transcodes that runs at the same time.\n# Certain Video cards are limited to how many encodes they can run at the same time.\n# Also useful for diminishing returns on CPU based encodes.\n# Set to 0 to disable",
+  "MAX_CONCURRENT_MAKEMKVINFO": "# Number of MakeMKV info calls that are allowed to run.\n#This can be set to 1 if makemkvcon info calls lead to crashes on backup or mkv calls.\n# Set to 0 to disable",
   "DATA_RIP_PARAMETERS": "# Additional parameters for dd. e.g. \"conv=noerror,sync\" for ignoring read errors",
   "METADATA_PROVIDER": "# This selects the metadata provider, Each provider has their own ups and downs\n# But a general rule would be \n# OMDB for movies and shows \n# TMDB for movies only\n# You will still need to provide an api key for the provider you have selected",
   "GET_AUDIO_TITLE": "# Set to one of \"none\", \"musicbrainz\", \"freecddb\"\n# if \"musicbrainz\" is used the disc information are asked from musicbrainz.org\n# if \"none\" is used no label is identified",
