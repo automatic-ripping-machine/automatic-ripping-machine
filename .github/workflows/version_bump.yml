@@ -21,12 +21,6 @@ jobs:
   version:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch main branch
-        run: |
-          git fetch origin main
-          git checkout origin/main -- VERSION
-          echo "MAIN_VERSION=$(cat VERSION)" >> $GITHUB_ENV
-
       - name: Get branch name
         id: branch-name
         uses: tj-actions/branch-names@v8
@@ -35,6 +29,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Fetch main branch
+        run: |
+          git fetch origin main
+          git checkout origin/main -- VERSION
+          echo "MAIN_VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
       - name: Determine new version
         id: determine-version
@@ -72,7 +72,7 @@ jobs:
 
             # Get branch version
             echo "BRANCH_VERSION=$(cat VERSION)"
-            echo "Branch Version: " BRANCH_VERSION
+            echo "Branch Version: " $BRANCH_VERSION
 
             # Get the main version and split into VERSION_PARTS
             IFS='.' read -r -a VERSION_PARTS <<< process.env.MAIN_VERSION
