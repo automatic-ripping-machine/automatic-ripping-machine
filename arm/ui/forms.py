@@ -2,7 +2,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, \
     IntegerField, BooleanField, PasswordField, Form, FieldList, FormField, HiddenField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Optional
 
 
 class TitleSearchForm(FlaskForm):
@@ -82,7 +82,7 @@ class SystemInfoDrives(FlaskForm):
     """
     id = IntegerField('Drive ID', validators=[DataRequired()])
     name = StringField('Name', validators=[DataRequired()])
-    description = StringField('Description', validators=[DataRequired()])
+    description = StringField('Description', validators=[Optional()])
     drive_mode = SelectField('Drive Mode',
                              validators=[DataRequired()],
                              choices=[

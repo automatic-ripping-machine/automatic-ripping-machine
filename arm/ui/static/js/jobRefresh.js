@@ -78,7 +78,15 @@ function updateProgress(job, oldJob) {
             progressSection[0].innerHTML = mainProgressBar;
         } else {
             if (job.progress_round !== oldJob.progress_round || job.progress !== oldJob.progress) {
-                progressBarDiv[0].innerHTML = `<div class="progress">${subProgressBar}`;
+                let el = progressBarDiv[0].querySelector('.progress-bar');
+                if (el) {
+                    el.style.width = `${job.progress_round}%`;
+                    el.setAttribute('aria-valuenow', job.progress_round);
+                    let small = el.querySelector('small');
+                    if (small) small.innerText = `${job.progress}%`;
+                } else {
+                    progressBarDiv[0].innerHTML = `<div class="progress">${subProgressBar}`;
+                }
             }
             updateContents(stage, job, "Stage", job.stage);
             updateContents(eta, job, "ETA", job.eta);
