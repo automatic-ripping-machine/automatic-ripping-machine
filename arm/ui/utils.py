@@ -8,6 +8,7 @@ import json
 import platform
 import subprocess
 import re
+from typing import Dict, Union, List, Tuple, TypedDict
 from datetime import datetime
 from pathlib import Path
 from sqlalchemy.exc import SQLAlchemyError
@@ -30,6 +31,7 @@ from arm.models.user import User
 from arm.ui import app, db
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
 from arm.ui.settings import DriveUtils
+
 
 # Path definitions
 path_migrations = "arm/migrations"
@@ -281,7 +283,7 @@ def arm_db_initialise():
     DriveUtils.drives_update()
 
 
-def make_dir(path):
+def make_dir(path:str|Path) -> bool:
     """
     Make a directory
     :param path: Path to directory
@@ -289,24 +291,24 @@ def make_dir(path):
     """
     success = False
     if not os.path.exists(path):
-        app.logger.debug("Creating directory: " + path)
+        app.logger.debug(f"Creating directory: {path}")
         try:
             os.makedirs(path)
             success = True
         except OSError:
-            err = "Couldn't create a directory at path: " + path + " Probably a permissions error.  Exiting"
+            err = f"Couldn't create a directory at path: {path} Probably a permissions error.  Exiting"
             app.logger.error(err)
     return success
 
 
-def get_info(directory):
+def get_info(directory:Path) -> List[List[Union[str, float]]]:
     """
     Used to read stats from files
     -Used for view logs page
     :param directory:
     :return: list containing a list with each file's stats
     """
-    file_list = []
+    file_list: List[List[Union[str, float]]] = []
     for i in os.listdir(directory):
         if os.path.isfile(os.path.join(directory, i)):
             file_stats = os.stat(os.path.join(directory, i))
@@ -320,7 +322,7 @@ def get_info(directory):
     return file_list
 
 
-def clean_for_filename(string):
+def clean_for_filename(string:str) -> str:
     """ Cleans up string for use in filename """
     string = re.sub(r'\s+', ' ', string)
     string = string.replace(' : ', ' - ')
@@ -333,13 +335,52 @@ def clean_for_filename(string):
     return string
 
 
-def getsize(path):
+def getsize(path:str|Path) -> float:
     """Simple function to get the free space left in a path"""
     path_stats = os.statvfs(path)
     free = (path_stats.f_bavail * path_stats.f_frsize)
     free_gb = free / 1073741824
     return free_gb
 
+def jsonFile_to_dict(json_file:str|Path) -> Dict[str, Union[str, int, bool]]|str:
+    """
+    Read a json file and return it as a dict
+    :param json_file: path to json file
+    :return: dict
+    """
+    if os.path.isfile(json_file):
+        if os.access(json_file, os.R_OK):
+            try:
+                app.logger.debug(f"Loading json file: {json_file}")
+                with open(json_file, "r") as read_file:
+                    try:
+                        data = json.load(read_file)
+                    except Exception as error:
+                        app.logger.debug(f"Error with json file. {error}")
+                        data = "{'error':'" + str(error) + "'}"
+            except Exception as error:
+                app.logger.exception(f"Was unable to load json file: {json_file}")
+                app.logger.exception(error)
+                data = f"Was unable to load json file: {json_file}"            
+        else:
+            app.logger.exception(f"File exists but is not readable: {json_file}")
+            data = f"File exists but is not readable: {json_file}"
+    else:
+        app.logger.exception(f"File not found: {json_file}")
+        data = f"File not found: {json_file}"
+    return data
+
+def listCoPairedIntoTuple(list_of_strings:List[str]) -> list[Tuple[str, str]]:
+    """Takes a list of strings, and returns a list of tuples
+        [x, y, z] -> [(x,x),(y,y),(z,z)]
+
+    Args:
+        list (any): a list of any type
+
+    Returns:
+        list[tuple]: a list, containing tuples, each duplicated.
+    """    
+    return [(x, x) for x in list_of_strings]
 
 def generate_comments():
     """
@@ -348,19 +389,28 @@ def generate_comments():
     :return: json
     """
     comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
-    try:
-        with open(comments_file, "r") as comments_read_file:
-            try:
-                comments = json.load(comments_read_file)
-            except Exception as error:
-                app.logger.debug(f"Error with comments file. {error}")
-                comments = "{'error':'" + str(error) + "'}"
-    except FileNotFoundError:
-        comments = "{'error':'File not found'}"
+    comments = jsonFile_to_dict(comments_file)
     return comments
 
+class FieldDict(TypedDict):
+    defaultForInternalUse: Union[str, int, bool,list[str]]
+    commentForInternalUse: str
+    dataValidation: Union[str, list[str]]
+    formFieldType: str
 
-def generate_full_log(full_path):
+ripperSettingsConfigFile = 'ripperFormConfig.json'
+
+def generate_ripperFormSettings()-> Dict[str,FieldDict]:
+    """
+    load ripperSettingsConfigFile.json and use it for settings page
+    allows us to easily add more settings later
+    :return: json
+    """
+    ripperFormSettings = os.path.join(os.path.dirname(os.path.abspath(__file__)), ripperSettingsConfigFile)
+    ripperFormSettings = jsonFile_to_dict(ripperFormSettings)
+    return ripperFormSettings
+
+def generate_full_log(full_path: str | Path):
     """
     Gets/tails all lines from log file
     :param full_path: full path to job logfile
@@ -651,9 +701,16 @@ def build_arm_cfg(form_data, comments):
     # This is not the safest way to do things.
     # It assumes the user isn't trying to mess with us.
     # This really should be hard coded.
+    # if not all(ord(c) < 128 for c in text):
+    #         raise ValidationError("Field must not contain non-ASCII characters.")
+    #     # check for non-printable characters
+    #     if not all(c.isprintable() for c in text):
+    #         raise ValidationError("Field must not contain non-printable characters.")
+    #     # remove whitespace
+    #     text = text.strip().replace("\t","").replace("\n","").replace("\r","").replace("\f","").replace("\v","")
     app.logger.debug("save_settings: START")
     for key, value in form_data.items():
-        app.logger.debug(f"save_settings: current key {key} = {value} ")
+        # app.logger.debug(f"save_settings: current key {key} = {value} ")
         if key == "csrf_token":
             continue
         # Add any grouping comments

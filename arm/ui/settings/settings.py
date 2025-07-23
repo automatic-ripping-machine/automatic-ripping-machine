@@ -96,10 +96,21 @@ def settings():
              'updated': ui_utils.git_check_updates(local_git_hash),
              'hw_support': check_hw_transcode_support()
              }
-
+    # Load up the comments.json, so we can comment the arm.yaml
+    # jsoncomments is used by all config fields
+    comments = ui_utils.generate_comments()
     # ARM UI config
     armui_cfg = ui_utils.arm_db_cfg()
-
+    ui_form = UiSettingsForm()
+    # Set the nicer attributes for the UI settings form.
+    for field_name, field in ui_form._fields.items():
+        if field_name == 'submit':
+            break
+        else:
+            field.data = getattr(armui_cfg, field_name)
+            field.render_kw = {'title':comments[field_name]}
+            app.logger.debug(f"Field {field_name} has value with value: {field.data}")
+    
     # Get system details from Server Info and Config
     server = SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
@@ -112,17 +123,26 @@ def settings():
     drive_utils.update_tray_status(drives)
     form_drive = SystemInfoDrives(request.form)
 
-    # Load up the comments.json, so we can comment the arm.yaml
-    comments = ui_utils.generate_comments()
+    # Build the dynamic form for the ripper settings
     form = SettingsForm()
+    # now go through all teh arm config keys and set the form fields.data
 
+    for key, value in cfg.arm_config.items():
+        field = getattr(form, key, None)
+        if field:
+            app.logger.debug(f"Config key: {key} resolved to field: {field.name}, which contains value: {field.data}")
+            field.data = value
+            app.logger.debug(f"Field value is now: {field.data}")
+            
+    
     session["page_title"] = "Settings"
 
     app.logger.debug(f"stats: {stats}")
 
     return render_template("settings/settings.html",
                            settings=cfg.arm_config,
-                           ui_settings=armui_cfg,
+                        #    ui_settings=armui_cfg,
+                           ui_settings=ui_form,
                            stats=stats,
                            apprise_cfg=cfg.apprise_config,
                            form=form,
@@ -181,20 +201,29 @@ def save_settings():
     comments = ui_utils.generate_comments()
     success = False
     arm_cfg = {}
+    # form = SettingsForm()
+    # app.logger.debug(f"{request.form.to_dict()}")
     form = SettingsForm()
     if form.validate_on_submit():
+        app.logger.debug("Saving Ripper settings")
         # Build the new arm.yaml with updated values from the user
         arm_cfg = ui_utils.build_arm_cfg(request.form.to_dict(), comments)
         # Save updated arm.yaml
-        with open(cfg.arm_config_path, "w") as settings_file:
-            settings_file.write(arm_cfg)
-            settings_file.close()
-        success = True
-        importlib.reload(cfg)
-        # Set the ARM Log level to the config
-        app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
-        app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
-
+        try:
+            app.logger.debug(f"routes.save_settings: Saving new arm.yaml: {cfg.arm_config_path}")
+            with open(cfg.arm_config_path, "w") as settings_file:
+                settings_file.write(arm_cfg)
+                settings_file.close()
+            success = True
+            importlib.reload(cfg)
+            # Set the ARM Log level to the config
+            app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
+            app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
+        except Exception as e:
+            app.logger.exception(f"Error saving arm.yaml: {e}")
+            flash(f"Error saving arm.yaml: {e}", "error")
+            return {'success': False, 'settings': str(cfg.arm_config), 'form': 'arm ripper settings'}
+        
     # If we get to here there was no post data
     return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
 
@@ -209,26 +238,25 @@ def save_ui_settings():
     Notes - This function needs to trigger a restart of flask for
         debugging to update the values
     """
-    form = UiSettingsForm()
+    ui_form = UiSettingsForm()
     success = False
     arm_ui_cfg = UISettings.query.get(1)
-    if form.validate_on_submit():
-        use_icons = (str(form.use_icons.data).strip().lower() == "true")
-        save_remote_images = (str(form.save_remote_images.data).strip().lower() == "true")
-        arm_ui_cfg.index_refresh = format(form.index_refresh.data)
+    if ui_form.validate_on_submit():
+        use_icons = (str(ui_form.use_icons.data).strip().lower() == "true")
+        save_remote_images = (str(ui_form.save_remote_images.data).strip().lower() == "true")
+        arm_ui_cfg.index_refresh = format(ui_form.index_refresh.data)
         arm_ui_cfg.use_icons = use_icons
         arm_ui_cfg.save_remote_images = save_remote_images
-        arm_ui_cfg.bootstrap_skin = format(form.bootstrap_skin.data)
-        arm_ui_cfg.language = format(form.language.data)
-        arm_ui_cfg.database_limit = format(form.database_limit.data)
-        arm_ui_cfg.notify_refresh = format(form.notify_refresh.data)
+        arm_ui_cfg.bootstrap_skin = format(ui_form.bootstrap_skin.data)
+        arm_ui_cfg.language = format(ui_form.language.data)
+        arm_ui_cfg.database_limit = format(ui_form.database_limit.data)
+        arm_ui_cfg.notify_refresh = format(ui_form.notify_refresh.data)
         db.session.commit()
         success = True
     # Masking the jinja update, otherwise an error is thrown
     # sqlalchemy.orm.exc.DetachedInstanceError: Instance <UISettings at 0x7f294c109fd0>
     # app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
     return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
-
 
 @route_settings.route('/save_abcde_settings', methods=['POST'])
 @login_required
