@@ -14,11 +14,12 @@ def validate_umask(form:Form, field:Field):
         # Accept both '002' and '0o002' formats
         if value.startswith("0o"):
             umask_int = int(value, 8)
+            if not (0 <= umask_int <= 0o777):
+                raise ValidationError("Invalid umask: must be a valid octal between 000 and 7777.")
         else:
-            umask_int = int(value, 8)
-
-        if not (0 <= umask_int <= 0o777):
-            raise ValidationError("Umask must be a valid octal between 000 and 777.")
+            umask_int = int(value)
+            if not (0 <= umask_int <= 777):
+                raise ValidationError("Umask must be a valid int between 0 and 4095.")
     except ValueError:
         raise ValidationError("Invalid octal number format.")
 
@@ -32,7 +33,7 @@ def validate_non_manditory_string(form:Form, field:Field):
         # check for non-ASCII characters
         if not all(ord(c) < 128 for c in text):
             raise ValidationError("Field must not contain non-ASCII characters.")
-        # check for non-printable characters
+        # check for non-printable chara cters
         if not all(c.isprintable() for c in text):
             raise ValidationError("Field must not contain non-printable characters.")
         # remove whitespace
