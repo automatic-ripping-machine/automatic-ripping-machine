@@ -49,12 +49,10 @@ jobs:
           echo "PR Title: $PR_TITLE"
           if [[ "$PR_TITLE" == *"[FEATURE]"* ]]; then
             VERSION_TYPE="minor"
-            echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
             echo "PR set to FEATURE updating minor version"
             TITLE_FLAG="true"
           elif [[ "$PR_TITLE" == *"[BUGFIX]"* ]]; then
             VERSION_TYPE="patch"
-            echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
             echo "PR set to BUGFIX updating patch version"
             TITLE_FLAG="true"
           else
@@ -71,7 +69,7 @@ jobs:
             fi
 
             # Get branch version
-            echo "BRANCH_VERSION=$(cat VERSION)"
+            BRANCH_VERSION=$(cat VERSION)
             echo "Branch Version: " $BRANCH_VERSION
 
             # Get the main version and split into VERSION_PARTS
