@@ -34,7 +34,8 @@ jobs:
         run: |
           git fetch origin main
           git checkout origin/main -- VERSION
-          echo "MAIN_VERSION=$(cat VERSION)" >> $GITHUB_ENV
+          MAIN_VERSION=$(cat VERSION)
+          echo "MAIN_VERSION=$MAIN_VERSION" >> $GITHUB_ENV
 
       - name: Determine new version
         id: determine-version
