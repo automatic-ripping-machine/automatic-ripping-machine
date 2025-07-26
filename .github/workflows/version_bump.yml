@@ -71,10 +71,10 @@ jobs:
 
             # Get branch version
             BRANCH_VERSION=$(cat VERSION)
-            echo "Branch Version: " $BRANCH_VERSION
+            echo "Branch Version: $BRANCH_VERSION"
 
             # Get the main version and split into VERSION_PARTS
-            IFS='.' read -r -a VERSION_PARTS <<< process.env.MAIN_VERSION
+            IFS='.' read -r -a VERSION_PARTS <<< "$MAIN_VERSION"
             if [[ "$VERSION_TYPE" == "minor" ]]; then
               VERSION_PARTS[1]=$((VERSION_PARTS[1]+1))
               VERSION_PARTS[2]=0
