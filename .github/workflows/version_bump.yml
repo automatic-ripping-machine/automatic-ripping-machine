@@ -33,8 +33,7 @@ jobs:
       - name: Fetch main branch
         run: |
           git fetch origin main
-          git checkout origin/main -- VERSION
-          MAIN_VERSION=$(cat VERSION)
+          MAIN_VERSION=$(git show origin/main:VERSION)
           echo "MAIN_VERSION=$MAIN_VERSION" >> $GITHUB_ENV
 
       - name: Determine new version
