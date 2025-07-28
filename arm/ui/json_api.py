@@ -416,14 +416,10 @@ def abandon_job(job_id):
         return json_return
 
     try:
-        # Get job id
         job = Job.query.get(int(job_id))
-        # Stop job process id (pid)
         job.status = JobState.FAILURE.value
         job_process = psutil.Process(job.pid)
         job_process.terminate()  # or p.kill()
-        # release job from drive
-        job.drive.release_current_job()
         notification = Notifications(f"Job: {job_id} was Abandoned!",
                                      f'Job with id: {job_id} was successfully abandoned. No files were deleted!')
         db.session.add(notification)
