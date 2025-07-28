@@ -690,7 +690,7 @@ def duplicate_run_check(dev_path):
     logging.critical(f'Drive {dev_path} has an active Job ({job.job_id}): {job.status}.')
     # log time
     job_time = ceil(job.run_time // 60)
-    logging.info("Job was started {job_time}min ago.")
+    logging.info(f"Job was started {job_time}min ago.")
     if (job_time) < 3:
         logging.info("Job was started less than 3min ago.")
     sys.exit(1)
