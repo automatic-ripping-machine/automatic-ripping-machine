@@ -1038,7 +1038,7 @@ class MakeMKVOutputChecker:
         log_message = self.data.message if debug_msg else error_msg
         log_func(log_message)
 
-        return MakeMKVErrorMessage(*self.data)
+        return MakeMKVErrorMessage(*dataclasses.astuple(self.data), self.data.message)
 
     def write_error(self):
         error_msg = self.data.sprintf[1]
@@ -1047,7 +1047,7 @@ class MakeMKVOutputChecker:
         else:
             logging.warning(error_msg)
 
-        return MakeMKVErrorMessage(*self.data)
+        return MakeMKVErrorMessage(*dataclasses.astuple(self.data), self.data.message)
 
     def special_error_code(self):
         return MakeMKVErrorMessage(*dataclasses.astuple(self.data), self.data.message)
