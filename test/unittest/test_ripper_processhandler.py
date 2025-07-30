@@ -14,7 +14,7 @@ class TestProcessHandler(unittest.TestCase):
         CHECK "arm_subprocess" returns the correct output
         """
         # Mock the subprocess.check_output function to return a mock output
-        mock_output = b"Hello, World!"
+        mock_output = "Hello, World!"
         mock_check_output.return_value = mock_output
 
         cmd = ["echo", "Hello, World!"]
