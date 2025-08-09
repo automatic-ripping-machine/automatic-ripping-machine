@@ -37,7 +37,7 @@ jobs:
 
       - name: Get branch name
         id: branch-name
-        uses: tj-actions/branch-names@v8
+        uses: tj-actions/branch-names@v9
 
       - name: Set tag for non-default branch
         if: steps.branch-name.outputs.is_default == 'false' && steps.branch-name.outputs.default_branch != ''
