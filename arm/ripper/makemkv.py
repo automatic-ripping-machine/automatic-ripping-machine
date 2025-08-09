@@ -1058,6 +1058,8 @@ class MakeMKVOutputChecker:
         return MakeMKVErrorMessage(*dataclasses.astuple(self.data), self.data.message)
 
     def special_error_code(self):
+        """These Errors are typically critical"""
+        logging.critical(self.data.message)
         return MakeMKVErrorMessage(*dataclasses.astuple(self.data), self.data.message)
 
     def log_only_code(self):
