@@ -157,8 +157,14 @@ class MessageID(enum.IntEnum):
     Please purchase an activation key if you've found this application useful.
     You may still use all free functionality without any restrictions.
     """
+    EVALUATION_PERIOD_EXPIRED_APP_TOO_OLD = 5021
+    """This application version is too old.  Please download the latest version
+    at http://www.makemkv.com/ or enter a registration key to continue using
+    the current version.
+    """
     EVALUATION_PERIOD_EXPIRED_SHAREWARE = 5055
     """Evaluation period has expired, shareware functionality unavailable."""
+
     RIP_BACKUP_FAILED_PRE = 5096
     RIP_BACKUP_FAILED = 5080
     """Backup Mode Failed."""
@@ -1000,6 +1006,7 @@ class MakeMKVOutputChecker:
     }
 
     SPECIAL_ERROR_CODES = {
+        MessageID.EVALUATION_PERIOD_EXPIRED_APP_TOO_OLD,
         MessageID.EVALUATION_PERIOD_EXPIRED_SHAREWARE,
         MessageID.RIP_BACKUP_FAILED,
     }
