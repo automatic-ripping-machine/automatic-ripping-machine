@@ -139,7 +139,8 @@ def sleep_check_process(process_str, max_processes, sleep=(20, 120, 10)):
     loop_count = max_processes + 1
     logging.info(f"Starting sleep check of {process_str}")
     while loop_count >= max_processes:
-        # Maybe send a notification that jobs are waiting ?
+        # The process might disappear during loops, so we need to query the
+        # name upfront.
         loop_count = sum(
             1 for proc in psutil.process_iter(['name'])
             if proc.info.get('name') == process_str
