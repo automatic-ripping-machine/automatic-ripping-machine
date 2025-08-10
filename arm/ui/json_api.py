@@ -415,38 +415,43 @@ def abandon_job(job_id):
         db.session.commit()
         return json_return
 
+    # Kill the process id
     try:
-        # Get job id
         job = Job.query.get(int(job_id))
-        # Stop job process id (pid)
         job.status = JobState.FAILURE.value
-        job_process = psutil.Process(job.pid)
-        job_process.terminate()  # or p.kill()
-        # release job from drive
-        job.drive.release_current_job()
-        notification = Notifications(f"Job: {job_id} was Abandoned!",
-                                     f'Job with id: {job_id} was successfully abandoned. No files were deleted!')
-        db.session.add(notification)
-        db.session.commit()
-        json_return['success'] = True
-        app.logger.debug(f"Job {job_id} was abandoned successfully")
-        job.eject()
-    except psutil.NoSuchProcess:
-        db.session.rollback()
-        json_return['Error'] = f"Couldn't find job.pid - {job.pid}! Reverting db changes."
-        app.logger.debug(f"Couldn't find job.pid - {job.pid}! Reverting db changes.")
-    except psutil.AccessDenied:
-        db.session.rollback()
-        json_return['Error'] = f"Access denied abandoning job: {job.pid}! Reverting db changes."
-        app.logger.debug(f"Access denied abandoning job: {job.pid}! Reverting db changes.")
+        try:
+            job_process = psutil.Process(job.pid)
+            job_process.terminate()  # or p.kill()
+        except psutil.NoSuchProcess:
+            message = f"Process id {job.pid} was not found. Job has already been terminated."
+            app.logger.warning(message)
+            # No raise here. No process is a terminated process.
+        except psutil.AccessDenied as err:
+            message = f"Access denied abandoning job: {job.pid}!"
+            app.logger.error(message)
+            raise ValueError(message) from err
+        else:
+            app.logger.debug(f"Job {job_id} was terminated.")
     except Exception as error:
-        db.session.rollback()
-        app.logger.debug(f"Job {job_id} couldn't be abandoned. - {error}")
         json_return["Error"] = str(error)
+        json_return['success'] = False
+    else:
+        job.eject()  # only release/eject the job if the process got killed.
+        json_return['success'] = True
+
+    # Handle Errors
     if 'Error' in json_return:
-        notification = Notifications(f"Job ERROR: {job_id} couldn't be abandoned", json_return["Error"])
-        db.session.add(notification)
-        db.session.commit()
+        title = f"Job ERROR: {job_id} couldn't be abandoned."
+        message = json_return['Error']
+        app.logger.debug(f"{title} - Reverting db changes - {message}")
+        db.session.rollback()
+        notification = Notifications(title, message)
+    else:
+        notification = Notifications(
+            f"Job: {job_id} was Abandoned!",
+            f'Job with id: {job_id} was successfully abandoned. No files were deleted!')
+    db.session.add(notification)
+    db.session.commit()
     return json_return
 
 
