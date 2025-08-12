@@ -11,6 +11,7 @@ set -e
 EXIT_CODE_PARSE_ERROR=20
 EXIT_CODE_INTERNAL_ERROR=30
 EXIT_CODE_URL_ERROR=40
+EXIT_CODE_INVALID_MAKEMKV_SERIAL=50
 
 MAKEMKV_SERIAL_URL="https://forum.makemkv.com/forum/viewtopic.php?f=5&t=1053"
 MAKEMKV_SERIAL="$1"
@@ -27,9 +28,9 @@ fi
 # Check that the key follows a certain rule but not too strict.
 # - "T-xyz" for beta keys
 # - "M-xyz" for perma keys
-if ! [[ $MAKEMKV_SERIAL =~ ^[A-Z]-[A-Za-z0-9]+$ ]]; then
+if ! [[ $MAKEMKV_SERIAL =~ ^[A-Z]-.+$ ]]; then
 	echo "Value for serial ($MAKEMKV_SERIAL) is invalid. Not adding it"
-	exit 1
+	exit $EXIT_CODE_INVALID_MAKEMKV_SERIAL
 fi
 
 # create .MakeMKV dir if it doesn't already exist

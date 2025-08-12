@@ -432,6 +432,8 @@ class UpdateKeyErrorCodes(enum.IntEnum):
     """The script produced an invalid .MakeMKV/settings.conf."""
     URL_ERROR = 40
     """This Error is raised if the curl command fails"""
+    INVALID_MAKEMKV_SERIAL = 50
+    """The provided MakeMKV serial should follow a regex M-<serial>."""
     UNDEFINED_ERROR = 256
 
     @classmethod
