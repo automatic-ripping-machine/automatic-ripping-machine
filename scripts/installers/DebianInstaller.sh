@@ -523,10 +523,10 @@ function PasswordProtectArmUser() {
     PasswordQuestion="${BLUE}The 'arm' user was already on the system.
 Do you wish to change it's password? Y/n : ${NC}"
   fi
+  local PasswordConfirmed=false
   if IsUserAnsweredYesToPrompt "${PasswordQuestion}" ; then
     #The User wishes to provide a custom password.  Give the user 3 times to provide one,
     #This attempt limit is to prevent an infinite loop.
-    local PasswordConfirmed=false
     for (( i = 0 ; i < 3 ; i++ )); do
       read -ep "$(echo -e "Please Enter Password? : ")" -r -s Password_1
       read -ep "$(echo -e "Please Confirm Password? : ")" -r -s Password_2
