@@ -348,8 +348,9 @@
                                         {% endif %}
                                         <th scope="col" style="text-align:left">
                                             Length 
-                                            <button type="button" id="toggle-time-format" class="btn btn-sm btn-outline-secondary py-0 px-1 align-middle" title="Toggle between seconds and HH:MM:SS format">
-                                                <small id="time-format-label">HH:MM:SS</small>
+                                            <br>
+                                            <button type="button" id="toggle-time-format" class="btn btn-sm btn-info py-0 px-2 align-middle mt-1" title="Click to toggle time format">
+                                                (<span id="time-format-label">seconds</span>)
                                             </button>
                                         </th>
                                         <th scope="col" style="text-align:left">FPS</th>
@@ -444,11 +445,11 @@
                 if (showFormatted) {
                     $('.length-seconds').hide();
                     $('.length-formatted').show();
-                    $('#time-format-label').text('Seconds');
+                    $('#time-format-label').text('HH:MM:SS');
                 } else {
                     $('.length-seconds').show();
                     $('.length-formatted').hide();
-                    $('#time-format-label').text('HH:MM:SS');
+                    $('#time-format-label').text('seconds');
                 }
                 
                 // Store preference in local storage
@@ -460,7 +461,7 @@
                 showFormatted = true;
                 $('.length-seconds').hide();
                 $('.length-formatted').show();
-                $('#time-format-label').text('Seconds');
+                $('#time-format-label').text('HH:MM:SS');
             }
         });
 
