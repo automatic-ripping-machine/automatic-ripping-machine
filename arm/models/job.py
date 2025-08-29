@@ -292,8 +292,9 @@ class Job(db.Model):
             return
         if not cfg.arm_config['AUTO_EJECT']:
             logging.info("Skipping auto eject")
-            self.drive.release_current_job()
+            self.drive.release_current_job()  # release job without ejecting
             return
+        # release job from drive after ejecting
         if (error := self.drive.eject(method="eject", logger=logging)) is not None:
             logging.debug(f"{self.devpath} couldn't be ejected: {error}")
         self.ejected = True
