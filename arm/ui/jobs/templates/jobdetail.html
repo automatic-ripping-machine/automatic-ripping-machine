@@ -346,7 +346,11 @@
                                         {% if jobs.video_type == "Music" %}
                                             <th scope="col" style="text-align:left">Track Name</th>
                                         {% endif %}
-                                        <th scope="col" style="text-align:left">Length (sec)</th>
+                                        <th scope="col" style="text-align:left">
+                                            <button type="button" id="toggle-time-format" class="btn btn-primary" title="Click to toggle time format">
+                                                <span id="time-format-label">seconds</span>
+                                            </button>
+                                        </th>
                                         <th scope="col" style="text-align:left">FPS</th>
                                         <th scope="col" style="text-align:left">Aspect Ratio</th>
                                         <th scope="col" style="text-align:left">Main Feature</th>
@@ -363,7 +367,10 @@
                                             {% if jobs.video_type == "Music" %}
                                                 <td style="text-align:left"><strong>{{ track.filename}}</strong></td>
                                             {% endif %}
-                                            <td style="text-align:left">{{ track.length }} {{ " (Milliseconds)" if jobs.video_type == "Music" else "" }}</td>
+                                            <td style="text-align:left">
+                                                <span class="length-seconds">{{ track.length }}{{ " (Milliseconds)" if jobs.video_type == "Music" else "" }}</span>
+                                                <span class="length-formatted" style="display:none;" data-seconds="{{ track.length }}"></span>
+                                            </td>
                                             <td style="text-align:left">{{ track.fps }}</td>
                                             <td style="text-align:left">{{ track.aspect_ratio }}</td>
                                             <td style="text-align:left">{{ track.main_feature }}</td>
@@ -397,6 +404,63 @@
             $("#posterClick").click(function () {
                 $("#plotInfo").slideToggle(1000);
             });
+
+            // Function to convert seconds to HH:MM:SS format
+            function secondsToHHMMSS(seconds) {
+                if (!seconds) return "00:00:00";
+                
+                // Check if the video type is Music (which stores duration in milliseconds)
+                const isMusic = "{{ jobs.video_type }}" === "Music";
+                let secondsValue = parseInt(seconds, 10);
+                
+                // Convert milliseconds to seconds for music tracks
+                if (isMusic) {
+                    secondsValue = Math.round(secondsValue / 1000);
+                }
+                
+                const hours = Math.floor(secondsValue / 3600);
+                const minutes = Math.floor((secondsValue % 3600) / 60);
+                const remainingSeconds = Math.floor(secondsValue % 60);
+                
+                // If it's a short track with no hours, just show MM:SS
+                if (hours === 0) {
+                    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+                }
+                
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            }
+
+            // Convert all length values to HH:MM:SS and store them
+            $('.length-formatted').each(function() {
+                const seconds = $(this).data('seconds');
+                $(this).text(secondsToHHMMSS(seconds));
+            });
+
+            // Handle time format toggle
+            let showFormatted = false;
+            $('#toggle-time-format').click(function() {
+                showFormatted = !showFormatted;
+                if (showFormatted) {
+                    $('.length-seconds').hide();
+                    $('.length-formatted').show();
+                    $('#time-format-label').text('HH:MM:SS');
+                } else {
+                    $('.length-seconds').show();
+                    $('.length-formatted').hide();
+                    $('#time-format-label').text('seconds');
+                }
+                
+                // Store preference in local storage
+                localStorage.setItem('arm_show_formatted_time', showFormatted);
+            });
+            
+            // Check if there's a saved preference
+            if (localStorage.getItem('arm_show_formatted_time') === 'true') {
+                showFormatted = true;
+                $('.length-seconds').hide();
+                $('.length-formatted').show();
+                $('#time-format-label').text('HH:MM:SS');
+            }
         });
 
     </script>
