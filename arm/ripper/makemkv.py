@@ -755,8 +755,7 @@ def rip_mainfeature(job, track, rawpath):
         job: arm.models.job.Job
         track: arm.models.track.Track
     """
-    logging.info("Processing track#{num} as mainfeature. Length is {seconds}s",
-                 num=track.track_number, seconds=track.length)
+    logging.info(f"Processing track#{track.track_number} as mainfeature. Length is {track.length}s")
     filepathname = os.path.join(rawpath, track.filename)
     logging.info(f"Ripping track#{track.track_number} to {shlex.quote(filepathname)}")
     cmd = [
