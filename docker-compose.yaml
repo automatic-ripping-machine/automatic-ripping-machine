@@ -1,0 +1,24 @@
+services:
+    arm-rippers:
+        image: automaticrippingmachine/automatic-ripping-machine:latest
+        restart: always
+        ports:
+          - '8080:8080'
+        volumes:
+          - /home/arm:/home/arm
+          - /home/arm/music:/home/arm/music
+          - /home/arm/logs:/home/arm/logs
+          - /home/arm/media:/home/arm/media
+          - /home/arm/config:/etc/arm/config
+        environment:
+           ARM_UID: "1001"
+           ARM_GID: "1001"
+           TZ: "America/New_York"
+        devices:
+          - /dev/sr0:/dev/sr0
+          - /dev/sr1:/dev/sr1
+          - /dev/sr2:/dev/sr2
+          - /dev/sr3:/dev/sr3
+          - /dev/sr4:/dev/sr4
+        privileged: true
+        cpuset: '2-7'
