@@ -17,7 +17,7 @@ def build_apprise_sent(cfg):
         'FAAST_TOKEN': 'faast://' + str(cfg['FAAST_TOKEN']),
         'FLOCK_TOKEN': 'flock://' + str(cfg['FLOCK_TOKEN']),
         'GITTER_TOKEN': 'gitter://' + str(cfg['GITTER_TOKEN']) + "/" + str(cfg['GITTER_ROOM']),
-        'GOTIFY_TOKEN': 'gotifys://' + str(cfg['GOTIFY_HOST']) + "/" + str(cfg['GOTIFY_TOKEN']),
+        'GOTIFY_TOKEN': str(cfg['GOTIFY_HOST']) + "/" + str(cfg['GOTIFY_TOKEN']),
         'KUMULOS_API': 'kumulos://' + str(cfg['KUMULOS_API']) + "/" + str(cfg['KUMULOS_SERVERKEY']),
         'MAILGUN_DOMAIN': 'mailgun://' + str(cfg['MAILGUN_USER']) + "@" + str(cfg['MAILGUN_DOMAIN']) + "/"
                           + str(cfg['MAILGUN_APIKEY']),
