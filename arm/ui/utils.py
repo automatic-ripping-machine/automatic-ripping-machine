@@ -348,27 +348,30 @@ def jsonFile_to_dict(json_file:str|Path) -> Dict[str, Union[str, int, bool]]|str
     :param json_file: path to json file
     :return: dict
     """
-    if os.path.isfile(json_file):
-        if os.access(json_file, os.R_OK):
-            try:
-                app.logger.debug(f"Loading json file: {json_file}")
-                with open(json_file, "r") as read_file:
-                    try:
-                        data = json.load(read_file)
-                    except Exception as error:
-                        app.logger.debug(f"Error with json file. {error}")
-                        data = "{'error':'" + str(error) + "'}"
-            except Exception as error:
-                app.logger.exception(f"Was unable to load json file: {json_file}")
-                app.logger.exception(error)
-                data = f"Was unable to load json file: {json_file}"            
-        else:
-            app.logger.exception(f"File exists but is not readable: {json_file}")
-            data = f"File exists but is not readable: {json_file}"
-    else:
+    if not os.path.isfile(json_file):
         app.logger.exception(f"File not found: {json_file}")
         data = f"File not found: {json_file}"
-    return data
+        return data
+    if not os.access(json_file, os.R_OK):
+        app.logger.exception(f"File exists but is not readable: {json_file}")
+        data = f"File exists but is not readable: {json_file}"
+        return data
+    try:
+        app.logger.debug(f"Loading json file: {json_file}")
+        with open(json_file, "r") as read_file:
+            try:
+                data = json.load(read_file)
+                return data
+            except Exception as error:
+                app.logger.debug(f"Error with json file. {error}")
+                data = "{'error':'" + str(error) + "'}"
+                return data
+    except Exception as error:
+        app.logger.exception(f"Was unable to load json file: {json_file}")
+        app.logger.exception(error)
+        data = f"Was unable to load json file: {json_file}"
+        return data
+
 
 def listCoPairedIntoTuple(list_of_strings:List[str]) -> list[Tuple[str, str]]:
     """Takes a list of strings, and returns a list of tuples

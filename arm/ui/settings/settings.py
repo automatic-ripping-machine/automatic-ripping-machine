@@ -213,7 +213,6 @@ def save_settings():
             app.logger.debug(f"routes.save_settings: Saving new arm.yaml: {cfg.arm_config_path}")
             with open(cfg.arm_config_path, "w") as settings_file:
                 settings_file.write(arm_cfg)
-                settings_file.close()
             success = True
             importlib.reload(cfg)
             # Set the ARM Log level to the config
@@ -223,7 +222,6 @@ def save_settings():
             app.logger.exception(f"Error saving arm.yaml: {e}")
             flash(f"Error saving arm.yaml: {e}", "error")
             return {'success': False, 'settings': str(cfg.arm_config), 'form': 'arm ripper settings'}
-        
     # If we get to here there was no post data
     return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
 

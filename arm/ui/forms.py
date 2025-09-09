@@ -3,7 +3,7 @@ from typing import List
 from flask_wtf import FlaskForm
 from wtforms import Form, Field, StringField, SubmitField, SelectField, \
     IntegerField, BooleanField, PasswordField, FieldList, \
-    FormField, HiddenField, FloatField, RadioField, IntegerRangeField
+    FormField, HiddenField, FloatField, RadioField, IntegerRangeField, Optional
 from wtforms.validators import DataRequired, ValidationError, IPAddress, InputRequired
 from os import path
 import arm.config.config as cfg
