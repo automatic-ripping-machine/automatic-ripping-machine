@@ -45,13 +45,12 @@ def SettingsForm() -> FlaskForm:
         ripperFormConfig should have a dict per field: 
             defaultForInternalUse (Default / field value type indicator): 
             commentForInternalUse: included in the ripperFormConfig to make it easier to design the form in json.
-            dataValidation: DataRequired, ValidationError, IPAddress, \
+            dataValidation: DataRequired, ValidationError, IPAddress,
                 InputRequired, validate_non_manditory_string, validate_umask, validate_path_exists
-            **formFieldType**: RadioField (Experimental), SelectField, IntegerField, \ 
+            **formFieldType**: RadioField (Experimental), SelectField, IntegerField,
                 FloatField (Untested), StringField
     Raises:
         Exception: Unknown FIeld type
-
     Returns:
         FlaskForm: SettingsForm
     """
