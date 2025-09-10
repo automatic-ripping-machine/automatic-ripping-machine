@@ -388,6 +388,7 @@ def listCoPairedIntoTuple(list_of_strings: List[str]) -> list[Tuple[str, str]]:
     """
     return [(x, x) for x in list_of_strings]
 
+
 def generate_comments():
     """
     load comments.json and use it for settings page
@@ -397,6 +398,7 @@ def generate_comments():
     comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
     comments = jsonFile_to_dict(comments_file)
     return comments
+
 
 class FieldDict(TypedDict):
     defaultForInternalUse: Union[str, int, bool, list[str]]

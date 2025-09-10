@@ -15,18 +15,19 @@ from .forms_custom_validators import validate_path_exists, validate_umask, valid
 
 listDefault = ['True', 'False']
 
+
 def createSingleChoiceField(
         fieldType: str,
-        key: str, 
-        commentValue: str, 
-        validators: List[Field] | None, 
+        key: str,
+        commentValue: str,
+        validators: List[Field] | None,
         choices_paired_list: List[tuple[str, str]] | None = None) -> SelectField | RadioField:
     """Create a single choice field, either SelectField or RadioField
     """
     if choices_paired_list is None:
         choices_paired_list = ui_utils.listCoPairedIntoTuple(listDefault)
     if not isinstance(choices_paired_list[0], tuple):
-        app.logger.warning(f"Expected choices_paired_list to be a list of tuples for {key}, got {type(choices_paired_list[0])}")
+        app.logger.warning(f"Expected a list of tuples for {key}, got {type(choices_paired_list[0])}")
         # I am going to assume that the list is a list of strings, and convert it to a list of tuples
         choices_paired_list = ui_utils.listCoPairedIntoTuple(choices_paired_list)
     if fieldType == "SelectField":
@@ -52,8 +53,8 @@ def createSingleChoiceField(
 def formFieldChooser(
         fieldType: str,
         fieldDefault: str | int | float | bool | list[str] | None,
-        key: str, 
-        commentValue: str, 
+        key: str,
+        commentValue: str,
         validators: List[Field] | None,
         ) -> Field:
     """
@@ -61,23 +62,29 @@ def formFieldChooser(
         Create a field based on the type passed.
         Used by SettingsForm to create fields dynamically.
         Hopefully this should make the 'SettingsForm' function a bit less complex.
-    
+
     Raises:
         Exception: Unknown Field type
-    
+
     Args:
         fieldType (str): create [SelectField, RadioField, IntegerField, FloatField, StringField]
         fieldDefault (str): default value for the field
         key (str): field name
         commentValue (str): Field description for tooltip
         validators (list|None): list of validators to apply to the field
-        choices_paired_list (list|bool|None): list of tuples for select field choices. Could also be None, or Booleans.
-    
+        choices_paired_list (list|bool|None): list of tuples for select field choices. Could also be None, or Booleans
+
     Returns:
         Field
     """
     if isinstance(fieldDefault, bool) and fieldType in ("SelectField", "RadioField"):
-        f = createSingleChoiceField(fieldType=fieldType, key=key, commentValue=commentValue, validators=validators, choices_paired_list=None)
+        f = createSingleChoiceField(
+            fieldType=fieldType,
+            key=key,
+            commentValue=commentValue,
+            validators=validators,
+            choices_paired_list=None
+            )
         return f
     
     if fieldType in ("SelectField", "RadioField"):
@@ -86,7 +93,13 @@ def formFieldChooser(
             app.logger.exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
             raise Exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
         paired_list = ui_utils.listCoPairedIntoTuple(fieldDefault)
-        f = createSingleChoiceField(fieldType=fieldType, key=key, commentValue=commentValue, validators=validators, choices_paired_list=paired_list)
+        f = createSingleChoiceField(
+            fieldType=fieldType,
+            key=key,
+            commentValue=commentValue,
+            validators=validators,
+            choices_paired_list=paired_list
+            )
         return f
     
     if fieldType == "IntegerField":
