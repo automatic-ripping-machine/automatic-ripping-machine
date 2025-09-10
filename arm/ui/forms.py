@@ -86,7 +86,7 @@ def formFieldChooser(
             choices_paired_list=None
             )
         return f
-    
+
     if fieldType in ("SelectField", "RadioField"):
         # SelectField with a list of choices
         if not isinstance(fieldDefault, list):
@@ -101,7 +101,7 @@ def formFieldChooser(
             choices_paired_list=paired_list
             )
         return f
-    
+
     if fieldType == "IntegerField":
         return IntegerField(
             label=key.replace("_", " "),
