@@ -36,6 +36,8 @@ from arm.ui.settings import DriveUtils
 # Path definitions
 path_migrations = "arm/migrations"
 
+ripperSettingsConfigFile = 'ripperFormConfig.json'
+
 
 def database_updater(args, job, wait_time=90):
     """
@@ -282,8 +284,7 @@ def arm_db_initialise():
     # Scan and load drives to database
     DriveUtils.drives_update()
 
-
-def make_dir(path:str|Path) -> bool:
+def make_dir(path: str | Path) -> bool:
     """
     Make a directory
     :param path: Path to directory
@@ -301,7 +302,7 @@ def make_dir(path:str|Path) -> bool:
     return success
 
 
-def get_info(directory:Path) -> List[List[Union[str, float]]]:
+def get_info(directory: Path) -> List[List[Union[str, float]]]:
     """
     Used to read stats from files
     -Used for view logs page
@@ -322,7 +323,7 @@ def get_info(directory:Path) -> List[List[Union[str, float]]]:
     return file_list
 
 
-def clean_for_filename(string:str) -> str:
+def clean_for_filename(string: str) -> str:
     """ Cleans up string for use in filename """
     string = re.sub(r'\s+', ' ', string)
     string = string.replace(' : ', ' - ')
@@ -334,15 +335,14 @@ def clean_for_filename(string:str) -> str:
     string = string.strip()
     return string
 
-
-def getsize(path:str|Path) -> float:
+def getsize(path: str | Path) -> float:
     """Simple function to get the free space left in a path"""
     path_stats = os.statvfs(path)
     free = (path_stats.f_bavail * path_stats.f_frsize)
     free_gb = free / 1073741824
     return free_gb
 
-def jsonFile_to_dict(json_file:str|Path) -> Dict[str, Union[str, int, bool]]|str:
+def jsonFile_to_dict(json_file: str | Path) -> Dict[str, Union[str, int, bool]] | str:
     """
     Read a json file and return it as a dict
     :param json_file: path to json file
@@ -372,8 +372,7 @@ def jsonFile_to_dict(json_file:str|Path) -> Dict[str, Union[str, int, bool]]|str
         data = f"Was unable to load json file: {json_file}"
         return data
 
-
-def listCoPairedIntoTuple(list_of_strings:List[str]) -> list[Tuple[str, str]]:
+def listCoPairedIntoTuple(list_of_strings: List[str]) -> list[Tuple[str, str]]:
     """Takes a list of strings, and returns a list of tuples
         [x, y, z] -> [(x,x),(y,y),(z,z)]
 
@@ -382,7 +381,7 @@ def listCoPairedIntoTuple(list_of_strings:List[str]) -> list[Tuple[str, str]]:
 
     Returns:
         list[tuple]: a list, containing tuples, each duplicated.
-    """    
+    """
     return [(x, x) for x in list_of_strings]
 
 def generate_comments():
@@ -396,19 +395,18 @@ def generate_comments():
     return comments
 
 class FieldDict(TypedDict):
-    defaultForInternalUse: Union[str, int, bool,list[str]]
+    defaultForInternalUse: Union[str, int, bool, list[str]]
     commentForInternalUse: str
     dataValidation: Union[str, list[str]]
     formFieldType: str
 
-ripperSettingsConfigFile = 'ripperFormConfig.json'
-
-def generate_ripperFormSettings()-> Dict[str,FieldDict]:
+def generate_ripperFormSettings() -> Dict[str, FieldDict]:
     """
     load ripperSettingsConfigFile.json and use it for settings page
     allows us to easily add more settings later
     :return: json
     """
+    global ripperSettingsConfigFile
     ripperFormSettings = os.path.join(os.path.dirname(os.path.abspath(__file__)), ripperSettingsConfigFile)
     ripperFormSettings = jsonFile_to_dict(ripperFormSettings)
     return ripperFormSettings
@@ -432,7 +430,6 @@ def generate_full_log(full_path: str | Path):
                     sleep(1)
         except FileNotFoundError as error:
             raise FileNotFoundError("Not found with utf8 encoding") from error
-
 
 def generate_arm_cat(full_path):
     """

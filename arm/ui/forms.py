@@ -3,14 +3,16 @@ from typing import List
 from flask_wtf import FlaskForm
 from wtforms import Form, Field, StringField, SubmitField, SelectField, \
     IntegerField, BooleanField, PasswordField, FieldList, \
-    FormField, HiddenField, FloatField, RadioField, IntegerRangeField, Optional
-from wtforms.validators import DataRequired, ValidationError, IPAddress, InputRequired
+    FormField, HiddenField, FloatField, RadioField
+from wtforms.validators import DataRequired, Optional, ValidationError, IPAddress, InputRequired  # pyright: ignore[reportUnusedImport, reportUnusedExpression]
 from os import path
 import arm.config.config as cfg
 from arm.ui import app
 import arm.ui.utils as ui_utils
-### Custom Validators
-from .forms_custom_validators import validate_path_exists, validate_umask, validate_non_manditory_string
+# Custom Validators go here:
+from .forms_custom_validators import validate_path_exists, validate_umask, validate_non_manditory_string  # pyright: ignore[reportUnusedImport, reportUnusedExpression]
+# You cannot create cannot create a dynamic form without importing the required validators, but then the compiler complains they are not used.
+# The above line ignores those errors.
 
 
 class TitleSearchForm(FlaskForm):
@@ -47,36 +49,36 @@ def SettingsForm() -> FlaskForm:
                 InputRequired, validate_non_manditory_string, validate_umask, validate_path_exists
             **formFieldType**: RadioField (Experimental), SelectField, IntegerField, \ 
                 FloatField (Untested), StringField
-
     Raises:
         Exception: Unknown FIeld type
 
     Returns:
         FlaskForm: SettingsForm
     """
+    # I don't care that this class is too complex, if someone can think up a more elegant way to do this,
+    # happyily replace my code.
     class SettingsForm(FlaskForm):
         submit = SubmitField('Submit')
-    
     
     dictFormFields = ui_utils.generate_ripperFormSettings()
     comments = ui_utils.generate_comments()
     if isinstance(dictFormFields, str):
-        app.logger.exception(f"Unable to generate the Settings Form because RipperForm config file doesn't work: {dictFormFields}")
-        raise Exception(f"Unable to generate the Settings Form because RipperForm config file doesn't work: {dictFormFields}")
+        app.logger.exception(f"Unable to generate the Settings Form, RipperForm config was problematic: {dictFormFields}")
+        raise Exception(f"Unable to generate the Settings Form, RipperForm config was problematic: {dictFormFields}")
     if isinstance(comments, str):
-        app.logger.exception(f"Unable to generate the Settings Form because RipperForm config file doesn't work: {comments}")
-        raise Exception(f"Unable to generate the Settings Form because RipperForm config file doesn't work: {comments}")
+        app.logger.exception(f"Unable to generate the Settings Form, RipperForm config was problematic: {comments}")
+        raise Exception(f"Unable to generate the Settings Form, RipperForm config was problematic: {comments}")
 
     for key, value in dictFormFields.items():
-        # #Infer the type of form field based on the value type
+        # Infer the type of form field based on the value type
         # app.logger.debug(f"Inferring form field type for {key}: {type(value['defaultForInternalUse'])}")
-        # 
         if key in comments:
             commentValue = str(comments[key])
         else:
             app.logger.warning(f"Comment not found for {key}, using empty string")
             commentValue = ""
-        if commentValue is None: commentValue = "" # type: ignore
+        if commentValue is None:  # type: ignore
+            commentValue = "" 
         fieldDefault = value["defaultForInternalUse"]
         fieldType = value["formFieldType"]
         # The next is a bit tricky, getting a list of data validations, setting them up as objects
@@ -109,25 +111,25 @@ def SettingsForm() -> FlaskForm:
 
         if isinstance(fieldDefault, bool) and fieldType == "SelectField":
             f = SelectField(label=key.replace("_", " "),
-                        description=commentValue,
-                        # default=str(fieldDefault).title(),
-                        render_kw={'title':commentValue},
-                        validators=validators,
-                        choices=[
-                            ('True', 'True'),
-                            ('False', 'False')
-                            ],
+                            description=commentValue,
+                            # default=str(fieldDefault).title(),
+                            render_kw={'title':commentValue},
+                            validators=validators,
+                            choices=[
+                                ('True', 'True'),
+                                ('False', 'False')
+                                ],
                         )
         elif isinstance(fieldDefault, bool) and fieldType == "RadioField":
             f = RadioField(label=key.replace("_", " "),
-                        description=commentValue,
-                        # default=str(fieldDefault).title(),
-                        render_kw={'title':commentValue},
-                        validators=validators,
-                        choices=[
-                            ('True', 'True'),
-                            ('False', 'False')
-                            ],
+                            description=commentValue,
+                            # default=str(fieldDefault).title(),
+                            render_kw={'title':commentValue},
+                            validators=validators,
+                            choices=[
+                                ('True', 'True'),
+                                ('False', 'False')
+                                ],
                         )
         elif fieldType == "RadioFeild":
             # SelectField with a list of choices
@@ -136,11 +138,11 @@ def SettingsForm() -> FlaskForm:
                 raise Exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
             paired_list = ui_utils.listCoPairedIntoTuple(fieldDefault)
             f = RadioField(label=key.replace("_", " "),
-                        description=commentValue,
-                        # default=str(fieldDefault),
-                        render_kw={'title':commentValue},
-                        validators=validators,
-                        choices=paired_list,
+                            description=commentValue,
+                            # default=str(fieldDefault),
+                            render_kw={'title':commentValue},
+                            validators=validators,
+                            choices=paired_list,
                         )
         elif fieldType == "SelectField":
             # SelectField with a list of choices
@@ -149,40 +151,38 @@ def SettingsForm() -> FlaskForm:
                 raise Exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
             paired_list = ui_utils.listCoPairedIntoTuple(fieldDefault)
             f = SelectField(label=key.replace("_", " "),
-                        description=commentValue,
-                        # default=str(fieldDefault),
-                        render_kw={'title':commentValue},
-                        validators=validators,
-                        choices=paired_list,
+                            description=commentValue,
+                            # default=str(fieldDefault),
+                            render_kw={'title':commentValue},
+                            validators=validators,
+                            choices=paired_list,
                         )
         elif fieldType == "IntegerField":
             f = IntegerField(label=key.replace("_", " "),
-                        description=commentValue,
-                        # default=int(fieldDefault),
-                        validators=validators,
-                        render_kw={'title':commentValue}
+                            description=commentValue,
+                            # default=int(fieldDefault),
+                            validators=validators,
+                            render_kw={'title':commentValue}
                         )
         elif fieldType == "FloatField":
             f = FloatField(label=key.replace("_", " "),
-                        description=commentValue,
-                        # default=float(fieldDefault),
-                        validators=validators,
-                        render_kw={'title':commentValue}
+                            description=commentValue,
+                            # default=float(fieldDefault),
+                            validators=validators,
+                            render_kw={'title':commentValue}
                         )
         elif fieldType == "StringField":
             f = StringField(label=key.replace("_", " "),
-                        description=commentValue,
-                        # default=str(fieldDefault),
-                        validators=validators,
-                        render_kw={'title':commentValue}
+                            description=commentValue,
+                            # default=str(fieldDefault),
+                            validators=validators,
+                            render_kw={'title':commentValue}
                         )
         else:
             app.logger.warning(f"Unknown type for {key}: {type(value)}, returning StringField")
             raise Exception(f"Unknown type for {key}: {type(value)}, returning StringField")
         setattr(SettingsForm, key, f)
     return SettingsForm()
-
-
 
 class UiSettingsForm(FlaskForm):
     """UI settings form, used on pages\n
