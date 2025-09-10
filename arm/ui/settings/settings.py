@@ -109,51 +109,45 @@ def settings():
         else:
             field.data = getattr(armui_cfg, field_name)
             field.render_kw = {'title':comments[field_name]}
-            app.logger.debug(f"Field {field_name} has value with value: {field.data}")
-    
+            app.logger.debug(f"Field {field_name} has value with value: {field.data}")    
     # Get system details from Server Info and Config
     server = SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
     arm_path = cfg.arm_config['TRANSCODE_PATH']
     media_path = cfg.arm_config['COMPLETED_PATH']
-
     # System Drives (CD/DVD/Blueray drives)
     drive_utils.update_job_status()
     drives = drive_utils.get_drives()
     drive_utils.update_tray_status(drives)
     form_drive = SystemInfoDrives(request.form)
-
     # Build the dynamic form for the ripper settings
     form = SettingsForm()
     # now go through all teh arm config keys and set the form fields.data
-
     for key, value in cfg.arm_config.items():
         field = getattr(form, key, None)
         if field:
             app.logger.debug(f"Config key: {key} resolved to field: {field.name}, which contains value: {field.data}")
             field.data = value
             app.logger.debug(f"Field value is now: {field.data}")
-            
-    
     session["page_title"] = "Settings"
-
     app.logger.debug(f"stats: {stats}")
-
-    return render_template("settings/settings.html",
-                           settings=cfg.arm_config,
-                        #    ui_settings=armui_cfg,
-                           ui_settings=ui_form,
-                           stats=stats,
-                           apprise_cfg=cfg.apprise_config,
-                           form=form,
-                           jsoncomments=comments,
-                           abcde_cfg=cfg.abcde_config,
-                           server=server,
-                           serverutil=serverutil,
-                           arm_path=arm_path,
-                           media_path=media_path,
-                           drives=drives,
-                           form_drive=form_drive)
+    return render_template(
+        "settings/settings.html",
+        settings=cfg.arm_config,
+        #ui_settings=armui_cfg,
+        ui_settings=ui_form,
+        stats=stats,
+        apprise_cfg=cfg.apprise_config,
+        form=form,
+        jsoncomments=comments,
+        abcde_cfg=cfg.abcde_config,
+        server=server,
+        serverutil=serverutil,
+        arm_path=arm_path,
+        media_path=media_path,
+        drives=drives,
+        form_drive=form_drive
+        ) # type: ignore
 
 
 def check_hw_transcode_support():
@@ -225,7 +219,6 @@ def save_settings():
     # If we get to here there was no post data
     return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
 
-
 @route_settings.route('/save_ui_settings', methods=['POST'])
 @login_required
 def save_ui_settings():
@@ -256,6 +249,7 @@ def save_ui_settings():
     # app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
     return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
 
+
 @route_settings.route('/save_abcde_settings', methods=['POST'])
 @login_required
 def save_abcde():
@@ -275,7 +269,6 @@ def save_abcde():
         # Save updated abcde.conf
         with open(cfg.abcde_config_path, "w") as abcde_file:
             abcde_file.write(clean_abcde_str)
-            abcde_file.close()
         success = True
         # Update the abcde config
         cfg.abcde_config = clean_abcde_str
@@ -302,7 +295,6 @@ def save_apprise_cfg():
         apprise_cfg = ui_utils.build_apprise_cfg(request.form.to_dict())
         with open(cfg.apprise_config_path, "w") as settings_file:
             settings_file.write(apprise_cfg)
-            settings_file.close()
         success = True
         importlib.reload(cfg)
     # If we get to here there was no post data

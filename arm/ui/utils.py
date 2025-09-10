@@ -284,6 +284,7 @@ def arm_db_initialise():
     # Scan and load drives to database
     DriveUtils.drives_update()
 
+
 def make_dir(path: str | Path) -> bool:
     """
     Make a directory
@@ -335,12 +336,14 @@ def clean_for_filename(string: str) -> str:
     string = string.strip()
     return string
 
+
 def getsize(path: str | Path) -> float:
     """Simple function to get the free space left in a path"""
     path_stats = os.statvfs(path)
     free = (path_stats.f_bavail * path_stats.f_frsize)
     free_gb = free / 1073741824
     return free_gb
+
 
 def jsonFile_to_dict(json_file: str | Path) -> Dict[str, Union[str, int, bool]] | str:
     """
@@ -372,6 +375,7 @@ def jsonFile_to_dict(json_file: str | Path) -> Dict[str, Union[str, int, bool]] 
         data = f"Was unable to load json file: {json_file}"
         return data
 
+
 def listCoPairedIntoTuple(list_of_strings: List[str]) -> list[Tuple[str, str]]:
     """Takes a list of strings, and returns a list of tuples
         [x, y, z] -> [(x,x),(y,y),(z,z)]
@@ -400,6 +404,7 @@ class FieldDict(TypedDict):
     dataValidation: Union[str, list[str]]
     formFieldType: str
 
+
 def generate_ripperFormSettings() -> Dict[str, FieldDict]:
     """
     load ripperSettingsConfigFile.json and use it for settings page
@@ -410,6 +415,7 @@ def generate_ripperFormSettings() -> Dict[str, FieldDict]:
     ripperFormSettings = os.path.join(os.path.dirname(os.path.abspath(__file__)), ripperSettingsConfigFile)
     ripperFormSettings = jsonFile_to_dict(ripperFormSettings)
     return ripperFormSettings
+
 
 def generate_full_log(full_path: str | Path):
     """
@@ -430,6 +436,7 @@ def generate_full_log(full_path: str | Path):
                     sleep(1)
         except FileNotFoundError as error:
             raise FileNotFoundError("Not found with utf8 encoding") from error
+
 
 def generate_arm_cat(full_path):
     """
