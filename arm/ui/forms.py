@@ -6,13 +6,122 @@ from wtforms import Form, Field, StringField, SubmitField, SelectField, \
     FormField, HiddenField, FloatField, RadioField
 from wtforms.validators import DataRequired, Optional
 from wtforms.validators import ValidationError, IPAddress, InputRequired  # noqa: F401
-import arm.config.config as cfg
 from arm.ui import app
 import arm.ui.utils as ui_utils
 # Custom Validators go here:
 from .forms_custom_validators import validate_path_exists, validate_umask, validate_non_manditory_string  # noqa: F401
-# You cannot create cannot create a dynamic form without importing the required validators, 
+# You cannot create cannot create a dynamic form without importing the required validators,
 # but then the compiler complains they are not used, the above line ignores those errors.
+
+listDefault = ['True', 'False']
+
+def createSingleChoiceField(
+        fieldType: str,
+        key: str, 
+        commentValue: str, 
+        validators: List[Field] | None, 
+        choices_paired_list: List[tuple[str, str]] | None = None) -> SelectField | RadioField:
+    """Create a single choice field, either SelectField or RadioField
+    """
+    if choices_paired_list is None:
+        choices_paired_list = ui_utils.listCoPairedIntoTuple(listDefault)
+    if not isinstance(choices_paired_list[0], tuple):
+        app.logger.warning(f"Expected choices_paired_list to be a list of tuples for {key}, got {type(choices_paired_list[0])}")
+        # I am going to assume that the list is a list of strings, and convert it to a list of tuples
+        choices_paired_list = ui_utils.listCoPairedIntoTuple(choices_paired_list)
+    if fieldType == "SelectField":
+        return SelectField(
+                label=key.replace("_", " "),
+                description=commentValue,
+                # default=str(fieldDefault).title(),
+                render_kw={'title': commentValue},
+                validators=validators,
+                choices=choices_paired_list,
+            )
+    if fieldType == "RadioField":
+        return RadioField(
+                label=key.replace("_", " "),
+                description=commentValue,
+                # default=str(fieldDefault).title(),
+                render_kw={'title': commentValue},
+                validators=validators,
+                choices=choices_paired_list,
+            )
+
+
+def formFieldChooser(
+        fieldType: str,
+        fieldDefault: str | int | float | bool | list[str] | None,
+        key: str, 
+        commentValue: str, 
+        validators: List[Field] | None,
+        ) -> Field:
+    """
+    FormFieldChooser
+        Create a field based on the type passed.
+        Used by SettingsForm to create fields dynamically.
+        Hopefully this should make the 'SettingsForm' function a bit less complex.
+    
+    Raises:
+        Exception: Unknown Field type
+    
+    Args:
+        fieldType (str): create [SelectField, RadioField, IntegerField, FloatField, StringField]
+        fieldDefault (str): default value for the field
+        key (str): field name
+        commentValue (str): Field description for tooltip
+        validators (list|None): list of validators to apply to the field
+        choices_paired_list (list|bool|None): list of tuples for select field choices. Could also be None, or Booleans.
+    
+    Returns:
+        Field
+    """
+    if isinstance(fieldDefault, bool) and fieldType in ("SelectField", "RadioField"):
+        f = createSingleChoiceField(fieldType=fieldType, key=key, commentValue=commentValue, validators=validators, choices_paired_list=None)
+        return f
+    
+    if fieldType in ("SelectField", "RadioField"):
+        # SelectField with a list of choices
+        if not isinstance(fieldDefault, list):
+            app.logger.exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
+            raise Exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
+        paired_list = ui_utils.listCoPairedIntoTuple(fieldDefault)
+        f = createSingleChoiceField(fieldType=fieldType, key=key, commentValue=commentValue, validators=validators, choices_paired_list=paired_list)
+        return f
+    
+    if fieldType == "IntegerField":
+        return IntegerField(
+            label=key.replace("_", " "),
+            description=commentValue,
+            # default=int(fieldDefault),
+            validators=validators,
+            render_kw={'title': commentValue}
+            )
+    elif fieldType == "FloatField":
+        return FloatField(
+            label=key.replace("_", " "),
+            description=commentValue,
+            # default=float(fieldDefault),
+            validators=validators,
+            render_kw={'title': commentValue}
+        )
+    elif fieldType == "StringField":
+        return StringField(
+            label=key.replace("_", " "),
+            description=commentValue,
+            # default=str(fieldDefault),
+            validators=validators,
+            render_kw={'title': commentValue}
+        )
+    else:
+        app.logger.warning(f"Unknown type for {key}: {type(fieldType)}, returning StringField")
+        return StringField(
+            label=key.replace("_", " "),
+            description=commentValue,
+            # default=str(fieldDefault),
+            validators=validators,
+            render_kw={'title': commentValue}
+        )
 
 
 class TitleSearchForm(FlaskForm):
@@ -43,15 +152,15 @@ def SettingsForm() -> FlaskForm:
         It buids the class based on on the comments.json and RipperFormConfig
         (Comments.json to make sure a central location exists for user comments)
         The SettingsForm class is originally empty, but fields are added using setattr
-        ripperFormConfig should have a dict per field: 
-            defaultForInternalUse (Default / field value type indicator): 
+        ripperFormConfig should have a dict per field:
+            defaultForInternalUse (Default / field value type indicator):
             commentForInternalUse: included in the ripperFormConfig to make it easier to design the form in json.
             dataValidation: DataRequired, ValidationError, IPAddress,
                 InputRequired, validate_non_manditory_string, validate_umask, validate_path_exists
             **formFieldType**: RadioField (Experimental), SelectField, IntegerField,
                 FloatField (Untested), StringField
     Raises:
-        Exception: Unknown FIeld type
+        Exception: Unknown Field type
     Returns:
         FlaskForm: SettingsForm
     """
@@ -110,86 +219,13 @@ def SettingsForm() -> FlaskForm:
             app.logger.debug(f"validators: {validators}")
         else:
             validators = None
-
-        if isinstance(fieldDefault, bool) and fieldType == "SelectField":
-            f = SelectField(
-                label=key.replace("_", " "),
-                description=commentValue,
-                # default=str(fieldDefault).title(),
-                render_kw={'title': commentValue},
-                validators=validators,
-                choices=[
-                    ('True', 'True'),
-                    ('False', 'False')
-                ],
+        f = formFieldChooser(
+            fieldType=fieldType,
+            fieldDefault=fieldDefault,
+            key=key,
+            commentValue=commentValue,
+            validators=validators
             )
-        elif isinstance(fieldDefault, bool) and fieldType == "RadioField":
-            f = RadioField(
-                label=key.replace("_", " "),
-                description=commentValue,
-                # default=str(fieldDefault).title(),
-                render_kw={'title': commentValue},
-                validators=validators,
-                choices=[
-                    ('True', 'True'),
-                    ('False', 'False')
-                ],
-            )
-        elif fieldType == "RadioFeild":
-            # SelectField with a list of choices
-            if not isinstance(fieldDefault, list):
-                app.logger.exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
-                raise Exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
-            paired_list = ui_utils.listCoPairedIntoTuple(fieldDefault)
-            f = RadioField(
-                label=key.replace("_", " "),
-                description=commentValue,
-                # default=str(fieldDefault),
-                render_kw={'title': commentValue},
-                validators=validators,
-                choices=paired_list,
-            )
-        elif fieldType == "SelectField":
-            # SelectField with a list of choices
-            if not isinstance(fieldDefault, list):
-                app.logger.exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
-                raise Exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
-            paired_list = ui_utils.listCoPairedIntoTuple(fieldDefault)
-            f = SelectField(
-                label=key.replace("_", " "),
-                description=commentValue,
-                # default=str(fieldDefault),
-                render_kw={'title': commentValue},
-                validators=validators,
-                choices=paired_list,
-            )
-        elif fieldType == "IntegerField":
-            f = IntegerField(
-                label=key.replace("_", " "),
-                description=commentValue,
-                # default=int(fieldDefault),
-                validators=validators,
-                render_kw={'title': commentValue}
-                )
-        elif fieldType == "FloatField":
-            f = FloatField(
-                label=key.replace("_", " "),
-                description=commentValue,
-                # default=float(fieldDefault),
-                validators=validators,
-                render_kw={'title': commentValue}
-            )
-        elif fieldType == "StringField":
-            f = StringField(
-                label=key.replace("_", " "),
-                description=commentValue,
-                # default=str(fieldDefault),
-                validators=validators,
-                render_kw={'title': commentValue}
-            )
-        else:
-            app.logger.warning(f"Unknown type for {key}: {type(value)}, returning StringField")
-            raise Exception(f"Unknown type for {key}: {type(value)}, returning StringField")
         setattr(SettingsForm, key, f)
     return SettingsForm()
 

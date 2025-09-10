@@ -218,6 +218,7 @@ def save_settings():
     # If we get to here there was no post data
     return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
 
+
 @route_settings.route('/save_ui_settings', methods=['POST'])
 @login_required
 def save_ui_settings():

@@ -411,7 +411,6 @@ def generate_ripperFormSettings() -> Dict[str, FieldDict]:
     allows us to easily add more settings later
     :return: json
     """
-    global ripperSettingsConfigFile
     ripperFormSettings = os.path.join(os.path.dirname(os.path.abspath(__file__)), ripperSettingsConfigFile)
     ripperFormSettings = jsonFile_to_dict(ripperFormSettings)
     return ripperFormSettings
