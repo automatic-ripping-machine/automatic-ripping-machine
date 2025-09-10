@@ -3,7 +3,8 @@ from wtforms import Form, Field
 from wtforms.validators import ValidationError
 from os import path
 
-def validate_path_exists(form: Form, field:     Field):
+
+def validate_path_exists(form: Form, field: Field):
     if not path.exists(field.data):
         raise ValidationError(f"The path specified does not exist:\r\n {field}")
 
@@ -28,7 +29,7 @@ def validate_non_manditory_string(form: Form, field: Field):
     originalLength = len(field.data)
     if originalLength > 0:
         text = field.data.replace('<p>', '').replace('</p>', '').replace('&nbsp;', '')\
-                         .replace('&ensp;', '').replace('&emsp;','').replace('<br>', '')
+                         .replace('&ensp;', '').replace('&emsp;', '').replace('<br>', '')
         if len(text) == 0:
             raise ValidationError("Field must not contain only HTML tags.")
         # check for non-ASCII characters

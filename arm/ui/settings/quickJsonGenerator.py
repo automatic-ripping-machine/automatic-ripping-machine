@@ -14,11 +14,11 @@ with open(comments, 'r') as cmntsFile:
 
 newConfig = {}
 for key, value in config.items():
-    
     # Just in case the comment is empty, we will get the value for it, and
     # if none, set it to string
     comm_value = comments.get(key)
-    if comm_value is None: comm_value = ""
+    if comm_value is None:
+        comm_value = ""
     newConfig[key] = {
         "defaultForInternalUse": value,
         "commentForInternalUse": comm_value,
@@ -29,6 +29,3 @@ for key, value in config.items():
 print(len(newConfig))
 with open('./ripperFormConfig.json', 'w') as jsonFile:
     json.dump(newConfig, jsonFile, indent=4)
-
-
-    

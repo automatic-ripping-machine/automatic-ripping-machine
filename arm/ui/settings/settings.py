@@ -46,7 +46,7 @@ route_settings = Blueprint('route_settings', __name__,
 REDIRECT_SETTINGS = "route_settings.settings"
 
 
-def mask_last(value, n=4):
+def mask_last(value: str, n: int = 4):
     """
     Replaces the last `n` characters of a string with asterisks.
     """
@@ -108,8 +108,8 @@ def settings():
             break
         else:
             field.data = getattr(armui_cfg, field_name)
-            field.render_kw = {'title':comments[field_name]}
-            app.logger.debug(f"Field {field_name} has value with value: {field.data}")    
+            field.render_kw = {'title': comments[field_name]}
+            app.logger.debug(f"Field {field_name} has value with value: {field.data}")
     # Get system details from Server Info and Config
     server = SystemInfo.query.filter_by(id="1").first()
     serverutil = ServerUtil()
@@ -134,7 +134,6 @@ def settings():
     return render_template(
         "settings/settings.html",
         settings=cfg.arm_config,
-        #ui_settings=armui_cfg,
         ui_settings=ui_form,
         stats=stats,
         apprise_cfg=cfg.apprise_config,
@@ -147,7 +146,7 @@ def settings():
         media_path=media_path,
         drives=drives,
         form_drive=form_drive
-        ) # type: ignore
+        )  # type: ignore
 
 
 def check_hw_transcode_support():

@@ -4,15 +4,15 @@ from flask_wtf import FlaskForm
 from wtforms import Form, Field, StringField, SubmitField, SelectField, \
     IntegerField, BooleanField, PasswordField, FieldList, \
     FormField, HiddenField, FloatField, RadioField
-from wtforms.validators import DataRequired, Optional, ValidationError, IPAddress, InputRequired  # pyright: ignore[reportUnusedImport, reportUnusedExpression]
-from os import path
+from wtforms.validators import DataRequired, Optional
+from wtforms.validators import ValidationError, IPAddress, InputRequired  # noqa: F401
 import arm.config.config as cfg
 from arm.ui import app
 import arm.ui.utils as ui_utils
 # Custom Validators go here:
-from .forms_custom_validators import validate_path_exists, validate_umask, validate_non_manditory_string  # pyright: ignore[reportUnusedImport, reportUnusedExpression]
-# You cannot create cannot create a dynamic form without importing the required validators, but then the compiler complains they are not used.
-# The above line ignores those errors.
+from .forms_custom_validators import validate_path_exists, validate_umask, validate_non_manditory_string  # noqa: F401
+# You cannot create cannot create a dynamic form without importing the required validators, 
+# but then the compiler complains they are not used, the above line ignores those errors.
 
 
 class TitleSearchForm(FlaskForm):
@@ -59,7 +59,7 @@ def SettingsForm() -> FlaskForm:
     # happyily replace my code.
     class SettingsForm(FlaskForm):
         submit = SubmitField('Submit')
-    
+
     dictFormFields = ui_utils.generate_ripperFormSettings()
     comments = ui_utils.generate_comments()
     if isinstance(dictFormFields, str):
@@ -86,9 +86,9 @@ def SettingsForm() -> FlaskForm:
         # app.logger.debug(f"commentValue: {commentValue}, fieldDefault: {fieldDefault}, fieldType: {fieldType}")
         if isinstance(value['dataValidation'], list) and len(value['dataValidation']) > 0:
             possible_validators = value['dataValidation']
-            validators: List[Field]|None = []
+            validators: List[Field] | None = []
             # To save scrolling up, here is a list of the imported validators:
-            #   DataRequired, ValidationError, IPAddress, validate_path_exists, 
+            #   DataRequired, ValidationError, IPAddress, validate_path_exists,
             #   validate_umask validate_non_manditory_string
             for x in possible_validators:
                 if x == "validate_path_exists":
@@ -112,15 +112,16 @@ def SettingsForm() -> FlaskForm:
             validators = None
 
         if isinstance(fieldDefault, bool) and fieldType == "SelectField":
-            f = SelectField(label=key.replace("_", " "),
-                            description=commentValue,
-                            # default=str(fieldDefault).title(),
-                            render_kw={'title': commentValue},
-                            validators=validators,
-                            choices=[
-                                ('True', 'True'),
-                                ('False', 'False')
-                                ],
+            f = SelectField(
+                label=key.replace("_", " "),
+                description=commentValue,
+                # default=str(fieldDefault).title(),
+                render_kw={'title': commentValue},
+                validators=validators,
+                choices=[
+                    ('True', 'True'),
+                    ('False', 'False')
+                ],
             )
         elif isinstance(fieldDefault, bool) and fieldType == "RadioField":
             f = RadioField(
@@ -191,6 +192,7 @@ def SettingsForm() -> FlaskForm:
             raise Exception(f"Unknown type for {key}: {type(value)}, returning StringField")
         setattr(SettingsForm, key, f)
     return SettingsForm()
+
 
 class UiSettingsForm(FlaskForm):
     """UI settings form, used on pages\n
