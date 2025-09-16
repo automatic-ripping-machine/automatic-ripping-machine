@@ -609,7 +609,7 @@ function BuildAndInstallMakeMKV() {
   curl -# -o makemkv-oss-"${LatestMakeMKVVersion}".tar.gz \
     https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
   grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
-  grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
+  grep "makemkv-oss-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
   tar xzf makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
   tar xzf makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
 
