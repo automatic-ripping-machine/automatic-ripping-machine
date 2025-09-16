@@ -92,7 +92,7 @@ jobs:
           echo "BRANCH_VERSION=$BRANCH_VERSION" >> $GITHUB_ENV
 
       - name: Comment on PR with no spam
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.VERSION_BOT }}
           script: |
