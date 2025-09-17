@@ -1,17 +1,17 @@
-name: "Version Increment"
-
-on:
-  # Run this action on any Pull Request raised against ARM
-  pull_request:
-    # Ensure changes re-run the version script (i.e. title change)
-    types: [opened, edited, synchronize]
-    # Don't run on changes to the below paths
-    paths-ignore:
-      - 'arm_wiki/**'
-      - '.github/**'
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+#name: "Version Increment"
+#
+#on:
+#  # Run this action on any Pull Request raised against ARM
+# # pull_request:
+#    # Ensure changes re-run the version script (i.e. title change)
+#    types: [opened, edited, synchronize]
+#    # Don't run on changes to the below paths
+#    paths-ignore:
+#      - 'arm_wiki/**'
+#      - '.github/**'
+#
+#  # Allows you to run this workflow manually from the Actions tab
+#  workflow_dispatch:
 
 permissions:
   contents: write
@@ -23,10 +23,10 @@ jobs:
     steps:
       - name: Get branch name
         id: branch-name
-        uses: tj-actions/branch-names@v8
+        uses: tj-actions/branch-names@v9
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -92,9 +92,9 @@ jobs:
           echo "BRANCH_VERSION=$BRANCH_VERSION" >> $GITHUB_ENV
 
       - name: Comment on PR with no spam
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.VERSION_BOT }}
           script: |
             // Retrieve variables from the environment
             const titleFlag = process.env.TITLE_FLAG;

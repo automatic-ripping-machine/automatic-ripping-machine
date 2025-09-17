@@ -19,4 +19,4 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Run ShellCheck
-              uses: bewuethr/shellcheck-action@v2.2.0
+              uses: bewuethr/shellcheck-action@v2.3.0
