@@ -437,16 +437,19 @@ def update_cpu():
     if current_system is not None:
         app.logger.debug(f"Name old [{current_system.name}] new [{new_system.name}]")
         app.logger.debug(f"Name old [{current_system.cpu}] new [{new_system.cpu}]")
+        app.logger.debug(f"Name old [{current_system.mem_total}] new [{new_system.mem_total}]")
         current_system.name = new_system.name
         current_system.cpu = new_system.cpu
+        current_system.mem_total = new_system.mem_total
         db.session.add(current_system)
     else:
         app.logger.debug(f"Name old [No Info] new [{new_system.name}]")
         app.logger.debug(f"Name old [No Info] new [{new_system.cpu}]")
+        app.logger.debug(f"Name old [No Info] new [{new_system.mem_total}]")
         db.session.add(new_system)
 
     app.logger.debug("****** End System Information ******")
-    app.logger.info(f"Updated CPU Details with new info - {new_system.name} - {new_system.cpu}")
+    app.logger.info(f"Updated CPU Details with new info - {new_system.name} - {new_system.cpu} - {new_system.mem_total}")
 
     db.session.commit()
 
