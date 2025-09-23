@@ -449,7 +449,8 @@ def update_cpu():
         db.session.add(new_system)
 
     app.logger.debug("****** End System Information ******")
-    app.logger.info(f"Updated CPU Details with new info - {new_system.name} - {new_system.cpu} - {new_system.mem_total}")
+    app.logger.info(f"Updated CPU Details with new info - {new_system.name} - {new_system.cpu} - " \
+        f"{new_system.mem_total}")
 
     db.session.commit()
 
