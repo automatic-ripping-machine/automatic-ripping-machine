@@ -208,14 +208,15 @@ def save_settings():
             with open(cfg.arm_config_path, "w") as settings_file:
                 settings_file.write(arm_cfg)
             success = True
-            importlib.reload(cfg)
-            # Set the ARM Log level to the config
-            app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
-            app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
         except Exception as e:
             app.logger.exception(f"Error saving arm.yaml: {e}")
             flash(f"Error saving arm.yaml: {e}", "error")
             return {'success': False, 'settings': str(cfg.arm_config), 'form': 'arm ripper settings'}
+        importlib.reload(cfg)
+        # Set the ARM Log level to the config
+        app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
+        app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
+
     # If we get to here there was no post data
         return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
     else:
@@ -249,10 +250,14 @@ def save_ui_settings():
         arm_ui_cfg.notify_refresh = format(ui_form.notify_refresh.data)
         db.session.commit()
         success = True
-    # Masking the jinja update, otherwise an error is thrown
-    # sqlalchemy.orm.exc.DetachedInstanceError: Instance <UISettings at 0x7f294c109fd0>
-    # app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
-    return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
+        # Masking the jinja update, otherwise an error is thrown
+        # sqlalchemy.orm.exc.DetachedInstanceError: Instance <UISettings at 0x7f294c109fd0>
+        # app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
+        return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
+    else:
+        app.logger.error(f"Error validating form: {ui_form.errors}")
+        flash(f"Error validating form: {ui_form.errors}", "error")
+        return {'success': False, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
 
 
 @route_settings.route('/save_abcde_settings', methods=['POST'])
