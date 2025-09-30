@@ -126,9 +126,8 @@ def settings():
     for key, value in cfg.arm_config.items():
         field = getattr(form, key, None)
         if field:
-            app.logger.debug(f"Config key: {key} resolved to field: {field.name}, which contains value: {field.data}")
+            app.logger.debug(f"Config key: {key} resolved to field: {field.name}")
             field.data = value
-            app.logger.debug(f"Field value is now: {field.data}")
     session["page_title"] = "Settings"
     app.logger.debug(f"stats: {stats}")
     return render_template(
@@ -189,13 +188,15 @@ def save_settings():
     Page - save_settings
     Method - POST
     Overview - Save arm ripper settings from post. Not a user page
+    This function writes to arm.yaml
     """
     # Load up the comments.json, so we can comment the arm.yaml
+    app.logger.info("Saving ARM Ripper settings")
     comments = ui_utils.generate_comments()
     success = False
     arm_cfg = {}
-    # form = SettingsForm()
-    # app.logger.debug(f"{request.form.to_dict()}")
+    app.logger.debug(f"Form data: \r\n{request.form.to_dict()}")
+    app.logger.debug(f"Generating a temporary instance of SettingsForm")
     form = SettingsForm()
     if form.validate_on_submit():
         app.logger.debug("Saving Ripper settings")
@@ -216,7 +217,11 @@ def save_settings():
             flash(f"Error saving arm.yaml: {e}", "error")
             return {'success': False, 'settings': str(cfg.arm_config), 'form': 'arm ripper settings'}
     # If we get to here there was no post data
-    return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
+        return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
+    else:
+        app.logger.error(f"Error validating form: {form.errors}")
+        flash(f"Error validating form: {form.errors}", "error")
+        return {'success': False, 'settings': str(cfg.arm_config), 'form': 'arm ripper settings'}
 
 
 @route_settings.route('/save_ui_settings', methods=['POST'])

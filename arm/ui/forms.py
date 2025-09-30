@@ -77,6 +77,7 @@ def formFieldChooser(
     Returns:
         Field
     """
+    
     if isinstance(fieldDefault, bool) and fieldType in ("SelectField", "RadioField"):
         f = createSingleChoiceField(
             fieldType=fieldType,
@@ -229,7 +230,7 @@ def SettingsForm() -> FlaskForm:
                         validators.append(n_v_c)
                     except Exception as e:
                         app.logger.warning(f"Error adding validator {x} to {key}: {e}")
-            app.logger.debug(f"validators: {validators}")
+            app.logger.debug(f"Validators gathered for form: {validators}")
         else:
             validators = None
         f = formFieldChooser(
@@ -240,6 +241,7 @@ def SettingsForm() -> FlaskForm:
             validators=validators
             )
         setattr(SettingsForm, key, f)
+    app.logger.debug(f"SettingsForm created with fields")
     return SettingsForm()
 
 
