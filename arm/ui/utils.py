@@ -698,24 +698,16 @@ def trigger_restart():
     set_file_last_modified(arm_main, now)
 
 
-def build_arm_cfg(form_data, comments):
+def build_arm_cfg(form_data:dict[str,str], comments:dict[str, str]) -> str:
     """
-    Main function for saving new updated arm.yaml\n
+    Main function for generating new updated arm.yaml\n
     :param form_data: post data
     :param comments: comments file loaded as dict
     :return: full new arm.yaml as a String
+    we need to test if the key is a bool, as we need to lower() it for yaml\n\n
+    or check if key is the webserver ip. \nIf not we need to wrap the value with quotes\n
     """
     arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
-    # This is not the safest way to do things.
-    # It assumes the user isn't trying to mess with us.
-    # This really should be hard coded.
-    # if not all(ord(c) < 128 for c in text):
-    #         raise ValidationError("Field must not contain non-ASCII characters.")
-    #     # check for non-printable characters
-    #     if not all(c.isprintable() for c in text):
-    #         raise ValidationError("Field must not contain non-printable characters.")
-    #     # remove whitespace
-    #     text = text.strip().replace("\t","").replace("\n","").replace("\r","").replace("\f","").replace("\v","")
     app.logger.debug("save_settings: START")
     for key, value in form_data.items():
         # app.logger.debug(f"save_settings: current key {key} = {value} ")
@@ -728,14 +720,33 @@ def build_arm_cfg(form_data, comments):
             arm_cfg += "\n" + comments[str(key)] + "\n" if comments[str(key)] != "" else ""
         except KeyError:
             arm_cfg += "\n"
+        
         # test if key value is an int
         try:
-            post_value = int(value)
-            arm_cfg += f"{key}: {post_value}\n"
+            if config_utils.arm_yaml_is_int(value):
+                post_value = int(value)
+                arm_cfg += f"{key}: {post_value}\n"
+                continue
         except ValueError:
-            # Test if value is Boolean
-            arm_cfg += config_utils.arm_yaml_test_bool(key, value)
-    app.logger.debug("save_settings: FINISH")
+            raise ValueError("Non integer value found at key: " + str(key))
+        
+        # Test if value is Boolean
+        if config_utils.arm_yaml_check_bool(value=value):
+            arm_cfg += config_utils.arm_key_value(key, value)
+            continue
+
+        # everything else needs "" around the value, except WEBSERVER_IP
+        if key == "WEBSERVER_IP":
+            arm_cfg += config_utils.arm_key_value(key, value)
+            continue
+        
+        # if we have gotten this far, it should be a string that needs quotes.
+        # This isn't intended to be safe, it's to stop breakages - replace all non escaped quotes with escaped
+        value = config_utils.arm_yaml_test_and_clean_text(value)
+        escaped = re.sub(r"(?<!\\)[\"\'`]", r'\"', value)
+        arm_cfg = f"{key}: \"{escaped}\"\n"
+
+    app.logger.debug("arm yaml generation: FINISHED")
     return arm_cfg
 
 

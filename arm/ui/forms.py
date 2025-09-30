@@ -77,7 +77,7 @@ def formFieldChooser(
     Returns:
         Field
     """
-    
+    key = key.replace("_", " ")
     if isinstance(fieldDefault, bool) and fieldType in ("SelectField", "RadioField"):
         f = createSingleChoiceField(
             fieldType=fieldType,
@@ -105,7 +105,7 @@ def formFieldChooser(
 
     if fieldType == "IntegerField":
         return IntegerField(
-            label=key.replace("_", " "),
+            label=key,
             description=commentValue,
             # default=int(fieldDefault),
             validators=validators,
@@ -113,7 +113,7 @@ def formFieldChooser(
             )
     elif fieldType == "FloatField":
         return FloatField(
-            label=key.replace("_", " "),
+            label=key,
             description=commentValue,
             # default=float(fieldDefault),
             validators=validators,
@@ -121,7 +121,7 @@ def formFieldChooser(
         )
     elif fieldType == "StringField":
         return StringField(
-            label=key.replace("_", " "),
+            label=key,
             description=commentValue,
             # default=str(fieldDefault),
             validators=validators,
@@ -130,7 +130,7 @@ def formFieldChooser(
     else:
         app.logger.warning(f"Unknown type for {key}: {type(fieldType)}, returning StringField")
         return StringField(
-            label=key.replace("_", " "),
+            label=key,
             description=commentValue,
             # default=str(fieldDefault),
             validators=validators,
