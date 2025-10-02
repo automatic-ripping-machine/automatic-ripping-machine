@@ -7,12 +7,17 @@ from os import path
 class IPAddress_custom(IPAddress):
     """Custom IP address validator that allows X.X.X.X values."""
     
-    def __init__(self, form, field):
-        field_value = field.data.strip()
-        if isinstance(field_value,str):
+    def __init__(self, exception="x.x.x.x", message=None, ipv4=True, ipv6=False, ):
+        self.message = message or "Invalid IP address. Use X.X.X.X to ignore."
+        self.exception = exception.lower()
+        super().__init__(message=self.message, ipv4=ipv4, ipv6=ipv6)
+
+    def __call__(self, form, field):
+        if isinstance(field.data,str):
+            field_value = field.data.strip()
             if field_value.lower() == "x.x.x.x":
                 return
-        super().__init__(form, field)
+        super().__call__(form, field)
 
 
 class validate_path_exists():
@@ -32,33 +37,40 @@ class validate_path_exists():
         if not path.exists(field_data):
             raise ValidationError(f"{self.message}\r\n {field}")
 
-
-def validate_umask(form: Form, field: Field):
+class validate_umask():
     """Custom validator to check  if a given umask is valid.
+    """
+    def __init__(self):
+        self.message = f"Umask must be a valid int between 0 and 4095. or 0o000 to 0o777"
     
-    Keyword arguments:
-    form -- description 
-    field -- the field to validate
-    Return: ValidationError if umask is not valid
-    """    
-    value = field.data
-    try:
-        # Accept both '002' and '0o002' formats
-        if value.startswith("0o"):
-            umask_int = int(value, 8)
-            if not (0 <= umask_int <= 0o777):
-                raise ValidationError("Invalid umask: must be a valid octal between 000 and 7777.")
-        else:
-            umask_int = int(value)
-            if not (0 <= umask_int <= 777):
-                raise ValidationError("Umask must be a valid int between 0 and 4095.")
-    except ValueError:
-        raise ValidationError("Invalid octal number format.")
+    def __call__(self, form: Form, field: Field):
+        value = field.data
+        try:
+            # Accept both '002' and '0o002' formats
+            if value.startswith("0o"):
+                umask_int = int(value, 8)
+                if not (0 <= umask_int <= 0o777):
+                    raise ValidationError("Invalid umask: must be a valid octal between 0o000 and 0o777.")
+            else:
+                if isinstance(value, int):
+                    umask_int = value
+                else:
+                    raise ValidationError(self.message)
+            if not (0 <= umask_int <= 4095):
+                raise ValidationError(self.message)
+        except ValueError:
+            raise ValidationError(self.message)
 
 
-def validate_non_manditory_string(form: Form, field: Field):
-    originalLength = len(field.data)
-    if originalLength > 0:
+class validate_non_manditory_string():
+    """Field CAN be empty, but cannot: contain only whitespace, HTML tags, non-ASCII characters, or non-printable characters.    """
+    def __init__(self):
+        self.message = "Field CAN be empty, but cannot: contain only whitespace, HTML tags, non-ASCII characters, or non-printable characters."
+    
+    def __call__(self, form: Form, field: Field):
+        originalLength = len(field.data)
+        if originalLength > 0:
+            raise ValidationError("Field must not be empty.")
         text = field.data.replace('<p>', '').replace('</p>', '').replace('&nbsp;', '')\
                          .replace('&ensp;', '').replace('&emsp;', '').replace('<br>', '')
         if len(text) == 0:

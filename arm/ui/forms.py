@@ -15,28 +15,28 @@ from .forms_custom_validators import IPAddress_custom, validate_path_exists, val
 
 listDefault = ['True', 'False']
 
-def createValidator(validatorName: str) -> object:
-    """Create a validator object based on the name passed.
-    Used to create validators dynamically.
+def createObjectInstance(className: str) -> object:
+    """Create a an object based on the name passed.
+    Used originally to create validators dynamically.
     Raises:
-        Exception: Unknown Validator type
+        Exception: Unknown object type
     Args:
         validatorName (str): Name of the validator to create
     Returns:
         object: Validator object
     """
-    if validatorName is None:
+    if className is None:
         return None
     try:
-        classDefinition = globals().get(validatorName)
+        classDefinition = globals().get(className)
         if classDefinition is None:
-            raise Exception(f"Unknown validator: {validatorName}")
+            raise Exception(f"Unknown validator: {className}")
         if not callable(classDefinition):
-            raise Exception(f"Validator {validatorName} is not callable")
+            raise Exception(f"Validator {className} is not callable")
         validatorInstance = classDefinition()
         return validatorInstance
     except Exception as e:
-        app.logger.warning(f"Error creating validator {validatorName}: {e}")
+        app.logger.warning(f"Error creating validator {className}: {e}")
 
 
 def create_list_of_validator_obj(list_of_validator_names: List[str], fieldName:str) -> List[object]:
@@ -55,14 +55,7 @@ def create_list_of_validator_obj(list_of_validator_names: List[str], fieldName:s
     #   DataRequired, ValidationError, IPAddress, validate_path_exists,
     #   IPAddress_custom, validate_umask validate_non_manditory_string
     for x in possible_validators:
-        if x == "validate_umask":
-            app.logger.debug(f"Adding validate_umask to {fieldName}")
-            # validators.append(validate_umask)
-        elif x == "validate_non_manditory_string":
-            app.logger.debug(f"Adding validate_non_manditory_string to {fieldName}")
-            # validators.append(validate_non_manditory_string)
-        else:
-            validator_instance = createValidator(x)
+            validator_instance = createObjectInstance(className=x)
             validators.append(validator_instance)
     app.logger.debug(f"Validators gathered for form: {validators}")
     return validators
