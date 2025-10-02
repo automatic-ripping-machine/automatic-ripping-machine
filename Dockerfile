@@ -5,7 +5,10 @@ FROM automaticrippingmachine/arm-dependencies:1.6.0 AS base
 LABEL org.opencontainers.image.source=https://github.com/automatic-ripping-machine/automatic-ripping-machine
 LABEL org.opencontainers.image.license=MIT
 LABEL org.opencontainers.image.description='Automatic Ripping Machine for fully automated Blu-ray, DVD and audio disc ripping.'
-
+ARG VERSION
+ARG BUILD_DATE
+LABEL org.opencontainers.image.version=$VERSION
+LABEL org.opencontainers.image.created=$BUILD_DATE
 EXPOSE 8080
 
 # Setup folders and fstab
