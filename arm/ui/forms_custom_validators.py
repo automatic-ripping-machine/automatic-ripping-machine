@@ -1,15 +1,46 @@
 """custom validators used in UI Forms"""
 from wtforms import Form, Field
-from wtforms.validators import ValidationError
+from wtforms.validators import IPAddress
+from wtforms import ValidationError
 from os import path
 
+class IPAddress_custom(IPAddress):
+    """Custom IP address validator that allows X.X.X.X values."""
+    
+    def __init__(self, form, field):
+        field_value = field.data.strip()
+        if isinstance(field_value,str):
+            if field_value.lower() == "x.x.x.x":
+                return
+        super().__init__(form, field)
 
-def validate_path_exists(form: Form, field: Field):
-    if not path.exists(field.data):
-        raise ValidationError(f"The path specified does not exist:\r\n {field}")
+
+class validate_path_exists():
+    """Custom validator to check that a given path exists.
+    either folder or file.
+    """
+    def __init__(self, must_exist=True, message=None):
+        """
+        :param must_exist: If True, the path must exist on the filesystem.
+        :param message: Custom error message.
+        """
+        self.must_exist = must_exist
+        self.message = message or (f"The path specified does not exist.")
+    
+    def __call__(self, form: Form, field: Field):
+        field_data = field.data.strip()
+        if not path.exists(field_data):
+            raise ValidationError(f"{self.message}\r\n {field}")
 
 
 def validate_umask(form: Form, field: Field):
+    """Custom validator to check  if a given umask is valid.
+    
+    Keyword arguments:
+    form -- description 
+    field -- the field to validate
+    Return: ValidationError if umask is not valid
+    """    
     value = field.data
     try:
         # Accept both '002' and '0o002' formats

@@ -9,7 +9,7 @@ from wtforms.validators import ValidationError, IPAddress, InputRequired  # noqa
 from arm.ui import app
 import arm.ui.utils as ui_utils
 # Custom Validators go here:
-from .forms_custom_validators import validate_path_exists, validate_umask, validate_non_manditory_string  # noqa: F401
+from .forms_custom_validators import IPAddress_custom, validate_path_exists, validate_umask, validate_non_manditory_string  # noqa: F401
 # You cannot create cannot create a dynamic form without importing the required validators,
 # but then the compiler complains they are not used, the above line ignores those errors.
 

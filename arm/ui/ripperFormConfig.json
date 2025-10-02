@@ -198,9 +198,9 @@
         "formFieldType": "StringField"
     },
     "WEBSERVER_IP": {
-        "defaultForInternalUse": "192.168.1.110",
+        "defaultForInternalUse": "X.X.X.X",
         "commentForInternalUse": "# IP address of web server (this machine)\n# Use x.x.x.x to autodetect the IP address to use",
-        "dataValidation": ["DataRequired","IPAddress","InputRequired"],
+        "dataValidation": ["DataRequired","IPAddress_custom","InputRequired"],
         "formFieldType": "StringField"
     },
     "WEBSERVER_PORT": {
