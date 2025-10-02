@@ -710,9 +710,11 @@ def build_arm_cfg(form_data:dict[str,str], comments:dict[str, str]) -> str:
     arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
     app.logger.debug("save_settings: START")
     for key, value in form_data.items():
-        # app.logger.debug(f"save_settings: current key {key} = {value} ")
         if key == "csrf_token":
             continue
+
+        new_value = value
+
         # Add any grouping comments
         arm_cfg += config_utils.arm_yaml_check_groups(comments, key)
         # Check for comments for this key in comments.json, add them if they exist
@@ -723,30 +725,34 @@ def build_arm_cfg(form_data:dict[str,str], comments:dict[str, str]) -> str:
         
         # test if key value is an int
         try:
-            if config_utils.arm_yaml_is_int(value):
-                post_value = int(value)
-                arm_cfg += f"{key}: {post_value}\n"
+            if config_utils.arm_yaml_is_int(new_value):
+                new_value = int(new_value)
+                arm_cfg += f"{key}: {new_value}\n"
+                app.logger.debug(f"Config {key} before: {value} after: {new_value} ")
                 continue
         except ValueError:
             raise ValueError("Non integer value found at key: " + str(key))
         
         # Test if value is Boolean
-        if config_utils.arm_yaml_check_bool(value=value):
-            arm_cfg += config_utils.arm_key_value(key, value)
+        if config_utils.arm_yaml_check_bool(value=new_value):
+            arm_cfg += config_utils.arm_key_value(key, new_value)
+            app.logger.debug(f"Config {key} before: {value} after: {new_value} ")
             continue
 
         # everything else needs "" around the value, except WEBSERVER_IP
         if key == "WEBSERVER_IP":
-            arm_cfg += config_utils.arm_key_value(key, value)
+            arm_cfg += config_utils.arm_key_value(key, new_value)
+            app.logger.debug(f"Config {key} before: {value} after: {new_value} ")
             continue
         
         # if we have gotten this far, it should be a string that needs quotes.
         # This isn't intended to be safe, it's to stop breakages - replace all non escaped quotes with escaped
-        value = config_utils.arm_yaml_test_and_clean_text(value)
-        escaped = re.sub(r"(?<!\\)[\"\'`]", r'\"', value)
-        arm_cfg = f"{key}: \"{escaped}\"\n"
+        new_value = config_utils.arm_yaml_test_and_clean_text(new_value)
+        new_value = re.sub(r"(?<!\\)[\"\'`]", r'\"', new_value)
+        arm_cfg += f"{key}: \"{new_value}\"\n"
+        app.logger.debug(f"Config {key} before: {value} after: {new_value} ")
 
-    app.logger.debug("arm yaml generation: FINISHED")
+    app.logger.debug(f"arm yaml generation: FINISHED:")
     return arm_cfg
 
 
