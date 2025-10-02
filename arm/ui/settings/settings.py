@@ -195,7 +195,7 @@ def save_settings():
     comments = ui_utils.generate_comments()
     success = False
     arm_cfg = {}
-    app.logger.debug(f"Generating a temporary instance of SettingsForm")
+    app.logger.debug("Generating a temporary instance of SettingsForm")
     form = SettingsForm()
     app.logger.info(f"Form errors are: {form.errors}")
     if form.validate_on_submit():

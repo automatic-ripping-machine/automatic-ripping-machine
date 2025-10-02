@@ -698,7 +698,7 @@ def trigger_restart():
     set_file_last_modified(arm_main, now)
 
 
-def build_arm_cfg(form_data:dict[str,str], comments:dict[str, str]) -> str:
+def build_arm_cfg(form_data: dict[str, str], comments: dict[str, str]) -> str:
     """
     Main function for generating new updated arm.yaml\n
     :param form_data: post data
@@ -722,7 +722,7 @@ def build_arm_cfg(form_data:dict[str,str], comments:dict[str, str]) -> str:
             arm_cfg += "\n" + comments[str(key)] + "\n" if comments[str(key)] != "" else ""
         except KeyError:
             arm_cfg += "\n"
-        
+
         # test if key value is an int
         try:
             if config_utils.arm_yaml_is_int(new_value):
@@ -744,7 +744,7 @@ def build_arm_cfg(form_data:dict[str,str], comments:dict[str, str]) -> str:
             arm_cfg += config_utils.arm_key_value(key, new_value)
             app.logger.debug(f"Config {key} before: {value} after: {new_value} ")
             continue
-        
+
         # if we have gotten this far, it should be a string that needs quotes.
         # This isn't intended to be safe, it's to stop breakages - replace all non escaped quotes with escaped
         new_value = config_utils.arm_yaml_test_and_clean_text(new_value)
@@ -752,7 +752,7 @@ def build_arm_cfg(form_data:dict[str,str], comments:dict[str, str]) -> str:
         arm_cfg += f"{key}: \"{new_value}\"\n"
         app.logger.debug(f"Config {key} before: {value} after: {new_value} ")
 
-    app.logger.debug(f"arm yaml generation: FINISHED:")
+    app.logger.debug("arm yaml generation: FINISHED:")
     return arm_cfg
 
 

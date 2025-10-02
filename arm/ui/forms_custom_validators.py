@@ -4,16 +4,16 @@ from wtforms.validators import IPAddress
 from wtforms import ValidationError
 from os import path
 
+
 class IPAddress_custom(IPAddress):
     """Custom IP address validator that allows X.X.X.X values."""
-    
     def __init__(self, exception="x.x.x.x", message=None, ipv4=True, ipv6=False, ):
         self.message = message or "Invalid IP address. Use X.X.X.X to ignore."
         self.exception = exception.lower()
         super().__init__(message=self.message, ipv4=ipv4, ipv6=ipv6)
 
     def __call__(self, form, field):
-        if isinstance(field.data,str):
+        if isinstance(field.data, str):
             field_value = field.data.strip()
             if field_value.lower() == "x.x.x.x":
                 return
@@ -30,18 +30,19 @@ class validate_path_exists():
         :param message: Custom error message.
         """
         self.must_exist = must_exist
-        self.message = message or (f"The path specified does not exist.")
-    
+        self.message = message or ("The path specified does not exist.")
+
     def __call__(self, form: Form, field: Field):
         field_data = field.data.strip()
         if not path.exists(field_data):
             raise ValidationError(f"{self.message}\r\n {field}")
 
+
 class validate_umask():
     """Custom validator to check  if a given umask is valid.
     """
     def __init__(self):
-        self.message = f"Umask must be a valid int between 0 and 4095. or 0o000 to 0o777"
+        self.message = "Umask must be a valid int between 0 and 4095. or 0o000 to 0o777"
     
     def __call__(self, form: Form, field: Field):
         value = field.data
@@ -66,7 +67,7 @@ class validate_non_manditory_string():
     """Field CAN be empty, but cannot: contain only whitespace, HTML tags, non-ASCII characters, or non-printable characters.    """
     def __init__(self):
         self.message = "Field CAN be empty, but cannot: contain only whitespace, HTML tags, non-ASCII characters, or non-printable characters."
-    
+
     def __call__(self, form: Form, field: Field):
         originalLength = len(field.data)
         if originalLength > 0:

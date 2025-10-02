@@ -9,11 +9,13 @@ from wtforms.validators import ValidationError, IPAddress, InputRequired  # noqa
 from arm.ui import app
 import arm.ui.utils as ui_utils
 # Custom Validators go here:
-from .forms_custom_validators import IPAddress_custom, validate_path_exists, validate_umask, validate_non_manditory_string  # noqa: F401
+from .forms_custom_validators import IPAddress_custom, validate_path_exists, \
+    validate_umask, validate_non_manditory_string  # noqa: F401
 # You cannot create cannot create a dynamic form without importing the required validators,
 # but then the compiler complains they are not used, the above line ignores those errors.
 
 listDefault = ['True', 'False']
+
 
 def createObjectInstance(className: str) -> object:
     """Create a an object based on the name passed.
@@ -264,7 +266,7 @@ def SettingsForm() -> FlaskForm:
             validators=validators
             )
         setattr(SettingsForm, key, f)
-    app.logger.debug(f"SettingsForm created with fields")
+    app.logger.debug("SettingsForm created with fields")
     return SettingsForm()
 
 

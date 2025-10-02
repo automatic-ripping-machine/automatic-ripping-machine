@@ -1,8 +1,7 @@
 import re
 
 
-
-def arm_yaml_check_groups(comments:dict[str,str], key:str) -> str:
+def arm_yaml_check_groups(comments: dict[str, str], key: str) -> str:
     """
     Check the current key to be added to arm.yaml and insert the group
     separator comment, if the key matches\n
@@ -26,7 +25,7 @@ def arm_yaml_check_groups(comments:dict[str,str], key:str) -> str:
     return arm_cfg
 
 
-def arm_yaml_test_bool(key:str, value:str) -> str:
+def arm_yaml_test_bool(key: str, value: str) -> str:
     """
     we need to test if the key is a bool, as we need to lower() it for yaml\n\n
     or check if key is the webserver ip. \nIf not we need to wrap the value with quotes\n
@@ -48,7 +47,7 @@ def arm_yaml_test_bool(key:str, value:str) -> str:
     return arm_cfg
 
 
-def arm_yaml_check_bool(value:str) -> bool:
+def arm_yaml_check_bool(value: str) -> bool:
     """
     we need to test if the key is a bool, as we need to lower() it for yaml\n\n
     or check if key is the webserver ip. \nIf not we need to wrap the value with quotes\n
@@ -62,7 +61,7 @@ def arm_yaml_check_bool(value:str) -> bool:
         return False
 
 
-def arm_yaml_return_bool(key:str, value:str) -> str:
+def arm_yaml_return_bool(key: str, value: str) -> str:
     """
     we need to test if the key is a bool, as we need to lower() it for yaml\n\n
     or check if key is the webserver ip. \nIf not we need to wrap the value with quotes\n
@@ -74,6 +73,7 @@ def arm_yaml_return_bool(key:str, value:str) -> str:
         return f"{key}: {value.lower()}\n"
     else:
         raise ValueError("Value is not a boolean string.")
+
 
 def arm_yaml_test_and_clean_text(text: str) -> str:
     """
@@ -90,9 +90,10 @@ def arm_yaml_test_and_clean_text(text: str) -> str:
     if not all(c.isprintable() for c in text):
         raise Exception("Field must not contain non-printable characters.")
     # remove whitespace
-    return text.strip().replace("\t","").replace("\n","").replace("\r","").replace("\f","").replace("\v","")
+    return text.strip().replace("\t", "").replace("\n", "").replace("\r", "").replace("\f", "").replace("\v", "")
 
-def arm_yaml_is_int(text:str) -> bool:
+
+def arm_yaml_is_int(text: str) -> bool:
     """
     Check if the provided text can be converted to an integer.
     :param text: The text to check.
@@ -104,7 +105,8 @@ def arm_yaml_is_int(text:str) -> bool:
     except ValueError:
         return False
 
-def arm_key_value(key:str,value:str) -> str:
+
+def arm_key_value(key: str, value: str) -> str:
     """
     Return a key: value pair for arm.yaml, with the value lowercased.
     This is used for boolean values.
