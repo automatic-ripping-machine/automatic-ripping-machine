@@ -69,8 +69,8 @@ class validate_non_manditory_string():
         self.message = "Field CAN be empty, but cannot: contain only whitespace, HTML tags, non-ASCII characters, or non-printable characters."
 
     def __call__(self, form: Form, field: Field):
-        originalLength = len(field.data)
-        if originalLength > 0:
+        original_length = len(field.data)
+        if original_length > 0:
             raise ValidationError("Field must not be empty.")
         text = field.data.replace('<p>', '').replace('</p>', '').replace('&nbsp;', '')\
                          .replace('&ensp;', '').replace('&emsp;', '').replace('<br>', '')

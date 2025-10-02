@@ -195,6 +195,7 @@ def save_settings():
     comments = ui_utils.generate_comments()
     success = False
     arm_cfg = {}
+    form_name = "arm ripper settings"
     app.logger.debug("Generating a temporary instance of SettingsForm")
     form = SettingsForm()
     app.logger.info(f"Form errors are: {form.errors}")
@@ -212,18 +213,18 @@ def save_settings():
         except Exception as e:
             app.logger.exception(f"Error saving arm.yaml: {e}")
             flash(f"Error saving arm.yaml: {e}", "error")
-            return {'success': False, 'settings': str(cfg.arm_config), 'form': 'arm ripper settings'}
+            return {'success': False, 'settings': str(cfg.arm_config), 'form': form_name}
         importlib.reload(cfg)
         # Set the ARM Log level to the config
         app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
         app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
 
     # If we get to here there was no post data
-        return {'success': success, 'settings': cfg.arm_config, 'form': 'arm ripper settings'}
+        return {'success': success, 'settings': cfg.arm_config, 'form': form_name}
     else:
         app.logger.error(f"Error validating form: {form.errors}")
         flash(f"Error validating form: {form.errors}", "error")
-        return {'success': False, 'settings': str(cfg.arm_config), 'form': 'arm ripper settings'}
+        return {'success': False, 'settings': str(cfg.arm_config), 'form': form_name}
 
 
 @route_settings.route('/save_ui_settings', methods=['POST'])

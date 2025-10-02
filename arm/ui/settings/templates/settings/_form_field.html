@@ -7,18 +7,20 @@
         {{ field(class_="form-control" + ( 'is-invalid' if field.errors else '' ))|safe}}
         {% if field.errors %}
         <div class="invalid-feedback">
+            <ul>
         {% for error in field.errors %}
             <li>{{ error }}</li>
         {% endfor %}
+            </ul>
         </div>
         {% endif %}
     </div>
-    <a class="popovers" onClick='return false;' href=""
+    <button class="popovers" onClick='return false;' href=""
         data-content=" {{ field.render_kw.get('title', '') if field.render_kw else 'No help found' }} "
         rel="popover"
         data-placement="top" data-original-title="{{ field.name }}">
          <img title="More information" src="{{ url_for('static', filename='img/info.png') }}" width="30px"
               height="35px" alt="More info">
-     </a>
+    </button>
 </div>
 {% endmacro %}

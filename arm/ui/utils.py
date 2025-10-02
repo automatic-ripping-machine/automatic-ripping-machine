@@ -345,7 +345,7 @@ def getsize(path: str | Path) -> float:
     return free_gb
 
 
-def jsonFile_to_dict(json_file: str | Path) -> Dict[str, Union[str, int, bool]] | str:
+def json_file_to_dict(json_file: str | Path) -> Dict[str, Union[str, int, bool]] | str:
     """
     Read a json file and return it as a dict
     :param json_file: path to json file
@@ -376,7 +376,7 @@ def jsonFile_to_dict(json_file: str | Path) -> Dict[str, Union[str, int, bool]] 
         return data
 
 
-def listCoPairedIntoTuple(list_of_strings: List[str]) -> list[Tuple[str, str]]:
+def list_copaired_into_tuple(list_of_strings: List[str]) -> list[Tuple[str, str]]:
     """Takes a list of strings, and returns a list of tuples
         [x, y, z] -> [(x,x),(y,y),(z,z)]
 
@@ -396,7 +396,7 @@ def generate_comments():
     :return: json
     """
     comments_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "comments.json")
-    comments = jsonFile_to_dict(comments_file)
+    comments = json_file_to_dict(comments_file)
     return comments
 
 
@@ -407,15 +407,15 @@ class FieldDict(TypedDict):
     formFieldType: str
 
 
-def generate_ripperFormSettings() -> Dict[str, FieldDict]:
+def generate_ripper_form_settings() -> Dict[str, FieldDict]:
     """
     load ripperSettingsConfigFile.json and use it for settings page
     allows us to easily add more settings later
     :return: json
     """
-    ripperFormSettings = os.path.join(os.path.dirname(os.path.abspath(__file__)), ripperSettingsConfigFile)
-    ripperFormSettings = jsonFile_to_dict(ripperFormSettings)
-    return ripperFormSettings
+    ripper_form_settings = os.path.join(os.path.dirname(os.path.abspath(__file__)), ripperSettingsConfigFile)
+    ripper_form_settings = json_file_to_dict(ripper_form_settings)
+    return ripper_form_settings
 
 
 def generate_full_log(full_path: str | Path):

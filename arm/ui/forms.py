@@ -72,11 +72,11 @@ def create_single_choice_field(
     """Create a single choice field, either SelectField or RadioField
     """
     if choices_paired_list is None:
-        choices_paired_list = ui_utils.listCoPairedIntoTuple(listDefault)
+        choices_paired_list = ui_utils.list_copaired_into_tuple(listDefault)
     if not isinstance(choices_paired_list[0], tuple):
         app.logger.warning(f"Expected a list of tuples for {key}, got {type(choices_paired_list[0])}")
         # I am going to assume that the list is a list of strings, and convert it to a list of tuples
-        choices_paired_list = ui_utils.listCoPairedIntoTuple(choices_paired_list)
+        choices_paired_list = ui_utils.list_copaired_into_tuple(choices_paired_list)
     if field_type == "SelectField":
         return SelectField(
                 label=key.replace("_", " "),
@@ -109,7 +109,7 @@ def form_field_chooser(
         Hopefully this should make the 'SettingsForm' function a bit less complex.
 
     Raises:
-        Exception: Unknown Field type
+        ValueError: Unknown Field type
 
     Args:
         fieldType (str): create [SelectField, RadioField, IntegerField, FloatField, StringField]
@@ -137,8 +137,8 @@ def form_field_chooser(
         # SelectField with a list of choices
         if not isinstance(field_default, list):
             app.logger.exception(f"Expected fieldDefault to be a list for {key}, got {type(field_default)}")
-            raise Exception(f"Expected fieldDefault to be a list for {key}, got {type(field_default)}")
-        paired_list = ui_utils.listCoPairedIntoTuple(field_default)
+            raise ValueError(f"Expected fieldDefault to be a list for {key}, got {type(field_default)}")
+        paired_list = ui_utils.list_copaired_into_tuple(field_default)
         f = create_single_choice_field(
             field_type=field_type,
             key=key,
@@ -220,6 +220,7 @@ def SettingsForm() -> FlaskForm:
                 FloatField (Untested), StringField
     Raises:
         Exception: Unknown Field type
+        ValueError: RipperFormConfig or comments.json was problematic
     Returns:
         FlaskForm: SettingsForm
     """
@@ -228,27 +229,27 @@ def SettingsForm() -> FlaskForm:
     class SettingsForm(FlaskForm):
         submit = SubmitField('Submit')
 
-    dictFormFields = ui_utils.generate_ripperFormSettings()
+    dict_form_fields = ui_utils.generate_ripper_form_settings()
     comments = ui_utils.generate_comments()
-    if isinstance(dictFormFields, str):
-        app.logger.exception(f"Settings Form failed, RipperForm config was problematic: {dictFormFields}")
-        raise Exception(f"Settings Form failed, RipperForm config was problematic: {dictFormFields}")
+    if isinstance(dict_form_fields, str):
+        app.logger.exception(f"Settings Form failed, RipperForm config was problematic: {dict_form_fields}")
+        raise ValueError(f"Settings Form failed, RipperForm config was problematic: {dict_form_fields}")
     if isinstance(comments, str):
         app.logger.exception(f"Settings Form failed, RipperForm config was problematic: {comments}")
-        raise Exception(f"Settings Form failed, RipperForm config was problematic: {comments}")
+        raise ValueError(f"Settings Form failed, RipperForm config was problematic: {comments}")
 
-    for key, value in dictFormFields.items():
+    for key, value in dict_form_fields.items():
                 
-        fieldDefault = value["defaultForInternalUse"]
-        fieldType = value["formFieldType"]
+        field_default = value["defaultForInternalUse"]
+        field_type = value["formFieldType"]
 
         if key in comments:
-            commentValue = str(comments[key])
+            comment_value = str(comments[key])
         else:
             app.logger.warning(f"Comment not found for {key}, using empty string")
-            commentValue = ""
-        if commentValue is None:  # type: ignore
-            commentValue = ""
+            comment_value = ""
+        if comment_value is None:  # type: ignore
+            comment_value = ""
         
         # Getting a list of data validations, setting them up as instances of object
         if isinstance(value['dataValidation'], list) and len(value['dataValidation']) > 0:
@@ -257,10 +258,10 @@ def SettingsForm() -> FlaskForm:
         else:
             validators = None
         f = form_field_chooser(
-            field_type=fieldType,
-            field_default=fieldDefault,
+            field_type=field_type,
+            field_default=field_default,
             key=key,
-            comment_value=commentValue,
+            comment_value=comment_value,
             validators=validators
             )
         setattr(SettingsForm, key, f)
