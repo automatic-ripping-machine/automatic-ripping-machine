@@ -101,7 +101,10 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ env.TAG }}
             ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
           labels: ${{ steps.meta.outputs.labels }}
-
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VERSION=${{ env.IMAGE_VERSION }}
+      
       # Fetches all tags for the repo
       - name: Fetch tags
         run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
