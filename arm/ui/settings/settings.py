@@ -197,6 +197,7 @@ def save_settings():
     arm_cfg = {}
     app.logger.debug(f"Generating a temporary instance of SettingsForm")
     form = SettingsForm()
+    app.logger.info(f"Form errors are: {form.errors}")
     if form.validate_on_submit():
         app.logger.debug("Saving Ripper settings")
         # Build the new arm.yaml with updated values from the user

@@ -3,13 +3,14 @@
     <div class="input-group-prepend">
         {{ field.label(class_="input-group-text")}}
     </div>
-    <div>{{ field(class_="form-control")|safe}}
+    <div>
+        {{ field(class_="form-control" + ( 'is-invalid' if field.errors else '' ))|safe}}
         {% if field.errors %}
-        <ul class=errors>
+        <div class="invalid-feedback">
         {% for error in field.errors %}
             <li>{{ error }}</li>
         {% endfor %}
-        </ul>
+        </div>
         {% endif %}
     </div>
     <a class="popovers" onClick='return false;' href=""
