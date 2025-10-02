@@ -3,7 +3,7 @@
     <div class="input-group-prepend">
         {{ field.label(class_="input-group-text")}}
     </div>
-    <div>
+    <div class="input-group-append flex-grow-1">
         {{ field(class_="form-control" + ( 'is-invalid' if field.errors else '' ))|safe}}
         {% if field.errors %}
         <div class="invalid-feedback">

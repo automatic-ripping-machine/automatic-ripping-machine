@@ -32,6 +32,11 @@
         div.custom-switch .custom-control-label {
             color: #ced4da !important;
         }
+        .form-control:focus {
+        border-color: orange;
+        box-shadow: 0 0 0 0.2rem rgba(255, 165, 0, 0.25);
+    }
+
     </style>
     {% if session["arm_name"] %}
         {% if session["page_title"] %}
