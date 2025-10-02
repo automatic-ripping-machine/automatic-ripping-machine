@@ -15,12 +15,64 @@ from .forms_custom_validators import IPAddress_custom, validate_path_exists, val
 
 listDefault = ['True', 'False']
 
+def createValidator(validatorName: str) -> object:
+    """Create a validator object based on the name passed.
+    Used to create validators dynamically.
+    Raises:
+        Exception: Unknown Validator type
+    Args:
+        validatorName (str): Name of the validator to create
+    Returns:
+        object: Validator object
+    """
+    if validatorName is None:
+        return None
+    try:
+        classDefinition = globals().get(validatorName)
+        if classDefinition is None:
+            raise Exception(f"Unknown validator: {validatorName}")
+        if not callable(classDefinition):
+            raise Exception(f"Validator {validatorName} is not callable")
+        validatorInstance = classDefinition()
+        return validatorInstance
+    except Exception as e:
+        app.logger.warning(f"Error creating validator {validatorName}: {e}")
+
+
+def create_list_of_validator_obj(list_of_validator_names: List[str], fieldName:str) -> List[object]:
+    """Create a list of validator objects based on the names passed.
+    Used to create validators dynamically.
+    Raises:
+        Exception: Unknown Validator type
+    Args:
+        list_of_validator_names (List[str]): List of validator names to create
+    Returns:
+        List[object]: List of validator objects
+    """
+    possible_validators = list_of_validator_names
+    validators: List[object] = []
+    # To save scrolling up, here is a list of the imported validators:
+    #   DataRequired, ValidationError, IPAddress, validate_path_exists,
+    #   IPAddress_custom, validate_umask validate_non_manditory_string
+    for x in possible_validators:
+        if x == "validate_umask":
+            app.logger.debug(f"Adding validate_umask to {fieldName}")
+            # validators.append(validate_umask)
+        elif x == "validate_non_manditory_string":
+            app.logger.debug(f"Adding validate_non_manditory_string to {fieldName}")
+            # validators.append(validate_non_manditory_string)
+        else:
+            validator_instance = createValidator(x)
+            validators.append(validator_instance)
+    app.logger.debug(f"Validators gathered for form: {validators}")
+    return validators
+
 
 def createSingleChoiceField(
         fieldType: str,
         key: str,
         commentValue: str,
-        validators: List[Field] | None,
+        validators: List[object] | None,
         choices_paired_list: List[tuple[str, str]] | None = None) -> SelectField | RadioField:
     """Create a single choice field, either SelectField or RadioField
     """
@@ -55,11 +107,11 @@ def formFieldChooser(
         fieldDefault: str | int | float | bool | list[str] | None,
         key: str,
         commentValue: str,
-        validators: List[Field] | None,
+        validators: List[object] | None,
         ) -> Field:
     """
     FormFieldChooser
-        Create a field based on the type passed.
+        Create a field based on the type passed (Inferance).
         Used by SettingsForm to create fields dynamically.
         Hopefully this should make the 'SettingsForm' function a bit less complex.
 
@@ -193,8 +245,10 @@ def SettingsForm() -> FlaskForm:
         raise Exception(f"Settings Form failed, RipperForm config was problematic: {comments}")
 
     for key, value in dictFormFields.items():
-        # Infer the type of form field based on the value type
-        # app.logger.debug(f"Inferring form field type for {key}: {type(value['defaultForInternalUse'])}")
+                
+        fieldDefault = value["defaultForInternalUse"]
+        fieldType = value["formFieldType"]
+
         if key in comments:
             commentValue = str(comments[key])
         else:
@@ -202,35 +256,11 @@ def SettingsForm() -> FlaskForm:
             commentValue = ""
         if commentValue is None:  # type: ignore
             commentValue = ""
-        fieldDefault = value["defaultForInternalUse"]
-        fieldType = value["formFieldType"]
-        # The next is a bit tricky, getting a list of data validations, setting them up as objects
-        # or functions depending on what was passed
-        # app.logger.debug(f"commentValue: {commentValue}, fieldDefault: {fieldDefault}, fieldType: {fieldType}")
+        
+        # Getting a list of data validations, setting them up as instances of object
         if isinstance(value['dataValidation'], list) and len(value['dataValidation']) > 0:
-            possible_validators = value['dataValidation']
-            validators: List[Field] | None = []
-            # To save scrolling up, here is a list of the imported validators:
-            #   DataRequired, ValidationError, IPAddress, validate_path_exists,
-            #   validate_umask validate_non_manditory_string
-            for x in possible_validators:
-                if x == "validate_path_exists":
-                    app.logger.debug(f"Adding validate_path_exists to {key}")
-                    # validators.append(validate_path_exists)
-                elif x == "validate_umask":
-                    app.logger.debug(f"Adding validate_umask to {key}")
-                    # validators.append(validate_umask)
-                elif x == "validate_non_manditory_string":
-                    app.logger.debug(f"Adding validate_non_manditory_string to {key}")
-                    # validators.append(validate_non_manditory_string)
-                else:
-                    try:
-                        n_v_c = globals()[x]
-                        n_v_c = n_v_c()
-                        validators.append(n_v_c)
-                    except Exception as e:
-                        app.logger.warning(f"Error adding validator {x} to {key}: {e}")
-            app.logger.debug(f"Validators gathered for form: {validators}")
+            validators = []
+            validators = create_list_of_validator_obj(value['dataValidation'], fieldName=key)
         else:
             validators = None
         f = formFieldChooser(
