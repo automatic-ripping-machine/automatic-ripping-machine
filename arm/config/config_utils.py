@@ -85,10 +85,10 @@ def arm_yaml_test_and_clean_text(text: str) -> str:
     This really should be hard coded.
     """
     if not all(ord(c) < 128 for c in text):
-        raise Exception("Field must not contain non-ASCII characters.")
+        raise ValueError("Field must not contain non-ASCII characters.")
         # check for non-printable characters
     if not all(c.isprintable() for c in text):
-        raise Exception("Field must not contain non-printable characters.")
+        raise ValueError("Field must not contain non-printable characters.")
     # remove whitespace
     return text.strip().replace("\t", "").replace("\n", "").replace("\r", "").replace("\f", "").replace("\v", "")
 

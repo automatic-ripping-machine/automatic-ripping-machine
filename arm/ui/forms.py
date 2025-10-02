@@ -17,7 +17,7 @@ from .forms_custom_validators import IPAddress_custom, validate_path_exists, \
 listDefault = ['True', 'False']
 
 
-def createObjectInstance(className: str) -> object:
+def create_object_instance(class_name: str) -> object:
     """Create a an object based on the name passed.
     Used originally to create validators dynamically.
     Raises:
@@ -27,21 +27,21 @@ def createObjectInstance(className: str) -> object:
     Returns:
         object: Validator object
     """
-    if className is None:
+    if class_name is None:
         return None
     try:
-        classDefinition = globals().get(className)
-        if classDefinition is None:
-            raise Exception(f"Unknown validator: {className}")
-        if not callable(classDefinition):
-            raise Exception(f"Validator {className} is not callable")
-        validatorInstance = classDefinition()
-        return validatorInstance
+        class_definition = globals().get(class_name)
+        if class_definition is None:
+            raise ValueError(f"Unknown validator: {class_name}")
+        if not callable(class_definition):
+            raise ValueError(f"Validator {class_name} is not callable")
+        validator_instance = class_definition()
+        return validator_instance
     except Exception as e:
-        app.logger.warning(f"Error creating validator {className}: {e}")
+        app.logger.warning(f"Error creating validator {class_name}: {e}")
 
 
-def create_list_of_validator_obj(list_of_validator_names: List[str], fieldName:str) -> List[object]:
+def create_list_of_validator_obj(list_of_validator_names: List[str], field_name:str) -> List[object]:
     """Create a list of validator objects based on the names passed.
     Used to create validators dynamically.
     Raises:
@@ -57,16 +57,16 @@ def create_list_of_validator_obj(list_of_validator_names: List[str], fieldName:s
     #   DataRequired, ValidationError, IPAddress, validate_path_exists,
     #   IPAddress_custom, validate_umask validate_non_manditory_string
     for x in possible_validators:
-            validator_instance = createObjectInstance(className=x)
+            validator_instance = create_object_instance(class_name=x)
             validators.append(validator_instance)
-    app.logger.debug(f"Validators gathered for form: {validators}")
+    app.logger.debug(f"Validators gathered for field {field_name}: {validators} ")
     return validators
 
 
-def createSingleChoiceField(
-        fieldType: str,
+def create_single_choice_field(
+        field_type: str,
         key: str,
-        commentValue: str,
+        comment_value: str,
         validators: List[object] | None,
         choices_paired_list: List[tuple[str, str]] | None = None) -> SelectField | RadioField:
     """Create a single choice field, either SelectField or RadioField
@@ -77,31 +77,29 @@ def createSingleChoiceField(
         app.logger.warning(f"Expected a list of tuples for {key}, got {type(choices_paired_list[0])}")
         # I am going to assume that the list is a list of strings, and convert it to a list of tuples
         choices_paired_list = ui_utils.listCoPairedIntoTuple(choices_paired_list)
-    if fieldType == "SelectField":
+    if field_type == "SelectField":
         return SelectField(
                 label=key.replace("_", " "),
-                description=commentValue,
-                # default=str(fieldDefault).title(),
-                render_kw={'title': commentValue},
+                description=comment_value,
+                render_kw={'title': comment_value},
                 validators=validators,
                 choices=choices_paired_list,
             )
-    if fieldType == "RadioField":
+    if field_type == "RadioField":
         return RadioField(
                 label=key.replace("_", " "),
-                description=commentValue,
-                # default=str(fieldDefault).title(),
-                render_kw={'title': commentValue},
+                description=comment_value,
+                render_kw={'title': comment_value},
                 validators=validators,
                 choices=choices_paired_list,
             )
 
 
-def formFieldChooser(
-        fieldType: str,
-        fieldDefault: str | int | float | bool | list[str] | None,
+def form_field_chooser(
+        field_type: str,
+        field_default: str | int | float | bool | list[str] | None,
         key: str,
-        commentValue: str,
+        comment_value: str,
         validators: List[object] | None,
         ) -> Field:
     """
@@ -125,63 +123,63 @@ def formFieldChooser(
         Field
     """
     key = key.replace("_", " ")
-    if isinstance(fieldDefault, bool) and fieldType in ("SelectField", "RadioField"):
-        f = createSingleChoiceField(
-            fieldType=fieldType,
+    if isinstance(field_default, bool) and field_type in ("SelectField", "RadioField"):
+        f = create_single_choice_field(
+            field_type=field_type,
             key=key,
-            commentValue=commentValue,
+            comment_value=comment_value,
             validators=validators,
             choices_paired_list=None
             )
         return f
 
-    if fieldType in ("SelectField", "RadioField"):
+    if field_type in ("SelectField", "RadioField"):
         # SelectField with a list of choices
-        if not isinstance(fieldDefault, list):
-            app.logger.exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
-            raise Exception(f"Expected fieldDefault to be a list for {key}, got {type(fieldDefault)}")
-        paired_list = ui_utils.listCoPairedIntoTuple(fieldDefault)
-        f = createSingleChoiceField(
-            fieldType=fieldType,
+        if not isinstance(field_default, list):
+            app.logger.exception(f"Expected fieldDefault to be a list for {key}, got {type(field_default)}")
+            raise Exception(f"Expected fieldDefault to be a list for {key}, got {type(field_default)}")
+        paired_list = ui_utils.listCoPairedIntoTuple(field_default)
+        f = create_single_choice_field(
+            field_type=field_type,
             key=key,
-            commentValue=commentValue,
+            comment_value=comment_value,
             validators=validators,
             choices_paired_list=paired_list
             )
         return f
 
-    if fieldType == "IntegerField":
+    if field_type == "IntegerField":
         return IntegerField(
             label=key,
-            description=commentValue,
+            description=comment_value,
             # default=int(fieldDefault),
             validators=validators,
-            render_kw={'title': commentValue}
+            render_kw={'title': comment_value}
             )
-    elif fieldType == "FloatField":
+    elif field_type == "FloatField":
         return FloatField(
             label=key,
-            description=commentValue,
+            description=comment_value,
             # default=float(fieldDefault),
             validators=validators,
-            render_kw={'title': commentValue}
+            render_kw={'title': comment_value}
         )
-    elif fieldType == "StringField":
+    elif field_type == "StringField":
         return StringField(
             label=key,
-            description=commentValue,
+            description=comment_value,
             # default=str(fieldDefault),
             validators=validators,
-            render_kw={'title': commentValue}
+            render_kw={'title': comment_value}
         )
     else:
-        app.logger.warning(f"Unknown type for {key}: {type(fieldType)}, returning StringField")
+        app.logger.warning(f"Unknown type for {key}: {type(field_type)}, returning StringField")
         return StringField(
             label=key,
-            description=commentValue,
+            description=comment_value,
             # default=str(fieldDefault),
             validators=validators,
-            render_kw={'title': commentValue}
+            render_kw={'title': comment_value}
         )
 
 
@@ -255,14 +253,14 @@ def SettingsForm() -> FlaskForm:
         # Getting a list of data validations, setting them up as instances of object
         if isinstance(value['dataValidation'], list) and len(value['dataValidation']) > 0:
             validators = []
-            validators = create_list_of_validator_obj(value['dataValidation'], fieldName=key)
+            validators = create_list_of_validator_obj(value['dataValidation'], field_name=key)
         else:
             validators = None
-        f = formFieldChooser(
-            fieldType=fieldType,
-            fieldDefault=fieldDefault,
+        f = form_field_chooser(
+            field_type=fieldType,
+            field_default=fieldDefault,
             key=key,
-            commentValue=commentValue,
+            comment_value=commentValue,
             validators=validators
             )
         setattr(SettingsForm, key, f)
