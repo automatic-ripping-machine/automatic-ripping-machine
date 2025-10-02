@@ -147,7 +147,8 @@ button.bg-warning:focus {
 }
 
 [data-theme="dark"] .bg-danger {
-  background-color: #ee5f5b !important;
+  background-color: #91130f !important;
+  text-align: center;
 }
 
 [data-theme="dark"] a.bg-danger:hover, a.bg-danger:focus,
@@ -157,7 +158,7 @@ button.bg-danger:focus {
 }
 
 
-[data-theme="dark"] a.bg-light:hover, 
+[data-theme="dark"] a.bg-light:hover,
 [data-theme="dark"] a.bg-light:focus,
 [data-theme="dark"] button.bg-light:hover,
 [data-theme="dark"] button.bg-light:focus {
@@ -168,7 +169,7 @@ button.bg-danger:focus {
   background-color: #272b30 !important;
 }
 
-[data-theme="dark"] a.bg-dark:hover, 
+[data-theme="dark"] a.bg-dark:hover,
 [data-theme="dark"] a.bg-dark:focus,
 [data-theme="dark"] button.bg-dark:hover,
 [data-theme="dark"] button.bg-dark:focus {
@@ -236,7 +237,7 @@ button.bg-danger:focus {
 [data-theme="dark"] .table-bordered td {
     border: 1px solid #dee2e6 !important;
   }
-  
+
 [data-theme="dark"] .table-primary,
 [data-theme="dark"] .table-primary > th,
 [data-theme="dark"] .table-primary > td {
@@ -334,7 +335,7 @@ button.bg-danger:focus {
 [data-theme="dark"] .btn {
     display: inline-block;
     font-weight: 400;
-    color: #aaa;
+    color: #d9d9d9;
     text-align: center;
     vertical-align: middle;
     -webkit-user-select: none;
@@ -349,6 +350,7 @@ button.bg-danger:focus {
     transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     border-color: rgba(0, 0, 0, 0.6);
     text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+    margin-bottom: 15px;
 }
 [data-theme="dark"] button {
     appearance: button;
@@ -376,13 +378,13 @@ button.bg-danger:focus {
     border-radius: 0;
 }
 [data-theme="dark"] button.btn-lg{
-	color: #000!important;
+	color: #e8e6e3!important;
 }
 
 
 [data-theme="dark"] .btn-primary:not([disabled]):not(.disabled):hover,
 [data-theme="dark"] .btn-primary:not([disabled]):not(.disabled):focus,
-[data-theme="dark"] .btn-primary:not([disabled]):not(.disabled):active:hover, 
+[data-theme="dark"] .btn-primary:not([disabled]):not(.disabled):active:hover,
 [data-theme="dark"] .btn-primary:not([disabled]):not(.disabled).active:hover {
   background-image: linear-gradient(#101112, #17191b 40%, #1b1e20);
   background-repeat: no-repeat;
@@ -405,11 +407,12 @@ button.bg-danger:focus {
 [data-theme="dark"] .form-control {
   height: calc(1.5em + 1.5rem + 1px);
   padding: 0.75rem 1rem;
+  margin-right: 1rem;
   font-size: 0.9375rem;
   font-weight: 400;
   line-height: 1.5;
-  color: #52575c;
-  background-color: #e0dede;
+  color: #b1aaa0;
+  background-color: #2a2e2f;
   background-clip: padding-box;
   border: 1px solid #ced4da;
   border-radius: 0.25rem;
@@ -555,7 +558,7 @@ button.bg-danger:focus {
     color: #d6dce2;
     text-align: center;
     white-space: nowrap;
-    background-color: #787a7b;
+    background-color: #5b6367;
     border: 1px solid #ced4da;
     border-radius: 0.25rem;
 }
