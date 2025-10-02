@@ -15,12 +15,11 @@
         </div>
         {% endif %}
     </div>
-    <button class="popovers" onClick='return false;' href=""
+    <button class="btn border-0 popovers p-0 rounded-0" onClick='return false;' href=""
         data-content=" {{ field.render_kw.get('title', '') if field.render_kw else 'No help found' }} "
         rel="popover"
         data-placement="top" data-original-title="{{ field.name }}">
-         <img title="More information" src="{{ url_for('static', filename='img/info.png') }}" width="30px"
-              height="35px" alt="More info">
+         <img class="image-fluid border-0" title="More information" src="{{ url_for('static', filename='img/info.png') }}" width="30px" height="35px" alt="More info">
     </button>
 </div>
 {% endmacro %}
