@@ -188,11 +188,15 @@ def identify_dvd(job):
     # rip out any SKU's at the end of the line
     dvd_title = re.sub(r"SKU\b", "", dvd_title)
     logging.debug(f"dvd_title SKU$: {dvd_title}")
-
+    
     # Do we really need metaselector if we have got from ARM online db?
-    dvd_info_xml = metadata_selector(job, dvd_title, year)
-    logging.debug(f"DVD_INFO_XML: {dvd_info_xml}")
-    identify_loop(job, dvd_info_xml, dvd_title, year)
+    try:
+        dvd_info_xml = metadata_selector(job, dvd_title, year)
+        logging.debug(f"DVD_INFO_XML: {dvd_info_xml}")
+        identify_loop(job, dvd_info_xml, dvd_title, year)
+    except Exception:
+        dvd_info_xml = None
+        logging.debug("Cant connect to online service!")
     # Failsafe so that we always have a title.
     if job.title is None or job.title == "None":
         job.title = str(job.label)
