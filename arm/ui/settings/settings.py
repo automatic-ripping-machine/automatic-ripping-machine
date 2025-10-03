@@ -12,7 +12,7 @@ Covers
 - drive_eject [GET]
 - drive_remove [GET]
 - testapprise [GET]
-- updateCPU [GET]
+- updatesysinfo [GET]
 """
 import platform
 import importlib
@@ -423,10 +423,10 @@ def testapprise():
     return redirect(url_for(REDIRECT_SETTINGS))
 
 
-@route_settings.route('/updatecpu')
-def update_cpu():
+@route_settings.route('/updatesysinfo')
+def update_sysinfo():
     """
-    Update system CPU information
+    Update system information
     """
     # Get current system information from database
     current_system = SystemInfo.query.first()
