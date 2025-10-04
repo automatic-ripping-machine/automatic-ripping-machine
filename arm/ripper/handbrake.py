@@ -202,12 +202,34 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
         # MakeMKV always saves in mkv we need to update the db with the new filename
         logging.debug(destfile + ".mkv")
         job_current_track = job.tracks.filter_by(filename=destfile + ".mkv")
-        for track in job_current_track:
-            logging.debug("filename: " + track.filename)
-            track.orig_filename = track.filename
-            track.filename = destfile + "." + cfg.arm_config["DEST_EXT"]
-            logging.debug("UPDATED filename: " + track.filename)
-            db.session.commit()
+        # Robustly find the Track row corresponding to this file.
+        # 1) try exact filename
+        candidates = list(job.tracks.filter_by(filename=destfile + ".mkv"))
+        # 2) try orig_filename if nothing found
+        if not candidates:
+            candidates = list(job.tracks.filter_by(orig_filename=destfile + ".mkv"))
+        # 3) try parsing MakeMKV style suffix _tNN and match track_number (handle 0/1 base)
+        if not candidates:
+            m = re.search(r"_t(?P<num>\d+)$", destfile)
+            if m:
+                idx = int(m.group("num"))
+                # try both idx and idx+1 to account for t00 vs track_number=1 differences
+                candidates = list(job.tracks.filter_by(track_number=str(idx)))
+                if not candidates:
+                    candidates = list(job.tracks.filter_by(track_number=str(idx + 1)))
+        # 4) fallback: any MakeMKV track that hasn't been updated yet
+        if not candidates:
+            candidates = [t for t in job.tracks if t.source == "MakeMKV"]
+
+        # Update matched tracks (preserve orig_filename)
+        if candidates:
+            for track in candidates:
+                logging.debug("Matched track for file %s -> db filename: %s", files, track.filename)
+                track.orig_filename = track.filename or track.orig_filename or ""
+                track.filename = destfile + "." + cfg.arm_config["DEST_EXT"]
+                db.session.commit()
+        else:
+            logging.warning("No matching Track found in DB for file %s. Skipping DB filename update.", files)
         filename = os.path.join(basepath, destfile + "." + cfg.arm_config["DEST_EXT"])
         filepathname = os.path.join(basepath, filename)
 
