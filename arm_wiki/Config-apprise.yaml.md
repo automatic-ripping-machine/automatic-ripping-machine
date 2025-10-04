@@ -60,6 +60,7 @@ If you would like a services added to ARM that is not yet listed here, please op
   - Mailgun
   - Boxcar
   - Discord
+  - [Email](https://github.com/caronc/apprise/wiki/Notify_email)
   - Fast
   - Flock
   - Gitter
