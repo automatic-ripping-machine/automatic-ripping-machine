@@ -42,7 +42,7 @@ if [ "$ID_CDROM_MEDIA_DVD" == "1" ]; then
 elif [ "$ID_CDROM_MEDIA_BD" == "1" ]; then
 	  echo "[ARM] Starting ARM for Bluray on ${DEVNAME}" >> $ARMLOG
 	  echo "$(date) [[ARM] Starting ARM for Bluray on ${DEVNAME}" | logger -t ARM -s
-elif [ "$ID_CDROM_MEDIA_CD" == "1" ]; then
+elif [ "$ID_CDROM_MEDIA_CD" == "1" ] || [ "$ID_CDROM_MEDIA_CD_R" == "1" ] || [ "$ID_CDROM_MEDIA_CD_RW" == "1" ]; then
 	  echo "[ARM] Starting ARM for CD on ${DEVNAME}" | logger -t ARM -s
 	  echo "$(date) [[ARM] Starting ARM for CD on ${DEVNAME}" >> $ARMLOG
 elif [ "$ID_FS_TYPE" != "" ]; then
