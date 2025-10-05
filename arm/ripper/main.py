@@ -34,7 +34,6 @@ def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Process disc using ARM')
     parser.add_argument('-d', '--devpath', help='Devpath', required=True)
-    parser.add_argument('-p', '--protection', help='Does disc have 99 track protection', required=False)
     return parser.parse_args()
 
 
@@ -89,7 +88,7 @@ def check_fstab():
     logging.error("No fstab entry found.  ARM will likely fail.")
 
 
-def main(logfile, job, protection=0):
+def main(logfile, job):
     """main disc processing function"""
     logging.info("Starting Disc identification")
     identify.identify(job)
@@ -108,7 +107,7 @@ def main(logfile, job, protection=0):
     # Ripper type assessment for the various media types
     # Type: dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
-        arm_ripper.rip_visual_media(have_dupes, job, logfile, protection)
+        arm_ripper.rip_visual_media(have_dupes, job, logfile, job.has_track_99)
 
     # Type: Music
     elif job.disctype == "music":
@@ -188,8 +187,6 @@ if __name__ == "__main__":
     utils.duplicate_run_check(devpath)
 
     logging.info(f"************* Starting ARM processing at {datetime.datetime.now()} *************")
-    if args.protection:
-        logging.warning("Found 99 Track protection system - Job may fail!")
     # Set job status and start time
     job.status = JobState.IDLE.value
     job.start_time = datetime.datetime.now()
@@ -226,7 +223,7 @@ if __name__ == "__main__":
     log_udev_params(devpath)
 
     try:
-        main(log_file, job, args.protection)
+        main(log_file, job)
     except Exception as error:
         logging.error(error, exc_info=True)
         logging.error("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
