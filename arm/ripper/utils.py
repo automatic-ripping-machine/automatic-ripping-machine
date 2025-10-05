@@ -203,32 +203,9 @@ def move_files(base_path, filename, job, is_main_feature=False):
     logging.debug(f"Arguments: {base_path} : {filename} : "
                   f"{job.hasnicetitle} : {video_title} : {is_main_feature}")
     # If filename is blank skip and return
-
     if filename == "":
         logging.info(f"{filename} is empty... Skipping")
         return None
-
-    # Try to resolve off-by-one errors in filename
-    full_path = os.path.join(base_path, filename)
-    if not os.path.isfile(full_path):
-        # Try t(N-1) and t(N+1)
-        import re
-        match = re.match(r'(.*_t)(\d+)(\.mkv)', filename)
-        if match:
-            prefix, num, suffix = match.groups()
-            num = int(num)
-            for offset in [-1, 1]:
-                alt_num = num + offset
-                alt_filename = f"{prefix}{alt_num:02d}{suffix}"
-                alt_full_path = os.path.join(base_path, alt_filename)
-                if os.path.isfile(alt_full_path):
-                    logging.warning(f"Expected {filename} not found, using {alt_filename} instead due to possible track number mismatch.")
-                    filename = alt_filename
-                    full_path = alt_full_path
-                    break
-        if not os.path.isfile(full_path):
-            logging.error(f"Expected file {filename} not found in {base_path} and no close match found.")
-            return None
 
     movie_path = job.path
     logging.info(f"Moving {job.video_type} {filename} to {movie_path}")
