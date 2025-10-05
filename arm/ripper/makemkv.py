@@ -762,10 +762,11 @@ def rip_mainfeature(job, track, rawpath):
         "mkv",
     ]
     cmd += shlex.split(job.config.MKV_ARGS)
+    # MakeMKV expects 0-indexed title numbers, so subtract 1 from our 1-indexed track_number
     cmd += [
         f"--progress={progress_log(job)}",
         f"dev:{job.devpath}",
-        track.track_number,
+        str(int(track.track_number) - 1),
         rawpath,
         f"--minlength={job.config.MINLENGTH}",
     ]
@@ -814,10 +815,11 @@ def process_single_tracks(job, rawpath, mode: str):
                 "mkv",
             ]
             cmd += shlex.split(job.config.MKV_ARGS)
+            # MakeMKV expects 0-indexed title numbers, so subtract 1 from our 1-indexed track_number
             cmd += [
                 f"--progress={progress_log(job)}",
                 f"dev:{job.devpath}",
-                track.track_number,
+                str(int(track.track_number) - 1),
                 rawpath,
             ]
             logging.debug("Starting to rip single track.")
@@ -973,9 +975,10 @@ class TrackInfoProcessor:
     def _add_track(self):
         if self.track_id is None:
             return
+        # MakeMKV uses 0-indexed titles, but we store 1-indexed for consistency with HandBrake
         utils.put_track(
             self.job,
-            self.track_id,
+            str(int(self.track_id) + 1),
             self.seconds,
             self.aspect,
             str(self.fps),
