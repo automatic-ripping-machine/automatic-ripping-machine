@@ -105,58 +105,64 @@ def handbrake_all(srcpath, basepath, logfile, job):
     logging.debug(f"Total number of tracks is {job.no_of_titles}")
 
     for track in job.tracks:
-        # Skip tracks beyond the maximum title count or those outside the length filter
+        # Don't raise error if we past max titles, skip and continue till HandBrake finishes
         if int(track.track_number) > job.no_of_titles:
             continue
         if track.length < int(cfg.arm_config["MINLENGTH"]):
-            logging.info(f"Track #{track.track_number} of {job.no_of_titles}: Length ({track.length}) is less than minimum length ({cfg.arm_config['MINLENGTH']}). Skipping...")
-            continue
+            # too short
+            logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
+                         f"Length ({track.length}) is less than minimum length ({cfg.arm_config['MINLENGTH']}). "
+                         f"Skipping...")
         elif track.length > int(cfg.arm_config["MAXLENGTH"]):
-            logging.info(f"Track #{track.track_number} of {job.no_of_titles}: Length ({track.length}) is greater than maximum length ({cfg.arm_config['MAXLENGTH']}). Skipping...")
-            continue
+            # too long
+            logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
+                         f"Length ({track.length}) is greater than maximum length ({cfg.arm_config['MAXLENGTH']}). "
+                         f"Skipping...")
+        else:
+            # just right
+            logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. "
+                         f"Length is {track.length} seconds.")
 
-        logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. Length is {track.length} seconds.")
+            track.filename = track.orig_filename = f"title_{track.track_number}.{cfg.arm_config['DEST_EXT']}"
+            filepathname = os.path.join(basepath, track.filename)
 
-        # Authoritative source of truth for the destination path
-        filename = f"title_{track.track_number}.{cfg.arm_config['DEST_EXT']}"
-        filepathname = os.path.join(basepath, filename)
+            logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
 
-        logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
-
-        # Propagate the authoritative basename into track.filename
-        track.filename = track.orig_filename = filename
-        db.session.commit()
-
-        cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
-              f"-i {shlex.quote(srcpath)} " \
-              f"-o {shlex.quote(filepathname)} " \
-              f"--preset \"{hb_preset}\" " \
-              f"-t {track.track_number} " \
-              f"{hb_args} " \
-              f">> {logfile} 2>&1"
-
-        logging.debug(f"Sending command: {cmd}")
-
-        try:
-            hand_brake_output = subprocess.check_output(
-                cmd,
-                shell=True
-            ).decode("utf-8")
-            logging.debug(f"Handbrake exit code: {hand_brake_output}")
-            track.status = "success"
-        except subprocess.CalledProcessError as hb_error:
-            err = f"Handbrake encoding of title {track.track_number} failed with code: {hb_error.returncode} ({hb_error.output})"
-            logging.error(err)
-            track.status = "fail"
-            track.error = err
+            track.filename = track.orig_filename = filename
             db.session.commit()
-            raise subprocess.CalledProcessError(hb_error.returncode, cmd)
 
-        track.ripped = True
-        db.session.commit()
+            cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
+                  f"-i {shlex.quote(srcpath)} " \
+                  f"-o {shlex.quote(filepathname)} " \
+                  f"--preset \"{hb_preset}\" " \
+                  f"-t {track.track_number} " \
+                  f"{hb_args} " \
+                  f">> {logfile} 2>&1"
+
+            logging.debug(f"Sending command: {cmd}")
+
+            try:
+                hand_brake_output = subprocess.check_output(
+                    cmd,
+                    shell=True
+                ).decode("utf-8")
+                logging.debug(f"Handbrake exit code: {hand_brake_output}")
+                track.status = "success"
+            except subprocess.CalledProcessError as hb_error:
+                err = f"Handbrake encoding of title {track.track_number} failed with code: {hb_error.returncode}" \
+                      f"({hb_error.output})"
+                logging.error(err)
+                track.status = "fail"
+                track.error = err
+                db.session.commit()
+                raise subprocess.CalledProcessError(hb_error.returncode, cmd)
+
+            track.ripped = True
+            db.session.commit()
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
+
 
 def correct_hb_settings(job):
     """
@@ -196,34 +202,12 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
         # MakeMKV always saves in mkv we need to update the db with the new filename
         logging.debug(destfile + ".mkv")
         job_current_track = job.tracks.filter_by(filename=destfile + ".mkv")
-        # Robustly find the Track row corresponding to this file.
-        # 1) try exact filename
-        candidates = list(job.tracks.filter_by(filename=destfile + ".mkv"))
-        # 2) try orig_filename if nothing found
-        if not candidates:
-            candidates = list(job.tracks.filter_by(orig_filename=destfile + ".mkv"))
-        # 3) try parsing MakeMKV style suffix _tNN and match track_number (handle 0/1 base)
-        if not candidates:
-            m = re.search(r"_t(?P<num>\d+)$", destfile)
-            if m:
-                idx = int(m.group("num"))
-                # try both idx and idx+1 to account for t00 vs track_number=1 differences
-                candidates = list(job.tracks.filter_by(track_number=str(idx)))
-                if not candidates:
-                    candidates = list(job.tracks.filter_by(track_number=str(idx + 1)))
-        # 4) fallback: any MakeMKV track that hasn't been updated yet
-        if not candidates:
-            candidates = [t for t in job.tracks if t.source == "MakeMKV"]
-
-        # Update matched tracks (preserve orig_filename)
-        if candidates:
-            for track in candidates:
-                logging.debug("Matched track for file %s -> db filename: %s", files, track.filename)
-                track.orig_filename = track.filename or track.orig_filename or ""
-                track.filename = destfile + "." + cfg.arm_config["DEST_EXT"]
-                db.session.commit()
-        else:
-            logging.warning("No matching Track found in DB for file %s. Skipping DB filename update.", files)
+        for track in job_current_track:
+            logging.debug("filename: " + track.filename)
+            track.orig_filename = track.filename
+            track.filename = destfile + "." + cfg.arm_config["DEST_EXT"]
+            logging.debug("UPDATED filename: " + track.filename)
+            db.session.commit()
         filename = os.path.join(basepath, destfile + "." + cfg.arm_config["DEST_EXT"])
         filepathname = os.path.join(basepath, filename)
 
