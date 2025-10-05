@@ -64,25 +64,31 @@ class validate_umask():
 
 
 class validate_non_manditory_string():
-    """Field CAN be empty, but cannot: contain only whitespace, HTML tags, non-ASCII characters, or non-printable characters.    """
+    """
+    Validator for a non field that CAN be empty, 
+    but cannot: 
+        contain only whitespace,
+        HTML tags,
+        non-ASCII characters, or non-printable characters.    
+    """
     def __init__(self):
-        self.message = "Field CAN be empty, but cannot: contain only whitespace, HTML tags, non-ASCII characters, or non-printable characters."
+        self.message = "CAN be empty, but cannot: contain only whitespace, \
+            HTML tags, non-ASCII characters, or non-printable characters."
 
     def __call__(self, form: Form, field: Field):
         original_length = len(field.data)
         if original_length > 0:
-            raise ValidationError("Field must not be empty.")
-        text = field.data.replace('<p>', '').replace('</p>', '').replace('&nbsp;', '')\
-                         .replace('&ensp;', '').replace('&emsp;', '').replace('<br>', '')
-        if len(text) == 0:
-            raise ValidationError("Field must not contain only HTML tags.")
-        # check for non-ASCII characters
-        if not all(ord(c) < 128 for c in text):
-            raise ValidationError("Field must not contain non-ASCII characters.")
-        # check for non-printable chara cters
-        if not all(c.isprintable() for c in text):
-            raise ValidationError("Field must not contain non-printable characters.")
-        # remove whitespace
-        text = text.strip().replace("\t", "").replace("\n", "").replace("\r", "").replace("\f", "").replace("\v", "")
-        if len(text) == 0:
-            raise ValidationError("Field must not contain only whitespace.")
+            text = field.data.replace('<p>', '').replace('</p>', '').replace('&nbsp;', '')\
+                             .replace('&ensp;', '').replace('&emsp;', '').replace('<br>', '')
+            if len(text) == 0:
+                raise ValidationError(f"{field.name} {self.message} it contains, only HTML tags.")
+            # check for non-ASCII characters
+            if not all(ord(c) < 128 for c in text):
+                raise ValidationError(f"{field.name} {self.message} it contains non-ASCII characters.")
+            # check for non-printable chara cters
+            if not all(c.isprintable() for c in text):
+                raise ValidationError(f"{field.name}  {self.message} it contains non-printable characters.")
+            # remove whitespace
+            text = text.strip().replace("\t", "").replace("\n", "").replace("\r", "").replace("\f", "").replace("\v", "")
+            if len(text) == 0:
+                raise ValidationError(f"{field.name} {self.message} it contains only whitespace.")
