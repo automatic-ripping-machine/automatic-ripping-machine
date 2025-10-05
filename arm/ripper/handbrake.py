@@ -89,11 +89,11 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
 
 def handbrake_all(srcpath, basepath, logfile, job):
     """
-    Process all titles on the dvd\n
-    :param srcpath: Path to source for HB (dvd or files)\n
-    :param basepath: Path where HB will save trancoded files\n
-    :param logfile: Logfile for HB to redirect output to\n
-    :param job: Disc object\n
+    Process all titles on the dvd
+    :param srcpath: Path to source for HB (dvd or files)
+    :param basepath: Path where HB will save transcoded files
+    :param logfile: Logfile for HB to redirect output to
+    :param job: Disc object
     :return: None
     """
     handbrake_sleep_check(job)
@@ -105,64 +105,58 @@ def handbrake_all(srcpath, basepath, logfile, job):
     logging.debug(f"Total number of tracks is {job.no_of_titles}")
 
     for track in job.tracks:
-        # Don't raise error if we past max titles, skip and continue till HandBrake finishes
+        # Skip tracks beyond the maximum title count or those outside the length filter
         if int(track.track_number) > job.no_of_titles:
             continue
         if track.length < int(cfg.arm_config["MINLENGTH"]):
-            # too short
-            logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
-                         f"Length ({track.length}) is less than minimum length ({cfg.arm_config['MINLENGTH']}). "
-                         f"Skipping...")
+            logging.info(f"Track #{track.track_number} of {job.no_of_titles}: Length ({track.length}) is less than minimum length ({cfg.arm_config['MINLENGTH']}). Skipping...")
+            continue
         elif track.length > int(cfg.arm_config["MAXLENGTH"]):
-            # too long
-            logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
-                         f"Length ({track.length}) is greater than maximum length ({cfg.arm_config['MAXLENGTH']}). "
-                         f"Skipping...")
-        else:
-            # just right
-            logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. "
-                         f"Length is {track.length} seconds.")
+            logging.info(f"Track #{track.track_number} of {job.no_of_titles}: Length ({track.length}) is greater than maximum length ({cfg.arm_config['MAXLENGTH']}). Skipping...")
+            continue
 
-            filename = f"title_{track.track_number}.{cfg.arm_config['DEST_EXT']}"
-            filepathname = os.path.join(basepath, filename)
+        logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. Length is {track.length} seconds.")
 
-            logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
+        # Authoritative source of truth for the destination path
+        filename = f"title_{track.track_number}.{cfg.arm_config['DEST_EXT']}"
+        filepathname = os.path.join(basepath, filename)
 
-            track.filename = track.orig_filename = filename
+        logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
+
+        # Propagate the authoritative basename into track.filename
+        track.filename = track.orig_filename = filename
+        db.session.commit()
+
+        cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
+              f"-i {shlex.quote(srcpath)} " \
+              f"-o {shlex.quote(filepathname)} " \
+              f"--preset \"{hb_preset}\" " \
+              f"-t {track.track_number} " \
+              f"{hb_args} " \
+              f">> {logfile} 2>&1"
+
+        logging.debug(f"Sending command: {cmd}")
+
+        try:
+            hand_brake_output = subprocess.check_output(
+                cmd,
+                shell=True
+            ).decode("utf-8")
+            logging.debug(f"Handbrake exit code: {hand_brake_output}")
+            track.status = "success"
+        except subprocess.CalledProcessError as hb_error:
+            err = f"Handbrake encoding of title {track.track_number} failed with code: {hb_error.returncode} ({hb_error.output})"
+            logging.error(err)
+            track.status = "fail"
+            track.error = err
             db.session.commit()
+            raise subprocess.CalledProcessError(hb_error.returncode, cmd)
 
-            cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
-                  f"-i {shlex.quote(srcpath)} " \
-                  f"-o {shlex.quote(filepathname)} " \
-                  f"--preset \"{hb_preset}\" " \
-                  f"-t {track.track_number} " \
-                  f"{hb_args} " \
-                  f">> {logfile} 2>&1"
-
-            logging.debug(f"Sending command: {cmd}")
-
-            try:
-                hand_brake_output = subprocess.check_output(
-                    cmd,
-                    shell=True
-                ).decode("utf-8")
-                logging.debug(f"Handbrake exit code: {hand_brake_output}")
-                track.status = "success"
-            except subprocess.CalledProcessError as hb_error:
-                err = f"Handbrake encoding of title {track.track_number} failed with code: {hb_error.returncode}" \
-                      f"({hb_error.output})"
-                logging.error(err)
-                track.status = "fail"
-                track.error = err
-                db.session.commit()
-                raise subprocess.CalledProcessError(hb_error.returncode, cmd)
-
-            track.ripped = True
-            db.session.commit()
+        track.ripped = True
+        db.session.commit()
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
-
 
 def correct_hb_settings(job):
     """
