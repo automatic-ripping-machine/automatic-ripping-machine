@@ -42,7 +42,7 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     handbrake_sleep_check(job)
     logging.info("Starting DVD Movie main_feature processing")
 
-    filename = os.path.join(basepath, job.title + "." + cfg.arm_config["DEST_EXT"])
+    filename = job.title + "." + cfg.arm_config["DEST_EXT"]
     filepathname = os.path.join(basepath, filename)
     logging.info(f"Ripping title main_feature to {shlex.quote(filepathname)}")
 
