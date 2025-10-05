@@ -42,7 +42,7 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     handbrake_sleep_check(job)
     logging.info("Starting DVD Movie main_feature processing")
 
-    filename = os.path.join(basepath, job.title + "." + cfg.arm_config["DEST_EXT"])
+    filename = job.title + "." + cfg.arm_config["DEST_EXT"]
     filepathname = os.path.join(basepath, filename)
     logging.info(f"Ripping title main_feature to {shlex.quote(filepathname)}")
 
@@ -207,7 +207,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
             track.filename = destfile + "." + cfg.arm_config["DEST_EXT"]
             logging.debug("UPDATED filename: " + track.filename)
             db.session.commit()
-        filename = os.path.join(basepath, destfile + "." + cfg.arm_config["DEST_EXT"])
+        filename = destfile + "." + cfg.arm_config["DEST_EXT"]
         filepathname = os.path.join(basepath, filename)
 
         logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(filepathname)}")
