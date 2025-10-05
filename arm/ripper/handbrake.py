@@ -207,7 +207,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
             track.filename = destfile + "." + cfg.arm_config["DEST_EXT"]
             logging.debug("UPDATED filename: " + track.filename)
             db.session.commit()
-        filename = os.path.join(basepath, destfile + "." + cfg.arm_config["DEST_EXT"])
+        filename = destfile + "." + cfg.arm_config["DEST_EXT"]
         filepathname = os.path.join(basepath, filename)
 
         logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(filepathname)}")
