@@ -128,7 +128,6 @@ def handbrake_all(srcpath, basepath, logfile, job):
 
             logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
 
-            track.filename = track.orig_filename = filename
             db.session.commit()
 
             cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
