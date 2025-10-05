@@ -20,11 +20,11 @@
             </DockerEnvVarImpl>
             <DockerEnvVarImpl>
               <option name="name" value="MYSQL_IP" />
-              <option name="value" value="192.168.1.208" />
+              <option name="value" value="mysql_db_server" />
             </DockerEnvVarImpl>
             <DockerEnvVarImpl>
               <option name="name" value="MYSQL_PASSWORD" />
-              <option name="value" value="example" />
+              <option name="value" value="password" />
             </DockerEnvVarImpl>
             <DockerEnvVarImpl>
               <option name="name" value="MYSQL_USER" />
@@ -39,8 +39,8 @@
         <option name="portBindings">
           <list>
             <DockerPortBindingImpl>
-              <option name="containerPort" value="8080" />
-              <option name="hostPort" value="8880" />
+              <option name="containerPort" value="81" />
+              <option name="hostPort" value="8890" />
             </DockerPortBindingImpl>
             <DockerPortBindingImpl>
               <option name="containerPort" value="80" />
@@ -48,30 +48,30 @@
             </DockerPortBindingImpl>
           </list>
         </option>
-        <option name="commandLineOptions" value="-device /dev/sr0&#10;-device /dev/sg4&#10;--gpus all" />
+        <option name="commandLineOptions" value="--network my_network --device /dev/sr0 --device /dev/sg0 --gpus all --privileged" />
         <option name="showCommandPreview" value="true" />
         <option name="sourceFilePath" value="Dockerfile" />
         <option name="volumeBindings">
           <list>
             <DockerVolumeBindingImpl>
-              <option name="containerPath" value="$PROJECT_DIR$/../../../arm" />
-              <option name="hostPath" value="$PROJECT_DIR$/../../../arm" />
+              <option name="containerPath" value="$PROJECT_DIR$/../../arm" />
+              <option name="hostPath" value="$PROJECT_DIR$/../../arm" />
             </DockerVolumeBindingImpl>
             <DockerVolumeBindingImpl>
-              <option name="containerPath" value="$PROJECT_DIR$/../../../arm/Music" />
-              <option name="hostPath" value="$PROJECT_DIR$/../../../arm/Music" />
+              <option name="containerPath" value="$PROJECT_DIR$/../../arm/Music" />
+              <option name="hostPath" value="$PROJECT_DIR$/../../arm/music/" />
             </DockerVolumeBindingImpl>
             <DockerVolumeBindingImpl>
-              <option name="containerPath" value="$PROJECT_DIR$/../../../arm/media" />
-              <option name="hostPath" value="$PROJECT_DIR$/../../../arm/media" />
+              <option name="containerPath" value="$PROJECT_DIR$/../../arm/media" />
+              <option name="hostPath" value="$PROJECT_DIR$/../../arm/" />
             </DockerVolumeBindingImpl>
             <DockerVolumeBindingImpl>
               <option name="containerPath" value="/etc/arm/config" />
               <option name="hostPath" value="/etc/arm/config" />
             </DockerVolumeBindingImpl>
             <DockerVolumeBindingImpl>
-              <option name="containerPath" value="$PROJECT_DIR$/../../../arm/logs" />
-              <option name="hostPath" value="$PROJECT_DIR$/../../../arm/logs" />
+              <option name="containerPath" value="$PROJECT_DIR$/../../arm/logs" />
+              <option name="hostPath" value="$PROJECT_DIR$/../../arm/logs" />
             </DockerVolumeBindingImpl>
           </list>
         </option>
