@@ -806,7 +806,7 @@ def process_single_tracks(job, rawpath, mode: str):
 
         # Rip the track if the user has set it to rip, or in auto mode and the time is good
         if track.process:
-            logging.info(f"Processing track #{track.track_number} of {(job.no_of_titles - 1)}. "
+            logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. "
                          f"Length is {track.length} seconds.")
             filepathname = os.path.join(rawpath, track.filename)
             logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
