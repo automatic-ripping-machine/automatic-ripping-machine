@@ -89,11 +89,11 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
 
 def handbrake_all(srcpath, basepath, logfile, job):
     """
-    Process all titles on the dvd
-    :param srcpath: Path to source for HB (dvd or files)
-    :param basepath: Path where HB will save transcoded files
-    :param logfile: Logfile for HB to redirect output to
-    :param job: Disc object
+    Process all titles on the dvd\n
+    :param srcpath: Path to source for HB (dvd or files)\n
+    :param basepath: Path where HB will save trancoded files\n
+    :param logfile: Logfile for HB to redirect output to\n
+    :param job: Disc object\n
     :return: None
     """
     handbrake_sleep_check(job)
