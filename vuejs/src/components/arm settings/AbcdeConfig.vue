@@ -15,7 +15,7 @@ export default {
     async getData() {
       try {
         const response = await axios.get(
-            this.arm_API + "/settings/get_apprise"
+            this.arm_API + "/settings/get_abcde"
         );
         // JSON responses are automatically parsed.
         this.liveConfig = response.data;
@@ -23,6 +23,15 @@ export default {
         console.log(error);
       }
     },
+    submit: function () {
+      this.liveConfig._method = 'PUT'
+      axios.put(this.arm_API + "/settings/get_apprise", this.liveConfig)
+          .then((data) => {
+            console.log(data)
+          }, (error) => {
+            console.log(error);
+          })
+    }
   },
 
   created() {
@@ -38,7 +47,8 @@ export default {
     </div>
     <div class="row justify-content-center" style="flex-wrap: nowrap">
       <div class="col-10">
-        <form id="abcdeSettings" name="abcdeSettings" method="post" action="">
+
+        <form ref="form" @submit.prevent="submit" id="abcdeSettings" name="abcdeSettings">
           <label for="abcdeConfigText">ABCDE Config:</label>
           <textarea id="abcdeConfigText" name="abcdeConfig" spellcheck="false"
                     class="w-100 form-control min-vh-100" :value="liveConfig">{{ liveConfig }}</textarea>

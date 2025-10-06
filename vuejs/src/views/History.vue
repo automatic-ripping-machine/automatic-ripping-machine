@@ -1,5 +1,6 @@
+<style src="@/assets/css/job-details.css"></style>
+
 <template>
-  <link rel="stylesheet" href="/src/assets/css/job-details.css">
   <div class="jumbotron m-5 mb-5">
     <div class="row">
       <div class="col-12">

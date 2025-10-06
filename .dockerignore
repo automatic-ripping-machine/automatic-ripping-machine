@@ -216,7 +216,8 @@ cython_debug/
 .dockerignore
 .gitignore
 .gitmodules
-
+/vuejs/node_modules
+/docs
 *.yml
 *.md
 !README.md

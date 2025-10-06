@@ -312,14 +312,36 @@ def update_ui_settings(session: Session, info_update, config_id: int = 1):
     return ui_settings
 
 
-def get_abcde_settings(session: Session) -> UISettings:
+def get_abcde_settings():
     """
     Update/create the ui settings if needed
     :param session: Current db session
     :return: The ui settings
     """
-    return session.query(UISettings).first()
+    abcde_config_path = "/etc/arm/config/abcde.conf"
+    with open(abcde_config_path, "r") as abcde_read_file:
+        config = abcde_read_file.read()
+    return config
 
+def update_abcde_settings(new_settings):
+    success = False
+    print(f"routes.save_abcde: Saving new abcde.conf: /etc/arm/config/abcde.conf")
+    abcde_cfg_str = str(new_settings).strip()
+    # Windows machines can put \r\n instead of \n newlines, which corrupts the config file
+    clean_abcde_str = '\n'.join(abcde_cfg_str.splitlines())
+    # Save updated abcde.conf
+    try:
+        with open("/etc/arm/config/abcde.conf", "w") as abcde_file:
+            abcde_file.write(clean_abcde_str)
+            abcde_file.close()
+        success = True
+    except FileNotFoundError:
+        print("Cant find file")
+
+    # If we get to here, there was no post-data
+    return {'success': success,
+            'settings': clean_abcde_str,
+            'form': 'abcde config'}
 
 def get_apprise_settings(session: Session) -> AppriseConfig:
     """
