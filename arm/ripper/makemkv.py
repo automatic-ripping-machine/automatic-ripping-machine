@@ -762,11 +762,10 @@ def rip_mainfeature(job, track, rawpath):
         "mkv",
     ]
     cmd += shlex.split(job.config.MKV_ARGS)
-    # MakeMKV expects 0-indexed title numbers, so subtract 1 from our 1-indexed track_number
     cmd += [
         f"--progress={progress_log(job)}",
         f"dev:{job.devpath}",
-        str(int(track.track_number) - 1),
+        track.track_number,
         rawpath,
         f"--minlength={job.config.MINLENGTH}",
     ]
@@ -806,7 +805,7 @@ def process_single_tracks(job, rawpath, mode: str):
 
         # Rip the track if the user has set it to rip, or in auto mode and the time is good
         if track.process:
-            logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. "
+            logging.info(f"Processing track #{track.track_number} of {(job.no_of_titles - 1)}. "
                          f"Length is {track.length} seconds.")
             filepathname = os.path.join(rawpath, track.filename)
             logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
@@ -815,11 +814,10 @@ def process_single_tracks(job, rawpath, mode: str):
                 "mkv",
             ]
             cmd += shlex.split(job.config.MKV_ARGS)
-            # MakeMKV expects 0-indexed title numbers, so subtract 1 from our 1-indexed track_number
             cmd += [
                 f"--progress={progress_log(job)}",
                 f"dev:{job.devpath}",
-                str(int(track.track_number) - 1),
+                track.track_number,
                 rawpath,
             ]
             logging.debug("Starting to rip single track.")
@@ -975,10 +973,9 @@ class TrackInfoProcessor:
     def _add_track(self):
         if self.track_id is None:
             return
-        # MakeMKV uses 0-indexed titles, but we store 1-indexed for consistency with HandBrake
         utils.put_track(
             self.job,
-            str(int(self.track_id) + 1),
+            self.track_id,
             self.seconds,
             self.aspect,
             str(self.fps),
