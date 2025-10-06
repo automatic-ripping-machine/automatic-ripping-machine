@@ -3,8 +3,7 @@
 #requirements added for PR#551
 argparse==1.4.0
 colorama==0.4.4
-#requirements added for PR#650
-flake8==6.0.0
 mysql-connector-python==8.1.0
 robobrowser
 SQLAlchemy>=2.0
+bcrypt

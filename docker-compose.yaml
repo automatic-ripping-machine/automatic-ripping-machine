@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  arm-rippers:
+    image: automaticrippingmachine/automatic-ripping-machine:test
+    container_name: arm-rippers
+    environment:
+      ARM_GID: "1001"
+      ARM_UID: "1001"
+      DEBUG: "1"
+      MYSQL_IP: mysql-db
+      MYSQL_PASSWORD: password
+      MYSQL_USER: root
+      NVIDIA_DRIVER_CAPABILITIES: "all"
+    ports:
+      - "8890:81"
+      - "8889:80"
+    networks:
+      - my_network
+    devices:
+      - "/dev/sr0:/dev/sr0"
+      - "/dev/sg0:/dev/sg0"
+    privileged: true
+    volumes:
+      - /home/arm:/home/arm
+      - /home/arm/music:/home/arm/Music
+      - /home/arm/:/home/arm/media
+      - /etc/arm/config:/etc/arm/config
+      - /home/arm/logs:/home/arm/logs
+    depends_on:
+      - mysql-db
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [ gpu ]
+
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql_db_server
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: arm
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - my_network
+
+volumes:
+  mysql-data:
+
+networks:
+  my_network:
+    external: true

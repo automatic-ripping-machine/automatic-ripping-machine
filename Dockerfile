@@ -83,6 +83,7 @@ RUN apt update && apt install -y \
         python3-dev \
         python3-pip \
         nano \
+        libdiscid0 \
         # arm extra requirements
         scons swig libzbar-dev libzbar0 \
         curl sudo nginx \
@@ -90,7 +91,7 @@ RUN apt update && apt install -y \
 
 COPY api/requirements.txt /app/api/requirements.txt
 RUN pip3 install --upgrade pip wheel setuptools psutil pyudev \
-    && pip3 install --no-cache-dir --upgrade -r /app/api/requirements.txt
+    && pip3 install --no-cache-dir --ignore-installed --prefer-binary -r /app/api/requirements.txt
 # Create our startup scripts
 RUN mkdir -p /etc/my_init.d
 COPY ./scripts/docker/runit/arm_user_files_setup.sh /etc/my_init.d/arm_user_files_setup.sh
