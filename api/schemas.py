@@ -110,7 +110,7 @@ class CreateAndUpdateJob(BaseModel):
     title: str
     title_auto: Optional[str]
     title_manual: Optional[str]
-    year: str
+    year: Optional[str]
     year_auto: Optional[str]
     year_manual: Optional[str]
     video_type: str
@@ -119,7 +119,7 @@ class CreateAndUpdateJob(BaseModel):
     imdb_id: Optional[str]
     imdb_id_auto: Optional[str]
     imdb_id_manual: Optional[str]
-    poster_url: str
+    poster_url: Optional[str]
     poster_url_auto: Optional[str]
     poster_url_manual: Optional[str]
     devpath: str
