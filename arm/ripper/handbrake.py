@@ -131,7 +131,7 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
         run_handbrake_command(cmd, logfile, track)
         logging.info("Handbrake call successful")
     except subprocess.CalledProcessError:
-        track.error = job.errors = track.error
+        job.errors = track.error
         job.status = JobState.FAILURE.value
         db.session.commit()
         raise
