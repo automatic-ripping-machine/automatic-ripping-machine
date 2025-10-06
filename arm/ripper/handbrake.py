@@ -18,16 +18,16 @@ PROCESS_COMPLETE = "Handbrake processing complete"
 def run_handbrake_command(cmd, logfile, track=None, track_number=None):
     """
     Execute a HandBrake command and handle errors consistently.
-    
+
     :param cmd: The HandBrake command to execute
-    :param logfile: Logfile for logging purposes  
+    :param logfile: Logfile for logging purposes
     :param track: Optional track object to update status
     :param track_number: Optional track number for error messages
     :return: Output from HandBrake command
     :raises subprocess.CalledProcessError: If HandBrake fails
     """
     logging.debug(f"Sending command: {cmd}")
-    
+
     try:
         hand_brake_output = subprocess.check_output(
             cmd,
@@ -50,11 +50,11 @@ def run_handbrake_command(cmd, logfile, track=None, track_number=None):
         raise subprocess.CalledProcessError(hb_error.returncode, cmd)
 
 
-def build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile, 
+def build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile,
                             track_number=None, main_feature=False):
     """
     Build a HandBrake command string with consistent formatting.
-    
+
     :param srcpath: Path to source for HB (dvd or files)
     :param filepathname: Full output path including filename
     :param hb_preset: HandBrake preset to use
@@ -67,18 +67,18 @@ def build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile,
     cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
           f"-i {shlex.quote(srcpath)} " \
           f"-o {shlex.quote(filepathname)} "
-    
+
     if main_feature:
         cmd += "--main-feature "
-    
+
     cmd += f"--preset \"{hb_preset}\" "
-    
+
     if track_number is not None:
         cmd += f"-t {track_number} "
-    
+
     cmd += f"{hb_args} " \
            f">> {logfile} 2>&1"
-    
+
     return cmd
 
 
@@ -185,8 +185,8 @@ def handbrake_all(srcpath, basepath, logfile, job):
 
             db.session.commit()
 
-            cmd = build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile, 
-                                         track_number=track.track_number)
+            cmd = build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile,
+                                          track_number=track.track_number)
 
             try:
                 run_handbrake_command(cmd, logfile, track, track.track_number)
