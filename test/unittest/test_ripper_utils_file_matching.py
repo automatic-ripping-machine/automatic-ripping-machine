@@ -6,60 +6,7 @@ import shutil
 
 sys.path.insert(0, '/opt/arm')
 
-
-# Helper function for standalone testing
-def _calculate_filename_similarity(expected_base, actual_base):
-    """Calculate similarity score between two filenames."""
-    score = 0
-    min_len = min(len(expected_base), len(actual_base))
-    for i in range(min_len):
-        if expected_base[i] == actual_base[i]:
-            score += 1
-        else:
-            break
-    for i in range(1, min_len + 1):
-        if expected_base[-i] == actual_base[-i]:
-            score += 1
-        else:
-            break
-    length_diff = abs(len(expected_base) - len(actual_base))
-    if length_diff <= 2:
-        score += (3 - length_diff) * 2
-    return score
-
-
-def find_matching_file(expected_file):
-    """Find a file that matches the expected filename."""
-    if os.path.isfile(expected_file):
-        return expected_file
-    directory = os.path.dirname(expected_file)
-    expected_filename = os.path.basename(expected_file)
-    if not os.path.isdir(directory):
-        return expected_file
-    expected_base, expected_ext = os.path.splitext(expected_filename)
-    try:
-        files_in_dir = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
-    except OSError:
-        return expected_file
-    candidate_files = []
-    for file in files_in_dir:
-        base, ext = os.path.splitext(file)
-        if ext.lower() == expected_ext.lower():
-            candidate_files.append((file, base))
-    if not candidate_files:
-        return expected_file
-    best_match = None
-    best_score = 0
-    for file, base in candidate_files:
-        score = _calculate_filename_similarity(expected_base, base)
-        if score > best_score:
-            best_score = score
-            best_match = file
-    min_score = len(expected_base) * 0.8
-    if best_match and best_score >= min_score:
-        actual_file = os.path.join(directory, best_match)
-        return actual_file
-    return expected_file
+from arm.ripper.utils import find_matching_file  # noqa: E402
 
 
 class TestFileMatching(unittest.TestCase):
