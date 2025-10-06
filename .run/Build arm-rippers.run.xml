@@ -20,7 +20,7 @@
             </DockerEnvVarImpl>
             <DockerEnvVarImpl>
               <option name="name" value="MYSQL_IP" />
-              <option name="value" value="mysql_db_server" />
+              <option name="value" value="mysql-db" />
             </DockerEnvVarImpl>
             <DockerEnvVarImpl>
               <option name="name" value="MYSQL_PASSWORD" />
