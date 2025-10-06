@@ -124,12 +124,96 @@ WORKDIR /app/vuejs
 RUN npm install
 RUN ls -la ./
 RUN npm run build
+
+###########################   BUILD HANDBRAKE AND MAKEMKV   ############################################################
+FROM base AS install-makemkv-handbrake
+###########################################################
+# install makemkv and handbrake
+COPY ./scripts/install_mkv_hb_deps.sh /install_mkv_hb_deps.sh
+RUN chmod +x /install_mkv_hb_deps.sh && sleep 1 && \
+    /install_mkv_hb_deps.sh
+
+COPY ./scripts/install_handbrake.sh /install_handbrake.sh
+RUN chmod +x /install_handbrake.sh && sleep 1 && \
+    /install_handbrake.sh
+
+# MakeMKV setup by https://github.com/tianon
+COPY ./scripts/install_makemkv.sh /install_makemkv.sh
+RUN chmod +x /install_makemkv.sh && sleep 1 && \
+    /install_makemkv.sh
+
+# clean up apt
+RUN apt clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 ###########################################################
 # Final image pushed for use
 FROM base AS automatic-ripping-machine
 
 COPY --from=build-ui /app/vuejs/dist/ /var/www/html
+# Copy HandBrake binary and necessary files from builder
+COPY --from=install-makemkv-handbrake /usr/local/bin/HandBrakeCLI /usr/local/bin/HandBrakeCLI
+# Copy MakeMKV binaries from builder
+COPY --from=install-makemkv-handbrake /usr/local/bin /usr/local/bin
+COPY --from=install-makemkv-handbrake /usr/local/lib /usr/local/lib
+COPY --from=install-makemkv-handbrake /usr/local/share /usr/local/share
 
+# Set library path
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+
+# Install runtime dependencies for MakeMKV
+RUN apt-get update && apt-get install -y \
+    libssl3  \
+    libbz2-1.0  \
+    zlib1g  \
+    libexpat1  \
+    libc6  \
+    libstdc++6 \
+    liblzma5  \
+    libnuma1  \
+    libqt5core5a  \
+    libqt5gui5  \
+    libqt5widgets5 \
+    libqt5network5 \
+    libqt5dbus5 \
+    libavcodec58 \
+    libavutil56 \
+    libswresample3 \
+    libswscale5 \
+    libavformat58 \
+    libavfilter7 \
+    && rm -rf /var/lib/apt/lists/* \
+
+# Install handbrake codec files
+# Enable universe repository
+RUN apt-get update && apt-get install -y software-properties-common \
+    && add-apt-repository universe \
+    && apt-get update && apt-get install -y \
+    libass9 \
+    libbz2-1.0 \
+    libfontconfig1 \
+    libfreetype6 \
+    libfribidi0 \
+    libharfbuzz0b \
+    libjansson-dev \
+    liblzma5 \
+    libmp3lame0 \
+    libnuma1 \
+    libogg0 \
+    libopus0 \
+    libsamplerate0 \
+    libspeex1 \
+    libtheora0 \
+    libturbojpeg0-dev \
+    libvorbis0a \
+    libvorbisenc2 \
+    libx264-163 \
+    libx265-199 \
+    libxml2 \
+    libvpx7 \
+    libssl3 \
+    libva2 \
+    libdrm2 \
+    && rm -rf /var/lib/apt/lists/*
 # For vuejs router - replace 404 location with new vuejs location
 RUN sed -i 's/z\|=404/\/index.html/' /etc/nginx/sites-available/default
 # Copy over source code
