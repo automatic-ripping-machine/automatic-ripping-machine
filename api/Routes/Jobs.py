@@ -1,7 +1,6 @@
 # Jobs.py
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
-from fastapi_utils.cbv import cbv
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 
@@ -17,35 +16,30 @@ from utils.utils import check_hw_transcode_support
 router = APIRouter()
 
 
-# Example of Class based view
-@cbv(router)
-class Jobs:
-    session: Session = Depends(get_db)
+# API to get the list of jobs currently running
+@router.get("/jobs", response_model=JobListWithStats)
+def list_active_jobs(session: Session = Depends(get_db)):
+    try:
+        print("/jobs - list active jobs")
+        server = session.query(SystemInfo).filter_by(id="1").first()
+        serverutil = ServerUtil()
+        return {
+            "results": get_jobs_by_status(session, "active"),
+            "server": server.__dict__ if server else None,
+            "serverutil": serverutil.__dict__,
+            "notes": crud_get_notifications(session),
+            "hwsupport": check_hw_transcode_support(),
+        }
+    except JobException as cie:
+        raise HTTPException(**cie.__dict__)
 
-    # API to get the list of jobs currently running
-    @router.get("/jobs",  response_model=JobListWithStats)
-    def list_active_jobs(self):
-        try:
-            print("/jobs - list active jobs")
-            server = self.session.query(SystemInfo).filter_by(id="1").first()
-            serverutil = ServerUtil()
-            return {
-                "results": get_jobs_by_status(self.session, "active"),
-                'server': server.__dict__,
-                'serverutil': serverutil.__dict__,
-                'notes': crud_get_notifications(self.session),
-                'hwsupport': check_hw_transcode_support()
-            }
-        except JobException as cie:
-            raise HTTPException(**cie.__dict__)
-
-    # API endpoint to add a job info to the database
-    @router.post("/jobs", response_model=JobSchemas)
-    def add_job(self, job_info: CreateAndUpdateJob):
-        try:
-            return create_job(self.session, job_info)
-        except JobException as cie:
-            raise HTTPException(**cie.__dict__)
+# API endpoint to add a job info to the database
+@router.post("/jobs", response_model=JobSchemas)
+def add_job(job_info: CreateAndUpdateJob, session: Session = Depends(get_db)):
+    try:
+        return create_job(session, job_info)
+    except JobException as cie:
+        raise HTTPException(**cie.__dict__)
 
 
 # API endpoint to get info of a particular job

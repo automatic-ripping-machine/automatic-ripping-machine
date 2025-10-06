@@ -1,7 +1,6 @@
 # Manual install req
 uvicorn==0.23.2
 fastapi==0.103.1
-fastapi-utils==0.2.1
 passlib==1.7.4
 mysqlclient
 mysql-connector-python==8.1.0
@@ -10,3 +9,9 @@ psutil==5.9.5
 requests==2.31.0
 python-jose==3.3.0
 python-multipart==0.0.6
+#
+robobrowser==0.5.3
+SQLAlchemy>=2.0.43
+bcrypt==5.0.0
+pyyaml==6.0.3
+pydantic<2.0
