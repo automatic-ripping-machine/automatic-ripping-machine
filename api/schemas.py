@@ -374,6 +374,15 @@ class AppriseSchemas(CreateAndUpdateApprise):
     class Config:
         orm_mode = True
 
+class CreateAndUpdateAbcde(BaseModel):
+    config: str  # or dict[str, Any] if it's key/value pairs
+
+class AbcdeSettings(CreateAndUpdateAbcde):
+    config: str
+    success : bool
+    settings: str
+
+
 
 class UpdatePassword(BaseModel):
     username: str

@@ -6,7 +6,7 @@ export default {
   components: {HomeScreenGreeting},
   data() {
     return {
-      liveConfig: [],
+      liveConfig: {},
       arm_API: this.armapi
     };
   },
@@ -18,14 +18,14 @@ export default {
             this.arm_API + "/settings/get_abcde"
         );
         // JSON responses are automatically parsed.
-        this.liveConfig = response.data;
+        this.liveConfig = response.data.config;
       } catch (error) {
         console.log(error);
       }
     },
     submit: function () {
-      this.liveConfig._method = 'PUT'
-      axios.put(this.arm_API + "/settings/get_apprise", this.liveConfig)
+      //this.liveConfig._method = 'PUT'
+      axios.put(this.arm_API + "/settings/get_abcde", { "config": this.liveConfig})
           .then((data) => {
             console.log(data)
           }, (error) => {
@@ -49,8 +49,8 @@ export default {
       <div class="col-10">
 
         <form ref="form" @submit.prevent="submit" id="abcdeSettings" name="abcdeSettings">
-          <label for="abcdeConfigText">ABCDE Config:</label>
-          <textarea id="abcdeConfigText" name="abcdeConfig" spellcheck="false"
+          <label for="config">ABCDE Config:</label>
+          <textarea id="config" name="config" spellcheck="false"
                     class="w-100 form-control min-vh-100" :value="liveConfig">{{ liveConfig }}</textarea>
           <br>
           <button id="abcdeConfigSubmit" class="btn btn-secondary btn-lg btn-block"
