@@ -254,10 +254,8 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
 
         try:
             run_handbrake_command(cmd, logfile)
-        except subprocess.CalledProcessError as hb_error:
-            err = f"Handbrake encoding of file {shlex.quote(files)} failed with code: {hb_error.returncode}" \
-                  f"({hb_error.output})"
-            logging.error(err)
+        except subprocess.CalledProcessError:
+            # Error already logged by run_handbrake_command
             raise
 
     logging.info(PROCESS_COMPLETE)
