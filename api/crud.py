@@ -335,8 +335,8 @@ def update_abcde_settings(new_settings: str) -> AbcdeSettings:
         print("Cant find file")
 
     return AbcdeSettings(
-        config=new_settings,        # now str
         success=success,
+        config=new_settings,        # now str
         settings=clean_abcde_str    # str
     )
 

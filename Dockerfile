@@ -5,11 +5,6 @@ LABEL org.opencontainers.image.source=https://github.com/automatic-ripping-machi
 LABEL org.opencontainers.image.license=MIT
 LABEL org.opencontainers.image.description='Automatic Ripping Machine for fully automated Blu-ray, DVD and audio disc ripping.'
 
-# start by updating and upgrading the OS
-RUN \
-    apt clean && \
-    apt update && \
-    apt upgrade -y -o Dpkg::Options::="--force-confold"
 # create an arm group(gid 1000) and an arm user(uid 1000), with password logon disabled
 RUN groupadd -g 1000 arm \
     && useradd -rm -d /home/arm -s /bin/bash -g arm -G video,cdrom -u 1000 arm
@@ -68,7 +63,7 @@ RUN \
 RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 
 # setup gnupg/wget for add-ppa.sh
-RUN apt update && apt install -y \
+RUN install_clean \
         ca-certificates \
         git \
         wget \
@@ -85,46 +80,29 @@ RUN apt update && apt install -y \
         nano \
         libdiscid0 \
         # arm extra requirements
-        scons swig libzbar-dev libzbar0 \
+        scons  \
+        swig libzbar-dev libzbar0 \
         curl sudo nginx \
-        default-libmysqlclient-dev && apt clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-COPY api/requirements.txt /app/api/requirements.txt
-RUN pip3 install --upgrade pip wheel setuptools psutil pyudev \
-    && pip3 install --no-cache-dir --ignore-installed --prefer-binary -r /app/api/requirements.txt
-# Create our startup scripts
-RUN mkdir -p /etc/my_init.d
-COPY ./scripts/docker/runit/arm_user_files_setup.sh /etc/my_init.d/arm_user_files_setup.sh
-COPY ./scripts/docker/runit/arm_start_udev.sh /etc/my_init.d/arm_start_udev.sh
-COPY ./scripts/docker/runit/arma_vuejs.sh /etc/my_init.d/armvueui.sh
-COPY ./scripts/docker/runit/fast_api.sh /etc/my_init.d/fast_api.sh
-RUN chmod +x /etc/my_init.d/*.sh
-
-# We need to use a modified udev
-COPY ./scripts/docker/custom_udev /etc/init.d/udev
-RUN chmod +x /etc/my_init.d/*.sh
-
-########################################### build arm vuejs ############################################################
-# Node
-FROM base AS build-ui
-
-RUN set -uex; \
-    apt-get update; \
-    mkdir -p /etc/apt/keyrings; \
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
-     | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg; \
-    NODE_MAJOR=18; \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" \
-     > /etc/apt/sources.list.d/nodesource.list; \
-    apt-get update; \
-    apt-get install nodejs -y;
-
-WORKDIR /app
-COPY vuejs /app/vuejs
-WORKDIR /app/vuejs
-RUN npm install
-RUN ls -la ./
-RUN npm run build
+        default-libmysqlclient-dev \
+        # mostly audio stuff
+        abcde \
+        eyed3 \
+        atomicparsley \
+        cdparanoia \
+        eject \
+        ffmpeg \
+        flac \
+        glyrc \
+        default-jre-headless \
+        id3 \
+        id3v2 \
+        lame \
+        libavcodec-extra \
+        lsdvd \
+        mkcue \
+        vorbis-tools \
+        opus-tools \
+        fdkaac
 
 ###########################   BUILD HANDBRAKE AND MAKEMKV   ############################################################
 FROM base AS install-makemkv-handbrake
@@ -146,24 +124,31 @@ RUN chmod +x /install_makemkv.sh && sleep 1 && \
 # clean up apt
 RUN apt clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-###########################################################
-# Final image pushed for use
-FROM base AS automatic-ripping-machine
+WORKDIR /app
+#########################################  BACKEND/API   ###############################################################
+FROM base AS arm-api
+COPY api/requirements.txt /app/api/requirements.txt
+RUN pip3 install --upgrade pip wheel setuptools psutil pyudev \
+    && pip3 install --no-cache-dir --ignore-installed --prefer-binary -r /app/api/requirements.txt
+# Create our startup scripts
+RUN mkdir -p /etc/my_init.d
+COPY ./scripts/docker/runit/arm_user_files_setup.sh /etc/my_init.d/arm_user_files_setup.sh
+COPY ./scripts/docker/runit/arm_start_udev.sh /etc/my_init.d/arm_start_udev.sh
+COPY ./scripts/docker/runit/arma_vuejs.sh /etc/my_init.d/armvueui.sh
+COPY ./scripts/docker/runit/fast_api.sh /etc/my_init.d/fast_api.sh
+RUN chmod +x /etc/my_init.d/*.sh
 
-COPY --from=build-ui /app/vuejs/dist/ /var/www/html
-# Copy HandBrake binary and necessary files from builder
-COPY --from=install-makemkv-handbrake /usr/local/bin/HandBrakeCLI /usr/local/bin/HandBrakeCLI
-# Copy MakeMKV binaries from builder
-COPY --from=install-makemkv-handbrake /usr/local/bin /usr/local/bin
-COPY --from=install-makemkv-handbrake /usr/local/lib /usr/local/lib
-COPY --from=install-makemkv-handbrake /usr/local/share /usr/local/share
+# We need to use a modified udev
+COPY ./scripts/docker/custom_udev /etc/init.d/udev
+RUN chmod +x /etc/my_init.d/*.sh
 
+
+#######################################    Hardware transcoding    ################################################
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-
 # -----------------------------
 # Base system libraries
 # -----------------------------
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libc6 \
     libstdc++6 \
     libssl3 \
@@ -239,6 +224,35 @@ RUN apt-get update && apt-get install -y \
 RUN apt-get update && apt-get install -y \
     mesa-va-drivers \
     && rm -rf /var/lib/apt/lists/*
+
+
+########################################### build arm vuejs ############################################################
+# Node
+# Use an official Node.js image for the build stage
+FROM node:18-bullseye AS build-ui
+
+WORKDIR /app/vuejs
+# Copy only package files first for better caching
+COPY vuejs/package*.json ./
+# Install dependencies
+RUN npm ci && npm cache clean --force
+# Copy the rest of your app
+COPY vuejs .
+# Build the Vue app
+RUN npm run build
+
+
+########################################################################################################################
+# Final image pushed for use
+FROM arm-api AS automatic-ripping-machine
+
+COPY --from=build-ui /app/vuejs/dist/ /var/www/html
+# Copy HandBrake binary and necessary files from builder
+COPY --from=install-makemkv-handbrake /usr/local/bin/HandBrakeCLI /usr/local/bin/HandBrakeCLI
+# Copy MakeMKV binaries from builder
+COPY --from=install-makemkv-handbrake /usr/local/bin /usr/local/bin
+COPY --from=install-makemkv-handbrake /usr/local/lib /usr/local/lib
+COPY --from=install-makemkv-handbrake /usr/local/share /usr/local/share
 
 
 # VueJS router fix

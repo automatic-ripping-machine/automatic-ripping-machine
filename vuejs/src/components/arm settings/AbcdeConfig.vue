@@ -27,6 +27,7 @@ export default {
       //this.liveConfig._method = 'PUT'
       axios.put(this.arm_API + "/settings/get_abcde", { "config": this.liveConfig})
           .then((data) => {
+            this.liveConfig = data.data.config;
             console.log(data)
           }, (error) => {
             console.log(error);
@@ -51,7 +52,7 @@ export default {
         <form ref="form" @submit.prevent="submit" id="abcdeSettings" name="abcdeSettings">
           <label for="config">ABCDE Config:</label>
           <textarea id="config" name="config" spellcheck="false"
-                    class="w-100 form-control min-vh-100" :value="liveConfig">{{ liveConfig }}</textarea>
+                    class="w-100 form-control min-vh-100" v-model="liveConfig"></textarea>
           <br>
           <button id="abcdeConfigSubmit" class="btn btn-secondary btn-lg btn-block"
                   form="abcdeSettings">Submit
