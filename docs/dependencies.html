@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dockerfile Package Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
+        }
+
+        .section {
+            margin-bottom: 40px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #f7fafc;
+            padding: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-header h2 {
+            color: #2d3748;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-header .icon {
+            font-size: 1.2em;
+        }
+
+        .section-count {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .section-content {
+            padding: 20px;
+        }
+
+        .package-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .package-item {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .package-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .package-item.selected {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .package-item.featured {
+            border-color: #ed8936;
+            background: linear-gradient(135deg, #fff5f0 0%, #fffaf5 100%);
+        }
+
+        .package-item.featured.selected {
+            border-color: #dd6b20;
+            background: linear-gradient(135deg, #feebc8 0%, #fff5f0 100%);
+        }
+
+        .package-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .package-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .package-info {
+            flex: 1;
+        }
+
+        .package-name {
+            font-weight: 600;
+            font-size: 1.1em;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .package-badge {
+            display: inline-block;
+            background: #ed8936;
+            color: white;
+            font-size: 0.7em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .package-badge.nvidia {
+            background: #76b900;
+        }
+
+        .package-badge.amd {
+            background: #ed1c24;
+        }
+
+        .package-description {
+            color: #4a5568;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .package-note {
+            margin-top: 8px;
+            padding: 8px;
+            background: #edf2f7;
+            border-left: 3px solid #4299e1;
+            font-size: 0.85em;
+            color: #2d3748;
+            border-radius: 4px;
+        }
+
+        .package-note.warning {
+            background: #fffaf0;
+            border-left-color: #ed8936;
+        }
+
+        .package-note.info {
+            background: #e6fffa;
+            border-left-color: #319795;
+        }
+
+        .output {
+            background: #1a202c;
+            color: #68d391;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .output-header h3 {
+            color: #2d3748;
+        }
+
+        .copy-btn {
+            padding: 8px 16px;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #3182ce;
+        }
+
+        .copy-btn.copied {
+            background: #48bb78;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .package-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                flex-direction: column;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐳 Dockerfile Package Manager</h1>
+            <p>Select packages to include in your Dockerfile build</p>
+        </div>
+
+        <div class="content">
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="selectedCount">16</div>
+                    <div class="stat-label">Selected Packages</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalCount">45</div>
+                    <div class="stat-label">Total Packages</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="categoryCount">10</div>
+                    <div class="stat-label">Categories</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-success" onclick="selectAll()">✓ Select All</button>
+                <button class="btn btn-danger" onclick="deselectAll()">✗ Deselect All</button>
+                <button class="btn btn-primary" onclick="generateDockerfile()">🚀 Generate Dockerfile</button>
+            </div>
+
+            <!-- Version Control Tools -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><span class="icon">📦</span> Version Control Tools</h2>
+                    <span class="section-count" data-category="vcs">1 selected</span>
+                </div>
+                <div class="section-content">
+                    <div class="package-grid">
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="git" data-category="vcs" checked>
+                                <div class="package-info">
+                                    <div class="package-name">git</div>
+                                    <div class="package-description">Distributed version control system for tracking changes in source code</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Tools -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><span class="icon">🌐</span> Network Tools</h2>
+                    <span class="section-count" data-category="network">1 selected</span>
+                </div>
+                <div class="section-content">
+                    <div class="package-grid">
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="wget" data-category="network" checked>
+                                <div class="package-info">
+                                    <div class="package-name">wget</div>
+                                    <div class="package-description">Non-interactive network downloader for files via HTTP, HTTPS, and FTP</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Build Tools -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><span class="icon">🔨</span> Build & Compilation Tools</h2>
+                    <span class="section-count" data-category="build">4 selected</span>
+                </div>
+                <div class="section-content">
+                    <div class="package-grid">
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="build-essential" data-category="build" checked>
+                                <div class="package-info">
+                                    <div class="package-name">build-essential</div>
+                                    <div class="package-description">Essential compilation tools including GCC, g++, make, and libc-dev</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libcurl4-openssl-dev" data-category="build" checked>
+                                <div class="package-info">
+                                    <div class="package-name">libcurl4-openssl-dev</div>
+                                    <div class="package-description">Development files for libcurl with OpenSSL support for HTTP/HTTPS requests</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libssl-dev" data-category="build" checked>
+                                <div class="package-info">
+                                    <div class="package-name">libssl-dev</div>
+                                    <div class="package-description">Development files for OpenSSL providing SSL/TLS encryption capabilities</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="swig" data-category="build" checked>
+                                <div class="package-info">
+                                    <div class="package-name">swig</div>
+                                    <div class="package-description">Generates bindings to connect C/C++ code with Python (ARM requirement)</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Tools -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><span class="icon">🔒</span> Security & Encryption</h2>
+                    <span class="section-count" data-category="security">1 selected</span>
+                </div>
+                <div class="section-content">
+                    <div class="package-grid">
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="gnupg" data-category="security" checked>
+                                <div class="package-info">
+                                    <div class="package-name">gnupg</div>
+                                    <div class="package-description">GNU Privacy Guard for encryption, decryption, and signature verification</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hardware Management -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><span class="icon">💽</span> Hardware & Device Management</h2>
+                    <span class="section-count" data-category="hardware">2 selected</span>
+                </div>
+                <div class="section-content">
+                    <div class="package-grid">
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libudev-dev" data-category="hardware" checked>
+                                <div class="package-info">
+                                    <div class="package-name">libudev-dev</div>
+                                    <div class="package-description">Development files for libudev API to interact with Linux kernel device information</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="udev" data-category="hardware" checked>
+                                <div class="package-info">
+                                    <div class="package-name">udev</div>
+                                    <div class="package-description">Device manager for Linux kernel handling hardware events and device nodes</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Python Tools -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><span class="icon">🐍</span> Python Development</h2>
+                    <span class="section-count" data-category="python">4 selected</span>
+                </div>
+                <div class="section-content">
+                    <div class="package-grid">
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="python3" data-category="python" checked>
+                                <div class="package-info">
+                                    <div class="package-name">python3</div>
+                                    <div class="package-description">Python 3 interpreter for running Python scripts and applications</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="python3-dev" data-category="python" checked>
+                                <div class="package-info">
+                                    <div class="package-name">python3-dev</div>
+                                    <div class="package-description">Python 3 header files for compiling C extensions and native modules</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="python3-pip" data-category="python" checked>
+                                <div class="package-info">
+                                    <div class="package-name">python3-pip</div>
+                                    <div class="package-description">Package installer for Python to manage PyPI packages</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="scons" data-category="python" checked>
+                                <div class="package-info">
+                                    <div class="package-name">scons</div>
+                                    <div class="package-description">Python-based software construction tool for building projects (ARM requirement)</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Text Editors -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><span class="icon">📝</span> Text Editors</h2>
+                    <span class="section-count" data-category="editors">2 selected</span>
+                </div>
+                <div class="section-content">
+                    <div class="package-grid">
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="nano" data-category="editors" checked>
+                                <div class="package-info">
+                                    <div class="package-name">nano</div>
+                                    <div class="package-description">Simple, beginner-friendly command-line text editor</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item selected">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="vim" data-category="editors" checked>
+                                <div class="package-info">
+                                    <div class="package-name">vim</div>
+                                    <div class="package-description">Advanced, modal command-line text editor with extensive features</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Media Ripping Tools -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><span class="icon">💿</span> Media Ripping & Transcoding Tools</h2>
+                    <span class="section-count" data-category="media">0 selected</span>
+                </div>
+                <div class="section-content">
+                    <div class="package-grid">
+                        <div class="package-item featured">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="handbrake-cli" data-category="media">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        HandBrake CLI
+                                        <span class="package-badge">Featured</span>
+                                    </div>
+                                    <div class="package-description">Command-line video transcoder for converting media files with advanced encoding options</div>
+                                    <div class="package-note">
+                                        <strong>Note:</strong> Typically installed from source or PPA. Supports hardware acceleration with proper drivers.
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item featured">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="makemkv-bin" data-category="media">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        MakeMKV
+                                        <span class="package-badge">Featured</span>
+                                    </div>
+                                    <div class="package-description">DVD and Blu-ray ripper that converts video clips to MKV format preserving metadata</div>
+                                    <div class="package-note warning">
+                                        <strong>Note:</strong> Requires manual installation from source or PPA. Check licensing requirements.
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Intel Hardware Transcoding -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><span class="icon">⚡</span> Intel Hardware Transcoding (QSV)</h2>
+                    <span class="section-count" data-category="intel">0 selected</span>
+                </div>
+                <div class="section-content">
+                    <div class="package-grid">
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="intel-media-va-driver-non-free" data-category="intel">
+                                <div class="package-info">
+                                    <div class="package-name">intel-media-va-driver-non-free</div>
+                                    <div class="package-description">Intel Media Driver for VAAPI (Video Acceleration API) - Non-free version with full codec support</div>
+                                    <div class="package-note">
+                                        <strong>Required for:</strong> 8th Gen Intel CPUs and newer (Coffee Lake+)
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="i965-va-driver" data-category="intel">
+                                <div class="package-info">
+                                    <div class="package-name">i965-va-driver</div>
+                                    <div class="package-description">Legacy Intel VAAPI driver for older Intel GPUs (Broadwell through Kaby Lake)</div>
+                                    <div class="package-note">
+                                        <strong>Required for:</strong> 2nd to 7th Gen Intel CPUs (Sandy Bridge to Kaby Lake)
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="vainfo" data-category="intel">
+                                <div class="package-info">
+                                    <div class="package-name">vainfo</div>
+                                    <div class="package-description">Tool to display VA-API information and capabilities of installed drivers</div>
+                                    <div class="package-note">
+                                        <strong>Use:</strong> Verify hardware acceleration is working correctly
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="intel-gpu-tools" data-category="intel">
+                                <div class="package-info">
+                                    <div class="package-name">intel-gpu-tools</div>
+                                    <div class="package-description">Collection of tools for debugging and profiling Intel graphics drivers</div>
+                                    <div class="package-note">
+                                        <strong>Includes:</strong> intel_gpu_top for monitoring GPU usage during transcoding
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libva2" data-category="intel">
+                                <div class="package-info">
+                                    <div class="package-name">libva2</div>
+                                    <div class="package-description">Video Acceleration API runtime library (version 2.x)</div>
+                                    <div class="package-note">
+                                        <strong>Core library:</strong> Required for all VA-API based hardware acceleration
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libva-drm2" data-category="intel">
+                                <div class="package-info">
+                                    <div class="package-name">libva-drm2</div>
+                                    <div class="package-description">VA-API DRM (Direct Rendering Manager) runtime support</div>
+                                    <div class="package-note">
+                                        <strong>Purpose:</strong> Enables direct GPU access without X11
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libmfx1" data-category="intel">
+                                <div class="package-info">
+                                    <div class="package-name">libmfx1</div>
+                                    <div class="package-description">Intel Media SDK runtime library for Quick Sync Video (QSV)</div>
+                                    <div class="package-note">
+                                        <strong>Legacy:</strong> For older Intel Media SDK implementations
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libmfxgen1" data-category="intel">
+                                <div class="package-info">
+                                    <div class="package-name">libmfxgen1</div>
+                                    <div class="package-description">Next-generation Intel Media SDK library (oneVPL)</div>
+                                    <div class="package-note">
+                                        <strong>Modern:</strong> Recommended for 11th Gen Intel and newer
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="intel-opencl-icd" data-category="intel">
+                                <div class="package-info">
+                                    <div class="package-name">intel-opencl-icd</div>
+                                    <div class="package-description">Intel OpenCL runtime for GPU compute acceleration</div>
+                                    <div class="package-note">
+                                        <strong>Optional:</strong> Enables OpenCL-based filters and effects
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NVIDIA Hardware Transcoding -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><span class="icon">🟩</span> NVIDIA Hardware Transcoding (NVENC/NVDEC)</h2>
+                    <span class="section-count" data-category="nvidia">0 selected</span>
+                </div>
+                <div class="section-content">
+                    <div class="package-grid">
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libnvidia-encode1" data-category="nvidia">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        libnvidia-encode1
+                                        <span class="package-badge nvidia">NVIDIA</span>
+                                    </div>
+                                    <div class="package-description">NVIDIA video encoder library (NVENC) for hardware-accelerated encoding</div>
+                                    <div class="package-note">
+                                        <strong>Supports:</strong> H.264, H.265/HEVC encoding on GeForce GTX 600+ series
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libnvidia-decode1" data-category="nvidia">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        libnvidia-decode1
+                                        <span class="package-badge nvidia">NVIDIA</span>
+                                    </div>
+                                    <div class="package-description">NVIDIA video decoder library (NVDEC) for hardware-accelerated decoding</div>
+                                    <div class="package-note">
+                                        <strong>Supports:</strong> Multiple codecs including H.264, HEVC, VP9, AV1 (on newer cards)
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="nvidia-utils" data-category="nvidia">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        nvidia-utils
+                                        <span class="package-badge nvidia">NVIDIA</span>
+                                    </div>
+                                    <div class="package-description">NVIDIA utilities including nvidia-smi for monitoring GPU usage</div>
+                                    <div class="package-note">
+                                        <strong>Includes:</strong> nvidia-smi for monitoring temperature, usage, and encoder sessions
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libnvcuvid1" data-category="nvidia">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        libnvcuvid1
+                                        <span class="package-badge nvidia">NVIDIA</span>
+                                    </div>
+                                    <div class="package-description">NVIDIA CUVID library for video decoding acceleration</div>
+                                    <div class="package-note">
+                                        <strong>Note:</strong> Legacy API, newer applications use NVDEC
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="nvidia-cuda-toolkit" data-category="nvidia">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        nvidia-cuda-toolkit
+                                        <span class="package-badge nvidia">NVIDIA</span>
+                                    </div>
+                                    <div class="package-description">CUDA development toolkit for GPU computing and acceleration</div>
+                                    <div class="package-note warning">
+                                        <strong>Large package:</strong> Only needed for building from source or advanced GPU filters
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libnvidia-container-tools" data-category="nvidia">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        libnvidia-container-tools
+                                        <span class="package-badge nvidia">NVIDIA</span>
+                                    </div>
+                                    <div class="package-description">Tools for using NVIDIA GPUs in containers</div>
+                                    <div class="package-note info">
+                                        <strong>Docker:</strong> Essential for GPU passthrough in Docker containers
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AMD Hardware Transcoding -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><span class="icon">🔴</span> AMD Hardware Transcoding (AMF/VCE/VCN)</h2>
+                    <span class="section-count" data-category="amd">0 selected</span>
+                </div>
+                <div class="section-content">
+                    <div class="package-grid">
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="mesa-va-drivers" data-category="amd">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        mesa-va-drivers
+                                        <span class="package-badge amd">AMD</span>
+                                    </div>
+                                    <div class="package-description">Mesa VA-API drivers for AMD GPUs (Radeon, RX series)</div>
+                                    <div class="package-note">
+                                        <strong>Supports:</strong> VA-API hardware acceleration on AMD GPUs
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="mesa-vdpau-drivers" data-category="amd">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        mesa-vdpau-drivers
+                                        <span class="package-badge amd">AMD</span>
+                                    </div>
+                                    <div class="package-description">Mesa VDPAU drivers for AMD GPUs video decode/encode</div>
+                                    <div class="package-note">
+                                        <strong>Alternative:</strong> VDPAU API, older but widely supported
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libva-mesa-driver" data-category="amd">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        libva-mesa-driver
+                                        <span class="package-badge amd">AMD</span>
+                                    </div>
+                                    <div class="package-description">Mesa VA-API driver implementation for AMD hardware</div>
+                                    <div class="package-note">
+                                        <strong>Core driver:</strong> Required for VA-API on AMD GPUs
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="radeontop" data-category="amd">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        radeontop
+                                        <span class="package-badge amd">AMD</span>
+                                    </div>
+                                    <div class="package-description">GPU monitoring tool for AMD Radeon cards</div>
+                                    <div class="package-note">
+                                        <strong>Use:</strong> Monitor GPU usage, temperature, and encoder activity
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libdrm-amdgpu1" data-category="amd">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        libdrm-amdgpu1
+                                        <span class="package-badge amd">AMD</span>
+                                    </div>
+                                    <div class="package-description">Userspace library for AMD GPU DRM kernel driver interface</div>
+                                    <div class="package-note">
+                                        <strong>Purpose:</strong> Low-level communication with AMD GPU kernel driver
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="libvulkan1" data-category="amd">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        libvulkan1
+                                        <span class="package-badge amd">AMD</span>
+                                    </div>
+                                    <div class="package-description">Vulkan graphics and compute API runtime library</div>
+                                    <div class="package-note">
+                                        <strong>Optional:</strong> Enables Vulkan-based filters and GPU processing
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="mesa-vulkan-drivers" data-category="amd">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        mesa-vulkan-drivers
+                                        <span class="package-badge amd">AMD</span>
+                                    </div>
+                                    <div class="package-description">Mesa Vulkan drivers for AMD GPUs (RADV)</div>
+                                    <div class="package-note">
+                                        <strong>Modern API:</strong> Better performance for compute tasks on newer AMD GPUs
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="package-item">
+                            <label class="package-checkbox">
+                                <input type="checkbox" name="package" value="rocm-opencl-runtime" data-category="amd">
+                                <div class="package-info">
+                                    <div class="package-name">
+                                        rocm-opencl-runtime
+                                        <span class="package-badge amd">AMD</span>
+                                    </div>
+                                    <div class="package-description">AMD ROCm OpenCL runtime for GPU computing</div>
+                                    <div class="package-note warning">
+                                        <strong>Advanced:</strong> For OpenCL-based processing on AMD GPUs (large package)
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Section -->
+            <div class="output-header">
+                <h3>Generated Dockerfile Command</h3>
+                <button class="copy-btn" onclick="copyToClipboard()">📋 Copy</button>
+            </div>
+            <div class="output" id="output">RUN install_clean \
+    git \
+    wget \
+    build-essential \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    gnupg \
+    libudev-dev \
+    udev \
+    python3 \
+    python3-dev \
+    python3-pip \
+    nano \
+    vim \
+    scons \
+    swig && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*</div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStats();
+            attachEventListeners();
+        });
+
+        function attachEventListeners() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const packageItem = this.closest('.package-item');
+                    if (this.checked) {
+                        packageItem.classList.add('selected');
+                    } else {
+                        packageItem.classList.remove('selected');
+                    }
+                    updateStats();
+                    generateDockerfile();
+                });
+            });
+        }
+
+        function updateStats() {
+            const checkboxes = document.querySelectorAll('input[name="package"]');
+            const selectedCheckboxes = document.querySelectorAll('input[name="package"]:checked');
+
+            document.getElementById('selectedCount').textContent = selectedCheckboxes.length;
+            document.getElementById('totalCount').textContent = checkboxes.length;
+
+            // Update category counts
+            const categories = {};
+            selectedCheckboxes.forEach(checkbox => {
+                const category = checkbox.dataset.category;
+                categories[category] = (categories[category] || 0) + 1;
+            });
+
+            document.querySelectorAll('.section-count').forEach(countElement => {
+                const category = countElement.dataset.category;
+                const count = categories[category] || 0;
+                countElement.textContent = `${count} selected`;
+            });
+        }
+
+        function selectAll() {
+            const checkboxes = document.querySelectorAll('input[name="package"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                checkbox.closest('.package-item').classList.add('selected');
+            });
+            updateStats();
+            generateDockerfile();
+        }
+
+        function deselectAll() {
+            const checkboxes = document.querySelectorAll('input[name="package"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                checkbox.closest('.package-item').classList.remove('selected');
+            });
+            updateStats();
+            generateDockerfile();
+        }
+
+        function generateDockerfile() {
+            const selectedPackages = [];
+            const checkboxes = document.querySelectorAll('input[name="package"]:checked');
+
+            checkboxes.forEach(checkbox => {
+                selectedPackages.push(checkbox.value);
+            });
+
+            let dockerfile = '';
+            if (selectedPackages.length > 0) {
+                dockerfile = 'RUN install_clean \\\n';
+                selectedPackages.forEach((pkg, index) => {
+                    if (index === selectedPackages.length - 1) {
+                        dockerfile += `    ${pkg} && \\\n`;
+                    } else {
+                        dockerfile += `    ${pkg} \\\n`;
+                    }
+                });
+                dockerfile += '    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*';
+            } else {
+                dockerfile = '# No packages selected';
+            }
+
+            document.getElementById('output').textContent = dockerfile;
+        }
+
+        function copyToClipboard() {
+            const output = document.getElementById('output').textContent;
+            navigator.clipboard.writeText(output).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.classList.add('copied');
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy to clipboard');
+                console.error('Copy failed:', err);
+            });
+        }
+    </script>
+</body>
+</html>
