@@ -157,47 +157,56 @@ COPY --from=install-makemkv-handbrake /usr/local/bin /usr/local/bin
 COPY --from=install-makemkv-handbrake /usr/local/lib /usr/local/lib
 COPY --from=install-makemkv-handbrake /usr/local/share /usr/local/share
 
-# Set library path
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
-# Install runtime dependencies for MakeMKV
+# -----------------------------
+# Base system libraries
+# -----------------------------
 RUN apt-get update && apt-get install -y \
-    libssl3  \
-    libbz2-1.0  \
-    zlib1g  \
-    libexpat1  \
-    libc6  \
+    libc6 \
     libstdc++6 \
-    liblzma5  \
-    libnuma1  \
-    libqt5core5a  \
-    libqt5gui5  \
+    libssl3 \
+    libbz2-1.0 \
+    zlib1g \
+    libexpat1 \
+    liblzma5 \
+    libnuma1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# -----------------------------
+# Qt5 libraries
+# -----------------------------
+RUN apt-get update && apt-get install -y \
+    libqt5core5a \
+    libqt5gui5 \
     libqt5widgets5 \
     libqt5network5 \
     libqt5dbus5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# -----------------------------
+# FFmpeg / media libraries
+# -----------------------------
+RUN apt-get update && apt-get install -y \
     libavcodec58 \
     libavutil56 \
+    libavformat58 \
     libswresample3 \
     libswscale5 \
-    libavformat58 \
     libavfilter7 \
-    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install handbrake codec files
-# Enable universe repository
-RUN apt-get update && apt-get install -y software-properties-common \
-    && add-apt-repository universe \
-    && apt-get update && apt-get install -y \
+# -----------------------------
+# HandBrake codec libraries
+# -----------------------------
+RUN apt-get update && apt-get install -y \
     libass9 \
-    libbz2-1.0 \
     libfontconfig1 \
     libfreetype6 \
     libfribidi0 \
     libharfbuzz0b \
     libjansson-dev \
-    liblzma5 \
     libmp3lame0 \
-    libnuma1 \
     libogg0 \
     libopus0 \
     libsamplerate0 \
@@ -210,23 +219,38 @@ RUN apt-get update && apt-get install -y software-properties-common \
     libx265-199 \
     libxml2 \
     libvpx7 \
-    libssl3 \
-    libva2 \
-    libdrm2 \
     && rm -rf /var/lib/apt/lists/*
-# For vuejs router - replace 404 location with new vuejs location
+
+# -----------------------------
+# Intel VA-API hardware transcoding
+# -----------------------------
+RUN apt-get update && apt-get install -y \
+    libva2 \
+    libva-drm2 \
+    libva-x11-2 \
+    vainfo \
+    i965-va-driver \
+    && rm -rf /var/lib/apt/lists/*
+
+# -----------------------------
+# AMD VA-API hardware transcoding
+# -----------------------------
+RUN apt-get update && apt-get install -y \
+    mesa-va-drivers \
+    && rm -rf /var/lib/apt/lists/*
+
+
+# VueJS router fix
 RUN sed -i 's/z\|=404/\/index.html/' /etc/nginx/sites-available/default
-# Copy over source code
+
+# Copy source code
 COPY . /opt/arm/
 
-# Our docker udev rule
+# Docker udev rules
 RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
-
-# Allow git to be managed from the /opt/arm folders
 RUN git config --global --add safe.directory /opt/arm
-############################################################
-WORKDIR /app
 
+WORKDIR /app
 COPY api /app/api
 
 CMD ["/sbin/my_init"]
