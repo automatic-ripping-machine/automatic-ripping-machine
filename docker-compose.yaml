@@ -37,7 +37,7 @@ services:
 
   mysql-db:
     image: mysql:8.0
-    container_name: mysql_db_server
+    container_name: mysql-db
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: arm
