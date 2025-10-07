@@ -210,13 +210,18 @@ RUN apt-get update && apt-get install -y \
 # -----------------------------
 # Intel VA-API hardware transcoding
 # -----------------------------
-RUN apt-get update && apt-get install -y \
-    libva2 \
-    libva-drm2 \
-    libva-x11-2 \
-    vainfo \
-    i965-va-driver \
-    && rm -rf /var/lib/apt/lists/*
+# Run this block only on amd64
+RUN if [ "${TARGETARCH}" = "amd64" ]; then \
+    apt-get update && apt-get install -y \
+        libva2 \
+        libva-drm2 \
+        libva-x11-2 \
+        vainfo \
+        intel-media-va-driver \
+        && rm -rf /var/lib/apt/lists/* ; \
+    else \
+        echo "Skipping VA-API drivers on non-amd64 architecture"; \
+    fi
 
 # -----------------------------
 # AMD VA-API hardware transcoding
