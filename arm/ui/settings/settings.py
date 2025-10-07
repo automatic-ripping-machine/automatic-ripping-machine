@@ -26,7 +26,7 @@ import sqlalchemy
 from flask_login import login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
 from flask import render_template, request, flash, \
-    redirect, Blueprint, session, url_for
+    redirect, Blueprint, session, url_for, jsonify
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db
@@ -148,6 +148,63 @@ def settings():
         )  # type: ignore
 
 
+@route_settings.route('/ui_settings')
+@login_required
+def settings_ui():
+    """
+    Page - Settings - UI
+    Method - GET
+    Overview - Allow user to change UI Specfic settings
+    """
+
+    # Load up the comments.json, so we can comment the arm.yaml
+    # jsoncomments is used by all config fields
+    comments = ui_utils.generate_comments()
+    # ARM UI config
+    armui_cfg = ui_utils.arm_db_cfg()
+    ui_form = UiSettingsForm()
+    # Set the nicer attributes for the UI settings form.
+    for field_name, field in ui_form._fields.items():
+        if field_name == 'submit':
+            break
+        else:
+            field.data = getattr(armui_cfg, field_name)
+            field.render_kw = {'title': comments[field_name]}
+            app.logger.debug(f"Field {field_name} has value with value: {field.data}")
+    session["page_title"] = "Settings"
+    return render_template(
+        "settings/ui.html",
+        form=ui_form,
+        # form_name="uiSettings"
+        )  # type: ignore
+
+
+@route_settings.route('/ripper_settings')
+@login_required
+def settings_ripper():
+    """
+    Page - ripper_settings
+    Method - GET
+    Overview - allows the user to update arm.yaml
+    needing to open a text editor
+    """
+
+    # Build the dynamic form for the ripper settings
+    form = SettingsForm()
+    # now go through all teh arm config keys and set the form fields.data
+    for key, value in cfg.arm_config.items():
+        field = getattr(form, key, None)
+        if field:
+            app.logger.debug(f"Config key: {key} resolved to field: {field.name}")
+            field.data = value
+    session["page_title"] = "Settings"
+    return render_template(
+        "settings/ui.html",
+        form=form,
+        # form_name="ripper"
+        )  # type: ignore
+
+
 def check_hw_transcode_support():
     cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']}"
 
@@ -181,7 +238,7 @@ def check_hw_transcode_support():
     return hw_support_status
 
 
-@route_settings.route('/save_settings', methods=['POST'])
+@route_settings.route('/save_arm_settings', methods=['POST'])
 @login_required
 def save_settings():
     """
@@ -220,11 +277,11 @@ def save_settings():
         app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
 
     # If we get to here there was no post data
-        return {'success': success, 'settings': cfg.arm_config, 'form': form_name}
+        return jsonify({'success': success, 'settings': cfg.arm_config, 'form': form_name})
     else:
         app.logger.error(f"Error validating form: {form.errors}")
         flash(f"Error validating form: {form.errors}", "error")
-        return {'success': False, 'settings': str(cfg.arm_config), 'form': form_name}
+        return jsonify({'success': False, 'settings': str(cfg.arm_config), 'form': form_name})
 
 
 @route_settings.route('/save_ui_settings', methods=['POST'])
@@ -241,11 +298,11 @@ def save_ui_settings():
     success = False
     arm_ui_cfg = UISettings.query.get(1)
     if ui_form.validate_on_submit():
-        use_icons = (str(ui_form.use_icons.data).strip().lower() == "true")
-        save_remote_images = (str(ui_form.save_remote_images.data).strip().lower() == "true")
+        # use_icons = (str(ui_form.use_icons.data).strip().lower() == "true")
+        # save_remote_images = (str(ui_form.save_remote_images.data).strip().lower() == "true")
         arm_ui_cfg.index_refresh = format(ui_form.index_refresh.data)
-        arm_ui_cfg.use_icons = use_icons
-        arm_ui_cfg.save_remote_images = save_remote_images
+        arm_ui_cfg.use_icons = bool(str(ui_form.use_icons.data).strip().lower())
+        arm_ui_cfg.save_remote_images = bool(str(ui_form.save_remote_images.data).strip().lower())
         arm_ui_cfg.bootstrap_skin = format(ui_form.bootstrap_skin.data)
         arm_ui_cfg.language = format(ui_form.language.data)
         arm_ui_cfg.database_limit = format(ui_form.database_limit.data)
@@ -254,7 +311,7 @@ def save_ui_settings():
         success = True
         # Masking the jinja update, otherwise an error is thrown
         # sqlalchemy.orm.exc.DetachedInstanceError: Instance <UISettings at 0x7f294c109fd0>
-        # app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
+        app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
         return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
     else:
         app.logger.error(f"Error validating form: {ui_form.errors}")

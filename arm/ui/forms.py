@@ -228,6 +228,11 @@ def SettingsForm() -> FlaskForm:
     # happyily replace my code.
     class SettingsForm(FlaskForm):
         submit = SubmitField('Submit')
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.form_name = "ripperSettings"
+            self.submit_url = "/save_arm_settings"
+            self.title = "Automatic Ripping Settings"
 
     dict_form_fields = ui_utils.generate_ripper_form_settings()
     comments = ui_utils.generate_comments()
@@ -294,6 +299,11 @@ class UiSettingsForm(FlaskForm):
     database_limit = IntegerField('Job Display limit', validators=[DataRequired()])
     notify_refresh = IntegerField('notify_refresh', validators=[DataRequired()])
     submit = SubmitField('Submit')
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.form_name = "uiSettings"
+        self.submit_url = "/save_ui_settings"
+        self.title = "UI Notification Settings"
 
 
 class SetupForm(FlaskForm):
