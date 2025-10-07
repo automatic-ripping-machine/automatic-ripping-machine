@@ -218,6 +218,7 @@ RUN if [ "${TARGETARCH}" = "amd64" ]; then \
         libva-x11-2 \
         vainfo \
         intel-media-va-driver \
+        i965-va-driver \
         && rm -rf /var/lib/apt/lists/* ; \
     else \
         echo "Skipping VA-API drivers on non-amd64 architecture"; \
@@ -240,7 +241,7 @@ WORKDIR /app/vuejs
 # Copy only package files first for better caching
 COPY vuejs/package*.json ./
 # Install dependencies
-RUN npm ci && npm cache clean --force
+RUN npm install
 # Copy the rest of your app
 COPY vuejs .
 # Build the Vue app
