@@ -241,8 +241,7 @@ WORKDIR /app/vuejs
 # Copy only package files first for better caching
 COPY vuejs/package*.json ./
 # Install dependencies
-RUN npm install
-# Copy the rest of your app
+RUN npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 COPY vuejs .
 # Build the Vue app
 RUN npm run build
