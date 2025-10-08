@@ -4,14 +4,12 @@
         {{ field.label(class_="input-group-text")}}
     </div>
     <div class="input-group-append flex-grow-1">
-        {{ field(class_="form-control" + ( 'is-invalid' if field.errors else '' ))|safe}}
+        {{ field(class_=(field.render_kw.get('class', '') + (' is-invalid' if field.errors else ''))) | safe }}
         {% if field.errors %}
         <div class="invalid-feedback">
-            <ul>
         {% for error in field.errors %}
-            <li>{{ error }}</li>
+            <div class="alert-warning">{{ error }}</div>
         {% endfor %}
-            </ul>
         </div>
         {% endif %}
     </div>

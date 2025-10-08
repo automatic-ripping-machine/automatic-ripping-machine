@@ -2,7 +2,7 @@
     "ARM_NAME": {
         "defaultForInternalUse": "",
         "commentForInternalUse": "# A friendly name for this machine. Useful if you are running multiple instances.\n# Used in notification titles.",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_non_manditory_string"],
         "formFieldType": "StringField"
     },
     "ARM_CHILDREN": {
@@ -26,7 +26,7 @@
     "UMASK": {
         "defaultForInternalUse": "0o002",
         "commentForInternalUse": "",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_umask"],
         "formFieldType": "StringField"
     },
     "GET_VIDEO_TITLE": {
@@ -38,7 +38,7 @@
     "ARM_API_KEY": {
         "defaultForInternalUse": "",
         "commentForInternalUse": "# ARM dvd crc64 api key\n# This is only needed if you would like to send movies to the database",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "DISABLE_LOGIN": {
@@ -104,19 +104,19 @@
     "DATA_RIP_PARAMETERS": {
         "defaultForInternalUse": "",
         "commentForInternalUse": "# Additional parameters for dd. e.g. \"conv=noerror,sync\" for ignoring read errors",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "METADATA_PROVIDER": {
         "defaultForInternalUse": "omdb",
         "commentForInternalUse": "# This selects the metadata provider, Each provider has their own ups and downs\n# But a general rule would be \n# OMDB for movies and shows \n# TMDB for movies only\n# You will still need to provide an api key for the provider you have selected",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "GET_AUDIO_TITLE": {
         "defaultForInternalUse": "musicbrainz",
         "commentForInternalUse": "# Set to one of \"none\", \"musicbrainz\", \"freecddb\"\n# if \"musicbrainz\" is used the disc information are asked from musicbrainz.org\n# if \"none\" is used no label is identified",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "RIP_POSTER": {
@@ -140,43 +140,43 @@
     "ABCDE_CONFIG_FILE": {
         "defaultForInternalUse": "/etc/arm/config/abcde.conf",
         "commentForInternalUse": "# Location of your ABCDE config file",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "RAW_PATH": {
         "defaultForInternalUse": "/home/arm/media/raw/",
         "commentForInternalUse": "# Path to raw MakeMKV directory\n# Destination for MakeMKV and source for HandBrake",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "TRANSCODE_PATH": {
         "defaultForInternalUse": "/home/arm/media/transcode/",
         "commentForInternalUse": "# Intermediary directory for transcoding files\n# Destination for HandBrake",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "COMPLETED_PATH": {
         "defaultForInternalUse": "/home/arm/media/completed_media/",
         "commentForInternalUse": "# Final directory of transcoded files\n# Ripped and transcoded files end up here",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "EXTRAS_SUB": {
         "defaultForInternalUse": "extras",
         "commentForInternalUse": "# Movie subdirectory name for \"extras\"\n# Valid names are dependent on your media server\n# For Emby see https://github.com/MediaBrowser/Wiki/wiki/Movie%20naming#user-content-movie-extras\n# For Plex see https://support.plex.tv/hc/en-us/articles/200220677",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_non_manditory_string"],
         "formFieldType": "StringField"
     },
     "INSTALLPATH": {
         "defaultForInternalUse": "/opt/arm/",
         "commentForInternalUse": "# Path to installation of ARM ",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "LOGPATH": {
         "defaultForInternalUse": "/home/arm/logs/",
         "commentForInternalUse": "# Path to directory to hold log files\n# Make sure to include trailing /",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "LOGLEVEL": {
@@ -194,13 +194,13 @@
     "DBFILE": {
         "defaultForInternalUse": "/home/arm/db/arm.db",
         "commentForInternalUse": "# Path to ARM database file",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "WEBSERVER_IP": {
         "defaultForInternalUse": "X.X.X.X",
         "commentForInternalUse": "# IP address of web server (this machine)\n# Use x.x.x.x to autodetect the IP address to use",
-        "dataValidation": ["DataRequired","IPAddress_custom"],
+        "dataValidation": ["DataRequired","IPAddress_custom","InputRequired"],
         "formFieldType": "StringField"
     },
     "WEBSERVER_PORT": {
@@ -212,7 +212,7 @@
     "UI_BASE_URL": {
         "defaultForInternalUse": "armcache.local",
         "commentForInternalUse": "# Base URL to use for notifications and display purposes\n#Be sure to include protocol and port if needed (e.g. http://example.com:8091 or https://example.com)",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "SET_MEDIA_PERMISSIONS": {
@@ -224,7 +224,7 @@
     "CHMOD_VALUE": {
         "defaultForInternalUse": 777,
         "commentForInternalUse": "",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_umask"],
         "formFieldType": "StringField"
     },
     "SET_MEDIA_OWNER": {
@@ -236,19 +236,19 @@
     "CHOWN_USER": {
         "defaultForInternalUse": "None",
         "commentForInternalUse": "",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "CHOWN_GROUP": {
         "defaultForInternalUse": "None",
         "commentForInternalUse": "",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "MAKEMKV_PERMA_KEY": {
         "defaultForInternalUse": "M-@j",
         "commentForInternalUse": "# Storage for a purchased key the user may have paid for. Populating will prevent the beta key updater from running.",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "RIPMETHOD": {
@@ -272,7 +272,7 @@
     "MKV_ARGS": {
         "defaultForInternalUse": "",
         "commentForInternalUse": "# MakeMKV Arguments\n# MakeMKV Profile used for controlling Audio Track Selection.\n# This is the defaultForInternalUse profile MakeMKV uses for Audio track selection. Updating this file or changing it is considered\n# to be advanced usage of MakeMKV. But this will allow users to alternatively tell makemkv to select HD audio tracks and etc.\n# MKV_ARGS: \"--profile=/opt/arm/defaultForInternalUse.mmcp.xml\"\n# MKV_ARGS: \"--debug=-stdout\"  # this will enable more detailed logging",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "DELRAWFILES": {
@@ -284,31 +284,31 @@
     "HB_PRESET_DVD": {
         "defaultForInternalUse": "Chromecast 1080p30 Surround",
         "commentForInternalUse": "# Handbrake preset profile for DVDs\n# Execute \"HandBrakeCLI -z\" to see a list of all presets",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "HB_PRESET_BD": {
         "defaultForInternalUse": "Chromecast 2160p60 4K HEVC Surround",
         "commentForInternalUse": "# Handbrake preset profile for Blurays\n# Execute \"HandBrakeCLI -z\" to see a list of all presets",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "DEST_EXT": {
         "defaultForInternalUse": "mkv",
         "commentForInternalUse": "# Extension of the final video file",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "HANDBRAKE_CLI": {
         "defaultForInternalUse": "/usr/bin/HandBrakeCLI",
         "commentForInternalUse": "# Handbrake binary to call.  These should be the same unless you are doing remote processing.",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "HANDBRAKE_LOCAL": {
         "defaultForInternalUse": "/usr/bin/HandBrakeCLI",
         "commentForInternalUse": "# Handbrake binary to call.  These should be the same unless you are doing remote processing.",
-        "dataValidation": ["DataRequired"],
+        "dataValidation": ["DataRequired","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "MAINFEATURE": {
@@ -320,13 +320,13 @@
     "HB_ARGS_DVD": {
         "defaultForInternalUse": "-O --markers -e nvenc_h265 --native-language eng --all-audio --audio-lang-list en, jpn, chi, zho, fr, ger, deu, spa, dut, sin, tam, swe --subtitle-burned=none --all-subtitles --subtitle scan -F --subtitle-lang-list en, jpn, chi, zho, fr, ger, deu, spa, dut, sin, tam, swe",
         "commentForInternalUse": "# Additional HandBrake arguments for DVDs.",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "HB_ARGS_BD": {
         "defaultForInternalUse": "-O --markers  -e nvenc_h265 --native-language eng --all-audio --audio-lang-list en, jpn, chi, zho, fr, ger, deu, spa, dut, sin, tam, swe --subtitle-burned=none --all-subtitles --subtitle scan -F --subtitle-lang-list en, jpn, chi, zho, fr, ger, deu, spa, dut, sin, tam, swe",
         "commentForInternalUse": "# Additional Handbrake arguments for Bluray Discs.",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "EMBY_REFRESH": {
@@ -416,13 +416,13 @@
     "IFTTT_KEY": {
         "defaultForInternalUse": "",
         "commentForInternalUse": "# IFTTT API KEY\n# Leave empty to disable IFTTT notifications",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "IFTTT_EVENT": {
         "defaultForInternalUse": "arm_event",
         "commentForInternalUse": "# IFTTT Event Name",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "PO_USER_KEY": {
@@ -440,19 +440,19 @@
     "BASH_SCRIPT": {
         "defaultForInternalUse": "",
         "commentForInternalUse": "",
-        "dataValidation": "",
+        "dataValidation": ["validate_non_manditory_string","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "OMDB_API_KEY": {
         "defaultForInternalUse": "",
         "commentForInternalUse": "# OMDB_API_KEY\n# omdbapi.com API Key\n# See README-OMDBAPI for background and info\n# This is the API key for omdbapi.com queries.\n# More info at https://omdbapi.com/",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "TMDB_API_KEY": {
         "defaultForInternalUse": "",
         "commentForInternalUse": "# TMDB_API_KEY\n# https://www.themoviedb.org/ API Key\n# See README-OMDBAPI for background and info\n# This is the API key for https://www.themoviedb.org/ queries.\n# More info at https://www.themoviedb.org/documentation/api",
-        "dataValidation": "",
+        "dataValidation": "validate_non_manditory_string",
         "formFieldType": "StringField"
     },
     "JSON_URL": {

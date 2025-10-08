@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <style>
+        .popover {
+            white-space: pre-line;
+        }
+
+        .popover-body {
+            white-space: pre-wrap;
+            font-weight: bold;
+        }
+
+        .popover-header {
+            background-color: #f2f2f2;
+            border-bottom: 1px solid #EBEBEB;
+            border-radius: 5px 5px 0 0;
+            font-size: 20px;
+            line-height: 18px;
+            margin: 0;
+            padding: 8px 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        div a label {
+            display: grid;
+            font-weight: bolder;
+            margin: 1rem;
+            font-size: 25px;
+        }
+    </style>
+    <!-- MESSAGES - We keep this here incase we need it later -->
+    <div class="alert alert-success d-none" role="alert" id="success">
+        <h4 class="alert-heading">Settings were saved successfully</h4>
+    </div>
+    <div class="alert alert-danger d-none" role="alert" id="fail">
+        <h4 class="alert-heading">There was an error saving settings</h4>
+    </div>
+    <!-- END MESSAGES - We keep this here incase we need it later -->
+    <div class="container" style="max-width: initial!important;">
+        <div class="row">
+            <div class="col">
+                {% block ui %}
+                    <h4> {{ form.title }} </h4>
+                    <p> the target url is {{ form.submit_url }}</p>
+                    <form id="{{ form.form_name }}" name="{{ form.form_name }}" action="">
+                        {{ form.hidden_tag() }}
+                        {% from "settings/_form_field.html" import render_field %}
+                        {% for field in form %}
+                            {% if field.name != 'submit' %}
+                                {% if field.name != 'csrf_token' %}
+                                {{ render_field(field) }}
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        <button id="submit" class="btn btn-secondary btn-lg btn-block" form="{{ form.form_name }}"
+                                type="submit">
+                            Submit
+                        </button>
+                    </form>
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+    </div>
+{% endblock %}
+{% block footer %}{{ super() }}{% endblock %}
+{% block js %}
+    {{ super() }}
+    <script type="application/javascript">
+        $(function () {
+            let toastCount = 0;
+
+            function sendSettings(formToSend, sendTo) {
+                $.ajax({
+                    type: 'POST',
+                    url: sendTo,
+                    data: formToSend.serialize()
+                }).done(function (data) {
+                    if (data.success === true) {
+                        console.log(data)
+                        var dt = new Date();
+                        var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
+                        addToast("Saved Successfully", `Saved ${data.form} settings at ${time}`, toastCount);
+                        toastCount++;
+                    }
+                });
+            }
+
+            $("#{{ form.form_name }}").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#{{ form.form_name }}"), "{{ form.submit_url }}");
+            });
+            $("#{{ form.form_name }}").on('keydown', function (e) {
+                if (e.key == 'Enter')
+                    {
+                        e.preventDefault();
+                        sendSettings($("#{{ form.form_name }}"), "{{ form.submit_url }}");
+                    }
+                }
+            );
+            $(".popovers").popover({
+                trigger: "hover",
+            });
+            {% if form.errors %}
+                {% for k in form.errors %}
+                    $("[name='{{k}}']").addClass("is-invalid");
+                {% endfor %}
+            {% endif %}
+        });
+    </script>
+{% endblock %}

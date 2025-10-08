@@ -3,7 +3,7 @@ from typing import List
 from flask_wtf import FlaskForm
 from wtforms import Form, Field, StringField, SubmitField, SelectField, \
     IntegerField, BooleanField, PasswordField, FieldList, \
-    FormField, HiddenField, FloatField, RadioField
+    FormField, HiddenField, FloatField, RadioField, TextAreaField
 from wtforms.validators import DataRequired, Optional
 from wtforms.validators import ValidationError, IPAddress, InputRequired  # noqa: F401
 from arm.ui import app
@@ -206,7 +206,7 @@ class ChangeParamsForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
-def SettingsForm() -> FlaskForm:
+def SettingsFormFunction(comments:dict[str, str]) -> FlaskForm:
     """ A Function that returns a class instance.
         It buids the class based on on the comments.json and RipperFormConfig
         (Comments.json to make sure a central location exists for user comments)
@@ -235,7 +235,7 @@ def SettingsForm() -> FlaskForm:
             self.title = "Automatic Ripping Settings"
 
     dict_form_fields = ui_utils.generate_ripper_form_settings()
-    comments = ui_utils.generate_comments()
+    # comments = ui_utils.generate_comments()
     if isinstance(dict_form_fields, str):
         app.logger.exception(f"Settings Form failed, RipperForm config was problematic: {dict_form_fields}")
         raise ValueError(f"Settings Form failed, RipperForm config was problematic: {dict_form_fields}")
@@ -343,8 +343,21 @@ class PasswordReset(FlaskForm):
 class AbcdeForm(FlaskForm):
     """abcde config form used on pages\n
               - /settings"""
-    abcdeConfig = StringField('abcdeConfig', validators=[DataRequired()])
+    abcdeConfig = TextAreaField(
+        'abcdeConfig',
+        validators=[DataRequired()],
+        render_kw={
+            "class": "w-100 form-control min-vh-100",
+            "spellcheck": "false",
+            "style": "font-family: monospace; font-size: 0.8em"
+            }
+        )
     submit = SubmitField('Submit')
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.form_name = "abcdeSettings"
+        self.submit_url = "/abcde_settings"
+        self.title = "Music Config ABCDE Settings"
 
 
 class SystemInfoDrives(FlaskForm):

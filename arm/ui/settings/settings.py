@@ -27,6 +27,8 @@ from flask_login import login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
 from flask import render_template, request, flash, \
     redirect, Blueprint, session, url_for, jsonify
+from wtforms import Form
+from typing import Optional
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db
@@ -36,7 +38,7 @@ from arm.models.system_info import SystemInfo
 from arm.models.ui_settings import UISettings
 import arm.config.config as cfg
 from arm.ui.settings import DriveUtils as drive_utils
-from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
+from arm.ui.forms import SettingsFormFunction, UiSettingsForm, AbcdeForm, SystemInfoDrives
 from arm.ui.settings.ServerUtil import ServerUtil
 import arm.ripper.utils as ripper_utils
 
@@ -53,6 +55,32 @@ def mask_last(value: str, n: int = 4):
     if not isinstance(value, str):
         return value
     return value[:-n] + '*' * n if len(value) > n else '*' * len(value)
+
+
+def populate_form_fields(form: Form, data: Optional[dict[str, str]], titles: Optional[dict[str, str]] = None):
+    """
+    Populates a WTForms form with data from a dictionary.
+    """
+
+    # Set the nicer attributes for the form.
+    if titles is not None:
+        for field_name, field in form._fields.items():
+            if field_name == 'submit':
+                break
+            else:
+                field.data = getattr(data, field_name)
+                field.render_kw = {'title': titles[field_name]}
+                app.logger.debug(f"Field {field_name} has value with value: {field.data}")
+        return form
+    
+    for field_name, field in form._fields.items():
+        if field_name == 'submit':
+            break
+        else:
+            field.data = getattr(data, field_name)
+            field.render_kw = {'title': titles[field_name]}
+            app.logger.debug(f"Field {field_name} has value with value: {field.data}")
+    return form
 
 
 route_settings.add_app_template_filter(mask_last, name='mask_last')
@@ -103,6 +131,7 @@ def settings():
     armui_cfg = ui_utils.arm_db_cfg()
     ui_form = UiSettingsForm()
     # Set the nicer attributes for the UI settings form.
+    ui_form = UiSettingsForm()
     for field_name, field in ui_form._fields.items():
         if field_name == 'submit':
             break
@@ -148,6 +177,27 @@ def settings():
         )  # type: ignore
 
 
+@route_settings.route('/abcde_settings')
+@login_required
+def settings_abcde():
+    """
+    Page - settings
+    Method - GET
+    Overview - allows the user to update the all configs of A.R.M without
+    needing to open a text editor
+    """
+
+    # form.abcdeConfig.data = cfg.abcde_config
+    abcde_record = cfg.abcde_config
+    # load the abcde config into the form
+    form = AbcdeForm(abcdeConfig=abcde_record)
+    session["page_title"] = "Music Ripping - ABCDE Settings"
+    return render_template(
+        "settings/dynamic_form.html",
+        form=form,
+        )  # type: ignore
+
+
 @route_settings.route('/ui_settings')
 @login_required
 def settings_ui():
@@ -164,18 +214,11 @@ def settings_ui():
     armui_cfg = ui_utils.arm_db_cfg()
     ui_form = UiSettingsForm()
     # Set the nicer attributes for the UI settings form.
-    for field_name, field in ui_form._fields.items():
-        if field_name == 'submit':
-            break
-        else:
-            field.data = getattr(armui_cfg, field_name)
-            field.render_kw = {'title': comments[field_name]}
-            app.logger.debug(f"Field {field_name} has value with value: {field.data}")
-    session["page_title"] = "Settings"
+    ui_form = populate_form_fields(ui_form, armui_cfg, comments)
+    session["page_title"] = "UI Settings"
     return render_template(
-        "settings/ui.html",
-        form=ui_form,
-        # form_name="uiSettings"
+        "settings/dynamic_form.html",
+        form=ui_form
         )  # type: ignore
 
 
@@ -190,16 +233,13 @@ def settings_ripper():
     """
 
     # Build the dynamic form for the ripper settings
-    form = SettingsForm()
-    # now go through all teh arm config keys and set the form fields.data
-    for key, value in cfg.arm_config.items():
-        field = getattr(form, key, None)
-        if field:
-            app.logger.debug(f"Config key: {key} resolved to field: {field.name}")
-            field.data = value
-    session["page_title"] = "Settings"
+    comments:dict[str, str] = ui_utils.generate_comments()
+    form = SettingsFormFunction(comments)
+
+    form = populate_form_fields(form, cfg.arm_config, comments)
+    session["page_title"] = "Ripper Settings"
     return render_template(
-        "settings/ui.html",
+        "settings/dynamic_form.html",
         form=form,
         # form_name="ripper"
         )  # type: ignore
