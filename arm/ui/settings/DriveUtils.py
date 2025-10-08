@@ -42,7 +42,6 @@ class MaskSerialMeta(type):
         cls.__repr__ = masked_repr
 
 
-
 DRIVE_INFORMATION = (
     "DEVNAME",
     "ID_VENDOR_ENC",  # ID_VENDOR (with encoded characters)
@@ -221,10 +220,6 @@ def drives_search():
 
         except Exception as e:
             logging.error("Error processing device %s: %s", device, e, exc_info=True)
-
-
-
-
 
 
 def drives_update(startup=False):
