@@ -215,3 +215,5 @@ ZILUP_CHAT_ORG: ""
 ## DESKTOP NOTI
 
 ## EMAIL NOTI
+## Full info @ https://github.com/caronc/apprise/wiki/Notify_email
+EMAIL: ""
