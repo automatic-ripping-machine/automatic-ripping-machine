@@ -1079,6 +1079,7 @@ class MakeMKVOutputChecker:
 
         # Default case: no action needed
         return self.data
+
     def zero_saved_files(self):
         """
         Check the MSG and see if we saved no files. Raise MakeMkvRuntimeError if saved files =0
