@@ -15,12 +15,11 @@ from arm.models.job import JobState
 PROCESS_COMPLETE = "Handbrake processing complete"
 
 
-def run_handbrake_command(cmd, logfile, track=None, track_number=None):
+def run_handbrake_command(cmd, track=None, track_number=None):
     """
     Execute a HandBrake command and handle errors consistently.
 
     :param cmd: The HandBrake command to execute
-    :param logfile: Logfile for logging purposes
     :param track: Optional track object to update status
     :param track_number: Optional track number for error messages
     :return: Output from HandBrake command
@@ -47,7 +46,7 @@ def run_handbrake_command(cmd, logfile, track=None, track_number=None):
         if track:
             track.status = "fail"
             track.error = err
-        raise subprocess.CalledProcessError(hb_error.returncode, cmd)
+    raise subprocess.CalledProcessError(hb_error.returncode, cmd)
 
 
 def build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile,
@@ -128,7 +127,7 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     cmd = build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile, main_feature=True)
 
     try:
-        run_handbrake_command(cmd, logfile, track)
+        run_handbrake_command(cmd, track)
         logging.info("Handbrake call successful")
     except subprocess.CalledProcessError:
         job.errors = track.error
@@ -189,7 +188,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
                                           track_number=track.track_number)
 
             try:
-                run_handbrake_command(cmd, logfile, track, track.track_number)
+                run_handbrake_command(cmd, track, track.track_number)
             except subprocess.CalledProcessError:
                 db.session.commit()
                 raise
@@ -253,7 +252,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
         cmd = build_handbrake_command(srcpathname, filepathname, hb_preset, hb_args, logfile)
 
         try:
-            run_handbrake_command(cmd, logfile)
+            run_handbrake_command(cmd)
         except subprocess.CalledProcessError:
             # Error already logged by run_handbrake_command
             raise
