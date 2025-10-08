@@ -46,7 +46,7 @@ def run_handbrake_command(cmd, track=None, track_number=None):
         if track:
             track.status = "fail"
             track.error = err
-    raise subprocess.CalledProcessError(hb_error.returncode, cmd)
+        raise subprocess.CalledProcessError(hb_error.returncode, cmd)
 
 
 def build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile,
@@ -250,12 +250,7 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
         logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(filepathname)}")
 
         cmd = build_handbrake_command(srcpathname, filepathname, hb_preset, hb_args, logfile)
-
-        try:
-            run_handbrake_command(cmd)
-        except subprocess.CalledProcessError:
-            # Error already logged by run_handbrake_command
-            raise
+        run_handbrake_command(cmd)
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
