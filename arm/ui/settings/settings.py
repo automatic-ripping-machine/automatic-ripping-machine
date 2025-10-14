@@ -26,7 +26,7 @@ import sqlalchemy
 from flask_login import login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
 from flask import render_template, request, flash, \
-    redirect, Blueprint, session, url_for, jsonify
+    redirect, Blueprint, session, url_for, jsonify, Response
 from wtforms import Form
 from typing import Optional
 
@@ -61,25 +61,48 @@ def populate_form_fields(form: Form, data: Optional[dict[str, str]], titles: Opt
     """
     Populates a WTForms form with data from a dictionary.
     """
-
+    starter = "Field "
+    ender = "has value with value: "
     # Set the nicer attributes for the form.
     if titles is not None:
-        for field_name, field in form._fields.items():
-            if field_name == 'submit':
-                break
-            else:
-                field.data = getattr(data, field_name)
-                field.render_kw = {'title': titles[field_name]}
-                app.logger.debug(f"Field {field_name} has value with value: {field.data}")
-        return form
-    
-    for field_name, field in form._fields.items():
-        if field_name == 'submit':
-            break
+        if isinstance(data, dict):
+            app.logger.debug(f"Titles were provided. Populating form with {len(form._fields)} fields, data is type{type(data)}, titles are {type(titles)} ")
+            for field_name, field in form._fields.items():
+                if field_name == 'submit':
+                    continue
+                else:
+                    if field_name in data:
+                        field.data = data[field_name]
+                        field.render_kw = {'title': titles[field_name]}
+                        app.logger.debug(f"{starter}{field_name} {ender}{field.data} ")
+                    else:
+                        app.logger.debug(f"Field {field_name} not found in data dict")
+            return form
         else:
+            app.logger.debug(f"Titles were provided. Populating form with {len(form._fields)} fields, data is type{type(data)}, titles are {type(titles)} ")
+            for field_name, field in form._fields.items():
+                if field_name == 'submit':
+                    continue
+                else:
+                    if not hasattr(data, field_name):
+                        app.logger.debug(f"Field {field_name} not found in data object")
+                        continue
+                    field.data = getattr(data, field_name)
+                    field.render_kw = {'title': titles[field_name]}
+                    app.logger.debug(f"{starter}{field_name} {ender}{field.data} ")
+            return form
+
+    for field_name, field in form._fields.items():
+        
+        app.logger.debug(f"No TITLES provided Populating form with {len(form._fields)} fields")
+        if field_name == 'submit':
+            continue
+        else:
+            if not hasattr(data, field_name):
+                app.logger.debug(f"Field {field_name} not found in data object")
+                continue
             field.data = getattr(data, field_name)
-            field.render_kw = {'title': titles[field_name]}
-            app.logger.debug(f"Field {field_name} has value with value: {field.data}")
+            app.logger.debug(f" {starter}{field_name} {ender}{field.data} ")
     return form
 
 
@@ -150,7 +173,7 @@ def settings():
     drive_utils.update_tray_status(drives)
     form_drive = SystemInfoDrives(request.form)
     # Build the dynamic form for the ripper settings
-    form = SettingsForm()
+    form = SettingsFormFunction(comments=comments)
     # now go through all teh arm config keys and set the form fields.data
     for key, value in cfg.arm_config.items():
         field = getattr(form, key, None)
@@ -177,6 +200,70 @@ def settings():
         )  # type: ignore
 
 
+@route_settings.route('/help')
+@login_required
+def help_page():
+    """
+    Page - help_page
+    Method - GET
+    Overview - page with links to help locations
+    """
+    session["page_title"] = "help page"
+    return render_template(
+        "settings/help.html"
+        )  # type: ignore
+
+
+@route_settings.route('/general_settings')
+@login_required
+def settings_general():
+    """
+    Page - General Settings
+    Method - GET
+    Overview - Mostly drives and statistical information.
+    TODO: Really shoudl include a web based system to update ARM in this section
+    """
+
+    # stats for info page
+    failed_rips = Job.query.filter_by(status="fail").count()
+    total_rips = Job.query.filter_by().count()
+    movies = Job.query.filter_by(video_type="movie").count()
+    series = Job.query.filter_by(video_type="series").count()
+    cds = Job.query.filter_by(disctype="music").count()
+
+    # Get the current server time and timezone
+    server_timezone = os.environ.get("TZ", "Etc/UTC")
+    current_time = datetime.now()
+    server_datetime = current_time.strftime(cfg.arm_config['DATE_FORMAT'])
+    [arm_version_local, arm_version_remote] = ui_utils.git_check_version()
+    local_git_hash = ui_utils.get_git_revision_hash()
+
+    stats = {'server_datetime': server_datetime,
+             'server_timezone': server_timezone,
+             'python_version': platform.python_version(),
+             'arm_version_local': arm_version_local,
+             'arm_version_remote': arm_version_remote,
+             'git_commit': local_git_hash,
+             'movies_ripped': movies,
+             'series_ripped': series,
+             'cds_ripped': cds,
+             'no_failed_jobs': failed_rips,
+             'total_rips': total_rips,
+             'updated': ui_utils.git_check_updates(local_git_hash),
+             'hw_support': check_hw_transcode_support()
+             }
+    # System Drives (CD/DVD/Blueray drives)
+    drive_utils.update_job_status()
+    drives = drive_utils.get_drives()
+    drive_utils.update_tray_status(drives)
+    session["page_title"] = "General Settings and Drives"
+    return render_template(
+        "settings/general.html",
+        stats=stats,
+        drives=drives
+        )  # type: ignore
+
+
 @route_settings.route('/abcde_settings')
 @login_required
 def settings_abcde():
@@ -186,7 +273,7 @@ def settings_abcde():
     Overview - allows the user to update the all configs of A.R.M without
     needing to open a text editor
     """
-
+    # app.logger.debug(app.config)
     # form.abcdeConfig.data = cfg.abcde_config
     abcde_record = cfg.abcde_config
     # load the abcde config into the form
@@ -235,13 +322,14 @@ def settings_ripper():
     # Build the dynamic form for the ripper settings
     comments:dict[str, str] = ui_utils.generate_comments()
     form = SettingsFormFunction(comments)
-
+    app.logger.debug(f"Ripper settings form created with {len(form._fields)} fields")
     form = populate_form_fields(form, cfg.arm_config, comments)
+    app.logger.debug(f"Ripper settings form populated with {len(form.__dict__)} fields")
     session["page_title"] = "Ripper Settings"
+    
     return render_template(
         "settings/dynamic_form.html",
-        form=form,
-        # form_name="ripper"
+        form=form
         )  # type: ignore
 
 
@@ -277,6 +365,9 @@ def check_hw_transcode_support():
         app.logger.error(err)
     return hw_support_status
 
+###############################################################################
+##  POST routes below here
+###############################################################################
 
 @route_settings.route('/save_arm_settings', methods=['POST'])
 @login_required
@@ -294,7 +385,7 @@ def save_settings():
     arm_cfg = {}
     form_name = "arm ripper settings"
     app.logger.debug("Generating a temporary instance of SettingsForm")
-    form = SettingsForm()
+    form = SettingsFormFunction(comments=comments)
     app.logger.info(f"Form errors are: {form.errors}")
     if form.validate_on_submit():
         app.logger.debug("Saving Ripper settings")
@@ -304,24 +395,25 @@ def save_settings():
         try:
             # Save updated arm.yaml
             app.logger.debug(f"routes.save_settings: Saving new arm.yaml: {cfg.arm_config_path}")
-            with open(cfg.arm_config_path, "w") as settings_file:
+            with open(cfg.arm_config_path, "w", encoding="utf-8") as settings_file:
                 settings_file.write(arm_cfg)
             success = True
         except Exception as e:
-            app.logger.exception(f"Error saving arm.yaml: {e}")
-            flash(f"Error saving arm.yaml: {e}", "error")
-            return {'success': False, 'settings': str(cfg.arm_config), 'form': form_name}
+            exception_msg = f"Error saving arm.yaml: {e}"
+            app.logger.exception(exception_msg)
+            flash(exception_msg, "error")
+            return {'error': True, 'errors': str(exception_msg), 'form': form_name}
         importlib.reload(cfg)
         # Set the ARM Log level to the config
         app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
         app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
-
-    # If we get to here there was no post data
         return jsonify({'success': success, 'settings': cfg.arm_config, 'form': form_name})
     else:
-        app.logger.error(f"Error validating form: {form.errors}")
+        # form is not valid
+        fields_errors = {field: errs for field, errs in form.errors.items()}
+        app.logger.error(f"Error validating form: {form.errors}, I found these errors: {fields_errors}")
         flash(f"Error validating form: {form.errors}", "error")
-        return jsonify({'success': False, 'settings': str(cfg.arm_config), 'form': form_name})
+        return jsonify({'error': True, 'message':"Validation Failed", 'errors': fields_errors}), 400
 
 
 @route_settings.route('/save_ui_settings', methods=['POST'])

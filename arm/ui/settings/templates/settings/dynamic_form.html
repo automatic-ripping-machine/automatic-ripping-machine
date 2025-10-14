@@ -72,21 +72,51 @@
     <script type="application/javascript">
         $(function () {
             let toastCount = 0;
-
+            
+            function toaster(title, message){
+                var dt = new Date();
+                var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
+                addToast(title, `${message} settings at ${time}`, toastCount);
+                toastCount++;
+            }
             function sendSettings(formToSend, sendTo) {
                 $.ajax({
                     type: 'POST',
                     url: sendTo,
                     data: formToSend.serialize()
-                }).done(function (data) {
+                }).done(function (data, textStatus, jqXHR) {
+                    // handle for 204 response
+                    if (jqXHR.status === 204 || data === '' || data === null || data === undefined) {
+                        console.log('No content to process');
+                        return;
+                    }
+                    // handle success reponse
                     if (data.success === true) {
                         console.log(data)
-                        var dt = new Date();
-                        var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
-                        addToast("Saved Successfully", `Saved ${data.form} settings at ${time}`, toastCount);
-                        toastCount++;
+                        addToast("Saved Successfully", `Saved ${data.form}`);
+                        }
+                    // Handle error response
+                    if (data.error === true) {
+                        // Handle 500 Internal Server Error
+                        if (data.message == "Validation Failed") {
+                            addToast("Error Saving Settings", `Error: ${data.message}`);
+                        }
+                        // This is where I need to loop through the errors and highlight the fields
+                        if (data.errors) {
+                            console.log(data.errors)
+                            Object.keys(data.errors).forEach(function(key) {
+                                console.log(key, data.errors[key]);
+                                $(`[name='${key}']`).addClass("is-invalid");
+                                addToast("Error Saving Settings", `Error: ${key} : ${data.errors[key]}`);
+                            });
+                        }
                     }
-                });
+                    // Aw poop, unexpected response
+                    console.warn("Unexpected response", data);
+                }.fail(function (data) {
+                    console.log(data)
+                    addToast("Error Saving Settings", `Error saving ${data.form}`);
+                }));
             }
 
             $("#{{ form.form_name }}").submit(function (e) {

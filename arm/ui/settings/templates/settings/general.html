@@ -1,36 +1,36 @@
-{% block ripper %}
-    <div class="tab-pane active pt-5" id="home" role="tabpanel" aria-labelledby="home-tab">
-        <div class="card-deck">
-            <!--Left Card-->
-            <div class="card">
-                <div class="card-header">Server details</div>
-                <div class="card-body col">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item">
-                            Datetime: {{ stats['server_datetime'] }} <br>
-                            Timezone: {{ stats['server_timezone'] }}
-                        </li>
-                        <li class="list-group-item">
-                            Python version: <code>{{ stats['python_version'] }}</code><br>
-                            A.R.M version: <code>{{ stats['arm_version_local'] }}</code><br>
-                            {% if not stats['updated'] %}
-                                <i>&nbsp;<a href="https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Upgrading" target="_blank">Update available</a>,
-                                    Version:</i> <code>{{ stats['arm_version_remote'] }}</code><br>
-                            {% endif %}
-                            Current git version: <code>{{ stats['git_commit'] }}</code><br>
-                        </li>
-                        <!-- Rip stats -->
-                        <li class="list-group-item">
-                            Total rips: <code>{{ stats['total_rips'] }}</code><br>
-                            Movies ripped: <code>{{ stats['movies_ripped'] }}</code><br>
-                            Series ripped: <code>{{ stats['series_ripped'] }}</code><br>
-                            Audio ripped: <code>{{ stats['cds_ripped'] }}</code>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-            <!--Right Card-->
-            {% include 'settings/drives.html' %}
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card-deck">
+    <!--Left Card-->
+    <div class="card">
+        <div class="card-header">Server details</div>
+        <div class="card-body col">
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item">
+                    Datetime: {{ stats['server_datetime'] }} <br>
+                    Timezone: {{ stats['server_timezone'] }}
+                </li>
+                <li class="list-group-item">
+                    Python version: <code>{{ stats['python_version'] }}</code><br>
+                    A.R.M version: <code>{{ stats['arm_version_local'] }}</code><br>
+                    {% if not stats['updated'] %}
+                        <i>&nbsp;<a href="https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Docker-Upgrading" target="_blank">Update available</a>,
+                            Version:</i> <code>{{ stats['arm_version_remote'] }}</code><br>
+                    {% endif %}
+                    Current git version: <code>{{ stats['git_commit'] }}</code><br>
+                </li>
+                <!-- Rip stats -->
+                <li class="list-group-item">
+                    Total rips: <code>{{ stats['total_rips'] }}</code><br>
+                    Movies ripped: <code>{{ stats['movies_ripped'] }}</code><br>
+                    Series ripped: <code>{{ stats['series_ripped'] }}</code><br>
+                    Audio ripped: <code>{{ stats['cds_ripped'] }}</code>
+                </li>
+            </ul>
         </div>
     </div>
+    <!--Right Card-->
+    {% include 'settings/drives.html' %}
+</div>
 {% endblock %}
