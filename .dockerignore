@@ -216,8 +216,15 @@ cython_debug/
 .dockerignore
 .gitignore
 .gitmodules
-
+/test
+/docs
+/devtools
+/arm_wiki
+/.venv/*
+**/__pycache__/**
+.github
 *.yml
 *.md
+.run
 !README.md
 Dockerfile

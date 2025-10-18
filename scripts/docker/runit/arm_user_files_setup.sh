@@ -33,27 +33,8 @@ check_folder_ownership() {
     echo "[OK]: ARM UID and GID set correctly, ARM has access to '$check_dir' using $ARM_UID:$ARM_GID"
 }
 
-### Setup User
-if [[ $ARM_UID -ne $DEFAULT_UID ]]; then
-  echo -e "Updating arm user id from $DEFAULT_UID to $ARM_UID..."
-  usermod -u "$ARM_UID" arm
-elif [[ $ARM_UID -eq $DEFAULT_UID ]]; then
-  echo -e "Updating arm group id $ARM_UID to default (1000)..."
-  usermod -u $DEFAULT_UID arm
-fi
-
-if [[ $ARM_GID -ne $DEFAULT_GID ]]; then
-  echo -e "Updating arm group id from $DEFAULT_GID to $ARM_GID..."
-  groupmod -og "$ARM_GID" arm
-elif [[ $ARM_GID -eq $DEFAULT_GID ]]; then
-  echo -e "Updating arm group id $ARM_GID to default (1000)..."
-  groupmod -og $DEFAULT_GID arm
-fi
-echo "Adding arm user to 'render' group"
-usermod -a -G render arm
-
 ### Setup Files
-chown -R arm:arm /opt/arm
+chown -R $ARM_GID:$ARM_GID /opt/arm
 
 # Check ownership of the ARM home folder
 check_folder_ownership "/home/arm"
@@ -66,7 +47,7 @@ for dir in $SUBDIRS ; do
     echo "Creating dir: $thisDir"
     mkdir -p "$thisDir"
     # Set the default ownership to arm instead of root
-    chown -R arm:arm "$thisDir"
+    chown -R $ARM_GID:$ARM_GID "$thisDir"
   fi
 done
 
@@ -103,7 +84,6 @@ fi
 if ! [ -f /etc/arm/config/abcde.conf ]; then
   echo "abcde.conf doesnt exist"
   cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
-  # chown arm:arm /etc/arm/config/abcde.conf
 fi
 # The system link to the fake default file -not really needed but as a precaution to the -C variable being blank
 if ! [ -h /etc/abcde.conf ]; then
