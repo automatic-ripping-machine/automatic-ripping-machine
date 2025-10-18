@@ -148,24 +148,7 @@ if __name__ == "__main__":
     # Get arguments from arg parser
     args = entry()
     devpath = f"/dev/{args.devpath}"
-    drive = SystemDrives.query.filter_by(mount=devpath).one()  # unique mounts
-
-    # With some drives and some disks, there is a race condition between creating the Job()
-    # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)
-    ready_count = 1
-    for num in range(1, 11):
-        drive.tray_status()
-        if drive.ready:
-            break
-        msg = f"[{num} of 10] Drive [{drive.mount}] appears to be empty or is not ready. Waiting 1s"
-        logging.info(msg)
-        time.sleep(1)
-    else:
-        # This should really never trigger now as arm_wrapper should be taking care of this.
-        msg = f"Failed to wait for drive ready (ioctl tray status: {drive.tray})."
-        logging.info(msg)
-        arm_log.info(msg)
-        sys.exit()
+    #drive = SystemDrives.query.filter_by(mount=devpath).one()  # unique mounts
 
     # ARM Job starts
     # Create new job
@@ -193,18 +176,11 @@ if __name__ == "__main__":
     utils.database_adder(job)
     # Sleep to lower chances of db locked - unlikely to be needed
     time.sleep(1)
-    # Associate the job with the drive in the database
-    drive_utils.update_drive_job(job)
+
     # Add the job.config to db
     config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
     # Check if the drive mode is set to manual, and load to the job config for later use
-    logging.debug(f"drive_mode: {drive.drive_mode}")
-    if drive.drive_mode == 'manual':
-        job.manual_mode = True
-        db.session.commit()
-    else:
-        job.manual_mode = False
-        db.session.commit()
+
     utils.database_adder(config)
     # Log version number
     with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:

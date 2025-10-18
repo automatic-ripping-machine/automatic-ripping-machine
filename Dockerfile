@@ -1,6 +1,6 @@
 ###########################################################
 # Stage 1: Builder
-FROM phusion/baseimage:noble-1.0.1 AS builder
+FROM phusion/baseimage:jammy-1.0.4 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/arm
 
@@ -35,9 +35,20 @@ RUN apt clean && apt update && apt upgrade -y && \
         libfribidi-dev \
         libass-dev \
         openjdk-11-jre-headless libssl-dev \
-        ca-certificates libtool libtool-bin autoconf automake autopoint appstream build-essential cmake git libass-dev libbz2-dev libfontconfig1-dev libfreetype6-dev libfribidi-dev libharfbuzz-dev libjansson-dev liblzma-dev libmp3lame-dev libnuma-dev libogg-dev libopus-dev libsamplerate-dev libspeex-dev libtheora-dev libtool libtool-bin libturbojpeg0-dev libvorbis-dev libx264-dev libxml2-dev libvpx-dev m4 make meson nasm ninja-build patch pkg-config tar zlib1g-dev clang libavcodec-dev  libva-dev libdrm-dev
+        ca-certificates libtool libtool-bin autoconf automake autopoint appstream build-essential \
+    cmake git libass-dev libbz2-dev libfontconfig1-dev libfreetype6-dev libfribidi-dev libharfbuzz-dev \
+    libjansson-dev liblzma-dev libmp3lame-dev libnuma-dev libogg-dev libopus-dev libsamplerate-dev libspeex-dev \
+    libtheora-dev libtool libtool-bin libturbojpeg0-dev libvorbis-dev libx264-dev libxml2-dev libvpx-dev m4 \
+    make meson nasm ninja-build patch pkg-config tar zlib1g-dev clang libavcodec-dev  libva-dev libdrm-dev
 
-
+RUN apt update && apt install -y software-properties-common \
+ && add-apt-repository -y ppa:ubuntu-toolchain-r/test \
+ && apt update && apt upgrade -y && apt install -y gcc-13 g++-13 \
+ && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/* /usr/share/locales/*
+    # Downgrade unsupported ARM flags for x265 (avoids armv9-a errors)
+#RUN find /tmp/handbrake/build/contrib/x265 -type f \
+#    -exec sed -i 's/armv9-a+i8mm+sve2[^ ]*/armv8.6-a/g' {} +
+ENV CC=gcc-13 CXX=g++-13
 # Example: build HandBrake or MakeMKV if required (optional)
 # RUN git clone ... && ./configure && make && make install
 COPY ./scripts/install_handbrake.sh /install_handbrake.sh
@@ -50,7 +61,7 @@ RUN chmod +x /install_makemkv.sh && sleep 1 && \
     /install_makemkv.sh
 ###########################################################
 # Stage 2: Runtime
-FROM phusion/baseimage:noble-1.0.2 AS base
+FROM phusion/baseimage:jammy-1.0.4 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ARM_UID=1000
@@ -135,17 +146,18 @@ RUN install_clean \
         libvorbis0a \
         libxml2 \
         libvpx-dev \
-        libx264-dev libjansson-dev libturbojpeg0-dev && \
+        libx264-dev libjansson-dev libturbojpeg0-dev tzdata && \
         rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/* /usr/share/locales/*
 
 ###################  Python packages  ############################
 COPY requirements.txt ./requirements.txt
 RUN install_clean pip curl git libcurl4-openssl-dev \
     libcurl4-openssl-dev libssl-dev libffi-dev python3-dev build-essential && \
-    pip3 install --upgrade --break-system-packages setuptools psutil pyudev && \
-    pip3 install --ignore-installed --prefer-binary --break-system-packages -r ./requirements.txt && \
+    pip3 install --upgrade setuptools psutil pyudev && \
+    pip3 install --ignore-installed --prefer-binary -r ./requirements.txt && \
     apt remove -y pip curl libcurl4-openssl-dev libcurl4-openssl-dev libssl-dev \
     libffi-dev python3-dev build-essential && \
+    apt autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/* /usr/share/locales/* \
     && rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 
