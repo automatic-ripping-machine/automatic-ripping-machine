@@ -48,7 +48,11 @@ class ARMInfo:
         """
         branch_len = 10
         cmd = "cd /opt/arm && git branch && git log -1"
-        git_output = ProcessHandler.arm_subprocess(cmd, True)
+        try:
+            git_output = ProcessHandler.arm_subprocess(cmd, True)
+        except Exception as e:
+            logging.error(e)
+            git_output = ""
         git_regex = r"\*\s(\S+)\n(?:\s*\S*\n){1,10}(?:commit )([a-z\d]{5,7})"
         git_match = re.search(git_regex, git_output)
 
