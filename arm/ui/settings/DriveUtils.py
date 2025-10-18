@@ -188,13 +188,13 @@ def drives_search():
             # Ignore loop&nvme devices
             if devnode and (devnode.startswith("/dev/loop") or devnode.startswith("/dev/nvme")):
                 # Logging here might not be helpful, unsure yet
-                # logging.debug("Ignoring loop/nvme device: %s", devnode)
+                # app.logger.debug("Ignoring loop/nvme device: %s", devnode)
                 continue
 
             # Log all properties - Helps with debugging if a drive has loaded all properties, or just the base
-            logging.debug("Device: %s", devnode)
+            app.logger.debug("Device: %s", devnode)
             for key, value in device.properties.items():
-                logging.debug("  %s = %s", key, value)
+                app.logger.debug("  %s = %s", key, value)
 
             # Optical drive detection - Try to use ID_TYPE then ID_CDROM but fall back to all drives matching /dev/sr*
             # NOTE: this may be better to check if MAJOR = 11
@@ -207,7 +207,7 @@ def drives_search():
             )
 
             if is_optical:
-                logging.info("Optical drive detected: %s", devnode)
+                app.logger.info("Optical drive detected: %s", devnode)
 
                 # Try to populate fields, but allow missing values incase the drive hasn't been mounted/activated yet
                 fields = (
@@ -219,7 +219,7 @@ def drives_search():
                 yield DriveInformationMedium(*values)
 
         except Exception as e:
-            logging.error("Error processing device %s: %s", device, e, exc_info=True)
+            app.logger.debug("Error processing device %s: %s", device, e, exc_info=True)
 
 
 def drives_update(startup=False):
@@ -243,9 +243,9 @@ def drives_update(startup=False):
     # Update drive information:
     system_drives = sorted(drives_search())
     if len(system_drives) < 1:
-        logging.error(f"We Cant find any system drives!. {system_drives}")
+        app.logger.error(f"We Cant find any system drives!. {system_drives}")
     for drive in system_drives:  # sorted by mount point
-        logging.debug(f"Drive info: {drive}")
+        app.logger.debug(f"Drive info: {drive}")
         # Retrieve the drive matching `drive.serial_id` from the database or
         # create a new entry if it doesn't exist. Since `drive.serial_id` *may*
         # not be unique, we update only the first drive that misses the mdisc

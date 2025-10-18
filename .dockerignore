@@ -215,7 +215,6 @@ cython_debug/
 .github/
 .dockerignore
 .gitignore
-.gitmodules
 /test
 /docs
 /devtools
