@@ -1,6 +1,6 @@
 ###########################################################
 # Stage 1: Builder
-FROM phusion/baseimage:jammy-1.0.4 AS builder
+FROM phusion/baseimage:noble-1.0.2 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/arm
 
@@ -61,7 +61,7 @@ RUN chmod +x /install_makemkv.sh && sleep 1 && \
     /install_makemkv.sh
 ###########################################################
 # Stage 2: Runtime
-FROM phusion/baseimage:jammy-1.0.4 AS base
+FROM phusion/baseimage:noble-1.0.2 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ARM_UID=1000
@@ -153,8 +153,8 @@ RUN install_clean \
 COPY requirements.txt ./requirements.txt
 RUN install_clean pip curl git libcurl4-openssl-dev \
     libcurl4-openssl-dev libssl-dev libffi-dev python3-dev build-essential && \
-    pip3 install --upgrade setuptools psutil pyudev && \
-    pip3 install --ignore-installed --prefer-binary -r ./requirements.txt && \
+    pip3 install --upgrade --break-system-packages setuptools psutil pyudev && \
+    pip3 install --ignore-installed --prefer-binary --break-system-packages -r ./requirements.txt && \
     apt remove -y pip curl libcurl4-openssl-dev libcurl4-openssl-dev libssl-dev \
     libffi-dev python3-dev build-essential && \
     apt autoremove -y && \

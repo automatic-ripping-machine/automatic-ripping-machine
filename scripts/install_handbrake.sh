@@ -49,11 +49,14 @@ nproc="$(nproc)"
 # if architecture is any flavor of arm, install standard HandBrakeCLI and exit cleanly
 if [[ $(dpkg --print-architecture) =~ arm.* ]]; then
     echo "Running on arm - building HandBrakeCLI with neon"
-    ./configure --disable-nvenc --disable-nvdec --disable-gtk --launch-jobs="$nproc" --launch
+    ./configure --disable-nvenc --disable-nvdec --disable-gtk \
+        --launch-jobs="$nproc" --launch
 else
     echo "Running on amd64 ?  - building HandBrakeCLI with all HW encoders"
-    ./configure --disable-gtk --enable-qsv --enable-vce --enable-nvdec --launch-jobs="$nproc" --launch
+    ./configure --disable-gtk --enable-qsv --enable-vce --enable-nvdec \
+        --launch-jobs="$nproc" --launch
 fi
+
 make -C build -j "$nproc"
 make -C build install
 cp /usr/local/bin/HandBrakeCLI /usr/bin/HandBrakeCLI
