@@ -219,7 +219,7 @@ cython_debug/
 /docs
 /devtools
 /arm_wiki
-/.venv/*
+/.venv
 **/__pycache__/**
 .github
 *.yml
