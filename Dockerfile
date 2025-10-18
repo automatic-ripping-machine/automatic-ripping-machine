@@ -210,7 +210,8 @@ RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
 # Allow git to be managed from the /opt/arm folders
 RUN git config --global --add safe.directory /opt/arm
 
+WORKDIR /home/arm
+USER ubuntu
 ###########################################################
 # Default command
 CMD ["/sbin/my_init"]
-WORKDIR /home/arm
