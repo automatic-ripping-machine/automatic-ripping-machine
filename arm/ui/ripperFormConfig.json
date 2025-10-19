@@ -440,7 +440,7 @@
     "BASH_SCRIPT": {
         "defaultForInternalUse": "",
         "commentForInternalUse": "",
-        "dataValidation": ["validate_non_manditory_string","validate_path_exists"],
+        "dataValidation": ["Optional","validate_non_manditory_string","validate_path_exists"],
         "formFieldType": "StringField"
     },
     "OMDB_API_KEY": {
