@@ -294,7 +294,7 @@ def get_tv_folder_name(job):
     """
     # Check if feature is enabled (use job's config snapshot for consistency)
     # Job.config contains the configuration snapshot from when the job was created
-    if not getattr(job.config, 'USE_DISC_LABEL_FOR_TV', False):
+    if not job.config.get('USE_DISC_LABEL_FOR_TV', False):
         logging.debug("USE_DISC_LABEL_FOR_TV is disabled for this job, using standard naming")
         return fix_job_title(job)
     
