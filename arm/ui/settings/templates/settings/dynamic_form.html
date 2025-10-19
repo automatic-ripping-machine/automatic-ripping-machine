@@ -93,30 +93,25 @@
                     // handle success reponse
                     if (data.success === true) {
                         console.log(data)
-                        addToast("Saved Successfully", `Saved ${data.form}`);
+                        toaster("Saved Successfully", `Saved ${data.form}`);
+                        $("div[id$='_error']").hide().fadeOut(200);
                         }
                     // Handle error response
                     if (data.error === true) {
-                        // Handle 500 Internal Server Error
                         if (data.message == "Validation Failed") {
-                            addToast("Error Saving Settings", `Error: ${data.message}`);
+                            addToast("Error Saving Settings", `Error: ${data.message}`,success=false);
                         }
-                        // This is where I need to loop through the errors and highlight the fields
+                        // This is where we need to loop through the errors and highlight the fields
                         if (data.errors) {
-                            console.log(data.errors)
-                            Object.keys(data.errors).forEach(function(key) {
-                                console.log(key, data.errors[key]);
-                                $(`[name='${key}']`).addClass("is-invalid");
-                                addToast("Error Saving Settings", `Error: ${key} : ${data.errors[key]}`);
+                            $.each(data.errors,function(field_name, error_message){
+                                var errDivId = '#' + field_name + '_error';
+                                $(errDivId).html(error_message).removeClass().addClass('alert alert-danger ps-3 d-flex align-items-center').fadeIn(200);
                             });
                         }
                     }
                     // Aw poop, unexpected response
                     console.warn("Unexpected response", data);
-                }.fail(function (data) {
-                    console.log(data)
-                    addToast("Error Saving Settings", `Error saving ${data.form}`);
-                }));
+                });
             }
 
             $("#{{ form.form_name }}").submit(function (e) {
