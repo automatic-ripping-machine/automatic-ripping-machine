@@ -356,3 +356,157 @@ def feed_json():
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
                               mimetype=constants.JSON_TYPE)
+
+
+@route_jobs.route('/batch_rename', methods=['POST'])
+@login_required
+def batch_rename_api():
+    """
+    Batch rename API endpoint for TV series disc folders
+    
+    Supports three actions:
+    - 'preview': Generate preview of rename operation
+    - 'execute': Perform the batch rename
+    - 'rollback': Undo a previous batch rename
+    
+    Expected JSON payload for 'preview' and 'execute':
+    {
+        "action": "preview" | "execute",
+        "job_ids": [1, 2, 3, ...],
+        "naming_style": "underscore" | "hyphen" | "space",
+        "zero_padded": true | false,
+        "consolidate": true | false,
+        "include_year": true | false,
+        "outlier_resolution": {"job_id": "force" | "override" | "skip"},
+        "batch_id": "uuid" (only for execute)
+    }
+    
+    Expected JSON payload for 'rollback':
+    {
+        "action": "rollback",
+        "batch_id": "uuid"
+    }
+    """
+    from arm.ui import batch_rename as br
+    
+    try:
+        data = request.get_json()
+        action = data.get('action')
+        
+        # Get current user email
+        user_email = current_user.email if current_user and current_user.is_authenticated else 'unknown'
+        
+        if action == 'preview':
+            # Generate preview
+            job_ids = data.get('job_ids', [])
+            naming_style = data.get('naming_style', 'underscore')
+            zero_padded = data.get('zero_padded', False)
+            consolidate = data.get('consolidate', False)
+            include_year = data.get('include_year', True)
+            outlier_resolution = data.get('outlier_resolution', {})
+            
+            preview = br.preview_batch_rename(
+                job_ids=job_ids,
+                naming_style=naming_style,
+                zero_padded=zero_padded,
+                consolidate=consolidate,
+                include_year=include_year,
+                outlier_resolution=outlier_resolution
+            )
+            
+            # Add naming options to preview for frontend
+            preview['naming_style'] = naming_style
+            preview['zero_padded'] = zero_padded
+            
+            return app.response_class(
+                response=json.dumps(preview, indent=2, default=str),
+                status=200,
+                mimetype='application/json'
+            )
+        
+        elif action == 'execute':
+            # Execute batch rename
+            job_ids = data.get('job_ids', [])
+            naming_style = data.get('naming_style', 'underscore')
+            zero_padded = data.get('zero_padded', False)
+            consolidate = data.get('consolidate', False)
+            include_year = data.get('include_year', True)
+            outlier_resolution = data.get('outlier_resolution', {})
+            batch_id = data.get('batch_id')
+            
+            # Generate batch ID if not provided
+            if not batch_id:
+                batch_id = br.generate_batch_id()
+            
+            # Generate preview first
+            preview = br.preview_batch_rename(
+                job_ids=job_ids,
+                naming_style=naming_style,
+                zero_padded=zero_padded,
+                consolidate=consolidate,
+                include_year=include_year,
+                outlier_resolution=outlier_resolution
+            )
+            
+            # Execute the rename
+            result = br.execute_batch_rename(
+                preview_data=preview,
+                batch_id=batch_id,
+                current_user_email=user_email
+            )
+            
+            result['batch_id'] = batch_id
+            
+            return app.response_class(
+                response=json.dumps(result, indent=2, default=str),
+                status=200 if result['success'] else 500,
+                mimetype='application/json'
+            )
+        
+        elif action == 'rollback':
+            # Rollback a previous batch rename
+            batch_id = data.get('batch_id')
+            
+            if not batch_id:
+                return app.response_class(
+                    response=json.dumps({'success': False, 'error': 'batch_id is required for rollback'}),
+                    status=400,
+                    mimetype='application/json'
+                )
+            
+            result = br.rollback_batch_rename(
+                batch_id=batch_id,
+                current_user_email=user_email
+            )
+            
+            return app.response_class(
+                response=json.dumps(result, indent=2, default=str),
+                status=200 if result['success'] else 500,
+                mimetype='application/json'
+            )
+        
+        elif action == 'recent_batches':
+            # Get recent batch operations
+            limit = data.get('limit', 10)
+            batches = br.get_recent_batches(limit=limit)
+            
+            return app.response_class(
+                response=json.dumps({'success': True, 'batches': batches}, indent=2, default=str),
+                status=200,
+                mimetype='application/json'
+            )
+        
+        else:
+            return app.response_class(
+                response=json.dumps({'success': False, 'error': f'Unknown action: {action}'}),
+                status=400,
+                mimetype='application/json'
+            )
+    
+    except Exception as e:
+        app.logger.error(f"Batch rename API error: {e}")
+        return app.response_class(
+            response=json.dumps({'success': False, 'error': str(e)}),
+            status=500,
+            mimetype='application/json'
+        )
