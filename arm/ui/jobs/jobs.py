@@ -577,22 +577,44 @@ def batch_custom_lookup_api():
                 # TMDB search
                 search_results = metadata.tmdb_search(query, year)
                 
-                if search_results and 'Search' in search_results:
-                    for item in search_results['Search'][:10]:  # Limit to 10
-                        # Filter by type
-                        item_type = item.get('Type', '').lower()
+                if search_results and 'results' in search_results:
+                    for item in search_results['results'][:10]:  # Limit to 10
+                        # TMDB returns both movies and TV series, distinguish by 'media_type' if present, or by endpoint
+                        # For this example, we assume tmdb_search returns a mixed list with 'media_type' or separate endpoints
+                        item_type = item.get('media_type', '')
+                        # If 'media_type' is not present, infer from fields
+                        if not item_type:
+                            if 'title' in item:
+                                item_type = 'movie'
+                            elif 'name' in item:
+                                item_type = 'series'
                         if video_type == 'series' and item_type != 'series':
                             continue
                         if video_type == 'movie' and item_type != 'movie':
                             continue
-                        
+                        # Get title and year
+                        if item_type == 'movie':
+                            title = item.get('title', 'Unknown')
+                            year = item.get('release_date', '')[:4] if item.get('release_date') else ''
+                        else:
+                            title = item.get('name', 'Unknown')
+                            year = item.get('first_air_date', '')[:4] if item.get('first_air_date') else ''
+                        # Get poster URL
+                        poster_path = item.get('poster_path', '')
+                        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ''
+                        # Get plot/overview
+                        plot = item.get('overview', '')
+                        # Get TMDB ID and try to get IMDb ID if available
+                        tmdb_id = item.get('id', '')
+                        imdb_id = item.get('imdb_id', '') if 'imdb_id' in item else ''
                         results.append({
-                            'title': item.get('Title', 'Unknown'),
-                            'year': item.get('Year', ''),
-                            'type': item.get('Type', ''),
-                            'imdb_id': item.get('imdbID', ''),
-                            'poster_url': item.get('Poster', ''),
-                            'plot': item.get('Plot', '')
+                            'title': title,
+                            'year': year,
+                            'type': item_type,
+                            'imdb_id': imdb_id,
+                            'tmdb_id': tmdb_id,
+                            'poster_url': poster_url,
+                            'plot': plot
                         })
             
             elif provider == 'omdb':
