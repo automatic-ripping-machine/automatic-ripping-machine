@@ -35,7 +35,8 @@ class validate_path_exists():
     def __call__(self, form: Form, field: Field):
         field_data = field.data.strip()
         if not path.exists(field_data):
-            raise ValidationError(f"{self.message}\r\n {field}")
+            # raise ValidationError(f"{self.message}")
+            raise ValidationError(f"{field.name}: {self.message}")
 
 
 class validate_umask():
@@ -48,19 +49,24 @@ class validate_umask():
         value = field.data
         try:
             # Accept both '002' and '0o002' formats
-            if value.startswith("0o"):
-                umask_int = int(value, 8)
-                if not (0 <= umask_int <= 0o777):
-                    raise ValidationError("Invalid umask: must be a valid octal between 0o000 and 0o777.")
+            if isinstance(value, str):
+                if value.startswith("0o"):
+                    umask_int = int(value, 8)
+                    if not (0 <= umask_int <= 0o777):
+                        raise ValidationError(f"{field.name}: {self.message} it did not meet octal range.")
+                    return
             else:
                 if isinstance(value, int):
                     umask_int = value
+                    if not (0 <= umask_int <= 4095):
+                        raise ValidationError(f"{field.name}: {self.message} it did not meet int range.")
+                    else:
+                        return
                 else:
-                    raise ValidationError(self.message)
-            if not (0 <= umask_int <= 4095):
-                raise ValidationError(self.message)
-        except ValueError:
-            raise ValidationError(self.message)
+                    raise ValidationError(f"{field.name}: {self.message} it is not an int or str.")
+            
+        except ValueError as exc:
+            raise ValidationError(f"{field.name}: {self.message} {exc}") from exc
 
 
 class validate_non_manditory_string():
