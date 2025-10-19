@@ -11,6 +11,14 @@
     
     - Added method to let users send/submit their correctly identified movies to a new crc64 API (an api key required)
     - Added check for crc64 from remote database
+  
+  - **New Feature: Disc Label-Based TV Series Folder Naming** (opt-in)
+    - Added `USE_DISC_LABEL_FOR_TV` configuration option for deterministic TV series folder naming
+    - When enabled, ARM parses disc labels for season/disc identifiers (e.g., S1D1, S01D02, Season1Disc1)
+    - Creates folders like "Breaking_Bad_S1D1" instead of "Breaking Bad (2008)" with timestamps
+    - Supports 15+ common disc label formats with intelligent parsing and normalization
+    - Falls back to standard naming if parsing fails (backward compatible)
+    - See [Using Disc Label for TV Series](arm_wiki/Using-Disc-Label-for-TV-Series.md) for full documentation
 
 ## v2.4.6
  - Updated jquery tablesorter, old version was vulnerable to XSS 
