@@ -84,6 +84,17 @@ ALLOW_DUPLICATES: false
 # Default: false (disabled for backward compatibility)
 USE_DISC_LABEL_FOR_TV: false
 
+# Group TV series discs under a parent series folder (opt-in feature)
+# When enabled, ARM will organize multiple disc folders under a single series parent folder
+# Structure: {COMPLETED_PATH}/tv/{Series Title (Year)}/{Breaking_Bad_S1D1, Breaking_Bad_S1D2, etc.}
+# Example with both features enabled:
+#   - Parent folder: "Breaking Bad (2008)"
+#   - Disc folders: "Breaking_Bad_S1D1", "Breaking_Bad_S1D2", "Breaking_Bad_S2D1"
+# When USE_DISC_LABEL_FOR_TV is disabled, disc folders will still be grouped but named with timestamps
+# This feature works best when combined with USE_DISC_LABEL_FOR_TV for predictable folder names
+# Default: false (disabled for backward compatibility)
+GROUP_TV_DISCS_UNDER_SERIES: false
+
 # Number of Transcodes that runs at the same time.
 # Certain Video cards are limited to how many encodes they can run at the same time.
 # Also useful for diminishing returns on CPU based encodes.

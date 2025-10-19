@@ -277,6 +277,23 @@ def normalize_series_name(series_name):
     return normalized
 
 
+def get_tv_series_parent_folder(job):
+    """
+    Generate parent series folder name for grouping multiple TV discs.
+    
+    Returns the series title with year in standard format:
+        {Series Title} ({Year}) or {Series Title}
+    Example: "Breaking Bad (2008)"
+    
+    This is used when GROUP_TV_DISCS_UNDER_SERIES is enabled to create
+    a parent folder that contains all season/disc subfolders.
+    
+    :param job: Job object containing title, year, etc.
+    :return: Parent folder name string
+    """
+    return fix_job_title(job)
+
+
 def get_tv_folder_name(job):
     """
     Generate TV series folder name based on configuration.
