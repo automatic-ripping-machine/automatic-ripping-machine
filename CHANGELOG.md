@@ -18,7 +18,15 @@
     - Creates folders like "Breaking_Bad_S1D1" instead of "Breaking Bad (2008)" with timestamps
     - Supports 15+ common disc label formats with intelligent parsing and normalization
     - Falls back to standard naming if parsing fails (backward compatible)
-    - See [Using Disc Label for TV Series](arm_wiki/Using-Disc-Label-for-TV-Series.md) for full documentation
+    - See [TV Series Organization](arm_wiki/Using-Disc-Label-for-TV-Series.md) for full documentation
+  
+  - **New Feature: TV Series Folder Grouping** (opt-in)
+    - Added `GROUP_TV_DISCS_UNDER_SERIES` configuration option to organize multi-disc series
+    - When enabled, creates parent series folder containing all season/disc subfolders
+    - Structure: `{Series Title (Year)}/{Breaking_Bad_S1D1, Breaking_Bad_S1D2, etc.}`
+    - Works independently or in combination with `USE_DISC_LABEL_FOR_TV`
+    - Recommended for organized media server libraries with predictable hierarchy
+    - Both features use per-job database snapshots ensuring configuration consistency
 
 ## v2.4.6
  - Updated jquery tablesorter, old version was vulnerable to XSS 
