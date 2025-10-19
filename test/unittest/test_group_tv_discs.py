@@ -4,16 +4,14 @@ Unit tests for GROUP_TV_DISCS_UNDER_SERIES feature
 
 Tests the parent series folder grouping functionality for TV series discs.
 """
-
 import unittest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 import sys
 import os
 
-# Add ARM to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, '/opt/arm')
 
-from arm.ripper import utils
+from arm.ripper import utils  # noqa: E402
 
 
 class TestGetTVSeriesParentFolder(unittest.TestCase):
@@ -74,7 +72,7 @@ class TestGroupTVDiscsIntegration(unittest.TestCase):
         self.job.year = "2008"
         self.job.video_type = "series"
         self.job.label = "BB_S01_D01"
-        
+
         # Mock config object
         self.job.config = Mock()
         self.job.config.USE_DISC_LABEL_FOR_TV = True
@@ -84,10 +82,10 @@ class TestGroupTVDiscsIntegration(unittest.TestCase):
         """Test folder structure with both features enabled"""
         parent = utils.get_tv_series_parent_folder(self.job)
         disc_folder = utils.get_tv_folder_name(self.job)
-        
+
         self.assertEqual(parent, "Breaking Bad (2008)")
         self.assertEqual(disc_folder, "Breaking_Bad_S1D1")
-        
+
         # Simulated full path structure
         full_path = f"tv/{parent}/{disc_folder}"
         self.assertEqual(full_path, "tv/Breaking Bad (2008)/Breaking_Bad_S1D1")
@@ -95,10 +93,10 @@ class TestGroupTVDiscsIntegration(unittest.TestCase):
     def test_disc_label_only(self):
         """Test with USE_DISC_LABEL_FOR_TV enabled, GROUP disabled"""
         self.job.config.GROUP_TV_DISCS_UNDER_SERIES = False
-        
+
         disc_folder = utils.get_tv_folder_name(self.job)
         self.assertEqual(disc_folder, "Breaking_Bad_S1D1")
-        
+
         # Path without parent folder
         full_path = f"tv/{disc_folder}"
         self.assertEqual(full_path, "tv/Breaking_Bad_S1D1")
@@ -106,10 +104,10 @@ class TestGroupTVDiscsIntegration(unittest.TestCase):
     def test_grouping_only(self):
         """Test with GROUP_TV_DISCS_UNDER_SERIES enabled, disc label disabled"""
         self.job.config.USE_DISC_LABEL_FOR_TV = False
-        
+
         parent = utils.get_tv_series_parent_folder(self.job)
         disc_folder = utils.get_tv_folder_name(self.job)
-        
+
         self.assertEqual(parent, "Breaking Bad (2008)")
         # Falls back to standard naming when disc label is disabled
         self.assertEqual(disc_folder, "Breaking Bad (2008)")
@@ -118,10 +116,10 @@ class TestGroupTVDiscsIntegration(unittest.TestCase):
         """Test with both features disabled (standard behavior)"""
         self.job.config.USE_DISC_LABEL_FOR_TV = False
         self.job.config.GROUP_TV_DISCS_UNDER_SERIES = False
-        
+
         disc_folder = utils.get_tv_folder_name(self.job)
         self.assertEqual(disc_folder, "Breaking Bad (2008)")
-        
+
         # Path is just standard naming
         full_path = f"tv/{disc_folder}"
         self.assertEqual(full_path, "tv/Breaking Bad (2008)")
@@ -134,14 +132,14 @@ class TestGroupTVDiscsIntegration(unittest.TestCase):
             ("BB_S02_D01", "Breaking_Bad_S2D1"),
             ("BB_S03_D01", "Breaking_Bad_S3D1"),
         ]
-        
+
         parent = utils.get_tv_series_parent_folder(self.job)
-        
+
         for label, expected_folder in discs:
             self.job.label = label
             disc_folder = utils.get_tv_folder_name(self.job)
             self.assertEqual(disc_folder, expected_folder)
-            
+
             # All should be under same parent
             full_path = f"tv/{parent}/{disc_folder}"
             self.assertTrue(full_path.startswith("tv/Breaking Bad (2008)/"))
@@ -153,35 +151,35 @@ class TestGroupTVDiscsIntegration(unittest.TestCase):
             ("Game of Thrones", "2011", "GOT_S01_D01", "Game of Thrones (2011)", "Game_of_Thrones_S1D1"),
             ("The Wire", "2002", "WIRE_S01_D01", "The Wire (2002)", "The_Wire_S1D1"),
         ]
-        
+
         for title, year, label, expected_parent, expected_disc in series_data:
             self.job.title = title
             self.job.year = year
             self.job.label = label
-            
+
             parent = utils.get_tv_series_parent_folder(self.job)
             disc_folder = utils.get_tv_folder_name(self.job)
-            
+
             self.assertEqual(parent, expected_parent)
             self.assertEqual(disc_folder, expected_disc)
 
     def test_manual_title_affects_both_folders(self):
         """Test manual title updates both parent and disc folder names"""
         self.job.title_manual = "Breaking Bad (US)"
-        
+
         parent = utils.get_tv_series_parent_folder(self.job)
         disc_folder = utils.get_tv_folder_name(self.job)
-        
+
         self.assertEqual(parent, "Breaking Bad (US) (2008)")
         self.assertTrue(disc_folder.startswith("Breaking_Bad_(US)_S1D1"))
 
     def test_grouping_with_failed_disc_parsing(self):
         """Test grouping when disc label parsing fails"""
         self.job.label = "INVALID_LABEL"
-        
+
         parent = utils.get_tv_series_parent_folder(self.job)
         disc_folder = utils.get_tv_folder_name(self.job)
-        
+
         # Parent is still valid
         self.assertEqual(parent, "Breaking Bad (2008)")
         # Disc folder falls back to standard naming
@@ -192,11 +190,11 @@ class TestGroupTVDiscsIntegration(unittest.TestCase):
         # Remove attributes to simulate old config
         del self.job.config.USE_DISC_LABEL_FOR_TV
         del self.job.config.GROUP_TV_DISCS_UNDER_SERIES
-        
+
         # Should still work with fallback behavior
         parent = utils.get_tv_series_parent_folder(self.job)
         disc_folder = utils.get_tv_folder_name(self.job)
-        
+
         self.assertEqual(parent, "Breaking Bad (2008)")
         self.assertEqual(disc_folder, "Breaking Bad (2008)")
 
@@ -216,11 +214,11 @@ class TestFolderPathConstruction(unittest.TestCase):
         job.config.USE_DISC_LABEL_FOR_TV = True
         job.config.GROUP_TV_DISCS_UNDER_SERIES = True
         job.config.COMPLETED_PATH = "/media/completed"
-        
+
         type_sub_folder = "tv"
         parent_folder = utils.get_tv_series_parent_folder(job)
         disc_folder = utils.get_tv_folder_name(job)
-        
+
         # Construct paths as arm_ripper.py would
         expected_path = os.path.join(
             job.config.COMPLETED_PATH,
@@ -228,7 +226,7 @@ class TestFolderPathConstruction(unittest.TestCase):
             parent_folder,
             disc_folder
         )
-        
+
         self.assertEqual(expected_path, "/media/completed/tv/The Office (2005)/The_Office_S1D1")
 
     def test_full_path_disc_label_only(self):
@@ -243,16 +241,16 @@ class TestFolderPathConstruction(unittest.TestCase):
         job.config.USE_DISC_LABEL_FOR_TV = True
         job.config.GROUP_TV_DISCS_UNDER_SERIES = False
         job.config.COMPLETED_PATH = "/media/completed"
-        
+
         type_sub_folder = "tv"
         disc_folder = utils.get_tv_folder_name(job)
-        
+
         expected_path = os.path.join(
             job.config.COMPLETED_PATH,
             type_sub_folder,
             disc_folder
         )
-        
+
         self.assertEqual(expected_path, "/media/completed/tv/The_Office_S1D1")
 
     def test_full_path_standard_naming(self):
@@ -267,16 +265,16 @@ class TestFolderPathConstruction(unittest.TestCase):
         job.config.USE_DISC_LABEL_FOR_TV = False
         job.config.GROUP_TV_DISCS_UNDER_SERIES = False
         job.config.COMPLETED_PATH = "/media/completed"
-        
+
         type_sub_folder = "tv"
         disc_folder = utils.get_tv_folder_name(job)
-        
+
         expected_path = os.path.join(
             job.config.COMPLETED_PATH,
             type_sub_folder,
             disc_folder
         )
-        
+
         self.assertEqual(expected_path, "/media/completed/tv/The Office (2005)")
 
 
