@@ -152,13 +152,24 @@ function updateSelectionUI() {
     const count = selectedJobs.size;
     $('#selection-count').text(count);
     
-    const btn = $('#batch-rename-btn');
+    // Update Batch Rename button
+    const renameBtn = $('#batch-rename-btn');
     if (count > 0) {
-        btn.prop('disabled', false);
-        btn.html(`<i class="fa fa-edit"></i> Batch Rename Selected (${count})`);
+        renameBtn.prop('disabled', false);
+        renameBtn.html(`<i class="fa fa-edit"></i> Batch Rename Selected (${count})`);
     } else {
-        btn.prop('disabled', true);
-        btn.html('<i class="fa fa-edit"></i> Batch Rename Selected');
+        renameBtn.prop('disabled', true);
+        renameBtn.html('<i class="fa fa-edit"></i> Batch Rename Selected');
+    }
+    
+    // Update Custom Lookup button
+    const lookupBtn = $('#custom-lookup-btn');
+    if (count > 0) {
+        lookupBtn.prop('disabled', false);
+        lookupBtn.html(`<i class="fa fa-search"></i> Lookup by Custom Name (${count})`);
+    } else {
+        lookupBtn.prop('disabled', true);
+        lookupBtn.html('<i class="fa fa-search"></i> Lookup by Custom Name');
     }
 }
 
@@ -785,4 +796,383 @@ function showToast(message, type) {
     setTimeout(function() {
         toast.alert('close');
     }, 5000);
+}
+
+
+/**
+ * =============================================================================
+ * Custom Lookup Functionality
+ * Allows users to search and apply custom identification to misidentified discs
+ * =============================================================================
+ */
+
+let customLookupData = null;
+let selectedMatchData = null;
+
+// Initialize custom lookup handlers
+$(document).ready(function() {
+    initializeCustomLookup();
+});
+
+function initializeCustomLookup() {
+    // Custom lookup button
+    $('#custom-lookup-btn').on('click', openCustomLookupModal);
+    
+    // Search step handlers
+    $('#search-custom-btn').on('click', performCustomSearch);
+    $('#custom-search-query').on('keypress', function(e) {
+        if (e.which === 13) { // Enter key
+            performCustomSearch();
+        }
+    });
+    
+    // Navigation handlers
+    $('#back-to-search-btn').on('click', backToSearch);
+    $('#back-to-results-btn').on('click', backToResults);
+    $('#execute-lookup-btn').on('click', applyCustomLookup);
+    
+    // Modal reset on close
+    $('#customLookupModal').on('hidden.bs.modal', resetCustomLookupModal);
+}
+
+function openCustomLookupModal() {
+    if (selectedJobs.size === 0) {
+        showToast('Please select at least one completed disc', 'warning');
+        return;
+    }
+    
+    // Reset modal
+    resetCustomLookupModal();
+    
+    // Display selected discs
+    displaySelectedDiscs();
+    
+    // Show modal
+    $('#customLookupModal').modal('show');
+}
+
+function displaySelectedDiscs() {
+    $('#lookup-disc-count').text(selectedJobs.size);
+    
+    const container = $('#lookup-selected-discs');
+    container.empty();
+    
+    let html = '<ul class="mb-0">';
+    selectedJobs.forEach(jobId => {
+        const row = $(`.batch-table-row[data-job-id="${jobId}"]`);
+        const title = row.find('.title-cell').text().trim();
+        const label = row.find('td:eq(5)').text().trim(); // Label column
+        const type = row.data('video-type');
+        
+        const typeBadge = type === 'series' ? 
+            '<span class="badge badge-success">TV Series</span>' : 
+            type === 'movie' ?
+            '<span class="badge badge-primary">Movie</span>' :
+            `<span class="badge badge-secondary">${type}</span>`;
+        
+        html += `<li>Job ${jobId}: ${title} ${typeBadge}`;
+        if (label && label !== '-') {
+            html += ` - Label: ${label}`;
+        }
+        html += '</li>';
+    });
+    html += '</ul>';
+    
+    container.html(html);
+}
+
+function performCustomSearch() {
+    const query = $('#custom-search-query').val().trim();
+    const videoType = $('#custom-video-type').val();
+    
+    if (!query) {
+        showToast('Please enter a search query', 'warning');
+        return;
+    }
+    
+    const btn = $('#search-custom-btn');
+    btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Searching...');
+    
+    $.ajax({
+        url: '/batch_custom_lookup',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            action: 'search',
+            query: query,
+            video_type: videoType
+        }),
+        success: function(response) {
+            if (response.success && response.results && response.results.length > 0) {
+                customLookupData = response;
+                displaySearchResults(response.results);
+                
+                // Move to results step
+                $('#lookup-search-step').hide();
+                $('#lookup-results-step').show();
+            } else {
+                showToast('No results found for "' + query + '"', 'warning');
+            }
+        },
+        error: function(xhr) {
+            let msg = 'Search failed';
+            if (xhr.responseJSON && xhr.responseJSON.error) {
+                msg += ': ' + xhr.responseJSON.error;
+            }
+            showToast(msg, 'danger');
+        },
+        complete: function() {
+            btn.prop('disabled', false).html('<i class="fa fa-search"></i> Search');
+        }
+    });
+}
+
+function displaySearchResults(results) {
+    const container = $('#search-results-container');
+    container.empty();
+    
+    results.forEach((result, index) => {
+        const posterUrl = result.poster_url && result.poster_url !== 'N/A' ? 
+            result.poster_url : 'static/img/none.png';
+        
+        const typeBadge = result.type === 'series' ? 
+            '<span class="badge badge-success">TV Series</span>' : 
+            '<span class="badge badge-primary">Movie</span>';
+        
+        const cardHtml = `
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-3">
+                <div class="card h-100 search-result-card" data-index="${index}" style="cursor: pointer;">
+                    <img src="${posterUrl}" class="card-img-top" alt="Poster" style="height: 300px; object-fit: cover;">
+                    <div class="card-body">
+                        <h6 class="card-title">${result.title}</h6>
+                        <p class="card-text small">
+                            <strong>Year:</strong> ${result.year || 'N/A'}<br>
+                            <strong>Type:</strong> ${typeBadge}<br>
+                            <strong>IMDb:</strong> ${result.imdb_id || 'N/A'}
+                        </p>
+                        <button class="btn btn-success btn-sm btn-block select-result-btn" data-index="${index}">
+                            <i class="fa fa-check"></i> Select This
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.append(cardHtml);
+    });
+    
+    // Add click handlers
+    $('.select-result-btn').on('click', function(e) {
+        e.stopPropagation();
+        const index = $(this).data('index');
+        selectSearchResult(index);
+    });
+    
+    $('.search-result-card').on('click', function() {
+        const index = $(this).data('index');
+        selectSearchResult(index);
+    });
+}
+
+function selectSearchResult(index) {
+    if (!customLookupData || !customLookupData.results) {
+        return;
+    }
+    
+    selectedMatchData = customLookupData.results[index];
+    
+    // Display confirmation step
+    displayCustomLookupConfirmation();
+    
+    // Move to confirmation step
+    $('#lookup-results-step').hide();
+    $('#lookup-confirm-step').show();
+}
+
+function displayCustomLookupConfirmation() {
+    if (!selectedMatchData) {
+        return;
+    }
+    
+    // Display selected match info
+    const posterUrl = selectedMatchData.poster_url && selectedMatchData.poster_url !== 'N/A' ? 
+        selectedMatchData.poster_url : 'static/img/none.png';
+    
+    const typeBadge = selectedMatchData.type === 'series' ? 
+        '<span class="badge badge-success">TV Series</span>' : 
+        '<span class="badge badge-primary">Movie</span>';
+    
+    const matchInfoHtml = `
+        <div class="row">
+            <div class="col-md-3">
+                <img src="${posterUrl}" class="img-fluid rounded" alt="Poster">
+            </div>
+            <div class="col-md-9">
+                <h5>${selectedMatchData.title}</h5>
+                <p>
+                    <strong>Year:</strong> ${selectedMatchData.year || 'N/A'}<br>
+                    <strong>Type:</strong> ${typeBadge}<br>
+                    <strong>IMDb ID:</strong> ${selectedMatchData.imdb_id || 'N/A'}
+                </p>
+            </div>
+        </div>
+    `;
+    
+    $('#selected-match-info').html(matchInfoHtml);
+    $('#confirm-disc-count').text(selectedJobs.size);
+    
+    // Build comparison table
+    const tbody = $('#lookup-confirm-table-body');
+    tbody.empty();
+    
+    selectedJobs.forEach(jobId => {
+        const row = $(`.batch-table-row[data-job-id="${jobId}"]`);
+        const currentTitle = row.find('.title-cell').text().trim();
+        const currentType = row.data('video-type');
+        const label = row.find('td:eq(5)').text().trim(); // Label column
+        
+        const currentTypeBadge = currentType === 'series' ? 
+            '<span class="badge badge-success">TV Series</span>' : 
+            currentType === 'movie' ?
+            '<span class="badge badge-primary">Movie</span>' :
+            `<span class="badge badge-secondary">${currentType}</span>`;
+        
+        const newTypeBadge = selectedMatchData.type === 'series' ? 
+            '<span class="badge badge-success">TV Series</span>' : 
+            '<span class="badge badge-primary">Movie</span>';
+        
+        const rowHtml = `
+            <tr>
+                <td>${jobId}</td>
+                <td>${currentTitle}</td>
+                <td>${currentTypeBadge}</td>
+                <td>${label || '-'}</td>
+                <td><strong>${selectedMatchData.title}</strong></td>
+                <td>${newTypeBadge}</td>
+            </tr>
+        `;
+        
+        tbody.append(rowHtml);
+    });
+}
+
+function backToSearch() {
+    $('#lookup-results-step').hide();
+    $('#lookup-search-step').show();
+}
+
+function backToResults() {
+    $('#lookup-confirm-step').hide();
+    $('#lookup-results-step').show();
+}
+
+function applyCustomLookup() {
+    if (!selectedMatchData) {
+        showToast('No match selected', 'warning');
+        return;
+    }
+    
+    const btn = $('#execute-lookup-btn');
+    btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Applying...');
+    
+    $.ajax({
+        url: '/batch_custom_lookup',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            action: 'apply',
+            job_ids: Array.from(selectedJobs),
+            title: selectedMatchData.title,
+            year: selectedMatchData.year,
+            video_type: selectedMatchData.type,
+            imdb_id: selectedMatchData.imdb_id,
+            poster_url: selectedMatchData.poster_url
+        }),
+        success: function(response) {
+            if (response.success) {
+                displayCustomLookupResults(response);
+                
+                // Move to results step
+                $('#lookup-confirm-step').hide();
+                $('#lookup-complete-step').show();
+                
+                // Reload page after delay
+                setTimeout(function() {
+                    location.reload();
+                }, 3000);
+            } else {
+                showToast('Failed to apply custom identification: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            let msg = 'Failed to apply custom identification';
+            if (xhr.responseJSON && xhr.responseJSON.error) {
+                msg += ': ' + xhr.responseJSON.error;
+            }
+            showToast(msg, 'danger');
+        },
+        complete: function() {
+            btn.prop('disabled', false).html('<i class="fa fa-check"></i> Apply Custom Identification');
+        }
+    });
+}
+
+function displayCustomLookupResults(response) {
+    const resultsDiv = $('#lookup-results-content');
+    resultsDiv.empty();
+    
+    let html = '';
+    
+    if (response.success) {
+        html += '<div class="alert alert-success">';
+        html += '<h6><i class="fa fa-check-circle"></i> Custom Identification Applied Successfully</h6>';
+        html += `<p>Updated <strong>${response.updated_count}</strong> disc(s) with:</p>`;
+        html += '<ul>';
+        html += `<li><strong>Title:</strong> ${selectedMatchData.title}</li>`;
+        html += `<li><strong>Year:</strong> ${selectedMatchData.year || 'N/A'}</li>`;
+        html += `<li><strong>Type:</strong> ${selectedMatchData.type}</li>`;
+        html += `<li><strong>IMDb ID:</strong> ${selectedMatchData.imdb_id || 'N/A'}</li>`;
+        html += '</ul>';
+        
+        if (response.errors && response.errors.length > 0) {
+            html += '<p><strong>Errors:</strong></p><ul>';
+            response.errors.forEach(error => {
+                html += `<li class="text-danger">${error}</li>`;
+            });
+            html += '</ul>';
+        }
+        
+        html += '<p class="mb-0"><small>Page will reload in 3 seconds...</small></p>';
+        html += '</div>';
+    } else {
+        html += '<div class="alert alert-danger">';
+        html += '<h6><i class="fa fa-exclamation-circle"></i> Custom Identification Failed</h6>';
+        html += `<p>${response.error}</p>`;
+        html += '</div>';
+    }
+    
+    resultsDiv.html(html);
+}
+
+function resetCustomLookupModal() {
+    // Reset all steps
+    $('#lookup-search-step').show();
+    $('#lookup-results-step').hide();
+    $('#lookup-confirm-step').hide();
+    $('#lookup-complete-step').hide();
+    
+    // Clear data
+    customLookupData = null;
+    selectedMatchData = null;
+    
+    // Clear form
+    $('#custom-search-query').val('');
+    $('#custom-video-type').val('series');
+    
+    // Clear containers
+    $('#lookup-selected-discs').empty();
+    $('#search-results-container').empty();
+    $('#selected-match-info').empty();
+    $('#lookup-confirm-table-body').empty();
+    $('#lookup-results-content').empty();
 }

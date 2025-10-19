@@ -510,3 +510,235 @@ def batch_rename_api():
             status=500,
             mimetype='application/json'
         )
+
+
+@route_jobs.route('/batch_custom_lookup', methods=['POST'])
+@login_required
+def batch_custom_lookup_api():
+    """
+    Custom identification lookup API for batch operations
+    
+    Supports two actions:
+    - 'search': Search for title in TMDB/OMDb
+    - 'apply': Apply custom identification to selected jobs
+    
+    Expected JSON payload for 'search':
+    {
+        "action": "search",
+        "query": "Breaking Bad",
+        "video_type": "series" | "movie",
+        "year": "2008" (optional)
+    }
+    
+    Expected JSON payload for 'apply':
+    {
+        "action": "apply",
+        "job_ids": [1, 2, 3, ...],
+        "title": "Breaking Bad",
+        "year": "2008",
+        "video_type": "series",
+        "imdb_id": "tt0903747",
+        "poster_url": "https://..."
+    }
+    """
+    import arm.ui.metadata as metadata
+    
+    try:
+        data = request.get_json()
+        action = data.get('action')
+        
+        if action == 'search':
+            # Search for title
+            query = data.get('query', '').strip()
+            video_type = data.get('video_type', 'series')
+            year = data.get('year', '')
+            
+            if not query:
+                return app.response_class(
+                    response=json.dumps({
+                        'success': False,
+                        'error': 'Search query is required'
+                    }),
+                    status=400,
+                    mimetype='application/json'
+                )
+            
+            # Determine which API to use based on config
+            provider = cfg.arm_config.get('METADATA_PROVIDER', 'tmdb').lower()
+            
+            app.logger.info(
+                f"Custom lookup search: query='{query}', "
+                f"type={video_type}, provider={provider}"
+            )
+            
+            results = []
+            
+            if provider == 'tmdb':
+                # TMDB search
+                search_results = metadata.tmdb_search(query, year)
+                
+                if search_results and 'Search' in search_results:
+                    for item in search_results['Search'][:10]:  # Limit to 10
+                        # Filter by type
+                        item_type = item.get('Type', '').lower()
+                        if video_type == 'series' and item_type != 'series':
+                            continue
+                        if video_type == 'movie' and item_type != 'movie':
+                            continue
+                        
+                        results.append({
+                            'title': item.get('Title', 'Unknown'),
+                            'year': item.get('Year', ''),
+                            'type': item.get('Type', ''),
+                            'imdb_id': item.get('imdbID', ''),
+                            'poster_url': item.get('Poster', ''),
+                            'plot': item.get('Plot', '')
+                        })
+            
+            elif provider == 'omdb':
+                # OMDb search
+                search_results = metadata.call_omdb_api(
+                    title=query,
+                    year=year if year else None
+                )
+                
+                if search_results and 'Search' in search_results:
+                    for item in search_results['Search'][:10]:  # Limit to 10
+                        # Filter by type
+                        item_type = item.get('Type', '').lower()
+                        if video_type == 'series' and item_type != 'series':
+                            continue
+                        if video_type == 'movie' and item_type != 'movie':
+                            continue
+                        
+                        results.append({
+                            'title': item.get('Title', 'Unknown'),
+                            'year': item.get('Year', ''),
+                            'type': item.get('Type', ''),
+                            'imdb_id': item.get('imdbID', ''),
+                            'poster_url': item.get('Poster', ''),
+                            'plot': ''
+                        })
+            
+            return app.response_class(
+                response=json.dumps({
+                    'success': True,
+                    'results': results,
+                    'provider': provider
+                }, indent=2),
+                status=200,
+                mimetype='application/json'
+            )
+        
+        elif action == 'apply':
+            # Apply custom identification to selected jobs
+            job_ids = data.get('job_ids', [])
+            title = data.get('title', '').strip()
+            year = data.get('year', '')
+            video_type = data.get('video_type', 'series')
+            imdb_id = data.get('imdb_id', '')
+            poster_url = data.get('poster_url', '')
+            
+            if not job_ids:
+                return app.response_class(
+                    response=json.dumps({
+                        'success': False,
+                        'error': 'No jobs selected'
+                    }),
+                    status=400,
+                    mimetype='application/json'
+                )
+            
+            if not title:
+                return app.response_class(
+                    response=json.dumps({
+                        'success': False,
+                        'error': 'Title is required'
+                    }),
+                    status=400,
+                    mimetype='application/json'
+                )
+            
+            updated_jobs = []
+            errors = []
+            
+            for job_id in job_ids:
+                try:
+                    job = Job.query.get(int(job_id))
+                    if not job:
+                        errors.append(f'Job {job_id} not found')
+                        continue
+                    
+                    # Update job metadata
+                    job.title = title
+                    job.title_manual = title
+                    job.year = year
+                    job.video_type = video_type
+                    job.imdb_id = imdb_id
+                    job.poster_url = poster_url
+                    job.hasnicetitle = True
+                    
+                    updated_jobs.append({
+                        'job_id': job_id,
+                        'title': title,
+                        'year': year,
+                        'type': video_type
+                    })
+                
+                except Exception as e:
+                    app.logger.error(
+                        f"Error updating job {job_id}: {e}"
+                    )
+                    errors.append(f'Job {job_id}: {str(e)}')
+            
+            # Commit changes
+            if updated_jobs:
+                try:
+                    db.session.commit()
+                    app.logger.info(
+                        f"Custom lookup applied to {len(updated_jobs)} jobs: "
+                        f"{title} ({video_type})"
+                    )
+                except Exception as e:
+                    db.session.rollback()
+                    app.logger.error(f"Database commit error: {e}")
+                    return app.response_class(
+                        response=json.dumps({
+                            'success': False,
+                            'error': f'Database error: {str(e)}'
+                        }),
+                        status=500,
+                        mimetype='application/json'
+                    )
+            
+            return app.response_class(
+                response=json.dumps({
+                    'success': True,
+                    'updated_count': len(updated_jobs),
+                    'updated_jobs': updated_jobs,
+                    'errors': errors
+                }, indent=2),
+                status=200,
+                mimetype='application/json'
+            )
+        
+        else:
+            return app.response_class(
+                response=json.dumps({
+                    'success': False,
+                    'error': f'Unknown action: {action}'
+                }),
+                status=400,
+                mimetype='application/json'
+            )
+    
+    except Exception as e:
+        app.logger.error(f"Batch custom lookup API error: {e}")
+        return app.response_class(
+            response=json.dumps({
+                'success': False,
+                'error': str(e)
+            }),
+            status=500,
+            mimetype='application/json'
+        )
