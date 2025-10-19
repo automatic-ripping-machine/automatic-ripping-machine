@@ -76,6 +76,14 @@ DATE_FORMAT: "%m-%d-%Y %H:%M:%S"
 ## recommended to set to true for series
 ALLOW_DUPLICATES: false
 
+# Use disc label for TV series output folder naming (opt-in feature)
+# When enabled, ARM will parse the disc label for season/disc identifiers (e.g., S1D1, S01D02)
+# and create folders like "Breaking_Bad_S1D1" instead of "Breaking Bad (2008)"
+# The series name comes from the lookup service or manual title, ensuring consistency
+# If parsing fails, ARM falls back to the standard naming (series name + timestamp)
+# Default: false (disabled for backward compatibility)
+USE_DISC_LABEL_FOR_TV: false
+
 # Number of Transcodes that runs at the same time.
 # Certain Video cards are limited to how many encodes they can run at the same time.
 # Also useful for diminishing returns on CPU based encodes.
