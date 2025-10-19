@@ -58,130 +58,6 @@
             </div>
         </div>
         
-        <!-- Batch Rename Modal -->
-        <div class="modal fade" id="batchRenameModal" tabindex="-1" role="dialog" aria-labelledby="batchRenameModalTitle"
-             aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-                <div class="modal-content">
-                    <div class="modal-header bg-warning">
-                        <h5 class="modal-title" id="batchRenameModalTitle">Batch Rename Discs</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Step 1: Options -->
-                        <div id="rename-options-step">
-                            <h6 class="font-weight-bold">Rename Options</h6>
-                            <div class="form-group">
-                                <label for="naming-style">Naming Style:</label>
-                                <select id="naming-style" class="form-control">
-                                    <option value="underscore" selected>Underscore (Breaking_Bad_S1D1)</option>
-                                    <option value="hyphen">Hyphen (breaking-bad-s1d1)</option>
-                                    <option value="space">Space (Breaking Bad S1D1)</option>
-                                </select>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="zero-padded">
-                                <label class="form-check-label" for="zero-padded">
-                                    Zero-pad numbers (S01D01 instead of S1D1)
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="consolidate">
-                                <label class="form-check-label" for="consolidate">
-                                    Consolidate into series parent folder (e.g., Breaking Bad (2008)/Breaking_Bad_S1D1/)
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="include-year" checked>
-                                <label class="form-check-label" for="include-year">
-                                    Include year in series parent folder
-                                </label>
-                            </div>
-                            <hr>
-                            <button type="button" class="btn btn-primary" id="generate-preview-btn">
-                                <i class="fa fa-eye"></i> Generate Preview
-                            </button>
-                        </div>
-                        
-                        <!-- Step 1.5: Series Selection and Confirmation -->
-                        <div id="rename-series-selection-step" style="display: none;">
-                            <h6 class="font-weight-bold">Series Detection and Confirmation</h6>
-                            
-                            <div id="series-detection-info" class="alert alert-info">
-                                <strong>Multiple series detected.</strong> Please select the primary series for this batch operation.
-                            </div>
-                            
-                            <div id="series-groups-container">
-                                <!-- Populated by JavaScript with radio buttons for each detected series -->
-                            </div>
-                            
-                            <div class="mt-3">
-                                <h6>Disc Assignment</h6>
-                                <p class="text-muted small">Review which discs belong to the selected series. You can reassign outliers or skip them.</p>
-                                <div id="disc-assignment-container" class="table-responsive">
-                                    <!-- Populated by JavaScript with disc list and assignment controls -->
-                                </div>
-                            </div>
-                            
-                            <hr>
-                            <button type="button" class="btn btn-secondary" id="back-from-series-btn">
-                                <i class="fa fa-arrow-left"></i> Back to Options
-                            </button>
-                            <button type="button" class="btn btn-primary" id="confirm-series-btn">
-                                <i class="fa fa-check"></i> Confirm and Preview
-                            </button>
-                        </div>
-                        
-                        <!-- Step 2: Preview -->
-                        <div id="rename-preview-step" style="display: none;">
-                            <h6 class="font-weight-bold">Preview Changes</h6>
-                            <div id="preview-warnings" class="alert alert-warning" style="display: none;"></div>
-                            <div id="preview-outliers" class="alert alert-info" style="display: none;"></div>
-                            <div id="preview-conflicts" class="alert alert-danger" style="display: none;"></div>
-                            
-                            <div class="table-responsive">
-                                <table class="table table-sm table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Job ID</th>
-                                            <th>Title</th>
-                                            <th>Label</th>
-                                            <th>Old Folder</th>
-                                            <th>New Folder</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="preview-table-body">
-                                        <!-- Populated by JavaScript -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <hr>
-                            <button type="button" class="btn btn-secondary" id="back-to-options-btn">
-                                <i class="fa fa-arrow-left"></i> Back to Options
-                            </button>
-                            <button type="button" class="btn btn-success" id="execute-rename-btn">
-                                <i class="fa fa-check"></i> Execute Batch Rename
-                            </button>
-                        </div>
-                        
-                        <!-- Step 3: Progress/Results -->
-                        <div id="rename-results-step" style="display: none;">
-                            <h6 class="font-weight-bold">Rename Results</h6>
-                            <div id="results-content"></div>
-                            <hr>
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-warning" id="rollback-btn" style="display: none;">
-                                <i class="fa fa-undo"></i> Rollback This Operation
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
         <!-- Messages -->
         <div id="message1" class="alert alert-success d-none" role="alert">
             <h4 class="alert-heading">Job was deleted successfully</h4>
@@ -205,15 +81,6 @@
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal"
                         data-type="search" data-href="json?mode=search&q=">Search Database
                 </button>
-                <button id="batch-rename-btn" type="button" class="btn btn-warning" disabled title="Select completed jobs to batch rename">
-                    <i class="fa fa-edit"></i> Batch Rename Selected
-                </button>
-                <button id="select-all-btn" type="button" class="btn btn-info">
-                    <i class="fa fa-check-square"></i> Select All
-                </button>
-                <button id="deselect-all-btn" type="button" class="btn btn-secondary">
-                    <i class="fa fa-square"></i> Deselect All
-                </button>
             </div>
         </div>
 
@@ -228,24 +95,15 @@
                         <!-- Job {{ job.job_id }}-->
                         <div class="col-md-4" id="jobId{{ job.job_id }}">
                             <div class="card mb-3  mx-auto">
-                                <!-- Card Header with Checkbox -->
-                                <div class="card-header row no-gutters justify-content-center align-items-center">
-                                    <div class="col-auto pr-2">
-                                        <input type="checkbox" class="job-select-checkbox" 
-                                               data-job-id="{{ job.job_id }}"
-                                               data-video-type="{{ job.video_type }}"
-                                               data-status="{{ job.status }}"
-                                               title="Select for batch operations">
-                                    </div>
-                                    <div class="col">
-                                        <strong>
-                                         {% if not job.title_manual %}
-                                            {{ job["title"] }} {{ '('+job['year']+')' if job["year"] is not none }}
-                                        {% else %}
-                                            {{ job["title_manual"] }} {{ '('+job['year']+')' if job["year"] is not none }}
-                                        {% endif %}
-                                        </strong>
-                                    </div>
+                                <!-- Card Header -->
+                                <div class="card-header text-center">
+                                    <strong>
+                                     {% if not job.title_manual %}
+                                        {{ job["title"] }} {{ '('+job['year']+')' if job["year"] is not none }}
+                                    {% else %}
+                                        {{ job["title_manual"] }} {{ '('+job['year']+')' if job["year"] is not none }}
+                                    {% endif %}
+                                    </strong>
                                 </div>
                                 <!-- Card Body -->
                                 <div class="row no-gutters">
@@ -354,5 +212,4 @@
     <script type="application/javascript">activeTab("databaseview");</script>
     <script type="application/javascript" src="static/js/common.js"></script>
     <script type="application/javascript" src="static/js/database.js"></script>
-    <script type="application/javascript" src="static/js/database_batch_rename.js"></script>
 {% endblock %}
