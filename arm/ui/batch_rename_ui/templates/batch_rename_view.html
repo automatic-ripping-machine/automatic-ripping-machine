@@ -1,0 +1,486 @@
+{% extends "base.html" %}
+
+{% block content %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<style>
+    .batch-table-row {
+        transition: background-color 0.2s;
+        cursor: pointer;
+    }
+    .batch-table-row.selected {
+        background-color: rgba(255, 193, 7, 0.2) !important;
+    }
+    .batch-table-row:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    .dark-mode .batch-table-row:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    .batch-checkbox {
+        transform: scale(1.3);
+        cursor: pointer;
+    }
+    .poster-thumbnail {
+        width: 60px;
+        height: 90px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+    .batch-toolbar {
+        position: sticky;
+        top: 60px;
+        z-index: 1020;
+        background: white;
+        padding: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .dark-mode .batch-toolbar {
+        background: #1a1a1a;
+    }
+    .batch-table {
+        font-size: 0.95rem;
+    }
+    .batch-table th {
+        background: white;
+        font-weight: bold;
+    }
+    .dark-mode .batch-table th {
+        background: #1a1a1a;
+    }
+    .batch-table tbody {
+        position: relative;
+    }
+    .title-cell {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12 text-center">
+            <img src="static/img/arm80.png" alt="Automatic Ripping Machine">
+            <h3 class="mt-3"><strong>Batch Operations - Completed Discs</strong></h3>
+            <p class="text-muted">Select multiple discs for batch rename or custom identification lookup</p>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="batch-toolbar rounded">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h5 class="mb-0">
+                    <span id="selection-count">0</span> disc(s) selected
+                </h5>
+            </div>
+            <div class="col-md-6 text-right">
+                <button id="select-all-btn" type="button" class="btn btn-info">
+                    <i class="fa fa-check-square"></i> Select All
+                </button>
+                <button id="deselect-all-btn" type="button" class="btn btn-secondary">
+                    <i class="fa fa-square"></i> Deselect All
+                </button>
+                <button id="filter-series-btn" type="button" class="btn btn-primary">
+                    <i class="fa fa-filter"></i> TV Series Only
+                </button>
+                <button id="custom-lookup-btn" type="button" class="btn btn-success btn-lg" disabled>
+                    <i class="fa fa-search"></i> Lookup by Custom Name
+                </button>
+                <button id="batch-rename-btn" type="button" class="btn btn-warning btn-lg" disabled>
+                    <i class="fa fa-edit"></i> Batch Rename Selected
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table View -->
+    <div class="table-responsive">
+        <table class="table table-hover batch-table" id="jobs-table">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">
+                        <input type="checkbox" id="select-all-checkbox" class="batch-checkbox" title="Select/Deselect All">
+                    </th>
+                    <th style="width: 80px;">Poster</th>
+                    <th>Title</th>
+                    <th style="width: 80px;">Year</th>
+                    <th style="width: 120px;">Type</th>
+                    <th>Label</th>
+                    <th style="width: 140px;">Started</th>
+                    <th style="width: 100px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="jobs-table-body">
+                {% for job in jobs %}
+                <tr class="batch-table-row job-table-row" 
+                    data-video-type="{{ job.video_type }}"
+                    data-job-id="{{ job.job_id }}"
+                    data-status="{{ job.status }}">
+                    <td class="text-center">
+                        <input type="checkbox" class="batch-checkbox" 
+                               data-job-id="{{ job.job_id }}"
+                               data-video-type="{{ job.video_type }}"
+                               data-status="{{ job.status }}">
+                    </td>
+                    <td>
+                        {% if not job.poster_url or job.poster_url == "None" %}
+                            {% if job.video_type == "Music" %}
+                                <img src="static/img/music.png" alt="No Poster" class="poster-thumbnail">
+                            {% else %}
+                                <img src="static/img/none.png" alt="No Poster" class="poster-thumbnail">
+                            {% endif %}
+                        {% else %}
+                            <img src="{{ job.poster_url }}" alt="Poster" class="poster-thumbnail">
+                        {% endif %}
+                    </td>
+                    <td class="title-cell" title="{{ job.title_manual if job.title_manual else job.title }}">
+                        <strong>
+                        {% if job.title_manual %}
+                            {{ job.title_manual }}
+                        {% else %}
+                            {{ job.title }}
+                        {% endif %}
+                        </strong>
+                    </td>
+                    <td>
+                        {% if job.year and job.year != '0000' and job.year != '' %}
+                            {{ job.year }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if job.video_type == 'series' %}
+                            <span class="badge badge-success">TV Series</span>
+                        {% elif job.video_type == 'movie' %}
+                            <span class="badge badge-primary">Movie</span>
+                        {% else %}
+                            <span class="badge badge-secondary">{{ job.video_type }}</span>
+                        {% endif %}
+                    </td>
+                    <td title="{{ job.label if job.label }}">
+                        {% if job.label %}
+                            {{ job.label[:30] }}{{ '...' if job.label|length > 30 }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if job.start_time %}
+                            {{ job.start_time.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="jobdetail?job_id={{ job.job_id }}" 
+                           class="btn btn-sm btn-outline-primary" 
+                           title="View Details">
+                            <i class="fa fa-info-circle"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        {% if not jobs %}
+        <div class="text-center py-5">
+            <h4 class="text-muted">No completed discs found</h4>
+            <p>Completed discs will appear here for batch renaming</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Batch Rename Modal -->
+<div class="modal fade" id="batchRenameModal" tabindex="-1" role="dialog" aria-labelledby="batchRenameModalTitle"
+     aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title" id="batchRenameModalTitle">Batch Rename Discs</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Step 1: Confirmation for non-series items -->
+                <div id="rename-confirmation-step">
+                    <div id="non-series-warning" class="alert alert-warning">
+                        <h6><i class="fa fa-exclamation-triangle"></i> Warning: Non-TV Series Items Selected</h6>
+                        <p>You have selected <strong id="non-series-count">0</strong> item(s) that are not marked as TV series.</p>
+                        <p>Batch rename is optimized for TV series with disc labels (e.g., "BREAKING_BAD_S1D1"). 
+                           Non-series items may not rename correctly and could use fallback naming.</p>
+                        <div id="non-series-list" class="mt-2">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                        <hr>
+                        <p class="mb-0"><strong>Do you want to continue with the batch rename operation?</strong></p>
+                    </div>
+                    <div class="text-right">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fa fa-times"></i> Cancel
+                        </button>
+                        <button type="button" class="btn btn-warning" id="confirm-continue-btn">
+                            <i class="fa fa-check"></i> Yes, Continue
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Options -->
+                <div id="rename-options-step" style="display: none;">
+                    <h6 class="font-weight-bold">Rename Options</h6>
+                    <div class="form-group">
+                        <label for="naming-style">Naming Style:</label>
+                        <select id="naming-style" class="form-control">
+                            <option value="underscore" selected>Underscore (Breaking_Bad_S1D1)</option>
+                            <option value="hyphen">Hyphen (breaking-bad-s1d1)</option>
+                            <option value="space">Space (Breaking Bad S1D1)</option>
+                        </select>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="zero-padded">
+                        <label class="form-check-label" for="zero-padded">
+                            Zero-pad numbers (S01D01 instead of S1D1)
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="consolidate">
+                        <label class="form-check-label" for="consolidate">
+                            Consolidate into series parent folder (e.g., Breaking Bad (2008)/Breaking_Bad_S1D1/)
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="include-year" checked>
+                        <label class="form-check-label" for="include-year">
+                            Include year in series parent folder
+                        </label>
+                    </div>
+                    <hr>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="generate-preview-btn">
+                        <i class="fa fa-eye"></i> Generate Preview
+                    </button>
+                </div>
+                
+                <!-- Step 3: Series Selection and Confirmation -->
+                <div id="rename-series-selection-step" style="display: none;">
+                    <h6 class="font-weight-bold">Series Detection and Confirmation</h6>
+                    
+                    <div id="series-detection-info" class="alert alert-info">
+                        <strong>Multiple series detected.</strong> Please select the primary series for this batch operation.
+                    </div>
+                    
+                    <div id="series-groups-container">
+                        <!-- Populated by JavaScript with radio buttons for each detected series -->
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6>Disc Assignment</h6>
+                        <p class="text-muted small">Review which discs belong to the selected series. You can reassign outliers or skip them.</p>
+                        <div id="disc-assignment-container" class="table-responsive">
+                            <!-- Populated by JavaScript with disc list and assignment controls -->
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    <button type="button" class="btn btn-secondary" id="back-from-series-btn">
+                        <i class="fa fa-arrow-left"></i> Back to Options
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirm-series-btn">
+                        <i class="fa fa-check"></i> Confirm and Preview
+                    </button>
+                </div>
+                
+                <!-- Step 4: Preview -->
+                <div id="rename-preview-step" style="display: none;">
+                    <h6 class="font-weight-bold">Preview Changes</h6>
+                    <div id="preview-warnings" class="alert alert-warning" style="display: none;"></div>
+                    <div id="preview-outliers" class="alert alert-info" style="display: none;"></div>
+                    <div id="preview-conflicts" class="alert alert-danger" style="display: none;"></div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Job ID</th>
+                                    <th>Title</th>
+                                    <th>Label</th>
+                                    <th>Old Folder</th>
+                                    <th>New Folder</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="preview-table-body">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <hr>
+                    <button type="button" class="btn btn-secondary" id="back-to-options-btn">
+                        <i class="fa fa-arrow-left"></i> Back to Options
+                    </button>
+                    <button type="button" class="btn btn-success" id="execute-rename-btn">
+                        <i class="fa fa-check"></i> Execute Batch Rename
+                    </button>
+                </div>
+                
+                <!-- Step 5: Progress/Results -->
+                <div id="rename-results-step" style="display: none;">
+                    <h6 class="font-weight-bold">Rename Results</h6>
+                    <div id="results-content"></div>
+                    <hr>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning" id="rollback-btn" style="display: none;">
+                        <i class="fa fa-undo"></i> Rollback This Operation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Lookup Modal -->
+<div class="modal fade" id="customLookupModal" tabindex="-1" role="dialog" aria-labelledby="customLookupModalTitle"
+     aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="customLookupModalTitle">Custom Identification Lookup</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Step 1: Search -->
+                <div id="lookup-search-step">
+                    <h6 class="font-weight-bold">Search for Correct Title</h6>
+                    <p class="text-muted">
+                        Enter the correct title for the selected discs. We'll search TMDB and OMDb for matches.
+                    </p>
+                    
+                    <div class="alert alert-info">
+                        <strong><span id="lookup-disc-count">0</span> disc(s) selected</strong>
+                        <div id="lookup-selected-discs" class="mt-2 small">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="custom-search-query">Search Query:</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="custom-search-query" 
+                                   placeholder="e.g., Breaking Bad, The Wire, Game of Thrones">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="button" id="search-custom-btn">
+                                    <i class="fa fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="custom-video-type">Content Type:</label>
+                        <select id="custom-video-type" class="form-control">
+                            <option value="series">TV Series</option>
+                            <option value="movie">Movie</option>
+                        </select>
+                    </div>
+                    
+                    <hr>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+                
+                <!-- Step 2: Select Result -->
+                <div id="lookup-results-step" style="display: none;">
+                    <h6 class="font-weight-bold">Select Correct Match</h6>
+                    <p class="text-muted">Choose the correct match from the search results.</p>
+                    
+                    <div id="search-results-container" class="row">
+                        <!-- Populated by JavaScript with result cards -->
+                    </div>
+                    
+                    <hr>
+                    <button type="button" class="btn btn-secondary" id="back-to-search-btn">
+                        <i class="fa fa-arrow-left"></i> Back to Search
+                    </button>
+                </div>
+                
+                <!-- Step 3: Confirm Application -->
+                <div id="lookup-confirm-step" style="display: none;">
+                    <h6 class="font-weight-bold">Confirm Custom Identification</h6>
+                    
+                    <div class="alert alert-success">
+                        <h6><i class="fa fa-check-circle"></i> Selected Match</h6>
+                        <div id="selected-match-info">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h6><i class="fa fa-exclamation-triangle"></i> Important</h6>
+                        <p>This will update the following for all <strong><span id="confirm-disc-count">0</span> selected disc(s)</strong>:</p>
+                        <ul>
+                            <li>Title</li>
+                            <li>Year</li>
+                            <li>Video Type</li>
+                            <li>IMDB ID</li>
+                            <li>Poster URL</li>
+                        </ul>
+                        <p class="mb-0">The discs will be re-identified with this information and folders will be renamed accordingly.</p>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Job ID</th>
+                                    <th>Current Title</th>
+                                    <th>Current Type</th>
+                                    <th>Label</th>
+                                    <th>New Title</th>
+                                    <th>New Type</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lookup-confirm-table-body">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <hr>
+                    <button type="button" class="btn btn-secondary" id="back-to-results-btn">
+                        <i class="fa fa-arrow-left"></i> Back to Results
+                    </button>
+                    <button type="button" class="btn btn-success" id="execute-lookup-btn">
+                        <i class="fa fa-check"></i> Apply Custom Identification
+                    </button>
+                </div>
+                
+                <!-- Step 4: Results -->
+                <div id="lookup-complete-step" style="display: none;">
+                    <h6 class="font-weight-bold">Custom Identification Results</h6>
+                    <div id="lookup-results-content"></div>
+                    <hr>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block footer %}{{ super() }}{% endblock %}
+
+{% block js %}
+    {{ super() }}
+    <script type="application/javascript">activeTab("navbatchrename");</script>
+    <script type="application/javascript" src="static/js/batch_rename_page.js"></script>
+{% endblock %}

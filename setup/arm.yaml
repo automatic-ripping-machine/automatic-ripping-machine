@@ -84,6 +84,24 @@ ALLOW_DUPLICATES: false
 # Default: false (disabled for backward compatibility)
 USE_DISC_LABEL_FOR_TV: false
 
+# Batch rename naming style for TV series folders
+# Controls the character used to separate words in folder names when using batch rename
+# Options: "underscore" (Breaking_Bad_S1D1), "hyphen" (breaking-bad-s1d1), "space" (Breaking Bad S1D1)
+# Can be overridden per-job in the batch rename UI
+# Default: "underscore"
+BATCH_RENAME_NAMING_STYLE: "underscore"
+
+# Batch rename zero-padding for disc identifiers
+# When enabled, disc identifiers use zero-padded numbers (S01D01 instead of S1D1)
+# Can be overridden per-job in the batch rename UI
+# Default: false
+BATCH_RENAME_ZERO_PADDED: false
+
+# Batch rename consolidation default
+# When enabled, batch rename will default to consolidating discs under series parent folder
+# Can be overridden per-job in the batch rename UI
+# Default: false
+BATCH_RENAME_CONSOLIDATE_DEFAULT: false
 # Group TV series discs under a parent series folder (opt-in feature)
 # When enabled, ARM will organize multiple disc folders under a single series parent folder
 # Structure: {COMPLETED_PATH}/tv/{Series Title (Year)}/{Breaking_Bad_S1D1, Breaking_Bad_S1D2, etc.}
