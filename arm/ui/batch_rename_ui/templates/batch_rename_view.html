@@ -2,42 +2,28 @@
 
 {% block content %}
 <style>
-    .batch-job-card {
-        transition: all 0.2s;
+    .batch-table-row {
+        transition: background-color 0.2s;
         cursor: pointer;
-        border: 2px solid transparent;
     }
-    .batch-job-card.selected {
-        border: 2px solid #ffc107;
-        background-color: rgba(255, 193, 7, 0.1);
+    .batch-table-row.selected {
+        background-color: rgba(255, 193, 7, 0.2) !important;
     }
-    .batch-job-card:hover {
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    .batch-table-row:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    .dark-mode .batch-table-row:hover {
+        background-color: rgba(255, 255, 255, 0.05);
     }
     .batch-checkbox {
-        transform: scale(1.5);
+        transform: scale(1.3);
         cursor: pointer;
     }
-    .poster-container {
-        position: relative;
-        width: 100%;
-        padding-top: 150%; /* 2:3 aspect ratio */
-        overflow: hidden;
-    }
-    .poster-container img {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+    .poster-thumbnail {
+        width: 60px;
+        height: 90px;
         object-fit: cover;
-    }
-    .selection-badge {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        font-size: 1.5rem;
-        z-index: 10;
+        border-radius: 4px;
     }
     .batch-toolbar {
         position: sticky;
@@ -50,6 +36,25 @@
     }
     .dark-mode .batch-toolbar {
         background: #1a1a1a;
+    }
+    .batch-table {
+        font-size: 0.95rem;
+    }
+    .batch-table th {
+        position: sticky;
+        top: 145px;
+        background: white;
+        z-index: 10;
+        box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+    }
+    .dark-mode .batch-table th {
+        background: #1a1a1a;
+    }
+    .title-cell {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 </style>
 
@@ -88,85 +93,104 @@
         </div>
     </div>
 
-    <!-- Grid View -->
-    <div class="row" id="jobs-grid">
-        {% for job in jobs %}
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-4 job-grid-item" 
-             data-video-type="{{ job.video_type }}"
-             data-job-id="{{ job.job_id }}">
-            <div class="card batch-job-card h-100" data-job-id="{{ job.job_id }}">
-                <!-- Checkbox Badge -->
-                <div class="selection-badge">
-                    <input type="checkbox" class="batch-checkbox" 
-                           data-job-id="{{ job.job_id }}"
-                           data-video-type="{{ job.video_type }}"
-                           data-status="{{ job.status }}">
-                </div>
-                
-                <!-- Poster Image -->
-                <div class="poster-container">
-                    {% if not job.poster_url or job.poster_url == "None" %}
-                        {% if job.video_type == "Music" %}
-                            <img src="static/img/music.png" alt="No Poster">
-                        {% else %}
-                            <img src="static/img/none.png" alt="No Poster">
-                        {% endif %}
-                    {% else %}
-                        <img src="{{ job.poster_url }}" alt="Poster">
-                    {% endif %}
-                </div>
-                
-                <!-- Card Body -->
-                <div class="card-body p-2">
-                    <h6 class="card-title mb-1" title="{{ job.title }}">
-                        {% if job.title_manual %}
-                            {{ job.title_manual[:30] }}{{ '...' if job.title_manual|length > 30 }}
-                        {% else %}
-                            {{ job.title[:30] }}{{ '...' if job.title|length > 30 }}
-                        {% endif %}
-                    </h6>
-                    
-                    <div class="small text-muted">
-                        {% if job.year and job.year != '0000' and job.year != '' %}
-                            <div><strong>Year:</strong> {{ job.year }}</div>
-                        {% endif %}
-                        
-                        <div><strong>Type:</strong> 
-                            {% if job.video_type == 'series' %}
-                                <span class="badge badge-success">TV Series</span>
-                            {% elif job.video_type == 'movie' %}
-                                <span class="badge badge-primary">Movie</span>
+    <!-- Table View -->
+    <div class="table-responsive">
+        <table class="table table-hover batch-table" id="jobs-table">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">
+                        <input type="checkbox" id="select-all-checkbox" class="batch-checkbox" title="Select/Deselect All">
+                    </th>
+                    <th style="width: 80px;">Poster</th>
+                    <th>Title</th>
+                    <th style="width: 80px;">Year</th>
+                    <th style="width: 120px;">Type</th>
+                    <th>Label</th>
+                    <th style="width: 140px;">Started</th>
+                    <th style="width: 100px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="jobs-table-body">
+                {% for job in jobs %}
+                <tr class="batch-table-row job-table-row" 
+                    data-video-type="{{ job.video_type }}"
+                    data-job-id="{{ job.job_id }}"
+                    data-status="{{ job.status }}">
+                    <td class="text-center">
+                        <input type="checkbox" class="batch-checkbox" 
+                               data-job-id="{{ job.job_id }}"
+                               data-video-type="{{ job.video_type }}"
+                               data-status="{{ job.status }}">
+                    </td>
+                    <td>
+                        {% if not job.poster_url or job.poster_url == "None" %}
+                            {% if job.video_type == "Music" %}
+                                <img src="static/img/music.png" alt="No Poster" class="poster-thumbnail">
                             {% else %}
-                                <span class="badge badge-secondary">{{ job.video_type }}</span>
+                                <img src="static/img/none.png" alt="No Poster" class="poster-thumbnail">
                             {% endif %}
-                        </div>
-                        
-                        {% if job.label %}
-                            <div><strong>Label:</strong> {{ job.label[:20] }}{{ '...' if job.label|length > 20 }}</div>
+                        {% else %}
+                            <img src="{{ job.poster_url }}" alt="Poster" class="poster-thumbnail">
                         {% endif %}
-                        
-                        <div><strong>Started:</strong> {{ job.start_time.strftime('%m/%d %H:%M') if job.start_time }}</div>
-                        
-                        <div class="mt-2">
-                            <a href="jobdetail?job_id={{ job.job_id }}" class="btn btn-sm btn-outline-primary btn-block">
-                                <i class="fa fa-info-circle"></i> Details
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    
-    {% if not jobs %}
-    <div class="row">
-        <div class="col-12 text-center py-5">
+                    </td>
+                    <td class="title-cell" title="{{ job.title_manual if job.title_manual else job.title }}">
+                        <strong>
+                        {% if job.title_manual %}
+                            {{ job.title_manual }}
+                        {% else %}
+                            {{ job.title }}
+                        {% endif %}
+                        </strong>
+                    </td>
+                    <td>
+                        {% if job.year and job.year != '0000' and job.year != '' %}
+                            {{ job.year }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if job.video_type == 'series' %}
+                            <span class="badge badge-success">TV Series</span>
+                        {% elif job.video_type == 'movie' %}
+                            <span class="badge badge-primary">Movie</span>
+                        {% else %}
+                            <span class="badge badge-secondary">{{ job.video_type }}</span>
+                        {% endif %}
+                    </td>
+                    <td title="{{ job.label if job.label }}">
+                        {% if job.label %}
+                            {{ job.label[:30] }}{{ '...' if job.label|length > 30 }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if job.start_time %}
+                            {{ job.start_time.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="jobdetail?job_id={{ job.job_id }}" 
+                           class="btn btn-sm btn-outline-primary" 
+                           title="View Details">
+                            <i class="fa fa-info-circle"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        {% if not jobs %}
+        <div class="text-center py-5">
             <h4 class="text-muted">No completed discs found</h4>
             <p>Completed discs will appear here for batch renaming</p>
         </div>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
 
 <!-- Batch Rename Modal -->

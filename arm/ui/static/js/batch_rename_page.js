@@ -13,10 +13,11 @@ $(document).ready(function() {
 });
 
 function initializeBatchRenamePage() {
-    // Grid and checkbox handlers
+    // Table and checkbox handlers
     $('.batch-checkbox').on('change', handleCheckboxChange);
-    $('.batch-job-card').on('click', handleCardClick);
+    $('.batch-table-row').on('click', handleRowClick);
     $('#select-all-btn').on('click', selectAllJobs);
+    $('#select-all-checkbox').on('change', handleSelectAllCheckbox);
     $('#deselect-all-btn').on('click', deselectAllJobs);
     $('#filter-series-btn').on('click', toggleSeriesFilter);
     
@@ -39,60 +40,91 @@ function initializeBatchRenamePage() {
     loadDefaultConfig();
 }
 
-function handleCardClick(e) {
-    // Don't toggle if clicking checkbox directly
-    if ($(e.target).hasClass('batch-checkbox') || $(e.target).closest('a').length > 0) {
+function handleRowClick(e) {
+    // Don't toggle if clicking checkbox directly or action buttons
+    if ($(e.target).hasClass('batch-checkbox') || 
+        $(e.target).closest('a').length > 0 ||
+        $(e.target).is('input[type="checkbox"]')) {
         return;
     }
     
-    const card = $(this);
-    const checkbox = card.find('.batch-checkbox');
+    const row = $(this);
+    const checkbox = row.find('.batch-checkbox');
     checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
 }
 
 function handleCheckboxChange() {
     const checkbox = $(this);
-    const card = checkbox.closest('.batch-job-card');
+    const row = checkbox.closest('.batch-table-row');
     const jobId = checkbox.data('job-id');
     const videoType = checkbox.data('video-type');
     
     if (checkbox.is(':checked')) {
         selectedJobs.add(jobId);
-        card.addClass('selected');
+        row.addClass('selected');
     } else {
         selectedJobs.delete(jobId);
-        card.removeClass('selected');
+        row.removeClass('selected');
     }
     
     updateSelectionUI();
+    updateSelectAllCheckbox();
+}
+
+function handleSelectAllCheckbox() {
+    const checkbox = $(this);
+    if (checkbox.is(':checked')) {
+        selectAllJobs();
+    } else {
+        deselectAllJobs();
+    }
+}
+
+function updateSelectAllCheckbox() {
+    const totalRows = $('.job-table-row:visible').length;
+    const checkedRows = $('.job-table-row:visible').find('.batch-checkbox:checked').length;
+    
+    const selectAllCheckbox = $('#select-all-checkbox');
+    if (checkedRows === 0) {
+        selectAllCheckbox.prop('checked', false);
+        selectAllCheckbox.prop('indeterminate', false);
+    } else if (checkedRows === totalRows) {
+        selectAllCheckbox.prop('checked', true);
+        selectAllCheckbox.prop('indeterminate', false);
+    } else {
+        selectAllCheckbox.prop('checked', false);
+        selectAllCheckbox.prop('indeterminate', true);
+    }
 }
 
 function selectAllJobs() {
     const filterActive = $('#filter-series-btn').hasClass('active');
     
-    $('.job-grid-item').each(function() {
-        const item = $(this);
-        const videoType = item.data('video-type');
+    $('.job-table-row:visible').each(function() {
+        const row = $(this);
+        const videoType = row.data('video-type');
         
         // If filter active, only select series
         if (filterActive && videoType !== 'series') {
             return;
         }
         
-        const checkbox = item.find('.batch-checkbox');
+        const checkbox = row.find('.batch-checkbox');
         checkbox.prop('checked', true);
-        checkbox.closest('.batch-job-card').addClass('selected');
+        row.addClass('selected');
         selectedJobs.add(checkbox.data('job-id'));
     });
     
     updateSelectionUI();
+    updateSelectAllCheckbox();
 }
 
 function deselectAllJobs() {
-    $('.batch-checkbox').prop('checked', false);
-    $('.batch-job-card').removeClass('selected');
+    $('.batch-checkbox').not('#select-all-checkbox').prop('checked', false);
+    $('.batch-table-row').removeClass('selected');
     selectedJobs.clear();
     updateSelectionUI();
+    updateSelectAllCheckbox();
 }
 
 function toggleSeriesFilter() {
@@ -100,18 +132,20 @@ function toggleSeriesFilter() {
     btn.toggleClass('active');
     
     if (btn.hasClass('active')) {
-        // Hide non-series items
-        $('.job-grid-item').each(function() {
+        // Hide non-series rows
+        $('.job-table-row').each(function() {
             if ($(this).data('video-type') !== 'series') {
                 $(this).hide();
             }
         });
         btn.html('<i class="fa fa-filter"></i> Show All');
     } else {
-        // Show all items
-        $('.job-grid-item').show();
+        // Show all rows
+        $('.job-table-row').show();
         btn.html('<i class="fa fa-filter"></i> TV Series Only');
     }
+    
+    updateSelectAllCheckbox();
 }
 
 function updateSelectionUI() {
@@ -148,8 +182,8 @@ function openBatchRenameModal() {
     selectedJobs.forEach(jobId => {
         const checkbox = $(`.batch-checkbox[data-job-id="${jobId}"]`);
         const videoType = checkbox.data('video-type');
-        const card = checkbox.closest('.job-grid-item');
-        const title = card.find('.card-title').attr('title') || card.find('.card-title').text().trim();
+        const row = checkbox.closest('.job-table-row');
+        const title = row.find('.title-cell').attr('title') || row.find('.title-cell').text().trim();
         
         if (videoType !== 'series') {
             hasNonSeries = true;
