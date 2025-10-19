@@ -9,6 +9,18 @@ let previewData = null;
 let hasNonSeries = false;
 
 $(document).ready(function() {
+    // Setup CSRF token for AJAX requests
+    const csrfToken = $('meta[name="csrf-token"]').attr('content');
+    if (csrfToken) {
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrfToken);
+                }
+            }
+        });
+    }
+    
     initializeBatchRenamePage();
 });
 

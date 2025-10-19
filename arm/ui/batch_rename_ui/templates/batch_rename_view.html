@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <style>
     .batch-table-row {
         transition: background-color 0.2s;
@@ -41,18 +42,14 @@
         font-size: 0.95rem;
     }
     .batch-table th {
-        position: sticky;
-        top: 145px;
         background: white;
-        z-index: 1010;
-        box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+        font-weight: bold;
     }
     .dark-mode .batch-table th {
         background: #1a1a1a;
     }
     .batch-table tbody {
         position: relative;
-        z-index: 1;
     }
     .title-cell {
         max-width: 300px;
