@@ -73,10 +73,13 @@ def populate_form_fields(form: Form, data: Optional[dict[str, str]], titles: Opt
                 else:
                     if field_name in data:
                         field.data = data[field_name]
+                    else:
+                        app.logger.debug(f"Field {field_name} not found in data dict")
+                    if field_name in titles:
                         field.render_kw = {'title': titles[field_name]}
                         app.logger.debug(f"{starter}{field_name} {ender}{field.data} ")
                     else:
-                        app.logger.debug(f"Field {field_name} not found in data dict")
+                        app.logger.debug(f"Title for field {field_name} not found in titles dict")
             return form
         else:
             app.logger.debug(f"Titles were provided. Populating form with {len(form._fields)} fields, data is type{type(data)}, titles are {type(titles)} ")
@@ -381,12 +384,11 @@ def save_settings():
     # Load up the comments.json, so we can comment the arm.yaml
     app.logger.info("Saving ARM Ripper settings")
     comments = ui_utils.generate_comments()
-    success = False
+    task_success = False
     arm_cfg = {}
     form_name = "arm ripper settings"
     app.logger.debug("Generating a temporary instance of SettingsForm")
     form = SettingsFormFunction(comments=comments)
-    app.logger.info(f"Form errors are: {form.errors}")
     if form.validate_on_submit():
         app.logger.debug("Saving Ripper settings")
         # Build the new arm.yaml with updated values from the user
@@ -397,7 +399,7 @@ def save_settings():
             app.logger.debug(f"routes.save_settings: Saving new arm.yaml: {cfg.arm_config_path}")
             with open(cfg.arm_config_path, "w", encoding="utf-8") as settings_file:
                 settings_file.write(arm_cfg)
-            success = True
+            task_success = True
         except Exception as e:
             exception_msg = f"Error saving arm.yaml: {e}"
             app.logger.exception(exception_msg)
@@ -407,13 +409,13 @@ def save_settings():
         # Set the ARM Log level to the config
         app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
         app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
-        return jsonify({'success': success, 'settings': cfg.arm_config, 'form': form_name})
+        return jsonify({'success': task_success, 'settings': cfg.arm_config, 'form': form_name})
     else:
         # form is not valid
         fields_errors = {field: errs for field, errs in form.errors.items()}
         app.logger.error(f"Error validating form: {form.errors}, I found these errors: {fields_errors}")
         flash(f"Error validating form: {form.errors}", "error")
-        return jsonify({'error': True, 'message':"Validation Failed", 'errors': fields_errors}), 400
+        return jsonify({'error': True, 'message':"Validation Failed", 'errors': fields_errors})
 
 
 @route_settings.route('/save_ui_settings', methods=['POST'])
@@ -427,6 +429,7 @@ def save_ui_settings():
         debugging to update the values
     """
     ui_form = UiSettingsForm()
+    form_name = 'arm ui settings'
     success = False
     arm_ui_cfg = UISettings.query.get(1)
     if ui_form.validate_on_submit():
@@ -439,16 +442,21 @@ def save_ui_settings():
         arm_ui_cfg.language = format(ui_form.language.data)
         arm_ui_cfg.database_limit = format(ui_form.database_limit.data)
         arm_ui_cfg.notify_refresh = format(ui_form.notify_refresh.data)
-        db.session.commit()
-        success = True
-        # Masking the jinja update, otherwise an error is thrown
-        # sqlalchemy.orm.exc.DetachedInstanceError: Instance <UISettings at 0x7f294c109fd0>
-        app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
-        return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
+        try:
+            db.session.commit()
+            success = True
+            # Masking the jinja update, otherwise an error is thrown
+            # sqlalchemy.orm.exc.DetachedInstanceError: Instance <UISettings at 0x7f294c109fd0>
+            app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
+            return {'success': success, 'settings': str(arm_ui_cfg), 'form': form_name}
+        except Exception as e:
+            err_msg = f"Error validating form: {ui_form.errors} because {e}"
+            app.logger.error(err_msg)
+            return {'error': True, 'errors': str(err_msg), 'form': form_name}
     else:
-        app.logger.error(f"Error validating form: {ui_form.errors}")
-        flash(f"Error validating form: {ui_form.errors}", "error")
-        return {'success': False, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
+        fields_errors = {field: errs for field, errs in ui_form.errors.items()}
+        app.logger.error(f"Error validating form: {ui_form.errors}, I found these errors: {fields_errors}")
+        return jsonify({'error': True, 'message':"Validation Failed", 'errors': fields_errors})
 
 
 @route_settings.route('/save_abcde_settings', methods=['POST'])
