@@ -64,7 +64,7 @@
             <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
                 <div class="modal-content">
                     <div class="modal-header bg-warning">
-                        <h5 class="modal-title" id="batchRenameModalTitle">Batch Rename TV Series Discs</h5>
+                        <h5 class="modal-title" id="batchRenameModalTitle">Batch Rename Discs</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
@@ -102,6 +102,35 @@
                             <hr>
                             <button type="button" class="btn btn-primary" id="generate-preview-btn">
                                 <i class="fa fa-eye"></i> Generate Preview
+                            </button>
+                        </div>
+                        
+                        <!-- Step 1.5: Series Selection and Confirmation -->
+                        <div id="rename-series-selection-step" style="display: none;">
+                            <h6 class="font-weight-bold">Series Detection and Confirmation</h6>
+                            
+                            <div id="series-detection-info" class="alert alert-info">
+                                <strong>Multiple series detected.</strong> Please select the primary series for this batch operation.
+                            </div>
+                            
+                            <div id="series-groups-container">
+                                <!-- Populated by JavaScript with radio buttons for each detected series -->
+                            </div>
+                            
+                            <div class="mt-3">
+                                <h6>Disc Assignment</h6>
+                                <p class="text-muted small">Review which discs belong to the selected series. You can reassign outliers or skip them.</p>
+                                <div id="disc-assignment-container" class="table-responsive">
+                                    <!-- Populated by JavaScript with disc list and assignment controls -->
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            <button type="button" class="btn btn-secondary" id="back-from-series-btn">
+                                <i class="fa fa-arrow-left"></i> Back to Options
+                            </button>
+                            <button type="button" class="btn btn-primary" id="confirm-series-btn">
+                                <i class="fa fa-check"></i> Confirm and Preview
                             </button>
                         </div>
                         
@@ -176,7 +205,7 @@
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal"
                         data-type="search" data-href="json?mode=search&q=">Search Database
                 </button>
-                <button id="batch-rename-btn" type="button" class="btn btn-warning" disabled title="Select TV series jobs to batch rename">
+                <button id="batch-rename-btn" type="button" class="btn btn-warning" disabled title="Select completed jobs to batch rename">
                     <i class="fa fa-edit"></i> Batch Rename Selected
                 </button>
                 <button id="select-all-btn" type="button" class="btn btn-info">
