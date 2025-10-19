@@ -1,28 +1,47 @@
 /* ---------- Variables ---------- */
 [data-theme="dark"] :root {
-  --blue: #007bff;
-  --indigo: #6610f2;
-  --purple: #6f42c1;
-  --pink: #e83e8c;
-  --red: #ee5f5b;
-  --orange: #fd7e14;
-  --yellow: #f89406;
-  --green: #62c462;
-  --teal: #20c997;
-  --cyan: #5bc0de;
-  --white: #ffffff;
-  --gray: #7a8288;
-  --gray-dark: #3a3f44;
-  --primary: #32383e;
-  --secondary: #6c757d;
-  --success: rgba(51, 101, 51, 0.79);
-  --info: rgba(57, 121, 140, 0.79);
-  --warning: rgba(165, 99, 5, 0.79);
-  --danger: rgba(124, 48, 46, 0.79);
-  --light: #444c53;
-  --dark: #1f2226;
-  --font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-  --font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  /* Base Colors */
+  --color-bg: #33393e;          /* Main background */
+  --color-surface: #2a2d33;     /* Cards, jumbotron, navbars, modals */
+  --color-muted: #7a8288;       /* Secondary text */
+  --color-text: #e0e0e0;        /* Primary text */
+  --border-color: #3a3f44;      /* General borders */
+
+  /* Brand / Semantic Colors */
+  --color-primary: #3a3f44;
+  --color-secondary: #50565c;
+  --color-success: #4b794b;
+  --color-danger: rgba(143, 6, 6, 0.78);
+  --color-warning: #8b6b3a;
+  --color-info: rgba(42, 79, 103, 0.78);
+  --color-light: #444c53;
+  --color-dark: #1f2226;
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Breakpoints */
+  --breakpoint-xs: 0;
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+}
+
+html[data-theme="dark"] body {
+    background-color: #454748; /* dark background */
+    color: #e0e0e0;           /* light text */
+}
+
+html[data-theme="dark"] a {
+    color: #66aaff;
+}
+
+/* Optional: reset bootstrap background for dark mode */
+html[data-theme="dark"] .bg-light {
+    background-color: #1e1e1e !important;
+    color: #e0e0e0 !important;
 }
 
 /* ---------- Base ---------- */
@@ -103,7 +122,7 @@
 
 /* ---------- Form Controls ---------- */
 [data-theme="dark"] .form-control {
-  background-color: #46484a;;
+  background-color: #46484a;
   color: #e0e0e0;
   border: 1px solid #3a3f44;
 }
@@ -301,33 +320,4 @@
 [data-theme="dark"] .card-footer {
   background-color: #3a3f44;
   border-top: 1px solid #272b30;
-}
-[data-theme="dark"] :root {
-  /* Base Colors */
-  --color-bg: #33393e;          /* Main background */
-  --color-surface: #2a2d33;     /* Cards, jumbotron, navbars, modals */
-  --color-muted: #7a8288;       /* Secondary text */
-  --color-text: #e0e0e0;        /* Primary text */
-  --border-color: #3a3f44;      /* General borders */
-
-  /* Brand / Semantic Colors */
-  --color-primary: #3a3f44;
-  --color-secondary: #50565c;
-  --color-success: #4b794b;
-  --color-danger: rgba(143, 6, 6, 0.78);
-  --color-warning: #8b6b3a;
-  --color-info: rgba(42, 79, 103, 0.78);
-  --color-light: #444c53;
-  --color-dark: #1f2226;
-
-  /* Typography */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-  --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-
-  /* Breakpoints */
-  --breakpoint-xs: 0;
-  --breakpoint-sm: 576px;
-  --breakpoint-md: 768px;
-  --breakpoint-lg: 992px;
-  --breakpoint-xl: 1200px;
 }
