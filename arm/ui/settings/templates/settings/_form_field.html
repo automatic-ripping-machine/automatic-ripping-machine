@@ -1,19 +1,19 @@
 {% macro render_field(field) %}
-<div class="input-group mb-3">
-    <div class="input-group-prepend">
+<div class="input-group m-3">
+    <div class="input-group-prepend mx-2">
         {{ field.label(class_="input-group-text")}}
     </div>
-    <div class="input-group-append">
+    <div class="input-group-append me-2">
         {{ field(class_=(field.render_kw.get('class', '') + (' is-invalid' if field.errors else ''))) | safe }}
 
     </div>
-    <button class="btn border-0 popovers p-0 rounded-0 p-2" onClick='return false;' href=""
+    <button class="btn border-0 popovers p-0 rounded-0 mx-2" onClick='return false;' href=""
         data-content=" {{ field.render_kw.get('title', '') if field.render_kw else 'No help found' }} "
         rel="popover"
         data-placement="top" data-original-title="{{ field.name }}">
          <img class="image-fluid border-0" title="More information" src="{{ url_for('static', filename='img/info.png') }}" width="30px" height="35px" alt="More info">
     </button>
-    <div class="invalid-feedback" id="{{ field.name ~ '_error' }}">
+    <div class="invalid-feedback mx-2" id="{{ field.name ~ '_error' }}">
         <p>errors go here</p>
     </div>    
 </div>

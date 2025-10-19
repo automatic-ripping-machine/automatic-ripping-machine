@@ -94,7 +94,7 @@
                     if (data.success === true) {
                         console.log(data)
                         toaster("Saved Successfully", `Saved ${data.form}`);
-                        $("div[id$='_error']").hide().fadeOut(200);
+                        $("div[id$='_error']").removeClass().fadeOut(200);
                         }
                     // Handle error response
                     if (data.error === true) {
