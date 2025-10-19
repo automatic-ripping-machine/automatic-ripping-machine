@@ -73,12 +73,6 @@
         $(function () {
             let toastCount = 0;
             
-            function toaster(title, message){
-                var dt = new Date();
-                var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
-                addToast(title, `${message} settings at ${time}`, toastCount);
-                toastCount++;
-            }
             function sendSettings(formToSend, sendTo) {
                 $.ajax({
                     type: 'POST',
@@ -93,19 +87,23 @@
                     // handle success reponse
                     if (data.success === true) {
                         console.log(data)
-                        toaster("Saved Successfully", `Saved ${data.form}`);
-                        $("div[id$='_error']").removeClass().fadeOut(200);
+                        var dt = new Date();
+                        var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
+                        addToast(` {{ form.title }} `, `Saved Successfully settings at ${time}`, toastCount, true);
+                        toastCount++;
+                        $("div[id$='_error']").removeClass().fadeOut(10);
                         }
                     // Handle error response
                     if (data.error === true) {
                         if (data.message == "Validation Failed") {
-                            addToast("Error Saving Settings", `Error: ${data.message}`,success=false);
+                            addToast("Error Saving Settings", `Error: ${data.message}`, toastCount ,false);
+                            toastCount++;
                         }
                         // This is where we need to loop through the errors and highlight the fields
                         if (data.errors) {
                             $.each(data.errors,function(field_name, error_message){
                                 var errDivId = '#' + field_name + '_error';
-                                $(errDivId).html(error_message).removeClass().addClass('alert alert-danger ps-3 d-flex align-items-center').fadeIn(200);
+                                $(errDivId).html(error_message).removeClass().addClass('alert alert-danger d-flex align-items-center mb-0').fadeIn(400);
                             });
                         }
                     }
