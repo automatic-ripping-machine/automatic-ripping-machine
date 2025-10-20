@@ -4,6 +4,19 @@
  * Uses shared utilities from batch_rename_shared.js
  */
 
+/**
+ * Escape HTML to prevent XSS attacks
+ */
+function escapeHtml(unsafe) {
+    if (unsafe == null) return '';
+    return String(unsafe)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 let selectedJobs = new Set();
 let currentBatchId = null;
 let previewData = null;
@@ -236,10 +249,11 @@ function displayNonSeriesWarning(nonSeriesJobs) {
     
     let listHtml = '<ul class="mb-0">';
     nonSeriesJobs.forEach(job => {
+        const escapedType = escapeHtml(job.type);
         const typeBadge = job.type === 'movie' ? 
             '<span class="badge badge-primary">Movie</span>' : 
-            `<span class="badge badge-secondary">${job.type}</span>`;
-        listHtml += `<li>Job ${job.id}: ${job.title} ${typeBadge}</li>`;
+            `<span class="badge badge-secondary">${escapedType}</span>`;
+        listHtml += `<li>Job ${job.id}: ${escapeHtml(job.title)} ${typeBadge}</li>`;
     });
     listHtml += '</ul>';
     
@@ -404,15 +418,16 @@ function displaySelectedDiscs() {
     let html = '<ul class="mb-0">';
     selectedJobs.forEach(jobId => {
         const row = $(`.batch-table-row[data-job-id="${jobId}"]`);
-        const title = row.find('.title-cell').text().trim();
-        const label = row.find('td:eq(5)').text().trim(); // Label column
+        const title = escapeHtml(row.find('.title-cell').text().trim());
+        const label = escapeHtml(row.find('td:eq(5)').text().trim()); // Label column
         const type = row.data('video-type');
         
+        const escapedType = escapeHtml(type);
         const typeBadge = type === 'series' ? 
             '<span class="badge badge-success">TV Series</span>' : 
             type === 'movie' ?
             '<span class="badge badge-primary">Movie</span>' :
-            `<span class="badge badge-secondary">${type}</span>`;
+            `<span class="badge badge-secondary">${escapedType}</span>`;
         
         html += `<li>Job ${jobId}: ${title} ${typeBadge}`;
         if (label && label !== '-') {

@@ -8,6 +8,19 @@ var BatchRenameShared = (function() {
     'use strict';
 
     /**
+     * Escape HTML to prevent XSS attacks
+     */
+    function escapeHtml(unsafe) {
+        if (unsafe == null) return '';
+        return String(unsafe)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    /**
      * Load default configuration values for rename options
      */
     function loadDefaultConfig() {
@@ -120,21 +133,23 @@ var BatchRenameShared = (function() {
 
         items.forEach(item => {
             const jobId = item.job_id || item.id;
-            const title = item.title || item.series_name || 'N/A';
-            const label = item.label || item.disc_label || 'N/A';
+            const title = escapeHtml(item.title || item.series_name || 'N/A');
+            const label = escapeHtml(item.label || item.disc_label || 'N/A');
             const outlier = outliers.find(o => o.job_id === jobId);
 
             let assignmentHtml = '';
             if (outlier) {
+                const escapedSeries = escapeHtml(selectedSeries);
                 assignmentHtml = `
                     <select class="form-control form-control-sm disc-assignment" data-job-id="${jobId}">
                         <option value="skip">Skip this disc</option>
-                        <option value="force">Include in ${selectedSeries}</option>
+                        <option value="force">Include in ${escapedSeries}</option>
                         <option value="auto" selected>Auto (different series)</option>
                     </select>
                 `;
             } else {
-                assignmentHtml = `<span class="badge badge-success">Part of ${selectedSeries}</span>`;
+                const escapedSeries = escapeHtml(selectedSeries);
+                assignmentHtml = `<span class="badge badge-success">Part of ${escapedSeries}</span>`;
             }
 
             tableHtml += `
@@ -305,12 +320,12 @@ var BatchRenameShared = (function() {
         } else {
             html += '<div class="alert alert-danger">';
             html += '<h6><i class="fa fa-exclamation-circle"></i> Batch Rename Failed</h6>';
-            html += `<p>${response.message}</p>`;
+            html += `<p>${escapeHtml(response.message)}</p>`;
 
             if (response.errors && response.errors.length > 0) {
                 html += '<p><strong>Errors:</strong></p><ul>';
                 response.errors.forEach(error => {
-                    html += `<li>${error}</li>`;
+                    html += `<li>${escapeHtml(error)}</li>`;
                 });
                 html += '</ul>';
             }

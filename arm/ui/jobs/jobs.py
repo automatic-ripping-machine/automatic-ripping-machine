@@ -504,9 +504,9 @@ def batch_rename_api():
             )
 
     except Exception as e:
-        app.logger.error(f"Batch rename API error: {e}")
+        app.logger.error(f"Batch rename API error: {e}", exc_info=True)
         return app.response_class(
-            response=json.dumps({'success': False, 'error': str(e)}),
+            response=json.dumps({'success': False, 'error': 'An error occurred during batch rename operation'}),
             status=500,
             mimetype='application/json'
         )
@@ -631,8 +631,8 @@ def _apply_custom_lookup_to_jobs(job_ids, title, year, video_type,
             })
 
         except Exception as e:
-            app.logger.error(f"Error updating job {job_id}: {e}")
-            errors.append(f'Job {job_id}: {str(e)}')
+            app.logger.error(f"Error updating job {job_id}: {e}", exc_info=True)
+            errors.append(f'Job {job_id}: Failed to apply custom lookup')
 
     return updated_jobs, errors
 
@@ -751,11 +751,11 @@ def batch_custom_lookup_api():
                     )
                 except Exception as e:
                     db.session.rollback()
-                    app.logger.error(f"Database commit error: {e}")
+                    app.logger.error(f"Database commit error: {e}", exc_info=True)
                     return app.response_class(
                         response=json.dumps({
                             'success': False,
-                            'error': f'Database error: {str(e)}'
+                            'error': 'Failed to save changes to database'
                         }),
                         status=500,
                         mimetype='application/json'
@@ -783,11 +783,11 @@ def batch_custom_lookup_api():
             )
 
     except Exception as e:
-        app.logger.error(f"Batch custom lookup API error: {e}")
+        app.logger.error(f"Batch custom lookup API error: {e}", exc_info=True)
         return app.response_class(
             response=json.dumps({
                 'success': False,
-                'error': str(e)
+                'error': 'An error occurred during custom lookup operation'
             }),
             status=500,
             mimetype='application/json'

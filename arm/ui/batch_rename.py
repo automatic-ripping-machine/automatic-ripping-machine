@@ -11,6 +11,7 @@ import logging
 import uuid
 import re
 from datetime import datetime
+from pathlib import Path
 
 from arm.ui import db
 from arm.models.job import Job
@@ -27,6 +28,49 @@ def generate_batch_id():
     """Generate a unique batch ID for grouping related rename operations."""
 
     return str(uuid.uuid4())
+
+
+def _validate_path_safety(path, base_directory=None):
+    """
+    Validate that a path is safe and within the allowed directory.
+    Prevents path traversal attacks.
+    
+    Args:
+        path: Path to validate
+        base_directory: Optional base directory to restrict to (defaults to COMPLETED_PATH)
+    
+    Returns:
+        Normalized, validated path
+    
+    Raises:
+        ValueError: If path is invalid or contains traversal attempts
+    """
+    if not path:
+        raise ValueError("Path cannot be empty")
+    
+    # Get base directory from config if not provided
+    if base_directory is None:
+        base_directory = cfg.arm_config.get('COMPLETED_PATH', '/home/arm/media/completed')
+    
+    # Convert to absolute paths and resolve any symlinks
+    try:
+        base_path = Path(base_directory).resolve()
+        target_path = Path(path).resolve()
+    except (OSError, RuntimeError) as e:
+        raise ValueError(f"Invalid path: {e}")
+    
+    # Ensure the target path is within the base directory
+    try:
+        target_path.relative_to(base_path)
+    except ValueError:
+        raise ValueError(f"Path traversal detected: {path} is outside allowed directory {base_directory}")
+    
+    # Check for suspicious patterns
+    path_str = str(target_path)
+    if '..' in path_str or path_str.startswith('/'):
+        raise ValueError(f"Suspicious path pattern detected: {path}")
+    
+    return str(target_path)
 
 
 def apply_naming_style(name, style='underscore'):
@@ -372,6 +416,16 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
             job_id = item['job_id']
             old_path = item['old_path']
             new_path = item['new_path']
+            
+            # Validate paths to prevent path traversal attacks
+            try:
+                old_path = _validate_path_safety(old_path)
+                new_path = _validate_path_safety(new_path)
+            except ValueError as e:
+                logging.error(f"Path validation failed for job {job_id}: {e}")
+                result['failed_count'] += 1
+                result['errors'].append(f"Job {job_id}: Invalid path - {str(e)}")
+                continue
 
             if os.path.exists(new_path) and new_path != old_path:
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
