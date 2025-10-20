@@ -696,7 +696,7 @@ function displayCustomLookupResults(response) {
         if (response.errors && response.errors.length > 0) {
             html += '<p><strong>Errors:</strong></p><ul>';
             response.errors.forEach(error => {
-                html += `<li class="text-danger">${error}</li>`;
+                html += `<li class="text-danger">${escapeHtml(error)}</li>`;
             });
             html += '</ul>';
         }

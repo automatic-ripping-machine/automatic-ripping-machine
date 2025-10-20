@@ -341,6 +341,13 @@ def preview_batch_rename(
         )
 
         old_path = job.path
+        # Validate old_path to prevent path traversal
+        try:
+            old_path = _validate_path_safety(old_path)
+        except ValueError as e:
+            preview['errors'].append(f"Job {job.job_id}: Invalid path - {str(e)}")
+            continue
+            
         old_folder_name = os.path.basename(old_path)
         new_folder_name = name_result['folder_name']
 
@@ -350,6 +357,13 @@ def preview_batch_rename(
         else:
             base_path = os.path.dirname(old_path)
             new_path = os.path.join(base_path, new_folder_name)
+
+        # Validate new_path to prevent path traversal
+        try:
+            new_path = _validate_path_safety(new_path)
+        except ValueError as e:
+            preview['errors'].append(f"Job {job.job_id}: Invalid target path - {str(e)}")
+            continue
 
         if new_path in seen_paths:
             preview['conflicts'].append({

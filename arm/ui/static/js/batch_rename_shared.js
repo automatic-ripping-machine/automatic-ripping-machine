@@ -155,8 +155,8 @@ var BatchRenameShared = (function() {
             tableHtml += `
                 <tr>
                     <td>${jobId}</td>
-                    <td>${title}</td>
-                    <td>${label}</td>
+                    <td>${escapeHtml(title)}</td>
+                    <td>${escapeHtml(label)}</td>
                     <td>${assignmentHtml}</td>
                 </tr>
             `;
@@ -279,7 +279,7 @@ var BatchRenameShared = (function() {
             const row = `
                 <tr class="${statusClass}">
                     <td>${jobId}</td>
-                    <td>${title}</td>
+                    <td>${escapeHtml(title)}</td>
                     <td>${discLabel}</td>
                     <td><small><code>${oldPath}</code></small></td>
                     <td><small><code>${newPath}</code></small></td>
@@ -361,10 +361,11 @@ var BatchRenameShared = (function() {
      * Display toast notification
      */
     function showToast(message, type) {
+        const escapedMessage = escapeHtml(message);
         const toast = $(`
             <div class="alert alert-${type} alert-dismissible fade show" role="alert"
                  style="position: fixed; top: 80px; right: 20px; z-index: 9999; min-width: 300px; max-width: 500px;">
-                ${message}
+                ${escapedMessage}
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
