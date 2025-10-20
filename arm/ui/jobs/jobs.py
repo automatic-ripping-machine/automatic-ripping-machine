@@ -1,4 +1,4 @@
-﻿"""
+"""
 ARM route blueprint for jobs pages
 Covers
 - jobdetail [GET]

@@ -253,7 +253,7 @@ function displayNonSeriesWarning(nonSeriesJobs) {
         const typeBadge = job.type === 'movie' ? 
             '<span class="badge badge-primary">Movie</span>' : 
             `<span class="badge badge-secondary">${escapedType}</span>`;
-        listHtml += `<li>Job ${job.id}: ${escapeHtml(job.title)} ${typeBadge}</li>`;
+    listHtml += `<li>Job ${escapeHtml(job.id.toString())}: ${escapeHtml(job.title)} ${typeBadge}</li>`;
     });
     listHtml += '</ul>';
     
@@ -429,7 +429,7 @@ function displaySelectedDiscs() {
             '<span class="badge badge-primary">Movie</span>' :
             `<span class="badge badge-secondary">${escapedType}</span>`;
         
-        html += `<li>Job ${jobId}: ${title} ${typeBadge}`;
+    html += `<li>Job ${escapeHtml(jobId.toString())}: ${title} ${typeBadge}`;
         if (label && label !== '-') {
             html += ` - Label: ${label}`;
         }
@@ -498,16 +498,20 @@ function displaySearchResults(results) {
             '<span class="badge badge-success">TV Series</span>' : 
             '<span class="badge badge-primary">Movie</span>';
         
+        const posterEsc = escapeHtml(posterUrl);
+        const titleEsc = escapeHtml(result.title);
+        const yearEsc = escapeHtml(result.year || 'N/A');
+        const imdbEsc = escapeHtml(result.imdb_id || 'N/A');
         const cardHtml = `
             <div class="col-xl-3 col-lg-4 col-md-6 mb-3">
-                <div class="card h-100 search-result-card" data-index="${index}" style="cursor: pointer;">
-                    <img src="${posterUrl}" class="card-img-top" alt="Poster" style="height: 300px; object-fit: cover;">
+                <div class="card h-100 search-result-card" data-index="${escapeHtml(index.toString())}" style="cursor: pointer;">
+                    <img src="${posterEsc}" class="card-img-top" alt="Poster" style="height: 300px; object-fit: cover;">
                     <div class="card-body">
-                        <h6 class="card-title">${result.title}</h6>
+                        <h6 class="card-title">${titleEsc}</h6>
                         <p class="card-text small">
-                            <strong>Year:</strong> ${result.year || 'N/A'}<br>
+                            <strong>Year:</strong> ${yearEsc}<br>
                             <strong>Type:</strong> ${typeBadge}<br>
-                            <strong>IMDb:</strong> ${result.imdb_id || 'N/A'}
+                            <strong>IMDb:</strong> ${imdbEsc}
                         </p>
                         <button class="btn btn-success btn-sm btn-block select-result-btn" data-index="${index}">
                             <i class="fa fa-check"></i> Select This
@@ -561,17 +565,21 @@ function displayCustomLookupConfirmation() {
         '<span class="badge badge-success">TV Series</span>' : 
         '<span class="badge badge-primary">Movie</span>';
     
+    const posterEsc = escapeHtml(posterUrl);
+    const titleEsc = escapeHtml(selectedMatchData.title);
+    const yearEsc = escapeHtml(selectedMatchData.year || 'N/A');
+    const imdbEsc = escapeHtml(selectedMatchData.imdb_id || 'N/A');
     const matchInfoHtml = `
         <div class="row">
             <div class="col-md-3">
-                <img src="${posterUrl}" class="img-fluid rounded" alt="Poster">
+                <img src="${posterEsc}" class="img-fluid rounded" alt="Poster">
             </div>
             <div class="col-md-9">
-                <h5>${selectedMatchData.title}</h5>
+                <h5>${titleEsc}</h5>
                 <p>
-                    <strong>Year:</strong> ${selectedMatchData.year || 'N/A'}<br>
+                    <strong>Year:</strong> ${yearEsc}<br>
                     <strong>Type:</strong> ${typeBadge}<br>
-                    <strong>IMDb ID:</strong> ${selectedMatchData.imdb_id || 'N/A'}
+                    <strong>IMDb ID:</strong> ${imdbEsc}
                 </p>
             </div>
         </div>
@@ -602,11 +610,11 @@ function displayCustomLookupConfirmation() {
         
         const rowHtml = `
             <tr>
-                <td>${jobId}</td>
-                <td>${currentTitle}</td>
+                <td>${escapeHtml(jobId.toString())}</td>
+                <td>${escapeHtml(currentTitle)}</td>
                 <td>${currentTypeBadge}</td>
-                <td>${label || '-'}</td>
-                <td><strong>${selectedMatchData.title}</strong></td>
+                <td>${escapeHtml(label || '-')}</td>
+                <td><strong>${escapeHtml(selectedMatchData.title)}</strong></td>
                 <td>${newTypeBadge}</td>
             </tr>
         `;
@@ -685,12 +693,12 @@ function displayCustomLookupResults(response) {
     if (response.success) {
         html += '<div class="alert alert-success">';
         html += '<h6><i class="fa fa-check-circle"></i> Custom Identification Applied Successfully</h6>';
-        html += `<p>Updated <strong>${response.updated_count}</strong> disc(s) with:</p>`;
-        html += '<ul>';
-        html += `<li><strong>Title:</strong> ${selectedMatchData.title}</li>`;
-        html += `<li><strong>Year:</strong> ${selectedMatchData.year || 'N/A'}</li>`;
-        html += `<li><strong>Type:</strong> ${selectedMatchData.type}</li>`;
-        html += `<li><strong>IMDb ID:</strong> ${selectedMatchData.imdb_id || 'N/A'}</li>`;
+    html += `<p>Updated <strong>${escapeHtml(response.updated_count.toString())}</strong> disc(s) with:</p>`;
+    html += '<ul>';
+    html += `<li><strong>Title:</strong> ${escapeHtml(selectedMatchData.title)}</li>`;
+    html += `<li><strong>Year:</strong> ${escapeHtml(selectedMatchData.year || 'N/A')}</li>`;
+    html += `<li><strong>Type:</strong> ${escapeHtml(selectedMatchData.type)}</li>`;
+    html += `<li><strong>IMDb ID:</strong> ${escapeHtml(selectedMatchData.imdb_id || 'N/A')}</li>`;
         html += '</ul>';
         
         if (response.errors && response.errors.length > 0) {
@@ -706,7 +714,7 @@ function displayCustomLookupResults(response) {
     } else {
         html += '<div class="alert alert-danger">';
         html += '<h6><i class="fa fa-exclamation-circle"></i> Custom Identification Failed</h6>';
-        html += `<p>${response.error}</p>`;
+    html += `<p>${escapeHtml(response.error)}</p>`;
         html += '</div>';
     }
     

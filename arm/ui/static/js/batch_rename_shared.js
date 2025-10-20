@@ -86,12 +86,14 @@ var BatchRenameShared = (function() {
             const group = seriesGroups[key];
             const isChecked = groupIndex === 0 ? 'checked' : '';
 
+            const groupNameEsc = escapeHtml(group.name);
+            const groupImdbEsc = group.imdb_id ? '(' + escapeHtml(group.imdb_id) + ')' : '';
             const groupHtml = `
                 <div class="form-check mb-3">
                     <input class="form-check-input series-radio" type="radio" name="primarySeries"
-                           id="series-${groupIndex}" value="${key}" ${isChecked}>
+                           id="series-${groupIndex}" value="${escapeHtml(key)}" ${isChecked}>
                     <label class="form-check-label" for="series-${groupIndex}">
-                        <strong>${group.name}</strong> ${group.imdb_id ? '(IMDb: ' + group.imdb_id + ')' : ''}
+                        <strong>${groupNameEsc}</strong> ${groupImdbEsc}
                         <span class="badge badge-info">${group.jobs.length} disc(s)</span>
                     </label>
                 </div>
@@ -133,15 +135,15 @@ var BatchRenameShared = (function() {
 
         items.forEach(item => {
             const jobId = item.job_id || item.id;
-            const title = escapeHtml(item.title || item.series_name || 'N/A');
-            const label = escapeHtml(item.label || item.disc_label || 'N/A');
+            const titleRaw = item.title || item.series_name || 'N/A';
+            const labelRaw = item.label || item.disc_label || 'N/A';
             const outlier = outliers.find(o => o.job_id === jobId);
 
             let assignmentHtml = '';
             if (outlier) {
                 const escapedSeries = escapeHtml(selectedSeries);
                 assignmentHtml = `
-                    <select class="form-control form-control-sm disc-assignment" data-job-id="${jobId}">
+                    <select class="form-control form-control-sm disc-assignment" data-job-id="${escapeHtml(jobId)}">
                         <option value="skip">Skip this disc</option>
                         <option value="force">Include in ${escapedSeries}</option>
                         <option value="auto" selected>Auto (different series)</option>
@@ -155,8 +157,8 @@ var BatchRenameShared = (function() {
             tableHtml += `
                 <tr>
                     <td>${jobId}</td>
-                    <td>${escapeHtml(title)}</td>
-                    <td>${escapeHtml(label)}</td>
+                    <td>${escapeHtml(titleRaw)}</td>
+                    <td>${escapeHtml(labelRaw)}</td>
                     <td>${assignmentHtml}</td>
                 </tr>
             `;
@@ -177,7 +179,7 @@ var BatchRenameShared = (function() {
         if (preview.warnings && preview.warnings.length > 0) {
             const warningDiv = $('#preview-warnings');
             warningDiv.html('<strong>Warnings:</strong><ul>' +
-                preview.warnings.map(w => '<li>' + w + '</li>').join('') +
+                preview.warnings.map(w => '<li>' + escapeHtml(w) + '</li>').join('') +
                 '</ul>');
             warningDiv.show();
         }
@@ -188,7 +190,7 @@ var BatchRenameShared = (function() {
             let outlierHtml = '<strong>Series Outliers Detected:</strong><br>';
             outlierHtml += '<small>The following jobs have different series identifiers:</small><ul>';
             preview.outliers.forEach(outlier => {
-                outlierHtml += `<li>Job ${outlier.job_id}: ${outlier.title} (IMDb: ${outlier.imdb_id || 'N/A'})</li>`;
+                outlierHtml += `<li>Job ${escapeHtml(outlier.job_id.toString())}: ${escapeHtml(outlier.title)} (IMDb: ${escapeHtml(outlier.imdb_id || 'N/A')})</li>`;
             });
             outlierHtml += '</ul>';
             outlierHtml += '<small>These will be skipped unless you override series detection.</small>';
@@ -202,9 +204,9 @@ var BatchRenameShared = (function() {
             let conflictHtml = '<strong>Path Conflicts Detected:</strong><ul>';
             preview.conflicts.forEach(conflict => {
                 if (typeof conflict === 'string') {
-                    conflictHtml += `<li>${conflict}</li>`;
+                    conflictHtml += `<li>${escapeHtml(conflict)}</li>`;
                 } else {
-                    conflictHtml += `<li>Job ${conflict.job_id}: ${conflict.reason}</li>`;
+                    conflictHtml += `<li>Job ${escapeHtml(conflict.job_id.toString())}: ${escapeHtml(conflict.reason)}</li>`;
                 }
             });
             conflictHtml += '</ul>';
@@ -278,11 +280,11 @@ var BatchRenameShared = (function() {
 
             const row = `
                 <tr class="${statusClass}">
-                    <td>${jobId}</td>
+                    <td>${escapeHtml(jobId.toString())}</td>
                     <td>${escapeHtml(title)}</td>
-                    <td>${discLabel}</td>
-                    <td><small><code>${oldPath}</code></small></td>
-                    <td><small><code>${newPath}</code></small></td>
+                    <td>${escapeHtml(discLabel)}</td>
+                    <td><small><code>${escapeHtml(oldPath)}</code></small></td>
+                    <td><small><code>${escapeHtml(newPath)}</code></small></td>
                     <td>${statusBadge}</td>
                 </tr>
             `;
@@ -302,8 +304,8 @@ var BatchRenameShared = (function() {
         if (response.success) {
             html += '<div class="alert alert-success">';
             html += '<h6><i class="fa fa-check-circle"></i> Batch Rename Successful</h6>';
-            html += `<p>Batch ID: <code>${response.batch_id}</code></p>`;
-            html += `<p>Renamed ${response.renamed_count} folders</p>`;
+            html += `<p>Batch ID: <code>${escapeHtml(response.batch_id)}</code></p>`;
+            html += `<p>Renamed ${escapeHtml(response.renamed_count.toString())} folders</p>`;
 
             if (response.skipped && response.skipped.length > 0) {
                 html += '<p><strong>Skipped jobs:</strong></p><ul>';
