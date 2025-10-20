@@ -21,6 +21,7 @@ from arm.ripper.utils import (
     normalize_series_name,
     fix_job_title,
 )
+import arm.config.config as cfg
 
 
 def generate_batch_id():
@@ -33,42 +34,42 @@ def _validate_path_safety(path, base_directory=None):
     """
     Validate that a path is safe and within the allowed directory.
     Prevents path traversal attacks.
-    
+
     Args:
         path: Path to validate
         base_directory: Optional base directory to restrict to (defaults to COMPLETED_PATH)
-    
+
     Returns:
         Normalized, validated path
-    
+
     Raises:
         ValueError: If path is invalid or contains traversal attempts
     """
     if not path:
         raise ValueError("Path cannot be empty")
-    
+
     # Get base directory from config if not provided
     if base_directory is None:
         base_directory = cfg.arm_config.get('COMPLETED_PATH', '/home/arm/media/completed')
-    
+
     # Convert to absolute paths and resolve any symlinks
     try:
         base_path = Path(base_directory).resolve()
         target_path = Path(path).resolve()
     except (OSError, RuntimeError) as e:
         raise ValueError(f"Invalid path: {e}")
-    
+
     # Ensure the target path is within the base directory
     try:
         target_path.relative_to(base_path)
     except ValueError:
         raise ValueError(f"Path traversal detected: {path} is outside allowed directory {base_directory}")
-    
+
     # Check for suspicious patterns
     path_str = str(target_path)
     if '..' in path_str or path_str.startswith('/'):
         raise ValueError(f"Suspicious path pattern detected: {path}")
-    
+
     return str(target_path)
 
 
@@ -152,7 +153,7 @@ def validate_job_selection(job_ids):
             result['jobs'].append(job)
 
         except Exception as exc:  # pragma: no cover - defensive
-            msg = 'Error validating job %s: %s' % (job_id, exc)
+            msg = f'Error validating job {job_id}: {exc}'
             result['errors'].append(msg)
             result['valid'] = False
 
@@ -250,11 +251,9 @@ def compute_new_folder_name(
     # Fallback to existing naming
     result['fallback'] = True
     result['folder_name'] = fix_job_title(job)
-    # Use parameterized logging to avoid long literal lines
+    # Use f-string logging consistent with rest of codebase
     logging.warning(
-        "Could not parse disc label '%s' for job %s, using fallback naming",
-        job.label,
-        job.job_id,
+        f"Could not parse disc label '{job.label}' for job {job.job_id}, using fallback naming"
     )
 
     return result
@@ -347,7 +346,7 @@ def preview_batch_rename(
         except ValueError as e:
             preview['errors'].append(f"Job {job.job_id}: Invalid path - {str(e)}")
             continue
-            
+
         old_folder_name = os.path.basename(old_path)
         new_folder_name = name_result['folder_name']
 
@@ -429,7 +428,7 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
             job_id = item['job_id']
             old_path = item['old_path']
             new_path = item['new_path']
-            
+
             # Validate paths to prevent path traversal attacks
             try:
                 old_path = _validate_path_safety(old_path)
@@ -444,17 +443,31 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                 base, ext = os.path.splitext(new_path)
                 new_path = f'{base}_{timestamp}{ext}'
+                # Re-validate the timestamped path
+                try:
+                    new_path = _validate_path_safety(new_path)
+                except ValueError as e:
+                    logging.error(f"Path validation failed for timestamped path: {e}")
+                    result['failed_count'] += 1
+                    result['errors'].append(f"Job {job_id}: Invalid timestamped path - {str(e)}")
+                    continue
                 new_folder_name = os.path.basename(new_path)
                 logging.warning(
-                    'Conflict detected for %s, using timestamped name: %s',
-                    old_path,
-                    new_path,
+                    f'Conflict detected for {old_path}, using timestamped name: {new_path}'
                 )
             else:
                 new_folder_name = item['new_folder_name']
 
             if item.get('consolidated') and item.get('parent_folder'):
                 parent_path = os.path.dirname(new_path)
+                # Validate parent path before creating
+                try:
+                    parent_path = _validate_path_safety(parent_path)
+                except ValueError as e:
+                    logging.error(f"Path validation failed for parent path: {e}")
+                    result['failed_count'] += 1
+                    result['errors'].append(f"Job {job_id}: Invalid parent path - {str(e)}")
+                    continue
                 os.makedirs(parent_path, exist_ok=True)
 
             shutil.move(old_path, new_path)
@@ -510,16 +523,13 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
                 db.session.add(history)
             except Exception as hist_err:  # pragma: no cover - defensive
                 logging.error(
-                    'Failed to record history for failed rename: %s',
-                    hist_err,
+                    f'Failed to record history for failed rename: {hist_err}'
                 )
 
     try:
         db.session.commit()
         logging.info(
-            'Batch rename completed: %s successful, %s failed',
-            result['renamed_count'],
-            result['failed_count'],
+            f"Batch rename completed: {result['renamed_count']} successful, {result['failed_count']} failed"
         )
     except Exception as exc:  # pragma: no cover - DB issues handled
         db.session.rollback()
@@ -559,15 +569,14 @@ def rollback_batch_rename(batch_id, current_user_email):
             try:
                 if not os.path.exists(record.new_path):
                     result['errors'].append(
-                        'Cannot rollback job %s: new path no longer exists'
-                        % record.job_id
+                        f'Cannot rollback job {record.job_id}: new path no longer exists'
                     )
                     result['failed_count'] += 1
                     continue
 
                 shutil.move(record.new_path, record.old_path)
                 logging.info(
-                    'Rolled back: %s -> %s', record.new_path, record.old_path
+                    f'Rolled back: {record.new_path} -> {record.old_path}'
                 )
 
                 job = Job.query.get(record.job_id)
@@ -584,7 +593,7 @@ def rollback_batch_rename(batch_id, current_user_email):
 
             except Exception as exc:  # pragma: no cover - runtime errors
                 error_msg = (
-                    'Failed to rollback job %s: %s' % (record.job_id, exc)
+                    f'Failed to rollback job {record.job_id}: {exc}'
                 )
                 logging.error(error_msg)
                 result['errors'].append(error_msg)
@@ -593,16 +602,14 @@ def rollback_batch_rename(batch_id, current_user_email):
 
         db.session.commit()
         logging.info(
-            'Rollback completed: %s reversed, %s failed',
-            result['rolled_back_count'],
-            result['failed_count'],
+            f"Rollback completed: {result['rolled_back_count']} reversed, {result['failed_count']} failed"
         )
 
     except Exception as exc:  # pragma: no cover - DB issues handled
         db.session.rollback()
         result['success'] = False
-        result['errors'].append('Rollback failed: %s' % exc)
-        logging.error('Rollback failed: %s', exc)
+        result['errors'].append(f'Rollback failed: {exc}')
+        logging.error(f'Rollback failed: {exc}')
 
     return result
 
@@ -661,5 +668,5 @@ def get_recent_batches(limit=10):
         return result
 
     except Exception as exc:  # pragma: no cover - logging and return empty
-        logging.error('Error getting recent batches: %s', exc)
+        logging.error(f'Error getting recent batches: {exc}')
         return []
