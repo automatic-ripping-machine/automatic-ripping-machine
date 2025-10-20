@@ -11,8 +11,8 @@ concurrency:
 
 on:
   # run every day at midnight
-  # schedule:
-  #   - cron: '0 0 * * *'
+  schedule:
+    - cron: '0 0 * * *'
   # Run on every push
   push:
     branches: main
