@@ -21,7 +21,6 @@ from arm.ripper.utils import (
     normalize_series_name,
     fix_job_title,
 )
-import arm.config.config as cfg
 
 
 def generate_batch_id():
