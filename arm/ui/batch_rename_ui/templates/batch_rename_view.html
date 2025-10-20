@@ -482,5 +482,8 @@
 {% block js %}
     {{ super() }}
     <script type="application/javascript">activeTab("navbatchrename");</script>
+    <!-- Load shared batch rename utilities first -->
+    <script type="application/javascript" src="static/js/batch_rename_shared.js"></script>
+    <!-- Then load page-specific batch rename functionality -->
     <script type="application/javascript" src="static/js/batch_rename_page.js"></script>
 {% endblock %}
