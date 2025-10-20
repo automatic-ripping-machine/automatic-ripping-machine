@@ -153,7 +153,7 @@ def validate_job_selection(job_ids):
             result['jobs'].append(job)
 
         except Exception as exc:  # pragma: no cover - defensive
-            msg = 'Error validating job {}: {}'.format(job_id, exc)
+            msg = f'Error validating job {job_id}: {exc}'
             result['errors'].append(msg)
             result['valid'] = False
 
@@ -251,11 +251,9 @@ def compute_new_folder_name(
     # Fallback to existing naming
     result['fallback'] = True
     result['folder_name'] = fix_job_title(job)
-    # Use parameterized logging to avoid long literal lines
+    # Use f-string logging consistent with rest of codebase
     logging.warning(
-        "Could not parse disc label '{}' for job {}, using fallback naming",
-        job.label,
-        job.job_id,
+        f"Could not parse disc label '{job.label}' for job {job.job_id}, using fallback naming"
     )
 
     return result
@@ -436,7 +434,7 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
                 old_path = _validate_path_safety(old_path)
                 new_path = _validate_path_safety(new_path)
             except ValueError as e:
-                logging.error("Path validation failed for job {}: {}", job_id, e)
+                logging.error(f"Path validation failed for job {job_id}: {e}")
                 result['failed_count'] += 1
                 result['errors'].append(f"Job {job_id}: Invalid path - {str(e)}")
                 continue
@@ -449,15 +447,13 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
                 try:
                     new_path = _validate_path_safety(new_path)
                 except ValueError as e:
-                    logging.error("Path validation failed for timestamped path: {}", e)
+                    logging.error(f"Path validation failed for timestamped path: {e}")
                     result['failed_count'] += 1
                     result['errors'].append(f"Job {job_id}: Invalid timestamped path - {str(e)}")
                     continue
                 new_folder_name = os.path.basename(new_path)
                 logging.warning(
-                    'Conflict detected for {}, using timestamped name: {}',
-                    old_path,
-                    new_path,
+                    f'Conflict detected for {old_path}, using timestamped name: {new_path}'
                 )
             else:
                 new_folder_name = item['new_folder_name']
@@ -468,14 +464,14 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
                 try:
                     parent_path = _validate_path_safety(parent_path)
                 except ValueError as e:
-                    logging.error("Path validation failed for parent path: {}", e)
+                    logging.error(f"Path validation failed for parent path: {e}")
                     result['failed_count'] += 1
                     result['errors'].append(f"Job {job_id}: Invalid parent path - {str(e)}")
                     continue
                 os.makedirs(parent_path, exist_ok=True)
 
             shutil.move(old_path, new_path)
-            logging.info('Renamed: {} -> {}', old_path, new_path)
+            logging.info(f'Renamed: {old_path} -> {new_path}')
 
             job = Job.query.get(job_id)
             if job:
@@ -504,7 +500,7 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
             result['history_ids'].append(history.history_id)
 
         except Exception as exc:  # pragma: no cover - runtime errors logged
-            error_msg = "Failed to rename job {}: {}".format(item['job_id'], str(exc))
+            error_msg = f"Failed to rename job {item['job_id']}: {str(exc)}"
             logging.error(error_msg)
             result['errors'].append(error_msg)
             result['failed_count'] += 1
@@ -527,22 +523,19 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
                 db.session.add(history)
             except Exception as hist_err:  # pragma: no cover - defensive
                 logging.error(
-                    'Failed to record history for failed rename: {}',
-                    hist_err,
+                    f'Failed to record history for failed rename: {hist_err}'
                 )
 
     try:
         db.session.commit()
         logging.info(
-            'Batch rename completed: {} successful, {} failed',
-            result['renamed_count'],
-            result['failed_count'],
+            f"Batch rename completed: {result['renamed_count']} successful, {result['failed_count']} failed"
         )
     except Exception as exc:  # pragma: no cover - DB issues handled
         db.session.rollback()
         result['success'] = False
-        result['errors'].append('Database commit failed: {}'.format(str(exc)))
-        logging.error('Database commit failed during batch rename: {}', exc)
+        result['errors'].append(f'Database commit failed: {str(exc)}')
+        logging.error(f'Database commit failed during batch rename: {exc}')
 
     return result
 
@@ -576,15 +569,14 @@ def rollback_batch_rename(batch_id, current_user_email):
             try:
                 if not os.path.exists(record.new_path):
                     result['errors'].append(
-                        'Cannot rollback job {}: new path no longer exists'
-                        .format(record.job_id)
+                        f'Cannot rollback job {record.job_id}: new path no longer exists'
                     )
                     result['failed_count'] += 1
                     continue
 
                 shutil.move(record.new_path, record.old_path)
                 logging.info(
-                    'Rolled back: {} -> {}', record.new_path, record.old_path
+                    f'Rolled back: {record.new_path} -> {record.old_path}'
                 )
 
                 job = Job.query.get(record.job_id)
@@ -601,7 +593,7 @@ def rollback_batch_rename(batch_id, current_user_email):
 
             except Exception as exc:  # pragma: no cover - runtime errors
                 error_msg = (
-                    'Failed to rollback job {}: {}'.format(record.job_id, exc)
+                    f'Failed to rollback job {record.job_id}: {exc}'
                 )
                 logging.error(error_msg)
                 result['errors'].append(error_msg)
@@ -610,16 +602,14 @@ def rollback_batch_rename(batch_id, current_user_email):
 
         db.session.commit()
         logging.info(
-            'Rollback completed: {} reversed, {} failed',
-            result['rolled_back_count'],
-            result['failed_count'],
+            f"Rollback completed: {result['rolled_back_count']} reversed, {result['failed_count']} failed"
         )
 
     except Exception as exc:  # pragma: no cover - DB issues handled
         db.session.rollback()
         result['success'] = False
-        result['errors'].append('Rollback failed: {}'.format(exc))
-        logging.error('Rollback failed: {}', exc)
+        result['errors'].append(f'Rollback failed: {exc}')
+        logging.error(f'Rollback failed: {exc}')
 
     return result
 
@@ -678,5 +668,5 @@ def get_recent_batches(limit=10):
         return result
 
     except Exception as exc:  # pragma: no cover - logging and return empty
-        logging.error('Error getting recent batches: {}', exc)
+        logging.error(f'Error getting recent batches: {exc}')
         return []
