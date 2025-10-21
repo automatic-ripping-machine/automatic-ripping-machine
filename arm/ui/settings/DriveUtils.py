@@ -194,7 +194,7 @@ def drives_search():
             # Log all properties - Helps with debugging if a drive has loaded all properties, or just the base
             logging.debug("Device: %s", devnode)
             for key, value in device.properties.items():
-                logging.debug("  %s = %s", key, value)
+                app.logger.debug("  %s = %s", key, value)
 
             # Optical drive detection - Try to use ID_TYPE then ID_CDROM but fall back to all drives matching /dev/sr*
             # NOTE: this may be better to check if MAJOR = 11
@@ -219,7 +219,7 @@ def drives_search():
                 yield DriveInformationMedium(*values)
 
         except Exception as e:
-            logging.error("Error processing device %s: %s", device, e, exc_info=True)
+            app.logger.error("Error processing device %s: %s", device, e, exc_info=True)
 
 
 def drives_update(startup=False):
