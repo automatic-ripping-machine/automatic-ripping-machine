@@ -1,83 +1,83 @@
 {% extends "base.html" %}
+{% block title %}History{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/job_details.css') }}">
-<style>
-    /*
-    Max width before this PARTICULAR table gets nasty
-    This query will take effect for any screen smaller than 760px
-    and also iPads specifically.
-    */
-    @media only screen and (max-width: 760px),
-    (min-device-width: 768px) and (max-device-width: 1024px) {
-        /*
-        Label the data
-        */
-        td:nth-of-type(1):before {
-            content: "Job Start datetime:\A";
-        }
+<div class="template-page">
+    <div class="row justify-content-center mb-4">
+        <div class="col-xl-9 col-lg-10">
+            <div class="card template-card">
+                <div class="card-body p-4 p-md-5">
+                    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+                        <div class="mb-3 mb-md-0">
+                            <h1 class="template-title mb-2">Rip History</h1>
+                            <p class="template-subtitle">Review your previously processed discs, revisit job details, and jump straight to log files.</p>
+                        </div>
+                        <div class="d-flex flex-column flex-sm-row align-items-sm-center">
+                            <a href="index.html" class="btn btn-outline-primary btn-pill mb-2 mb-sm-0">Back to Dashboard</a>
+                            <span class="badge badge-soft-success ml-sm-3">{{ jobs|length }} jobs on this page</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        td:nth-of-type(2):before {
-            content: "Duration:";
-        }
-
-        td:nth-of-type(2):after {
-            content: " (h:mm:ss)";
-        }
-
-        td:nth-of-type(3):before {
-            content: "Status:";
-        }
-
-        td:nth-of-type(4):before {
-            content: "Logfile:\A";
-        }
-    }
-
-    .hidden {
-        display: none;
-    }
-</style>
-<div class="container content">
-    <div class="row">
-        <div class="col-12">
-            <div class="table-responsive">
-                <div class="jumbotron">
-                    {% with pages=pages, page_name="route_history.history" %}
-                        {% include "pagination.html" %}
-                    {% endwith %}
-                    <!-- Main Body -->
-                    <div class="row">
-                        <table class="table table-striped">
-                            <caption>Previous rips</caption>
-                            <thead class="tablesorterhead thead-dark">
-                            <tr style="margin: 0 auto">
-                                <th scope="col" style="cursor: pointer;">Title</th>
-                                <th scope="col" style="cursor: pointer;">Start Time</th>
-                                <th scope="col" style="cursor: pointer;">Duration</th>
-                                <th scope="col" style="cursor: pointer;">Status</th>
-                                <th scope="col" style="cursor: pointer;">Logfile</th>
+    <div class="row justify-content-center">
+        <div class="col-xl-10">
+            {% with pages=pages, page_name="route_history.history" %}
+                {% include "pagination.html" %}
+            {% endwith %}
+            <div class="card template-card table-card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="text-uppercase small text-muted">Previous Rips</span>
+                    <span class="badge badge-soft-info">Sorted by most recent</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0" id="history-table">
+                            <thead class="thead-light">
+                            <tr>
+                                <th scope="col">Title</th>
+                                <th scope="col">Start Time</th>
+                                <th scope="col">Duration</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Logfile</th>
                             </tr>
                             </thead>
                             <tbody>
                             {% for job in jobs %}
-                            <tr>
-                                <th scope="row" class="text-wrap"><a href="jobdetail?job_id={{ job.job_id }}">{{
-                                    job.title|truncate(50, True) if job.title is not none else 'Title unknown' }}</a>
-                                </th>
-                                <td>{{ job.start_time.strftime(date_format) if job.start_time is not none }}</td>
-                                <td class="hidden">{{ job.start_time if job.start_time is not none }}</td>
-                                <td>{{ job.job_length }}</td>
-                                <td class="{{ job.status }}"><img src="static/img/{{ job.status }}.png" height="30px"
-                                                                  width="30px" alt="{{ job.status }}"
-                                                                  title="{{ job.status }}"></td>
-                                <td><a href="logs?logfile={{ job.logfile }}&mode=full">{{ job.logfile|truncate(50, True)
-                                    if job.logfile is not none else 'Unknown logfile' }}</a></td>
-                            </tr>
+                                <tr>
+                                    <th scope="row" class="text-wrap">
+                                        <a href="jobdetail?job_id={{ job.job_id }}" class="text-dark">
+                                            {{ job.title|truncate(64, True) if job.title is not none else 'Title unknown' }}
+                                        </a>
+                                    </th>
+                                    <td data-order="{{ job.start_time.timestamp() if job.start_time is not none else 0 }}">
+                                        {{ job.start_time.strftime(date_format) if job.start_time is not none else 'Unknown' }}
+                                    </td>
+                                    <td>{{ job.job_length or 'In progress' }}</td>
+                                    <td>
+                                        <span class="d-inline-flex align-items-center">
+                                            <img src="static/img/{{ job.status }}.png" height="24" width="24" alt="{{ job.status }}" class="mr-2">
+                                            {{ job.status|replace('_', ' ')|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if job.logfile %}
+                                            <a href="logs?logfile={{ job.logfile }}&mode=full" class="text-decoration-none">{{ job.logfile|truncate(64, True) }}</a>
+                                        {% else %}
+                                            <span class="text-muted">Unknown logfile</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
                             {% endfor %}
                             </tbody>
                         </table>
                     </div>
+                </div>
+                <div class="card-footer bg-transparent">
                     {% with pages=pages, page_name="route_history.history" %}
                         {% include "pagination.html" %}
                     {% endwith %}
@@ -85,7 +85,8 @@
             </div>
         </div>
     </div>
-    {% endblock %}
+</div>
+{% endblock %}
     {% block footer %}{{ super() }}{% endblock %}
     {% block js %}
     {{ super() }}
@@ -93,8 +94,9 @@
 
     <script type="application/javascript">
         $(document).ready(function () {
-            $("table").tablesorter({});
-
+            $("#history-table").tablesorter({
+                sortList: [[1, 1]]
+            });
         });
         activeTab("history");
     </script>

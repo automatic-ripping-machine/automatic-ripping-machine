@@ -1,74 +1,44 @@
 {% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/job_details.css') }}">
+    <div class="template-page">
+        <div class="container">
+            <div class="page-intro text-center">
+                <img class="mb-3" src="{{ url_for('static', filename='img/arm80.png') }}" alt="Automatic Ripping Machine logo" width="90" height="90">
+                <h1 class="template-title mb-2">Log Archive</h1>
+                <p class="template-subtitle">Review ripping activity, troubleshoot issues, and download full transcripts for deeper analysis.</p>
+            </div>
 
-    <style>
-        /*
-        Max width before this PARTICULAR table gets nasty
-        This query will take effect for any screen smaller than 760px
-        and also iPads specifically.
-        */
-        @media only screen and (max-width: 760px),
-        (min-device-width: 768px) and (max-device-width: 1024px) {
-
-            /*
-            Label the data
-            */
-            td:nth-of-type(1):before {
-                content: "Creation datetime:\A";
-            }
-
-            td:nth-of-type(2):before {
-                content: "Size in kilobytes:\A";
-            }
-            td:nth-of-type(2):after {
-                content: " Kb";
-            }
-
-            td:nth-of-type(3):before {
-                content: "Log link Tail:";
-            }
-
-            td:nth-of-type(4):before {
-                content: "Log link ARM:";
-            }
-
-            td:nth-of-type(5):before {
-                content: "Log link Full:";
-            }
-
-            td:nth-of-type(6):before {
-                content: "Log link Download:";
-            }
-        }
-    </style>
-    <div class="container">
-    <div class="row">
-        <div class="col-12">
-            <div class="table-responsive">
-                <div class="jumbotron">
-                    <div class="row">
-                        <table class="table table-striped table-hover">
-                            <caption>Log files in the log directory</caption>
-                            <thead class="thead-dark">
+            <div class="card template-card table-card shadow-sm mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="font-weight-bold">Available Log Files</span>
+                    <span class="badge badge-soft-info">{{ files|length }} files</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 tablesorter">
+                            <caption class="sr-only">Log files in the log directory</caption>
+                            <thead>
                             <tr>
-                                <th scope="col" style="cursor: pointer;">Log file</th>
-                                <th scope="col" style="cursor: pointer;">Created Time</th>
-                                <th scope="col" style="cursor: pointer;">Size(kb)</th>
-                                <th scope="col" colspan="4" style="cursor: default;" class="text-center" data-sorter="false">View modes</th>
+                                <th scope="col">Log file</th>
+                                <th scope="col">Created</th>
+                                <th scope="col">Size (KB)</th>
+                                <th scope="col" colspan="4" class="text-center" data-sorter="false">View modes</th>
                             </tr>
                             </thead>
                             <tbody>
                             {% for file in files %}
                                 <tr>
-                                    <th scope="row" class="text-wrap">{{ file[0]|truncate(30, True) }}</th>
-                                    <td class="text-wrap">{{ file[1] }}</td>
-                                    <td>{{ file[3] }}</td>
-                                    <td><a href="logs?logfile={{ file[0] }}&mode=tail">tail</a></td>
-                                    <td><a href="logs?logfile={{ file[0] }}&mode=armcat">arm</a></td>
-                                    <td><a href="logs?logfile={{ file[0] }}&mode=full">full</a></td>
-                                    <td><a href="logreader?logfile={{ file[0] }}&mode=download">download</a></td>
+                                    <th scope="row" class="text-wrap">{{ file[0]|truncate(60, True) }}</th>
+                                    <td class="text-nowrap">{{ file[2] }}</td>
+                                    <td class="text-nowrap">{{ file[3] }}</td>
+                                    <td class="text-center"><a class="btn btn-sm btn-outline-secondary" href="logs?logfile={{ file[0] }}&mode=tail">Tail</a></td>
+                                    <td class="text-center"><a class="btn btn-sm btn-outline-primary" href="logs?logfile={{ file[0] }}&mode=armcat">ARM</a></td>
+                                    <td class="text-center"><a class="btn btn-sm btn-outline-info" href="logs?logfile={{ file[0] }}&mode=full">Full</a></td>
+                                    <td class="text-center"><a class="btn btn-sm btn-outline-success" href="logreader?logfile={{ file[0] }}&mode=download">Download</a></td>
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -76,36 +46,34 @@
                     </div>
                 </div>
             </div>
+
+            <div class="card template-card shadow-sm">
+                <div class="card-header">
+                    <strong>View Mode Reference</strong>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-3"><span class="badge badge-soft-warning mr-2">Tail</span> Stream updates in near real time, similar to running <code>tail -f</code>.</p>
+                            <p class="mb-3"><span class="badge badge-soft-info mr-2">ARM</span> Show only entries written by ARM for a concise overview.</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-3"><span class="badge badge-soft-primary mr-2">Full</span> Display the entire log including MakeMKV and HandBrake output.</p>
+                            <p class="mb-0"><span class="badge badge-soft-success mr-2">Download</span> Retrieve the complete log file for offline review or sharing.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-
-    <div class="align-items-center mt-2">
-        <div class="card mx-auto">
-            <div class="card-header d-flex justify-content-center">
-                <strong>View Modes</strong>
-            </div>
-            <div class="d-flex justify-content-center">
-                <p class="p-4" style="line-height: 20pt;">
-                    <strong>tail:</strong> Output to browser in real time. Similar to 'tail -f'<br/>
-                    <strong>arm:</strong> Static output of just the ARM log entries<br/>
-                    <strong>full:</strong> Static output of all of the log including MakeMKV and
-                    HandBrake<br/>
-                    <strong>download:</strong> Download the full log file<br/>
-                </p>
-            </div>
-        </div>
-    </div>
-
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
     {{ super() }}
     <script src="{{ url_for('static', filename='js/jquery.tablesorter.js') }}"></script>
-
     <script>
         $(document).ready(function () {
-            // call the tablesorter plugin
-            $("table").tablesorter();
+            $("table.tablesorter").tablesorter();
         });
         activeTab("viewlogs");
     </script>

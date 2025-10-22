@@ -1,7 +1,5 @@
-#-r arm-dependencies/requirements.txt
-
 # For ARM v3.0 development
-# ARM UI dependancies added here to help later seperation of UI and Ripper
+# ARM ripper dependancies
 
 # Flask Dependancies
 Flask==3.0.2

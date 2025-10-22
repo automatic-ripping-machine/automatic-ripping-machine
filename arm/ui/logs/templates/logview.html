@@ -1,36 +1,81 @@
 {% extends "base.html" %}
+{% block title %}ARM Logs{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-<h4>Loading log: {{ file }}...</h4>
-<div id="container">
+    <style>
+        .log-viewer {
+            max-height: 65vh;
+            overflow-y: auto;
+            background-color: #0f172a;
+            border-radius: 1rem;
+            padding: 1.25rem;
+        }
+        .log-viewer pre {
+            color: rgba(255, 255, 255, 0.9);
+            white-space: pre;
+            word-break: normal;
+            margin-bottom: 0;
+        }
+        body[data-theme="dark"] .log-viewer {
+            background-color: rgba(15, 23, 42, 0.75);
+        }
+    </style>
+    <div class="template-page">
+        <div class="container">
+            <div class="page-intro d-flex flex-wrap justify-content-between align-items-center">
+                <div class="mb-3 mb-md-0">
+                    <h1 class="template-title mb-2">{{ mode|capitalize }} log view</h1>
+                    <p class="template-subtitle mb-0">Tracking output for <span class="font-weight-bold">{{ file }}</span>.</p>
+                </div>
+                <div class="d-flex flex-wrap align-items-center">
+                    <a href="logs" class="btn btn-outline-secondary btn-pill mr-2 mb-2">Back to logs</a>
+                    <a href="logreader?logfile={{ file }}&mode=download" class="btn btn-primary btn-pill mb-2">Download log</a>
+                </div>
+            </div>
 
-    <div id="log">
-        <pre id="{{ file }}" ></pre>
+            <div class="card template-card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="font-weight-bold">Live output</span>
+                    {% if mode == 'tail' %}
+                        <span class="badge badge-soft-success">Streaming</span>
+                    {% elif mode == 'armcat' %}
+                        <span class="badge badge-soft-info">ARM entries</span>
+                    {% else %}
+                        <span class="badge badge-soft-primary">Full log</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="log-viewer shadow-sm">
+                        <pre id="{{ file }}" class="small text-monospace"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
-{{ super() }}
-<script>
-    const output = document.getElementById('{{ file }}');
-
-    const xhr = new XMLHttpRequest();
-    {% if mode == 'tail' or mode == 'full' %}
-        xhr.open('GET', '/logreader?logfile={{ file }}&mode=full&json=1');
-    {% else %}
-        xhr.open('GET', '/logreader?logfile={{ file }}&mode={{ mode }}&json=1');
-    {% endif %}
-    xhr.open
-    xhr.send();
-
-    setInterval(function() {
-        output.textContent = xhr.responseText;
-        {% if mode == 'tail' %}
-            window.scrollTo(0, document.querySelector("#content").scrollHeight);
+    {{ super() }}
+    <script>
+        const output = document.getElementById('{{ file }}');
+        const xhr = new XMLHttpRequest();
+        const viewer = output.parentElement;
+        {% if mode == 'tail' or mode == 'full' %}
+            xhr.open('GET', '/logreader?logfile={{ file }}&mode=full&json=1');
+        {% else %}
+            xhr.open('GET', '/logreader?logfile={{ file }}&mode={{ mode }}&json=1');
         {% endif %}
-    }, 1000);
+        xhr.send();
 
-</script>
+        setInterval(function() {
+            output.textContent = xhr.responseText;
+            {% if mode == 'tail' %}
+                viewer.scrollTop = viewer.scrollHeight;
+            {% endif %}
+        }, 1000);
+
+        activeTab("viewlogs");
+    </script>
 {% endblock %}
-

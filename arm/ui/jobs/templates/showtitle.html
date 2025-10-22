@@ -4,24 +4,34 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-sm-3"></div>
-            <div class="col-sm-6 text-center">
-                <div class="card text-center">
-                    <div class="card-header"><a href="select_title?imdbID={{ results["imdbID"] }}&job_id={{ job_id }}"><img src="{{ results["Poster"] }}" width="240px" class="img-thumbnail" alt="Poster Image"></a></div>
-                    <div class="card-body"><strong>{{  results["Title"]  }}</strong> - {{ results["Type"].capitalize() }} ({{ results["Year"] }})</div>
-                    <div class="card-body"><strong>Full Plot:</strong> {{ results["Plot"] }}</div>
-                    <div class="card-footer">
-						<a href="titlesearch?job_id={{ job_id }}" class="btn btn-primary">New Search</a>   
-						<a href="updatetitle?title={{ results['Title'] }}&year={{ results['Year'] }}&imdbID={{ results['imdbID'] }}&type={{ results['Type'] }}&poster={{ results['Poster'] }}&job_id={{ job_id }}" class="btn btn-primary">Update Title</a>
-					</div>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/template_pages.css') }}">
+
+<div class="container template-page">
+    <div class="row justify-content-center page-intro">
+        <div class="col-lg-8 text-center">
+            <h2 class="template-title">Confirm Title Selection</h2>
+            <p class="template-subtitle">Review the metadata before updating the job with the selected result.</p>
+        </div>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-xl-6 col-lg-7">
+            <div class="card template-card text-center">
+                <div class="card-header border-0">
+                    <span class="badge badge-soft-primary text-uppercase">{{ results["Type"].capitalize() }}</span>
                 </div>
-            </div>
-        <div class="col-sm-3"></div>     
+                <div class="card-body">
+                    <a href="select_title?imdbID={{ results["imdbID"] }}&job_id={{ job_id }}" class="d-inline-block mb-4">
+                        <img src="{{ results["Poster"] }}" width="240" class="img-fluid poster-thumb" alt="Poster image" onerror="this.src='{{ url_for('static', filename='img/none.png') }}'">
+                    </a>
+                    <h3 class="font-weight-bold mb-2">{{ results["Title"] }}</h3>
+                    <p class="text-muted mb-3">{{ results["Year"] }} &bull; {{ results["Type"].capitalize() }}</p>
+                    <p class="text-left text-md-center">{{ results["Plot"] }}</p>
+                </div>
+                <div class="card-footer bg-transparent d-flex flex-column flex-md-row justify-content-center">
+                    <a href="titlesearch?job_id={{ job_id }}" class="btn btn-outline-secondary btn-pill mx-md-2 my-1">New Search</a>
+                    <a href="updatetitle?title={{ results['Title'] }}&year={{ results['Year'] }}&imdbID={{ results['imdbID'] }}&type={{ results['Type'] }}&poster={{ results['Poster'] }}&job_id={{ job_id }}" class="btn btn-primary btn-pill mx-md-2 my-1">Update Title</a>
+                </div>
     </div>
 </div>
-
-
 
 {% endblock %}

@@ -1,87 +1,88 @@
 {% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-    <style>
-        .progress-bar {
-            color: #020202ba !important;
-        }
-    </style>
-    <div class="container-fluid h-100 mx-auto">
-        <!-- Modal -->
-        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle"
-             aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="exampleModalLongTitle">Abandon this job ??</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <p><span class="ui-icon ui-icon-alert" style="margin:12px 12px 20px 0;"></span>
-                            <span id="m-body">This job will be abandoned. Are you sure?</span></p>
-                    </div>
-                    <div class="modal-footer">
-                        <button id="save-no" type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
-                        <button id="save-yes" type="button" class="btn btn-primary">Yes</button>
+    <div class="template-page">
+        <div class="row justify-content-center mb-5">
+            <div class="col-xl-8 col-lg-9">
+                <div class="card template-card border-0 shadow-sm">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="d-flex flex-column flex-md-row align-items-center text-center text-md-left">
+                            <img src="static/img/arm80.png" class="poster-thumb mb-3 mb-md-0 mr-md-4" alt="Automatic Ripping Machine logo">
+                            <div>
+                                <h1 class="template-title mb-2">Welcome to your Automatic Ripping Machine</h1>
+                                <p class="template-subtitle mb-3">Monitor disc activity, track recent history, and keep your library in sync from a single dashboard.</p>
+                                <div class="d-flex flex-column flex-sm-row align-items-center">
+                                    <a href="history" class="btn btn-primary btn-pill mb-2 mb-sm-0 mr-sm-3">View History</a>
+                                    <span class="badge badge-soft-info">Refreshes every {{ armui_cfg['index_refresh'] // 1000 }}s</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-sm-12 rounded text-center">
-                <p class="text-center">
-                <h2>Welcome to your Automatic Ripping Machine</h2>
-                </p>
+        <div class="row mb-4">
+            <div class="col-12 d-flex justify-content-between align-items-center flex-wrap mb-3">
+                <div>
+                    <h2 class="template-title mb-1">Active Rips</h2>
+                    <p class="template-subtitle">Live updates with progress, stage, and ETA for each job.</p>
+                </div>
+                <a class="btn btn-outline-primary btn-pill" href="activerips">Open Active Jobs View</a>
+            </div>
+            <div class="col-12">
+                <div class="row card-deck" id="joblist"></div>
             </div>
         </div>
 
-        <div class="row h-100 mx-auto align-items-center">
-            <div class="col-sm-12 mx-auto">
-                <p class="text-center">
-                <h5 class="text-center"><strong>Active Rips</strong></h5>
-                </p>
-            </div>
-        </div>
-        <div class="row h-100 align-items-center">
-            <div class="col-md-12 mx-auto">
-                <div id="joblist" class="card-deck"></div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card template-card table-card">
+                    <div class="card-header border-0 bg-transparent d-flex align-items-center justify-content-between">
+                        <div>
+                            <h3 class="mb-0">System Information</h3>
+                            <small class="text-muted">Runtime metrics and drive status pulled directly from ARM.</small>
+                        </div>
+                        <a href="settings" class="btn btn-sm btn-outline-secondary">Adjust Settings</a>
+                    </div>
+                    <div class="card-body">
+                        {% include 'settings/sysinfo.html' %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="row" style="height: 30px;"></div>
-    <p class="text-center">
-        <h5 class="text-center"><strong>System Information</strong></h5>
-    </p>
-    {% include 'sysinfo.html' %}
+    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle"
+         aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLongTitle">Manage Active Job</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">This job will be abandoned. Are you sure you want to continue?</p>
+                    <div id="m-body" class="mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="save-no" type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+                    <button id="save-yes" type="button" class="btn btn-danger">Abandon Job</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script type="application/javascript" src="static/js/common.js"></script>
     <script type="application/javascript" src="static/js/jobRefresh.js"></script>
     <script type="application/javascript">
-        // Function to get a cookie by name
-        function getCookie(name) {
-            let matches = document.cookie.match(new RegExp(
-                "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
-            ));
-            return matches ? decodeURIComponent(matches[1]) : undefined;
-        }
-
         $(document).ready(function () {
-            // Get the index_refresh value from the cookie
-            const indexRefresh = getCookie('index_refresh');
-
-            // Convert the cookie value to an integer
-            const interval = parseInt(indexRefresh, 10);
-
-            // Check if the interval is a valid number before setting it
-            if (!isNaN(interval) && interval > 0) {
-                const intervalId = window.setInterval(refreshJobs, interval);
-            } else {
-                console.error('Invalid index_refresh interval:', indexRefresh);
-            }
+            window.setInterval(refreshJobs, {{ armui_cfg['index_refresh'] }});
         });
     </script>
 {% endblock %}

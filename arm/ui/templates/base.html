@@ -1,39 +1,106 @@
 <!doctype html>
 <html lang="en">
-    <!-- HTML Header -->
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="viewport"
+          content="viewport-fit=cover, user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" crossorigin="use-credentials"/>
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/template_pages.css') }}">
     {% include 'head.html' %}
-    <body style="padding: 70px 15px 50px;">
-        <!-- HTML Navigation -->
-        {% include 'nav.html' %}
-        <!-- Errors -->
-        <div id="content" class="h-100 content" style="width: 99%;padding-top: 51px;padding-left: 15px;">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div id="message1" class="alert alert-{{ category if category !=" message
-            " else 'info' }} text-center"
-                             role="alert">
-                            <h4 class="alert-heading">{{ message|safe }}</h4>
+</head>
+<body class="bg-light d-flex flex-column min-vh-100" data-offset="70">
+{% block nav %}
+    <div aria-live="polite" aria-atomic="true" class="position-relative">
+        <div id="toastHolder" class="toast-container position-fixed p-3" style="top: 6rem; right: 2rem; z-index: 1080;">
+        </div>
+    </div>
+    <header class="border-bottom bg-white shadow-sm fixed-top">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary py-3">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center" href="index.html">
+                    <img src="{{ url_for('static', filename='img/arm40nw.png') }}" width="114" height="40" alt="Automatic Ripping Machine logo">
+                </a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav mr-auto">
+                        <li id="navhome" class="nav-item">
+                            <a class="nav-link" href="index.html">Home</a>
+                        </li>
+                        <li id="navhistory" class="nav-item">
+                            <a class="nav-link" href="history">History</a>
+                        </li>
+                        <li id="navviewlogs" class="nav-item">
+                            <a class="nav-link" href="listlogs">View Logs</a>
+                        </li>
+                        <li id="navdatabase" class="nav-item">
+                            <a class="nav-link" href="database">Database</a>
+                        </li>
+                        <li id="navarmsettings" class="nav-item">
+                            <a class="nav-link" href="settings">Arm Settings</a>
+                        </li>
+                        <li id="navsendmovies" class="nav-item">
+                            <a class="nav-link" href="send_movies">Send DVDs to API</a>
+                        </li>
+                        <li id="navchangepass" class="nav-item">
+                            <a class="nav-link" href="update_password">Change admin password</a>
+                        </li>
+                    </ul>
+                    <div class="d-flex align-items-center">
+                        <div class="custom-control custom-switch mr-3">
+                            <input type="checkbox" class="custom-control-input" id="darkSwitch"/>
+                            <label class="custom-control-label" for="darkSwitch">Dark Mode</label>
                         </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-            {% block content %}{% endblock %}</div>
-        <!-- Footer -->
-        <div id="footer" class="container-fluid h-100">
-            <div class="row" style="height: 30px;"></div>
-            <div class="row h-100" style="height: 40px;">
-                <div class="col-sm-12 h-100">
-                    {% block footer %}
-                        <p class="text-center h-100" style="margin-bottom: auto; margin-top: auto"> Automatic Ripping Machine.
-                            Find us on <a
-                                    href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">github</a>.
-                        </p>
-                    {% endblock %}
+                        <div id="notificationview" class="nav-item">
+                            {% include 'navnotify.html' %}
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        {% block js %}
+        </nav>
+        <script src="{{ url_for('static', filename='js/dark-mode-switch.min.js') }}"></script>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}">
+    </header>
+{% endblock %}
+<main id="content" class="flex-grow-1 pt-5" style="padding-top: 6.5rem !important;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container py-4">
+                <div class="row justify-content-center mb-3">
+                    <div class="col-lg-8">
+                        {% for category, message in messages %}
+                            {% set level = category if category and category|trim != 'message' else 'info' %}
+                            <div class="alert alert-{{ level }} shadow-sm mb-2" role="alert">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="font-weight-bold">{{ message|safe }}</div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endwith %}
+    <div class="px-3 px-md-0 pb-5">
+        {% block content %}{% endblock %}
+    </div>
+</main>
+<footer class="bg-white border-top py-4 mt-auto">
+    <div class="container text-center">
+        {% block footer %}
+            <p class="mb-0">Automatic Ripping Machine. Find us on
+                <a href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">GitHub</a>.
+            </p>
         {% endblock %}
-    </body>
+    </div>
+</footer>
+{% block js %}{% endblock %}
+</body>
 </html>

@@ -86,3 +86,238 @@ and also iPads specifically.
 
     }
 }
+
+.job-detail-page {
+    margin-top: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.job-hero {
+    position: relative;
+    overflow: hidden;
+    border: none;
+    border-radius: 1rem;
+    color: #f8fafc;
+    background: #1f2937;
+}
+
+.job-hero__backdrop {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: blur(18px);
+    transform: scale(1.1);
+    opacity: 0.45;
+}
+
+.job-hero .card-body {
+    position: relative;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(15, 118, 110, 0.85));
+    padding: 2rem;
+}
+
+.job-hero .job-title {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.text-light-50 {
+    color: rgba(248, 250, 252, 0.65) !important;
+}
+
+.job-hero .job-meta {
+    font-size: 0.95rem;
+    color: rgba(226, 232, 240, 0.85);
+}
+
+.job-hero .job-actions .btn {
+    min-width: 130px;
+}
+
+.job-hero__poster img {
+    max-width: 100%;
+    border-radius: 0.75rem;
+    box-shadow: 0 0.5rem 1rem rgba(15, 23, 42, 0.35);
+}
+
+.job-hero__poster figcaption {
+    font-size: 0.8rem;
+    color: rgba(226, 232, 240, 0.65);
+}
+
+.rating-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    margin-left: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.rating-pill.rotten-tomatoes {
+    padding-left: 2.25rem;
+    background-image: url("https://www.rottentomatoes.com/assets/pizza-pie/images/icons/tomatometer/tomatometer-fresh.149b5e8adc3.svg");
+    background-repeat: no-repeat;
+    background-size: 1.5rem auto;
+    background-position: 0.5rem center;
+}
+
+.rating-pill.rotten-tomatoes-rotten {
+    background-image: url("https://www.rottentomatoes.com/assets/pizza-pie/images/icons/tomatometer/tomatometer-rotten.f1ef4f02ce3.svg");
+}
+
+.rating-pill.internet-movie-database {
+    background-image: url("https://m.media-amazon.com/images/S/sash/7n0KRCHny73GkBG.png");
+    background-repeat: no-repeat;
+    background-position: 0.5rem center;
+    background-size: 1.3rem auto;
+    padding-left: 2.1rem;
+}
+
+.rating-pill.metacritic {
+    background-color: #fca311;
+    color: #111827;
+    border-color: transparent;
+}
+
+.job-summary-badges .badge {
+    margin-right: 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.detail-card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.08);
+}
+
+.detail-card .card-header {
+    background: rgba(148, 163, 184, 0.15);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+}
+
+.detail-card .detail-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+    font-size: 0.9rem;
+}
+
+.detail-card .detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-card .detail-label {
+    flex: 0 0 40%;
+    max-width: 40%;
+    color: #475569;
+    font-weight: 600;
+    text-transform: capitalize;
+    letter-spacing: 0.01em;
+}
+
+.detail-card .detail-value {
+    flex: 1;
+    word-break: break-word;
+    color: #0f172a;
+}
+
+.detail-card .detail-value a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.poster-preview img {
+    border-radius: 0.5rem;
+    max-width: 100%;
+}
+
+.poster-preview .detail-value {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.poster-preview .detail-value img {
+    width: 56px;
+    height: auto;
+    object-fit: cover;
+}
+
+.poster-preview .detail-value span {
+    flex: 1;
+}
+
+.track-table-wrapper {
+    border-radius: 0.75rem;
+    box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+#tracktable {
+    margin-bottom: 0;
+}
+
+#tracktable th {
+    background-color: #1f2937;
+    color: #f8fafc;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+}
+
+#tracktable tbody tr:hover {
+    background-color: rgba(148, 163, 184, 0.2);
+}
+
+#plotInfo {
+    border-radius: 0.75rem;
+    box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.08);
+}
+
+@media (max-width: 991.98px) {
+    .job-hero .card-body {
+        padding: 1.5rem;
+    }
+
+    .detail-card .detail-label {
+        flex-basis: 45%;
+        max-width: 45%;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .job-hero {
+        border-radius: 1rem;
+    }
+
+    .job-hero__poster {
+        margin-bottom: 1.5rem;
+    }
+
+    .job-hero .job-title {
+        font-size: 1.5rem;
+    }
+
+    .detail-card .detail-row {
+        flex-direction: column;
+    }
+
+    .detail-card .detail-label {
+        margin-bottom: 0.35rem;
+        max-width: 100%;
+    }
+}

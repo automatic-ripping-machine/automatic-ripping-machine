@@ -3,44 +3,56 @@
 
 {% block nav %}{{ super() }}{% endblock %}
 
-{% block content %}  
-	<div class="row text-center justify-content-center">
-		<div class="col">
-			<p>This is intended for DVDs or for TV Series that have more than one disk</p>
-		</div>
-	</div> 
-<div class="container justify-content-center">
-    <div class="row justify-content-center" style="flex-wrap: nowrap">
-        <div class="col-7">
-		<form action="" method="get" novalidate>
-			<div class="input-group mb-3 flex-nowrap">
-				<div class="input-group-prepend">
-					<span class="input-group-text" id="searchtitle">Title</span>
-				</div>
-				<input type="text" class="form-control" aria-label="searchtitle" name="title" placeholder="title..." value="{{job.title if job.title != '' else '' }}" aria-describedby="searchtitle">
-			    <div class="invalid-tooltip">
-					Title can't be blank
-				</div>
-			</div>
-			<div class="input-group mb-3 flex-nowrap">
-				<div class="input-group-prepend">
-					<span class="input-group-text" id="basic-addon1">Year</span>
-				</div>
-				<input type="text" class="form-control" name="year" aria-label="year" value="{{ job.year if job.year != '' else '' }}" aria-describedby="basic-addon1">
-			</div>
-			<input class="form-control" name="job_id" value="{{ job.job_id }}" hidden>
-			<button class="btn btn-info btn-lg btn-block" type="submit">Set Custom Title</button>
-		</form>
-		</div>
-	</div>
-			{% if form.errors %}
-				{% for k in form.errors %}
-					<script>$("[name='{{k}}']").addClass("is-invalid");</script>
-				{% endfor %}
-			{% endif %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/template_pages.css') }}">
+
+<div class="container template-page">
+    <div class="row justify-content-center page-intro">
+        <div class="col-lg-8 text-center">
+            <h2 class="template-title">Set a Custom Title</h2>
+            <p class="template-subtitle">Override the automatically detected metadata when discs share a series or box set.</p>
+        </div>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-xl-7 col-lg-8">
+            <div class="card form-card">
+                <div class="card-body">
+                    <form action="" method="get" novalidate>
+                        <div class="form-group">
+                            <label for="title" class="font-weight-bold">Title</label>
+                            <div class="input-group input-group-lg">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="searchtitle">Title</span>
+                                </div>
+                                <input type="text" class="form-control" aria-label="searchtitle" name="title" placeholder="Title..." value="{{ job.title if job.title != '' else '' }}" aria-describedby="searchtitle">
+                            </div>
+                            <div class="invalid-tooltip">Title can't be blank</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="year" class="font-weight-bold">Year</label>
+                            <div class="input-group input-group-lg">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Year</span>
+                                </div>
+                                <input type="text" class="form-control" name="year" aria-label="year" value="{{ job.year if job.year != '' else '' }}" aria-describedby="basic-addon1" placeholder="Optional">
+                            </div>
+                        </div>
+                        <input class="form-control" name="job_id" value="{{ job.job_id }}" hidden>
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4">
+                            <button class="btn btn-primary btn-pill mb-3 mb-md-0" type="submit">Set Custom Title</button>
+                            <span class="badge badge-soft-info">Job #{{ job.job_id }}</span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-
-
+{% if form.errors %}
+    {% for k in form.errors %}
+        <script>$("[name='{{k}}']").addClass("is-invalid");</script>
+    {% endfor %}
+{% endif %}
 
 {% endblock %}

@@ -205,7 +205,7 @@ COPY ./scripts/docker/custom_udev /etc/init.d/udev
 
 # Copy over source code
 COPY . /opt/arm/
-
+COPY ./arm/ui/settings/comments.json /arm/app/comments.json
 # Our docker udev rule
 RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
 

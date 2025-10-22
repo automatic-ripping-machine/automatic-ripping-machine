@@ -4,52 +4,84 @@
 {% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-    <div class="container">
-        <div class="container d-flex justify-content-center">
-            <div class="row" style="flex-wrap: nowrap">
-                <form action="" method="get" novalidate>
-                    {{ form.hidden_tag() }}
-                    <div class="input-group mb-3">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text" id="searchtitle">Title</span>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/template_pages.css') }}">
+
+<div class="container template-page">
+    <div class="row justify-content-center page-intro">
+        <div class="col-lg-8 text-center">
+            <h2 class="template-title">Choose the Best Match</h2>
+            <p class="template-subtitle">Select a title from the search results or run a new search to refine the metadata.</p>
+        </div>
+    </div>
+    <div class="row justify-content-center mb-5">
+        <div class="col-xl-8">
+            <div class="card form-card">
+                <div class="card-body">
+                    <form action="" method="get" novalidate>
+                        {{ form.hidden_tag() }}
+                        <div class="form-row">
+                            <div class="form-group col-md-7">
+                                <label for="searchtitle" class="font-weight-bold">Title</label>
+                                <div class="input-group input-group-lg">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="searchtitle">Title</span>
+                                    </div>
+                                    <input type="text" class="form-control" aria-label="searchtitle" name="title" value="{{ title }}" aria-describedby="searchtitle" placeholder="Search for a title">
+                                </div>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="searchyear" class="font-weight-bold">Year</label>
+                                <div class="input-group input-group-lg">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1">Year</span>
+                                    </div>
+                                    <input type="text" class="form-control" id="searchyear" name="year" value="{{ year }}" aria-label="year" aria-describedby="basic-addon1" placeholder="Optional">
+                                </div>
+                            </div>
+                            <div class="form-group col-md-2 d-flex align-items-end">
+                                <button class="btn btn-primary btn-pill w-100" type="submit">Search</button>
+                            </div>
                         </div>
-                        <input type="text" class="form-control" aria-label="searchtitle" name="title"
-                               value="{{ title }}" aria-describedby="searchtitle">
-                        <div class="invalid-tooltip">
-                            Search can't be blank
-                        </div>
-                        <div class="input-group-prepend">
-                            <span class="input-group-text" id="basic-addon1">Year</span>
-                        </div>
-                        <input type="text" class="form-control" name="year" value="{{ year }}" aria-label="year"
-                               aria-describedby="basic-addon1">
-                    </div>
-                    <input class="form-control" name="job_id" value="{{ job_id }}" hidden>
-                    <input class="form-control" name="save" value="save" hidden>
-                    <button class="btn btn-info btn-lg btn-block" type="submit">Search</button>
-                </form>
+                        <input class="form-control" name="job_id" value="{{ job_id }}" hidden>
+                        <input class="form-control" name="save" value="save" hidden>
+                    </form>
+                </div>
             </div>
         </div>
-        <br><br>
+    </div>
 
-        <div class="row">
-            {% for res in results["Search"] %}
+    <div class="row">
+        {% set search_results = results["Search"] if results and "Search" in results else [] %}
+        {% if search_results %}
+            {% for res in search_results %}
                 {% if "Type" in res and res["Type"].lower() != "game" %}
-                    <div class="col-md-3 text-center">
-                        <div class="card text-center">
-                            <div class="card-header">
-                                <a href="gettitle?imdbID={{ res["imdbID"] }}&job_id={{ job_id }}">
-                                  <img src="{{ res["Poster"] }}" width="120px" class="img-thumbnail" alt="Poster image">
-                                </a>
+                    <div class="col-xl-3 col-lg-4 col-md-6 mb-4 d-flex">
+                        <div class="card result-card w-100 text-center">
+                            <div class="card-header border-0">
+                                <span class="badge badge-soft-primary text-uppercase">{{ res["Type"].capitalize() }}</span>
                             </div>
-                            <div class="card-body"><strong>{{ res["Title"] }}</strong> - {{ res["Type"].capitalize() }}
-                                ({{ res["Year"] }})
+                            <div class="card-body">
+                                <a href="gettitle?imdbID={{ res["imdbID"] }}&job_id={{ job_id }}" class="d-inline-block mb-3">
+                                    <img src="{{ res["Poster"] }}" class="img-fluid poster-thumb" alt="Poster image for {{ res['Title'] }}" onerror="this.src='{{ url_for('static', filename='img/none.png') }}'">
+                                </a>
+                                <h5 class="font-weight-bold mb-1">{{ res["Title"] }}</h5>
+                                <p class="text-muted mb-0">{{ res["Year"] }}</p>
                             </div>
                         </div>
                     </div>
                 {% endif %}
             {% endfor %}
-        </div>
+        {% else %}
+            <div class="col-12">
+                <div class="card template-card">
+                    <div class="card-body empty-state">
+                        <h4 class="mb-2">No results yet</h4>
+                        <p class="mb-0">Try adjusting your search terms or removing filters.</p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
     </div>
+</div>
 
 {% endblock %}
