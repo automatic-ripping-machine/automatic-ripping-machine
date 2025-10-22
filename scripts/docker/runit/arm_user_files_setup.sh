@@ -35,6 +35,7 @@ check_folder_ownership() {
 
     echo "[OK]: ARM UID and GID set correctly, ARM has access to '$check_dir' using $ARM_UID:$ARM_GID"
 }
+git config --global --add safe.directory /opt/arm
 
 ### Setup User
 if [[ $ARM_UID -ne $DEFAULT_UID ]]; then
