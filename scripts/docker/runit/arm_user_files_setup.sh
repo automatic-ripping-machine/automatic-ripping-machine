@@ -10,11 +10,14 @@
 set -euo pipefail
 
 export ARM_HOME="/home/arm"
+export HOME=/home/arm
+
 DEFAULT_UID=1000
 DEFAULT_GID=1000
 echo "export MYSQL_IP=${MYSQL_IP}" > /etc/profile
 echo "export MYSQL_USER=${MYSQL_USER}" >> /etc/profile
 echo "export MYSQL_PASSWORD=${MYSQL_PASSWORD}" >> /etc/profile
+git config --global --add safe.directory /opt/arm
 
 
 # Function to check if the ARM user has ownership of the requested folder
@@ -38,25 +41,25 @@ check_folder_ownership() {
 
 ### Setup User
 if [[ $ARM_UID -ne $DEFAULT_UID ]]; then
-  echo -e "Updating arm user id from $DEFAULT_UID to $ARM_UID..."
-  usermod -u "$ARM_UID" arm
+  echo -e "Updating ubuntu user id from $DEFAULT_UID to $ARM_UID..."
+  usermod -u "$ARM_UID" ubuntu
 elif [[ $ARM_UID -eq $DEFAULT_UID ]]; then
-  echo -e "Updating arm group id $ARM_UID to default (1000)..."
-  usermod -u $DEFAULT_UID arm
+  echo -e "Updating ubuntu group id $ARM_UID to default (1000)..."
+  usermod -u $DEFAULT_UID ubuntu
 fi
 
 if [[ $ARM_GID -ne $DEFAULT_GID ]]; then
-  echo -e "Updating arm group id from $DEFAULT_GID to $ARM_GID..."
-  groupmod -og "$ARM_GID" arm
+  echo -e "Updating ubuntu group id from $DEFAULT_GID to $ARM_GID..."
+  groupmod -og "$ARM_GID" ubuntu
 elif [[ $ARM_GID -eq $DEFAULT_GID ]]; then
-  echo -e "Updating arm group id $ARM_GID to default (1000)..."
-  groupmod -og $DEFAULT_GID arm
+  echo -e "Updating ubuntu group id $ARM_GID to default (1000)..."
+  groupmod -og $DEFAULT_GID ubuntu
 fi
 echo "Adding arm user to 'render' group"
-usermod -a -G render arm
+usermod -a -G render ubuntu
 
 ### Setup Files
-chown -R arm:arm /opt/arm
+chown -R $ARM_UID:$ARM_GID /opt/arm
 
 # Check ownership of the ARM home folder
 check_folder_ownership "/home/arm"
@@ -69,7 +72,7 @@ for dir in $SUBDIRS ; do
     echo "Creating dir: $thisDir"
     mkdir -p "$thisDir"
     # Set the default ownership to arm instead of root
-    chown -R arm:arm "$thisDir"
+    chown -R $ARM_UID:$ARM_GID "$thisDir"
   fi
 done
 

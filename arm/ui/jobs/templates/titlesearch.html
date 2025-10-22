@@ -3,34 +3,57 @@
 
 {% block nav %}{{ super() }}{% endblock %}
 
-{% block content %}  
-<div class="container d-flex justify-content-center">
-    <div class="row" style="flex-wrap: nowrap">
-        <form action="" method="get" novalidate>
-			{{ form.hidden_tag() }}
-			<div class="input-group mb-3">
-				<div class="input-group-prepend">
-					<span class="input-group-text" id="searchtitle">Title</span>
-				</div>
-				<input type="text" class="form-control" aria-label="searchtitle" name="title" value="{{job.title}}" aria-describedby="searchtitle">
-			    <div class="invalid-tooltip">
-					Search can't be blank
-				</div>
-				<div class="input-group-prepend">
-					<span class="input-group-text" id="basic-addon1">Year</span>
-				</div>
-				<input type="text" class="form-control" name="year" value="{{job.year}}" aria-label="year" aria-describedby="basic-addon1">
-			</div>
-			<input class="form-control" name="save" value="save" hidden>
-			<input class="form-control" name="job_id" value="{{ job.job_id }}" hidden>
-			<button class="btn btn-info btn-lg btn-block" type="submit">Search</button>
-		</form>
-	</div>
+% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/template_pages.css') }}">
+
+<div class="container template-page">
+    <div class="row justify-content-center">
+        <div class="col-xl-6 col-lg-7">
+            <div class="card form-card">
+                <div class="card-body">
+                    <div class="page-intro text-center mb-4">
+                        <h2 class="template-title">Search for a Better Match</h2>
+                        <p class="template-subtitle">Refine a job's metadata by searching The Movie Database and other sources.</p>
+                    </div>
+                    <form action="" method="get" novalidate>
+                        {{ form.hidden_tag() }}
+                        <div class="form-row">
+                            <div class="form-group col-md-8">
+                                <label for="searchtitle" class="font-weight-bold">Title</label>
+                                <div class="input-group input-group-lg">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="searchtitle">Title</span>
+                                    </div>
+                                    <input type="text" class="form-control" aria-label="searchtitle" name="title" value="{{ job.title }}" aria-describedby="searchtitle" placeholder="Search for a title">
+                                </div>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="searchyear" class="font-weight-bold">Year</label>
+                                <div class="input-group input-group-lg">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1">Year</span>
+                                    </div>
+                                    <input type="text" class="form-control" id="searchyear" name="year" value="{{ job.year }}" aria-label="year" aria-describedby="basic-addon1" placeholder="Optional">
+                                </div>
+                            </div>
+                        </div>
+                        <input class="form-control" name="save" value="save" hidden>
+                        <input class="form-control" name="job_id" value="{{ job.job_id }}" hidden>
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4">
+                            <button class="btn btn-primary btn-pill mb-2 mb-md-0" type="submit">Search Titles</button>
+                            <span class="badge badge-soft-info">Job #{{ job.job_id }}</span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-			{% if form.errors %}
-				{% for k in form.errors %}
-					<script>$("[name='{{k}}']").addClass("is-invalid");</script>
-				{% endfor %}
-			{% endif %}
+
+{% if form.errors %}
+    {% for k in form.errors %}
+        <script>$("[name='{{k}}']").addClass("is-invalid");</script>
+    {% endfor %}
+{% endif %}
 
 {% endblock %}

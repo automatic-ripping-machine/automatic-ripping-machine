@@ -1,7 +1,5 @@
-#-r arm-dependencies/requirements.txt
-
 # For ARM v3.0 development
-# ARM UI dependancies added here to help later seperation of UI and Ripper
+# ARM ripper dependancies
 
 # Flask Dependancies
 Flask==3.0.2
@@ -39,3 +37,4 @@ pydvdid~=1.1
 xmltodict~=0.13.0
 # musicbrainzngs~=0.7.1
 # discid~=1.2.0
+mysql-connector-python==9.4.0

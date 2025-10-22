@@ -20,14 +20,14 @@ def initialise_arm(app, db):
         if len(admins) > 0:
             return True
     except Exception:
-        app.logger.debug("Couldn't find User Table")
+        app.logger.exception("Couldn't find User Table")
         create_admin = True
     else:
-        app.logger.debug("Found table but no data ...")
+        app.logger.warning("Found table but no data ...")
         create_admin = True
 
     if create_admin:
-        app.logger.debug("Adding Default ARM User")
+        app.logger.info("Adding Default ARM User")
         hashed = bcrypt.gensalt(12)
         default_user = User("admin",
                             bcrypt.hashpw("password".encode('utf-8'), hashed).decode('utf-8'),
@@ -46,10 +46,10 @@ def initialise_arm(app, db):
         if len(uisettings) > 0:
             return True
     except Exception:
-        app.logger.debug("Couldn't find UISettings Table")
+        app.logger.warning("Couldn't find UISettings Table")
         create_uisettings = True
     else:
-        app.logger.debug("Found table but no data ...")
+        app.logger.error("Found table but no data ...")
         create_uisettings = True
 
     if create_uisettings:

@@ -1,26 +1,164 @@
 {% extends "base.html" %}
+{% block title %}Database{% endblock %}
+{% block nav %}{{ super() }}{% endblock %}
 
 {% block content %}
-<style>
-    #message3, #message1{
-        float: left;
-        position: fixed;
-        z-index: 1000000000;
-        top: 200px;
-        left: 200px;
-    }
-</style>
-    <div class="container-fluid h-100 mx-auto">
-        <div class="row h-100 mx-auto align-items-center">
-            <div class="col-sm-12 mx-auto">
-                <p class="text-center">
-                    <h5 class="text-center"><strong>Database Entries</strong></h5>
-                </p>
+    <style>
+        #message1,
+        #message3 {
+            position: fixed;
+            top: 7rem;
+            right: 2rem;
+            z-index: 1080;
+            min-width: 22rem;
+        }
+
+        .database-header {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .database-header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .job-tools .btn {
+            min-width: 13rem;
+        }
+
+        .job-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .job-card {
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 0.75rem;
+            box-shadow: 0 0.4rem 1.4rem rgba(15, 23, 42, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .job-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.6rem 1.8rem rgba(15, 23, 42, 0.12);
+        }
+
+        .job-card .card-body {
+            display: flex;
+            gap: 1.25rem;
+        }
+
+        .poster-thumb {
+            width: 96px;
+            height: auto;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.2rem 0.6rem rgba(0, 0, 0, 0.15);
+        }
+
+        .job-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .job-card-meta {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-bottom: 0.35rem;
+        }
+
+        .job-badges .badge {
+            font-weight: 600;
+            margin-right: 0.35rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .job-card-details {
+            font-size: 0.85rem;
+        }
+
+        .job-card-details dt {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #6c757d;
+        }
+
+        .job-card-details dd {
+            margin-bottom: 0.5rem;
+        }
+
+        .job-config-list {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 0;
+        }
+
+        .job-config-list li {
+            padding: 0.25rem 0;
+            border-top: 1px dashed rgba(148, 163, 184, 0.5);
+        }
+
+        .job-config-list li:first-child {
+            border-top: none;
+        }
+
+        .job-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .job-actions .btn {
+            flex: 1 1 calc(50% - 0.5rem);
+            min-width: 8.5rem;
+        }
+
+        @media (max-width: 575.98px) {
+            .job-card .card-body {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .poster-thumb {
+                width: 100%;
+                max-width: 220px;
+            }
+
+            .job-actions .btn {
+                flex: 1 1 100%;
+            }
+        }
+    </style>
+    <div class="container py-4">
+        <div class="database-header d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4">
+            <div class="mb-3 mb-md-0">
+                <h1 class="mb-1">Job Database</h1>
+                <p class="text-muted mb-0">Review, search, and manage every title processed by ARM.</p>
+            </div>
+            <div class="job-tools btn-group" role="group" aria-label="Job filters">
+                <button id="save-get-success" type="button" class="btn btn-outline-success">Successful Jobs</button>
+                <button id="save-get-failed" type="button" class="btn btn-outline-danger">Failed Jobs</button>
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-type="search" data-href="json?mode=search&q=">Search Database</button>
             </div>
         </div>
-        <!-- Modal -->
-        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle"
-             aria-hidden="true">
+
+        <div id="message2" class="alert alert-warning" role="alert">
+            <strong>Heads up:</strong> Deleting or abandoning a job cannot be undone.
+        </div>
+
+        <div id="message1" class="alert alert-success shadow d-none" role="alert">
+            <h4 class="alert-heading mb-1">Job was deleted successfully</h4>
+            <p class="mb-0 small">You can continue exploring the library or refresh the page to load the latest data.</p>
+        </div>
+
+        <div id="message3" class="alert alert-danger shadow d-none" role="alert">
+            <h4 class="alert-heading mb-1">There was a problem with your request</h4>
+            <p class="mb-0">Check the ARMui log for more details.</p>
+        </div>
+
+        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -30,180 +168,113 @@
                         </button>
                     </div>
                     <div class="modal-body">
-                        <div class="input-group mb-3">
+                        <div class="input-group">
                             <div class="input-group-prepend">
-                                <span class="input-group-text" id="searchlabel">Search </span>
+                                <span class="input-group-text" id="searchlabel">Search</span>
                             </div>
-                            <input type="text" class="form-control" id="searchquery" aria-label="searchquery"
-                                   name="searchquery" placeholder="Search...." value="" aria-describedby="searchlabel">
+                            <input type="text" class="form-control" id="searchquery" aria-label="searchquery" name="searchquery" placeholder="Search by title, device, or ID" value="" aria-describedby="searchlabel">
                             <div id="validationServer03Feedback" class="invalid-feedback">
                                 Search string too short.
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button id="save-no" type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
-                        <button id="save-yes" type="button" class="btn btn-primary">Yes</button>
+                        <button id="save-no" type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+                        <button id="save-yes" type="button" class="btn btn-primary">Search</button>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Messages -->
-        <div id="message1" class="alert alert-success d-none" role="alert">
-            <h4 class="alert-heading">Job was deleted successfully</h4>
-        </div>
-        <div id="message2" class="alert alert-danger text-center">
-            <strong>WARNING: </strong>There is no undo here!
-            <br>Be careful!
-        </div>
-        <div id="message3" class="alert alert-danger d-none" role="alert">
-            <h4 class="alert-heading">There was a problem with your request</h4>
-            <p>There was a problem with your request. Check the ARMui log for more details.</p>
-        </div>
-        <!-- Buttons -->
-        <div class="row d-flex justify-content-end">
-            <div class="p-4">
-                <button id="save-get-success" type="button" class="btn btn-secondary btn-success">
-                    Get all successful jobs
-                </button>
-                <button id="save-get-failed" type="button" class="btn btn-secondary btn-danger">
-                    Get all failed jobs
-                </button>
-                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal"
-                        data-type="search" data-href="json?mode=search&q=">
-                    Search
-                </button>
-                <button onclick="location.href='databasemigrate';" type="button" class="btn btn-info">
-                    Migrate
-                </button>
-            </div>
-        </div>
 
         {% with pages=pages, page_name="route_database.view_database" %}
             {% include "pagination.html" %}
         {% endwith %}
-        <!-- All jobs -->
-        <div class="row">
-            <div class="col-md-12 mx-auto">
-                <div class="card-deck">
-                    {% for job in jobs %}
-                        <!-- Job {{ job.job_id }}-->
-                        <div class="col-md-4" id="jobId{{ job.job_id }}">
-                            <div class="card mb-3  mx-auto">
-                                <!-- Card Header -->
-                                <div class="card-header row no-gutters justify-content-center">
-                                    <strong>
-                                     {% if not job.title_manual %}
-                                        {{ job["title"] }} {{ '('+job['year']+')' if job["year"] is not none }}
+
+        <div class="job-grid">
+            {% for job in jobs %}
+                {% set status_lower = job.status|lower %}
+                {% if "success" in status_lower or "complete" in status_lower or "finished" in status_lower %}
+                    {% set status_class = "badge-success" %}
+                {% elif "fail" in status_lower or "error" in status_lower %}
+                    {% set status_class = "badge-danger" %}
+                {% elif "abandon" in status_lower or "cancel" in status_lower %}
+                    {% set status_class = "badge-warning" %}
+                {% else %}
+                    {% set status_class = "badge-secondary" %}
+                {% endif %}
+                <div class="job-card card" id="jobId{{ job.job_id }}">
+                    <div class="card-body">
+                        <div class="job-card-poster">
+                            <a href="jobdetail?job_id={{ job.job_id }}" class="d-inline-block">
+                                {% if not job.poster_url %}
+                                    <img src="{{ url_for('static', filename='img/none.png') }}" class="poster-thumb" alt="No poster image available">
+                                {% else %}
+                                    <img src="{{ job.poster_url }}" class="poster-thumb" alt="Poster image">
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="flex-grow-1 d-flex flex-column">
+                            <div>
+                                <div class="job-card-title" title="{% if not job.title_manual %}{{ job['title'] }}{% else %}{{ job['title_manual'] }}{% endif %}">
+                                    {% if not job.title_manual %}
+                                        {{ job["title"] }}
                                     {% else %}
-                                        {{ job["title_manual"] }} {{ '('+job['year']+')' if job["year"] is not none }}
+                                        {{ job["title_manual"] }}
                                     {% endif %}
-                                    </strong>
+                                    {% if job["year"] is not none %}
+                                        <span class="text-muted">({{ job["year"] }})</span>
+                                    {% endif %}
                                 </div>
-                                <!-- Card Body -->
-                                <div class="row no-gutters">
-                                    <div class="col-lg-4">
-                                        {% if not job.poster_url or job.poster_url == "None" %}
-                                            {% if job.video_type == "Music" %}
-                                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="static/img/music.png"
-                                                                                                width="240px"
-                                                                                                class="img-thumbnail"
-                                                                                                alt="No Poster Image"></a>
-                                            {% else %}
-                                                <a href="jobdetail?job_id={{ job.job_id }}"><img src="static/img/none.png"
-                                                                                                width="240px"
-                                                                                                class="img-thumbnail"
-                                                                                                alt="No Poster Image"></a>
-                                            {% endif %}
-                                        {% else %}
-                                            <a href="jobdetail?job_id={{ job.job_id }}"><img src="{{ job.poster_url }}"
-                                                                                             width="240px"
-                                                                                             class="img-thumbnail"
-                                                                                             alt="Poster image"></a>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-lg-4">
-                                        <div class="card-body px-1 py-1">
-                                            <strong>Type: </strong> {{ job.video_type }} <br>
-                                            {% if not job.title_manual %}
-                                                <strong>Year: </strong>({{ job["year"] }})<br>
-                                            {% else %}
-                                                <del><strong>Year:
-                                                </strong>{{ job["year_auto"] }}<br></del>
-                                                <strong>Year: </strong> {{ job["year"] }}<br>
-                                            {% endif %}
-                                            <strong>Device: </strong>{{ job.devpath }}<br>
-                                            <strong>Status: </strong><img id="status{{ job.job_id }}"
-                                                                          src="static/img/{{ job.status }}.png"
-                                                                          height="20px"
-                                                                          alt="{{ job.status }}"
-                                                                          title="{{ job.status }}"><br>
-                                            <strong>Start Date:</strong>{{ job.start_time.strftime(date_format) if
-                                    job.start_time is not none }}<br>
-                                            <strong>Start Time:</strong>{{ job.start_time.strftime("%H:%M:%S") if job.start_time
-                                    is not none }}<br>
-                                            <strong>Job Time:</strong>{{ " Ongoing" if job.job_length is none else job.job_length }}<br>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-4">
-                                        <div class="card-body px-1 py-1">
-                                            <div id="jobId{{ job.job_id }}_RIPMETHOD"><strong>Rip
-                                                Method: </strong>{{ job.config.RIPMETHOD }}</div>
-                                            <div id="jobId{{ job.job_id }}_MAINFEATURE"><strong>Main
-                                                Feature: </strong>{{ job.config.MAINFEATURE }}</div>
-                                            <div id="jobId{{ job.job_id }}_MINLENGTH"><strong>Min
-                                                Length: </strong>{{ job.config.MINLENGTH }}</div>
-                                            <div id="jobId{{ job.job_id }}_MAXLENGTH"><strong>Max
-                                                Length: </strong>{{ job.config.MAXLENGTH }}</div>
-                                        </div>
-                                        <div class="card-body px-2 py-1">
-                                            <div class="btn-group-vertical" role="group" aria-label="buttons">
-                                                <button type="button" class="btn btn-primary" data-toggle="modal"
-                                                        data-target="#exampleModal" data-type="abandon"
-                                                        data-jobid="{{ job.job_id }}"
-                                                        data-href="json?job={{ job.job_id }}&mode=abandon">Abandon Job
-                                                </button>
-                                                <button type="button" class="btn btn-primary" data-toggle="modal"
-                                                        data-target="#exampleModal" data-type="delete"
-                                                        data-jobid="{{ job.job_id }}"
-                                                        data-href="json?job={{ job.job_id }}&mode=delete">Delete Job
-                                                </button>
-                                                <button type="button" class="btn btn-primary" data-toggle="modal"
-                                                        data-target="#exampleModal" data-type="log"
-                                                        data-jobid="{{ job.job_id }}"
-                                                        data-href="json?logfile={{ job.logfile }}&mode=full&job={{ job.job_id }}">
-                                                    View Logfile
-                                                </button>
-                                                <button type="button" class="btn btn-primary" data-toggle="modal"
-                                                        data-target="#exampleModal" data-type="fixperms"
-                                                        data-jobid="{{ job.job_id }}"
-                                                        data-href="json?mode=fixperms&job={{ job.job_id }}">Fix
-                                                    Permissions
-                                                </button>
-
-                                            </div>
-                                        </div>
-                                    </div>
-
+                                {% if job.title_manual and job["year_auto"] %}
+                                    <div class="job-card-meta"><del>{{ job["year_auto"] }}</del> automatic year</div>
+                                {% endif %}
+                                <div class="job-badges d-flex flex-wrap">
+                                    <span class="badge badge-pill {{ status_class }} text-uppercase">{{ job.status.replace('_', ' ') }}</span>
+                                    <span class="badge badge-pill badge-info">{{ job.video_type }}</span>
+                                    <span class="badge badge-pill badge-light text-muted">Device {{ job.devpath }}</span>
                                 </div>
                             </div>
+                            <dl class="job-card-details row no-gutters mt-3 mb-0">
+                                <div class="col-6 pr-2">
+                                    <dt>Started</dt>
+                                    <dd class="mb-2">{{ job.start_time.strftime(date_format) if job.start_time is not none }}</dd>
+                                    <dt>Duration</dt>
+                                    <dd class="mb-2">{{ "Ongoing" if job.job_length is none else job.job_length }}</dd>
+                                    <dt>Job ID</dt>
+                                    <dd class="mb-0">{{ job.job_id }}</dd>
+                                </div>
+                                <div class="col-6 pl-2">
+                                    <dt>Rip Method</dt>
+                                    <dd class="mb-2" id="jobId{{ job.job_id }}_RIPMETHOD">{{ job.config.RIPMETHOD }}</dd>
+                                    <dt>Main Feature</dt>
+                                    <dd class="mb-2" id="jobId{{ job.job_id }}_MAINFEATURE">{{ job.config.MAINFEATURE }}</dd>
+                                    <dt>Length Limits</dt>
+                                    <dd class="mb-0">Min {{ job.config.MINLENGTH }} &middot; Max {{ job.config.MAXLENGTH }}</dd>
+                                </div>
+                            </dl>
                         </div>
-                    {% endfor %}
+                    </div>
+                    <div class="card-footer bg-white border-0 pt-0">
+                        <div class="small text-muted mb-3">Log file: {{ job.logfile }}</div>
+                        <div class="job-actions" role="group" aria-label="Job actions">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#exampleModal" data-type="abandon" data-jobid="{{ job.job_id }}" data-href="json?job={{ job.job_id }}&mode=abandon">Abandon</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#exampleModal" data-type="delete" data-jobid="{{ job.job_id }}" data-href="json?job={{ job.job_id }}&mode=delete">Delete</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal" data-target="#exampleModal" data-type="log" data-jobid="{{ job.job_id }}" data-href="json?logfile={{ job.logfile }}&mode=full&job={{ job.job_id }}">View Log</button>
+                            <button type="button" class="btn btn-outline-info btn-sm" data-toggle="modal" data-target="#exampleModal" data-type="fixperms" data-jobid="{{ job.job_id }}" data-href="json?mode=fixperms&job={{ job.job_id }}">Fix Permissions</button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            {% endfor %}
         </div>
 
         {% with pages=pages, page_name="route_database.view_database" %}
             {% include "pagination.html" %}
         {% endwith %}
-
     </div>
-
 {% endblock %}
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
     {{ super() }}
-
     <script type="application/javascript">activeTab("databaseview");</script>
     <script type="application/javascript" src="static/js/common.js"></script>
     <script type="application/javascript" src="static/js/database.js"></script>

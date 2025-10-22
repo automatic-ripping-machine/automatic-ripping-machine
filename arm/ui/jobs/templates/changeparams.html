@@ -2,128 +2,109 @@
 {% block title %}Parameter Changer{% endblock %}
 {% block nav %}{{ super() }}{% endblock %}
 {% block content %}
-    <style type="text/css">
-        div input {
-            display: block;
-            width: 100%;
-            height: initial;
-            padding: .375rem .75rem;
-            font-size: 1rem;
-            font-weight: 400;
-            line-height: 1.5;
-            color: #495057;
-            background-color: #fff;
-            background-clip: padding-box;
-            border: 1px solid #ced4da;
-            -webkit-border-top-right-radius: 3px;
-            -webkit-border-bottom-right-radius: 3px;
-            -moz-border-radius-topright: 3px;
-            -moz-border-radius-bottomright: 3px;
-            border-top-right-radius: 3px;
-            border-bottom-right-radius: 3px;
-            transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
-        }
+<link rel="stylesheet" href="{{ url_for('static', filename='css/template_pages.css') }}">
 
-        div.input-group input, div.input-group select {
-            position: relative;
-            -ms-flex: 1 1 auto;
-            flex: 1 1 auto;
-            width: 1%;
-            min-width: 0;
-            margin-bottom: 0;
-            display: block;
-            padding: .375rem .75rem;
-            font-size: 1rem;
-            font-weight: 400;
-            line-height: 1.5;
-            color: #495057;
-            background-color: #fff;
-            background-clip: padding-box;
-            border: 1px solid #ced4da;
-            transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
-        }
-    </style>
-    <div class="container justify-content-center">
-        <div class="row justify-content-center" style="flex-wrap: nowrap">
-            <div class="col-7">
-                <form id="changeParams" name="changeParams" action="" method="get" novalidate>
-                    {{ form.hidden_tag() }}
-                    <div class="input-group mb-3 flex-nowrap">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">{{ form.RIPMETHOD.label }}</span>
+<div class="container template-page">
+    <div class="row justify-content-center page-intro">
+        <div class="col-lg-8 text-center">
+            <h2 class="template-title">Adjust Job Parameters</h2>
+            <p class="template-subtitle">Fine-tune how Automatic Ripping Machine handles the current disc before it completes.</p>
+        </div>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-xl-7 col-lg-8">
+            <div class="card form-card">
+                <div class="card-body">
+                    <form id="changeParams" name="changeParams" action="" method="get" novalidate>
+                        {{ form.hidden_tag() }}
+                        <div class="form-group">
+                            <label class="font-weight-bold">{{ form.RIPMETHOD.label }}</label>
+                            <div class="input-group input-group-lg">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Rip Method</span>
+                                </div>
+                                {{ form.RIPMETHOD(class='custom-select custom-select-lg') }}
+                            </div>
                         </div>
-                        {{ form.RIPMETHOD }}
-                    </div>
-
-                    <div class="input-group mb-3 flex-nowrap">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">{{ form.DISCTYPE.label }}</span>
+                        <div class="form-group">
+                            <label class="font-weight-bold">{{ form.DISCTYPE.label }}</label>
+                            <div class="input-group input-group-lg">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Disc Type</span>
+                                </div>
+                                {{ form.DISCTYPE(class='custom-select custom-select-lg') }}
+                            </div>
                         </div>
-                        {{ form.DISCTYPE }}
-                    </div>
-
-                    <div class="input-group mb-3 flex-nowrap">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">{{ form.MAINFEATURE.label }}</span>
+                        <div class="form-group">
+                            <label class="font-weight-bold">{{ form.MAINFEATURE.label }}</label>
+                            <div class="d-flex align-items-center justify-content-between flex-wrap">
+                                <span class="text-muted">Prefer the primary feature when encoding.</span>
+                                <div>
+                                    {{ form.MAINFEATURE(class='ml-md-3') }}
+                                </div>
+                            </div>
                         </div>
-                        {{ form.MAINFEATURE(class="switch") }}
-                    </div>
-
-                    <div class="input-group mb-3 flex-nowrap">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">{{ form.MINLENGTH.label }}</span>
+                        <div class="form-group">
+                            <label class="font-weight-bold">{{ form.MINLENGTH.label }}</label>
+                            <div class="input-group input-group-lg">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Minimum (min)</span>
+                                </div>
+                                {{ form.MINLENGTH(class='form-control') }}
+                            </div>
+                            <small class="form-text text-muted">Ignore tracks shorter than this duration.</small>
+                            <div class="invalid-tooltip" id="MINLENGTH_INVALID">errors</div>
                         </div>
-                        {{ form.MINLENGTH }}
-                        <div class="invalid-tooltip" id="MINLENGTH_INVALID">
-                            errors
+                        <div class="form-group">
+                            <label class="font-weight-bold">{{ form.MAXLENGTH.label }}</label>
+                            <div class="input-group input-group-lg">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Maximum (min)</span>
+                                </div>
+                                {{ form.MAXLENGTH(class='form-control') }}
+                            </div>
+                            <small class="form-text text-muted">Only rip tracks shorter than this duration.</small>
+                            <div class="invalid-tooltip" id="MAXLENGTH_INVALID">Title can't be blank</div>
                         </div>
-                    </div>
-
-                    <div class="input-group mb-3 flex-nowrap">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">{{ form.MAXLENGTH.label }} </span>
+                        <input name="mode" value="change_job_params" hidden>
+                        <input name="config_id" value="{{ config.CONFIG_ID }}" hidden>
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4">
+                            <button class="btn btn-primary btn-pill mb-3 mb-md-0" type="submit">Save Parameters</button>
+                            <span class="badge badge-soft-info">Config ID: {{ config.CONFIG_ID }}</span>
                         </div>
-                        {{ form.MAXLENGTH }}
-                        <div id="MAXLENGTH_INVALID" class="invalid-tooltip">
-                            Title can't be blank
-                        </div>
-                    </div>
-                    <input name="mode" value="change_job_params" hidden>
-                    <input name="config_id" value="{{ config.CONFIG_ID }}" hidden>
-                    <button class="btn btn-info btn-lg btn-block" type="submit">Submit</button>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
+</div>
 
-    {{ conf }}
-
-    <script type="application/javascript">
-        $(function () {
-            function sendSettings(formToSend, sendTo) {
-                $.ajax({
-                    type: 'GET',
-                    url: sendTo,
-                    data: formToSend.serialize()
-                }).done(function (data) {
-                    if (data.success === true) {
-                        var dt = new Date();
-                        var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
-                        $('.toast-body').html(`Saved ${data.form} settings at ${time}`)
-                        $('.toast').toast('show');
-                    }
-                });
-            }
-
-            $("#changeParams").submit(function (e) {
-                e.preventDefault();
-                sendSettings($("#changeParams"), "/json");
+<script type="application/javascript">
+    $(function () {
+        function sendSettings(formToSend, sendTo) {
+            $.ajax({
+                type: 'GET',
+                url: sendTo,
+                data: formToSend.serialize()
+            }).done(function (data) {
+                if (data.success === true) {
+                    var dt = new Date();
+                    var time = `${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`;
+                    $('.toast-body').html(`Saved ${data.form} settings at ${time}`);
+                    $('.toast').toast('show');
+                }
             });
-            {% for field, errors in form.errors.items() %}
-                $("[name='{{field}}']").addClass("is-invalid");
-                $("div#{{ field }}_INVALID").html("{{ errors }}");
-            {% endfor %}
+        }
 
+        $("#changeParams").submit(function (e) {
+            e.preventDefault();
+            sendSettings($("#changeParams"), "/json");
         });
-    </script>
+        {% for field, errors in form.errors.items() %}
+            $("[name='{{field}}']").addClass("is-invalid");
+            $("div#{{ field }}_INVALID").html("{{ errors }}");
+        {% endfor %}
+
+    });
+</script>
 {% endblock %}

@@ -1,0 +1,192 @@
+.template-page {
+    padding: 1.5rem 0 4rem;
+}
+
+.template-page .page-intro {
+    margin-bottom: 2rem;
+}
+
+.template-card,
+.template-page .card {
+    border: 0;
+    border-radius: 1rem;
+    box-shadow: 0 1.5rem 3rem rgba(18, 38, 63, 0.1);
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+}
+
+.template-card .card-header,
+.template-page .card .card-header {
+    background: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-weight: 600;
+}
+
+.template-page .form-card {
+    padding: 2rem;
+}
+
+.template-page .form-card .form-text,
+.template-page .form-card .input-group-text {
+    font-weight: 600;
+}
+
+.template-page .template-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.template-page .template-subtitle {
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+.template-page .action-toolbar {
+    gap: 0.75rem;
+}
+
+.template-page .result-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
+}
+
+.template-page .result-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 1.75rem 3.5rem rgba(18, 38, 63, 0.18);
+}
+
+.template-page .table-card .table {
+    margin-bottom: 0;
+}
+
+.template-page .table-card thead th {
+    border-top: 0;
+    background: rgba(0, 0, 0, 0.02);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+}
+
+.template-page .table-card tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.template-page .poster-thumb {
+    border-radius: 0.75rem;
+    box-shadow: 0 0.75rem 2rem rgba(15, 23, 42, 0.2);
+}
+
+.template-page .badge-soft {
+    font-weight: 600;
+    padding: 0.35rem 0.7rem;
+    border-radius: 0.75rem;
+}
+
+.template-page .badge-soft-primary {
+    background: rgba(0, 123, 255, 0.12);
+    color: #0056b3;
+}
+
+.template-page .badge-soft-success {
+    background: rgba(40, 167, 69, 0.12);
+    color: #1e7e34;
+}
+
+.template-page .badge-soft-warning {
+    background: rgba(255, 193, 7, 0.16);
+    color: #856404;
+}
+
+.template-page .badge-soft-info {
+    background: rgba(23, 162, 184, 0.12);
+    color: #0c5460;
+}
+
+.template-page .btn-pill {
+    border-radius: 999px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 600;
+}
+
+.template-page .form-control,
+.template-page .custom-select,
+.template-page .input-group-text {
+    border-radius: 0.75rem;
+}
+
+.template-page .form-control:focus,
+.template-page .custom-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
+
+.template-page .empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: #6c757d;
+}
+
+body[data-theme="dark"] .template-card,
+body[data-theme="dark"] .template-page .card {
+    background: rgba(50, 56, 62, 0.88);
+    box-shadow: 0 1.25rem 2.5rem rgba(0, 0, 0, 0.45);
+}
+
+body[data-theme="dark"] .template-page .card-header,
+body[data-theme="dark"] .template-card .card-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+body[data-theme="dark"] .template-page .template-subtitle {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+body[data-theme="dark"] .template-page .badge-soft-primary {
+    background: rgba(0, 123, 255, 0.2);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+body[data-theme="dark"] .template-page .badge-soft-success {
+    background: rgba(40, 167, 69, 0.18);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+body[data-theme="dark"] .template-page .badge-soft-warning {
+    background: rgba(255, 193, 7, 0.22);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+body[data-theme="dark"] .template-page .badge-soft-info {
+    background: rgba(23, 162, 184, 0.22);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+body[data-theme="dark"] .template-page .form-control,
+body[data-theme="dark"] .template-page .input-group-text,
+body[data-theme="dark"] .template-page .custom-select {
+    background-color: rgba(23, 25, 28, 0.9);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+body[data-theme="dark"] .template-page .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+body[data-theme="dark"] .template-page .table-card thead th {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+body[data-theme="dark"] .template-page .table-card tbody td {
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 767.98px) {
+    .template-page .form-card {
+        padding: 1.5rem 1rem;
+    }
+
+    .template-page .btn-pill {
+        width: 100%;
+    }
+}

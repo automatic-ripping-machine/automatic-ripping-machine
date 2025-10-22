@@ -1,0 +1,44 @@
+# For ARM v3.0 development
+# ARM UI dependancies added here to help later separation of UI and Ripper
+# Flask Dependencies
+Flask==3.0.2              # Micro web framework for Python
+Werkzeug==3.0.2            # WSGI utility library, used by Flask internally
+Jinja2==3.1.3              # Templating engine for rendering HTML in Flask
+MarkupSafe==2.1.5          # Provides safe string handling for Jinja2 templates
+itsdangerous==2.1.2        # Provides secure data signing, used for session cookies in Flask
+click==8.1.7               # Command-line utility used by Flask for CLI commands
+blinker==1.7.0             # Signal/event dispatching system used by Flask
+
+# Argument Parsing
+argparse==1.4.0            # Library for parsing command-line arguments
+
+# Database & Migrations
+alembic==1.13.1            # Database migrations tool for SQLAlchemy
+Flask-Alembic==3.0.1       # Integration of Alembic with Flask
+Flask-Migrate==4.0.7       # SQLAlchemy database migrations for Flask
+Flask-SQLAlchemy==3.1.1    # Adds SQLAlchemy support to Flask
+sqlalchemy==2.0.25         # Core SQL toolkit and ORM for Python
+mysql-connector-python==9.4.0     # mysql connector for python
+
+# Authentication & Security
+bcrypt==4.1.3              # Password hashing library
+Flask-Login==0.6.3         # User session management for Flask
+
+# Web & API
+Flask-CORS==3.0.10         # Cross-Origin Resource Sharing (CORS) support for Flask
+
+# Forms & Validation
+Flask-WTF==1.2.1           # Integration of WTForms with Flask for form handling
+pyyaml
+
+# Development & Utility
+colorama==0.4.4            # Cross-platform colored terminal text
+flake8==6.0.0              # Python code style and linting tool
+python-dotenv==1.0.1       # Loads environment variables from a .env file
+netifaces==0.11.0           # Network interface information library
+psutil # Needed to show cpu/memory
+pyudev # For drive stats ?
+
+# Deployment
+waitress==2.1.2            # Production WSGI server for hosting Flask apps
+apprise # Sending message to various services
