@@ -39,3 +39,4 @@ pydvdid~=1.1
 xmltodict~=0.13.0
 # musicbrainzngs~=0.7.1
 # discid~=1.2.0
+mysql-connector-python==9.4.0

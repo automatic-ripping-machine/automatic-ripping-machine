@@ -161,6 +161,19 @@ RUN install_clean pip curl git libcurl4-openssl-dev \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/* /usr/share/locales/* \
     && rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 
+RUN chmod +x /etc/my_init.d/*.sh && \
+    ldconfig && \
+    strip HandBrakeCLI \
+    && strip makemkvcon || echo "makemkvcon not found yet"
+
+# Add dvd encryption support - not always needed but helpfull if user only uses HandBrakeCLI for dvds
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y libdvd-pkg && \
+    echo "libdvd-pkg/libdvd-pkg/auto-install boolean true" | debconf-set-selections && \
+    dpkg-reconfigure -f noninteractive libdvd-pkg && \
+    rm -rf /var/lib/apt/lists/*
+
+
 # Add ARMui service
 RUN mkdir /etc/service/armui
 COPY ./scripts/docker/runsv/armui.sh /etc/service/armui/run
@@ -189,26 +202,13 @@ COPY --from=builder /usr/local/lib/libjansson*.so* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libturbojpeg*.so* /usr/local/lib/
 # We need to use a modified udev
 COPY ./scripts/docker/custom_udev /etc/init.d/udev
-RUN chmod +x /etc/my_init.d/*.sh
-# Update linker cache
-RUN ldconfig
-RUN strip HandBrakeCLI \
-    && strip makemkvcon || echo "makemkvcon not found yet"
 
-# Add dvd encryption support - not always needed but helpfull if user only uses HandBrakeCLI for dvds
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y libdvd-pkg && \
-    echo "libdvd-pkg/libdvd-pkg/auto-install boolean true" | debconf-set-selections && \
-    dpkg-reconfigure -f noninteractive libdvd-pkg && \
-    rm -rf /var/lib/apt/lists/*
 # Copy over source code
 COPY . /opt/arm/
 
 # Our docker udev rule
 RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
 
-# Allow git to be managed from the /opt/arm folders
-RUN git config --global --add safe.directory /opt/arm
 
 ###########################################################
 # Default command
