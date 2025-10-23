@@ -1,4 +1,4 @@
-It is worth noting that you require an intel igpu (integrated GPU) to use Intel Quicksync.  You can check if your CPU is supported here: (https://www.intel.com/content/www/us/en/support/articles/000029338/graphics.html)
+It is worth noting that you require an intel igpu (integrated GPU) or discrete GPU to use Intel Quicksync. You can check if your CPU is supported here: (https://www.intel.com/content/www/us/en/support/articles/000029338/graphics.html)
 
 # Adding Intel QuickSync Support
 
@@ -27,13 +27,14 @@ HandBrake has exited.
 ```
 
 If you don't see `qsv_h264` or `qsv_h265` your version of HandBrakeCLI might not have have QSV enabled when it was built. 
-This also could be that you don't have Intel Media SDK installed.
+This also could be that you don't have Intel Media SDK or Intel libvpl installed.
 
-The Intel Media SDK is required for QSV with HandBrake to work.
+Depending on your CPU/GPU, the Intel Media SDK or Intel libvpl is required for QSV with HandBrake to work. You can check here: https://github.com/intel/libvpl?tab=readme-ov-file#dispatcher-behavior-when-targeting-intel-gpus
 
-So you can either try to find the Intel Media SDK package from your distro or you can build it from source.
+## Intel Media SDK (older CPUs)
+For older CPUs, you can either try to find the Intel Media SDK package from your distro or you can build it from source.
 
-I have made a script that will Install all the requirements for Intel QSV to get up and running.
+I have made a script that will Install all the requirements for Intel QSV with Intel Media SDK to get up and running.
 
 You can either follow along the [commands](https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/installers/ubuntu-quicksync.sh) or you can run:
 
@@ -45,6 +46,11 @@ You can either follow along the [commands](https://raw.githubusercontent.com/aut
  ```
  Remember to `reboot` to complete installation.
 
+## Intel libvpl (newer CPUs and discrete GPUs)
+
+Note, that the requirements for qsv with newer Intel CPUs are different from qsv with discrete GPUs.
+
+Unfortunately, support for those isn't completely figured out yet. You can follow the main issue ([#909](https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/909)) or look for guides in issues or discussions. There are some working examples, but this still needs testing.
 
 ## After Installation
 Once you have verified everything installed correctly and the `qsv_264` or `qsv_265` show up when you run the HandBrakeCLI command above. You can set your profile in your arm.yaml config.
