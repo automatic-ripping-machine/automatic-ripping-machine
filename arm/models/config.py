@@ -69,6 +69,8 @@ class Config(db.Model):
     PO_USER_KEY = db.Column(db.String(64))
     PO_APP_KEY = db.Column(db.String(64))
     OMDB_API_KEY = db.Column(db.String(64))
+    USE_DISC_LABEL_FOR_TV = db.Column(db.Boolean)
+    GROUP_TV_DISCS_UNDER_SERIES = db.Column(db.Boolean)
 
     def __init__(self, c, job_id):
         self.__dict__.update(c)

@@ -57,6 +57,7 @@
                 </div>
             </div>
         </div>
+        
         <!-- Messages -->
         <div id="message1" class="alert alert-success d-none" role="alert">
             <h4 class="alert-heading">Job was deleted successfully</h4>
@@ -95,7 +96,7 @@
                         <div class="col-md-4" id="jobId{{ job.job_id }}">
                             <div class="card mb-3  mx-auto">
                                 <!-- Card Header -->
-                                <div class="card-header row no-gutters justify-content-center">
+                                <div class="card-header text-center">
                                     <strong>
                                      {% if not job.title_manual %}
                                         {{ job["title"] }} {{ '('+job['year']+')' if job["year"] is not none }}

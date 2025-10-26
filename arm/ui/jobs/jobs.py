@@ -356,3 +356,439 @@ def feed_json():
     return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
                               status=200,
                               mimetype=constants.JSON_TYPE)
+
+
+@route_jobs.route('/batch_rename', methods=['POST'])
+@login_required
+def batch_rename_api():
+    """
+    Batch rename API endpoint for TV series disc folders
+
+    Supports three actions:
+    - 'preview': Generate preview of rename operation
+    - 'execute': Perform the batch rename
+    - 'rollback': Undo a previous batch rename
+
+    Expected JSON payload for 'preview' and 'execute':
+    {
+        "action": "preview" | "execute",
+        "job_ids": [1, 2, 3, ...],
+        "naming_style": "underscore" | "hyphen" | "space",
+        "zero_padded": true | false,
+        "consolidate": true | false,
+        "include_year": true | false,
+        "outlier_resolution": {"job_id": "force" | "override" | "skip"},
+        "batch_id": "uuid" (only for execute)
+    }
+
+    Expected JSON payload for 'rollback':
+    {
+        "action": "rollback",
+        "batch_id": "uuid"
+    }
+    """
+    from arm.ui import batch_rename as br
+
+    try:
+        data = request.get_json()
+        action = data.get('action')
+
+        # Get current user email
+        user_email = current_user.email if current_user and current_user.is_authenticated else 'unknown'
+
+        if action == 'preview':
+            # Generate preview
+            job_ids = data.get('job_ids', [])
+            naming_style = data.get('naming_style', 'underscore')
+            zero_padded = data.get('zero_padded', False)
+            consolidate = data.get('consolidate', False)
+            include_year = data.get('include_year', True)
+            outlier_resolution = data.get('outlier_resolution', {})
+
+            preview = br.preview_batch_rename(
+                job_ids=job_ids,
+                naming_style=naming_style,
+                zero_padded=zero_padded,
+                consolidate=consolidate,
+                include_year=include_year,
+                outlier_resolution=outlier_resolution
+            )
+
+            # Add naming options to preview for frontend
+            preview['naming_style'] = naming_style
+            preview['zero_padded'] = zero_padded
+
+            return app.response_class(
+                response=json.dumps(preview, indent=2, default=str),
+                status=200,
+                mimetype='application/json'
+            )
+
+        elif action == 'execute':
+            # Execute batch rename
+            job_ids = data.get('job_ids', [])
+            naming_style = data.get('naming_style', 'underscore')
+            zero_padded = data.get('zero_padded', False)
+            consolidate = data.get('consolidate', False)
+            include_year = data.get('include_year', True)
+            outlier_resolution = data.get('outlier_resolution', {})
+            batch_id = data.get('batch_id')
+
+            # Generate batch ID if not provided
+            if not batch_id:
+                batch_id = br.generate_batch_id()
+
+            # Generate preview first
+            preview = br.preview_batch_rename(
+                job_ids=job_ids,
+                naming_style=naming_style,
+                zero_padded=zero_padded,
+                consolidate=consolidate,
+                include_year=include_year,
+                outlier_resolution=outlier_resolution
+            )
+
+            # Execute the rename
+            result = br.execute_batch_rename(
+                preview_data=preview,
+                batch_id=batch_id,
+                current_user_email=user_email
+            )
+
+            result['batch_id'] = batch_id
+
+            return app.response_class(
+                response=json.dumps(result, indent=2, default=str),
+                status=200 if result['success'] else 500,
+                mimetype='application/json'
+            )
+
+        elif action == 'rollback':
+            # Rollback a previous batch rename
+            batch_id = data.get('batch_id')
+
+            if not batch_id:
+                return app.response_class(
+                    response=json.dumps({'success': False, 'error': 'batch_id is required for rollback'}),
+                    status=400,
+                    mimetype='application/json'
+                )
+
+            result = br.rollback_batch_rename(
+                batch_id=batch_id,
+                current_user_email=user_email
+            )
+
+            return app.response_class(
+                response=json.dumps(result, indent=2, default=str),
+                status=200 if result['success'] else 500,
+                mimetype='application/json'
+            )
+
+        elif action == 'recent_batches':
+            # Get recent batch operations
+            limit = data.get('limit', 10)
+            batches = br.get_recent_batches(limit=limit)
+
+            return app.response_class(
+                response=json.dumps({'success': True, 'batches': batches}, indent=2, default=str),
+                status=200,
+                mimetype='application/json'
+            )
+
+        else:
+            return app.response_class(
+                response=json.dumps({'success': False, 'error': f'Unknown action: {action}'}),
+                status=400,
+                mimetype='application/json'
+            )
+
+    except Exception as e:
+        app.logger.error(f"Batch rename API error: {e}", exc_info=True)
+        return app.response_class(
+            response=json.dumps({'success': False, 'error': 'An error occurred during batch rename operation'}),
+            status=500,
+            mimetype='application/json'
+        )
+
+
+def _process_tmdb_search_result(item, video_type):
+    """Process a single TMDB search result item."""
+    item_type = item.get('media_type', '')
+    if not item_type:
+        if 'title' in item:
+            item_type = 'movie'
+        elif 'name' in item:
+            item_type = 'series'
+
+    # Filter by video type
+    if video_type == 'series' and item_type != 'series':
+        return None
+    if video_type == 'movie' and item_type != 'movie':
+        return None
+
+    # Get title and year
+    if item_type == 'movie':
+        title = item.get('title', 'Unknown')
+        release_date = item.get('release_date', '')
+        year = release_date[:4] if release_date else ''
+    else:
+        title = item.get('name', 'Unknown')
+        first_air = item.get('first_air_date', '')
+        year = first_air[:4] if first_air else ''
+
+    # Get poster URL
+    poster_path = item.get('poster_path', '')
+    poster_url = (
+        f"https://image.tmdb.org/t/p/w500{poster_path}"
+        if poster_path else ''
+    )
+
+    return {
+        'title': title,
+        'year': year,
+        'type': item_type,
+        'imdb_id': item.get('imdb_id', ''),
+        'tmdb_id': item.get('id', ''),
+        'poster_url': poster_url,
+        'plot': item.get('overview', '')
+    }
+
+
+def _process_omdb_search_result(item, video_type):
+    """Process a single OMDb search result item."""
+    item_type = item.get('Type', '').lower()
+
+    # Filter by video type
+    if video_type == 'series' and item_type != 'series':
+        return None
+    if video_type == 'movie' and item_type != 'movie':
+        return None
+
+    return {
+        'title': item.get('Title', 'Unknown'),
+        'year': item.get('Year', ''),
+        'type': item.get('Type', ''),
+        'imdb_id': item.get('imdbID', ''),
+        'poster_url': item.get('Poster', ''),
+        'plot': ''
+    }
+
+
+def _search_metadata(query, video_type, year, provider, metadata):
+    """Search metadata provider and return results."""
+    results = []
+
+    if provider == 'tmdb':
+        search_results = metadata.tmdb_search(query, year)
+        if search_results and 'results' in search_results:
+            for item in search_results['results'][:10]:
+                result = _process_tmdb_search_result(item, video_type)
+                if result:
+                    results.append(result)
+
+    elif provider == 'omdb':
+        search_results = metadata.call_omdb_api(
+            title=query,
+            year=year if year else None
+        )
+        if search_results and 'Search' in search_results:
+            for item in search_results['Search'][:10]:
+                result = _process_omdb_search_result(item, video_type)
+                if result:
+                    results.append(result)
+
+    return results
+
+
+def _apply_custom_lookup_to_jobs(job_ids, title, year, video_type,
+                                 imdb_id, poster_url):
+    """Apply custom identification metadata to selected jobs."""
+    updated_jobs = []
+    errors = []
+
+    for job_id in job_ids:
+        try:
+            job = Job.query.get(int(job_id))
+            if not job:
+                errors.append(f'Job {job_id} not found')
+                continue
+
+            # Update job metadata
+            job.title = title
+            job.title_manual = title
+            job.year = year
+            job.video_type = video_type
+            job.imdb_id = imdb_id
+            job.poster_url = poster_url
+            job.hasnicetitle = True
+
+            updated_jobs.append({
+                'job_id': job_id,
+                'title': title,
+                'year': year,
+                'type': video_type
+            })
+
+        except Exception as e:
+            app.logger.error(f"Error updating job {job_id}: {e}", exc_info=True)
+            errors.append(f'Job {job_id}: Failed to apply custom lookup')
+
+    return updated_jobs, errors
+
+
+@route_jobs.route('/batch_custom_lookup', methods=['POST'])
+@login_required
+def batch_custom_lookup_api():
+    """
+    Custom identification lookup API for batch operations.
+
+    Supports two actions:
+    - 'search': Search for title in TMDB/OMDb
+    - 'apply': Apply custom identification to selected jobs
+
+    Expected JSON payload for 'search':
+    {
+        "action": "search",
+        "query": "Breaking Bad",
+        "video_type": "series" | "movie",
+        "year": "2008" (optional)
+    }
+
+    Expected JSON payload for 'apply':
+    {
+        "action": "apply",
+        "job_ids": [1, 2, 3, ...],
+        "title": "Breaking Bad",
+        "year": "2008",
+        "video_type": "series",
+        "imdb_id": "tt0903747",
+        "poster_url": "https://..."
+    }
+    """
+    import arm.ui.metadata as metadata
+
+    try:
+        data = request.get_json()
+        action = data.get('action')
+
+        if action == 'search':
+            query = data.get('query', '').strip()
+            video_type = data.get('video_type', 'series')
+            year = data.get('year', '')
+
+            if not query:
+                return app.response_class(
+                    response=json.dumps({
+                        'success': False,
+                        'error': 'Search query is required'
+                    }),
+                    status=400,
+                    mimetype='application/json'
+                )
+
+            provider = cfg.arm_config.get(
+                'METADATA_PROVIDER', 'tmdb'
+            ).lower()
+
+            app.logger.info(
+                f"Custom lookup search: query='{query}', "
+                f"type={video_type}, provider={provider}"
+            )
+
+            results = _search_metadata(
+                query, video_type, year, provider, metadata
+            )
+
+            return app.response_class(
+                response=json.dumps({
+                    'success': True,
+                    'results': results,
+                    'provider': provider
+                }, indent=2),
+                status=200,
+                mimetype='application/json'
+            )
+
+        elif action == 'apply':
+            job_ids = data.get('job_ids', [])
+            title = data.get('title', '').strip()
+            year = data.get('year', '')
+            video_type = data.get('video_type', 'series')
+            imdb_id = data.get('imdb_id', '')
+            poster_url = data.get('poster_url', '')
+
+            if not job_ids:
+                return app.response_class(
+                    response=json.dumps({
+                        'success': False,
+                        'error': 'No jobs selected'
+                    }),
+                    status=400,
+                    mimetype='application/json'
+                )
+
+            if not title:
+                return app.response_class(
+                    response=json.dumps({
+                        'success': False,
+                        'error': 'Title is required'
+                    }),
+                    status=400,
+                    mimetype='application/json'
+                )
+
+            updated_jobs, errors = _apply_custom_lookup_to_jobs(
+                job_ids, title, year, video_type, imdb_id, poster_url
+            )
+
+            if updated_jobs:
+                try:
+                    db.session.commit()
+                    app.logger.info(
+                        f"Custom lookup applied to {len(updated_jobs)} "
+                        f"jobs: {title} ({video_type})"
+                    )
+                except Exception as e:
+                    db.session.rollback()
+                    app.logger.error(f"Database commit error: {e}", exc_info=True)
+                    return app.response_class(
+                        response=json.dumps({
+                            'success': False,
+                            'error': 'Failed to save changes to database'
+                        }),
+                        status=500,
+                        mimetype='application/json'
+                    )
+
+            return app.response_class(
+                response=json.dumps({
+                    'success': True,
+                    'updated_count': len(updated_jobs),
+                    'updated_jobs': updated_jobs,
+                    'errors': errors
+                }, indent=2),
+                status=200,
+                mimetype='application/json'
+            )
+
+        else:
+            return app.response_class(
+                response=json.dumps({
+                    'success': False,
+                    'error': f'Unknown action: {action}'
+                }),
+                status=400,
+                mimetype='application/json'
+            )
+
+    except Exception as e:
+        app.logger.error(f"Batch custom lookup API error: {e}", exc_info=True)
+        return app.response_class(
+            response=json.dumps({
+                'success': False,
+                'error': 'An error occurred during custom lookup operation'
+            }),
+            status=500,
+            mimetype='application/json'
+        )
