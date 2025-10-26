@@ -49,7 +49,7 @@ The script will now:
 
     3. To set the timezone, enter an acceptable value for `TZ`. If none is set, the default timezone is UTC.
 
-       Example: -e TZ=New_York`
+       Example: -e `TZ=New_York`
 
     4. Fill in the appropriate paths for the volumes being mounted. Only change the path on the left hand side, docker volumes are configured with "[local path]:[arm path]". More information about volumes is found below under the heading: [Understanding Docker Volumes for A.R.M.](#understanding-docker-volumes-for-arm)
 
@@ -63,7 +63,7 @@ The script will now:
 
    7. Set the name of the docker image, the default is below, but can be user configured.
       
-      Example: `--name "automatic-ripping-machine"`
+      Example: `--name "arm-rippers"`
    
    8. Save and close
 
