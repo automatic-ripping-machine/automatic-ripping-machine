@@ -98,6 +98,11 @@ def main(logfile, job):
     logging.debug(f"Value of have_dupes: {have_dupes}")
 
     utils.notify_entry(job)
+
+    if cfg.arm_config["UMASK"]:
+        logging.info(f"Setting umask to {cfg.arm_config['UMASK']}")
+        os.umask(int(cfg.arm_config["UMASK"], 8))
+
     # Check if user has manual wait time enabled
     utils.check_for_wait(job)
 
