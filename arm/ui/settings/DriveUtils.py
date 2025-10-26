@@ -10,7 +10,7 @@ Ripper Utils
 
 import dataclasses
 import logging
-
+import re
 import pyudev
 
 from arm.models import SystemDrives
@@ -26,10 +26,18 @@ class MaskSerialMeta(type):
         original_repr = cls.__repr__ if hasattr(cls, '__repr__') else object.__repr__
 
         def masked_repr(self):
-            """Mask the serial with asterisk in the repr"""
+            """Mask the serial with asterisks in the repr"""
             repr_str = original_repr(self)
-            mask_last = self.serial[:-6] + '*' * 6
-            return repr_str.replace(self.serial, mask_last)
+            serial = getattr(self, "serial", None)
+
+            if serial and len(serial) > 6:
+                masked = serial[:-6] + "*" * 6
+            elif serial:  # shorter than 6 chars
+                masked = "*" * len(serial)
+            else:  # None or empty
+                masked = "UNKNOWN"
+
+            return repr_str.replace(str(serial), masked, 1)
 
         cls.__repr__ = masked_repr
 
@@ -114,9 +122,14 @@ class DriveInformationExtended(DriveInformation):
 
     @staticmethod
     def _convert_bool(value):
-        if isinstance(value, (str, int, float, bool)):
+        # Allow some of the data to be None
+        if value in (None, "", "unknown"):
+            return False
+        try:
+            # Test if we have filled values
             return bool(int(value))
-        return False
+        except (ValueError, TypeError):
+            return False
 
     def __post_init__(self):
         super().__post_init__()
@@ -160,17 +173,53 @@ class DriveInformationMedium(DriveInformationExtended, metaclass=MaskSerialMeta)
 
 
 def drives_search():
-    """Search the system for optical drives.
+    """
+    Search the system for optical drives and yield DriveInformationMedium objects.
+
+    In a container environment, falls back to treating /dev/sr* as optical drives.
     """
     context = pyudev.Context()
     for device in context.list_devices(subsystem="block"):
-        if device.properties.get("ID_TYPE") == "cd":
-            fields = (
-                DRIVE_INFORMATION +
-                DRIVE_INFORMATION_EXTENDED +
-                DRIVE_INFORMATION_MEDIUM
+        try:
+            devnode = device.device_node
+            if not devnode:
+                continue
+
+            # Ignore loop&nvme devices
+            if devnode and (devnode.startswith("/dev/loop") or devnode.startswith("/dev/nvme")):
+                # Logging here might not be helpful, unsure yet
+                # logging.debug("Ignoring loop/nvme device: %s", devnode)
+                continue
+
+            # Log all properties - Helps with debugging if a drive has loaded all properties, or just the base
+            logging.debug("Device: %s", devnode)
+            for key, value in device.properties.items():
+                app.logger.debug("  %s = %s", key, value)
+
+            # Optical drive detection - Try to use ID_TYPE then ID_CDROM but fall back to all drives matching /dev/sr*
+            # NOTE: this may be better to check if MAJOR = 11
+            # + devname `/dev/sr*` and possibly DEVTYPE as this always means its an optical drive on linux
+            # But just the first two MAJOR + devname should be more than enough to verify its a CD/DVD drive
+            is_optical = (
+                device.properties.get("ID_TYPE") == "cd" or
+                device.properties.get("ID_CDROM") == "1" or
+                re.match(r"^/dev/sr\d+$", devnode)
             )
-            yield DriveInformationMedium(*map(device.properties.get, fields))
+
+            if is_optical:
+                logging.info("Optical drive detected: %s", devnode)
+
+                # Try to populate fields, but allow missing values incase the drive hasn't been mounted/activated yet
+                fields = (
+                    DRIVE_INFORMATION +
+                    DRIVE_INFORMATION_EXTENDED +
+                    DRIVE_INFORMATION_MEDIUM
+                )
+                values = [device.properties.get(field) or "" for field in fields]
+                yield DriveInformationMedium(*values)
+
+        except Exception as e:
+            app.logger.error("Error processing device %s: %s", device, e, exc_info=True)
 
 
 def drives_update(startup=False):
@@ -192,8 +241,11 @@ def drives_update(startup=False):
     db.session.commit()
 
     # Update drive information:
-    for drive in sorted(drives_search()):  # sorted by mount point
-        app.logger.debug(drive)
+    system_drives = sorted(drives_search())
+    if len(system_drives) < 1:
+        logging.error(f"We Cant find any system drives!. {system_drives}")
+    for drive in system_drives:  # sorted by mount point
+        logging.debug(f"Drive info: {drive}")
         # Retrieve the drive matching `drive.serial_id` from the database or
         # create a new entry if it doesn't exist. Since `drive.serial_id` *may*
         # not be unique, we update only the first drive that misses the mdisc
