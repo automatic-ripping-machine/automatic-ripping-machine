@@ -86,3 +86,5 @@ app.register_blueprint(route_notifications)
 # Remove GET/page loads from logging
 import logging  # noqa: E402,F811
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
+
+app.config.from_object(obj=cfg.arm_config)

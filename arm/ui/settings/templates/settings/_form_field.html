@@ -1,9 +1,9 @@
 {% macro render_field(field) %}
-<div class="input-group m-3">
-    <div class="input-group-prepend mx-2">
-        {{ field.label(class_="input-group-text")}}
+<div class="input-group m-3 w-auto">
+    <div class="input-group-prepend mx-2 w-auto">
+        {{ field.label(class_="input-group-text w-auto")}}
     </div>
-    <div class="input-group-append me-2">
+    <div class="input-group-append me-2 w-75">
         {{ field(class_=(field.render_kw.get('class', '') + (' is-invalid' if field.errors else ''))) | safe }}
 
     </div>
