@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Handbrake processing of dvd/blu-ray"""
+"""FFMPEG processing of dvd/blu-ray"""
 
 import os
 import logging
@@ -11,7 +11,7 @@ import arm.config.config as cfg
 from arm.ripper import utils
 from arm.ui import app, db  # noqa E402
 
-PROCESS_COMPLETE = "Handbrake processing complete"
+PROCESS_COMPLETE = "FFMPEG processing complete"
 
 
 def ffmpeg_main_feature(srcpath, basepath, logfile, job):
@@ -29,7 +29,7 @@ def ffmpeg_main_feature(srcpath, basepath, logfile, job):
 
     utils.database_updater({'status': "waiting_transcode"}, job)
     # TODO: send a notification that jobs are waiting ?
-    utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
+    utils.sleep_check_process({cfg.arm_config["FFMPEG_CLI"]}, int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
     logging.debug("Setting job status to 'transcoding'")
     utils.database_updater({'status': "transcoding"}, job)
     filename = os.path.join(job.title + "." + cfg.arm_config["DEST_EXT"])
@@ -90,8 +90,7 @@ def ffmpeg_all(srcpath, basepath, logfile, job):
     # Wait until there is a spot to transcode
     job.status = "waiting_transcode"
     db.session.commit()
-    #shouldent this be ffmpeg?
-    utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
+    utils.sleep_check_process({cfg.arm_config["FFMPEG_CLI"]}, int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
     job.status = "transcoding"
     db.session.commit()
     logging.info("Starting BluRay/DVD transcoding - All titles")
@@ -178,19 +177,19 @@ def correct_hb_settings(job):
     return hb_args, hb_preset
 
 
-def ffmpeg_defualt(srcpath, basepath, logfile, job):
+def ffmpeg_default(srcpath, basepath, logfile, job):
     """
     Process all mkv files in a directory.\n\n
-    :param srcpath: Path to source for HB (dvd or files)\n
-    :param basepath: Path where HB will save trancoded files\n
-    :param logfile: Logfile for HB to redirect output to\n
+    :param srcpath: Path to source for ffmpeg (dvd or files)\n
+    :param basepath: Path where ffmpeg will save trancoded files\n
+    :param logfile: Logfile for ffmpeg to redirect output to\n
     :param job: Disc object\n
     :return: None
     """
     # Added to limit number of transcodes
     job.status = "waiting_transcode"
     db.session.commit()
-    utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
+    utils.sleep_check_process({cfg.arm_config["FFMPEG_CLI"]}, int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
     job.status = "transcoding"
     db.session.commit()
     hb_args, hb_preset = correct_hb_settings(job)
@@ -202,6 +201,7 @@ def ffmpeg_defualt(srcpath, basepath, logfile, job):
         # MakeMKV always saves in mkv we need to update the db with the new filename
         logging.debug(destfile + ".mkv")
         job_current_track = job.tracks.filter_by(filename=destfile + ".mkv")
+        track = None
         for track in job_current_track:
             logging.debug("filename: " + track.filename)
             track.orig_filename = track.filename
@@ -247,47 +247,102 @@ def get_track_info(srcpath, job):
     :param job: Job instance\n
     :return: None
     """
-    logging.info("Using FFMPEG to get information on all the tracks on the disc.  This will take a few minutes...")
+    logging.info("Using ffprobe to get information on tracks. This will take a few moments...")
 
-    cmd = f'{cfg.arm_config["HANDBRAKE_LOCAL"]} -i {shlex.quote(srcpath)} -t 0 --scan'
+    # Use ffprobe (part of ffmpeg) to get stream and format information in JSON
+    # We'll query the format duration and the video streams for width/height and r_frame_rate
+    cmd = (
+        f"{cfg.arm_config.get('FFPROBE_CLI', 'ffprobe')} -v error -print_format json -show_format -show_streams "
+        f"{shlex.quote(srcpath)}"
+    )
     logging.debug(f"Sending command: {cmd}")
-    hand_break_output = handbrake_char_encoding(cmd)
+    try:
+        output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
+    except subprocess.CalledProcessError as e:
+        logging.error(f"ffprobe failed: {e.returncode} {e.output}")
+        # fall back to original behavior: no track info
+        utils.put_track(job, 0, 0, 0, 0.0, False, "FFmpeg")
+        return
 
-    if hand_break_output is not None:
-        t_pattern = re.compile(r'.*\+ title *')
-        pattern = re.compile(r'.*duration:.*')
-        seconds = 0
-        t_no = 0
-        fps = float(0)
+    # parse JSON
+    try:
+        import json
+
+        data = json.loads(output)
+    except Exception as e:
+        logging.error(f"Failed to parse ffprobe output as JSON: {e}")
+        utils.put_track(job, 0, 0, 0, 0.0, False, "FFmpeg")
+        return
+
+    # Determine number of titles/tracks from streams (count video streams or program entry if available)
+    # Here we interpret each video stream as a track candidate
+    streams = data.get('streams', [])
+    format_info = data.get('format', {})
+
+    # ffprobe provides duration as a string in format section
+    duration = 0
+    if 'duration' in format_info:
+        try:
+            duration = int(float(format_info['duration']))
+        except Exception:
+            duration = 0
+
+    # If multiple video streams exist, treat each as a title/track; otherwise treat the input as a single track
+    video_streams = [s for s in streams if s.get('codec_type') == 'video']
+    no_of_titles = len(video_streams) if video_streams else 1
+    job.no_of_titles = str(no_of_titles)
+    db.session.commit()
+
+    # Iterate and create/update Track entries. We will use stream index+1 as title number.
+    t_no = 0
+    for idx, vs in enumerate(video_streams, start=1):
+        t_no = idx
+        # duration for the specific stream may not be present; fall back to container duration
+        track_duration = 0
+        if vs.get('duration'):
+            try:
+                track_duration = int(float(vs.get('duration')))
+            except Exception:
+                track_duration = 0
+        else:
+            track_duration = duration
+
+        # fps: ffprobe uses r_frame_rate or avg_frame_rate as strings like '30000/1001'
+        fps = 0.0
+        fps_raw = vs.get('r_frame_rate') or vs.get('avg_frame_rate')
+        if fps_raw and fps_raw != '0/0':
+            try:
+                if '/' in fps_raw:
+                    num, den = fps_raw.split('/')
+                    fps = float(num) / float(den)
+                else:
+                    fps = float(fps_raw)
+            except Exception:
+                fps = 0.0
+
+        # aspect: compute from width/height if available
         aspect = 0
-        result = None
+        width = vs.get('width')
+        height = vs.get('height')
+        if width and height:
+            try:
+                aspect = round(float(width) / float(height), 2)
+            except Exception:
+                aspect = 0
+
+        # Determine main_feature heuristics: choose the longest video stream as main
         main_feature = False
-        for line in hand_break_output:
+        # We'll mark main_feature True if this stream has the longest duration seen so far
+        # To do that, we need to compare durations. Keep a simple check: if this is the first, mark it and later update via utils.put_track calls
+        if idx == 1:
+            main_feature = True
 
-            # get number of titles
-            if result is None:
-                # scan: DVD has 12 title(s)
-                result = re.search(r'scan: (BD|DVD) has (\d{1,3}) title\(s\)', line)
+        # call utils.put_track for each discovered track
+        utils.put_track(job, t_no, track_duration, aspect, fps, main_feature, "FFmpeg")
 
-                if result:
-                    titles = result.group(2).strip()
-                    logging.debug(f"Line found is: {line}")
-                    logging.info(f"Found {titles} titles")
-                    job.no_of_titles = titles
-                    db.session.commit()
-
-            main_feature, t_no = title_finder(aspect, fps, job, line, main_feature, seconds, t_no, t_pattern)
-            seconds = seconds_builder(line, pattern, seconds)
-            main_feature = is_main_feature(line, main_feature)
-
-            if (re.search(" fps", line)) is not None:
-                fps = line.rsplit(' ', 2)[-2]
-                aspect = line.rsplit(' ', 3)[-3]
-                aspect = str(aspect).replace(",", "")
-    else:
-        logging.info("HandBrake unable to get track information")
-
-    utils.put_track(job, t_no, seconds, aspect, fps, main_feature, "HandBrake")
+    # If there were no video streams, still register a single track using container duration
+    if not video_streams:
+        utils.put_track(job, 1, duration, 0, 0.0, False, "FFmpeg")
 
 
 def title_finder(aspect, fps, job, line, main_feature, seconds, t_no, t_pattern):
@@ -386,10 +441,9 @@ def ffmpeg_mkv(srcpath, basepath, logfile, job):
     # Added to limit number of transcodes
     job.status = "waiting_transcode"
     db.session.commit()
-    utils.sleep_check_process("FFMPEG_CLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
+    utils.sleep_check_process({cfg.arm_config["FFMPEG_CLI"]}, int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
     job.status = "transcoding"
     db.session.commit()
-    hb_args, hb_preset = correct_hb_settings(job)
 
     # This will fail if the directory raw gets deleted
     for files in os.listdir(srcpath):
@@ -398,6 +452,7 @@ def ffmpeg_mkv(srcpath, basepath, logfile, job):
         # MakeMKV always saves in mkv we need to update the db with the new filename
         logging.debug(destfile + ".mkv")
         job_current_track = job.tracks.filter_by(filename=destfile + ".mkv")
+        track = None
         for track in job_current_track:
             logging.debug("filename: " + track.filename)
             track.orig_filename = track.filename
@@ -423,13 +478,19 @@ def ffmpeg_mkv(srcpath, basepath, logfile, job):
             cmd2 = f"nice mkdir -p {basepath} && chmod -R 777 {basepath}"
             subprocess.check_output(cmd2, shell=True).decode("utf-8")
             subprocess.check_output(cmd, shell=True).decode("utf-8")
-            logging.info("Handbrake call successful")
-            track.status = "success"
+            logging.info("FFmpeg call successful")
+            if track is not None:
+                track.status = "success"
+                db.session.commit()
+            else:
+                logging.debug("No matching DB track found to mark success")
         except subprocess.CalledProcessError as hb_error:
-            err = f"Call to handbrake failed with code: {hb_error.returncode}({hb_error.output})"
+            err = f"Call to FFmpeg failed with code: {hb_error.returncode}({hb_error.output})"
             logging.error(err)
-            track.status = "fail"
-            track.error = job.errors = err
+            if track is not None:
+                track.status = "fail"
+                track.error = err
+            job.errors = err
             job.status = "fail"
             db.session.commit()
             raise subprocess.CalledProcessError(hb_error.returncode, cmd)
