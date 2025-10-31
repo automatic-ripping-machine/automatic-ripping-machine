@@ -77,6 +77,29 @@ def probe_source(srcpath):
         return None
 
 
+def _parse_fps(fps_raw):
+    """Parse ffprobe frame-rate string like '30000/1001' or '25' to float."""
+    if not fps_raw or fps_raw == '0/0':
+        return 0.0
+    try:
+        if '/' in fps_raw:
+            num, den = fps_raw.split('/')
+            return float(num) / float(den)
+        return float(fps_raw)
+    except Exception:
+        return 0.0
+
+
+def _compute_aspect(width, height):
+    """Compute aspect ratio from width and height, rounded to 2 decimals."""
+    if not width or not height:
+        return 0
+    try:
+        return round(float(width) / float(height), 2)
+    except Exception:
+        return 0
+
+
 def parse_probe_output(json_str):
     """Parse ffprobe JSON string and return a list of normalized track dicts.
 
@@ -126,27 +149,13 @@ def parse_probe_output(json_str):
             dur = container_duration
 
         # fps parsing
-        fps = 0.0
         fps_raw = s.get('r_frame_rate') or s.get('avg_frame_rate')
-        if fps_raw and fps_raw != '0/0':
-            try:
-                if '/' in fps_raw:
-                    num, den = fps_raw.split('/')
-                    fps = float(num) / float(den)
-                else:
-                    fps = float(fps_raw)
-            except Exception:
-                fps = 0.0
+        fps = _parse_fps(fps_raw)
 
         # aspect ratio from width/height
-        aspect = 0
         width = s.get('width')
         height = s.get('height')
-        if width and height:
-            try:
-                aspect = round(float(width) / float(height), 2)
-            except Exception:
-                aspect = 0
+        aspect = _compute_aspect(width, height)
 
         tracks.append({
             'title': idx,
@@ -336,7 +345,7 @@ def ffmpeg_all(srcpath, basepath, logfile, job):
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
-
+    
 
 def ffmpeg_default(srcpath, basepath, logfile, job):
     """
@@ -425,7 +434,6 @@ def get_track_info(srcpath, job):
     evaluate_and_register_tracks(tracks, job)
 
 
-
 def ffmpeg_mkv(srcpath, basepath, logfile, job):
     """
     Process all mkv files in a directory.\n\n
@@ -496,4 +504,3 @@ def ffmpeg_mkv(srcpath, basepath, logfile, job):
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
-    
