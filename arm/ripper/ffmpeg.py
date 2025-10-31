@@ -345,7 +345,7 @@ def ffmpeg_all(srcpath, basepath, logfile, job):
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
-    
+
 
 def ffmpeg_default(srcpath, basepath, logfile, job):
     """
