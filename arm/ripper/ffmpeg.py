@@ -5,6 +5,7 @@ import os
 import logging
 import subprocess
 import shlex
+import json
 import arm.config.config as cfg
 
 from arm.ripper import utils
@@ -57,6 +58,140 @@ def correct_ffmpeg_settings(job):
     if not ff_options:
         ff_options = cfg.arm_config.get('FFMPEG_OPTIONS', '')
     return ff_args, ff_options
+
+
+def probe_source(srcpath):
+    """Run ffprobe on srcpath and return JSON string or None on failure.
+
+    This is a small wrapper around subprocess.check_output so callers can
+    focus on parsing and error handling.
+    """
+    ffprobe_bin = cfg.arm_config.get('FFPROBE_CLI', 'ffprobe')
+    cmd = f"{ffprobe_bin} -v error -print_format json -show_format -show_streams {shlex.quote(srcpath)}"
+    logging.debug(f"Probe command: {cmd}")
+    try:
+        out = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
+        return out
+    except subprocess.CalledProcessError as e:
+        logging.error(f"ffprobe failed: {e.returncode} {e.output}")
+        return None
+
+
+def parse_probe_output(json_str):
+    """Parse ffprobe JSON string and return a list of normalized track dicts.
+
+    Each returned dict has keys: title (1-based int), duration (int seconds),
+    fps (float), aspect (float), codec (str|None), stream_index (int|None).
+    """
+    try:
+        data = json.loads(json_str)
+    except Exception as e:
+        logging.error(f"Failed to parse ffprobe JSON: {e}")
+        return []
+
+    streams = data.get('streams', [])
+    format_info = data.get('format', {})
+
+    # container duration fallback
+    container_duration = 0
+    if 'duration' in format_info:
+        try:
+            container_duration = int(float(format_info['duration']))
+        except Exception:
+            container_duration = 0
+
+    # pick video streams only
+    video_streams = [s for s in streams if s.get('codec_type') == 'video']
+    if not video_streams:
+        # single fallback track using container duration
+        return [{
+            'title': 1,
+            'duration': container_duration,
+            'fps': 0.0,
+            'aspect': 0,
+            'codec': format_info.get('format_name'),
+            'stream_index': None,
+        }]
+
+    tracks = []
+    for idx, s in enumerate(video_streams, start=1):
+        # per-stream duration if present, else container
+        dur = None
+        if s.get('duration'):
+            try:
+                dur = int(float(s.get('duration')))
+            except Exception:
+                dur = None
+        if dur is None:
+            dur = container_duration
+
+        # fps parsing
+        fps = 0.0
+        fps_raw = s.get('r_frame_rate') or s.get('avg_frame_rate')
+        if fps_raw and fps_raw != '0/0':
+            try:
+                if '/' in fps_raw:
+                    num, den = fps_raw.split('/')
+                    fps = float(num) / float(den)
+                else:
+                    fps = float(fps_raw)
+            except Exception:
+                fps = 0.0
+
+        # aspect ratio from width/height
+        aspect = 0
+        width = s.get('width')
+        height = s.get('height')
+        if width and height:
+            try:
+                aspect = round(float(width) / float(height), 2)
+            except Exception:
+                aspect = 0
+
+        tracks.append({
+            'title': idx,
+            'duration': dur,
+            'fps': fps,
+            'aspect': aspect,
+            'codec': s.get('codec_name'),
+            'stream_index': s.get('index'),
+        })
+
+    return tracks
+
+
+def evaluate_and_register_tracks(tracks, job):
+    """Decide main feature and register tracks via utils.put_track.
+
+    This function sets job.no_of_titles and commits once. It marks the
+    longest-duration track as the main feature.
+    """
+    if not tracks:
+        utils.put_track(job, 1, 0, 0, 0.0, False, "FFmpeg")
+        job.no_of_titles = 1
+        db.session.commit()
+        return
+
+    # select main feature as the track with max duration
+    max_dur = -1
+    main_title = None
+    for t in tracks:
+        if t.get('duration', 0) > max_dur:
+            max_dur = t.get('duration', 0)
+            main_title = t.get('title')
+
+    job.no_of_titles = len(tracks)
+    db.session.commit()
+
+    for t in tracks:
+        is_main = (t.get('title') == main_title)
+        utils.put_track(job,
+                        int(t.get('title')),
+                        int(t.get('duration', 0)),
+                        t.get('aspect', 0),
+                        float(t.get('fps', 0.0)),
+                        bool(is_main),
+                        "FFmpeg")
 
 
 def ffmpeg_main_feature(srcpath, basepath, logfile, job):
@@ -203,8 +338,6 @@ def ffmpeg_all(srcpath, basepath, logfile, job):
     logging.debug(f"\n\r{job.pretty_table()}")
 
 
-
-
 def ffmpeg_default(srcpath, basepath, logfile, job):
     """
     Process all mkv files in a directory.\n\n
@@ -276,100 +409,20 @@ def get_track_info(srcpath, job):
     """
     logging.info("Using ffprobe to get information on tracks. This will take a few moments...")
 
-    # Use ffprobe (part of ffmpeg) to get stream and format information in JSON
-    # We'll query the format duration and the video streams for width/height and r_frame_rate
-    cmd = (
-        f"{cfg.arm_config.get('FFPROBE_CLI', 'ffprobe')} -v error -print_format json -show_format -show_streams "
-        f"{shlex.quote(srcpath)}"
-    )
-    logging.debug(f"Sending command: {cmd}")
-    try:
-        output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
-    except subprocess.CalledProcessError as e:
-        logging.error(f"ffprobe failed: {e.returncode} {e.output}")
-        # fall back to original behavior: no track info
+    # Orchestrate probing and registering via helpers
+    probe_json = probe_source(srcpath)
+    if not probe_json:
+        logging.info("ffprobe returned no data; registering fallback track")
         utils.put_track(job, 0, 0, 0, 0.0, False, "FFmpeg")
         return
 
-    # parse JSON
-    try:
-        import json
-
-        data = json.loads(output)
-    except Exception as e:
-        logging.error(f"Failed to parse ffprobe output as JSON: {e}")
+    tracks = parse_probe_output(probe_json)
+    if not tracks:
+        logging.info("No tracks parsed from ffprobe; registering fallback track")
         utils.put_track(job, 0, 0, 0, 0.0, False, "FFmpeg")
         return
 
-    # Determine number of titles/tracks from streams (count video streams or program entry if available)
-    # Here we interpret each video stream as a track candidate
-    streams = data.get('streams', [])
-    format_info = data.get('format', {})
-
-    # ffprobe provides duration as a string in format section
-    duration = 0
-    if 'duration' in format_info:
-        try:
-            duration = int(float(format_info['duration']))
-        except Exception:
-            duration = 0
-
-    # If multiple video streams exist, treat each as a title/track; otherwise treat the input as a single track
-    video_streams = [s for s in streams if s.get('codec_type') == 'video']
-    no_of_titles = len(video_streams) if video_streams else 1
-    job.no_of_titles = no_of_titles
-    db.session.commit()
-
-    # Iterate and create/update Track entries. We will use stream index+1 as title number.
-    t_no = 0
-    for idx, vs in enumerate(video_streams, start=1):
-        t_no = idx
-        # duration for the specific stream may not be present; fall back to container duration
-        track_duration = 0
-        if vs.get('duration'):
-            try:
-                track_duration = int(float(vs.get('duration')))
-            except Exception:
-                track_duration = 0
-        else:
-            track_duration = duration
-
-        # fps: ffprobe uses r_frame_rate or avg_frame_rate as strings like '30000/1001'
-        fps = 0.0
-        fps_raw = vs.get('r_frame_rate') or vs.get('avg_frame_rate')
-        if fps_raw and fps_raw != '0/0':
-            try:
-                if '/' in fps_raw:
-                    num, den = fps_raw.split('/')
-                    fps = float(num) / float(den)
-                else:
-                    fps = float(fps_raw)
-            except Exception:
-                fps = 0.0
-
-        # aspect: compute from width/height if available
-        aspect = 0
-        width = vs.get('width')
-        height = vs.get('height')
-        if width and height:
-            try:
-                aspect = round(float(width) / float(height), 2)
-            except Exception:
-                aspect = 0
-
-        # Determine main_feature heuristics: choose the longest video stream as main
-        main_feature = False
-        # We'll mark main_feature True if this stream has the longest duration seen so far
-        # To do that, we need to compare durations. Keep a simple check: if this is the first, mark it and later update via utils.put_track calls
-        if idx == 1:
-            main_feature = True
-
-        # call utils.put_track for each discovered track
-        utils.put_track(job, t_no, track_duration, aspect, fps, main_feature, "FFmpeg")
-
-    # If there were no video streams, still register a single track using container duration
-    if not video_streams:
-        utils.put_track(job, 1, duration, 0, 0.0, False, "FFmpeg")
+    evaluate_and_register_tracks(tracks, job)
 
 
 
@@ -443,3 +496,4 @@ def ffmpeg_mkv(srcpath, basepath, logfile, job):
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
+    
