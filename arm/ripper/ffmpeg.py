@@ -64,8 +64,8 @@ def probe_source(src_path):
     This is a small wrapper around subprocess.check_output so callers can
     focus on parsing and error handling.
     """
-    ffprobe_bin = os.path.join(os.path.dirname(cfg.arm_config["FFMPEG_CLI"]), "ffprobe")
-    cmd = f"{ffprobe_bin} -v error -print_format json -show_format -show_streams {shlex.quote(src_path)}"
+    
+    cmd = f"ffprobe -v error -print_format json -show_format -show_streams {shlex.quote(src_path)}"
     logging.debug(f"FFProbe command: {cmd}")
     try:
         out = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
@@ -466,10 +466,9 @@ def run_transcode_cmd(src_file, out_file, log_file, job, ff_pre_args="", ff_post
     logging.debug(f"FFMPEG command: {cmd}")
 
     duration_us = 0
-    ffprobe_bin = os.path.join(os.path.dirname(cfg.arm_config["FFMPEG_CLI"]), "ffprobe")
     try:
         duration_sec_str = subprocess.check_output(
-            f"{ffprobe_bin} -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "
+            f"ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "
             f"{shlex.quote(src_file)}",
             shell=True, stderr=subprocess.STDOUT).decode('utf-8').strip()
         duration_us = int(float(duration_sec_str) * 1_000_000)
