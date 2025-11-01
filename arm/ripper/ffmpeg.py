@@ -234,7 +234,8 @@ def ffmpeg_main_feature(src_path, out_path, log_file, job):
     db.session.commit()
 
     try:
-        subprocess.check_output(f"nice mkdir -p {out_path} && chmod -R 777 {out_path}", shell=True)
+        subprocess.check_output(f"nice mkdir -p {shlex.quote(out_path)}" \
+            f" && chmod -R 777 {shlex.quote(out_path)}", shell=True)
         run_transcode_cmd(src_path, out_file_path, log_file, job)
         logging.info("FFMPEG call successful")
         track.status = "success"
@@ -426,7 +427,8 @@ def ffmpeg_mkv(src_path, base_path, log_file, job):
         logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(file_path_name)}")
 
         try:
-            subprocess.check_output(f"nice mkdir -p {base_path} && chmod -R 777 {base_path}", shell=True)
+            subprocess.check_output(f"nice mkdir -p {shlex.quote(base_path)}" \
+                f"&& chmod -R 777 {shlex.quote(base_path)}", shell=True)
             run_transcode_cmd(src_files_path, file_path_name, log_file, job)
             logging.info("FFmpeg call successful")
             if track is not None:
@@ -443,7 +445,7 @@ def ffmpeg_mkv(src_path, base_path, log_file, job):
             job.errors = err
             job.status = "fail"
             db.session.commit()
-            raise   
+            raise
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
