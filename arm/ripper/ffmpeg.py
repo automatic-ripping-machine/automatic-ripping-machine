@@ -44,7 +44,7 @@ def correct_ffmpeg_settings(job):
         if hasattr(job, "config") and job.config:
             ff_pre_args = getattr(job.config, "FFMPEG_PRE_FILE_ARGS", "")
             ff_post_args = getattr(job.config, "FFMPEG_POST_FILE_ARGS", "")
-            
+
     except Exception:
         # If anything goes wrong with job.config introspection, just fallback
         ff_pre_args = ff_pre_args or cfg.arm_config.get('FFMPEG_PRE_FILE_ARGS', '')
@@ -143,6 +143,7 @@ def parse_probe_output(json_str):
 
     return tracks
 
+
 def _parse_fps(fps_raw):
     """Parse ffprobe frame-rate string like '30000/1001' or '25' to float."""
     if not fps_raw or fps_raw == '0/0':
@@ -154,6 +155,7 @@ def _parse_fps(fps_raw):
         return float(fps_raw)
     except Exception:
         return 0.0
+
 
 def _compute_aspect(width, height):
     """Compute aspect ratio from width and height, rounded to 2 decimals."""
@@ -230,7 +232,7 @@ def ffmpeg_main_feature(src_path, out_path, log_file, job):
 
     track.filename = track.orig_filename = filename
     db.session.commit()
-    
+
     try:
         subprocess.check_output(f"nice mkdir -p {out_path} && chmod -R 777 {out_path}", shell=True)
         run_transcode_cmd(src_path, out_file_path, log_file, job)
@@ -243,7 +245,7 @@ def ffmpeg_main_feature(src_path, out_path, log_file, job):
         track.error = job.errors = err
         job.status = "fail"
         db.session.commit()
-        raise   
+        raise
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
@@ -355,7 +357,7 @@ def ffmpeg_default(src_path, basepath, logfile, job):
             run_transcode_cmd(src_path_name, out_file_path, logfile, job)
             logging.info("Transcode succeeded")
         except subprocess.CalledProcessError as e:
-            logging.error(f"Transcode failed: {e}")   
+            logging.error(f"Transcode failed: {e}")
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
@@ -458,12 +460,12 @@ def ffmpeg_mkv(srcpath, basepath, logfile, job):
     logging.debug(f"\n\r{job.pretty_table()}")
 
 
-def run_transcode_cmd(src_file_path, out_file_path, log_file, job, ff_pre_args="", ff_post_args=""):
+def run_transcode_cmd(src_file, out_file, log_file, job, ff_pre_args="", ff_post_args=""):
     if not ff_pre_args or not ff_post_args:
         ff_pre_args, ff_post_args = correct_ffmpeg_settings(job)
-    
-    cmd = f"nice ffmpeg {ff_pre_args} -i {shlex.quote(src_file_path)} -progress pipe:1 {ff_post_args} {shlex.quote(out_file_path)}"
-    
+
+    cmd = f"nice ffmpeg {ff_pre_args} -i {shlex.quote(src_file)} -progress pipe:1 {ff_post_args} {shlex.quote(out_file)}"
+
     with open(log_file, 'a') as f:
         result = subprocess.run(cmd, shell=True, stdout=f, stderr=f)
         if result.returncode != 0:
