@@ -18,7 +18,7 @@ PROCESS_COMPLETE = "FFMPEG processing complete"
 def ffmpeg_sleep_check(job):
     """
     Wait until there is a spot to transcode (FFmpeg variant).
-    
+
     Mirrors handbrake_sleep_check but uses the FFMPEG_CLI token and
     updates the job state via the database_updater helper.
     """
@@ -88,7 +88,7 @@ def parse_probe_output(json_str):
         logging.error(f"Failed to parse ffprobe JSON: {e}")
         return []
 
-    # Get the individual video streams out of the file for extracting info 
+    # Get the individual video streams out of the file for extracting info
     streams = data.get('streams', [])
     # Extract the global info for the whole file
     format_info = data.get('format', {})
@@ -241,7 +241,7 @@ def ffmpeg_main_feature(src_path, out_path, log_file, job):
         logging.error(msg)
         raise RuntimeError(msg)
 
-    # Ensuring the filenames are all in sync 
+    # Ensuring the filenames are all in sync
     track.filename = track.orig_filename = filename
     db.session.commit()
 
@@ -352,12 +352,12 @@ def ffmpeg_default(src_path, base_path, log_file, job):
     for file in os.listdir(src_path):
         src_path_name = os.path.join(src_path, file)
         dest_file = os.path.splitext(file)[0]
-        
+
         # MakeMKV always saves in mkv we need to update the db with the new filename
         logging.debug(dest_file + ".mkv")
         job_current_track = job.tracks.filter_by(filename=dest_file + ".mkv")
         track = None
-        
+
         # Generating the destination filename and updating the db
         for track in job_current_track:
             logging.debug("filename: " + track.filename)
@@ -479,7 +479,7 @@ def run_transcode_cmd(src_file, out_file, log_file, job, ff_pre_args="", ff_post
     """
     if not ff_pre_args or not ff_post_args:
         ff_pre_args, ff_post_args = correct_ffmpeg_settings(job)
-    
+
     # Build the ffmpeg command
     cmd = (f"{cfg.arm_config['FFMPEG_CLI']} {ff_pre_args} -i {shlex.quote(src_file)}"
            f" -progress pipe:1 {ff_post_args} {shlex.quote(out_file)}")
@@ -501,7 +501,7 @@ def run_transcode_cmd(src_file, out_file, log_file, job, ff_pre_args="", ff_post
     # Execute the ffmpeg command and capture progress
     process = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                universal_newlines=True, bufsize=1)
-    
+
     with open(log_file, "a") as log_stream:
         for line in process.stdout:  # type: ignore
             log_stream.write(line)
