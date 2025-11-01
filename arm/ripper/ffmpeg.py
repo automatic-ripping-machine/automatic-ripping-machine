@@ -460,7 +460,8 @@ def run_transcode_cmd(src_file, out_file, log_file, job, ff_pre_args="", ff_post
     if not ff_pre_args or not ff_post_args:
         ff_pre_args, ff_post_args = correct_ffmpeg_settings(job)
 
-    cmd = f"{cfg.arm_config['FFMPEG_CLI']} {ff_pre_args} -i {shlex.quote(src_file)} -progress pipe:1 {ff_post_args} {shlex.quote(out_file)}"
+    cmd = (f"{cfg.arm_config['FFMPEG_CLI']} {ff_pre_args} -i {shlex.quote(src_file)}"
+           f" -progress pipe:1 {ff_post_args} {shlex.quote(out_file)}")
 
     logging.debug(f"FFMPEG command: {cmd}")
 
