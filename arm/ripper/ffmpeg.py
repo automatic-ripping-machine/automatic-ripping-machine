@@ -31,44 +31,41 @@ def ffmpeg_sleep_check(job):
 
 def correct_ffmpeg_settings(job):
     """
-    Get the correct custom arguments/options for FFmpeg for this disc.
+    Get the correct custom arguments for FFmpeg for this disc.
 
     Tries to read per-job config attributes (if present), otherwise falls
     back to global cfg.arm_config values.
     :param job: The job
-    :return: tuple (ff_args, ff_options)
+    :return: tuple (ff_pre_args, ff_post_args)
     """
-    ff_args = ""
-    ff_options = ""
+    ff_pre_args = ""
+    ff_post_args = ""
     try:
         if hasattr(job, "config") and job.config:
-            if job.disctype == "dvd":
-                ff_args = getattr(job.config, "FFMPEG_ARGS_DVD", "")
-                ff_options = getattr(job.config, "FFMPEG_OPTIONS_DVD", "")
-            elif job.disctype == "bluray":
-                ff_args = getattr(job.config, "FFMPEG_ARGS_BD", "")
-                ff_options = getattr(job.config, "FFMPEG_OPTIONS_BD", "")
+            ff_pre_args = getattr(job.config, "FFMPEG_PRE_FILE_ARGS", "")
+            ff_post_args = getattr(job.config, "FFMPEG_POST_FILE_ARGS", "")
+            
     except Exception:
         # If anything goes wrong with job.config introspection, just fallback
-        ff_args = ff_args or cfg.arm_config.get('FFMPEG_ARGS', '')
-        ff_options = ff_options or cfg.arm_config.get('FFMPEG_OPTIONS', '')
+        ff_pre_args = ff_pre_args or cfg.arm_config.get('FFMPEG_PRE_FILE_ARGS', '')
+        ff_post_args = ff_post_args or cfg.arm_config.get('FFMPEG_POST_FILE_ARGS', '')
 
-    if not ff_args:
-        ff_args = cfg.arm_config.get('FFMPEG_ARGS', '')
-    if not ff_options:
-        ff_options = cfg.arm_config.get('FFMPEG_OPTIONS', '')
-    return ff_args, ff_options
+    if not ff_pre_args:
+        ff_pre_args = cfg.arm_config.get('FFMPEG_PRE_FILE_ARGS', '')
+    if not ff_post_args:
+        ff_post_args = cfg.arm_config.get('FFMPEG_POST_FILE_ARGS', '')
+    return ff_pre_args, ff_post_args
 
 
-def probe_source(srcpath):
-    """Run ffprobe on srcpath and return JSON string or None on failure.
+def probe_source(src_path):
+    """Run ffprobe on src_path and return JSON string or None on failure.
 
     This is a small wrapper around subprocess.check_output so callers can
     focus on parsing and error handling.
     """
-    ffprobe_bin = cfg.arm_config.get('FFPROBE_CLI', 'ffprobe')
-    cmd = f"{ffprobe_bin} -v error -print_format json -show_format -show_streams {shlex.quote(srcpath)}"
-    logging.debug(f"Probe command: {cmd}")
+    ffprobe_bin = "ffprobe"
+    cmd = f"{ffprobe_bin} -v error -print_format json -show_format -show_streams {shlex.quote(src_path)}"
+    logging.debug(f"FFProbe command: {cmd}")
     try:
         out = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
         logging.debug(f"ffprobe output: {out}")
@@ -115,36 +112,57 @@ def parse_probe_output(json_str):
         }]
 
     tracks = []
-    for idx, s in enumerate(video_streams, start=1):
+    for index, stream in enumerate(video_streams, start=1):
         # per-stream duration if present, else container
         dur = None
-        if s.get('duration'):
+        if stream.get('duration'):
             try:
-                dur = int(float(s.get('duration')))
+                dur = int(float(stream.get('duration')))
             except Exception:
                 dur = None
         if dur is None:
             dur = container_duration
 
         # fps parsing
-        fps_raw = s.get('r_frame_rate') or s.get('avg_frame_rate')
+        fps_raw = stream.get('r_frame_rate') or stream.get('avg_frame_rate')
         fps = _parse_fps(fps_raw)
 
         # aspect ratio from width/height
-        width = s.get('width')
-        height = s.get('height')
+        width = stream.get('width')
+        height = stream.get('height')
         aspect = _compute_aspect(width, height)
 
         tracks.append({
-            'title': idx,
+            'title': index,
             'duration': dur,
             'fps': fps,
             'aspect': aspect,
-            'codec': s.get('codec_name'),
-            'stream_index': s.get('index'),
+            'codec': stream.get('codec_name'),
+            'stream_index': stream.get('index'),
         })
 
     return tracks
+
+def _parse_fps(fps_raw):
+    """Parse ffprobe frame-rate string like '30000/1001' or '25' to float."""
+    if not fps_raw or fps_raw == '0/0':
+        return 0.0
+    try:
+        if '/' in fps_raw:
+            num, den = fps_raw.split('/')
+            return float(num) / float(den)
+        return float(fps_raw)
+    except Exception:
+        return 0.0
+
+def _compute_aspect(width, height):
+    """Compute aspect ratio from width and height, rounded to 2 decimals."""
+    if not width or not height:
+        return 0
+    try:
+        return round(float(width) / float(height), 2)
+    except Exception:
+        return 0
 
 
 def evaluate_and_register_tracks(tracks, job):
@@ -181,7 +199,7 @@ def evaluate_and_register_tracks(tracks, job):
                         "FFmpeg")
 
 
-def ffmpeg_main_feature(src_path, out_path, logfile, job):
+def ffmpeg_main_feature(src_path, out_path, log_file, job):
     """
     Process dvd with main_feature enabled.\n\n
     :param src_path: Path to source for ffmpeg (dvd or files)\n
@@ -199,8 +217,8 @@ def ffmpeg_main_feature(src_path, out_path, logfile, job):
     logging.debug("Setting job status to 'transcoding'")
     utils.database_updater({'status': "transcoding"}, job)
     filename = os.path.join(job.title + "." + cfg.arm_config["DEST_EXT"])
-    filepathname = os.path.join(out_path, filename)
-    logging.info(f"Ripping title main_feature to {shlex.quote(filepathname)}")
+    out_file_path = os.path.join(out_path, filename)
+    logging.info(f"Ripping title main_feature to {shlex.quote(out_file_path)}")
 
     get_track_info(src_path, job)
 
@@ -212,31 +230,20 @@ def ffmpeg_main_feature(src_path, out_path, logfile, job):
 
     track.filename = track.orig_filename = filename
     db.session.commit()
-
-    options = shlex.split(cfg.arm_config.get('FFMPEG_OPTIONS', ''))
-    tmp = ' '.join(map(str, options))
-    cmd = f"nice ffmpeg " \
-          f"-i {shlex.quote(src_path)} " \
-          f" {tmp}" \
-          f" {shlex.quote(filepathname)} " \
-          f" >> {logfile} 2>&1"
-
-    logging.debug(f"Sending command: {cmd}")
-
+    
     try:
-        cmd2 = f"nice mkdir -p {out_path} && chmod -R 777 {out_path}"
-        subprocess.check_output(cmd2, shell=True).decode("utf-8")
-        subprocess.check_output(cmd, shell=True).decode("utf-8")
+        subprocess.check_output(f"nice mkdir -p {out_path} && chmod -R 777 {out_path}", shell=True)
+        run_transcode_cmd(src_path, out_file_path, log_file, job)
         logging.info("FFMPEG call successful")
         track.status = "success"
     except subprocess.CalledProcessError as ffmpeg_error:
-        err = f"Call to FFMPEG failed with code: {ffmpeg_error.returncode}({ffmpeg_error.output})"
+        err = f"Call to FFMPEG failed with code: {ffmpeg_error.returncode}"
         logging.error(err)
         track.status = "fail"
         track.error = job.errors = err
         job.status = "fail"
         db.session.commit()
-        raise subprocess.CalledProcessError(ffmpeg_error.returncode, cmd)
+        raise   
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
@@ -244,7 +251,7 @@ def ffmpeg_main_feature(src_path, out_path, logfile, job):
     db.session.commit()
 
 
-def ffmpeg_all(srcpath, basepath, logfile, job):
+def ffmpeg_all(src_path, base_path, log_file, job):
     """
     Process all titles on the dvd\n
     :param srcpath: Path to source for HB (dvd or files)\n
@@ -261,7 +268,7 @@ def ffmpeg_all(srcpath, basepath, logfile, job):
     db.session.commit()
     logging.info("Starting BluRay/DVD transcoding - All titles")
 
-    get_track_info(srcpath, job)
+    get_track_info(src_path, job)
 
     logging.debug(f"Total number of tracks is {job.no_of_titles}")
 
@@ -285,39 +292,23 @@ def ffmpeg_all(srcpath, basepath, logfile, job):
                          f"Length is {track.length} seconds.")
 
             filename = f"title_{track.track_number}.{cfg.arm_config['DEST_EXT']}"
-            filepathname = os.path.join(basepath, filename)
+            out_file_path = os.path.join(base_path, filename)
 
-            logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
+            logging.info(f"Transcoding title {track.track_number} to {shlex.quote(out_file_path)}")
 
             track.filename = track.orig_filename = filename
             db.session.commit()
-
-            options = shlex.split(cfg.arm_config.get('FFMPEG_OPTIONS', ''))
-            tmp = ' '.join(map(str, options))
-            cmd = f"nice ffmpeg " \
-                  f"-i {shlex.quote(srcpath)} " \
-                  f" {tmp}" \
-                  f" {shlex.quote(filepathname)} " \
-                  f" >> {logfile} 2>&1"
-
-            logging.debug(f"Sending command: {cmd}")
-
+                    
             try:
-                ffmpeg_output = subprocess.check_output(
-                    cmd,
-                    shell=True
-                ).decode("utf-8")
-                logging.debug(f"FFMPEG exit code: {ffmpeg_output}")
+                run_transcode_cmd(src_path, out_file_path, log_file, job)
                 track.status = "success"
             except subprocess.CalledProcessError as ff_error:
-                err = f"FFMPEG encoding of title {track.track_number} failed with code: {ff_error.returncode}" \
-                      f"({ff_error.output})"
+                err = f"FFMPEG encoding of title {track.track_number} failed with code: {ff_error.returncode}"
                 logging.error(err)
                 track.status = "fail"
                 track.error = err
                 db.session.commit()
-                raise subprocess.CalledProcessError(ff_error.returncode, cmd)
-
+                raise
             track.ripped = True
             db.session.commit()
 
@@ -325,7 +316,7 @@ def ffmpeg_all(srcpath, basepath, logfile, job):
     logging.debug(f"\n\r{job.pretty_table()}")
 
 
-def ffmpeg_default(srcpath, basepath, logfile, job):
+def ffmpeg_default(src_path, basepath, logfile, job):
     """
     Process all mkv files in a directory.\n\n
     :param srcpath: Path to source for ffmpeg (dvd or files)\n
@@ -342,46 +333,29 @@ def ffmpeg_default(srcpath, basepath, logfile, job):
     db.session.commit()
 
     # This will fail if the directory raw gets deleted
-    for files in os.listdir(srcpath):
-        srcpathname = os.path.join(srcpath, files)
-        destfile = os.path.splitext(files)[0]
+    for files in os.listdir(src_path):
+        src_path_name = os.path.join(src_path, files)
+        dest_file = os.path.splitext(files)[0]
         # MakeMKV always saves in mkv we need to update the db with the new filename
-        logging.debug(destfile + ".mkv")
-        job_current_track = job.tracks.filter_by(filename=destfile + ".mkv")
+        logging.debug(dest_file + ".mkv")
+        job_current_track = job.tracks.filter_by(filename=dest_file + ".mkv")
         track = None
         for track in job_current_track:
             logging.debug("filename: " + track.filename)
             track.orig_filename = track.filename
-            track.filename = destfile + "." + cfg.arm_config["DEST_EXT"]
+            track.filename = dest_file + "." + cfg.arm_config["DEST_EXT"]
             logging.debug("UPDATED filename: " + track.filename)
             db.session.commit()
-        filename = os.path.join(basepath, destfile + "." + cfg.arm_config["DEST_EXT"])
-        filepathname = os.path.join(basepath, filename)
+        file_name = os.path.join(basepath, dest_file + "." + cfg.arm_config["DEST_EXT"])
+        out_file_path = os.path.join(basepath, file_name)
 
-        logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(filepathname)}")
-
-        options = shlex.split(cfg.arm_config.get('FFMPEG_ARGS', ''))
-        tmp = ' '.join(map(str, options))
-        cmd = f"nice ffmpeg " \
-              f"-i {shlex.quote(srcpathname)} " \
-              f" {tmp}" \
-              f" {shlex.quote(filepathname)} " \
-              f" >> {logfile} 2>&1"
-
-        logging.debug(f"Sending command: {cmd}")
+        logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(out_file_path)}")
 
         try:
-            ffmpeg_output = subprocess.check_output(
-                cmd,
-                shell=True
-            ).decode("utf-8")
-            logging.debug(f"FFMPEG exit code: {ffmpeg_output}")
-        except subprocess.CalledProcessError as ff_error:
-            err = f"FFMPEG encoding of file {shlex.quote(files)} failed with code: {ff_error.returncode}" \
-                  f"({ff_error.output})"
-            logging.error(err)
-            raise subprocess.CalledProcessError(ff_error.returncode, cmd)
-            # job.errors.append(f)
+            run_transcode_cmd(src_path_name, out_file_path, logfile, job)
+            logging.info("Transcode succeeded")
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Transcode failed: {e}")   
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
@@ -482,3 +456,15 @@ def ffmpeg_mkv(srcpath, basepath, logfile, job):
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
+
+
+def run_transcode_cmd(src_file_path, out_file_path, log_file, job, ff_pre_args="", ff_post_args=""):
+    if not ff_pre_args or not ff_post_args:
+        ff_pre_args, ff_post_args = correct_ffmpeg_settings(job)
+    
+    cmd = f"nice ffmpeg {ff_pre_args} -i {shlex.quote(src_file_path)} -progress pipe:1 {ff_post_args} {shlex.quote(out_file_path)}"
+    
+    with open(log_file, 'a') as f:
+        result = subprocess.run(cmd, shell=True, stdout=f, stderr=f)
+        if result.returncode != 0:
+            raise subprocess.CalledProcessError(result.returncode, cmd)   

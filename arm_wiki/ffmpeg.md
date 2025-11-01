@@ -7,8 +7,12 @@ Note: You will have to install drivers and prerequisites for some Hardware Accel
 Set to true to use ffmpeg instead of Handbreak
 Default value is *False*
 
-## FFMPEG_ARGS
-These are arguments that will be passed in after the `-i "file_name"` and before the output name, use them to control things like: 
+## FFMPEG_PRE_FILE_ARGS
+These are arguments that will be passed in before the `-i "file_name"` use them to control things like:
+
+
+## FFMPEG_POST_FILE_ARGS
+These are arguments that will be passed in after the `-i "file_name"` and before the output file, use them to control things like: 
 - subtitle/audio tracks to include in the final output file
 - encoded format of the final output file
 

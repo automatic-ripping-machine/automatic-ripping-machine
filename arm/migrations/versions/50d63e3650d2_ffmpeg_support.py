@@ -26,7 +26,10 @@ def upgrade():
                 sa.Column('USE_FFMPEG', sa.Boolean(), nullable=True)
                   )
     op.add_column('config',
-                sa.Column('FFMPEG_ARGS', sa.String(length=512), nullable=True)
+                sa.Column('FFMPEG_PRE_FILE_ARGS', sa.String(length=512), nullable=True)
+                  )
+    op.add_column('config',
+                sa.Column('FFMPEG_POST_FILE_ARGS', sa.String(length=512), nullable=True)
                   )
     pass
 
@@ -35,5 +38,6 @@ def downgrade():
     op.drop_column('config', 'FFMPEG_CLI')
     op.drop_column('config', 'FFMPEG_LOCAL')
     op.drop_column('config', 'USE_FFMPEG')
-    op.drop_column('config', 'FFMPEG_ARGS')
+    op.drop_column('config', 'FFMPEG_PRE_FILE_ARGS')
+    op.drop_column('config', 'FFMPEG_POST_FILE_ARGS')
     pass
