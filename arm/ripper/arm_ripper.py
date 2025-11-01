@@ -233,7 +233,7 @@ def rip_with_mkv(current_job, protection=0):
 def skip_transcode_movie(files, job, raw_path):
     """
     Only ran if job is a movie - find the largest file use it as mainfeature\n
-    Movie everything else to extras folder\n
+    Move everything else to extras folder\n
     If mainfeature is enabled skip moving everything but the main file\n
     :param files: os.listdir(RAW_PATH)
     :param job: Current job

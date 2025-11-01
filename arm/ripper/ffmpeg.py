@@ -229,14 +229,14 @@ def ffmpeg_main_feature(src_path, out_path, logfile, job):
         subprocess.check_output(cmd, shell=True).decode("utf-8")
         logging.info("FFMPEG call successful")
         track.status = "success"
-    except subprocess.CalledProcessError as hb_error:
-        err = f"Call to FFMPEG failed with code: {hb_error.returncode}({hb_error.output})"
+    except subprocess.CalledProcessError as ffmpeg_error:
+        err = f"Call to FFMPEG failed with code: {ffmpeg_error.returncode}({ffmpeg_error.output})"
         logging.error(err)
         track.status = "fail"
         track.error = job.errors = err
         job.status = "fail"
         db.session.commit()
-        raise subprocess.CalledProcessError(hb_error.returncode, cmd)
+        raise subprocess.CalledProcessError(ffmpeg_error.returncode, cmd)
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
