@@ -234,8 +234,8 @@ def ffmpeg_main_feature(src_path, out_path, log_file, job):
     db.session.commit()
 
     try:
-        subprocess.check_output(f"nice mkdir -p {shlex.quote(out_path)}" \
-            f" && chmod -R 777 {shlex.quote(out_path)}", shell=True)
+        subprocess.check_output((f"nice mkdir -p {shlex.quote(out_path)} "
+                                 f"&& chmod -R 777 {shlex.quote(out_path)}"), shell=True)
         run_transcode_cmd(src_path, out_file_path, log_file, job)
         logging.info("FFMPEG call successful")
         track.status = "success"
