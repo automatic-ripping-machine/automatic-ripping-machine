@@ -267,11 +267,12 @@ HB_ARGS_BD: "--subtitle scan -F --subtitle-burned --audio-lang-list eng --all-au
 ##########################
 FFMPEG_CLI: FFMPEG
 FFMPEG_LOCAL: FFMPEG
-FFMPEG_ARGS:
+
+FFMPEG_PRE_FILE_ARGS: 
+FFMPEG_POST_FILE_ARGS:
+
 #ffmpeg is currently an experimental feature
 USE_FFMPEG: false
-
-
 
 
 #####################
