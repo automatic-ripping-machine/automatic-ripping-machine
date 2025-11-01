@@ -121,41 +121,46 @@ def start_transcode(job, logfile, raw_in_path, transcode_out_path, protection):
 
     # Update db with transcoding status
     utils.database_updater({'status': "transcoding"}, job)
+    # Use FFMPEG or HandBrake depending on arm.yaml setting
     if job.config.USE_FFMPEG:
         logging.info("************* Starting Transcode With FFMPEG *************")
+        # If it was ripped with MakeMKV or we are doing a mkv rip then run the ffmpeg_mkv function
         if rip_with_mkv(job, protection) and job.config.RIPMETHOD == "mkv":
             logging.debug(f"ffmpeg_mkv: {raw_in_path}, {transcode_out_path}, {logfile}")
             ffmpeg.ffmpeg_mkv(raw_in_path, transcode_out_path, logfile, job)
+        # Otherwise if it is a movie and mainfeature is enabled then run ffmpeg_main_feature
         elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
             logging.debug(f"ffmpeg_main_feature: {raw_in_path}, {transcode_out_path}, {logfile}")
             ffmpeg.ffmpeg_main_feature(raw_in_path, transcode_out_path, logfile, job)
-            job.eject()
             db.session.commit()
+        # Finally if it is a series or mainfeature is disabled run ffmpeg_all to transcode all tracks
         else:
             logging.debug(f"ffmpeg_all: {raw_in_path}, {transcode_out_path}, {logfile}")
             ffmpeg.ffmpeg_all(raw_in_path, transcode_out_path, logfile, job)
-            job.eject()
             db.session.commit()
         logging.info("************* Finished Transcode With FFMPEG *************")
+        # After transcoding update db status back to active
         utils.database_updater({'status': "active"}, job)
         return True
 
     else:
         logging.info("************* Starting Transcode With HandBrake *************")
+        # If it was ripped with MakeMKV or we are doing a mkv rip then run the handbrake_mkv function
         if rip_with_mkv(job, protection) and job.config.RIPMETHOD == "mkv":
             logging.debug(f"handbrake_mkv: {raw_in_path}, {transcode_out_path}, {logfile}")
             handbrake.handbrake_mkv(raw_in_path, transcode_out_path, logfile, job)
+        # Otherwise if it is a movie and mainfeature is enabled then run handbrake_main_feature
         elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
             logging.debug(f"handbrake_main_feature: {raw_in_path}, {transcode_out_path}, {logfile}")
             handbrake.handbrake_main_feature(raw_in_path, transcode_out_path, logfile, job)
-            job.eject()
             db.session.commit()
+        # Finally if it is a series or mainfeature is disabled run handbrake_all to transcode all tracks
         else:
             logging.debug(f"handbrake_all: {raw_in_path}, {transcode_out_path}, {logfile}")
             handbrake.handbrake_all(raw_in_path, transcode_out_path, logfile, job)
-            job.eject()
             db.session.commit()
         logging.info("************* Finished Transcode With HandBrake *************")
+        # After transcoding update db status back to active
         utils.database_updater({'status': "active"}, job)
         return True
 
