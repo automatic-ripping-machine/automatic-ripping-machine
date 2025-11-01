@@ -363,7 +363,7 @@ def ffmpeg_default(src_path, basepath, logfile, job):
     logging.debug(f"\n\r{job.pretty_table()}")
 
 
-def get_track_info(srcpath, job):
+def get_track_info(src_path, job):
     """
     Use FFMPEG to get track info and update Track class\n\n
     :param srcpath: Path to disc\n
@@ -373,7 +373,7 @@ def get_track_info(srcpath, job):
     logging.info("Using ffprobe to get information on tracks. This will take a few moments...")
 
     # Orchestrate probing and registering via helpers
-    probe_json = probe_source(srcpath)
+    probe_json = probe_source(src_path)
     if not probe_json:
         logging.info("ffprobe returned no data; registering fallback track")
         utils.put_track(job, 0, 0, 0, 0.0, False, "FFmpeg")
@@ -388,12 +388,12 @@ def get_track_info(srcpath, job):
     evaluate_and_register_tracks(tracks, job)
 
 
-def ffmpeg_mkv(srcpath, basepath, logfile, job):
+def ffmpeg_mkv(src_path, base_path, log_file, job):
     """
     Process all mkv files in a directory.\n\n
-    :param srcpath: Path to source for HB (dvd or files)\n
-    :param basepath: Path where HB will save trancoded files\n
-    :param logfile: Logfile for HB to redirect output to\n
+    :param src_path: Path to source for HB (dvd or files)\n
+    :param base_path: Path where HB will save trancoded files\n
+    :param log_file: Logfile for HB to redirect output to\n
     :param job: Disc object\n
     :return: None
     """
@@ -405,40 +405,29 @@ def ffmpeg_mkv(srcpath, basepath, logfile, job):
     db.session.commit()
 
     # This will fail if the directory raw gets deleted
-    for files in os.listdir(srcpath):
-        srcpathname = os.path.join(srcpath, files)
-        destfile = os.path.splitext(files)[0]
+    for files in os.listdir(src_path):
+        src_files_path = os.path.join(src_path, files)
+        dest_file = os.path.splitext(files)[0]
         # MakeMKV always saves in mkv we need to update the db with the new filename
-        logging.debug(destfile + ".mkv")
-        job_current_track = job.tracks.filter_by(filename=destfile + ".mkv")
+        logging.debug(dest_file + ".mkv")
+        job_current_track = job.tracks.filter_by(filename=dest_file + ".mkv")
         track = None
         for track in job_current_track:
             logging.debug("filename: " + track.filename)
             track.orig_filename = track.filename
-            track.filename = destfile + "." + cfg.arm_config["DEST_EXT"]
+            track.filename = dest_file + "." + cfg.arm_config["DEST_EXT"]
             logging.debug("UPDATED filename: " + track.filename)
             db.session.commit()
 
         # Use filename relative to basepath, join once
-        filename = destfile + "." + cfg.arm_config["DEST_EXT"]
-        filepathname = os.path.join(basepath, filename)
+        file_name = dest_file + "." + cfg.arm_config["DEST_EXT"]
+        file_path_name = os.path.join(base_path, file_name)
 
-        logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(filepathname)}")
-
-        options = shlex.split(cfg.arm_config.get('FFMPEG_ARGS', ''))
-        tmp = ' '.join(map(str, options))
-        cmd = f"nice ffmpeg " \
-              f"-i {shlex.quote(srcpathname)} " \
-              f" {tmp}" \
-              f" {shlex.quote(filepathname)} " \
-              f" >> {logfile} 2>&1"
-
-        logging.debug(f"Sending command: {cmd}")
+        logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(file_path_name)}")
 
         try:
-            cmd2 = f"nice mkdir -p {basepath} && chmod -R 777 {basepath}"
-            subprocess.check_output(cmd2, shell=True).decode("utf-8")
-            subprocess.check_output(cmd, shell=True).decode("utf-8")
+            subprocess.check_output(f"nice mkdir -p {base_path} && chmod -R 777 {base_path}", shell=True)
+            run_transcode_cmd(src_files_path, file_path_name, log_file, job)
             logging.info("FFmpeg call successful")
             if track is not None:
                 track.status = "success"
@@ -446,7 +435,7 @@ def ffmpeg_mkv(srcpath, basepath, logfile, job):
             else:
                 logging.debug("No matching DB track found to mark success")
         except subprocess.CalledProcessError as ff_error:
-            err = f"Call to FFmpeg failed with code: {ff_error.returncode}({ff_error.output})"
+            err = f"Call to FFmpeg failed with code: {ff_error.returncode}"
             logging.error(err)
             if track is not None:
                 track.status = "fail"
@@ -454,7 +443,7 @@ def ffmpeg_mkv(srcpath, basepath, logfile, job):
             job.errors = err
             job.status = "fail"
             db.session.commit()
-            raise subprocess.CalledProcessError(ff_error.returncode, cmd)
+            raise   
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
