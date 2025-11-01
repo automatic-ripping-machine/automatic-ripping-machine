@@ -156,12 +156,12 @@ def process_handbrake_logfile(logfile, job, job_results):
     for line in lines:
         # This correctly get the very last ETA and % for HandBrake
         hb_search = re.search(r"Encoding: task (\d of \d), (\d{1,3}\.\d{2}) %.{0,40}"
-                               r"ETA ([\dhms]*?)\)(?!\\rEncod)", str(line))
+                              r"ETA ([\dhms]*?)\)(?!\\rEncod)", str(line))
         if hb_search:
             job_status = hb_search
 
         hb_index_search = re.search(r"Processing track #(\d{1,2}) of (\d{1,2})"
-                                     r"(?!.*Processing track #)", str(line))
+                                    r"(?!.*Processing track #)", str(line))
         if hb_index_search:
             job_status_index = hb_index_search
 
@@ -278,24 +278,20 @@ def search(search_query):
     safe_search = f"%{safe_search}%"
     app.logger.debug('-' * 30)
 
-    # app.logger.debug("search - q=" + str(search))
     posts = db.session.query(Job).filter(Job.title.like(safe_search)).all()
-    # app.logger.debug("search - posts=" + str(posts))
     search_results = {}
     i = 0
-    for jobs in posts:
-        # app.logger.debug("job obj = " + str(p.get_d()))
+    for job in posts:
         search_results[i] = {}
         try:
-            search_results[i]['config'] = jobs.config.get_d()
+            search_results[i]['config'] = job.config.get_d()
         except AttributeError:
             search_results[i]['config'] = "config not found"
             app.logger.debug("couldn't get config")
 
-        for key, value in iter(jobs.get_d().items()):
+        for key, value in iter(job.get_d().items()):
             if key != "config":
                 search_results[i][str(key)] = str(value)
-            # app.logger.debug(str(key) + "= " + str(value))
         i += 1
     return {'success': True, 'mode': 'search', 'results': search_results}
 
