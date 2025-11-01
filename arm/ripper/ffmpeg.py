@@ -71,33 +71,11 @@ def probe_source(srcpath):
     logging.debug(f"Probe command: {cmd}")
     try:
         out = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
+        logging.debug(f"ffprobe output: {out}")
         return out
     except subprocess.CalledProcessError as e:
         logging.error(f"ffprobe failed: {e.returncode} {e.output}")
         return None
-
-
-def _parse_fps(fps_raw):
-    """Parse ffprobe frame-rate string like '30000/1001' or '25' to float."""
-    if not fps_raw or fps_raw == '0/0':
-        return 0.0
-    try:
-        if '/' in fps_raw:
-            num, den = fps_raw.split('/')
-            return float(num) / float(den)
-        return float(fps_raw)
-    except Exception:
-        return 0.0
-
-
-def _compute_aspect(width, height):
-    """Compute aspect ratio from width and height, rounded to 2 decimals."""
-    if not width or not height:
-        return 0
-    try:
-        return round(float(width) / float(height), 2)
-    except Exception:
-        return 0
 
 
 def parse_probe_output(json_str):
@@ -203,11 +181,11 @@ def evaluate_and_register_tracks(tracks, job):
                         "FFmpeg")
 
 
-def ffmpeg_main_feature(srcpath, basepath, logfile, job):
+def ffmpeg_main_feature(src_path, out_path, logfile, job):
     """
     Process dvd with main_feature enabled.\n\n
-    :param srcpath: Path to source for ffmpeg (dvd or files)\n
-    :param basepath: Path where ffmpeg will save trancoded files\n
+    :param src_path: Path to source for ffmpeg (dvd or files)\n
+    :param out_path: Path where ffmpeg will save trancoded files\n
     :param logfile: Logfile for ffmpeg to redirect output to\n
     :param job: Disc object\n
     :return: None
@@ -221,10 +199,10 @@ def ffmpeg_main_feature(srcpath, basepath, logfile, job):
     logging.debug("Setting job status to 'transcoding'")
     utils.database_updater({'status': "transcoding"}, job)
     filename = os.path.join(job.title + "." + cfg.arm_config["DEST_EXT"])
-    filepathname = os.path.join(basepath, filename)
+    filepathname = os.path.join(out_path, filename)
     logging.info(f"Ripping title main_feature to {shlex.quote(filepathname)}")
 
-    get_track_info(srcpath, job)
+    get_track_info(src_path, job)
 
     track = job.tracks.filter_by(main_feature=True).first()
     if track is None:
@@ -238,7 +216,7 @@ def ffmpeg_main_feature(srcpath, basepath, logfile, job):
     options = shlex.split(cfg.arm_config.get('FFMPEG_OPTIONS', ''))
     tmp = ' '.join(map(str, options))
     cmd = f"nice ffmpeg " \
-          f"-i {shlex.quote(srcpath)} " \
+          f"-i {shlex.quote(src_path)} " \
           f" {tmp}" \
           f" {shlex.quote(filepathname)} " \
           f" >> {logfile} 2>&1"
@@ -246,7 +224,7 @@ def ffmpeg_main_feature(srcpath, basepath, logfile, job):
     logging.debug(f"Sending command: {cmd}")
 
     try:
-        cmd2 = f"nice mkdir -p {basepath} && chmod -R 777 {basepath}"
+        cmd2 = f"nice mkdir -p {out_path} && chmod -R 777 {out_path}"
         subprocess.check_output(cmd2, shell=True).decode("utf-8")
         subprocess.check_output(cmd, shell=True).decode("utf-8")
         logging.info("FFMPEG call successful")
