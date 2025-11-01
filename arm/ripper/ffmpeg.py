@@ -300,7 +300,7 @@ def ffmpeg_all(src_path, base_path, log_file, job):
 
             track.filename = track.orig_filename = filename
             db.session.commit()
-                    
+
             try:
                 run_transcode_cmd(src_path, out_file_path, log_file, job)
                 track.status = "success"
@@ -464,9 +464,10 @@ def run_transcode_cmd(src_file, out_file, log_file, job, ff_pre_args="", ff_post
     if not ff_pre_args or not ff_post_args:
         ff_pre_args, ff_post_args = correct_ffmpeg_settings(job)
 
-    cmd = f"nice ffmpeg {ff_pre_args} -i {shlex.quote(src_file)} -progress pipe:1 {ff_post_args} {shlex.quote(out_file)}"
+    cmd = f"nice ffmpeg {ff_pre_args} -i {shlex.quote(src_file)} " \
+        f"-progress pipe:1 {ff_post_args} {shlex.quote(out_file)}"
 
     with open(log_file, 'a') as f:
         result = subprocess.run(cmd, shell=True, stdout=f, stderr=f)
         if result.returncode != 0:
-            raise subprocess.CalledProcessError(result.returncode, cmd)   
+            raise subprocess.CalledProcessError(result.returncode, cmd)

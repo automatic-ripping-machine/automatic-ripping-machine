@@ -118,7 +118,7 @@ def start_transcode(job, logfile, raw_in_path, transcode_out_path, protection):
     if job.config.SKIP_TRANSCODE:
         logging.info("Transcoding is disabled, skipping transcode")
         return None
-    
+
     # Update db with transcoding status
     utils.database_updater({'status': "transcoding"}, job)
     if job.config.USE_FFMPEG:
@@ -183,7 +183,7 @@ def move_files_post(transcode_out_path, job):
     Logic for moving files post transcoding\n
     if series move all to 1 folder\n
     if movie check what source we got them from, for MakeMKV use skip_transcode_movie, so we can check filesize\n
-    :param transcode_out_path: This should either be the RAW_PATH from MakeMKV or the disc from /dev/srX or TRANSCODE_PATH
+    :param transcode_out_path: This should either be the RAW_PATH from MakeMKV, /dev/srX or TRANSCODE_PATH
     :param job: current job
     :return: None
     """
