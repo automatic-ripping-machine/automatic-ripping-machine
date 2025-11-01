@@ -58,7 +58,8 @@ def correct_ffmpeg_settings(job):
 
 
 def probe_source(src_path):
-    """Run ffprobe on src_path and return JSON string or None on failure.
+    """
+    Run ffprobe on src_path and return JSON string or None on failure.
 
     This is a small wrapper around subprocess.check_output so callers can
     focus on parsing and error handling.
@@ -76,7 +77,8 @@ def probe_source(src_path):
 
 
 def parse_probe_output(json_str):
-    """Parse ffprobe JSON string and return a list of normalized track dicts.
+    """
+    Parse ffprobe JSON string and return a list of normalized track dicts.
 
     Each returned dict has keys: title (1-based int), duration (int seconds),
     fps (float), aspect (float), codec (str|None), stream_index (int|None).
@@ -234,7 +236,7 @@ def ffmpeg_main_feature(src_path, out_path, log_file, job):
     db.session.commit()
 
     try:
-        subprocess.check_output((f"nice mkdir -p {shlex.quote(out_path)} "
+        subprocess.check_output((f"mkdir -p {shlex.quote(out_path)} "
                                  f"&& chmod -R 777 {shlex.quote(out_path)}"), shell=True)
         run_transcode_cmd(src_path, out_file_path, log_file, job)
         logging.info("FFMPEG call successful")
@@ -427,8 +429,8 @@ def ffmpeg_mkv(src_path, base_path, log_file, job):
         logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(file_path_name)}")
 
         try:
-            subprocess.check_output(f"nice mkdir -p {shlex.quote(base_path)}" \
-                f"&& chmod -R 777 {shlex.quote(base_path)}", shell=True)
+            subprocess.check_output((f"mkdir -p {shlex.quote(base_path)} "
+                                     f"&& chmod -R 777 {shlex.quote(base_path)}"), shell=True)
             run_transcode_cmd(src_files_path, file_path_name, log_file, job)
             logging.info("FFmpeg call successful")
             if track is not None:
@@ -455,7 +457,7 @@ def run_transcode_cmd(src_file, out_file, log_file, job, ff_pre_args="", ff_post
     if not ff_pre_args or not ff_post_args:
         ff_pre_args, ff_post_args = correct_ffmpeg_settings(job)
 
-    cmd = f"nice ffmpeg {ff_pre_args} -i {shlex.quote(src_file)} " \
+    cmd = f"ffmpeg {ff_pre_args} -i {shlex.quote(src_file)} " \
         f"-progress pipe:1 {ff_post_args} {shlex.quote(out_file)}"
 
     with open(log_file, 'a') as f:
