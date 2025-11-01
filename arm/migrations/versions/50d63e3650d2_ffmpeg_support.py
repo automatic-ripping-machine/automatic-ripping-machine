@@ -1,8 +1,8 @@
 """ffmpeg support
 
 Revision ID: 50d63e3650d2
-Revises: 6870a5546912
-Create Date: 2025-05-30 14:53:00.173047
+Revises: a79af75f4b31
+Create Date: 2025-10-31 14:53:00.173047
 
 """
 from alembic import op
