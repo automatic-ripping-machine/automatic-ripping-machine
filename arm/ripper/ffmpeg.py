@@ -454,13 +454,46 @@ def ffmpeg_mkv(src_path, base_path, log_file, job):
 
 
 def run_transcode_cmd(src_file, out_file, log_file, job, ff_pre_args="", ff_post_args=""):
+    """
+    Run the FFmpeg command and capture progress.
+    """
     if not ff_pre_args or not ff_post_args:
         ff_pre_args, ff_post_args = correct_ffmpeg_settings(job)
 
-    cmd = f"ffmpeg {ff_pre_args} -i {shlex.quote(src_file)} " \
-        f"-progress pipe:1 {ff_post_args} {shlex.quote(out_file)}"
+    cmd = f"ffmpeg {ff_pre_args} -i {shlex.quote(src_file)} -progress pipe:1 {ff_post_args} {shlex.quote(out_file)}"
 
-    with open(log_file, 'a') as f:
-        result = subprocess.run(cmd, shell=True, stdout=f, stderr=f)
-        if result.returncode != 0:
-            raise subprocess.CalledProcessError(result.returncode, cmd)
+    logging.debug(f"FFMPEG command: {cmd}")
+
+    duration_us = 0
+    try:
+        duration_sec_str = subprocess.check_output(
+            f"ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "
+            f"{shlex.quote(src_file)}",
+            shell=True, stderr=subprocess.STDOUT).decode('utf-8').strip()
+        duration_us = int(float(duration_sec_str) * 1_000_000)
+    except (subprocess.CalledProcessError, ValueError) as e:
+        logging.error(f"Could not get duration from ffprobe: {e}")
+        # We can continue without progress reporting if this fails
+
+    process = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                               universal_newlines=True, bufsize=1)
+
+    with open(log_file, "a") as f:
+        for line in process.stdout:  # type: ignore
+            f.write(line)
+            if duration_us > 0 and "out_time_us" in line:
+                parts = line.strip().split("=")
+                if len(parts) == 2 and parts[0] == "out_time_us":
+                    try:
+                        out_time_us = int(parts[1])
+                        percentage = (out_time_us / duration_us) * 100
+                        # Clamp percentage between 0 and 100
+                        percentage = max(0, min(100, percentage))
+                        logging.info(f"ARM: Transcoding progress: {percentage:.2f}%")
+                    except ValueError:
+                        pass
+
+    process.wait()
+
+    if process.returncode != 0:
+        raise subprocess.CalledProcessError(process.returncode, cmd)

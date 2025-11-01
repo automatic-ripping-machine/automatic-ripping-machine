@@ -143,7 +143,7 @@ def process_makemkv_logfile(job, job_results):
 
 def process_handbrake_logfile(logfile, job, job_results):
     """
-    process a logfile looking for HandBrake progress
+    process a logfile looking for HandBrake or FFMPEG progress
     :param logfile: the logfile for parsing
     :param job: the Job class
     :param job_results: the {} of
@@ -151,13 +151,24 @@ def process_handbrake_logfile(logfile, job, job_results):
     """
     job_status = None
     job_status_index = None
+    ffmpeg_job_status = None
     lines = read_log_line(logfile)
     for line in lines:
-        # This correctly get the very last ETA and %
-        job_status = re.search(r"Encoding: task (\d of \d), (\d{1,3}\.\d{2}) %.{0,40}"
+        # This correctly get the very last ETA and % for HandBrake
+        hb_search = re.search(r"Encoding: task (\d of \d), (\d{1,3}\.\d{2}) %.{0,40}"
                                r"ETA ([\dhms]*?)\)(?!\\rEncod)", str(line))
-        job_status_index = re.search(r"Processing track #(\d{1,2}) of (\d{1,2})"
+        if hb_search:
+            job_status = hb_search
+
+        hb_index_search = re.search(r"Processing track #(\d{1,2}) of (\d{1,2})"
                                      r"(?!.*Processing track #)", str(line))
+        if hb_index_search:
+            job_status_index = hb_index_search
+
+        # Check for FFMPEG status
+        ffmpeg_search = re.search(r"ARM: Transcoding progress: (\d{1,3}\.\d{2})%", str(line))
+        if ffmpeg_search:
+            ffmpeg_job_status = ffmpeg_search
 
     # Check ARM can read the Handbrake library and get a status
     if job_status is not None:
@@ -166,8 +177,13 @@ def process_handbrake_logfile(logfile, job, job_results):
         job.progress = job_status.group(2)
         job.eta = job_status.group(3)
         job.progress_round = int(float(job.progress))
+    elif ffmpeg_job_status is not None:
+        job.stage = "Transcoding"
+        job.progress = ffmpeg_job_status.group(1)
+        job.eta = "Unknown"
+        job.progress_round = int(float(job.progress))
     else:
-        app.logger.debug(f"Job [{job.job_id}] handbrake status not defined - setting progress to 0%")
+        app.logger.debug(f"Job [{job.job_id}] handbrake/ffmpeg status not defined - setting progress to 0%")
         job.stage = "Unknown"
         job.progress = job.progress_round = 0
         job.eta = "Unknown"
