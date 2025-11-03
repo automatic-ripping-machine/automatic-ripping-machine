@@ -6,6 +6,7 @@ import logging
 import subprocess
 import shlex
 import json
+import re
 import arm.config.config as cfg
 
 from arm.ripper import utils
@@ -24,7 +25,7 @@ def ffmpeg_sleep_check(job):
     """
     logging.debug("FFMPEG starting.")
     utils.database_updater({"status": JobState.TRANSCODE_WAITING.value}, job)
-    # TODO: send a notification that jobs are waiting ?
+
     utils.sleep_check_process(cfg.arm_config["FFMPEG_CLI"], int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
     logging.debug(f"Setting job status to '{JobState.TRANSCODE_ACTIVE.value}'")
     utils.database_updater({"status": JobState.TRANSCODE_ACTIVE.value}, job)
@@ -515,7 +516,6 @@ def run_transcode_cmd(src_file, out_file, job, ff_pre_args="", ff_post_args=""):
                         pass
         else:
             if total_duration > 0 and "time=" in line:
-                import re
                 time_search = re.search(r'time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})', line)
                 if time_search:
                     hours = int(time_search.group(1))
