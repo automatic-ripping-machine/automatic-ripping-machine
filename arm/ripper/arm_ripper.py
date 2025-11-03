@@ -126,17 +126,17 @@ def start_transcode(job, logfile, raw_in_path, transcode_out_path, protection):
         logging.info("************* Starting Transcode With FFMPEG *************")
         # If it was ripped with MakeMKV or we are doing a mkv rip then run the ffmpeg_mkv function
         if rip_with_mkv(job, protection) and job.config.RIPMETHOD == "mkv":
-            logging.debug(f"ffmpeg_mkv: {raw_in_path}, {transcode_out_path}, {logfile}")
-            ffmpeg.ffmpeg_mkv(raw_in_path, transcode_out_path, logfile, job)
+            logging.debug(f"ffmpeg_mkv: {raw_in_path}, {transcode_out_path}")
+            ffmpeg.ffmpeg_mkv(raw_in_path, transcode_out_path, job)
         # Otherwise if it is a movie and mainfeature is enabled then run ffmpeg_main_feature
         elif job.video_type == "movie" and job.config.MAINFEATURE and job.hasnicetitle:
-            logging.debug(f"ffmpeg_main_feature: {raw_in_path}, {transcode_out_path}, {logfile}")
-            ffmpeg.ffmpeg_main_feature(raw_in_path, transcode_out_path, logfile, job)
+            logging.debug(f"ffmpeg_main_feature: {raw_in_path}, {transcode_out_path}")
+            ffmpeg.ffmpeg_main_feature(raw_in_path, transcode_out_path, job)
             db.session.commit()
         # Finally if it is a series or mainfeature is disabled run ffmpeg_all to transcode all tracks
         else:
-            logging.debug(f"ffmpeg_all: {raw_in_path}, {transcode_out_path}, {logfile}")
-            ffmpeg.ffmpeg_all(raw_in_path, transcode_out_path, logfile, job)
+            logging.debug(f"ffmpeg_all: {raw_in_path}, {transcode_out_path}")
+            ffmpeg.ffmpeg_all(raw_in_path, transcode_out_path, job)
             db.session.commit()
         logging.info("************* Finished Transcode With FFMPEG *************")
         # After transcoding update db status back to active

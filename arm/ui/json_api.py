@@ -166,7 +166,7 @@ def process_handbrake_logfile(logfile, job, job_results):
             job_status_index = hb_index_search
 
         # Check for FFMPEG status
-        ffmpeg_search = re.search(r"ARM: Transcoding progress: (\d{1,3}\.\d{2})%", str(line))
+        ffmpeg_search = re.search(r"ARM: .* - (\d{1,3}\.\d{2})%", str(line))
         if ffmpeg_search:
             ffmpeg_job_status = ffmpeg_search
 

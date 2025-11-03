@@ -208,12 +208,11 @@ def evaluate_and_register_tracks(tracks, job):
                         "FFmpeg")
 
 
-def ffmpeg_main_feature(src_path, out_path, log_file, job):
+def ffmpeg_main_feature(src_path, out_path, job):
     """
     Process dvd with main_feature enabled.\n\n
     :param src_path: Path to source for ffmpeg (dvd or files)\n
     :param out_path: Path where ffmpeg will save trancoded files\n
-    :param log_file: Logfile for ffmpeg to redirect output to\n
     :param job: Disc object\n
     :return: None
     """
@@ -250,7 +249,7 @@ def ffmpeg_main_feature(src_path, out_path, log_file, job):
         subprocess.check_output((f"mkdir -p {shlex.quote(out_path)} "
                                  f"&& chmod -R 777 {shlex.quote(out_path)}"), shell=True)
         # Transcode the main feature
-        run_transcode_cmd(src_path, out_file_path, log_file, job)
+        run_transcode_cmd(src_path, out_file_path, job)
         logging.info("FFMPEG call successful")
         # Update the status of the job as succeeded
         track.status = "success"
@@ -270,12 +269,11 @@ def ffmpeg_main_feature(src_path, out_path, log_file, job):
     db.session.commit()
 
 
-def ffmpeg_all(src_path, base_path, log_file, job):
+def ffmpeg_all(src_path, base_path, job):
     """
     Process all titles on the dvd\n
-    :param srcpath: Path to source for HB (dvd or files)\n
-    :param basepath: Path where HB will save trancoded files\n
-    :param logfile: Logfile for HB to redirect output to\n
+    :param srcpath: Path to source for FFmpeg (dvd or files)\n
+    :param basepath: Path where FFmpeg will save trancoded files\n
     :param job: Disc object\n
     :return: None
     """
@@ -316,7 +314,7 @@ def ffmpeg_all(src_path, base_path, log_file, job):
 
             try:
                 # Transcode the title
-                run_transcode_cmd(src_path, out_file_path, log_file, job)
+                run_transcode_cmd(src_path, out_file_path, job)
                 track.status = "success"
             except subprocess.CalledProcessError as ff_error:
                 err = f"FFMPEG encoding of title {track.track_number} failed with code: {ff_error.returncode}"
@@ -332,12 +330,11 @@ def ffmpeg_all(src_path, base_path, log_file, job):
     logging.debug(f"\n\r{job.pretty_table()}")
 
 
-def ffmpeg_default(src_path, base_path, log_file, job):
+def ffmpeg_default(src_path, base_path, job):
     """
     Process all mkv files in a directory.\n\n
     :param src_path: Path to source for ffmpeg (dvd or files)\n
     :param base_path: Path where ffmpeg will save trancoded files\n
-    :param log_file: Logfile for ffmpeg to redirect output to\n
     :param job: Disc object\n
     :return: None
     """
@@ -371,7 +368,7 @@ def ffmpeg_default(src_path, base_path, log_file, job):
 
         # Actually transcoding the file to the output location
         try:
-            run_transcode_cmd(src_path_name, out_file_path, log_file, job)
+            run_transcode_cmd(src_path_name, out_file_path, job)
             logging.info("Transcode succeeded")
         except subprocess.CalledProcessError as e:
             logging.error(f"Transcode failed: {e}")
@@ -406,12 +403,11 @@ def get_track_info(src_path, job):
     evaluate_and_register_tracks(tracks, job)
 
 
-def ffmpeg_mkv(src_path, base_path, log_file, job):
+def ffmpeg_mkv(src_path, base_path, job):
     """
     Process all mkv files in a directory.\n\n
-    :param src_path: Path to source for HB (dvd or files)\n
-    :param base_path: Path where HB will save trancoded files\n
-    :param log_file: Logfile for HB to redirect output to\n
+    :param src_path: Path to source for FFmpeg (dvd or files)\n
+    :param base_path: Path where FFMpeg will save trancoded files\n
     :param job: Disc object\n
     :return: None
     """
@@ -450,7 +446,7 @@ def ffmpeg_mkv(src_path, base_path, log_file, job):
                                      f"&& chmod -R 777 {shlex.quote(base_path)}"), shell=True)
 
             # Actually transcoding the file to the output location & updating the db with the status
-            run_transcode_cmd(src_files_path, file_path_name, log_file, job)
+            run_transcode_cmd(src_files_path, file_path_name, job)
             logging.info("FFmpeg call successful")
             if track is not None:
                 track.status = "success"
@@ -473,18 +469,12 @@ def ffmpeg_mkv(src_path, base_path, log_file, job):
     logging.debug(f"\n\r{job.pretty_table()}")
 
 
-def run_transcode_cmd(src_file, out_file, log_file, job, ff_pre_args="", ff_post_args=""):
+def run_transcode_cmd(src_file, out_file, job, ff_pre_args="", ff_post_args=""):
     """
     Run the FFmpeg command and capture the progress for the progress bar in the ui
     """
     if not ff_pre_args or not ff_post_args:
         ff_pre_args, ff_post_args = correct_ffmpeg_settings(job)
-
-    # Build the ffmpeg command
-    cmd = (f"{cfg.arm_config['FFMPEG_CLI']} {ff_pre_args} -i {shlex.quote(src_file)}"
-           f" -progress pipe:1 {ff_post_args} {shlex.quote(out_file)}")
-
-    logging.debug(f"FFMPEG command: {cmd}")
 
     # Get the total duration of the source file using ffprobe for progress calculation (in microseconds)
     total_duration = 0
@@ -498,13 +488,21 @@ def run_transcode_cmd(src_file, out_file, log_file, job, ff_pre_args="", ff_post
         logging.error(f"Could not get duration from ffprobe: {e}")
         # We can continue without progress reporting if this fails
 
+
+        # Build the ffmpeg command without progress reporting
+    cmd = (f"{cfg.arm_config['FFMPEG_CLI']} {ff_pre_args} -i {shlex.quote(src_file)} "
+           f"{'-progress pipe:1 ' if logging.getLogger().isEnabledFor(logging.DEBUG) else ''}"
+           f"{ff_post_args} {shlex.quote(out_file)}")
+
+    logging.debug(f"FFMPEG command: {cmd}")
+
     # Execute the ffmpeg command and capture progress
     process = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                universal_newlines=True, bufsize=1)
 
-    with open(log_file, "a") as log_stream:
-        for line in process.stdout:  # type: ignore
-            log_stream.write(line)
+    for line in process.stdout:  # type: ignore
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+            logging.debug(line.strip())
             if total_duration > 0 and "out_time_us" in line:
                 parts = line.strip().split("=")
                 if len(parts) == 2 and parts[0] == "out_time_us":
@@ -516,6 +514,21 @@ def run_transcode_cmd(src_file, out_file, log_file, job, ff_pre_args="", ff_post
                         logging.info(f"ARM: Transcoding progress: {percentage:.2f}%")
                     except ValueError:
                         pass
+        else:
+            if total_duration > 0 and "time=" in line:
+                import re
+                time_search = re.search(r'time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})', line)
+                if time_search:
+                    hours = int(time_search.group(1))
+                    minutes = int(time_search.group(2))
+                    seconds = int(time_search.group(3))
+                    milliseconds = int(time_search.group(4))
+                    out_time_us = (hours * 3600 + minutes * 60 + seconds) * 1000000 + milliseconds * 10000
+                    percentage = (out_time_us / total_duration) * 100
+                    percentage = max(0, min(100, percentage))
+                    logging.info(f"ARM: {line.strip()} - {percentage:.2f}%")
+            else:
+                logging.debug(line.strip())
 
     process.wait()
 
