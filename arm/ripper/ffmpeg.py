@@ -488,7 +488,6 @@ def run_transcode_cmd(src_file, out_file, job, ff_pre_args="", ff_post_args=""):
         logging.error(f"Could not get duration from ffprobe: {e}")
         # We can continue without progress reporting if this fails
 
-
         # Build the ffmpeg command without progress reporting
     cmd = (f"{cfg.arm_config['FFMPEG_CLI']} {ff_pre_args} -i {shlex.quote(src_file)} "
            f"{'-progress pipe:1 ' if logging.getLogger().isEnabledFor(logging.DEBUG) else ''}"
