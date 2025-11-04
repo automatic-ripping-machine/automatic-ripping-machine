@@ -380,6 +380,95 @@ def move_files(base_path, filename, job, is_main_feature=False):
     return movie_path
 
 
+def _calculate_filename_similarity(expected_base, actual_base):
+    """
+    Calculate similarity score between two filenames.
+
+    :param str expected_base: Expected filename without extension
+    :param str actual_base: Actual filename without extension
+    :return int: Similarity score
+    """
+    score = 0
+    min_len = min(len(expected_base), len(actual_base))
+
+    # Count matching characters from the start
+    for i in range(min_len):
+        if expected_base[i] == actual_base[i]:
+            score += 1
+        else:
+            break
+
+    # Count matching characters from the end
+    for i in range(1, min_len + 1):
+        if expected_base[-i] == actual_base[-i]:
+            score += 1
+        else:
+            break
+
+    # Bonus for similar length
+    length_diff = abs(len(expected_base) - len(actual_base))
+    if length_diff <= 2:  # Within 2 characters difference
+        score += (3 - length_diff) * 2
+
+    return score
+
+
+def find_matching_file(expected_file):
+    """
+    Find a file that matches the expected filename, handling minor naming discrepancies.
+    This is particularly useful for MKV files transcoded by HandBrake where the output
+    filename may differ slightly from what's stored in the database.
+
+    :param str expected_file: The full path to the expected file
+    :return str: The actual file path if found, or the original expected_file if no match
+    """
+    if os.path.isfile(expected_file):
+        return expected_file
+
+    directory = os.path.dirname(expected_file)
+    expected_filename = os.path.basename(expected_file)
+
+    if not os.path.isdir(directory):
+        return expected_file
+
+    expected_base, expected_ext = os.path.splitext(expected_filename)
+
+    # Get candidate files with same extension
+    try:
+        files_in_dir = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    except OSError:
+        return expected_file
+
+    candidate_files = []
+    for file in files_in_dir:
+        base, ext = os.path.splitext(file)
+        if ext.lower() == expected_ext.lower():
+            candidate_files.append((file, base))
+
+    if not candidate_files:
+        return expected_file
+
+    # Find best match
+    best_match = None
+    best_score = 0
+
+    for file, base in candidate_files:
+        score = _calculate_filename_similarity(expected_base, base)
+        if score > best_score:
+            best_score = score
+            best_match = file
+
+    # Use match if similar enough (at least 80% of expected length matched)
+    min_score = len(expected_base) * 0.8
+    if best_match and best_score >= min_score:
+        actual_file = os.path.join(directory, best_match)
+        if actual_file != expected_file:
+            logging.info(f"Found similar file '{best_match}' for expected '{expected_filename}' (score: {best_score})")
+        return actual_file
+
+    return expected_file
+
+
 def move_files_main(old_file, new_file, base_path):
     """
     The base function for moving files with logging\n
@@ -389,10 +478,13 @@ def move_files_main(old_file, new_file, base_path):
     :return: None
     """
     if not os.path.isfile(new_file):
+        # Try to find the file, handling minor naming discrepancies
+        actual_old_file = find_matching_file(old_file)
+
         try:
-            shutil.move(old_file, new_file)
+            shutil.move(actual_old_file, new_file)
         except Exception as error:
-            logging.error(f"Unable to move '{old_file}' to '{base_path}' - Error: {error}")
+            logging.error(f"Unable to move '{actual_old_file}' to '{base_path}' - Error: {error}")
     else:
         logging.info(f"File: {new_file} already exists.  Not moving.")
 
