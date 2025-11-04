@@ -353,14 +353,17 @@ var BatchRenameShared = (function() {
             }),
             success: function(response) {
                 // API returns preview object directly, not wrapped in {success, preview}
+                console.log('Series detection response:', response);
+                
                 if (response && (response.success === false || response.error)) {
                     // Explicit error response
                     const errorMsg = response.error || response.message || 'Unknown error';
                     showToast('Series detection failed: ' + errorMsg, 'danger');
-                } else if (response && (response.items || response.previews || response.series_info)) {
-                    // Valid preview response
+                } else if (response && (response.items || response.previews || response.series_info || response.requires_series_selection)) {
+                    // Valid preview response (items may be empty if selection required)
                     callback(response);
                 } else {
+                    console.error('Invalid response structure:', response);
                     showToast('Series detection failed: Invalid response', 'danger');
                 }
             },
@@ -426,6 +429,8 @@ var BatchRenameShared = (function() {
             }),
             success: function(response) {
                 // API returns preview object directly, not wrapped in {success, preview}
+                console.log('Preview with series response:', response);
+                
                 if (response && (response.success === false || response.error)) {
                     // Explicit error response
                     const errorMsg = response.error || response.message || 'Unknown error';
@@ -434,6 +439,7 @@ var BatchRenameShared = (function() {
                     // Valid preview response
                     callback(response);
                 } else {
+                    console.error('Invalid preview response structure:', response);
                     showToast('Preview failed: Invalid response', 'danger');
                 }
             },
