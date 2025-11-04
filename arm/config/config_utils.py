@@ -17,6 +17,7 @@ def arm_yaml_check_groups(comments, key):
                       'EMBY_REFRESH': "\n" + comments['ARM_CFG_GROUPS']['EMBY']
                                       + "\n" + comments['ARM_CFG_GROUPS']['EMBY_ADDITIONAL'],
                       'NOTIFY_RIP': "\n" + comments['ARM_CFG_GROUPS']['NOTIFY_PERMS'],
+                      'DATABASE_ENGINE': "\n" + comments['ARM_CFG_GROUPS']['DATABASE'],
                       'APPRISE': "\n" + comments['ARM_CFG_GROUPS']['APPRISE']}
     if key in comment_groups:
         arm_cfg = comment_groups[key]

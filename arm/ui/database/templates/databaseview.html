@@ -69,6 +69,31 @@
             <h4 class="alert-heading">There was a problem with your request</h4>
             <p>There was a problem with your request. Check the ARMui log for more details.</p>
         </div>
+        <!-- Restore database -->
+        <div class="row my-3">
+            <div class="col-lg-6 col-md-8 mx-auto">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <strong>Restore Database</strong>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Upload a saved ARM database backup (.json or .db) to replace the current data. A safety backup of the active database is created automatically before the restore runs.</p>
+                        <form method="post" action="{{ url_for('route_database.restore_database') }}" enctype="multipart/form-data">
+                            {{ restore_form.hidden_tag() }}
+                            <div class="form-group mb-3">
+                                {{ restore_form.backup_file.label(class="form-label d-block") }}
+                                {{ restore_form.backup_file(class="form-control-file" + (' is-invalid' if restore_form.backup_file.errors else '')) }}
+                                <small class="form-text text-muted">Accepted formats: .json or .db</small>
+                                {% for error in restore_form.backup_file.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            {{ restore_form.submit(class="btn btn-warning") }}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- Buttons -->
         <div class="row d-flex justify-content-end">
             <div class="p-4">

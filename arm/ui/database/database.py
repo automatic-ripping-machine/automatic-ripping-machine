@@ -1,23 +1,22 @@
-"""
-ARM route blueprint for database pages
-Covers
-- database [GET]
-- dbupdate [POST]
-- import_movies [JSON]
-"""
+"""ARM route blueprint for database pages."""
 
 import os
 import json
 import re
+from datetime import datetime
+from pathlib import Path
+
 from flask_login import LoginManager, login_required  # noqa: F401
-from flask import render_template, request, Blueprint, flash, redirect, session
+from flask import render_template, request, Blueprint, flash, redirect, session, url_for
+from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.utils import secure_filename
 
 import arm.ui.utils as ui_utils
 from arm.ui import app, db, constants
 from arm.models.job import Job
 import arm.config.config as cfg
 from arm.ui.metadata import get_omdb_poster
-from arm.ui.forms import DBUpdate
+from arm.ui.forms import DBUpdate, DatabaseRestoreForm
 
 app.app_context().push()
 route_database = Blueprint('route_database', __name__,
@@ -26,6 +25,20 @@ route_database = Blueprint('route_database', __name__,
 
 # This attaches the armui_cfg globally to let the users use any bootswatch skin from cdn
 armui_cfg = ui_utils.arm_db_cfg()
+
+
+def _empty_pagination():
+    class EmptyPagination:
+        page = 1
+        pages = 1
+        prev_num = 1
+        next_num = 1
+
+        @staticmethod
+        def iter_pages(*_args, **_kwargs):
+            return []
+
+    return EmptyPagination()
 
 
 @route_database.route('/database')
@@ -44,20 +57,29 @@ def view_database():
     app.logger.debug(armui_cfg)
 
     # Check for database file
-    if os.path.isfile(cfg.arm_config['DBFILE']):
-        jobs = Job.query.order_by(db.desc(Job.job_id)).paginate(page=page,
-                                                                max_per_page=int(
-                                                                    armui_cfg.database_limit),
-                                                                error_out=False)
-    else:
-        app.logger.error('ERROR: /database no database, file doesnt exist')
-        jobs = {}
+    try:
+        jobs_pagination = Job.query.order_by(db.desc(Job.job_id)).paginate(
+            page=page,
+            max_per_page=int(armui_cfg.database_limit),
+            error_out=False
+        )
+        job_items = jobs_pagination.items
+    except SQLAlchemyError as error:
+        app.logger.error('ERROR: /database unable to query database: %s', error)
+        jobs_pagination = _empty_pagination()
+        job_items = []
 
     session["page_title"] = "Database"
 
-    return render_template('databaseview.html',
-                           jobs=jobs.items, pages=jobs,
-                           date_format=cfg.arm_config['DATE_FORMAT'])
+    restore_form = DatabaseRestoreForm()
+
+    return render_template(
+        'databaseview.html',
+        jobs=job_items,
+        pages=jobs_pagination,
+        date_format=cfg.arm_config['DATE_FORMAT'],
+        restore_form=restore_form,
+    )
 
 
 @route_database.route('/dbupdate', methods=['POST'])
@@ -87,6 +109,60 @@ def update_database():
     else:
         # Catch for GET requests of the page, redirect to index
         return redirect('/index')
+
+
+@route_database.route('/database/restore', methods=['POST'])
+@login_required
+def restore_database():
+    """Restore the ARM database from an uploaded backup file."""
+
+    form = DatabaseRestoreForm()
+    if not form.validate_on_submit():
+        flash('Select a backup file before submitting.', 'danger')
+        return redirect(url_for('route_database.view_database'))
+
+    file_storage = form.backup_file.data
+    filename = secure_filename(file_storage.filename or '')
+    if not filename:
+        flash('The provided backup file is missing a valid name.', 'danger')
+        return redirect(url_for('route_database.view_database'))
+
+    lower_name = filename.lower()
+    if not lower_name.endswith(('.json', '.db')):
+        flash('Unsupported backup format. Upload a .json or .db file.', 'danger')
+        return redirect(url_for('route_database.view_database'))
+
+    backup_root = cfg.arm_config.get('DATABASE_BACKUP_PATH')
+    if not backup_root:
+        backup_root = os.path.join(cfg.arm_config['INSTALLPATH'], 'db', 'uploads')
+    backup_dir = Path(backup_root)
+    ui_utils.make_dir(str(backup_dir))
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    stored_name = f"restore_{timestamp}_{filename}"
+    stored_path = backup_dir / stored_name
+
+    try:
+        file_storage.save(stored_path)
+    except OSError as error:
+        app.logger.error('Unable to store uploaded backup %s: %s', stored_path, error)
+        flash('Failed to save the uploaded backup. Check file permissions.', 'danger')
+        return redirect(url_for('route_database.view_database'))
+
+    safety_backup = ui_utils.arm_db_backup('pre_restore')
+    try:
+        ui_utils.arm_db_restore(str(stored_path))
+    except (OSError, SQLAlchemyError, json.JSONDecodeError, ValueError) as error:
+        app.logger.error('Database restore failed using %s: %s', stored_path, error)
+        flash('Database restore failed. Review the logs for details.', 'danger')
+        return redirect(url_for('route_database.view_database'))
+
+    ui_utils.arm_db_cfg()
+    message = f"Database restored from backup '{filename}'."
+    if safety_backup:
+        message += f" A safety backup was saved to '{safety_backup}'."
+    flash(message, 'success')
+    return redirect(url_for('route_database.view_database'))
 
 
 @route_database.route('/import_movies')
