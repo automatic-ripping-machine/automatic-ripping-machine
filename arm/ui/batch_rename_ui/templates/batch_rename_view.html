@@ -94,7 +94,7 @@
                     </div>
                     <div class="btn-group" role="group">
                         <button id="custom-lookup-btn" type="button" class="btn btn-success btn-lg" disabled style="white-space: nowrap; min-width: 230px;">
-                            <i class="fa fa-search"></i> Lookup by Custom Name
+                            <i class="fa fa-search"></i> Batch Identify Selected
                         </button>
                         <button id="batch-rename-btn" type="button" class="btn btn-warning btn-lg" disabled style="white-space: nowrap; min-width: 230px;">
                             <i class="fa fa-edit"></i> Batch Rename Selected
@@ -347,6 +347,13 @@
                 <!-- Step 5: Progress/Results -->
                 <div id="rename-results-step" style="display: none;">
                     <h6 class="font-weight-bold">Rename Results</h6>
+                    
+                    <div class="alert alert-info mb-3">
+                        <i class="fa fa-info-circle"></i> 
+                        <strong>Review your changes.</strong> If something isn't right, use the rollback button to undo this operation.
+                        Close the modal and refresh the page to see updated file names.
+                    </div>
+                    
                     <div id="results-content"></div>
                     <hr>
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>

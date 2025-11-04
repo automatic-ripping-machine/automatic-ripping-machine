@@ -203,10 +203,10 @@ function updateSelectionUI() {
     const lookupBtn = $('#custom-lookup-btn');
     if (count > 0) {
         lookupBtn.prop('disabled', false);
-        lookupBtn.html(`<i class="fa fa-search"></i> Lookup by Custom Name (${count})`);
+        lookupBtn.html(`<i class="fa fa-search"></i> Batch Identify Selected (${count})`);
     } else {
         lookupBtn.prop('disabled', true);
-        lookupBtn.html('<i class="fa fa-search"></i> Lookup by Custom Name');
+        lookupBtn.html('<i class="fa fa-search"></i> Batch Identify Selected');
     }
 }
 
@@ -341,10 +341,8 @@ function executeRename() {
             $('#rename-preview-step').hide();
             $('#rename-results-step').show();
 
-            // Clear selection and reload page after a delay
-            setTimeout(function() {
-                location.reload();
-            }, 3000);
+            // Don't auto-refresh - let user review results and rollback if needed
+            // User can manually refresh page or close modal when satisfied
         } else {
             BatchRenameShared.showToast('Execution failed: ' + response.message, 'danger');
             if (response.batch_id) {
