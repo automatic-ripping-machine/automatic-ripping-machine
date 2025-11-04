@@ -128,6 +128,12 @@ class DBUpdate(FlaskForm):
     submit = SubmitField('Submit')
 
 
+class DatabaseBackupForm(FlaskForm):
+    """Trigger a database backup download from the UI."""
+
+    submit = SubmitField('Download Backup')
+
+
 class DatabaseRestoreForm(FlaskForm):
     """Upload and restore the ARM database from a backup archive."""
 

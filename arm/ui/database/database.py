@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from flask_login import LoginManager, login_required  # noqa: F401
-from flask import render_template, request, Blueprint, flash, redirect, session, url_for
+from flask import render_template, request, Blueprint, flash, redirect, session, url_for, send_file
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import secure_filename
 
@@ -16,7 +16,7 @@ from arm.ui import app, db, constants
 from arm.models.job import Job
 import arm.config.config as cfg
 from arm.ui.metadata import get_omdb_poster
-from arm.ui.forms import DBUpdate, DatabaseRestoreForm
+from arm.ui.forms import DBUpdate, DatabaseBackupForm, DatabaseRestoreForm
 
 app.app_context().push()
 route_database = Blueprint('route_database', __name__,
@@ -72,12 +72,14 @@ def view_database():
     session["page_title"] = "Database"
 
     restore_form = DatabaseRestoreForm()
+    backup_form = DatabaseBackupForm()
 
     return render_template(
         'databaseview.html',
         jobs=job_items,
         pages=jobs_pagination,
         date_format=cfg.arm_config['DATE_FORMAT'],
+        backup_form=backup_form,
         restore_form=restore_form,
     )
 
@@ -109,6 +111,34 @@ def update_database():
     else:
         # Catch for GET requests of the page, redirect to index
         return redirect('/index')
+
+
+@route_database.route('/database/backup', methods=['POST'])
+@login_required
+def download_backup():
+    """Create a fresh database backup and send it to the user."""
+
+    form = DatabaseBackupForm()
+    if not form.validate_on_submit():
+        flash('Invalid backup request submitted.', 'danger')
+        return redirect(url_for('route_database.view_database'))
+
+    backup_path = ui_utils.arm_db_backup('manual')
+    if not backup_path or not os.path.exists(backup_path):
+        flash('Database backup could not be created.', 'danger')
+        return redirect(url_for('route_database.view_database'))
+
+    try:
+        return send_file(
+            backup_path,
+            as_attachment=True,
+            download_name=os.path.basename(backup_path),
+            max_age=0,
+        )
+    except OSError as error:
+        app.logger.error('Failed to stream backup %s: %s', backup_path, error)
+        flash('Database backup was created but could not be downloaded.', 'danger')
+        return redirect(url_for('route_database.view_database'))
 
 
 @route_database.route('/database/restore', methods=['POST'])

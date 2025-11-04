@@ -9,10 +9,17 @@ The ARM web interface now lets administrators restore the application database d
   - All database engines accept JSON snapshots created from **Settings → Database Backup** or by calling `arm_db_backup()`.
 - Ensure the backup file is stored locally on the machine you are using to access the UI.
 
+## Downloading a Backup
+1. Browse to the ARM UI and sign in if prompted.
+2. Open **Database** from the navigation bar.
+3. Locate the **Download Backup** card near the top of the page.
+4. Click **Download Backup**. The UI generates a fresh backup using the current timestamp and streams it to your browser.
+5. Save the file locally. ARM keeps an identical copy inside the configured `DATABASE_BACKUP_PATH`.
+
 ## Restoring a Backup
 1. Browse to the ARM UI and sign in if prompted.
 2. Open **Database** from the navigation bar.
-3. Locate the **Restore Database** card near the top of the page.
+3. Locate the **Restore Database** card below the backup controls.
 4. Select **Choose File** and pick the `.json` or `.db` backup you want to restore.
 5. Click **Restore**. The UI uploads the file and triggers the restore process.
 6. Wait for the confirmation banner.
