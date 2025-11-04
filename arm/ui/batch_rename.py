@@ -322,6 +322,8 @@ def preview_batch_rename(
     if consolidate and jobs:
         primary_job = jobs[0]
         parent_folder = compute_series_parent_folder(primary_job, include_year)
+        # Sanitize parent_folder to remove path separators
+        parent_folder = re.sub(r'[\\/]', '_', parent_folder)
         preview['series_info']['parent_folder'] = parent_folder
 
     seen_paths = {}
@@ -349,12 +351,21 @@ def preview_batch_rename(
 
         old_folder_name = os.path.basename(old_path)
         new_folder_name = name_result['folder_name']
+        # Sanitize new_folder_name to remove path separators
+        new_folder_name = re.sub(r'[\\/]', '_', new_folder_name)
+
+        base_path = os.path.dirname(old_path)
+        # Validate base_path
+        try:
+            base_path = _validate_path_safety(base_path)
+        except ValueError as e:
+            preview['errors'].append(f"Job {job.job_id}: Invalid base path - {str(e)}")
+            continue
 
         if consolidate and parent_folder:
-            base_path = os.path.dirname(old_path)
+            # All components are sanitized above
             new_path = os.path.join(base_path, parent_folder, new_folder_name)
         else:
-            base_path = os.path.dirname(old_path)
             new_path = os.path.join(base_path, new_folder_name)
 
         # Validate new_path to prevent path traversal
