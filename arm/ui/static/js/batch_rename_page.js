@@ -289,12 +289,8 @@ function detectSeries() {
     BatchRenameShared.detectSeries(selectedJobs, function(preview) {
         previewData = preview;
 
-        // Check if we need series selection step
-        const seriesInfo = preview.series_info || {};
-        const hasMultipleSeries = !seriesInfo.consistent ||
-            (preview.outliers && preview.outliers.length > 0);
-
-        if (hasMultipleSeries) {
+        // Check if series selection is required
+        if (preview.requires_series_selection) {
             // Show series selection step
             BatchRenameShared.displaySeriesSelection(preview);
             $('#rename-options-step').hide();

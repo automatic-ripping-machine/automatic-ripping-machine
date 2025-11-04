@@ -86,6 +86,7 @@ def _prepare_preview_job(
     consistency,
     outlier_resolution,
     seen_paths,
+    force_series_name=None,
 ):
     """Build preview data for a single job while enforcing path safety."""
 
@@ -98,19 +99,21 @@ def _prepare_preview_job(
 
     resolution_map = outlier_resolution or {}
     resolution = resolution_map.get(str(job.job_id))
-    force_series = None
 
     if resolution == 'skip':
         result['skipped'] = True
         return result
-    if resolution == 'force':
-        force_series = consistency.get('primary_series')
+
+    # Use force_series_name if provided (from series selection)
+    series_override = force_series_name
+    if resolution == 'force' and not series_override:
+        series_override = consistency.get('primary_series')
 
     name_result = compute_new_folder_name(
         job,
         naming_style,
         zero_padded,
-        force_series,
+        series_override,
     )
 
     old_path = job.path
@@ -318,9 +321,11 @@ def validate_job_selection(job_ids):
 
 def detect_series_consistency(jobs):
     """Determine if all jobs belong to the same series.
+    
+    Prioritizes title_manual (custom lookup) over title/imdb_id for grouping.
 
     Returns dict: consistent (bool), primary_series, primary_series_id,
-    outliers (list).
+    outliers (list), series_groups (list of all detected series).
     """
 
     result = {
@@ -328,35 +333,88 @@ def detect_series_consistency(jobs):
         'primary_series': None,
         'primary_series_id': None,
         'outliers': [],
+        'series_groups': [],
     }
 
     if not jobs:
         return result
 
-    # Group by imdb_id if present else title
+    # Group by title_manual (if set), then imdb_id, then title
     series_map = {}
+    series_metadata = {}
+    
     for job in jobs:
-        key = job.imdb_id if job.imdb_id else job.title
+        # Prioritize custom lookup name
+        manual_title = getattr(job, 'title_manual', None)
+        if manual_title and manual_title.strip():
+            key = f"manual:{manual_title.strip()}"
+            display_name = manual_title.strip()
+            has_manual = True
+        elif job.imdb_id:
+            key = f"imdb:{job.imdb_id}"
+            display_name = job.title or job.imdb_id
+            has_manual = False
+        else:
+            key = f"title:{job.title}"
+            display_name = job.title
+            has_manual = False
+        
         series_map.setdefault(key, []).append(job)
-
-    # Primary series = largest group
-    primary_key = max(series_map.keys(), key=lambda k: len(series_map[k]))
-    result['primary_series'] = primary_key
-    primary_job = series_map[primary_key][0]
-    result['primary_series_id'] = primary_job.imdb_id or None
-
-    # Outliers are any jobs not in primary group
-    for key, job_list in series_map.items():
-        if key == primary_key:
-            continue
-        result['consistent'] = False
-        for job in job_list:
-            result['outliers'].append({
-                'job_id': job.job_id,
-                'title': job.title,
+        
+        # Store metadata for each series group
+        if key not in series_metadata:
+            series_metadata[key] = {
+                'display_name': display_name,
                 'imdb_id': job.imdb_id,
-                'label': job.label,
-            })
+                'has_manual_title': has_manual,
+                'key': key,
+            }
+
+    # Sort groups: manual titles first, then by size
+    def sort_key(k):
+        meta = series_metadata[k]
+        return (
+            1 if meta['has_manual_title'] else 0,  # Manual titles first
+            len(series_map[k])  # Then by group size
+        )
+    
+    sorted_keys = sorted(series_map.keys(), key=sort_key, reverse=True)
+    primary_key = sorted_keys[0]
+    primary_meta = series_metadata[primary_key]
+    
+    result['primary_series'] = primary_meta['display_name']
+    result['primary_series_id'] = primary_meta['imdb_id']
+    result['primary_series_key'] = primary_key
+    
+    # Build series_groups for frontend
+    for key in sorted_keys:
+        meta = series_metadata[key]
+        job_list = series_map[key]
+        result['series_groups'].append({
+            'key': key,
+            'display_name': meta['display_name'],
+            'imdb_id': meta['imdb_id'],
+            'has_manual_title': meta['has_manual_title'],
+            'job_count': len(job_list),
+            'job_ids': [j.job_id for j in job_list],
+        })
+
+    # Mark outliers (jobs not in primary group)
+    result['consistent'] = len(series_map) == 1
+    
+    if not result['consistent']:
+        for key, job_list in series_map.items():
+            if key == primary_key:
+                continue
+            meta = series_metadata[key]
+            for job in job_list:
+                result['outliers'].append({
+                    'job_id': job.job_id,
+                    'title': meta['display_name'],
+                    'imdb_id': job.imdb_id,
+                    'label': job.label,
+                    'series_key': key,
+                })
 
     return result
 
@@ -437,11 +495,17 @@ def preview_batch_rename(
     consolidate=False,
     include_year=True,
     outlier_resolution=None,
+    selected_series_key=None,
+    force_series_override=False,
 ):
     """Generate a preview of the batch rename operation.
 
     Returns a dict containing items, conflicts, warnings, errors, and series
     information.
+    
+    Args:
+        selected_series_key: Key of the series to use for all jobs (from series selection UI)
+        force_series_override: If True, force all jobs to use the selected series name
     """
 
     preview = {
@@ -452,6 +516,7 @@ def preview_batch_rename(
         'warnings': [],
         'series_info': {},
         'outliers': [],
+        'requires_series_selection': False,
     }
 
     validation = validate_job_selection(job_ids)
@@ -466,18 +531,52 @@ def preview_batch_rename(
 
     consistency = detect_series_consistency(jobs)
     preview['series_info'] = consistency
+    
+    # Check if user needs to select a series
+    if not consistency['consistent'] and not selected_series_key and not force_series_override:
+        preview['requires_series_selection'] = True
+        preview['outliers'] = consistency['outliers']
+        preview['warnings'].append(
+            f"Multiple series detected ({len(consistency['series_groups'])} groups). "
+            "Please select which series to use for batch rename."
+        )
+        # Don't generate preview items yet - wait for user selection
+        return preview
+    
+    # Determine which series name to use
+    force_series_name = None
+    if selected_series_key:
+        # Find the selected series group
+        selected_group = next(
+            (g for g in consistency['series_groups'] if g['key'] == selected_series_key),
+            None
+        )
+        if selected_group:
+            force_series_name = selected_group['display_name']
+            logging.info(
+                f"Batch rename using selected series: {force_series_name} "
+                f"(key: {selected_series_key})"
+            )
+    
     if not consistency['consistent']:
         preview['outliers'] = consistency['outliers']
-        if not outlier_resolution:
-            preview['warnings'].append(
-                'Some discs belong to different series. '
-                'Please resolve outliers before proceeding.'
-            )
 
     parent_folder = None
     if consolidate and jobs:
+        # Use the first job from selected series or primary series
         primary_job = jobs[0]
-        parent_folder = compute_series_parent_folder(primary_job, include_year)
+        if force_series_name:
+            # Override the job's title for parent folder calculation
+            original_title = primary_job.title
+            original_manual = getattr(primary_job, 'title_manual', None)
+            primary_job.title = force_series_name
+            primary_job.title_manual = force_series_name
+            parent_folder = compute_series_parent_folder(primary_job, include_year)
+            # Restore original values
+            primary_job.title = original_title
+            primary_job.title_manual = original_manual
+        else:
+            parent_folder = compute_series_parent_folder(primary_job, include_year)
         # Sanitize parent_folder to remove path separators
         parent_folder = re.sub(r'[\\/]', '_', parent_folder)
         preview['series_info']['parent_folder'] = parent_folder
@@ -494,6 +593,7 @@ def preview_batch_rename(
             consistency,
             resolution_map,
             seen_paths,
+            force_series_name=force_series_name,
         )
 
         preview['errors'].extend(job_result['errors'])
@@ -548,7 +648,11 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
                     continue
 
             shutil.move(old_path, new_path)
-            logging.info(f'Renamed: {old_path} -> {new_path}')
+            logging.info(
+                f"BATCH RENAME - Job {job_id}: "
+                f"'{old_path}' -> '{new_path}' "
+                f"(Series: {item.get('series_name', 'Unknown')})"
+            )
 
             job = Job.query.get(job_id)
             if job:

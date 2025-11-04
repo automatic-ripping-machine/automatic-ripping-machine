@@ -28,15 +28,17 @@
     }
     .batch-toolbar {
         position: sticky;
-        top: 60px;
-        z-index: 1020;
+        top: 80px;
+        z-index: 1030;
         background: white;
         padding: 15px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         margin-bottom: 20px;
+        border-radius: 8px;
     }
     .dark-mode .batch-toolbar {
         background: #1a1a1a;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.4);
     }
     .batch-table {
         font-size: 0.95rem;
@@ -273,24 +275,29 @@
                     <h6 class="font-weight-bold">Series Detection and Confirmation</h6>
                     
                     <div id="series-detection-info" class="alert alert-info">
-                        <strong>Multiple series detected.</strong> Please select the primary series for this batch operation.
+                        <strong>Multiple series detected.</strong> Please select which series name to use for batch rename.
                     </div>
                     
                     <div id="series-groups-container">
                         <!-- Populated by JavaScript with radio buttons for each detected series -->
                     </div>
                     
+                    <div class="alert alert-warning mt-3" id="series-selection-warning">
+                        <strong><i class="fa fa-exclamation-triangle"></i> Warning:</strong> All selected discs will be renamed using the series name you choose above.
+                    </div>
+                    
                     <div class="mt-3">
-                        <h6>Disc Assignment</h6>
-                        <p class="text-muted small">Review which discs belong to the selected series. You can reassign outliers or skip them.</p>
-                        <div id="disc-assignment-container" class="table-responsive">
-                            <!-- Populated by JavaScript with disc list and assignment controls -->
+                        <div id="disc-assignment-container">
+                            <!-- Populated by JavaScript -->
                         </div>
                     </div>
                     
                     <hr>
                     <button type="button" class="btn btn-secondary" id="back-from-series-btn">
                         <i class="fa fa-arrow-left"></i> Back to Options
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">
+                        <i class="fa fa-times"></i> Cancel
                     </button>
                     <button type="button" class="btn btn-primary" id="confirm-series-btn">
                         <i class="fa fa-check"></i> Confirm and Preview

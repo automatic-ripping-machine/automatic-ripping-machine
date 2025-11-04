@@ -35,137 +35,83 @@ var BatchRenameShared = (function() {
      */
     function displaySeriesSelection(preview) {
         const seriesInfo = preview.series_info || {};
-        const outliers = preview.outliers || [];
-        const items = preview.items || preview.previews || [];
+        const seriesGroups = seriesInfo.series_groups || [];
 
-        // Build series groups
-        const seriesGroups = {};
-
-        // Add primary series
-        if (seriesInfo.primary_series) {
-            seriesGroups[seriesInfo.primary_series] = {
-                name: seriesInfo.primary_series,
-                imdb_id: seriesInfo.primary_series_id,
-                jobs: []
-            };
-        }
-
-        // Add outlier series
-        outliers.forEach(outlier => {
-            const key = outlier.imdb_id || outlier.title;
-            if (!seriesGroups[key]) {
-                seriesGroups[key] = {
-                    name: outlier.title,
-                    imdb_id: outlier.imdb_id,
-                    jobs: []
-                };
-            }
-        });
-
-        // Assign jobs to series groups
-        items.forEach(item => {
-            const jobId = item.job_id || item.id;
-            const outlier = outliers.find(o => o.job_id === jobId);
-
-            if (outlier) {
-                const key = outlier.imdb_id || outlier.title;
-                if (seriesGroups[key]) {
-                    seriesGroups[key].jobs.push(item);
-                }
-            } else if (seriesInfo.primary_series && seriesGroups[seriesInfo.primary_series]) {
-                seriesGroups[seriesInfo.primary_series].jobs.push(item);
-            }
-        });
-
-        // Display series groups
+        // Display series groups with custom lookup badges
         const container = $('#series-groups-container');
         container.empty();
 
-        let groupIndex = 0;
-        for (const key in seriesGroups) {
-            const group = seriesGroups[key];
-            const isChecked = groupIndex === 0 ? 'checked' : '';
+        if (seriesGroups.length === 0) {
+            container.html('<p class="text-muted">No series information available.</p>');
+            return;
+        }
 
-            const groupNameEsc = escapeHtml(group.name);
-            const groupImdbEsc = group.imdb_id ? '(' + escapeHtml(group.imdb_id) + ')' : '';
+        let groupIndex = 0;
+        seriesGroups.forEach(group => {
+            const isChecked = groupIndex === 0 ? 'checked' : '';
+            const groupNameEsc = escapeHtml(group.display_name);
+            const groupImdbEsc = group.imdb_id ? ' (' + escapeHtml(group.imdb_id) + ')' : '';
+            
+            // Badge for custom lookup
+            const customBadge = group.has_manual_title ? 
+                '<span class="badge badge-success ml-2">Custom Lookup</span>' : '';
+            
             const groupHtml = `
                 <div class="form-check mb-3">
                     <input class="form-check-input series-radio" type="radio" name="primarySeries"
-                           id="series-${groupIndex}" value="${escapeHtml(key)}" ${isChecked}>
+                           id="series-${groupIndex}" value="${escapeHtml(group.key)}" 
+                           data-series-name="${escapeHtml(group.display_name)}"
+                           ${isChecked}>
                     <label class="form-check-label" for="series-${groupIndex}">
-                        <strong>${groupNameEsc}</strong> ${groupImdbEsc}
-                        <span class="badge badge-info">${group.jobs.length} disc(s)</span>
+                        <strong>${groupNameEsc}</strong>${groupImdbEsc}
+                        <span class="badge badge-info ml-2">${group.job_count} disc(s)</span>
+                        ${customBadge}
                     </label>
                 </div>
             `;
             container.append(groupHtml);
             groupIndex++;
+        });
+
+        // Display warning message
+        const warningContainer = $('#series-selection-warning');
+        if (warningContainer.length) {
+            const selectedRadio = $('input[name="primarySeries"]:checked');
+            const selectedName = selectedRadio.data('series-name') || 'this series';
+            warningContainer.html(
+                `<strong><i class="fa fa-exclamation-triangle"></i> Warning:</strong> ` +
+                `All selected discs will be renamed using "<strong>${escapeHtml(selectedName)}</strong>" as the series name. ` +
+                `This will affect ${seriesGroups.reduce((sum, g) => sum + g.job_count, 0)} disc(s).`
+            );
         }
 
-        // Display disc assignment table
-        displayDiscAssignment(items, outliers, seriesInfo);
-
-        // Update disc assignment when series selection changes
+        // Update warning when selection changes
         $('.series-radio').on('change', function() {
-            displayDiscAssignment(items, outliers, seriesInfo);
+            const selectedName = $(this).data('series-name') || 'this series';
+            const warningContainer = $('#series-selection-warning');
+            if (warningContainer.length) {
+                warningContainer.html(
+                    `<strong><i class="fa fa-exclamation-triangle"></i> Warning:</strong> ` +
+                    `All selected discs will be renamed using "<strong>${escapeHtml(selectedName)}</strong>" as the series name. ` +
+                    `This will affect ${seriesGroups.reduce((sum, g) => sum + g.job_count, 0)} disc(s).`
+                );
+            }
         });
     }
 
     /**
-     * Display disc assignment table for outlier resolution
+     * Display disc assignment table - simplified version
      */
     function displayDiscAssignment(items, outliers, seriesInfo) {
+        // This function is kept for compatibility but simplified
+        // The new series selection UI handles this differently
         const container = $('#disc-assignment-container');
         container.empty();
-
-        const selectedSeries = $('input[name="primarySeries"]:checked').val();
-
-        let tableHtml = `
-            <table class="table table-sm table-bordered">
-                <thead>
-                    <tr>
-                        <th>Job ID</th>
-                        <th>Title</th>
-                        <th>Label</th>
-                        <th>Assignment</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-        items.forEach(item => {
-            const jobId = item.job_id || item.id;
-            const titleRaw = item.title || item.series_name || 'N/A';
-            const labelRaw = item.label || item.disc_label || 'N/A';
-            const outlier = outliers.find(o => o.job_id === jobId);
-
-            let assignmentHtml = '';
-            if (outlier) {
-                const escapedSeries = escapeHtml(selectedSeries);
-                assignmentHtml = `
-                    <select class="form-control form-control-sm disc-assignment" data-job-id="${escapeHtml(jobId)}">
-                        <option value="skip">Skip this disc</option>
-                        <option value="force">Include in ${escapedSeries}</option>
-                        <option value="auto" selected>Auto (different series)</option>
-                    </select>
-                `;
-            } else {
-                const escapedSeries = escapeHtml(selectedSeries);
-                assignmentHtml = `<span class="badge badge-success">Part of ${escapedSeries}</span>`;
-            }
-
-            tableHtml += `
-                <tr>
-                    <td>${jobId}</td>
-                    <td>${escapeHtml(titleRaw)}</td>
-                    <td>${escapeHtml(labelRaw)}</td>
-                    <td>${assignmentHtml}</td>
-                </tr>
-            `;
-        });
-
-        tableHtml += '</tbody></table>';
-        container.html(tableHtml);
+        
+        // Show a simple message
+        container.html(
+            '<p class="text-muted small">Note: All discs will use the selected series name above.</p>'
+        );
     }
 
     /**
@@ -432,12 +378,24 @@ var BatchRenameShared = (function() {
         const btn = $('#confirm-series-btn');
         btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generating Preview...');
 
-        // Collect outlier resolution
+        // Get selected series key
+        const selectedSeriesKey = $('input[name="primarySeries"]:checked').val();
+        
+        if (!selectedSeriesKey) {
+            showToast('Please select a series before continuing', 'warning');
+            btn.prop('disabled', false).html('<i class="fa fa-check"></i> Confirm and Preview');
+            return;
+        }
+
+        // Mark all jobs as using the selected series (force override)
         const outlierResolution = {};
-        $('.disc-assignment').each(function() {
-            const jobId = $(this).data('job-id');
-            const resolution = $(this).val();
-            outlierResolution[jobId] = resolution;
+        $('input[name="primarySeries"]').each(function() {
+            const radioKey = $(this).val();
+            if (radioKey !== selectedSeriesKey) {
+                // All jobs from non-selected series should use selected series
+                const seriesInfo = $(this).closest('.form-check').data('series-info') || {};
+                // This will be handled by backend based on selected_series_key
+            }
         });
 
         const options = {
@@ -446,7 +404,8 @@ var BatchRenameShared = (function() {
             zero_padded: $('#zero-padded').is(':checked'),
             consolidate: $('#consolidate').is(':checked'),
             include_year: $('#include-year').is(':checked'),
-            outlier_resolution: outlierResolution
+            selected_series_key: selectedSeriesKey,
+            force_series_override: true  // Force all jobs to use selected series
         };
 
         $.ajax({
