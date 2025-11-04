@@ -39,6 +39,13 @@ $(document).ready(function() {
 });
 
 function initializeBatchRenamePage() {
+    // Clear all checkboxes and selection state on page load
+    $('.batch-checkbox').prop('checked', false);
+    $('.batch-table-row').removeClass('selected');
+    $('#select-all-checkbox').prop('checked', false);
+    selectedJobs.clear();
+    updateSelectionUI();
+    
     // Table and checkbox handlers
     $('.batch-checkbox').on('change', handleCheckboxChange);
     $('.batch-table-row').on('click', handleRowClick);

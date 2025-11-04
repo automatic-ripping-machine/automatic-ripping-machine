@@ -535,6 +535,21 @@ var BatchRenameShared = (function() {
             include_year: $('#include-year').is(':checked')
         };
 
+        // Include series selection data if it was used
+        const selectedSeriesKey = $('input[name="primarySeries"]:checked').val();
+        if (selectedSeriesKey) {
+            options.selected_series_key = selectedSeriesKey;
+            options.force_series_override = true;
+            
+            // Include custom series name if provided
+            if (selectedSeriesKey === '__custom__') {
+                const customSeriesName = $('#custom-series-name').val().trim();
+                if (customSeriesName) {
+                    options.custom_series_name = customSeriesName;
+                }
+            }
+        }
+
         // Include outlier resolution if it exists
         const outlierResolution = {};
         $('.disc-assignment').each(function() {
@@ -556,12 +571,27 @@ var BatchRenameShared = (function() {
                 ...options
             }),
             success: function(response) {
+                console.log('Execute rename response:', response);
+                
+                // Check for errors in the response
+                if (response.errors && response.errors.length > 0) {
+                    console.error('Rename errors:', response.errors);
+                    // Show first error to user
+                    showToast('Rename failed: ' + response.errors[0], 'danger');
+                }
+                
                 callback(response);
             },
             error: function(xhr) {
+                console.error('Execute rename XHR error:', xhr);
                 let msg = 'Failed to execute rename';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg += ': ' + xhr.responseJSON.message;
+                } else if (xhr.responseJSON && xhr.responseJSON.error) {
+                    msg += ': ' + xhr.responseJSON.error;
+                } else if (xhr.responseText) {
+                    console.error('Response text:', xhr.responseText);
+                    msg += ' (see console for details)';
                 }
                 showToast(msg, 'danger');
                 btn.prop('disabled', false).html('<i class="fa fa-check"></i> Execute Batch Rename');

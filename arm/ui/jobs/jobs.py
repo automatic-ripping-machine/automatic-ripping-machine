@@ -616,6 +616,9 @@ def _search_metadata(query, video_type, year, provider, metadata):
 def _apply_custom_lookup_to_jobs(job_ids, title, year, video_type,
                                  imdb_id, poster_url):
     """Apply custom identification metadata to selected jobs."""
+    import os
+    import shutil
+    
     updated_jobs = []
     errors = []
 
@@ -626,6 +629,9 @@ def _apply_custom_lookup_to_jobs(job_ids, title, year, video_type,
                 errors.append(f'Job {job_id} not found')
                 continue
 
+            old_video_type = job.video_type
+            old_path = job.path
+
             # Update job metadata
             job.title = title
             job.title_manual = title
@@ -635,11 +641,66 @@ def _apply_custom_lookup_to_jobs(job_ids, title, year, video_type,
             job.poster_url = poster_url
             job.hasnicetitle = True
 
+            # Move folder to correct video_type directory if type changed
+            moved = False
+            new_path = old_path
+            if old_video_type != video_type and old_path and os.path.exists(old_path):
+                try:
+                    # Get base paths for different video types
+                    completed_path = cfg.arm_config.get('COMPLETED_PATH', '/home/arm/media/completed')
+                    
+                    # Determine target base path
+                    if video_type == 'series':
+                        target_base = os.path.join(completed_path, 'tvshows')
+                    elif video_type == 'movie':
+                        target_base = os.path.join(completed_path, 'movies')
+                    else:
+                        target_base = os.path.join(completed_path, 'unidentified')
+                    
+                    # Create target base if it doesn't exist
+                    os.makedirs(target_base, exist_ok=True)
+                    
+                    # Build new path with same folder name
+                    folder_name = os.path.basename(old_path)
+                    new_path = os.path.join(target_base, folder_name)
+                    
+                    # Handle naming conflicts
+                    if os.path.exists(new_path) and new_path != old_path:
+                        from datetime import datetime
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                        base_name = folder_name
+                        new_path = os.path.join(target_base, f"{base_name}_{timestamp}")
+                        app.logger.warning(
+                            f"Folder conflict detected, using timestamped name: {new_path}"
+                        )
+                    
+                    # Move the folder
+                    if new_path != old_path:
+                        shutil.move(old_path, new_path)
+                        job.path = new_path
+                        moved = True
+                        app.logger.info(
+                            f"Moved job {job_id} from {old_video_type} to {video_type}: "
+                            f"{old_path} -> {new_path}"
+                        )
+                        
+                except Exception as move_err:
+                    app.logger.error(
+                        f"Failed to move folder for job {job_id}: {move_err}", 
+                        exc_info=True
+                    )
+                    errors.append(
+                        f'Job {job_id}: Metadata updated but folder move failed - {str(move_err)}'
+                    )
+
             updated_jobs.append({
                 'job_id': job_id,
                 'title': title,
                 'year': year,
-                'type': video_type
+                'type': video_type,
+                'moved': moved,
+                'old_path': old_path if moved else None,
+                'new_path': new_path if moved else None
             })
 
         except Exception as e:
