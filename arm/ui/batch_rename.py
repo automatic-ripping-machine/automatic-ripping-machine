@@ -77,6 +77,158 @@ def _validate_path_safety(path, base_directory=None):
     return str(target_path)
 
 
+def _prepare_preview_job(
+    job,
+    naming_style,
+    zero_padded,
+    consolidate,
+    parent_folder,
+    consistency,
+    outlier_resolution,
+    seen_paths,
+):
+    """Build preview data for a single job while enforcing path safety."""
+
+    result = {
+        'item': None,
+        'errors': [],
+        'conflicts': [],
+        'skipped': False,
+    }
+
+    resolution_map = outlier_resolution or {}
+    resolution = resolution_map.get(str(job.job_id))
+    force_series = None
+
+    if resolution == 'skip':
+        result['skipped'] = True
+        return result
+    if resolution == 'force':
+        force_series = consistency.get('primary_series')
+
+    name_result = compute_new_folder_name(
+        job,
+        naming_style,
+        zero_padded,
+        force_series,
+    )
+
+    old_path = job.path
+    try:
+        old_path = _validate_path_safety(old_path)
+    except ValueError as err:
+        result['errors'].append(
+            f"Job {job.job_id}: Invalid path - {str(err)}"
+        )
+        return result
+
+    old_folder_name = os.path.basename(old_path)
+    new_folder_name = re.sub(r'[\\/]', '_', name_result['folder_name'])
+
+    base_path = os.path.dirname(old_path)
+    if consolidate and parent_folder:
+        new_path = os.path.normpath(
+            os.path.join(base_path, parent_folder, new_folder_name)
+        )
+    else:
+        new_path = os.path.normpath(
+            os.path.join(base_path, new_folder_name)
+        )
+
+    try:
+        new_path = _validate_path_safety(new_path)
+    except ValueError as err:
+        result['errors'].append(
+            f"Job {job.job_id}: Invalid target path - {str(err)}"
+        )
+        return result
+
+    if new_path in seen_paths:
+        result['conflicts'].append({
+            'job_id': job.job_id,
+            'new_path': new_path,
+            'conflict_with': seen_paths[new_path],
+            'reason': 'Duplicate target path',
+        })
+    elif os.path.exists(new_path) and new_path != old_path:
+        result['conflicts'].append({
+            'job_id': job.job_id,
+            'new_path': new_path,
+            'reason': 'Target path already exists',
+        })
+
+    seen_paths[new_path] = job.job_id
+
+    result['item'] = {
+        'job_id': job.job_id,
+        'title': job.title,
+        'label': job.label,
+        'old_path': old_path,
+        'new_path': new_path,
+        'old_folder_name': old_folder_name,
+        'new_folder_name': new_folder_name,
+        'series_name': name_result['series_name'],
+        'disc_identifier': name_result['disc_identifier'],
+        'parse_success': name_result['parse_success'],
+        'fallback': name_result['fallback'],
+        'consolidated': consolidate,
+        'parent_folder': parent_folder if consolidate else None,
+    }
+
+    return result
+
+
+def _prepare_execute_paths(item):
+    """Validate and, if needed, adjust rename paths for execution."""
+
+    job_id = item['job_id']
+
+    try:
+        old_path = _validate_path_safety(item['old_path'])
+        new_path = _validate_path_safety(item['new_path'])
+    except ValueError as err:
+        return None, None, None, f"Job {job_id}: Invalid path - {str(err)}"
+
+    new_folder_name = item['new_folder_name']
+
+    if os.path.exists(new_path) and new_path != old_path:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        base, ext = os.path.splitext(new_path)
+        adjusted_path = f'{base}_{timestamp}{ext}'
+        try:
+            adjusted_path = _validate_path_safety(adjusted_path)
+        except ValueError as err:
+            logging.error(f"Path validation failed for timestamped path: {err}")
+            return (
+                None,
+                None,
+                None,
+                f"Job {job_id}: Invalid timestamped path - {str(err)}",
+            )
+
+        logging.warning(
+            f'Conflict detected for {old_path}, using timestamped name: {adjusted_path}'
+        )
+        new_folder_name = os.path.basename(adjusted_path)
+        new_path = adjusted_path
+
+    return old_path, new_path, new_folder_name, None
+
+
+def _ensure_parent_directory(new_path, job_id):
+    """Ensure the parent directory exists for consolidated renames."""
+
+    parent_path = os.path.dirname(new_path)
+    try:
+        parent_path = _validate_path_safety(parent_path)
+    except ValueError as err:
+        logging.error(f"Path validation failed for parent path: {err}")
+        return f"Job {job_id}: Invalid parent path - {str(err)}"
+
+    os.makedirs(parent_path, exist_ok=True)
+    return None
+
+
 def apply_naming_style(name, style='underscore'):
     """Apply naming style to a normalized series name.
 
@@ -330,86 +482,28 @@ def preview_batch_rename(
         parent_folder = re.sub(r'[\\/]', '_', parent_folder)
         preview['series_info']['parent_folder'] = parent_folder
 
+    resolution_map = outlier_resolution or {}
     seen_paths = {}
     for job in jobs:
-        # Handle outlier resolution
-        force_series = None
-        if outlier_resolution and str(job.job_id) in outlier_resolution:
-            resolution = outlier_resolution[str(job.job_id)]
-            if resolution == 'skip':
-                continue
-            if resolution == 'force':
-                force_series = consistency['primary_series']
-
-        name_result = compute_new_folder_name(
-            job, naming_style, zero_padded, force_series
+        job_result = _prepare_preview_job(
+            job,
+            naming_style,
+            zero_padded,
+            consolidate,
+            parent_folder,
+            consistency,
+            resolution_map,
+            seen_paths,
         )
 
-        old_path = job.path
-        # Validate old_path to prevent path traversal
-        try:
-            old_path = _validate_path_safety(old_path)
-        except ValueError as e:
-            preview['errors'].append(f"Job {job.job_id}: Invalid path - {str(e)}")
+        preview['errors'].extend(job_result['errors'])
+        preview['conflicts'].extend(job_result['conflicts'])
+
+        if job_result.get('skipped'):
             continue
 
-        old_folder_name = os.path.basename(old_path)
-        new_folder_name = name_result['folder_name']
-        # Sanitize new_folder_name to remove path separators
-        new_folder_name = re.sub(r'[\\/]', '_', new_folder_name)
-
-        # Get base directory from the validated old_path
-        base_path = os.path.dirname(old_path)
-
-        # Construct new_path using validated components
-        # Note: old_path is already validated above, so base_path is trusted
-        if consolidate and parent_folder:
-            # Ensure parent_folder doesn't contain path separators (already sanitized above)
-            # Use os.path.normpath to normalize the joined path
-            new_path = os.path.normpath(os.path.join(base_path, parent_folder, new_folder_name))
-        else:
-            new_path = os.path.normpath(os.path.join(base_path, new_folder_name))
-
-        # Validate new_path to prevent path traversal
-        try:
-            new_path = _validate_path_safety(new_path)
-        except ValueError as e:
-            preview['errors'].append(f"Job {job.job_id}: Invalid target path - {str(e)}")
-            continue
-
-        if new_path in seen_paths:
-            preview['conflicts'].append({
-                'job_id': job.job_id,
-                'new_path': new_path,
-                'conflict_with': seen_paths[new_path],
-                'reason': 'Duplicate target path',
-            })
-        elif os.path.exists(new_path) and new_path != old_path:
-            preview['conflicts'].append({
-                'job_id': job.job_id,
-                'new_path': new_path,
-                'reason': 'Target path already exists',
-            })
-
-        seen_paths[new_path] = job.job_id
-
-        item = {
-            'job_id': job.job_id,
-            'title': job.title,
-            'label': job.label,
-            'old_path': old_path,
-            'new_path': new_path,
-            'old_folder_name': old_folder_name,
-            'new_folder_name': new_folder_name,
-            'series_name': name_result['series_name'],
-            'disc_identifier': name_result['disc_identifier'],
-            'parse_success': name_result['parse_success'],
-            'fallback': name_result['fallback'],
-            'consolidated': consolidate,
-            'parent_folder': parent_folder if consolidate else None,
-        }
-
-        preview['items'].append(item)
+        if job_result.get('item'):
+            preview['items'].append(job_result['item'])
 
     if preview['conflicts']:
         preview['warnings'].append(
@@ -439,49 +533,19 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
     for item in preview_data['items']:
         try:
             job_id = item['job_id']
-            old_path = item['old_path']
-            new_path = item['new_path']
+            old_path, new_path, new_folder_name, path_error = _prepare_execute_paths(item)
 
-            # Validate paths to prevent path traversal attacks
-            try:
-                old_path = _validate_path_safety(old_path)
-                new_path = _validate_path_safety(new_path)
-            except ValueError as e:
-                logging.error(f"Path validation failed for job {job_id}: {e}")
+            if path_error:
                 result['failed_count'] += 1
-                result['errors'].append(f"Job {job_id}: Invalid path - {str(e)}")
+                result['errors'].append(path_error)
                 continue
 
-            if os.path.exists(new_path) and new_path != old_path:
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                base, ext = os.path.splitext(new_path)
-                new_path = f'{base}_{timestamp}{ext}'
-                # Re-validate the timestamped path
-                try:
-                    new_path = _validate_path_safety(new_path)
-                except ValueError as e:
-                    logging.error(f"Path validation failed for timestamped path: {e}")
-                    result['failed_count'] += 1
-                    result['errors'].append(f"Job {job_id}: Invalid timestamped path - {str(e)}")
-                    continue
-                new_folder_name = os.path.basename(new_path)
-                logging.warning(
-                    f'Conflict detected for {old_path}, using timestamped name: {new_path}'
-                )
-            else:
-                new_folder_name = item['new_folder_name']
-
             if item.get('consolidated') and item.get('parent_folder'):
-                parent_path = os.path.dirname(new_path)
-                # Validate parent path before creating
-                try:
-                    parent_path = _validate_path_safety(parent_path)
-                except ValueError as e:
-                    logging.error(f"Path validation failed for parent path: {e}")
+                parent_error = _ensure_parent_directory(new_path, job_id)
+                if parent_error:
                     result['failed_count'] += 1
-                    result['errors'].append(f"Job {job_id}: Invalid parent path - {str(e)}")
+                    result['errors'].append(parent_error)
                     continue
-                os.makedirs(parent_path, exist_ok=True)
 
             shutil.move(old_path, new_path)
             logging.info(f'Renamed: {old_path} -> {new_path}')
@@ -511,6 +575,8 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
 
             result['renamed_count'] += 1
             result['history_ids'].append(history.history_id)
+            item['new_path'] = new_path
+            item['new_folder_name'] = new_folder_name
 
         except Exception as exc:  # pragma: no cover - runtime errors logged
             error_msg = f"Failed to rename job {item['job_id']}: {str(exc)}"
