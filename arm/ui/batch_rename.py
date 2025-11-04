@@ -321,7 +321,7 @@ def validate_job_selection(job_ids):
 
 def detect_series_consistency(jobs):
     """Determine if all jobs belong to the same series.
-    
+
     Prioritizes title_manual (custom lookup) over title/imdb_id for grouping.
 
     Returns dict: consistent (bool), primary_series, primary_series_id,
@@ -342,7 +342,7 @@ def detect_series_consistency(jobs):
     # Group by title_manual (if set), then imdb_id, then title
     series_map = {}
     series_metadata = {}
-    
+
     for job in jobs:
         # Prioritize custom lookup name
         manual_title = getattr(job, 'title_manual', None)
@@ -358,9 +358,9 @@ def detect_series_consistency(jobs):
             key = f"title:{job.title}"
             display_name = job.title
             has_manual = False
-        
+
         series_map.setdefault(key, []).append(job)
-        
+
         # Store metadata for each series group
         if key not in series_metadata:
             series_metadata[key] = {
@@ -377,15 +377,15 @@ def detect_series_consistency(jobs):
             1 if meta['has_manual_title'] else 0,  # Manual titles first
             len(series_map[k])  # Then by group size
         )
-    
+
     sorted_keys = sorted(series_map.keys(), key=sort_key, reverse=True)
     primary_key = sorted_keys[0]
     primary_meta = series_metadata[primary_key]
-    
+
     result['primary_series'] = primary_meta['display_name']
     result['primary_series_id'] = primary_meta['imdb_id']
     result['primary_series_key'] = primary_key
-    
+
     # Build series_groups for frontend
     for key in sorted_keys:
         meta = series_metadata[key]
@@ -401,7 +401,7 @@ def detect_series_consistency(jobs):
 
     # Mark outliers (jobs not in primary group)
     result['consistent'] = len(series_map) == 1
-    
+
     if not result['consistent']:
         for key, job_list in series_map.items():
             if key == primary_key:
@@ -502,7 +502,7 @@ def preview_batch_rename(
 
     Returns a dict containing items, conflicts, warnings, errors, and series
     information.
-    
+
     Args:
         selected_series_key: Key of the series to use for all jobs (from series selection UI)
         force_series_override: If True, force all jobs to use the selected series name
@@ -531,7 +531,7 @@ def preview_batch_rename(
 
     consistency = detect_series_consistency(jobs)
     preview['series_info'] = consistency
-    
+
     # Check if user needs to select a series
     if not consistency['consistent'] and not selected_series_key and not force_series_override:
         preview['requires_series_selection'] = True
@@ -542,7 +542,7 @@ def preview_batch_rename(
         )
         # Don't generate preview items yet - wait for user selection
         return preview
-    
+
     # Determine which series name to use
     force_series_name = None
     if selected_series_key:
@@ -557,7 +557,7 @@ def preview_batch_rename(
                 f"Batch rename using selected series: {force_series_name} "
                 f"(key: {selected_series_key})"
             )
-    
+
     if not consistency['consistent']:
         preview['outliers'] = consistency['outliers']
 

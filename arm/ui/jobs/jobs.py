@@ -800,28 +800,3 @@ def batch_custom_lookup_api():
             status=500,
             mimetype='application/json'
         )
-}, indent=2),
-                status=200,
-                mimetype='application/json'
-            )
-
-        else:
-            return app.response_class(
-                response=json.dumps({
-                    'success': False,
-                    'error': f'Unknown action: {action}'
-                }),
-                status=400,
-                mimetype='application/json'
-            )
-
-    except Exception as e:
-        app.logger.error(f"Batch custom lookup API error: {e}", exc_info=True)
-        return app.response_class(
-            response=json.dumps({
-                'success': False,
-                'error': 'An error occurred during custom lookup operation'
-            }),
-            status=500,
-            mimetype='application/json'
-        )

@@ -41,7 +41,7 @@ def upgrade():
         sa.Column('naming_style', sa.String(32)),
         sa.Column('zero_padded', sa.Boolean())
     )
-    
+
     # Create indexes for efficient querying
     op.create_index('idx_batch_id', 'batch_rename_history', ['batch_id'])
     op.create_index('idx_job_id', 'batch_rename_history', ['job_id'])
