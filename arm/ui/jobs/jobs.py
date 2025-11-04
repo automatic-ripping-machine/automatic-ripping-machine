@@ -649,9 +649,10 @@ def _apply_custom_lookup_to_jobs(job_ids, title, year, video_type,
                     # Get base paths for different video types
                     completed_path = cfg.arm_config.get('COMPLETED_PATH', '/home/arm/media/completed')
                     
-                    # Determine target base path
+                    # Determine target base path using ARM's standard folder structure
+                    # Reference: arm/ripper/utils.py get_video_type_sub_folder()
                     if video_type == 'series':
-                        target_base = os.path.join(completed_path, 'tvshows')
+                        target_base = os.path.join(completed_path, 'tv')
                     elif video_type == 'movie':
                         target_base = os.path.join(completed_path, 'movies')
                     else:
