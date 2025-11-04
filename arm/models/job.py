@@ -1,3 +1,4 @@
+import enum
 import logging
 import os
 import psutil
@@ -5,7 +6,10 @@ import pyudev
 import subprocess
 import time
 
+from datetime import datetime as dt
 from prettytable import PrettyTable
+from sqlalchemy.ext.hybrid import hybrid_property
+
 from arm.ripper import music_brainz
 from arm.ui import db
 import arm.config.config as cfg
@@ -13,6 +17,67 @@ import arm.config.config as cfg
 # THESE IMPORTS ARE REQUIRED FOR THE db.Relationships to work
 from arm.models.track import Track  # noqa: F401
 from arm.models.config import Config  # noqa: F401
+
+
+class JobState(str, enum.Enum):
+    """Possible states for Job.status.
+
+    The origin of the states is getting unclear at this point. Therefore, the
+    possible `Job.status` states are defined as fixed enums to handle and group
+    them better. Some come from CD, some from DVD ripping.
+
+    Note: The timestamps could also be saved particularily for each step to
+          show, for example, the pure transcoding time without the waiting
+          time.
+    """
+
+    # Job Finished States
+    SUCCESS = "success"
+    FAILURE = "fail"
+
+    # Manual wait (see job.config.MANUAL_WAIT)
+    MANUAL_WAIT_STARTED = "waiting"
+
+    # Job Initialized or Pending
+    IDLE = "active"
+    """An Idle Job may proceed to ripping or to finished.
+
+    - When initializing a job, the job is set to active
+    - After Handbrake finishes, Job is set to active
+    - After ABCD finishes, Job is set to active
+    """
+
+    # Video Ripping States
+    VIDEO_RIPPING = "ripping"
+    """Indicate that makemkv is ripping."""
+    VIDEO_WAITING = "waiting"
+    """Indicate that the job waits for user input or for the next queue slot."""
+    VIDEO_INFO = "info"
+    """Indicate that the job calls makemkv info"""
+
+    # Audio ripping states
+    AUDIO_RIPPING = "ripping"
+
+    # Transcoding states
+    TRANSCODE_ACTIVE = "transcoding"
+    TRANSCODE_WAITING = "waiting_transcode"
+
+
+JOB_STATUS_FINISHED = {
+    JobState.SUCCESS,
+    JobState.FAILURE,
+}
+JOB_STATUS_RIPPING = {
+    JobState.AUDIO_RIPPING,
+    JobState.VIDEO_RIPPING,
+    JobState.MANUAL_WAIT_STARTED,  # <-- not ripping, but undistinguishable
+    JobState.VIDEO_WAITING,
+    JobState.VIDEO_INFO,
+}
+JOB_STATUS_TRANSCODING = {
+    JobState.TRANSCODE_ACTIVE,
+    JobState.TRANSCODE_WAITING,
+}
 
 
 class Job(db.Model):
@@ -28,6 +93,12 @@ class Job(db.Model):
     stop_time = db.Column(db.DateTime)
     job_length = db.Column(db.String(12))
     status = db.Column(db.String(32))
+    """Now that we have JobState, we should migrate this column.
+    status = db.Column(
+        db.Enum(JobState, name="job_state_enum", native_enum=False, validate_strings=True),
+        nullable=False
+    )
+    """
     stage = db.Column(db.String(63))
     no_of_titles = db.Column(db.Integer)
     title = db.Column(db.String(256))
@@ -77,6 +148,7 @@ class Job(db.Model):
         self.stage = str(round(time.time() * 100))
         self.manual_start = False
         self.manual_mode = False
+        self.has_track_99 = False
 
         if self.disctype == "dvd" and not self.label:
             logging.info("No disk label Available. Trying lsdvd")
@@ -211,21 +283,61 @@ class Job(db.Model):
         return return_dict
 
     def eject(self):
-        """Eject disc if it hasn't previously been ejected"""
+        """Eject disc if it hasn't previously been ejected
+        """
+        if self.ejected:
+            logging.debug("The drive associated with this job has already been ejected.")
+            return
+        if self.drive is None:
+            logging.warning("No drive was backpopulated with this job!")
+            return
         if not cfg.arm_config['AUTO_EJECT']:
             logging.info("Skipping auto eject")
+            self.drive.release_current_job()  # release job without ejecting
             return
-        if not self.ejected:
-            self.ejected = True
-            try:
-                # This might always return true
-                if bool(os.system("umount " + self.devpath)):
-                    logging.debug(f"Unmounted disc {self.devpath}")
-                else:
-                    logging.debug(f"Failed to unmount {self.devpath}")
-                if bool(os.system("eject -sv " + self.devpath)):
-                    logging.debug(f"Ejected disc {self.devpath}")
-                else:
-                    logging.debug(f"Failed to eject {self.devpath}")
-            except Exception as error:
-                logging.debug(f"{self.devpath} couldn't be ejected {error}")
+        # release job from drive after ejecting
+        if (error := self.drive.eject(method="eject", logger=logging)) is not None:
+            logging.debug(f"{self.devpath} couldn't be ejected: {error}")
+        self.ejected = True
+
+    @hybrid_property
+    def finished(self):
+        return JobState(self.status) in JOB_STATUS_FINISHED
+
+    @finished.expression
+    def finished(cls):
+        return cls.status.in_([js.value for js in JOB_STATUS_FINISHED])
+
+    @property
+    def idle(self):
+        return JobState(self.status) == JobState.IDLE
+
+    @property
+    def ripping(self):
+        return JobState(self.status) in JOB_STATUS_RIPPING
+
+    @property
+    def run_time(self):
+        return abs(dt.now() - self.start_time).total_seconds()
+
+    @property
+    def ripping_finished(self):
+        """Indicates that the ripping process has finished.
+
+        Note: This usually means that we are transcoding and the drive is not
+              currently used.
+        """
+        if self.finished:
+            logging.info("Job is finished.")
+            return True
+        if not self.ripping:
+            logging.info("Job is not ripping.")
+            return True
+        if self.drive is None:
+            logging.info("No drive was backpopulated with this job!")
+            return True
+        if self.ejected:
+            logging.info(f"Drive {self.devpath} was ejected. No ripping process active.")
+            return True
+        logging.info(f"Job is ripping {self.devpath}.")
+        return False

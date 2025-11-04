@@ -12,13 +12,16 @@ Covers
 - drive_eject [GET]
 - drive_remove [GET]
 - testapprise [GET]
-- updateCPU [GET]
+- updatesysinfo [GET]
 """
 import platform
 import importlib
 import re
 import subprocess
 from datetime import datetime
+import os
+
+import sqlalchemy
 
 from flask_login import login_required, \
     current_user, login_user, UserMixin, logout_user  # noqa: F401
@@ -32,7 +35,7 @@ from arm.models.system_drives import SystemDrives
 from arm.models.system_info import SystemInfo
 from arm.models.ui_settings import UISettings
 import arm.config.config as cfg
-from arm.ui.settings import DriveUtils
+from arm.ui.settings import DriveUtils as drive_utils
 from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
 from arm.ui.settings.ServerUtil import ServerUtil
 import arm.ripper.utils as ripper_utils
@@ -40,6 +43,19 @@ import arm.ripper.utils as ripper_utils
 route_settings = Blueprint('route_settings', __name__,
                            template_folder='templates',
                            static_folder='../static')
+REDIRECT_SETTINGS = "route_settings.settings"
+
+
+def mask_last(value, n=4):
+    """
+    Replaces the last `n` characters of a string with asterisks.
+    """
+    if not isinstance(value, str):
+        return value
+    return value[:-n] + '*' * n if len(value) > n else '*' * len(value)
+
+
+route_settings.add_app_template_filter(mask_last, name='mask_last')
 
 
 @route_settings.route('/settings')
@@ -60,9 +76,9 @@ def settings():
     cds = Job.query.filter_by(disctype="music").count()
 
     # Get the current server time and timezone
+    server_timezone = os.environ.get("TZ", "Etc/UTC")
     current_time = datetime.now()
     server_datetime = current_time.strftime(cfg.arm_config['DATE_FORMAT'])
-    server_timezone = current_time.astimezone().tzinfo
     [arm_version_local, arm_version_remote] = ui_utils.git_check_version()
     local_git_hash = ui_utils.get_git_revision_hash()
 
@@ -91,7 +107,9 @@ def settings():
     media_path = cfg.arm_config['COMPLETED_PATH']
 
     # System Drives (CD/DVD/Blueray drives)
-    drives = DriveUtils.drives_check_status()
+    drive_utils.update_job_status()
+    drives = drive_utils.get_drives()
+    drive_utils.update_tray_status(drives)
     form_drive = SystemInfoDrives(request.form)
 
     # Load up the comments.json, so we can comment the arm.yaml
@@ -99,6 +117,8 @@ def settings():
     form = SettingsForm()
 
     session["page_title"] = "Settings"
+
+    app.logger.debug(f"stats: {stats}")
 
     return render_template("settings/settings.html",
                            settings=cfg.arm_config,
@@ -277,20 +297,21 @@ def server_info():
         # Return for POST
         app.logger.debug(
             f"Drive id: {str(form_drive.id.data)} " +
-            f"Updated name: [{str(form_drive.name.data)}] " +
-            f"Updated description: [{str(form_drive.description.data)}]")
+            f"Updated name: {str(form_drive.name.data)} " +
+            f"Updated description: [{str(form_drive.description.data)}] " +
+            f"Updated mode: [{str(form_drive.drive_mode.data)}]")
         drive = SystemDrives.query.filter_by(drive_id=form_drive.id.data).first()
-        drive.name = str(form_drive.name.data).strip()
         drive.description = str(form_drive.description.data).strip()
+        drive.name = str(form_drive.name.data).strip()
         drive.drive_mode = str(form_drive.drive_mode.data).strip()
         db.session.commit()
-        flash(f"Updated Drive {drive.mount} details", "success")
+        flash(f"Updated Drive {drive.name} details", "success")
         # Return to the systeminfo page (refresh page)
-        return redirect(url_for('route_settings.settings'))
+        return redirect(url_for(REDIRECT_SETTINGS))
     else:
         flash("Error: Unable to update drive details", "error")
         # Return for GET
-        return redirect(url_for('route_settings.settings'))
+        return redirect(url_for(REDIRECT_SETTINGS))
 
 
 @route_settings.route('/systemdrivescan')
@@ -301,9 +322,9 @@ def system_drive_scan():
     Overview - Scan for the system drives and update the database.
     """
     # Update to scan for changes to the ripper system
-    new_count = DriveUtils.drives_update()
+    new_count = drive_utils.drives_update()
     flash(f"ARM found {new_count} new drives", "success")
-    return redirect(url_for('route_settings.settings'))
+    return redirect(url_for(REDIRECT_SETTINGS))
 
 
 @route_settings.route('/drive/eject/<eject_id>')
@@ -312,10 +333,22 @@ def drive_eject(eject_id):
     """
     Server System - change state of CD/DVD/BluRay drive - toggle eject status
     """
-    drive = SystemDrives.query.filter_by(drive_id=eject_id).first()
-    drive.open_close()
-    db.session.commit()
-    return redirect(url_for('route_settings.settings'))
+    try:
+        drive = SystemDrives.query.filter_by(drive_id=eject_id).one()
+    except sqlalchemy.exc.NoResultFound as e:
+        app.logger.error(f"Drive eject encountered an error: {e}")
+        flash(f"Cannot find drive {eject_id} in database.", "error")
+        return redirect(url_for(REDIRECT_SETTINGS))
+    # block for running jobs
+    if drive.job_id_current:
+        drive.tray_status()  # update tray status
+        if not drive.open:  # allow closing
+            flash(f"Job [{drive.job_id_current}] in progress. Cannot eject {eject_id}.", "error")
+            return redirect(url_for(REDIRECT_SETTINGS))
+    # toggle open/close (with non-critical error)
+    if (error := drive.eject(method="toggle", logger=app.logger)) is not None:
+        flash(error, "error")
+    return redirect(url_for(REDIRECT_SETTINGS))
 
 
 @route_settings.route('/drive/remove/<remove_id>')
@@ -334,7 +367,7 @@ def drive_remove(remove_id):
     except Exception as e:
         app.logger.error(f"Drive removal encountered an error: {e}")
         flash("Drive unable to be removed, check logs for error", "error")
-    return redirect(url_for('route_settings.settings'))
+    return redirect(url_for(REDIRECT_SETTINGS))
 
 
 @route_settings.route('/drive/manual/<manual_id>')
@@ -387,13 +420,13 @@ def testapprise():
         message = message + f" Server URL: http://{cfg.arm_config['UI_BASE_URL']}:{cfg.arm_config['WEBSERVER_PORT']}"
     ripper_utils.notify(None, "ARM notification", message)
     flash("Test notification sent ", "success")
-    return redirect(url_for('route_settings.settings'))
+    return redirect(url_for(REDIRECT_SETTINGS))
 
 
-@route_settings.route('/updatecpu')
-def update_cpu():
+@route_settings.route('/updatesysinfo')
+def update_sysinfo():
     """
-    Update system CPU information
+    Update system information
     """
     # Get current system information from database
     current_system = SystemInfo.query.first()
@@ -404,18 +437,21 @@ def update_cpu():
     if current_system is not None:
         app.logger.debug(f"Name old [{current_system.name}] new [{new_system.name}]")
         app.logger.debug(f"Name old [{current_system.cpu}] new [{new_system.cpu}]")
+        app.logger.debug(f"Name old [{current_system.mem_total}] new [{new_system.mem_total}]")
         current_system.name = new_system.name
         current_system.cpu = new_system.cpu
+        current_system.mem_total = new_system.mem_total
         db.session.add(current_system)
-
     else:
-        app.logger.debug(f"Name old [] new [{new_system.name}]")
-        app.logger.debug(f"Name old [] new [{new_system.cpu}]")
+        app.logger.debug(f"Name old [No Info] new [{new_system.name}]")
+        app.logger.debug(f"Name old [No Info] new [{new_system.cpu}]")
+        app.logger.debug(f"Name old [No Info] new [{new_system.mem_total}]")
         db.session.add(new_system)
 
     app.logger.debug("****** End System Information ******")
-    app.logger.info(f"Updated CPU Details with new info - {new_system.name} - {new_system.cpu}")
+    app.logger.info(f"Updated CPU Details with new info - {new_system.name} - {new_system.cpu} - "
+                    f"{new_system.mem_total}")
 
     db.session.commit()
 
-    return redirect(url_for('route_settings.settings'))
+    return redirect(url_for(REDIRECT_SETTINGS))

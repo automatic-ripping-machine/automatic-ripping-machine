@@ -115,3 +115,9 @@ fi
 # separate rm and ln commands because "ln -sf" does the wrong thing if dest is a symlink to a directory
 # rm -rf $ARM_HOME/music
 # ln -s $ARM_HOME/Music $ARM_HOME/music
+
+# Setup Timezone info
+echo "Setting ARM Timezone info: $TZ"
+DEBIAN_FRONTEND=noninteractive
+ln -sf /usr/share/zoneinfo/$TZ /etc/localtime
+dpkg-reconfigure --frontend noninteractive tzdata

@@ -5,13 +5,13 @@ import os
 import sys
 import logging
 import logging.handlers
-import fcntl
 import subprocess
 import shutil
 import time
 import random
 import re
 from pathlib import Path, PurePath
+from math import ceil
 
 import bcrypt
 import requests
@@ -22,7 +22,7 @@ from netifaces import interfaces, ifaddresses, AF_INET
 
 import arm.config.config as cfg
 from arm.ui import db  # needs to be imported before models
-from arm.models.job import Job
+from arm.models.job import Job, JobState
 from arm.models.notifications import Notifications
 from arm.models.track import Track
 from arm.models.user import User
@@ -117,36 +117,42 @@ def notify_entry(job):
         notify(job, NOTIFY_TITLE, "Found data disc.  Copying data.")
     else:
         notify(job, NOTIFY_TITLE, "Could not identify disc.  Exiting.")
-        args = {'status': 'fail', 'errors': "Could not identify disc."}
+        args = {"status": JobState.FAILURE.value, "errors": "Could not identify disc."}
         database_updater(args, job)
         sys.exit()
 
 
-def sleep_check_process(process_str, transcode_limit):
+def sleep_check_process(process_str, max_processes, sleep=(20, 120, 10)):
     """
     New function to check for max_transcode from job.config and force obey limits\n
     :param str process_str: The process string from arm.yaml
-    :param int transcode_limit: The user defined limit for maximum transcodes
+    :param int max_processes: The user defined limit for maximum transcodes
+    :param (tuple, int) sleep: tuple: (min sleep time, max sleep time, step) or sleep time as int.
     :return bool: when we have space in the transcode queue
     """
-    if transcode_limit > 0:
-        loop_count = transcode_limit + 1
-        logging.debug(f"loop_count {loop_count}")
-        logging.info(f"Starting A sleep check of {process_str}")
-        while loop_count >= transcode_limit:
-            # Maybe send a notification that jobs are waiting ?
-            loop_count = sum(1 for proc in psutil.process_iter() if proc.name() == process_str)
-            logging.debug(f"Number of Processes running is: "
-                          f"{loop_count} going to waiting 12 seconds.")
-            if transcode_limit > loop_count:
-                return True
-            # Try to make each check at different times
-            random_time = random.randrange(20, 120, 10)
-            logging.debug(f"sleeping for {random_time} seconds")
-            time.sleep(random_time)
-    else:
-        logging.info("Transcode limit is disabled")
-    return False
+    if max_processes <= 0:
+        return False  # sleep limit disabled
+    if isinstance(sleep, int):
+        sleep = (sleep, sleep + 1, 1)
+    if not isinstance(sleep, tuple):
+        raise TypeError(sleep)
+    loop_count = max_processes + 1
+    logging.info(f"Starting sleep check of {process_str}")
+    while loop_count >= max_processes:
+        # The process might disappear during loops, so we need to query the
+        # name upfront.
+        loop_count = sum(
+            1 for proc in psutil.process_iter(['name'])
+            if proc.info.get('name') == process_str
+        )
+        if max_processes > loop_count:
+            break
+        # Try to make each check at different times
+        random_time = random.randrange(*sleep)
+        logging.debug(f"{loop_count} processes running. Sleeping for {random_time}s.")
+        time.sleep(random_time)
+    logging.info(f"Exiting sleep check of {process_str}")
+    return True
 
 
 def convert_job_type(video_type):
@@ -220,6 +226,95 @@ def move_files(base_path, filename, job, is_main_feature=False):
     return movie_path
 
 
+def _calculate_filename_similarity(expected_base, actual_base):
+    """
+    Calculate similarity score between two filenames.
+
+    :param str expected_base: Expected filename without extension
+    :param str actual_base: Actual filename without extension
+    :return int: Similarity score
+    """
+    score = 0
+    min_len = min(len(expected_base), len(actual_base))
+
+    # Count matching characters from the start
+    for i in range(min_len):
+        if expected_base[i] == actual_base[i]:
+            score += 1
+        else:
+            break
+
+    # Count matching characters from the end
+    for i in range(1, min_len + 1):
+        if expected_base[-i] == actual_base[-i]:
+            score += 1
+        else:
+            break
+
+    # Bonus for similar length
+    length_diff = abs(len(expected_base) - len(actual_base))
+    if length_diff <= 2:  # Within 2 characters difference
+        score += (3 - length_diff) * 2
+
+    return score
+
+
+def find_matching_file(expected_file):
+    """
+    Find a file that matches the expected filename, handling minor naming discrepancies.
+    This is particularly useful for MKV files transcoded by HandBrake where the output
+    filename may differ slightly from what's stored in the database.
+
+    :param str expected_file: The full path to the expected file
+    :return str: The actual file path if found, or the original expected_file if no match
+    """
+    if os.path.isfile(expected_file):
+        return expected_file
+
+    directory = os.path.dirname(expected_file)
+    expected_filename = os.path.basename(expected_file)
+
+    if not os.path.isdir(directory):
+        return expected_file
+
+    expected_base, expected_ext = os.path.splitext(expected_filename)
+
+    # Get candidate files with same extension
+    try:
+        files_in_dir = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    except OSError:
+        return expected_file
+
+    candidate_files = []
+    for file in files_in_dir:
+        base, ext = os.path.splitext(file)
+        if ext.lower() == expected_ext.lower():
+            candidate_files.append((file, base))
+
+    if not candidate_files:
+        return expected_file
+
+    # Find best match
+    best_match = None
+    best_score = 0
+
+    for file, base in candidate_files:
+        score = _calculate_filename_similarity(expected_base, base)
+        if score > best_score:
+            best_score = score
+            best_match = file
+
+    # Use match if similar enough (at least 80% of expected length matched)
+    min_score = len(expected_base) * 0.8
+    if best_match and best_score >= min_score:
+        actual_file = os.path.join(directory, best_match)
+        if actual_file != expected_file:
+            logging.info(f"Found similar file '{best_match}' for expected '{expected_filename}' (score: {best_score})")
+        return actual_file
+
+    return expected_file
+
+
 def move_files_main(old_file, new_file, base_path):
     """
     The base function for moving files with logging\n
@@ -229,10 +324,13 @@ def move_files_main(old_file, new_file, base_path):
     :return: None
     """
     if not os.path.isfile(new_file):
+        # Try to find the file, handling minor naming discrepancies
+        actual_old_file = find_matching_file(old_file)
+
         try:
-            shutil.move(old_file, new_file)
+            shutil.move(actual_old_file, new_file)
         except Exception as error:
-            logging.error(f"Unable to move '{old_file}' to '{base_path}' - Error: {error}")
+            logging.error(f"Unable to move '{actual_old_file}' to '{base_path}' - Error: {error}")
     else:
         logging.info(f"File: {new_file} already exists.  Not moving.")
 
@@ -311,31 +409,6 @@ def make_dir(path):
         return False
 
 
-def get_cdrom_status(devpath):
-    """
-    get the status of the cdrom drive\n
-    CDS_NO_INFO		0\n
-    CDS_NO_DISC		1\n
-    CDS_TRAY_OPEN		2\n
-    CDS_DRIVE_NOT_READY	3\n
-    CDS_DISC_OK		4\n
-
-    see linux/cdrom.h for specifics\n
-    :param devpath: path to cdrom
-    :return int:
-    """
-    try:
-        disc_check = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
-    except OSError:
-        # Sometimes ARM will log errors opening hard drives. this check should stop it
-        if not re.search(r'hd[a-j]|sd[a-j]|loop\d|nvme\d', devpath):
-            logging.info(f"Failed to open device {devpath} to check status.")
-        sys.exit(2)
-    result = fcntl.ioctl(disc_check, 0x5326, 0)
-
-    return result
-
-
 def find_file(filename, search_path):
     """
     Check to see if file exists by searching a directory recursively\n
@@ -386,15 +459,19 @@ def rip_music(job, logfile):
             cmd = f'abcde -d "{job.devpath}" >> "{os.path.join(job.config.LOGPATH, logfile)}" 2>&1'
 
         logging.debug(f"Sending command: {cmd}")
+        args = {"status": JobState.AUDIO_RIPPING.value}
+        database_updater(args, job)
 
         try:
             # TODO check output and confirm all tracks ripped; find "Finished\.$"
             subprocess.check_output(cmd, shell=True).decode("utf-8")
             logging.info("abcde call successful")
+            args = {"status": JobState.IDLE.value}
+            database_updater(args, job)
             return True
         except subprocess.CalledProcessError as ab_error:
             err = f"Call to abcde failed with code: {ab_error.returncode} ({ab_error.output})"
-            args = {'status': 'fail', 'errors': err}
+            args = {"status": JobState.FAILURE.value, "errors": err}
             database_updater(args, job)
             logging.error(err)
     return False
@@ -420,7 +497,7 @@ def rip_data(job):
         final_file_name = f"{job.label}_{random_time}"
         if (make_dir(raw_path)) is False:
             logging.info(f"Could not create data directory: {raw_path}  Exiting ARM. ")
-            args = {'status': 'fail', 'errors': "Couldn't create data directory"}
+            args = {"status": JobState.FAILURE.value, "errors": "Couldn't create data directory"}
             database_updater(args, job)
             sys.exit()
 
@@ -443,7 +520,7 @@ def rip_data(job):
         err = f"Data rip failed with code: {dd_error.returncode}({dd_error.output})"
         logging.error(err)
         os.unlink(incomplete_filename)
-        args = {'status': 'fail', 'errors': err}
+        args = {"status": JobState.FAILURE.value, "errors": err}
         database_updater(args, job)
     try:
         logging.info(f"Trying to remove raw_path: '{raw_path}'")
@@ -642,9 +719,9 @@ def clean_old_jobs():
         else:
             logging.info(f"Job #{job.job_id} with PID {job.pid} has been abandoned."
                          f"Updating job status to fail.")
-            job.status = "fail"
+            job.status = JobState.FAILURE.value
             db.session.commit()
-            database_updater({'status': "fail"}, job)
+            database_updater({'status': JobState.FAILURE.value}, job)
 
 
 def check_ip():
@@ -690,17 +767,29 @@ def duplicate_run_check(dev_path):
     this stops that issue
     :return: None
     """
-    running_jobs = db.session.query(Job).filter(
-        Job.status.notin_(['fail', 'success']), Job.devpath == dev_path).all()
-    if len(running_jobs) >= 1:
-        for j in running_jobs:
-            print(j.start_time - datetime.datetime.now())
-            mins_last_run = int(round(abs(j.start_time - datetime.datetime.now()).total_seconds()) / 60)
-            # Some (older) devices can take at least 3 minutes to receive the
-            # duplicate event, treat two events within 3 minutes as duplicate.
-            if mins_last_run <= 3:
-                logging.error(f"Job already running on {dev_path}")
-                sys.exit(1)
+    # Log running jobs by job status
+    running_jobs = (
+        db.session.query(Job)
+        .filter(
+            ~Job.finished,
+            Job.devpath == dev_path,
+        )
+        .all()
+    )
+    for job in running_jobs:
+        logging.info(f"Device {dev_path}: Job ({job.job_id}) status '{job.status}'")
+    # check for running jobs by associated drive.
+    drive = SystemDrives.query.filter_by(mount=dev_path).first()
+    if not drive.processing:
+        return  # drive is not processing, so we are safe to start another run.
+    job = drive.job_current
+    logging.critical(f'Drive {dev_path} has an active Job ({job.job_id}): {job.status}.')
+    # log time
+    job_time = ceil(job.run_time // 60)
+    logging.info(f"Job was started {job_time}min ago.")
+    if (job_time) < 3:
+        logging.info("Job was started less than 3min ago.")
+    sys.exit(1)
 
 
 def save_disc_poster(final_directory, job):
@@ -746,7 +835,7 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
                 notify(job, NOTIFY_TITLE,
                        f"ARM encountered a fatal error processing {job.title}."
                        f" Couldn't create filesystem. Possible permission error. ")
-                database_updater({'status': "fail", 'errors': 'Creating folder failed'}, job)
+                database_updater({'status': JobState.FAILURE.value, 'errors': 'Creating folder failed'}, job)
                 sys.exit()
         else:
             # We aren't allowed to rip dupes, notify and exit
@@ -755,7 +844,7 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
                                       f"Duplicate rips are disabled. "
                                       f"You can re-enable them from your config file. ")
             job.eject()
-            database_updater({'status': "fail", 'errors': 'Duplicate rips are disabled'}, job)
+            database_updater({'status': JobState.FAILURE.value, 'errors': 'Duplicate rips are disabled'}, job)
             sys.exit()
     logging.info(f"Final Output directory \"{hb_out_path}\"")
     return hb_out_path
@@ -773,7 +862,7 @@ def job_dupe_check(job):
         logging.info("Disc title 'None' not searched in database")
         return False
     else:
-        previous_rips = Job.query.filter_by(label=job.label, status="success")
+        previous_rips = Job.query.filter_by(label=job.label, status=JobState.SUCCESS.value)
         results = {}
         i = 0
         for j in previous_rips:
@@ -817,7 +906,7 @@ def check_for_wait(job):
     #  If we have waiting for user input enabled
     if job.config.MANUAL_WAIT:
         logging.info(f"Waiting {job.config.MANUAL_WAIT_TIME} seconds for manual override.")
-        database_updater({'status': "waiting"}, job)
+        database_updater({"status": JobState.MANUAL_WAIT_STARTED.value}, job)
         sleep_time = 0
         while sleep_time < job.config.MANUAL_WAIT_TIME:
             time.sleep(5)
@@ -827,9 +916,9 @@ def check_for_wait(job):
                 logging.info("Manual override found.  Overriding auto identification values.")
                 job.updated = True
                 job.hasnicetitle = True
-                database_updater({'status': "active", "hasnicetitle": True, "updated": True}, job)
+                database_updater({"hasnicetitle": True, "updated": True}, job)
                 break
-        database_updater({'status': "active"}, job)
+        database_updater({"status": JobState.IDLE.value}, job)
 
 
 def get_drive_mode(devpath: str) -> str:

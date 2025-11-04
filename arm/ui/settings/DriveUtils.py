@@ -3,105 +3,329 @@ Functions to manage drives
 UI Utils
 - drives_search
 - drives_update
-- drives_check_status
-- drive_status_debug
-- job_cleanup
+- update_job_status
 Ripper Utils
 - update_drive_job
 """
 
-import pyudev
-import re
+import dataclasses
 import logging
-from sqlalchemy import desc
+import re
+import pyudev
 
+from arm.models import SystemDrives
 from arm.ui import app, db
-from arm.models.job import Job
-from arm.models.system_drives import SystemDrives
+
+
+class MaskSerialMeta(type):
+    def __init__(cls, name, bases, class_dict):
+        super().__init__(name, bases, class_dict)
+        cls._apply_masked_repr()
+
+    def _apply_masked_repr(cls):
+        original_repr = cls.__repr__ if hasattr(cls, '__repr__') else object.__repr__
+
+        def masked_repr(self):
+            """Mask the serial with asterisks in the repr"""
+            repr_str = original_repr(self)
+            serial = getattr(self, "serial", None)
+
+            if serial and len(serial) > 6:
+                masked = serial[:-6] + "*" * 6
+            elif serial:  # shorter than 6 chars
+                masked = "*" * len(serial)
+            else:  # None or empty
+                masked = "UNKNOWN"
+
+            return repr_str.replace(str(serial), masked, 1)
+
+        cls.__repr__ = masked_repr
+
+
+DRIVE_INFORMATION = (
+    "DEVNAME",
+    "ID_VENDOR_ENC",  # ID_VENDOR (with encoded characters)
+    "ID_MODEL_ENC",  # ID_MODEL (with encoded characters)
+    "ID_SERIAL_SHORT",
+    "ID_SERIAL",
+)
+
+
+@dataclasses.dataclass(order=True)
+class DriveInformation:
+    """Basic Optical Drive Information from pyudev
+
+    Besides the mount point, this information is considered static per drive.
+
+    @see arm.ripper.makemkv.Drive
+
+    for pyudev fields, see `DRIVE_INFORMATION`
+    """
+    mount: str
+    """Device Mount Point (sort index, dynamic)"""
+    # static per drive:
+    maker: str
+    """Device Manufacturer"""
+    model: str
+    """Device Model"""
+    serial: str
+    """Device Serial"""
+    serial_id: str
+    """Drive Serial as id (Maker+Model+Serial)"""
+
+    @staticmethod
+    def _decode(value):
+        """
+        Handle (encoded characters like \x20)
+        """
+        if isinstance(value, str):
+            return bytes(value, encoding="utf-8").decode("unicode_escape")
+        if value is None:
+            return ""
+        return str(value).strip()
+
+    def __post_init__(self):
+        self.maker = self._decode(self.maker)
+        self.model = self._decode(self.model)
+
+
+DRIVE_INFORMATION_EXTENDED = (
+    "ID_BUS",
+    "ID_CDROM_CD",
+    "ID_CDROM_DVD",
+    "ID_CDROM_BD",
+    "ID_REVISION",
+    "ID_PATH",
+)
+
+
+@dataclasses.dataclass
+class DriveInformationExtended(DriveInformation):
+    """Extended Optical Drive Information
+
+    for pyudev fields, see `DRIVE_INFORMATION_EXTENDED`
+    """
+    # static per drive:
+    connection: str
+    """Device Bus Connection e.g. usb, ata"""
+    read_cd: bool
+    """Device can read cd"""
+    read_dvd: bool
+    """Device can read dvd"""
+    read_bd: bool
+    """Device can read bluray"""
+    # dynamic per drive:
+    firmware: str
+    """Device Firmware (changes on FW update)"""
+    location: str
+    """connection of device on hardware (changes on re-plugging)"""
+
+    @staticmethod
+    def _convert_bool(value):
+        # Allow some of the data to be None
+        if value in (None, "", "unknown"):
+            return False
+        try:
+            # Test if we have filled values
+            return bool(int(value))
+        except (ValueError, TypeError):
+            return False
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.read_cd = self._convert_bool(self.read_cd)
+        self.read_dvd = self._convert_bool(self.read_dvd)
+        self.read_bd = self._convert_bool(self.read_bd)
+
+
+DRIVE_INFORMATION_MEDIUM = (
+    "ID_FS_LABEL",
+    "ID_CDROM_MEDIA",
+    "ID_CDROM_MEDIA_CD",
+    "ID_CDROM_MEDIA_DVD",
+    "ID_CDROM_MEDIA_BD",
+)
+
+
+@dataclasses.dataclass
+class DriveInformationMedium(DriveInformationExtended, metaclass=MaskSerialMeta):
+    """Drive Information that changes per disc
+
+    for pyudev fields, see `DRIVE_INFORMATION_MEDIUM`
+    """
+    disc: str
+    """Disc Name (changes)"""
+    loaded: bool
+    """Device has Medium loaded (changes)"""
+    media_cd: bool
+    """Medium is CD (changes)"""
+    media_dvd: bool
+    """Medium is DVD (changes)"""
+    media_bd: bool
+    """Medium is BluRay (changes)"""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.loaded = self._convert_bool(self.loaded)
+        self.media_cd = self._convert_bool(self.media_cd)
+        self.media_dvd = self._convert_bool(self.media_dvd)
+        self.media_bd = self._convert_bool(self.media_bd)
 
 
 def drives_search():
     """
-    Search the system for any drives
-    """
-    udev_drives = []
+    Search the system for optical drives and yield DriveInformationMedium objects.
 
+    In a container environment, falls back to treating /dev/sr* as optical drives.
+    """
     context = pyudev.Context()
+    for device in context.list_devices(subsystem="block"):
+        try:
+            devnode = device.device_node
+            if not devnode:
+                continue
 
-    for device in context.list_devices(subsystem='block'):
-        regex_output = re.search(r'(/dev/sr\d{1,2})', device.device_node)
-        if regex_output:
-            app.logger.debug(f"regex output: {regex_output.group()}")
-            udev_drives.append(regex_output.group())
+            # Ignore loop&nvme devices
+            if devnode and (devnode.startswith("/dev/loop") or devnode.startswith("/dev/nvme")):
+                # Logging here might not be helpful, unsure yet
+                # logging.debug("Ignoring loop/nvme device: %s", devnode)
+                continue
 
-    if len(udev_drives) > 0:
-        app.logger.info(f"System disk scan, found {len(udev_drives)} drives for ARM")
-        for disk in udev_drives:
-            app.logger.debug(f"disk: {disk}")
-    else:
-        app.logger.info("System disk scan, no drives attached to ARM server")
+            # Log all properties - Helps with debugging if a drive has loaded all properties, or just the base
+            logging.debug("Device: %s", devnode)
+            for key, value in device.properties.items():
+                app.logger.debug("  %s = %s", key, value)
 
-    return udev_drives
+            # Optical drive detection - Try to use ID_TYPE then ID_CDROM but fall back to all drives matching /dev/sr*
+            # NOTE: this may be better to check if MAJOR = 11
+            # + devname `/dev/sr*` and possibly DEVTYPE as this always means its an optical drive on linux
+            # But just the first two MAJOR + devname should be more than enough to verify its a CD/DVD drive
+            is_optical = (
+                device.properties.get("ID_TYPE") == "cd" or
+                device.properties.get("ID_CDROM") == "1" or
+                re.match(r"^/dev/sr\d+$", devnode)
+            )
+
+            if is_optical:
+                logging.info("Optical drive detected: %s", devnode)
+
+                # Try to populate fields, but allow missing values incase the drive hasn't been mounted/activated yet
+                fields = (
+                    DRIVE_INFORMATION +
+                    DRIVE_INFORMATION_EXTENDED +
+                    DRIVE_INFORMATION_MEDIUM
+                )
+                values = [device.properties.get(field) or "" for field in fields]
+                yield DriveInformationMedium(*values)
+
+        except Exception as e:
+            app.logger.error("Error processing device %s: %s", device, e, exc_info=True)
 
 
-def drives_update():
+def drives_update(startup=False):
     """
-    scan the system for new cd/dvd/Blu-ray drives
-    """
-    udev_drives = drives_search()
-    new_count = 0
+    scan the system for new cd/dvd/Blu-ray drives and update the database
 
-    # Get the number of current drives in the database
+    - `serial_id` is assumed persistent/unique.
+    - `mount` point may change for USB devices
+
+    on system startup, clear all mdisc (MakeMKV disc index) values.
+    """
     drive_count = SystemDrives.query.count()
 
-    for drive_mount in udev_drives:
-        # Check drive doesn't yet exist
-        if not SystemDrives.query.filter_by(mount=drive_mount).first():
-            new_count += 1
-            previous_id = None
+    # Mark all drives as stale
+    for db_drive in SystemDrives.query.all():
+        db_drive.stale = True
+        if startup:
+            db_drive.mdisc = None
+    db.session.commit()
 
-            # Check for last job (if user removed an existing drive)
-            old_job = Job.query.filter_by(devpath=drive_mount).order_by(desc(Job.job_id)).first()
-            if old_job:
-                previous_id = old_job.job_id
-
-            # Create new disk (name, type, mount, open, job id, previous job id, description )
-            db_drive = SystemDrives(f"Drive {drive_count + new_count}",
-                                    drive_mount, None, None, "Classic burner")
-            app.logger.debug("****** Drive Information ******")
-            app.logger.debug(f"Name: {db_drive.name}")
-            app.logger.debug(f"Type: {db_drive.type}")
-            app.logger.debug(f"Mount: {db_drive.mount}")
-            app.logger.debug(f"Description: {db_drive.description}")
-            if old_job:
-                db_drive.job_id_previous = previous_id
-                app.logger.debug(f"Previous Job ID: {db_drive.job_id_previous}")
-            app.logger.debug("****** End Drive Information ******")
+    # Update drive information:
+    system_drives = sorted(drives_search())
+    if len(system_drives) < 1:
+        logging.error(f"We Cant find any system drives!. {system_drives}")
+    for drive in system_drives:  # sorted by mount point
+        logging.debug(f"Drive info: {drive}")
+        # Retrieve the drive matching `drive.serial_id` from the database or
+        # create a new entry if it doesn't exist. Since `drive.serial_id` *may*
+        # not be unique, we update only the first drive that misses the mdisc
+        # value and was not updated prior to this branch. The result is sorted
+        # by mount points to update only the drive with the alphabetically
+        # first mount point.  If no `drive.serial_id` is found (e.g. on first
+        # run), take the pre-existing mount point and update the serial_id
+        # there.
+        query = (
+            SystemDrives
+            .query
+            .filter_by(serial_id=drive.serial_id, stale=True)
+            .order_by(SystemDrives.mount)
+        )
+        if db_drive := query.first():
+            app.logger.debug("Update drive '%s' by serial.", drive.serial_id)
+        elif db_drive := SystemDrives.query.filter_by(mount=drive.mount).first():
+            app.logger.debug("Update drive '%s' by mount path.", drive.mount)
+        else:
+            msg = "Create a new drive entity in the database for '%s' on '%s'."
+            app.logger.debug(msg, drive.serial_id, drive.mount)
+            db_drive = SystemDrives()
+            db_drive.name = drive.serial_id
             db.session.add(db_drive)
-            db.session.commit()
+        db_drive.update(drive)
+        db.session.commit()  # needed to get drive_id for new entities
+        db_drive.debug(logger=app.logger)
 
-            # Reset drive to None
-            db_drive = None
+        # Remove conflicting mount points in database to ensure that we have
+        # a set of unique mount points entries.
+        conflicting_drives = (
+            SystemDrives
+            .query
+            .filter(
+                SystemDrives.drive_id != db_drive.drive_id,
+                SystemDrives.mount == db_drive.mount,
+            )
+        )
+        for conflicting_drive in conflicting_drives.all():
+            conflicting_drive.mount = ""
+        db.session.commit()
 
-    if new_count > 0:
-        app.logger.info(f"Added {new_count} drives for ARM.")
-    else:
-        app.logger.info("No new drives found on the system.")
+    # remove and log stale mount points
+    stale_count = 0
+    for stale_drive in SystemDrives.query.filter_by(stale=True).all():
+        msg = "Drive '%s' on '%s' is not available."
+        app.logger.warning(msg, stale_drive.serial_id, stale_drive.mount)
+        if stale_drive.processing:
+            app.logger.warning(f"Drive '{stale_drive.mount}' has an active job and might be blocked.")
+            stale_drive.stale = False
+        else:
+            stale_drive.mount = ""
+            stale_drive.location = ""
+            stale_drive.mdisc = None
+            stale_count += 1
+        db.session.commit()
+        stale_drive.debug(logger=app.logger)
+    if stale_count > 0:
+        app.logger.info("%d drives are unavailable.", stale_count)
 
-    return new_count
+    return drive_count - SystemDrives.query.count()
 
 
-def drives_check_status():
+def update_job_status():
     """
     Check the drive job status
     """
     drives = SystemDrives.query.all()
     for drive in drives:
-        # Check if the current job is active, if not remove current job_current id
-        if drive.job_id_current is not None and drive.job_id_current > 0 and drive.job_current is not None:
-            if drive.job_current.status == "success" or drive.job_current.status == "fail":
-                drive.job_finished()
+        # Check if the current job is using the drive, if not remove job from drive.
+        if drive.processing and drive.job_current.ripping_finished:
+            # Note: it is not generally safe to release the job by any means.
+            # "transcoding" jobs may also use the drive so an
+            logging.info(f"A job is currently running on drive '{drive.name}'")
+            if drive.job_current.finished:
+                logging.warning(f"Releasing job from drive '{drive.name}'")
+                drive.release_current_job()
                 db.session.commit()
+                continue
+            logging.debug("If you want to release the job from the drive, press eject.")
 
         # Catch if a user has removed database entries and the previous job doesn't exist
         if drive.job_previous is not None and drive.job_previous.status is None:
@@ -113,49 +337,25 @@ def drives_check_status():
             drive.drive_mode = "auto"
             db.session.commit()
 
-        # Print the drive debug status
-        drive_status_debug(drive)
-
-    # Requery data to ensure current pending job status change
-    drives = SystemDrives.query.all()
-
-    return drives
-
-
-def drive_status_debug(drive):
-    """
-    Report the current drive status (debug)
-    """
-    app.logger.debug("*********")
-    app.logger.debug(f"Name: {drive.name}")
-    app.logger.debug(f"Type: {drive.type}")
-    app.logger.debug(f"Description: {drive.description}")
-    app.logger.debug(f"Mount: {drive.mount}")
-    app.logger.debug(f"Open: {drive.open}")
-    app.logger.debug(f"Job Current: {drive.job_id_current}")
-    if drive.job_id_current and drive.job_current is not None:
-        app.logger.debug(f"Job - Status: {drive.job_current.status}")
-        app.logger.debug(f"Job - Type: {drive.job_current.video_type}")
-        app.logger.debug(f"Job - Title: {drive.job_current.title}")
-        app.logger.debug(f"Job - Year: {drive.job_current.year}")
-    app.logger.debug(f"Job Previous: {drive.job_id_previous}")
-    if drive.job_id_previous and drive.job_previous is not None:
-        app.logger.debug(f"Job - Status: {drive.job_previous.status}")
-        app.logger.debug(f"Job - Type: {drive.job_previous.video_type}")
-        app.logger.debug(f"Job - Title: {drive.job_previous.title}")
-        app.logger.debug(f"Job - Year: {drive.job_previous.year}")
-    app.logger.debug(f"Drive Mode: {drive.drive_mode}")
-    app.logger.debug("*********")
+        app.logger.debug("Drive Mode: %s", drive.drive_mode)
 
 
 def job_cleanup(job_id):
     """
-    Function called when removing a job from the database, removing the data in the previous job field
+    Called when removing a job from the database.
+
+    Note: This makes sure that the job_id is not associated with any of the
+          drives.  If keep the job_id associated with the drives, new job_ids
+          with the same number are generated by the database messing up our
+          association for future jobs.
     """
-    job = Job.query.filter_by(job_id=job_id).first()
-    drive = SystemDrives.query.filter_by(mount=job.devpath).first()
-    drive.job_id_previous = None
-    app.logger.debug(f"Job {job.job_id} cleared from drive {drive.mount} previous")
+    for drive in SystemDrives.query.filter_by(job_id_current=job_id):
+        drive.job_id_current = None
+        app.logger.debug(f"Current Job {job_id} cleared from drive {drive.mount}")
+    for drive in SystemDrives.query.filter_by(job_id_previous=job_id):
+        drive.job_id_previous = None
+        app.logger.debug(f"Current Job {job_id} cleared from drive {drive.mount}")
+    db.session.commit()
 
 
 def update_drive_job(job):
@@ -164,7 +364,7 @@ def update_drive_job(job):
     """
     drive = SystemDrives.query.filter_by(mount=job.devpath).first()
     drive.new_job(job.job_id)
-    app.logger.debug(f"Updating Drive: ['{drive.name}'|'{drive.mount}']"
+    app.logger.debug(f"Updating Drive: ['{drive.serial_id}'|'{drive.mount}']"
                      f" Current Job: [{drive.job_id_current}]"
                      f" Previous Job: [{drive.job_id_previous}]")
     try:
@@ -172,3 +372,15 @@ def update_drive_job(job):
         logging.debug("Database update with new Job ID to associated drive")
     except Exception as error:  # noqa: E722
         logging.error(f"Failed to update the database with the associated drive. {error}")
+
+
+def update_tray_status(drives):
+    for drive in drives:
+        drive.tray_status()
+
+
+def get_drives():
+    """
+    Wrapper around SystemDrives Database
+    """
+    return SystemDrives.query.order_by(SystemDrives.name, SystemDrives.description, SystemDrives.serial_id).all()

@@ -523,10 +523,10 @@ function PasswordProtectArmUser() {
     PasswordQuestion="${BLUE}The 'arm' user was already on the system.
 Do you wish to change it's password? Y/n : ${NC}"
   fi
+  local PasswordConfirmed=false
   if IsUserAnsweredYesToPrompt "${PasswordQuestion}" ; then
     #The User wishes to provide a custom password.  Give the user 3 times to provide one,
     #This attempt limit is to prevent an infinite loop.
-    local PasswordConfirmed=false
     for (( i = 0 ; i < 3 ; i++ )); do
       read -ep "$(echo -e "Please Enter Password? : ")" -r -s Password_1
       read -ep "$(echo -e "Please Confirm Password? : ")" -r -s Password_2
@@ -609,7 +609,7 @@ function BuildAndInstallMakeMKV() {
   curl -# -o makemkv-oss-"${LatestMakeMKVVersion}".tar.gz \
     https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
   grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
-  grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
+  grep "makemkv-oss-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
   tar xzf makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
   tar xzf makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
 

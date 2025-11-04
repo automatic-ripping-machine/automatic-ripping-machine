@@ -10,8 +10,90 @@ import arm.config.config as cfg
 
 from arm.ripper import utils
 from arm.ui import app, db  # noqa E402
+from arm.models.job import JobState
 
 PROCESS_COMPLETE = "Handbrake processing complete"
+
+
+def run_handbrake_command(cmd, track=None, track_number=None):
+    """
+    Execute a HandBrake command and handle errors consistently.
+
+    :param cmd: The HandBrake command to execute
+    :param track: Optional track object to update status
+    :param track_number: Optional track number for error messages
+    :return: Output from HandBrake command
+    :raises subprocess.CalledProcessError: If HandBrake fails
+    """
+    logging.debug(f"Sending command: {cmd}")
+
+    try:
+        hand_brake_output = subprocess.check_output(
+            cmd,
+            shell=True
+        ).decode("utf-8")
+        logging.debug(f"Handbrake exit code: {hand_brake_output}")
+        if track:
+            track.status = "success"
+        return hand_brake_output
+    except subprocess.CalledProcessError as hb_error:
+        if track_number:
+            err = f"Handbrake encoding of title {track_number} failed with code: {hb_error.returncode}" \
+                  f"({hb_error.output})"
+        else:
+            err = f"Call to handbrake failed with code: {hb_error.returncode}({hb_error.output})"
+        logging.error(err)
+        if track:
+            track.status = "fail"
+            track.error = err
+        raise subprocess.CalledProcessError(hb_error.returncode, cmd)
+
+
+def build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile,
+                            track_number=None, main_feature=False):
+    """
+    Build a HandBrake command string with consistent formatting.
+
+    :param srcpath: Path to source for HB (dvd or files)
+    :param filepathname: Full output path including filename
+    :param hb_preset: HandBrake preset to use
+    :param hb_args: Additional HandBrake arguments
+    :param logfile: Logfile for HB to redirect output to
+    :param track_number: Optional track number to encode
+    :param main_feature: Whether to use --main-feature flag
+    :return: Formatted command string
+    """
+    cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
+          f"-i {shlex.quote(srcpath)} " \
+          f"-o {shlex.quote(filepathname)} "
+
+    if main_feature:
+        cmd += "--main-feature "
+
+    cmd += f"--preset \"{hb_preset}\" "
+
+    if track_number is not None:
+        cmd += f"-t {track_number} "
+
+    cmd += f"{hb_args} " \
+           f">> {logfile} 2>&1"
+
+    return cmd
+
+
+def handbrake_sleep_check(job):
+    """Wait until there is a spot to transcode.
+
+    If handbrake is used as a ripping utility (the source path is a device),
+    this means that the drive is blocked. If we transcode after makemkv, the
+    drive associated to the job is ejected at this point.
+    """
+    logging.debug("Handbrake starting.")
+    utils.database_updater({"status": JobState.TRANSCODE_WAITING.value}, job)
+    # TODO: send a notification that jobs are waiting ?
+    utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
+    logging.debug(f"Setting job status to '{JobState.TRANSCODE_ACTIVE.value}'")
+    utils.database_updater({"status": JobState.TRANSCODE_ACTIVE.value}, job)
 
 
 def handbrake_main_feature(srcpath, basepath, logfile, job):
@@ -23,16 +105,10 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     :param job: Disc object\n
     :return: None
     """
+    handbrake_sleep_check(job)
     logging.info("Starting DVD Movie main_feature processing")
-    logging.debug("Handbrake starting: ")
-    logging.debug(f"\n\r{job.pretty_table()}")
 
-    utils.database_updater({'status': "waiting_transcode"}, job)
-    # TODO: send a notification that jobs are waiting ?
-    utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
-    logging.debug("Setting job status to 'transcoding'")
-    utils.database_updater({'status': "transcoding"}, job)
-    filename = os.path.join(basepath, job.title + "." + cfg.arm_config["DEST_EXT"])
+    filename = job.title + "." + cfg.arm_config["DEST_EXT"]
     filepathname = os.path.join(basepath, filename)
     logging.info(f"Ripping title main_feature to {shlex.quote(filepathname)}")
 
@@ -48,28 +124,16 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     db.session.commit()
 
     hb_args, hb_preset = correct_hb_settings(job)
-    cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
-          f"-i {shlex.quote(srcpath)} " \
-          f"-o {shlex.quote(filepathname)} " \
-          f"--main-feature " \
-          f"--preset \"{hb_preset}\" " \
-          f"{hb_args} " \
-          f">> {logfile} 2>&1"
-
-    logging.debug(f"Sending command: {cmd}")
+    cmd = build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile, main_feature=True)
 
     try:
-        subprocess.check_output(cmd, shell=True).decode("utf-8")
+        run_handbrake_command(cmd, track)
         logging.info("Handbrake call successful")
-        track.status = "success"
-    except subprocess.CalledProcessError as hb_error:
-        err = f"Call to handbrake failed with code: {hb_error.returncode}({hb_error.output})"
-        logging.error(err)
-        track.status = "fail"
-        track.error = job.errors = err
-        job.status = "fail"
+    except subprocess.CalledProcessError:
+        job.errors = track.error
+        job.status = JobState.FAILURE.value
         db.session.commit()
-        raise subprocess.CalledProcessError(hb_error.returncode, cmd)
+        raise
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")
@@ -86,12 +150,7 @@ def handbrake_all(srcpath, basepath, logfile, job):
     :param job: Disc object\n
     :return: None
     """
-    # Wait until there is a spot to transcode
-    job.status = "waiting_transcode"
-    db.session.commit()
-    utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
-    job.status = "transcoding"
-    db.session.commit()
+    handbrake_sleep_check(job)
     logging.info("Starting BluRay/DVD transcoding - All titles")
 
     hb_args, hb_preset = correct_hb_settings(job)
@@ -118,39 +177,21 @@ def handbrake_all(srcpath, basepath, logfile, job):
             logging.info(f"Processing track #{track.track_number} of {job.no_of_titles}. "
                          f"Length is {track.length} seconds.")
 
-            filename = f"title_{track.track_number}.{cfg.arm_config['DEST_EXT']}"
-            filepathname = os.path.join(basepath, filename)
+            track.filename = track.orig_filename = f"title_{track.track_number}.{cfg.arm_config['DEST_EXT']}"
+            filepathname = os.path.join(basepath, track.filename)
 
             logging.info(f"Transcoding title {track.track_number} to {shlex.quote(filepathname)}")
 
-            track.filename = track.orig_filename = filename
             db.session.commit()
 
-            cmd = f"nice {cfg.arm_config['HANDBRAKE_CLI']} " \
-                  f"-i {shlex.quote(srcpath)} " \
-                  f"-o {shlex.quote(filepathname)} " \
-                  f"--preset \"{hb_preset}\" " \
-                  f"-t {track.track_number} " \
-                  f"{hb_args} " \
-                  f">> {logfile} 2>&1"
-
-            logging.debug(f"Sending command: {cmd}")
+            cmd = build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile,
+                                          track_number=track.track_number)
 
             try:
-                hand_brake_output = subprocess.check_output(
-                    cmd,
-                    shell=True
-                ).decode("utf-8")
-                logging.debug(f"Handbrake exit code: {hand_brake_output}")
-                track.status = "success"
-            except subprocess.CalledProcessError as hb_error:
-                err = f"Handbrake encoding of title {track.track_number} failed with code: {hb_error.returncode}" \
-                      f"({hb_error.output})"
-                logging.error(err)
-                track.status = "fail"
-                track.error = err
+                run_handbrake_command(cmd, track, track.track_number)
+            except subprocess.CalledProcessError:
                 db.session.commit()
-                raise subprocess.CalledProcessError(hb_error.returncode, cmd)
+                raise
 
             track.ripped = True
             db.session.commit()
@@ -186,11 +227,8 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
     :return: None
     """
     # Added to limit number of transcodes
-    job.status = "waiting_transcode"
-    db.session.commit()
-    utils.sleep_check_process("HandBrakeCLI", int(cfg.arm_config["MAX_CONCURRENT_TRANSCODES"]))
-    job.status = "transcoding"
-    db.session.commit()
+    handbrake_sleep_check(job)
+    logging.info("Starting Handbrake for MKV files.")
     hb_args, hb_preset = correct_hb_settings(job)
 
     # This will fail if the directory raw gets deleted
@@ -206,30 +244,13 @@ def handbrake_mkv(srcpath, basepath, logfile, job):
             track.filename = destfile + "." + cfg.arm_config["DEST_EXT"]
             logging.debug("UPDATED filename: " + track.filename)
             db.session.commit()
-        filename = os.path.join(basepath, destfile + "." + cfg.arm_config["DEST_EXT"])
+        filename = destfile + "." + cfg.arm_config["DEST_EXT"]
         filepathname = os.path.join(basepath, filename)
 
         logging.info(f"Transcoding file {shlex.quote(files)} to {shlex.quote(filepathname)}")
 
-        cmd = f'nice {cfg.arm_config["HANDBRAKE_CLI"]} ' \
-              f'-i {shlex.quote(srcpathname)} ' \
-              f'-o {shlex.quote(filepathname)} ' \
-              f'--preset "{hb_preset}" {hb_args} >> {logfile} 2>&1'
-
-        logging.debug(f"Sending command: {cmd}")
-
-        try:
-            hand_break_output = subprocess.check_output(
-                cmd,
-                shell=True
-            ).decode("utf-8")
-            logging.debug(f"Handbrake exit code: {hand_break_output}")
-        except subprocess.CalledProcessError as hb_error:
-            err = f"Handbrake encoding of file {shlex.quote(files)} failed with code: {hb_error.returncode}" \
-                  f"({hb_error.output})"
-            logging.error(err)
-            raise subprocess.CalledProcessError(hb_error.returncode, cmd)
-            # job.errors.append(f)
+        cmd = build_handbrake_command(srcpathname, filepathname, hb_preset, hb_args, logfile)
+        run_handbrake_command(cmd)
 
     logging.info(PROCESS_COMPLETE)
     logging.debug(f"\n\r{job.pretty_table()}")

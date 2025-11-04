@@ -1,17 +1,17 @@
-name: "Version Increment"
-
-on:
-  # Run this action on any Pull Request raised against ARM
-  pull_request:
-    # Ensure changes re-run the version script (i.e. title change)
-    types: [opened, edited, synchronize]
-    # Don't run on changes to the below paths
-    paths-ignore:
-      - 'arm_wiki/**'
-      - '.github/**'
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+#name: "Version Increment"
+#
+#on:
+#  # Run this action on any Pull Request raised against ARM
+# # pull_request:
+#    # Ensure changes re-run the version script (i.e. title change)
+#    types: [opened, edited, synchronize]
+#    # Don't run on changes to the below paths
+#    paths-ignore:
+#      - 'arm_wiki/**'
+#      - '.github/**'
+#
+#  # Allows you to run this workflow manually from the Actions tab
+#  workflow_dispatch:
 
 permissions:
   contents: write
@@ -23,30 +23,20 @@ jobs:
     steps:
       - name: Get branch name
         id: branch-name
-        uses: tj-actions/branch-names@v8
+        uses: tj-actions/branch-names@v9
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Fetch main branch
         run: |
-          git fetch origin main:main
-
-      - name: Check for version bump
-        id: version-check
-        run: |
-          if ! git diff main --name-only | grep -q 'VERSION'; then
-            echo "VERSION_UPDATED=false" >> "$GITHUB_ENV"
-            echo "No Version update found in commit"
-          else
-            echo "VERSION_UPDATED=true" >> "$GITHUB_ENV"
-            echo "Version update found in commit"
-          fi
+          git fetch origin main
+          MAIN_VERSION=$(git show origin/main:VERSION)
+          echo "MAIN_VERSION=$MAIN_VERSION" >> $GITHUB_ENV
 
       - name: Determine new version
-        if: env.VERSION_UPDATED == 'false'
         id: determine-version
         env:
           # Safely get title (avoid injection attacks)
@@ -54,16 +44,15 @@ jobs:
         run: |
           # Set Title environment flag to false
           TITLE_FLAG="false"
+          VERSION_TYPE="false"
           
           echo "PR Title: $PR_TITLE"
           if [[ "$PR_TITLE" == *"[FEATURE]"* ]]; then
             VERSION_TYPE="minor"
-            echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
             echo "PR set to FEATURE updating minor version"
             TITLE_FLAG="true"
           elif [[ "$PR_TITLE" == *"[BUGFIX]"* ]]; then
             VERSION_TYPE="patch"
-            echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
             echo "PR set to BUGFIX updating patch version"
             TITLE_FLAG="true"
           else
@@ -73,8 +62,18 @@ jobs:
           
           # If Feature or Bugfix update the version
           if [[ "$TITLE_FLAG" == "true" ]]; then
-            CURRENT_VERSION=$(cat VERSION)
-            IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+            # Abort script if version file missing
+            if [[ ! -f VERSION ]]; then
+              echo "VERSION file not found! Aborting."
+              exit 1
+            fi
+
+            # Get branch version
+            BRANCH_VERSION=$(cat VERSION)
+            echo "Branch Version: $BRANCH_VERSION"
+
+            # Get the main version and split into VERSION_PARTS
+            IFS='.' read -r -a VERSION_PARTS <<< "$MAIN_VERSION"
             if [[ "$VERSION_TYPE" == "minor" ]]; then
               VERSION_PARTS[1]=$((VERSION_PARTS[1]+1))
               VERSION_PARTS[2]=0
@@ -83,7 +82,6 @@ jobs:
             fi
             NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
             echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-            echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
             echo "New Version: " $NEW_VERSION
           fi
           
@@ -91,71 +89,66 @@ jobs:
           echo "TITLE_FLAG=$TITLE_FLAG" >> $GITHUB_ENV
           echo "PR_TITLE=$PR_TITLE" >> $GITHUB_ENV
           echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
+          echo "BRANCH_VERSION=$BRANCH_VERSION" >> $GITHUB_ENV
 
-      - name: Configure Git user
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-
-      - name: Pull latest changes from remote
-        if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
-        run: |
-          git pull --rebase origin ${{ github.head_ref }}
-
-      - name: Update VERSION file and Push Changes
-        if: env.VERSION_UPDATED == 'false' && env.TITLE_FLAG == 'true'
-        run: |
-          echo "$NEW_VERSION" > VERSION
-          git add VERSION
-          git commit -m "[Automated] Release: ${VERSION_TYPE} - Version from $CURRENT_VERSION to $NEW_VERSION"
-          
-          # Use the pull request's branch name to push changes
-          BRANCH="${{ github.head_ref }}"
-          echo "Pushing changes to branch: $BRANCH"
-          
-          # Push changes to the PR branch
-          git push origin HEAD:$BRANCH
-
-      - name: Debug Environment Variables
-        run: |
-          echo "PR_TITLE=${{ env.PR_TITLE }}"
-          echo "NEW_VERSION=${{ env.NEW_VERSION }}"
-          echo "CURRENT_VERSION=${{ env.CURRENT_VERSION }}"
-          echo "VERSION_TYPE=${{ env.VERSION_TYPE }}"
-
-      - name: Comment on PR
-        if: env.VERSION_UPDATED == 'false'
-        uses: actions/github-script@v7
+      - name: Comment on PR with no spam
+        uses: actions/github-script@v8
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.VERSION_BOT }}
           script: |
             // Retrieve variables from the environment
             const titleFlag = process.env.TITLE_FLAG;
             const prNumber = context.issue.number;
             const prTitle = process.env.PR_TITLE;
             const newVersion = process.env.NEW_VERSION;
-            const currentVersion = process.env.CURRENT_VERSION;
+            const currentVersion = process.env.MAIN_VERSION;
+            const branchVersion = process.env.BRANCH_VERSION;
             const versionType = process.env.VERSION_TYPE;
             
             // Prepare the message based on the title flag
             let prBody;
             if (titleFlag === "false") {
-              prBody = `Version Bot\n **PR title:** ${prTitle}\n **No valid version flag found**. PR title must include either [FEATURE] or [BUGFIX] to auto-increment the version.\n **Please update the PR title** and re-run the workflow.`;
+              prBody = `ARM Version Bot\n **PR title:** ${prTitle}\n **No valid version flag found**. PR title must include either [FEATURE] or [BUGFIX] to auto-increment the version.\n **Please update the PR title** and re-run the workflow.`;
             } else {
-              prBody = `Version Bot:\n **PR title:** ${prTitle}\n Updated version: **${currentVersion}** to **${newVersion}**\n Release version: **${versionType}**`;
+              prBody = `ARM Version Bot:\n **PR title:** ${prTitle}\n **Current version:** ${currentVersion}\n **Required Version:** ${newVersion}\n **PR Version:** ${branchVersion}\n **Release version:** ${versionType}`;
             }
-            
-            // Generate PR comment
-            github.rest.issues.createComment({
+
+            // Get existing comments
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: prBody
-            })
+              per_page: 100
+            });
 
-      - name: Set tag for non-default branch
-        if: steps.branch-name.outputs.is_default == 'false' && steps.branch-name.outputs.default_branch != '' && env.TITLE_FLAG == 'true'
-        run: |
-          echo "Branch name is ${{ steps.branch-name.outputs.ref_branch }}"
-          echo "Main name is ${{ steps.branch-name.outputs.default_branch }}"
-          echo "TAG=${{ steps.branch-name.outputs.current_branch }}" >> $GITHUB_ENV
+            // Check for existing version bot comments
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Version Bot')
+            );
+            
+            // Generate PR comment if not already there
+            if (botComment) {
+              // Check if comment aligns with expected output, otherwise update
+              if (botComment.body !== prBody) {
+                // Update the existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: prBody
+                });
+                console.log('Updated existing Version Bot comment.');
+              } else {
+                console.log('No comment update needed.');
+              }
+            } else {
+              // Creating new comment, no previous comments found
+              console.log('Creating new comment');
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: prBody
+              })
+            }
