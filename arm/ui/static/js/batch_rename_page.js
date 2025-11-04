@@ -39,6 +39,13 @@ $(document).ready(function() {
 });
 
 function initializeBatchRenamePage() {
+    // Clear all checkboxes and selection state on page load
+    $('.batch-checkbox').prop('checked', false);
+    $('.batch-table-row').removeClass('selected');
+    $('#select-all-checkbox').prop('checked', false);
+    selectedJobs.clear();
+    updateSelectionUI();
+    
     // Table and checkbox handlers
     $('.batch-checkbox').on('change', handleCheckboxChange);
     $('.batch-table-row').on('click', handleRowClick);
@@ -53,9 +60,13 @@ function initializeBatchRenamePage() {
     // Modal step handlers
     $('#confirm-continue-btn').on('click', proceedToOptions);
     $('#generate-preview-btn').on('click', detectSeries);
-    $('#back-from-series-btn').on('click', backToOptionsFromSeries);
+    $('#back-from-series-btn').on('click', function() {
+        BatchRenameShared.backToOptionsFromSeries();
+    });
     $('#confirm-series-btn').on('click', generatePreviewWithSeries);
-    $('#back-to-options-btn').on('click', backToOptions);
+    $('#back-to-options-btn').on('click', function() {
+        BatchRenameShared.backToOptions();
+    });
     $('#execute-rename-btn').on('click', executeRename);
     $('#rollback-btn').on('click', rollbackRename);
     
@@ -192,10 +203,10 @@ function updateSelectionUI() {
     const lookupBtn = $('#custom-lookup-btn');
     if (count > 0) {
         lookupBtn.prop('disabled', false);
-        lookupBtn.html(`<i class="fa fa-search"></i> Lookup by Custom Name (${count})`);
+        lookupBtn.html(`<i class="fa fa-search"></i> Batch Identify Selected (${count})`);
     } else {
         lookupBtn.prop('disabled', true);
-        lookupBtn.html('<i class="fa fa-search"></i> Lookup by Custom Name');
+        lookupBtn.html('<i class="fa fa-search"></i> Batch Identify Selected');
     }
 }
 
@@ -330,10 +341,8 @@ function executeRename() {
             $('#rename-preview-step').hide();
             $('#rename-results-step').show();
 
-            // Clear selection and reload page after a delay
-            setTimeout(function() {
-                location.reload();
-            }, 3000);
+            // Don't auto-refresh - let user review results and rollback if needed
+            // User can manually refresh page or close modal when satisfied
         } else {
             BatchRenameShared.showToast('Execution failed: ' + response.message, 'danger');
             if (response.batch_id) {

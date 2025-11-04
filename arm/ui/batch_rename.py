@@ -69,9 +69,9 @@ def _validate_path_safety(path, base_directory=None):
     except ValueError:
         raise ValueError(f"Path traversal detected: {path} is outside allowed directory {base_directory}")
 
-    # Check for suspicious patterns
+    # Check for suspicious patterns (only check for '..' after normalization)
     path_str = str(target_path)
-    if '..' in path_str or path_str.startswith('/'):
+    if '..' in path_str:
         raise ValueError(f"Suspicious path pattern detected: {path}")
 
     return str(target_path)
@@ -497,6 +497,7 @@ def preview_batch_rename(
     outlier_resolution=None,
     selected_series_key=None,
     force_series_override=False,
+    custom_series_name=None,
 ):
     """Generate a preview of the batch rename operation.
 
@@ -545,7 +546,11 @@ def preview_batch_rename(
 
     # Determine which series name to use
     force_series_name = None
-    if selected_series_key:
+    if custom_series_name:
+        # User entered a custom series name - use it exactly
+        force_series_name = custom_series_name
+        logging.info(f"Batch rename using custom series name: {force_series_name}")
+    elif selected_series_key:
         # Find the selected series group
         selected_group = next(
             (g for g in consistency['series_groups'] if g['key'] == selected_series_key),

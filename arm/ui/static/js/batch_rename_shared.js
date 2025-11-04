@@ -73,6 +73,37 @@ var BatchRenameShared = (function() {
             groupIndex++;
         });
 
+        // Add custom series name option
+        const customOptionHtml = `
+            <div class="form-check mb-3">
+                <input class="form-check-input series-radio" type="radio" name="primarySeries"
+                       id="series-custom" value="__custom__" 
+                       data-series-name="Custom">
+                <label class="form-check-label" for="series-custom">
+                    <strong>Use custom series name</strong>
+                    <span class="badge badge-warning ml-2">Custom</span>
+                </label>
+            </div>
+            <div id="custom-series-input-container" class="ml-4 mb-3" style="display: none;">
+                <input type="text" class="form-control" id="custom-series-name" 
+                       placeholder="Enter exact series name (e.g., The Office (US))">
+                <small class="form-text text-muted">
+                    This name will be used exactly as typed for all selected discs.
+                </small>
+            </div>
+        `;
+        container.append(customOptionHtml);
+
+        // Show/hide custom input when custom option is selected
+        $('.series-radio').on('change', function() {
+            if ($(this).val() === '__custom__') {
+                $('#custom-series-input-container').show();
+                $('#custom-series-name').focus();
+            } else {
+                $('#custom-series-input-container').hide();
+            }
+        });
+
         // Display warning message
         const warningContainer = $('#series-selection-warning');
         if (warningContainer.length) {
@@ -86,8 +117,17 @@ var BatchRenameShared = (function() {
         }
 
         // Update warning when selection changes
-        $('.series-radio').on('change', function() {
-            const selectedName = $(this).data('series-name') || 'this series';
+        const updateWarning = function() {
+            const selectedRadio = $('input[name="primarySeries"]:checked');
+            let selectedName;
+            
+            if (selectedRadio.val() === '__custom__') {
+                const customName = $('#custom-series-name').val().trim();
+                selectedName = customName || 'the custom name you enter';
+            } else {
+                selectedName = selectedRadio.data('series-name') || 'this series';
+            }
+            
             const warningContainer = $('#series-selection-warning');
             if (warningContainer.length) {
                 warningContainer.html(
@@ -96,7 +136,12 @@ var BatchRenameShared = (function() {
                     `This will affect ${seriesGroups.reduce((sum, g) => sum + g.job_count, 0)} disc(s).`
                 );
             }
-        });
+        };
+
+        $('.series-radio').on('change', updateWarning);
+        
+        // Update warning as user types custom name
+        $(document).on('input', '#custom-series-name', updateWarning);
     }
 
     /**
@@ -353,14 +398,17 @@ var BatchRenameShared = (function() {
             }),
             success: function(response) {
                 // API returns preview object directly, not wrapped in {success, preview}
+                console.log('Series detection response:', response);
+                
                 if (response && (response.success === false || response.error)) {
                     // Explicit error response
                     const errorMsg = response.error || response.message || 'Unknown error';
                     showToast('Series detection failed: ' + errorMsg, 'danger');
-                } else if (response && (response.items || response.previews || response.series_info)) {
-                    // Valid preview response
+                } else if (response && (response.items || response.previews || response.series_info || response.requires_series_selection)) {
+                    // Valid preview response (items may be empty if selection required)
                     callback(response);
                 } else {
+                    console.error('Invalid response structure:', response);
                     showToast('Series detection failed: Invalid response', 'danger');
                 }
             },
@@ -395,6 +443,18 @@ var BatchRenameShared = (function() {
             return;
         }
 
+        // Handle custom series name input
+        let customSeriesName = null;
+        if (selectedSeriesKey === '__custom__') {
+            customSeriesName = $('#custom-series-name').val().trim();
+            if (!customSeriesName) {
+                showToast('Please enter a custom series name', 'warning');
+                $('#custom-series-name').focus();
+                btn.prop('disabled', false).html('<i class="fa fa-check"></i> Confirm and Preview');
+                return;
+            }
+        }
+
         // Mark all jobs as using the selected series (force override)
         const outlierResolution = {};
         $('input[name="primarySeries"]').each(function() {
@@ -416,6 +476,11 @@ var BatchRenameShared = (function() {
             force_series_override: true  // Force all jobs to use selected series
         };
 
+        // Add custom series name if provided
+        if (customSeriesName) {
+            options.custom_series_name = customSeriesName;
+        }
+
         $.ajax({
             url: '/batch_rename',
             method: 'POST',
@@ -426,6 +491,8 @@ var BatchRenameShared = (function() {
             }),
             success: function(response) {
                 // API returns preview object directly, not wrapped in {success, preview}
+                console.log('Preview with series response:', response);
+                
                 if (response && (response.success === false || response.error)) {
                     // Explicit error response
                     const errorMsg = response.error || response.message || 'Unknown error';
@@ -434,6 +501,7 @@ var BatchRenameShared = (function() {
                     // Valid preview response
                     callback(response);
                 } else {
+                    console.error('Invalid preview response structure:', response);
                     showToast('Preview failed: Invalid response', 'danger');
                 }
             },
@@ -467,6 +535,21 @@ var BatchRenameShared = (function() {
             include_year: $('#include-year').is(':checked')
         };
 
+        // Include series selection data if it was used
+        const selectedSeriesKey = $('input[name="primarySeries"]:checked').val();
+        if (selectedSeriesKey) {
+            options.selected_series_key = selectedSeriesKey;
+            options.force_series_override = true;
+            
+            // Include custom series name if provided
+            if (selectedSeriesKey === '__custom__') {
+                const customSeriesName = $('#custom-series-name').val().trim();
+                if (customSeriesName) {
+                    options.custom_series_name = customSeriesName;
+                }
+            }
+        }
+
         // Include outlier resolution if it exists
         const outlierResolution = {};
         $('.disc-assignment').each(function() {
@@ -488,12 +571,27 @@ var BatchRenameShared = (function() {
                 ...options
             }),
             success: function(response) {
+                console.log('Execute rename response:', response);
+                
+                // Check for errors in the response
+                if (response.errors && response.errors.length > 0) {
+                    console.error('Rename errors:', response.errors);
+                    // Show first error to user
+                    showToast('Rename failed: ' + response.errors[0], 'danger');
+                }
+                
                 callback(response);
             },
             error: function(xhr) {
+                console.error('Execute rename XHR error:', xhr);
                 let msg = 'Failed to execute rename';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg += ': ' + xhr.responseJSON.message;
+                } else if (xhr.responseJSON && xhr.responseJSON.error) {
+                    msg += ': ' + xhr.responseJSON.error;
+                } else if (xhr.responseText) {
+                    console.error('Response text:', xhr.responseText);
+                    msg += ' (see console for details)';
                 }
                 showToast(msg, 'danger');
                 btn.prop('disabled', false).html('<i class="fa fa-check"></i> Execute Batch Rename');
