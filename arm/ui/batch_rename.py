@@ -55,7 +55,7 @@ def _validate_path_safety(path, base_directory=None):
     # Sanitize inputs to prevent path traversal before resolving
     if '..' in str(path) or '..' in str(base_directory):
         raise ValueError("Path contains suspicious patterns")
-    
+
     # Convert to absolute paths and resolve any symlinks
     try:
         base_path = Path(base_directory).resolve(strict=False)
@@ -360,7 +360,7 @@ def preview_batch_rename(
 
         # Get base directory from the validated old_path
         base_path = os.path.dirname(old_path)
-        
+
         # Construct new_path using validated components
         # Note: old_path is already validated above, so base_path is trusted
         if consolidate and parent_folder:
