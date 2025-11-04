@@ -74,7 +74,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
             logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
             job.status = JobState.FAILURE.value
             db.session.commit()
-            sys.exit()
+            raise ValueError("MakeMKV output path is None. Job failed.")
         if job.config.NOTIFY_RIP:
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} rip complete. Starting transcode. ")
         logging.info("************* Ripping with MakeMKV completed *************")
