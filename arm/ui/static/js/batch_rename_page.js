@@ -53,9 +53,13 @@ function initializeBatchRenamePage() {
     // Modal step handlers
     $('#confirm-continue-btn').on('click', proceedToOptions);
     $('#generate-preview-btn').on('click', detectSeries);
-    $('#back-from-series-btn').on('click', backToOptionsFromSeries);
+    $('#back-from-series-btn').on('click', function() {
+        BatchRenameShared.backToOptionsFromSeries();
+    });
     $('#confirm-series-btn').on('click', generatePreviewWithSeries);
-    $('#back-to-options-btn').on('click', backToOptions);
+    $('#back-to-options-btn').on('click', function() {
+        BatchRenameShared.backToOptions();
+    });
     $('#execute-rename-btn').on('click', executeRename);
     $('#rollback-btn').on('click', rollbackRename);
     

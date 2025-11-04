@@ -406,6 +406,7 @@ def batch_rename_api():
             outlier_resolution = data.get('outlier_resolution', {})
             selected_series_key = data.get('selected_series_key')
             force_series_override = data.get('force_series_override', False)
+            custom_series_name = data.get('custom_series_name')
 
             preview = br.preview_batch_rename(
                 job_ids=job_ids,
@@ -416,6 +417,7 @@ def batch_rename_api():
                 outlier_resolution=outlier_resolution,
                 selected_series_key=selected_series_key,
                 force_series_override=force_series_override,
+                custom_series_name=custom_series_name,
             )
 
             # Add naming options to preview for frontend
@@ -439,6 +441,7 @@ def batch_rename_api():
             batch_id = data.get('batch_id')
             selected_series_key = data.get('selected_series_key')
             force_series_override = data.get('force_series_override', False)
+            custom_series_name = data.get('custom_series_name')
 
             # Generate batch ID if not provided
             if not batch_id:
@@ -454,6 +457,7 @@ def batch_rename_api():
                 outlier_resolution=outlier_resolution,
                 selected_series_key=selected_series_key,
                 force_series_override=force_series_override,
+                custom_series_name=custom_series_name,
             )
 
             # Execute the rename
