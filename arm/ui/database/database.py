@@ -71,16 +71,11 @@ def view_database():
 
     session["page_title"] = "Database"
 
-    restore_form = DatabaseRestoreForm()
-    backup_form = DatabaseBackupForm()
-
     return render_template(
         'databaseview.html',
         jobs=job_items,
         pages=jobs_pagination,
         date_format=cfg.arm_config['DATE_FORMAT'],
-        backup_form=backup_form,
-        restore_form=restore_form,
     )
 
 
@@ -119,14 +114,15 @@ def download_backup():
     """Create a fresh database backup and send it to the user."""
 
     form = DatabaseBackupForm()
+    settings_db_tools_url = url_for('route_settings.settings') + '#databaseTools'
     if not form.validate_on_submit():
         flash('Invalid backup request submitted.', 'danger')
-        return redirect(url_for('route_database.view_database'))
+        return redirect(settings_db_tools_url)
 
     backup_path = ui_utils.arm_db_backup('manual')
     if not backup_path or not os.path.exists(backup_path):
         flash('Database backup could not be created.', 'danger')
-        return redirect(url_for('route_database.view_database'))
+        return redirect(settings_db_tools_url)
 
     try:
         return send_file(
@@ -138,7 +134,7 @@ def download_backup():
     except OSError as error:
         app.logger.error('Failed to stream backup %s: %s', backup_path, error)
         flash('Database backup was created but could not be downloaded.', 'danger')
-        return redirect(url_for('route_database.view_database'))
+        return redirect(settings_db_tools_url)
 
 
 @route_database.route('/database/restore', methods=['POST'])
@@ -147,20 +143,21 @@ def restore_database():
     """Restore the ARM database from an uploaded backup file."""
 
     form = DatabaseRestoreForm()
+    settings_db_tools_url = url_for('route_settings.settings') + '#databaseTools'
     if not form.validate_on_submit():
         flash('Select a backup file before submitting.', 'danger')
-        return redirect(url_for('route_database.view_database'))
+        return redirect(settings_db_tools_url)
 
     file_storage = form.backup_file.data
     filename = secure_filename(file_storage.filename or '')
     if not filename:
         flash('The provided backup file is missing a valid name.', 'danger')
-        return redirect(url_for('route_database.view_database'))
+        return redirect(settings_db_tools_url)
 
     lower_name = filename.lower()
     if not lower_name.endswith(('.json', '.db')):
         flash('Unsupported backup format. Upload a .json or .db file.', 'danger')
-        return redirect(url_for('route_database.view_database'))
+        return redirect(settings_db_tools_url)
 
     backup_root = cfg.arm_config.get('DATABASE_BACKUP_PATH')
     if not backup_root:
@@ -177,7 +174,7 @@ def restore_database():
     except OSError as error:
         app.logger.error('Unable to store uploaded backup %s: %s', stored_path, error)
         flash('Failed to save the uploaded backup. Check file permissions.', 'danger')
-        return redirect(url_for('route_database.view_database'))
+        return redirect(settings_db_tools_url)
 
     safety_backup = ui_utils.arm_db_backup('pre_restore')
     try:
@@ -185,14 +182,14 @@ def restore_database():
     except (OSError, SQLAlchemyError, json.JSONDecodeError, ValueError) as error:
         app.logger.error('Database restore failed using %s: %s', stored_path, error)
         flash('Database restore failed. Review the logs for details.', 'danger')
-        return redirect(url_for('route_database.view_database'))
+        return redirect(settings_db_tools_url)
 
     ui_utils.arm_db_cfg()
     message = f"Database restored from backup '{filename}'."
     if safety_backup:
         message += f" A safety backup was saved to '{safety_backup}'."
     flash(message, 'success')
-    return redirect(url_for('route_database.view_database'))
+    return redirect(settings_db_tools_url)
 
 
 @route_database.route('/import_movies')
