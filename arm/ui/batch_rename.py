@@ -52,10 +52,14 @@ def _validate_path_safety(path, base_directory=None):
     if base_directory is None:
         base_directory = cfg.arm_config.get('COMPLETED_PATH', '/home/arm/media/completed')
 
+    # Sanitize inputs to prevent path traversal before resolving
+    if '..' in str(path) or '..' in str(base_directory):
+        raise ValueError("Path contains suspicious patterns")
+    
     # Convert to absolute paths and resolve any symlinks
     try:
-        base_path = Path(base_directory).resolve()
-        target_path = Path(path).resolve()
+        base_path = Path(base_directory).resolve(strict=False)
+        target_path = Path(path).resolve(strict=False)
     except (OSError, RuntimeError) as e:
         raise ValueError(f"Invalid path: {e}")
 
@@ -354,19 +358,17 @@ def preview_batch_rename(
         # Sanitize new_folder_name to remove path separators
         new_folder_name = re.sub(r'[\\/]', '_', new_folder_name)
 
+        # Get base directory from the validated old_path
         base_path = os.path.dirname(old_path)
-        # Validate base_path
-        try:
-            base_path = _validate_path_safety(base_path)
-        except ValueError as e:
-            preview['errors'].append(f"Job {job.job_id}: Invalid base path - {str(e)}")
-            continue
-
+        
+        # Construct new_path using validated components
+        # Note: old_path is already validated above, so base_path is trusted
         if consolidate and parent_folder:
-            # All components are sanitized above
-            new_path = os.path.join(base_path, parent_folder, new_folder_name)
+            # Ensure parent_folder doesn't contain path separators (already sanitized above)
+            # Use os.path.normpath to normalize the joined path
+            new_path = os.path.normpath(os.path.join(base_path, parent_folder, new_folder_name))
         else:
-            new_path = os.path.join(base_path, new_folder_name)
+            new_path = os.path.normpath(os.path.join(base_path, new_folder_name))
 
         # Validate new_path to prevent path traversal
         try:
