@@ -352,15 +352,23 @@ var BatchRenameShared = (function() {
                 ...options
             }),
             success: function(response) {
-                if (response.success) {
-                    callback(response.preview);
+                // API returns preview object directly, not wrapped in {success, preview}
+                if (response && (response.success === false || response.error)) {
+                    // Explicit error response
+                    const errorMsg = response.error || response.message || 'Unknown error';
+                    showToast('Series detection failed: ' + errorMsg, 'danger');
+                } else if (response && (response.items || response.previews || response.series_info)) {
+                    // Valid preview response
+                    callback(response);
                 } else {
-                    showToast('Series detection failed: ' + response.message, 'danger');
+                    showToast('Series detection failed: Invalid response', 'danger');
                 }
             },
             error: function(xhr) {
                 let msg = 'Failed to detect series';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    msg += ': ' + xhr.responseJSON.error;
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg += ': ' + xhr.responseJSON.message;
                 }
                 showToast(msg, 'danger');
@@ -417,15 +425,23 @@ var BatchRenameShared = (function() {
                 ...options
             }),
             success: function(response) {
-                if (response.success) {
-                    callback(response.preview);
+                // API returns preview object directly, not wrapped in {success, preview}
+                if (response && (response.success === false || response.error)) {
+                    // Explicit error response
+                    const errorMsg = response.error || response.message || 'Unknown error';
+                    showToast('Preview failed: ' + errorMsg, 'danger');
+                } else if (response && (response.items || response.previews || response.series_info)) {
+                    // Valid preview response
+                    callback(response);
                 } else {
-                    showToast('Preview failed: ' + response.message, 'danger');
+                    showToast('Preview failed: Invalid response', 'danger');
                 }
             },
             error: function(xhr) {
                 let msg = 'Failed to generate preview';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    msg += ': ' + xhr.responseJSON.error;
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg += ': ' + xhr.responseJSON.message;
                 }
                 showToast(msg, 'danger');
