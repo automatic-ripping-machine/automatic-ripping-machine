@@ -143,7 +143,7 @@ def start_transcode(job, logfile, raw_in_path, transcode_out_path, protection):
         utils.database_updater({'status': "active"}, job)
         return True
 
-    else:
+    elif not job.config.USE_FFMPEG:
         logging.info("************* Starting Transcode With HandBrake *************")
         # If it was ripped with MakeMKV or we are doing a mkv rip then run the handbrake_mkv function
         if rip_with_mkv(job, protection) and job.config.RIPMETHOD == "mkv":
@@ -163,6 +163,10 @@ def start_transcode(job, logfile, raw_in_path, transcode_out_path, protection):
         # After transcoding update db status back to active
         utils.database_updater({'status': "active"}, job)
         return True
+    else:
+        logging.info("Invalid transcoding option selected. Skipping transcode.")
+        return None
+        
 
 
 def notify_exit(job):
