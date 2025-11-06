@@ -168,7 +168,6 @@ def start_transcode(job, logfile, raw_in_path, transcode_out_path, protection):
         return None
         
 
-
 def notify_exit(job):
     """
     Notify post transcoding - ARM finished\n
