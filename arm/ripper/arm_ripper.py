@@ -164,9 +164,9 @@ def start_transcode(job, logfile, raw_in_path, transcode_out_path, protection):
         utils.database_updater({'status': "active"}, job)
         return True
     else:
-        logging.info("Invalid transcoding option selected. Skipping transcode.")
+        logging.info("Invalid transcoding option selected. Skipping transcode. Set USE_FFMPEG with valid boolean value fix error")
         return None
-        
+
 
 def notify_exit(job):
     """
