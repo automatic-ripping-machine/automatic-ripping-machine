@@ -14,6 +14,7 @@ Covers
 """
 
 import json
+from dataclasses import dataclass
 from flask_login import LoginManager, login_required, current_user  # noqa: F401
 from flask import render_template, request, Blueprint, flash, redirect, url_for
 from werkzeug.routing import ValidationError
@@ -617,6 +618,16 @@ class CustomLookupRequestError(Exception):
         self.status = status
 
 
+@dataclass
+class CustomLookupApplyPayload:
+    job_ids: list
+    title: str
+    year: str
+    video_type: str
+    imdb_id: str
+    poster_url: str
+
+
 def _assign_custom_lookup_metadata(job, title, year, video_type, imdb_id, poster_url):
     job.title = title
     job.title_manual = title
@@ -781,43 +792,46 @@ def _custom_lookup_search(metadata_module, data):
     )
 
 
-def _custom_lookup_apply(data):
-    job_ids = data.get('job_ids', [])
+def _parse_apply_payload(data):
+    job_ids = data.get('job_ids') or []
     if not job_ids:
-        return _custom_lookup_error('No jobs selected', status=400)
+        raise CustomLookupRequestError('No jobs selected', status=400)
 
     title = (data.get('title') or '').strip()
     if not title:
-        return _custom_lookup_error('Title is required', status=400)
+        raise CustomLookupRequestError('Title is required', status=400)
 
-    year = data.get('year', '')
-    video_type = data.get('video_type', 'series')
-    imdb_id = data.get('imdb_id', '')
-    poster_url = data.get('poster_url', '')
-
-    updated_jobs, errors = _apply_custom_lookup_to_jobs(
-        job_ids,
-        title,
-        year,
-        video_type,
-        imdb_id,
-        poster_url,
+    return CustomLookupApplyPayload(
+        job_ids=job_ids,
+        title=title,
+        year=data.get('year', ''),
+        video_type=data.get('video_type', 'series'),
+        imdb_id=data.get('imdb_id', ''),
+        poster_url=data.get('poster_url', ''),
     )
 
-    if updated_jobs:
-        try:
-            db.session.commit()
-            app.logger.info(
-                "Custom lookup applied to %d jobs: %s (%s)",
-                len(updated_jobs),
-                title,
-                video_type,
-            )
-        except Exception as exc:
-            db.session.rollback()
-            app.logger.error(f"Database commit error: {exc}", exc_info=True)
-            return _custom_lookup_error('Failed to save changes to database', status=500)
 
+def _commit_custom_lookup_changes(updated_jobs, title, video_type):
+    if not updated_jobs:
+        return None
+
+    try:
+        db.session.commit()
+        app.logger.info(
+            "Custom lookup applied to %d jobs: %s (%s)",
+            len(updated_jobs),
+            title,
+            video_type,
+        )
+    except Exception as exc:
+        db.session.rollback()
+        app.logger.error(f"Database commit error: {exc}", exc_info=True)
+        return _custom_lookup_error('Failed to save changes to database', status=500)
+
+    return None
+
+
+def _build_custom_lookup_response(updated_jobs, errors):
     return _json_response(
         {
             'success': True,
@@ -827,6 +841,32 @@ def _custom_lookup_apply(data):
         },
         default=str,
     )
+
+
+def _custom_lookup_apply(data):
+    try:
+        payload = _parse_apply_payload(data)
+    except CustomLookupRequestError as err:
+        return _custom_lookup_error(str(err), status=err.status)
+
+    updated_jobs, errors = _apply_custom_lookup_to_jobs(
+        payload.job_ids,
+        payload.title,
+        payload.year,
+        payload.video_type,
+        payload.imdb_id,
+        payload.poster_url,
+    )
+
+    commit_error = _commit_custom_lookup_changes(
+        updated_jobs,
+        payload.title,
+        payload.video_type,
+    )
+    if commit_error:
+        return commit_error
+
+    return _build_custom_lookup_response(updated_jobs, errors)
 
 
 @route_jobs.route('/batch_custom_lookup', methods=['POST'])
