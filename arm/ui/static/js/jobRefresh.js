@@ -8,8 +8,8 @@
 let hrrref = "";
 let activeJob = null;
 let actionType = null;
-var activeServers = [];
-var activeJobs = [];
+const activeServers = [];
+const activeJobs = [];
 
 $(document).ready(function () {
     pushChildServers();
@@ -253,7 +253,7 @@ function refreshJobsSuccess(data, serverIndex, serverUrl, serverCount) {
         job.server_url = serverUrl;
         job.active = true;
         if (activeJobs.some(e => e.job_id === job.job_id)) {
-            var oldJob = activeJobs.find(e => e.job_id === job.job_id);
+            const oldJob = activeJobs.find(e => e.job_id === job.job_id);
             activeJobs[activeJobs.indexOf(oldJob)] = job;
             updateJobItem(oldJob, job);
         } else {

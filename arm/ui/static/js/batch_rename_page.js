@@ -10,11 +10,11 @@
 function escapeHtml(unsafe) {
     if (unsafe == null) return '';
     return String(unsafe)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
 }
 
 let selectedJobs = new Set();
@@ -220,7 +220,7 @@ function openBatchRenameModal() {
     hasNonSeries = false;
     let nonSeriesJobs = [];
     
-    selectedJobs.forEach(jobId => {
+    for (const jobId of selectedJobs) {
         const checkbox = $(`.batch-checkbox[data-job-id="${jobId}"]`);
         const videoType = checkbox.data('video-type');
         const row = checkbox.closest('.job-table-row');
@@ -234,7 +234,7 @@ function openBatchRenameModal() {
                 title: title
             });
         }
-    });
+    }
     
     // Reset modal and show appropriate first step
     resetModal();
@@ -259,13 +259,13 @@ function displayNonSeriesWarning(nonSeriesJobs) {
     listDiv.empty();
     
     let listHtml = '<ul class="mb-0">';
-    nonSeriesJobs.forEach(job => {
+    for (const job of nonSeriesJobs) {
         const escapedType = escapeHtml(job.type);
         const typeBadge = job.type === 'movie' ? 
             '<span class="badge badge-primary">Movie</span>' : 
             `<span class="badge badge-secondary">${escapedType}</span>`;
     listHtml += `<li>Job ${escapeHtml(job.id.toString())}: ${escapeHtml(job.title)} ${typeBadge}</li>`;
-    });
+    }
     listHtml += '</ul>';
     
     listDiv.html(listHtml);
@@ -421,7 +421,7 @@ function displaySelectedDiscs() {
     container.empty();
     
     let html = '<ul class="mb-0">';
-    selectedJobs.forEach(jobId => {
+    for (const jobId of selectedJobs) {
         const row = $(`.batch-table-row[data-job-id="${jobId}"]`);
         const title = escapeHtml(row.find('.title-cell').text().trim());
         const label = escapeHtml(row.find('td:eq(5)').text().trim()); // Label column
@@ -439,7 +439,7 @@ function displaySelectedDiscs() {
             html += ` - Label: ${label}`;
         }
         html += '</li>';
-    });
+    }
     html += '</ul>';
     
     container.html(html);
@@ -495,7 +495,8 @@ function displaySearchResults(results) {
     const container = $('#search-results-container');
     container.empty();
     
-    results.forEach((result, index) => {
+    for (let index = 0; index < results.length; index++) {
+        const result = results[index];
         const posterUrl = result.poster_url && result.poster_url !== 'N/A' ? 
             result.poster_url : 'static/img/none.png';
         
@@ -527,7 +528,7 @@ function displaySearchResults(results) {
         `;
         
         container.append(cardHtml);
-    });
+    }
     
     // Add click handlers
     $('.select-result-btn').on('click', function(e) {
@@ -597,7 +598,7 @@ function displayCustomLookupConfirmation() {
     const tbody = $('#lookup-confirm-table-body');
     tbody.empty();
     
-    selectedJobs.forEach(jobId => {
+    for (const jobId of selectedJobs) {
         const row = $(`.batch-table-row[data-job-id="${jobId}"]`);
         const currentTitle = row.find('.title-cell').text().trim();
         const currentType = row.data('video-type');
@@ -625,7 +626,7 @@ function displayCustomLookupConfirmation() {
         `;
         
         tbody.append(rowHtml);
-    });
+    }
 }
 
 function backToSearch() {

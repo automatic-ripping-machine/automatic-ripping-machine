@@ -4,7 +4,7 @@
  */
 
 // Shared module namespace
-var BatchRenameShared = (function() {
+const BatchRenameShared = (() => {
     'use strict';
 
     /**
@@ -12,12 +12,13 @@ var BatchRenameShared = (function() {
      */
     function escapeHtml(unsafe) {
         if (unsafe == null) return '';
+        // Use replaceAll for readability (ES2021+) instead of regex replace globals
         return String(unsafe)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
     }
 
     /**
@@ -47,7 +48,7 @@ var BatchRenameShared = (function() {
         }
 
         let groupIndex = 0;
-        seriesGroups.forEach(group => {
+        for (const group of seriesGroups) {
             const isChecked = groupIndex === 0 ? 'checked' : '';
             const groupNameEsc = escapeHtml(group.display_name);
             const groupImdbEsc = group.imdb_id ? ' (' + escapeHtml(group.imdb_id) + ')' : '';
@@ -71,7 +72,7 @@ var BatchRenameShared = (function() {
             `;
             container.append(groupHtml);
             groupIndex++;
-        });
+        }
 
         // Add custom series name option
         const customOptionHtml = `
@@ -180,9 +181,9 @@ var BatchRenameShared = (function() {
             const outlierDiv = $('#preview-outliers');
             let outlierHtml = '<strong>Series Outliers Detected:</strong><br>';
             outlierHtml += '<small>The following jobs have different series identifiers:</small><ul>';
-            preview.outliers.forEach(outlier => {
+            for (const outlier of preview.outliers) {
                 outlierHtml += `<li>Job ${escapeHtml(outlier.job_id.toString())}: ${escapeHtml(outlier.title)} (IMDb: ${escapeHtml(outlier.imdb_id || 'N/A')})</li>`;
-            });
+            }
             outlierHtml += '</ul>';
             outlierHtml += '<small>These will be skipped unless you override series detection.</small>';
             outlierDiv.html(outlierHtml);
@@ -193,13 +194,13 @@ var BatchRenameShared = (function() {
         if (preview.conflicts && preview.conflicts.length > 0) {
             const conflictDiv = $('#preview-conflicts');
             let conflictHtml = '<strong>Path Conflicts Detected:</strong><ul>';
-            preview.conflicts.forEach(conflict => {
+            for (const conflict of preview.conflicts) {
                 if (typeof conflict === 'string') {
                     conflictHtml += `<li>${escapeHtml(conflict)}</li>`;
                 } else {
                     conflictHtml += `<li>Job ${escapeHtml(conflict.job_id.toString())}: ${escapeHtml(conflict.reason)}</li>`;
                 }
-            });
+            }
             conflictHtml += '</ul>';
 
             // Different handling based on page context
@@ -228,21 +229,19 @@ var BatchRenameShared = (function() {
         // Build quick lookup for conflicts by job_id or new_path
         const conflictByJob = {};
         if (preview.conflicts && preview.conflicts.length) {
-            preview.conflicts.forEach(c => {
-                if (typeof c === 'string') {
-                    return;
-                }
+            for (const c of preview.conflicts) {
+                if (typeof c === 'string') continue;
                 if (c.job_id) {
                     conflictByJob[c.job_id] = c;
                 } else if (c.new_path) {
                     conflictByJob[c.new_path] = c;
                 }
-            });
+            }
         }
 
-        items.forEach(item => {
-            let statusBadge = '';
-            let statusClass = '';
+        for (const item of items) {
+            let statusBadge;
+            let statusClass;
 
             // Normalize fields across merged versions
             const jobId = item.job_id || item.jobId || item.id;
@@ -280,7 +279,7 @@ var BatchRenameShared = (function() {
                 </tr>
             `;
             tbody.append(row);
-        });
+        }
     }
 
     /**
@@ -300,9 +299,9 @@ var BatchRenameShared = (function() {
 
             if (response.skipped && response.skipped.length > 0) {
                 html += '<p><strong>Skipped jobs:</strong></p><ul>';
-                response.skipped.forEach(skip => {
+                for (const skip of response.skipped) {
                     html += `<li>Job ${skip.job_id}: ${skip.reason}</li>`;
-                });
+                }
                 html += '</ul>';
             }
 
@@ -317,9 +316,9 @@ var BatchRenameShared = (function() {
 
             if (response.errors && response.errors.length > 0) {
                 html += '<p><strong>Errors:</strong></p><ul>';
-                response.errors.forEach(error => {
+                for (const error of response.errors) {
                     html += `<li>${escapeHtml(error)}</li>`;
-                });
+                }
                 html += '</ul>';
             }
 
