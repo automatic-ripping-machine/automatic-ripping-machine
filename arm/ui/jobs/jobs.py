@@ -730,6 +730,23 @@ def _apply_custom_lookup_to_job(job_id, title, year, video_type, imdb_id, poster
     return result, None
 
 
+def _process_single_job_lookup(job_id, title, year, video_type, imdb_id, poster_url):
+    """Process custom lookup for a single job and return result tuple."""
+    try:
+        job_result, job_error = _apply_custom_lookup_to_job(
+            job_id,
+            title,
+            year,
+            video_type,
+            imdb_id,
+            poster_url,
+        )
+        return job_result, job_error
+    except Exception as exc:
+        app.logger.error(f"Error updating job {job_id}: {exc}", exc_info=True)
+        return None, f'Job {job_id}: Failed to apply custom lookup'
+
+
 def _apply_custom_lookup_to_jobs(job_ids, title, year, video_type,
                                  imdb_id, poster_url):
     """Apply custom identification metadata to selected jobs."""
@@ -738,22 +755,13 @@ def _apply_custom_lookup_to_jobs(job_ids, title, year, video_type,
     errors = []
 
     for job_id in job_ids:
-        try:
-            job_result, job_error = _apply_custom_lookup_to_job(
-                job_id,
-                title,
-                year,
-                video_type,
-                imdb_id,
-                poster_url,
-            )
-            if job_result:
-                updated_jobs.append(job_result)
-            if job_error:
-                errors.append(job_error)
-        except Exception as exc:
-            app.logger.error(f"Error updating job {job_id}: {exc}", exc_info=True)
-            errors.append(f'Job {job_id}: Failed to apply custom lookup')
+        job_result, job_error = _process_single_job_lookup(
+            job_id, title, year, video_type, imdb_id, poster_url
+        )
+        if job_result:
+            updated_jobs.append(job_result)
+        if job_error:
+            errors.append(job_error)
 
     return updated_jobs, errors
 
