@@ -512,17 +512,6 @@ const BatchRenameShared = (() => {
             }
         }
 
-        // Mark all jobs as using the selected series (force override)
-        const outlierResolution = {};
-        $('input[name="primarySeries"]').each(function() {
-            const radioKey = $(this).val();
-            if (radioKey !== selectedSeriesKey) {
-                // All jobs from non-selected series should use selected series
-                const seriesInfo = $(this).closest('.form-check').data('series-info') || {};
-                // This will be handled by backend based on selected_series_key
-            }
-        });
-
         const options = {
             job_ids: Array.from(selectedJobs),
             naming_style: $('#naming-style').val(),

@@ -547,7 +547,7 @@ function displaySearchResults(results) {
 }
 
 function selectSearchResult(index) {
-    if (!customLookupData || !customLookupData.results) {
+    if (!customLookupData?.results) {
         return;
     }
     

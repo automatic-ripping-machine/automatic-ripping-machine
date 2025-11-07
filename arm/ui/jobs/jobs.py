@@ -608,102 +608,150 @@ def _search_metadata(query, video_type, year, provider, metadata):
     return results
 
 
+class CustomLookupRequestError(Exception):
+    """Raised when the custom lookup request payload is invalid."""
+
+    def __init__(self, message, status=400):
+        super().__init__(message)
+        self.message = message
+        self.status = status
+
+
+def _assign_custom_lookup_metadata(job, title, year, video_type, imdb_id, poster_url):
+    job.title = title
+    job.title_manual = title
+    job.year = year
+    job.video_type = video_type
+    job.imdb_id = imdb_id
+    job.poster_url = poster_url
+    job.hasnicetitle = True
+
+
+def _determine_target_base(video_type):
+    import os
+
+    completed_path = cfg.arm_config.get('COMPLETED_PATH', '/home/arm/media/completed')
+    folder_map = {'series': 'tv', 'movie': 'movies'}
+    return os.path.join(completed_path, folder_map.get(video_type, 'unidentified'))
+
+
+def _move_job_folder_if_needed(job, old_video_type, new_video_type, old_path):
+    import os
+    import shutil
+    from datetime import datetime
+
+    if old_video_type == new_video_type or not old_path or not os.path.exists(old_path):
+        return False, old_path, None
+
+    target_base = _determine_target_base(new_video_type)
+    os.makedirs(target_base, exist_ok=True)
+
+    folder_name = os.path.basename(old_path)
+    new_path = os.path.join(target_base, folder_name)
+
+    if os.path.exists(new_path) and new_path != old_path:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        new_path = os.path.join(target_base, f"{folder_name}_{timestamp}")
+        app.logger.warning(
+            f"Folder conflict detected, using timestamped name: {new_path}"
+        )
+
+    if new_path == old_path:
+        return False, old_path, None
+
+    try:
+        shutil.move(old_path, new_path)
+        job.path = new_path
+        return True, new_path, None
+    except Exception as exc:
+        app.logger.error(
+            f"Failed to move folder for job {job.job_id if hasattr(job, 'job_id') else 'unknown'}: {exc}",
+            exc_info=True,
+        )
+        return False, old_path, str(exc)
+
+
+def _apply_custom_lookup_to_job(job_id, title, year, video_type, imdb_id, poster_url):
+    job = Job.query.get(int(job_id))
+    if not job:
+        return None, f'Job {job_id} not found'
+
+    old_video_type = job.video_type
+    old_path = job.path
+
+    _assign_custom_lookup_metadata(job, title, year, video_type, imdb_id, poster_url)
+    moved, new_path, move_error = _move_job_folder_if_needed(
+        job,
+        old_video_type,
+        video_type,
+        old_path,
+    )
+
+    if moved:
+        app.logger.info(
+            f"Moved job {job_id} from {old_video_type} to {video_type}: {old_path} -> {new_path}"
+        )
+
+    result = {
+        'job_id': job_id,
+        'title': title,
+        'year': year,
+        'type': video_type,
+        'moved': moved,
+        'old_path': old_path if moved else None,
+        'new_path': new_path if moved else None,
+    }
+
+    if move_error:
+        message = f'Job {job_id}: Metadata updated but folder move failed - {move_error}'
+        return result, message
+
+    return result, None
+
+
 def _apply_custom_lookup_to_jobs(job_ids, title, year, video_type,
                                  imdb_id, poster_url):
     """Apply custom identification metadata to selected jobs."""
-    import os
-    import shutil
 
     updated_jobs = []
     errors = []
 
     for job_id in job_ids:
         try:
-            job = Job.query.get(int(job_id))
-            if not job:
-                errors.append(f'Job {job_id} not found')
-                continue
-
-            old_video_type = job.video_type
-            old_path = job.path
-
-            # Update job metadata
-            job.title = title
-            job.title_manual = title
-            job.year = year
-            job.video_type = video_type
-            job.imdb_id = imdb_id
-            job.poster_url = poster_url
-            job.hasnicetitle = True
-
-            # Move folder to correct video_type directory if type changed
-            moved = False
-            new_path = old_path
-            if old_video_type != video_type and old_path and os.path.exists(old_path):
-                try:
-                    # Get base paths for different video types
-                    completed_path = cfg.arm_config.get('COMPLETED_PATH', '/home/arm/media/completed')
-
-                    # Determine target base path using ARM's standard folder structure
-                    # Reference: arm/ripper/utils.py get_video_type_sub_folder()
-                    if video_type == 'series':
-                        target_base = os.path.join(completed_path, 'tv')
-                    elif video_type == 'movie':
-                        target_base = os.path.join(completed_path, 'movies')
-                    else:
-                        target_base = os.path.join(completed_path, 'unidentified')
-
-                    # Create target base if it doesn't exist
-                    os.makedirs(target_base, exist_ok=True)
-
-                    # Build new path with same folder name
-                    folder_name = os.path.basename(old_path)
-                    new_path = os.path.join(target_base, folder_name)
-
-                    # Handle naming conflicts
-                    if os.path.exists(new_path) and new_path != old_path:
-                        from datetime import datetime
-                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                        base_name = folder_name
-                        new_path = os.path.join(target_base, f"{base_name}_{timestamp}")
-                        app.logger.warning(
-                            f"Folder conflict detected, using timestamped name: {new_path}"
-                        )
-
-                    # Move the folder
-                    if new_path != old_path:
-                        shutil.move(old_path, new_path)
-                        job.path = new_path
-                        moved = True
-                        app.logger.info(
-                            f"Moved job {job_id} from {old_video_type} to {video_type}: "
-                            f"{old_path} -> {new_path}"
-                        )
-
-                except Exception as move_err:
-                    app.logger.error(
-                        f"Failed to move folder for job {job_id}: {move_err}",
-                        exc_info=True
-                    )
-                    errors.append(
-                        f'Job {job_id}: Metadata updated but folder move failed - {str(move_err)}'
-                    )
-
-            updated_jobs.append({
-                'job_id': job_id,
-                'title': title,
-                'year': year,
-                'type': video_type,
-                'moved': moved,
-                'old_path': old_path if moved else None,
-                'new_path': new_path if moved else None
-            })
-
-        except Exception as e:
-            app.logger.error(f"Error updating job {job_id}: {e}", exc_info=True)
+            job_result, job_error = _apply_custom_lookup_to_job(
+                job_id,
+                title,
+                year,
+                video_type,
+                imdb_id,
+                poster_url,
+            )
+            if job_result:
+                updated_jobs.append(job_result)
+            if job_error:
+                errors.append(job_error)
+        except Exception as exc:
+            app.logger.error(f"Error updating job {job_id}: {exc}", exc_info=True)
             errors.append(f'Job {job_id}: Failed to apply custom lookup')
 
     return updated_jobs, errors
+
+
+def _parse_custom_lookup_payload():
+    try:
+        return request.get_json() or {}
+    except Exception as exc:
+        app.logger.error(f"Batch custom lookup payload error: {exc}", exc_info=True)
+        raise CustomLookupRequestError('Invalid request payload', status=400) from exc
+
+
+def _handle_custom_lookup_action(metadata_module, data):
+    action = data.get('action')
+    if action == 'search':
+        return _custom_lookup_search(metadata_module, data)
+    if action == 'apply':
+        return _custom_lookup_apply(data)
+    raise CustomLookupRequestError(f'Unknown action: {action}', status=400)
 
 
 def _custom_lookup_error(message, status=400):
@@ -813,23 +861,10 @@ def batch_custom_lookup_api():
     import arm.ui.metadata as metadata
 
     try:
-        data = request.get_json() or {}
-    except Exception as exc:
-        app.logger.error(f"Batch custom lookup payload error: {exc}", exc_info=True)
-        return _custom_lookup_error('Invalid request payload', status=400)
-
-    action = data.get('action')
-    handlers = {
-        'search': lambda: _custom_lookup_search(metadata, data),
-        'apply': lambda: _custom_lookup_apply(data),
-    }
-
-    handler = handlers.get(action)
-    if not handler:
-        return _custom_lookup_error(f'Unknown action: {action}', status=400)
-
-    try:
-        return handler()
+        data = _parse_custom_lookup_payload()
+        return _handle_custom_lookup_action(metadata, data)
+    except CustomLookupRequestError as err:
+        return _custom_lookup_error(str(err), status=err.status)
     except Exception as exc:
         app.logger.error(f"Batch custom lookup API error: {exc}", exc_info=True)
         return _custom_lookup_error(
