@@ -10,6 +10,7 @@ import shutil
 import time
 import random
 import re
+import unicodedata
 from pathlib import Path, PurePath
 from math import ceil
 
@@ -187,6 +188,159 @@ def fix_job_title(job):
         else:
             job_title = f"{job.title}"
     return job_title
+
+
+def parse_disc_label_for_identifiers(disc_label):
+    """
+    Parse disc label to extract season/disc identifiers.
+
+    Supports multiple common patterns (case-insensitive):
+    - S##D## or S##_D## or S##-D## (e.g., S1D1, S01_D02, S1-D2)
+    - S##E##D## (e.g., S01E01D1, S1E1D1)
+    - Season##Disc## variations (e.g., Season1Disc1, Season 01 Disc 2)
+    - Separate S## and D## tokens anywhere in label
+
+    :param disc_label: The disc volume label string
+    :return: Normalized identifier string (e.g., "S1D1", "S01D02") or None if parsing fails
+    """
+    if not disc_label:
+        return None
+
+    # Pattern 1: S##[E##]D## with optional separators (_, -, space)
+    # Matches: S1D1, S01_D02, S1-D2, S01E01D1, S1E1_D1, etc.
+    pattern1 = re.compile(r'S0*(\d{1,2})(?:[E_\-\s]+0*(\d{1,2}))?[_\-\s]*D0*(\d{1,2})', re.IGNORECASE)
+    match = pattern1.search(disc_label)
+    if match:
+        season = match.group(1)
+        episode = match.group(2)  # May be None
+        disc = match.group(3)
+        if episode:
+            return f"S{season}E{episode}D{disc}"
+        return f"S{season}D{disc}"
+
+    # Pattern 2: Season##Disc## with optional separators/spaces
+    # Matches: Season1Disc1, Season 01 Disc 2, SEASON_01_DISC_02, etc.
+    pattern2 = re.compile(r'Season[\s_\-]*0*(\d{1,2})[\s_\-]*Disc[\s_\-]*0*(\d{1,2})', re.IGNORECASE)
+    match = pattern2.search(disc_label)
+    if match:
+        season = match.group(1)
+        disc = match.group(2)
+        return f"S{season}D{disc}"
+
+    # Pattern 3: Find S## and D## separately anywhere in the label
+    # Matches: "Breaking Bad S01 D1", "Disc1_S1", etc.
+    season_pattern = re.compile(r'\bS0*(\d{1,2})\b', re.IGNORECASE)
+    disc_pattern = re.compile(r'\b(?:Disc[\s_\-]*)?D0*(\d{1,2})\b', re.IGNORECASE)
+
+    season_match = season_pattern.search(disc_label)
+    disc_match = disc_pattern.search(disc_label)
+
+    if season_match and disc_match:
+        season = season_match.group(1)
+        disc = disc_match.group(1)
+        return f"S{season}D{disc}"
+
+    # No valid pattern found
+    logging.debug(f"Could not parse disc identifiers from label: '{disc_label}'")
+    return None
+
+
+def normalize_series_name(series_name):
+    """
+    Normalize series name into a safe, consistent folder name.
+
+    - Replaces spaces and unsafe characters with underscores
+    - Removes multiple consecutive underscores
+    - Strips leading/trailing underscores
+    - Handles empty/None input gracefully
+
+    :param series_name: The series title string
+    :return: Normalized string safe for filesystem use
+    """
+    if not series_name:
+        return ""
+
+    # Normalize unicode characters (e.g., accents)
+    normalized = unicodedata.normalize('NFKD', series_name)
+    normalized = normalized.encode('ASCII', 'ignore').decode('ASCII')
+
+    # Replace spaces and unsafe characters with underscores
+    # Keep alphanumerics, hyphens, and parentheses
+    normalized = re.sub(r'[^\w\-()]', '_', normalized)
+
+    # Replace multiple underscores with single underscore
+    normalized = re.sub(r'_+', '_', normalized)
+
+    # Strip leading/trailing underscores
+    normalized = normalized.strip('_')
+
+    return normalized
+
+
+def get_tv_series_parent_folder(job):
+    """
+    Generate parent series folder name for grouping multiple TV discs.
+
+    Returns the series title with year in standard format:
+        {Series Title} ({Year}) or {Series Title}
+    Example: "Breaking Bad (2008)"
+
+    This is used when GROUP_TV_DISCS_UNDER_SERIES is enabled to create
+    a parent folder that contains all season/disc subfolders.
+
+    :param job: Job object containing title, year, etc.
+    :return: Parent folder name string
+    """
+    return fix_job_title(job)
+
+
+def get_tv_folder_name(job):
+    """
+    Generate TV series folder name based on configuration.
+
+    If USE_DISC_LABEL_FOR_TV is enabled and disc label parsing succeeds:
+        Returns: {normalized_series_name}_{disc_identifier}
+        Example: "Breaking_Bad_S1D1"
+
+    Otherwise, falls back to standard naming:
+        Returns: {series_title} ({year}) or {series_title}
+        Example: "Breaking Bad (2008)"
+
+    :param job: Job object containing title, label, year, etc.
+    :return: Folder name string
+    """
+    # Check if feature is enabled (use job's config snapshot for consistency)
+    # Job.config contains the configuration snapshot from when the job was created
+    if not job.config.get('USE_DISC_LABEL_FOR_TV', False):
+        logging.debug("USE_DISC_LABEL_FOR_TV is disabled for this job, using standard naming")
+        return fix_job_title(job)
+
+    # Only apply to TV series
+    if job.video_type != "series":
+        logging.debug(f"Video type is '{job.video_type}', not 'series' - using standard naming")
+        return fix_job_title(job)
+
+    # Get the series name (prefer manual, then auto)
+    series_name = job.title_manual if job.title_manual else job.title
+    if not series_name:
+        logging.warning("No series title available, falling back to standard naming")
+        return fix_job_title(job)
+
+    # Try to parse disc label for identifiers
+    disc_identifier = parse_disc_label_for_identifiers(job.label)
+
+    if disc_identifier:
+        # Success! Build the folder name
+        normalized_name = normalize_series_name(series_name)
+        folder_name = f"{normalized_name}_{disc_identifier}"
+        logging.info(f"Using disc label-based folder name: '{folder_name}' "
+                     f"(from series '{series_name}' and label '{job.label}')")
+        return folder_name
+    else:
+        # Parsing failed, fall back to standard naming
+        logging.info(f"Could not parse disc identifier from label '{job.label}', "
+                     f"falling back to standard naming")
+        return fix_job_title(job)
 
 
 #  ############## Start of post processing functions
