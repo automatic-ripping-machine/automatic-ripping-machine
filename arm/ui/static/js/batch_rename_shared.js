@@ -199,7 +199,7 @@ const BatchRenameShared = (() => {
             return lookup;
         }
 
-        conflicts.forEach(conflict => {
+        for (const conflict of conflicts) {
             if (!conflict || typeof conflict !== 'object') {
                 return;
             }
@@ -209,7 +209,7 @@ const BatchRenameShared = (() => {
             if (conflict.new_path) {
                 lookup[`path:${conflict.new_path}`] = conflict;
             }
-        });
+        }
 
         return lookup;
     }
@@ -342,7 +342,7 @@ const BatchRenameShared = (() => {
         html += `<p>Batch ID: <code>${escapeHtml(response.batch_id)}</code></p>`;
         html += `<p>Renamed ${escapeHtml(response.renamed_count.toString())} folders</p>`;
 
-        if (response.skipped && response.skipped.length > 0) {
+        if (response.skipped?.length) {
             html += '<p><strong>Skipped jobs:</strong></p><ul>';
             for (const skip of response.skipped) {
                 html += `<li>Job ${escapeHtml(skip.job_id.toString())}: ${escapeHtml(skip.reason)}</li>`;
@@ -359,7 +359,7 @@ const BatchRenameShared = (() => {
         html += '<h6><i class="fa fa-exclamation-circle"></i> Batch Rename Failed</h6>';
         html += `<p>${escapeHtml(response.message)}</p>`;
 
-        if (response.errors && response.errors.length > 0) {
+        if (response.errors?.length) {
             html += '<p><strong>Errors:</strong></p><ul>';
             for (const error of response.errors) {
                 html += `<li>${escapeHtml(error)}</li>`;
@@ -458,11 +458,11 @@ const BatchRenameShared = (() => {
                 // API returns preview object directly, not wrapped in {success, preview}
                 console.log('Series detection response:', response);
                 
-                if (response && (response.success === false || response.error)) {
+                if (response?.success === false || response?.error) {
                     // Explicit error response
                     const errorMsg = response.error || response.message || 'Unknown error';
                     showToast('Series detection failed: ' + errorMsg, 'danger');
-                } else if (response && (response.items || response.previews || response.series_info || response.requires_series_selection)) {
+                } else if (response?.items || response?.previews || response?.series_info || response?.requires_series_selection) {
                     // Valid preview response (items may be empty if selection required)
                     callback(response);
                 } else {
@@ -472,10 +472,9 @@ const BatchRenameShared = (() => {
             },
             error: function(xhr) {
                 let msg = 'Failed to detect series';
-                if (xhr.responseJSON && xhr.responseJSON.error) {
-                    msg += ': ' + xhr.responseJSON.error;
-                } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                    msg += ': ' + xhr.responseJSON.message;
+                const errorDetails = xhr.responseJSON?.error || xhr.responseJSON?.message;
+                if (errorDetails) {
+                    msg += ': ' + errorDetails;
                 }
                 showToast(msg, 'danger');
             },
@@ -551,11 +550,11 @@ const BatchRenameShared = (() => {
                 // API returns preview object directly, not wrapped in {success, preview}
                 console.log('Preview with series response:', response);
                 
-                if (response && (response.success === false || response.error)) {
+                if (response?.success === false || response?.error) {
                     // Explicit error response
                     const errorMsg = response.error || response.message || 'Unknown error';
                     showToast('Preview failed: ' + errorMsg, 'danger');
-                } else if (response && (response.items || response.previews || response.series_info)) {
+                } else if (response?.items || response?.previews || response?.series_info) {
                     // Valid preview response
                     callback(response);
                 } else {
@@ -565,10 +564,9 @@ const BatchRenameShared = (() => {
             },
             error: function(xhr) {
                 let msg = 'Failed to generate preview';
-                if (xhr.responseJSON && xhr.responseJSON.error) {
-                    msg += ': ' + xhr.responseJSON.error;
-                } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                    msg += ': ' + xhr.responseJSON.message;
+                const errorDetails = xhr.responseJSON?.error || xhr.responseJSON?.message;
+                if (errorDetails) {
+                    msg += ': ' + errorDetails;
                 }
                 showToast(msg, 'danger');
             },
@@ -632,7 +630,7 @@ const BatchRenameShared = (() => {
                 console.log('Execute rename response:', response);
                 
                 // Check for errors in the response
-                if (response.errors && response.errors.length > 0) {
+                if (response.errors?.length) {
                     console.error('Rename errors:', response.errors);
                     // Show first error to user
                     showToast('Rename failed: ' + response.errors[0], 'danger');
@@ -643,10 +641,9 @@ const BatchRenameShared = (() => {
             error: function(xhr) {
                 console.error('Execute rename XHR error:', xhr);
                 let msg = 'Failed to execute rename';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    msg += ': ' + xhr.responseJSON.message;
-                } else if (xhr.responseJSON && xhr.responseJSON.error) {
-                    msg += ': ' + xhr.responseJSON.error;
+                const errorMessage = xhr.responseJSON?.message || xhr.responseJSON?.error;
+                if (errorMessage) {
+                    msg += ': ' + errorMessage;
                 } else if (xhr.responseText) {
                     console.error('Response text:', xhr.responseText);
                     msg += ' (see console for details)';
@@ -696,8 +693,9 @@ const BatchRenameShared = (() => {
             },
             error: function(xhr) {
                 let msg = 'Failed to rollback';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    msg += ': ' + xhr.responseJSON.message;
+                const errorDetails = xhr.responseJSON?.message;
+                if (errorDetails) {
+                    msg += ': ' + errorDetails;
                 }
                 showToast(msg, 'danger');
             },

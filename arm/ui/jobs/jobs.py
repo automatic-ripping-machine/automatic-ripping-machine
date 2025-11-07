@@ -30,6 +30,19 @@ route_jobs = Blueprint('route_jobs', __name__,
                        static_folder='../static')
 
 
+def _json_response(payload, status=200, *, indent=2, default=None, sort_keys=False):
+    """Return a Flask JSON response using the shared ARM response class."""
+    dumps_kwargs = {'indent': indent, 'sort_keys': sort_keys}
+    if default is not None:
+        dumps_kwargs['default'] = default
+    response_body = json.dumps(payload, **dumps_kwargs)
+    return app.response_class(
+        response=response_body,
+        status=status,
+        mimetype=constants.JSON_TYPE,
+    )
+
+
 @route_jobs.route('/jobdetail')
 @login_required
 def jobdetail():
@@ -288,6 +301,62 @@ def list_titles():
                            form=form, title=title, year=year)
 
 
+def _build_authenticated_api_context(mode):
+    valid_data = {
+        'j_id': request.args.get('job'),
+        'searchq': request.args.get('q'),
+        'logpath': cfg.arm_config['LOGPATH'],
+        'fail': 'fail',
+        'success': 'success',
+        'joblist': 'joblist',
+        'mode': mode,
+        'config_id': request.args.get('config_id'),
+        'notify_id': request.args.get('notify_id'),
+        'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)},
+        'restart': {'funct': json_api.restart_ui, 'args': ()},
+    }
+
+    valid_modes = {
+        'delete': {'funct': json_api.delete_job, 'args': ('j_id', 'mode')},
+        'abandon': {'funct': json_api.abandon_job, 'args': ('j_id',)},
+        'full': {'funct': json_api.generate_log, 'args': ('logpath', 'j_id')},
+        'search': {'funct': json_api.search, 'args': ('searchq',)},
+        'getfailed': {
+            'funct': json_api.get_x_jobs,
+            'args': (JobState.FAILURE.value,),
+        },
+        'getsuccessful': {
+            'funct': json_api.get_x_jobs,
+            'args': (JobState.SUCCESS.value,),
+        },
+        'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
+        'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
+        'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)},
+        'change_job_params': {'funct': json_api.change_job_params, 'args': ('config_id',)},
+        'read_notification': {'funct': json_api.read_notification, 'args': ('notify_id',)},
+        'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)},
+    }
+
+    return valid_data, valid_modes
+
+
+def _build_public_api_context(mode):
+    valid_data = {
+        'joblist': 'joblist',
+        'mode': mode,
+    }
+    valid_modes = {
+        'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
+    }
+    return valid_data, valid_modes
+
+
+def _get_api_context(authenticated, mode):
+    if authenticated:
+        return _build_authenticated_api_context(mode)
+    return _build_public_api_context(mode)
+
+
 @route_jobs.route('/json', methods=['GET'])
 def feed_json():
     """
@@ -297,65 +366,89 @@ def feed_json():
     is your call
     You can then add a function inside utils to deal with the request
     """
-    # Check if users is authenticated
-    # Return data when authenticated, but allow basic job info when not
     authenticated = ui_utils.authenticated_state()
     mode = str(request.args.get('mode'))
-    return_json = {'mode': mode, 'success': False}
+    valid_data, valid_modes = _get_api_context(authenticated, mode)
 
-    if authenticated:
-        # Hold valid data (post/get data) we might receive from pages - not in here ? it's going to throw a key error
-        valid_data = {
-            'j_id': request.args.get('job'),
-            'searchq': request.args.get('q'),
-            'logpath': cfg.arm_config['LOGPATH'],
-            'fail': 'fail',
-            'success': 'success',
-            'joblist': 'joblist',
-            'mode': mode,
-            'config_id': request.args.get('config_id'),
-            'notify_id': request.args.get('notify_id'),
-            'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)},
-            'restart': {'funct': json_api.restart_ui, 'args': ()},
-        }
-        # Valid modes that should trigger functions
-        valid_modes = {
-            'delete': {'funct': json_api.delete_job, 'args': ('j_id', 'mode')},
-            'abandon': {'funct': json_api.abandon_job, 'args': ('j_id',)},
-            'full': {'funct': json_api.generate_log, 'args': ('logpath', 'j_id')},
-            'search': {'funct': json_api.search, 'args': ('searchq',)},
-            'getfailed': {
-                'funct': json_api.get_x_jobs,
-                'args': (JobState.FAILURE.value,),
-            },
-            'getsuccessful': {
-                'funct': json_api.get_x_jobs,
-                'args': (JobState.SUCCESS.value,),
-            },
-            'fixperms': {'funct': ui_utils.fix_permissions, 'args': ('j_id',)},
-            'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
-            'send_item': {'funct': ui_utils.send_to_remote_db, 'args': ('j_id',)},
-            'change_job_params': {'funct': json_api.change_job_params, 'args': ('config_id',)},
-            'read_notification': {'funct': json_api.read_notification, 'args': ('notify_id',)},
-            'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)}
-        }
-    else:
-        valid_data = {
-            'joblist': 'joblist',
-        }
-        valid_modes = {
-            'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
-        }
-    # prepare JSON data
-    if mode in valid_modes:
-        args = [valid_data[x] for x in valid_modes[mode]['args']]
-        return_json = valid_modes[mode]['funct'](*args)
-    return_json['notes'] = json_api.get_notifications()
+    response_payload = {'mode': mode, 'success': False}
 
-    # return JSON data
-    return app.response_class(response=json.dumps(return_json, indent=4, sort_keys=True),
-                              status=200,
-                              mimetype=constants.JSON_TYPE)
+    handler = valid_modes.get(mode)
+    if handler:
+        args = [valid_data[arg] for arg in handler['args']]
+        handler_response = handler['funct'](*args)
+        if handler_response is not None:
+            response_payload = handler_response
+
+    response_payload['notes'] = json_api.get_notifications()
+    return _json_response(response_payload, indent=4, sort_keys=True)
+
+
+def _extract_batch_options(data):
+    return {
+        'job_ids': data.get('job_ids', []),
+        'naming_style': data.get('naming_style', 'underscore'),
+        'zero_padded': data.get('zero_padded', False),
+        'consolidate': data.get('consolidate', False),
+        'include_year': data.get('include_year', True),
+        'outlier_resolution': data.get('outlier_resolution', {}),
+        'selected_series_key': data.get('selected_series_key'),
+        'force_series_override': data.get('force_series_override', False),
+        'custom_series_name': data.get('custom_series_name'),
+    }
+
+
+def _prepare_preview_payload(br_module, options):
+    preview = br_module.preview_batch_rename(**options)
+    preview['naming_style'] = options['naming_style']
+    preview['zero_padded'] = options['zero_padded']
+    return preview
+
+
+def _batch_preview(br_module, options):
+    preview = _prepare_preview_payload(br_module, options)
+    return _json_response(preview, default=str)
+
+
+def _batch_execute(br_module, data, options, user_email):
+    batch_id = data.get('batch_id') or br_module.generate_batch_id()
+    preview = _prepare_preview_payload(br_module, options)
+
+    result = br_module.execute_batch_rename(
+        preview_data=preview,
+        batch_id=batch_id,
+        current_user_email=user_email,
+    )
+    result['batch_id'] = batch_id
+    status = 200 if result.get('success') else 500
+    return _json_response(result, status=status, default=str)
+
+
+def _batch_rollback(br_module, data, user_email):
+    batch_id = data.get('batch_id')
+    if not batch_id:
+        return _json_response(
+            {'success': False, 'error': 'batch_id is required for rollback'},
+            status=400,
+        )
+
+    result = br_module.rollback_batch_rename(
+        batch_id=batch_id,
+        current_user_email=user_email,
+    )
+    status = 200 if result.get('success') else 500
+    return _json_response(result, status=status, default=str)
+
+
+def _batch_recent(br_module, data):
+    limit = data.get('limit', 10)
+    batches = br_module.get_recent_batches(limit=limit)
+    return _json_response({'success': True, 'batches': batches}, default=str)
+
+
+def _resolve_user_email():
+    if current_user and current_user.is_authenticated:
+        return current_user.email
+    return 'unknown'
 
 
 @route_jobs.route('/batch_rename', methods=['POST'])
@@ -389,96 +482,37 @@ def batch_rename_api():
     """
     from arm.ui import batch_rename as br
 
-    def _json_response(payload, status=200):
-        return app.response_class(
-            response=json.dumps(payload, indent=2, default=str),
-            status=status,
-            mimetype='application/json'
-        )
-
-    def _extract_batch_options(data):
-        return {
-            'job_ids': data.get('job_ids', []),
-            'naming_style': data.get('naming_style', 'underscore'),
-            'zero_padded': data.get('zero_padded', False),
-            'consolidate': data.get('consolidate', False),
-            'include_year': data.get('include_year', True),
-            'outlier_resolution': data.get('outlier_resolution', {}),
-            'selected_series_key': data.get('selected_series_key'),
-            'force_series_override': data.get('force_series_override', False),
-            'custom_series_name': data.get('custom_series_name'),
-        }
-
-    def _handle_preview(options):
-        preview = br.preview_batch_rename(**options)
-        preview['naming_style'] = options['naming_style']
-        preview['zero_padded'] = options['zero_padded']
-        return _json_response(preview)
-
-    def _handle_execute(data, options, user_email):
-        batch_id = data.get('batch_id') or br.generate_batch_id()
-        preview = br.preview_batch_rename(**options)
-        preview['naming_style'] = options['naming_style']
-        preview['zero_padded'] = options['zero_padded']
-
-        result = br.execute_batch_rename(
-            preview_data=preview,
-            batch_id=batch_id,
-            current_user_email=user_email,
-        )
-        result['batch_id'] = batch_id
-        status = 200 if result.get('success') else 500
-        return _json_response(result, status=status)
-
-    def _handle_rollback(data, user_email):
-        batch_id = data.get('batch_id')
-        if not batch_id:
-            return _json_response(
-                {'success': False, 'error': 'batch_id is required for rollback'},
-                status=400,
-            )
-
-        result = br.rollback_batch_rename(
-            batch_id=batch_id,
-            current_user_email=user_email,
-        )
-        status = 200 if result.get('success') else 500
-        return _json_response(result, status=status)
-
-    def _handle_recent_batches(data):
-        limit = data.get('limit', 10)
-        batches = br.get_recent_batches(limit=limit)
-        return _json_response({'success': True, 'batches': batches})
-
-    def _resolve_user_email():
-        if current_user and current_user.is_authenticated:
-            return current_user.email
-        return 'unknown'
-
     try:
         data = request.get_json() or {}
-        action = data.get('action')
-        user_email = _resolve_user_email()
-        options = _extract_batch_options(data)
+    except Exception as exc:
+        app.logger.error(f"Batch rename API payload error: {exc}", exc_info=True)
+        return _json_response(
+            {'success': False, 'error': 'Invalid JSON payload'},
+            status=400,
+        )
 
-        handlers = {
-            'preview': lambda: _handle_preview(options),
-            'execute': lambda: _handle_execute(data, options, user_email),
-            'rollback': lambda: _handle_rollback(data, user_email),
-            'recent_batches': lambda: _handle_recent_batches(data),
-        }
+    action = data.get('action')
+    user_email = _resolve_user_email()
+    options = _extract_batch_options(data)
 
-        handler = handlers.get(action)
-        if not handler:
-            return _json_response(
-                {'success': False, 'error': f'Unknown action: {action}'},
-                status=400,
-            )
+    handlers = {
+        'preview': lambda: _batch_preview(br, options),
+        'execute': lambda: _batch_execute(br, data, options, user_email),
+        'rollback': lambda: _batch_rollback(br, data, user_email),
+        'recent_batches': lambda: _batch_recent(br, data),
+    }
 
+    handler = handlers.get(action)
+    if not handler:
+        return _json_response(
+            {'success': False, 'error': f'Unknown action: {action}'},
+            status=400,
+        )
+
+    try:
         return handler()
-
-    except Exception as e:
-        app.logger.error(f"Batch rename API error: {e}", exc_info=True)
+    except Exception as exc:
+        app.logger.error(f"Batch rename API error: {exc}", exc_info=True)
         return _json_response(
             {'success': False, 'error': 'An error occurred during batch rename operation'},
             status=500,
@@ -672,6 +706,81 @@ def _apply_custom_lookup_to_jobs(job_ids, title, year, video_type,
     return updated_jobs, errors
 
 
+def _custom_lookup_error(message, status=400):
+    return _json_response({'success': False, 'error': message}, status=status)
+
+
+def _custom_lookup_search(metadata_module, data):
+    query = (data.get('query') or '').strip()
+    if not query:
+        return _custom_lookup_error('Search query is required', status=400)
+
+    video_type = data.get('video_type', 'series')
+    year = data.get('year', '')
+
+    provider = cfg.arm_config.get('METADATA_PROVIDER', 'tmdb').lower()
+    app.logger.info(
+        "Custom lookup search: query='%s', type=%s, provider=%s",
+        query,
+        video_type,
+        provider,
+    )
+
+    results = _search_metadata(query, video_type, year, provider, metadata_module)
+    return _json_response(
+        {'success': True, 'results': results, 'provider': provider},
+        default=str,
+    )
+
+
+def _custom_lookup_apply(data):
+    job_ids = data.get('job_ids', [])
+    if not job_ids:
+        return _custom_lookup_error('No jobs selected', status=400)
+
+    title = (data.get('title') or '').strip()
+    if not title:
+        return _custom_lookup_error('Title is required', status=400)
+
+    year = data.get('year', '')
+    video_type = data.get('video_type', 'series')
+    imdb_id = data.get('imdb_id', '')
+    poster_url = data.get('poster_url', '')
+
+    updated_jobs, errors = _apply_custom_lookup_to_jobs(
+        job_ids,
+        title,
+        year,
+        video_type,
+        imdb_id,
+        poster_url,
+    )
+
+    if updated_jobs:
+        try:
+            db.session.commit()
+            app.logger.info(
+                "Custom lookup applied to %d jobs: %s (%s)",
+                len(updated_jobs),
+                title,
+                video_type,
+            )
+        except Exception as exc:
+            db.session.rollback()
+            app.logger.error(f"Database commit error: {exc}", exc_info=True)
+            return _custom_lookup_error('Failed to save changes to database', status=500)
+
+    return _json_response(
+        {
+            'success': True,
+            'updated_count': len(updated_jobs),
+            'updated_jobs': updated_jobs,
+            'errors': errors,
+        },
+        default=str,
+    )
+
+
 @route_jobs.route('/batch_custom_lookup', methods=['POST'])
 @login_required
 def batch_custom_lookup_api():
@@ -704,126 +813,26 @@ def batch_custom_lookup_api():
     import arm.ui.metadata as metadata
 
     try:
-        data = request.get_json()
-        action = data.get('action')
+        data = request.get_json() or {}
+    except Exception as exc:
+        app.logger.error(f"Batch custom lookup payload error: {exc}", exc_info=True)
+        return _custom_lookup_error('Invalid request payload', status=400)
 
-        if action == 'search':
-            query = data.get('query', '').strip()
-            video_type = data.get('video_type', 'series')
-            year = data.get('year', '')
+    action = data.get('action')
+    handlers = {
+        'search': lambda: _custom_lookup_search(metadata, data),
+        'apply': lambda: _custom_lookup_apply(data),
+    }
 
-            if not query:
-                return app.response_class(
-                    response=json.dumps({
-                        'success': False,
-                        'error': 'Search query is required'
-                    }),
-                    status=400,
-                    mimetype='application/json'
-                )
+    handler = handlers.get(action)
+    if not handler:
+        return _custom_lookup_error(f'Unknown action: {action}', status=400)
 
-            provider = cfg.arm_config.get(
-                'METADATA_PROVIDER', 'tmdb'
-            ).lower()
-
-            app.logger.info(
-                f"Custom lookup search: query='{query}', "
-                f"type={video_type}, provider={provider}"
-            )
-
-            results = _search_metadata(
-                query, video_type, year, provider, metadata
-            )
-
-            return app.response_class(
-                response=json.dumps({
-                    'success': True,
-                    'results': results,
-                    'provider': provider
-                }, indent=2),
-                status=200,
-                mimetype='application/json'
-            )
-
-        elif action == 'apply':
-            job_ids = data.get('job_ids', [])
-            title = data.get('title', '').strip()
-            year = data.get('year', '')
-            video_type = data.get('video_type', 'series')
-            imdb_id = data.get('imdb_id', '')
-            poster_url = data.get('poster_url', '')
-
-            if not job_ids:
-                return app.response_class(
-                    response=json.dumps({
-                        'success': False,
-                        'error': 'No jobs selected'
-                    }),
-                    status=400,
-                    mimetype='application/json'
-                )
-
-            if not title:
-                return app.response_class(
-                    response=json.dumps({
-                        'success': False,
-                        'error': 'Title is required'
-                    }),
-                    status=400,
-                    mimetype='application/json'
-                )
-
-            updated_jobs, errors = _apply_custom_lookup_to_jobs(
-                job_ids, title, year, video_type, imdb_id, poster_url
-            )
-
-            if updated_jobs:
-                try:
-                    db.session.commit()
-                    app.logger.info(
-                        f"Custom lookup applied to {len(updated_jobs)} "
-                        f"jobs: {title} ({video_type})"
-                    )
-                except Exception as e:
-                    db.session.rollback()
-                    app.logger.error(f"Database commit error: {e}", exc_info=True)
-                    return app.response_class(
-                        response=json.dumps({
-                            'success': False,
-                            'error': 'Failed to save changes to database'
-                        }),
-                        status=500,
-                        mimetype='application/json'
-                    )
-
-            return app.response_class(
-                response=json.dumps({
-                    'success': True,
-                    'updated_count': len(updated_jobs),
-                    'updated_jobs': updated_jobs,
-                    'errors': errors
-                }, indent=2),
-                status=200,
-                mimetype='application/json'
-            )
-
-        else:
-            return app.response_class(
-                response=json.dumps({
-                    'success': False,
-                    'error': f'Unknown action: {action}'
-                }),
-                status=400,
-                mimetype='application/json'
-            )
-
-    except Exception as e:
-        app.logger.error(f"Batch custom lookup API error: {e}", exc_info=True)
-        return app.response_class(
-            response=json.dumps({
-                'success': False,
-                'error': 'An error occurred during custom lookup operation'
-            }),
+    try:
+        return handler()
+    except Exception as exc:
+        app.logger.error(f"Batch custom lookup API error: {exc}", exc_info=True)
+        return _custom_lookup_error(
+            'An error occurred during custom lookup operation',
             status=500,
-            mimetype='application/json'
         )
