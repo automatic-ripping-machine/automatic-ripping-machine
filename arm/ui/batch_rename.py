@@ -10,7 +10,7 @@ import shutil
 import logging
 import uuid
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from arm.ui import db
@@ -773,7 +773,7 @@ def rollback_batch_rename(batch_id, current_user_email):
                     db.session.add(job)
 
                 record.rolled_back = True
-                record.rollback_at = datetime.utcnow()
+                record.rollback_at = datetime.now(timezone.utc)
                 record.rollback_by = current_user_email
                 db.session.add(record)
 

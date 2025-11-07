@@ -3,6 +3,7 @@ Batch Rename History Model
 Tracks the history of batch rename operations for auditing and rollback.
 """
 import datetime
+from datetime import timezone
 
 from arm.ui import db
 
@@ -46,7 +47,7 @@ class BatchRenameHistory(db.Model):
         self.old_folder_name = old_folder_name
         self.new_folder_name = new_folder_name
         self.renamed_by = renamed_by
-        self.renamed_at = datetime.datetime.utcnow()
+        self.renamed_at = datetime.datetime.now(timezone.utc)
         self.series_name = series_name
         self.disc_identifier = disc_identifier
         self.consolidated_under_series = consolidated_under_series
