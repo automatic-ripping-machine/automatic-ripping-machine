@@ -389,138 +389,99 @@ def batch_rename_api():
     """
     from arm.ui import batch_rename as br
 
-    try:
-        data = request.get_json()
-        action = data.get('action')
+    def _json_response(payload, status=200):
+        return app.response_class(
+            response=json.dumps(payload, indent=2, default=str),
+            status=status,
+            mimetype='application/json'
+        )
 
-        # Get current user email
-        user_email = current_user.email if current_user and current_user.is_authenticated else 'unknown'
+    def _extract_batch_options(data):
+        return {
+            'job_ids': data.get('job_ids', []),
+            'naming_style': data.get('naming_style', 'underscore'),
+            'zero_padded': data.get('zero_padded', False),
+            'consolidate': data.get('consolidate', False),
+            'include_year': data.get('include_year', True),
+            'outlier_resolution': data.get('outlier_resolution', {}),
+            'selected_series_key': data.get('selected_series_key'),
+            'force_series_override': data.get('force_series_override', False),
+            'custom_series_name': data.get('custom_series_name'),
+        }
 
-        if action == 'preview':
-            # Generate preview
-            job_ids = data.get('job_ids', [])
-            naming_style = data.get('naming_style', 'underscore')
-            zero_padded = data.get('zero_padded', False)
-            consolidate = data.get('consolidate', False)
-            include_year = data.get('include_year', True)
-            outlier_resolution = data.get('outlier_resolution', {})
-            selected_series_key = data.get('selected_series_key')
-            force_series_override = data.get('force_series_override', False)
-            custom_series_name = data.get('custom_series_name')
+    def _handle_preview(options):
+        preview = br.preview_batch_rename(**options)
+        preview['naming_style'] = options['naming_style']
+        preview['zero_padded'] = options['zero_padded']
+        return _json_response(preview)
 
-            preview = br.preview_batch_rename(
-                job_ids=job_ids,
-                naming_style=naming_style,
-                zero_padded=zero_padded,
-                consolidate=consolidate,
-                include_year=include_year,
-                outlier_resolution=outlier_resolution,
-                selected_series_key=selected_series_key,
-                force_series_override=force_series_override,
-                custom_series_name=custom_series_name,
-            )
+    def _handle_execute(data, options, user_email):
+        batch_id = data.get('batch_id') or br.generate_batch_id()
+        preview = br.preview_batch_rename(**options)
+        preview['naming_style'] = options['naming_style']
+        preview['zero_padded'] = options['zero_padded']
 
-            # Add naming options to preview for frontend
-            preview['naming_style'] = naming_style
-            preview['zero_padded'] = zero_padded
+        result = br.execute_batch_rename(
+            preview_data=preview,
+            batch_id=batch_id,
+            current_user_email=user_email,
+        )
+        result['batch_id'] = batch_id
+        status = 200 if result.get('success') else 500
+        return _json_response(result, status=status)
 
-            return app.response_class(
-                response=json.dumps(preview, indent=2, default=str),
-                status=200,
-                mimetype='application/json'
-            )
-
-        elif action == 'execute':
-            # Execute batch rename
-            job_ids = data.get('job_ids', [])
-            naming_style = data.get('naming_style', 'underscore')
-            zero_padded = data.get('zero_padded', False)
-            consolidate = data.get('consolidate', False)
-            include_year = data.get('include_year', True)
-            outlier_resolution = data.get('outlier_resolution', {})
-            batch_id = data.get('batch_id')
-            selected_series_key = data.get('selected_series_key')
-            force_series_override = data.get('force_series_override', False)
-            custom_series_name = data.get('custom_series_name')
-
-            # Generate batch ID if not provided
-            if not batch_id:
-                batch_id = br.generate_batch_id()
-
-            # Generate preview first
-            preview = br.preview_batch_rename(
-                job_ids=job_ids,
-                naming_style=naming_style,
-                zero_padded=zero_padded,
-                consolidate=consolidate,
-                include_year=include_year,
-                outlier_resolution=outlier_resolution,
-                selected_series_key=selected_series_key,
-                force_series_override=force_series_override,
-                custom_series_name=custom_series_name,
-            )
-
-            # Execute the rename
-            result = br.execute_batch_rename(
-                preview_data=preview,
-                batch_id=batch_id,
-                current_user_email=user_email
-            )
-
-            result['batch_id'] = batch_id
-
-            return app.response_class(
-                response=json.dumps(result, indent=2, default=str),
-                status=200 if result['success'] else 500,
-                mimetype='application/json'
-            )
-
-        elif action == 'rollback':
-            # Rollback a previous batch rename
-            batch_id = data.get('batch_id')
-
-            if not batch_id:
-                return app.response_class(
-                    response=json.dumps({'success': False, 'error': 'batch_id is required for rollback'}),
-                    status=400,
-                    mimetype='application/json'
-                )
-
-            result = br.rollback_batch_rename(
-                batch_id=batch_id,
-                current_user_email=user_email
-            )
-
-            return app.response_class(
-                response=json.dumps(result, indent=2, default=str),
-                status=200 if result['success'] else 500,
-                mimetype='application/json'
-            )
-
-        elif action == 'recent_batches':
-            # Get recent batch operations
-            limit = data.get('limit', 10)
-            batches = br.get_recent_batches(limit=limit)
-
-            return app.response_class(
-                response=json.dumps({'success': True, 'batches': batches}, indent=2, default=str),
-                status=200,
-                mimetype='application/json'
-            )
-
-        else:
-            return app.response_class(
-                response=json.dumps({'success': False, 'error': f'Unknown action: {action}'}),
+    def _handle_rollback(data, user_email):
+        batch_id = data.get('batch_id')
+        if not batch_id:
+            return _json_response(
+                {'success': False, 'error': 'batch_id is required for rollback'},
                 status=400,
-                mimetype='application/json'
             )
+
+        result = br.rollback_batch_rename(
+            batch_id=batch_id,
+            current_user_email=user_email,
+        )
+        status = 200 if result.get('success') else 500
+        return _json_response(result, status=status)
+
+    def _handle_recent_batches(data):
+        limit = data.get('limit', 10)
+        batches = br.get_recent_batches(limit=limit)
+        return _json_response({'success': True, 'batches': batches})
+
+    def _resolve_user_email():
+        if current_user and current_user.is_authenticated:
+            return current_user.email
+        return 'unknown'
+
+    try:
+        data = request.get_json() or {}
+        action = data.get('action')
+        user_email = _resolve_user_email()
+        options = _extract_batch_options(data)
+
+        handlers = {
+            'preview': lambda: _handle_preview(options),
+            'execute': lambda: _handle_execute(data, options, user_email),
+            'rollback': lambda: _handle_rollback(data, user_email),
+            'recent_batches': lambda: _handle_recent_batches(data),
+        }
+
+        handler = handlers.get(action)
+        if not handler:
+            return _json_response(
+                {'success': False, 'error': f'Unknown action: {action}'},
+                status=400,
+            )
+
+        return handler()
 
     except Exception as e:
         app.logger.error(f"Batch rename API error: {e}", exc_info=True)
-        return app.response_class(
-            response=json.dumps({'success': False, 'error': 'An error occurred during batch rename operation'}),
+        return _json_response(
+            {'success': False, 'error': 'An error occurred during batch rename operation'},
             status=500,
-            mimetype='application/json'
         )
 
 

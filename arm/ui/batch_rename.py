@@ -30,6 +30,445 @@ def generate_batch_id():
     return str(uuid.uuid4())
 
 
+def _init_validation_result():
+    return {
+        'valid': True,
+        'jobs': [],
+        'errors': [],
+        'warnings': [],
+    }
+
+
+def _validate_job_status(job):
+    if job.status in ('success', 'fail'):
+        return []
+    msg = (
+        f"Job {job.job_id} ({job.title}) is not completed "
+        f"(status: {job.status})"
+    )
+    return [msg]
+
+
+def _validate_job_output_path(job):
+    if job.path and os.path.exists(job.path):
+        return None
+    return (
+        f'Job {job.job_id} ({job.title}) has no valid output path'
+    )
+
+
+def _video_type_warnings(job):
+    if job.video_type == 'series':
+        return []
+    return [
+        f"Job {job.job_id} ({job.title}) is not a TV series "
+        f"(type: {job.video_type})"
+    ]
+
+
+def _load_job_for_validation(job_id):
+    errors = []
+    warnings = []
+
+    try:
+        numeric_id = int(job_id)
+    except (TypeError, ValueError):
+        return None, [f'Invalid job id {job_id}'], warnings
+
+    try:
+        job = Job.query.get(numeric_id)
+    except Exception as exc:  # pragma: no cover - defensive
+        return None, [f'Error validating job {job_id}: {exc}'], warnings
+
+    if not job:
+        return None, [f'Job {job_id} not found'], warnings
+
+    warnings.extend(_validate_job_status(job))
+
+    path_error = _validate_job_output_path(job)
+    if path_error:
+        errors.append(path_error)
+        return None, errors, warnings
+
+    warnings.extend(_video_type_warnings(job))
+    return job, errors, warnings
+
+
+def _group_jobs_by_series(jobs):
+    series_map = {}
+    series_metadata = {}
+
+    for job in jobs:
+        manual_title = getattr(job, 'title_manual', None)
+        if manual_title and manual_title.strip():
+            key = f"manual:{manual_title.strip()}"
+            display_name = manual_title.strip()
+            has_manual = True
+        elif job.imdb_id:
+            key = f"imdb:{job.imdb_id}"
+            display_name = job.title or job.imdb_id
+            has_manual = False
+        else:
+            key = f"title:{job.title}"
+            display_name = job.title
+            has_manual = False
+
+        series_map.setdefault(key, []).append(job)
+
+        if key not in series_metadata:
+            series_metadata[key] = {
+                'display_name': display_name,
+                'imdb_id': job.imdb_id,
+                'has_manual_title': has_manual,
+                'key': key,
+            }
+
+    return series_map, series_metadata
+
+
+def _sort_series_keys(series_map, series_metadata):
+    def sort_key(series_key):
+        meta = series_metadata[series_key]
+        return (
+            1 if meta['has_manual_title'] else 0,
+            len(series_map[series_key]),
+        )
+
+    return sorted(series_map.keys(), key=sort_key, reverse=True)
+
+
+def _build_series_groups(series_map, series_metadata):
+    groups = []
+    for key in _sort_series_keys(series_map, series_metadata):
+        meta = series_metadata[key]
+        job_list = series_map[key]
+        groups.append({
+            'key': key,
+            'display_name': meta['display_name'],
+            'imdb_id': meta['imdb_id'],
+            'has_manual_title': meta['has_manual_title'],
+            'job_count': len(job_list),
+            'job_ids': [j.job_id for j in job_list],
+        })
+    return groups
+
+
+def _collect_outliers(series_map, series_metadata, primary_key):
+    outliers = []
+    for key, job_list in series_map.items():
+        if key == primary_key:
+            continue
+        meta = series_metadata[key]
+        for job in job_list:
+            outliers.append({
+                'job_id': job.job_id,
+                'title': meta['display_name'],
+                'imdb_id': job.imdb_id,
+                'label': job.label,
+                'series_key': key,
+            })
+    return outliers
+
+
+def _init_preview_result():
+    return {
+        'valid': True,
+        'items': [],
+        'conflicts': [],
+        'errors': [],
+        'warnings': [],
+        'series_info': {},
+        'outliers': [],
+        'requires_series_selection': False,
+    }
+
+
+def _apply_validation(preview, validation):
+    preview['warnings'].extend(validation['warnings'])
+    if validation['valid']:
+        return validation['jobs']
+
+    preview['valid'] = False
+    preview['errors'] = validation['errors']
+    return None
+
+
+def _requires_series_selection(consistency, selected_series_key, force_series_override):
+    return (
+        not consistency['consistent']
+        and not selected_series_key
+        and not force_series_override
+    )
+
+
+def _prepare_series_selection(preview, consistency):
+    preview['requires_series_selection'] = True
+    preview['outliers'] = consistency['outliers']
+    preview['warnings'].append(
+        f"Multiple series detected ({len(consistency['series_groups'])} groups). "
+        'Please select which series to use for batch rename.'
+    )
+
+
+def _selected_series_name(consistency, selected_series_key):
+    if not selected_series_key:
+        return None
+    selected_group = next(
+        (g for g in consistency['series_groups'] if g['key'] == selected_series_key),
+        None,
+    )
+    if selected_group:
+        logging.info(
+            f"Batch rename using selected series: {selected_group['display_name']} "
+            f"(key: {selected_series_key})"
+        )
+        return selected_group['display_name']
+    return None
+
+
+def _determine_force_series_name(consistency, selected_series_key, custom_series_name):
+    if custom_series_name:
+        logging.info(f"Batch rename using custom series name: {custom_series_name}")
+        return custom_series_name
+    return _selected_series_name(consistency, selected_series_key)
+
+
+def _compute_parent_folder(primary_job, include_year, force_series_name):
+    if not primary_job:
+        return None
+
+    if force_series_name:
+        original_title = primary_job.title
+        original_manual = getattr(primary_job, 'title_manual', None)
+        try:
+            primary_job.title = force_series_name
+            primary_job.title_manual = force_series_name
+            folder = compute_series_parent_folder(primary_job, include_year)
+        finally:
+            primary_job.title = original_title
+            primary_job.title_manual = original_manual
+    else:
+        folder = compute_series_parent_folder(primary_job, include_year)
+
+    if not folder:
+        return None
+
+    return re.sub(r'[\\/]', '_', folder)
+
+
+def _merge_job_preview(preview, job_result):
+    preview['errors'].extend(job_result['errors'])
+    preview['conflicts'].extend(job_result['conflicts'])
+
+    if job_result.get('skipped'):
+        return
+
+    item = job_result.get('item')
+    if item:
+        preview['items'].append(item)
+
+
+def _append_conflict_warning(preview):
+    if not preview['conflicts']:
+        return
+    preview['warnings'].append(
+        f"Found {len(preview['conflicts'])} path conflicts. "
+        'These will be resolved with timestamps.'
+    )
+
+
+def _preview_has_items(preview_data):
+    return bool(preview_data.get('valid') and preview_data.get('items'))
+
+
+def _init_execute_result():
+    return {
+        'success': True,
+        'renamed_count': 0,
+        'failed_count': 0,
+        'errors': [],
+        'history_ids': [],
+    }
+
+
+def _mark_invalid_preview(result):
+    result['success'] = False
+    result['errors'].append('Invalid preview data or no items to rename')
+
+
+def _record_failure(result, message, mark_failed=True):
+    result['failed_count'] += 1
+    result['errors'].append(message)
+    if mark_failed:
+        result['success'] = False
+
+
+def _update_job_record(job_id, new_path):
+    job = Job.query.get(job_id)
+    if not job:
+        return
+    job.path = new_path
+    db.session.add(job)
+
+
+def _create_history_entry(item, preview_data, batch_id, current_user_email):
+    history = BatchRenameHistory(
+        batch_id=batch_id,
+        job_id=item['job_id'],
+        old_path=item['old_path'],
+        new_path=item['new_path'],
+        old_folder_name=item['old_folder_name'],
+        new_folder_name=item['new_folder_name'],
+        renamed_by=current_user_email,
+        series_name=item.get('series_name'),
+        disc_identifier=item.get('disc_identifier'),
+        consolidated_under_series=item.get('consolidated'),
+        series_parent_folder=item.get('parent_folder'),
+        naming_style=preview_data.get('naming_style', 'underscore'),
+        zero_padded=preview_data.get('zero_padded', False),
+    )
+    return history
+
+
+def _add_successful_history(result, history):
+    result['renamed_count'] += 1
+    result['history_ids'].append(history.history_id)
+
+
+def _handle_execution_exception(item, batch_id, current_user_email, exc, result):
+    error_msg = f"Failed to rename job {item.get('job_id')}: {str(exc)}"
+    logging.error(error_msg)
+    _record_failure(result, error_msg)
+
+    try:
+        failure_history = BatchRenameHistory(
+            batch_id=batch_id,
+            job_id=item.get('job_id'),
+            old_path=item.get('old_path'),
+            new_path=item.get('new_path'),
+            old_folder_name=item.get('old_folder_name'),
+            new_folder_name=item.get('new_folder_name'),
+            renamed_by=current_user_email,
+            series_name=item.get('series_name'),
+            disc_identifier=item.get('disc_identifier'),
+        )
+        failure_history.rename_success = False
+        failure_history.error_message = str(exc)
+        db.session.add(failure_history)
+    except Exception as hist_err:  # pragma: no cover - defensive
+        logging.error(f'Failed to record history for failed rename: {hist_err}')
+
+
+def _process_execution_item(item, preview_data, batch_id, current_user_email, result):
+    try:
+        job_id = item['job_id']
+        old_path, new_path, new_folder_name, path_error = _prepare_execute_paths(item)
+        item['old_path'] = old_path
+
+        if path_error:
+            _record_failure(result, path_error, mark_failed=False)
+            return
+
+        if item.get('consolidated') and item.get('parent_folder'):
+            parent_error = _ensure_parent_directory(new_path, job_id)
+            if parent_error:
+                _record_failure(result, parent_error, mark_failed=False)
+                return
+
+        shutil.move(old_path, new_path)
+        logging.info(
+            f"BATCH RENAME - Job {job_id}: "
+            f"'{old_path}' -> '{new_path}' "
+            f"(Series: {item.get('series_name', 'Unknown')})"
+        )
+
+        _update_job_record(job_id, new_path)
+
+        item['new_path'] = new_path
+        item['new_folder_name'] = new_folder_name
+
+        history = _create_history_entry(item, preview_data, batch_id, current_user_email)
+        history.rename_success = True
+        db.session.add(history)
+        _add_successful_history(result, history)
+
+    except Exception as exc:  # pragma: no cover - defensive
+        _handle_execution_exception(item, batch_id, current_user_email, exc, result)
+
+
+def _finalize_execution(result):
+    try:
+        db.session.commit()
+        logging.info(
+            f"Batch rename completed: {result['renamed_count']} successful, {result['failed_count']} failed"
+        )
+    except Exception as exc:  # pragma: no cover - DB issues handled
+        db.session.rollback()
+        result['success'] = False
+        result['errors'].append(f'Database commit failed: {str(exc)}')
+        logging.error(f'Database commit failed during batch rename: {exc}')
+
+
+def _init_rollback_result():
+    return {
+        'success': True,
+        'rolled_back_count': 0,
+        'failed_count': 0,
+        'errors': [],
+    }
+
+
+def _query_rollback_records(batch_id):
+    return (
+        BatchRenameHistory.query.filter_by(
+            batch_id=batch_id, rolled_back=False, rename_success=True
+        )
+        .all()
+    )
+
+
+def _missing_rollback_records(result, batch_id):
+    result['success'] = False
+    result['errors'].append(
+        f'No records found for batch {batch_id} or already rolled back'
+    )
+
+
+def _rollback_single_record(record, current_user_email):
+    if not os.path.exists(record.new_path):
+        return False, (
+            f'Cannot rollback job {record.job_id}: new path no longer exists'
+        )
+
+    shutil.move(record.new_path, record.old_path)
+    logging.info(f'Rolled back: {record.new_path} -> {record.old_path}')
+
+    job = Job.query.get(record.job_id)
+    if job:
+        job.path = record.old_path
+        db.session.add(job)
+
+    record.rolled_back = True
+    record.rollback_at = datetime.now(timezone.utc)
+    record.rollback_by = current_user_email
+    db.session.add(record)
+
+    return True, None
+
+
+def _finalize_rollback(result):
+    try:
+        db.session.commit()
+        logging.info(
+            f"Rollback completed: {result['rolled_back_count']} reversed, {result['failed_count']} failed"
+        )
+    except Exception as exc:  # pragma: no cover - DB issues handled
+        db.session.rollback()
+        result['success'] = False
+        result['errors'].append(f'Rollback failed: {exc}')
+        logging.error(f'Rollback failed: {exc}')
+
+
 def _validate_path_safety(path, base_directory=None):
     """
     Validate that a path is safe and within the allowed directory.
@@ -261,17 +700,9 @@ def apply_zero_padding(identifier, pad=False):
 
 
 def validate_job_selection(job_ids):
-    """Validate that selected jobs exist and are suitable for renaming.
+    """Validate that selected jobs exist and are suitable for renaming."""
 
-    Returns dict with keys: valid, jobs, errors, warnings.
-    """
-
-    result = {
-        'valid': True,
-        'jobs': [],
-        'errors': [],
-        'warnings': [],
-    }
+    result = _init_validation_result()
 
     if not job_ids:
         result['valid'] = False
@@ -279,42 +710,16 @@ def validate_job_selection(job_ids):
         return result
 
     for job_id in job_ids:
-        try:
-            job = Job.query.get(int(job_id))
-            if not job:
-                result['errors'].append(f'Job {job_id} not found')
-                result['valid'] = False
-                continue
+        job, errors, warnings = _load_job_for_validation(job_id)
 
-            # Check completion status
-            if job.status not in ('success', 'fail'):
-                msg = (
-                    f"Job {job_id} ({job.title}) is not completed "
-                    f"(status: {job.status})"
-                )
-                result['warnings'].append(msg)
-
-            # Check output path
-            if not job.path or not os.path.exists(job.path):
-                result['errors'].append(
-                    f'Job {job_id} ({job.title}) has no valid output path'
-                )
-                result['valid'] = False
-                continue
-
-            # Check video type
-            if job.video_type != 'series':
-                result['warnings'].append(
-                    f"Job {job_id} ({job.title}) is not a TV series "
-                    f"(type: {job.video_type})"
-                )
-
-            result['jobs'].append(job)
-
-        except Exception as exc:  # pragma: no cover - defensive
-            msg = f'Error validating job {job_id}: {exc}'
-            result['errors'].append(msg)
+        result['warnings'].extend(warnings)
+        if errors:
+            result['errors'].extend(errors)
             result['valid'] = False
+            continue
+
+        if job:
+            result['jobs'].append(job)
 
     return result
 
@@ -332,6 +737,7 @@ def detect_series_consistency(jobs):
         'consistent': True,
         'primary_series': None,
         'primary_series_id': None,
+        'primary_series_key': None,
         'outliers': [],
         'series_groups': [],
     }
@@ -339,82 +745,20 @@ def detect_series_consistency(jobs):
     if not jobs:
         return result
 
-    # Group by title_manual (if set), then imdb_id, then title
-    series_map = {}
-    series_metadata = {}
+    series_map, series_metadata = _group_jobs_by_series(jobs)
+    sorted_keys = _sort_series_keys(series_map, series_metadata)
 
-    for job in jobs:
-        # Prioritize custom lookup name
-        manual_title = getattr(job, 'title_manual', None)
-        if manual_title and manual_title.strip():
-            key = f"manual:{manual_title.strip()}"
-            display_name = manual_title.strip()
-            has_manual = True
-        elif job.imdb_id:
-            key = f"imdb:{job.imdb_id}"
-            display_name = job.title or job.imdb_id
-            has_manual = False
-        else:
-            key = f"title:{job.title}"
-            display_name = job.title
-            has_manual = False
-
-        series_map.setdefault(key, []).append(job)
-
-        # Store metadata for each series group
-        if key not in series_metadata:
-            series_metadata[key] = {
-                'display_name': display_name,
-                'imdb_id': job.imdb_id,
-                'has_manual_title': has_manual,
-                'key': key,
-            }
-
-    # Sort groups: manual titles first, then by size
-    def sort_key(k):
-        meta = series_metadata[k]
-        return (
-            1 if meta['has_manual_title'] else 0,  # Manual titles first
-            len(series_map[k])  # Then by group size
-        )
-
-    sorted_keys = sorted(series_map.keys(), key=sort_key, reverse=True)
     primary_key = sorted_keys[0]
     primary_meta = series_metadata[primary_key]
 
     result['primary_series'] = primary_meta['display_name']
     result['primary_series_id'] = primary_meta['imdb_id']
     result['primary_series_key'] = primary_key
-
-    # Build series_groups for frontend
-    for key in sorted_keys:
-        meta = series_metadata[key]
-        job_list = series_map[key]
-        result['series_groups'].append({
-            'key': key,
-            'display_name': meta['display_name'],
-            'imdb_id': meta['imdb_id'],
-            'has_manual_title': meta['has_manual_title'],
-            'job_count': len(job_list),
-            'job_ids': [j.job_id for j in job_list],
-        })
-
-    # Mark outliers (jobs not in primary group)
+    result['series_groups'] = _build_series_groups(series_map, series_metadata)
     result['consistent'] = len(series_map) == 1
 
     if not result['consistent']:
-        for key, job_list in series_map.items():
-            if key == primary_key:
-                continue
-            meta = series_metadata[key]
-            for job in job_list:
-                result['outliers'].append({
-                    'job_id': job.job_id,
-                    'title': meta['display_name'],
-                    'imdb_id': job.imdb_id,
-                    'label': job.label,
-                    'series_key': key,
-                })
+        result['outliers'] = _collect_outliers(series_map, series_metadata, primary_key)
 
     return result
 
@@ -509,82 +853,35 @@ def preview_batch_rename(
         force_series_override: If True, force all jobs to use the selected series name
     """
 
-    preview = {
-        'valid': True,
-        'items': [],
-        'conflicts': [],
-        'errors': [],
-        'warnings': [],
-        'series_info': {},
-        'outliers': [],
-        'requires_series_selection': False,
-    }
+    preview = _init_preview_result()
 
     validation = validate_job_selection(job_ids)
-    if not validation['valid']:
-        preview['valid'] = False
-        preview['errors'] = validation['errors']
-        preview['warnings'] = validation['warnings']
+    jobs = _apply_validation(preview, validation)
+    if jobs is None:
         return preview
-
-    jobs = validation['jobs']
-    preview['warnings'].extend(validation['warnings'])
 
     consistency = detect_series_consistency(jobs)
     preview['series_info'] = consistency
 
-    # Check if user needs to select a series
-    if not consistency['consistent'] and not selected_series_key and not force_series_override:
-        preview['requires_series_selection'] = True
+    if _requires_series_selection(consistency, selected_series_key, force_series_override):
         preview['outliers'] = consistency['outliers']
-        preview['warnings'].append(
-            f"Multiple series detected ({len(consistency['series_groups'])} groups). "
-            "Please select which series to use for batch rename."
-        )
-        # Don't generate preview items yet - wait for user selection
+        _prepare_series_selection(preview, consistency)
         return preview
-
-    # Determine which series name to use
-    force_series_name = None
-    if custom_series_name:
-        # User entered a custom series name - use it exactly
-        force_series_name = custom_series_name
-        logging.info(f"Batch rename using custom series name: {force_series_name}")
-    elif selected_series_key:
-        # Find the selected series group
-        selected_group = next(
-            (g for g in consistency['series_groups'] if g['key'] == selected_series_key),
-            None
-        )
-        if selected_group:
-            force_series_name = selected_group['display_name']
-            logging.info(
-                f"Batch rename using selected series: {force_series_name} "
-                f"(key: {selected_series_key})"
-            )
 
     if not consistency['consistent']:
         preview['outliers'] = consistency['outliers']
 
+    force_series_name = _determine_force_series_name(
+        consistency,
+        selected_series_key,
+        custom_series_name,
+    )
+
     parent_folder = None
     if consolidate and jobs:
-        # Use the first job from selected series or primary series
-        primary_job = jobs[0]
-        if force_series_name:
-            # Override the job's title for parent folder calculation
-            original_title = primary_job.title
-            original_manual = getattr(primary_job, 'title_manual', None)
-            primary_job.title = force_series_name
-            primary_job.title_manual = force_series_name
-            parent_folder = compute_series_parent_folder(primary_job, include_year)
-            # Restore original values
-            primary_job.title = original_title
-            primary_job.title_manual = original_manual
-        else:
-            parent_folder = compute_series_parent_folder(primary_job, include_year)
-        # Sanitize parent_folder to remove path separators
-        parent_folder = re.sub(r'[\\/]', '_', parent_folder)
-        preview['series_info']['parent_folder'] = parent_folder
+        parent_folder = _compute_parent_folder(jobs[0], include_year, force_series_name)
+        if parent_folder:
+            preview['series_info']['parent_folder'] = parent_folder
 
     resolution_map = outlier_resolution or {}
     seen_paths = {}
@@ -600,21 +897,9 @@ def preview_batch_rename(
             seen_paths,
             force_series_name=force_series_name,
         )
+        _merge_job_preview(preview, job_result)
 
-        preview['errors'].extend(job_result['errors'])
-        preview['conflicts'].extend(job_result['conflicts'])
-
-        if job_result.get('skipped'):
-            continue
-
-        if job_result.get('item'):
-            preview['items'].append(job_result['item'])
-
-    if preview['conflicts']:
-        preview['warnings'].append(
-            f'Found {len(preview["conflicts"])} path conflicts. '
-            'These will be resolved with timestamps.'
-        )
+    _append_conflict_warning(preview)
 
     return preview
 
@@ -622,108 +907,16 @@ def preview_batch_rename(
 def execute_batch_rename(preview_data, batch_id, current_user_email):
     """Execute the batch rename operation based on preview data."""
 
-    result = {
-        'success': True,
-        'renamed_count': 0,
-        'failed_count': 0,
-        'errors': [],
-        'history_ids': [],
-    }
+    result = _init_execute_result()
 
-    if not preview_data.get('valid') or not preview_data.get('items'):
-        result['success'] = False
-        result['errors'].append('Invalid preview data or no items to rename')
+    if not _preview_has_items(preview_data):
+        _mark_invalid_preview(result)
         return result
 
     for item in preview_data['items']:
-        try:
-            job_id = item['job_id']
-            old_path, new_path, new_folder_name, path_error = _prepare_execute_paths(item)
+        _process_execution_item(item, preview_data, batch_id, current_user_email, result)
 
-            if path_error:
-                result['failed_count'] += 1
-                result['errors'].append(path_error)
-                continue
-
-            if item.get('consolidated') and item.get('parent_folder'):
-                parent_error = _ensure_parent_directory(new_path, job_id)
-                if parent_error:
-                    result['failed_count'] += 1
-                    result['errors'].append(parent_error)
-                    continue
-
-            shutil.move(old_path, new_path)
-            logging.info(
-                f"BATCH RENAME - Job {job_id}: "
-                f"'{old_path}' -> '{new_path}' "
-                f"(Series: {item.get('series_name', 'Unknown')})"
-            )
-
-            job = Job.query.get(job_id)
-            if job:
-                job.path = new_path
-                db.session.add(job)
-
-            history = BatchRenameHistory(
-                batch_id=batch_id,
-                job_id=job_id,
-                old_path=old_path,
-                new_path=new_path,
-                old_folder_name=item['old_folder_name'],
-                new_folder_name=new_folder_name,
-                renamed_by=current_user_email,
-                series_name=item.get('series_name'),
-                disc_identifier=item.get('disc_identifier'),
-                consolidated_under_series=item.get('consolidated'),
-                series_parent_folder=item.get('parent_folder'),
-                naming_style=preview_data.get('naming_style', 'underscore'),
-                zero_padded=preview_data.get('zero_padded', False),
-            )
-            history.rename_success = True
-            db.session.add(history)
-
-            result['renamed_count'] += 1
-            result['history_ids'].append(history.history_id)
-            item['new_path'] = new_path
-            item['new_folder_name'] = new_folder_name
-
-        except Exception as exc:  # pragma: no cover - runtime errors logged
-            error_msg = f"Failed to rename job {item['job_id']}: {str(exc)}"
-            logging.error(error_msg)
-            result['errors'].append(error_msg)
-            result['failed_count'] += 1
-            result['success'] = False
-
-            try:
-                history = BatchRenameHistory(
-                    batch_id=batch_id,
-                    job_id=item['job_id'],
-                    old_path=item['old_path'],
-                    new_path=item['new_path'],
-                    old_folder_name=item['old_folder_name'],
-                    new_folder_name=item['new_folder_name'],
-                    renamed_by=current_user_email,
-                    series_name=item.get('series_name'),
-                    disc_identifier=item.get('disc_identifier'),
-                )
-                history.rename_success = False
-                history.error_message = str(exc)
-                db.session.add(history)
-            except Exception as hist_err:  # pragma: no cover - defensive
-                logging.error(
-                    f'Failed to record history for failed rename: {hist_err}'
-                )
-
-    try:
-        db.session.commit()
-        logging.info(
-            f"Batch rename completed: {result['renamed_count']} successful, {result['failed_count']} failed"
-        )
-    except Exception as exc:  # pragma: no cover - DB issues handled
-        db.session.rollback()
-        result['success'] = False
-        result['errors'].append(f'Database commit failed: {str(exc)}')
-        logging.error(f'Database commit failed during batch rename: {exc}')
+    _finalize_execution(result)
 
     return result
 
@@ -731,73 +924,26 @@ def execute_batch_rename(preview_data, batch_id, current_user_email):
 def rollback_batch_rename(batch_id, current_user_email):
     """Rollback a batch rename operation using history records."""
 
-    result = {
-        'success': True,
-        'rolled_back_count': 0,
-        'failed_count': 0,
-        'errors': [],
-    }
+    result = _init_rollback_result()
 
-    try:
-        history_records = (
-            BatchRenameHistory.query.filter_by(
-                batch_id=batch_id, rolled_back=False, rename_success=True
-            )
-            .all()
-        )
+    history_records = _query_rollback_records(batch_id)
+    if not history_records:
+        _missing_rollback_records(result, batch_id)
+        return result
 
-        if not history_records:
-            result['success'] = False
-            result['errors'].append(
-                f'No records found for batch {batch_id} or already rolled back'
-            )
-            return result
-
-        for record in reversed(history_records):
-            try:
-                if not os.path.exists(record.new_path):
-                    result['errors'].append(
-                        f'Cannot rollback job {record.job_id}: new path no longer exists'
-                    )
-                    result['failed_count'] += 1
-                    continue
-
-                shutil.move(record.new_path, record.old_path)
-                logging.info(
-                    f'Rolled back: {record.new_path} -> {record.old_path}'
-                )
-
-                job = Job.query.get(record.job_id)
-                if job:
-                    job.path = record.old_path
-                    db.session.add(job)
-
-                record.rolled_back = True
-                record.rollback_at = datetime.now(timezone.utc)
-                record.rollback_by = current_user_email
-                db.session.add(record)
-
+    for record in reversed(history_records):
+        try:
+            success, message = _rollback_single_record(record, current_user_email)
+            if success:
                 result['rolled_back_count'] += 1
+            else:
+                _record_failure(result, message)
+        except Exception as exc:  # pragma: no cover - runtime errors
+            error_msg = f'Failed to rollback job {record.job_id}: {exc}'
+            logging.error(error_msg)
+            _record_failure(result, error_msg)
 
-            except Exception as exc:  # pragma: no cover - runtime errors
-                error_msg = (
-                    f'Failed to rollback job {record.job_id}: {exc}'
-                )
-                logging.error(error_msg)
-                result['errors'].append(error_msg)
-                result['failed_count'] += 1
-                result['success'] = False
-
-        db.session.commit()
-        logging.info(
-            f"Rollback completed: {result['rolled_back_count']} reversed, {result['failed_count']} failed"
-        )
-
-    except Exception as exc:  # pragma: no cover - DB issues handled
-        db.session.rollback()
-        result['success'] = False
-        result['errors'].append(f'Rollback failed: {exc}')
-        logging.error(f'Rollback failed: {exc}')
+    _finalize_rollback(result)
 
     return result
 
