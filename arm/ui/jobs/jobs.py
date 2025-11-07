@@ -583,30 +583,40 @@ def _process_omdb_search_result(item, video_type):
     }
 
 
+def _search_tmdb_provider(metadata, query, year, video_type):
+    """Search TMDB provider and return processed results."""
+    results = []
+    search_results = metadata.tmdb_search(query, year)
+    if search_results and 'results' in search_results:
+        for item in search_results['results'][:10]:
+            result = _process_tmdb_search_result(item, video_type)
+            if result:
+                results.append(result)
+    return results
+
+
+def _search_omdb_provider(metadata, query, year, video_type):
+    """Search OMDb provider and return processed results."""
+    results = []
+    search_results = metadata.call_omdb_api(
+        title=query,
+        year=year if year else None
+    )
+    if search_results and 'Search' in search_results:
+        for item in search_results['Search'][:10]:
+            result = _process_omdb_search_result(item, video_type)
+            if result:
+                results.append(result)
+    return results
+
+
 def _search_metadata(query, video_type, year, provider, metadata):
     """Search metadata provider and return results."""
-    results = []
-
     if provider == 'tmdb':
-        search_results = metadata.tmdb_search(query, year)
-        if search_results and 'results' in search_results:
-            for item in search_results['results'][:10]:
-                result = _process_tmdb_search_result(item, video_type)
-                if result:
-                    results.append(result)
-
-    elif provider == 'omdb':
-        search_results = metadata.call_omdb_api(
-            title=query,
-            year=year if year else None
-        )
-        if search_results and 'Search' in search_results:
-            for item in search_results['Search'][:10]:
-                result = _process_omdb_search_result(item, video_type)
-                if result:
-                    results.append(result)
-
-    return results
+        return _search_tmdb_provider(metadata, query, year, video_type)
+    if provider == 'omdb':
+        return _search_omdb_provider(metadata, query, year, video_type)
+    return []
 
 
 class CustomLookupRequestError(Exception):
