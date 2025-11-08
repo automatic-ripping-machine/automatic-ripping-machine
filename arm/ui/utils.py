@@ -1,6 +1,4 @@
-"""
-Main catch all page for functions for the A.R.M ui
-"""
+"""Main catch all page for functions for the A.R.M ui."""
 import hashlib
 import os
 import shutil
@@ -8,10 +6,11 @@ import json
 import platform
 import subprocess
 import re
-from datetime import datetime
+from datetime import datetime, date
+from decimal import Decimal
 from pathlib import Path
 from sqlalchemy.exc import SQLAlchemyError
-from time import strftime, localtime, time, sleep
+from time import strftime, localtime, sleep
 
 import bcrypt
 import requests
@@ -33,6 +32,92 @@ from arm.ui.settings import DriveUtils
 
 # Path definitions
 path_migrations = "arm/migrations"
+
+
+def _database_uri():
+    return cfg.arm_config.get('SQLALCHEMY_DATABASE_URI', '')
+
+
+def _is_sqlite_backend():
+    return _database_uri().startswith('sqlite')
+
+
+def _ensure_backup_directory():
+    backup_dir = cfg.arm_config.get('DATABASE_BACKUP_PATH')
+    if not backup_dir:
+        return None
+    make_dir(backup_dir)
+    return backup_dir
+
+
+def _serialize_for_json(value):
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return float(value)
+    return str(value)
+
+
+def _export_database_snapshot(destination):
+    from sqlalchemy import MetaData
+
+    metadata = MetaData()
+    metadata.reflect(bind=db.engine)
+    snapshot = {}
+    with db.engine.connect() as connection:
+        for table in metadata.sorted_tables:
+            result = connection.execute(table.select())
+            snapshot[table.name] = [dict(row._mapping) for row in result]
+    with open(destination, "w", encoding="utf-8") as handle:
+        json.dump(snapshot, handle, default=_serialize_for_json, indent=2)
+
+
+def arm_db_backup(label="backup"):
+    backup_dir = _ensure_backup_directory()
+    if not backup_dir:
+        return None
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    if cfg.arm_config.get('DATABASE_IS_FILE_BACKED', False) and cfg.arm_config.get('DBFILE'):
+        db_path = cfg.arm_config['DBFILE']
+        if not os.path.isfile(db_path):
+            app.logger.warning("Database file missing, skipping backup: %s", db_path)
+            return None
+        destination = os.path.join(backup_dir, f"{label}_{timestamp}.db")
+        shutil.copy(db_path, destination)
+        return destination
+
+    destination = os.path.join(backup_dir, f"{label}_{timestamp}.json")
+    try:
+        _export_database_snapshot(destination)
+    except SQLAlchemyError as error:
+        app.logger.error("Failed to export database snapshot: %s", error)
+        return None
+    return destination
+
+
+def arm_db_restore(backup_file):
+    if not backup_file or not os.path.exists(backup_file):
+        raise FileNotFoundError(f"Backup file does not exist: {backup_file}")
+
+    if cfg.arm_config.get('DATABASE_IS_FILE_BACKED', False) and backup_file.endswith('.db'):
+        shutil.copy(backup_file, cfg.arm_config['DBFILE'])
+        return True
+
+    with open(backup_file, "r", encoding="utf-8") as handle:
+        snapshot = json.load(handle)
+
+    from sqlalchemy import MetaData
+
+    metadata = MetaData()
+    metadata.reflect(bind=db.engine)
+    with db.engine.begin() as connection:
+        for table in metadata.sorted_tables:
+            rows = snapshot.get(table.name, [])
+            connection.execute(table.delete())
+            if rows:
+                connection.execute(table.insert(), rows)
+    return True
 
 
 def database_updater(args, job, wait_time=90):
@@ -72,7 +157,6 @@ def check_db_version(install_path, db_file):
     """
     from alembic.script import ScriptDirectory
     from alembic.config import Config  # noqa: F811
-    import sqlite3
     import flask_migrate
 
     mig_dir = os.path.join(install_path, path_migrations)
@@ -80,48 +164,54 @@ def check_db_version(install_path, db_file):
     config = Config()
     config.set_main_option("script_location", mig_dir)
     script = ScriptDirectory.from_config(config)
+    head_revision = script.get_current_head()
+    app.logger.debug("Alembic Head is: %s", head_revision)
 
-    # create db file if it doesn't exist
-    if not os.path.isfile(db_file):
-        app.logger.info("No database found.  Initializing arm.db...")
+    if cfg.arm_config.get('DATABASE_IS_FILE_BACKED', False) and not os.path.isfile(db_file):
+        app.logger.info("No database found. Initializing new database file...")
         make_dir(os.path.dirname(db_file))
         with app.app_context():
             flask_migrate.upgrade(mig_dir)
-
         if not os.path.isfile(db_file):
-            app.logger.debug("Can't create database file.  This could be a permissions issue.  Exiting...")
-        else:
-            # Only run the below if the db exists
-            # Check to see if db is at current revision
-            head_revision = script.get_current_head()
-            app.logger.debug("Alembic Head is: " + head_revision)
+            app.logger.debug("Can't create database file. This could be a permissions issue.")
+            return
 
-            conn = sqlite3.connect(db_file)
-            c = conn.cursor()
+    db_revision = arm_db_get()
+    if not db_revision:
+        app.logger.info("Database revision not found. Running migrations to create schema...")
+        with app.app_context():
+            flask_migrate.upgrade(mig_dir)
+        db_revision = arm_db_get()
 
-        c.execute('SELECT version_num FROM alembic_version')
-        db_version = c.fetchone()[0]
-        app.logger.debug(f"Database version is: {db_version}")
-        if head_revision == db_version:
-            app.logger.info("Database is up to date")
-        else:
-            app.logger.info(
-                f"Database out of date. Head is {head_revision} and database is {db_version}.  Upgrading database...")
-            with app.app_context():
-                unique_stamp = round(time() * 100)
-                app.logger.info(f"Backing up database '{db_file}' to '{db_file}{unique_stamp}'.")
-                shutil.copy(db_file, db_file + "_" + str(unique_stamp))
-                flask_migrate.upgrade(mig_dir)
-            app.logger.info("Upgrade complete.  Validating version level...")
+    if not db_revision:
+        app.logger.warning("Could not determine database revision after migration attempt.")
+        return
 
-            c.execute("SELECT version_num FROM alembic_version")
-            db_version = c.fetchone()[0]
-            app.logger.debug(f"Database version is: {db_version}")
-            if head_revision == db_version:
-                app.logger.info("Database is now up to date")
-            else:
-                app.logger.error(f"Database is still out of date. "
-                                 f"Head is {head_revision} and database is {db_version}.  Exiting arm.")
+    if head_revision == db_revision.version_num:
+        app.logger.info("Database is up to date")
+        return
+
+    app.logger.info(
+        "Database out of date. Head is %s and database is %s. Upgrading database...",
+        head_revision,
+        db_revision.version_num
+    )
+    backup_path = arm_db_backup("upgrade")
+    if backup_path:
+        app.logger.info("Database backup written to '%s'.", backup_path)
+    with app.app_context():
+        flask_migrate.upgrade(mig_dir)
+
+    db_revision = arm_db_get()
+    if db_revision and head_revision == db_revision.version_num:
+        app.logger.info("Database is now up to date")
+    else:
+        current_version = db_revision.version_num if db_revision else "unknown"
+        app.logger.error(
+            "Database is still out of date. Head is %s and database is %s. Exiting arm.",
+            head_revision,
+            current_version
+        )
 
 
 def arm_alembic_get():
@@ -147,8 +237,14 @@ def arm_db_get():
     """
     Get the Alembic Head revision
     """
-    alembic_db = AlembicVersion()
-    db_revision = alembic_db.query.first()
+    try:
+        db_revision = AlembicVersion.query.first()
+    except SQLAlchemyError as error:
+        app.logger.debug(f"Database revision lookup failed: {error}")
+        return None
+    if not db_revision:
+        app.logger.debug("Database revision row not found.")
+        return None
     app.logger.debug(f"Database Head is: {db_revision.version_num}")
     return db_revision
 
@@ -165,36 +261,45 @@ def arm_db_check():
 
     head_revision = arm_alembic_get()
 
-    # Check if the db file exists
-    if os.path.isfile(db_file):
-        db_exists = True
-        # Get the database alembic version
+    if cfg.arm_config.get('DATABASE_IS_FILE_BACKED', False):
+        db_exists = os.path.isfile(db_file)
+        if not db_exists:
+            app.logger.debug(f"Database file is not present: {db_file}")
+    else:
+        try:
+            from sqlalchemy import text
+
+            with db.engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+            db_exists = True
+        except SQLAlchemyError as error:
+            app.logger.error("Database connectivity check failed: %s", error)
+            db_exists = False
+
+    if db_exists:
         db_revision = arm_db_get()
-        if db_revision.version_num == head_revision:
+        if db_revision and head_revision == db_revision.version_num:
             db_current = True
             app.logger.debug(
-                f"Database is current. Head: {head_revision}" +
-                f"DB: {db_revision.version_num}")
-        else:
-            db_current = False
+                f"Database is current. Head: {head_revision} DB: {db_revision.version_num}")
+        elif db_revision:
             app.logger.info(
                 "Database is not current, update required." +
                 f" Head: {head_revision} DB: {db_revision.version_num}")
+        else:
+            app.logger.info("Database revision could not be determined; migration may be required.")
     else:
-        db_exists = False
-        db_current = False
         head_revision = None
         db_revision = None
-        app.logger.debug(f"Database file is not present: {db_file}")
 
-    db = {
+    db_status = {
         "db_exists": db_exists,
         "db_current": db_current,
         "head_revision": head_revision,
         "db_revision": db_revision,
         "db_file": db_file
     }
-    return db
+    return db_status
 
 
 def arm_db_cfg():
@@ -228,37 +333,37 @@ def arm_db_migrate():
     import flask_migrate
 
     install_path = cfg.arm_config['INSTALLPATH']
-    db_file = cfg.arm_config['DBFILE']
     mig_dir = os.path.join(install_path, path_migrations)
 
     head_revision = arm_alembic_get()
     db_revision = arm_db_get()
+    revision_value = db_revision.version_num if db_revision else "unknown"
 
     app.logger.info(
-        "Database out of date." +
-        f" Head is {head_revision} and database is {db_revision.version_num}." +
-        " Upgrading database...")
+        "Database out of date. Head is %s and database is %s. Upgrading database...",
+        head_revision,
+        revision_value
+    )
     with app.app_context():
-        time = datetime.now()
-        timestamp = time.strftime("%Y-%m-%d_%H%M")
-        app.logger.info(
-            f"Backing up database '{db_file}' " +
-            f"to '{db_file}_migration_{timestamp}'.")
-        shutil.copy(db_file, db_file + "_migration_" + timestamp)
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+        backup_path = arm_db_backup(f"migration_{timestamp}")
+        if backup_path:
+            app.logger.info("Database backup created at '%s'.", backup_path)
         flask_migrate.upgrade(mig_dir)
     app.logger.info("Upgrade complete.  Validating version level...")
 
     # Check the update worked
     db_revision = arm_db_get()
-    app.logger.info(f"ARM head: {head_revision} database: {db_revision.version_num}")
-    if head_revision == db_revision.version_num:
+    revision_value = db_revision.version_num if db_revision else "unknown"
+    app.logger.info(f"ARM head: {head_revision} database: {revision_value}")
+    if db_revision and head_revision == db_revision.version_num:
         app.logger.info("Database is now up to date")
         arm_db_initialise()
     else:
         app.logger.error(
             "Database is still out of date. " +
             f"Head is {head_revision} and database " +
-            f"is {db_revision.version_num}.  Exiting arm.")
+            f"is {revision_value}.  Exiting arm.")
 
 
 def arm_db_initialise():

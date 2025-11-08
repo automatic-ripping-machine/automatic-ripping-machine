@@ -8,6 +8,8 @@ import re
 import getpass  # noqa E402
 import logging  # noqa: E402
 import sqlite3
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
 from alembic.script import ScriptDirectory
 from alembic.config import Config
 
@@ -25,9 +27,10 @@ class ARMInfo:
     db_version = ""
     head_version = ""
 
-    def __init__(self, install_path, db_file):
+    def __init__(self, install_path, db_file, database_uri=None):
         self.install_path = install_path
         self.db_file = db_file
+        self.database_uri = database_uri
         self.get_git_commit()
         self.get_arm_version()
         self.get_python_version()
@@ -115,5 +118,15 @@ class ARMInfo:
             db_c = conn.cursor()
             db_c.execute("SELECT version_num FROM alembic_version")
             self.db_version = db_c.fetchone()[0]
+        elif self.database_uri:
+            try:
+                engine = create_engine(self.database_uri)
+                with engine.connect() as connection:
+                    version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar()
+                engine.dispose()
+                self.db_version = version if version else "unknown"
+            except SQLAlchemyError as error:
+                logging.info(f"DB Version error: {error}")
+                self.db_version = "unknown"
         else:
             self.db_version = "unknown"

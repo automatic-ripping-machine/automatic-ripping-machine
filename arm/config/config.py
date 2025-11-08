@@ -2,6 +2,8 @@
 """yaml config loader"""
 import json
 import os
+
+from sqlalchemy.engine import URL
 import yaml
 
 import arm.config.config_utils as config_utils
@@ -10,6 +12,80 @@ CONFIG_LOCATION = "/etc/arm/config"
 arm_config_path = os.path.join(CONFIG_LOCATION, "arm.yaml")
 abcde_config_path = os.path.join(CONFIG_LOCATION, "abcde.conf")
 apprise_config_path = os.path.join(CONFIG_LOCATION, "apprise.yaml")
+
+
+def _normalize_database_config(config):
+    """Populate SQLAlchemy connection details from config values."""
+    configured_url = (config.get("DATABASE_URL") or "").strip()
+    if configured_url:
+        config["SQLALCHEMY_DATABASE_URI"] = configured_url
+        config["DATABASE_IS_FILE_BACKED"] = configured_url.startswith("sqlite")
+        scheme = configured_url.split(":", 1)[0]
+        config["DATABASE_ENGINE"] = scheme
+    else:
+        engine = (config.get("DATABASE_ENGINE") or "sqlite").strip()
+        if not engine:
+            engine = "sqlite"
+        config["DATABASE_ENGINE"] = engine
+        engine_lower = engine.lower()
+        if engine_lower == "sqlite":
+            db_file = config.get("DBFILE") or ""
+            config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_file}"
+            config["DATABASE_IS_FILE_BACKED"] = True
+        else:
+            username = (config.get("DATABASE_USER") or None)
+            password = (config.get("DATABASE_PASSWORD") or None)
+            host = (config.get("DATABASE_HOST") or None)
+            raw_port = config.get("DATABASE_PORT")
+            port = None
+            if raw_port not in (None, ""):
+                try:
+                    port = int(str(raw_port).strip())
+                except ValueError:
+                    port = None
+            database = (config.get("DATABASE_NAME") or None)
+            options = (config.get("DATABASE_OPTIONS") or "").strip()
+            query = None
+            if options:
+                query = {}
+                for fragment in options.split("&"):
+                    if "=" in fragment:
+                        key, value = fragment.split("=", 1)
+                        query[key] = value
+
+            # URL.create expects username/password to be unquoted; SQLAlchemy handles encoding internally.
+            try:
+                uri = URL.create(
+                    drivername=engine,
+                    username=username,
+                    password=password,
+                    host=host,
+                    port=port,
+                    database=database,
+                    query=query
+                )
+            except TypeError:
+                # Fallback for SQLAlchemy versions not supporting "query" when None.
+                uri = URL.create(
+                    drivername=engine,
+                    username=username,
+                    password=password,
+                    host=host,
+                    port=port,
+                    database=database
+                )
+
+            config["SQLALCHEMY_DATABASE_URI"] = str(uri)
+            config["DATABASE_IS_FILE_BACKED"] = False
+
+    backup_path = (config.get("DATABASE_BACKUP_PATH") or "").strip()
+    if not backup_path:
+        db_file = config.get("DBFILE") or ""
+        if db_file:
+            backup_path = os.path.join(os.path.dirname(db_file), "backups")
+        else:
+            backup_path = "/home/arm/db/backups/"
+    config["DATABASE_BACKUP_PATH"] = backup_path
 
 
 def _load_config(fp):
@@ -65,6 +141,7 @@ if len(cur_cfg) != len(new_cfg):
         settings_file.close()
 
 arm_config = _load_config(arm_config_path)
+_normalize_database_config(arm_config)
 
 # abcde config file, open and read contents
 abcde_config = _load_abcde(abcde_config_path)
