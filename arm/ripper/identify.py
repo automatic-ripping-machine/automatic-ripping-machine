@@ -8,11 +8,14 @@ import re
 import datetime
 import unicodedata
 import json
+from ast import literal_eval
+
 import pydvdid
 import xmltodict
 import arm.config.config as cfg
 
 from arm.ripper import utils
+from arm.ripper.ProcessHandler import arm_subprocess
 from arm.ui import db
 
 # flake8: noqa: W605
@@ -185,15 +188,35 @@ def identify_dvd(job):
     # rip out any SKU's at the end of the line
     dvd_title = re.sub(r"SKU\b", "", dvd_title)
     logging.debug(f"dvd_title SKU$: {dvd_title}")
-
+    
     # Do we really need metaselector if we have got from ARM online db?
-    dvd_info_xml = metadata_selector(job, dvd_title, year)
-    logging.debug(f"DVD_INFO_XML: {dvd_info_xml}")
-    identify_loop(job, dvd_info_xml, dvd_title, year)
+    try:
+        dvd_info_xml = metadata_selector(job, dvd_title, year)
+        logging.debug(f"DVD_INFO_XML: {dvd_info_xml}")
+        identify_loop(job, dvd_info_xml, dvd_title, year)
+    except Exception:
+        dvd_info_xml = None
+        logging.debug("Cant connect to online service!")
     # Failsafe so that we always have a title.
     if job.title is None or job.title == "None":
         job.title = str(job.label)
         job.year = None
+
+    # Track 99 detection
+    # -Oy means output a python dict
+    output = arm_subprocess(["lsdvd", "-Oy", job.devpath])
+    if output:
+        try:
+            # literal_eval only accepts literals so we have to adjust the output slightly
+            tracks = literal_eval(re.sub(r"^.*\{", "{", output)).get("track", [])
+            logging.debug(f"Detected {len(tracks)} tracks")
+            if len(tracks) == 99:
+                job.has_track_99 = True
+                if cfg.arm_config["PREVENT_99"]:
+                    raise Exception("Track 99 found and PREVENT_99 is enabled")
+        except (SyntaxError, AttributeError) as e:
+            logging.error("Failed to parse lsdvd output", exc_info=e)
+
     return True
 
 

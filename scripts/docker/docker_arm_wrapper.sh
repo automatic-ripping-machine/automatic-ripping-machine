@@ -37,21 +37,12 @@ eval $(parse_yaml /etc/arm/config/arm.yaml "CONFIG_")
 # ID_CDROM_MEDIA_CD = CD
 # ID_CDROM_MEDIA_DVD = DVD
 if [ "$ID_CDROM_MEDIA_DVD" == "1" ]; then
-    if [ "$CONFIG_PREVENT_99" != "false" ]; then
-        numtracks=$(lsdvd /dev/"${DEVNAME}" 2> /dev/null | sed 's/,/ /' | cut -d ' ' -f 2 | grep -E '[0-9]+' | sort -r | head -n 1)
-        if [ "$numtracks" == "99" ]; then
-            echo "[ARM] ${DEVNAME} has 99 Track Protection. Bailing out and ejecting." | logger -t ARM -s
-            echo "$(date) [ARM] ${DEVNAME} has 99 Track Protection. Bailing out and ejecting." >> $ARMLOG
-            eject "${DEVNAME}"
-            exit
-        fi
-    fi
     echo "$(date) [ARM] Starting ARM for DVD on ${DEVNAME}" >> $ARMLOG
     echo "[ARM] Starting ARM for DVD on ${DEVNAME}" | logger -t ARM -s
 elif [ "$ID_CDROM_MEDIA_BD" == "1" ]; then
 	  echo "[ARM] Starting ARM for Bluray on ${DEVNAME}" >> $ARMLOG
 	  echo "$(date) [[ARM] Starting ARM for Bluray on ${DEVNAME}" | logger -t ARM -s
-elif [ "$ID_CDROM_MEDIA_CD" == "1" ]; then
+elif [ "$ID_CDROM_MEDIA_CD" == "1" ] || [ "$ID_CDROM_MEDIA_CD_R" == "1" ] || [ "$ID_CDROM_MEDIA_CD_RW" == "1" ]; then
 	  echo "[ARM] Starting ARM for CD on ${DEVNAME}" | logger -t ARM -s
 	  echo "$(date) [[ARM] Starting ARM for CD on ${DEVNAME}" >> $ARMLOG
 elif [ "$ID_FS_TYPE" != "" ]; then
