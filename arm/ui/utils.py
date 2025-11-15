@@ -653,15 +653,14 @@ def build_arm_cfg(form_data, comments):
     # This really should be hard coded.
     app.logger.debug("save_settings: START")
     for key, value in form_data.items():
-        # Redact the Cross Site Request Forgery (CSRF) token
+        # Skip the Cross Site Request Forgery (CSRF) token
         if key == "csrf_token":
-            key_value = "####--redacted--####"
+            continue
         # Check if value contains "KEY" or "API" (any case)
         elif re.search(r"_KEY|_API|_PASSWORD", key):
             key_value = "####--redacted--####"
         else:
             key_value = value
-
         # Print output
         app.logger.debug(f"save_settings: [{key}] = {key_value} ")
 
@@ -694,9 +693,17 @@ def build_apprise_cfg(form_data):
     app.logger.debug("save_apprise: START")
     apprise_cfg = "\n\n"
     for key, value in form_data.items():
-        app.logger.debug(f"save_apprise: current key {key} = {value} ")
+        # Skip the Cross Site Request Forgery (CSRF) token
         if key == "csrf_token":
             continue
+        # Check if value contains "KEY" or "API" (any case)
+        elif re.search(r"KEY|API|PASS|TOKEN|SECRET", key):
+            key_value = "####--redacted--####"
+        else:
+            key_value = value
+        # Print output
+        app.logger.debug(f"save_settings: [{key}] = {key_value} ")
+
         # test if key value is an int
         try:
             post_value = int(value)
