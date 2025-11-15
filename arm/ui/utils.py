@@ -653,9 +653,18 @@ def build_arm_cfg(form_data, comments):
     # This really should be hard coded.
     app.logger.debug("save_settings: START")
     for key, value in form_data.items():
-        app.logger.debug(f"save_settings: current key {key} = {value} ")
+        # Redact the Cross Site Request Forgery (CSRF) token
         if key == "csrf_token":
-            continue
+            key_value = "####--redacted--####"
+        # Check if value contains "KEY" or "API" (any case)
+        elif re.search(r"_KEY|_API|_PASSWORD", key):
+            key_value = "####--redacted--####"
+        else:
+            key_value = value
+
+        # Print output
+        app.logger.debug(f"save_settings: [{key}] = {key_value} ")
+
         # Add any grouping comments
         arm_cfg += config_utils.arm_yaml_check_groups(comments, key)
         # Check for comments for this key in comments.json, add them if they exist
@@ -670,6 +679,7 @@ def build_arm_cfg(form_data, comments):
         except ValueError:
             # Test if value is Boolean
             arm_cfg += config_utils.arm_yaml_test_bool(key, value)
+
     app.logger.debug("save_settings: FINISH")
     return arm_cfg
 
