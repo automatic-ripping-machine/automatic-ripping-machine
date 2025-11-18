@@ -104,7 +104,7 @@ class TestNormalizeSeriesName(unittest.TestCase):
         """Test removal/replacement of special characters."""
         self.assertEqual(utils.normalize_series_name("Series!Name"), "Series_Name")
         self.assertEqual(utils.normalize_series_name("Series@#$Name"), "Series_Name")
-        self.assertEqual(utils.normalize_series_name("Series: The Show"), "Series__The_Show")
+        self.assertEqual(utils.normalize_series_name("Series: The Show"), "Series_The_Show")
 
     def test_preserve_hyphens_and_parens(self):
         """Test that hyphens and parentheses are preserved."""
@@ -125,8 +125,8 @@ class TestNormalizeSeriesName(unittest.TestCase):
     def test_unicode_characters(self):
         """Test handling of unicode/accented characters."""
         # Should convert to ASCII equivalents or strip
-        self.assertEqual(utils.normalize_series_name("Café"), "Caf")
-        self.assertEqual(utils.normalize_series_name("Niño"), "Nio")
+        self.assertEqual(utils.normalize_series_name("Café"), "Cafe")
+        self.assertEqual(utils.normalize_series_name("Niño"), "Nino")
 
     def test_empty_or_none_input(self):
         """Test that empty or None input returns empty string."""
