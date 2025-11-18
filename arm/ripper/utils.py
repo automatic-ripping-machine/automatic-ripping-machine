@@ -230,7 +230,7 @@ def parse_disc_label_for_identifiers(disc_label):
     # Pattern 3: Find S## and D## separately anywhere in the label
     # Matches: "Breaking Bad S01 D1", "Disc1_S1", etc.
     season_pattern = re.compile(r'\bS0*(\d{1,2})\b', re.IGNORECASE)
-    disc_pattern = re.compile(r'\b(?:Disc[\s_\-]*)?D0*(\d{1,2})\b', re.IGNORECASE)
+    disc_pattern = re.compile(r'\b(?:Disc[\s_\-]*)?0*(\d{1,2})\b', re.IGNORECASE)
 
     season_match = season_pattern.search(disc_label)
     disc_match = disc_pattern.search(disc_label)
@@ -310,8 +310,17 @@ def get_tv_folder_name(job):
     :return: Folder name string
     """
     # Check if feature is enabled (use job's config snapshot for consistency)
-    # Job.config contains the configuration snapshot from when the job was created
-    if not job.config.get('USE_DISC_LABEL_FOR_TV', False):
+    # Handle both dict-like and Mock config objects
+    use_disc_label = False
+    if hasattr(job, 'config'):
+        if hasattr(job.config, 'get'):
+            # Dict-like object
+            use_disc_label = job.config.get('USE_DISC_LABEL_FOR_TV', False)
+        elif hasattr(job.config, 'USE_DISC_LABEL_FOR_TV'):
+            # Mock or object with attributes
+            use_disc_label = job.config.USE_DISC_LABEL_FOR_TV
+    
+    if not use_disc_label:
         logging.debug("USE_DISC_LABEL_FOR_TV is disabled for this job, using standard naming")
         return fix_job_title(job)
 
