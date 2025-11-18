@@ -38,6 +38,7 @@
       - [.abcde.conf](Config-abcde.conf)
       - [Skins for ARM ui](Config-ui-skins)
       - [MakeMKV](MakeMKV-Info)
+      - [FFmpeg Alternative Transcoder](ffmpeg.md)
      
    - **Alternate Installations**
      - [Ubuntu](Alternate-Install-Ubuntu)
