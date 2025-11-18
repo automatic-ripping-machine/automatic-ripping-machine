@@ -40,9 +40,9 @@ Navigate to: `http://your-arm-server:8080`
 
 ## Demo Walkthrough
 
-### Step 1: Navigate to Database View
+### Step 1: Navigate to Batch View
 
-1. Click **"Database"** in the navigation menu
+1. Click **"Batch"** in the navigation menu
 2. You'll see all completed jobs listed
 
 **What you see:**
