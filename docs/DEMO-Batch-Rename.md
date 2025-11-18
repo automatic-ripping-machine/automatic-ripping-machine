@@ -38,6 +38,24 @@ These are defaults that will be pre-filled in the UI (can be overridden per batc
 
 Navigate to: `http://your-arm-server:8080`
 
+## Custom Name Lookup (Optional but Recommended)
+
+Before you begin the batch rename workflow, confirm each disc is properly identified. Use the **Custom Name Lookup** button from the Batch page whenever a disc was misidentified during ripping.
+
+1. **Open the lookup modal** to review which discs will be updated and craft a better search query.
+
+  ![Custom Lookup modal ready for entering a better title query](images/batch-demo/09-custom-lookup-open.png)
+
+2. **Search TMDB/OMDb**, then pick the correct match from the returned results.
+
+  ![Search results showing candidate matches for the custom lookup](images/batch-demo/10-custom-lookup-results.png)
+
+3. **Apply the match** so every selected job inherits the corrected title, type, IMDb ID, and artwork *before* you generate the rename preview.
+
+  ![Confirmation step applying the selected custom identification to the discs](images/batch-demo/11-custom-lookup-apply.png)
+
+After applying the custom lookup, re-enter the Batch view and continue with the walkthrough below. The updated metadata will flow into Step 5's preview, ensuring discs group correctly and receive accurate folder names.
+
 ## Demo Walkthrough
 
 ### Step 1: Navigate to Batch View
@@ -187,8 +205,6 @@ Breaking_Bad_S2D1/
 Breaking_Bad_S2D2/
 ```
 
-![Filesystem view after consolidation showing five renamed folders](images/batch-demo/09-filesystem-view.png)
-
 **Database Check:**
 
 Navigate to Database view → Jobs 101-105 now show new folder paths:
@@ -199,8 +215,6 @@ Job 103: Breaking Bad (2008)/Breaking_Bad_S1D3
 Job 104: Breaking Bad (2008)/Breaking_Bad_S2D1
 Job 105: Breaking Bad (2008)/Breaking_Bad_S2D2
 ```
-
-![Database view showing updated paths for jobs 101-105](images/batch-demo/10-database-view.png)
 
 ### Step 10: Rollback (Demo)
 
@@ -222,8 +236,6 @@ This will restore the original folder names.
 - Updates database to old paths
 - Marks batch as "rolled back"
 
-![Rollback confirmation showing the five restored folders](images/batch-demo/11-rollback-success.png)
-
 **After Rollback:**
 ```bash
 $ ls -1 /home/arm/media/
@@ -235,6 +247,8 @@ Breaking Bad (2008)_20250115_150000
 ```
 
 > **Note:** The parent folder `Breaking Bad (2008)/` is removed if empty.
+
+> **Visual note:** Rollback screenshots are still pending capture; follow the textual prompts above for now.
 
 ## Demo Variations
 
