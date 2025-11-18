@@ -55,6 +55,8 @@ Job List:
 ☑ Job 105: Breaking Bad - Status: success - Folder: Breaking Bad (2008)_20250115_150000
 ```
 
+![Batch jobs view showing completed Breaking Bad discs](images/batch-demo/01-batch-job-list.png)
+
 ### Step 2: Select Jobs for Batch Rename
 
 **Action:** Check the boxes next to jobs 101-105
@@ -64,16 +66,7 @@ Job List:
 - "Batch Rename Selected" button becomes enabled
 - Button text updates to "Batch Rename Selected (5)"
 
-**Visual:**
-```
-[✓] Job 101: Breaking Bad
-[✓] Job 102: Breaking Bad
-[✓] Job 103: Breaking Bad
-[✓] Job 104: Breaking Bad
-[✓] Job 105: Breaking Bad
-
-[🔘 Batch Rename Selected (5)]  [Select All]  [Deselect All]
-```
+![Five completed jobs selected with Batch Rename button enabled](images/batch-demo/02-batch-job-selection.png)
 
 > **Note:** If you try to select a movie or incomplete job, you'll see a toast notification:
 > "Only TV series can be batch renamed" or "Only completed jobs can be batch renamed"
@@ -87,25 +80,7 @@ Job List:
 - Shows "Step 1: Rename Options"
 - Default values loaded from arm.yaml
 
-**Visual:**
-```
-╔════════════════════════════════════════════════════════╗
-║  Batch Rename TV Series Discs                        X ║
-╠════════════════════════════════════════════════════════╣
-║  Rename Options                                        ║
-║                                                        ║
-║  Naming Style:  [Underscore ▼]                        ║
-║                 ☐ Underscore (Breaking_Bad_S1D1)      ║
-║                 ☐ Hyphen (breaking-bad-s1d1)          ║
-║                 ☐ Space (Breaking Bad S1D1)           ║
-║                                                        ║
-║  [☐] Zero-pad numbers (S01D01 instead of S1D1)        ║
-║  [✓] Consolidate into series parent folder            ║
-║  [✓] Include year in series parent folder             ║
-║                                                        ║
-║  [🔘 Generate Preview]                                ║
-╚════════════════════════════════════════════════════════╝
-```
+![Batch Rename modal open at Step 1 with default options](images/batch-demo/03-rename-options-modal.png)
 
 ### Step 4: Configure Options
 
@@ -124,6 +99,8 @@ Job List:
 
 For this demo, we'll use **Scenario A** (defaults).
 
+![Default options selected for underscore naming without zero padding](images/batch-demo/04-rename-options-defaults.png)
+
 ### Step 5: Generate Preview
 
 **Action:** Click "Generate Preview"
@@ -134,37 +111,7 @@ For this demo, we'll use **Scenario A** (defaults).
 - Server validates jobs, detects series consistency, computes new names
 - Preview table populates
 
-**Visual:**
-```
-╔════════════════════════════════════════════════════════╗
-║  Batch Rename TV Series Discs                        X ║
-╠════════════════════════════════════════════════════════╣
-║  Preview Changes                                       ║
-║                                                        ║
-║  ✓ All selected jobs belong to the same series:       ║
-║    Breaking Bad (IMDb: tt0903747)                     ║
-║                                                        ║
-║  ┌─────┬──────────────┬───────┬──────────────────────┐║
-║  │Job  │ Title        │ Label │ Old → New            │║
-║  ├─────┼──────────────┼───────┼──────────────────────┤║
-║  │ 101 │ Breaking Bad │BB_S01D│ Breaking Bad (2008)  │║
-║  │     │              │  01   │   →                  │║
-║  │     │              │       │ Breaking Bad (2008)/ │║
-║  │     │              │       │   Breaking_Bad_S1D1  │║
-║  │     │              │       │ [✓ Ready]            │║
-║  ├─────┼──────────────┼───────┼──────────────────────┤║
-║  │ 102 │ Breaking Bad │BB_S01D│ Breaking Bad...20250 │║
-║  │     │              │  02   │   →                  │║
-║  │     │              │       │ Breaking Bad (2008)/ │║
-║  │     │              │       │   Breaking_Bad_S1D2  │║
-║  │     │              │       │ [✓ Ready]            │║
-║  ├─────┼──────────────┼───────┼──────────────────────┤║
-║  │ ... │ ...          │ ...   │ ...                  │║
-║  └─────┴──────────────┴───────┴──────────────────────┘║
-║                                                        ║
-║  [⬅ Back to Options]  [✓ Execute Batch Rename]       ║
-╚════════════════════════════════════════════════════════╝
-```
+![Preview table confirming five Breaking Bad discs are ready to rename](images/batch-demo/05-preview-ready.png)
 
 **Key Points:**
 - All jobs show **[✓ Ready]** badge (green)
@@ -176,21 +123,7 @@ For this demo, we'll use **Scenario A** (defaults).
 
 **Alternate Scenario:** What if you accidentally selected a Game of Thrones disc?
 
-**Visual:**
-```
-║  ⚠ Series Outliers Detected:                          ║
-║  The following jobs have different series identifiers:║
-║  • Job 106: Game of Thrones (IMDb: tt0944947)         ║
-║                                                        ║
-║  These will be skipped unless you override series     ║
-║  detection.                                            ║
-║                                                        ║
-║  ┌─────┬──────────────┬───────┬──────────────────────┐║
-║  │ 106 │ Game of      │GOT_S01│ Game of Thrones...   │║
-║  │     │ Thrones      │  D01  │   (unchanged)        │║
-║  │     │              │       │ [⚪ Skipped]          │║
-║  └─────┴──────────────┴───────┴──────────────────────┘║
-```
+![Outlier warning highlighting a Game of Thrones disc that will be skipped](images/batch-demo/06-preview-outlier-warning.png)
 
 **Action:** Click "Back to Options", deselect Job 106, regenerate preview.
 
@@ -198,25 +131,7 @@ For this demo, we'll use **Scenario A** (defaults).
 
 **Alternate Scenario:** What if `Breaking_Bad_S1D1` folder already exists?
 
-**Visual:**
-```
-║  🔴 Path Conflicts Detected:                          ║
-║  • /home/arm/media/Breaking Bad (2008)/               ║
-║    Breaking_Bad_S1D1 already exists                   ║
-║                                                        ║
-║  Cannot proceed with rename until conflicts are       ║
-║  resolved.                                             ║
-║                                                        ║
-║  ┌─────┬──────────────┬───────┬──────────────────────┐║
-║  │ 101 │ Breaking Bad │BB_S01D│ Breaking Bad (2008)  │║
-║  │     │              │  01   │   →                  │║
-║  │     │              │       │ Breaking Bad (2008)/ │║
-║  │     │              │       │   Breaking_Bad_S1D1  │║
-║  │     │              │       │ [🔴 Conflict]        │║
-║  └─────┴──────────────┴───────┴──────────────────────┘║
-║                                                        ║
-║  [⬅ Back to Options]  [✗ Execute (disabled)]         ║
-```
+![Conflict detection example showing an existing Breaking_Bad_S1D1 folder](images/batch-demo/07-preview-conflict-error.png)
 
 **Action:** 
 1. Close modal
@@ -238,29 +153,7 @@ For this demo, we'll use **Scenario A** (defaults).
   4. Records history for rollback
 - Progress completes in ~2-5 seconds
 
-**Visual:**
-```
-╔════════════════════════════════════════════════════════╗
-║  Batch Rename TV Series Discs                        X ║
-╠════════════════════════════════════════════════════════╣
-║  Rename Results                                        ║
-║                                                        ║
-║  ✅ Batch Rename Successful                           ║
-║                                                        ║
-║  Batch ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890      ║
-║  Renamed 5 folders                                     ║
-║                                                        ║
-║  New folder structure:                                 ║
-║  Breaking Bad (2008)/                                  ║
-║    ├── Breaking_Bad_S1D1/                             ║
-║    ├── Breaking_Bad_S1D2/                             ║
-║    ├── Breaking_Bad_S1D3/                             ║
-║    ├── Breaking_Bad_S2D1/                             ║
-║    └── Breaking_Bad_S2D2/                             ║
-║                                                        ║
-║  [Close]  [🔄 Rollback This Operation]                ║
-╚════════════════════════════════════════════════════════╝
-```
+![Success modal confirming five folders were renamed and consolidated](images/batch-demo/08-execute-success.png)
 
 **Toast Notification:**
 ```
@@ -294,6 +187,8 @@ Breaking_Bad_S2D1/
 Breaking_Bad_S2D2/
 ```
 
+![Filesystem view after consolidation showing five renamed folders](images/batch-demo/09-filesystem-view.png)
+
 **Database Check:**
 
 Navigate to Database view → Jobs 101-105 now show new folder paths:
@@ -304,6 +199,8 @@ Job 103: Breaking Bad (2008)/Breaking_Bad_S1D3
 Job 104: Breaking Bad (2008)/Breaking_Bad_S2D1
 Job 105: Breaking Bad (2008)/Breaking_Bad_S2D2
 ```
+
+![Database view showing updated paths for jobs 101-105](images/batch-demo/10-database-view.png)
 
 ### Step 10: Rollback (Demo)
 
@@ -325,17 +222,7 @@ This will restore the original folder names.
 - Updates database to old paths
 - Marks batch as "rolled back"
 
-**Visual:**
-```
-✅ Rollback successful: 5 folders restored
-
-The following folders have been restored:
-• Breaking Bad (2008)
-• Breaking Bad (2008)_20250115_120000
-• Breaking Bad (2008)_20250115_130000
-• Breaking Bad (2008)_20250115_140000
-• Breaking Bad (2008)_20250115_150000
-```
+![Rollback confirmation showing the five restored folders](images/batch-demo/11-rollback-success.png)
 
 **After Rollback:**
 ```bash
