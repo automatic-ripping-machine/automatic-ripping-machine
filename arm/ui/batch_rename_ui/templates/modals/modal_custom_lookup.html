@@ -1,0 +1,128 @@
+<!-- Custom Lookup Modal -->
+<div class="modal fade" id="customLookupModal" tabindex="-1" aria-labelledby="customLookupModalTitle"
+     aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="customLookupModalTitle">Custom Identification Lookup</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Step 1: Search -->
+                <div id="lookup-search-step">
+                    <h6 class="font-weight-bold">Search for Correct Title</h6>
+                    <p class="text-muted">
+                        Enter the correct title for the selected discs. We'll search TMDB and OMDb for matches.
+                    </p>
+                    
+                    <div class="alert alert-info">
+                        <strong><span id="lookup-disc-count">0</span> disc(s) selected</strong>
+                        <div id="lookup-selected-discs" class="mt-2 small">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="custom-search-query">Search Query:</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="custom-search-query" 
+                                   placeholder="e.g., Breaking Bad, The Wire, Game of Thrones">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="button" id="search-custom-btn">
+                                    <i class="fa fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="custom-video-type">Content Type:</label>
+                        <select id="custom-video-type" class="form-control">
+                            <option value="series">TV Series</option>
+                            <option value="movie">Movie</option>
+                        </select>
+                    </div>
+                    
+                    <hr>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+                
+                <!-- Step 2: Select Result -->
+                <div id="lookup-results-step" style="display: none;">
+                    <h6 class="font-weight-bold">Select Correct Match</h6>
+                    <p class="text-muted">Choose the correct match from the search results.</p>
+                    
+                    <div id="search-results-container" class="row">
+                        <!-- Populated by JavaScript with result cards -->
+                    </div>
+                    
+                    <hr>
+                    <button type="button" class="btn btn-secondary" id="back-to-search-btn">
+                        <i class="fa fa-arrow-left"></i> Back to Search
+                    </button>
+                </div>
+                
+                <!-- Step 3: Confirm Application -->
+                <div id="lookup-confirm-step" style="display: none;">
+                    <h6 class="font-weight-bold">Confirm Custom Identification</h6>
+                    
+                    <div class="alert alert-success">
+                        <h6><i class="fa fa-check-circle"></i> Selected Match</h6>
+                        <div id="selected-match-info">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h6><i class="fa fa-exclamation-triangle"></i> Important</h6>
+                        <p>This will update the following for all <strong><span id="confirm-disc-count">0</span> selected disc(s)</strong>:</p>
+                        <ul>
+                            <li>Title</li>
+                            <li>Year</li>
+                            <li>Video Type</li>
+                            <li>IMDB ID</li>
+                            <li>Poster URL</li>
+                        </ul>
+                        <p class="mb-0">The discs will be re-identified with this information and folders will be renamed accordingly.</p>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Job ID</th>
+                                    <th>Current Title</th>
+                                    <th>Current Type</th>
+                                    <th>Label</th>
+                                    <th>New Title</th>
+                                    <th>New Type</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lookup-confirm-table-body">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <hr>
+                    <button type="button" class="btn btn-secondary" id="back-to-results-btn">
+                        <i class="fa fa-arrow-left"></i> Back to Results
+                    </button>
+                    <button type="button" class="btn btn-success" id="execute-lookup-btn">
+                        <i class="fa fa-check"></i> Apply Custom Identification
+                    </button>
+                </div>
+                
+                <!-- Step 4: Results -->
+                <div id="lookup-complete-step" style="display: none;">
+                    <h6 class="font-weight-bold">Custom Identification Results</h6>
+                    <div id="lookup-results-content"></div>
+                    <hr>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
