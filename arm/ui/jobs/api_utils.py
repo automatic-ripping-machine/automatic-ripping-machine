@@ -16,10 +16,10 @@ import arm.config.config as cfg
 def _build_authenticated_api_context(mode):
     """
     Build API context for authenticated users.
-    
+
     Returns valid_data and valid_modes dictionaries containing
     available API operations and their handlers for authenticated users.
-    
+
     :param mode: The API mode/operation requested
     :return: Tuple of (valid_data, valid_modes) dictionaries
     """
@@ -64,10 +64,10 @@ def _build_authenticated_api_context(mode):
 def _build_public_api_context(mode):
     """
     Build API context for public/unauthenticated users.
-    
+
     Returns valid_data and valid_modes dictionaries containing
     limited API operations available to unauthenticated users.
-    
+
     :param mode: The API mode/operation requested
     :return: Tuple of (valid_data, valid_modes) dictionaries
     """

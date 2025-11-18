@@ -319,7 +319,7 @@ def get_tv_folder_name(job):
         elif hasattr(job.config, 'USE_DISC_LABEL_FOR_TV'):
             # Mock or object with attributes
             use_disc_label = job.config.USE_DISC_LABEL_FOR_TV
-    
+
     if not use_disc_label:
         logging.debug("USE_DISC_LABEL_FOR_TV is disabled for this job, using standard naming")
         return fix_job_title(job)
