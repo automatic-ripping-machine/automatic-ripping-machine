@@ -210,8 +210,12 @@ if __name__ == "__main__":
     with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
         version = version_file.read().strip()
 
-    # Delete old log files
-    logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])
+    try:
+        # Delete old log files
+        logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])
+    except Exception as error:
+        logging.error(error, exc_info=True)
+
     logging.info(f"Job: {job.label}")  # This will sometimes be none
     # Check for zombie jobs and update status to 'failed'
     utils.clean_old_jobs()
