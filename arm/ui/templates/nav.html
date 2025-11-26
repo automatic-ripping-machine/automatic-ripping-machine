@@ -30,11 +30,11 @@
                         <a class="nav-link" href="database">Database</a>
                     </li>
                     <li id="navarmsettings" class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle"
-                        href="#" id="settingsDropdown" role="button" 
-                        data-toggle="dropdown" aria-haspopup="tree" aria-expanded="false">
-                            Settings
-                        </a>
+                        <button class="nav-link dropdown-toggle" onKeyDown="if(event.key==='Enter'||event.key===' ')this.click()"
+                            href="#" id="settingsDropdown" role="button" 
+                            data-toggle="dropdown" aria-haspopup="tree" aria-expanded="false">
+                                Settings
+                        </button>
                         <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
                             <a class="dropdown-item" href="general_settings">General Settings</a>
                             <a class="dropdown-item" href="abcde_settings">Music Settings</a>
