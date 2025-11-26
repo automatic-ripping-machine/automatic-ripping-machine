@@ -211,13 +211,7 @@ function addToast(title, body, toastId, success) {
     // Get the toast timeout from UISettings
     const toast_timeout = getNotifyTimeout();
     console.log("Notification timeout: " + toast_timeout);
-
-    if (success == true || success == undefined) {
-        png = 'success.png';
-    } 
-    if (success == false) {
-        png = 'fail.png';
-    };
+    const png = success === false ? 'fail.png' : 'success.png';
     const toast = `<div id="toast${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-autohide="true" data-animation="true" data-delay="${parseInt(toast_timeout)}" style="z-index:1000">
         <div class="toast-header">
             <img src="static/img/${png}" class="rounded mr-2" alt="arm message" height="20px" width="20px">
