@@ -47,6 +47,18 @@ route_settings = Blueprint('route_settings', __name__,
                            static_folder='../static')
 REDIRECT_SETTINGS = "route_settings.settings"
 
+def render_dynamic_form(form: Form):
+    """ Returns template, which is built for dynamic forms.
+    
+    Keyword arguments:
+    form -- WTForms form instance to render
+    Return: render_template
+    """
+    return render_template(
+        "settings/dynamic_form.html",
+        form=form,
+        )  # type: ignore
+
 
 def mask_last(value: str, n: int = 4):
     """
@@ -71,16 +83,15 @@ def populate_form_fields(form: Form, data: Optional[dict[str, str]], titles: Opt
             for field_name, field in form._fields.items():
                 if field_name == 'submit':
                     continue
+                if field_name in data:
+                    field.data = data[field_name]
                 else:
-                    if field_name in data:
-                        field.data = data[field_name]
-                    else:
-                        app.logger.debug(f"Field {field_name} not found in data dict")
-                    if field_name in titles:
-                        field.render_kw = {'title': titles[field_name]}
-                        app.logger.debug(f"{starter}{field_name} {ender}{field.data} ")
-                    else:
-                        app.logger.debug(f"Title for field {field_name} not found in titles dict")
+                    app.logger.debug(f"Field {field_name} not found in data dict")
+                if field_name in titles:
+                    field.render_kw = {'title': titles[field_name]}
+                    app.logger.debug(f"{starter}{field_name} {ender}{field.data} ")
+                else:
+                    app.logger.debug(f"Title for field {field_name} not found in titles dict")
             return form
 
         app.logger.debug(f"Titles were provided. Populating form with {len(form._fields)} fields, \
@@ -88,25 +99,23 @@ def populate_form_fields(form: Form, data: Optional[dict[str, str]], titles: Opt
         for field_name, field in form._fields.items():
             if field_name == 'submit':
                 continue
-            else:
-                if not hasattr(data, field_name):
-                    app.logger.debug(f"Field {field_name} not found in data object")
-                    continue
-                field.data = getattr(data, field_name)
-                field.render_kw = {'title': titles[field_name]}
-                app.logger.debug(f"{starter}{field_name} {ender}{field.data} ")
+            if not hasattr(data, field_name):
+                app.logger.debug(f"Field {field_name} not found in data object")
+                continue
+            field.data = getattr(data, field_name)
+            field.render_kw = {'title': titles[field_name]}
+            app.logger.debug(f"{starter}{field_name} {ender}{field.data} ")
         return form
 
     app.logger.debug(f"No TITLES provided Populating form with {len(form._fields)} fields")
     for field_name, field in form._fields.items():
         if field_name == 'submit':
             continue
-        else:
-            if not hasattr(data, field_name):
-                app.logger.debug(f"Field {field_name} not found in data object")
-                continue
-            field.data = getattr(data, field_name)
-            app.logger.debug(f" {starter}{field_name} {ender}{field.data} ")
+        if not hasattr(data, field_name):
+            app.logger.debug(f"Field {field_name} not found in data object")
+            continue
+        field.data = getattr(data, field_name)
+        app.logger.debug(f" {starter}{field_name} {ender}{field.data} ")
     return form
 
 
@@ -156,7 +165,6 @@ def settings():
     comments = ui_utils.generate_comments()
     # ARM UI config
     armui_cfg = ui_utils.arm_db_cfg()
-    ui_form = UiSettingsForm()
     # Set the nicer attributes for the UI settings form.
     ui_form = UiSettingsForm()
     for field_name, field in ui_form._fields.items():
@@ -277,16 +285,12 @@ def settings_abcde():
     Overview - allows the user to update the all configs of A.R.M without
     needing to open a text editor
     """
-    # app.logger.debug(app.config)
-    # form.abcdeConfig.data = cfg.abcde_config
     abcde_record = cfg.abcde_config
     # load the abcde config into the form
     form = AbcdeForm(abcdeConfig=abcde_record)
     session["page_title"] = "Music Ripping - ABCDE Settings"
-    return render_template(
-        "settings/dynamic_form.html",
-        form=form,
-        )  # type: ignore
+    f = render_dynamic_form(form)
+    return f
 
 
 @route_settings.route('/ui_settings')
@@ -307,10 +311,8 @@ def settings_ui():
     # Set the nicer attributes for the UI settings form.
     ui_form = populate_form_fields(ui_form, armui_cfg, comments)
     session["page_title"] = "UI Settings"
-    return render_template(
-        "settings/dynamic_form.html",
-        form=ui_form
-        )  # type: ignore
+    f = render_dynamic_form(ui_form)
+    return f
 
 
 @route_settings.route('/ripper_settings')
@@ -330,11 +332,8 @@ def settings_ripper():
     form = populate_form_fields(form, cfg.arm_config, comments)
     app.logger.debug(f"Ripper settings form populated with {len(form.__dict__)} fields")
     session["page_title"] = "Ripper Settings"
-    
-    return render_template(
-        "settings/dynamic_form.html",
-        form=form
-        )  # type: ignore
+    f = render_dynamic_form(form)
+    return f
 
 
 def check_hw_transcode_support():
