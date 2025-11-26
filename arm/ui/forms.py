@@ -201,10 +201,10 @@ class ChangeParamsForm(FlaskForm):
     MAXLENGTH = IntegerField(label='Maximum Length: ', validators=[DataRequired()])
     submit = SubmitField('Submit')
 
-# naming convention ignored to match compramise of a function that returns an instance of a dynamically built class.
 # SonarQube: ignore function naming convention (rule S00100)
 # NOSONAR
 def SettingsFormFunction(comments:dict[str, str]) -> FlaskForm:
+    # naming convention ignored to match compramise of a function that returns an instance of a dynamically built class.
     """ A Function that returns a class instance.
         It buids the class based on on the comments.json and RipperFormConfig
         (Comments.json to make sure a central location exists for user comments)
@@ -247,8 +247,7 @@ def SettingsFormFunction(comments:dict[str, str]) -> FlaskForm:
 
         if key in comments:
             comment_value = str(comments[key])
-            if comment_value is None:  # type: ignore
-                comment_value = ""
+            assert comment_value is not None
         else:
             app.logger.warning(f"Comment not found for {key}, using empty string")
             comment_value = ""
