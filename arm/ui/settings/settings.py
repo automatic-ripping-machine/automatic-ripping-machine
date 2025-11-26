@@ -96,13 +96,9 @@ def populate_form_fields(form: Form, data: Optional[dict[str, str]], titles: Opt
                 field.render_kw = {'title': titles[field_name]}
                 app.logger.debug(f"{starter}{field_name} {ender}{field.data} ")
         return form
-    else:
-        app.logger.error(f"No TITLES provided Populating form with {len(form._fields)} fields")
 
-
+    app.logger.debug(f"No TITLES provided Populating form with {len(form._fields)} fields")
     for field_name, field in form._fields.items():
-        
-        app.logger.debug(f"No TITLES provided Populating form with {len(form._fields)} fields")
         if field_name == 'submit':
             continue
         else:
