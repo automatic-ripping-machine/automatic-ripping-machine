@@ -412,7 +412,7 @@ def save_settings():
         return jsonify({'success': task_success, 'settings': cfg.arm_config, 'form': form_name})
     else:
         # form is not valid
-        fields_errors = {field: errs for field, errs in form.errors.items()}
+        fields_errors = dict(sorted(form.errors.items()))
         app.logger.error(f"Error validating form: {form.errors}, I found these errors: {fields_errors}")
         flash(f"Error validating form: {form.errors}", "error")
         return jsonify({'error': True, 'message':"Validation Failed", 'errors': fields_errors})
@@ -433,8 +433,6 @@ def save_ui_settings():
     success = False
     arm_ui_cfg = UISettings.query.get(1)
     if ui_form.validate_on_submit():
-        # use_icons = (str(ui_form.use_icons.data).strip().lower() == "true")
-        # save_remote_images = (str(ui_form.save_remote_images.data).strip().lower() == "true")
         arm_ui_cfg.index_refresh = format(ui_form.index_refresh.data)
         arm_ui_cfg.use_icons = bool(str(ui_form.use_icons.data).strip().lower())
         arm_ui_cfg.save_remote_images = bool(str(ui_form.save_remote_images.data).strip().lower())
@@ -454,7 +452,7 @@ def save_ui_settings():
             app.logger.error(err_msg)
             return {'error': True, 'errors': str(err_msg), 'form': form_name}
     else:
-        fields_errors = {field: errs for field, errs in ui_form.errors.items()}
+        fields_errors = dict(sorted(ui_form.errors.items()))
         app.logger.error(f"Error validating form: {ui_form.errors}, I found these errors: {fields_errors}")
         return jsonify({'error': True, 'message':"Validation Failed", 'errors': fields_errors})
 

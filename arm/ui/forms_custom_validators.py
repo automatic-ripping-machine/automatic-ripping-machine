@@ -4,10 +4,10 @@ from wtforms.validators import IPAddress
 from wtforms import ValidationError
 from os import path
 
-# naming convention ignored to match Flask naming convention.
 # SonarQube: ignore function naming convention (rule S00100)
 # NOSONAR
 class IPAddress_custom(IPAddress):
+    # naming convention ignored to match Flask naming convention.
     """Custom IP address validator that allows X.X.X.X values."""
     def __init__(self, exception="x.x.x.x", message=None, ipv4=True, ipv6=False, ):
         self.message = message or "Invalid IP address. Use X.X.X.X to ignore."
@@ -20,7 +20,6 @@ class IPAddress_custom(IPAddress):
             if field_value.lower() == "x.x.x.x":
                 return
         super().__call__(form, field)
-
 
 class validate_path_exists():
     """Custom validator to check that a given path exists.
