@@ -66,7 +66,8 @@ def populate_form_fields(form: Form, data: Optional[dict[str, str]], titles: Opt
     # Set the nicer attributes for the form.
     if titles is not None:
         if isinstance(data, dict):
-            app.logger.debug(f"Titles were provided. Populating form with {len(form._fields)} fields, data is type{type(data)}, titles are {type(titles)} ")
+            app.logger.debug(f"Titles were provided. Populating form with {len(form._fields)} fields,\
+                              data is type{type(data)}, titles are {type(titles)} ")
             for field_name, field in form._fields.items():
                 if field_name == 'submit':
                     continue
@@ -81,19 +82,23 @@ def populate_form_fields(form: Form, data: Optional[dict[str, str]], titles: Opt
                     else:
                         app.logger.debug(f"Title for field {field_name} not found in titles dict")
             return form
-        else:
-            app.logger.debug(f"Titles were provided. Populating form with {len(form._fields)} fields, data is type{type(data)}, titles are {type(titles)} ")
-            for field_name, field in form._fields.items():
-                if field_name == 'submit':
+
+        app.logger.debug(f"Titles were provided. Populating form with {len(form._fields)} fields, \
+                            data is type{type(data)}, titles are {type(titles)} ")
+        for field_name, field in form._fields.items():
+            if field_name == 'submit':
+                continue
+            else:
+                if not hasattr(data, field_name):
+                    app.logger.debug(f"Field {field_name} not found in data object")
                     continue
-                else:
-                    if not hasattr(data, field_name):
-                        app.logger.debug(f"Field {field_name} not found in data object")
-                        continue
-                    field.data = getattr(data, field_name)
-                    field.render_kw = {'title': titles[field_name]}
-                    app.logger.debug(f"{starter}{field_name} {ender}{field.data} ")
-            return form
+                field.data = getattr(data, field_name)
+                field.render_kw = {'title': titles[field_name]}
+                app.logger.debug(f"{starter}{field_name} {ender}{field.data} ")
+        return form
+    else:
+        app.logger.error(f"No TITLES provided Populating form with {len(form._fields)} fields")
+
 
     for field_name, field in form._fields.items():
         
