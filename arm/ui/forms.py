@@ -113,7 +113,7 @@ def form_field_chooser(
 
     Args:
         fieldType (str): create [SelectField, RadioField, IntegerField, FloatField, StringField]
-        fieldDefault (str): default value for the field
+        fieldDefault (str): default value for the field # To Do
         key (str): field name
         commentValue (str): Field description for tooltip
         validators (list|None): list of validators to apply to the field
@@ -136,8 +136,8 @@ def form_field_chooser(
     if field_type in ("SelectField", "RadioField"):
         # SelectField with a list of choices
         if not isinstance(field_default, list):
-            app.logger.exception(f"Expected fieldDefault to be a list for {key}, got {type(field_default)}")
-            raise ValueError(f"Expected fieldDefault to be a list for {key}, got {type(field_default)}")
+            app.logger.exception(f"Expected the passed fields to be a list for {key}, got {type(field_default)}")
+            raise ValueError(f"Expected the passed fields to be a list for {key}, got {type(field_default)}")
         paired_list = ui_utils.list_copaired_into_tuple(field_default)
         f = create_single_choice_field(
             field_type=field_type,
@@ -152,7 +152,6 @@ def form_field_chooser(
         return IntegerField(
             label=key,
             description=comment_value,
-            # default=int(fieldDefault),
             validators=validators,
             render_kw={'title': comment_value}
             )
@@ -160,7 +159,6 @@ def form_field_chooser(
         return FloatField(
             label=key,
             description=comment_value,
-            # default=float(fieldDefault),
             validators=validators,
             render_kw={'title': comment_value}
         )
@@ -168,7 +166,6 @@ def form_field_chooser(
         return StringField(
             label=key,
             description=comment_value,
-            # default=str(fieldDefault),
             validators=validators,
             render_kw={'title': comment_value}
         )
@@ -177,7 +174,6 @@ def form_field_chooser(
         return StringField(
             label=key,
             description=comment_value,
-            # default=str(fieldDefault),
             validators=validators,
             render_kw={'title': comment_value}
         )
