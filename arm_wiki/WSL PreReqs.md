@@ -1,9 +1,14 @@
 # WSL Pre-Requirements
 
-## Step 1. Install WSL [MS Learn](https://learn.microsoft.com/en-us/windows/wsl/install)
-## Step 2. Install usbipd, bind, and attach DVD Drive.
+## Step 1. WSL 
 
-Follow install of usbipd [here](https://github.com/dorssel/usbipd-win?tab=readme-ov-file)
+Follow this [guide](https://learn.microsoft.com/en-us/windows/wsl/install) to install WSL.
+## Step 2. [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+When Docker Desktop starts, go to Settings > Resources > WSL Integration. Toggle on the WSL Distro you installed.
+
+## Step 3. Install usbipd, bind, and attach.
+Follow install of usbipd [here](https://github.com/dorssel/usbipd-win?tab=readme-ov-file).
+
 In an Admin privledged CMD, run
 ```CMD
 usbipd list
@@ -15,7 +20,7 @@ usbipd attach --wsl --busid <busid>
 ```
 This attachs the USB to the WSL image. If it errors out on you, you're probably missing packages/tools in your WSL image.
 
-## Step 3. (Optional) Update and install components inside WSL image
+## Step 4. (Optional) Update and install components inside WSL image
 ```bash
 sudo apt update
 ```
@@ -36,5 +41,5 @@ Device Drivers ---> SCSI device support --->
 <*> SCSI disk support
 ```
 
-If not installed, enable them, and follow Step 1 of this [guide](https://www.starwindsoftware.com/blog/enable-block-storage-devices-in-wsl2/)
+If not installed, enable them, and follow Step 1 on this [guide](https://www.starwindsoftware.com/blog/enable-block-storage-devices-in-wsl2/)
 
