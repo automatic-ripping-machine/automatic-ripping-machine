@@ -2,6 +2,7 @@
 """FFMPEG processing of dvd/blu-ray"""
 
 import os
+import pathlib
 import logging
 import subprocess
 import shlex
@@ -75,7 +76,7 @@ def probe_source(src_path):
         return None
 
 
-def parse_probe_output(json_str):
+def parse_probe_output(json_str, input_filename="", index_offset=0):
     """
     Parse the output of the ffprobe command JSON string, then normalise and return
     the important video track info.
@@ -108,7 +109,7 @@ def parse_probe_output(json_str):
         # If there aren't any individual video streams in the file
         # Return a generated fallback track using global file info
         return [{
-            'title': 1,
+            'title': 1 + index_offset,
             'duration': container_duration,
             'fps': 0.0,
             'aspect': 0,
@@ -139,13 +140,17 @@ def parse_probe_output(json_str):
         aspect = _compute_aspect(width, height)
 
         # add the extracted track info to the tracks list
+        logging.debug(
+            f"Track #{int(index + index_offset):02} Duration: {dur: >4} fps: {float(fps):2.3f} "
+            f"aspect: {aspect: >4} filename: {input_filename}")
         tracks.append({
-            'title': index,
+            'title': index + index_offset,
             'duration': dur,
             'fps': fps,
             'aspect': aspect,
             'codec': stream.get('codec_name'),
             'stream_index': stream.get('index'),
+            'filename': input_filename
         })
 
     return tracks
@@ -206,7 +211,8 @@ def evaluate_and_register_tracks(tracks, job):
                         t.get('aspect', 0),
                         float(t.get('fps', 0.0)),
                         bool(is_main),
-                        "FFmpeg")
+                        "FFmpeg",
+                        filename=t.get('filename') or "")
 
 
 def ffmpeg_main_feature(src_path, out_path, job):
@@ -310,12 +316,14 @@ def ffmpeg_all(src_path, base_path, job):
 
             logging.info(f"Transcoding title {track.track_number} to {shlex.quote(out_file_path)}")
 
-            track.filename = track.orig_filename = out_file_name
+            # set the orig_filename to the filename and the filename to the new out_file_name
+            track.orig_filename = track.filename
+            track.filename = out_file_name
             db.session.commit()
 
             try:
-                # Transcode the title
-                run_transcode_cmd(src_path, out_file_path, job)
+                # Transcode the title - use the orig_filname as the target for ffprobe and ffmpeg
+                run_transcode_cmd(os.path.join(src_path, track.orig_filename), out_file_path, job)
                 track.status = "success"
             except subprocess.CalledProcessError as ff_error:
                 err = f"FFMPEG encoding of title {track.track_number} failed with code: {ff_error.returncode}"
@@ -387,14 +395,33 @@ def get_track_info(src_path, job):
     """
     logging.info("Using ffprobe to get information on tracks. This will take a few moments...")
 
-    # Orchestrate probing and registering via helpers
-    probe_json = probe_source(src_path)
-    if not probe_json:
-        logging.info("ffprobe returned no data; registering fallback track")
-        utils.put_track(job, 0, 0, 0, 0.0, False, "FFmpeg")
-        return
+    # Check the BDMV/STREAM directory if it exists; otherwise just scan the single title
+    tracks = []
+    bdmv_stream = os.path.join(src_path, "BDMV/STREAM")
+    offset = 0
+    if pathlib.Path(bdmv_stream).is_dir():
+        logging.info(f"Running ffprobe on files in {bdmv_stream} dir")
+        for filename in os.listdir(bdmv_stream):
+            # Orchestrate probing of all stream files and registering via helpers
+            full_file = os.path.join(bdmv_stream, filename)
+            probe_json = probe_source(full_file)
+            if not probe_json:
+                logging.info(f"ffprobe returned no data for {full_file}; skipping...")
+                continue
 
-    tracks = parse_probe_output(probe_json)
+            title_tracks = parse_probe_output(probe_json, input_filename=full_file, index_offset=offset)
+            if title_tracks:
+                offset += 1
+                tracks.extend(title_tracks)
+    else:
+        # Orchestrate probing and registering via helpers
+        probe_json = probe_source(src_path)
+        if not probe_json:
+            logging.info("ffprobe returned no data; registering fallback track")
+            utils.put_track(job, 0, 0, 0, 0.0, False, "FFmpeg")
+            return
+        tracks = parse_probe_output(probe_json)
+
     if not tracks:
         logging.info("No tracks parsed from ffprobe; registering fallback track")
         utils.put_track(job, 0, 0, 0, 0.0, False, "FFmpeg")
@@ -490,9 +517,9 @@ def run_transcode_cmd(src_file, out_file, job, ff_pre_args="", ff_post_args=""):
         # We can continue without progress reporting if this fails
 
         # Build the ffmpeg command without progress reporting
-    cmd = (f"{cfg.arm_config['FFMPEG_CLI']} {ff_pre_args} -i {shlex.quote(src_file)} "
+    cmd = (f"{cfg.arm_config['FFMPEG_CLI']} {ff_pre_args or ''} -i {shlex.quote(src_file)} "
            f"{'-progress pipe:1 ' if logging.getLogger().isEnabledFor(logging.DEBUG) else ''}"
-           f"{ff_post_args} {shlex.quote(out_file)}")
+           f"{ff_post_args or ''} {shlex.quote(out_file)}")
 
     logging.debug(f"FFMPEG command: {cmd}")
 
