@@ -771,12 +771,22 @@ function DownloadArm () {
 
   #Clone git repo, pin to latest release tag
 
-  mkdir arm
-  chown -R arm:arm arm
+  # if you are re-running the script, skip the clone and do a fetch instead.
+  DIR="arm"
+  if [ -d "$DIR" ] && [ "$(stat -c %U "$DIR")" == "arm" ] [ -d "$DIR"/.git ] ; then
+    echo -e "${GREEN}Arm directory already exists, skipping clone...${NC}"
+    cd arm
+    sudo -u arm git fetch origin "${Tag}"
+    sudo -u arm git submodule update --init --recursive
+    cd .. || { echo -e "${RED}Failed to return to previous directory${NC}"; exit 1; }
+  else
+    
+    mkdir arm
+    chown -R arm:arm arm
 
-  sudo -u arm git clone --recurse-submodules --branch "${Tag}" \
-    "https://github.com/${Fork}/automatic-ripping-machine"  arm
-
+    sudo -u arm git clone --recurse-submodules --branch "${Tag}" \
+      "https://github.com/${Fork}/automatic-ripping-machine"  arm
+  fi
 
   #Copy clean copies of config files to etc folder.
   mkdir -p /etc/arm/config
