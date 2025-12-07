@@ -57,15 +57,19 @@ def correct_ffmpeg_settings(job):
     return ff_pre_args, ff_post_args
 
 
-def probe_source(src_path):
+def probe_source(src_path, playlist_number=None, is_bluray=False):
     """
     Run ffprobe on src_path and return JSON string or None on failure.
 
     This is a small wrapper around subprocess.check_output so callers can
     focus on parsing and error handling.
-    """
 
-    cmd = f"ffprobe -v error -print_format json -show_format -show_streams {shlex.quote(src_path)}"
+    Sometimes playlist files need to be supplied as this is a video title on a bluray. For example:
+    >>> fprobe -probesize 3G -analyzeduration 1800M -playlist 820 bluray:/path/to/br
+    """
+    bluray_protocol = "bluray:" if is_bluray else ""
+    playlist_number_arg = f"-playlist {playlist_number}" if playlist_number else ''
+    cmd = f"ffprobe -v error -print_format json -show_format -show_streams {playlist_number_arg} -i {bluray_protocol}{shlex.quote(src_path)}"
     logging.debug(f"FFProbe command: {cmd}")
     try:
         out = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
@@ -76,7 +80,7 @@ def probe_source(src_path):
         return None
 
 
-def parse_probe_output(json_str, input_filename="", index_offset=0):
+def parse_probe_output(json_str, input_filename="", title_override=0):
     """
     Parse the output of the ffprobe command JSON string, then normalise and return
     the important video track info.
@@ -109,7 +113,7 @@ def parse_probe_output(json_str, input_filename="", index_offset=0):
         # If there aren't any individual video streams in the file
         # Return a generated fallback track using global file info
         return [{
-            'title': 1 + index_offset,
+            'title': 1,
             'duration': container_duration,
             'fps': 0.0,
             'aspect': 0,
@@ -119,6 +123,7 @@ def parse_probe_output(json_str, input_filename="", index_offset=0):
 
     tracks = []
     for index, stream in enumerate(video_streams, start=1):
+        # TODO: values we actually need: stream_index, the playlist number, and the filename
         # if the stream has a duration extract that otherwise just use the file's
         dur = None
         if stream.get('duration'):
@@ -141,14 +146,15 @@ def parse_probe_output(json_str, input_filename="", index_offset=0):
 
         # add the extracted track info to the tracks list
         logging.debug(
-            f"Track #{int(index + index_offset):02} Duration: {dur: >4} fps: {float(fps):2.3f} "
+            f"Track #{int(title_override if title_override else index):02} Duration: {dur: >4} fps: {float(fps):2.3f} "
             f"aspect: {aspect: >4} filename: {input_filename}")
         tracks.append({
-            'title': index + index_offset,
+            'title': title_override if title_override else index,
             'duration': dur,
             'fps': fps,
             'aspect': aspect,
             'codec': stream.get('codec_name'),
+            # ffmpeg can select select during transcode step
             'stream_index': stream.get('index'),
             'filename': input_filename
         })
@@ -316,14 +322,12 @@ def ffmpeg_all(src_path, base_path, job):
 
             logging.info(f"Transcoding title {track.track_number} to {shlex.quote(out_file_path)}")
 
-            # set the orig_filename to the filename and the filename to the new out_file_name
-            track.orig_filename = track.filename
-            track.filename = out_file_name
+            track.filename = track.orig_filename = out_file_name
             db.session.commit()
 
             try:
-                # Transcode the title - use the orig_filname as the target for ffprobe and ffmpeg
-                run_transcode_cmd(os.path.join(src_path, track.orig_filename), out_file_path, job)
+                # Transcode the title
+                run_transcode_cmd(src_path, out_file_path, job, playlist_number=track.track_number)
                 track.status = "success"
             except subprocess.CalledProcessError as ff_error:
                 err = f"FFMPEG encoding of title {track.track_number} failed with code: {ff_error.returncode}"
@@ -395,31 +399,35 @@ def get_track_info(src_path, job):
     """
     logging.info("Using ffprobe to get information on tracks. This will take a few moments...")
 
-    # Check the BDMV/STREAM directory if it exists; otherwise just scan the single title
+    # Check the BDMV/STREAM/PLAYLIST directory if it exists; otherwise just scan the single title
+    # Use -i bluray: if we are looking at a bluray
     tracks = []
-    bdmv_stream = os.path.join(src_path, "BDMV/STREAM")
+    bdmv_playlist = os.path.join(src_path, "BDMV/PLAYLIST")
     offset = 0
-    if pathlib.Path(bdmv_stream).is_dir():
-        logging.info(f"Running ffprobe on files in {bdmv_stream} dir")
-        for filename in os.listdir(bdmv_stream):
-            # Orchestrate probing of all stream files and registering via helpers
-            full_file = os.path.join(bdmv_stream, filename)
-            probe_json = probe_source(full_file)
-            if not probe_json:
-                logging.info(f"ffprobe returned no data for {full_file}; skipping...")
-                continue
+    if pathlib.Path(bdmv_playlist).is_dir():
+        for _, _, files in os.walk(bdmv_playlist):
+            logging.info(f"Running ffprobe on files on BluRay/DVD in {bdmv_playlist} dir")
+            for file in files:
+                bdmv_playlist_number = pathlib.Path(file).stem
+                # TODO [CMB] we need to use `-i bluray:<path/to/raw>`
+                probe_json = probe_source(src_path, playlist_number=bdmv_playlist_number, is_bluray=(job.disctype == "bluray"))
+                if not probe_json:
+                    logging.info(f"ffprobe returned no data for playlist {file}; skipping...")
 
-            title_tracks = parse_probe_output(probe_json, input_filename=full_file, index_offset=offset)
-            if title_tracks:
-                offset += 1
-                tracks.extend(title_tracks)
+                # TODO [CMB] we need to know the playlist number when we are doing the transcoding
+                title_tracks = parse_probe_output(probe_json, title_override=int(bdmv_playlist_number.lstrip('0')))
+                if title_tracks:
+                    offset += 1
+                    tracks.extend(title_tracks)
     else:
         # Orchestrate probing and registering via helpers
         probe_json = probe_source(src_path)
+
         if not probe_json:
             logging.info("ffprobe returned no data; registering fallback track")
             utils.put_track(job, 0, 0, 0, 0.0, False, "FFmpeg")
             return
+
         tracks = parse_probe_output(probe_json)
 
     if not tracks:
@@ -497,19 +505,31 @@ def ffmpeg_mkv(src_path, base_path, job):
     logging.debug(f"\n\r{job.pretty_table()}")
 
 
-def run_transcode_cmd(src_file, out_file, job, ff_pre_args="", ff_post_args=""):
+def run_transcode_cmd(src_file, out_file, job, playlist_number=None, ff_pre_args="", ff_post_args=""):
     """
     Run the FFmpeg command and capture the progress for the progress bar in the ui
+    :param src_file: path to the src_file or directory
+    :param out_file: path to the output file after the transcode
+    :param playlist_number: optional playlist number to specify when ripping
+    :param ff_pre_args: arguments to prefix before the input file
+    :param ff_post_args: arguments to put after the input file
+    :return None
+    :raises if ffmpeg transcoding fails, an error is raised
     """
     if not ff_pre_args or not ff_post_args:
         ff_pre_args, ff_post_args = correct_ffmpeg_settings(job)
 
     # Get the total duration of the source file using ffprobe for progress calculation (in microseconds)
     total_duration = 0
+    playlist_number_arg = f"-playlist {playlist_number}" if playlist_number else ''
+    bluray_protocol = 'bluray:' if job.disctype == 'bluray' else ''
     try:
+        # [CMB]: the correct way to get duration if we are using playlist files
+        # ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 -playlist {track_number} -i bluray:{src_file}
         duration_sec_str = subprocess.check_output(
             f"ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "
-            f"{shlex.quote(src_file)}",
+            f"{playlist_number_arg} "
+            f"-i {bluray_protocol}{shlex.quote(src_file)}",
             shell=True, stderr=subprocess.STDOUT).decode('utf-8').strip()
         total_duration = int(float(duration_sec_str) * 1_000_000)
     except (subprocess.CalledProcessError, ValueError) as e:
@@ -517,7 +537,7 @@ def run_transcode_cmd(src_file, out_file, job, ff_pre_args="", ff_post_args=""):
         # We can continue without progress reporting if this fails
 
         # Build the ffmpeg command without progress reporting
-    cmd = (f"{cfg.arm_config['FFMPEG_CLI']} {ff_pre_args or ''} -i {shlex.quote(src_file)} "
+    cmd = (f"{cfg.arm_config['FFMPEG_CLI']} {ff_pre_args or ''} -i {bluray_protocol}{shlex.quote(src_file)} "
            f"{'-progress pipe:1 ' if logging.getLogger().isEnabledFor(logging.DEBUG) else ''}"
            f"{ff_post_args or ''} {shlex.quote(out_file)}")
 
