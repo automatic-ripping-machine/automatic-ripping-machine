@@ -398,7 +398,7 @@ def get_track_info(src_path, job):
     """
     logging.info("Using ffprobe to get information on tracks. This will take a few moments...")
 
-    # Check the BDMV/STREAM/PLAYLIST directory if it exists; otherwise just scan the single title
+    # Check the BDMV/PLAYLIST directory if it exists; otherwise just scan the single title
     # Use -i bluray: if we are looking at a bluray
     tracks = []
     bdmv_playlist = os.path.join(src_path, "BDMV/PLAYLIST")
