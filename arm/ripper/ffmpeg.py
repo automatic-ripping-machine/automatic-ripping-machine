@@ -69,7 +69,11 @@ def probe_source(src_path, playlist_number=None, is_bluray=False):
     """
     bluray_protocol = "bluray:" if is_bluray else ""
     playlist_number_arg = f"-playlist {playlist_number}" if playlist_number else ''
-    cmd = f"ffprobe -v error -print_format json -show_format -show_streams {playlist_number_arg} -i {bluray_protocol}{shlex.quote(src_path)}"
+    cmd = (
+        f"ffprobe -v error -print_format json -show_format -show_streams "
+        f"{playlist_number_arg} "
+        f"-i {bluray_protocol}{shlex.quote(src_path)}"
+    )
     logging.debug(f"FFProbe command: {cmd}")
     try:
         out = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
@@ -168,7 +172,7 @@ def _parse_fps(fps_raw):
     try:
         if '/' in fps_raw:
             num, den = fps_raw.split('/')
-            return float(num) / float(den)
+            return float(num) / float(den)https://github.com/malk-on/av1-qsv-intel-arc-guide
         return float(fps_raw)
     except Exception:
         return 0.0
@@ -407,7 +411,11 @@ def get_track_info(src_path, job):
             logging.info(f"Running ffprobe on files on BluRay/DVD in {bdmv_playlist} dir")
             for file in files:
                 bdmv_playlist_number = pathlib.Path(file).stem
-                probe_json = probe_source(src_path, playlist_number=bdmv_playlist_number, is_bluray=(job.disctype == "bluray"))
+                probe_json = probe_source(
+                    src_path,
+                    playlist_number=bdmv_playlist_number,
+                    is_bluray=(job.disctype == "bluray")
+                )
                 if not probe_json:
                     logging.info(f"ffprobe returned no data for playlist {file}; skipping...")
 
@@ -520,8 +528,8 @@ def run_transcode_cmd(src_file, out_file, job, playlist_number=None, ff_pre_args
     playlist_number_arg = f"-playlist {playlist_number}" if playlist_number else ''
     bluray_protocol = 'bluray:' if job.disctype == 'bluray' else ''
     try:
-        # [CMB]: the correct way to get duration if we are using playlist files
-        # ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 -playlist {track_number} -i bluray:{src_file}
+        # [CMB]: the correct way to get duration if we are using playlist files from a bluray
+        # includes the following arguments: -playlist {track_number} -i bluray:{src_file}
         duration_sec_str = subprocess.check_output(
             f"ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "
             f"{playlist_number_arg} "
