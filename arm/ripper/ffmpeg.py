@@ -123,7 +123,6 @@ def parse_probe_output(json_str, input_filename="", title_override=0):
 
     tracks = []
     for index, stream in enumerate(video_streams, start=1):
-        # TODO: values we actually need: stream_index, the playlist number, and the filename
         # if the stream has a duration extract that otherwise just use the file's
         dur = None
         if stream.get('duration'):
@@ -403,21 +402,18 @@ def get_track_info(src_path, job):
     # Use -i bluray: if we are looking at a bluray
     tracks = []
     bdmv_playlist = os.path.join(src_path, "BDMV/PLAYLIST")
-    offset = 0
     if pathlib.Path(bdmv_playlist).is_dir():
         for _, _, files in os.walk(bdmv_playlist):
             logging.info(f"Running ffprobe on files on BluRay/DVD in {bdmv_playlist} dir")
             for file in files:
                 bdmv_playlist_number = pathlib.Path(file).stem
-                # TODO [CMB] we need to use `-i bluray:<path/to/raw>`
                 probe_json = probe_source(src_path, playlist_number=bdmv_playlist_number, is_bluray=(job.disctype == "bluray"))
                 if not probe_json:
                     logging.info(f"ffprobe returned no data for playlist {file}; skipping...")
 
-                # TODO [CMB] we need to know the playlist number when we are doing the transcoding
+                # [CMB] we need to know the playlist number when we are doing the transcoding
                 title_tracks = parse_probe_output(probe_json, title_override=int(bdmv_playlist_number.lstrip('0')))
                 if title_tracks:
-                    offset += 1
                     tracks.extend(title_tracks)
     else:
         # Orchestrate probing and registering via helpers
