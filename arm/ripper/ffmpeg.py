@@ -172,7 +172,7 @@ def _parse_fps(fps_raw):
     try:
         if '/' in fps_raw:
             num, den = fps_raw.split('/')
-            return float(num) / float(den)https://github.com/malk-on/av1-qsv-intel-arc-guide
+            return float(num) / float(den)
         return float(fps_raw)
     except Exception:
         return 0.0
