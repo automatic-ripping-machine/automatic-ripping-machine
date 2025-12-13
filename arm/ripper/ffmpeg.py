@@ -66,6 +66,8 @@ def probe_source(src_path, playlist_number=None, is_bluray=False):
 
     Sometimes playlist files need to be supplied as this is a video title on a bluray. For example:
     >>> fprobe -probesize 3G -analyzeduration 1800M -playlist 820 bluray:/path/to/br
+
+    ffprobe uses stderr to print error output even if the command succeeds
     """
     bluray_protocol = "bluray:" if is_bluray else ""
     playlist_number_arg = f"-playlist {playlist_number}" if playlist_number else ''
@@ -76,7 +78,7 @@ def probe_source(src_path, playlist_number=None, is_bluray=False):
     )
     logging.debug(f"FFProbe command: {cmd}")
     try:
-        out = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
+        out = subprocess.check_output(cmd, shell=True, stderr=subprocess.PIPE).decode('utf-8')
         logging.debug(f"ffprobe output: {out}")
         return out
     except subprocess.CalledProcessError as e:
@@ -530,11 +532,12 @@ def run_transcode_cmd(src_file, out_file, job, playlist_number=None, ff_pre_args
     try:
         # [CMB]: the correct way to get duration if we are using playlist files from a bluray
         # includes the following arguments: -playlist {track_number} -i bluray:{src_file}
+        # ffprobe uses stderr to print error output even if the command succeeds
         duration_sec_str = subprocess.check_output(
             f"ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "
             f"{playlist_number_arg} "
             f"-i {bluray_protocol}{shlex.quote(src_file)}",
-            shell=True, stderr=subprocess.STDOUT).decode('utf-8').strip()
+            shell=True, stderr=subprocess.PIPE).decode('utf-8').strip()
         total_duration = int(float(duration_sec_str) * 1_000_000)
     except (subprocess.CalledProcessError, ValueError) as e:
         logging.error(f"Could not get duration from ffprobe: {e}")
