@@ -159,7 +159,7 @@ def parse_probe_output(json_str, input_filename="", title_override=0):
             'fps': fps,
             'aspect': aspect,
             'codec': stream.get('codec_name'),
-            # ffmpeg can select select during transcode step
+            # ffmpeg can select stream during transcode step
             'stream_index': stream.get('index'),
             'filename': input_filename
         })
