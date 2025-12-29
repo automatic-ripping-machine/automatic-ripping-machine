@@ -762,7 +762,6 @@ def rip_mainfeature(job, track, rawpath):
         "mkv",
     ]
     cmd += shlex.split(job.config.MKV_ARGS)
-    
         f"--progress={progress_log(job)}",
         f"dev:{job.devpath}",
         track.track_number,
