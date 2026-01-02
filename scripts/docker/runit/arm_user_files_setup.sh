@@ -88,6 +88,7 @@ for conf in $CONFS; do
     echo "Config not found! Creating config file: ${thisConf}"
     # Don't overwrite with defaults during reinstall
     cp --update=none "/opt/arm/setup/${conf}" "${thisConf}"
+    chown arm:arm "${thisConf}"
   fi
 done
 
