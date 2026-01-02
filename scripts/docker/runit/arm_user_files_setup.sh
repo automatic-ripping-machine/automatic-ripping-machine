@@ -87,7 +87,7 @@ for conf in $CONFS; do
   if [[ ! -f "${thisConf}" ]] ; then
     echo "Config not found! Creating config file: ${thisConf}"
     # Don't overwrite with defaults during reinstall
-    cp --no-clobber "/opt/arm/setup/${conf}" "${thisConf}"
+    cp --update=none "/opt/arm/setup/${conf}" "${thisConf}"
   fi
 done
 
