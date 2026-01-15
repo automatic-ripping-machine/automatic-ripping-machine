@@ -690,21 +690,27 @@ def makemkv_mkv(job, rawpath):
 
             # Setting rawpath to None to set the job as failed when returning to arm_ripper
             rawpath = None
-    # if no maximum length, process the whole disc in one command
+    # if no maximum length, rip only the main feature (longest track)
     elif int(job.config.MAXLENGTH) > 99998:
-        cmd = [
-            "mkv",
-        ]
-        cmd += shlex.split(job.config.MKV_ARGS)
-        cmd += [
-            f"--progress={progress_log(job)}",
-            f"dev:{job.devpath}",
-            "all",
-            rawpath,
-            f"--minlength={job.config.MINLENGTH}",
-        ]
-        logging.info("Process all tracks from disc.")
-        collections.deque(run(cmd, OutputType.MSG), maxlen=0)
+        logging.info("MAXLENGTH unlimited - ripping main feature (longest track) only")
+        track = Track.query.filter_by(job_id=job.job_id).order_by(Track.length.desc()).first()
+        if track:
+            rip_mainfeature(job, track, rawpath)
+        else:
+            logging.warning("No tracks found, falling back to ripping all")
+            cmd = [
+                "mkv",
+            ]
+            cmd += shlex.split(job.config.MKV_ARGS)
+            cmd += [
+                f"--progress={progress_log(job)}",
+                f"dev:{job.devpath}",
+                "all",
+                rawpath,
+                f"--minlength={job.config.MINLENGTH}",
+            ]
+            logging.info("Process all tracks from disc.")
+            collections.deque(run(cmd, OutputType.MSG), maxlen=0)
     else:
         process_single_tracks(job, rawpath, 'auto')
 
