@@ -9,6 +9,21 @@
         top: 200px;
         left: 200px;
     }
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+    }
+    .btn-group-fieldset {
+        border: 0;
+        margin: 0;
+        padding: 0;
+    }
 </style>
     <div class="container-fluid h-100 mx-auto">
         <!-- Header image -->
@@ -28,9 +43,9 @@
             </div>
         </div>
         <!-- Modal -->
-        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle"
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalCenterTitle"
              aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="exampleModalLongTitle">Search Database</h5>
@@ -57,6 +72,7 @@
                 </div>
             </div>
         </div>
+        
         <!-- Messages -->
         <div id="message1" class="alert alert-success d-none" role="alert">
             <h4 class="alert-heading">Job was deleted successfully</h4>
@@ -95,7 +111,7 @@
                         <div class="col-md-4" id="jobId{{ job.job_id }}">
                             <div class="card mb-3  mx-auto">
                                 <!-- Card Header -->
-                                <div class="card-header row no-gutters justify-content-center">
+                                <div class="card-header text-center">
                                     <strong>
                                      {% if not job.title_manual %}
                                         {{ job["title"] }} {{ '('+job['year']+')' if job["year"] is not none }}
@@ -161,7 +177,8 @@
                                                 Length: </strong>{{ job.config.MAXLENGTH }}</div>
                                         </div>
                                         <div class="card-body px-2 py-1">
-                                            <div class="btn-group-vertical" role="group" aria-label="buttons">
+                                            <fieldset class="btn-group-vertical btn-group-fieldset" aria-label="Job actions">
+                                                <legend class="sr-only">Job actions</legend>
                                                 <button type="button" class="btn btn-primary" data-toggle="modal"
                                                         data-target="#exampleModal" data-type="abandon"
                                                         data-jobid="{{ job.job_id }}"
@@ -185,7 +202,7 @@
                                                     Permissions
                                                 </button>
 
-                                            </div>
+                                            </fieldset>
                                         </div>
                                     </div>
 

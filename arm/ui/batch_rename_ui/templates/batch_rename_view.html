@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block content %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<style>
+    .batch-table-row {
+        transition: background-color 0.2s;
+        cursor: pointer;
+    }
+    .batch-table-row.selected {
+        background-color: rgba(255, 193, 7, 0.2) !important;
+    }
+    .batch-table-row:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    .dark-mode .batch-table-row:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    .batch-checkbox {
+        transform: scale(1.3);
+        cursor: pointer;
+    }
+    .poster-thumbnail {
+        width: 60px;
+        height: 90px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+    .batch-toolbar {
+        position: sticky;
+        top: 80px;
+        z-index: 1030;
+        background: white;
+        padding: 15px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        margin-bottom: 20px;
+        border-radius: 8px;
+    }
+    .dark-mode .batch-toolbar {
+        background: #1a1a1a;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    }
+    .batch-table {
+        font-size: 0.95rem;
+    }
+    .batch-table th {
+        background: white;
+        font-weight: bold;
+    }
+    .dark-mode .batch-table th {
+        background: #1a1a1a;
+    }
+    .batch-table tbody {
+        position: relative;
+    }
+    .title-cell {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+    }
+    .btn-group-fieldset {
+        border: 0;
+        margin: 0;
+        padding: 0;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12 text-center">
+            <img src="static/img/arm80.png" alt="Automatic Ripping Machine">
+            <h3 class="mt-3"><strong>Batch Operations - Completed Discs</strong></h3>
+            <p class="text-muted">Select multiple discs for batch rename or custom identification lookup</p>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="batch-toolbar rounded">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h5 class="mb-0">
+                    <span id="selection-count">0</span> disc(s) selected
+                </h5>
+            </div>
+            <div class="col-md-6 text-right">
+                <div class="btn-toolbar justify-content-end">
+                    <fieldset class="btn-group btn-group-fieldset mr-2">
+                        <legend class="sr-only">Selection controls</legend>
+                        <button id="select-all-btn" type="button" class="btn btn-info">
+                            <i class="fa fa-check-square"></i> Select All
+                        </button>
+                        <button id="deselect-all-btn" type="button" class="btn btn-secondary">
+                            <i class="fa fa-square"></i> Deselect All
+                        </button>
+                        <button id="filter-series-btn" type="button" class="btn btn-primary">
+                            <i class="fa fa-filter"></i> TV Series Only
+                        </button>
+                    </fieldset>
+                    <fieldset class="btn-group btn-group-fieldset">
+                        <legend class="sr-only">Batch actions</legend>
+                        <button id="custom-lookup-btn" type="button" class="btn btn-success btn-lg" disabled style="white-space: nowrap; min-width: 230px;">
+                            <i class="fa fa-search"></i> Batch Identify Selected
+                        </button>
+                        <button id="batch-rename-btn" type="button" class="btn btn-warning btn-lg" disabled style="white-space: nowrap; min-width: 230px;">
+                            <i class="fa fa-edit"></i> Batch Rename Selected
+                        </button>
+                    </fieldset>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table View -->
+    <div class="table-responsive">
+        <table class="table table-hover batch-table" id="jobs-table">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">
+                        <input type="checkbox" id="select-all-checkbox" class="batch-checkbox" title="Select/Deselect All">
+                    </th>
+                    <th style="width: 80px;">Poster</th>
+                    <th>Title</th>
+                    <th style="width: 80px;">Year</th>
+                    <th style="width: 120px;">Type</th>
+                    <th>Label</th>
+                    <th style="width: 140px;">Started</th>
+                    <th style="width: 100px;" title="View detailed job information">Details</th>
+                </tr>
+            </thead>
+            <tbody id="jobs-table-body">
+                {% for job in jobs %}
+                <tr class="batch-table-row job-table-row" 
+                    data-video-type="{{ job.video_type }}"
+                    data-job-id="{{ job.job_id }}"
+                    data-status="{{ job.status }}">
+                    <td class="text-center">
+                        <input type="checkbox" class="batch-checkbox" 
+                               data-job-id="{{ job.job_id }}"
+                               data-video-type="{{ job.video_type }}"
+                               data-status="{{ job.status }}">
+                    </td>
+                    <td>
+                        {% if not job.poster_url or job.poster_url == "None" %}
+                            {% if job.video_type == "Music" %}
+                                <img src="static/img/music.png" alt="No Poster" class="poster-thumbnail">
+                            {% else %}
+                                <img src="static/img/none.png" alt="No Poster" class="poster-thumbnail">
+                            {% endif %}
+                        {% else %}
+                            <img src="{{ job.poster_url }}" alt="Poster" class="poster-thumbnail">
+                        {% endif %}
+                    </td>
+                    <td class="title-cell" title="{{ job.title_manual if job.title_manual else job.title }}">
+                        <strong>
+                        {% if job.title_manual %}
+                            {{ job.title_manual }}
+                        {% else %}
+                            {{ job.title }}
+                        {% endif %}
+                        </strong>
+                    </td>
+                    <td>
+                        {% if job.year and job.year != '0000' and job.year != '' %}
+                            {{ job.year }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if job.video_type == 'series' %}
+                            <span class="badge badge-success">TV Series</span>
+                        {% elif job.video_type == 'movie' %}
+                            <span class="badge badge-primary">Movie</span>
+                        {% else %}
+                            <span class="badge badge-secondary">{{ job.video_type }}</span>
+                        {% endif %}
+                    </td>
+                    <td title="{{ job.label if job.label }}">
+                        {% if job.label %}
+                            {{ job.label[:30] }}{{ '...' if job.label|length > 30 }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if job.start_time %}
+                            {{ job.start_time.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="jobdetail?job_id={{ job.job_id }}" 
+                           class="btn btn-sm btn-outline-primary" 
+                           title="View Details">
+                            <i class="fa fa-info-circle"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        {% if not jobs %}
+        <div class="text-center py-5">
+            <h4 class="text-muted">No completed discs found</h4>
+            <p>Completed discs will appear here for batch renaming</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Include modal components -->
+{% include "modals/modal_batch_rename.html" %}
+{% include "modals/modal_custom_lookup.html" %}
+
+{% endblock %}
+
+{% block footer %}{{ super() }}{% endblock %}
+
+{% block js %}
+    {{ super() }}
+    <script type="application/javascript">activeTab("navbatchrename");</script>
+    <!-- Load shared batch rename utilities first -->
+    <script type="application/javascript" src="static/js/batch_rename_shared.js"></script>
+    <!-- Then load page-specific batch rename functionality -->
+    <script type="application/javascript" src="static/js/batch_rename_page.js"></script>
+{% endblock %}

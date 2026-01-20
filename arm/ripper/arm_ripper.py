@@ -12,6 +12,109 @@ from arm.ui import app, db, constants  # noqa E402
 from arm.models.job import JobState  # noqa E402
 
 
+def _resolve_job_title(job):
+    if job.video_type == "series":
+        return utils.get_tv_folder_name(job)
+    return utils.fix_job_title(job)
+
+
+def _build_output_paths(job, type_sub_folder, job_title):
+    if job.video_type == "series" and getattr(job.config, 'GROUP_TV_DISCS_UNDER_SERIES', False):
+        parent_folder = utils.get_tv_series_parent_folder(job)
+        hb_out_path = os.path.join(
+            job.config.TRANSCODE_PATH, type_sub_folder, parent_folder, job_title
+        )
+        final_directory = os.path.join(
+            job.config.COMPLETED_PATH, type_sub_folder, parent_folder, job_title
+        )
+        logging.info(f"Grouping TV discs under series folder: '{parent_folder}'")
+    else:
+        hb_out_path = os.path.join(job.config.TRANSCODE_PATH, type_sub_folder, job_title)
+        final_directory = os.path.join(job.config.COMPLETED_PATH, type_sub_folder, job_title)
+    return hb_out_path, final_directory
+
+
+def _ensure_unique_paths(have_dupes, job, hb_out_path, final_directory):
+    hb_out = utils.check_for_dupe_folder(have_dupes, hb_out_path, job)
+    final_dir = utils.check_for_dupe_folder(have_dupes, final_directory, job)
+    return hb_out, final_dir
+
+
+def _run_makemkv(job):
+    logging.info("************* Ripping disc with MakeMKV *************")
+    job.status = JobState.VIDEO_RIPPING.value
+    db.session.commit()
+    try:
+        makemkv_out_path = makemkv.makemkv(job)
+    except Exception as mkv_error:  # noqa: E722
+        logging.error(
+            "MakeMKV did not complete successfully.  Exiting ARM! "
+            f"Error: {mkv_error}"
+        )
+        raise ValueError from mkv_error
+
+    if makemkv_out_path is None:
+        logging.error("MakeMKV did not complete successfully.  Exiting ARM!")
+        job.status = JobState.FAILURE.value
+        db.session.commit()
+        raise ValueError("MakeMKV output path is None. Job failed.")
+
+    if job.config.NOTIFY_RIP:
+        utils.notify(
+            job,
+            constants.NOTIFY_TITLE,
+            f"{job.title} rip complete. Starting transcode. ",
+        )
+
+    logging.info("************* Ripping with MakeMKV completed *************")
+    return makemkv_out_path
+
+
+def _handle_skip_transcode(job, use_make_mkv, hb_in_path, hb_out_path):
+    if job.config.SKIP_TRANSCODE and use_make_mkv:
+        utils.delete_raw_files([hb_out_path])
+        return hb_in_path
+    return hb_out_path
+
+
+def _apply_manual_title_override(job, type_sub_folder, final_directory):
+    if not job.title_manual:
+        return final_directory
+
+    utils.delete_raw_files([final_directory])
+
+    if job.video_type == "series":
+        job_title = utils.get_tv_folder_name(job)
+        if getattr(job.config, 'GROUP_TV_DISCS_UNDER_SERIES', False):
+            parent_folder = utils.get_tv_series_parent_folder(job)
+            final_directory = os.path.join(
+                job.config.COMPLETED_PATH, type_sub_folder, parent_folder, job_title
+            )
+        else:
+            final_directory = os.path.join(
+                job.config.COMPLETED_PATH, type_sub_folder, job_title
+            )
+    else:
+        job_title = utils.fix_job_title(job)
+        final_directory = os.path.join(
+            job.config.COMPLETED_PATH, type_sub_folder, job_title
+        )
+
+    utils.database_updater({'path': final_directory}, job)
+    return final_directory
+
+
+def _finalize_processing(job, final_directory, hb_out_path, hb_in_path, makemkv_out_path):
+    move_files_post(hb_out_path, job)
+    utils.move_movie_poster(final_directory, hb_out_path)
+    utils.scan_emby()
+    utils.set_permissions(final_directory)
+    cleanup_targets = [path for path in (hb_in_path, hb_out_path, makemkv_out_path) if path]
+    utils.delete_raw_files(cleanup_targets)
+    notify_exit(job)
+    logging.info("************* ARM processing complete *************")
+
+
 def rip_visual_media(have_dupes, job, logfile, protection):
     """
     Main ripping function for dvd and Blu-rays, movies or series
@@ -22,10 +125,10 @@ def rip_visual_media(have_dupes, job, logfile, protection):
     :param protection: Does the disc have 99 track protection
     :return: None
     """
-    # Fix the sub-folder type - (movie|tv|unknown)
     type_sub_folder = utils.convert_job_type(job.video_type)
-    # Fix the job title - Title (Year) | Title
-    job_title = utils.fix_job_title(job)
+    job_title = _resolve_job_title(job)
+    hb_out_path, final_directory = _build_output_paths(job, type_sub_folder, job_title)
+    hb_out_path, final_directory = _ensure_unique_paths(have_dupes, job, hb_out_path, final_directory)
 
     # We need to check/construct the final path, and the transcode path
     transcode_out_path = os.path.join(job.config.TRANSCODE_PATH, type_sub_folder, job_title)
@@ -38,11 +141,19 @@ def rip_visual_media(have_dupes, job, logfile, protection):
 
     # Update the job.path with the final directory
     utils.database_updater({'path': final_directory}, job)
-    # Save poster image from disc if enabled
     utils.save_disc_poster(final_directory, job)
 
     logging.info(f"Processing files to: {transcode_out_path}")
     makemkv_out_path = None
+    hb_in_path = str(job.devpath)
+
+    use_make_mkv = rip_with_mkv(job, protection)
+    logging.debug(f"Using MakeMKV: [{use_make_mkv}]")
+    if use_make_mkv:
+        makemkv_out_path = _run_makemkv(job)
+        hb_in_path = makemkv_out_path
+
+    start_transcode(job, logfile, hb_in_path, hb_out_path, protection)
     transcode_in_path = str(job.devpath)
     # Do we need to use MakeMKV - Blu-rays, protected dvd's, and dvd with mainfeature off
     use_make_mkv = rip_with_mkv(job, protection)
@@ -79,16 +190,10 @@ def rip_visual_media(have_dupes, job, logfile, protection):
         utils.delete_raw_files([transcode_out_path])
         transcode_out_path = transcode_in_path
 
-    # Update final path if user has set a custom/manual title
-    logging.debug(f"Job title status: [{job.title_manual}]")
-    if job.title_manual:
-        # Remove the old final dir
-        utils.delete_raw_files([final_directory])
-        job_title = utils.fix_job_title(job)
-        final_directory = os.path.join(job.config.COMPLETED_PATH, type_sub_folder, job_title)
-        # Update the job.path with the final directory
-        utils.database_updater({'path': final_directory}, job)
+    hb_out_path = _handle_skip_transcode(job, use_make_mkv, hb_in_path, hb_out_path)
+    final_directory = _apply_manual_title_override(job, type_sub_folder, final_directory)
 
+    _finalize_processing(job, final_directory, hb_out_path, hb_in_path, makemkv_out_path)
     # Move to final folder
     move_files_post(transcode_out_path, job)
     # Movie the movie poster if we have one - no longer needed, now handled by save_movie_poster
