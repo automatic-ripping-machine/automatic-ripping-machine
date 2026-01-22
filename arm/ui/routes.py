@@ -9,7 +9,6 @@ Covers
 Other routes handled in flask blueprints
 - auth, database, history, jobs, logs, sendmovies, settings
 """
-import os
 import json
 from pathlib import Path, PurePath
 from werkzeug.exceptions import HTTPException
@@ -66,15 +65,11 @@ def home():
     session["arm_name"] = cfg.arm_config['ARM_NAME']
     session["page_title"] = "Home"
 
-    if os.path.isfile(cfg.arm_config['DBFILE']):
-        try:
-            jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
-        except SQLAlchemyError as e:
-            # db isn't setup
-            app.logger.error(f"Error getting jobs from DB: {e}")
-            return redirect(url_for('setup'))
-    else:
-        jobs = {}
+    try:
+        jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+    except SQLAlchemyError as error:
+        app.logger.error("Error getting jobs from DB: %s", error)
+        return redirect(url_for('setup'))
 
     # Set authentication state for index
     authenticated = ui_utils.authenticated_state()

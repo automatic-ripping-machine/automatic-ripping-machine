@@ -163,8 +163,31 @@ LOGLEVEL: "INFO"
 # Set to 0 to disable
 LOGLIFE: 1
 
-# Path to ARM database file
+####################
+## Database Setup ##
+####################
+
+# Database engine used by SQLAlchemy. Examples include "sqlite", "postgresql+psycopg2", or "mysql+pymysql".
+DATABASE_ENGINE: "sqlite"
+
+# Optional full SQLAlchemy database URL. When populated this value overrides the individual
+# DATABASE_HOST/PORT/NAME/USER/PASSWORD/OPTIONS settings below.
+DATABASE_URL: ""
+
+# Connection settings used when DATABASE_URL is blank.
+DATABASE_HOST: ""
+DATABASE_PORT: ""
+DATABASE_NAME: ""
+DATABASE_USER: ""
+DATABASE_PASSWORD: ""
+# Additional connection arguments encoded as key=value pairs separated by '&'.
+DATABASE_OPTIONS: ""
+
+# Path to the ARM database file when DATABASE_ENGINE is set to sqlite.
 DBFILE: "/home/arm/db/arm.db"
+
+# Directory where ARM should create logical database backups.
+DATABASE_BACKUP_PATH: "/home/arm/db/backups/"
 
 
 ##################

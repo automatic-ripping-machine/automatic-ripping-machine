@@ -179,7 +179,11 @@ if __name__ == "__main__":
         sys.exit()
 
     # Capture and report the ARM Info
-    arminfo = ARMInfo(cfg.arm_config["INSTALLPATH"], cfg.arm_config['DBFILE'])
+    arminfo = ARMInfo(
+        cfg.arm_config["INSTALLPATH"],
+        cfg.arm_config['DBFILE'],
+        cfg.arm_config.get("SQLALCHEMY_DATABASE_URI")
+    )
     job.arm_version = arminfo.arm_version
     arminfo.get_values()
 

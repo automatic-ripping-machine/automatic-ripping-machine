@@ -67,6 +67,11 @@
                                aria-controls="uiSettingsTab" aria-selected="false">UI Settings</a>
                         </li>
                         <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="databaseTools-tab" data-toggle="tab" href="#databaseTools"
+                               role="tab"
+                               aria-controls="databaseTools" aria-selected="false">Database Tools</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
                             <a class="nav-link" id="apprise-tab" data-toggle="tab" href="#appriseTab"
                                role="tab"
                                aria-controls="appriseTab" aria-selected="false">Apprise config</a>
@@ -90,6 +95,8 @@
                         {% include 'settings/ripper.html' %}
                         <!-- UI settings -->
                         {% include 'settings/ui.html' %}
+                        <!-- Database tools -->
+                        {% include 'settings/database_tools.html' %}
                         <!-- Apprise config -->
                         {% include 'settings/apprise.html' %}
                         <!-- Help config -->
@@ -146,6 +153,30 @@
             })
             $(".popovers").popover({
                 trigger: "hover",
+            });
+            function showTabFromHash(hash) {
+                if (!hash) {
+                    return;
+                }
+                const $targetLink = $("a[data-toggle='tab'][href='" + hash + "']");
+                if ($targetLink.length) {
+                    $targetLink.tab('show');
+                }
+            }
+
+            showTabFromHash(window.location.hash);
+
+            $("a[data-toggle='tab']").on('shown.bs.tab', function (event) {
+                const newHash = event.target.hash;
+                if (history.replaceState) {
+                    history.replaceState(null, null, newHash);
+                } else if (newHash) {
+                    window.location.hash = newHash;
+                }
+            });
+
+            $(window).on('hashchange', function () {
+                showTabFromHash(window.location.hash);
             });
             {% if form.errors %}
                 {% for k in form.errors %}
