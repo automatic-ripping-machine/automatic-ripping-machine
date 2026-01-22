@@ -14,6 +14,7 @@ def build_apprise_sent(cfg):
     apprise_dict = {
         'BOXCAR_KEY': 'boxcar://' + str(cfg['BOXCAR_KEY']) + "/" + str(cfg['BOXCAR_SECRET']),
         'DISCORD_WEBHOOK_ID': 'discord://' + str(cfg['DISCORD_WEBHOOK_ID']) + "/" + str(cfg['DISCORD_TOKEN']),
+        'EMAIL': 'mailto://' + str(cfg['EMAIL']),
         'FAAST_TOKEN': 'faast://' + str(cfg['FAAST_TOKEN']),
         'FLOCK_TOKEN': 'flock://' + str(cfg['FLOCK_TOKEN']),
         'GITTER_TOKEN': 'gitter://' + str(cfg['GITTER_TOKEN']) + "/" + str(cfg['GITTER_ROOM']),
