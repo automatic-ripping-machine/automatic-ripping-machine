@@ -22,7 +22,7 @@ jobs:
     if: github.event_name != 'gollum'
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Sync arm docs to wiki
         uses: newrelic/wiki-sync-action@main

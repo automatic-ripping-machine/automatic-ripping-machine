@@ -363,6 +363,10 @@ def update_drive_job(job):
     Function to take the current job task and update the associated drive ID into the database
     """
     drive = SystemDrives.query.filter_by(mount=job.devpath).first()
+    if drive is None:
+        logging.warning(f"No drive found in database for {job.devpath}. "
+                        "Job will continue but drive association may fail.")
+        return
     drive.new_job(job.job_id)
     app.logger.debug(f"Updating Drive: ['{drive.serial_id}'|'{drive.mount}']"
                      f" Current Job: [{drive.job_id_current}]"
