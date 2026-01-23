@@ -594,7 +594,7 @@ def makemkv_info(job, select=None, index=9999, options=None):
     if not isinstance(options, list):
         raise TypeError(options)
     # 1MB cache size to get info on the specified disc(s)
-    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}"]
+    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}", "--minlength=0"]
     wait_time = job.config.MANUAL_WAIT_TIME
     max_processes = job.config.MAX_CONCURRENT_MAKEMKVINFO
     job.status = JobState.VIDEO_WAITING.value
@@ -829,6 +829,7 @@ def process_single_tracks(job, rawpath, mode: str):
             ]
             cmd += shlex.split(job.config.MKV_ARGS)
             cmd += [
+                f"--minlength={job.config.MINLENGTH}",
                 f"--progress={progress_log(job)}",
                 f"dev:{job.devpath}",
                 track.track_number,
