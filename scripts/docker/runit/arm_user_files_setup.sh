@@ -87,7 +87,8 @@ for conf in $CONFS; do
   if [[ ! -f "${thisConf}" ]] ; then
     echo "Config not found! Creating config file: ${thisConf}"
     # Don't overwrite with defaults during reinstall
-    cp --update=none "/opt/arm/setup/${conf}" "${thisConf}"
+    # Note: --no-clobber is deprecated in coreutils 9.1+, but container uses 8.32
+    cp --no-clobber "/opt/arm/setup/${conf}" "${thisConf}"
     chown arm:arm "${thisConf}"
   fi
 done
