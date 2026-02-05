@@ -13,20 +13,17 @@ import enum
 import itertools
 import logging
 import os
-import subprocess
-
 import shlex
 import shutil
+import subprocess
 from time import sleep
 
-from arm.models import Track, SystemDrives
+import arm.config.config as cfg
+from arm.models import SystemDrives, Track
 from arm.models.job import JobState
 from arm.ripper import utils
-from arm.ui import db
-import arm.config.config as cfg
-
 from arm.ripper.utils import notify
-
+from arm.ui import db
 
 MAKEMKV_INFO_WAIT_TIME = 60  # [s]
 """Wait for concurrent MakeMKV info processes.
@@ -594,7 +591,7 @@ def makemkv_info(job, select=None, index=9999, options=None):
     if not isinstance(options, list):
         raise TypeError(options)
     # 1MB cache size to get info on the specified disc(s)
-    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}"]
+    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}", "--minlength=0"]
     wait_time = job.config.MANUAL_WAIT_TIME
     max_processes = job.config.MAX_CONCURRENT_MAKEMKVINFO
     job.status = JobState.VIDEO_WAITING.value
@@ -829,6 +826,7 @@ def process_single_tracks(job, rawpath, mode: str):
             ]
             cmd += shlex.split(job.config.MKV_ARGS)
             cmd += [
+                f"--minlength={job.config.MINLENGTH}",
                 f"--progress={progress_log(job)}",
                 f"dev:{job.devpath}",
                 track.track_number,
@@ -879,7 +877,7 @@ def prep_mkv():
         logging.info("Updating MakeMKV key...")
         cmd = [
             shutil.which("bash") or "/bin/bash",
-            "/opt/arm/scripts/update_key.sh",
+            os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh"),
         ]
         # if MAKEMKV_PERMA_KEY is populated
         if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
@@ -1164,8 +1162,7 @@ def run(options, select):
     if not isinstance(select, OutputType):
         raise TypeError(select)
     # Check makemkvcon path, resolves baremetal unique install issues
-    # Docker container uses /usr/local/bin/makemkvcon
-    makemkvcon_path = shutil.which("makemkvcon") or "/usr/local/bin/makemkvcon"
+    makemkvcon_path = shutil.which("makemkvcon")
     # robot process of makemkvcon with
     cmd = [
         makemkvcon_path,
