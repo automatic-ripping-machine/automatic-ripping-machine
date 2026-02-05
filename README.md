@@ -68,6 +68,8 @@ See: https://b3n.org/automatic-ripping-machine
 
 [For docker installation please see here](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
 
+[For WSL Integration please see here]()
+
 ## Troubleshooting
  [Please see the wiki for troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
 
