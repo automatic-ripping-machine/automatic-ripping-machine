@@ -594,7 +594,7 @@ def makemkv_info(job, select=None, index=9999, options=None):
     if not isinstance(options, list):
         raise TypeError(options)
     # 1MB cache size to get info on the specified disc(s)
-    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}"]
+    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}", "--minlength=0"]
     wait_time = job.config.MANUAL_WAIT_TIME
     max_processes = job.config.MAX_CONCURRENT_MAKEMKVINFO
     job.status = JobState.VIDEO_WAITING.value
@@ -722,14 +722,28 @@ def makemkv(job):
     prep_mkv()
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
-    if job.drive.mdisc is None:
+    # Fix: Check if job.drive is None before accessing job.drive.mdisc
+    if job.drive is None or job.drive.mdisc is None:
         logging.debug("Storing new MakeMKV disc numbers to database.")
+        disc_index = None
         with db.session.no_autoflush:
             for drive in get_drives(job):
                 for db_drive in SystemDrives.query.filter_by(mount=drive.mount).all():
                     db_drive.mdisc = drive.index
                     db.session.add(db_drive)
+                    # Track disc index for current job's device
+                    if drive.mount == job.devpath:
+                        disc_index = drive.index
         db.session.commit()
+        # Refresh job to get updated drive relationship
+        db.session.refresh(job)
+        # If job.drive is still None after refresh, log warning with available info
+        if job.drive is None:
+            if disc_index is not None:
+                logging.warning(f"job.drive is None but found disc index {disc_index} for {job.devpath}")
+            else:
+                logging.error(f"Could not find drive for {job.devpath}")
+                raise ValueError(f"No drive found for device {job.devpath}")
     logging.info(f"MakeMKV disc number: {job.drive.mdisc:d}")
     # get filesystem in order
     rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
@@ -815,6 +829,7 @@ def process_single_tracks(job, rawpath, mode: str):
             ]
             cmd += shlex.split(job.config.MKV_ARGS)
             cmd += [
+                f"--minlength={job.config.MINLENGTH}",
                 f"--progress={progress_log(job)}",
                 f"dev:{job.devpath}",
                 track.track_number,

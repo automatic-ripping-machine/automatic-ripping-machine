@@ -17,6 +17,6 @@ jobs:
     steps:
     - uses: actions/first-interaction@v3
       with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        issue-message: 'If youre having issues, please remember to read the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/FAQ) and follow the instructions carefully'
-        pr-message: 'Thanks for submitting a PR, please try to keep PR as small as possible for faster merge times'
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        issue_message: 'If youre having issues, please remember to read the [wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/FAQ) and follow the instructions carefully'
+        pr_message: 'Thanks for submitting a PR, please try to keep PR as small as possible for faster merge times'
