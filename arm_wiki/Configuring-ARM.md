@@ -1,14 +1,12 @@
 ## Configure ARM
 
-- Edit your "config" file (located at /opt/arm/arm.yaml) to determine what options you'd like to use.  Pay special attention to the 'directory setup' section and make sure the 'arm' user has write access to wherever you define these directories.
+ARM's config file is usually located at `/etc/arm/config/arm.yaml`. This path can be changed by advanced users by setting the [environment variable](https://wiki.archlinux.org/title/Environment_variables) `ARM_CONFIG_FILE`.
 
-- Edit the music config file (located at /home/arm/.abcde.conf)
+`arm.yaml` includes explanations for each option. Pay special attention to the 'directory setup' section and make sure the 'arm' user has write access to wherever you define these directories.
 
-- To rip Blu-Rays after the MakeMKV trial is up you will need to purchase a license key or while MakeMKV is in BETA you can get a free key (which you will need to update from time to time) here:  https://www.makemkv.com/forum2/viewtopic.php?f=5&t=1053 and create /home/arm/.MakeMKV/settings.conf with the contents:
+In case you want to adjust settings specific to audio CDs, you can find the ABCDE config file at `/etc/arm/config/.abcde.conf` unless configured otherwise in `arm.yaml`.
 
-        app_Key = "insertlicensekeyhere"
-
-- For ARM to identify movie/tv titles register for an API key at OMDb API: http://www.omdbapi.com/apikey.aspx and set the OMDB_API_KEY parameter in the config file.
+To allow ARM to identify movie/tv titles, register for an [OMDb API key](http://www.omdbapi.com/apikey.aspx) and set the OMDB_API_KEY parameter in the config file.
 
 
 **Email Notifications**
