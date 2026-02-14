@@ -13,20 +13,17 @@ import enum
 import itertools
 import logging
 import os
-import subprocess
-
 import shlex
 import shutil
+import subprocess
 from time import sleep
 
-from arm.models import Track, SystemDrives
+import arm.config.config as cfg
+from arm.models import SystemDrives, Track
 from arm.models.job import JobState
 from arm.ripper import utils
-from arm.ui import db
-import arm.config.config as cfg
-
 from arm.ripper.utils import notify
-
+from arm.ui import db
 
 MAKEMKV_INFO_WAIT_TIME = 60  # [s]
 """Wait for concurrent MakeMKV info processes.
@@ -880,7 +877,7 @@ def prep_mkv():
         logging.info("Updating MakeMKV key...")
         cmd = [
             shutil.which("bash") or "/bin/bash",
-            "/opt/arm/scripts/update_key.sh",
+            os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh"),
         ]
         # if MAKEMKV_PERMA_KEY is populated
         if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
@@ -1165,8 +1162,7 @@ def run(options, select):
     if not isinstance(select, OutputType):
         raise TypeError(select)
     # Check makemkvcon path, resolves baremetal unique install issues
-    # Docker container uses /usr/local/bin/makemkvcon
-    makemkvcon_path = shutil.which("makemkvcon") or "/usr/local/bin/makemkvcon"
+    makemkvcon_path = shutil.which("makemkvcon")
     # robot process of makemkvcon with
     cmd = [
         makemkvcon_path,

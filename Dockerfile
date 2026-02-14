@@ -18,27 +18,27 @@ RUN \
     /mnt/dev/sr13 /mnt/dev/sr14 /mnt/dev/sr15 /mnt/dev/sr16 \
     /mnt/dev/sr17 /mnt/dev/sr18 /mnt/dev/sr19 /mnt/dev/sr20 \
     && \
-    echo "/dev/sr0  /mnt/dev/sr0  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr1  /mnt/dev/sr1  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr2  /mnt/dev/sr2  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr3  /mnt/dev/sr3  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr4  /mnt/dev/sr4  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr5  /mnt/dev/sr5  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr6  /mnt/dev/sr6  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr7  /mnt/dev/sr7  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr8  /mnt/dev/sr8  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr9  /mnt/dev/sr9  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr10  /mnt/dev/sr10  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr11  /mnt/dev/sr11  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr12  /mnt/dev/sr12  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr13  /mnt/dev/sr13  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr14  /mnt/dev/sr14  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr15  /mnt/dev/sr15  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr16  /mnt/dev/sr16  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr17  /mnt/dev/sr17  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr18  /mnt/dev/sr18  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr19  /mnt/dev/sr19  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab && \
-    echo "/dev/sr20  /mnt/dev/sr20  udf,iso9660  users,noauto,exec,utf8,ro  0  0" >> /etc/fstab
+    echo "/dev/sr0  /mnt/dev/sr0  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr1  /mnt/dev/sr1  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr2  /mnt/dev/sr2  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr3  /mnt/dev/sr3  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr4  /mnt/dev/sr4  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr5  /mnt/dev/sr5  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr6  /mnt/dev/sr6  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr7  /mnt/dev/sr7  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr8  /mnt/dev/sr8  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr9  /mnt/dev/sr9  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr10  /mnt/dev/sr10  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr11  /mnt/dev/sr11  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr12  /mnt/dev/sr12  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr13  /mnt/dev/sr13  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr14  /mnt/dev/sr14  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr15  /mnt/dev/sr15  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr16  /mnt/dev/sr16  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr17  /mnt/dev/sr17  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr18  /mnt/dev/sr18  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr19  /mnt/dev/sr19  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab && \
+    echo "/dev/sr20  /mnt/dev/sr20  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab
 
 
 # Remove SSH

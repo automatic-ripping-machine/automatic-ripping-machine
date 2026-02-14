@@ -84,6 +84,9 @@ def clean_up_logs(logpath, loglife):
     for log_dir in logs_folders:
         logging.info(f"Checking path {log_dir} for old log files...")
         # Loop through each file in current folder and remove files older than set in arm.yaml
+        if not os.path.isdir(log_dir):
+            logging.info(f"{log_dir} is not a directory or doesn't exist. Skipping.")
+            continue
         for filename in os.listdir(log_dir):
             fullname = os.path.join(log_dir, filename)
             if fullname.endswith(".log") and os.stat(fullname).st_mtime < now - loglife * 86400:
@@ -117,7 +120,9 @@ def create_logger(app_name, log_level=logging.DEBUG, stdout=True, syslog=False, 
 
     if file:
         # create file logger handler
-        file_handler = logging.FileHandler('/home/arm/logs/arm.log')
+        file_handler = logging.FileHandler(
+            os.path.join(cfg.arm_config['LOGPATH'], 'arm.log')
+        )
         file_handler.setLevel(log_level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
