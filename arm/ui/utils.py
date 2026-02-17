@@ -656,8 +656,11 @@ def build_arm_cfg(form_data, comments):
         # Skip the Cross Site Request Forgery (CSRF) token
         if key == "csrf_token":
             continue
+        # Strip whitespace from values to prevent issues with keys/values
+        if isinstance(value, str):
+            value = value.strip()
         # Check if value contains "KEY" or "API" (any case)
-        elif re.search(r"_KEY|_API|_PASSWORD", key):
+        if re.search(r"_KEY|_API|_PASSWORD", key):
             key_value = "####--redacted--####"
         else:
             key_value = value
@@ -696,8 +699,11 @@ def build_apprise_cfg(form_data):
         # Skip the Cross Site Request Forgery (CSRF) token
         if key == "csrf_token":
             continue
+        # Strip whitespace from values to prevent issues with keys/values
+        if isinstance(value, str):
+            value = value.strip()
         # Check if value contains "KEY" or "API" (any case)
-        elif re.search(r"KEY|API|PASS|TOKEN|SECRET", key):
+        if re.search(r"KEY|API|PASS|TOKEN|SECRET", key):
             key_value = "####--redacted--####"
         else:
             key_value = value
