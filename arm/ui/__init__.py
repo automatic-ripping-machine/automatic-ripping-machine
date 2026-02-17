@@ -3,6 +3,7 @@ import sys  # noqa: F401
 import os  # noqa: F401
 from getpass import getpass  # noqa: F401
 from logging.config import dictConfig
+from urllib.parse import urlsplit, urlunsplit
 from flask import Flask, logging, current_app  # noqa: F401
 from flask.logging import default_handler  # noqa: F401
 from flask_sqlalchemy import SQLAlchemy
@@ -14,7 +15,19 @@ from flask_login import LoginManager
 import bcrypt  # noqa: F401
 import arm.config.config as cfg
 
-sqlitefile = 'sqlite:///' + cfg.arm_config['DBFILE']
+
+def _mask_database_uri(uri: str) -> str:
+    """Strip credentials from a SQLAlchemy connection string for logging."""
+    if not uri:
+        return ""
+    parsed = urlsplit(uri)
+    if parsed.username or parsed.password:
+        netloc = parsed.hostname or ""
+        if parsed.port:
+            netloc = f"{netloc}:{parsed.port}" if netloc else str(parsed.port)
+        return urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+    return uri
+
 
 # Setup logging, but because of werkzeug issues, we need to set up that later down file
 dictConfig({
@@ -50,8 +63,10 @@ app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
 app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
 
 # Set Flask database connection configurations
-app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
+app.config['SQLALCHEMY_DATABASE_URI'] = cfg.arm_config['SQLALCHEMY_DATABASE_URI']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+masked_db_uri = _mask_database_uri(app.config['SQLALCHEMY_DATABASE_URI'])
+app.logger.info(f"Using database connection: {masked_db_uri}")
 # We should really generate a key for each system
 app.config['SECRET_KEY'] = "Big secret key"  # TODO: make this random!
 # Set the global Flask Login state, set to True will ignore any @login_required

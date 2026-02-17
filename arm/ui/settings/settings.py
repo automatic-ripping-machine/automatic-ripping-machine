@@ -36,7 +36,14 @@ from arm.models.system_info import SystemInfo
 from arm.models.ui_settings import UISettings
 import arm.config.config as cfg
 from arm.ui.settings import DriveUtils as drive_utils
-from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
+from arm.ui.forms import (
+    SettingsForm,
+    UiSettingsForm,
+    AbcdeForm,
+    SystemInfoDrives,
+    DatabaseBackupForm,
+    DatabaseRestoreForm,
+)
 from arm.ui.settings.ServerUtil import ServerUtil
 import arm.ripper.utils as ripper_utils
 
@@ -111,6 +118,8 @@ def settings():
     drives = drive_utils.get_drives()
     drive_utils.update_tray_status(drives)
     form_drive = SystemInfoDrives(request.form)
+    backup_form = DatabaseBackupForm()
+    restore_form = DatabaseRestoreForm()
 
     # Load up the comments.json, so we can comment the arm.yaml
     comments = ui_utils.generate_comments()
@@ -133,7 +142,9 @@ def settings():
                            arm_path=arm_path,
                            media_path=media_path,
                            drives=drives,
-                           form_drive=form_drive)
+                           form_drive=form_drive,
+                           backup_form=backup_form,
+                           restore_form=restore_form)
 
 
 def check_hw_transcode_support():

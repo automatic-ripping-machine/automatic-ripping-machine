@@ -1,0 +1,55 @@
+{% block database_tools %}
+    <div class="tab-pane pt-5" id="databaseTools" role="tabpanel" aria-labelledby="databaseTools-tab">
+        <div class="row">
+            <div class="col-lg-8 col-md-10 mx-auto">
+                <div class="alert alert-info" role="alert">
+                    <strong>Database backups and restores</strong> are now managed here. Use these tools to
+                    download a fresh backup of the ARM database or restore from a previously saved copy.
+                </div>
+            </div>
+        </div>
+        <div class="row my-3">
+            <div class="col-lg-6 col-md-8 mx-auto">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <strong>Download Backup</strong>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Generate a new ARM database backup and download it immediately. Stored
+                            backups remain in the configured backup directory.</p>
+                        <form method="post" action="{{ url_for('route_database.download_backup') }}">
+                            {{ backup_form.hidden_tag() }}
+                            {{ backup_form.submit(class="btn btn-info") }}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row my-3">
+            <div class="col-lg-6 col-md-8 mx-auto">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <strong>Restore Database</strong>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Upload a saved ARM database backup (.json or .db) to replace the current
+                            data. A safety backup of the active database is created automatically before the restore
+                            runs.</p>
+                        <form method="post" action="{{ url_for('route_database.restore_database') }}" enctype="multipart/form-data">
+                            {{ restore_form.hidden_tag() }}
+                            <div class="form-group mb-3">
+                                {{ restore_form.backup_file.label(class="form-label d-block") }}
+                                {{ restore_form.backup_file(class="form-control-file" + (' is-invalid' if restore_form.backup_file.errors else '')) }}
+                                <small class="form-text text-muted">Accepted formats: .json or .db</small>
+                                {% for error in restore_form.backup_file.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            {{ restore_form.submit(class="btn btn-warning") }}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,5 +1,6 @@
 """Forms used in the arm ui"""
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, SubmitField, SelectField, \
     IntegerField, BooleanField, PasswordField, Form, FieldList, FormField, HiddenField
 from wtforms.validators import DataRequired, Optional
@@ -125,6 +126,25 @@ class DBUpdate(FlaskForm):
     """
     dbfix = StringField('dbfix', validators=[DataRequired()])
     submit = SubmitField('Submit')
+
+
+class DatabaseBackupForm(FlaskForm):
+    """Trigger a database backup download from the UI."""
+
+    submit = SubmitField('Download Backup')
+
+
+class DatabaseRestoreForm(FlaskForm):
+    """Upload and restore the ARM database from a backup archive."""
+
+    backup_file = FileField(
+        'Database Backup',
+        validators=[
+            FileRequired(message='Select a backup to upload.'),
+            FileAllowed({'json', 'db'}, message='Only .json and .db backups are supported.'),
+        ],
+    )
+    submit = SubmitField('Restore')
 
 
 class TrackForm(Form):
