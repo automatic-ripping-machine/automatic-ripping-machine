@@ -827,7 +827,7 @@ def generate_safe_output_dir_name(have_dupes, hb_out_path, job) -> str:
                        f"ARM encountered a fatal error processing {job.title}."
                        f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
                 database_updater({'status': JobState.FAILURE.value, 'errors': 'Generating unique path failed'}, job)
-                sys.exit()
+                raise RipperException(f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
         else:
             logging.exception(
                 "A fatal error has occurred and ARM is exiting.  "
@@ -836,7 +836,7 @@ def generate_safe_output_dir_name(have_dupes, hb_out_path, job) -> str:
                    f"ARM encountered a fatal error processing {job.title}."
                     f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
             database_updater({'status': JobState.FAILURE.value, 'errors': 'Stopping duplicate job'}, job)
-            sys.exit()
+            raise RipperException(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
         return hb_out_path
     else:
         return hb_out_path
@@ -876,7 +876,7 @@ def create_unique_dir(hb_out_path, job):
                    f"ARM encountered a fatal error processing {job.title}."
                    f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
             database_updater({'status': JobState.FAILURE.value, 'errors': 'Generating unique path failed'}, job)
-            sys.exit()
+            raise RipperException(f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
     return hb_out_path
 
 
