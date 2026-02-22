@@ -373,7 +373,7 @@ def delete_raw_files(dir_list):
     if cfg.arm_config["DELRAWFILES"]:
         for raw_folder in dir_list:
             try:
-                logging.info(f"Removing raw path - {raw_folder}")
+                logging.info(f"Removing path - {raw_folder}")
                 shutil.rmtree(raw_folder)
             except UnboundLocalError as error:
                 logging.debug(f"No raw files found to delete in {raw_folder}- {error}")
