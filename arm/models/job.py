@@ -3,7 +3,6 @@ import logging
 import os
 import psutil
 import pyudev
-import subprocess
 import time
 
 from datetime import datetime as dt
@@ -151,12 +150,6 @@ class Job(db.Model):
         self.manual_start = False
         self.manual_mode = False
         self.has_track_99 = False
-
-        if self.disctype == "dvd" and not self.label:
-            logging.info("No disk label Available. Trying lsdvd")
-            command = f"lsdvd {devpath} | grep 'Disc Title' | cut -d ' ' -f 3-"
-            lsdvdlbl = str(subprocess.check_output(command, shell=True).strip(), 'utf-8')
-            self.label = lsdvdlbl
 
     def __str__(self):
         """Returns a string of the object"""

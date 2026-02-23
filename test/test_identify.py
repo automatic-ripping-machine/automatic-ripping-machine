@@ -138,8 +138,8 @@ class TestIdentifyBluray:
         assert result is True
         assert 'Serial-Mom' in job.title or 'Serial Mom' in job.title
 
-    def test_xml_missing_falls_back_to_label(self, app_context, tmp_path):
-        """When bdmt_eng.xml is missing, uses disc label as title."""
+    def test_xml_missing_returns_false(self, app_context, tmp_path):
+        """When bdmt_eng.xml is missing, returns False — caller handles fallback."""
         from arm.ripper.identify import identify_bluray
 
         job = self._make_job()
@@ -147,10 +147,7 @@ class TestIdentifyBluray:
         # No XML file exists
 
         result = identify_bluray(job)
-        assert result is True
-        assert job.title is not None
-        # Should use label "SERIAL_MOM", cleaned up
-        assert 'Serial' in job.title or 'SERIAL' in job.title
+        assert result is False
 
     def test_xml_missing_empty_label(self, app_context, tmp_path):
         """When XML is missing AND label is empty, returns False."""
@@ -525,8 +522,8 @@ class TestMalformedBlurayXml:
         job.year_auto = None
         return job
 
-    def test_malformed_xml_falls_back_to_label(self, app_context, tmp_path):
-        """Malformed XML should trigger label fallback, not crash."""
+    def test_malformed_xml_returns_false(self, app_context, tmp_path):
+        """Malformed XML returns False — caller handles fallback."""
         from arm.ripper.identify import identify_bluray
 
         job = self._make_job()
@@ -538,8 +535,7 @@ class TestMalformedBlurayXml:
         xml_file.write_text('<<<not valid xml>>>')
 
         result = identify_bluray(job)
-        assert result is True
-        assert 'Serial Mom' in job.title
+        assert result is False
 
     def test_malformed_xml_empty_label(self, app_context, tmp_path):
         """Malformed XML with empty label returns False."""
@@ -572,12 +568,11 @@ class TestMalformedBlurayXml:
 
         result = identify_bluray(job)
         assert result is False
-        # Must be empty string, not the literal string "None"
+        # identify_bluray must not set title to the literal string "None"
         assert job.title != "None"
-        assert job.title == ""
 
-    def test_truncated_xml_falls_back(self, app_context, tmp_path):
-        """Truncated/incomplete XML should trigger label fallback."""
+    def test_truncated_xml_returns_false(self, app_context, tmp_path):
+        """Truncated/incomplete XML returns False — caller handles fallback."""
         from arm.ripper.identify import identify_bluray
 
         job = self._make_job()
@@ -589,8 +584,7 @@ class TestMalformedBlurayXml:
         xml_file.write_bytes(b'<?xml version="1.0"?><disclib><di:discinfo')  # truncated
 
         result = identify_bluray(job)
-        assert result is True
-        assert 'Serial Mom' in job.title
+        assert result is False
 
 
 class TestIdentifyUnmount:
@@ -1452,3 +1446,400 @@ class TestOmdbShortTitleFallback:
             result = call_omdb_api(title="9", year="2009")
 
         assert result is None
+
+
+class TestResolveDiscLabel:
+    """Test resolve_disc_label() multi-source label recovery."""
+
+    def test_already_set_from_pyudev(self):
+        """If label is already set, returns immediately without probing."""
+        from arm.ripper.identify import resolve_disc_label
+
+        job = unittest.mock.MagicMock()
+        job.label = "EXISTING_LABEL"
+        job.devpath = "/dev/sr0"
+
+        with unittest.mock.patch('arm.ripper.identify._label_from_blkid') as mock_blkid:
+            resolve_disc_label(job)
+            mock_blkid.assert_not_called()
+        assert job.label == "EXISTING_LABEL"
+
+    def test_blkid_recovery(self):
+        """Falls back to blkid when pyudev label is missing."""
+        from arm.ripper.identify import resolve_disc_label
+
+        job = unittest.mock.MagicMock()
+        job.label = ""
+        job.devpath = "/dev/sr0"
+
+        with unittest.mock.patch('arm.ripper.identify._label_from_blkid',
+                                 return_value="BLKID_LABEL"):
+            resolve_disc_label(job)
+        assert job.label == "BLKID_LABEL"
+
+    def test_lsdvd_recovery_for_dvd(self):
+        """Falls back to lsdvd for DVD when blkid fails."""
+        from arm.ripper.identify import resolve_disc_label
+
+        job = unittest.mock.MagicMock()
+        job.label = ""
+        job.devpath = "/dev/sr0"
+        job.disctype = "dvd"
+
+        with unittest.mock.patch('arm.ripper.identify._label_from_blkid',
+                                 return_value=None), \
+             unittest.mock.patch('arm.ripper.identify._label_from_lsdvd',
+                                 return_value="LSDVD_LABEL"):
+            resolve_disc_label(job)
+        assert job.label == "LSDVD_LABEL"
+
+    def test_bluray_xml_recovery(self):
+        """Falls back to bdmt_eng.xml for Blu-ray when blkid fails."""
+        from arm.ripper.identify import resolve_disc_label
+
+        job = unittest.mock.MagicMock()
+        job.label = ""
+        job.devpath = "/dev/sr0"
+        job.disctype = "bluray"
+        job.mountpoint = "/mnt/disc"
+
+        with unittest.mock.patch('arm.ripper.identify._label_from_blkid',
+                                 return_value=None), \
+             unittest.mock.patch('arm.ripper.identify._label_from_bluray_xml',
+                                 return_value="XML_TITLE"):
+            resolve_disc_label(job)
+        assert job.label == "XML_TITLE"
+
+    def test_all_sources_fail(self):
+        """When all sources fail, label remains empty."""
+        from arm.ripper.identify import resolve_disc_label
+
+        job = unittest.mock.MagicMock()
+        job.label = ""
+        job.devpath = "/dev/sr0"
+        job.disctype = "dvd"
+
+        with unittest.mock.patch('arm.ripper.identify._label_from_blkid',
+                                 return_value=None), \
+             unittest.mock.patch('arm.ripper.identify._label_from_lsdvd',
+                                 return_value=None):
+            resolve_disc_label(job)
+        assert job.label == ""
+
+    def test_none_label_treated_as_missing(self):
+        """None label triggers fallback chain."""
+        from arm.ripper.identify import resolve_disc_label
+
+        job = unittest.mock.MagicMock()
+        job.label = None
+        job.devpath = "/dev/sr0"
+
+        with unittest.mock.patch('arm.ripper.identify._label_from_blkid',
+                                 return_value="RECOVERED"):
+            resolve_disc_label(job)
+        assert job.label == "RECOVERED"
+
+    def test_lsdvd_skipped_for_bluray(self):
+        """lsdvd is not tried for Blu-ray discs."""
+        from arm.ripper.identify import resolve_disc_label
+
+        job = unittest.mock.MagicMock()
+        job.label = ""
+        job.devpath = "/dev/sr0"
+        job.disctype = "bluray"
+        job.mountpoint = "/mnt/disc"
+
+        with unittest.mock.patch('arm.ripper.identify._label_from_blkid',
+                                 return_value=None), \
+             unittest.mock.patch('arm.ripper.identify._label_from_lsdvd') as mock_lsdvd, \
+             unittest.mock.patch('arm.ripper.identify._label_from_bluray_xml',
+                                 return_value=None):
+            resolve_disc_label(job)
+            mock_lsdvd.assert_not_called()
+
+
+class TestLabelHelpers:
+    """Test individual label recovery helpers."""
+
+    def test_blkid_returns_label(self):
+        """blkid parses filesystem label."""
+        from arm.ripper.identify import _label_from_blkid
+
+        with unittest.mock.patch('arm.ripper.identify.arm_subprocess',
+                                 return_value="THE_BABYSITTER\n"):
+            assert _label_from_blkid("/dev/sr0") == "THE_BABYSITTER"
+
+    def test_blkid_returns_none_on_empty(self):
+        """blkid returns None for empty output."""
+        from arm.ripper.identify import _label_from_blkid
+
+        with unittest.mock.patch('arm.ripper.identify.arm_subprocess',
+                                 return_value=""):
+            assert _label_from_blkid("/dev/sr0") is None
+
+    def test_blkid_returns_none_on_failure(self):
+        """blkid returns None when subprocess fails."""
+        from arm.ripper.identify import _label_from_blkid
+
+        with unittest.mock.patch('arm.ripper.identify.arm_subprocess',
+                                 return_value=None):
+            assert _label_from_blkid("/dev/sr0") is None
+
+    def test_lsdvd_parses_disc_title(self):
+        """lsdvd extracts Disc Title from output."""
+        from arm.ripper.identify import _label_from_lsdvd
+
+        lsdvd_output = "Disc Title: THE_BABYSITTER\nTitle: 01, Length: 01:30:00\n"
+        with unittest.mock.patch('arm.ripper.identify.arm_subprocess',
+                                 return_value=lsdvd_output):
+            assert _label_from_lsdvd("/dev/sr0") == "THE_BABYSITTER"
+
+    def test_lsdvd_returns_none_on_no_title(self):
+        """lsdvd returns None when no Disc Title line present."""
+        from arm.ripper.identify import _label_from_lsdvd
+
+        with unittest.mock.patch('arm.ripper.identify.arm_subprocess',
+                                 return_value="Title: 01, Length: 01:30:00\n"):
+            assert _label_from_lsdvd("/dev/sr0") is None
+
+    def test_lsdvd_returns_none_on_failure(self):
+        """lsdvd returns None when subprocess fails."""
+        from arm.ripper.identify import _label_from_lsdvd
+
+        with unittest.mock.patch('arm.ripper.identify.arm_subprocess',
+                                 return_value=None):
+            assert _label_from_lsdvd("/dev/sr0") is None
+
+    def test_bluray_xml_reads_title(self, tmp_path):
+        """Extracts title from well-formed bdmt_eng.xml."""
+        from arm.ripper.identify import _label_from_bluray_xml
+
+        xml_dir = tmp_path / 'BDMV' / 'META' / 'DL'
+        xml_dir.mkdir(parents=True)
+        (xml_dir / 'bdmt_eng.xml').write_text(
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<disclib xmlns:di="urn:BDA:bdmv;discinfo">'
+            '<di:discinfo><di:title><di:name>Serial Mom</di:name></di:title></di:discinfo>'
+            '</disclib>'
+        )
+        assert _label_from_bluray_xml(str(tmp_path)) == "Serial Mom"
+
+    def test_bluray_xml_returns_none_on_missing(self, tmp_path):
+        """Returns None when bdmt_eng.xml doesn't exist."""
+        from arm.ripper.identify import _label_from_bluray_xml
+
+        assert _label_from_bluray_xml(str(tmp_path)) is None
+
+    def test_bluray_xml_returns_none_on_malformed(self, tmp_path):
+        """Returns None when bdmt_eng.xml is malformed."""
+        from arm.ripper.identify import _label_from_bluray_xml
+
+        xml_dir = tmp_path / 'BDMV' / 'META' / 'DL'
+        xml_dir.mkdir(parents=True)
+        (xml_dir / 'bdmt_eng.xml').write_text('<<<not valid xml>>>')
+        assert _label_from_bluray_xml(str(tmp_path)) is None
+
+
+class TestSearchMetadata:
+    """Test _search_metadata() metadata API search wrapper."""
+
+    def test_uses_title_when_available(self):
+        """Searches with job.title when set."""
+        from arm.ripper.identify import _search_metadata
+
+        job = unittest.mock.MagicMock()
+        job.title = "Serial Mom"
+        job.label = "SERIAL_MOM"
+        job.year = "1994"
+        job.hasnicetitle = False
+
+        with unittest.mock.patch('arm.ripper.identify.metadata_selector',
+                                 return_value=None) as mock_ms, \
+             unittest.mock.patch('arm.ripper.identify.identify_loop'):
+            _search_metadata(job)
+            mock_ms.assert_called_once()
+            args = mock_ms.call_args[0]
+            assert "Serial+Mom" in args[1]
+
+    def test_falls_back_to_label(self):
+        """Uses job.label when job.title is None."""
+        from arm.ripper.identify import _search_metadata
+
+        job = unittest.mock.MagicMock()
+        job.title = None
+        job.label = "THE_BABYSITTER"
+        job.year = None
+
+        with unittest.mock.patch('arm.ripper.identify.metadata_selector',
+                                 return_value=None) as mock_ms, \
+             unittest.mock.patch('arm.ripper.identify.identify_loop'):
+            _search_metadata(job)
+            mock_ms.assert_called_once()
+            args = mock_ms.call_args[0]
+            assert "THE+BABYSITTER" in args[1]
+
+    def test_skips_when_no_title_or_label(self):
+        """Does nothing when both title and label are empty."""
+        from arm.ripper.identify import _search_metadata
+
+        job = unittest.mock.MagicMock()
+        job.title = None
+        job.label = None
+
+        with unittest.mock.patch('arm.ripper.identify.metadata_selector') as mock_ms:
+            _search_metadata(job)
+            mock_ms.assert_not_called()
+
+    def test_strips_16x9_and_sku(self):
+        """Strips 16x9 and SKU markers from search query."""
+        from arm.ripper.identify import _search_metadata
+
+        job = unittest.mock.MagicMock()
+        job.title = None
+        job.label = "ALIEN_16x9"
+        job.year = None
+
+        with unittest.mock.patch('arm.ripper.identify.metadata_selector',
+                                 return_value=None) as mock_ms, \
+             unittest.mock.patch('arm.ripper.identify.identify_loop'):
+            _search_metadata(job)
+            args = mock_ms.call_args[0]
+            assert "16x9" not in args[1]
+
+    def test_title_string_none_falls_back_to_label(self):
+        """String 'None' in title treated as missing, falls back to label."""
+        from arm.ripper.identify import _search_metadata
+
+        job = unittest.mock.MagicMock()
+        job.title = "None"
+        job.label = "SERIAL_MOM"
+        job.year = None
+
+        with unittest.mock.patch('arm.ripper.identify.metadata_selector',
+                                 return_value=None) as mock_ms, \
+             unittest.mock.patch('arm.ripper.identify.identify_loop'):
+            _search_metadata(job)
+            args = mock_ms.call_args[0]
+            assert "SERIAL+MOM" in args[1]
+
+
+class TestApplyLabelAsTitle:
+    """Test _apply_label_as_title() last-resort title assignment."""
+
+    def test_cleans_label_as_title(self, app_context):
+        """Cleans underscored label into title-cased title."""
+        from arm.ripper.identify import _apply_label_as_title
+        from arm.models.job import Job
+
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            job = Job('/dev/sr0')
+        job.label = "THE_BABYSITTER"
+        job.title = None
+        job.title_auto = None
+        job.hasnicetitle = True  # should be reset to False
+
+        _apply_label_as_title(job)
+        assert job.title == "The Babysitter"
+        assert job.title_auto == "The Babysitter"
+        assert job.hasnicetitle is False
+
+    def test_empty_label(self, app_context):
+        """Empty label sets empty title and year."""
+        from arm.ripper.identify import _apply_label_as_title
+        from arm.models.job import Job
+
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            job = Job('/dev/sr0')
+        job.label = ""
+        job.title = None
+        job.year = None
+
+        _apply_label_as_title(job)
+        assert job.title == ""
+        assert job.year == ""
+        assert job.hasnicetitle is False
+
+    def test_none_label(self, app_context):
+        """None label sets empty title and year."""
+        from arm.ripper.identify import _apply_label_as_title
+        from arm.models.job import Job
+
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            job = Job('/dev/sr0')
+        job.label = None
+        job.title = None
+        job.year = None
+
+        _apply_label_as_title(job)
+        assert job.title == ""
+        assert job.year == ""
+        assert job.hasnicetitle is False
+
+
+class TestDetectTrack99:
+    """Test _detect_track_99() DVD track 99 detection."""
+
+    @staticmethod
+    def _lsdvd_output(num_tracks):
+        """Create lsdvd -Oy style multiline output for testing."""
+        tracks = [{'ix': i + 1} for i in range(num_tracks)]
+        return "lsdvd = {\n'track': " + repr(tracks) + "\n}"
+
+    def test_detects_99_tracks(self):
+        """Sets has_track_99 when exactly 99 tracks detected."""
+        from arm.ripper.identify import _detect_track_99
+
+        job = unittest.mock.MagicMock()
+        job.devpath = "/dev/sr0"
+        job.has_track_99 = False
+
+        with unittest.mock.patch('arm.ripper.identify.arm_subprocess',
+                                 return_value=self._lsdvd_output(99)), \
+             unittest.mock.patch('arm.ripper.identify.cfg') as mock_cfg:
+            mock_cfg.arm_config = {"PREVENT_99": False}
+            _detect_track_99(job)
+        assert job.has_track_99 is True
+
+    def test_normal_track_count(self):
+        """Does not flag normal track counts."""
+        from arm.ripper.identify import _detect_track_99
+
+        job = unittest.mock.MagicMock()
+        job.devpath = "/dev/sr0"
+        job.has_track_99 = False
+
+        with unittest.mock.patch('arm.ripper.identify.arm_subprocess',
+                                 return_value=self._lsdvd_output(15)):
+            _detect_track_99(job)
+        # has_track_99 should not have been set to True
+        assert job.has_track_99 is False
+
+    def test_prevent_99_raises(self):
+        """Raises RipperException when PREVENT_99 is enabled."""
+        from arm.ripper.identify import _detect_track_99
+        from arm.ripper.utils import RipperException
+
+        job = unittest.mock.MagicMock()
+        job.devpath = "/dev/sr0"
+        job.has_track_99 = False
+
+        with unittest.mock.patch('arm.ripper.identify.arm_subprocess',
+                                 return_value=self._lsdvd_output(99)), \
+             unittest.mock.patch('arm.ripper.identify.cfg') as mock_cfg:
+            mock_cfg.arm_config = {"PREVENT_99": True}
+            with pytest.raises(RipperException):
+                _detect_track_99(job)
+
+    def test_no_output(self):
+        """Handles missing lsdvd output gracefully."""
+        from arm.ripper.identify import _detect_track_99
+
+        job = unittest.mock.MagicMock()
+        job.devpath = "/dev/sr0"
+
+        with unittest.mock.patch('arm.ripper.identify.arm_subprocess',
+                                 return_value=None):
+            _detect_track_99(job)  # should not raise

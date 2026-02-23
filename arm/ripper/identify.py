@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Identification of dvd/bluray"""
+"""Identification of dvd/bluray
+
+Phases:
+  1. Mount + detect disc type (filesystem-based, always reliable)
+  2. Resolve label from all sources (pyudev → blkid → lsdvd → XML)
+  3. Disc-specific ID (CRC64 for DVD, XML for Blu-ray)
+  4. Search metadata APIs (OMDB/TMDB) if Phase 3 didn't fully identify
+  5. Last resort — use cleaned label as title
+  Finally: Unmount
+"""
 
 import os
 import logging
@@ -62,16 +71,141 @@ def check_mount(job: Job) -> bool:
     return True
 
 
+# ── Phase 2: Label resolution ──────────────────────────────────────────
+
+def _label_from_blkid(devpath):
+    """Read UDF/ISO filesystem label via blkid."""
+    output = arm_subprocess(["blkid", "-o", "value", "-s", "LABEL", devpath])
+    if output:
+        return output.strip() or None
+    return None
+
+
+def _label_from_lsdvd(devpath):
+    """Read DVD disc title via lsdvd."""
+    output = arm_subprocess(["lsdvd", devpath])
+    if output:
+        for line in output.splitlines():
+            if "Disc Title:" in line:
+                _, _, title = line.partition("Disc Title:")
+                title = title.strip()
+                if title:
+                    return title
+    return None
+
+
+def _label_from_bluray_xml(mountpoint):
+    """Read Blu-ray title from bdmt_eng.xml."""
+    xml_path = os.path.join(mountpoint, 'BDMV', 'META', 'DL', 'bdmt_eng.xml')
+    try:
+        with open(xml_path, "rb") as xml_file:
+            doc = xmltodict.parse(xml_file.read())
+        title = doc['disclib']['di:discinfo']['di:title']['di:name']
+        if title:
+            return str(title).strip()
+    except Exception:
+        pass
+    return None
+
+
+def resolve_disc_label(job):
+    """Resolve disc label from all available sources (Phase 2).
+
+    Tries sources in order: pyudev (already set), blkid, lsdvd (DVD),
+    bdmt_eng.xml (Blu-ray).
+    """
+    if job.label:
+        logging.debug(f"Label already set from pyudev: {job.label}")
+        return
+
+    label = _label_from_blkid(job.devpath)
+    if label:
+        logging.info(f"Label recovered from blkid: {label}")
+        job.label = label
+        return
+
+    if job.disctype in ("dvd", "unknown"):
+        label = _label_from_lsdvd(job.devpath)
+        if label:
+            logging.info(f"Label recovered from lsdvd: {label}")
+            job.label = label
+            return
+
+    if job.disctype in ("bluray", "bluray4k") and job.mountpoint:
+        label = _label_from_bluray_xml(job.mountpoint)
+        if label:
+            logging.info(f"Label recovered from bdmt_eng.xml: {label}")
+            job.label = label
+            return
+
+    logging.warning("Could not resolve disc label from any source")
+
+
+# ── Phase 4: Metadata search ───────────────────────────────────────────
+
+def _search_metadata(job):
+    """Search OMDB/TMDB for disc metadata (Phase 4).
+
+    Uses the best available title (from XML, CRC64, or label) to query
+    the configured metadata provider via identify_loop().
+    """
+    title = job.title
+    if not title or title == "None":
+        title = job.label
+    if not title:
+        logging.info("No title or label available for metadata search")
+        return
+
+    title = re.sub('[_ ]', "+", title.strip())
+    # Strip 16x9 aspect ratio markers and SKU suffixes
+    title = title.replace("16x9", "")
+    title = re.sub(r"SKU\b", "", title)
+
+    year = re.sub(r"\D", "", str(job.year)) if job.year else ""
+
+    logging.debug(f"Searching metadata with title: {title} | Year: {year}")
+
+    try:
+        response = metadata_selector(job, title, year)
+        identify_loop(job, response, title, year)
+    except Exception as error:
+        logging.info(f"Metadata search failed: {error}. Continuing...")
+
+
+# ── Phase 5: Last resort ───────────────────────────────────────────────
+
+def _apply_label_as_title(job):
+    """Use cleaned disc label as title when all identification failed (Phase 5)."""
+    if not job.label:
+        job.title = ""
+        job.year = ""
+    else:
+        cleaned = str(job.label).replace('_', ' ').title()
+        job.title = job.title_auto = cleaned
+    job.hasnicetitle = False
+    db.session.commit()
+
+
+# ── Main entry point ───────────────────────────────────────────────────
+
 def identify(job):
-    """Identify disc attributes"""
+    """Identify disc attributes.
+
+    Phases:
+      1. Mount + detect disc type (filesystem-based)
+      2. Resolve label from all sources (pyudev → blkid → lsdvd → XML)
+      3. Disc-specific ID (CRC64 for DVD, XML for Blu-ray)
+      4. Search metadata APIs (OMDB/TMDB) if not yet fully identified
+      5. Last resort — use cleaned label as title
+      Finally: Unmount
+    """
     logging.debug("Identify Entry point --- job ----")
 
     mounted = check_mount(job)
 
     try:
-        # get_disc_type() checks local files, no need to run unless we can mount
+        # Phase 1: Mount + detect disc type
         if mounted:
-            # Check with the job class to get the correct disc type
             job.get_disc_type(utils.find_file("HVDVD_TS", job.mountpoint))
 
         if job.disctype in ["dvd", "bluray", "bluray4k"]:
@@ -79,16 +213,22 @@ def identify(job):
             logging.info("Disc identified as video")
 
             if cfg.arm_config["GET_VIDEO_TITLE"]:
-                res = False
+                # Phase 2: Resolve label from all sources
+                resolve_disc_label(job)
+
+                # Phase 3: Disc-specific identification
                 if job.disctype == "dvd":
-                    res = identify_dvd(job)
-                if job.disctype in ("bluray", "bluray4k"):
-                    res = identify_bluray(job)
-                if res:
-                    get_video_details(job)
-                else:
-                    job.hasnicetitle = False
-                    db.session.commit()
+                    identify_dvd(job)
+                elif job.disctype in ("bluray", "bluray4k"):
+                    identify_bluray(job)
+
+                # Phase 4: Search metadata APIs if not yet identified
+                if not job.hasnicetitle:
+                    _search_metadata(job)
+
+                # Phase 5: Last resort — use cleaned label as title
+                if job.title is None or job.title == "None" or job.title == "":
+                    _apply_label_as_title(job)
 
                 logging.info(f"Disc title Post ident -  title:{job.title} "
                              f"year:{job.year} video_type:{job.video_type} "
@@ -102,23 +242,14 @@ def identify(job):
             logging.debug(f"umount {job.devpath}: {result.stderr.strip()}")
 
 
-def _bluray_label_fallback(job):
-    """Fall back to disc label when bdmt_eng.xml cannot be read or parsed."""
-    if not job.label:
-        job.title = ""
-        job.year = ""
-        db.session.commit()
-        return False
-    bluray_title = str(job.label).replace('_', ' ').title()
-    job.title = job.title_auto = bluray_title
-    job.year = ""
-    db.session.commit()
-    return True
-
+# ── Disc-specific identification ────────────────────────────────────────
 
 def identify_bluray(job):
-    """ Get's Blu-Ray title by parsing XML in bdmt_eng.xml """
+    """Get Blu-Ray title by parsing bdmt_eng.xml (Phase 3).
 
+    Returns True if a title was successfully extracted, False otherwise.
+    When False, the caller handles fallback via _apply_label_as_title().
+    """
     try:
         with open(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
             doc = xmltodict.parse(xml_file.read())
@@ -126,18 +257,21 @@ def identify_bluray(job):
         logging.error("Disc is a bluray, but bdmt_eng.xml could not be found. "
                       "Disc cannot be identified.  Error "
                       f"number is: {error.errno}")
-        return _bluray_label_fallback(job)
+        return False
     except Exception as error:
         logging.error(f"Disc is a bluray, but bdmt_eng.xml could not be parsed: {error}")
-        return _bluray_label_fallback(job)
+        return False
 
     try:
         bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
         if not bluray_title:
             bluray_title = job.label
     except KeyError:
-        bluray_title = str(job.label)
+        bluray_title = job.label
         logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
+
+    if not bluray_title:
+        return False
 
     bluray_modified_timestamp = os.path.getmtime(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml')
     bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))
@@ -160,16 +294,15 @@ def identify_bluray(job):
 
 
 def identify_dvd(job):
-    """ Manipulates the DVD title and calls OMDB to try and
-    lookup the title """
+    """Try to identify DVD via CRC64 online database lookup (Phase 3).
 
+    Returns True if CRC64 lookup found a match (hasnicetitle=True),
+    False otherwise.  Track 99 detection always runs.
+    """
     logging.debug(f"\n\r{job.pretty_table()}")
-    # Some older DVDs aren't actually labelled
-    if not job.label or job.label == "":
-        job.label = "not identified"
+
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
-        dvd_title = f"{job.label}_{crc64}"
         logging.info(f"DVD CRC64 hash is: {crc64}")
         job.crc_id = str(crc64)
         urlstring = f"https://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
@@ -195,36 +328,17 @@ def identify_dvd(job):
                 'hasnicetitle': True
             }
             utils.database_updater(args, job)
+            _detect_track_99(job)
+            return True
     except Exception as error:
         logging.error(f"Pydvdid failed with the error: {error}")
-        dvd_title = str(job.label)
 
-    logging.debug(f"dvd_title_label: {dvd_title}")
-    # in this block we want to strip out any chars that might be bad
-    # strip all non-numeric chars and use that for year
-    year = re.sub(r"\D", "", str(job.year)) if job.year else None
-    # next line is not really needed, but we don't want to leave an x somewhere
-    dvd_title = job.label.replace("16x9", "")
-    logging.debug(f"dvd_title ^a-z _-: {dvd_title}")
-    # rip out any SKU's at the end of the line
-    dvd_title = re.sub(r"SKU\b", "", dvd_title)
-    logging.debug(f"dvd_title SKU$: {dvd_title}")
-    
-    # Do we really need metaselector if we have got from ARM online db?
-    try:
-        dvd_info_xml = metadata_selector(job, dvd_title, year)
-        logging.debug(f"DVD_INFO_XML: {dvd_info_xml}")
-        identify_loop(job, dvd_info_xml, dvd_title, year)
-    except Exception:
-        dvd_info_xml = None
-        logging.debug("Cant connect to online service!")
-    # Failsafe so that we always have a title.
-    if job.title is None or job.title == "None":
-        job.title = str(job.label)
-        job.year = None
+    _detect_track_99(job)
+    return False
 
-    # Track 99 detection
-    # -Oy means output a python dict
+
+def _detect_track_99(job):
+    """Detect 99-track DVDs (copy protection indicator)."""
     output = arm_subprocess(["lsdvd", "-Oy", job.devpath])
     if output:
         try:
@@ -238,39 +352,8 @@ def identify_dvd(job):
         except (SyntaxError, AttributeError) as e:
             logging.error("Failed to parse lsdvd output", exc_info=e)
 
-    return True
 
-
-def get_video_details(job):
-    """ Clean up title and year.  Get video_type, imdb_id, poster_url from
-    omdbapi.com webservice.\n
-
-    job = Instance of Job class\n
-    """
-    title = job.title
-
-    # Set out title from the job.label
-    # return if not identified
-    logging.debug(f"Title = {title}")
-    if title == "not identified" or title is None or title == "":
-        logging.info("Disc couldn't be identified")
-        return
-    title = re.sub('[_ ]', "+", title.strip())
-
-    # strip all non-numeric chars and use that for year
-    if job.year is None:
-        year = ""
-    else:
-        year = re.sub(r"\D", "", str(job.year))
-
-    logging.debug(f"Title: {title} | Year: {year}")
-    logging.debug(f"Calling webservice with title: {title} and year: {year}")
-
-    try:
-        identify_loop(job, None, title, year)
-    except Exception as error:
-        logging.info(f"Identification failed with the error: {error}. Continuing...")
-
+# ── Metadata helpers (unchanged) ───────────────────────────────────────
 
 def update_job(job, search_results):
     """
