@@ -161,6 +161,7 @@ def setup():
     global job
     global args
     global log_file
+    global drive
 
     def signal_handler(_signal, _frame_type):
         raise utils.RipperException("Received SIGTERM")
