@@ -105,6 +105,9 @@ def bash_notify(cfg, title, body, job=None):
                 env['ARM_PATH'] = str(job.path or '')
                 env['ARM_RAW_PATH'] = str(job.raw_path or '')
                 env['ARM_TRANSCODE_PATH'] = str(job.transcode_path or '')
+                if job.config:
+                    env['ARM_RAW_PATH_BASE'] = str(getattr(job.config, 'RAW_PATH', '') or '')
+                    env['ARM_COMPLETED_PATH_BASE'] = str(getattr(job.config, 'COMPLETED_PATH', '') or '')
             subprocess.run(["/usr/bin/env", "bash", cfg['BASH_SCRIPT'], title, body], env=env)
             logging.debug("Sent bash notification successful")
         except Exception as error:  # noqa: E722
