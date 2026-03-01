@@ -277,13 +277,14 @@ class TestPutTrack:
         from arm.ripper.utils import put_track
         from arm.models.track import Track
 
-        # MINLENGTH is 600 in sample_job config
+        # put_track() always sets ripped=False regardless of length vs MINLENGTH.
+        # Tracks are only marked ripped after actual ripping completes (handled by makemkv.py).
         put_track(sample_job, 1, 700, "16:9", 24.0, False, "MakeMKV")
         put_track(sample_job, 2, 100, "16:9", 24.0, False, "MakeMKV")
 
         tracks = Track.query.filter_by(job_id=sample_job.job_id).order_by(Track.track_number).all()
-        assert tracks[0].ripped is True   # 700 > 600
-        assert tracks[1].ripped is False  # 100 < 600
+        assert tracks[0].ripped is False  # always False until makemkv marks ripped
+        assert tracks[1].ripped is False  # always False until makemkv marks ripped
 
 
 class TestMakeDir:
