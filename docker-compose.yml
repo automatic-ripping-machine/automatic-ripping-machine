@@ -84,7 +84,7 @@ services:
       - ARM_UI_ARM_LOG_PATH=/data/logs
       - ARM_UI_ARM_CONFIG_PATH=/data/arm-config/arm.yaml
       - ARM_UI_ARM_URL=http://arm-rippers:8080
-      - ARM_UI_TRANSCODER_URL=http://arm-transcoder:5000
+      - ARM_UI_TRANSCODER_URL=${ARM_UI_TRANSCODER_URL:-http://arm-transcoder:5000}
       - ARM_UI_ARM_HB_PRESETS_PATH=/data/hb-presets/presets.json
       - ARM_UI_TRANSCODER_API_KEY=${TRANSCODER_API_KEY:-}
     volumes:
