@@ -15,7 +15,6 @@ import os
 import logging
 import subprocess
 import time
-import urllib
 import re
 import datetime
 import unicodedata
@@ -372,26 +371,26 @@ def identify_dvd(job):
         crc64 = pydvdid.compute(str(job.mountpoint))
         logging.info(f"DVD CRC64 hash is: {crc64}")
         job.crc_id = str(crc64)
-        urlstring = f"https://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
-        logging.debug(urlstring)
-        dvd_info_xml = urllib.request.urlopen(urlstring).read()
-        arm_api_json = json.loads(dvd_info_xml)
-        logging.debug(f"dvd xml - {arm_api_json}")
-        logging.debug(f"results = {arm_api_json['results']}")
-        if arm_api_json['success']:
+        from arm.services.metadata_sync import lookup_crc_sync
+        crc_result = lookup_crc_sync(str(crc64))
+        logging.debug(f"CRC lookup result: {crc_result}")
+        if crc_result.get("error"):
+            logging.warning(f"CRC lookup error for {crc64}: {crc_result['error']}")
+        if crc_result.get("found") and crc_result.get("results"):
+            hit = crc_result["results"][0]
             logging.info("Found crc64 id from online API")
-            logging.info(f"title is {arm_api_json['results']['0']['title']}")
+            logging.info(f"title is {hit['title']}")
             args = {
-                'title': arm_api_json['results']['0']['title'],
-                'title_auto': arm_api_json['results']['0']['title'],
-                'year': utils.extract_year(arm_api_json['results']['0']['year']),
-                'year_auto': utils.extract_year(arm_api_json['results']['0']['year']),
-                'imdb_id': arm_api_json['results']['0']['imdb_id'],
-                'imdb_id_auto': arm_api_json['results']['0']['imdb_id'],
-                'video_type': arm_api_json['results']['0']['video_type'],
-                'video_type_auto': arm_api_json['results']['0']['video_type'],
-                'poster_url': arm_api_json['results']['0']['poster_img'],
-                'poster_url_auto': arm_api_json['results']['0']['poster_img'],
+                'title': hit['title'],
+                'title_auto': hit['title'],
+                'year': utils.extract_year(hit['year']),
+                'year_auto': utils.extract_year(hit['year']),
+                'imdb_id': hit['imdb_id'],
+                'imdb_id_auto': hit['imdb_id'],
+                'video_type': hit['video_type'],
+                'video_type_auto': hit['video_type'],
+                'poster_url': hit['poster_url'],
+                'poster_url_auto': hit['poster_url'],
                 'hasnicetitle': True
             }
             utils.database_updater(args, job)
@@ -487,6 +486,21 @@ def update_job(job, search_results):
     return utils.database_updater(args, job)
 
 
+def _to_matcher_format(normalized: list[dict]) -> list[dict]:
+    """Convert normalized search results to OMDb-style dicts for arm_matcher."""
+    results = []
+    for item in normalized:
+        media_type = item.get("media_type", "movie")
+        results.append({
+            "Title": item.get("title", ""),
+            "Year": item.get("year", ""),
+            "Type": media_type,
+            "imdbID": item.get("imdb_id", ""),
+            "Poster": item.get("poster_url") or "N/A",
+        })
+    return results
+
+
 def metadata_selector(job, title=None, year=None):
     """
     Used to switch between OMDB or TMDB as the metadata provider\n
@@ -505,24 +519,32 @@ def metadata_selector(job, title=None, year=None):
 
     :return: json/dict object or None
     """
-    from arm.services import metadata as svc_meta
+    from arm.services.metadata_sync import search_sync
+    from arm.services.metadata import MetadataConfigError
 
-    search_results = None
-    if cfg.arm_config['METADATA_PROVIDER'].lower() == "tmdb":
-        logging.debug("provider tmdb")
-        search_results = svc_meta.tmdb_search(title, year)
-    elif cfg.arm_config['METADATA_PROVIDER'].lower() == "omdb":
-        logging.debug("provider omdb")
-        search_results = svc_meta.call_omdb_api(str(title), str(year))
-    else:
-        logging.debug(cfg.arm_config['METADATA_PROVIDER'])
-        logging.debug("unknown provider - doing nothing, saying nothing. Getting Kryten")
+    logging.debug("metadata_selector: title=%r year=%s", title, year)
+    try:
+        normalized = search_sync(str(title), str(year) if year else None)
+    except MetadataConfigError as e:
+        logging.error("Metadata provider not configured: %s", e)
+        return None
+    except Exception as e:
+        logging.warning("Metadata search failed for title=%r year=%s: %s", title, year, e)
+        normalized = []
 
-    if search_results is not None:
-        if update_job(job, search_results) is None:
-            # Matcher wasn't confident — treat as no results so the
-            # retry loop continues with simplified queries
-            return None
+    if not normalized:
+        logging.debug("Metadata search returned no results for title=%r year=%s", title, year)
+        return None
+
+    # Convert normalized results to OMDb-style format for arm_matcher
+    search_results = {"Search": _to_matcher_format(normalized)}
+    logging.info("Metadata search returned %d results for title=%r", len(normalized), title)
+
+    if update_job(job, search_results) is None:
+        # Matcher wasn't confident — treat as no results so the
+        # retry loop continues with simplified queries
+        logging.debug("Matcher rejected all %d results for title=%r — will retry", len(normalized), title)
+        return None
 
     return search_results
 
