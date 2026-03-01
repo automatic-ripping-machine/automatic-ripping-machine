@@ -1,5 +1,26 @@
 # Changelog
 
+## [10.5.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.4.0-alpha.1...v10.5.0-alpha.1) (2026-03-01)
+
+
+### Features
+
+* per-job transcode config overrides (ARM side) ([c69e7aa](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/c69e7aa0945f850334e0ef540c98ab883ed29875))
+* structured logging with structlog ([4a62e02](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/4a62e02ee3089a49f20ebd4025c2e7b964945c49))
+
+
+### Bug Fixes
+
+* allow NFS/group-based access in startup ownership check ([aa12cb5](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/aa12cb54bf43914e660a5233889ee7cbae8fd533))
+* allow NFS/group-based access in startup ownership check ([ccd6073](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/ccd60735ac275f09916667a7dc8ff92c116f9301))
+* dev compose builds from sibling repos, not stale submodules ([c40327a](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/c40327aa2e3d4e9cc008a509548a4efddef5e697))
+* keydb download runs in background, compose improvements ([a02ec4f](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/a02ec4f972171612a2e3bbccc407faf76b536836))
+* make ARM_UI_TRANSCODER_URL configurable via .env ([5d63035](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/5d63035e967da586dd51f057f90bb85ee7a3266c))
+* mount transcoder raw volume as rw for source deletion ([cd71aaf](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/cd71aaf737bbff497f34bd007f88e4096ba71cfe))
+* restore makemkv-settings named volume definition ([4e5096d](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/4e5096dfbea3d134103f6c9396bd78d27199bf08))
+* set track.ripped=False during scan, True after actual rip ([2742af7](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/2742af7631fc3004118d847a1219b119eb84d416))
+* update put_track test to expect ripped=False ([db38c78](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/db38c78144dd12f9ff88589416e67003612d852c))
+
 ## [10.4.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.3.1-alpha.1...v10.4.0-alpha.1) (2026-02-28)
 
 
