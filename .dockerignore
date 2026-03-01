@@ -216,6 +216,11 @@ cython_debug/
 .dockerignore
 .gitignore
 .gitmodules
+dev-data/
+components/
+test/
+.venv/
+.claude/
 
 *.yml
 *.md
