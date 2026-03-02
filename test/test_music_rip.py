@@ -347,7 +347,7 @@ class TestProcessTracks:
         assert call_args[1] == '1'        # track number
         assert call_args[2] == 68000      # length
         assert call_args[3] == "n/a"      # aspect
-        assert call_args[4] == 0.1        # fps
+        assert abs(call_args[4] - 0.1) < 0.01  # fps
         assert call_args[5] is False      # main_feature
         assert call_args[6] == "ABCDE"    # source
         assert call_args[7] == 'Speak to Me'  # title
@@ -402,7 +402,7 @@ class TestProcessTracks:
         for call in mock_put.call_args_list:
             args = call[0]
             assert args[3] == "n/a"     # aspect
-            assert args[4] == 0.1       # fps
+            assert abs(args[4] - 0.1) < 0.01  # fps
             assert args[5] is False     # main_feature
             assert args[6] == "ABCDE"   # source
 
@@ -879,7 +879,7 @@ class TestCreateTocTracks:
         assert args[1] == 1       # track number
         assert args[2] == 68      # seconds
         assert args[3] == "n/a"   # aspect
-        assert args[4] == 0.1     # fps
+        assert abs(args[4] - 0.1) < 0.01  # fps
         assert args[5] is False   # main_feature
         assert args[6] == "TOC"   # source
         assert args[7] == ""      # empty filename (no track name)

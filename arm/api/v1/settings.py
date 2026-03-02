@@ -1,4 +1,5 @@
 """API v1 — Settings endpoints."""
+import asyncio
 import importlib
 import logging
 
@@ -71,9 +72,12 @@ async def update_config(request: Request):
     comments = generate_comments()
     arm_cfg_text = build_arm_cfg(form_data, comments)
 
-    try:
+    def _write_config():
         with open(cfg.arm_config_path, "w") as f:
             f.write(arm_cfg_text)
+
+    try:
+        await asyncio.to_thread(_write_config)
     except OSError as e:
         log.error(f"Failed to write config: {e}")
         return JSONResponse(

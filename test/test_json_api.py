@@ -10,23 +10,23 @@ class TestPercentage:
     def test_half(self):
         from arm.services.jobs import percentage
 
-        assert percentage(50, 100) == 50.0
+        assert abs(percentage(50, 100) - 50.0) < 0.01
 
     def test_full(self):
         from arm.services.jobs import percentage
 
-        assert percentage(100, 100) == 100.0
+        assert abs(percentage(100, 100) - 100.0) < 0.01
 
     def test_zero_part(self):
         from arm.services.jobs import percentage
 
-        assert percentage(0, 100) == 0.0
+        assert abs(percentage(0, 100)) < 0.01
 
     def test_string_inputs(self):
         from arm.services.jobs import percentage
 
         # Function uses float() cast, should handle string numbers
-        assert percentage("50", "200") == 25.0
+        assert abs(percentage("50", "200") - 25.0) < 0.01
 
     def test_zero_whole_raises(self):
         from arm.services.jobs import percentage

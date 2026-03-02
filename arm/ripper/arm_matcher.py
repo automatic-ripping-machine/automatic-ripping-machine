@@ -283,7 +283,7 @@ def title_similarity(label: str, api_title: str) -> float:
     # Compound word fallback: when no tokens match, the label may be a
     # single concatenated word (e.g., "antman" from Ant-Man, "faceoff"
     # from Face/Off). Compare with spaces stripped so "antman" == "antman".
-    if overlap == 0.0 and label_tokens:
+    if abs(overlap) < 1e-9 and label_tokens:
         nospace_ratio = SequenceMatcher(
             None, label.replace(' ', ''), api_title.replace(' ', ''),
         ).ratio()
