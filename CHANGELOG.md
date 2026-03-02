@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.8.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.7.1-alpha.1...v10.8.0-alpha.1) (2026-03-02)
+
+
+### Features
+
+* show recursive folder sizes in file browser listing ([0e8536a](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/0e8536a38e1d11d9c42785e89bebbb4cbd103000))
+
 ## [10.7.1-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.7.0-alpha.1...v10.7.1-alpha.1) (2026-03-02)
 
 
