@@ -87,7 +87,7 @@
                                     <img src="static/img/none.png" alt="Not found" width="240px" class="img-thumbnail"></a>
                                 {% endif %}
                                 {% if jobs.video_type != "Music" %}
-                                    <div class="btn-group float-right mt-2" role="group">
+                                    <div class="btn-group float-right mt-2" role="group" aria-label="Title search options">
                                         <a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title
                                             Search</a>
                                         <a href="customTitle?job_id={{ jobs.job_id }}" class="btn btn-primary">Custom
@@ -102,7 +102,7 @@
                                     <img src="{{ jobs.poster_url }}" width="240px" class="img-thumbnail"
                                          alt="Movie Poster"></a>
                                 {% if jobs.video_type != "Music" %}
-                                    <div class="btn-group float-right mt-2" role="group">
+                                    <div class="btn-group float-right mt-2" role="group" aria-label="Title search options">
                                         <a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title
                                             Search</a>
                                         <a href="customTitle?job_id={{ jobs.job_id }}" class="btn btn-primary">Custom

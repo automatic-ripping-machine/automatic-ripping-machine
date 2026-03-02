@@ -2,6 +2,7 @@
 """
 
 from .alembic_version import AlembicVersion  # noqa F401
+from .batch_rename_history import BatchRenameHistory  # noqa F401
 from .config import Config  # noqa F401
 from .job import Job, JobState  # noqa F401
 from .notifications import Notifications  # noqa F401
