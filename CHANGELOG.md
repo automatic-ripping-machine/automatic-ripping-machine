@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.8.2-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.8.1-alpha.1...v10.8.2-alpha.1) (2026-03-02)
+
+
+### Bug Fixes
+
+* resolve SonarCloud reliability bugs (S7493, S1244) ([26ea784](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/26ea78460d66332a21ca543a4fbfd5408352d86f))
+
 ## [10.8.1-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.8.0-alpha.1...v10.8.1-alpha.1) (2026-03-02)
 
 
