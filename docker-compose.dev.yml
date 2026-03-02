@@ -16,7 +16,8 @@ services:
     volumes:
       - ./dev-data/music:/home/arm/music
       - ./dev-data/logs:/home/arm/logs
-      - ./dev-data/media:/home/arm/media
+      # NB: media is NOT overridden here — it uses ${ARM_MEDIA_PATH} from .env
+      # (NFS share) so the transcoder can find ripped files.
       - ./dev-data/config:/etc/arm/config
       - ./dev-data/makemkv:/home/arm/.MakeMKV
 
