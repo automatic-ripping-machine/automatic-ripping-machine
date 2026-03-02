@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.5.1-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.5.0-alpha.1...v10.5.1-alpha.1) (2026-03-02)
+
+
+### Bug Fixes
+
+* SQLite WAL mode, idempotent migration, and NFS media path ([#76](https://github.com/uprightbass360/automatic-ripping-machine-neu/issues/76)) ([8733d9a](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/8733d9af3e9cddeaccecf1089a44f30f75a5cd56))
+
 ## [10.5.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.4.0-alpha.1...v10.5.0-alpha.1) (2026-03-01)
 
 
