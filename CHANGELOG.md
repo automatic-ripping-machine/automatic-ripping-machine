@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.6.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.5.2-alpha.1...v10.6.0-alpha.1) (2026-03-02)
+
+
+### Features
+
+* file browser API with path-validated CRUD operations ([3d3ad25](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/3d3ad2500656521ac93e32cad9ea53ef7d26bd0d))
+
 ## [10.5.2-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.5.1-alpha.1...v10.5.2-alpha.1) (2026-03-02)
 
 
