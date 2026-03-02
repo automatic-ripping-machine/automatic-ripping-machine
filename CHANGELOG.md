@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.7.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.6.0-alpha.1...v10.7.0-alpha.1) (2026-03-02)
+
+
+### Features
+
+* add file permissions display and fix-permissions endpoint ([983ba13](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/983ba131c0528f9637812fa22cc42adaeb468043))
+
 ## [10.6.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.5.2-alpha.1...v10.6.0-alpha.1) (2026-03-02)
 
 
