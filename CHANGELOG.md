@@ -1,5 +1,13 @@
 # Changelog
 
+## [10.8.1-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.8.0-alpha.1...v10.8.1-alpha.1) (2026-03-02)
+
+
+### Bug Fixes
+
+* address CodeQL alerts with config and generic error messages ([152177b](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/152177bb791e78517b1d23040c761e21c5190e65))
+* scope workflow permissions to job level (S8264/S8233) ([d6fb744](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/d6fb7444c2a88749a8471cd5e9b67dbdfc66db55))
+
 ## [10.8.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.7.1-alpha.1...v10.8.0-alpha.1) (2026-03-02)
 
 
