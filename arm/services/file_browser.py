@@ -2,6 +2,7 @@
 import logging
 import os
 import shutil
+import stat
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -45,18 +46,58 @@ def get_allowed_roots() -> dict[str, str]:
     return roots
 
 
+def _read_host_mounts() -> dict[str, str]:
+    """Parse /proc/self/mountinfo to map container paths → host paths.
+
+    Returns a dict of container_mount_point → host_source_path for bind mounts.
+    """
+    mounts: dict[str, str] = {}
+    try:
+        with open('/proc/self/mountinfo') as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) < 10:
+                    continue
+                mount_point = parts[4]
+                # The host source is field 3 (root within the filesystem)
+                host_root = parts[3]
+                # Skip non-bind-mount entries (overlay root, proc, sys, etc.)
+                if host_root == '/' and mount_point == '/':
+                    continue
+                if host_root != '/':
+                    mounts[mount_point] = host_root
+    except OSError:
+        pass
+    return mounts
+
+
 def get_roots() -> list[dict[str, str]]:
-    """Return list of browsable root directories with labels."""
+    """Return list of browsable root directories with labels and host paths."""
     labels = {
         'raw': 'Raw',
         'completed': 'Completed',
         'transcode': 'Transcode',
         'music': 'Music',
     }
-    return [
-        {'key': key, 'label': labels.get(key, key.title()), 'path': path}
-        for key, path in get_allowed_roots().items()
-    ]
+    host_mounts = _read_host_mounts()
+    results = []
+    for key, path in get_allowed_roots().items():
+        entry: dict[str, str] = {
+            'key': key,
+            'label': labels.get(key, key.title()),
+            'path': path,
+        }
+        # Find the best matching mount for this path
+        best_mount = ''
+        for mount_point in host_mounts:
+            if (path == mount_point or path.startswith(mount_point + '/')) and len(mount_point) > len(best_mount):
+                best_mount = mount_point
+        if best_mount:
+            host_base = host_mounts[best_mount]
+            suffix = path[len(best_mount):]
+            entry['host_path'] = host_base + suffix
+        results.append(entry)
+    return results
 
 
 def validate_path(path: str) -> Path:
@@ -75,6 +116,34 @@ def validate_path(path: str) -> Path:
                 raise FileNotFoundError(f"Path not found: {path}")
             return resolved
     raise ValueError("Path is outside allowed media directories")
+
+
+def _format_permissions(mode: int) -> str:
+    """Format a stat mode into a unix-style permission string like 'rwxr-xr-x'."""
+    parts = []
+    for who in (stat.S_IRUSR, stat.S_IWUSR, stat.S_IXUSR,
+                stat.S_IRGRP, stat.S_IWGRP, stat.S_IXGRP,
+                stat.S_IROTH, stat.S_IWOTH, stat.S_IXOTH):
+        parts.append('r' if who in (stat.S_IRUSR, stat.S_IRGRP, stat.S_IROTH) and mode & who else
+                     'w' if who in (stat.S_IWUSR, stat.S_IWGRP, stat.S_IWOTH) and mode & who else
+                     'x' if who in (stat.S_IXUSR, stat.S_IXGRP, stat.S_IXOTH) and mode & who else
+                     '-')
+    return ''.join(parts)
+
+
+def _get_owner_group(st: os.stat_result) -> tuple[str, str]:
+    """Return (owner, group) names for a stat result, falling back to uid/gid."""
+    import pwd
+    import grp
+    try:
+        owner = pwd.getpwuid(st.st_uid).pw_name
+    except KeyError:
+        owner = str(st.st_uid)
+    try:
+        group = grp.getgrgid(st.st_gid).gr_name
+    except KeyError:
+        group = str(st.st_gid)
+    return owner, group
 
 
 def classify_file(name: str) -> str:
@@ -109,16 +178,20 @@ def list_directory(path: str) -> dict:
     try:
         for item in resolved.iterdir():
             try:
-                stat = item.stat()
+                st = item.stat()
+                owner, group = _get_owner_group(st)
                 entry = {
                     'name': item.name,
                     'type': 'directory' if item.is_dir() else 'file',
-                    'size': stat.st_size if item.is_file() else 0,
+                    'size': st.st_size if item.is_file() else 0,
                     'modified': datetime.fromtimestamp(
-                        stat.st_mtime, tz=timezone.utc
+                        st.st_mtime, tz=timezone.utc
                     ).isoformat(),
                     'extension': item.suffix.lstrip('.').lower() if item.is_file() else '',
                     'category': 'directory' if item.is_dir() else classify_file(item.name),
+                    'permissions': _format_permissions(st.st_mode),
+                    'owner': owner,
+                    'group': group,
                 }
                 entries.append(entry)
             except (PermissionError, OSError) as exc:
@@ -243,3 +316,39 @@ def create_directory(path: str, name: str) -> dict:
     new_dir.mkdir()
     log.info("Created directory %s", new_dir)
     return {'success': True, 'new_path': str(new_dir)}
+
+
+def fix_item_permissions(path: str) -> dict:
+    """Fix ownership and permissions for a file or directory.
+
+    Sets ownership to ARM_UID:ARM_GID and permissions to 775 (dirs) or 664 (files).
+    For directories, applies recursively.
+
+    :param path: Path to fix
+    :return: dict with success and count of items fixed
+    """
+    resolved = validate_path(path)
+    uid = int(os.environ.get('ARM_UID', 1000))
+    gid = int(os.environ.get('ARM_GID', 1000))
+    dir_mode = 0o775
+    file_mode = 0o664
+    fixed = 0
+
+    if resolved.is_dir():
+        for root, dirs, files in os.walk(str(resolved)):
+            root_path = Path(root)
+            os.chown(root, uid, gid)
+            os.chmod(root, dir_mode)
+            fixed += 1
+            for name in files:
+                fp = root_path / name
+                os.chown(str(fp), uid, gid)
+                os.chmod(str(fp), file_mode)
+                fixed += 1
+    else:
+        os.chown(str(resolved), uid, gid)
+        os.chmod(str(resolved), file_mode)
+        fixed = 1
+
+    log.info("Fixed permissions on %s (%d items, uid=%d, gid=%d)", resolved, fixed, uid, gid)
+    return {'success': True, 'fixed': fixed}

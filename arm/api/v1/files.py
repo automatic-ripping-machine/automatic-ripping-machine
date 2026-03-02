@@ -105,6 +105,27 @@ async def create_directory(request: Request):
         return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
 
+@router.post('/files/fix-permissions')
+async def fix_permissions(request: Request):
+    """Fix ownership and permissions for a file or directory."""
+    body = await request.json()
+    path = body.get('path')
+    if not path:
+        return JSONResponse(
+            {"success": False, "error": "'path' is required"},
+            status_code=400,
+        )
+    try:
+        return file_browser.fix_item_permissions(path)
+    except ValueError as exc:
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=403)
+    except FileNotFoundError as exc:
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=404)
+    except OSError as exc:
+        log.error("Error fixing permissions on %s: %s", path, exc)
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
 @router.delete('/files/delete')
 async def delete_item(request: Request):
     """Delete a file or directory."""
