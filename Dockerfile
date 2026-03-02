@@ -55,6 +55,10 @@ FROM base AS automatic-ripping-machine
 
 COPY . /opt/arm/
 
+# Ensure Python deps are up-to-date even if the base image is stale.
+# This is a no-op when the base already has everything installed.
+RUN pip3 install --no-cache-dir -r /opt/arm/docker/base/requirements.txt
+
 # Docker udev rule
 RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
 
