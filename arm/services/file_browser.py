@@ -167,6 +167,20 @@ def classify_file(name: str) -> str:
     return _EXTENSION_CATEGORIES.get(ext, 'other')
 
 
+def _dir_size(path: Path) -> int:
+    """Return total size of all files under *path* (recursive)."""
+    total = 0
+    try:
+        for entry in os.scandir(path):
+            if entry.is_file(follow_symlinks=False):
+                total += entry.stat().st_size
+            elif entry.is_dir(follow_symlinks=False):
+                total += _dir_size(Path(entry.path))
+    except (PermissionError, OSError):
+        pass
+    return total
+
+
 def list_directory(path: str) -> dict:
     """List contents of a validated directory.
 
@@ -198,7 +212,7 @@ def list_directory(path: str) -> dict:
                 entry = {
                     'name': item.name,
                     'type': 'directory' if item.is_dir() else 'file',
-                    'size': st.st_size if item.is_file() else 0,
+                    'size': st.st_size if item.is_file() else _dir_size(item),
                     'modified': datetime.fromtimestamp(
                         st.st_mtime, tz=timezone.utc
                     ).isoformat(),
