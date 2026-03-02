@@ -47,9 +47,12 @@ def get_allowed_roots() -> dict[str, str]:
 
 
 def _read_host_mounts() -> dict[str, str]:
-    """Parse /proc/self/mountinfo to map container paths → host paths.
+    """Parse /proc/self/mountinfo to map container paths → host source paths.
 
-    Returns a dict of container_mount_point → host_source_path for bind mounts.
+    Handles Docker bind mounts (host path in field 3) and NFS mounts
+    (remote path from the device field after the ``-`` separator).
+
+    Returns a dict of container_mount_point → source_path.
     """
     mounts: dict[str, str] = {}
     try:
@@ -59,13 +62,25 @@ def _read_host_mounts() -> dict[str, str]:
                 if len(parts) < 10:
                     continue
                 mount_point = parts[4]
-                # The host source is field 3 (root within the filesystem)
-                host_root = parts[3]
-                # Skip non-bind-mount entries (overlay root, proc, sys, etc.)
-                if host_root == '/' and mount_point == '/':
+                host_root = parts[3]  # root within the mounted filesystem
+
+                # Locate the "-" separator to find fs-type and device
+                try:
+                    sep_idx = parts.index('-')
+                except ValueError:
                     continue
-                if host_root != '/':
+                if sep_idx + 2 >= len(parts):
+                    continue
+                fs_type = parts[sep_idx + 1]
+                device = parts[sep_idx + 2]
+
+                # Docker bind mounts: host_root is the actual host path
+                if host_root != '/' and fs_type not in ('proc', 'sysfs', 'tmpfs', 'devpts', 'cgroup', 'cgroup2'):
                     mounts[mount_point] = host_root
+                # NFS mounts: device is "host:/remote/path"
+                elif fs_type == 'nfs' and ':' in device:
+                    remote_path = device.split(':', 1)[1]
+                    mounts[mount_point] = remote_path
     except OSError:
         pass
     return mounts
