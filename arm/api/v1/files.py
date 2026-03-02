@@ -22,15 +22,15 @@ def list_directory(path: str = Query(..., description="Directory path to list"))
     """List contents of a directory."""
     try:
         return file_browser.list_directory(path)
-    except ValueError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=403)
-    except FileNotFoundError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=404)
-    except NotADirectoryError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=400)
+    except ValueError:
+        return JSONResponse({"success": False, "error": "Access denied"}, status_code=403)
+    except FileNotFoundError:
+        return JSONResponse({"success": False, "error": "Path not found"}, status_code=404)
+    except NotADirectoryError:
+        return JSONResponse({"success": False, "error": "Not a directory"}, status_code=400)
     except OSError as exc:
         log.error("Error listing directory %s: %s", path, exc)
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+        return JSONResponse({"success": False, "error": "Failed to list directory"}, status_code=500)
 
 
 @router.post('/files/rename')
@@ -46,15 +46,15 @@ async def rename_item(request: Request):
         )
     try:
         return file_browser.rename_item(path, new_name)
-    except ValueError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=403)
-    except FileNotFoundError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=404)
-    except FileExistsError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=409)
+    except ValueError:
+        return JSONResponse({"success": False, "error": "Access denied"}, status_code=403)
+    except FileNotFoundError:
+        return JSONResponse({"success": False, "error": "Path not found"}, status_code=404)
+    except FileExistsError:
+        return JSONResponse({"success": False, "error": "Target already exists"}, status_code=409)
     except OSError as exc:
         log.error("Error renaming %s: %s", path, exc)
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+        return JSONResponse({"success": False, "error": "Failed to rename item"}, status_code=500)
 
 
 @router.post('/files/move')
@@ -70,15 +70,15 @@ async def move_item(request: Request):
         )
     try:
         return file_browser.move_item(path, destination)
-    except ValueError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=403)
-    except FileNotFoundError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=404)
-    except (NotADirectoryError, FileExistsError) as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=409)
+    except ValueError:
+        return JSONResponse({"success": False, "error": "Access denied"}, status_code=403)
+    except FileNotFoundError:
+        return JSONResponse({"success": False, "error": "Path not found"}, status_code=404)
+    except (NotADirectoryError, FileExistsError):
+        return JSONResponse({"success": False, "error": "Target already exists or is not a directory"}, status_code=409)
     except OSError as exc:
         log.error("Error moving %s: %s", path, exc)
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+        return JSONResponse({"success": False, "error": "Failed to move item"}, status_code=500)
 
 
 @router.post('/files/mkdir')
@@ -94,15 +94,15 @@ async def create_directory(request: Request):
         )
     try:
         return file_browser.create_directory(path, name)
-    except ValueError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=403)
-    except FileNotFoundError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=404)
-    except (NotADirectoryError, FileExistsError) as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=409)
+    except ValueError:
+        return JSONResponse({"success": False, "error": "Access denied"}, status_code=403)
+    except FileNotFoundError:
+        return JSONResponse({"success": False, "error": "Path not found"}, status_code=404)
+    except (NotADirectoryError, FileExistsError):
+        return JSONResponse({"success": False, "error": "Directory already exists or parent is not a directory"}, status_code=409)
     except OSError as exc:
         log.error("Error creating directory in %s: %s", path, exc)
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+        return JSONResponse({"success": False, "error": "Failed to create directory"}, status_code=500)
 
 
 @router.post('/files/fix-permissions')
@@ -117,13 +117,13 @@ async def fix_permissions(request: Request):
         )
     try:
         return file_browser.fix_item_permissions(path)
-    except ValueError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=403)
-    except FileNotFoundError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=404)
+    except ValueError:
+        return JSONResponse({"success": False, "error": "Access denied"}, status_code=403)
+    except FileNotFoundError:
+        return JSONResponse({"success": False, "error": "Path not found"}, status_code=404)
     except OSError as exc:
         log.error("Error fixing permissions on %s: %s", path, exc)
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+        return JSONResponse({"success": False, "error": "Failed to fix permissions"}, status_code=500)
 
 
 @router.delete('/files/delete')
@@ -138,10 +138,10 @@ async def delete_item(request: Request):
         )
     try:
         return file_browser.delete_item(path)
-    except ValueError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=403)
-    except FileNotFoundError as exc:
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=404)
+    except ValueError:
+        return JSONResponse({"success": False, "error": "Access denied"}, status_code=403)
+    except FileNotFoundError:
+        return JSONResponse({"success": False, "error": "Path not found"}, status_code=404)
     except OSError as exc:
         log.error("Error deleting %s: %s", path, exc)
-        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+        return JSONResponse({"success": False, "error": "Failed to delete item"}, status_code=500)

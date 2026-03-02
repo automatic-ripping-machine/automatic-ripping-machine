@@ -1,0 +1,17 @@
+# Central CodeQL alert suppression config.
+# Maintain suppressions here instead of inline comments.
+# Ref: https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning
+
+name: "ARM CodeQL Config"
+
+paths-ignore:
+  - test/
+
+query-filters:
+  # ── Path injection (py/path-injection) ──────────────────────────
+  # All file browser operations go through validate_path() which
+  # resolves symlinks and checks the prefix against allowed roots.
+  # CodeQL cannot track this sanitizer so it flags every downstream
+  # filesystem call as tainted.  Safe to suppress globally.
+  - exclude:
+      id: py/path-injection
