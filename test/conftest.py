@@ -37,6 +37,7 @@ _minimal_arm_config = {
     'GROUP_TV_DISCS_UNDER_SERIES': False,
     'EXTRAS_SUB': 'extras',
     'DEST_EXT': 'mkv',
+    'DATE_FORMAT': '%m-%d-%Y %H:%M:%S',
 }
 
 # Pre-populate arm.config and arm.config.config in sys.modules
