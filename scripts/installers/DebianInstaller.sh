@@ -319,32 +319,150 @@ function IsDebianDistro() {
   fi
 }
 
-
-
 #Confirm the presence of required package libraries.
 function IsContribRepoAvailable() {
-  local IncludesContrib
-  local IncludesUpdatesContrib
-  local IncludesSecurityContrib
-  local Prompt
+  local IncludesContrib=false
+  local IncludesUpdatesContrib=false
+  local IncludesSecurityContrib=false
+  local Prompt=""
+
+  # Debian often exposes bookworm-updates as "stable-updates" (and bookworm as "stable") in Release metadata.
+  # Accept both codename-based and stable-based suite names to avoid false negatives.
+  _suite_regex() {
+    local s="$1"
+    case "$s" in
+      "${LinuxDistributionCodename}") echo "^(${LinuxDistributionCodename}|stable)$" ;;
+      "${LinuxDistributionCodename}-updates") echo "^(${LinuxDistributionCodename}-updates|stable-updates)$" ;;
+      "${LinuxDistributionCodename}-security") echo "^(${LinuxDistributionCodename}-security|stable-security)$" ;;
+      *) echo "^(${s})$" ;;
+    esac
+  }
+
+  # Preferred: ask APT what index targets it actually has configured.
+  _apt_has_suite_component_indextargets() {
+    local suite="$1"
+    local component="$2"
+    local suite_re
+    suite_re="$(_suite_regex "$suite")"
+
+    apt-get -o Debug::NoLocking=1 indextargets 2>/dev/null \
+      | awk -v suite_re="$suite_re" -v comp_need="$component" '
+          BEGIN { found=0; cod=""; sui=""; comp="" }
+          $1=="Codename:"  { cod=$2 }
+          $1=="Suite:"     { sui=$2 }
+          $1=="Component:" { comp=$2 }
+          /^$/ {
+            if ((cod ~ suite_re || sui ~ suite_re) && comp==comp_need) found=1
+            cod=""; sui=""; comp=""
+          }
+          END {
+            if ((cod ~ suite_re || sui ~ suite_re) && comp==comp_need) found=1
+            exit(found?0:1)
+          }'
+  }
+
+  # Fallback 1: parse deb822 sources (*.sources).
+  _apt_has_suite_component_deb822() {
+    local suite="$1"
+    local component="$2"
+    local suite_re
+    suite_re="$(_suite_regex "$suite")"
+
+    local files=()
+    shopt -s nullglob
+    files+=(/etc/apt/sources.list.d/*.sources)
+    shopt -u nullglob
+
+    [[ ${#files[@]} -eq 0 ]] && return 1
+
+    awk -v suite_re="$suite_re" -v comp_need="$component" '
+      BEGIN { found=0; suites=""; comps="" }
+      /^[[:space:]]*Suites:[[:space:]]*/ {
+        sub(/^[[:space:]]*Suites:[[:space:]]*/, "", $0)
+        suites=$0
+      }
+      /^[[:space:]]*Components:[[:space:]]*/ {
+        sub(/^[[:space:]]*Components:[[:space:]]*/, "", $0)
+        comps=$0
+      }
+      /^$/ {
+        if (suites != "" && comps != "") {
+          n=split(suites, a, /[[:space:]]+/)
+          m=split(comps,  b, /[[:space:]]+/)
+          hasSuite=0; hasComp=0
+          for (i=1;i<=n;i++) if (a[i] ~ suite_re) hasSuite=1
+          for (j=1;j<=m;j++) if (b[j] == comp_need) hasComp=1
+          if (hasSuite && hasComp) found=1
+        }
+        suites=""; comps=""
+      }
+      END {
+        if (!found && suites != "" && comps != "") {
+          n=split(suites, a, /[[:space:]]+/)
+          m=split(comps,  b, /[[:space:]]+/)
+          hasSuite=0; hasComp=0
+          for (i=1;i<=n;i++) if (a[i] ~ suite_re) hasSuite=1
+          for (j=1;j<=m;j++) if (b[j] == comp_need) hasComp=1
+          if (hasSuite && hasComp) found=1
+        }
+        exit(found?0:1)
+      }' "${files[@]}"
+  }
+
+  # Fallback 2: parse classic sources.list / *.list lines (deb ... suite components...).
+  _apt_has_suite_component_list() {
+    local suite="$1"
+    local component="$2"
+    local suite_re
+    suite_re="$(_suite_regex "$suite")"
+
+    local files=()
+    shopt -s nullglob
+    [[ -f /etc/apt/sources.list ]] && files+=(/etc/apt/sources.list)
+    files+=(/etc/apt/sources.list.d/*.list)
+    shopt -u nullglob
+
+    [[ ${#files[@]} -eq 0 ]] && return 1
+
+    awk -v suite_re="$suite_re" -v comp_need="$component" '
+      function ok_suite(s) { return (s ~ suite_re) }
+      function has_comp(start, end,   i) {
+        for (i=start; i<=end; i++) if ($i == comp_need) return 1
+        return 0
+      }
+      /^[[:space:]]*#/ { next }
+      /^[[:space:]]*$/ { next }
+      $1=="deb" || $1=="deb-src" {
+        # format: deb [opts] uri suite comp1 comp2 ...
+        # If [opts] exists, suite is field 4, else suite is field 3.
+        suiteField=3
+        if ($2 ~ /^\[/) suiteField=4
+        s=$suiteField
+        if (ok_suite(s) && has_comp(suiteField+1, NF)) { exit 0 }
+      }
+      END { exit 1 }' "${files[@]}"
+  }
+
+  _apt_has_suite_component() {
+    local suite="$1"
+    local component="$2"
+    _apt_has_suite_component_indextargets "$suite" "$component" && return 0
+    _apt_has_suite_component_deb822 "$suite" "$component" && return 0
+    _apt_has_suite_component_list "$suite" "$component" && return 0
+    return 1
+  }
 
   ## TEST for the presence of the Repos.
-  if [[ $(apt-cache policy | grep -o "${LinuxDistributionCodename}/contrib") == "${LinuxDistributionCodename}/contrib" ]] ; then
+  if _apt_has_suite_component "${LinuxDistributionCodename}" "contrib" ; then
     IncludesContrib=true
-  else
-    IncludesContrib=false
   fi
 
-  if [[ $(apt-cache policy | grep -o "${LinuxDistributionCodename}-updates/contrib") == "${LinuxDistributionCodename}-updates/contrib" ]] ; then
+  if _apt_has_suite_component "${LinuxDistributionCodename}-updates" "contrib" ; then
     IncludesUpdatesContrib=true
-  else
-    IncludesUpdatesContrib=false
   fi
 
-  if [[ $(apt-cache policy | grep -o "${LinuxDistributionCodename}-security/contrib") == "${LinuxDistributionCodename}-security/contrib" ]] ; then
+  if _apt_has_suite_component "${LinuxDistributionCodename}-security" "contrib" ; then
     IncludesSecurityContrib=true
-  else
-    IncludesSecurityContrib=false
   fi
 
   #The only required Repo is the Contrib repo.  Updates/Contrib and Security/Contrib are strongly recommended but not
@@ -352,14 +470,12 @@ function IsContribRepoAvailable() {
   # Does not appear to have a contrib repo...
   if $IncludesContrib ; then
 
-    #If this is Debian 12, test for the availability of the updates/contrib and security/contrib repos.  I have not
-    #Found a way to test for those repose with Debian 11 or 10.
+    #If this is Debian 12, test for the availability of the updates/contrib and security/contrib repos.
     if [[ "${LinuxDistributionRelease}" -eq 12 ]] ; then
       Prompt=""
-      #Contrib repo is present, check for the optional ones, if one or both are missing, create a prompt to advice the user
-      #of the missing optional repo and confirm they with to proceed.
+
       if ! $IncludesUpdatesContrib && ! $IncludesSecurityContrib ; then
-        echo -e "${RED}Missing ${LinuxDistributionCodename}-udpates/contrib and ${LinuxDistributionCodename}-security/contrib repository.${NC}"
+        echo -e "${RED}Missing ${LinuxDistributionCodename}-updates/contrib and ${LinuxDistributionCodename}-security/contrib repository.${NC}"
         Prompt="${YELLOW}WARNING: The \"updates/contrib\" and \"security/contrib\" repositories are missing. It is recommended
 that these repositories be present in order to keep A.R.M. dependencies up to date with the latest security fixes.
 
@@ -379,18 +495,14 @@ ${BLUE}Do you wish to Continue? Y/n: ${NC}"
       fi
 
       if [[ "${Prompt}" == "" ]] || IsUserAnsweredYesToPrompt "${Prompt}" ; then
-        #No Repos are missing OR User wishes to proceed with missing repo(s)
         true
       else
-        #User wishes to cancel the installation.
         false
       fi
     else
-      #Not Debian 12, therefore only test we care for is the main/contrib repo, which passed.
       true
     fi
   else
-    #Contrib repo is missing, return false.
     echo -e "${RED}Missing ${LinuxDistributionCodename}/contrib repository.${NC}"
     false
   fi
@@ -455,7 +567,9 @@ ${BLUE}Do you wish to Continue? Y/n :${NC}"
 }
 
 ###################################################
+###################################################
 #               Utility functions                 #
+###################################################
 ###################################################
 
 ###################################################
@@ -827,10 +941,10 @@ function MountDrives() {
   ######## also creating mount points (why loop twice)
   echo -e "${RED}Adding fstab entry and creating mount points${NC}"
   for dev in /dev/sr?; do
-    if grep -q "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0" /etc/fstab; then
+    if grep -q "${dev}    /mnt${dev}    udf,iso9660    defaults,users,utf8,ro    0    0" /etc/fstab; then
         echo -e "${RED}fstab entry for ${dev} already exists. Skipping...${NC}"
     else
-        echo -e "${dev}    /mnt${dev}    udf,iso9660    users,noauto,exec,utf8    0    0 " | tee -a /etc/fstab
+        echo -e "${dev}    /mnt${dev}    udf,iso9660    defaults,users,utf8,ro    0    0 " | tee -a /etc/fstab
     fi
     mkdir -p "/mnt$dev"
   done

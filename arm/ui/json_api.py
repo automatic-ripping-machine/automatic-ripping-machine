@@ -111,8 +111,7 @@ def process_makemkv_logfile(job, job_results):
     """
     job_progress_status = None
     job_stage_index = None
-    progress_log = os.path.join(job.config.LOGPATH, 'progress', str(job.job_id)) + '.log'
-    lines = read_log_line(progress_log)
+    lines = read_log_line(os.path.join(cfg.arm_config['LOGPATH'], job.logfile))
     # Correctly get last entry for progress bar
     for line in lines:
         job_progress_status = re.search(r"PRGV:(\d{3,}),(\d+),(\d{3,})", str(line))

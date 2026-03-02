@@ -9,6 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_wtf import CSRFProtect
+from arm.ripper.logger import short_format
 
 from flask_login import LoginManager
 import bcrypt  # noqa: F401
@@ -20,7 +21,8 @@ sqlitefile = 'sqlite:///' + cfg.arm_config['DBFILE']
 dictConfig({
     'version': 1,
     'formatters': {'default': {
-        'format': '[%(asctime)s] %(levelname)s ARM: %(module)s.%(funcName)s %(message)s',
+        'format': short_format,
+        'datefmt': cfg.arm_config["DATE_FORMAT"],
     }},
     'handlers': {
         'wsgi': {
@@ -28,11 +30,11 @@ dictConfig({
             'stream': 'ext://flask.logging.wsgi_errors_stream',
             'formatter': 'default'
         },
-        "console": {"class": "logging.StreamHandler", "level": "INFO"},
+        "console": {"class": "logging.StreamHandler"},
         "null": {"class": "logging.NullHandler"},
     },
     'root': {
-        'level': 'DEBUG',
+        'level': cfg.arm_config["LOGLEVEL"],
         'handlers': ['wsgi']
     },
 })
@@ -44,10 +46,6 @@ CORS(app, resources={r"/*": {"origins": "*", "send_wildcard": "False"}})
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-
-# Set log level per arm.yml config
-app.logger.info(f"Setting log level to: {cfg.arm_config['LOGLEVEL']}")
-app.logger.setLevel(cfg.arm_config['LOGLEVEL'])
 
 # Set Flask database connection configurations
 app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile

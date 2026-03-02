@@ -13,6 +13,7 @@ from ast import literal_eval
 import pydvdid
 import xmltodict
 import arm.config.config as cfg
+from arm.models import Job
 
 from arm.ripper import utils
 from arm.ripper.ProcessHandler import arm_subprocess
@@ -22,39 +23,49 @@ from arm.ui import db
 from arm.ui import utils as ui_utils
 
 
-def check_if_mounted(mount_return_code, findmnt_return_code):
+def find_mount(devpath: str) -> str | None:
     """
-    Function to check if mounting disc was success
-     checking the return value of 2 linux shell functions;
-     mount and findmnt.  mount can, in rare occasions,
-     return no errors (0) yet still have not mounted
-     the drive as expected.  findmnt, ran after the
-     mount functions, confirms that the drive is indeed mounted.
-     anything but 0 means we failed to mount disc
-     :param mount_return_code: The return value of the linux "mount" function
-     :param findmnt_return_code: The return value of the linux "findmnt" function
+    Find existing, readable mountpoint for ``devpath`` by calling ``findmnt``
+
+    :return: Absolute path of mountpoint as ``str`` if any, else ``None``
     """
-    logging.debug(f"OS mounted value: {mount_return_code}")
-    logging.debug(f"OS findmnt -M value: {findmnt_return_code}")
-    success = False
-    if mount_return_code == 0 and findmnt_return_code == 0:
-        logging.info("Mounting disc was successful")
-        success = True
+    if output := arm_subprocess(["findmnt", "--json", devpath]):
+        mountpoints = json.loads(output)
+        for mountpoint in mountpoints["filesystems"]:
+            if os.access(mountpoint["target"], os.R_OK):
+                return mountpoint["target"]
+    return None
+
+
+def check_mount(job: Job) -> bool:
+    """
+    Check if there is a suitable mount for ``job``, if not, try to mount
+
+    :return: ``True`` if mount exists now, ``False`` otherwise
+    """
+    if mountpoint := find_mount(job.devpath):
+        logging.info(f"Found disc {job.devpath} mounted at {mountpoint}")
+        job.mountpoint = mountpoint
     else:
-        logging.error("Mounting failed! Rip might have problems")
-    return success
+        logging.info(f"Trying to mount disc at {job.devpath}...")
+        # --all: Automount devpath to mountpoint specified in fstab
+        # -o X-mount.mkdir: create directory for the mountpoint, if necessary
+        arm_subprocess(["mount", "--all", "-o", "X-mount.mkdir", job.devpath])
+        if mountpoint := find_mount(job.devpath):
+            logging.info(f"Successfully mounted disc to {mountpoint}")
+            job.mountpoint = mountpoint
+        else:
+            logging.error("Disc was not and could not be mounted. Rip might fail.")
+            return False
+    return True
 
 
 def identify(job):
     """Identify disc attributes"""
     logging.debug("Identify Entry point --- job ----")
-    logging.info(f"Mounting disc to: {job.mountpoint}")
-    if not os.path.exists(str(job.mountpoint)):
-        os.makedirs(str(job.mountpoint))
-    # Check and mount drive - log error if failed
-    mount_return_code = os.system(f"mount {job.mountpoint}")
-    findmnt_return_code = os.system(f"findmnt -M {job.mountpoint}")
-    mounted = check_if_mounted(mount_return_code, findmnt_return_code)
+
+    mounted = check_mount(job)
+
     # get_disc_type() checks local files, no need to run unless we can mount
     if mounted:
         # Check with the job class to get the correct disc type
@@ -213,7 +224,7 @@ def identify_dvd(job):
             if len(tracks) == 99:
                 job.has_track_99 = True
                 if cfg.arm_config["PREVENT_99"]:
-                    raise Exception("Track 99 found and PREVENT_99 is enabled")
+                    raise utils.RipperException("Track 99 found and PREVENT_99 is enabled")
         except (SyntaxError, AttributeError) as e:
             logging.error("Failed to parse lsdvd output", exc_info=e)
 

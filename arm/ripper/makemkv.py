@@ -13,20 +13,17 @@ import enum
 import itertools
 import logging
 import os
-import subprocess
-
 import shlex
 import shutil
+import subprocess
 from time import sleep
 
-from arm.models import Track, SystemDrives
+import arm.config.config as cfg
+from arm.models import SystemDrives, Track
 from arm.models.job import JobState
 from arm.ripper import utils
-from arm.ui import db
-import arm.config.config as cfg
-
 from arm.ripper.utils import notify
-
+from arm.ui import db
 
 MAKEMKV_INFO_WAIT_TIME = 60  # [s]
 """Wait for concurrent MakeMKV info processes.
@@ -594,9 +591,9 @@ def makemkv_info(job, select=None, index=9999, options=None):
     if not isinstance(options, list):
         raise TypeError(options)
     # 1MB cache size to get info on the specified disc(s)
-    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}"]
+    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}", "--minlength=0"]
     wait_time = job.config.MANUAL_WAIT_TIME
-    max_processes = job.config.MAX_CONCURRENT_MAKEMKVINFO
+    max_processes = cfg.arm_config["MAX_CONCURRENT_MAKEMKVINFO"]
     job.status = JobState.VIDEO_WAITING.value
     db.session.commit()
     utils.sleep_check_process("makemkvcon", max_processes, sleep=(10, wait_time, 10))
@@ -688,8 +685,8 @@ def makemkv_mkv(job, rawpath):
             message = "You left me alone in the cold and dark, I forgot who I was. Your job has been abandoned."
             notify(job, title, message)
 
-            # Setting rawpath to None to set the job as failed when returning to arm_ripper
-            rawpath = None
+            raise utils.RipperException("Manual mode: Timed out waiting for user input")
+
     # if no maximum length, process the whole disc in one command
     elif int(job.config.MAXLENGTH) > 99998:
         cmd = [
@@ -722,14 +719,28 @@ def makemkv(job):
     prep_mkv()
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
-    if job.drive.mdisc is None:
+    # Fix: Check if job.drive is None before accessing job.drive.mdisc
+    if job.drive is None or job.drive.mdisc is None:
         logging.debug("Storing new MakeMKV disc numbers to database.")
+        disc_index = None
         with db.session.no_autoflush:
             for drive in get_drives(job):
                 for db_drive in SystemDrives.query.filter_by(mount=drive.mount).all():
                     db_drive.mdisc = drive.index
                     db.session.add(db_drive)
+                    # Track disc index for current job's device
+                    if drive.mount == job.devpath:
+                        disc_index = drive.index
         db.session.commit()
+        # Refresh job to get updated drive relationship
+        db.session.refresh(job)
+        # If job.drive is still None after refresh, log warning with available info
+        if job.drive is None:
+            if disc_index is not None:
+                logging.warning(f"job.drive is None but found disc index {disc_index} for {job.devpath}")
+            else:
+                logging.error(f"Could not find drive for {job.devpath}")
+                raise ValueError(f"No drive found for device {job.devpath}")
     logging.info(f"MakeMKV disc number: {job.drive.mdisc:d}")
     # get filesystem in order
     rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
@@ -815,6 +826,7 @@ def process_single_tracks(job, rawpath, mode: str):
             ]
             cmd += shlex.split(job.config.MKV_ARGS)
             cmd += [
+                f"--minlength={job.config.MINLENGTH}",
                 f"--progress={progress_log(job)}",
                 f"dev:{job.devpath}",
                 track.track_number,
@@ -865,7 +877,7 @@ def prep_mkv():
         logging.info("Updating MakeMKV key...")
         cmd = [
             shutil.which("bash") or "/bin/bash",
-            "/opt/arm/scripts/update_key.sh",
+            os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh"),
         ]
         # if MAKEMKV_PERMA_KEY is populated
         if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
@@ -1150,8 +1162,7 @@ def run(options, select):
     if not isinstance(select, OutputType):
         raise TypeError(select)
     # Check makemkvcon path, resolves baremetal unique install issues
-    # Docker container uses /usr/local/bin/makemkvcon
-    makemkvcon_path = shutil.which("makemkvcon") or "/usr/local/bin/makemkvcon"
+    makemkvcon_path = shutil.which("makemkvcon")
     # robot process of makemkvcon with
     cmd = [
         makemkvcon_path,

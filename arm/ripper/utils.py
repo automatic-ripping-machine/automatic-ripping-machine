@@ -2,15 +2,14 @@
 """Collection of utility functions"""
 import datetime
 import os
-import sys
 import logging
-import logging.handlers
 import subprocess
 import shutil
 import time
 import random
 import re
 import unicodedata
+from logging import Logger
 from pathlib import Path, PurePath
 from math import ceil
 
@@ -22,6 +21,7 @@ import psutil
 from netifaces import interfaces, ifaddresses, AF_INET
 
 import arm.config.config as cfg
+from arm.ripper.ProcessHandler import arm_subprocess
 from arm.ui import db  # needs to be imported before models
 from arm.models.job import Job, JobState
 from arm.models.notifications import Notifications
@@ -31,6 +31,10 @@ from arm.models.system_drives import SystemDrives
 from arm.ripper import apprise_bulk
 
 NOTIFY_TITLE = "ARM notification"
+
+
+class RipperException(Exception):
+    pass
 
 
 def notify(job, title: str, body: str):
@@ -85,11 +89,7 @@ def notify(job, title: str, body: str):
 def bash_notify(cfg, title, body):
     # bash notifications use subprocess instead of apprise.
     if cfg['BASH_SCRIPT'] != "":
-        try:
-            subprocess.run(["/usr/bin/bash", cfg['BASH_SCRIPT'], title, body])
-            logging.debug("Sent bash notification successful")
-        except Exception as error:  # noqa: E722
-            logging.error(f"Failed sending notification via bash. Continuing  processing...{error}")
+        arm_subprocess(["/usr/bin/env", "bash", cfg['BASH_SCRIPT'], title, body])
 
 
 def notify_entry(job):
@@ -117,10 +117,7 @@ def notify_entry(job):
     elif job.disctype == "data":
         notify(job, NOTIFY_TITLE, "Found data disc.  Copying data.")
     else:
-        notify(job, NOTIFY_TITLE, "Could not identify disc.  Exiting.")
-        args = {"status": JobState.FAILURE.value, "errors": "Could not identify disc."}
-        database_updater(args, job)
-        sys.exit()
+        raise RipperException("Could not determine disc type")
 
 
 def sleep_check_process(process_str, max_processes, sleep=(20, 120, 10)):
@@ -551,23 +548,26 @@ def delete_raw_files(dir_list):
 #  ############## End of post processing functions
 
 
-def make_dir(path):
+def make_dir(path: str, exist_ok: bool = True) -> bool:
     """
     Make a directory\n
     :param path: Path to directory
-    :return: True if successful, false if the directory already exists
+    :param exist_ok: If ``True``, simply returns ``False`` in case the
+        directory exists. If ``False``, raises a ``RipperException`` in that case.
+    :return: ``True`` if the directory was created, ``False`` if it already existed
+    :raises: ``RipperException``
     """
-    if not os.path.exists(path):
-        logging.debug(f"Creating directory: {path}")
-        try:
-            os.makedirs(path)
-            return True
-        except OSError as error:
-            err = f"Couldn't create a directory at path: {path} Probably a permissions error.  Exiting"
-            logging.error(err)
-            raise OSError from error
-    else:
-        return False
+    try:
+        os.makedirs(path)
+        logging.debug(f"Created directory: {path}")
+        return True
+    except FileExistsError as err:
+        if exist_ok:
+            return False
+        else:
+            raise RipperException(f"Folder exists: {path}") from err
+    except OSError as err:
+        raise RipperException(f"Could not create folder: {path}") from err
 
 
 def find_file(filename, search_path):
@@ -656,11 +656,7 @@ def rip_data(job):
         random_time = str(round(time.time() * 100))
         raw_path = os.path.join(job.config.RAW_PATH, str(job.label) + "_" + random_time)
         final_file_name = f"{job.label}_{random_time}"
-        if (make_dir(raw_path)) is False:
-            logging.info(f"Could not create data directory: {raw_path}  Exiting ARM. ")
-            args = {"status": JobState.FAILURE.value, "errors": "Couldn't create data directory"}
-            database_updater(args, job)
-            sys.exit()
+        make_dir(raw_path, False)
 
     final_path = os.path.join(final_path, final_file_name)
     incomplete_filename = os.path.join(raw_path, str(job.label) + ".part")
@@ -776,35 +772,28 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
     database_adder(job_track)
 
 
-def arm_setup(arm_log):
+def arm_setup(arm_log: Logger) -> None:
     """
     Setup arm - Create all the directories we need for arm to run
     check that folders are writeable, and the db file is writeable
-    logging doesn't work here, need to write to empty.log or error.log ?\n
-    :arguments: None
-    :return: None
     """
-    arm_directories = [cfg.arm_config['RAW_PATH'], cfg.arm_config['TRANSCODE_PATH'],
-                       cfg.arm_config['COMPLETED_PATH'], cfg.arm_config['LOGPATH']]
-    try:
-        # Check db file is writeable
-        if not os.access(cfg.arm_config['DBFILE'], os.W_OK):
-            arm_log.error(f"Cant write to database file! Permission ERROR: {cfg.arm_config['DBFILE']} - ARM Will Fail!")
-            raise IOError
-        # Check directories for read/write permission -> create if they don't exist
-        for folder in arm_directories:
-            if not os.access(folder, os.R_OK):
-                # don't raise as we may be able to create
-                arm_log.error(f"Cant read from folder, Permission ERROR: {folder} - ARM Will Fail!")
-            if not os.access(folder, os.W_OK):
-                arm_log.error(f"Cant write to folder, Permission ERROR: {folder} - ARM Will Fail!")
-                raise IOError
-            if make_dir(folder):
-                arm_log.error(f"Cant create folder: {folder} - ARM Will Fail!")
-                raise IOError
-    except IOError as error:
-        arm_log.error(f"A fatal error has occurred. "
-                      f"Cant find/create the folders set in arm.yaml - Error:{error} - ARM Will Fail!")
+    arm_directories = (
+        cfg.arm_config['RAW_PATH'],
+        cfg.arm_config['TRANSCODE_PATH'],
+        cfg.arm_config['COMPLETED_PATH'],
+        cfg.arm_config['LOGPATH'],
+        os.path.join(cfg.arm_config['LOGPATH'], "progress"),
+    )
+    # Check if DB file is writeable
+    if not os.access(cfg.arm_config['DBFILE'], os.W_OK):
+        arm_log.critical(f"Can't write to database file: {cfg.arm_config['DBFILE']}")
+    # Check directories for read/write permission -> create if they don't exist
+    for folder in arm_directories:
+        os.makedirs(folder, exist_ok=True)
+        if not os.access(folder, os.R_OK):
+            arm_log.error(f"Can't read from folder: {folder}")
+        if not os.access(folder, os.W_OK):
+            arm_log.critical(f"Can't write to folder: {folder}")
 
 
 def database_updater(args, job, wait_time=90):
@@ -950,7 +939,7 @@ def duplicate_run_check(dev_path):
     logging.info(f"Job was started {job_time}min ago.")
     if (job_time) < 3:
         logging.info("Job was started less than 3min ago.")
-    sys.exit(1)
+    raise RipperException(f"Job already running on {dev_path}")
 
 
 def save_disc_poster(final_directory, job):
@@ -988,25 +977,14 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
         logging.debug(f"Value of have_dupes: {have_dupes}")
         if cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
             hb_out_path = hb_out_path + "_" + job.stage
-            if not (make_dir(hb_out_path)):
-                # We failed to make a random directory, most likely a permission issue
-                logging.exception(
-                    "A fatal error has occurred and ARM is exiting.  "
-                    "Couldn't create filesystem. Possible permission error")
-                notify(job, NOTIFY_TITLE,
-                       f"ARM encountered a fatal error processing {job.title}."
-                       f" Couldn't create filesystem. Possible permission error. ")
-                database_updater({'status': JobState.FAILURE.value, 'errors': 'Creating folder failed'}, job)
-                sys.exit()
+            make_dir(hb_out_path, False)
         else:
             # We aren't allowed to rip dupes, notify and exit
             logging.info("Duplicate rips are disabled.")
             notify(job, NOTIFY_TITLE, f"ARM Detected a duplicate disc. For {job.title}. "
                                       f"Duplicate rips are disabled. "
                                       f"You can re-enable them from your config file. ")
-            job.eject()
-            database_updater({'status': JobState.FAILURE.value, 'errors': 'Duplicate rips are disabled'}, job)
-            sys.exit()
+            raise RipperException("Duplicate rips are disabled")
     logging.info(f"Final Output directory \"{hb_out_path}\"")
     return hb_out_path
 
