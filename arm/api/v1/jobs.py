@@ -363,6 +363,45 @@ async def update_transcode_config(job_id: int, request: Request):
     return {"success": True, "overrides": overrides}
 
 
+@router.post('/jobs/{job_id}/transcode-callback')
+async def transcode_callback(job_id: int, request: Request):
+    """Receive status update from the external transcoder.
+
+    Expected payload: {"status": "completed"|"failed", "error": "..."}
+    """
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": "Job not found"}, status_code=404)
+
+    body = await request.json()
+    status = body.get("status")
+
+    if status == "completed":
+        job.status = JobState.SUCCESS.value
+        notification = Notifications(
+            f"Job: {job.job_id} transcode complete",
+            f"'{job.title}' transcoding finished successfully"
+        )
+        db.session.add(notification)
+    elif status == "failed":
+        job.status = JobState.FAILURE.value
+        error_msg = body.get("error", "Transcode failed")
+        job.errors = error_msg
+        notification = Notifications(
+            f"Job: {job.job_id} transcode failed",
+            f"'{job.title}' transcoding failed: {error_msg}"
+        )
+        db.session.add(notification)
+    else:
+        return JSONResponse(
+            {"success": False, "error": f"Unknown status: {status}"},
+            status_code=400,
+        )
+
+    db.session.commit()
+    return {"success": True, "job_id": job.job_id, "status": job.status}
+
+
 def _clean_for_filename(string):
     """Clean a string for use in filenames."""
     string = re.sub(r'\s+', ' ', string)

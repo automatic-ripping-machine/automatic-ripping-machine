@@ -310,85 +310,290 @@ class TestMetadataSelector:
         job.label = 'TEST'
         return job
 
-    def test_omdb_provider(self):
-        """When METADATA_PROVIDER=omdb, calls call_omdb_api."""
+    def test_search_sync_called(self):
+        """metadata_selector calls search_sync and processes results."""
         from arm.ripper.identify import metadata_selector
-        import arm.config.config as cfg
 
         job = self._make_job()
-        original = cfg.arm_config.get('METADATA_PROVIDER')
-        cfg.arm_config['METADATA_PROVIDER'] = 'omdb'
-        try:
-            # Return None to avoid update_job being called
-            with unittest.mock.patch('arm.services.metadata.call_omdb_api',
-                                     return_value=None) as mock_omdb:
-                metadata_selector(job, 'Serial Mom', '1994')
-                mock_omdb.assert_called_once()
-        finally:
-            if original is not None:
-                cfg.arm_config['METADATA_PROVIDER'] = original
-
-    def test_tmdb_provider(self):
-        """When METADATA_PROVIDER=tmdb, calls tmdb_search."""
-        from arm.ripper.identify import metadata_selector
-        import arm.config.config as cfg
-
-        job = self._make_job()
-        original = cfg.arm_config.get('METADATA_PROVIDER')
-        cfg.arm_config['METADATA_PROVIDER'] = 'tmdb'
-        try:
-            with unittest.mock.patch('arm.services.metadata.tmdb_search',
-                                     return_value=None) as mock_tmdb:
-                metadata_selector(job, 'Serial Mom', '1994')
-                mock_tmdb.assert_called_once()
-        finally:
-            if original is not None:
-                cfg.arm_config['METADATA_PROVIDER'] = original
-
-    def test_unknown_provider_returns_none(self):
-        """Unknown METADATA_PROVIDER returns None."""
-        from arm.ripper.identify import metadata_selector
-        import arm.config.config as cfg
-
-        job = self._make_job()
-        original = cfg.arm_config.get('METADATA_PROVIDER')
-        cfg.arm_config['METADATA_PROVIDER'] = 'invalid_provider'
-        try:
+        # Return empty list — no results
+        with unittest.mock.patch('arm.services.metadata_sync.search_sync',
+                                 return_value=[]) as mock_search:
             result = metadata_selector(job, 'Serial Mom', '1994')
-            assert result is None
-        finally:
-            if original is not None:
-                cfg.arm_config['METADATA_PROVIDER'] = original
+            mock_search.assert_called_once_with('Serial Mom', '1994')
+        assert result is None
+
+    def test_search_sync_with_results(self):
+        """metadata_selector converts results to matcher format."""
+        from arm.ripper.identify import metadata_selector
+
+        job = self._make_job()
+        normalized = [
+            {"title": "Serial Mom", "year": "1994", "imdb_id": "tt0111127",
+             "media_type": "movie", "poster_url": None},
+        ]
+        with unittest.mock.patch('arm.services.metadata_sync.search_sync',
+                                 return_value=normalized):
+            # Matcher will reject because label='TEST' doesn't match 'Serial Mom'
+            result = metadata_selector(job, 'Serial Mom', '1994')
+        assert result is None
 
     def test_returns_none_when_matcher_rejects(self):
         """When API returns results but matcher isn't confident, return None
         so identify_loop retries with simplified queries."""
         from arm.ripper.identify import metadata_selector
-        import arm.config.config as cfg
 
         job = self._make_job()
         # label = 'TEST' but API returns unrelated result
-        original = cfg.arm_config.get('METADATA_PROVIDER')
-        cfg.arm_config['METADATA_PROVIDER'] = 'omdb'
-        try:
-            bad_results = {
-                'Search': [{
-                    'Title': 'Completely Unrelated Movie',
-                    'Year': '2020',
-                    'Type': 'movie',
-                    'imdbID': 'tt9999999',
-                    'Poster': 'N/A',
-                }],
-                'Response': 'True',
-            }
-            with unittest.mock.patch('arm.services.metadata.call_omdb_api',
-                                     return_value=bad_results):
-                result = metadata_selector(job, 'TEST', '2020')
-            # Should return None because matcher rejected the results
-            assert result is None
-        finally:
-            if original is not None:
-                cfg.arm_config['METADATA_PROVIDER'] = original
+        bad_results = [
+            {"title": "Completely Unrelated Movie", "year": "2020",
+             "imdb_id": "tt9999999", "media_type": "movie", "poster_url": None},
+        ]
+        with unittest.mock.patch('arm.services.metadata_sync.search_sync',
+                                 return_value=bad_results):
+            result = metadata_selector(job, 'TEST', '2020')
+        # Should return None because matcher rejected the results
+        assert result is None
+
+
+class TestToMatcherFormat:
+    """Test _to_matcher_format() conversion from normalized to OMDb-style dicts."""
+
+    def test_converts_normalized_results(self):
+        from arm.ripper.identify import _to_matcher_format
+        normalized = [
+            {"title": "Matrix", "year": "1999", "imdb_id": "tt0133093",
+             "media_type": "movie", "poster_url": "http://img.com/p.jpg"},
+        ]
+        result = _to_matcher_format(normalized)
+        assert len(result) == 1
+        assert result[0]["Title"] == "Matrix"
+        assert result[0]["Year"] == "1999"
+        assert result[0]["imdbID"] == "tt0133093"
+        assert result[0]["Type"] == "movie"
+        assert result[0]["Poster"] == "http://img.com/p.jpg"
+
+    def test_missing_poster_becomes_na(self):
+        from arm.ripper.identify import _to_matcher_format
+        normalized = [{"title": "X", "year": "2020", "imdb_id": "tt0000001",
+                       "media_type": "movie", "poster_url": None}]
+        result = _to_matcher_format(normalized)
+        assert result[0]["Poster"] == "N/A"
+
+    def test_empty_list(self):
+        from arm.ripper.identify import _to_matcher_format
+        assert _to_matcher_format([]) == []
+
+    def test_missing_fields_default_to_empty(self):
+        from arm.ripper.identify import _to_matcher_format
+        result = _to_matcher_format([{}])
+        assert result[0]["Title"] == ""
+        assert result[0]["Year"] == ""
+        assert result[0]["imdbID"] == ""
+        assert result[0]["Type"] == "movie"
+        assert result[0]["Poster"] == "N/A"
+
+    def test_series_type_preserved(self):
+        from arm.ripper.identify import _to_matcher_format
+        normalized = [{"title": "Friends", "year": "1994", "imdb_id": "tt0108778",
+                       "media_type": "series", "poster_url": None}]
+        result = _to_matcher_format(normalized)
+        assert result[0]["Type"] == "series"
+
+
+class TestMetadataSelectorErrors:
+    """Test metadata_selector() error handling paths."""
+
+    def _make_job(self):
+        from arm.models.job import Job
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            job = Job('/dev/sr0')
+        job.title = 'TEST'
+        job.label = 'TEST'
+        return job
+
+    def test_metadata_config_error_returns_none(self):
+        """MetadataConfigError (no API key) returns None without crashing."""
+        from arm.ripper.identify import metadata_selector
+        from arm.services.metadata import MetadataConfigError
+
+        job = self._make_job()
+        with unittest.mock.patch('arm.services.metadata_sync.search_sync',
+                                 side_effect=MetadataConfigError("no key")):
+            result = metadata_selector(job, 'Test', '2020')
+        assert result is None
+
+    def test_generic_exception_returns_none(self):
+        """Unexpected exceptions return None (logged, not raised)."""
+        from arm.ripper.identify import metadata_selector
+
+        job = self._make_job()
+        with unittest.mock.patch('arm.services.metadata_sync.search_sync',
+                                 side_effect=RuntimeError("unexpected")):
+            result = metadata_selector(job, 'Test', '2020')
+        assert result is None
+
+    def test_empty_results_returns_none(self):
+        """Empty results list returns None."""
+        from arm.ripper.identify import metadata_selector
+
+        job = self._make_job()
+        with unittest.mock.patch('arm.services.metadata_sync.search_sync',
+                                 return_value=[]):
+            result = metadata_selector(job, 'Test', '2020')
+        assert result is None
+
+    def test_year_none_passed_as_none(self):
+        """Year=None is passed through correctly."""
+        from arm.ripper.identify import metadata_selector
+
+        job = self._make_job()
+        with unittest.mock.patch('arm.services.metadata_sync.search_sync',
+                                 return_value=[]) as mock_search:
+            metadata_selector(job, 'Test')
+            mock_search.assert_called_once_with('Test', None)
+
+
+class TestMetadataSelectorSuccess:
+    """Test metadata_selector() success path where update_job accepts a match."""
+
+    def _make_job(self):
+        from arm.models.job import Job
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            job = Job('/dev/sr0')
+        job.title = 'SERIAL_MOM'
+        job.label = 'SERIAL_MOM'
+        return job
+
+    def test_returns_search_results_on_match(self):
+        """When update_job accepts match, return the search_results dict."""
+        from arm.ripper.identify import metadata_selector
+
+        job = self._make_job()
+        normalized = [
+            {"title": "Serial Mom", "year": "1994", "imdb_id": "tt0111127",
+             "media_type": "movie", "poster_url": None},
+        ]
+        with unittest.mock.patch('arm.services.metadata_sync.search_sync',
+                                 return_value=normalized), \
+             unittest.mock.patch('arm.ripper.identify.update_job',
+                                 return_value=True):
+            result = metadata_selector(job, 'Serial Mom', '1994')
+        assert result is not None
+        assert "Search" in result
+        assert result["Search"][0]["Title"] == "Serial Mom"
+
+    def test_returns_none_when_update_job_returns_none(self):
+        """When update_job returns None (matcher rejects), return None."""
+        from arm.ripper.identify import metadata_selector
+
+        job = self._make_job()
+        normalized = [
+            {"title": "Serial Mom", "year": "1994", "imdb_id": "tt0111127",
+             "media_type": "movie", "poster_url": None},
+        ]
+        with unittest.mock.patch('arm.services.metadata_sync.search_sync',
+                                 return_value=normalized), \
+             unittest.mock.patch('arm.ripper.identify.update_job',
+                                 return_value=None):
+            result = metadata_selector(job, 'Serial Mom', '1994')
+        assert result is None
+
+
+class TestIdentifyDvdCrc:
+    """Test identify_dvd() CRC lookup paths."""
+
+    def _make_job(self):
+        from arm.models.job import Job
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            job = Job('/dev/sr0')
+        job.mountpoint = '/mnt/dvd'
+        job.devpath = '/dev/sr0'
+        job.has_track_99 = False
+        return job
+
+    def test_crc_found_updates_job_and_returns_true(self):
+        """CRC lookup success path: updates job fields, returns True."""
+        from arm.ripper.identify import identify_dvd
+
+        job = self._make_job()
+        crc_result = {
+            "found": True,
+            "results": [{
+                "title": "The Matrix", "year": "1999",
+                "imdb_id": "tt0133093", "video_type": "movie",
+                "poster_url": "http://img/poster.jpg",
+            }]
+        }
+        with unittest.mock.patch('arm.ripper.identify.pydvdid') as mock_dvdid, \
+             unittest.mock.patch('arm.services.metadata_sync.lookup_crc_sync',
+                                 return_value=crc_result), \
+             unittest.mock.patch('arm.ripper.identify.utils') as mock_utils, \
+             unittest.mock.patch('arm.ripper.identify._detect_track_99'):
+            mock_dvdid.compute.return_value = "abc123"
+            mock_utils.extract_year.return_value = "1999"
+            result = identify_dvd(job)
+        assert result is True
+        # Verify database_updater was called with right args
+        call_args = mock_utils.database_updater.call_args[0]
+        assert call_args[0]["title"] == "The Matrix"
+        assert call_args[0]["hasnicetitle"] is True
+        assert call_args[1] is job
+
+    def test_crc_not_found_returns_false(self):
+        """CRC lookup returns not found — returns False."""
+        from arm.ripper.identify import identify_dvd
+
+        job = self._make_job()
+        crc_result = {"found": False, "results": []}
+        with unittest.mock.patch('arm.ripper.identify.pydvdid') as mock_dvdid, \
+             unittest.mock.patch('arm.services.metadata_sync.lookup_crc_sync',
+                                 return_value=crc_result), \
+             unittest.mock.patch('arm.ripper.identify._detect_track_99'):
+            mock_dvdid.compute.return_value = "abc123"
+            result = identify_dvd(job)
+        assert result is False
+
+    def test_crc_error_field_logged_still_checks_found(self):
+        """CRC lookup with error field but found=False returns False."""
+        from arm.ripper.identify import identify_dvd
+
+        job = self._make_job()
+        crc_result = {"found": False, "results": [], "error": "CRC database unreachable"}
+        with unittest.mock.patch('arm.ripper.identify.pydvdid') as mock_dvdid, \
+             unittest.mock.patch('arm.services.metadata_sync.lookup_crc_sync',
+                                 return_value=crc_result), \
+             unittest.mock.patch('arm.ripper.identify._detect_track_99'):
+            mock_dvdid.compute.return_value = "abc123"
+            result = identify_dvd(job)
+        assert result is False
+
+    def test_pydvdid_exception_returns_false(self):
+        """pydvdid.compute() exception is caught, returns False."""
+        from arm.ripper.identify import identify_dvd
+
+        job = self._make_job()
+        with unittest.mock.patch('arm.ripper.identify.pydvdid') as mock_dvdid, \
+             unittest.mock.patch('arm.ripper.identify._detect_track_99'):
+            mock_dvdid.compute.side_effect = RuntimeError("no disc structure")
+            result = identify_dvd(job)
+        assert result is False
+
+    def test_crc_id_set_on_job(self):
+        """CRC64 hash is stored on job.crc_id."""
+        from arm.ripper.identify import identify_dvd
+
+        job = self._make_job()
+        crc_result = {"found": False, "results": []}
+        with unittest.mock.patch('arm.ripper.identify.pydvdid') as mock_dvdid, \
+             unittest.mock.patch('arm.services.metadata_sync.lookup_crc_sync',
+                                 return_value=crc_result), \
+             unittest.mock.patch('arm.ripper.identify._detect_track_99'):
+            mock_dvdid.compute.return_value = "deadbeef12345678"
+            identify_dvd(job)
+        assert job.crc_id == "deadbeef12345678"
 
 
 class TestTryWithYear:
@@ -1346,120 +1551,140 @@ class TestMatcherIntegration:
     def test_metadata_selector_returns_none_on_reject(self, app_context):
         """metadata_selector returns None when matcher rejects — enables retry."""
         from arm.ripper.identify import metadata_selector
-        import arm.config.config as cfg
 
         job = self._make_job(app_context, label="SERIAL_MOM",
                              year_auto="1994", video_type_auto="movie")
 
-        bad_results = {'Search': [
-            {'Title': 'Completely Wrong Movie', 'Year': '2020',
-             'imdbID': 'tt9999999', 'Type': 'movie', 'Poster': 'N/A'},
-        ], 'Response': 'True'}
+        bad_results = [
+            {"title": "Completely Wrong Movie", "year": "2020",
+             "imdb_id": "tt9999999", "media_type": "movie", "poster_url": None},
+        ]
 
-        original = cfg.arm_config.get('METADATA_PROVIDER')
-        cfg.arm_config['METADATA_PROVIDER'] = 'omdb'
-        try:
-            with unittest.mock.patch('arm.services.metadata.call_omdb_api',
-                                     return_value=bad_results):
-                result = metadata_selector(job, 'Serial+Mom', '1994')
-            assert result is None
-        finally:
-            if original is not None:
-                cfg.arm_config['METADATA_PROVIDER'] = original
+        with unittest.mock.patch('arm.services.metadata_sync.search_sync',
+                                 return_value=bad_results):
+            result = metadata_selector(job, 'Serial+Mom', '1994')
+        assert result is None
 
 
 class TestOmdbShortTitleFallback:
-    """Test call_omdb_api() fallback to ?t= for short/numeric titles (#1430)."""
+    """Test _omdb_search() fallback to ?t= for short/numeric titles (#1430)."""
 
-    def _mock_urlopen(self, responses):
-        """Create a mock urlopen that returns different responses per call."""
+    def _mock_httpx_get(self, responses):
+        """Create a mock httpx get that returns different responses per call."""
+        import httpx
         call_count = [0]
 
-        def side_effect(url, **kwargs):
+        async def side_effect(url, **kwargs):
             idx = min(call_count[0], len(responses) - 1)
             call_count[0] += 1
-            mock_resp = unittest.mock.MagicMock()
-            mock_resp.read.return_value = json.dumps(responses[idx]).encode()
-            return mock_resp
+            resp = unittest.mock.MagicMock(spec=httpx.Response)
+            resp.status_code = 200
+            resp.json.return_value = responses[idx]
+            return resp
 
         return side_effect
 
-    @unittest.mock.patch.dict('arm.config.config.arm_config', {'OMDB_API_KEY': 'test_key'})
+    @unittest.mock.patch.dict('arm.config.config.arm_config', {
+        'OMDB_API_KEY': 'test_key', 'METADATA_PROVIDER': 'omdb',
+    })
     def test_search_failure_falls_back_to_exact_title(self):
         """When ?s= returns 'Too many results', ?t= is tried."""
-        from arm.services.metadata import call_omdb_api
+        import asyncio
+        from arm.services.metadata import _omdb_search
 
         search_error = {"Response": "False", "Error": "Too many results."}
         exact_match = {
-            "Response": "True",
-            "Title": "9",
-            "Year": "2009",
-            "Type": "movie",
-            "imdbID": "tt0472033",
+            "Response": "True", "Title": "9", "Year": "2009",
+            "Type": "movie", "imdbID": "tt0472033",
             "Poster": "https://example.com/9.jpg",
         }
-        mock_open = self._mock_urlopen([search_error, exact_match])
-        with unittest.mock.patch('arm.services.metadata.urllib.request.urlopen', side_effect=mock_open):
-            result = call_omdb_api(title="9", year="2009")
+        mock_get = self._mock_httpx_get([search_error, exact_match])
+        with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
+            ctx = unittest.mock.AsyncMock()
+            ctx.get = mock_get
+            mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
+            mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
+            result = asyncio.run(_omdb_search("9", "2009", "test_key"))
 
-        assert result is not None
-        assert result['Search'][0]['Title'] == '9'
-        assert result['Search'][0]['imdbID'] == 'tt0472033'
+        assert len(result) == 1
+        assert result[0]['title'] == '9'
+        assert result[0]['imdb_id'] == 'tt0472033'
 
-    @unittest.mock.patch.dict('arm.config.config.arm_config', {'OMDB_API_KEY': 'test_key'})
-    def test_both_search_and_exact_fail_returns_none(self):
-        """When both ?s= and ?t= fail, returns None."""
-        from arm.services.metadata import call_omdb_api
+    @unittest.mock.patch.dict('arm.config.config.arm_config', {
+        'OMDB_API_KEY': 'test_key', 'METADATA_PROVIDER': 'omdb',
+    })
+    def test_both_search_and_exact_fail_returns_empty(self):
+        """When both ?s= and ?t= fail, returns empty list."""
+        import asyncio
+        from arm.services.metadata import _omdb_search
 
         error_resp = {"Response": "False", "Error": "Movie not found!"}
-        mock_open = self._mock_urlopen([error_resp, error_resp])
-        with unittest.mock.patch('arm.services.metadata.urllib.request.urlopen', side_effect=mock_open):
-            result = call_omdb_api(title="xyznonexistent", year="2020")
+        mock_get = self._mock_httpx_get([error_resp, error_resp])
+        with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
+            ctx = unittest.mock.AsyncMock()
+            ctx.get = mock_get
+            mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
+            mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
+            result = asyncio.run(_omdb_search("xyznonexistent", "2020", "test_key"))
 
-        assert result is None
+        assert result == []
 
-    @unittest.mock.patch.dict('arm.config.config.arm_config', {'OMDB_API_KEY': 'test_key'})
+    @unittest.mock.patch.dict('arm.config.config.arm_config', {
+        'OMDB_API_KEY': 'test_key', 'METADATA_PROVIDER': 'omdb',
+    })
     def test_search_succeeds_no_fallback_needed(self):
         """When ?s= succeeds, no fallback is triggered."""
-        from arm.services.metadata import call_omdb_api
+        import asyncio
+        from arm.services.metadata import _omdb_search
 
         search_success = {
             "Response": "True",
             "Search": [{"Title": "The Matrix", "Year": "1999", "imdbID": "tt0133093",
                         "Type": "movie", "Poster": "https://example.com/matrix.jpg"}]
         }
-        mock_open = self._mock_urlopen([search_success])
-        with unittest.mock.patch('arm.services.metadata.urllib.request.urlopen', side_effect=mock_open):
-            result = call_omdb_api(title="The Matrix", year="1999")
+        mock_get = self._mock_httpx_get([search_success])
+        with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
+            ctx = unittest.mock.AsyncMock()
+            ctx.get = mock_get
+            mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
+            mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
+            result = asyncio.run(_omdb_search("The Matrix", "1999", "test_key"))
 
-        assert result is not None
-        assert result['Search'][0]['Title'] == 'The Matrix'
+        assert len(result) == 1
+        assert result[0]['title'] == 'The Matrix'
 
-    @unittest.mock.patch.dict('arm.config.config.arm_config', {'OMDB_API_KEY': 'test_key'})
-    def test_fallback_network_error_returns_none(self):
-        """When ?s= fails and ?t= raises a network error, returns None gracefully (#1430)."""
-        from arm.services.metadata import call_omdb_api
+    @unittest.mock.patch.dict('arm.config.config.arm_config', {
+        'OMDB_API_KEY': 'test_key', 'METADATA_PROVIDER': 'omdb',
+    })
+    def test_fallback_network_error_raises(self):
+        """When ?s= fails and ?t= raises a network error, raises MetadataConfigError
+        for auth errors or propagates other httpx errors."""
+        import asyncio
+        import httpx
+        from arm.services.metadata import _omdb_search
 
         call_count = [0]
 
-        def mock_urlopen(url, **kwargs):
+        async def mock_get(url, **kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
-                # First call (?s=) returns error response
-                mock_resp = unittest.mock.MagicMock()
-                mock_resp.read.return_value = json.dumps(
-                    {"Response": "False", "Error": "Too many results."}
-                ).encode()
-                return mock_resp
-            # Second call (?t=) raises network error
-            raise urllib.error.URLError("DNS lookup failed")
+                resp = unittest.mock.MagicMock(spec=httpx.Response)
+                resp.status_code = 200
+                resp.json.return_value = {"Response": "False", "Error": "Too many results."}
+                return resp
+            resp = unittest.mock.MagicMock(spec=httpx.Response)
+            resp.status_code = 401
+            resp.json.return_value = {}
+            return resp
 
-        import urllib.error
-        with unittest.mock.patch('arm.services.metadata.urllib.request.urlopen',
-                                 side_effect=mock_urlopen):
-            result = call_omdb_api(title="9", year="2009")
-
-        assert result is None
+        from arm.services.metadata import MetadataConfigError
+        with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
+            ctx = unittest.mock.AsyncMock()
+            ctx.get = mock_get
+            mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
+            mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
+            with pytest.raises(MetadataConfigError):
+                asyncio.run(_omdb_search("9", "2009", "test_key"))
 
 
 class TestResolveDiscLabel:

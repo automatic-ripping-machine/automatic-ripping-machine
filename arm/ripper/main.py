@@ -294,7 +294,14 @@ if __name__ == "__main__":
         # Possibly add cleanup section here for failed job files
     else:
         if job:
-            job.status = JobState.SUCCESS.value
+            # If external transcoder is configured and this was a video disc,
+            # mark as waiting_transcode — the transcoder callback will set
+            # the final status (success/fail) when it finishes.
+            if (job.disctype in ("dvd", "bluray", "bluray4k")
+                    and cfg.arm_config.get("TRANSCODER_URL")):
+                job.status = JobState.TRANSCODE_WAITING.value
+            else:
+                job.status = JobState.SUCCESS.value
     finally:
         if job:
             job.eject()  # each job stores its eject status, so it is safe to call.
