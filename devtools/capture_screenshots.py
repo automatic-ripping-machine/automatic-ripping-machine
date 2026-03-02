@@ -7,6 +7,7 @@ then uses Playwright to capture screenshots of the full batch rename workflow.
 """
 import sys
 import os
+import tempfile
 import threading
 import time
 
@@ -22,7 +23,8 @@ for mod_name in ('discid', 'discid.disc', 'discid.libdiscid'):
     if mod_name not in sys.modules:
         sys.modules[mod_name] = MagicMock()
 
-_tmpdb = '/tmp/arm_screenshot_test.db'
+_screenshot_tmpdir = tempfile.mkdtemp(prefix='arm_screenshots_')
+_tmpdb = os.path.join(_screenshot_tmpdir, 'arm_screenshot_test.db')
 # Remove old test DB
 if os.path.isfile(_tmpdb):
     os.remove(_tmpdb)
@@ -32,12 +34,12 @@ _minimal_arm_config = {
     'DBFILE': _tmpdb,
     'LOGLEVEL': 'WARNING',
     'DISABLE_LOGIN': True,
-    'COMPLETED_PATH': '/tmp/arm_completed',
-    'RAW_PATH': '/tmp/arm_raw',
-    'TRANSCODE_PATH': '/tmp/arm_transcode',
-    'MEDIA_DIR': '/tmp/arm_media',
+    'COMPLETED_PATH': os.path.join(_screenshot_tmpdir, 'completed'),
+    'RAW_PATH': os.path.join(_screenshot_tmpdir, 'raw'),
+    'TRANSCODE_PATH': os.path.join(_screenshot_tmpdir, 'transcode'),
+    'MEDIA_DIR': os.path.join(_screenshot_tmpdir, 'media'),
     'ARMPATH': _project_root + '/',
-    'RAWPATH': '/tmp/arm_raw',
+    'RAWPATH': os.path.join(_screenshot_tmpdir, 'raw'),
     'USE_DISC_LABEL_FOR_TV': True,
     'GROUP_TV_DISCS_UNDER_SERIES': True,
     'EXTRAS_SUB': 'extras',
@@ -50,7 +52,7 @@ _minimal_arm_config = {
 
 _config_mod = types.ModuleType('arm.config.config')
 _config_mod.arm_config = _minimal_arm_config
-_config_mod.arm_config_path = '/tmp/arm.yaml'
+_config_mod.arm_config_path = os.path.join(_screenshot_tmpdir, 'arm.yaml')
 _config_mod.abcde_config = ''
 _config_mod.apprise_config = {}
 
@@ -110,7 +112,7 @@ def seed_database():
             """), {
                 'title': 'Breaking Bad', 'year': '2008', 'vtype': 'series',
                 'label': label, 'status': 'success', 'nice': True,
-                'path': f'/tmp/arm_completed/tv/Breaking Bad (2008)_{i}',
+                'path': f'{_screenshot_tmpdir}/completed/tv/Breaking Bad (2008)_{i}',
                 'start': start, 'stop': stop,
                 'log': f'breaking_bad_{label.lower()}.log',
                 'imdb': 'tt0903747', 'poster': '',
@@ -132,7 +134,7 @@ def seed_database():
         """), {
             'title': 'Game of Thrones', 'year': '2011', 'vtype': 'series',
             'label': 'GOT_S01D01', 'status': 'success', 'nice': True,
-            'path': '/tmp/arm_completed/tv/Game of Thrones (2011)_1',
+            'path': f'{_screenshot_tmpdir}/completed/tv/Game of Thrones (2011)_1',
             'start': '2025-10-16 14:00:00', 'stop': '2025-10-16 15:30:00',
             'log': 'got_s1d1.log', 'imdb': 'tt0944947', 'poster': '',
             'dev': '/dev/sr0', 'mnt': '/mnt/sr0',
@@ -152,7 +154,7 @@ def seed_database():
         """), {
             'title': 'Inception', 'year': '2010', 'vtype': 'movie',
             'label': 'INCEPTION', 'status': 'success', 'nice': True,
-            'path': '/tmp/arm_completed/movies/Inception (2010)',
+            'path': f'{_screenshot_tmpdir}/completed/movies/Inception (2010)',
             'start': '2025-10-17 09:00:00', 'stop': '2025-10-17 10:00:00',
             'log': 'inception.log', 'imdb': 'tt1375666', 'poster': '',
             'dev': '/dev/sr0', 'mnt': '/mnt/sr0',

@@ -1,6 +1,7 @@
 """Pytest conftest - mock heavy system dependencies before ARM imports."""
 import sys
 import os
+import tempfile
 import types
 from unittest.mock import MagicMock
 
@@ -19,17 +20,19 @@ for mod_name in _MOCKED_MODULES:
 # This avoids loading /etc/arm/config/arm.yaml which doesn't exist in test envs.
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+_test_tmpdir = tempfile.mkdtemp(prefix='arm_test_')
+
 _minimal_arm_config = {
     'INSTALLPATH': _project_root + '/',
-    'DBFILE': '/tmp/arm_test.db',
+    'DBFILE': os.path.join(_test_tmpdir, 'arm_test.db'),
     'LOGLEVEL': 'DEBUG',
     'DISABLE_LOGIN': True,
-    'COMPLETED_PATH': '/tmp/arm_completed',
-    'RAW_PATH': '/tmp/arm_raw',
-    'TRANSCODE_PATH': '/tmp/arm_transcode',
-    'MEDIA_DIR': '/tmp/arm_media',
+    'COMPLETED_PATH': os.path.join(_test_tmpdir, 'completed'),
+    'RAW_PATH': os.path.join(_test_tmpdir, 'raw'),
+    'TRANSCODE_PATH': os.path.join(_test_tmpdir, 'transcode'),
+    'MEDIA_DIR': os.path.join(_test_tmpdir, 'media'),
     'ARMPATH': _project_root + '/',
-    'RAWPATH': '/tmp/arm_raw',
+    'RAWPATH': os.path.join(_test_tmpdir, 'raw'),
     'USE_DISC_LABEL_FOR_TV': False,
     'GROUP_TV_DISCS_UNDER_SERIES': False,
     'EXTRAS_SUB': 'extras',
@@ -39,7 +42,7 @@ _minimal_arm_config = {
 # Pre-populate arm.config and arm.config.config in sys.modules
 _config_mod = types.ModuleType('arm.config.config')
 _config_mod.arm_config = _minimal_arm_config
-_config_mod.arm_config_path = '/tmp/arm.yaml'
+_config_mod.arm_config_path = os.path.join(_test_tmpdir, 'arm.yaml')
 _config_mod.abcde_config = ''
 _config_mod.apprise_config = {}
 
