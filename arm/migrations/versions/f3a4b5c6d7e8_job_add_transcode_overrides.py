@@ -16,9 +16,12 @@ depends_on = None
 
 def upgrade():
     """Add transcode_overrides JSON text column to job table."""
-    op.add_column('job',
-                  sa.Column('transcode_overrides', sa.Text(), nullable=True)
-                  )
+    conn = op.get_bind()
+    cols = [r[1] for r in conn.execute(sa.text("PRAGMA table_info('job')")).fetchall()]
+    if 'transcode_overrides' not in cols:
+        op.add_column('job',
+                      sa.Column('transcode_overrides', sa.Text(), nullable=True)
+                      )
 
 
 def downgrade():

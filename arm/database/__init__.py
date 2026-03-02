@@ -97,7 +97,20 @@ class _DB:
             log.debug("Database engine already initialised — skipping.")
             return
         engine_kw.setdefault('pool_pre_ping', True)
+        # SQLite: enable WAL mode (readers never block writers) and set a
+        # 30-second busy_timeout so concurrent writes wait instead of
+        # immediately raising SQLITE_BUSY.
+        if db_uri.startswith('sqlite'):
+            connect_args = engine_kw.pop('connect_args', {})
+            connect_args.setdefault('timeout', 30)
+            engine_kw['connect_args'] = connect_args
         self._engine = create_engine(db_uri, **engine_kw)
+        if db_uri.startswith('sqlite'):
+            @event.listens_for(self._engine, "connect")
+            def _set_sqlite_pragma(dbapi_conn, connection_record):
+                cursor = dbapi_conn.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.close()
         factory = sessionmaker(bind=self._engine)
         self._session_factory = scoped_session(factory)
         log.info("Database engine initialised: %s", db_uri)
