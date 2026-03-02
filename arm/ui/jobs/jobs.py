@@ -640,7 +640,7 @@ def _move_job_folder_if_needed(job, old_video_type, new_video_type, old_path):
             f"Failed to move folder for job {job.job_id if hasattr(job, 'job_id') else 'unknown'}: {exc}",
             exc_info=True,
         )
-        return False, old_path, str(exc)
+        return False, old_path, 'Failed to move folder'
 
 
 def _apply_custom_lookup_to_job(job_id, title, year, video_type, imdb_id, poster_url):

@@ -6,7 +6,7 @@ Tests the parsing, normalization, and folder name generation functions
 for the USE_DISC_LABEL_FOR_TV configuration option.
 """
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 import sys
 
 sys.path.insert(0, '/opt/arm')
@@ -150,21 +150,21 @@ class TestGetTVFolderName(unittest.TestCase):
         self.job.title_manual = None
         self.job.year = "2008"
         self.job.label = "BB_S1D1"
+        # Explicitly configure mock config (MagicMock auto-creates truthy attrs)
+        self.job.config = MagicMock()
+        self.job.config.USE_DISC_LABEL_FOR_TV = True
 
-    @patch('arm.config.config.arm_config', {'USE_DISC_LABEL_FOR_TV': True})
     def test_feature_enabled_with_valid_label(self):
         """Test folder name generation when feature is enabled and label is valid."""
         result = utils.get_tv_folder_name(self.job)
         self.assertEqual(result, "Breaking_Bad_S1D1")
 
-    @patch('arm.config.config.arm_config', {'USE_DISC_LABEL_FOR_TV': True})
     def test_feature_enabled_prefer_manual_title(self):
         """Test that manual title is preferred over auto title."""
         self.job.title_manual = "Breaking Bad (US)"
         result = utils.get_tv_folder_name(self.job)
         self.assertEqual(result, "Breaking_Bad_(US)_S1D1")
 
-    @patch('arm.config.config.arm_config', {'USE_DISC_LABEL_FOR_TV': True})
     def test_feature_enabled_invalid_label_fallback(self):
         """Test fallback to standard naming when label parsing fails."""
         self.job.label = "INVALID_LABEL"
@@ -172,20 +172,18 @@ class TestGetTVFolderName(unittest.TestCase):
         # Should fall back to standard format: "Breaking Bad (2008)"
         self.assertEqual(result, "Breaking Bad (2008)")
 
-    @patch('arm.config.config.arm_config', {'USE_DISC_LABEL_FOR_TV': False})
     def test_feature_disabled_standard_naming(self):
         """Test standard naming when feature is disabled."""
+        self.job.config.USE_DISC_LABEL_FOR_TV = False
         result = utils.get_tv_folder_name(self.job)
         self.assertEqual(result, "Breaking Bad (2008)")
 
-    @patch('arm.config.config.arm_config', {'USE_DISC_LABEL_FOR_TV': True})
     def test_non_series_uses_standard_naming(self):
         """Test that movies use standard naming even if feature is enabled."""
         self.job.video_type = "movie"
         result = utils.get_tv_folder_name(self.job)
         self.assertEqual(result, "Breaking Bad (2008)")
 
-    @patch('arm.config.config.arm_config', {'USE_DISC_LABEL_FOR_TV': True})
     def test_no_title_fallback(self):
         """Test fallback when no title is available."""
         self.job.title = None
@@ -194,7 +192,6 @@ class TestGetTVFolderName(unittest.TestCase):
         # Should fall back to fix_job_title which handles empty titles
         self.assertEqual(result, "")
 
-    @patch('arm.config.config.arm_config', {'USE_DISC_LABEL_FOR_TV': True})
     def test_various_label_formats(self):
         """Test various disc label formats."""
         test_cases = [
@@ -209,7 +206,6 @@ class TestGetTVFolderName(unittest.TestCase):
             result = utils.get_tv_folder_name(self.job)
             self.assertEqual(result, expected, f"Failed for label: {label}")
 
-    @patch('arm.config.config.arm_config', {'USE_DISC_LABEL_FOR_TV': True})
     def test_series_without_year(self):
         """Test series without year in metadata."""
         self.job.year = None
@@ -217,9 +213,10 @@ class TestGetTVFolderName(unittest.TestCase):
         result = utils.get_tv_folder_name(self.job)
         self.assertEqual(result, "Breaking_Bad_S1D1")
 
-    @patch('arm.config.config.arm_config', {})
     def test_config_key_missing_defaults_to_false(self):
         """Test that missing config key defaults to standard naming."""
+        # Simulate old config without USE_DISC_LABEL_FOR_TV attribute
+        self.job.config = MagicMock(spec=[])
         result = utils.get_tv_folder_name(self.job)
         # Should use standard naming as if feature is disabled
         self.assertEqual(result, "Breaking Bad (2008)")
@@ -228,7 +225,6 @@ class TestGetTVFolderName(unittest.TestCase):
 class TestIntegration(unittest.TestCase):
     """Integration tests combining all functions."""
 
-    @patch('arm.config.config.arm_config', {'USE_DISC_LABEL_FOR_TV': True})
     def test_full_workflow_success(self):
         """Test complete workflow from label to folder name."""
         job = MagicMock()
@@ -237,6 +233,8 @@ class TestIntegration(unittest.TestCase):
         job.title_manual = None
         job.year = "2011"
         job.label = "GOT_Season_01_Disc_02"
+        job.config = MagicMock()
+        job.config.USE_DISC_LABEL_FOR_TV = True
 
         # Parse label
         identifier = utils.parse_disc_label_for_identifiers(job.label)
@@ -250,7 +248,6 @@ class TestIntegration(unittest.TestCase):
         folder_name = utils.get_tv_folder_name(job)
         self.assertEqual(folder_name, "Game_of_Thrones_S1D2")
 
-    @patch('arm.config.config.arm_config', {'USE_DISC_LABEL_FOR_TV': True})
     def test_full_workflow_fallback(self):
         """Test complete workflow when parsing fails."""
         job = MagicMock()
@@ -259,6 +256,8 @@ class TestIntegration(unittest.TestCase):
         job.title_manual = None
         job.year = "2005"
         job.label = "NO_IDENTIFIER"
+        job.config = MagicMock()
+        job.config.USE_DISC_LABEL_FOR_TV = True
 
         # Parse label (should fail)
         identifier = utils.parse_disc_label_for_identifiers(job.label)

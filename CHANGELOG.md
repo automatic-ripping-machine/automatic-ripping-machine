@@ -1,7 +1,7 @@
 # Changelog
 
 
-## Current pre-release v2.5.0
+## Current pre-release v2.23.0
   - Only one large item for this version.
 
     Now added the possibility for users to use [TMDB](https://developers.themoviedb.org/3/getting-started/introduction) as their metadata provider, this only works for movies at the moment. 

@@ -1,46 +1,61 @@
 #!/usr/bin/env python3
-"""Test runner that uses setup config."""
+"""Test runner for ARM unit tests.
+
+Usage:
+    pytest test/run_test.py -v       # Run via pytest
+    python test/run_test.py          # Run directly
+"""
 import sys
 import os
 
-# Copy config to /etc/arm/config if it doesn't exist
-config_dir = '/etc/arm/config'
-config_file = os.path.join(config_dir, 'arm.yaml')
-setup_file = '/home/betan/repo/automatic-ripping-machine/setup/arm.yaml'
+# Ensure the project root is on the Python path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-
-def ensure_config():
-    """Ensure the expected config file exists before running tests."""
-    if os.path.exists(config_file):
-        return
-    print(f"Config not found at {config_file}")
-    print("Please run: sudo mkdir -p /etc/arm/config && sudo cp setup/arm.yaml /etc/arm/config/")
-    print("\nOR set up a mock config by modifying arm/config/config.py to handle missing config")
-    sys.exit(1)
-
-
-def main():
-    """Configure paths and execute the unit tests."""
-    ensure_config()
-
-    # Remove the local test/ directory (which shadows stdlib unittest)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    if script_dir in sys.path:
-        sys.path.remove(script_dir)
-
+# Also add /opt/arm if it exists (production install path)
+if os.path.isdir('/opt/arm') and '/opt/arm' not in sys.path:
     sys.path.insert(0, '/opt/arm')
-    sys.path.insert(0, '/home/betan/repo/automatic-ripping-machine')
 
-    # Import after sys.path adjustments
-    import unittest  # pylint: disable=import-error
 
+def test_disc_label_tv():
+    """Discover and run disc label TV tests (pytest-compatible entry point)."""
+    import unittest
     loader = unittest.TestLoader()
-    suite = loader.discover('/home/betan/repo/automatic-ripping-machine/test/unittest',
-                            pattern='test_disc_label_tv.py')
+    test_dir = os.path.join(project_root, 'test', 'unittest')
+    suite = loader.discover(test_dir, pattern='test_disc_label_tv.py')
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
-    sys.exit(0 if result.wasSuccessful() else 1)
+    assert result.wasSuccessful(), f"{len(result.failures)} test(s) failed"
+
+
+def test_group_tv_discs():
+    """Discover and run group TV discs tests (pytest-compatible entry point)."""
+    import unittest
+    loader = unittest.TestLoader()
+    test_dir = os.path.join(project_root, 'test', 'unittest')
+    suite = loader.discover(test_dir, pattern='test_group_tv_discs.py')
+    runner = unittest.TextTestRunner(verbosity=2)
+    result = runner.run(suite)
+    assert result.wasSuccessful(), f"{len(result.failures)} test(s) failed"
+
+
+def test_ripper_utils_file_matching():
+    """Discover and run ripper utils file matching tests."""
+    import unittest
+    loader = unittest.TestLoader()
+    test_dir = os.path.join(project_root, 'test', 'unittest')
+    suite = loader.discover(test_dir, pattern='test_ripper_utils_file_matching.py')
+    runner = unittest.TextTestRunner(verbosity=2)
+    result = runner.run(suite)
+    assert result.wasSuccessful(), f"{len(result.failures)} test(s) failed"
 
 
 if __name__ == '__main__':
-    main()
+    import unittest
+    loader = unittest.TestLoader()
+    test_dir = os.path.join(project_root, 'test', 'unittest')
+    suite = loader.discover(test_dir, pattern='test_*.py')
+    runner = unittest.TextTestRunner(verbosity=2)
+    result = runner.run(suite)
+    sys.exit(0 if result.wasSuccessful() else 1)

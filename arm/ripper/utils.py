@@ -206,9 +206,9 @@ def parse_disc_label_for_identifiers(disc_label):
     if not disc_label:
         return None
 
-    # Pattern 1: S##[E##]D## with optional separators (_, -, space)
-    # Matches: S1D1, S01_D02, S1-D2, S01E01D1, S1E1_D1, etc.
-    pattern1 = re.compile(r'S0*(\d{1,2})(?:[E_\-\s]+0*(\d{1,2}))?[_\-\s]*D0*(\d{1,2})', re.IGNORECASE)
+    # Pattern 1: S##[E##]D## with optional separators (_, -, space, .)
+    # Matches: S1D1, S01_D02, S1-D2, S01E01D1, S1E1_D1, S02.D02, etc.
+    pattern1 = re.compile(r'S0*(\d{1,2})(?:[E_\-\s.]+0*(\d{1,2}))?[_\-\s.]*D0*(\d{1,2})', re.IGNORECASE)
     match = pattern1.search(disc_label)
     if match:
         season = match.group(1)
@@ -228,9 +228,10 @@ def parse_disc_label_for_identifiers(disc_label):
         return f"S{season}D{disc}"
 
     # Pattern 3: Find S## and D## separately anywhere in the label
-    # Matches: "Breaking Bad S01 D1", "Disc1_S1", etc.
-    season_pattern = re.compile(r'\bS0*(\d{1,2})\b', re.IGNORECASE)
-    disc_pattern = re.compile(r'\b(?:Disc[\s_\-]*)?0*(\d{1,2})\b', re.IGNORECASE)
+    # Matches: "Breaking Bad S01 D1", "Disc1_S2", etc.
+    # Use lookaround instead of \b to handle underscore-separated tokens
+    season_pattern = re.compile(r'(?<![a-zA-Z])S0*(\d{1,2})(?!\d)', re.IGNORECASE)
+    disc_pattern = re.compile(r'(?<![a-zA-Z])D(?:isc)?[\s_\-]*0*(\d{1,2})(?!\d)', re.IGNORECASE)
 
     season_match = season_pattern.search(disc_label)
     disc_match = disc_pattern.search(disc_label)
@@ -310,14 +311,11 @@ def get_tv_folder_name(job):
     :return: Folder name string
     """
     # Check if feature is enabled (use job's config snapshot for consistency)
-    # Handle both dict-like and Mock config objects
     use_disc_label = False
     if hasattr(job, 'config'):
-        if hasattr(job.config, 'get'):
-            # Dict-like object
+        if isinstance(job.config, dict):
             use_disc_label = job.config.get('USE_DISC_LABEL_FOR_TV', False)
         elif hasattr(job.config, 'USE_DISC_LABEL_FOR_TV'):
-            # Mock or object with attributes
             use_disc_label = job.config.USE_DISC_LABEL_FOR_TV
 
     if not use_disc_label:
@@ -333,7 +331,7 @@ def get_tv_folder_name(job):
     series_name = job.title_manual if job.title_manual else job.title
     if not series_name:
         logging.warning("No series title available, falling back to standard naming")
-        return fix_job_title(job)
+        return ""
 
     # Try to parse disc label for identifiers
     disc_identifier = parse_disc_label_for_identifiers(job.label)
