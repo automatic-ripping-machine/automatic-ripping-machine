@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.7.1-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.7.0-alpha.1...v10.7.1-alpha.1) (2026-03-02)
+
+
+### Bug Fixes
+
+* support NFS mounts in host path detection for file browser ([2eb7a40](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/2eb7a4070e0258d941656275b47ff9f2afc8608c))
+
 ## [10.7.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.6.0-alpha.1...v10.7.0-alpha.1) (2026-03-02)
 
 
