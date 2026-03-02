@@ -367,7 +367,7 @@ async def update_transcode_config(job_id: int, request: Request):
 async def transcode_callback(job_id: int, request: Request):
     """Receive status update from the external transcoder.
 
-    Expected payload: {"status": "completed"|"failed", "error": "..."}
+    Expected payload: {"status": "transcoding"|"completed"|"failed", "error": "..."}
     """
     job = Job.query.get(job_id)
     if not job:
@@ -376,7 +376,9 @@ async def transcode_callback(job_id: int, request: Request):
     body = await request.json()
     status = body.get("status")
 
-    if status == "completed":
+    if status == "transcoding":
+        job.status = JobState.TRANSCODE_ACTIVE.value
+    elif status == "completed":
         job.status = JobState.SUCCESS.value
         notification = Notifications(
             f"Job: {job.job_id} transcode complete",

@@ -131,6 +131,11 @@ def transcoder_notify(cfg, title, body, job=None):
     """Send a webhook notification to the arm-transcoder service.
     If LOCAL_RAW_PATH and SHARED_RAW_PATH are both set, moves the job's
     raw directory from local to shared storage before notifying."""
+    # Skip webhook for setup failures (no job) or uncommitted jobs
+    # (job created but not yet persisted to DB — e.g. duplicate_run_check).
+    if job is None or getattr(job, 'job_id', None) is None:
+        return
+
     transcoder_url = cfg.get('TRANSCODER_URL', '')
     if not transcoder_url:
         return
