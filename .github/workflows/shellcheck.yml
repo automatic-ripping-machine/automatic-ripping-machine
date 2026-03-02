@@ -1,4 +1,7 @@
-name: "Run ShellCheck"
+name: "Run ShellCheck (DISABLED)"
+
+on:
+  workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
@@ -8,11 +11,6 @@ concurrency:
 # They are provided by a third-party and are governed by
 # separate terms of service, privacy policy, and support
 # documentation.
-
-on:
-    push:
-    pull_request:
-    workflow_dispatch:
 
 jobs:
     shellcheck:

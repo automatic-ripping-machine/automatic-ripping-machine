@@ -1,17 +1,7 @@
-#name: "Version Increment"
-#
-#on:
-#  # Run this action on any Pull Request raised against ARM
-# # pull_request:
-#    # Ensure changes re-run the version script (i.e. title change)
-#    types: [opened, edited, synchronize]
-#    # Don't run on changes to the below paths
-#    paths-ignore:
-#      - 'arm_wiki/**'
-#      - '.github/**'
-#
-#  # Allows you to run this workflow manually from the Actions tab
-#  workflow_dispatch:
+name: "Version Increment (DISABLED)"
+
+on:
+  workflow_dispatch:
 
 permissions:
   contents: write

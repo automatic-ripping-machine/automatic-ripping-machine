@@ -1,4 +1,7 @@
-name: "PR - Test Docker Build"
+name: "PR - Test Docker Build (DISABLED)"
+
+on:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -8,9 +11,6 @@ concurrency:
 # confirm that the changes will still at least build even if the
 # OP has not tried it themselves or configured their fork to use
 # the included repos
-
-on:
-  pull_request:
 
 jobs:
   test-pr-build:

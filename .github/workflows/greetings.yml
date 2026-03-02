@@ -1,11 +1,7 @@
-name: Greetings
+name: Greetings (DISABLED)
 
 on:
-  issues:
-    types: [opened]
-  pull_request:
-    branches: [main]
-    types: [opened]
+  workflow_dispatch:
 
 permissions:
   issues: write

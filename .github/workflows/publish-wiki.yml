@@ -1,13 +1,7 @@
-name: Publish ARM Wiki Update
+name: Publish ARM Wiki Update (DISABLED)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - arm_wiki/**
-  pull_request_review:
-    types: [submitted]
-  gollum:
+  workflow_dispatch:
 
 env:
   GIT_AUTHOR_NAME: Actionbot
