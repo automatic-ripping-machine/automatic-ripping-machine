@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.5.2-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.5.1-alpha.1...v10.5.2-alpha.1) (2026-03-02)
+
+
+### Bug Fixes
+
+* suppress spurious transcoder webhooks and accept transcoding status callback ([c563c82](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/c563c82af4007be6988eb23d3e7b1ad944447b3f))
+
 ## [10.5.1-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.5.0-alpha.1...v10.5.1-alpha.1) (2026-03-02)
 
 
