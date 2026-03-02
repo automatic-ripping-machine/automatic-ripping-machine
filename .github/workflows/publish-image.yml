@@ -9,10 +9,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  packages: write
-
 env:
   DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/automatic-ripping-machine
   GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/automatic-ripping-machine-neu
@@ -20,6 +16,9 @@ env:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
