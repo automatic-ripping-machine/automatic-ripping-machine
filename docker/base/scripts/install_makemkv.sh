@@ -58,13 +58,13 @@ for ball in makemkv-oss makemkv-bin; do
 	wget -O "$ball.tgz" "https://www.makemkv.com/download/${ball}-${MAKEMKV_VERSION}.tar.gz"
 	sha256="$(grep "  $ball-${MAKEMKV_VERSION}[.]tar[.]gz\$" sha256sums.txt)"
 	sha256="${sha256%% *}"
-	[ -n "$sha256" ]
+	[[ -n "$sha256" ]]
 	echo "$sha256 *$ball.tgz" | sha256sum -c -
 	mkdir -p "$ball"
 	tar -xvf "$ball.tgz" -C "$ball" --strip-components=1
 	rm "$ball.tgz"
 	cd "$ball"
-	if [ -f configure ]; then
+	if [[ -f configure ]]; then
 		./configure --prefix="$PREFIX"
 	else
 		mkdir -p tmp
@@ -79,7 +79,7 @@ done
 rm sha256sums.txt
 apt-mark auto '.*' > /dev/null
 # shellcheck disable=SC2086
-[ -z "$savedAptMark" ] || apt-mark manual $savedAptMark # double quoting this var breaks the build
+[[ -z "$savedAptMark" ]] || apt-mark manual $savedAptMark # double quoting this var breaks the build
 find /usr/local -type f -executable -exec ldd '{}' ';' \
 	| awk '/=>/ { print $(NF-1) }' \
 	| sort -u \

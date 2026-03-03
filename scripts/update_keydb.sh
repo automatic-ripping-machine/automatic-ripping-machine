@@ -93,13 +93,13 @@ for attempt in $(seq 1 "$MAX_RETRIES"); do
         download_ok=true
         break
     fi
-    if [ "$attempt" -lt "$MAX_RETRIES" ]; then
+    if [[ "$attempt" -lt "$MAX_RETRIES" ]]; then
         backoff=$(( attempt * 5 ))
         echo "[WARN] Download attempt $attempt/$MAX_RETRIES failed — retrying in ${backoff}s..."
         sleep "$backoff"
     fi
 done
-if [ "$download_ok" = false ]; then
+if [[ "$download_ok" = false ]]; then
     echo "[WARN] Failed to download keydb after $MAX_RETRIES attempts — network error or site unavailable"
     exit 0
 fi

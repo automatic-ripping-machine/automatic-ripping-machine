@@ -109,6 +109,9 @@ Acceptable values are between 1024 and 65535 inclusively.${NC}"
       echo -e "${RED}ERROR: The option that was passed to this script is unknown. Please used a valid option.${NC}"
       echo -e "\n${UsageMessage}"
       ;;
+    *)
+      echo -e "${RED}ERROR: Unexpected error code: ${ERROR_CODE}${NC}"
+      ;;
   esac
 
   #Exit the script using the supplied Error Code.
@@ -137,7 +140,8 @@ do
     h | H )
         usage 0
         ;;
-    ?)  usage ${ERROR_SCRIPT_UNKNOWN_OPTION} "${OPTION}"
+    *)  usage ${ERROR_SCRIPT_UNKNOWN_OPTION} "${OPTION}"
+        ;;
   esac
 done
 
@@ -236,7 +240,7 @@ function RepositoryExists() {
   local GitLsRemoteOutput
   local GitLsRemoteURL
 
-  if [ "${Fork}" != "automatic-ripping-machine" ] ; then
+  if [[ "${Fork}" != "automatic-ripping-machine" ]] ; then
     echo "Custom Fork passed to the script, testing for existence..."
     NotFound='"message": "Not Found",'
     GitHubAPICall="https://api.github.com/repos/${Fork}/automatic-ripping-machine"
@@ -246,7 +250,7 @@ function RepositoryExists() {
     fi
   fi
 
-  if [ "${Tag}" != "latest" ] ; then
+  if [[ "${Tag}" != "latest" ]] ; then
     echo "Custom Tag passed to the script, testing for existence"
     GitLsRemoteURL="https://github.com/${Fork}/automatic-ripping-machine.git"
     GitLsRemoteOutput=$(git ls-remote --quiet "${GitLsRemoteURL}" "${Tag}")
@@ -310,7 +314,7 @@ function IsDebianDistro() {
       '11' | '12' )
         true
         ;;
-      ?)
+      *)
         false
         ;;
     esac

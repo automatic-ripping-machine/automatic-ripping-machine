@@ -38,7 +38,7 @@ WEBHOOK_SECRET=""  # Set this to match WEBHOOK_SECRET in arm-transcoder's .env
 TITLE="${1:-}"
 BODY="${2:-}"
 
-if [ -z "$BODY" ]; then
+if [[ -z "$BODY" ]]; then
     echo "Usage: $0 <title> <body>" >&2
     exit 1
 fi
@@ -55,18 +55,18 @@ fi
 # ARM_COMPLETED_PATH_BASE is the config base (e.g. /home/arm/media/raw/).
 # The relative path (e.g. movies/Title (Year)) maps directly to the transcoder's RAW_PATH.
 SOURCE_PATH=""
-if [ -n "${ARM_PATH:-}" ] && [ -n "${ARM_COMPLETED_PATH_BASE:-}" ]; then
+if [[ -n "${ARM_PATH:-}" ]] && [[ -n "${ARM_COMPLETED_PATH_BASE:-}" ]]; then
     SOURCE_PATH="${ARM_PATH#"$ARM_COMPLETED_PATH_BASE"}"
     SOURCE_PATH="${SOURCE_PATH#/}"
-elif [ -n "${ARM_PATH:-}" ] && [ -n "${ARM_RAW_PATH_BASE:-}" ]; then
+elif [[ -n "${ARM_PATH:-}" ]] && [[ -n "${ARM_RAW_PATH_BASE:-}" ]]; then
     SOURCE_PATH="${ARM_PATH#"$ARM_RAW_PATH_BASE"}"
     SOURCE_PATH="${SOURCE_PATH#/}"
 fi
 
-if [ -z "$SOURCE_PATH" ]; then
+if [[ -z "$SOURCE_PATH" ]]; then
     echo "WARNING: Could not determine source path from ARM_PATH=$ARM_PATH" >&2
     # Fallback: try raw path basename
-    if [ -n "${ARM_RAW_PATH:-}" ]; then
+    if [[ -n "${ARM_RAW_PATH:-}" ]]; then
         SOURCE_PATH="$(basename "$ARM_RAW_PATH")"
     fi
 fi
@@ -79,12 +79,12 @@ json_escape() {
 # Build JSON payload with all available metadata
 JSON_PAYLOAD="{\"title\": $(json_escape "$TITLE"), \"body\": $(json_escape "$BODY"), \"type\": \"info\""
 
-[ -n "$SOURCE_PATH" ]    && JSON_PAYLOAD="$JSON_PAYLOAD, \"path\": $(json_escape "$SOURCE_PATH")"
-[ -n "$ARM_JOB_ID" ]     && JSON_PAYLOAD="$JSON_PAYLOAD, \"job_id\": $(json_escape "$ARM_JOB_ID")"
-[ -n "$ARM_VIDEO_TYPE" ] && JSON_PAYLOAD="$JSON_PAYLOAD, \"video_type\": $(json_escape "$ARM_VIDEO_TYPE")"
-[ -n "$ARM_YEAR" ]       && JSON_PAYLOAD="$JSON_PAYLOAD, \"year\": $(json_escape "$ARM_YEAR")"
-[ -n "$ARM_DISCTYPE" ]   && JSON_PAYLOAD="$JSON_PAYLOAD, \"disctype\": $(json_escape "$ARM_DISCTYPE")"
-[ -n "$ARM_STATUS" ]     && JSON_PAYLOAD="$JSON_PAYLOAD, \"status\": $(json_escape "$ARM_STATUS")"
+[[ -n "$SOURCE_PATH" ]]    && JSON_PAYLOAD="$JSON_PAYLOAD, \"path\": $(json_escape "$SOURCE_PATH")"
+[[ -n "$ARM_JOB_ID" ]]     && JSON_PAYLOAD="$JSON_PAYLOAD, \"job_id\": $(json_escape "$ARM_JOB_ID")"
+[[ -n "$ARM_VIDEO_TYPE" ]] && JSON_PAYLOAD="$JSON_PAYLOAD, \"video_type\": $(json_escape "$ARM_VIDEO_TYPE")"
+[[ -n "$ARM_YEAR" ]]       && JSON_PAYLOAD="$JSON_PAYLOAD, \"year\": $(json_escape "$ARM_YEAR")"
+[[ -n "$ARM_DISCTYPE" ]]   && JSON_PAYLOAD="$JSON_PAYLOAD, \"disctype\": $(json_escape "$ARM_DISCTYPE")"
+[[ -n "$ARM_STATUS" ]]     && JSON_PAYLOAD="$JSON_PAYLOAD, \"status\": $(json_escape "$ARM_STATUS")"
 
 JSON_PAYLOAD="$JSON_PAYLOAD}"
 
@@ -96,7 +96,7 @@ CURL_ARGS=(
 )
 
 # Add webhook secret header if configured
-if [ -n "$WEBHOOK_SECRET" ]; then
+if [[ -n "$WEBHOOK_SECRET" ]]; then
     CURL_ARGS+=(-H "X-Webhook-Secret: ${WEBHOOK_SECRET}")
 fi
 
@@ -106,7 +106,7 @@ RESPONSE=$(curl "${CURL_ARGS[@]}" -w "\n%{http_code}" 2>&1)
 HTTP_CODE=$(echo "$RESPONSE" | tail -1)
 RESP_BODY=$(echo "$RESPONSE" | head -n -1)
 
-if [ "$HTTP_CODE" -ge 200 ] 2>/dev/null && [ "$HTTP_CODE" -lt 300 ] 2>/dev/null; then
+if [[ "$HTTP_CODE" -ge 200 ]] 2>/dev/null && [[ "$HTTP_CODE" -lt 300 ]] 2>/dev/null; then
     echo "Notification sent to arm-transcoder (HTTP ${HTTP_CODE}): path=$SOURCE_PATH"
 else
     echo "Failed to notify arm-transcoder (HTTP ${HTTP_CODE}): ${RESP_BODY}" >&2

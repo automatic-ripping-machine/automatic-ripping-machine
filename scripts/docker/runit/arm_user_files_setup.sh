@@ -25,7 +25,7 @@ check_folder_ownership() {
 
     echo "Checking ownership of $check_dir"
 
-    if [ "$folder_uid" = "$ARM_UID" ] && [ "$folder_gid" = "$ARM_GID" ]; then
+    if [[ "$folder_uid" = "$ARM_UID" ]] && [[ "$folder_gid" = "$ARM_GID" ]]; then
         echo "[OK]: ARM UID and GID set correctly, ARM has access to '$check_dir' using $ARM_UID:$ARM_GID"
         return 0
     fi
@@ -98,7 +98,7 @@ else
 fi
 
 echo "Removing any link between music and Music"
-if [ -h /home/arm/Music ]; then
+if [[ -h /home/arm/Music ]]; then
   echo "Music symbolic link found, removing link"
   unlink /home/arm/Music
 fi
@@ -127,7 +127,7 @@ done
 ARM_YAML="/etc/arm/config/arm.yaml"
 apply_yaml_override() {
   local key="$1" envvar="$2"
-  if [ -n "${!envvar:-}" ] && grep -q "^${key}:" "$ARM_YAML"; then
+  if [[ -n "${!envvar:-}" ]] && grep -q "^${key}:" "$ARM_YAML"; then
     sed -i "s|^${key}:.*|${key}: \"${!envvar}\"|" "$ARM_YAML"
     echo "arm.yaml: ${key} set from \$${envvar}"
   fi
@@ -141,18 +141,18 @@ apply_yaml_override SHARED_RAW_PATH ARM_SHARED_RAW_PATH
 # abcde.conf is expected in /etc by the abcde installation
 echo "Checking location of abcde configuration files"
 # Test if abcde.conf is a hyperlink, if so remove it
-if [ -h /etc/arm/config/abcde.conf ]; then
+if [[ -h /etc/arm/config/abcde.conf ]]; then
   echo "Old hyper link exists removing!"
   unlink /etc/arm/config/abcde.conf
 fi
 # check if abcde is in config main location - only copy if it doesnt exist
-if ! [ -f /etc/arm/config/abcde.conf ]; then
+if ! [[ -f /etc/arm/config/abcde.conf ]]; then
   echo "abcde.conf doesnt exist"
   cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
   # chown arm:arm /etc/arm/config/abcde.conf
 fi
 # The system link to the fake default file -not really needed but as a precaution to the -C variable being blank
-if ! [ -h /etc/abcde.conf ]; then
+if ! [[ -h /etc/abcde.conf ]]; then
   echo "/etc/abcde.conf link doesnt exist"
   ln -sf /etc/arm/config/abcde.conf /etc/abcde.conf
 fi

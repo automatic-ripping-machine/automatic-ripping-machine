@@ -18,7 +18,7 @@ do
           ;;
     t)    TAG=$OPTARG
           ;;
-    ?)    usage
+    *)    usage
           exit 2
           ;;
     esac
@@ -51,7 +51,7 @@ function add_arm_user() {
 
 function launch_setup() {
     # install docker
-    if [ -e /usr/bin/docker ]; then
+    if [[ -e /usr/bin/docker ]]; then
         echo -e "${RED}Docker installation detected, skipping...${NC}"
         echo -e "${RED}Adding user arm to docker user group${NC}"
         usermod -aG docker arm

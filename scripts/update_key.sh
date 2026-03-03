@@ -17,7 +17,7 @@ MAKEMKV_SERIAL_URL="https://forum.makemkv.com/forum/viewtopic.php?f=5&t=1053"
 MAKEMKV_SERIAL="$1"
 
 # Use beta key if serial is not passed
-if [ -z "$MAKEMKV_SERIAL" ]; then
+if [[ -z "$MAKEMKV_SERIAL" ]]; then
     if ! MAKEMKV_SERIAL=$(curl -fsSL "$MAKEMKV_SERIAL_URL" | grep -oP 'T-[\w\d@]{66}'); then
 		echo "The beta key cannot be found at: $MAKEMKV_SERIAL_URL"
 		exit $EXIT_CODE_URL_ERROR
@@ -35,7 +35,7 @@ fi
 
 # create .MakeMKV dir if it doesn't already exist
 MAKEMKV_DIR="/home/arm/.MakeMKV"
-if [ ! -d "$MAKEMKV_DIR" ]; then
+if [[ ! -d "$MAKEMKV_DIR" ]]; then
     mkdir -p "$MAKEMKV_DIR"
     chown arm:arm "$MAKEMKV_DIR"
 fi
