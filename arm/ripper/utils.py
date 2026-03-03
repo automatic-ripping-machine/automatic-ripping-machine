@@ -687,15 +687,41 @@ def save_disc_poster(final_directory, job):
     :param job: Current Job
     :return: None
     """
-    if job.disctype == "dvd" and cfg.arm_config["RIP_POSTER"]:
-        os.system(f"mount {job.devpath}")
-        if os.path.isfile(job.mountpoint + "/JACKET_P/J00___5L.MP2"):
+    if job.disctype != "dvd" or not cfg.arm_config["RIP_POSTER"]:
+        return
+
+    try:
+        result = subprocess.run(
+            ["mount", job.devpath],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            logging.error(f"Failed to mount {job.devpath}: {result.stderr.strip()}")
+            return
+
+        ntsc_poster = os.path.join(job.mountpoint, "JACKET_P", "J00___5L.MP2")
+        pal_poster = os.path.join(job.mountpoint, "JACKET_P", "J00___6L.MP2")
+        poster_out = os.path.join(final_directory, "poster.png")
+
+        if os.path.isfile(ntsc_poster):
             logging.info("Converting NTSC Poster Image")
-            os.system(f'ffmpeg -i "{job.mountpoint}/JACKET_P/J00___5L.MP2" "{final_directory}/poster.png"')
-        elif os.path.isfile(job.mountpoint + "/JACKET_P/J00___6L.MP2"):
+            subprocess.run(
+                ["ffmpeg", "-i", ntsc_poster, poster_out],
+                capture_output=True, text=True,
+            )
+        elif os.path.isfile(pal_poster):
             logging.info("Converting PAL Poster Image")
-            os.system(f'ffmpeg -i "{job.mountpoint}/JACKET_P/J00___6L.MP2" "{final_directory}/poster.png"')
-        os.system(f"umount {job.devpath}")
+            subprocess.run(
+                ["ffmpeg", "-i", pal_poster, poster_out],
+                capture_output=True, text=True,
+            )
+    finally:
+        umount = subprocess.run(
+            ["umount", job.devpath],
+            capture_output=True, text=True,
+        )
+        if umount.returncode != 0:
+            logging.error(f"Failed to umount {job.devpath}: {umount.stderr.strip()}")
 
 
 def check_for_dupe_folder(have_dupes, hb_out_path, job):

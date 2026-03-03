@@ -1,5 +1,6 @@
 """Tests for ripping business logic (no hardware required)."""
 import os
+import subprocess
 import unittest.mock
 
 import pytest
@@ -102,6 +103,100 @@ class TestRipData:
             assert mock_move.called, "shutil.move was never called"
             final_file = mock_move.call_args[0][1]
             assert final_file.endswith("UNIQUE_DISC.iso")
+
+
+class TestSaveDiscPoster:
+    """Test save_disc_poster() mount/umount safety (#1664)."""
+
+    def test_happy_path_ntsc_poster(self, app_context, sample_job, tmp_path):
+        """DVD with NTSC poster should mount, convert, and umount."""
+        from arm.ripper.utils import save_disc_poster
+
+        sample_job.disctype = "dvd"
+        sample_job.mountpoint = str(tmp_path / "mnt")
+        os.makedirs(os.path.join(sample_job.mountpoint, "JACKET_P"))
+        # Create a fake poster file
+        ntsc = os.path.join(sample_job.mountpoint, "JACKET_P", "J00___5L.MP2")
+        with open(ntsc, "w") as f:
+            f.write("fake")
+
+        final_dir = str(tmp_path / "output")
+        os.makedirs(final_dir)
+
+        ok_result = subprocess.CompletedProcess([], 0, "", "")
+
+        with unittest.mock.patch('arm.ripper.utils.subprocess.run', return_value=ok_result) as mock_run, \
+             unittest.mock.patch('arm.ripper.utils.cfg') as mock_cfg:
+            mock_cfg.arm_config = {"RIP_POSTER": True}
+            save_disc_poster(final_dir, sample_job)
+
+        # mount, ffmpeg, umount = 3 calls
+        assert mock_run.call_count == 3
+        # First call is mount
+        assert mock_run.call_args_list[0][0][0][0] == "mount"
+        # Second call is ffmpeg
+        assert mock_run.call_args_list[1][0][0][0] == "ffmpeg"
+        # Third call is umount
+        assert mock_run.call_args_list[2][0][0][0] == "umount"
+
+    def test_umount_always_called_even_if_ffmpeg_fails(self, app_context, sample_job, tmp_path):
+        """Umount must run even when ffmpeg raises an exception (#1664)."""
+        from arm.ripper.utils import save_disc_poster
+
+        sample_job.disctype = "dvd"
+        sample_job.mountpoint = str(tmp_path / "mnt")
+        os.makedirs(os.path.join(sample_job.mountpoint, "JACKET_P"))
+        ntsc = os.path.join(sample_job.mountpoint, "JACKET_P", "J00___5L.MP2")
+        with open(ntsc, "w") as f:
+            f.write("fake")
+
+        final_dir = str(tmp_path / "output")
+        os.makedirs(final_dir)
+
+        ok_result = subprocess.CompletedProcess([], 0, "", "")
+
+        def side_effect(cmd, **kwargs):
+            if cmd[0] == "ffmpeg":
+                raise OSError("ffmpeg crashed")
+            return ok_result
+
+        with unittest.mock.patch('arm.ripper.utils.subprocess.run', side_effect=side_effect) as mock_run, \
+             unittest.mock.patch('arm.ripper.utils.cfg') as mock_cfg:
+            mock_cfg.arm_config = {"RIP_POSTER": True}
+            # ffmpeg raises, but umount should still be called
+            with pytest.raises(OSError, match="ffmpeg crashed"):
+                save_disc_poster(final_dir, sample_job)
+
+        # mount was called, ffmpeg raised, umount was still called = 3 calls
+        call_cmds = [c[0][0][0] for c in mock_run.call_args_list]
+        assert "mount" in call_cmds
+        assert "umount" in call_cmds
+
+    def test_non_dvd_is_noop(self, app_context, sample_job):
+        """Non-DVD disc should skip poster extraction entirely."""
+        from arm.ripper.utils import save_disc_poster
+
+        sample_job.disctype = "bluray"
+
+        with unittest.mock.patch('arm.ripper.utils.subprocess.run') as mock_run, \
+             unittest.mock.patch('arm.ripper.utils.cfg') as mock_cfg:
+            mock_cfg.arm_config = {"RIP_POSTER": True}
+            save_disc_poster("/tmp/output", sample_job)
+
+        mock_run.assert_not_called()
+
+    def test_rip_poster_disabled_is_noop(self, app_context, sample_job):
+        """RIP_POSTER=False should skip poster extraction entirely."""
+        from arm.ripper.utils import save_disc_poster
+
+        sample_job.disctype = "dvd"
+
+        with unittest.mock.patch('arm.ripper.utils.subprocess.run') as mock_run, \
+             unittest.mock.patch('arm.ripper.utils.cfg') as mock_cfg:
+            mock_cfg.arm_config = {"RIP_POSTER": False}
+            save_disc_poster("/tmp/output", sample_job)
+
+        mock_run.assert_not_called()
 
 
 class TestRipMusic:
