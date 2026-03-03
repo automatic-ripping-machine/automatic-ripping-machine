@@ -138,21 +138,24 @@ class TestRipData:
 class TestSaveDiscPoster:
     """Test save_disc_poster() mount/umount safety (#1664)."""
 
+    @staticmethod
+    def _setup_dvd_poster(sample_job, tmp_path):
+        """Set up a DVD job with a fake poster file and output dir."""
+        sample_job.disctype = "dvd"
+        sample_job.mountpoint = str(tmp_path / "mnt")
+        os.makedirs(os.path.join(sample_job.mountpoint, "JACKET_P"))
+        ntsc = os.path.join(sample_job.mountpoint, "JACKET_P", "J00___5L.MP2")
+        with open(ntsc, "w") as f:
+            f.write("fake")
+        final_dir = str(tmp_path / "output")
+        os.makedirs(final_dir)
+        return final_dir
+
     def test_happy_path_ntsc_poster(self, app_context, sample_job, tmp_path):
         """DVD with NTSC poster should mount, convert, and umount."""
         from arm.ripper.utils import save_disc_poster
 
-        sample_job.disctype = "dvd"
-        sample_job.mountpoint = str(tmp_path / "mnt")
-        os.makedirs(os.path.join(sample_job.mountpoint, "JACKET_P"))
-        # Create a fake poster file
-        ntsc = os.path.join(sample_job.mountpoint, "JACKET_P", "J00___5L.MP2")
-        with open(ntsc, "w") as f:
-            f.write("fake")
-
-        final_dir = str(tmp_path / "output")
-        os.makedirs(final_dir)
-
+        final_dir = self._setup_dvd_poster(sample_job, tmp_path)
         ok_result = subprocess.CompletedProcess([], 0, "", "")
 
         with unittest.mock.patch('arm.ripper.utils.subprocess.run', return_value=ok_result) as mock_run, \
@@ -173,16 +176,7 @@ class TestSaveDiscPoster:
         """Umount must run even when ffmpeg raises an exception (#1664)."""
         from arm.ripper.utils import save_disc_poster
 
-        sample_job.disctype = "dvd"
-        sample_job.mountpoint = str(tmp_path / "mnt")
-        os.makedirs(os.path.join(sample_job.mountpoint, "JACKET_P"))
-        ntsc = os.path.join(sample_job.mountpoint, "JACKET_P", "J00___5L.MP2")
-        with open(ntsc, "w") as f:
-            f.write("fake")
-
-        final_dir = str(tmp_path / "output")
-        os.makedirs(final_dir)
-
+        final_dir = self._setup_dvd_poster(sample_job, tmp_path)
         ok_result = subprocess.CompletedProcess([], 0, "", "")
 
         def side_effect(cmd, **kwargs):
@@ -202,7 +196,7 @@ class TestSaveDiscPoster:
         assert "mount" in call_cmds
         assert "umount" in call_cmds
 
-    def test_non_dvd_is_noop(self, app_context, sample_job):
+    def test_non_dvd_is_noop(self, app_context, sample_job, tmp_path):
         """Non-DVD disc should skip poster extraction entirely."""
         from arm.ripper.utils import save_disc_poster
 
@@ -211,11 +205,11 @@ class TestSaveDiscPoster:
         with unittest.mock.patch('arm.ripper.utils.subprocess.run') as mock_run, \
              unittest.mock.patch('arm.ripper.utils.cfg') as mock_cfg:
             mock_cfg.arm_config = {"RIP_POSTER": True}
-            save_disc_poster("/tmp/output", sample_job)
+            save_disc_poster(str(tmp_path / "output"), sample_job)
 
         mock_run.assert_not_called()
 
-    def test_rip_poster_disabled_is_noop(self, app_context, sample_job):
+    def test_rip_poster_disabled_is_noop(self, app_context, sample_job, tmp_path):
         """RIP_POSTER=False should skip poster extraction entirely."""
         from arm.ripper.utils import save_disc_poster
 
@@ -224,7 +218,7 @@ class TestSaveDiscPoster:
         with unittest.mock.patch('arm.ripper.utils.subprocess.run') as mock_run, \
              unittest.mock.patch('arm.ripper.utils.cfg') as mock_cfg:
             mock_cfg.arm_config = {"RIP_POSTER": False}
-            save_disc_poster("/tmp/output", sample_job)
+            save_disc_poster(str(tmp_path / "output"), sample_job)
 
         mock_run.assert_not_called()
 

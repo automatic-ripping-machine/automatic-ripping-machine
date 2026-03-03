@@ -86,9 +86,12 @@ async def update_config(request: Request):
         )
 
     # Reload config in-place so all existing references see the new values
-    try:
+    def _read_config():
         with open(cfg.arm_config_path, "r") as f:
-            new_values = yaml.safe_load(f)
+            return yaml.safe_load(f)
+
+    try:
+        new_values = await asyncio.to_thread(_read_config)
         cfg.arm_config.clear()
         cfg.arm_config.update(new_values)
     except Exception as e:
