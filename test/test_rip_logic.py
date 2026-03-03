@@ -761,17 +761,257 @@ class TestExtractYear:
         assert extract_year(None) is None
 
 
+class TestTrackInfoProcessorIntegration:
+    """Test TrackInfoProcessor message dispatching and _add_track (#1698).
+
+    Covers process_messages(), _process_message(), _handle_track_or_stream_info(),
+    _handle_sinfo(), _handle_tinfo() FILENAME/DURATION paths, and _add_track().
+    """
+
+    def test_add_track_calls_put_track_and_resets(self, app_context, sample_job):
+        """_add_track() should call put_track with accumulated state and reset."""
+        from arm.ripper.makemkv import TrackInfoProcessor
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        proc.track_id = 0
+        proc.seconds = 7200
+        proc.aspect = "16:9"
+        proc.fps = 23.976
+        proc.filename = "title00.mkv"
+        proc.chapters = 28
+        proc.filesize = 5_000_000_000
+
+        with unittest.mock.patch('arm.ripper.makemkv.utils.put_track') as mock_put:
+            proc._add_track()
+
+        mock_put.assert_called_once_with(
+            sample_job, 0, 7200, "16:9", "23.976", False, "MakeMKV",
+            "title00.mkv", 28, 5_000_000_000
+        )
+        # State should be reset after adding
+        assert proc.seconds == 0
+        assert proc.aspect == ""
+        assert proc.fps == 0.0
+        assert proc.filename == ""
+        assert proc.chapters == 0
+        assert proc.filesize == 0
+
+    def test_add_track_skips_when_no_track_id(self, app_context, sample_job):
+        """_add_track() with track_id=None should be a no-op."""
+        from arm.ripper.makemkv import TrackInfoProcessor
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        assert proc.track_id is None
+
+        with unittest.mock.patch('arm.ripper.makemkv.utils.put_track') as mock_put:
+            proc._add_track()
+
+        mock_put.assert_not_called()
+
+    def test_handle_tinfo_filename(self, app_context, sample_job):
+        """_handle_tinfo() should extract filename from quoted value."""
+        from arm.ripper.makemkv import TrackInfoProcessor, TrackID
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        proc.track_id = 0
+
+        class FakeTInfo:
+            tid = 0
+            id = TrackID.FILENAME
+            value = '"title00.mkv"'
+
+        proc._handle_tinfo(FakeTInfo())
+        assert proc.filename == "title00.mkv"
+
+    def test_handle_tinfo_duration(self, app_context, sample_job):
+        """_handle_tinfo() should convert H:MM:SS duration to seconds."""
+        from arm.ripper.makemkv import TrackInfoProcessor, TrackID
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        proc.track_id = 0
+
+        class FakeTInfo:
+            tid = 0
+            id = TrackID.DURATION
+            value = "2:00:30"
+
+        proc._handle_tinfo(FakeTInfo())
+        assert proc.seconds == 7230
+
+    def test_handle_sinfo_stream_type(self, app_context, sample_job):
+        """_handle_sinfo() should store stream type code."""
+        from arm.ripper.makemkv import TrackInfoProcessor, StreamID
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        proc.track_id = 0
+
+        class FakeSInfo:
+            tid = 0
+            id = StreamID.TYPE
+            code = 6201
+            value = "Video"
+
+        proc._handle_sinfo(FakeSInfo())
+        assert proc.stream_type == 6201
+
+    def test_handle_sinfo_aspect_ratio(self, app_context, sample_job):
+        """_handle_sinfo() should parse aspect ratio for video streams."""
+        from arm.ripper.makemkv import (
+            TrackInfoProcessor, StreamID, MAKEMKV_STREAM_CODE_TYPE_VIDEO,
+        )
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        proc.track_id = 0
+        proc.stream_type = MAKEMKV_STREAM_CODE_TYPE_VIDEO
+
+        class FakeSInfo:
+            tid = 0
+            id = StreamID.ASPECT
+            code = 0
+            value = " 16:9 "
+
+        proc._handle_sinfo(FakeSInfo())
+        assert proc.aspect == "16:9"
+
+    def test_handle_sinfo_fps(self, app_context, sample_job):
+        """_handle_sinfo() should parse FPS for video streams."""
+        from arm.ripper.makemkv import (
+            TrackInfoProcessor, StreamID, MAKEMKV_STREAM_CODE_TYPE_VIDEO,
+        )
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        proc.track_id = 0
+        proc.stream_type = MAKEMKV_STREAM_CODE_TYPE_VIDEO
+
+        class FakeSInfo:
+            tid = 0
+            id = StreamID.FPS
+            code = 0
+            value = "23.976 fps"
+
+        proc._handle_sinfo(FakeSInfo())
+        assert proc.fps == pytest.approx(23.976)
+
+    def test_handle_track_or_stream_info_dispatches_tinfo(self, app_context, sample_job):
+        """_handle_track_or_stream_info() should dispatch TInfo messages."""
+        from arm.ripper.makemkv import TrackInfoProcessor, TInfo
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        msg = TInfo(id=27, code=0, value='"test.mkv"', tid=0)
+
+        proc._handle_track_or_stream_info(msg)
+        assert proc.track_id == 0
+        assert proc.filename == "test.mkv"
+
+    def test_handle_track_or_stream_info_dispatches_sinfo(self, app_context, sample_job):
+        """_handle_track_or_stream_info() should dispatch SInfo messages."""
+        from arm.ripper.makemkv import TrackInfoProcessor, SInfo, StreamID
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        msg = SInfo(id=StreamID.TYPE, code=6201, value="Video", tid=0, sid=0)
+
+        proc._handle_track_or_stream_info(msg)
+        assert proc.stream_type == 6201
+
+    def test_track_change_flushes_previous(self, app_context, sample_job):
+        """When a new track ID arrives, _add_track should flush the previous."""
+        from arm.ripper.makemkv import TrackInfoProcessor, TInfo, TrackID
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        # First track
+        msg1 = TInfo(id=TrackID.FILENAME, code=0, value='"title00.mkv"', tid=0)
+        proc._handle_track_or_stream_info(msg1)
+        assert proc.track_id == 0
+
+        # Second track — should trigger _add_track for track 0
+        with unittest.mock.patch('arm.ripper.makemkv.utils.put_track') as mock_put:
+            msg2 = TInfo(id=TrackID.FILENAME, code=0, value='"title01.mkv"', tid=1)
+            proc._handle_track_or_stream_info(msg2)
+
+        mock_put.assert_called_once()
+        assert proc.track_id == 1
+
+    def test_process_message_dispatches_tinfo(self, app_context, sample_job):
+        """_process_message should dispatch TInfo to _handle_track_or_stream_info."""
+        from arm.ripper.makemkv import TrackInfoProcessor, TInfo, TrackID
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        msg = TInfo(id=TrackID.FILENAME, code=0, value='"test.mkv"', tid=0)
+        proc._process_message(msg)
+        assert proc.filename == "test.mkv"
+
+    def test_process_message_dispatches_titles(self, app_context, sample_job):
+        """_process_message should dispatch Titles to _handle_titles."""
+        from arm.ripper.makemkv import TrackInfoProcessor, Titles
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        with unittest.mock.patch('arm.ripper.makemkv.utils.database_updater') as mock_upd:
+            proc._process_message(Titles(count=5))
+
+        mock_upd.assert_called_once_with({"no_of_titles": 5}, sample_job)
+
+    def test_process_messages_full_flow(self, app_context, sample_job):
+        """process_messages() should parse all messages and flush final track."""
+        from arm.ripper.makemkv import TrackInfoProcessor, TInfo, Titles, TrackID
+
+        messages = [
+            Titles(count=2),
+            TInfo(id=TrackID.FILENAME, code=0, value='"title00.mkv"', tid=0),
+            TInfo(id=TrackID.DURATION, code=0, value="1:30:00", tid=0),
+            TInfo(id=TrackID.CHAPTERS, code=0, value="20", tid=0),
+            TInfo(id=TrackID.FILESIZE, code=0, value="3000000000", tid=0),
+            TInfo(id=TrackID.FILENAME, code=0, value='"title01.mkv"', tid=1),
+            TInfo(id=TrackID.DURATION, code=0, value="0:05:00", tid=1),
+        ]
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        with unittest.mock.patch(
+            'arm.ripper.makemkv.makemkv_info', return_value=iter(messages)
+        ), unittest.mock.patch(
+            'arm.ripper.makemkv.utils.put_track'
+        ) as mock_put, unittest.mock.patch(
+            'arm.ripper.makemkv.utils.database_updater'
+        ):
+            proc.process_messages()
+
+        # Two tracks should have been added
+        assert mock_put.call_count == 2
+        # First call: track 0 with chapters=20, filesize=3B
+        args0 = mock_put.call_args_list[0]
+        assert args0[0][1] == 0  # track_id
+        assert args0[0][2] == 5400  # 1:30:00 in seconds
+        assert args0[0][8] == 20  # chapters
+        assert args0[0][9] == 3_000_000_000  # filesize
+        # Second call: track 1 (flushed at end)
+        args1 = mock_put.call_args_list[1]
+        assert args1[0][1] == 1  # track_id
+
+
 class TestTVFolderNameEdgeCases:
     """Test get_tv_folder_name() edge cases for full coverage."""
 
     def test_no_series_name_returns_empty(self, app_context, sample_job):
         """When series title is None/empty, fall back to empty string."""
         from arm.ripper.utils import get_tv_folder_name
+
         sample_job.video_type = "series"
         sample_job.title = None
         sample_job.title_manual = None
         sample_job.label = "BB_S1D1"
         sample_job.config.USE_DISC_LABEL_FOR_TV = True
+        result = get_tv_folder_name(sample_job)
+        assert result == ""
+
+    def test_empty_title_returns_empty(self, app_context, sample_job):
+        """When title is empty string and title_manual is None, return empty."""
+        from arm.ripper.utils import get_tv_folder_name
+
+        sample_job.video_type = "series"
+        sample_job.title = ""
+        sample_job.title_manual = None
+        sample_job.label = "BB_S1D1"
+        sample_job.config.USE_DISC_LABEL_FOR_TV = True
+
         result = get_tv_folder_name(sample_job)
         assert result == ""
 
