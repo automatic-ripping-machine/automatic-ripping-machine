@@ -26,7 +26,8 @@ pytestmark = pytest.mark.integration
 def _musicbrainz_rate_limit():
     """MusicBrainz rate-limits to 1 req/sec — pause between tests."""
     import time
-    time.sleep(1.1)
+    yield
+    time.sleep(1.5)
 
 
 @pytest.fixture(scope="module")

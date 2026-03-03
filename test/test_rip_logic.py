@@ -927,7 +927,7 @@ class TestMigrations:
         assert loaded.chapters == 10
         assert loaded.filesize == 5_000_000_000
 
-    def test_config_tv_disc_label_migration(self, app_context):
+    def test_config_tv_disc_label_migration(self, app_context, tmp_path):
         """Migration b5c6d7e8f9a0 should add TV disc label config columns."""
         from arm.migrations.versions.b5c6d7e8f9a0_config_add_tv_disc_label import (
             upgrade, downgrade, revision, down_revision,
@@ -938,9 +938,10 @@ class TestMigrations:
         # Verify the Config model has these columns from create_all
         from arm.models.config import Config
         _, db = app_context
+        d = str(tmp_path)
         config = Config({
-            'RAW_PATH': '/tmp', 'TRANSCODE_PATH': '/tmp',
-            'COMPLETED_PATH': '/tmp', 'LOGPATH': '/tmp',
+            'RAW_PATH': d, 'TRANSCODE_PATH': d,
+            'COMPLETED_PATH': d, 'LOGPATH': d,
             'EXTRAS_SUB': 'extras', 'MINLENGTH': '600',
             'MAXLENGTH': '99999', 'MAINFEATURE': False,
             'RIPMETHOD': 'mkv', 'NOTIFY_RIP': True,
