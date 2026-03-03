@@ -1,5 +1,14 @@
 # Changelog
 
+## [10.8.4-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.8.3-alpha.1...v10.8.4-alpha.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* resolve SonarCloud LOW maintainability issues ([4b731bb](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/4b731bb4a7f089833424b696a92f4bb7e3158c5c))
+* resolve SonarCloud Python MEDIUM maintainability issues ([37ff350](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/37ff35095cfb7e0679fa572e3edac3c6c54f8be1))
+* resolve SonarCloud shell MEDIUM maintainability issues ([c2e9902](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/c2e99022d4e43a60e5aa48444a28ebfb1169cdf9))
+
 ## [10.8.3-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.8.2-alpha.1...v10.8.3-alpha.1) (2026-03-03)
 
 
