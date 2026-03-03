@@ -1,8 +1,8 @@
 """API v1 — Settings endpoints."""
 import asyncio
-import importlib
 import logging
 
+import yaml
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
@@ -85,9 +85,12 @@ async def update_config(request: Request):
             status_code=500,
         )
 
-    # Reload the config module so the running process picks up changes
+    # Reload config in-place so all existing references see the new values
     try:
-        importlib.reload(cfg)
+        with open(cfg.arm_config_path, "r") as f:
+            new_values = yaml.safe_load(f)
+        cfg.arm_config.clear()
+        cfg.arm_config.update(new_values)
     except Exception as e:
         log.error(f"Config reload failed: {e}")
         return {

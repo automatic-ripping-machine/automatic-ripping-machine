@@ -358,3 +358,43 @@ class TestMakemkvDiscDiscovery:
 
         # get_drives should NOT have been called — mdisc was already set
         mock_get_drives.assert_not_called()
+
+
+class TestSettingsReload:
+    """Test that config reload mutates the dict in-place (#1639)."""
+
+    def test_reload_updates_existing_reference(self, tmp_path):
+        """After PUT, a separate reference to cfg.arm_config sees new values."""
+        import yaml
+        import arm.config.config as cfg
+
+        # Save original state
+        original_config = dict(cfg.arm_config)
+        original_path = cfg.arm_config_path
+
+        # Grab a reference to the SAME dict object before the reload
+        ref_before = cfg.arm_config
+
+        try:
+            # Write a modified config to a temp file
+            new_config = dict(original_config)
+            new_config["SOME_TEST_KEY"] = "test_value_1639"
+            config_file = tmp_path / "arm_test.yaml"
+            with open(config_file, "w") as f:
+                yaml.dump(new_config, f)
+
+            # Simulate what the settings endpoint does: write, then reload in-place
+            cfg.arm_config_path = str(config_file)
+            with open(cfg.arm_config_path, "r") as f:
+                new_values = yaml.safe_load(f)
+            cfg.arm_config.clear()
+            cfg.arm_config.update(new_values)
+
+            # The reference grabbed BEFORE the reload should see the new value
+            assert ref_before is cfg.arm_config, "Dict object identity was lost"
+            assert ref_before.get("SOME_TEST_KEY") == "test_value_1639"
+        finally:
+            # Restore original state
+            cfg.arm_config.clear()
+            cfg.arm_config.update(original_config)
+            cfg.arm_config_path = original_path
