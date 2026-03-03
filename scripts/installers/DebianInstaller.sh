@@ -164,7 +164,7 @@ done
 #and to mention that MakeMKV is still in Beta.
 #
 #Get the user to agree to the conditions of using this script before continuing.
-function UserAcceptedConditions() {
+function user_accepted_conditions() {
   Disclaimer="${RED}
 ************************************************************************************************************************
 ** ${NC}                                                                                                                   ${RED}**
@@ -188,7 +188,7 @@ function UserAcceptedConditions() {
 ${BLUE} Do you wish to proceed with this unsupported installation? Y/n :${NC}
 "
 
-  if ! IsUserAnsweredYesToPrompt "${Disclaimer}" ; then
+  if ! is_user_answered_yes_to_prompt "${Disclaimer}" ; then
     echo -e "${RED} Exiting Installation Script, No changes were made...${NC}"
     exit ${ERROR_USER_DID_NOT_ACCEPT_SCRIPT_DISCLAIMER}
   fi
@@ -199,7 +199,7 @@ ${BLUE} Do you wish to proceed with this unsupported installation? Y/n :${NC}
 #Even running this script as an effective root user, the Sudo Command is still required for the script
 #to run successfully.
 #Return true or false
-function IsSudoInstalled() {
+function is_sudo_installed() {
   if ! dpkg -s sudo > /dev/null 2>&1 ; then
     return 0
   else
@@ -210,10 +210,10 @@ function IsSudoInstalled() {
 #Determine if we are effectively a root user.  Return boolean values 'true' or 'false'.
 #If the function is about to return false, the function exits the script with the
 #appropriate error code.
-function IsEffectiveRootUser() {
+function is_effective_root_user() {
   USERID=$(id -u)
   if [[ ${USERID} == 0 ]] ;  then
-    if IsSudoInstalled ; then
+    if is_sudo_installed ; then
       echo -e "${RED} \nThis script requires the that « sudo » be installed.
 Please install sudo and run the script again.
 
@@ -234,7 +234,7 @@ Exiting Installation Script, No changes were made...${NC}"
 
 #If a Fork or Tag was passed to the script, we need to test for the existence of the fork and/or tag.
 #If either do not exist, exit the script with an error code and message.
-function RepositoryExists() {
+function repository_exists() {
   local not_found
   local git_hub_api_call
   local git_ls_remote_output
@@ -262,7 +262,7 @@ function RepositoryExists() {
   return 0
 }
 
-function IsUserAnsweredYesToPrompt() {
+function is_user_answered_yes_to_prompt() {
   local prompt=$1
   local response
   echo ""
@@ -277,8 +277,8 @@ function IsUserAnsweredYesToPrompt() {
   fi
 }
 
-function IsEligibleDistro() {
-  if ! IsDebianDistro; then
+function is_eligible_distro() {
+  if ! is_debian_distro; then
 
     NotDebian12Prompt="${YELLOW}WARNING, you are attempting to run this script in a environment other than Debian 11 or 12
 This script was tested exclusively on Debian 12 (Bookworm) and Debian 11 (Bullseye)
@@ -286,14 +286,14 @@ Running it on another Linux distro may have unpredictable side effects.
 
 ${BLUE}Do you wish to Continue? Y/n :${NC}"
 
-    if IsUserAnsweredYesToPrompt "${NotDebian12Prompt}" ; then
+    if is_user_answered_yes_to_prompt "${NotDebian12Prompt}" ; then
       echo -e "${YELLOW}Running Script in Linux Distro Other than Debian 12 (Bookworm)${NC}"
     else
       exit ${ERROR_ATTEMPTED_TO_RUN_SCRIPT_IN_UNTESTED_DISTRO}
     fi
   else
     #Confirm availability of contrib repository
-    if ! IsContribRepoAvailable ; then
+    if ! is_contrib_repo_available ; then
       echo -e "${RED}One or more of the contrib repositories;
 are missing please add them to your installation and run the script again.
 You can learn how to add the necessary repository here: https://wiki.debian.org/SourcesList
@@ -306,7 +306,7 @@ Exiting....${NC}"
 }
 
 #Confirm this script is running on Debian 12 (Bookworm).  Return boolean values 'true' or 'false'.
-function IsDebianDistro() {
+function is_debian_distro() {
   LinuxDistribution=$(lsb_release -a | grep 'Distributor ID:' | awk '{print $3}')
   LinuxDistributionRelease=$(lsb_release -a | grep 'Release:' | awk '{print $2}')
   LinuxDistributionCodename=$(lsb_release -a | grep 'Codename:' | awk '{print $2}')
@@ -325,7 +325,7 @@ function IsDebianDistro() {
 }
 
 #Confirm the presence of required package libraries.
-function IsContribRepoAvailable() {
+function is_contrib_repo_available() {
   local includes_contrib=false
   local includes_updates_contrib=false
   local includes_security_contrib=false
@@ -501,7 +501,7 @@ be present in order to keep A.R.M. dependencies up to date with the latest secur
 ${BLUE}Do you wish to Continue? Y/n: ${NC}"
       fi
 
-      if [[ "${prompt}" == "" ]] || IsUserAnsweredYesToPrompt "${prompt}" ; then
+      if [[ "${prompt}" == "" ]] || is_user_answered_yes_to_prompt "${prompt}" ; then
         true
       else
         false
@@ -516,7 +516,7 @@ ${BLUE}Do you wish to Continue? Y/n: ${NC}"
 }
 
 
-function ServiceExists() {
+function service_exists() {
     local service_name=$1
     if [[ $(systemctl list-units --all -t service --full --no-legend "$service_name.service" | sed 's/^\s*//g' | cut -f1 -d' ') == $service_name.service ]]; then
         return 0
@@ -525,9 +525,9 @@ function ServiceExists() {
     fi
 }
 
-function FoundPreviousInstallation() {
+function found_previous_installation() {
   ##TODO There is an error here that I need to track down.
-  if ServiceExists armui  ; then
+  if service_exists armui  ; then
     echo "Found Armui Service"
     if systemctl is-active --quiet armui ; then
       echo -e "${RED}The installation script found that there is an armui service running under SystemD. Which seems
@@ -544,7 +544,7 @@ installation may have unpredictable effects and is not recommended.
 
 ${BLUE}Do you wish to proceed? Y/n ${NC}"
 
-    if IsUserAnsweredYesToPrompt "${prompt}" ; then
+    if is_user_answered_yes_to_prompt "${prompt}" ; then
       if [[ -d "/opt/arm" ]] ; then
         echo "Found Arm Installation Directory"
         alert_user_of_existence_of_amr_directory="${YELLOW}WARNING, the script found that the directory /opt/arm already exists.
@@ -553,10 +553,10 @@ In order to proceed, this script needs to delete the /opt/arm directory and chec
 from the GitHub repository.  This is a non-reversible change.
 
 ${BLUE}Do you wish to Continue? Y/n :${NC}"
-        if IsUserAnsweredYesToPrompt "${alert_user_of_existence_of_amr_directory}" ; then
+        if is_user_answered_yes_to_prompt "${alert_user_of_existence_of_amr_directory}" ; then
           PreviousInstallationFound=true
           AskUserIfConfigFilesShouldBeSetDefault="${BLUE} Keep existing A.R.M. config files? Y/n :${NC}"
-          if IsUserAnsweredYesToPrompt "${AskUserIfConfigFilesShouldBeSetDefault}" ; then
+          if is_user_answered_yes_to_prompt "${AskUserIfConfigFilesShouldBeSetDefault}" ; then
             UseExistingConfigFiles=true
           fi
         else
@@ -585,19 +585,19 @@ ${BLUE}Do you wish to Continue? Y/n :${NC}"
 ###################################################
 
 #Call all user and group related functions.
-function CreateArmUserAndGroup() {
+function create_arm_user_and_group() {
   echo -e "${YELLOW}Adding arm user & group${NC}"
-  if (CreateArmGroup && CreateArmUser) ; then
-    PasswordProtectArmUser true
+  if (create_arm_group && create_arm_user) ; then
+    password_protect_arm_user true
   else
-    PasswordProtectArmUser false
+    password_protect_arm_user false
   fi
-  MakeArmUserPartOfRequiredGroups
+  make_arm_user_part_of_required_groups
   return 0
 }
 
 #If the group exists, do nothing, if it does not exist create it.
-function CreateArmGroup() {
+function create_arm_group() {
   echo "Creating Groups...."
   if ! [[ $(getent group arm) ]]; then
     groupadd arm
@@ -610,7 +610,7 @@ function CreateArmGroup() {
 }
 
 #If user exists, do nothing, if it does not exist create the user with default settings.
-function CreateArmUser() {
+function create_arm_user() {
   if ! id arm > /dev/null 2>&1 ; then
     useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
     echo -e "${GREEN}User 'arm' successfully created. \n${NC}"
@@ -621,14 +621,14 @@ function CreateArmUser() {
   fi
 }
 
-function DeleteArmUser() {
+function delete_arm_user() {
   userdel arm
   rm -R /home/arm
   return 0
 }
 
 # Make sure the 'arm' user is part of the 'cdrom', 'video' and 'render' groups.
-function MakeArmUserPartOfRequiredGroups() {
+function make_arm_user_part_of_required_groups() {
   usermod -aG cdrom,video,render arm
   return 0
 }
@@ -636,7 +636,7 @@ function MakeArmUserPartOfRequiredGroups() {
 #Give the User the option of setting a custom password.  The User may decline, in which event
 #a default password of value '1234' is created.
 #If the default password value is used, advise the user to change the password at the next opportunity.
-function PasswordProtectArmUser() {
+function password_protect_arm_user() {
   local new_user=$1
   #Determine what the password is going to be and save it in the variables $password_1 & $password_2
   #Make these variables explicitly local, to prevent the variables escaping this function.
@@ -649,7 +649,7 @@ function PasswordProtectArmUser() {
 Do you wish to change it's password? Y/n : ${NC}"
   fi
   local password_confirmed=false
-  if IsUserAnsweredYesToPrompt "${PasswordQuestion}" ; then
+  if is_user_answered_yes_to_prompt "${PasswordQuestion}" ; then
     #The User wishes to provide a custom password.  Give the user 3 times to provide one,
     #This attempt limit is to prevent an infinite loop.
     for (( i = 0 ; i < 3 ; i++ )); do
@@ -668,7 +668,7 @@ Do you wish to change it's password? Y/n : ${NC}"
       echo -e "${RED}\nThe Passwords did not match 3 consecutive times, exiting...\n${NC}"
       if $new_user ; then
         echo -e "${YELLOW}Deleting newly created arm User Account.\n${NC}"
-        DeleteArmUser
+        delete_arm_user
       else
         echo -e "${YELLOW}Password for the arm user was not changed.\n${NC}"
       fi
@@ -690,7 +690,7 @@ Do you wish to change it's password? Y/n : ${NC}"
 #             Install Download Tools              #
 ###################################################
 
-function InstallDownloadTools () {
+function install_download_tools () {
   apt update && apt install -y curl git wget lsb-release
   return 0
 }
@@ -699,13 +699,13 @@ function InstallDownloadTools () {
 #            Build & Install MakeMKV              #
 ###################################################
 
-function InstallMakeMKV() {
-  InstallMakeMKVBuildEnvironment
-  BuildAndInstallMakeMKV
+function install_make_mkv() {
+  install_make_mkv_build_environment
+  build_and_install_make_mkv
   return 0
 }
 
-function InstallMakeMKVBuildEnvironment() {
+function install_make_mkv_build_environment() {
   apt install -y  build-essential \
                   pkg-config \
                   libc6-dev \
@@ -718,7 +718,7 @@ function InstallMakeMKVBuildEnvironment() {
   return 0
 }
 
-function BuildAndInstallMakeMKV() {
+function build_and_install_make_mkv() {
   local arm_user_home_folder=~arm
   local latest_make_mkv_version
   local make_mkv_build_files_directory
@@ -762,13 +762,13 @@ function BuildAndInstallMakeMKV() {
 #           Build & Install HandBrake             #
 ###################################################
 
-function InstallHandBrakeCLI() {
-  InstallHandBrakeCLIBuildEnvironment
-  BuildAndInstallHandBrakeCLI
+function install_hand_brake_cli() {
+  install_hand_brake_cli_build_environment
+  build_and_install_hand_brake_cli
   return 0
 }
 
-function InstallHandBrakeCLIBuildEnvironment() {
+function install_hand_brake_cli_build_environment() {
   apt install -y  autoconf \
                   automake \
                   build-essential \
@@ -812,7 +812,7 @@ function InstallHandBrakeCLIBuildEnvironment() {
   return 0
 }
 
-function BuildAndInstallHandBrakeCLI() {
+function build_and_install_hand_brake_cli() {
   local arm_user_home_folder=~arm
   local hand_brake_cli_build_files_directory
   local cpu_count
@@ -834,7 +834,7 @@ function BuildAndInstallHandBrakeCLI() {
 #           Install Arm Dependencies              #
 ###################################################
 
-function InstallArmDependencies() {
+function install_arm_dependencies() {
   apt install -y  abcde \
                   at \
                   cdparanoia \
@@ -863,8 +863,7 @@ function InstallArmDependencies() {
 #                Download Arm                     #
 ###################################################
 
-function DownloadArm () {
-  local alert_user_of_existence_of_amr_directory
+function download_arm () {
   local existing_arm_yaml_file
   local existing_abcde_conf_file
   local existing_apprise_yaml_file
@@ -946,7 +945,7 @@ function DownloadArm () {
   return 0
 }
 
-function CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies() {
+function create_python_venv_and_install_arm_python_deps() {
   cd /opt/arm
   sudo -u arm python3 -m venv venv
   sudo -u arm /opt/arm/venv/bin/pip3 install wheel
@@ -954,12 +953,12 @@ function CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies() {
   return 0
 }
 
-function CreateUDEVRules() {
+function create_udev_rules() {
   ln -sf /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
   return 0
 }
 
-function MountDrives() {
+function mount_drives() {
   ######## Adding new line to fstab, needed for the autoplay to work.
   ######## also creating mount points (why loop twice)
   echo -e "${RED}Adding fstab entry and creating mount points${NC}"
@@ -974,7 +973,7 @@ function MountDrives() {
   return 0
 }
 
-function SetupFolders() {
+function setup_folders() {
   sudo -u arm mkdir -p ~arm/logs/
   sudo -u arm mkdir -p ~arm/logs/progress/
   sudo -u arm mkdir -p ~arm/media/transcode/
@@ -983,7 +982,7 @@ function SetupFolders() {
   return 0
 }
 
-function CreateAndStartService() {
+function create_and_start_service() {
   echo -e "${RED}Installing ARM service${NC}"
   cp /opt/arm/setup/arm.service /lib/systemd/system/armui.service
   systemctl daemon-reload
@@ -992,7 +991,7 @@ function CreateAndStartService() {
   return 0
 }
 
-function LaunchSetup() {
+function launch_setup() {
   echo -e "${RED}Launching ArmUI first-time setup${NC}"
 
   sleep 5  # Waits 5 seconds, This gives time for service to start
@@ -1027,45 +1026,45 @@ function LaunchSetup() {
 
 #######Inform the user that this is an unsupported installation method.  Inform them of the existence of the preferred
 ########method, being the Docker image.
-UserAcceptedConditions
+user_accepted_conditions
 
 ######Confirm tha the script was called with sudo or was run as root user.
-IsEffectiveRootUser
+is_effective_root_user
 
 #######Install Required Download Tools (wget, curl, lsb-release and git)
-InstallDownloadTools
+install_download_tools
 
 ######Test for the existence of the repository, fork and tab/branch
-RepositoryExists
+repository_exists
 
 #######Test to see if there is a previous installation of ARM
-FoundPreviousInstallation
+found_previous_installation
 
 #Test the Linux Distribution, if Debian 12, confirm presence of Contribs repos, if not, Give
 #User the option of attempting the installation anyway, even if it may fail.
 #(Reason for target Distro of Debian 12, is because of the known presence of the required
 #packages)
-IsEligibleDistro
+is_eligible_distro
 
 ######Confirm existence of / create arm user and group
-CreateArmUserAndGroup
+create_arm_user_and_group
 
 #######Build and Install MakeMKV
-InstallMakeMKV
+install_make_mkv
 
 #######Build and Install HandBrakeCLI  (The version packaged with Debian is OLD)
-InstallHandBrakeCLI
+install_hand_brake_cli
 
 #######Install Arm Dependencies
-InstallArmDependencies
+install_arm_dependencies
 
 #######Install Arm
-DownloadArm
-CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies
+download_arm
+create_python_venv_and_install_arm_python_deps
 
 #######Post Arm Installation
-CreateUDEVRules
-MountDrives
-SetupFolders
-CreateAndStartService
-LaunchSetup
+create_udev_rules
+mount_drives
+setup_folders
+create_and_start_service
+launch_setup

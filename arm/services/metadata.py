@@ -93,7 +93,7 @@ async def _test_omdb_key(key: str) -> dict[str, str]:
         return {"success": False, "message": "Invalid OMDb API key"}
     try:
         data = resp.json()
-    except (ValueError, UnicodeDecodeError):
+    except ValueError:
         text = resp.text[:200] if resp.text else "(empty)"
         log.warning("OMDb returned non-JSON (%s): %s", resp.status_code, text)
         if resp.status_code == 200:

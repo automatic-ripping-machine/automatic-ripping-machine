@@ -198,7 +198,7 @@ def create_early_logger(stdout=True, syslog=True, file=True):
             syslog_handler.setFormatter(_syslog_formatter())
             arm_logger.addHandler(syslog_handler)
             root_logger.addHandler(syslog_handler)
-        except (OSError, ConnectionError):
+        except OSError:
             # /dev/log may not exist in Docker or test environments
             pass
 

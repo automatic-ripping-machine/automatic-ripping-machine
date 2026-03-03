@@ -215,7 +215,7 @@ class TestMusicBrainzMain:
         with unittest.mock.patch.dict(cfg.arm_config, {'GET_AUDIO_TITLE': 'musicbrainz'}), \
              unittest.mock.patch('arm.ripper.music_brainz.get_disc_id') as mock_id, \
              unittest.mock.patch('arm.ripper.music_brainz.music_brainz',
-                                 return_value='') as mock_mb:
+                                 return_value=''):
             mock_id.return_value = 'fake-disc-id'
             result = music_brainz.main(music_job)
         assert result == ""
@@ -267,7 +267,7 @@ class TestCheckMusicbrainzData:
         """Sets title, year, crc_id, no_of_titles, hasnicetitle."""
         with unittest.mock.patch('arm.ripper.utils.database_updater') as mock_db, \
              unittest.mock.patch('arm.ripper.music_brainz.get_cd_art', return_value=False):
-            result = music_brainz.check_musicbrainz_data(music_job, mb_disc_response)
+            music_brainz.check_musicbrainz_data(music_job, mb_disc_response)
 
         # database_updater should have been called with the disc metadata
         assert mock_db.called

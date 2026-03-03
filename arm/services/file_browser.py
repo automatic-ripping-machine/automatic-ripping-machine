@@ -175,7 +175,7 @@ def _dir_size(path: Path) -> int:
                 total += entry.stat().st_size
             elif entry.is_dir(follow_symlinks=False):
                 total += _dir_size(Path(entry.path))
-    except (PermissionError, OSError):
+    except OSError:
         pass
     return total
 
@@ -226,7 +226,7 @@ def list_directory(path: str) -> dict:
         for item in resolved.iterdir():
             try:
                 entries.append(_build_entry(item, item.stat()))
-            except (PermissionError, OSError) as exc:
+            except OSError as exc:
                 log.debug("Skipping inaccessible entry %s: %s", item, exc)
     except PermissionError as exc:
         log.error("Cannot list directory %s: %s", resolved, exc)

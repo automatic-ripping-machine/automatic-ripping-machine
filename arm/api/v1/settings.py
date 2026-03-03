@@ -29,7 +29,7 @@ def get_config():
 
     raw_config = dict(cfg.arm_config)
     config = {}
-    for key in list(raw_config.keys()):
+    for key in raw_config.keys():
         if key in hidden_attribs and raw_config[key]:
             config[str(key)] = HIDDEN_VALUE
         else:

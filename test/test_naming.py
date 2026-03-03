@@ -12,15 +12,15 @@ from arm.ripper.naming import (
 
 def _make_job(**kwargs):
     """Create a SimpleNamespace that quacks like a Job for pattern rendering."""
-    defaults = dict(
-        title=None, title_manual=None, title_auto=None,
-        year=None, year_manual=None, year_auto=None,
-        artist=None, artist_manual=None, artist_auto=None,
-        album=None, album_manual=None, album_auto=None,
-        season=None, season_manual=None, season_auto=None,
-        episode=None, episode_manual=None, episode_auto=None,
-        video_type='movie', label=None,
-    )
+    defaults = {
+        'title': None, 'title_manual': None, 'title_auto': None,
+        'year': None, 'year_manual': None, 'year_auto': None,
+        'artist': None, 'artist_manual': None, 'artist_auto': None,
+        'album': None, 'album_manual': None, 'album_auto': None,
+        'season': None, 'season_manual': None, 'season_auto': None,
+        'episode': None, 'episode_manual': None, 'episode_auto': None,
+        'video_type': 'movie', 'label': None,
+    }
     defaults.update(kwargs)
     return SimpleNamespace(**defaults)
 

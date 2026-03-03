@@ -10,13 +10,9 @@ FROM phusion/baseimage:jammy-1.0.4 AS base
 RUN mkdir /opt/arm
 WORKDIR /opt/arm
 
-RUN \
-    apt clean && \
-    apt update && \
-    apt upgrade -y -o Dpkg::Options::="--force-confold"
-
-# arm user (uid/gid 1000) with video, cdrom, optical groups
-RUN groupadd -g 1000 arm \
+# System update + arm user (uid/gid 1000) with video, cdrom, optical groups
+RUN apt clean && apt update && apt upgrade -y -o Dpkg::Options::="--force-confold" \
+    && groupadd -g 1000 arm \
     && useradd -rm -d /home/arm -s /bin/bash -g arm -G video,cdrom -u 1000 arm \
     && groupadd -g 990 optical \
     && usermod -aG optical arm
@@ -57,14 +53,12 @@ RUN install_clean \
         opus-tools \
         fdkaac
 
-RUN \
-    install_clean libdvd-pkg && \
-    dpkg-reconfigure libdvd-pkg
+RUN install_clean libdvd-pkg && dpkg-reconfigure libdvd-pkg
 
 # Python dependencies
 COPY requirements.txt ./requirements.txt
-RUN pip3 install --upgrade pip wheel setuptools psutil pyudev
-RUN pip3 install --ignore-installed --prefer-binary -r ./requirements.txt
+RUN pip3 install --upgrade pip wheel setuptools psutil pyudev \
+    && pip3 install --ignore-installed --prefer-binary -r ./requirements.txt
 
 ###########################################################
 FROM deps-ripper AS install-makemkv
@@ -74,9 +68,8 @@ RUN chmod +x /install_mkv_deps.sh && /install_mkv_deps.sh
 
 COPY VERSION_MAKEMKV /VERSION_MAKEMKV
 COPY scripts/install_makemkv.sh /install_makemkv.sh
-RUN chmod +x /install_makemkv.sh && /install_makemkv.sh
-
-RUN apt clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN chmod +x /install_makemkv.sh && /install_makemkv.sh \
+    && apt clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Healthcheck
 COPY scripts/healthcheck.sh /healthcheck.sh

@@ -31,23 +31,22 @@ RUN \
         echo "/dev/sr$i  /mnt/dev/sr$i  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab; \
     done
 
-# Remove SSH (not needed in container)
-RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
+# Remove SSH (not needed in container) and create service dirs
+RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh \
+    && mkdir /etc/service/armui \
+    && mkdir -p /etc/my_init.d
 
 # ARMui runit service
-RUN mkdir /etc/service/armui
 COPY ./scripts/docker/runsv/armui.sh /etc/service/armui/run
-RUN chmod +x /etc/service/armui/run
 
 # Startup scripts
-RUN mkdir -p /etc/my_init.d
 COPY ./scripts/docker/runit/arm_user_files_setup.sh /etc/my_init.d/arm_user_files_setup.sh
 COPY ./scripts/docker/runit/start_udev.sh /etc/my_init.d/start_udev.sh
-RUN chmod +x /etc/my_init.d/*.sh
 
 # Modified udev for container
 COPY ./scripts/docker/custom_udev /etc/init.d/udev
-RUN chmod +x /etc/init.d/udev
+
+RUN chmod +x /etc/service/armui/run /etc/my_init.d/*.sh /etc/init.d/udev
 
 ###########################################################
 # Final image
@@ -55,15 +54,10 @@ FROM base AS automatic-ripping-machine
 
 COPY . /opt/arm/
 
-# Ensure Python deps are up-to-date even if the base image is stale.
-# This is a no-op when the base already has everything installed.
-RUN pip3 install --no-cache-dir -r /opt/arm/docker/base/requirements.txt
-
-# Docker udev rule
-RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
-
-# Allow git operations inside the container
-RUN git config --global --add safe.directory /opt/arm
+# Ensure Python deps are up-to-date, create udev symlink, allow git in container
+RUN pip3 install --no-cache-dir -r /opt/arm/docker/base/requirements.txt \
+    && ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/ \
+    && git config --global --add safe.directory /opt/arm
 
 CMD ["/sbin/my_init"]
 WORKDIR /home/arm

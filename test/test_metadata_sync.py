@@ -15,7 +15,7 @@ class TestSearchSync:
         from arm.services.metadata_sync import search_sync
         results = [{"title": "Matrix", "year": "1999"}]
         with unittest.mock.patch('arm.services.metadata.search',
-                                 return_value=results) as mock_search:
+                                 return_value=results):
             result = search_sync("Matrix", "1999")
             # asyncio.run calls the coroutine
         assert result == results

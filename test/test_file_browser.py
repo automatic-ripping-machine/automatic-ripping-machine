@@ -107,7 +107,6 @@ class TestGetRoots:
             assert 'path' in root
 
     def test_nonexistent_roots_excluded(self, tmp_path):
-        roots = {'raw': str((tmp_path / "nonexistent").resolve())}
         with unittest.mock.patch.dict(cfg.arm_config, {'RAW_PATH': str(tmp_path / "nonexistent")}):
             result = file_browser.get_roots()
             # The real get_allowed_roots checks os.path.isdir, so nonexistent paths are excluded

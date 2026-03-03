@@ -444,7 +444,7 @@ class TestDrivesUpdateMatching:
         """A drive with unknown serial_id and location creates a new record."""
         from arm.services.drives import drives_update
         from arm.models.system_drives import SystemDrives
-        _, db = app_context
+        _, _ = app_context
 
         scan = [
             self._make_drive(mount="/dev/sr0", serial_id="NEW_DRIVE_XYZ",
