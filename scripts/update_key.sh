@@ -50,7 +50,7 @@ SETTINGS_FILE="$MAKEMKV_DIR/settings.conf"
 if [[ ! -f "$SETTINGS_FILE" ]] || ! grep -q 'app_Key = ".*"' "$SETTINGS_FILE"; then
     echo "Either $SETTINGS_FILE doesn't exist, or app_Key is not inside it"
 	if [[ -f "$SETTINGS_FILE" ]] && (( $(grep -c "^app_Key" "$SETTINGS_FILE") > 0 )); then
-		echo "Parse Error of settings file: $SETTINGS_FILE"
+		echo "Parse Error of settings file: $SETTINGS_FILE" >&2
 		exit $EXIT_CODE_PARSE_ERROR
 	fi
 	echo "app_Key = \"$MAKEMKV_SERIAL\"" >> "$SETTINGS_FILE"

@@ -37,7 +37,7 @@ check_folder_ownership() {
     fi
 
     echo "---------------------------------------------"
-    echo "[ERROR]: ARM does not have permissions to $check_dir using $ARM_UID:$ARM_GID"
+    echo "[ERROR]: ARM does not have permissions to $check_dir using $ARM_UID:$ARM_GID" >&2
     echo "Check your user permissions and restart ARM. Folder permissions--> $folder_uid:$folder_gid"
     echo "---------------------------------------------"
     exit 1
@@ -131,6 +131,7 @@ apply_yaml_override() {
     sed -i "s|^${key}:.*|${key}: \"${!envvar}\"|" "$ARM_YAML"
     echo "arm.yaml: ${key} set from \$${envvar}"
   fi
+  return 0
 }
 apply_yaml_override TRANSCODER_URL ARM_TRANSCODER_URL
 apply_yaml_override TRANSCODER_WEBHOOK_SECRET ARM_TRANSCODER_WEBHOOK_SECRET

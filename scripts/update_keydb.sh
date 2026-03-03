@@ -100,7 +100,7 @@ for attempt in $(seq 1 "$MAX_RETRIES"); do
     fi
 done
 if [[ "$download_ok" = false ]]; then
-    echo "[WARN] Failed to download keydb after $MAX_RETRIES attempts — network error or site unavailable"
+    echo "[WARN] Failed to download keydb after $MAX_RETRIES attempts — network error or site unavailable" >&2
     exit 0
 fi
 

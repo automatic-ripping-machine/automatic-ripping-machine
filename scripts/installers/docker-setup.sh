@@ -9,6 +9,7 @@ function usage() {
     echo -e "\nUsage: docker_setup.sh [OPTIONS]"
     echo -e " -f <fork>\tSpecify the fork to pull from on DockerHub. \n\t\tDefault is \"$FORK\""
     echo -e " -t <tag>\tSpecify the tag to pull from on DockerHub. \n\t\tDefault is \"$TAG\""
+    return 0
 }
 
 while getopts 'f:t:' OPTION
@@ -28,6 +29,7 @@ IMAGE="$FORK/automatic-ripping-machine:$TAG"
 function install_reqs() {
     apt update -y && apt upgrade -y
     apt install -y curl lsscsi
+    return 0
 }
 
 function add_arm_user() {
@@ -47,6 +49,7 @@ function add_arm_user() {
         echo -e "${RED}arm user already exists, skipping...${NC}"
     fi
     usermod -aG cdrom,video arm
+    return 0
 }
 
 function launch_setup() {
@@ -62,11 +65,13 @@ function launch_setup() {
         echo -e "${RED}Adding user arm to docker user group${NC}"
         usermod -aG docker arm
     fi
+    return 0
 }
 
 function pull_image() {
     echo -e "${RED}Pulling image from $IMAGE${NC}"
     sudo -u arm docker pull "$IMAGE"
+    return 0
 }
 
 function setup_mountpoints() {
@@ -75,10 +80,12 @@ function setup_mountpoints() {
         mkdir -p "/mnt$dev"
     done
     chown arm:arm /mnt/dev/sr*
+    return 0
 }
 
 function save_start_command() {
     echo -e "${RED}Use docker-compose for deployment. See: https://github.com/uprightbass360/automatic-ripping-machine-neu#quick-start${NC}"
+    return 0
 }
 
 

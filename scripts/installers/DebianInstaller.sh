@@ -64,9 +64,9 @@ readonly ERROR_FOUND_INACTIVE_AMRUI_SERVICE_USER_DECLINED_TO_CONTINUE=214
 #Usage Function.  Used to display useful error messages to the user
 #and to explain to the user how to use this script.
 #The function also exits the script.
-#Accepts one Parameter, ERROR_CODE an integer representing the error code generated.
+#Accepts one Parameter, error_code an integer representing the error code generated.
 function usage() {
-  local ERROR_CODE=${1}
+  local error_code=${1}
   UsageMessage="\nDebian 12 ARM Installer Script
 
 Usage: ./Debian12Installer.sh [-f <Fork_Name>] [-t <Tag_or_Branch_Name>] [-p <Port_Number>] [-h] [-H]
@@ -90,7 +90,7 @@ Usage: ./Debian12Installer.sh [-f <Fork_Name>] [-t <Tag_or_Branch_Name>] [-p <Po
   This Help Message"
 
 
-  case $ERROR_CODE in
+  case $error_code in
     0) #An Error Code of zero means that no errors were generated, therefore this function was called
       #as a result of passing the -h or -H option to the script, asking for the help message.
       echo -e "${UsageMessage}"
@@ -106,16 +106,16 @@ Acceptable values are between 1024 and 65535 inclusively.${NC}"
     "${ERROR_SCRIPT_UNKNOWN_OPTION}")
       #The user supplied an option that was unknown to this function.  Throw and error
       #and display the help message.
-      echo -e "${RED}ERROR: The option that was passed to this script is unknown. Please used a valid option.${NC}"
+      echo -e "${RED}ERROR: The option that was passed to this script is unknown. Please used a valid option.${NC}" >&2
       echo -e "\n${UsageMessage}"
       ;;
     *)
-      echo -e "${RED}ERROR: Unexpected error code: ${ERROR_CODE}${NC}"
+      echo -e "${RED}ERROR: Unexpected error code: ${error_code}${NC}" >&2
       ;;
   esac
 
   #Exit the script using the supplied Error Code.
-  exit "${ERROR_CODE}"
+  exit "${error_code}"
 }
 
 while getopts ':f:hHp:t:' OPTION
@@ -192,6 +192,7 @@ ${BLUE} Do you wish to proceed with this unsupported installation? Y/n :${NC}
     echo -e "${RED} Exiting Installation Script, No changes were made...${NC}"
     exit ${ERROR_USER_DID_NOT_ACCEPT_SCRIPT_DISCLAIMER}
   fi
+  return 0
 }
 
 #Function to confirm that the sudo package is installed. (Not eccentrically true for LXC containers.)
@@ -200,9 +201,9 @@ ${BLUE} Do you wish to proceed with this unsupported installation? Y/n :${NC}
 #Return true or false
 function IsSudoInstalled() {
   if ! dpkg -s sudo > /dev/null 2>&1 ; then
-    true
+    return 0
   else
-    false
+    return 1
   fi
 }
 
@@ -212,7 +213,6 @@ function IsSudoInstalled() {
 function IsEffectiveRootUser() {
   USERID=$(id -u)
   if [[ ${USERID} == 0 ]] ;  then
-    true
     if IsSudoInstalled ; then
       echo -e "${RED} \nThis script requires the that « sudo » be installed.
 Please install sudo and run the script again.
@@ -228,23 +228,23 @@ Please run this script with « sudo /[path_to_script]/Debian12Installer.sh »
 
 Exiting Installation Script, No changes were made...${NC}"
     exit ${ERROR_INSUFFICIENT_USER_PRIVILEGES}
-    false
   fi
+  return 0
 }
 
 #If a Fork or Tag was passed to the script, we need to test for the existence of the fork and/or tag.
 #If either do not exist, exit the script with an error code and message.
 function RepositoryExists() {
-  local NotFound
-  local GitHubAPICall
-  local GitLsRemoteOutput
-  local GitLsRemoteURL
+  local not_found
+  local git_hub_api_call
+  local git_ls_remote_output
+  local git_ls_remote_url
 
   if [[ "${Fork}" != "automatic-ripping-machine" ]] ; then
     echo "Custom Fork passed to the script, testing for existence..."
-    NotFound='"message": "Not Found",'
-    GitHubAPICall="https://api.github.com/repos/${Fork}/automatic-ripping-machine"
-    if [[ $(curl -s "${GitHubAPICall}" | grep -o "${NotFound}") == "${NotFound}" ]] ; then
+    not_found='"message": "Not Found",'
+    git_hub_api_call="https://api.github.com/repos/${Fork}/automatic-ripping-machine"
+    if [[ $(curl -s "${git_hub_api_call}" | grep -o "${not_found}") == "${not_found}" ]] ; then
       echo -e "${RED}The Fork ${Fork} was not found, exitring the script...${NC}\n"
       exit ${ERROR_GIT_REPO_FORK_DOES_NOT_EXIST}
     fi
@@ -252,29 +252,29 @@ function RepositoryExists() {
 
   if [[ "${Tag}" != "latest" ]] ; then
     echo "Custom Tag passed to the script, testing for existence"
-    GitLsRemoteURL="https://github.com/${Fork}/automatic-ripping-machine.git"
-    GitLsRemoteOutput=$(git ls-remote --quiet "${GitLsRemoteURL}" "${Tag}")
-    if [[ ${GitLsRemoteOutput} == "" ]] ; then
+    git_ls_remote_url="https://github.com/${Fork}/automatic-ripping-machine.git"
+    git_ls_remote_output=$(git ls-remote --quiet "${git_ls_remote_url}" "${Tag}")
+    if [[ ${git_ls_remote_output} == "" ]] ; then
       echo -e "${RED}The Tag or Branch ${Tag} was not found, exiting the script...${NC}\n"
       exit ${ERROR_GIT_REPO_TAG_DOES_NOT_EXIST}
     fi
   fi
+  return 0
 }
 
 function IsUserAnsweredYesToPrompt() {
-  local Prompt=$1
-  local Response
+  local prompt=$1
+  local response
   echo ""
-  read -p "$(echo -e "${Prompt}")" -r Response
+  read -p "$(echo -e "${prompt}")" -r response
   echo -e ""
-  if [[ "${Response}" == "y" || "${Response}" == "Y" ]] ; then
+  if [[ "${response}" == "y" || "${response}" == "Y" ]] ; then
     echo ""
-    true
+    return 0
   else
     echo ""
-    false
+    return 1
   fi
-
 }
 
 function IsEligibleDistro() {
@@ -302,6 +302,7 @@ Exiting....${NC}"
       exit ${ERROR_MISSING_CONTRIB_REPOSITORY}
     fi
   fi
+  return 0
 }
 
 #Confirm this script is running on Debian 12 (Bookworm).  Return boolean values 'true' or 'false'.
@@ -312,23 +313,23 @@ function IsDebianDistro() {
   if [[ ${LinuxDistribution} == "Debian" ]] ; then
     case ${LinuxDistributionRelease} in
       '11' | '12' )
-        true
+        return 0
         ;;
       *)
-        false
+        return 1
         ;;
     esac
   else
-    false
+    return 1
   fi
 }
 
 #Confirm the presence of required package libraries.
 function IsContribRepoAvailable() {
-  local IncludesContrib=false
-  local IncludesUpdatesContrib=false
-  local IncludesSecurityContrib=false
-  local Prompt=""
+  local includes_contrib=false
+  local includes_updates_contrib=false
+  local includes_security_contrib=false
+  local prompt=""
 
   # Debian often exposes bookworm-updates as "stable-updates" (and bookworm as "stable") in Release metadata.
   # Accept both codename-based and stable-based suite names to avoid false negatives.
@@ -340,6 +341,7 @@ function IsContribRepoAvailable() {
       "${LinuxDistributionCodename}-security") echo "^(${LinuxDistributionCodename}-security|stable-security)$" ;;
       *) echo "^(${s})$" ;;
     esac
+    return 0
   }
 
   # Preferred: ask APT what index targets it actually has configured.
@@ -363,6 +365,7 @@ function IsContribRepoAvailable() {
             if ((cod ~ suite_re || sui ~ suite_re) && comp==comp_need) found=1
             exit(found?0:1)
           }'
+    return 0
   }
 
   # Fallback 1: parse deb822 sources (*.sources).
@@ -458,47 +461,47 @@ function IsContribRepoAvailable() {
 
   ## TEST for the presence of the Repos.
   if _apt_has_suite_component "${LinuxDistributionCodename}" "contrib" ; then
-    IncludesContrib=true
+    includes_contrib=true
   fi
 
   if _apt_has_suite_component "${LinuxDistributionCodename}-updates" "contrib" ; then
-    IncludesUpdatesContrib=true
+    includes_updates_contrib=true
   fi
 
   if _apt_has_suite_component "${LinuxDistributionCodename}-security" "contrib" ; then
-    IncludesSecurityContrib=true
+    includes_security_contrib=true
   fi
 
   #The only required Repo is the Contrib repo.  Updates/Contrib and Security/Contrib are strongly recommended but not
   # required.  (This test is only relevant for Debian 12.  Since I did not find a way to test for Debian 11 and Debian 10
   # Does not appear to have a contrib repo...
-  if $IncludesContrib ; then
+  if $includes_contrib ; then
 
     #If this is Debian 12, test for the availability of the updates/contrib and security/contrib repos.
     if [[ "${LinuxDistributionRelease}" -eq 12 ]] ; then
-      Prompt=""
+      prompt=""
 
-      if ! $IncludesUpdatesContrib && ! $IncludesSecurityContrib ; then
+      if ! $includes_updates_contrib && ! $includes_security_contrib ; then
         echo -e "${RED}Missing ${LinuxDistributionCodename}-updates/contrib and ${LinuxDistributionCodename}-security/contrib repository.${NC}"
-        Prompt="${YELLOW}WARNING: The \"updates/contrib\" and \"security/contrib\" repositories are missing. It is recommended
+        prompt="${YELLOW}WARNING: The \"updates/contrib\" and \"security/contrib\" repositories are missing. It is recommended
 that these repositories be present in order to keep A.R.M. dependencies up to date with the latest security fixes.
 
 ${BLUE}Do you wish to Continue? Y/n: ${NC}"
-      elif ! $IncludesUpdatesContrib ; then
+      elif ! $includes_updates_contrib ; then
         echo -e "${RED}Missing ${LinuxDistributionCodename}-updates/contrib repository.${NC}"
-        Prompt="${YELLOW}WARNING: The updates/contrib repository is missing. It is recommended that this repository
+        prompt="${YELLOW}WARNING: The updates/contrib repository is missing. It is recommended that this repository
 be present in order to keep A.R.M. dependencies up to date.
 
 ${BLUE}Do you wish to Continue? Y/n: ${NC}"
-      elif ! $IncludesSecurityContrib ; then
+      elif ! $includes_security_contrib ; then
         echo -e "${RED}Missing ${LinuxDistributionCodename}-security/contrib repository.${NC}"
-        Prompt="${YELLOW}WARNING: The security/contrib repository is missing. It is recommended that this repository
+        prompt="${YELLOW}WARNING: The security/contrib repository is missing. It is recommended that this repository
 be present in order to keep A.R.M. dependencies up to date with the latest security fixes.
 
 ${BLUE}Do you wish to Continue? Y/n: ${NC}"
       fi
 
-      if [[ "${Prompt}" == "" ]] || IsUserAnsweredYesToPrompt "${Prompt}" ; then
+      if [[ "${prompt}" == "" ]] || IsUserAnsweredYesToPrompt "${prompt}" ; then
         true
       else
         false
@@ -514,8 +517,8 @@ ${BLUE}Do you wish to Continue? Y/n: ${NC}"
 
 
 function ServiceExists() {
-    local ServiceName=$1
-    if [[ $(systemctl list-units --all -t service --full --no-legend "$ServiceName.service" | sed 's/^\s*//g' | cut -f1 -d' ') == $ServiceName.service ]]; then
+    local service_name=$1
+    if [[ $(systemctl list-units --all -t service --full --no-legend "$service_name.service" | sed 's/^\s*//g' | cut -f1 -d' ') == $service_name.service ]]; then
         return 0
     else
         return 1
@@ -536,21 +539,21 @@ well. ${NC}"
       exit ${ERROR_FOUND_ACTIVE_ARMUI_SERVICE}
     fi
 
-    Prompt="${YELLOW}WARNING, Found the armui service in SystemD but it is currently inactive.  Proceeding with this
+    prompt="${YELLOW}WARNING, Found the armui service in SystemD but it is currently inactive.  Proceeding with this
 installation may have unpredictable effects and is not recommended.
 
 ${BLUE}Do you wish to proceed? Y/n ${NC}"
 
-    if IsUserAnsweredYesToPrompt "${Prompt}" ; then
+    if IsUserAnsweredYesToPrompt "${prompt}" ; then
       if [[ -d "/opt/arm" ]] ; then
         echo "Found Arm Installation Directory"
-        AlertUserOfExistenceOfAmrDirectory="${YELLOW}WARNING, the script found that the directory /opt/arm already exists.
+        alert_user_of_existence_of_amr_directory="${YELLOW}WARNING, the script found that the directory /opt/arm already exists.
 If you are attempting to update your arm installation, please us git to checkout the latest release.
 In order to proceed, this script needs to delete the /opt/arm directory and checkout a fresh copy of arm
 from the GitHub repository.  This is a non-reversible change.
 
 ${BLUE}Do you wish to Continue? Y/n :${NC}"
-        if IsUserAnsweredYesToPrompt "${AlertUserOfExistenceOfAmrDirectory}" ; then
+        if IsUserAnsweredYesToPrompt "${alert_user_of_existence_of_amr_directory}" ; then
           PreviousInstallationFound=true
           AskUserIfConfigFilesShouldBeSetDefault="${BLUE} Keep existing A.R.M. config files? Y/n :${NC}"
           if IsUserAnsweredYesToPrompt "${AskUserIfConfigFilesShouldBeSetDefault}" ; then
@@ -568,6 +571,7 @@ ${BLUE}Do you wish to Continue? Y/n :${NC}"
   fi
 
 
+  return 0
 }
 
 ###################################################
@@ -589,6 +593,7 @@ function CreateArmUserAndGroup() {
     PasswordProtectArmUser false
   fi
   MakeArmUserPartOfRequiredGroups
+  return 0
 }
 
 #If the group exists, do nothing, if it does not exist create it.
@@ -597,10 +602,10 @@ function CreateArmGroup() {
   if ! [[ $(getent group arm) ]]; then
     groupadd arm
     echo -e "${GREEN}Group 'arm' successfully created. \n${NC}"
-    true
+    return 0
   else
     echo -e "${GREEN}'arm' group already exists, skipping...\n${NC}"
-    false
+    return 1
   fi
 }
 
@@ -609,57 +614,59 @@ function CreateArmUser() {
   if ! id arm > /dev/null 2>&1 ; then
     useradd -m arm -g arm -s /bin/bash -c "Automatic Ripping Machine"
     echo -e "${GREEN}User 'arm' successfully created. \n${NC}"
-    true
+    return 0
   else
     echo -e "${GREEN}'arm' user already exists, skipping creation...${NC}"
-    false
+    return 1
   fi
 }
 
 function DeleteArmUser() {
   userdel arm
   rm -R /home/arm
+  return 0
 }
 
 # Make sure the 'arm' user is part of the 'cdrom', 'video' and 'render' groups.
 function MakeArmUserPartOfRequiredGroups() {
   usermod -aG cdrom,video,render arm
+  return 0
 }
 
 #Give the User the option of setting a custom password.  The User may decline, in which event
 #a default password of value '1234' is created.
 #If the default password value is used, advise the user to change the password at the next opportunity.
 function PasswordProtectArmUser() {
-  local NewUser=$1
-  #Determine what the password is going to be and save it in the variables $Password_1 & $Password_2
+  local new_user=$1
+  #Determine what the password is going to be and save it in the variables $password_1 & $password_2
   #Make these variables explicitly local, to prevent the variables escaping this function.
-  local Password_1=''
-  local Password_2=''
-  if $NewUser ; then
+  local password_1=''
+  local password_2=''
+  if $new_user ; then
     PasswordQuestion="${BLUE}Do you wish to provide a custom password for the 'arm' user? Y/n : ${NC}"
   else
     PasswordQuestion="${BLUE}The 'arm' user was already on the system.
 Do you wish to change it's password? Y/n : ${NC}"
   fi
-  local PasswordConfirmed=false
+  local password_confirmed=false
   if IsUserAnsweredYesToPrompt "${PasswordQuestion}" ; then
     #The User wishes to provide a custom password.  Give the user 3 times to provide one,
     #This attempt limit is to prevent an infinite loop.
     for (( i = 0 ; i < 3 ; i++ )); do
-      read -ep "$(echo -e "Please Enter Password? : ")" -r -s Password_1
-      read -ep "$(echo -e "Please Confirm Password? : ")" -r -s Password_2
-      if [[ "${Password_1}" == "${Password_2}" ]] ; then
+      read -ep "$(echo -e "Please Enter Password? : ")" -r -s password_1
+      read -ep "$(echo -e "Please Confirm Password? : ")" -r -s password_2
+      if [[ "${password_1}" == "${password_2}" ]] ; then
         echo -e "\n${GREEN}Password matched, running \`passwd\` utility. \n${NC}"
-        PasswordConfirmed=true
+        password_confirmed=true
         break;
       else
         echo -e "\n${YELLOW}Passwords do not match, please try again\n${NC}"
       fi
     done
-    if ! $PasswordConfirmed ; then
+    if ! $password_confirmed ; then
       #This is the 3rd attempt.  Exit script.
       echo -e "${RED}\nThe Passwords did not match 3 consecutive times, exiting...\n${NC}"
-      if $NewUser ; then
+      if $new_user ; then
         echo -e "${YELLOW}Deleting newly created arm User Account.\n${NC}"
         DeleteArmUser
       else
@@ -667,15 +674,16 @@ Do you wish to change it's password? Y/n : ${NC}"
       fi
       exit ${ERROR_USER_PROVIDED_PASSWORD_MISMATCH}
     fi
-  elif $NewUser; then
+  elif $new_user; then
     echo -e "${YELLOW}Using default password '1234' it is recommended that you change it after script's completion. \n${NC}"
-    Password_1=1234
-    Password_2=1234
+    password_1=1234
+    password_2=1234
   fi
-  if ($NewUser) || (! $NewUser && $PasswordConfirmed); then
-    echo -e "${Password_1}\n${Password_2}\n" | passwd -q arm > /dev/null 2>&1
+  if ($new_user) || (! $new_user && $password_confirmed); then
+    echo -e "${password_1}\n${password_2}\n" | passwd -q arm > /dev/null 2>&1
   fi
 
+  return 0
 }
 
 ###################################################
@@ -684,6 +692,7 @@ Do you wish to change it's password? Y/n : ${NC}"
 
 function InstallDownloadTools () {
   apt update && apt install -y curl git wget lsb-release
+  return 0
 }
 
 ###################################################
@@ -693,6 +702,7 @@ function InstallDownloadTools () {
 function InstallMakeMKV() {
   InstallMakeMKVBuildEnvironment
   BuildAndInstallMakeMKV
+  return 0
 }
 
 function InstallMakeMKVBuildEnvironment() {
@@ -705,45 +715,47 @@ function InstallMakeMKVBuildEnvironment() {
                   libgl1-mesa-dev \
                   qtbase5-dev \
                   zlib1g-dev
+  return 0
 }
 
 function BuildAndInstallMakeMKV() {
-  local ArmUserHomeFolder=~arm
-  local LatestMakeMKVVersion
-  local MakeMKVBuildFilesDirectory
-  local cpuCount
+  local arm_user_home_folder=~arm
+  local latest_make_mkv_version
+  local make_mkv_build_files_directory
+  local cpu_count
 
-  ArmUserHomeFolder=~arm
-  LatestMakeMKVVersion=$(curl -s https://www.makemkv.com/download/ | grep -o '[0-9.]*.txt' | sed 's/.txt//')
-  MakeMKVBuildFilesDirectory="${ArmUserHomeFolder}"/MakeMKVBuildFiles/"${LatestMakeMKVVersion}"
-  cpuCount=$(nproc --all)
+  arm_user_home_folder=~arm
+  latest_make_mkv_version=$(curl -s https://www.makemkv.com/download/ | grep -o '[0-9.]*.txt' | sed 's/.txt//')
+  make_mkv_build_files_directory="${arm_user_home_folder}"/MakeMKVBuildFiles/"${latest_make_mkv_version}"
+  cpu_count=$(nproc --all)
 
-  mkdir -p "${MakeMKVBuildFilesDirectory}"
-  cd "${MakeMKVBuildFilesDirectory}"
-  curl -# -o makemkv-sha-"${LatestMakeMKVVersion}".txt  \
-    https://www.makemkv.com/download/makemkv-sha-"${LatestMakeMKVVersion}".txt
-  curl -# -o makemkv-bin-"${LatestMakeMKVVersion}".tar.gz \
-    https://www.makemkv.com/download/makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
-  curl -# -o makemkv-oss-"${LatestMakeMKVVersion}".tar.gz \
-    https://www.makemkv.com/download/makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
-  grep "makemkv-bin-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
-  grep "makemkv-oss-${LatestMakeMKVVersion}.tar.gz" "makemkv-sha-${LatestMakeMKVVersion}.txt" | sha256sum -c
-  tar xzf makemkv-bin-"${LatestMakeMKVVersion}".tar.gz
-  tar xzf makemkv-oss-"${LatestMakeMKVVersion}".tar.gz
+  mkdir -p "${make_mkv_build_files_directory}"
+  cd "${make_mkv_build_files_directory}"
+  curl -# -o makemkv-sha-"${latest_make_mkv_version}".txt  \
+    https://www.makemkv.com/download/makemkv-sha-"${latest_make_mkv_version}".txt
+  curl -# -o makemkv-bin-"${latest_make_mkv_version}".tar.gz \
+    https://www.makemkv.com/download/makemkv-bin-"${latest_make_mkv_version}".tar.gz
+  curl -# -o makemkv-oss-"${latest_make_mkv_version}".tar.gz \
+    https://www.makemkv.com/download/makemkv-oss-"${latest_make_mkv_version}".tar.gz
+  grep "makemkv-bin-${latest_make_mkv_version}.tar.gz" "makemkv-sha-${latest_make_mkv_version}.txt" | sha256sum -c
+  grep "makemkv-oss-${latest_make_mkv_version}.tar.gz" "makemkv-sha-${latest_make_mkv_version}.txt" | sha256sum -c
+  tar xzf makemkv-bin-"${latest_make_mkv_version}".tar.gz
+  tar xzf makemkv-oss-"${latest_make_mkv_version}".tar.gz
 
-  cd makemkv-oss-"${LatestMakeMKVVersion}"
+  cd makemkv-oss-"${latest_make_mkv_version}"
   mkdir -p ./tmp
   ./configure >> /dev/null  2>&1
-  make -s -j"${cpuCount}"
+  make -s -j"${cpu_count}"
   make install
 
-  cd ../makemkv-bin-"${LatestMakeMKVVersion}"
+  cd ../makemkv-bin-"${latest_make_mkv_version}"
   mkdir -p ./tmp
   echo "yes" >> ./tmp/eula_accepted
-  make -s -j"${cpuCount}"
+  make -s -j"${cpu_count}"
   make install
 
-  chown -R arm:arm "${MakeMKVBuildFilesDirectory}"
+  chown -R arm:arm "${make_mkv_build_files_directory}"
+  return 0
 }
 
 ###################################################
@@ -753,6 +765,7 @@ function BuildAndInstallMakeMKV() {
 function InstallHandBrakeCLI() {
   InstallHandBrakeCLIBuildEnvironment
   BuildAndInstallHandBrakeCLI
+  return 0
 }
 
 function InstallHandBrakeCLIBuildEnvironment() {
@@ -796,23 +809,25 @@ function InstallHandBrakeCLIBuildEnvironment() {
                   tar \
                   zlib1g-dev
                   ## Note that the packages libva-dev and libdrm-dev are for Intel QuickSync Support only.
+  return 0
 }
 
 function BuildAndInstallHandBrakeCLI() {
-  local ArmUserHomeFolder=~arm
-  local HandBrakeCLIBuildFilesDirectory
-  local cpuCount
+  local arm_user_home_folder=~arm
+  local hand_brake_cli_build_files_directory
+  local cpu_count
 
-  ArmUserHomeFolder=~arm
-  HandBrakeCLIBuildFilesDirectory="${ArmUserHomeFolder}"/HandBrakeCLIBuildFiles/
-  cpuCount=$(nproc --all)
+  arm_user_home_folder=~arm
+  hand_brake_cli_build_files_directory="${arm_user_home_folder}"/HandBrakeCLIBuildFiles/
+  cpu_count=$(nproc --all)
 
-  mkdir -p "${HandBrakeCLIBuildFilesDirectory}"
-  cd "${HandBrakeCLIBuildFilesDirectory}"
+  mkdir -p "${hand_brake_cli_build_files_directory}"
+  cd "${hand_brake_cli_build_files_directory}"
   git clone https://github.com/HandBrake/HandBrake.git
   cd HandBrake
-  ./configure --launch-jobs="${cpuCount}" --launch --enable-qsv --enable-vce --disable-gtk
+  ./configure --launch-jobs="${cpu_count}" --launch --enable-qsv --enable-vce --disable-gtk
   make --directory=build install
+  return 0
 }
 
 ###################################################
@@ -841,6 +856,7 @@ function InstallArmDependencies() {
 
   DEBIAN_FRONTEND=noninteractive apt -y install libdvd-pkg
   dpkg-reconfigure --frontend noninteractive libdvd-pkg
+  return 0
 }
 
 ###################################################
@@ -848,10 +864,10 @@ function InstallArmDependencies() {
 ###################################################
 
 function DownloadArm () {
-  local AlertUserOfExistenceOfAmrDirectory
-  local ExistingArmYamlFile
-  local ExistingAbcdeConfFile
-  local ExistingAppriseYamlFile
+  local alert_user_of_existence_of_amr_directory
+  local existing_arm_yaml_file
+  local existing_abcde_conf_file
+  local existing_apprise_yaml_file
 
   #Get current version number of ARM
   if [[ ${Tag} == 'latest' ]] ; then
@@ -863,23 +879,23 @@ function DownloadArm () {
 
   if $PreviousInstallationFound ; then
 
-    ExistingArmYamlFile="/etc/arm/config/arm.yaml"
-    ExistingAbcdeConfFile="/etc/arm/config/abcde.conf"
-    ExistingAppriseYamlFile="/etc/arm/config/apprise.yaml"
+    existing_arm_yaml_file="/etc/arm/config/arm.yaml"
+    existing_abcde_conf_file="/etc/arm/config/abcde.conf"
+    existing_apprise_yaml_file="/etc/arm/config/apprise.yaml"
 
-    if [[ -f ${ExistingAbcdeConfFile} ]] && [[ "${UseExistingConfigFiles}" = false ]] ; then
+    if [[ -f ${existing_abcde_conf_file} ]] && [[ "${UseExistingConfigFiles}" = false ]] ; then
       echo "Backing up ABCDE.conf"
-      cp "${ExistingAbcdeConfFile}" "${ExistingAbcdeConfFile}.bck"
+      cp "${existing_abcde_conf_file}" "${existing_abcde_conf_file}.bck"
     fi
 
-    if [[ -f ${ExistingArmYamlFile} ]] && [[ "${UseExistingConfigFiles}" = false ]] ; then
+    if [[ -f ${existing_arm_yaml_file} ]] && [[ "${UseExistingConfigFiles}" = false ]] ; then
       echo "Backing up ARM.Yaml"
-      cp "${ExistingArmYamlFile}" "${ExistingArmYamlFile}.bck"
+      cp "${existing_arm_yaml_file}" "${existing_arm_yaml_file}.bck"
     fi
 
-    if [[ -f ${ExistingAppriseYamlFile} ]] && [[ "${UseExistingConfigFiles}" = false ]] ; then
+    if [[ -f ${existing_apprise_yaml_file} ]] && [[ "${UseExistingConfigFiles}" = false ]] ; then
       echo "Backing up Apprise.yaml"
-      cp "${ExistingAppriseYamlFile}" "${ExistingAppriseYamlFile}.bck"
+      cp "${existing_apprise_yaml_file}" "${existing_apprise_yaml_file}.bck"
     fi
 
     echo -e "${RED} Deleting /opt/arm directory...${NC}"
@@ -927,6 +943,7 @@ function DownloadArm () {
   cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
   cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
   cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf.default
+  return 0
 }
 
 function CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies() {
@@ -934,10 +951,12 @@ function CreatePythonVirtualEnvironmentAndInstallArmPythonDependencies() {
   sudo -u arm python3 -m venv venv
   sudo -u arm /opt/arm/venv/bin/pip3 install wheel
   sudo -u arm /opt/arm/venv/bin/pip3 install -r requirements.txt
+  return 0
 }
 
 function CreateUDEVRules() {
   ln -sf /opt/arm/setup/51-automatic-ripping-machine-venv.rules /lib/udev/rules.d/
+  return 0
 }
 
 function MountDrives() {
@@ -952,6 +971,7 @@ function MountDrives() {
     fi
     mkdir -p "/mnt$dev"
   done
+  return 0
 }
 
 function SetupFolders() {
@@ -960,6 +980,7 @@ function SetupFolders() {
   sudo -u arm mkdir -p ~arm/media/transcode/
   sudo -u arm mkdir -p ~arm/media/completed/
   sudo -u arm mkdir -p ~arm/media/raw/
+  return 0
 }
 
 function CreateAndStartService() {
@@ -968,6 +989,7 @@ function CreateAndStartService() {
   systemctl daemon-reload
   systemctl enable armui
   systemctl start armui
+  return 0
 }
 
 function LaunchSetup() {
@@ -982,7 +1004,7 @@ function LaunchSetup() {
   echo "${site_addr}"
   ArmUIServiceActive=$(systemctl is-active --quiet armui)
   if [[ $ArmUIServiceActive -ne 0 ]]; then
-      echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}"
+      echo -e "${RED}ERROR: ArmUI site is not running. Run \"sudo systemctl status armui\" to find out why${NC}" >&2
   else
       curl "http://${site_addr}/setup" -o /dev/null -s
       echo -e "${GREEN} Installation Complete
@@ -990,6 +1012,7 @@ function LaunchSetup() {
       http://${site_addr}${NC}\n"
   fi
 
+  return 0
 }
 
 ###################################################
