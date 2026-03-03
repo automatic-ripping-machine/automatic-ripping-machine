@@ -14,6 +14,9 @@ Relevant open issues from [upstream ARM](https://github.com/automatic-ripping-ma
 | [1161-late-title-erases-rips.md](1161-late-title-erases-rips.md) | [#1161](https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/1161) | LARGELY FIXED | Late title change erases rips; our fork removed move_files pipeline |
 | [1636-title-search-stuck.md](1636-title-search-stuck.md) | [#1636](https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/1636) | REAL BUG | DVDs stuck in "waiting" after Title Search; `sleep_check_process` infinite wait |
 | [1298-data-rip-false-success.md](1298-data-rip-false-success.md) | [#1298](https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/1298) | REAL BUG | Data rip fails but job shows SUCCESS; main.py overwrites FAILURE status |
+| [1664-mount-before-makemkv.md](1664-mount-before-makemkv.md) | [#1664](https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/1664) | ALREADY FIXED | `save_disc_poster()` leaves disc mounted; MakeMKV can't get exclusive access |
+| [1651-data-disc-label-collision.md](1651-data-disc-label-collision.md) | [#1651](https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/1651) | ALREADY FIXED | Data disc with same label silently discarded; raw rip destroyed |
+| [1639-settings-not-persisting.md](1639-settings-not-persisting.md) | [#1639](https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/1639) | ALREADY FIXED | `importlib.reload()` creates orphaned dict; settings don't persist |
 
 ## Medium Priority
 
@@ -54,8 +57,8 @@ Relevant open issues from [upstream ARM](https://github.com/automatic-ripping-ma
 
 ## Stats
 
-- **22 issues tracked** (12 original + 10 new)
-- **5 already/largely fixed** in our fork (#1161, #1475, #1707, #1706, #1336)
+- **25 issues tracked** (12 original + 13 new)
+- **8 already/largely fixed** in our fork (#1161, #1475, #1707, #1706, #1336, #1664, #1651, #1639)
 - **6 real bugs** we still share (#1711, #1539, #1633, #1636, #1298, #1558)
 - **2 environmental + bug** (#1667, #1545)
 - **4 mitigated/low** (#1622, #1485, #1559, #1186)
