@@ -56,13 +56,15 @@ Edit `.env` — the critical settings to review:
 
 ### 4. Uncomment optical drives
 
-In `docker-compose.yml`, uncomment the `devices:` section under `arm-rippers` and list your drives:
+**This step is required.** Without it, ARM cannot see your disc drives. In `docker-compose.yml`, uncomment the `devices:` section under `arm-rippers` and list your drives:
 
 ```yaml
 devices:
   - /dev/sr0:/dev/sr0
   # - /dev/sr1:/dev/sr1
 ```
+
+Verify your drives exist on the host first: `ls -la /dev/sr*`. The `privileged: true` flag alone is not sufficient — you must explicitly map each drive.
 
 ### 5. Install udev rules on the host
 
@@ -173,7 +175,7 @@ Insert a disc — ARM should detect it automatically and start ripping.
 
 ### Troubleshooting
 
-- **No disc detection**: Check udev rules are installed on the host and `arm-rippers` is running with `privileged: true`
+- **No disc detection / drive not visible in container**: The most common cause is the `devices:` block in `docker-compose.yml` is still commented out. Uncomment it and map your drives (e.g. `- /dev/sr0:/dev/sr0`). Verify drives exist on the host with `ls -la /dev/sr*`. Also check udev rules are installed on the host and `arm-rippers` is running with `privileged: true`
 - **Permission errors on media dirs**: Ensure `ARM_UID`/`ARM_GID` match the owner of your host directories
 - **Transcoder fails to start with GPU**: Install `nvidia-container-toolkit`, check `nvidia-smi` works on host
 - **UI shows "ARM Offline"**: Check `arm-rippers` is healthy (`docker compose ps`); the UI waits for ARM's healthcheck
@@ -193,6 +195,33 @@ Development uses three git repositories cloned as siblings:
 ```
 
 **The `components/ui/` and `components/transcoder/` directories are git submodules auto-updated by CI. They are always behind the working copies. NEVER build from submodules. NEVER manually update submodule pointers.**
+
+### Prerequisites
+
+- Docker Engine + Docker Compose v2
+- Node.js >= 20 (for building the UI frontend; v24 recommended)
+- Three sibling repos cloned (see above)
+
+### First-Time Dev Setup
+
+```bash
+# 1. Create .env from the example and adjust for CPU-only dev
+cp .env.example .env
+# Edit .env: set VIDEO_ENCODER=x265 (unless you have an NVIDIA GPU)
+
+# 2. Build the UI frontend (required before first start)
+cd ../automatic-ripping-machine-ui/frontend
+npm ci && npm run build
+cd -
+
+# 3. Start the dev stack
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+
+# 4. Fix dev-data permissions (Docker creates transcoder-logs as root,
+#    but the transcoder container runs as UID 1001)
+sudo chown -R 1001:1000 dev-data/transcoder-logs
+docker restart arm-transcoder
+```
 
 ### Starting the Dev Stack
 
@@ -222,3 +251,10 @@ If repos aren't siblings, set in `.env`:
 UI_SRC_PATH=/path/to/ui/repo
 TRANSCODER_SRC_PATH=/path/to/transcoder/repo
 ```
+
+### Dev Troubleshooting
+
+- **UI returns connection reset / `Directory 'frontend/build/_app' does not exist`**: You need to build the frontend first — `cd ../automatic-ripping-machine-ui/frontend && npm ci && npm run build`, then `docker restart arm-ui`
+- **Frontend build fails with "Vite requires Node.js version 20.19+"**: Upgrade Node.js to >= 20 on the host (v24 recommended). If using Ubuntu: `curl -fsSL https://deb.nodesource.com/setup_24.x | sudo bash - && sudo apt-get install -y nodejs`
+- **Transcoder `PermissionError: Permission denied: '/data/logs/transcoder.log'`**: The `dev-data/transcoder-logs/` directory was created by Docker as root, but the transcoder runs as UID 1001. Fix with `sudo chown -R 1001:1000 dev-data/transcoder-logs && docker restart arm-transcoder`
+- **`.env` variables not set warnings**: You forgot to copy `.env.example` to `.env` — run `cp .env.example .env`
