@@ -360,6 +360,382 @@ class TestMakemkvDiscDiscovery:
         mock_get_drives.assert_not_called()
 
 
+class TestDiscLabelParsing:
+    """Test parse_disc_label_for_identifiers() (#1605)."""
+
+    def test_s_d_no_separator(self):
+        from arm.ripper.utils import parse_disc_label_for_identifiers
+        assert parse_disc_label_for_identifiers("BB_S1D1") == "S1D1"
+        assert parse_disc_label_for_identifiers("S01D02") == "S1D2"
+
+    def test_s_d_with_underscore(self):
+        from arm.ripper.utils import parse_disc_label_for_identifiers
+        assert parse_disc_label_for_identifiers("S1_D1") == "S1D1"
+        assert parse_disc_label_for_identifiers("S01_D02") == "S1D2"
+
+    def test_s_d_with_hyphen(self):
+        from arm.ripper.utils import parse_disc_label_for_identifiers
+        assert parse_disc_label_for_identifiers("S1-D1") == "S1D1"
+
+    def test_s_e_d_format(self):
+        from arm.ripper.utils import parse_disc_label_for_identifiers
+        assert parse_disc_label_for_identifiers("S1E1D1") == "S1E1D1"
+        assert parse_disc_label_for_identifiers("S01E01D1") == "S1E1D1"
+
+    def test_season_disc_word_format(self):
+        from arm.ripper.utils import parse_disc_label_for_identifiers
+        assert parse_disc_label_for_identifiers("Season1Disc1") == "S1D1"
+        assert parse_disc_label_for_identifiers("SEASON01DISC02") == "S1D2"
+        assert parse_disc_label_for_identifiers("Season 1 Disc 1") == "S1D1"
+
+    def test_separate_s_and_d_tokens(self):
+        from arm.ripper.utils import parse_disc_label_for_identifiers
+        assert parse_disc_label_for_identifiers("Breaking Bad S01 Disc 1") == "S1D1"
+        assert parse_disc_label_for_identifiers("GOT S5 D3") == "S5D3"
+
+    def test_case_insensitivity(self):
+        from arm.ripper.utils import parse_disc_label_for_identifiers
+        assert parse_disc_label_for_identifiers("s1d1") == "S1D1"
+        assert parse_disc_label_for_identifiers("BREAKING_BAD_S01_D02") == "S1D2"
+
+    def test_no_match_returns_none(self):
+        from arm.ripper.utils import parse_disc_label_for_identifiers
+        assert parse_disc_label_for_identifiers("BREAKING_BAD_2008") is None
+        assert parse_disc_label_for_identifiers("Disc1") is None
+        assert parse_disc_label_for_identifiers("S1") is None
+
+    def test_empty_or_none(self):
+        from arm.ripper.utils import parse_disc_label_for_identifiers
+        assert parse_disc_label_for_identifiers("") is None
+        assert parse_disc_label_for_identifiers(None) is None
+
+    def test_complex_labels(self):
+        from arm.ripper.utils import parse_disc_label_for_identifiers
+        assert parse_disc_label_for_identifiers("TheWire_S01_D01_BluRay") == "S1D1"
+        assert parse_disc_label_for_identifiers("GOT_Season_05_Disc_03") == "S5D3"
+        assert parse_disc_label_for_identifiers("Breaking.Bad.S02.D02") == "S2D2"
+
+
+class TestNormalizeSeriesName:
+    """Test normalize_series_name() (#1605)."""
+
+    def test_basic_normalization(self):
+        from arm.ripper.utils import normalize_series_name
+        assert normalize_series_name("Breaking Bad") == "Breaking_Bad"
+        assert normalize_series_name("Game of Thrones") == "Game_of_Thrones"
+
+    def test_special_characters(self):
+        from arm.ripper.utils import normalize_series_name
+        assert normalize_series_name("Series!Name") == "Series_Name"
+        assert normalize_series_name("Series: The Show") == "Series_The_Show"
+
+    def test_preserve_hyphens_and_parens(self):
+        from arm.ripper.utils import normalize_series_name
+        assert normalize_series_name("The Walking-Dead") == "The_Walking-Dead"
+        assert normalize_series_name("Series (US)") == "Series_(US)"
+
+    def test_unicode_characters(self):
+        from arm.ripper.utils import normalize_series_name
+        assert normalize_series_name("Café") == "Cafe"
+
+    def test_empty_or_none(self):
+        from arm.ripper.utils import normalize_series_name
+        assert normalize_series_name("") == ""
+        assert normalize_series_name(None) == ""
+
+
+class TestTVFolderName:
+    """Test get_tv_folder_name() and build_final_path() for TV series (#1605)."""
+
+    def test_disc_label_naming_enabled(self, app_context, sample_job):
+        from arm.ripper.utils import get_tv_folder_name
+        sample_job.video_type = "series"
+        sample_job.title = "Breaking Bad"
+        sample_job.title_manual = None
+        sample_job.label = "BB_S1D1"
+        sample_job.config.USE_DISC_LABEL_FOR_TV = True
+        result = get_tv_folder_name(sample_job)
+        assert result == "Breaking_Bad_S1D1"
+
+    def test_disc_label_naming_disabled(self, app_context, sample_job):
+        from arm.ripper.utils import get_tv_folder_name
+        sample_job.video_type = "series"
+        sample_job.title = "Breaking Bad"
+        sample_job.title_manual = None
+        sample_job.year = "2008"
+        sample_job.label = "BB_S1D1"
+        sample_job.config.USE_DISC_LABEL_FOR_TV = False
+        result = get_tv_folder_name(sample_job)
+        assert result == "Breaking Bad (2008)"
+
+    def test_non_series_uses_standard_naming(self, app_context, sample_job):
+        from arm.ripper.utils import get_tv_folder_name
+        sample_job.video_type = "movie"
+        sample_job.title = "Breaking Bad"
+        sample_job.year = "2008"
+        sample_job.config.USE_DISC_LABEL_FOR_TV = True
+        result = get_tv_folder_name(sample_job)
+        assert result == "Breaking Bad (2008)"
+
+    def test_unparseable_label_fallback(self, app_context, sample_job):
+        from arm.ripper.utils import get_tv_folder_name
+        sample_job.video_type = "series"
+        sample_job.title = "The Office"
+        sample_job.title_manual = None
+        sample_job.year = "2005"
+        sample_job.label = "NO_IDENTIFIER"
+        sample_job.config.USE_DISC_LABEL_FOR_TV = True
+        result = get_tv_folder_name(sample_job)
+        assert result == "The Office (2005)"
+
+    def test_build_final_path_with_disc_label(self, app_context, sample_job):
+        sample_job.video_type = "series"
+        sample_job.title = "Breaking Bad"
+        sample_job.title_manual = None
+        sample_job.label = "BB_S1D1"
+        sample_job.config.USE_DISC_LABEL_FOR_TV = True
+        sample_job.config.GROUP_TV_DISCS_UNDER_SERIES = False
+        sample_job.config.COMPLETED_PATH = "/media/completed"
+        path = sample_job.build_final_path()
+        assert path == "/media/completed/tv/Breaking_Bad_S1D1"
+
+    def test_build_final_path_with_grouping(self, app_context, sample_job):
+        sample_job.video_type = "series"
+        sample_job.title = "Breaking Bad"
+        sample_job.title_manual = None
+        sample_job.year = "2008"
+        sample_job.label = "BB_S1D1"
+        sample_job.config.USE_DISC_LABEL_FOR_TV = True
+        sample_job.config.GROUP_TV_DISCS_UNDER_SERIES = True
+        sample_job.config.COMPLETED_PATH = "/media/completed"
+        path = sample_job.build_final_path()
+        assert path == "/media/completed/tv/Breaking Bad (2008)/Breaking_Bad_S1D1"
+
+    def test_build_final_path_disabled_uses_standard(self, app_context, sample_job):
+        sample_job.video_type = "series"
+        sample_job.title = "Breaking Bad"
+        sample_job.title_manual = None
+        sample_job.year = "2008"
+        sample_job.label = "BB_S1D1"
+        sample_job.config.USE_DISC_LABEL_FOR_TV = False
+        sample_job.config.COMPLETED_PATH = "/media/completed"
+        path = sample_job.build_final_path()
+        assert "Breaking Bad" in path
+        assert "S1D1" not in path
+
+
+class TestMainfeatureSorting:
+    """Test MAINFEATURE track selection with chapters/filesize (#1698)."""
+
+    def _create_track(self, db, job, track_number, length, chapters=0, filesize=0):
+        from arm.models.track import Track
+        t = Track(
+            job_id=job.job_id,
+            track_number=str(track_number),
+            length=length,
+            aspect_ratio="16:9",
+            fps="23.976",
+            main_feature=False,
+            source="makemkv",
+            basename=job.title,
+            filename=f"title{track_number:02d}.mkv",
+            chapters=chapters,
+            filesize=filesize,
+        )
+        db.session.add(t)
+        return t
+
+    def test_chapters_beats_longer_duration(self, app_context, sample_job):
+        """Track with more chapters should win even if another is longer (#1698)."""
+        from arm.models.track import Track
+        _, db = app_context
+
+        # Track 1: longer but fewer chapters (Disney obfuscation victim)
+        self._create_track(db, sample_job, 1, length=7200, chapters=5, filesize=5_000_000_000)
+        # Track 2: shorter but more chapters (real main feature)
+        self._create_track(db, sample_job, 2, length=7100, chapters=28, filesize=4_500_000_000)
+        db.session.commit()
+
+        best = Track.query.filter_by(job_id=sample_job.job_id).order_by(
+            Track.chapters.desc(),
+            Track.length.desc(),
+            Track.filesize.desc(),
+            Track.track_number.asc()
+        ).first()
+
+        assert best.track_number == "2"
+        assert best.chapters == 28
+
+    def test_equal_chapters_falls_back_to_length(self, app_context, sample_job):
+        """When chapters are equal, longer track wins (standard non-Disney disc)."""
+        from arm.models.track import Track
+        _, db = app_context
+
+        self._create_track(db, sample_job, 1, length=7200, chapters=20, filesize=5_000_000_000)
+        self._create_track(db, sample_job, 2, length=6000, chapters=20, filesize=4_000_000_000)
+        db.session.commit()
+
+        best = Track.query.filter_by(job_id=sample_job.job_id).order_by(
+            Track.chapters.desc(),
+            Track.length.desc(),
+            Track.filesize.desc(),
+            Track.track_number.asc()
+        ).first()
+
+        assert best.track_number == "1"
+        assert best.length == 7200
+
+    def test_equal_chapters_and_length_falls_back_to_filesize(self, app_context, sample_job):
+        """When chapters and length are equal, bigger file wins."""
+        from arm.models.track import Track
+        _, db = app_context
+
+        self._create_track(db, sample_job, 1, length=7200, chapters=20, filesize=4_000_000_000)
+        self._create_track(db, sample_job, 2, length=7200, chapters=20, filesize=5_000_000_000)
+        db.session.commit()
+
+        best = Track.query.filter_by(job_id=sample_job.job_id).order_by(
+            Track.chapters.desc(),
+            Track.length.desc(),
+            Track.filesize.desc(),
+            Track.track_number.asc()
+        ).first()
+
+        assert best.track_number == "2"
+        assert best.filesize == 5_000_000_000
+
+    def test_all_equal_falls_back_to_track_number(self, app_context, sample_job):
+        """When everything is equal, lowest track number wins."""
+        from arm.models.track import Track
+        _, db = app_context
+
+        self._create_track(db, sample_job, 3, length=7200, chapters=20, filesize=5_000_000_000)
+        self._create_track(db, sample_job, 1, length=7200, chapters=20, filesize=5_000_000_000)
+        db.session.commit()
+
+        best = Track.query.filter_by(job_id=sample_job.job_id).order_by(
+            Track.chapters.desc(),
+            Track.length.desc(),
+            Track.filesize.desc(),
+            Track.track_number.asc()
+        ).first()
+
+        assert best.track_number == "1"
+
+    def test_zero_chapters_legacy_fallback(self, app_context, sample_job):
+        """Tracks with 0 chapters (legacy data) fall back to length sorting."""
+        from arm.models.track import Track
+        _, db = app_context
+
+        self._create_track(db, sample_job, 1, length=7200, chapters=0, filesize=0)
+        self._create_track(db, sample_job, 2, length=6000, chapters=0, filesize=0)
+        db.session.commit()
+
+        best = Track.query.filter_by(job_id=sample_job.job_id).order_by(
+            Track.chapters.desc(),
+            Track.length.desc(),
+            Track.filesize.desc(),
+            Track.track_number.asc()
+        ).first()
+
+        assert best.track_number == "1"
+        assert best.length == 7200
+
+
+class TestTrackInfoParsing:
+    """Test MakeMKV TINFO chapters/filesize parsing (#1698)."""
+
+    def test_chapters_parsed_from_tinfo(self, app_context, sample_job):
+        """TrackInfoProcessor should parse TINFO field 8 as chapters."""
+        from arm.ripper.makemkv import TrackInfoProcessor, TrackID
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        assert proc.chapters == 0
+
+        # Simulate receiving a chapters TINFO message
+        class FakeTInfo:
+            tid = 0
+            id = TrackID.CHAPTERS
+            value = "28"
+
+        proc.track_id = 0
+        proc._handle_tinfo(FakeTInfo())
+        assert proc.chapters == 28
+
+    def test_filesize_parsed_from_tinfo(self, app_context, sample_job):
+        """TrackInfoProcessor should parse TINFO field 11 as filesize."""
+        from arm.ripper.makemkv import TrackInfoProcessor, TrackID
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        assert proc.filesize == 0
+
+        class FakeTInfo:
+            tid = 0
+            id = TrackID.FILESIZE
+            value = "4500000000"
+
+        proc.track_id = 0
+        proc._handle_tinfo(FakeTInfo())
+        assert proc.filesize == 4_500_000_000
+
+    def test_invalid_chapters_value_logged_not_crash(self, app_context, sample_job):
+        """Non-integer chapters value should log warning, not crash."""
+        from arm.ripper.makemkv import TrackInfoProcessor, TrackID
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        proc.track_id = 0
+
+        class FakeTInfo:
+            tid = 0
+            id = TrackID.CHAPTERS
+            value = "N/A"
+
+        proc._handle_tinfo(FakeTInfo())
+        assert proc.chapters == 0  # unchanged from default
+
+    def test_invalid_filesize_value_logged_not_crash(self, app_context, sample_job):
+        """Non-integer filesize value should log warning, not crash."""
+        from arm.ripper.makemkv import TrackInfoProcessor, TrackID
+
+        proc = TrackInfoProcessor(sample_job, 0)
+        proc.track_id = 0
+
+        class FakeTInfo:
+            tid = 0
+            id = TrackID.FILESIZE
+            value = ""
+
+        proc._handle_tinfo(FakeTInfo())
+        assert proc.filesize == 0  # unchanged from default
+
+    def test_put_track_stores_chapters_filesize(self, app_context, sample_job):
+        """put_track() should store chapters and filesize in the DB."""
+        from arm.ripper.utils import put_track
+        from arm.models.track import Track
+        _, db = app_context
+
+        put_track(sample_job, 1, 3600, "16:9", "23.976", False, "makemkv",
+                  "title01.mkv", chapters=15, filesize=2_000_000_000)
+
+        track = Track.query.filter_by(job_id=sample_job.job_id).first()
+        assert track is not None
+        assert track.chapters == 15
+        assert track.filesize == 2_000_000_000
+
+    def test_put_track_defaults_chapters_filesize_zero(self, app_context, sample_job):
+        """put_track() without chapters/filesize should default to 0."""
+        from arm.ripper.utils import put_track
+        from arm.models.track import Track
+        _, db = app_context
+
+        put_track(sample_job, 1, 3600, "16:9", "23.976", False, "makemkv", "title01.mkv")
+
+        track = Track.query.filter_by(job_id=sample_job.job_id).first()
+        assert track is not None
+        assert track.chapters == 0
+        assert track.filesize == 0
+
+
 class TestSettingsReload:
     """Test that config reload mutates the dict in-place (#1639)."""
 

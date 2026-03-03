@@ -116,8 +116,8 @@ for conf in $CONFS; do
   thisConf="/etc/arm/config/${conf}"
   if [[ ! -f "${thisConf}" ]] ; then
     echo "Config not found! Creating config file: ${thisConf}"
-    # Don't overwrite with defaults during reinstall
-    cp --no-clobber "/opt/arm/setup/${conf}" "${thisConf}"
+    # Use install to set ownership atomically — cp creates files as root (#1660)
+    install -o arm -g arm -m 644 "/opt/arm/setup/${conf}" "${thisConf}"
   fi
 done
 

@@ -8,7 +8,7 @@ import re
 import logging
 
 from sqlalchemy import (
-    Column, Integer, String, Boolean, Float, Text,
+    BigInteger, Column, Integer, String, Boolean, Float, Text,
     DateTime, SmallInteger, Unicode, Enum, ForeignKey,
     create_engine, text, event,
 )
@@ -66,6 +66,7 @@ class _DB:
     Model = Base
 
     # --- Column types (used as db.Integer, db.String, etc.) ---
+    BigInteger = BigInteger
     Column = staticmethod(Column)
     Integer = Integer
     String = String

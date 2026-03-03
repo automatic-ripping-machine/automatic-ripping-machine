@@ -416,7 +416,22 @@ class Job(db.Model):
         return os.path.join(self.config.TRANSCODE_PATH, self.type_subfolder, self.formatted_title)
 
     def build_final_path(self):
-        """Compute the final completed media directory path, using folder pattern."""
+        """Compute the final completed media directory path, using folder pattern.
+
+        For TV series with USE_DISC_LABEL_FOR_TV enabled, uses disc label-based
+        folder naming (e.g. "Breaking_Bad_S1D1").  When GROUP_TV_DISCS_UNDER_SERIES
+        is also enabled, adds a parent series folder level.
+        """
+        from arm.ripper.utils import get_tv_folder_name, get_tv_series_parent_folder
+
+        # TV series disc label naming overrides the normal pipeline
+        if self.video_type == "series" and getattr(self.config, 'USE_DISC_LABEL_FOR_TV', False):
+            folder = get_tv_folder_name(self)
+            if getattr(self.config, 'GROUP_TV_DISCS_UNDER_SERIES', False):
+                parent = get_tv_series_parent_folder(self)
+                return os.path.join(self.config.COMPLETED_PATH, self.type_subfolder, parent, folder)
+            return os.path.join(self.config.COMPLETED_PATH, self.type_subfolder, folder)
+
         if self._pattern_fields_available():
             try:
                 from arm.ripper.naming import render_folder

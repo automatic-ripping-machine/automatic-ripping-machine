@@ -182,7 +182,9 @@ class TrackID(enum.IntEnum):
     """
     Definition of the Track ID and its reference to the stored content
     """
+    CHAPTERS = 8
     DURATION = 9
+    FILESIZE = 11
     FILENAME = 27
 
 
@@ -676,7 +678,12 @@ def makemkv_mkv(job, rawpath):
     # route to ripping functions.
     if job.config.MAINFEATURE:
         logging.info("Trying to find mainfeature")
-        track = Track.query.filter_by(job_id=job.job_id).order_by(Track.length.desc()).first()
+        track = Track.query.filter_by(job_id=job.job_id).order_by(
+            Track.chapters.desc(),
+            Track.length.desc(),
+            Track.filesize.desc(),
+            Track.track_number.asc()
+        ).first()
         rip_mainfeature(job, track, rawpath)
     elif mode == 'manual':  # Run if mode is manual, user selects tracks
         # Set job status to waiting
@@ -1050,6 +1057,8 @@ class TrackInfoProcessor:
         self.aspect = ""
         self.fps = 0.0
         self.filename = ""
+        self.chapters = 0
+        self.filesize = 0
         self.stream_type = None
 
     def process_messages(self):
@@ -1101,6 +1110,17 @@ class TrackInfoProcessor:
             self.filename = next(iter(message.value.split('"')[1::2]), message.value)
         elif message.id == TrackID.DURATION:
             self.seconds = convert_to_seconds(message.value.strip())
+        elif message.id == TrackID.CHAPTERS:
+            try:
+                self.chapters = int(message.value.strip())
+            except ValueError:
+                logging.warning(f"Could not parse chapters value: {message.value!r}")
+        elif message.id == TrackID.FILESIZE:
+            try:
+                self.filesize = int(message.value.strip())
+            except ValueError:
+                logging.warning(f"Could not parse filesize value: {message.value!r}")
+
 
     def _handle_titles(self, message):
         logging.info(f"Found {message.count:d} titles")
@@ -1117,13 +1137,17 @@ class TrackInfoProcessor:
             str(self.fps),
             False,
             SOURCE,
-            self.filename
+            self.filename,
+            self.chapters,
+            self.filesize
         )
         # Reset track info after adding if needed
         self.seconds = 0
         self.aspect = ""
         self.fps = 0.0
         self.filename = ""
+        self.chapters = 0
+        self.filesize = 0
 
 
 def get_track_info(index, job):

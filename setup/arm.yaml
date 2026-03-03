@@ -69,6 +69,17 @@ DATE_FORMAT: "%m-%d-%Y %H:%M:%S"
 ## recommended to set to true for series
 ALLOW_DUPLICATES: false
 
+# Use disc label for TV series output folder naming.
+# When enabled, ARM parses the disc label for season/disc identifiers
+# (e.g., STARGATE_ATLANTIS_S1_D2 -> "Stargate_Atlantis_S1D2")
+# If parsing fails, falls back to standard naming.
+USE_DISC_LABEL_FOR_TV: false
+
+# Group TV series discs under a parent series folder.
+# Structure: {COMPLETED_PATH}/tv/{Series Title (Year)}/{Series_S1D1, Series_S1D2, ...}
+# Works best when combined with USE_DISC_LABEL_FOR_TV.
+GROUP_TV_DISCS_UNDER_SERIES: false
+
 # Number of concurrent makemkv info calls. For some drives makemkv info may
 # crash makemkv backup|mkv. Setting this to 1 waits for free makemkv slots and
 # uses the time set in MANUAL_WAIT_TIME after each call to makemkv info to

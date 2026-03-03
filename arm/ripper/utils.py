@@ -9,6 +9,7 @@ import shutil
 import time
 import random
 import re
+import unicodedata
 from logging import Logger
 from pathlib import Path, PurePath
 from math import ceil
@@ -471,7 +472,8 @@ def try_add_default_user():
         logging.error(error)
 
 
-def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename=""):
+def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
+              chapters=0, filesize=0):
     """
     Put data into a track instance.\n
     Having this here saves importing the models file everywhere\n
@@ -484,11 +486,14 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
     :param bool mainfeature: If the file is identified as the mainfeature
     :param str source: Source of information (HandBrake, MakeMKV, abcde)
     :param str filename: filename of track
+    :param int chapters: number of chapters in track
+    :param int filesize: size of track in bytes
     """
 
     logging.debug(
         f"Track #{int(t_no):02} Length: {seconds: >4} fps: {float(fps):2.3f} "
-        f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source}")
+        f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source} "
+        f"Chapters: {chapters} Size: {filesize}")
 
     job_track = Track(
         job_id=job.job_id,
@@ -499,7 +504,9 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         main_feature=mainfeature,
         source=source,
         basename=job.title,
-        filename=filename
+        filename=filename,
+        chapters=chapters,
+        filesize=filesize
     )
     job_track.ripped = False
     database_adder(job_track)
@@ -723,6 +730,119 @@ def save_disc_poster(final_directory, job):
         )
         if umount.returncode != 0:
             logging.error(f"Failed to umount {job.devpath}: {umount.stderr.strip()}")
+
+
+def parse_disc_label_for_identifiers(disc_label):
+    """Parse disc label to extract season/disc identifiers.
+
+    Supports multiple common patterns (case-insensitive):
+    - S##D## or S##_D## or S##-D## (e.g., S1D1, S01_D02, S1-D2)
+    - S##E##D## (e.g., S01E01D1, S1E1D1)
+    - Season##Disc## variations (e.g., Season1Disc1, Season 01 Disc 2)
+    - Separate S## and D## tokens anywhere in label
+
+    :param disc_label: The disc volume label string
+    :return: Normalized identifier string (e.g., "S1D1", "S01D02") or None
+    """
+    if not disc_label:
+        return None
+
+    # Pattern 1: S##[E##]D## with optional separators
+    pattern1 = re.compile(
+        r'S0*(\d{1,2})(?:[E_\-\s.]+0*(\d{1,2}))?[_\-\s.]*D0*(\d{1,2})',
+        re.IGNORECASE,
+    )
+    match = pattern1.search(disc_label)
+    if match:
+        season = match.group(1)
+        episode = match.group(2)
+        disc = match.group(3)
+        if episode:
+            return f"S{season}E{episode}D{disc}"
+        return f"S{season}D{disc}"
+
+    # Pattern 2: Season##Disc## with optional separators/spaces
+    pattern2 = re.compile(
+        r'Season[\s_\-]*0*(\d{1,2})[\s_\-]*Disc[\s_\-]*0*(\d{1,2})',
+        re.IGNORECASE,
+    )
+    match = pattern2.search(disc_label)
+    if match:
+        return f"S{match.group(1)}D{match.group(2)}"
+
+    # Pattern 3: Find S## and D## separately anywhere in the label
+    season_match = re.search(r'(?<![a-zA-Z])S0*(\d{1,2})(?!\d)', disc_label, re.IGNORECASE)
+    disc_match = re.search(
+        r'(?<![a-zA-Z])D(?:isc)?[\s_\-]*0*(\d{1,2})(?!\d)', disc_label, re.IGNORECASE
+    )
+    if season_match and disc_match:
+        return f"S{season_match.group(1)}D{disc_match.group(1)}"
+
+    logging.debug(f"Could not parse disc identifiers from label: '{disc_label}'")
+    return None
+
+
+def normalize_series_name(series_name):
+    """Normalize series name into a safe, consistent folder name.
+
+    :param series_name: The series title string
+    :return: Normalized string safe for filesystem use
+    """
+    if not series_name:
+        return ""
+    normalized = unicodedata.normalize('NFKD', series_name)
+    normalized = normalized.encode('ASCII', 'ignore').decode('ASCII')
+    normalized = re.sub(r'[^\w\-()]', '_', normalized)
+    normalized = re.sub(r'_+', '_', normalized)
+    return normalized.strip('_')
+
+
+def get_tv_series_parent_folder(job):
+    """Generate parent series folder name for grouping multiple TV discs.
+
+    Returns the series title with year: "Series Title (Year)" or "Series Title".
+    Used when GROUP_TV_DISCS_UNDER_SERIES is enabled.
+
+    :param job: Job object
+    :return: Parent folder name string
+    """
+    return job.formatted_title
+
+
+def get_tv_folder_name(job):
+    """Generate TV series folder name based on configuration.
+
+    If USE_DISC_LABEL_FOR_TV is enabled and disc label parsing succeeds:
+        Returns: "{normalized_series_name}_{disc_identifier}" e.g. "Breaking_Bad_S1D1"
+    Otherwise, falls back to standard naming via formatted_title.
+
+    :param job: Job object containing title, label, year, etc.
+    :return: Folder name string
+    """
+    use_disc_label = getattr(job.config, 'USE_DISC_LABEL_FOR_TV', False) if hasattr(job, 'config') else False
+
+    if not use_disc_label:
+        return job.formatted_title
+
+    if job.video_type != "series":
+        return job.formatted_title
+
+    series_name = job.title_manual if job.title_manual else job.title
+    if not series_name:
+        logging.warning("No series title available, falling back to standard naming")
+        return ""
+
+    disc_identifier = parse_disc_label_for_identifiers(job.label)
+    if disc_identifier:
+        normalized_name = normalize_series_name(series_name)
+        folder_name = f"{normalized_name}_{disc_identifier}"
+        logging.info(f"Using disc label-based folder name: '{folder_name}' "
+                     f"(from series '{series_name}' and label '{job.label}')")
+        return folder_name
+
+    logging.info(f"Could not parse disc identifier from label '{job.label}', "
+                 f"falling back to standard naming")
+    return job.formatted_title
 
 
 def check_for_dupe_folder(have_dupes, hb_out_path, job):
