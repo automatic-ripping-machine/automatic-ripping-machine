@@ -319,6 +319,14 @@ def generate_comments():
     return comments
 
 
+def _format_yaml_value(key, value):
+    """Format a single key-value pair as a YAML line."""
+    try:
+        return f"{key}: {int(value)}\n"
+    except ValueError:
+        return config_utils.arm_yaml_test_bool(key, value)
+
+
 def build_arm_cfg(form_data, comments):
     """
     Main function for saving new updated arm.yaml\n
@@ -329,34 +337,18 @@ def build_arm_cfg(form_data, comments):
     arm_cfg = comments['ARM_CFG_GROUPS']['BEGIN'] + "\n\n"
     log.debug("save_settings: START")
     for key, value in form_data.items():
-        # Strip whitespace from all values
-        value = value.strip() if isinstance(value, str) else value
-        # Skip the Cross Site Request Forgery (CSRF) token
         if key == "csrf_token":
             continue
-        if isinstance(value, str):
-            value = value.strip()
-        # Check if value contains "KEY" or "API" (any case)
-        if re.search(r"_KEY|_API|_PASSWORD", key):
-            key_value = "####--redacted--####"
-        else:
-            key_value = value
+        value = value.strip() if isinstance(value, str) else value
+        key_value = "####--redacted--####" if re.search(r"_KEY|_API|_PASSWORD", key) else value
         log.debug(f"save_settings: [{key}] = {key_value} ")
 
-        # Add any grouping comments
         arm_cfg += config_utils.arm_yaml_check_groups(comments, key)
-        # Check for comments for this key in comments.json, add them if they exist
         try:
             arm_cfg += "\n" + comments[str(key)] + "\n" if comments[str(key)] != "" else ""
         except KeyError:
             arm_cfg += "\n"
-        # test if key value is an int
-        try:
-            post_value = int(value)
-            arm_cfg += f"{key}: {post_value}\n"
-        except ValueError:
-            # Test if value is Boolean
-            arm_cfg += config_utils.arm_yaml_test_bool(key, value)
+        arm_cfg += _format_yaml_value(key, value)
 
     log.debug("save_settings: FINISH")
     return arm_cfg

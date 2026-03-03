@@ -181,6 +181,31 @@ def _dir_size(path: Path) -> int:
     return total
 
 
+def _compute_parent(resolved_str, roots):
+    """Return parent path or None if at a root."""
+    for root_path in roots.values():
+        if resolved_str != root_path and resolved_str.startswith(root_path + os.sep):
+            return str(Path(resolved_str).parent)
+    return None
+
+
+def _build_entry(item, st):
+    """Build a directory entry dict from a Path and its stat result."""
+    is_dir = item.is_dir()
+    owner, group = _get_owner_group(st)
+    return {
+        'name': item.name,
+        'type': 'directory' if is_dir else 'file',
+        'size': _dir_size(item) if is_dir else st.st_size,
+        'modified': datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
+        'extension': '' if is_dir else item.suffix.lstrip('.').lower(),
+        'category': 'directory' if is_dir else classify_file(item.name),
+        'permissions': _format_permissions(st.st_mode),
+        'owner': owner,
+        'group': group,
+    }
+
+
 def list_directory(path: str) -> dict:
     """List contents of a validated directory.
 
@@ -194,42 +219,20 @@ def list_directory(path: str) -> dict:
     if not resolved.is_dir():
         raise NotADirectoryError(f"Not a directory: {path}")
 
-    # Compute parent (None if at a root)
-    parent = None
-    roots = get_allowed_roots()
     resolved_str = str(resolved)
-    for root_path in roots.values():
-        if resolved_str != root_path and resolved_str.startswith(root_path + os.sep):
-            parent = str(resolved.parent)
-            break
+    parent = _compute_parent(resolved_str, get_allowed_roots())
 
     entries = []
     try:
         for item in resolved.iterdir():
             try:
-                st = item.stat()
-                owner, group = _get_owner_group(st)
-                entry = {
-                    'name': item.name,
-                    'type': 'directory' if item.is_dir() else 'file',
-                    'size': st.st_size if item.is_file() else _dir_size(item),
-                    'modified': datetime.fromtimestamp(
-                        st.st_mtime, tz=timezone.utc
-                    ).isoformat(),
-                    'extension': item.suffix.lstrip('.').lower() if item.is_file() else '',
-                    'category': 'directory' if item.is_dir() else classify_file(item.name),
-                    'permissions': _format_permissions(st.st_mode),
-                    'owner': owner,
-                    'group': group,
-                }
-                entries.append(entry)
+                entries.append(_build_entry(item, item.stat()))
             except (PermissionError, OSError) as exc:
                 log.debug("Skipping inaccessible entry %s: %s", item, exc)
     except PermissionError as exc:
         log.error("Cannot list directory %s: %s", resolved, exc)
         raise
 
-    # Sort: directories first, then files, both alphabetically
     entries.sort(key=lambda e: (0 if e['type'] == 'directory' else 1, e['name'].lower()))
 
     return {

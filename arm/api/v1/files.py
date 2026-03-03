@@ -8,6 +8,9 @@ from arm.services import file_browser
 
 log = logging.getLogger(__name__)
 
+_ACCESS_DENIED = "Access denied"
+_PATH_NOT_FOUND = "Path not found"
+
 router = APIRouter(prefix="/api/v1", tags=["files"])
 
 
@@ -23,9 +26,9 @@ def list_directory(path: str = Query(..., description="Directory path to list"))
     try:
         return file_browser.list_directory(path)
     except ValueError:
-        return JSONResponse({"success": False, "error": "Access denied"}, status_code=403)
+        return JSONResponse({"success": False, "error": _ACCESS_DENIED}, status_code=403)
     except FileNotFoundError:
-        return JSONResponse({"success": False, "error": "Path not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _PATH_NOT_FOUND}, status_code=404)
     except NotADirectoryError:
         return JSONResponse({"success": False, "error": "Not a directory"}, status_code=400)
     except OSError as exc:
@@ -47,9 +50,9 @@ async def rename_item(request: Request):
     try:
         return file_browser.rename_item(path, new_name)
     except ValueError:
-        return JSONResponse({"success": False, "error": "Access denied"}, status_code=403)
+        return JSONResponse({"success": False, "error": _ACCESS_DENIED}, status_code=403)
     except FileNotFoundError:
-        return JSONResponse({"success": False, "error": "Path not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _PATH_NOT_FOUND}, status_code=404)
     except FileExistsError:
         return JSONResponse({"success": False, "error": "Target already exists"}, status_code=409)
     except OSError as exc:
@@ -71,9 +74,9 @@ async def move_item(request: Request):
     try:
         return file_browser.move_item(path, destination)
     except ValueError:
-        return JSONResponse({"success": False, "error": "Access denied"}, status_code=403)
+        return JSONResponse({"success": False, "error": _ACCESS_DENIED}, status_code=403)
     except FileNotFoundError:
-        return JSONResponse({"success": False, "error": "Path not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _PATH_NOT_FOUND}, status_code=404)
     except (NotADirectoryError, FileExistsError):
         return JSONResponse({"success": False, "error": "Target already exists or is not a directory"}, status_code=409)
     except OSError as exc:
@@ -95,9 +98,9 @@ async def create_directory(request: Request):
     try:
         return file_browser.create_directory(path, name)
     except ValueError:
-        return JSONResponse({"success": False, "error": "Access denied"}, status_code=403)
+        return JSONResponse({"success": False, "error": _ACCESS_DENIED}, status_code=403)
     except FileNotFoundError:
-        return JSONResponse({"success": False, "error": "Path not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _PATH_NOT_FOUND}, status_code=404)
     except (NotADirectoryError, FileExistsError):
         return JSONResponse({"success": False, "error": "Directory already exists or parent is not a directory"}, status_code=409)
     except OSError as exc:
@@ -118,9 +121,9 @@ async def fix_permissions(request: Request):
     try:
         return file_browser.fix_item_permissions(path)
     except ValueError:
-        return JSONResponse({"success": False, "error": "Access denied"}, status_code=403)
+        return JSONResponse({"success": False, "error": _ACCESS_DENIED}, status_code=403)
     except FileNotFoundError:
-        return JSONResponse({"success": False, "error": "Path not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _PATH_NOT_FOUND}, status_code=404)
     except OSError as exc:
         log.error("Error fixing permissions on %s: %s", path, exc)
         return JSONResponse({"success": False, "error": "Failed to fix permissions"}, status_code=500)
@@ -139,9 +142,9 @@ async def delete_item(request: Request):
     try:
         return file_browser.delete_item(path)
     except ValueError:
-        return JSONResponse({"success": False, "error": "Access denied"}, status_code=403)
+        return JSONResponse({"success": False, "error": _ACCESS_DENIED}, status_code=403)
     except FileNotFoundError:
-        return JSONResponse({"success": False, "error": "Path not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _PATH_NOT_FOUND}, status_code=404)
     except OSError as exc:
         log.error("Error deleting %s: %s", path, exc)
         return JSONResponse({"success": False, "error": "Failed to delete item"}, status_code=500)

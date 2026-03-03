@@ -5,9 +5,11 @@ Variables are extracted from Job fields, preferring manual over auto values.
 """
 import re
 
+_TITLE_YEAR_PATTERN = '{title} ({year})'
+
 DEFAULTS = {
-    'MOVIE_TITLE_PATTERN':  '{title} ({year})',
-    'MOVIE_FOLDER_PATTERN': '{title} ({year})',
+    'MOVIE_TITLE_PATTERN':  _TITLE_YEAR_PATTERN,
+    'MOVIE_FOLDER_PATTERN': _TITLE_YEAR_PATTERN,
     'TV_TITLE_PATTERN':     '{title} S{season}E{episode}',
     'TV_FOLDER_PATTERN':    '{title}/Season {season}',
     'MUSIC_TITLE_PATTERN':  '{artist} - {album}',
@@ -95,7 +97,7 @@ def _get_pattern(config_dict, video_type, kind):
     key = f'{prefix}_{kind}_PATTERN'
     pattern = config_dict.get(key) if config_dict else None
     if not pattern:
-        pattern = DEFAULTS.get(key, '{title} ({year})')
+        pattern = DEFAULTS.get(key, _TITLE_YEAR_PATTERN)
     return pattern
 
 

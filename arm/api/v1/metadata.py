@@ -47,7 +47,7 @@ async def search_music_metadata(
     )
 
 
-@router.get("/music/{release_id}")
+@router.get("/music/{release_id}", responses={404: {"description": "Release not found"}})
 async def get_music_detail(release_id: str):
     """Fetch full release details from MusicBrainz by release MBID."""
     log.debug("GET /metadata/music/%s", release_id)
@@ -82,7 +82,7 @@ async def crc_lookup_endpoint(crc64: str):
 # --- Search (no path param conflict) ---
 
 
-@router.get("/search")
+@router.get("/search", responses={503: {"description": "Metadata provider not configured"}})
 async def search_metadata(
     q: str = Query(..., min_length=1),
     year: str | None = None,
@@ -99,7 +99,7 @@ async def search_metadata(
 # --- IMDb detail catch-all (LAST) ---
 
 
-@router.get("/{imdb_id}")
+@router.get("/{imdb_id}", responses={404: {"description": "Title not found"}, 503: {"description": "Metadata provider not configured"}})
 async def get_media_detail(imdb_id: str):
     """Fetch full details for a title by IMDb ID."""
     log.debug("GET /metadata/%s", imdb_id)

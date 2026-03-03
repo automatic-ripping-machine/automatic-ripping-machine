@@ -99,6 +99,27 @@ def notify(job, title: str, body: str):
             logging.error(f"Failed sending apprise notifications. {error}")
 
 
+def _build_job_env(job):
+    """Build ARM_* environment variables from a job object."""
+    env = {
+        'ARM_JOB_ID': str(job.job_id or ''),
+        'ARM_TITLE': str(job.title or ''),
+        'ARM_TITLE_AUTO': str(job.title_auto or ''),
+        'ARM_YEAR': str(job.year or ''),
+        'ARM_VIDEO_TYPE': str(job.video_type or ''),
+        'ARM_DISCTYPE': str(job.disctype or ''),
+        'ARM_LABEL': str(job.label or ''),
+        'ARM_STATUS': str(job.status or ''),
+        'ARM_PATH': str(job.path or ''),
+        'ARM_RAW_PATH': str(job.raw_path or ''),
+        'ARM_TRANSCODE_PATH': str(job.transcode_path or ''),
+    }
+    if job.config:
+        env['ARM_RAW_PATH_BASE'] = str(getattr(job.config, 'RAW_PATH', '') or '')
+        env['ARM_COMPLETED_PATH_BASE'] = str(getattr(job.config, 'COMPLETED_PATH', '') or '')
+    return env
+
+
 def bash_notify(cfg, title, body, job=None):
     """Run BASH_SCRIPT with notification data.
     Positional args ($1=title, $2=body) preserved for backward compatibility.
@@ -107,64 +128,33 @@ def bash_notify(cfg, title, body, job=None):
         try:
             env = os.environ.copy()
             if job is not None:
-                env['ARM_JOB_ID'] = str(job.job_id or '')
-                env['ARM_TITLE'] = str(job.title or '')
-                env['ARM_TITLE_AUTO'] = str(job.title_auto or '')
-                env['ARM_YEAR'] = str(job.year or '')
-                env['ARM_VIDEO_TYPE'] = str(job.video_type or '')
-                env['ARM_DISCTYPE'] = str(job.disctype or '')
-                env['ARM_LABEL'] = str(job.label or '')
-                env['ARM_STATUS'] = str(job.status or '')
-                env['ARM_PATH'] = str(job.path or '')
-                env['ARM_RAW_PATH'] = str(job.raw_path or '')
-                env['ARM_TRANSCODE_PATH'] = str(job.transcode_path or '')
-                if job.config:
-                    env['ARM_RAW_PATH_BASE'] = str(getattr(job.config, 'RAW_PATH', '') or '')
-                    env['ARM_COMPLETED_PATH_BASE'] = str(getattr(job.config, 'COMPLETED_PATH', '') or '')
+                env.update(_build_job_env(job))
             subprocess.run(["/usr/bin/env", "bash", cfg['BASH_SCRIPT'], title, body], env=env)
             logging.debug("Sent bash notification successful")
         except Exception as error:  # noqa: E722
             logging.error(f"Failed sending notification via bash. Continuing  processing...{error}")
 
 
-def transcoder_notify(cfg, title, body, job=None):
-    """Send a webhook notification to the arm-transcoder service.
-    If LOCAL_RAW_PATH and SHARED_RAW_PATH are both set, moves the job's
-    raw directory from local to shared storage before notifying."""
-    # Skip webhook for setup failures (no job) or uncommitted jobs
-    # (job created but not yet persisted to DB — e.g. duplicate_run_check).
-    if job is None or getattr(job, 'job_id', None) is None:
-        return
-
-    transcoder_url = cfg.get('TRANSCODER_URL', '')
-    if not transcoder_url:
-        return
-
-    # Move files from local scratch to shared storage if configured
+def _move_to_shared_storage(cfg, raw_basename):
+    """Move raw directory from local scratch to shared storage if configured."""
     local_raw = cfg.get('LOCAL_RAW_PATH', '')
     shared_raw = cfg.get('SHARED_RAW_PATH', '')
-    raw_basename = ''
+    if not (local_raw and shared_raw and raw_basename):
+        return
+    src = os.path.join(local_raw, raw_basename)
+    dst = os.path.join(shared_raw, raw_basename)
+    if os.path.isdir(src):
+        try:
+            os.makedirs(shared_raw, exist_ok=True)
+            shutil.move(src, dst)
+            logging.info(f"Moved {src} -> {dst}")
+        except OSError as e:
+            logging.error(f"Failed to move {src} -> {dst}: {e}")
 
-    if job is not None and job.raw_path:
-        raw_basename = os.path.basename(str(job.raw_path))
 
-    if local_raw and shared_raw and raw_basename:
-        src = os.path.join(local_raw, raw_basename)
-        dst = os.path.join(shared_raw, raw_basename)
-        if os.path.isdir(src):
-            try:
-                os.makedirs(shared_raw, exist_ok=True)
-                shutil.move(src, dst)
-                logging.info(f"Moved {src} -> {dst}")
-            except OSError as e:
-                logging.error(f"Failed to move {src} -> {dst}: {e}")
-
-    # Build payload
-    payload = {
-        "title": title,
-        "body": body,
-        "type": "info",
-    }
+def _build_webhook_payload(title, body, job, raw_basename):
+    """Build the JSON payload for the transcoder webhook."""
+    payload = {"title": title, "body": body, "type": "info"}
     if raw_basename:
         payload["path"] = raw_basename
     if job is not None:
@@ -179,8 +169,24 @@ def transcoder_notify(cfg, title, body, job=None):
                 payload["config_overrides"] = json.loads(job.transcode_overrides)
             except (json.JSONDecodeError, TypeError):
                 pass
+    return payload
 
-    # Send webhook
+
+def transcoder_notify(cfg, title, body, job=None):
+    """Send a webhook notification to the arm-transcoder service.
+    If LOCAL_RAW_PATH and SHARED_RAW_PATH are both set, moves the job's
+    raw directory from local to shared storage before notifying."""
+    if job is None or getattr(job, 'job_id', None) is None:
+        return
+
+    transcoder_url = cfg.get('TRANSCODER_URL', '')
+    if not transcoder_url:
+        return
+
+    raw_basename = os.path.basename(str(job.raw_path)) if job.raw_path else ''
+    _move_to_shared_storage(cfg, raw_basename)
+
+    payload = _build_webhook_payload(title, body, job, raw_basename)
     headers = {"Content-Type": "application/json"}
     secret = cfg.get('TRANSCODER_WEBHOOK_SECRET', '')
     if secret:
@@ -724,6 +730,19 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
     return hb_out_path
 
 
+def _apply_previous_rip(result, job):
+    """Apply metadata from a previous successful rip to the current job."""
+    title = result['title'] if result['title'] else job.label
+    year = extract_year(result['year']) if result['year'] != "" else ""
+    poster_url = result['poster_url'] if result['poster_url'] != "" else None
+    hasnicetitle = (str(result['hasnicetitle']).lower() == 'true')
+    video_type = result['video_type'] if result['hasnicetitle'] != "" else "unknown"
+    database_updater({
+        "title": title, "year": year, "poster_url": poster_url,
+        "hasnicetitle": hasnicetitle, "video_type": video_type,
+    }, job)
+
+
 def job_dupe_check(job):
     """
     function for checking the database to look for jobs that have completed
@@ -735,40 +754,24 @@ def job_dupe_check(job):
     if job.label is None:
         logging.info("Disc title 'None' not searched in database")
         return False
-    else:
-        previous_rips = Job.query.filter_by(label=job.label, status=JobState.SUCCESS.value)
-        results = {}
-        i = 0
-        for j in previous_rips:
-            # logging.debug(f"job obj= {j.get_d()}")
-            job_dict = j.get_d().items()
-            results[i] = {}
-            for key, value in iter(job_dict):
-                results[i][str(key)] = str(value)
-            i += 1
 
-    # logging.debug(f"previous rips = {results}")
-    if results:
-        logging.debug(f"we have {len(results)} jobs")
-        # Check if results too large (over 1), skip if too many
-        if len(results) == 1:
-            # This might need some tweaks to because of title/year manual
-            title = results[0]['title'] if results[0]['title'] else job.label
-            year = extract_year(results[0]['year']) if results[0]['year'] != "" else ""
-            poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
-            hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
-            video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
-            active_rip = {
-                "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
-                "video_type": video_type}
-            database_updater(active_rip, job)
-            return True
-        else:
-            logging.debug(f"Skipping - There are too many results [{len(results)}]")
-            return False
-    else:
+    previous_rips = Job.query.filter_by(label=job.label, status=JobState.SUCCESS.value)
+    results = [
+        {str(k): str(v) for k, v in j.get_d().items()}
+        for j in previous_rips
+    ]
+
+    if not results:
         logging.info("We have no previous rips/jobs matching this label")
         return False
+
+    logging.debug(f"we have {len(results)} jobs")
+    if len(results) != 1:
+        logging.debug(f"Skipping - There are too many results [{len(results)}]")
+        return False
+
+    _apply_previous_rip(results[0], job)
+    return True
 
 
 def is_ripping_paused():
@@ -787,6 +790,38 @@ def is_ripping_paused():
         return False
 
 
+def _poll_manual_wait(job):
+    """Poll loop for manual wait. Returns when the job should proceed."""
+    sleep_time = 0
+    while True:
+        time.sleep(5)
+        sleep_time += 5
+        db.session.refresh(job)
+
+        if job.status != JobState.MANUAL_WAIT_STARTED.value:
+            logging.info("Job status changed externally (cancelled). Aborting wait.")
+            raise RipperException("Job was cancelled during manual wait.")
+
+        paused_now = is_ripping_paused()
+        job_paused = getattr(job, 'manual_pause', False) or False
+
+        if job.manual_start:
+            logging.info("Manual start triggered by user.")
+            return
+
+        if job_paused:
+            continue
+
+        if job.title_manual and not paused_now:
+            logging.info("Manual override found.  Overriding auto identification values.")
+            database_updater({"hasnicetitle": True, "updated": True}, job)
+            return
+
+        if not paused_now and sleep_time >= job.config.MANUAL_WAIT_TIME:
+            logging.info("Manual wait time expired. Proceeding.")
+            return
+
+
 def check_for_wait(job):
     """
     Wait if we have waiting for user input updates\n\n
@@ -794,52 +829,16 @@ def check_for_wait(job):
     :return: None
     """
     globally_paused = is_ripping_paused()
-    should_wait = job.config.MANUAL_WAIT or globally_paused
+    if not (job.config.MANUAL_WAIT or globally_paused):
+        return
 
-    if should_wait:
-        if globally_paused:
-            logging.info("Global ripping paused. Waiting for manual start.")
-        else:
-            logging.info(f"Waiting {job.config.MANUAL_WAIT_TIME} seconds for manual override.")
-        database_updater({"status": JobState.MANUAL_WAIT_STARTED.value}, job)
-        sleep_time = 0
-        while True:
-            time.sleep(5)
-            sleep_time += 5
-            db.session.refresh(job)
-
-            # Check if job was cancelled externally
-            if job.status != JobState.MANUAL_WAIT_STARTED.value:
-                logging.info("Job status changed externally (cancelled). Aborting wait.")
-                raise RipperException("Job was cancelled during manual wait.")
-
-            # Re-check global pause and per-job pause each iteration
-            paused_now = is_ripping_paused()
-            job_paused = getattr(job, 'manual_pause', False) or False
-
-            # User clicked "Start Ripping" — always honour, even when paused
-            if job.manual_start:
-                logging.info("Manual start triggered by user.")
-                break
-
-            # Per-job pause — hold this job indefinitely
-            if job_paused:
-                continue
-
-            # User changed title — only proceed if not globally paused
-            if job.title_manual and not paused_now:
-                logging.info("Manual override found.  Overriding auto identification values.")
-                job.updated = True
-                job.hasnicetitle = True
-                database_updater({"hasnicetitle": True, "updated": True}, job)
-                break
-
-            # Timeout only applies when not globally paused
-            if not paused_now and sleep_time >= job.config.MANUAL_WAIT_TIME:
-                logging.info("Manual wait time expired. Proceeding.")
-                break
-
-        database_updater({"status": JobState.IDLE.value}, job)
+    if globally_paused:
+        logging.info("Global ripping paused. Waiting for manual start.")
+    else:
+        logging.info(f"Waiting {job.config.MANUAL_WAIT_TIME} seconds for manual override.")
+    database_updater({"status": JobState.MANUAL_WAIT_STARTED.value}, job)
+    _poll_manual_wait(job)
+    database_updater({"status": JobState.IDLE.value}, job)
 
 
 def get_drive_mode(devpath: str) -> str:

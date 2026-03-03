@@ -100,46 +100,47 @@ def apprise_notify(apprise_cfg, title, body):
     ntfy_notify(cfg, title, body)
 
 
+def _build_ntfy_url(cfg):
+    """Build the ntfy:// Apprise URL from config fields."""
+    host = cfg['NTFY_URL']
+    scheme = 'ntfy://'
+
+    if host.startswith("https://"):
+        scheme = 'ntfys://'
+        host = host.replace("https://", "")
+    if host.startswith("http://"):
+        host = host.replace("http://", "")
+
+    # Auth segment
+    user, passwd = cfg['NTFY_USER'], cfg['NTFY_PASS']
+    if user and passwd and host:
+        url = scheme + user + ':' + passwd + '@' + host
+    elif user and host:
+        url = scheme + user + '@' + host
+    elif host:
+        url = scheme + host
+    else:
+        url = scheme
+
+    # Port / trailing slash
+    if host and cfg['NTFY_PORT']:
+        url += ':' + cfg['NTFY_PORT'] + '/'
+    elif url != 'ntfy://':
+        url += '/'
+
+    return url + cfg['NTFY_TOPIC']
+
+
 def ntfy_notify(cfg, title, body):
     # ntfy can require additional processing to make https work.
     # In addition, there are multiple available valid schemes.
     if cfg['NTFY_TOPIC'] != "":
         try:
-            apobj = apprise.Apprise()
-            ntfy_serverstring = 'ntfy://'
-
-            host = cfg['NTFY_URL']
-
-            if host.startswith("https://"):
-                ntfy_serverstring = 'ntfys://'
-                host = host.replace("https://", "")
-
-            if host.startswith("http://"):
-                host = host.replace("http://", "")
-
-            if cfg['NTFY_USER'] != "" and cfg['NTFY_PASS'] != "" and host != "":
-                ntfy_serverstring += cfg['NTFY_USER'] + ':' + cfg['NTFY_PASS'] + '@' + host
-
-            elif cfg['NTFY_USER'] != "" and host != "":
-                ntfy_serverstring += cfg['NTFY_USER'] + '@' + host
-
-            elif host != "":
-                ntfy_serverstring += host
-
-            if host != "" and cfg['NTFY_PORT'] != "":
-                ntfy_serverstring += ':' + cfg['NTFY_PORT'] + '/'
-            else:
-                if ntfy_serverstring != 'ntfy://':
-                    ntfy_serverstring += '/'
-
-            ntfy_serverstring += cfg['NTFY_TOPIC']
-
+            ntfy_serverstring = _build_ntfy_url(cfg)
             print(ntfy_serverstring)
+            apobj = apprise.Apprise()
             apobj.add(ntfy_serverstring)
-            apobj.notify(
-                body,
-                title=title,
-            )
+            apobj.notify(body, title=title)
             logging.debug("Sent apprise to ntfy was successful")
         except Exception as error:  # noqa: E722
             logging.error(f"Failed sending ntfy apprise notification. Continuing  processing...{error}")

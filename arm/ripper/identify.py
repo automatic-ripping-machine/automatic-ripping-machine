@@ -254,6 +254,27 @@ def _apply_label_as_title(job):
 
 # ── Main entry point ───────────────────────────────────────────────────
 
+def _identify_video_title(job):
+    """Run phases 2-5 of video identification."""
+    resolve_disc_label(job)
+
+    if job.disctype == "dvd":
+        identify_dvd(job)
+    elif job.disctype in ("bluray", "bluray4k"):
+        identify_bluray(job)
+
+    if not job.hasnicetitle:
+        _search_metadata(job)
+
+    if job.title is None or job.title == "None" or job.title == "":
+        _apply_label_as_title(job)
+
+    logging.info(f"Disc title Post ident -  title:{job.title} "
+                 f"year:{job.year} video_type:{job.video_type} "
+                 f"disctype: {job.disctype}")
+    logging.debug(f"identify.job.end ---- \n\r{job.pretty_table()}")
+
+
 def identify(job):
     """Identify disc attributes.
 
@@ -270,38 +291,14 @@ def identify(job):
     mounted = check_mount(job)
 
     try:
-        # Phase 1: Mount + detect disc type
         if mounted:
             job.get_disc_type(utils.find_file("HVDVD_TS", job.mountpoint))
 
         if job.disctype in ["dvd", "bluray", "bluray4k"]:
-
             logging.info("Disc identified as video")
-
             if cfg.arm_config["GET_VIDEO_TITLE"]:
-                # Phase 2: Resolve label from all sources
-                resolve_disc_label(job)
-
-                # Phase 3: Disc-specific identification
-                if job.disctype == "dvd":
-                    identify_dvd(job)
-                elif job.disctype in ("bluray", "bluray4k"):
-                    identify_bluray(job)
-
-                # Phase 4: Search metadata APIs if not yet identified
-                if not job.hasnicetitle:
-                    _search_metadata(job)
-
-                # Phase 5: Last resort — use cleaned label as title
-                if job.title is None or job.title == "None" or job.title == "":
-                    _apply_label_as_title(job)
-
-                logging.info(f"Disc title Post ident -  title:{job.title} "
-                             f"year:{job.year} video_type:{job.video_type} "
-                             f"disctype: {job.disctype}")
-                logging.debug(f"identify.job.end ---- \n\r{job.pretty_table()}")
+                _identify_video_title(job)
     finally:
-        # Always unmount after identification, even on error (#1664)
         result = subprocess.run(["umount", job.devpath],
                                 stderr=subprocess.PIPE, text=True)
         if result.returncode != 0 and result.stderr:

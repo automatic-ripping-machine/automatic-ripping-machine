@@ -214,6 +214,67 @@ def drives_search():
             log.error("Error processing device %s: %s", device, e, exc_info=True)
 
 
+def _detect_drives(startup):
+    """Search for system drives, retrying at startup for udev to settle."""
+    system_drives = sorted(drives_search())
+    if startup and not system_drives:
+        for attempt in range(1, 4):
+            delay = attempt * 5
+            logging.info(
+                "No drives detected at startup (attempt %d/3). "
+                "Retrying in %ds for udev to settle...", attempt, delay,
+            )
+            time.sleep(delay)
+            system_drives = sorted(drives_search())
+            if system_drives:
+                break
+    return system_drives
+
+
+def _find_or_create_drive(drive):
+    """Find an existing DB drive matching the detected drive, or create a new one."""
+    if drive.serial_id:
+        db_drive = (SystemDrives.query
+                    .filter_by(serial_id=drive.serial_id, stale=True)
+                    .order_by(SystemDrives.mount).first())
+        if db_drive:
+            log.debug("Update drive '%s' by serial.", drive.serial_id)
+            return db_drive
+    if drive.location:
+        db_drive = SystemDrives.query.filter_by(location=drive.location, stale=True).first()
+        if db_drive:
+            log.debug("Update drive '%s' by location '%s'.", drive.serial_id, drive.location)
+            return db_drive
+    db_drive = SystemDrives.query.filter_by(mount=drive.mount).first()
+    if db_drive:
+        log.debug("Update drive '%s' by mount path.", drive.mount)
+        return db_drive
+    log.debug("Create a new drive entity in the database for '%s' on '%s'.",
+              drive.serial_id, drive.mount)
+    db_drive = SystemDrives()
+    db_drive.name = drive.serial_id or ""
+    db.session.add(db_drive)
+    return db_drive
+
+
+def _cleanup_stale_drives():
+    """Clear stale drives that have no active jobs. Returns count of unavailable drives."""
+    stale_count = 0
+    for stale_drive in SystemDrives.query.filter_by(stale=True).all():
+        log.warning("Drive '%s' on '%s' is not available.", stale_drive.serial_id, stale_drive.mount)
+        if stale_drive.processing:
+            log.warning(f"Drive '{stale_drive.mount}' has an active job and might be blocked.")
+            stale_drive.stale = False
+        else:
+            stale_drive.mount = ""
+            stale_drive.location = ""
+            stale_drive.mdisc = None
+            stale_count += 1
+        db.session.commit()
+        stale_drive.debug(logger=log)
+    return stale_count
+
+
 def drives_update(startup=False):
     """
     scan the system for new cd/dvd/Blu-ray drives and update the database
@@ -227,73 +288,25 @@ def drives_update(startup=False):
             db_drive.mdisc = None
     db.session.commit()
 
-    # Update drive information:
-    system_drives = sorted(drives_search())
-    if startup and len(system_drives) < 1:
-        for attempt in range(1, 4):
-            delay = attempt * 5
-            logging.info(
-                "No drives detected at startup (attempt %d/3). "
-                "Retrying in %ds for udev to settle...", attempt, delay,
-            )
-            time.sleep(delay)
-            system_drives = sorted(drives_search())
-            if system_drives:
-                break
-    if len(system_drives) < 1:
+    system_drives = _detect_drives(startup)
+    if not system_drives:
         logging.error(f"We Cant find any system drives!. {system_drives}")
+
     for drive in system_drives:
         logging.debug(f"Drive info: {drive}")
-        if drive.serial_id and (
-            db_drive := SystemDrives.query
-            .filter_by(serial_id=drive.serial_id, stale=True)
-            .order_by(SystemDrives.mount)
-            .first()
-        ):
-            log.debug("Update drive '%s' by serial.", drive.serial_id)
-        elif drive.location and (
-            db_drive := SystemDrives.query.filter_by(location=drive.location, stale=True).first()
-        ):
-            log.debug("Update drive '%s' by location '%s'.", drive.serial_id, drive.location)
-        elif db_drive := SystemDrives.query.filter_by(mount=drive.mount).first():
-            log.debug("Update drive '%s' by mount path.", drive.mount)
-        else:
-            msg = "Create a new drive entity in the database for '%s' on '%s'."
-            log.debug(msg, drive.serial_id, drive.mount)
-            db_drive = SystemDrives()
-            db_drive.name = drive.serial_id or ""
-            db.session.add(db_drive)
+        db_drive = _find_or_create_drive(drive)
         db_drive.update(drive)
         db.session.commit()
         db_drive.debug(logger=log)
 
-        conflicting_drives = (
-            SystemDrives
-            .query
-            .filter(
-                SystemDrives.drive_id != db_drive.drive_id,
-                SystemDrives.mount == db_drive.mount,
-            )
-        )
-        for conflicting_drive in conflicting_drives.all():
+        for conflicting_drive in SystemDrives.query.filter(
+            SystemDrives.drive_id != db_drive.drive_id,
+            SystemDrives.mount == db_drive.mount,
+        ).all():
             conflicting_drive.mount = ""
         db.session.commit()
 
-    # remove and log stale mount points
-    stale_count = 0
-    for stale_drive in SystemDrives.query.filter_by(stale=True).all():
-        msg = "Drive '%s' on '%s' is not available."
-        log.warning(msg, stale_drive.serial_id, stale_drive.mount)
-        if stale_drive.processing:
-            log.warning(f"Drive '{stale_drive.mount}' has an active job and might be blocked.")
-            stale_drive.stale = False
-        else:
-            stale_drive.mount = ""
-            stale_drive.location = ""
-            stale_drive.mdisc = None
-            stale_count += 1
-        db.session.commit()
-        stale_drive.debug(logger=log)
+    stale_count = _cleanup_stale_drives()
     if stale_count > 0:
         log.info("%d drives are unavailable.", stale_count)
 

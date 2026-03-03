@@ -135,139 +135,102 @@ def get_disc_info(job, discid: str) -> str:
     return disc_info
 
 
+def _build_music_args(job_id, crc_id, artist, title, year, no_of_titles):
+    """Build the database update args dict for music metadata."""
+    artist_title = artist + " " + title
+    return {
+        'job_id': str(job_id),
+        'crc_id': crc_id,
+        'hasnicetitle': True,
+        'video_type': 'music',
+        'video_type_auto': 'music',
+        'year': str(year),
+        'year_auto': str(year),
+        'title': artist_title,
+        'title_auto': artist_title,
+        'no_of_titles': no_of_titles,
+        'artist': artist,
+        'artist_auto': artist,
+        'album': title,
+        'album_auto': title,
+    }, artist_title
+
+
+def _find_cd_release(release_list):
+    """Find the first CD-format release in a release list. Returns (index, medium_list) or None."""
+    for i, release in enumerate(release_list):
+        medium_list = release.get('medium-list', [])
+        if medium_list and medium_list[0].get('format') == "CD":
+            logging.info(f"Release [{i}] is a CD, tracking on...")
+            return i, medium_list
+        logging.debug(f"Checking release: [{i}] if CD")
+    return None
+
+
+def _process_disc_data(job, disc_info):
+    """Process full disc metadata from MusicBrainz. Returns artist_title or empty string."""
+    release_list = disc_info['disc'].get('release-list', [])
+    logging.debug(f"Number of releases: {len(release_list)}")
+
+    result = _find_cd_release(release_list)
+    if not result:
+        return ""
+
+    idx, medium_list = result
+    logging.debug("-" * 50)
+    process_tracks(job, medium_list[0].get('track-list'))
+    logging.debug("-" * 50)
+
+    release = disc_info['disc']['release-list'][idx]
+    new_year = check_date(release)
+    title = str(release.get('title', 'no title'))
+    artist = release['artist-credit'][0]['artist']['name']
+    no_of_titles = disc_info['disc']['offset-count']
+
+    args, artist_title = _build_music_args(
+        job.job_id, release['id'], artist, title, new_year, no_of_titles)
+    logging.info(f"CD args: {args}")
+    u.database_updater(args, job)
+    logging.debug(f"musicbrain works -  New title is {title}  New Year is: {new_year}")
+
+    logging.info(f"do have artwork?======{release['cover-art-archive']['artwork']}")
+    if get_cd_art(job, disc_info):
+        logging.debug("we got an art image")
+    else:
+        logging.debug("we didnt get art image")
+    return artist_title
+
+
 def check_musicbrainz_data(job, disc_info: dict) -> str:
     """
     Process MusicBrainz metadata for a disc or CD stub and update the job database.
 
-    This function inspects the given `disc_info` dictionary for either full disc metadata
-    or CD stub data. It extracts track information, album title, artist, release year,
-    and number of tracks. It also attempts to download cover art if available, and
-    updates the job's associated metadata in the database.
-
-    Parameters
-    ----------
-    job
-        The job object that contains the current disc processing context, including
-        logging and database update functionality.
-    disc_info : dict
-        A dictionary response from MusicBrainz containing metadata under either a
-        'disc' or 'cdstub' key.
-
-    Returns
-    -------
-    str
-        A combined artist and album title string if successful, or empty string
-        if no valid data was processed.
-
-    Notes
-    -----
-    - If 'disc' metadata is present, the function checks for a CD-format release and processes the first one.
-    - If only 'cdstub' metadata is available, it uses that limited data instead.
-    - Track data is passed to `process_tracks()` to record each entry.
-    - Album metadata is recorded using `u.database_updater()`.
-    - Attempts to retrieve album artwork if full release data is present.
-    - Returns a string containing the "Artist Title" if successful, otherwise False.
+    Returns a combined artist and album title string if successful, or empty string
+    if no valid data was processed.
     """
-
-    music_data = ""
-
-    # Check if valid disc or cdstub data present in data
-    # If not, stop and return an empty string
     if 'disc' not in disc_info and 'cdstub' not in disc_info:
         logging.error("No release information reported by MusicBrainz")
-        return music_data
+        return ""
 
     if 'disc' in disc_info:
         logging.info("Processing as a disc")
-        release_list = disc_info['disc'].get('release-list', [])
-        logging.debug(f"Number of releases: {len(release_list)}")
+        return _process_disc_data(job, disc_info)
 
-        # Check returned data has a release_list (album release info), otherwise return empty
-        if len(release_list) > 0:
-            # Loop through release data and find first that is a CD
-            for i in range(len(release_list)):
-                logging.debug(f"Checking release: [{i}] if CD")
-                medium_list = release_list[i].get('medium-list', [])
-                # Check that medium_list is valid (has data) and that we have returned a CD
-                # possible values are "12' Vinyl" or "CD" from testing
-                if medium_list and medium_list[0].get('format') == "CD":
-                    logging.info(f"Release [{i}] is a CD, tracking on...")
-                    logging.debug("-" * 50)
-                    process_tracks(job, medium_list[0].get('track-list'))
-                    logging.debug("-" * 50)
+    # cdstub — limited data, no release check needed
+    logging.info("Processing as a cdstub")
+    stub = disc_info['cdstub']
+    process_tracks(job, stub['track-list'], is_stub=True)
 
-                    # Update ARM with disc info
-                    release = disc_info['disc']['release-list'][i]
-                    new_year = check_date(release)
-                    title = str(release.get('title', 'no title'))
-                    artist = release['artist-credit'][0]['artist']['name']
-                    no_of_titles = disc_info['disc']['offset-count']
-                    artist_title = artist + " " + title
-                    # Set out release id as the CRC_ID
-                    args = {
-                        'job_id': str(job.job_id),
-                        'crc_id': release['id'],
-                        'hasnicetitle': True,
-                        'video_type': 'music',
-                        'video_type_auto': 'music',
-                        'year': str(new_year),
-                        'year_auto': str(new_year),
-                        'title': artist_title,
-                        'title_auto': artist_title,
-                        'no_of_titles': no_of_titles,
-                        'artist': artist,
-                        'artist_auto': artist,
-                        'album': title,
-                        'album_auto': title,
-                    }
-                    logging.info(f"CD args: {args}")
-                    u.database_updater(args, job)
-                    logging.debug(f"musicbrain works -  New title is {title}  New Year is: {new_year}")
+    title = str(stub['title'])
+    artist = stub['artist']
+    args, artist_title = _build_music_args(
+        job.job_id, stub['id'], artist, title, '', stub['track-count'])
+    logging.info(f"cdstub args: {args}")
+    u.database_updater(args, job)
+    logging.info("do have artwork?======No (cdstub)")
+    logging.debug(f"musicbrain works, but stubbed -  New title is {artist_title}")
 
-                    # Get album art work
-                    logging.info(f"do have artwork?======{release['cover-art-archive']['artwork']}")
-                    if get_cd_art(job, disc_info):
-                        logging.debug("we got an art image")
-                    else:
-                        logging.debug("we didnt get art image")
-                    music_data = artist_title
-
-    # Run if not a disc, but a cdstub (limited data)
-    # No check on release is done here, assuming cdstub is limited to CDs
-    elif 'cdstub' in disc_info:
-        logging.info("Processing as a cdstub")
-        process_tracks(job, disc_info['cdstub']['track-list'], is_stub=True)
-
-        # Update ARM with disc info
-        title = str(disc_info['cdstub']['title'])
-        artist = disc_info['cdstub']['artist']
-        no_of_titles = disc_info['cdstub']['track-count']
-        new_year = ''
-        artist_title = artist + " " + title
-        args = {
-            'job_id': str(job.job_id),
-            'crc_id': disc_info['cdstub']['id'],
-            'hasnicetitle': True,
-            'video_type': 'music',
-            'video_type_auto': 'music',
-            'year': new_year,
-            'year_auto': new_year,
-            'title': artist_title,
-            'title_auto': artist_title,
-            'no_of_titles': no_of_titles,
-            'artist': artist,
-            'artist_auto': artist,
-            'album': title,
-            'album_auto': title,
-        }
-        logging.info(f"cdstub args: {args}")
-        u.database_updater(args, job)
-        logging.info("do have artwork?======No (cdstub)")
-        logging.debug(f"musicbrain works, but stubbed -  New title is {artist_title}")
-
-        music_data = artist_title
-
-    return music_data
+    return artist_title
 
 
 def check_date(release: dict) -> str:
@@ -432,7 +395,7 @@ def get_cd_art(job, disc_info: str) -> bool:
         return False
 
 
-def process_tracks(job, mb_track_list: dict, is_stub=False):
+def process_tracks(job, mb_track_list: list, is_stub=False):
     """
     Process a list of MusicBrainz tracks and store them in the database.
 

@@ -5,12 +5,14 @@ from sqlalchemy import engine_from_config, pool
 import arm.config.config as cfg
 from arm.database import db
 
+_SQLALCHEMY_URL = "sqlalchemy.url"
+
 # Alembic Config object
 config = context.config
 
 # Set the database URL from ARM config if not already set via command line
-if not config.get_main_option("sqlalchemy.url"):
-    config.set_main_option("sqlalchemy.url", "sqlite:///" + cfg.arm_config["DBFILE"])
+if not config.get_main_option(_SQLALCHEMY_URL):
+    config.set_main_option(_SQLALCHEMY_URL, "sqlite:///" + cfg.arm_config["DBFILE"])
 
 # Import all models so metadata is populated
 import arm.models  # noqa: F401,E402
@@ -20,7 +22,7 @@ target_metadata = db.metadata
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode."""
-    url = config.get_main_option("sqlalchemy.url")
+    url = config.get_main_option(_SQLALCHEMY_URL)
     context.configure(url=url, target_metadata=target_metadata)
 
     with context.begin_transaction():

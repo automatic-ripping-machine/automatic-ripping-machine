@@ -732,14 +732,62 @@ def _strip_track_suffix(filename):
     return re.sub(r'_t\d+$', '', base)
 
 
+def _prefix_match_pass(tracks, actual_files, claimed, matched_ids):
+    """Pass 2: Match tracks by filename prefix. Returns True if any updates made."""
+    unclaimed = [f for f in actual_files if f not in claimed]
+    prefix_to_files = {}
+    for f in unclaimed:
+        prefix_to_files.setdefault(_strip_track_suffix(f), []).append(f)
+
+    updated = False
+    for track in tracks:
+        if track.track_id in matched_ids:
+            continue
+        db_prefix = _strip_track_suffix(track.filename) if track.filename else None
+        if not db_prefix:
+            continue
+        candidates = prefix_to_files.get(db_prefix, [])
+        if len(candidates) != 1:
+            continue
+        f = candidates[0]
+        logging.info(
+            f"Reconciled track #{track.track_number} by prefix '{db_prefix}': "
+            f"'{track.filename}' -> '{f}'"
+        )
+        track.filename = f
+        claimed.add(f)
+        matched_ids.add(track.track_id)
+        updated = True
+        prefix_to_files[db_prefix] = []
+    return updated
+
+
+def _positional_match_pass(tracks, actual_files, matched_ids, claimed):
+    """Pass 3: Match remaining tracks by position. Returns True if any updates made."""
+    remaining_tracks = [t for t in tracks if t.track_id not in matched_ids]
+    remaining_files = [f for f in actual_files if f not in claimed]
+
+    if not remaining_tracks or len(remaining_tracks) != len(remaining_files):
+        return False
+
+    remaining_tracks.sort(key=lambda t: int(t.track_number)
+                          if t.track_number and t.track_number.isdigit() else 0)
+    remaining_files.sort()
+    for track, f in zip(remaining_tracks, remaining_files):
+        logging.info(
+            f"Reconciled track #{track.track_number} by position: "
+            f"'{track.filename}' -> '{f}'"
+        )
+        track.filename = f
+    return True
+
+
 def _reconcile_filenames(job, rawpath):
     """Update track filenames to match actual files on disk after MakeMKV rip.
 
     MakeMKV's scan-time filenames (from 'makemkvcon info') may differ from
-    the actual rip-time filenames. For example, the scan might report
-    "Last Vermeer" but the rip creates "Last Vermeer, The-B1_t00.mkv".
-    This reconciliation ensures the database reflects the files that were
-    actually created (#1355, #1281).
+    the actual rip-time filenames. This reconciliation ensures the database
+    reflects the files that were actually created (#1355, #1281).
     """
     if not rawpath or not os.path.isdir(rawpath):
         return
@@ -752,62 +800,45 @@ def _reconcile_filenames(job, rawpath):
         return
 
     tracks = list(job.tracks.filter_by(source=SOURCE).order_by(Track.track_number))
-    updated = False
-    claimed = set()          # filenames already matched
-    matched_ids = set()      # track_ids already matched
+    claimed = set()
+    matched_ids = set()
 
-    # --- Pass 1: Exact match ---
+    # Pass 1: Exact match
     for track in tracks:
         if track.filename in actual_files:
             claimed.add(track.filename)
             matched_ids.add(track.track_id)
 
-    # --- Pass 2: Prefix match (handles renumbered TV discs) ---
-    # Build prefix → file mapping for unclaimed files
-    unclaimed = [f for f in actual_files if f not in claimed]
-    prefix_to_files = {}
-    for f in unclaimed:
-        prefix = _strip_track_suffix(f)
-        prefix_to_files.setdefault(prefix, []).append(f)
-
-    for track in tracks:
-        if track.track_id in matched_ids:
-            continue
-        db_prefix = _strip_track_suffix(track.filename) if track.filename else None
-        if not db_prefix:
-            continue
-        candidates = prefix_to_files.get(db_prefix, [])
-        if len(candidates) == 1:
-            f = candidates[0]
-            logging.info(
-                f"Reconciled track #{track.track_number} by prefix '{db_prefix}': "
-                f"'{track.filename}' -> '{f}'"
-            )
-            track.filename = f
-            claimed.add(f)
-            matched_ids.add(track.track_id)
-            updated = True
-            # Remove from prefix map so it can't match again
-            prefix_to_files[db_prefix] = []
-
-    # --- Pass 3: Positional match (handles movies / shared-prefix tracks) ---
-    remaining_tracks = [t for t in tracks if t.track_id not in matched_ids]
-    remaining_files = [f for f in actual_files if f not in claimed]
-
-    if remaining_tracks and len(remaining_tracks) == len(remaining_files):
-        remaining_tracks.sort(key=lambda t: int(t.track_number)
-                              if t.track_number and t.track_number.isdigit() else 0)
-        remaining_files.sort()
-        for track, f in zip(remaining_tracks, remaining_files):
-            logging.info(
-                f"Reconciled track #{track.track_number} by position: "
-                f"'{track.filename}' -> '{f}'"
-            )
-            track.filename = f
-            updated = True
+    # Pass 2 & 3
+    updated = _prefix_match_pass(tracks, actual_files, claimed, matched_ids)
+    updated = _positional_match_pass(tracks, actual_files, matched_ids, claimed) or updated
 
     if updated:
         db.session.commit()
+
+
+def _resolve_mdisc(job):
+    """Ensure job.drive.mdisc is populated, scanning drives if needed."""
+    if job.drive is not None and job.drive.mdisc is not None:
+        return
+    logging.debug("Storing new MakeMKV disc numbers to database.")
+    disc_index = None
+    with db.session.no_autoflush:
+        for drive in get_drives(job):
+            for db_drive in SystemDrives.query.filter_by(mount=drive.mount).all():
+                db_drive.mdisc = drive.index
+                db.session.add(db_drive)
+                if drive.mount == job.devpath:
+                    disc_index = drive.index
+    db.session.commit()
+    db.session.refresh(job)
+    if job.drive is None or job.drive.mdisc is None:
+        logging.error(
+            f"Could not resolve MakeMKV disc number for {job.devpath} "
+            f"(drive={'found' if job.drive else 'None'}, "
+            f"disc_index={disc_index})"
+        )
+        raise ValueError(f"No MakeMKV disc number for device {job.devpath}")
 
 
 def makemkv(job):
@@ -819,49 +850,22 @@ def makemkv(job):
     Returns:
         str: path to ripped files.
     """
-    # confirm MKV is working, beta key hasn't expired
     prep_mkv()
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
-    # get MakeMKV disc number
-    # Fix: Check if job.drive is None before accessing job.drive.mdisc
-    if job.drive is None or job.drive.mdisc is None:
-        logging.debug("Storing new MakeMKV disc numbers to database.")
-        disc_index = None
-        with db.session.no_autoflush:
-            for drive in get_drives(job):
-                for db_drive in SystemDrives.query.filter_by(mount=drive.mount).all():
-                    db_drive.mdisc = drive.index
-                    db.session.add(db_drive)
-                    # Track disc index for current job's device
-                    if drive.mount == job.devpath:
-                        disc_index = drive.index
-        db.session.commit()
-        # Refresh job to get updated drive relationship
-        db.session.refresh(job)
-        # If drive or mdisc still missing after refresh, raise clear error
-        if job.drive is None or job.drive.mdisc is None:
-            logging.error(
-                f"Could not resolve MakeMKV disc number for {job.devpath} "
-                f"(drive={'found' if job.drive else 'None'}, "
-                f"disc_index={disc_index})"
-            )
-            raise ValueError(
-                f"No MakeMKV disc number for device {job.devpath}"
-            )
+    _resolve_mdisc(job)
     logging.info(f"MakeMKV disc number: {job.drive.mdisc}")
-    # get filesystem in order
+
     rawpath = setup_rawpath(job, job.build_raw_path())
     logging.info(f"Processing files to: {rawpath}")
-    # Rip BluRay
+
     if (job.config.RIPMETHOD in ("backup", "backup_dvd")) and job.disctype in ("bluray", "bluray4k"):
         makemkv_backup(job, rawpath)
-    # Rip BluRay or DVD
     elif job.config.RIPMETHOD == "mkv" or job.disctype == "dvd":
         makemkv_mkv(job, rawpath)
     else:
         logging.info("I'm confused what to do....  Passing on MakeMKV")
+
     job.eject()
-    # Reconcile scan-time filenames with actual rip output (#1355, #1281)
     _reconcile_filenames(job, rawpath)
     logging.info(f"Exiting MakeMKV processing with return value of: {rawpath}")
     return rawpath

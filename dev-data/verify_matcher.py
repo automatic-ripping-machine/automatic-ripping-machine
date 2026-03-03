@@ -305,91 +305,87 @@ TESTS = [
 ]
 
 
-def run_tests():
-    """Run all matcher integration tests."""
-    passed = 0
-    failed = 0
-    errors = []
+def _check_no_match(i, name, selection):
+    """Validate a test expecting no match. Returns (passed, error_msg)."""
+    if selection.best is None:
+        print(f"  ✓ {i:2d}. {name}")
+        return True, None
+    msg = (
+        f"  ✗ {i:2d}. {name}\n"
+        f"       Expected: no match\n"
+        f"       Got: {selection.best.title} ({selection.best.imdb_id}) "
+        f"score={selection.best.score:.3f}"
+    )
+    print(msg)
+    return False, msg
 
+
+def _check_expected_match(i, name, test, selection):
+    """Validate a test expecting a specific match. Returns (passed, error_msg)."""
+    if selection.best is None:
+        msg = (
+            f"  ✗ {i:2d}. {name}\n"
+            f"       Expected: {test['expect_title']} ({test['expect_imdb']})\n"
+            f"       Got: no match (hasnicetitle=False)\n"
+            f"       Top scores: {[(m.title, f'{m.score:.3f}') for m in selection.all_scored[:3]]}"
+        )
+        print(msg)
+        return False, msg
+    if selection.best.imdb_id != test["expect_imdb"]:
+        msg = (
+            f"  ✗ {i:2d}. {name}\n"
+            f"       Expected: {test['expect_title']} ({test['expect_imdb']})\n"
+            f"       Got: {selection.best.title} ({selection.best.imdb_id}) "
+            f"score={selection.best.score:.3f}"
+        )
+        print(msg)
+        return False, msg
+    # Correct match — check poster normalization
+    if test.get("expect_poster_none") and selection.best.poster_url is not None:
+        msg = (
+            f"  ✗ {i:2d}. {name}\n"
+            f"       Match correct but poster_url not None: {selection.best.poster_url!r}"
+        )
+        print(msg)
+        return False, msg
+
+    extra = " [poster=None ✓]" if test.get("expect_poster_none") else ""
+    if selection.label_info and selection.label_info.disc_number is not None:
+        li = selection.label_info
+        extra += f" [disc#{li.disc_number} type={li.disc_type}]"
+    print(f"  ✓ {i:2d}. {name} → score={selection.best.score:.3f}{extra}")
+    return True, None
+
+
+def _run_match_tests(errors):
+    """Run disc matching tests. Returns (passed, failed)."""
+    passed = failed = 0
     for i, test in enumerate(TESTS, 1):
         name = test["name"]
         try:
             selection = match_disc(
-                test["label"],
-                test["search"],
-                disc_year=test.get("disc_year"),
-                type_hint=test.get("type_hint"),
+                test["label"], test["search"],
+                disc_year=test.get("disc_year"), type_hint=test.get("type_hint"),
             )
-
             if test["expect_imdb"] is None:
-                # Expect no match
-                if selection.best is None:
-                    print(f"  ✓ {i:2d}. {name}")
-                    passed += 1
-                else:
-                    msg = (
-                        f"  ✗ {i:2d}. {name}\n"
-                        f"       Expected: no match\n"
-                        f"       Got: {selection.best.title} ({selection.best.imdb_id}) "
-                        f"score={selection.best.score:.3f}"
-                    )
-                    print(msg)
-                    errors.append(msg)
-                    failed += 1
+                ok, msg = _check_no_match(i, name, selection)
             else:
-                # Expect a specific match
-                if selection.best is None:
-                    msg = (
-                        f"  ✗ {i:2d}. {name}\n"
-                        f"       Expected: {test['expect_title']} ({test['expect_imdb']})\n"
-                        f"       Got: no match (hasnicetitle=False)\n"
-                        f"       Top scores: {[(m.title, f'{m.score:.3f}') for m in selection.all_scored[:3]]}"
-                    )
-                    print(msg)
-                    errors.append(msg)
-                    failed += 1
-                elif selection.best.imdb_id != test["expect_imdb"]:
-                    msg = (
-                        f"  ✗ {i:2d}. {name}\n"
-                        f"       Expected: {test['expect_title']} ({test['expect_imdb']})\n"
-                        f"       Got: {selection.best.title} ({selection.best.imdb_id}) "
-                        f"score={selection.best.score:.3f}"
-                    )
-                    print(msg)
-                    errors.append(msg)
-                    failed += 1
-                else:
-                    score = selection.best.score
-                    extra = ""
-                    # Check poster normalization
-                    if test.get("expect_poster_none") and selection.best.poster_url is not None:
-                        msg = (
-                            f"  ✗ {i:2d}. {name}\n"
-                            f"       Match correct but poster_url not None: {selection.best.poster_url!r}"
-                        )
-                        print(msg)
-                        errors.append(msg)
-                        failed += 1
-                        continue
-                    elif test.get("expect_poster_none"):
-                        extra = " [poster=None ✓]"
-
-                    # Check label_info for disc suffix tests
-                    if selection.label_info:
-                        li = selection.label_info
-                        if li.disc_number is not None:
-                            extra += f" [disc#{li.disc_number} type={li.disc_type}]"
-
-                    print(f"  ✓ {i:2d}. {name} → score={score:.3f}{extra}")
-                    passed += 1
-
+                ok, msg = _check_expected_match(i, name, test, selection)
+            if ok:
+                passed += 1
+            else:
+                errors.append(msg)
+                failed += 1
         except Exception as e:
             msg = f"  ✗ {i:2d}. {name}\n       ERROR: {e}"
             print(msg)
             errors.append(msg)
             failed += 1
+    return passed, failed
 
-    # Also test parse_label directly for a few key cases
+
+def _run_label_tests(errors):
+    """Run parse_label validation tests. Returns (passed, failed)."""
     print("\n  Label parsing checks:")
     label_tests = [
         ("LOTR_FELLOWSHIP_OF_THE_RING_P1", "lotr fellowship of the ring", 1, "disc"),
@@ -400,12 +396,10 @@ def run_tests():
         ("STAR_WARS_BONUS", "star wars", None, "bonus"),
         ("ALIEN_16x9", "alien", None, None),
     ]
+    passed = failed = 0
     for raw, exp_title, exp_num, exp_type in label_tests:
         info = parse_label(raw)
-        ok = (info.title == exp_title and
-              info.disc_number == exp_num and
-              info.disc_type == exp_type)
-        if ok:
+        if info.title == exp_title and info.disc_number == exp_num and info.disc_type == exp_type:
             suffix = ""
             if info.disc_number is not None:
                 suffix = f" [disc#{info.disc_number}]"
@@ -422,8 +416,17 @@ def run_tests():
             print(msg)
             errors.append(msg)
             failed += 1
+    return passed, failed
 
-    # Summary
+
+def run_tests():
+    """Run all matcher integration tests."""
+    errors = []
+    p1, f1 = _run_match_tests(errors)
+    p2, f2 = _run_label_tests(errors)
+
+    passed = p1 + p2
+    failed = f1 + f2
     total = passed + failed
     print(f"\n{'='*60}")
     if failed == 0:

@@ -13,6 +13,9 @@ from arm.models.notifications import Notifications
 from arm.services import jobs as svc_jobs
 from arm.services import files as svc_files
 
+_JOB_NOT_FOUND = "Job not found"
+_NOT_WAITING = "Job is not in waiting state"
+
 router = APIRouter(prefix="/api/v1", tags=["jobs"])
 
 
@@ -46,10 +49,10 @@ def start_waiting_job(job_id: int):
     """Start a job that is in 'waiting' status."""
     job = Job.query.get(job_id)
     if not job:
-        return JSONResponse({"success": False, "error": "Job not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
 
     if job.status != JobState.MANUAL_WAIT_STARTED.value:
-        return JSONResponse({"success": False, "error": "Job is not in waiting state"}, status_code=409)
+        return JSONResponse({"success": False, "error": _NOT_WAITING}, status_code=409)
 
     svc_files.database_updater({"manual_start": True}, job)
     return {"success": True, "job_id": job.job_id}
@@ -60,10 +63,10 @@ def pause_waiting_job(job_id: int):
     """Toggle per-job pause for a job in 'waiting' status."""
     job = Job.query.get(job_id)
     if not job:
-        return JSONResponse({"success": False, "error": "Job not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
 
     if job.status != JobState.MANUAL_WAIT_STARTED.value:
-        return JSONResponse({"success": False, "error": "Job is not in waiting state"}, status_code=409)
+        return JSONResponse({"success": False, "error": _NOT_WAITING}, status_code=409)
 
     new_val = not (getattr(job, 'manual_pause', False) or False)
     svc_files.database_updater({"manual_pause": new_val}, job)
@@ -75,10 +78,10 @@ def cancel_waiting_job(job_id: int):
     """Cancel a job that is in 'waiting' status."""
     job = Job.query.get(job_id)
     if not job:
-        return JSONResponse({"success": False, "error": "Job not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
 
     if job.status != JobState.MANUAL_WAIT_STARTED.value:
-        return JSONResponse({"success": False, "error": "Job is not in waiting state"}, status_code=409)
+        return JSONResponse({"success": False, "error": _NOT_WAITING}, status_code=409)
 
     notification = Notifications(
         f"Job: {job.job_id} was cancelled",
@@ -95,7 +98,7 @@ async def change_job_config(job_id: int, request: Request):
     """Update job rip parameters."""
     job = Job.query.get(job_id)
     if not job:
-        return JSONResponse({"success": False, "error": "Job not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
 
     body = await request.json()
     if not body:
@@ -170,66 +173,90 @@ def send_job(job_id: int):
     return svc_files.send_to_remote_db(str(job_id))
 
 
+_FIELD_MAP = {
+    'title': ('title', 'title_manual'),
+    'year': ('year', 'year_manual'),
+    'video_type': ('video_type', 'video_type_manual'),
+    'imdb_id': ('imdb_id', 'imdb_id_manual'),
+    'poster_url': ('poster_url', 'poster_url_manual'),
+    'artist': ('artist', 'artist_manual'),
+    'album': ('album', 'album_manual'),
+    'season': ('season', 'season_manual'),
+    'episode': ('episode', 'episode_manual'),
+}
+_DIRECT_FIELDS = ('path', 'label', 'disctype')
+_STRUCTURED_KEYS = frozenset(('artist', 'album', 'season', 'episode'))
+_VALID_DISCTYPES = ('dvd', 'bluray', 'bluray4k', 'music', 'data')
+
+
+def _process_mapped_fields(body):
+    """Extract mapped fields from request body. Returns (args, updated, structured_changed)."""
+    args, updated = {}, {}
+    structured_changed = False
+    for key, (eff, manual) in _FIELD_MAP.items():
+        if key not in body or body[key] is None:
+            continue
+        value = str(body[key]).strip()
+        if key == 'title':
+            value = _clean_for_filename(value)
+        args[eff] = value
+        args[manual] = value
+        updated[key] = value
+        if key in _STRUCTURED_KEYS:
+            structured_changed = True
+    return args, updated, structured_changed
+
+
+def _process_direct_fields(body, args, updated):
+    """Extract direct fields. Returns error JSONResponse or None."""
+    for key in _DIRECT_FIELDS:
+        if key not in body or body[key] is None:
+            continue
+        value = str(body[key]).strip()
+        if key == 'disctype':
+            value = value.lower()
+            if value not in _VALID_DISCTYPES:
+                return JSONResponse(
+                    {"success": False, "error": f"disctype must be one of {_VALID_DISCTYPES}"},
+                    status_code=400,
+                )
+        args[key] = value
+        updated[key] = value
+    return None
+
+
+def _re_render_title(job, updated):
+    """Re-render display title from pattern engine if structured fields changed."""
+    try:
+        from arm.ripper.naming import render_title
+        db.session.flush()
+        rendered = render_title(job, cfg.arm_config)
+        if rendered:
+            svc_files.database_updater({'title': rendered, 'title_manual': rendered}, job)
+            updated['title'] = rendered
+    except Exception:
+        pass
+
+
 @router.put('/jobs/{job_id}/title')
 async def update_job_title(job_id: int, request: Request):
     """Update a job's title metadata."""
     job = Job.query.get(job_id)
     if not job:
-        return JSONResponse({"success": False, "error": "Job not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
 
     body = await request.json()
+    old_title, old_year = job.title, job.year
 
-    old_title = job.title
-    old_year = job.year
-    updated = {}
-
-    field_map = {
-        'title': ('title', 'title_manual'),
-        'year': ('year', 'year_manual'),
-        'video_type': ('video_type', 'video_type_manual'),
-        'imdb_id': ('imdb_id', 'imdb_id_manual'),
-        'poster_url': ('poster_url', 'poster_url_manual'),
-        'artist': ('artist', 'artist_manual'),
-        'album': ('album', 'album_manual'),
-        'season': ('season', 'season_manual'),
-        'episode': ('episode', 'episode_manual'),
-    }
-
-    direct_fields = ('path', 'label', 'disctype')
-
-    args = {}
-    structured_changed = False
-    for key, (eff, manual) in field_map.items():
-        if key in body and body[key] is not None:
-            value = str(body[key]).strip()
-            if key == 'title':
-                value = _clean_for_filename(value)
-            args[eff] = value
-            args[manual] = value
-            updated[key] = value
-            if key in ('artist', 'album', 'season', 'episode'):
-                structured_changed = True
-
-    valid_disctypes = ('dvd', 'bluray', 'bluray4k', 'music', 'data')
-
-    for key in direct_fields:
-        if key in body and body[key] is not None:
-            value = str(body[key]).strip()
-            if key == 'disctype':
-                value = value.lower()
-                if value not in valid_disctypes:
-                    return JSONResponse(
-                        {"success": False, "error": f"disctype must be one of {valid_disctypes}"},
-                        status_code=400,
-                    )
-            args[key] = value
-            updated[key] = value
+    args, updated, structured_changed = _process_mapped_fields(body)
+    error = _process_direct_fields(body, args, updated)
+    if error:
+        return error
 
     if not updated:
         return JSONResponse({"success": False, "error": "No fields to update"}, status_code=400)
 
     args['hasnicetitle'] = True
-
     notification = Notifications(
         f"Job: {job.job_id} was updated",
         f"Title: {old_title} ({old_year}) was updated to "
@@ -238,27 +265,10 @@ async def update_job_title(job_id: int, request: Request):
     db.session.add(notification)
     svc_files.database_updater(args, job)
 
-    # If structured fields changed and title wasn't explicitly set,
-    # re-render the display title from the pattern engine
     if structured_changed and 'title' not in updated:
-        try:
-            from arm.ripper.naming import render_title
-            db.session.flush()
-            rendered = render_title(job, cfg.arm_config)
-            if rendered:
-                svc_files.database_updater({
-                    'title': rendered,
-                    'title_manual': rendered,
-                }, job)
-                updated['title'] = rendered
-        except Exception:
-            pass
+        _re_render_title(job, updated)
 
-    return {
-        "success": True,
-        "job_id": job.job_id,
-        "updated": updated,
-    }
+    return {"success": True, "job_id": job.job_id, "updated": updated}
 
 
 @router.put('/jobs/{job_id}/tracks')
@@ -266,7 +276,7 @@ async def set_job_tracks(job_id: int, request: Request):
     """Replace a job's tracks with MusicBrainz track data."""
     job = Job.query.get(job_id)
     if not job:
-        return JSONResponse({"success": False, "error": "Job not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
 
     body = await request.json()
     tracks = body.get('tracks', [])
@@ -320,17 +330,17 @@ _INT_KEYS = {'video_quality'}
 _BOOL_KEYS = {'delete_source'}
 
 
-@router.patch('/jobs/{job_id}/transcode-config')
-async def update_transcode_config(job_id: int, request: Request):
-    """Set per-job transcode override settings."""
-    job = Job.query.get(job_id)
-    if not job:
-        return JSONResponse({"success": False, "error": "Job not found"}, status_code=404)
+def _coerce_bool(value):
+    """Coerce a value to boolean."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() in ('true', '1', 'yes')
+    return bool(value)
 
-    body = await request.json()
-    if not body or not isinstance(body, dict):
-        return JSONResponse({"success": False, "error": "Request body must be a JSON object"}, status_code=400)
 
+def _validate_transcode_overrides(body):
+    """Validate and coerce transcode override values. Returns (overrides, errors)."""
     overrides = {}
     errors = []
     for key, value in body.items():
@@ -338,22 +348,31 @@ async def update_transcode_config(job_id: int, request: Request):
             errors.append(f"Unknown key: {key}")
             continue
         if value is None or value == '':
-            continue  # skip empty — means "use global default"
+            continue
         if key in _INT_KEYS:
             try:
                 overrides[key] = int(value)
             except (ValueError, TypeError):
                 errors.append(f"{key} must be an integer")
         elif key in _BOOL_KEYS:
-            if isinstance(value, bool):
-                overrides[key] = value
-            elif isinstance(value, str):
-                overrides[key] = value.lower() in ('true', '1', 'yes')
-            else:
-                overrides[key] = bool(value)
+            overrides[key] = _coerce_bool(value)
         else:
             overrides[key] = str(value)
+    return overrides, errors
 
+
+@router.patch('/jobs/{job_id}/transcode-config')
+async def update_transcode_config(job_id: int, request: Request):
+    """Set per-job transcode override settings."""
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    body = await request.json()
+    if not body or not isinstance(body, dict):
+        return JSONResponse({"success": False, "error": "Request body must be a JSON object"}, status_code=400)
+
+    overrides, errors = _validate_transcode_overrides(body)
     if errors:
         return JSONResponse({"success": False, "errors": errors}, status_code=400)
 
@@ -371,7 +390,7 @@ async def transcode_callback(job_id: int, request: Request):
     """
     job = Job.query.get(job_id)
     if not job:
-        return JSONResponse({"success": False, "error": "Job not found"}, status_code=404)
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
 
     body = await request.json()
     status = body.get("status")

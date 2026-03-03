@@ -116,6 +116,61 @@ _BLURAY_SUFFIXES = [
 ]
 
 
+def _classify_special_disc(raw_type):
+    """Classify a special disc type string into a disc_type value."""
+    normalized = re.sub(r'[\s_-]+', '_', raw_type.lower())
+    if 'bonus' in normalized:
+        return 'bonus'
+    if 'extras' in normalized:
+        return 'extras'
+    if 'special' in normalized:
+        return 'special_features'
+    if 'supplemental' in normalized:
+        return 'supplemental'
+    return None
+
+
+def _extract_disc_suffix(s):
+    """Extract disc number/type from the label string.
+
+    Returns (remaining_string, disc_number, disc_type).
+    """
+    # Word-number suffixes first (DISC_ONE)
+    m = _DISC_WORD_SUFFIX_RE.search(s)
+    if m:
+        keyword = m.group(1).lower()
+        disc_type = 'part' if keyword == 'part' else 'disc'
+        return s[:m.start()], _WORD_NUMBERS[m.group(2).lower()], disc_type
+
+    # Numeric suffixes (P1, D2, DISC_1)
+    m = _DISC_SUFFIX_RE.search(s)
+    if m:
+        return s[:m.start()], int(m.group(2)), 'disc'
+
+    # Special disc types (BONUS, EXTRAS, SPECIAL_FEATURES)
+    m = _SPECIAL_DISC_RE.search(s)
+    if m:
+        disc_type = _classify_special_disc(m.group(1))
+        if disc_type:
+            return s[:m.start()], None, disc_type
+
+    return s, None, None
+
+
+def _extract_season_suffix(s):
+    """Extract season number from trailing season indicator.
+
+    Returns (remaining_string, season_number).
+    """
+    m = _SEASON_KEYWORD_RE.search(s)
+    if m:
+        return s[:m.start()], int(m.group(1))
+    m = _SEASON_SUFFIX_RE.search(s)
+    if m:
+        return s[:m.start()], int(m.group(1))
+    return s, None
+
+
 def parse_label(raw_label: str) -> LabelInfo:
     """
     Parse a disc label into a normalized title and disc metadata.
@@ -134,21 +189,14 @@ def parse_label(raw_label: str) -> LabelInfo:
     disc_type = None
     season_number = None
 
-    # 1. Replace underscores with spaces
+    # 1-4. Basic cleanup
     s = s.replace('_', ' ')
-
-    # 2. Strip aspect ratio markers
     s = _ASPECT_RE.sub('', s)
-
-    # 3. Strip SKU patterns
     s = _SKU_RE.sub('', s)
-
-    # 4. Strip Blu-ray branding suffixes
     for suffix in _BLURAY_SUFFIXES:
         s = s.replace(suffix, '')
 
     # 5a. Extract season+disc combined suffixes (S1D1, S1_D1)
-    # Must be checked BEFORE disc-only patterns to avoid leaving "S1" behind.
     m = _SEASON_DISC_RE.search(s)
     if m:
         season_number = int(m.group(1))
@@ -156,48 +204,10 @@ def parse_label(raw_label: str) -> LabelInfo:
         disc_type = 'disc'
         s = s[:m.start()]
     else:
-        # 5b. Extract disc-only suffixes (D1, DISC_1, P1, DISC_ONE, BONUS, etc.)
-        # Try word-number suffixes first (DISC_ONE)
-        m = _DISC_WORD_SUFFIX_RE.search(s)
-        if m:
-            keyword = m.group(1).lower()
-            disc_type = 'part' if keyword == 'part' else 'disc'
-            disc_number = _WORD_NUMBERS[m.group(2).lower()]
-            s = s[:m.start()]
-        else:
-            # Try numeric suffixes (P1, D2, DISC_1)
-            m = _DISC_SUFFIX_RE.search(s)
-            if m:
-                disc_number = int(m.group(2))
-                disc_type = 'disc'
-                s = s[:m.start()]
-            else:
-                # Try special disc types (BONUS, EXTRAS, SPECIAL_FEATURES)
-                m = _SPECIAL_DISC_RE.search(s)
-                if m:
-                    raw_type = m.group(1).lower()
-                    raw_type = re.sub(r'[\s_-]+', '_', raw_type)
-                    if 'bonus' in raw_type:
-                        disc_type = 'bonus'
-                    elif 'extras' in raw_type:
-                        disc_type = 'extras'
-                    elif 'special' in raw_type:
-                        disc_type = 'special_features'
-                    elif 'supplemental' in raw_type:
-                        disc_type = 'supplemental'
-                    s = s[:m.start()]
-
-        # 5c. Extract season-only suffixes (S1, SEASON_1)
-        # After disc suffixes are stripped, check for trailing season indicator.
-        m = _SEASON_KEYWORD_RE.search(s)
-        if m:
-            season_number = int(m.group(1))
-            s = s[:m.start()]
-        else:
-            m = _SEASON_SUFFIX_RE.search(s)
-            if m:
-                season_number = int(m.group(1))
-                s = s[:m.start()]
+        # 5b. Extract disc-only suffixes
+        s, disc_number, disc_type = _extract_disc_suffix(s)
+        # 5c. Extract season-only suffixes
+        s, season_number = _extract_season_suffix(s)
 
     # 6. Collapse whitespace, strip, lowercase
     title = re.sub(r'\s+', ' ', s).strip().lower()
