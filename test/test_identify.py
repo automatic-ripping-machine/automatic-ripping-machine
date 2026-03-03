@@ -238,7 +238,6 @@ class TestUpdateJob:
         """Matcher should pick the best-scoring result, not Search[0]."""
         from arm.ripper.identify import update_job
 
-        # sample_job.label = 'SERIAL_MOM'
         search_results = {
             'Search': [
                 {
@@ -266,7 +265,6 @@ class TestUpdateJob:
         """Matcher rejects results that don't match the disc label well."""
         from arm.ripper.identify import update_job
 
-        # sample_job.label = 'SERIAL_MOM'
         search_results = {
             'Search': [{
                 'Title': 'Finding Nemo',
@@ -1574,7 +1572,7 @@ class TestOmdbShortTitleFallback:
         import httpx
         call_count = [0]
 
-        async def side_effect(url, **kwargs):
+        def side_effect(url, **kwargs):
             idx = min(call_count[0], len(responses) - 1)
             call_count[0] += 1
             resp = unittest.mock.MagicMock(spec=httpx.Response)
@@ -1601,7 +1599,7 @@ class TestOmdbShortTitleFallback:
         mock_get = self._mock_httpx_get([search_error, exact_match])
         with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
             ctx = unittest.mock.AsyncMock()
-            ctx.get = mock_get
+            ctx.get = unittest.mock.AsyncMock(side_effect=mock_get)
             mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
             mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
             result = asyncio.run(_omdb_search("9", "2009", "test_key"))
@@ -1622,7 +1620,7 @@ class TestOmdbShortTitleFallback:
         mock_get = self._mock_httpx_get([error_resp, error_resp])
         with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
             ctx = unittest.mock.AsyncMock()
-            ctx.get = mock_get
+            ctx.get = unittest.mock.AsyncMock(side_effect=mock_get)
             mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
             mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
             result = asyncio.run(_omdb_search("xyznonexistent", "2020", "test_key"))
@@ -1645,7 +1643,7 @@ class TestOmdbShortTitleFallback:
         mock_get = self._mock_httpx_get([search_success])
         with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
             ctx = unittest.mock.AsyncMock()
-            ctx.get = mock_get
+            ctx.get = unittest.mock.AsyncMock(side_effect=mock_get)
             mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
             mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
             result = asyncio.run(_omdb_search("The Matrix", "1999", "test_key"))
@@ -1665,7 +1663,7 @@ class TestOmdbShortTitleFallback:
 
         call_count = [0]
 
-        async def mock_get(url, **kwargs):
+        def mock_get(url, **kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
                 resp = unittest.mock.MagicMock(spec=httpx.Response)
@@ -1680,7 +1678,7 @@ class TestOmdbShortTitleFallback:
         from arm.services.metadata import MetadataConfigError
         with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
             ctx = unittest.mock.AsyncMock()
-            ctx.get = mock_get
+            ctx.get = unittest.mock.AsyncMock(side_effect=mock_get)
             mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
             mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
             with pytest.raises(MetadataConfigError):

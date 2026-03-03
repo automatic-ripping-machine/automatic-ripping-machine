@@ -30,7 +30,7 @@ def _mock_httpx_responses(responses):
     """Create a mock httpx client context manager that returns sequential responses."""
     call_count = [0]
 
-    async def mock_get(url, **kwargs):
+    def mock_get(url, **kwargs):
         idx = min(call_count[0], len(responses) - 1)
         call_count[0] += 1
         resp = unittest.mock.MagicMock(spec=httpx.Response)
@@ -46,7 +46,7 @@ def _mock_httpx_responses(responses):
         return resp
 
     ctx = unittest.mock.AsyncMock()
-    ctx.get = mock_get
+    ctx.get = unittest.mock.AsyncMock(side_effect=mock_get)
     return ctx
 
 
@@ -247,10 +247,15 @@ class TestHasApiKey:
         from arm.services.metadata import has_api_key
         assert has_api_key() is False
 
-    @unittest.mock.patch.dict('arm.config.config.arm_config', {})
     def test_missing_key(self):
         from arm.services.metadata import has_api_key
-        assert has_api_key() is False
+        import arm.config.config as cfg
+        original = cfg.arm_config.pop('ARM_API_KEY', None)
+        try:
+            assert has_api_key() is False
+        finally:
+            if original is not None:
+                cfg.arm_config['ARM_API_KEY'] = original
 
 
 # ---------------------------------------------------------------------------
@@ -291,21 +296,15 @@ class TestSearch:
             _run(search("Matrix"))
             mock_omdb.assert_called_once_with("Matrix", None, "omdb_fallback")
 
-    @unittest.mock.patch.dict('arm.config.config.arm_config', {
-        'METADATA_PROVIDER': 'tmdb', 'TMDB_API_KEY': '', 'OMDB_API_KEY': '',
-    })
-    def test_tmdb_no_fallback_raises(self):
+    @pytest.mark.parametrize("config", [
+        {'METADATA_PROVIDER': 'tmdb', 'TMDB_API_KEY': '', 'OMDB_API_KEY': ''},
+        {'METADATA_PROVIDER': 'omdb', 'OMDB_API_KEY': ''},
+    ], ids=["tmdb_no_fallback", "omdb_no_key"])
+    def test_no_keys_raises(self, config):
         from arm.services.metadata import search, MetadataConfigError
-        with pytest.raises(MetadataConfigError):
-            _run(search("Matrix"))
-
-    @unittest.mock.patch.dict('arm.config.config.arm_config', {
-        'METADATA_PROVIDER': 'omdb', 'OMDB_API_KEY': '',
-    })
-    def test_no_keys_raises(self):
-        from arm.services.metadata import search, MetadataConfigError
-        with pytest.raises(MetadataConfigError):
-            _run(search("Matrix"))
+        with unittest.mock.patch.dict('arm.config.config.arm_config', config):
+            with pytest.raises(MetadataConfigError):
+                _run(search("Matrix"))
 
 
 # ---------------------------------------------------------------------------
@@ -1101,7 +1100,7 @@ class TestConfiguredKey:
         """UnicodeDecodeError from resp.json() is handled like ValueError."""
         from arm.services.metadata import test_configured_key
 
-        async def mock_get(url, **kwargs):
+        def mock_get(url, **kwargs):
             resp = unittest.mock.MagicMock(spec=httpx.Response)
             resp.status_code = 200
             resp.json.side_effect = UnicodeDecodeError("utf-8", b"", 0, 1, "bad")
@@ -1109,7 +1108,7 @@ class TestConfiguredKey:
             return resp
 
         ctx = unittest.mock.AsyncMock()
-        ctx.get = mock_get
+        ctx.get = unittest.mock.AsyncMock(side_effect=mock_get)
         with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
             mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
             mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
@@ -1123,7 +1122,7 @@ class TestConfiguredKey:
         """Non-JSON response with non-200 status returns HTTP status in message."""
         from arm.services.metadata import test_configured_key
 
-        async def mock_get(url, **kwargs):
+        def mock_get(url, **kwargs):
             resp = unittest.mock.MagicMock(spec=httpx.Response)
             resp.status_code = 500
             resp.json.side_effect = ValueError("not JSON")
@@ -1131,7 +1130,7 @@ class TestConfiguredKey:
             return resp
 
         ctx = unittest.mock.AsyncMock()
-        ctx.get = mock_get
+        ctx.get = unittest.mock.AsyncMock(side_effect=mock_get)
         with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
             mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
             mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
@@ -1203,7 +1202,7 @@ class TestConfiguredKey:
     def test_omdb_non_json_response(self):
         from arm.services.metadata import test_configured_key
 
-        async def mock_get(url, **kwargs):
+        def mock_get(url, **kwargs):
             resp = unittest.mock.MagicMock(spec=httpx.Response)
             resp.status_code = 200
             resp.json.side_effect = ValueError("not JSON")
@@ -1211,7 +1210,7 @@ class TestConfiguredKey:
             return resp
 
         ctx = unittest.mock.AsyncMock()
-        ctx.get = mock_get
+        ctx.get = unittest.mock.AsyncMock(side_effect=mock_get)
         with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
             mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
             mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
@@ -1234,7 +1233,7 @@ class TestOmdbSearchFallback:
 
         call_count = [0]
 
-        async def mock_get(url, **kwargs):
+        def mock_get(url, **kwargs):
             call_count[0] += 1
             resp = unittest.mock.MagicMock(spec=httpx.Response)
             if call_count[0] == 1:
@@ -1247,7 +1246,7 @@ class TestOmdbSearchFallback:
             return resp
 
         ctx = unittest.mock.AsyncMock()
-        ctx.get = mock_get
+        ctx.get = unittest.mock.AsyncMock(side_effect=mock_get)
         with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
             mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
             mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
@@ -1260,7 +1259,7 @@ class TestOmdbSearchFallback:
 
         call_count = [0]
 
-        async def mock_get(url, **kwargs):
+        def mock_get(url, **kwargs):
             call_count[0] += 1
             resp = unittest.mock.MagicMock(spec=httpx.Response)
             resp.status_code = 200
@@ -1274,7 +1273,7 @@ class TestOmdbSearchFallback:
             return resp
 
         ctx = unittest.mock.AsyncMock()
-        ctx.get = mock_get
+        ctx.get = unittest.mock.AsyncMock(side_effect=mock_get)
         with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
             mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
             mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)
@@ -1288,7 +1287,7 @@ class TestOmdbSearchFallback:
 
         call_count = [0]
 
-        async def mock_get(url, **kwargs):
+        def mock_get(url, **kwargs):
             call_count[0] += 1
             resp = unittest.mock.MagicMock(spec=httpx.Response)
             resp.status_code = 200
@@ -1296,7 +1295,7 @@ class TestOmdbSearchFallback:
             return resp
 
         ctx = unittest.mock.AsyncMock()
-        ctx.get = mock_get
+        ctx.get = unittest.mock.AsyncMock(side_effect=mock_get)
         with unittest.mock.patch('arm.services.metadata._http_client') as mock_client:
             mock_client.return_value.__aenter__ = unittest.mock.AsyncMock(return_value=ctx)
             mock_client.return_value.__aexit__ = unittest.mock.AsyncMock(return_value=False)

@@ -133,17 +133,16 @@ def validate_path(path: str) -> Path:
     raise ValueError("Path is outside allowed media directories")
 
 
+_PERM_BITS = (
+    (stat.S_IRUSR, 'r'), (stat.S_IWUSR, 'w'), (stat.S_IXUSR, 'x'),
+    (stat.S_IRGRP, 'r'), (stat.S_IWGRP, 'w'), (stat.S_IXGRP, 'x'),
+    (stat.S_IROTH, 'r'), (stat.S_IWOTH, 'w'), (stat.S_IXOTH, 'x'),
+)
+
+
 def _format_permissions(mode: int) -> str:
     """Format a stat mode into a unix-style permission string like 'rwxr-xr-x'."""
-    parts = []
-    for who in (stat.S_IRUSR, stat.S_IWUSR, stat.S_IXUSR,
-                stat.S_IRGRP, stat.S_IWGRP, stat.S_IXGRP,
-                stat.S_IROTH, stat.S_IWOTH, stat.S_IXOTH):
-        parts.append('r' if who in (stat.S_IRUSR, stat.S_IRGRP, stat.S_IROTH) and mode & who else
-                     'w' if who in (stat.S_IWUSR, stat.S_IWGRP, stat.S_IWOTH) and mode & who else
-                     'x' if who in (stat.S_IXUSR, stat.S_IXGRP, stat.S_IXOTH) and mode & who else
-                     '-')
-    return ''.join(parts)
+    return ''.join(ch if mode & bit else '-' for bit, ch in _PERM_BITS)
 
 
 def _get_owner_group(st: os.stat_result) -> tuple[str, str]:
