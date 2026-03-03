@@ -104,6 +104,36 @@ class TestRipData:
             final_file = mock_move.call_args[0][1]
             assert final_file.endswith("UNIQUE_DISC.iso")
 
+    def test_completed_iso_collision_gets_unique_suffix(self, app_context, sample_job, tmp_path):
+        """When completed .iso already exists, use job_id suffix instead of skipping (#1651)."""
+        from arm.ripper.utils import rip_data
+
+        raw = tmp_path / "raw"
+        completed = tmp_path / "completed"
+        raw.mkdir()
+        completed.mkdir()
+
+        sample_job.disctype = "data"
+        sample_job.label = "COLLISION"
+        sample_job.video_type = "unknown"
+        sample_job.config.RAW_PATH = str(raw)
+        sample_job.config.COMPLETED_PATH = str(completed)
+
+        # Pre-create the final directory and the .iso so it collides
+        final_dir = completed / "unidentified" / "COLLISION"
+        final_dir.mkdir(parents=True)
+        (final_dir / "COLLISION.iso").write_bytes(b"existing")
+
+        with unittest.mock.patch('arm.ripper.utils.subprocess.check_output') as mock_dd, \
+             unittest.mock.patch('arm.ripper.utils.shutil.move') as mock_move:
+            mock_dd.return_value = b""
+            rip_data(sample_job)
+
+            assert mock_move.called, "shutil.move was never called — file was silently skipped"
+            final_file = mock_move.call_args[0][1]
+            # Should contain the job_id suffix
+            assert f"COLLISION_{sample_job.job_id}.iso" in final_file
+
 
 class TestSaveDiscPoster:
     """Test save_disc_poster() mount/umount safety (#1664)."""

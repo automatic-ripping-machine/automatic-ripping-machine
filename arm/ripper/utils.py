@@ -422,14 +422,15 @@ def rip_data(job):
     try:
         subprocess.check_output(cmd, shell=True).decode("utf-8")
         full_final_file = os.path.join(final_path, f"{final_file_name}.iso")
+        if os.path.isfile(full_final_file):
+            unique_name = f"{final_file_name}_{job.job_id}.iso"
+            full_final_file = os.path.join(final_path, unique_name)
+            logging.warning(f"Completed ISO already exists — using unique name: {unique_name}")
         logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
-        if not os.path.isfile(full_final_file):
-            try:
-                shutil.move(incomplete_filename, full_final_file)
-            except Exception as error:
-                logging.error(f"Unable to move '{incomplete_filename}' to '{final_path}' - Error: {error}")
-        else:
-            logging.info(f"File: {full_final_file} already exists.  Not moving.")
+        try:
+            shutil.move(incomplete_filename, full_final_file)
+        except Exception as error:
+            logging.error(f"Unable to move '{incomplete_filename}' to '{final_path}' - Error: {error}")
         logging.info("Data rip call successful")
         database_updater({'path': full_final_file}, job)
         success = True
