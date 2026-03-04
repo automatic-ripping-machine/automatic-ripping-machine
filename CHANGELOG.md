@@ -1,5 +1,23 @@
 # Changelog
 
+## [10.9.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.8.4-alpha.1...v10.9.0-alpha.1) (2026-03-04)
+
+
+### Features
+
+* port upstream PRs [#1698](https://github.com/uprightbass360/automatic-ripping-machine-neu/issues/1698), [#1605](https://github.com/uprightbass360/automatic-ripping-machine-neu/issues/1605), [#1660](https://github.com/uprightbass360/automatic-ripping-machine-neu/issues/1660) ([a3547e8](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/a3547e89dd4130af9dcfc0af7fee789324878a4c))
+
+
+### Bug Fixes
+
+* data disc with same label silently discarded (upstream [#1651](https://github.com/uprightbass360/automatic-ripping-machine-neu/issues/1651)) ([72cf674](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/72cf674b1d1e3d8aea529572f1b39377e96c043b))
+* handle MusicBrainz rate limiting in integration tests ([8edfa26](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/8edfa264790bd7aff53e9ccab25a95814a040e5a))
+* resolve SonarCloud quality gate failures ([a004957](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/a00495730ee2ce342477d8d6d12e6296e209c0b0))
+* resolve SonarCloud security hotspots and test flakiness ([816ea5e](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/816ea5ecbd676807053cdfbf2fb486960160ce09))
+* save_disc_poster() leaves disc mounted before MakeMKV (upstream [#1664](https://github.com/uprightbass360/automatic-ripping-machine-neu/issues/1664)) ([5b58335](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/5b583352c6bed69c7ef55c9f5258e96a6d96e8e6))
+* settings not persisting after config save (upstream [#1639](https://github.com/uprightbass360/automatic-ripping-machine-neu/issues/1639)) ([7f661b5](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/7f661b54066d9518b6c33038668b131e81a604ac))
+* use pytest.approx for float comparison (SonarCloud S1244) ([fd8bbab](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/fd8bbab095d545c20d7fcb16a57f5f5bcc90d5cd))
+
 ## [10.8.4-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.8.3-alpha.1...v10.8.4-alpha.1) (2026-03-03)
 
 
