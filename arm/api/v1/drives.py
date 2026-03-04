@@ -1,11 +1,42 @@
 """API v1 — Drive endpoints."""
+import logging
+
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from arm.database import db
 from arm.models.system_drives import SystemDrives
 
+log = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1", tags=["drives"])
+
+
+@router.post('/drives/rescan')
+async def rescan_drives():
+    """Re-detect optical drives and update the database.
+
+    Python-level only — refreshes the drive inventory in the DB
+    by scanning /sys and udev. Does NOT trigger rips.
+    """
+    from arm.services.drives import drives_update
+
+    try:
+        before = SystemDrives.query.count()
+        removed = drives_update()
+        after = SystemDrives.query.count()
+        log.info("Drive rescan: %d before, %d after, %d removed", before, after, removed)
+        return {
+            "success": True,
+            "drive_count": after,
+            "drives_changed": before != after,
+        }
+    except Exception as e:
+        log.exception("Drive rescan failed")
+        return JSONResponse(
+            {"success": False, "error": str(e)},
+            status_code=500,
+        )
 
 
 @router.patch('/drives/{drive_id}')
