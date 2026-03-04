@@ -597,7 +597,9 @@ def clean_old_jobs():
     Check for running jobs - Update failed jobs that are no longer running\n
     :return: None
     """
-    active_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
+    # Exclude terminal states and transcode states (managed by the external transcoder)
+    excluded = ['fail', 'success', 'waiting_transcode', 'transcoding']
+    active_jobs = db.session.query(Job).filter(Job.status.notin_(excluded)).all()
     # Clean up abandoned jobs
     for job in active_jobs:
         if psutil.pid_exists(job.pid):
@@ -605,10 +607,8 @@ def clean_old_jobs():
             if job.pid_hash == hash(job_process):
                 logging.info(f"Job #{job.job_id} with PID {job.pid} is currently running.")
         else:
-            logging.info(f"Job #{job.job_id} with PID {job.pid} has been abandoned."
+            logging.info(f"Job #{job.job_id} with PID {job.pid} has been abandoned. "
                          f"Updating job status to fail.")
-            job.status = JobState.FAILURE.value
-            db.session.commit()
             database_updater({'status': JobState.FAILURE.value}, job)
 
 
@@ -669,6 +669,17 @@ def duplicate_run_check(dev_path):
     # check for running jobs by associated drive.
     drive = SystemDrives.query.filter_by(mount=dev_path).first()
     if not drive.processing:
+        # Drive is not currently processing — check post-eject grace period.
+        # After a rip finishes, the eject triggers udev again. If the previous
+        # job finished less than 30s ago, skip this run.
+        prev = drive.job_previous
+        if prev and prev.stop_time:
+            elapsed = (datetime.datetime.now() - prev.stop_time).total_seconds()
+            if elapsed < 30:
+                raise RipperException(
+                    f"Post-eject grace period: previous job on {dev_path} "
+                    f"finished {elapsed:.0f}s ago (< 30s)"
+                )
         return  # drive is not processing, so we are safe to start another run.
     job = drive.job_current
     logging.critical(f'Drive {dev_path} has an active Job ({job.job_id}): {job.status}.')
