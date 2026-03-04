@@ -60,7 +60,7 @@ services:
       - ${ARM_CONFIG_PATH}:/etc/arm/config
       - arm-db:/home/arm/db
       - ${ARM_MAKEMKV_PATH:-makemkv-settings}:/home/arm/.MakeMKV
-      - ./scripts/docker/rescan_drive.sh:/opt/arm/scripts/docker/rescan_drive.sh:ro
+      - ./scripts/docker/rescan_drive.sh:/opt/arm/scripts/docker/rescan_drive.sh
     devices:
       - ${ARM_DEVICE_0:-/dev/sr0}:/dev/sr0
       - ${ARM_DEVICE_1:-/dev/sr1}:/dev/sr1
