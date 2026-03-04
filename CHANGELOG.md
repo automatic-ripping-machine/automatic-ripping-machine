@@ -1,5 +1,13 @@
 # Changelog
 
+## [10.10.1-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.10.0-alpha.1...v10.10.1-alpha.1) (2026-03-04)
+
+
+### Bug Fixes
+
+* match udev add|change action for container disc detection ([b367eb8](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/b367eb82d4223181c531c40411cf7e265acf22ba))
+* udev rule ordering, action matching, and lock path ([acd59a7](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/acd59a72ae42b295c7d744d193b164c2c194d380))
+
 ## [10.10.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.9.0-alpha.1...v10.10.0-alpha.1) (2026-03-04)
 
 
