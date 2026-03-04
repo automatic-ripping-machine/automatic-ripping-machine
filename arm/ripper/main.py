@@ -199,7 +199,15 @@ def setup():
                 f"(head={head}, db={current.version_num if current else 'unknown'}): {e}"
             ) from e
 
-    drive = SystemDrives.query.filter_by(mount=devpath).one()  # unique mounts
+    drive = SystemDrives.query.filter_by(mount=devpath).first()
+    if drive is None:
+        # Drive may have reconnected on a different device node — re-detect.
+        logging.info(f"No drive record for {devpath}, re-scanning drives...")
+        drive_utils.drives_update()
+        drive = SystemDrives.query.filter_by(mount=devpath).first()
+    if drive is None:
+        logging.info(f"Drive {devpath} not found after re-scan. Exiting gracefully.")
+        return False
 
     # With some drives and some disks, there is a race condition between creating the Job()
     # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)

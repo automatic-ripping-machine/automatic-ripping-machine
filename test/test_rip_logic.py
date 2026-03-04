@@ -1415,3 +1415,30 @@ class TestDriveReadinessTimeout:
         drive._tray = CDS.NO_DISC.value
         assert drive.ready is False
         assert drive.tray == CDS.NO_DISC
+
+
+class TestDriveLookupGraceful:
+    """Test that unknown drive device nodes don't crash with NoResultFound."""
+
+    def test_unknown_mount_returns_none(self, app_context):
+        """Querying an unknown mount with .first() returns None, not NoResultFound."""
+        from arm.models.system_drives import SystemDrives
+        result = SystemDrives.query.filter_by(mount="/dev/sr99").first()
+        assert result is None
+
+    def test_rescan_populates_new_drive(self, app_context):
+        """After drives_update(), a reconnected drive should be findable."""
+        from arm.models.system_drives import SystemDrives
+        _, db = app_context
+
+        assert SystemDrives.query.filter_by(mount="/dev/sr99").first() is None
+
+        drive = SystemDrives()
+        drive.mount = "/dev/sr99"
+        drive.stale = False
+        db.session.add(drive)
+        db.session.commit()
+
+        result = SystemDrives.query.filter_by(mount="/dev/sr99").first()
+        assert result is not None
+        assert result.mount == "/dev/sr99"
