@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.10.2-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.10.1-alpha.1...v10.10.2-alpha.1) (2026-03-04)
+
+
+### Bug Fixes
+
+* handle unknown drive device nodes gracefully in setup() ([db33015](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/db33015f8a87535e0a195713b04707b5ea163ad5))
+
 ## [10.10.1-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.10.0-alpha.1...v10.10.1-alpha.1) (2026-03-04)
 
 
