@@ -791,7 +791,7 @@ class TestTrackInfoProcessorIntegration:
         # State should be reset after adding
         assert proc.seconds == 0
         assert proc.aspect == ""
-        assert proc.fps == 0.0
+        assert proc.fps == pytest.approx(0.0)
         assert proc.filename == ""
         assert proc.chapters == 0
         assert proc.filesize == 0
