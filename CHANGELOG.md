@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.10.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.9.0-alpha.1...v10.10.0-alpha.1) (2026-03-04)
+
+
+### Features
+
+* harden disc detection chain against retriggering and timeouts ([6131596](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/613159665a71a69d1ba3411e74ed1ed48f0ef70a))
+
 ## [10.9.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.8.4-alpha.1...v10.9.0-alpha.1) (2026-03-04)
 
 
