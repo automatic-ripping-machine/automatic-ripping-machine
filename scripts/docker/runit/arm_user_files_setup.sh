@@ -63,7 +63,10 @@ echo "Adding arm user to 'render' group"
 usermod -a -G render arm
 
 ### Setup Files
-chown -R arm:arm /opt/arm
+# Use --quiet to suppress errors from read-only bind-mounted files.
+# The || true ensures the script continues even if some files are on a
+# read-only filesystem (e.g. rescan_drive.sh mounted with :ro).
+chown -R --quiet arm:arm /opt/arm || true
 
 # Check ownership of the ARM home folder
 check_folder_ownership "/home/arm"
