@@ -13,7 +13,7 @@
 
 DEVNAME=$1
 ARMLOG="/home/arm/logs/arm.log"
-LOCKFILE="/run/arm_${DEVNAME}.lock"
+LOCKFILE="/home/arm/.arm_${DEVNAME}.lock"
 
 # --- Per-device flock (non-blocking) ---
 # Opens the lock file on fd 9 and attempts a non-blocking exclusive lock.

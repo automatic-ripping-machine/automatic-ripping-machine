@@ -56,7 +56,7 @@ COPY . /opt/arm/
 
 # Ensure Python deps are up-to-date, create udev symlink, allow git in container
 RUN pip3 install --no-cache-dir -r /opt/arm/docker/base/requirements.txt \
-    && ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/ \
+    && ln -sv /opt/arm/setup/61-docker-arm.rules /lib/udev/rules.d/ \
     && git config --global --add safe.directory /opt/arm
 
 CMD ["/sbin/my_init"]
