@@ -87,6 +87,11 @@ GROUP_TV_DISCS_UNDER_SERIES: false
 # Set to 0 to disable
 MAX_CONCURRENT_MAKEMKVINFO: 0
 
+# How long (in seconds) to wait for the drive to become ready after disc insertion.
+# Some drives take longer to spin up. If the drive reports NO_DISC for the majority
+# of this period, ARM exits gracefully instead of throwing an error.
+DRIVE_READY_TIMEOUT: 60
+
 # Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
 # "status=progress" to log progress
 DATA_RIP_PARAMETERS: ""

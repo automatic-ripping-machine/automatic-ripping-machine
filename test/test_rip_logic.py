@@ -1,4 +1,5 @@
 """Tests for ripping business logic (no hardware required)."""
+import datetime
 import os
 import subprocess
 import unittest.mock
@@ -1247,3 +1248,170 @@ class TestMainfeatureMakemkv:
 
         assert captured_track['track'].track_number == "2"
         assert captured_track['track'].chapters == 28
+
+
+class TestDuplicateRunCheck:
+    """Test duplicate_run_check() grace period and active-job detection."""
+
+    def _make_drive(self, db, devpath, job_current=None, job_previous=None):
+        from arm.models.system_drives import SystemDrives
+        drive = SystemDrives()
+        drive.mount = devpath
+        drive.stale = False
+        if job_current:
+            drive.job_id_current = job_current.job_id
+        if job_previous:
+            drive.job_id_previous = job_previous.job_id
+        db.session.add(drive)
+        db.session.commit()
+        return drive
+
+    def test_active_job_raises(self, app_context, sample_job):
+        """Active job on drive should raise RipperException."""
+        from arm.ripper.utils import duplicate_run_check, RipperException
+        _, db = app_context
+
+        sample_job.start_time = datetime.datetime.now()
+        db.session.commit()
+        self._make_drive(db, sample_job.devpath, job_current=sample_job)
+
+        with pytest.raises(RipperException, match="Job already running"):
+            duplicate_run_check(sample_job.devpath)
+
+    def test_previous_job_within_grace_period_raises(self, app_context, sample_job):
+        """Previous job finished <30s ago should raise (grace period)."""
+        from arm.ripper.utils import duplicate_run_check, RipperException
+        from arm.models.job import Job
+        _, db = app_context
+
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            prev_job = Job('/dev/sr0')
+        prev_job.status = "success"
+        prev_job.stop_time = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        prev_job.devpath = sample_job.devpath
+        db.session.add(prev_job)
+        db.session.flush()
+
+        self._make_drive(db, sample_job.devpath, job_previous=prev_job)
+
+        with pytest.raises(RipperException, match="Post-eject grace period"):
+            duplicate_run_check(sample_job.devpath)
+
+    def test_previous_job_beyond_grace_period_passes(self, app_context, sample_job):
+        """Previous job finished >30s ago should NOT raise."""
+        from arm.ripper.utils import duplicate_run_check
+        from arm.models.job import Job
+        _, db = app_context
+
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            prev_job = Job('/dev/sr0')
+        prev_job.status = "success"
+        prev_job.stop_time = datetime.datetime.now() - datetime.timedelta(seconds=60)
+        prev_job.devpath = sample_job.devpath
+        db.session.add(prev_job)
+        db.session.flush()
+
+        self._make_drive(db, sample_job.devpath, job_previous=prev_job)
+
+        duplicate_run_check(sample_job.devpath)
+
+    def test_no_previous_job_passes(self, app_context, sample_job):
+        """No previous job on drive should NOT raise."""
+        from arm.ripper.utils import duplicate_run_check
+        _, db = app_context
+
+        self._make_drive(db, sample_job.devpath)
+
+        duplicate_run_check(sample_job.devpath)
+
+
+class TestCleanOldJobs:
+    """Test clean_old_jobs() status exclusions."""
+
+    def _make_job(self, db, status, pid=99999):
+        from arm.models.job import Job
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            job = Job('/dev/sr0')
+        job.status = status
+        job.pid = pid
+        job.pid_hash = 0
+        db.session.add(job)
+        db.session.commit()
+        return job
+
+    def test_waiting_transcode_not_marked_failed(self, app_context):
+        """Job in waiting_transcode with dead PID should NOT be marked failed."""
+        from arm.ripper.utils import clean_old_jobs
+        _, db = app_context
+
+        job = self._make_job(db, "waiting_transcode", pid=99999)
+
+        with unittest.mock.patch('arm.ripper.utils.psutil.pid_exists', return_value=False):
+            clean_old_jobs()
+
+        db.session.refresh(job)
+        assert job.status == "waiting_transcode"
+
+    def test_transcoding_not_marked_failed(self, app_context):
+        """Job in transcoding with dead PID should NOT be marked failed."""
+        from arm.ripper.utils import clean_old_jobs
+        _, db = app_context
+
+        job = self._make_job(db, "transcoding", pid=99999)
+
+        with unittest.mock.patch('arm.ripper.utils.psutil.pid_exists', return_value=False):
+            clean_old_jobs()
+
+        db.session.refresh(job)
+        assert job.status == "transcoding"
+
+    def test_active_with_dead_pid_marked_failed(self, app_context):
+        """Job in active state with dead PID should be marked failed."""
+        from arm.ripper.utils import clean_old_jobs
+        _, db = app_context
+
+        job = self._make_job(db, "active", pid=99999)
+
+        with unittest.mock.patch('arm.ripper.utils.psutil.pid_exists', return_value=False):
+            clean_old_jobs()
+
+        db.session.refresh(job)
+        assert job.status == "fail"
+
+
+class TestDriveReadinessTimeout:
+    """Test drive readiness polling logic in setup()."""
+
+    def test_disc_ok_ready_immediately(self, app_context, sample_job):
+        """DISC_OK on first poll should return ready."""
+        from arm.models.system_drives import CDS, SystemDrives
+        _, db = app_context
+
+        drive = SystemDrives()
+        drive.mount = sample_job.devpath
+        drive.stale = False
+        db.session.add(drive)
+        db.session.commit()
+
+        with unittest.mock.patch.object(SystemDrives, 'tray_status') as mock_ts:
+            mock_ts.side_effect = lambda: setattr(drive, '_tray', CDS.DISC_OK.value)
+            drive._tray = CDS.DISC_OK.value
+            assert drive.ready is True
+
+    def test_no_disc_returns_not_ready(self, app_context, sample_job):
+        """NO_DISC state should indicate drive is not ready."""
+        from arm.models.system_drives import CDS, SystemDrives
+        _, db = app_context
+
+        drive = SystemDrives()
+        drive.mount = sample_job.devpath
+        drive.stale = False
+        db.session.add(drive)
+        db.session.commit()
+
+        drive._tray = CDS.NO_DISC.value
+        assert drive.ready is False
+        assert drive.tray == CDS.NO_DISC

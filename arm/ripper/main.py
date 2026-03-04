@@ -26,7 +26,7 @@ if find_spec("arm") is None:
 import arm.config.config as cfg  # noqa E402
 from arm.models.config import Config  # noqa: E402
 from arm.models.job import Job, JobState  # noqa: E402
-from arm.models.system_drives import SystemDrives  # noqa: E402
+from arm.models.system_drives import CDS, SystemDrives  # noqa: E402
 from arm.database import db  # noqa E402
 import arm.constants as constants  # noqa E402
 from arm.ripper import (arm_ripper, identify, logger,  # noqa: E402
@@ -203,15 +203,41 @@ def setup():
 
     # With some drives and some disks, there is a race condition between creating the Job()
     # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)
-    for num in range(1, 11):
+    drive_ready_timeout = int(cfg.arm_config.get('DRIVE_READY_TIMEOUT', 60))
+    poll_interval = 2
+    max_polls = max(drive_ready_timeout // poll_interval, 1)
+    no_disc_threshold = max_polls // 2  # >50% of timeout with NO_DISC → exit gracefully
+    no_disc_count = 0
+    drive_is_ready = False
+
+    for num in range(1, max_polls + 1):
         drive.tray_status()
         if drive.ready:
+            drive_is_ready = True
             break
-        msg = f"[{num} of 10] Drive [{drive.mount}] appears to be empty or is not ready. Waiting 1s"
-        logging.info(msg)
-        time.sleep(1)
-    else:  # no break
-        raise utils.RipperException(f"Timed out waiting for drive to be ready (ioctl tray status: {drive.tray}).")
+        state_name = drive.tray.name if drive.tray else "UNKNOWN"
+        if drive.tray == CDS.NO_DISC:
+            no_disc_count += 1
+        logging.info(
+            f"[{num}/{max_polls}] Drive [{drive.mount}] not ready "
+            f"(state: {state_name}). Waiting {poll_interval}s"
+        )
+        if no_disc_count > no_disc_threshold:
+            logging.info(
+                f"Drive [{drive.mount}] reported NO_DISC for majority of "
+                f"checks ({no_disc_count}/{num}). Exiting gracefully."
+            )
+            return False
+        time.sleep(poll_interval)
+
+    if not drive_is_ready:
+        state_name = drive.tray.name if drive.tray else "UNKNOWN"
+        logging.info(
+            f"Timed out waiting for drive [{drive.mount}] to be ready "
+            f"after {drive_ready_timeout}s (last state: {state_name}). "
+            f"Exiting gracefully."
+        )
+        return False
 
     # ARM Job starts
     # Create new job
@@ -259,12 +285,16 @@ def setup():
     utils.clean_old_jobs()
     # Log all params/attribs from the drive
     log_udev_params(devpath)
+    return True
 
 
 if __name__ == "__main__":
     job = None
     try:
-        setup()
+        ready = setup()
+        if not ready:
+            # Drive not ready or no disc — exit cleanly without error
+            sys.exit(0)
         main()
     except Exception as error:
         logging.critical("A fatal error has occurred and ARM is exiting.")
