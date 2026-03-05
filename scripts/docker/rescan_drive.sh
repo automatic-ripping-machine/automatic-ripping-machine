@@ -34,6 +34,20 @@ fi
 
 log "Rescanning /dev/$DEVNAME"
 
+# --- Clean up stale sibling sr* device nodes ---
+# After USB re-enumeration the drive may appear under a different name
+# (e.g. sr1 → sr0). Remove device nodes whose kernel backing (/sys/block)
+# has disappeared so ARM doesn't see phantom drives.
+for stale in /dev/sr[0-9]*; do
+    [[ -e "$stale" ]] || continue
+    stale_name="${stale#/dev/}"
+    [[ "$stale_name" == "$DEVNAME" ]] && continue
+    if [[ ! -d "/sys/block/$stale_name" ]]; then
+        rm -f "$stale"
+        log "Removed stale device node $stale (no /sys/block/$stale_name)"
+    fi
+done
+
 # --- Create device node if missing ---
 if [[ ! -e "/dev/$DEVNAME" ]]; then
     if [[ ! -f "/sys/block/$DEVNAME/dev" ]]; then

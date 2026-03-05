@@ -281,9 +281,16 @@ def drives_update(startup=False):
     """
     drive_count = SystemDrives.query.count()
 
-    # Mark all drives as stale
+    # Mark non-processing drives as stale.  Drives with an active job keep
+    # stale=False so a rescan triggered by *another* drive's re-enumeration
+    # can never blank the mount of a drive that is mid-rip.
     for db_drive in SystemDrives.query.all():
-        db_drive.stale = True
+        if db_drive.processing:
+            db_drive.stale = False
+            log.debug("Skipping stale mark for active drive '%s' on '%s'",
+                       db_drive.serial_id, db_drive.mount)
+        else:
+            db_drive.stale = True
         if startup:
             db_drive.mdisc = None
     db.session.commit()
@@ -303,7 +310,11 @@ def drives_update(startup=False):
             SystemDrives.drive_id != db_drive.drive_id,
             SystemDrives.mount == db_drive.mount,
         ).all():
-            conflicting_drive.mount = ""
+            if conflicting_drive.processing:
+                log.warning("Mount conflict on '%s': drive '%s' has active job, skipping blank",
+                            db_drive.mount, conflicting_drive.serial_id)
+            else:
+                conflicting_drive.mount = ""
         db.session.commit()
 
     stale_count = _cleanup_stale_drives()
