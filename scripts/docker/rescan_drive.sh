@@ -51,8 +51,11 @@ done
 # --- Create device node if missing ---
 if [[ ! -e "/dev/$DEVNAME" ]]; then
     if [[ ! -f "/sys/block/$DEVNAME/dev" ]]; then
-        log "ERROR: /sys/block/$DEVNAME/dev not found — kernel does not see this drive"
-        exit 1
+        # Not an error — during USB re-enumeration the old device name fires
+        # an add event before the kernel settles on the new name. Exit 0 so
+        # the host-side watcher does NOT fall back to a container restart.
+        log "Device /dev/$DEVNAME not in /sys/block — drive not present (yet), skipping"
+        exit 0
     fi
 
     majmin=$(cat "/sys/block/$DEVNAME/dev")
