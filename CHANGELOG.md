@@ -1,5 +1,20 @@
 # Changelog
 
+## [10.11.0-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.10.2-alpha.1...v10.11.0-alpha.1) (2026-03-05)
+
+
+### Features
+
+* add drive rescan script and API endpoint ([883b4ac](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/883b4ac159716e0f8ea0486bd374a9875363ca5a))
+
+
+### Bug Fixes
+
+* exit 0 when drive not in /sys/block during rescan ([2a40d46](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/2a40d46c3c1ec6a496024cb40eb21d18939a3205))
+* protect against drive re-enumeration (sr0→sr1→sr2 cycling) ([fbe6ca6](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/fbe6ca653bf6d7fb06ef0da6dad96a947b70253c))
+* remove :ro from rescan_drive.sh bind-mount ([668c37b](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/668c37b912d306d19c1d6c2ee7a885106187573e))
+* tolerate read-only bind-mounts in /opt/arm during startup ([e9e15dc](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/e9e15dc819f8530b58b4e71fab0d64786799c4d4))
+
 ## [10.10.2-alpha.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v10.10.1-alpha.1...v10.10.2-alpha.1) (2026-03-04)
 
 
