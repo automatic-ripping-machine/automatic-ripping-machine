@@ -170,6 +170,21 @@ def _build_webhook_payload(title, body, job, raw_basename):
                 payload["config_overrides"] = json.loads(job.transcode_overrides)
             except (json.JSONDecodeError, TypeError):
                 pass
+        # Multi-title: include per-track metadata for the transcoder
+        if getattr(job, 'multi_title', False):
+            payload["multi_title"] = True
+            tracks_meta = []
+            for track in job.tracks:
+                if track.title:
+                    tracks_meta.append({
+                        "track_number": str(track.track_number or ''),
+                        "title": str(track.title),
+                        "year": str(track.year or ''),
+                        "video_type": str(track.video_type or ''),
+                        "filename": str(track.filename or ''),
+                    })
+            if tracks_meta:
+                payload["tracks"] = tracks_meta
     return payload
 
 

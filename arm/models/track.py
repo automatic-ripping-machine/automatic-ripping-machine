@@ -21,6 +21,12 @@ class Track(db.Model):
     process = db.Column(db.Boolean)
     chapters = db.Column(db.Integer, default=0)
     filesize = db.Column(db.BigInteger, default=0)
+    # Per-track title metadata (nullable — inherits job-level when null)
+    title = db.Column(db.String(256), nullable=True)
+    year = db.Column(db.String(4), nullable=True)
+    imdb_id = db.Column(db.String(15), nullable=True)
+    poster_url = db.Column(db.String(256), nullable=True)
+    video_type = db.Column(db.String(20), nullable=True)
 
     def __init__(self, job_id, track_number, length, aspect_ratio,
                  fps, main_feature, source, basename, filename,

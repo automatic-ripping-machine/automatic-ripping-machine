@@ -306,6 +306,74 @@ async def set_job_tracks(job_id: int, request: Request):
     return {"success": True, "job_id": job_id, "tracks_count": len(tracks)}
 
 
+@router.post('/jobs/{job_id}/multi-title')
+async def toggle_multi_title(job_id: int, request: Request):
+    """Toggle the multi_title flag on a job."""
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    body = await request.json()
+    enabled = bool(body.get('enabled', not getattr(job, 'multi_title', False)))
+    svc_files.database_updater({"multi_title": enabled}, job)
+    return {"success": True, "job_id": job.job_id, "multi_title": enabled}
+
+
+@router.put('/jobs/{job_id}/tracks/{track_id}/title')
+async def update_track_title(job_id: int, track_id: int, request: Request):
+    """Set per-track title metadata for a multi-title disc."""
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    track = Track.query.get(track_id)
+    if not track or track.job_id != job_id:
+        return JSONResponse({"success": False, "error": "Track not found"}, status_code=404)
+
+    body = await request.json()
+    updated = {}
+    track_fields = {
+        'title': ('title', str, 256),
+        'year': ('year', str, 4),
+        'imdb_id': ('imdb_id', str, 15),
+        'poster_url': ('poster_url', str, 256),
+        'video_type': ('video_type', str, 20),
+    }
+    for key, (attr, typ, maxlen) in track_fields.items():
+        if key in body and body[key] is not None:
+            value = typ(body[key]).strip()[:maxlen]
+            if key == 'title':
+                value = _clean_for_filename(value)
+            setattr(track, attr, value)
+            updated[key] = value
+
+    if not updated:
+        return JSONResponse({"success": False, "error": "No fields to update"}, status_code=400)
+
+    db.session.commit()
+    return {"success": True, "job_id": job_id, "track_id": track_id, "updated": updated}
+
+
+@router.delete('/jobs/{job_id}/tracks/{track_id}/title')
+def clear_track_title(job_id: int, track_id: int):
+    """Clear per-track title metadata (revert to job-level inheritance)."""
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    track = Track.query.get(track_id)
+    if not track or track.job_id != job_id:
+        return JSONResponse({"success": False, "error": "Track not found"}, status_code=404)
+
+    track.title = None
+    track.year = None
+    track.imdb_id = None
+    track.poster_url = None
+    track.video_type = None
+    db.session.commit()
+    return {"success": True, "job_id": job_id, "track_id": track_id}
+
+
 @router.post('/naming/preview')
 async def naming_preview(request: Request):
     """Preview a naming pattern with given variables."""
