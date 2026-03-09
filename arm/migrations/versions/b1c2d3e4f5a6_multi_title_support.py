@@ -1,7 +1,7 @@
 """multi-title disc support: per-track metadata + job multi_title flag
 
 Revision ID: b1c2d3e4f5a6
-Revises: a4b5c6d7e8f9
+Revises: b5c6d7e8f9a0
 Create Date: 2026-03-09
 
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'b1c2d3e4f5a6'
-down_revision = 'a4b5c6d7e8f9'
+down_revision = 'b5c6d7e8f9a0'
 branch_labels = None
 depends_on = None
 
