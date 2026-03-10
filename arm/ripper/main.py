@@ -250,8 +250,6 @@ def setup():
     # ARM Job starts
     # Create new job
     job = Job(devpath)
-    # Setup logging
-    log_file = logger.setup_job_log(job)
 
     # Capture and report the ARM Info
     arminfo = ARMInfo(cfg.arm_config["INSTALLPATH"], cfg.arm_config['DBFILE'])
@@ -266,6 +264,11 @@ def setup():
     job.status = JobState.IDLE.value
     job.start_time = datetime.datetime.now()
     utils.database_adder(job)
+
+    # Setup logging — must happen after job is persisted (job_id assigned) and
+    # arm_version is set, because music CDs trigger a MusicBrainz lookup here
+    # that needs both values.
+    log_file = logger.setup_job_log(job)
     # Sleep to lower chances of db locked - unlikely to be needed
     time.sleep(1)
     # Associate the job with the drive in the database
