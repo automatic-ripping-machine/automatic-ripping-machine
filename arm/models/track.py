@@ -19,6 +19,7 @@ class Track(db.Model):
     error = db.Column(db.Text)
     source = db.Column(db.String(32))
     process = db.Column(db.Boolean)
+    enabled = db.Column(db.Boolean, default=True)
     chapters = db.Column(db.Integer, default=0)
     filesize = db.Column(db.BigInteger, default=0)
     # Per-track title metadata (nullable — inherits job-level when null)
@@ -43,6 +44,7 @@ class Track(db.Model):
         self.filename = filename
         self.ripped = False
         self.process = False
+        self.enabled = True
         self.chapters = chapters
         self.filesize = filesize
 

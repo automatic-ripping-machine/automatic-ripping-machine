@@ -939,3 +939,204 @@ class TestCreateTocTracks:
         # put_track called by process_tracks (source=ABCDE), not _create_toc_tracks
         for call in mock_put.call_args_list:
             assert call[0][6] == "ABCDE"
+
+
+# ---------------------------------------------------------------------------
+# End-to-End Pipeline Integration Tests
+# ---------------------------------------------------------------------------
+
+class TestMusicPipelineEndToEnd:
+    """Integration tests exercising real code paths with mocked hardware/network.
+
+    These tests call real functions (music_brainz.main, utils.rip_music, etc.)
+    while mocking only external dependencies: discid.read, musicbrainzngs API,
+    subprocess, and filesystem paths.
+    """
+
+    @staticmethod
+    def _make_fake_discid(track_data):
+        """Create a fake discid.Disc-like object."""
+        class FakeTrack:
+            def __init__(self, number, seconds):
+                self.number = number
+                self.seconds = seconds
+
+        class FakeDisc:
+            def __init__(self, tracks):
+                self.id = 'abc123disc'
+                self.freedb_id = 'test_freedb'
+                self.submission_url = 'http://example.com/submit'
+                self.tracks = [FakeTrack(n, s) for n, s in tracks]
+
+        return FakeDisc(track_data)
+
+    def test_full_success_flow(self, music_job, mb_disc_response, tmp_path):
+        """MB lookup succeeds → tracks created → abcde rips → success."""
+        fake_disc = self._make_fake_discid([(1, 68), (2, 169), (3, 216)])
+        logfile = "abcde_test.log"
+        logpath = tmp_path / logfile
+        logpath.write_text("Ripping track 1...\nRipping track 2...\nRipping track 3...\nDone.\n")
+        music_job.config.LOGPATH = str(tmp_path)
+
+        artlist = {
+            'images': [
+                {'image': 'https://coverartarchive.org/release/abc/front.jpg'}
+            ]
+        }
+
+        with unittest.mock.patch('arm.ripper.music_brainz.read', return_value=fake_disc), \
+             unittest.mock.patch.dict(cfg.arm_config, {
+                 'GET_AUDIO_TITLE': 'musicbrainz',
+                 'ABCDE_CONFIG_FILE': '/nonexistent',
+             }), \
+             unittest.mock.patch.object(mb, 'set_useragent'), \
+             unittest.mock.patch.object(mb, 'get_releases_by_discid',
+                                        return_value=mb_disc_response), \
+             unittest.mock.patch.object(mb, 'get_image_list',
+                                        return_value=artlist):
+            # Phase 1: MusicBrainz lookup — real code path
+            result = music_brainz.main(music_job)
+
+        # Verify MB metadata applied to job
+        assert result == "Pink Floyd The Dark Side of the Moon"
+        assert music_job.hasnicetitle is True
+        assert music_job.year == '1973'
+        assert music_job.video_type == 'music'
+        assert music_job.artist == 'Pink Floyd'
+        assert music_job.album == 'The Dark Side of the Moon'
+        assert music_job.poster_url == 'https://coverartarchive.org/release/abc/front.jpg'
+
+        # Verify 3 Track records created in DB with source=ABCDE
+        tracks = Track.query.filter_by(job_id=music_job.job_id).order_by(Track.track_number).all()
+        assert len(tracks) == 3
+        assert tracks[0].source == "ABCDE"
+        assert tracks[0].filename == "Speak to Me"
+        assert tracks[1].filename == "Breathe"
+        assert tracks[2].filename == "On the Run"
+
+        # Phase 2: abcde rip — real code path with mocked subprocess
+        with unittest.mock.patch.dict(cfg.arm_config, {
+                 'ABCDE_CONFIG_FILE': '/nonexistent',
+             }), \
+             unittest.mock.patch('subprocess.check_output', return_value=b''):
+            rip_ok = utils.rip_music(music_job, logfile)
+
+        assert rip_ok is True
+        assert music_job.status == 'active'  # IDLE
+
+    def test_full_mb_failure_toc_fallback(self, music_job, tmp_path):
+        """MB fails → TOC tracks created → abcde still rips successfully."""
+        fake_disc = self._make_fake_discid([(1, 68), (2, 169), (3, 216)])
+        logfile = "abcde_test.log"
+        logpath = tmp_path / logfile
+        logpath.write_text("Ripping without metadata...\nDone.\n")
+        music_job.config.LOGPATH = str(tmp_path)
+
+        with unittest.mock.patch('arm.ripper.music_brainz.read', return_value=fake_disc), \
+             unittest.mock.patch.dict(cfg.arm_config, {
+                 'GET_AUDIO_TITLE': 'musicbrainz',
+                 'ABCDE_CONFIG_FILE': '/nonexistent',
+             }), \
+             unittest.mock.patch.object(mb, 'set_useragent'), \
+             unittest.mock.patch.object(mb, 'get_releases_by_discid',
+                                        side_effect=mb.WebServiceError("timeout")):
+            # Phase 1: MB fails, should fall back to TOC tracks
+            result = music_brainz.main(music_job)
+
+        assert result == ""
+        assert music_job.hasnicetitle is False
+
+        # TOC tracks created with source=TOC
+        tracks = Track.query.filter_by(job_id=music_job.job_id).order_by(Track.track_number).all()
+        assert len(tracks) == 3
+        for t in tracks:
+            assert t.source == "TOC"
+        assert tracks[0].length == 68
+        assert tracks[1].length == 169
+        assert tracks[2].length == 216
+
+        # Phase 2: abcde still runs (rip doesn't depend on MB success)
+        with unittest.mock.patch.dict(cfg.arm_config, {
+                 'ABCDE_CONFIG_FILE': '/nonexistent',
+             }), \
+             unittest.mock.patch('subprocess.check_output', return_value=b''):
+            rip_ok = utils.rip_music(music_job, logfile)
+
+        assert rip_ok is True
+
+    def test_full_abcde_failure(self, music_job, mb_disc_response, tmp_path):
+        """MB succeeds → tracks created → abcde crashes → job fails."""
+        import subprocess as sp
+
+        fake_disc = self._make_fake_discid([(1, 68), (2, 169), (3, 216)])
+        logfile = "abcde_test.log"
+        music_job.config.LOGPATH = str(tmp_path)
+
+        with unittest.mock.patch('arm.ripper.music_brainz.read', return_value=fake_disc), \
+             unittest.mock.patch.dict(cfg.arm_config, {
+                 'GET_AUDIO_TITLE': 'musicbrainz',
+                 'ABCDE_CONFIG_FILE': '/nonexistent',
+             }), \
+             unittest.mock.patch.object(mb, 'set_useragent'), \
+             unittest.mock.patch.object(mb, 'get_releases_by_discid',
+                                        return_value=mb_disc_response), \
+             unittest.mock.patch('arm.ripper.music_brainz.get_cd_art',
+                                 return_value=False):
+            result = music_brainz.main(music_job)
+
+        assert result == "Pink Floyd The Dark Side of the Moon"
+
+        # Tracks exist from MB lookup
+        tracks = Track.query.filter_by(job_id=music_job.job_id).all()
+        assert len(tracks) == 3
+
+        # Phase 2: abcde crashes
+        with unittest.mock.patch.dict(cfg.arm_config, {
+                 'ABCDE_CONFIG_FILE': '/nonexistent',
+             }), \
+             unittest.mock.patch('subprocess.check_output',
+                                 side_effect=sp.CalledProcessError(1, 'abcde', b'drive error')):
+            rip_ok = utils.rip_music(music_job, logfile)
+
+        assert rip_ok is False
+        assert music_job.status == 'fail'
+        assert 'abcde failed' in music_job.errors
+
+        # Track records survive the rip failure
+        tracks_after = Track.query.filter_by(job_id=music_job.job_id).all()
+        assert len(tracks_after) == 3
+
+    def test_full_abcde_log_error(self, music_job, mb_disc_response, tmp_path):
+        """MB succeeds → abcde exits 0 but log has [ERROR] → job fails."""
+        fake_disc = self._make_fake_discid([(1, 68), (2, 169), (3, 216)])
+        logfile = "abcde_test.log"
+        logpath = tmp_path / logfile
+        logpath.write_text(
+            "Ripping track 1...\n"
+            "[ERROR] Unable to read disc\n"
+            "Some other output\n"
+        )
+        music_job.config.LOGPATH = str(tmp_path)
+
+        with unittest.mock.patch('arm.ripper.music_brainz.read', return_value=fake_disc), \
+             unittest.mock.patch.dict(cfg.arm_config, {
+                 'GET_AUDIO_TITLE': 'musicbrainz',
+                 'ABCDE_CONFIG_FILE': '/nonexistent',
+             }), \
+             unittest.mock.patch.object(mb, 'set_useragent'), \
+             unittest.mock.patch.object(mb, 'get_releases_by_discid',
+                                        return_value=mb_disc_response), \
+             unittest.mock.patch('arm.ripper.music_brainz.get_cd_art',
+                                 return_value=False):
+            music_brainz.main(music_job)
+
+        # Phase 2: abcde exits 0 but log contains errors
+        with unittest.mock.patch.dict(cfg.arm_config, {
+                 'ABCDE_CONFIG_FILE': '/nonexistent',
+             }), \
+             unittest.mock.patch('subprocess.check_output', return_value=b''):
+            rip_ok = utils.rip_music(music_job, logfile)
+
+        assert rip_ok is False
+        assert music_job.status == 'fail'
+        assert "[ERROR] Unable to read disc" in music_job.errors
