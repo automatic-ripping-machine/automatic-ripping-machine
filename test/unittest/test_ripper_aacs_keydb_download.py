@@ -61,21 +61,21 @@ class TestParseLinks(unittest.TestCase):
     """Tests for parse_links."""
 
     def test_finds_fv_download_links(self):
-        content = '<a href="http://example.com/fv_download.php?lang=eng">'
+        content = '<a href="https://example.com/fv_download.php?lang=eng">'
         self.assertEqual(
             mod.parse_links(content),
-            ["http://example.com/fv_download.php?lang=eng"],
+            ["https://example.com/fv_download.php?lang=eng"],
         )
 
     def test_finds_multiple(self):
         content = (
-            '<a href="http://a.com/fv_download.php?lang=eng"> '
-            '<a href="http://b.com/fv_download.php?lang=de">'
+            '<a href="https://a.com/fv_download.php?lang=eng"> '
+            '<a href="https://b.com/fv_download.php?lang=de">'
         )
         links = mod.parse_links(content)
         self.assertEqual(len(links), 2)
-        self.assertIn("http://a.com/fv_download.php?lang=eng", links)
-        self.assertIn("http://b.com/fv_download.php?lang=de", links)
+        self.assertIn("https://a.com/fv_download.php?lang=eng", links)
+        self.assertIn("https://b.com/fv_download.php?lang=de", links)
 
     def test_returns_empty_list_when_none(self):
         self.assertEqual(mod.parse_links("no links"), [])
@@ -102,14 +102,14 @@ class TestGetPrimaryDatabaseUrl(unittest.TestCase):
         with patch.object(mod.cfg, "arm_config", {"AACS_KEYDB_PRIMARY_URL": ""}):
             self.assertEqual(
                 mod.get_primary_database_url(),
-                "http://fvonline-db.bplaced.net/",
+                "https://fvonline-db.bplaced.net/",
             )
 
     def test_returns_default_when_key_missing(self):
         with patch.object(mod.cfg, "arm_config", {}):
             self.assertEqual(
                 mod.get_primary_database_url(),
-                "http://fvonline-db.bplaced.net/",
+                "https://fvonline-db.bplaced.net/",
             )
 
     def test_returns_config_value_when_set(self):
@@ -119,9 +119,9 @@ class TestGetPrimaryDatabaseUrl(unittest.TestCase):
 
     def test_strips_whitespace(self):
         with patch.object(
-            mod.cfg, "arm_config", {"AACS_KEYDB_PRIMARY_URL": "  http://x.com  "}
+            mod.cfg, "arm_config", {"AACS_KEYDB_PRIMARY_URL": "  https://x.com  "}
         ):
-            self.assertEqual(mod.get_primary_database_url(), "http://x.com")
+            self.assertEqual(mod.get_primary_database_url(), "https://x.com")
 
 
 class TestGetAacsKeydbEnabled(unittest.TestCase):
@@ -208,11 +208,11 @@ class TestGetExtraSourcesFromConfig(unittest.TestCase):
         with patch.object(
             mod.cfg,
             "arm_config",
-            {"AACS_KEYDB_EXTRA_SOURCES": "http://a.com/keydb.cfg, /path/to/local.cfg"},
+            {"AACS_KEYDB_EXTRA_SOURCES": "https://a.com/keydb.cfg, /path/to/local.cfg"},
         ):
             self.assertEqual(
                 mod.get_extra_sources_from_config(),
-                ["http://a.com/keydb.cfg", "/path/to/local.cfg"],
+                ["https://a.com/keydb.cfg", "/path/to/local.cfg"],
             )
 
     def test_strips_each_item(self):
