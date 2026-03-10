@@ -8,6 +8,26 @@ In case you want to adjust settings specific to audio CDs, you can find the ABCD
 
 To allow ARM to identify movie/tv titles, register for an [OMDb API key](http://www.omdbapi.com/apikey.aspx) and set the OMDB_API_KEY parameter in the config file.
 
+### AACS / KEYDB configuration
+
+ARM can keep the AACS `KEYDB.cfg` file up‑to‑date for you. The behaviour is controlled by
+options in `arm.yaml` (see also **Config-arm.yaml** for details):
+
+- **`AACS_KEYDB_ENABLED`** – set to `true` to allow auto‑updates; default is `false` so
+  manually added KEYDB files are not overwritten.
+- **`AACS_KEYDB_MIN_REFETCH_HOURS`** – minimum hours between fetch attempts (default 24)
+  to avoid excessive requests to the primary or extra sources.
+- **`AACS_KEYDB_PRIMARY_URL`** – the primary AACS database site to scrape for updates.
+- **`AACS_KEYDB_EXTRA_SOURCES`** – an optional comma‑separated list of additional URLs or
+  local paths that point to pre‑concatenated `KEYDB.cfg` files or zip archives containing
+  `keydb.cfg`.
+
+If `AACS_KEYDB_ENABLED` is `true` and `AACS_KEYDB_EXTRA_SOURCES` is left empty, ARM will
+use the primary URL to check for a newer database and download it when needed (respecting
+the minimum refetch period). If you set one or more extra sources, ARM uses those instead
+of the default public site. With `AACS_KEYDB_ENABLED` set to `false`, your manual KEYDB
+file is never overwritten.
+
 
 **Email Notifications**
 

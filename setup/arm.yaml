@@ -225,8 +225,16 @@ DELRAWFILES: true
 ##  AACS / KEYDB Options ##
 ##########################
 
+# Set to true to allow ARM to automatically download/update KEYDB.cfg.
+# Default is false so that manually added KEYDB files are not overwritten (non-breaking).
+AACS_KEYDB_ENABLED: false
+
+# Minimum hours between fetch attempts (primary URL or extra sources).
+# Reduces risk of being blocked for excessive requests. Only applies when AACS_KEYDB_ENABLED is true.
+AACS_KEYDB_MIN_REFETCH_HOURS: 24
+
 # Primary AACS database site to scrape for KEYDB download links.
-# Leave as default to use the official fvonline-db site.
+# Leave as default to use the official fvonline-db site. Ignored if AACS_KEYDB_EXTRA_SOURCES is set.
 AACS_KEYDB_PRIMARY_URL: "http://fvonline-db.bplaced.net/"
 
 # Optional additional KEYDB sources (URLs or local paths).

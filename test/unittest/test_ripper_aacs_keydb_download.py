@@ -124,6 +124,75 @@ class TestGetPrimaryDatabaseUrl(unittest.TestCase):
             self.assertEqual(mod.get_primary_database_url(), "http://x.com")
 
 
+class TestGetAacsKeydbEnabled(unittest.TestCase):
+    """Tests for get_aacs_keydb_enabled."""
+
+    def test_returns_false_when_key_missing(self):
+        with patch.object(mod.cfg, "arm_config", {}):
+            self.assertFalse(mod.get_aacs_keydb_enabled())
+
+    def test_returns_false_when_false(self):
+        with patch.object(mod.cfg, "arm_config", {"AACS_KEYDB_ENABLED": False}):
+            self.assertFalse(mod.get_aacs_keydb_enabled())
+
+    def test_returns_true_when_true(self):
+        with patch.object(mod.cfg, "arm_config", {"AACS_KEYDB_ENABLED": True}):
+            self.assertTrue(mod.get_aacs_keydb_enabled())
+
+    def test_parses_string_true(self):
+        with patch.object(mod.cfg, "arm_config", {"AACS_KEYDB_ENABLED": "true"}):
+            self.assertTrue(mod.get_aacs_keydb_enabled())
+        with patch.object(mod.cfg, "arm_config", {"AACS_KEYDB_ENABLED": "yes"}):
+            self.assertTrue(mod.get_aacs_keydb_enabled())
+
+    def test_parses_string_false(self):
+        with patch.object(mod.cfg, "arm_config", {"AACS_KEYDB_ENABLED": "false"}):
+            self.assertFalse(mod.get_aacs_keydb_enabled())
+
+
+class TestGetMinRefetchHours(unittest.TestCase):
+    """Tests for get_min_refetch_hours."""
+
+    def test_returns_24_when_key_missing(self):
+        with patch.object(mod.cfg, "arm_config", {}):
+            self.assertEqual(mod.get_min_refetch_hours(), 24)
+
+    def test_returns_config_value(self):
+        with patch.object(mod.cfg, "arm_config", {"AACS_KEYDB_MIN_REFETCH_HOURS": 48}):
+            self.assertEqual(mod.get_min_refetch_hours(), 48)
+
+    def test_parses_string_number(self):
+        with patch.object(mod.cfg, "arm_config", {"AACS_KEYDB_MIN_REFETCH_HOURS": "12"}):
+            self.assertEqual(mod.get_min_refetch_hours(), 12)
+
+    def test_returns_0_when_zero(self):
+        with patch.object(mod.cfg, "arm_config", {"AACS_KEYDB_MIN_REFETCH_HOURS": 0}):
+            self.assertEqual(mod.get_min_refetch_hours(), 0)
+
+
+class TestRefetchPeriod(unittest.TestCase):
+    """Tests for _is_within_refetch_period and _write_last_fetch_time."""
+
+    def test_not_within_period_when_no_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertFalse(mod._is_within_refetch_period(Path(tmp), 24))
+
+    def test_within_period_after_recent_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            mod._write_last_fetch_time(path)
+            self.assertTrue(mod._last_fetch_file(path).is_file())
+            self.assertTrue(mod._is_within_refetch_period(path, 24))
+
+
+class TestTryDownloadKeydbWhenDisabled(unittest.TestCase):
+    """When AACS_KEYDB_ENABLED is false, try_download_keydb does nothing and returns 0."""
+
+    def test_returns_zero_when_disabled(self):
+        with patch.object(mod.cfg, "arm_config", {"AACS_KEYDB_ENABLED": False}):
+            self.assertEqual(mod.try_download_keydb(), 0)
+
+
 class TestGetExtraSourcesFromConfig(unittest.TestCase):
     """Tests for get_extra_sources_from_config."""
 

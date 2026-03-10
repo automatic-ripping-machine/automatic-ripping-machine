@@ -12,6 +12,7 @@ Fixes
 - Fix for scheduled actions not building docker image correctly
 - Adds support for sr0-sr9 in docker
 - Re-adds support for MakeMKV key in docker
+- Adds configurable AACS KEYDB downloader (Python module) with primary and extra sources defined in `arm.yaml`
 ### Python version bumps
 - [Bump beautifulsoup4 from 4.10.0 to 4.11.1](https://github.com/1337-server/arm-dependencies/commit/901f64457d77673a2d96cad7adc91cbab5ee327c)
 - [Bump soupsieve from 2.3.1 to 2.3.2.post1](https://github.com/1337-server/arm-dependencies/commit/df63d3e206fda5b417f3287c7f56cae628a7d318)

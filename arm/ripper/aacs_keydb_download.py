@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.request
 import zipfile
 from datetime import datetime
@@ -185,6 +186,54 @@ def get_primary_database_url() -> str:
     return "http://fvonline-db.bplaced.net/"
 
 
+def get_aacs_keydb_enabled() -> bool:
+    """Return True if AACS KEYDB auto-update is enabled in config."""
+    value = cfg.arm_config.get("AACS_KEYDB_ENABLED", False)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ("true", "1", "yes")
+    return False
+
+
+def get_min_refetch_hours() -> int:
+    """Return minimum hours between fetch attempts from config."""
+    value = cfg.arm_config.get("AACS_KEYDB_MIN_REFETCH_HOURS", 24)
+    if isinstance(value, int) and value >= 0:
+        return value
+    if isinstance(value, str) and value.strip().isdigit():
+        return max(0, int(value.strip()))
+    return 24
+
+
+def _last_fetch_file(target: Path) -> Path:
+    """Path to file storing last successful KEYDB fetch timestamp."""
+    return target / "last_keydb_fetch.txt"
+
+
+def _is_within_refetch_period(target: Path, min_hours: int) -> bool:
+    """Return True if we fetched within the last min_hours (skip this run)."""
+    if min_hours <= 0:
+        return False
+    path = _last_fetch_file(target)
+    if not path.is_file():
+        return False
+    try:
+        content = path.read_text(encoding="utf-8").strip()
+        last_ts = float(content)
+    except (ValueError, OSError):
+        return False
+    return (time.time() - last_ts) < (min_hours * 3600)
+
+
+def _write_last_fetch_time(target: Path) -> None:
+    """Record current time as last successful KEYDB fetch."""
+    try:
+        _last_fetch_file(target).write_text(str(time.time()), encoding="utf-8")
+    except OSError:
+        pass
+
+
 def get_extra_sources_from_config() -> list[str]:
     """Get additional KEYDB sources from config (comma-separated string)."""
     raw_value = cfg.arm_config.get("AACS_KEYDB_EXTRA_SOURCES", "")
@@ -195,12 +244,20 @@ def get_extra_sources_from_config() -> list[str]:
 
 def try_download_keydb() -> int:
 
+    if not get_aacs_keydb_enabled():
+        return 0
+
     ensure_libaacs_installed()
 
     target = resolve_target_directory()
     ensure_directory(target)
 
     print(f"[*] We will use the directory:\n\t-> {target}")
+
+    min_refetch_hours = get_min_refetch_hours()
+    if _is_within_refetch_period(target, min_refetch_hours):
+        print("[*] Skipping KEYDB update (within minimum refetch period).")
+        return 0
 
     extra_sources = get_extra_sources_from_config()
 
@@ -214,6 +271,7 @@ def try_download_keydb() -> int:
         tmp_keydb = target / "KEYDB.cfg.tmp"
         if tmp_keydb.is_file():
             tmp_keydb.replace(keydb_cfg)
+            _write_last_fetch_time(target)
         print("[*] All is done!")
         return 0
 
@@ -255,6 +313,7 @@ def try_download_keydb() -> int:
         tmp_keydb = target / "KEYDB.cfg.tmp"
         if tmp_keydb.is_file():
             tmp_keydb.replace(keydb_cfg)
+            _write_last_fetch_time(target)
     else:
         print("[*] Local database is up to date.")
 

@@ -12,6 +12,12 @@
     - Added method to let users send/submit their correctly identified movies to a new crc64 API (an api key required)
     - Added check for crc64 from remote database
 
+  - Added configurable AACS KEYDB downloader:
+    - New Python module to update `KEYDB.cfg` using a primary AACS database site.
+    - `AACS_KEYDB_PRIMARY_URL` and `AACS_KEYDB_EXTRA_SOURCES` options in `arm.yaml`
+      control which URLs/paths are used (public site by default, user-provided
+      mirrors or pre-concatenated files when configured).
+
 ## v2.4.6
  - Updated jquery tablesorter, old version was vulnerable to XSS 
  - Removed all unused versions of CSS 
