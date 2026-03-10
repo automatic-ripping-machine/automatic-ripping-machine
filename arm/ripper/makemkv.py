@@ -20,6 +20,7 @@ import subprocess
 from time import sleep
 
 import arm.config.config as cfg
+from arm.constants import SINGLE_TRACK_VIDEO_TYPES
 from arm.models import SystemDrives, Track
 from arm.models.job import JobState
 from arm.ripper import utils
@@ -675,17 +676,34 @@ def makemkv_mkv(job, rawpath):
             "The disc may be dirty, damaged, or copy-protected."
         )
 
-    # route to ripping functions.
-    if job.config.MAINFEATURE:
-        logging.info("Trying to find mainfeature")
-        track = Track.query.filter_by(job_id=job.job_id).order_by(
+    # Auto-flag tracks: when MAINFEATURE is enabled AND the disc is a
+    # single-title type (not multi-title), enable only the best track.
+    # Otherwise enable all tracks.
+    is_single_track_type = getattr(job, 'video_type', None) in SINGLE_TRACK_VIDEO_TYPES
+    is_multi = getattr(job, 'multi_title', False)
+    mainfeature = bool(int(getattr(job.config, 'MAINFEATURE', 0) or 0))
+    if mainfeature and is_single_track_type and not is_multi:
+        for t in job.tracks:
+            t.enabled = False
+        best = Track.query.filter_by(job_id=job.job_id).order_by(
             Track.chapters.desc(),
             Track.length.desc(),
             Track.filesize.desc(),
             Track.track_number.asc()
         ).first()
-        rip_mainfeature(job, track, rawpath)
-    elif mode == 'manual':  # Run if mode is manual, user selects tracks
+        if best:
+            best.enabled = True
+        db.session.commit()
+        logging.info("MAINFEATURE: auto-flagged best track (single-title movie): %s", best)
+    else:
+        for t in job.tracks:
+            t.enabled = True
+        db.session.commit()
+        logging.info("Auto-enabled all tracks (MAINFEATURE=%s, single=%s, multi=%s)",
+                     mainfeature, is_single_track_type, is_multi)
+
+    # route to ripping functions.
+    if mode == 'manual':  # Run if mode is manual, user selects tracks
         # Set job status to waiting
         job.status = JobState.VIDEO_WAITING.value
         db.session.commit()

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 import arm.config.config as cfg
+from arm.constants import SINGLE_TRACK_VIDEO_TYPES
 from arm.database import db
 from arm.models.job import Job, JobState
 from arm.models.track import Track
@@ -15,6 +16,32 @@ from arm.services import files as svc_files
 
 _JOB_NOT_FOUND = "Job not found"
 _NOT_WAITING = "Job is not in waiting state"
+
+
+def _auto_flag_tracks(job, mainfeature: bool):
+    """Re-flag track enabled state based on MAINFEATURE + video type.
+
+    When mainfeature is on AND the disc is a single-title type (not
+    multi-title), only the best track is enabled.  Otherwise all tracks
+    are enabled.
+    """
+    is_single = getattr(job, 'video_type', None) in SINGLE_TRACK_VIDEO_TYPES
+    is_multi = getattr(job, 'multi_title', False)
+    if mainfeature and is_single and not is_multi:
+        for t in job.tracks:
+            t.enabled = False
+        best = Track.query.filter_by(job_id=job.job_id).order_by(
+            Track.chapters.desc(),
+            Track.length.desc(),
+            Track.filesize.desc(),
+            Track.track_number.asc(),
+        ).first()
+        if best:
+            best.enabled = True
+    else:
+        for t in job.tracks:
+            t.enabled = True
+    db.session.flush()
 
 router = APIRouter(prefix="/api/v1", tags=["jobs"])
 
@@ -137,6 +164,8 @@ async def change_job_config(job_id: int, request: Request):
         config.MAINFEATURE = val
         cfg.arm_config["MAINFEATURE"] = val
         changes.append(f"Main Feature={bool(val)}")
+        # Re-flag tracks based on the new setting
+        _auto_flag_tracks(job, mainfeature=bool(val))
 
     if 'MINLENGTH' in body:
         val = str(int(body['MINLENGTH']))
@@ -350,6 +379,20 @@ async def update_track_title(job_id: int, track_id: int, request: Request):
     if not updated:
         return JSONResponse({"success": False, "error": "No fields to update"}, status_code=400)
 
+    # Auto-generate filename from naming pattern
+    from arm.ripper.naming import render_track_title, _clean_for_filename as _naming_clean
+    rendered = render_track_title(track, job, cfg.arm_config)
+    if rendered:
+        rendered = _naming_clean(rendered)
+        # Preserve extension from current filename or basename
+        import os
+        source = track.filename or track.basename or ''
+        _, ext = os.path.splitext(source)
+        if not ext:
+            ext = '.mkv'
+        track.filename = rendered + ext
+        updated['filename'] = track.filename
+
     db.session.commit()
     return {"success": True, "job_id": job_id, "track_id": track_id, "updated": updated}
 
@@ -370,6 +413,7 @@ def clear_track_title(job_id: int, track_id: int):
     track.imdb_id = None
     track.poster_url = None
     track.video_type = None
+    track.filename = track.basename
     db.session.commit()
     return {"success": True, "job_id": job_id, "track_id": track_id}
 
