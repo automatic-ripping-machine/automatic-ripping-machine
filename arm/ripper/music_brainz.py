@@ -429,7 +429,7 @@ def process_tracks(job, mb_track_list: list, is_stub=False):
                 track_leng = int(track['length'])
             else:
                 track_leng = int(track['recording']['length'])
-        except ValueError:
+        except (ValueError, TypeError):
             logging.error("Failed to find track length")
         trackno = track.get('number', idx + 1)
         if is_stub:
