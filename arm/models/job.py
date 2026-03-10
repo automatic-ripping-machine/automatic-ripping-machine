@@ -262,6 +262,11 @@ class Job(db.Model):
         # Use the music label if we can find it - defaults to music_cd.log
         disc_id = music_brainz.get_disc_id(self)
         logging.debug(f"music_id: {disc_id}")
+
+        # Create placeholder tracks from the disc TOC so the UI can
+        # display track durations during the manual-wait period.
+        music_brainz.create_toc_tracks(self, disc_id)
+
         mb_title = music_brainz.get_title(disc_id, self)
         logging.debug(f"mm_title: {mb_title}")
 
