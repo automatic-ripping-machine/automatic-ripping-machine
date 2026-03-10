@@ -15,6 +15,8 @@ from typing import Iterable
 
 import arm.config.config as cfg
 
+KEYDB_CFG_TMP = "KEYDB.cfg.tmp"
+
 
 def ensure_libaacs_installed() -> None:
     """Warn if libaacs does not appear to be installed (best-effort check)."""
@@ -111,7 +113,7 @@ def append_keys_from_links(links: list[str], target: Path) -> None:
                     "[+] Add the content of the KEYDB file to the local KEYDB.cfg…"
                 )
                 with keydb_cfg.open("r", encoding="utf-8", errors="replace") as src, (
-                    target / "KEYDB.cfg.tmp"
+                    target / KEYDB_CFG_TMP
                 ).open("a", encoding="utf-8") as dst:
                     shutil.copyfileobj(src, dst)
 
@@ -163,14 +165,14 @@ def append_keys_from_sources(sources: Iterable[str], target: Path) -> None:
                     "[+] Add the content of the KEYDB file to the local KEYDB.cfg…"
                 )
                 with keydb_cfg.open("r", encoding="utf-8", errors="replace") as src, (
-                    target / "KEYDB.cfg.tmp"
+                    target / KEYDB_CFG_TMP
                 ).open("a", encoding="utf-8") as dst:
                     shutil.copyfileobj(src, dst)
             else:
                 print(f"[+] Treating {candidate_path} as a plain KEYDB.cfg source…")
                 with candidate_path.open(
                     "r", encoding="utf-8", errors="replace"
-                ) as src, (target / "KEYDB.cfg.tmp").open(
+                ) as src, (target / KEYDB_CFG_TMP).open(
                     "a", encoding="utf-8"
                 ) as dst:
                     shutil.copyfileobj(src, dst)
@@ -268,7 +270,7 @@ def try_download_keydb() -> int:
         if keydb_cfg.is_file():
             print("[+] Delete the actual KEYDB.cfg…")
         print("[+] Rename the temporary KEYDB.cfg file…")
-        tmp_keydb = target / "KEYDB.cfg.tmp"
+        tmp_keydb = target / KEYDB_CFG_TMP
         if tmp_keydb.is_file():
             tmp_keydb.replace(keydb_cfg)
             _write_last_fetch_time(target)
@@ -310,7 +312,7 @@ def try_download_keydb() -> int:
             print("[+] Delete the actual KEYDB.cfg…")
 
         print("[+] Rename the temporary KEYDB.cfg file…")
-        tmp_keydb = target / "KEYDB.cfg.tmp"
+        tmp_keydb = target / KEYDB_CFG_TMP
         if tmp_keydb.is_file():
             tmp_keydb.replace(keydb_cfg)
             _write_last_fetch_time(target)
