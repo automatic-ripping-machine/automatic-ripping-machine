@@ -22,6 +22,7 @@ import arm.config.config as cfg
 from arm.models import SystemDrives, Track
 from arm.models.job import JobState
 from arm.ripper import utils
+from arm.ripper.aacs_keydb_download import try_download_keydb
 from arm.ripper.utils import notify
 from arm.ui import db
 
@@ -717,6 +718,7 @@ def makemkv(job):
     """
     # confirm MKV is working, beta key hasn't expired
     prep_mkv()
+    try_download_keydb()
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
     # Fix: Check if job.drive is None before accessing job.drive.mdisc

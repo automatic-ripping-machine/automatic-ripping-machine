@@ -222,6 +222,22 @@ DELRAWFILES: true
 
 
 ##########################
+##  AACS / KEYDB Options ##
+##########################
+
+# Primary AACS database site to scrape for KEYDB download links.
+# Leave as default to use the official fvonline-db site.
+AACS_KEYDB_PRIMARY_URL: "http://fvonline-db.bplaced.net/"
+
+# Optional additional KEYDB sources (URLs or local paths).
+# When set (comma separated), the aacs_keydb_download script will skip the primary
+# site entirely and use only these sources. Each entry may be either:
+#   - A direct HTTP/HTTPS URL to a KEYDB.cfg file or a zip containing keydb.cfg
+#   - A local file path to a KEYDB.cfg file or a zip containing keydb.cfg
+AACS_KEYDB_EXTRA_SOURCES: ""
+
+
+##########################
 ## HandBrake Parameters ##
 ##########################
 
