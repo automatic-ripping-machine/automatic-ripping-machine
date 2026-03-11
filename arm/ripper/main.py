@@ -113,7 +113,9 @@ def main():
     identify.identify(job)
 
     # Re-initialize job log now that identification has resolved the label
-    log_file = logger.setup_job_log(job)
+    # (skip for music — already identified during setup, no label change)
+    if job.disctype != "music":
+        log_file = logger.setup_job_log(job)
     job.status = JobState.IDLE.value
     db.session.commit()
 
@@ -122,6 +124,12 @@ def main():
     logging.debug(f"Value of have_dupes: {have_dupes}")
 
     utils.notify_entry(job)
+
+    # For music CDs, run full MusicBrainz lookup BEFORE the manual wait
+    # so tracks, cover art, and metadata are available during review.
+    if job.disctype == "music":
+        music_brainz.main(job)
+
     # Check if user has manual wait time enabled
     utils.check_for_wait(job)
 
@@ -135,8 +143,6 @@ def main():
 
     # Type: Music
     elif job.disctype == "music":
-        # Try to recheck music disc for auto ident
-        music_brainz.main(job)
         if utils.rip_music(job, log_file):
             utils.notify(job, constants.NOTIFY_TITLE, f"Music CD: {job.title} {constants.PROCESS_COMPLETE}")
             utils.scan_emby()
