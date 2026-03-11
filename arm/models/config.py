@@ -78,6 +78,7 @@ class Config(db.Model):
     USE_DISC_LABEL_FOR_TV = db.Column(db.Boolean)
     GROUP_TV_DISCS_UNDER_SERIES = db.Column(db.Boolean)
     AUDIO_FORMAT = db.Column(db.String(20))
+    RIP_SPEED_PROFILE = db.Column(db.String(20))
 
     def __init__(self, c, job_id):
         self.__dict__.update(c)

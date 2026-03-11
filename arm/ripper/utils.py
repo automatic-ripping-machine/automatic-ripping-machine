@@ -425,12 +425,23 @@ def _apply_track_phases(job, grabbing, encoding, tagging):
         db.session.rollback()
 
 
-def _build_disc_abcde_config(base_config, disc_number):
-    """Create a temporary abcde config with disc subfolder in OUTPUTFORMAT.
+# cdparanoia options keyed by RIP_SPEED_PROFILE
+_SPEED_PROFILES = {
+    "safe": "",                # full paranoia — slowest, best for scratched discs
+    "fast": "-Y",              # disable extra paranoia — good balance, ~2-4x faster
+    "fastest": "-Z",           # disable all paranoia — pristine discs only, ~5-10x faster
+}
 
-    Reads the base config, finds OUTPUTFORMAT / VAOUTPUTFORMAT lines, and
-    injects ``/Disc_N`` after the album component so multi-disc sets get
-    per-disc subfolders (e.g. ``Artist/Album/Disc_1/01 - Track.flac``).
+
+def _build_custom_abcde_config(base_config, disc_number=None, speed_profile=None):
+    """Create a temporary abcde config with per-job overrides.
+
+    Supports two optional customizations applied to the base config:
+
+    * **disc_number** — injects ``Disc_N/`` into OUTPUTFORMAT after the
+      album component so multi-disc sets get per-disc subfolders.
+    * **speed_profile** — appends a ``CDPARANOIAOPTS`` line with the
+      cdparanoia flags for the chosen speed profile (safe/fast/fastest).
     """
     import tempfile
 
@@ -438,35 +449,45 @@ def _build_disc_abcde_config(base_config, disc_number):
         with open(base_config, "r", errors="replace") as f:
             content = f.read()
     except OSError:
-        logging.warning("Could not read abcde config %s for disc subfolder override", base_config)
+        logging.warning("Could not read abcde config %s for overrides", base_config)
         return None
 
-    disc_dir = f"Disc_{disc_number}"
+    # --- Disc subfolder injection ---
+    if disc_number:
+        disc_dir = f"Disc_{disc_number}"
 
-    def _inject_disc(match):
-        """Insert disc dir after the album path component."""
-        fmt = match.group(1)
-        if "${ALBUMFILE}/" in fmt:
-            fmt = fmt.replace("${ALBUMFILE}/", "${ALBUMFILE}/" + disc_dir + "/")
-        else:
-            fmt = disc_dir + "/" + fmt
-        return "OUTPUTFORMAT='" + fmt + "'"
+        def _inject_disc(match):
+            fmt = match.group(1)
+            if "${ALBUMFILE}/" in fmt:
+                fmt = fmt.replace("${ALBUMFILE}/", "${ALBUMFILE}/" + disc_dir + "/")
+            else:
+                fmt = disc_dir + "/" + fmt
+            return "OUTPUTFORMAT='" + fmt + "'"
 
-    def _inject_va_disc(match):
-        fmt = match.group(1)
-        if "${ALBUMFILE}/" in fmt:
-            fmt = fmt.replace("${ALBUMFILE}/", "${ALBUMFILE}/" + disc_dir + "/")
-        else:
-            fmt = disc_dir + "/" + fmt
-        return "VAOUTPUTFORMAT='" + fmt + "'"
+        def _inject_va_disc(match):
+            fmt = match.group(1)
+            if "${ALBUMFILE}/" in fmt:
+                fmt = fmt.replace("${ALBUMFILE}/", "${ALBUMFILE}/" + disc_dir + "/")
+            else:
+                fmt = disc_dir + "/" + fmt
+            return "VAOUTPUTFORMAT='" + fmt + "'"
 
-    content = re.sub(r"^OUTPUTFORMAT='([^']+)'", _inject_disc, content, count=1, flags=re.MULTILINE)
-    content = re.sub(r"^VAOUTPUTFORMAT='([^']+)'", _inject_va_disc, content, count=1, flags=re.MULTILINE)
+        content = re.sub(r"^OUTPUTFORMAT='([^']+)'", _inject_disc, content, count=1, flags=re.MULTILINE)
+        content = re.sub(r"^VAOUTPUTFORMAT='([^']+)'", _inject_va_disc, content, count=1, flags=re.MULTILINE)
 
-    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".conf", prefix="abcde_disc_", delete=False)
+    # --- Speed profile (cdparanoia opts) ---
+    if speed_profile and speed_profile in _SPEED_PROFILES:
+        opts = _SPEED_PROFILES[speed_profile]
+        if opts:
+            # Remove any existing CDPARANOIAOPTS line, then append ours
+            content = re.sub(r"^#?CDPARANOIAOPTS=.*$", "", content, flags=re.MULTILINE)
+            content = content.rstrip() + f'\nCDPARANOIAOPTS="{opts}"\n'
+            logging.info("CD rip speed profile: %s (CDPARANOIAOPTS=%s)", speed_profile, opts)
+
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".conf", prefix="abcde_custom_", delete=False)
     tmp.write(content)
     tmp.close()
-    logging.info("Created disc-aware abcde config: %s (Disc_%s)", tmp.name, disc_number)
+    logging.info("Created custom abcde config: %s", tmp.name)
     return tmp.name
 
 
@@ -488,12 +509,22 @@ def rip_music(job, logfile):
         audio_fmt = getattr(job.config, "AUDIO_FORMAT", None) or cfg.arm_config.get("AUDIO_FORMAT", "")
         fmt_flag = f" -o {audio_fmt}" if audio_fmt else ""
 
-        # For multi-disc sets, create a temporary config with disc subfolder
+        # Determine if we need a custom abcde config
         disc_num = getattr(job, "disc_number", None) or 0
         disc_tot = getattr(job, "disc_total", None) or 0
-        if isinstance(disc_num, int) and isinstance(disc_tot, int) \
-                and disc_num > 0 and disc_tot > 1 and os.path.isfile(abcfile):
-            tmp_config = _build_disc_abcde_config(abcfile, disc_num)
+        need_disc = isinstance(disc_num, int) and isinstance(disc_tot, int) \
+            and disc_num > 0 and disc_tot > 1
+
+        speed = getattr(job.config, "RIP_SPEED_PROFILE", None) \
+            or cfg.arm_config.get("RIP_SPEED_PROFILE", "safe")
+        need_speed = speed in _SPEED_PROFILES and speed != "safe"
+
+        if (need_disc or need_speed) and os.path.isfile(abcfile):
+            tmp_config = _build_custom_abcde_config(
+                abcfile,
+                disc_number=disc_num if need_disc else None,
+                speed_profile=speed if need_speed else None,
+            )
 
         config_to_use = tmp_config or (abcfile if os.path.isfile(abcfile) else None)
 

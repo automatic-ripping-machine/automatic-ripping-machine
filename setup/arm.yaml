@@ -112,6 +112,14 @@ GET_AUDIO_TITLE: "musicbrainz"
 # Supported: flac, mp3, vorbis, opus, m4a, wav, mka, wv, ape, mpc, spx, mp2, tta, aiff
 AUDIO_FORMAT: "flac"
 
+# CD rip speed profile — controls cdparanoia error-correction aggressiveness.
+#   "safe"    — full paranoia (default). Best for scratched/damaged discs. Slowest.
+#   "fast"    — disable extra paranoia (-Y). Keeps jitter correction, skips
+#               scratch-detection passes. Good balance for most discs. ~2-4x faster.
+#   "fastest" — disable all paranoia (-Z). No error correction at all.
+#               Use only for pristine discs. ~5-10x faster.
+RIP_SPEED_PROFILE: "fast"
+
 # Rip DVD Posters from JACKET_P folder
 # Requires FFmpeg
 RIP_POSTER: false

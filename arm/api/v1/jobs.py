@@ -141,6 +141,7 @@ async def change_job_config(job_id: int, request: Request):
         'flac', 'mp3', 'vorbis', 'opus', 'm4a', 'wav', 'mka',
         'wv', 'ape', 'mpc', 'spx', 'mp2', 'tta', 'aiff',
     )
+    valid_speed_profiles = ('safe', 'fast', 'fastest')
 
     if 'RIPMETHOD' in body:
         val = str(body['RIPMETHOD']).lower()
@@ -193,6 +194,17 @@ async def change_job_config(job_id: int, request: Request):
         config.AUDIO_FORMAT = val
         cfg.arm_config["AUDIO_FORMAT"] = val
         changes.append(f"Audio Format={val}")
+
+    if 'RIP_SPEED_PROFILE' in body:
+        val = str(body['RIP_SPEED_PROFILE']).lower()
+        if val not in valid_speed_profiles:
+            return JSONResponse(
+                {"success": False, "error": f"RIP_SPEED_PROFILE must be one of {valid_speed_profiles}"},
+                status_code=400,
+            )
+        config.RIP_SPEED_PROFILE = val
+        cfg.arm_config["RIP_SPEED_PROFILE"] = val
+        changes.append(f"Rip Speed={val}")
 
     if not changes:
         return JSONResponse({"success": False, "error": "No valid fields provided"}, status_code=400)

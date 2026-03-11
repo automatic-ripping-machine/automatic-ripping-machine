@@ -32,6 +32,7 @@
   "RIP_POSTER": "# Rip DVD Posters from JACKET_P folder\n# Requires FFmpeg",
   "AUTO_EJECT": "# Auto-ejects disks\n# Auto-ejects disks when complete etc\n# Set to false to disable auto-ejection",
   "ABCDE_CONFIG_FILE": "# Location of your ABCDE config file",
+  "RIP_SPEED_PROFILE": "# CD rip speed profile — controls cdparanoia error-correction.\n# \"safe\" = full paranoia (slowest, best for scratched discs)\n# \"fast\" = disable extra paranoia (good balance, ~2-4x faster)\n# \"fastest\" = no error correction (pristine discs only, ~5-10x faster)",
   "RAW_PATH": "# Path to raw MakeMKV directory\n# Destination for MakeMKV output",
   "TRANSCODE_PATH": "# Intermediary directory for transcoding files\n# Used by external transcoder service",
   "COMPLETED_PATH": "# Final directory of completed files\n# Ripped files end up here",
