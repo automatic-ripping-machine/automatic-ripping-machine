@@ -469,9 +469,9 @@ def process_tracks(job, mb_track_list: list, is_stub=False):
         track_leng = 0
         try:
             if is_stub:
-                track_leng = int(track['length'])
+                track_leng = int(track['length']) // 1000
             else:
-                track_leng = int(track['recording']['length'])
+                track_leng = int(track['recording']['length']) // 1000
         except (ValueError, TypeError):
             logging.error("Failed to find track length")
         trackno = track.get('number', idx + 1)
@@ -479,7 +479,7 @@ def process_tracks(job, mb_track_list: list, is_stub=False):
             title = track.get('title', f"Untitled track {trackno}")
         else:
             title = track['recording']['title']
-        u.put_track(job, trackno, track_leng, "n/a", 0.1, False, "ABCDE", title)
+        u.put_track(job, trackno, track_leng, "n/a", 0.1, False, "MusicBrainz", title)
 
 
 if __name__ == "__main__":
