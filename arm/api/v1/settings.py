@@ -104,10 +104,29 @@ async def update_config(request: Request):
     return {"success": True}
 
 
+def _abcde_path() -> str:
+    """Return the resolved abcde.conf path from ARM config.
+
+    Uses ``os.path.realpath`` to resolve symlinks and normalise the path,
+    then validates that the result is an absolute path to prevent
+    path-traversal attacks via a manipulated config value.
+    """
+    import os
+    raw = str(cfg.arm_config.get("ABCDE_CONFIG_FILE", "/etc/abcde.conf"))
+    resolved = os.path.realpath(raw)
+    if not os.path.isabs(resolved):
+        raise ValueError(f"ABCDE_CONFIG_FILE resolved to a relative path: {resolved}")
+    return resolved
+
+
 @router.get('/settings/abcde')
 async def get_abcde_config():
     """Return the contents of the abcde.conf file."""
-    path = str(cfg.arm_config.get("ABCDE_CONFIG_FILE", "/etc/abcde.conf"))
+    try:
+        path = _abcde_path()
+    except ValueError as e:
+        log.error(str(e))
+        return JSONResponse({"content": "", "path": "", "exists": False}, status_code=200)
 
     def _read():
         try:
@@ -142,7 +161,15 @@ async def update_abcde_config(request: Request):
             status_code=400,
         )
 
-    path = str(cfg.arm_config.get("ABCDE_CONFIG_FILE", "/etc/abcde.conf"))
+    try:
+        path = _abcde_path()
+    except ValueError as e:
+        log.error(str(e))
+        return JSONResponse(
+            {"success": False, "error": "Invalid ABCDE_CONFIG_FILE path"},
+            status_code=400,
+        )
+
     content = data["content"]
 
     def _write():

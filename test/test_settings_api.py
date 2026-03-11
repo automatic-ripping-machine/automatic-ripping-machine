@@ -153,3 +153,72 @@ class TestUpdateConfig:
         assert resp.status_code == 200
         # The dict object should be the same (in-place reload)
         assert ref_before is cfg.arm_config
+
+
+class TestGetAbcdeConfig:
+    def test_reads_existing_file(self, client, tmp_path):
+        import arm.config.config as cfg
+
+        abcde_file = tmp_path / "abcde.conf"
+        abcde_file.write_text("# test config\nCDDBMETHOD=musicbrainz\n")
+        cfg.arm_config["ABCDE_CONFIG_FILE"] = str(abcde_file)
+        try:
+            resp = client.get("/api/v1/settings/abcde")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["exists"] is True
+            assert "CDDBMETHOD=musicbrainz" in data["content"]
+            assert data["path"] == str(abcde_file)
+        finally:
+            cfg.arm_config["ABCDE_CONFIG_FILE"] = "/etc/abcde.conf"
+
+    def test_missing_file_returns_exists_false(self, client, tmp_path):
+        import arm.config.config as cfg
+
+        cfg.arm_config["ABCDE_CONFIG_FILE"] = str(tmp_path / "nonexistent.conf")
+        try:
+            resp = client.get("/api/v1/settings/abcde")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["exists"] is False
+            assert data["content"] == ""
+        finally:
+            cfg.arm_config["ABCDE_CONFIG_FILE"] = "/etc/abcde.conf"
+
+
+class TestUpdateAbcdeConfig:
+    def test_write_success(self, client, tmp_path):
+        import arm.config.config as cfg
+
+        abcde_file = tmp_path / "abcde.conf"
+        abcde_file.write_text("# old content\n")
+        cfg.arm_config["ABCDE_CONFIG_FILE"] = str(abcde_file)
+        try:
+            resp = client.put(
+                "/api/v1/settings/abcde",
+                json={"content": "# new content\nOUTPUTTYPE=flac\n"},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["success"] is True
+            assert "OUTPUTTYPE=flac" in abcde_file.read_text()
+        finally:
+            cfg.arm_config["ABCDE_CONFIG_FILE"] = "/etc/abcde.conf"
+
+    def test_missing_content_returns_400(self, client):
+        resp = client.put("/api/v1/settings/abcde", json={"bad": "data"})
+        assert resp.status_code == 400
+        assert resp.json()["success"] is False
+
+    def test_write_failure_returns_500(self, client):
+        import arm.config.config as cfg
+
+        cfg.arm_config["ABCDE_CONFIG_FILE"] = "/nonexistent/dir/abcde.conf"
+        try:
+            resp = client.put(
+                "/api/v1/settings/abcde",
+                json={"content": "# test\n"},
+            )
+            assert resp.status_code == 500
+            assert resp.json()["success"] is False
+        finally:
+            cfg.arm_config["ABCDE_CONFIG_FILE"] = "/etc/abcde.conf"
