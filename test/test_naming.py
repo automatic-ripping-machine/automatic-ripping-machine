@@ -7,6 +7,8 @@ from arm.ripper.naming import (
     render_title,
     render_folder,
     render_preview,
+    render_track_title,
+    _clean_for_filename,
 )
 
 
@@ -209,3 +211,82 @@ def test_season_episode_no_padding_non_numeric():
 def test_year_0000_treated_as_empty():
     job = _make_job(title='Inception', year='0000', video_type='movie')
     assert render_title(job) == 'Inception'
+
+
+# --- render_track_title ---
+
+
+def _make_track(**kwargs):
+    """Create a SimpleNamespace that quacks like a Track."""
+    defaults = {
+        'title': None, 'year': None, 'video_type': None,
+        'imdb_id': None, 'poster_url': None,
+    }
+    defaults.update(kwargs)
+    return SimpleNamespace(**defaults)
+
+
+def test_track_title_inherits_job_defaults():
+    job = _make_job(title='Serial Mom', year='1994', video_type='movie')
+    track = _make_track()
+    assert render_track_title(track, job) == 'Serial Mom (1994)'
+
+
+def test_track_title_overrides_job_title():
+    job = _make_job(title='Disc Title', year='2020', video_type='movie')
+    track = _make_track(title='Special Feature')
+    assert render_track_title(track, job) == 'Special Feature (2020)'
+
+
+def test_track_title_overrides_year():
+    job = _make_job(title='Movie', year='2020', video_type='movie')
+    track = _make_track(year='2021')
+    assert render_track_title(track, job) == 'Movie (2021)'
+
+
+def test_track_title_overrides_video_type():
+    job = _make_job(title='Show', season='1', episode='1', video_type='movie')
+    track = _make_track(video_type='series')
+    # With video_type='series', uses TV pattern: '{title} S{season}E{episode}'
+    assert render_track_title(track, job) == 'Show S01E01'
+
+
+def test_track_title_no_overrides_uses_job():
+    job = _make_job(artist='Beatles', album='Help', video_type='music')
+    track = _make_track()
+    assert render_track_title(track, job) == 'Beatles - Help'
+
+
+def test_track_title_with_custom_config():
+    job = _make_job(title='Movie', year='2020', video_type='movie')
+    track = _make_track(title='Extended Cut')
+    cfg = {'MOVIE_TITLE_PATTERN': '{title} [{year}]'}
+    assert render_track_title(track, job, cfg) == 'Extended Cut [2020]'
+
+
+# --- _clean_for_filename ---
+
+
+def test_clean_for_filename_colons():
+    # ' : ' → ' - ', but ':' without surrounding spaces → '-'
+    assert _clean_for_filename('Star Wars : A New Hope') == 'Star Wars - A New Hope'
+    assert _clean_for_filename('Star Wars: A New Hope') == 'Star Wars- A New Hope'
+
+
+def test_clean_for_filename_ampersand():
+    assert _clean_for_filename('Tom & Jerry') == 'Tom and Jerry'
+
+
+def test_clean_for_filename_backslash():
+    assert _clean_for_filename('AC\\DC') == 'AC - DC'
+
+
+def test_clean_for_filename_special_chars():
+    result = _clean_for_filename('Movie? <Title>!')
+    assert '?' not in result
+    assert '<' not in result
+    assert '>' not in result
+
+
+def test_clean_for_filename_whitespace():
+    assert _clean_for_filename('  too   many   spaces  ') == 'too many spaces'
