@@ -42,6 +42,7 @@ class Track(db.Model):
         self.source = source
         self.basename = basename
         self.filename = filename
+        self.status = 'pending'
         self.ripped = False
         self.process = False
         self.enabled = True
