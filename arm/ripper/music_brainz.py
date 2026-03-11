@@ -97,7 +97,10 @@ def create_toc_tracks(job, discid):
     The physical CD TOC provides track count and lengths even without a
     MusicBrainz match.  Creates placeholder tracks so the UI can display
     track durations while the user waits or searches manually.
+
+    Deletes any existing tracks first to avoid duplicates on re-insert.
     """
+    _delete_job_tracks(job)
     try:
         for toc_track in discid.tracks:
             u.put_track(
