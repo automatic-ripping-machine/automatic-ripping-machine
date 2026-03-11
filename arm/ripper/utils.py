@@ -425,6 +425,51 @@ def _apply_track_phases(job, grabbing, encoding, tagging):
         db.session.rollback()
 
 
+def _build_disc_abcde_config(base_config, disc_number):
+    """Create a temporary abcde config with disc subfolder in OUTPUTFORMAT.
+
+    Reads the base config, finds OUTPUTFORMAT / VAOUTPUTFORMAT lines, and
+    injects ``/Disc_N`` after the album component so multi-disc sets get
+    per-disc subfolders (e.g. ``Artist/Album/Disc_1/01 - Track.flac``).
+    """
+    import tempfile
+
+    try:
+        with open(base_config, "r", errors="replace") as f:
+            content = f.read()
+    except OSError:
+        logging.warning("Could not read abcde config %s for disc subfolder override", base_config)
+        return None
+
+    disc_dir = f"Disc_{disc_number}"
+
+    def _inject_disc(match):
+        """Insert disc dir after the album path component."""
+        fmt = match.group(1)
+        if "${ALBUMFILE}/" in fmt:
+            fmt = fmt.replace("${ALBUMFILE}/", "${ALBUMFILE}/" + disc_dir + "/")
+        else:
+            fmt = disc_dir + "/" + fmt
+        return "OUTPUTFORMAT='" + fmt + "'"
+
+    def _inject_va_disc(match):
+        fmt = match.group(1)
+        if "${ALBUMFILE}/" in fmt:
+            fmt = fmt.replace("${ALBUMFILE}/", "${ALBUMFILE}/" + disc_dir + "/")
+        else:
+            fmt = disc_dir + "/" + fmt
+        return "VAOUTPUTFORMAT='" + fmt + "'"
+
+    content = re.sub(r"^OUTPUTFORMAT='([^']+)'", _inject_disc, content, count=1, flags=re.MULTILINE)
+    content = re.sub(r"^VAOUTPUTFORMAT='([^']+)'", _inject_va_disc, content, count=1, flags=re.MULTILINE)
+
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".conf", prefix="abcde_disc_", delete=False)
+    tmp.write(content)
+    tmp.close()
+    logging.info("Created disc-aware abcde config: %s (Disc_%s)", tmp.name, disc_number)
+    return tmp.name
+
+
 def rip_music(job, logfile):
     """
     Rip music CD using abcde config\n
@@ -434,6 +479,7 @@ def rip_music(job, logfile):
     """
 
     abcfile = cfg.arm_config["ABCDE_CONFIG_FILE"]
+    tmp_config = None
     if job.disctype == "music":
         logging.info("Disc identified as music")
         logpath = os.path.join(job.config.LOGPATH, logfile)
@@ -442,9 +488,18 @@ def rip_music(job, logfile):
         audio_fmt = getattr(job.config, "AUDIO_FORMAT", None) or cfg.arm_config.get("AUDIO_FORMAT", "")
         fmt_flag = f" -o {audio_fmt}" if audio_fmt else ""
 
+        # For multi-disc sets, create a temporary config with disc subfolder
+        disc_num = getattr(job, "disc_number", None) or 0
+        disc_tot = getattr(job, "disc_total", None) or 0
+        if isinstance(disc_num, int) and isinstance(disc_tot, int) \
+                and disc_num > 0 and disc_tot > 1 and os.path.isfile(abcfile):
+            tmp_config = _build_disc_abcde_config(abcfile, disc_num)
+
+        config_to_use = tmp_config or (abcfile if os.path.isfile(abcfile) else None)
+
         # If user has set a cfg.arm_config file with ARM use it
-        if os.path.isfile(abcfile):
-            cmd = f'abcde -d "{job.devpath}" -c {abcfile}{fmt_flag} >> "{logpath}" 2>&1'
+        if config_to_use:
+            cmd = f'abcde -d "{job.devpath}" -c {config_to_use}{fmt_flag} >> "{logpath}" 2>&1'
         else:
             cmd = f'abcde -d "{job.devpath}"{fmt_flag} >> "{logpath}" 2>&1'
 
@@ -486,6 +541,12 @@ def rip_music(job, logfile):
             database_updater(args, job)
             _update_music_tracks(job, ripped=False, status="fail")
             logging.error(err)
+        finally:
+            if tmp_config:
+                try:
+                    os.unlink(tmp_config)
+                except OSError:
+                    pass
     return False
 
 
