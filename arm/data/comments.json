@@ -35,6 +35,7 @@
   "RAW_PATH": "# Path to raw MakeMKV directory\n# Destination for MakeMKV output",
   "TRANSCODE_PATH": "# Intermediary directory for transcoding files\n# Used by external transcoder service",
   "COMPLETED_PATH": "# Final directory of completed files\n# Ripped files end up here",
+  "MUSIC_PATH": "# Music rip output directory (used by abcde)",
   "EXTRAS_SUB": "# Movie subdirectory name for \"extras\"\n# Valid names are dependent on your media server\n# For Emby see https://github.com/MediaBrowser/Wiki/wiki/Movie%20naming#user-content-movie-extras\n# For Plex see https://support.plex.tv/hc/en-us/articles/200220677",
   "INSTALLPATH": "# Path to installation of ARM ",
   "LOGPATH": "# Path to directory to hold log files\n# Make sure to include trailing /",

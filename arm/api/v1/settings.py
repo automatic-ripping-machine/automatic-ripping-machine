@@ -102,3 +102,60 @@ async def update_config(request: Request):
         }
 
     return {"success": True}
+
+
+@router.get('/settings/abcde')
+async def get_abcde_config():
+    """Return the contents of the abcde.conf file."""
+    path = str(cfg.arm_config.get("ABCDE_CONFIG_FILE", "/etc/abcde.conf"))
+
+    def _read():
+        try:
+            with open(path, "r") as f:
+                return f.read()
+        except FileNotFoundError:
+            return None
+
+    try:
+        content = await asyncio.to_thread(_read)
+    except OSError as e:
+        log.error(f"Failed to read abcde config: {e}")
+        return JSONResponse(
+            {"content": "", "path": path, "exists": False},
+            status_code=200,
+        )
+
+    return {
+        "content": content or "",
+        "path": path,
+        "exists": content is not None,
+    }
+
+
+@router.put('/settings/abcde')
+async def update_abcde_config(request: Request):
+    """Write content to the abcde.conf file."""
+    data = await request.json()
+    if not data or "content" not in data:
+        return JSONResponse(
+            {"success": False, "error": "Missing 'content' in request body"},
+            status_code=400,
+        )
+
+    path = str(cfg.arm_config.get("ABCDE_CONFIG_FILE", "/etc/abcde.conf"))
+    content = data["content"]
+
+    def _write():
+        with open(path, "w") as f:
+            f.write(content)
+
+    try:
+        await asyncio.to_thread(_write)
+    except OSError as e:
+        log.error(f"Failed to write abcde config: {e}")
+        return JSONResponse(
+            {"success": False, "error": "Failed to write abcde config file"},
+            status_code=500,
+        )
+
+    return {"success": True}
