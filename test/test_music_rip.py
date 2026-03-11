@@ -336,7 +336,7 @@ class TestCheckMusicbrainzData:
 class TestProcessTracks:
 
     def test_creates_tracks_from_full_release(self, music_job, mb_disc_response):
-        """Track records with recording title, length, source='ABCDE'."""
+        """Track records with recording title, length, source='MusicBrainz'."""
         track_list = mb_disc_response['disc']['release-list'][0]['medium-list'][0]['track-list']
         with unittest.mock.patch('arm.ripper.utils.put_track') as mock_put:
             music_brainz.process_tracks(music_job, track_list)
@@ -345,12 +345,13 @@ class TestProcessTracks:
         call_args = mock_put.call_args_list[0][0]
         assert call_args[0] is music_job  # job
         assert call_args[1] == '1'        # track number
-        assert call_args[2] == 68000      # length
+        assert call_args[2] == 68          # length (ms // 1000)
         assert call_args[3] == "n/a"      # aspect
         assert abs(call_args[4] - 0.1) < 0.01  # fps
         assert call_args[5] is False      # main_feature
-        assert call_args[6] == "ABCDE"    # source
-        assert call_args[7] == 'Speak to Me'  # title
+        assert call_args[6] == "MusicBrainz"  # source
+        assert call_args[7] == '01 - Speak to Me.flac'  # filename
+        assert mock_put.call_args_list[0][1]['title'] == 'Speak to Me'
 
     def test_creates_tracks_from_stub(self, music_job, mb_stub_response):
         """Stub tracks use track['title'] and track['length']."""
@@ -360,8 +361,9 @@ class TestProcessTracks:
         assert mock_put.call_count == 5
         # Check second track
         call_args = mock_put.call_args_list[1][0]
-        assert call_args[2] == 200000  # length from stub
-        assert call_args[7] == 'Track Two'
+        assert call_args[2] == 200  # length from stub (ms // 1000)
+        assert call_args[7] == '02 - Track Two.flac'  # filename
+        assert mock_put.call_args_list[1][1]['title'] == 'Track Two'
 
     def test_stub_untitled_fallback(self, music_job, mb_stub_response):
         """Missing/empty title falls back to 'Untitled track N'."""
@@ -375,7 +377,7 @@ class TestProcessTracks:
         # would trigger fallback. Let's check what actually happens.
         # track.get('title', f"Untitled track {trackno}") — '' is a present key
         # so the fallback doesn't trigger. This documents current behavior.
-        assert call_args[7] == ''  # Empty string, not fallback
+        assert call_args[7] == '03 - .flac'  # filename with empty title
 
     def test_invalid_length_handled(self, music_job):
         """Non-integer length doesn't crash, defaults to 0."""
@@ -404,7 +406,7 @@ class TestProcessTracks:
             assert args[3] == "n/a"     # aspect
             assert abs(args[4] - 0.1) < 0.01  # fps
             assert args[5] is False     # main_feature
-            assert args[6] == "ABCDE"   # source
+            assert args[6] == "MusicBrainz"  # source
 
 
 # ---------------------------------------------------------------------------
@@ -556,6 +558,15 @@ class TestCheckDate:
 
 class TestRipMusicIntegration:
 
+    @staticmethod
+    def _mock_popen(returncode=0):
+        """Create a mock Popen that finishes immediately."""
+        proc = unittest.mock.MagicMock()
+        proc.poll.return_value = returncode
+        proc.wait.return_value = returncode
+        proc.returncode = returncode
+        return proc
+
     def test_abcde_log_error_detection(self, music_job, tmp_path):
         """[ERROR] in abcde log returns False, captures actual error line."""
         logfile = "test_rip.log"
@@ -565,7 +576,7 @@ class TestRipMusicIntegration:
         music_job.config.LOGPATH = str(tmp_path)
 
         with unittest.mock.patch.dict(cfg.arm_config, {'ABCDE_CONFIG_FILE': '/nonexistent'}), \
-             unittest.mock.patch('subprocess.check_output', return_value=b''), \
+             unittest.mock.patch('subprocess.Popen', return_value=self._mock_popen(0)), \
              unittest.mock.patch('arm.ripper.utils.database_updater') as mock_db:
             result = utils.rip_music(music_job, logfile)
 
@@ -585,7 +596,7 @@ class TestRipMusicIntegration:
         music_job.config.LOGPATH = str(tmp_path)
 
         with unittest.mock.patch.dict(cfg.arm_config, {'ABCDE_CONFIG_FILE': '/nonexistent'}), \
-             unittest.mock.patch('subprocess.check_output', return_value=b''), \
+             unittest.mock.patch('subprocess.Popen', return_value=self._mock_popen(0)), \
              unittest.mock.patch('arm.ripper.utils.database_updater'):
             result = utils.rip_music(music_job, logfile)
 
@@ -600,25 +611,23 @@ class TestRipMusicIntegration:
         music_job.config.LOGPATH = str(tmp_path)
 
         with unittest.mock.patch.dict(cfg.arm_config, {'ABCDE_CONFIG_FILE': '/nonexistent'}), \
-             unittest.mock.patch('subprocess.check_output', return_value=b''), \
+             unittest.mock.patch('subprocess.Popen', return_value=self._mock_popen(0)), \
              unittest.mock.patch('arm.ripper.utils.database_updater') as mock_db:
             result = utils.rip_music(music_job, logfile)
 
         assert result is True
-        # Last database_updater call should set status to IDLE ('active')
+        # Last database_updater call should set status to IDLE ('ready')
         idle_calls = [c for c in mock_db.call_args_list
-                      if isinstance(c[0][0], dict) and c[0][0].get('status') == 'active']
+                      if isinstance(c[0][0], dict) and c[0][0].get('status') == 'ready']
         assert len(idle_calls) > 0
 
     def test_failure_captures_error_message(self, music_job, tmp_path):
-        """CalledProcessError captures error in job via database_updater."""
-        import subprocess
+        """Non-zero exit code captures error in job via database_updater."""
         logfile = "test_rip.log"
         music_job.config.LOGPATH = str(tmp_path)
 
         with unittest.mock.patch.dict(cfg.arm_config, {'ABCDE_CONFIG_FILE': '/nonexistent'}), \
-             unittest.mock.patch('subprocess.check_output',
-                                 side_effect=subprocess.CalledProcessError(1, 'abcde', b'error output')), \
+             unittest.mock.patch('subprocess.Popen', return_value=self._mock_popen(1)), \
              unittest.mock.patch('arm.ripper.utils.database_updater') as mock_db:
             result = utils.rip_music(music_job, logfile)
 
@@ -848,7 +857,7 @@ class TestMusicBrainzEdgeCases:
 
 
 # ---------------------------------------------------------------------------
-# TestCreateTocTracks — music_brainz._create_toc_tracks(job, discid)
+# TestCreateTocTracks — music_brainz.create_toc_tracks(job, discid)
 # ---------------------------------------------------------------------------
 
 class TestCreateTocTracks:
@@ -870,8 +879,9 @@ class TestCreateTocTracks:
     def test_creates_tracks_from_toc(self, music_job):
         """Creates Track records with lengths from disc TOC."""
         fake_disc = self._make_fake_discid([(1, 68), (2, 169), (3, 210)])
-        with unittest.mock.patch('arm.ripper.utils.put_track') as mock_put:
-            music_brainz._create_toc_tracks(music_job, fake_disc)
+        with unittest.mock.patch('arm.ripper.music_brainz._delete_job_tracks'), \
+             unittest.mock.patch('arm.ripper.utils.put_track') as mock_put:
+            music_brainz.create_toc_tracks(music_job, fake_disc)
         assert mock_put.call_count == 3
         # Check first track
         args = mock_put.call_args_list[0][0]
@@ -882,23 +892,25 @@ class TestCreateTocTracks:
         assert abs(args[4] - 0.1) < 0.01  # fps
         assert args[5] is False   # main_feature
         assert args[6] == "TOC"   # source
-        assert args[7] == ""      # empty filename (no track name)
+        assert args[7] == "Track 1.flac"  # filename
 
     def test_track_lengths_correct(self, music_job):
         """Each track gets its actual length from the TOC."""
         fake_disc = self._make_fake_discid([(1, 120), (2, 300), (3, 45)])
-        with unittest.mock.patch('arm.ripper.utils.put_track') as mock_put:
-            music_brainz._create_toc_tracks(music_job, fake_disc)
+        with unittest.mock.patch('arm.ripper.music_brainz._delete_job_tracks'), \
+             unittest.mock.patch('arm.ripper.utils.put_track') as mock_put:
+            music_brainz.create_toc_tracks(music_job, fake_disc)
         lengths = [c[0][2] for c in mock_put.call_args_list]
         assert lengths == [120, 300, 45]
 
     def test_exception_does_not_propagate(self, music_job):
         """Exceptions are caught and logged, not raised."""
         fake_disc = self._make_fake_discid([(1, 100)])
-        with unittest.mock.patch('arm.ripper.utils.put_track',
+        with unittest.mock.patch('arm.ripper.music_brainz._delete_job_tracks'), \
+             unittest.mock.patch('arm.ripper.utils.put_track',
                                  side_effect=Exception("DB error")):
             # Should not raise
-            music_brainz._create_toc_tracks(music_job, fake_disc)
+            music_brainz.create_toc_tracks(music_job, fake_disc)
 
     def test_music_brainz_calls_toc_fallback_on_mb_failure(self, music_job):
         """music_brainz() creates TOC tracks when get_disc_info fails."""
@@ -936,9 +948,9 @@ class TestCreateTocTracks:
              unittest.mock.patch('arm.ripper.utils.put_track') as mock_put:
             result = music_brainz.music_brainz(fake_disc, music_job)
         assert result != ""
-        # put_track called by process_tracks (source=ABCDE), not _create_toc_tracks
+        # put_track called by process_tracks (source=MusicBrainz), not create_toc_tracks
         for call in mock_put.call_args_list:
-            assert call[0][6] == "ABCDE"
+            assert call[0][6] == "MusicBrainz"
 
 
 # ---------------------------------------------------------------------------
@@ -1006,23 +1018,27 @@ class TestMusicPipelineEndToEnd:
         assert music_job.album == 'The Dark Side of the Moon'
         assert music_job.poster_url == 'https://coverartarchive.org/release/abc/front.jpg'
 
-        # Verify 3 Track records created in DB with source=ABCDE
+        # Verify 3 Track records created in DB with source=MusicBrainz
         tracks = Track.query.filter_by(job_id=music_job.job_id).order_by(Track.track_number).all()
         assert len(tracks) == 3
-        assert tracks[0].source == "ABCDE"
-        assert tracks[0].filename == "Speak to Me"
-        assert tracks[1].filename == "Breathe"
-        assert tracks[2].filename == "On the Run"
+        assert tracks[0].source == "MusicBrainz"
+        assert tracks[0].filename == "01 - Speak to Me.flac"
+        assert tracks[1].filename == "02 - Breathe.flac"
+        assert tracks[2].filename == "03 - On the Run.flac"
 
         # Phase 2: abcde rip — real code path with mocked subprocess
+        mock_proc = unittest.mock.MagicMock()
+        mock_proc.poll.return_value = 0  # finished immediately
+        mock_proc.wait.return_value = 0
+        mock_proc.returncode = 0
         with unittest.mock.patch.dict(cfg.arm_config, {
                  'ABCDE_CONFIG_FILE': '/nonexistent',
              }), \
-             unittest.mock.patch('subprocess.check_output', return_value=b''):
+             unittest.mock.patch('subprocess.Popen', return_value=mock_proc):
             rip_ok = utils.rip_music(music_job, logfile)
 
         assert rip_ok is True
-        assert music_job.status == 'active'  # IDLE
+        assert music_job.status == 'ready'  # IDLE
 
     def test_full_mb_failure_toc_fallback(self, music_job, tmp_path):
         """MB fails → TOC tracks created → abcde still rips successfully."""
@@ -1056,17 +1072,20 @@ class TestMusicPipelineEndToEnd:
         assert tracks[2].length == 216
 
         # Phase 2: abcde still runs (rip doesn't depend on MB success)
+        mock_proc = unittest.mock.MagicMock()
+        mock_proc.poll.return_value = 0
+        mock_proc.wait.return_value = 0
+        mock_proc.returncode = 0
         with unittest.mock.patch.dict(cfg.arm_config, {
                  'ABCDE_CONFIG_FILE': '/nonexistent',
              }), \
-             unittest.mock.patch('subprocess.check_output', return_value=b''):
+             unittest.mock.patch('subprocess.Popen', return_value=mock_proc):
             rip_ok = utils.rip_music(music_job, logfile)
 
         assert rip_ok is True
 
     def test_full_abcde_failure(self, music_job, mb_disc_response, tmp_path):
         """MB succeeds → tracks created → abcde crashes → job fails."""
-        import subprocess as sp
 
         fake_disc = self._make_fake_discid([(1, 68), (2, 169), (3, 216)])
         logfile = "abcde_test.log"
@@ -1090,12 +1109,15 @@ class TestMusicPipelineEndToEnd:
         tracks = Track.query.filter_by(job_id=music_job.job_id).all()
         assert len(tracks) == 3
 
-        # Phase 2: abcde crashes
+        # Phase 2: abcde crashes (non-zero returncode)
+        mock_proc = unittest.mock.MagicMock()
+        mock_proc.poll.return_value = 1
+        mock_proc.wait.return_value = 1
+        mock_proc.returncode = 1
         with unittest.mock.patch.dict(cfg.arm_config, {
                  'ABCDE_CONFIG_FILE': '/nonexistent',
              }), \
-             unittest.mock.patch('subprocess.check_output',
-                                 side_effect=sp.CalledProcessError(1, 'abcde', b'drive error')):
+             unittest.mock.patch('subprocess.Popen', return_value=mock_proc):
             rip_ok = utils.rip_music(music_job, logfile)
 
         assert rip_ok is False
@@ -1131,10 +1153,14 @@ class TestMusicPipelineEndToEnd:
             music_brainz.main(music_job)
 
         # Phase 2: abcde exits 0 but log contains errors
+        mock_proc = unittest.mock.MagicMock()
+        mock_proc.poll.return_value = 0
+        mock_proc.wait.return_value = 0
+        mock_proc.returncode = 0
         with unittest.mock.patch.dict(cfg.arm_config, {
                  'ABCDE_CONFIG_FILE': '/nonexistent',
              }), \
-             unittest.mock.patch('subprocess.check_output', return_value=b''):
+             unittest.mock.patch('subprocess.Popen', return_value=mock_proc):
             rip_ok = utils.rip_music(music_job, logfile)
 
         assert rip_ok is False

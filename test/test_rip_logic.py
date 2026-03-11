@@ -20,7 +20,7 @@ class TestJobState:
 
     def test_idle_value(self):
         from arm.models.job import JobState
-        assert JobState.IDLE.value == "active"
+        assert JobState.IDLE.value == "ready"
 
     def test_ripping_value(self):
         from arm.models.job import JobState
@@ -227,6 +227,15 @@ class TestSaveDiscPoster:
 class TestRipMusic:
     """Test rip_music() audio CD ripping logic."""
 
+    @staticmethod
+    def _mock_popen(returncode=0):
+        """Create a mock Popen that finishes immediately."""
+        proc = unittest.mock.MagicMock()
+        proc.poll.return_value = returncode
+        proc.wait.return_value = returncode
+        proc.returncode = returncode
+        return proc
+
     def test_abcde_error_in_log_detected(self, app_context, sample_job, tmp_path):
         """abcde exit 0 with [ERROR] in log should be treated as failure (#1526)."""
         from arm.ripper.utils import rip_music
@@ -242,7 +251,7 @@ class TestRipMusic:
             "CDROM drive unavailable\n"
         )
 
-        with unittest.mock.patch('arm.ripper.utils.subprocess.check_output', return_value=b""), \
+        with unittest.mock.patch('subprocess.Popen', return_value=self._mock_popen(0)), \
              unittest.mock.patch('arm.ripper.utils.cfg') as mock_cfg:
             mock_cfg.arm_config = {"ABCDE_CONFIG_FILE": "/nonexistent"}
             result = rip_music(sample_job, logfile)
@@ -264,7 +273,7 @@ class TestRipMusic:
             "Finished.\n"
         )
 
-        with unittest.mock.patch('arm.ripper.utils.subprocess.check_output', return_value=b""), \
+        with unittest.mock.patch('subprocess.Popen', return_value=self._mock_popen(0)), \
              unittest.mock.patch('arm.ripper.utils.cfg') as mock_cfg:
             mock_cfg.arm_config = {"ABCDE_CONFIG_FILE": "/nonexistent"}
             result = rip_music(sample_job, logfile)
@@ -273,14 +282,12 @@ class TestRipMusic:
 
     def test_abcde_nonzero_exit_detected(self, app_context, sample_job, tmp_path):
         """abcde with non-zero exit code should be caught."""
-        import subprocess
         from arm.ripper.utils import rip_music
 
         sample_job.disctype = "music"
         sample_job.config.LOGPATH = str(tmp_path)
 
-        with unittest.mock.patch('arm.ripper.utils.subprocess.check_output',
-                                 side_effect=subprocess.CalledProcessError(1, "abcde", b"error")), \
+        with unittest.mock.patch('subprocess.Popen', return_value=self._mock_popen(1)), \
              unittest.mock.patch('arm.ripper.utils.cfg') as mock_cfg:
             mock_cfg.arm_config = {"ABCDE_CONFIG_FILE": "/nonexistent"}
             result = rip_music(sample_job, "test.log")
@@ -1201,7 +1208,7 @@ class TestMainfeatureMakemkv:
     """Test MAINFEATURE sort order in makemkv_mkv() function (#1698)."""
 
     def test_mainfeature_uses_chapters_sort(self, app_context, sample_job, tmp_path):
-        """makemkv_mkv with MAINFEATURE should use chapters-first sort order."""
+        """makemkv_mkv with MAINFEATURE auto-flags best track by chapters."""
         from arm.models.track import Track
         from arm.models.system_drives import SystemDrives
         _, db = app_context
@@ -1214,6 +1221,8 @@ class TestMainfeatureMakemkv:
         db.session.add(drive)
 
         sample_job.config.MAINFEATURE = True
+        sample_job.config.MKV_ARGS = ""
+        sample_job.config.MAXLENGTH = 99998  # Use else branch (process_single_tracks)
         sample_job.no_of_titles = 2
         db.session.commit()
         db.session.refresh(sample_job)
@@ -1236,18 +1245,17 @@ class TestMainfeatureMakemkv:
 
         from arm.ripper import makemkv as mkv_mod
 
-        captured_track = {}
-
-        def fake_rip_mainfeature(job, track, rawpath):
-            captured_track['track'] = track
-
-        with unittest.mock.patch.object(mkv_mod, 'rip_mainfeature', fake_rip_mainfeature), \
-             unittest.mock.patch.object(mkv_mod.utils, 'get_drive_mode', return_value='auto'), \
-             unittest.mock.patch.object(mkv_mod, 'get_track_info'):
+        with unittest.mock.patch.object(mkv_mod.utils, 'get_drive_mode', return_value='auto'), \
+             unittest.mock.patch.object(mkv_mod, 'get_track_info'), \
+             unittest.mock.patch.object(mkv_mod, 'process_single_tracks'):
             mkv_mod.makemkv_mkv(sample_job, str(tmp_path))
 
-        assert captured_track['track'].track_number == "2"
-        assert captured_track['track'].chapters == 28
+        # After auto-flagging, only the best track (most chapters) is enabled
+        db.session.refresh(t1)
+        db.session.refresh(t2)
+        assert t1.enabled is False
+        assert t2.enabled is True
+        assert t2.chapters == 28
 
 
 class TestDuplicateRunCheck:

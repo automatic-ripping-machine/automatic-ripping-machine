@@ -254,7 +254,7 @@ class TestMusicBrainzProcessTracks:
             assert mock_put.call_count == 2
             # First track
             assert mock_put.call_args_list[0][0][1] == '1'
-            assert mock_put.call_args_list[0][0][2] == 240000
+            assert mock_put.call_args_list[0][0][2] == 240
 
     def test_processes_stub_tracks(self, app_context, sample_job):
         """Processes CD stub track data."""
@@ -266,7 +266,8 @@ class TestMusicBrainzProcessTracks:
         with unittest.mock.patch('arm.ripper.music_brainz.u.put_track') as mock_put:
             process_tracks(sample_job, tracks, is_stub=True)
             mock_put.assert_called_once()
-            assert mock_put.call_args[0][7] == 'Stub Track'
+            assert mock_put.call_args[0][7] == '01 - Stub Track.flac'
+            assert mock_put.call_args[1]['title'] == 'Stub Track'
 
     def test_missing_title_uses_default(self, app_context, sample_job):
         """Stub tracks without title get 'Untitled track N'."""

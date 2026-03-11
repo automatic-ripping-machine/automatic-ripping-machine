@@ -13,8 +13,8 @@ class TestJobFinished:
         sample_job.status = "fail"
         assert sample_job.finished is True
 
-    def test_active_not_finished(self, sample_job):
-        sample_job.status = "active"
+    def test_ready_not_finished(self, sample_job):
+        sample_job.status = "ready"
         assert sample_job.finished is False
 
     def test_ripping_not_finished(self, sample_job):
@@ -29,8 +29,8 @@ class TestJobFinished:
 class TestJobIdle:
     """Test job.idle property."""
 
-    def test_active_is_idle(self, sample_job):
-        sample_job.status = "active"
+    def test_ready_is_idle(self, sample_job):
+        sample_job.status = "ready"
         assert sample_job.idle is True
 
     def test_ripping_not_idle(self, sample_job):
@@ -53,8 +53,8 @@ class TestJobRipping:
         sample_job.status = "waiting"
         assert sample_job.ripping is True
 
-    def test_active_not_ripping(self, sample_job):
-        sample_job.status = "active"
+    def test_ready_not_ripping(self, sample_job):
+        sample_job.status = "ready"
         assert sample_job.ripping is False
 
     def test_transcoding_not_ripping(self, sample_job):
@@ -69,9 +69,9 @@ class TestJobRippingFinished:
         sample_job.status = "success"
         assert sample_job.ripping_finished is True
 
-    def test_active_job_not_ripping(self, sample_job):
-        """Active/idle is not ripping, so ripping is considered finished."""
-        sample_job.status = "active"
+    def test_ready_job_not_ripping(self, sample_job):
+        """Ready/idle is not ripping, so ripping is considered finished."""
+        sample_job.status = "ready"
         assert sample_job.ripping_finished is True
 
     def test_ejected_job(self, sample_job):

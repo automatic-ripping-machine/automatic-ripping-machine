@@ -813,7 +813,7 @@ class TestIdentifyUnmount:
 
         job = unittest.mock.MagicMock()
         job.devpath = '/dev/sr0'
-        job.disctype = 'music'  # skip video identification
+        job.disctype = 'data'  # non-video, non-music — goes through try/finally
 
         with unittest.mock.patch('arm.ripper.identify.check_mount', return_value=True), \
              unittest.mock.patch('arm.ripper.identify.subprocess.run') as mock_run:
