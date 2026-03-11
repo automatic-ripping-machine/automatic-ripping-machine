@@ -366,6 +366,65 @@ def _update_music_tracks(job, ripped, status):
         db.session.rollback()
 
 
+def _poll_music_progress(proc, job, logpath):
+    """Poll abcde log during ripping to update per-track status.
+
+    Parses abcde output for three phases per track:
+      - ``Grabbing track NN:``  → status "ripping"
+      - ``Encoding track NN of`` → status "encoding", ripped=True
+      - ``Tagging track NN of``  → status "success", ripped=True
+    """
+    seen_grabbing: set[int] = set()
+    seen_encoding: set[int] = set()
+    seen_tagging: set[int] = set()
+
+    while proc.poll() is None:
+        time.sleep(5)
+        try:
+            with open(logpath, "r", errors="replace") as f:
+                content = f.read()
+            for m in re.finditer(r"Grabbing track (\d+):", content):
+                seen_grabbing.add(int(m.group(1)))
+            for m in re.finditer(r"Encoding track (\d+) of", content):
+                seen_encoding.add(int(m.group(1)))
+            for m in re.finditer(r"Tagging track (\d+) of", content):
+                seen_tagging.add(int(m.group(1)))
+            _apply_track_phases(job, seen_grabbing, seen_encoding, seen_tagging)
+        except OSError:
+            pass
+
+
+def _apply_track_phases(job, grabbing, encoding, tagging):
+    """Set per-track ripped/status based on the abcde phases observed so far."""
+    try:
+        tracks = Track.query.filter_by(job_id=job.job_id).all()
+        changed = False
+        for t in tracks:
+            try:
+                tn = int(t.track_number)
+            except (ValueError, TypeError):
+                continue
+            if tn in tagging:
+                if t.status != "success":
+                    t.ripped = True
+                    t.status = "success"
+                    changed = True
+            elif tn in encoding:
+                if t.status != "encoding":
+                    t.ripped = True
+                    t.status = "encoding"
+                    changed = True
+            elif tn in grabbing:
+                if t.status != "ripping":
+                    t.status = "ripping"
+                    changed = True
+        if changed:
+            db.session.commit()
+    except Exception as exc:
+        logging.debug("Could not update track phases: %s", exc)
+        db.session.rollback()
+
+
 def rip_music(job, logfile):
     """
     Rip music CD using abcde config\n
@@ -377,20 +436,29 @@ def rip_music(job, logfile):
     abcfile = cfg.arm_config["ABCDE_CONFIG_FILE"]
     if job.disctype == "music":
         logging.info("Disc identified as music")
+        logpath = os.path.join(job.config.LOGPATH, logfile)
+
+        # Audio output format (e.g. flac, mp3, vorbis)
+        audio_fmt = getattr(job.config, "AUDIO_FORMAT", None) or cfg.arm_config.get("AUDIO_FORMAT", "")
+        fmt_flag = f" -o {audio_fmt}" if audio_fmt else ""
+
         # If user has set a cfg.arm_config file with ARM use it
         if os.path.isfile(abcfile):
-            cmd = f'abcde -d "{job.devpath}" -c {abcfile} >> "{os.path.join(job.config.LOGPATH, logfile)}" 2>&1'
+            cmd = f'abcde -d "{job.devpath}" -c {abcfile}{fmt_flag} >> "{logpath}" 2>&1'
         else:
-            cmd = f'abcde -d "{job.devpath}" >> "{os.path.join(job.config.LOGPATH, logfile)}" 2>&1'
+            cmd = f'abcde -d "{job.devpath}"{fmt_flag} >> "{logpath}" 2>&1'
 
         logging.debug(f"Sending command: {cmd}")
         args = {"status": JobState.AUDIO_RIPPING.value}
         database_updater(args, job)
 
         try:
-            subprocess.check_output(cmd, shell=True).decode("utf-8")
+            proc = subprocess.Popen(cmd, shell=True)
+            _poll_music_progress(proc, job, logpath)
+            proc.wait()
+            if proc.returncode != 0:
+                raise subprocess.CalledProcessError(proc.returncode, cmd)
             # abcde exits 0 even on drive I/O errors — check the log for failures
-            logpath = os.path.join(job.config.LOGPATH, logfile)
             try:
                 with open(logpath, "r", errors="replace") as f:
                     log_content = f.read()
@@ -503,7 +571,7 @@ def try_add_default_user():
 
 
 def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
-              chapters=0, filesize=0):
+              chapters=0, filesize=0, title=None):
     """
     Put data into a track instance.\n
     Having this here saves importing the models file everywhere\n
@@ -518,6 +586,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
     :param str filename: filename of track
     :param int chapters: number of chapters in track
     :param int filesize: size of track in bytes
+    :param str title: per-track title (e.g. song name from MusicBrainz)
     """
 
     logging.debug(
@@ -538,6 +607,8 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
         chapters=chapters,
         filesize=filesize
     )
+    if title:
+        job_track.title = title
     job_track.ripped = False
     database_adder(job_track)
 

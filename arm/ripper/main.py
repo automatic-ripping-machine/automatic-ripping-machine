@@ -129,6 +129,12 @@ def main():
     # so tracks, cover art, and metadata are available during review.
     if job.disctype == "music":
         music_brainz.main(job)
+        # Set output path for display (abcde uses its own OUTPUTDIR)
+        try:
+            job.path = job.build_final_path()
+        except Exception:
+            pass
+        db.session.commit()
 
     # Check if user has manual wait time enabled
     utils.check_for_wait(job)

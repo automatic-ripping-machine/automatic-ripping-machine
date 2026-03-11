@@ -105,7 +105,8 @@ def create_toc_tracks(job, discid):
         for toc_track in discid.tracks:
             u.put_track(
                 job, toc_track.number, toc_track.seconds,
-                "n/a", 0.1, False, "TOC", f"Track {toc_track.number}"
+                "n/a", 0.1, False, "TOC", f"Track {toc_track.number}.flac",
+                title=f"Track {toc_track.number}"
             )
         job.no_of_titles = len(discid.tracks)
         db.session.commit()
@@ -155,10 +156,11 @@ def get_disc_info(job, discid: str) -> str:
     return disc_info
 
 
-def _build_music_args(job_id, crc_id, artist, title, year, no_of_titles):
+def _build_music_args(job_id, crc_id, artist, title, year, no_of_titles,
+                      disc_number=None, disc_total=None):
     """Build the database update args dict for music metadata."""
     artist_title = artist + " " + title
-    return {
+    args = {
         'job_id': str(job_id),
         'crc_id': crc_id,
         'hasnicetitle': True,
@@ -173,7 +175,12 @@ def _build_music_args(job_id, crc_id, artist, title, year, no_of_titles):
         'artist_auto': artist,
         'album': title,
         'album_auto': title,
-    }, artist_title
+    }
+    if disc_number is not None:
+        args['disc_number'] = disc_number
+    if disc_total is not None:
+        args['disc_total'] = disc_total
+    return args, artist_title
 
 
 def _find_matching_medium(medium_list, disc_id):
@@ -232,8 +239,16 @@ def _process_disc_data(job, disc_info):
     artist = release['artist-credit'][0]['artist']['name']
     no_of_titles = disc_info['disc']['offset-count']
 
+    # Multi-disc info
+    medium_list = release.get('medium-list', [])
+    disc_number = medium.get('position')
+    disc_total = len(medium_list) if len(medium_list) > 1 else None
+    if disc_number:
+        disc_number = int(disc_number)
+
     args, artist_title = _build_music_args(
-        job.job_id, release['id'], artist, title, new_year, no_of_titles)
+        job.job_id, release['id'], artist, title, new_year, no_of_titles,
+        disc_number=disc_number, disc_total=disc_total)
     logging.info(f"CD args: {args}")
     u.database_updater(args, job)
     logging.debug(f"musicbrain works -  New title is {title}  New Year is: {new_year}")
@@ -478,10 +493,12 @@ def process_tracks(job, mb_track_list: list, is_stub=False):
             logging.error("Failed to find track length")
         trackno = track.get('number', idx + 1)
         if is_stub:
-            title = track.get('title', f"Untitled track {trackno}")
+            song_title = track.get('title', f"Untitled track {trackno}")
         else:
-            title = track['recording']['title']
-        u.put_track(job, trackno, track_leng, "n/a", 0.1, False, "MusicBrainz", title)
+            song_title = track['recording']['title']
+        filename = f"{int(trackno):02d} - {song_title}.flac"
+        u.put_track(job, trackno, track_leng, "n/a", 0.1, False,
+                    "MusicBrainz", filename, title=song_title)
 
 
 if __name__ == "__main__":

@@ -137,6 +137,10 @@ async def change_job_config(job_id: int, request: Request):
 
     valid_ripmethods = ('mkv', 'backup')
     valid_disctypes = ('dvd', 'bluray', 'bluray4k', 'music', 'data')
+    valid_audio_formats = (
+        'flac', 'mp3', 'vorbis', 'opus', 'm4a', 'wav', 'mka',
+        'wv', 'ape', 'mpc', 'spx', 'mp2', 'tta', 'aiff',
+    )
 
     if 'RIPMETHOD' in body:
         val = str(body['RIPMETHOD']).lower()
@@ -178,6 +182,17 @@ async def change_job_config(job_id: int, request: Request):
         config.MAXLENGTH = val
         cfg.arm_config["MAXLENGTH"] = val
         changes.append(f"Max Length={val}")
+
+    if 'AUDIO_FORMAT' in body:
+        val = str(body['AUDIO_FORMAT']).lower()
+        if val not in valid_audio_formats:
+            return JSONResponse(
+                {"success": False, "error": f"AUDIO_FORMAT must be one of {valid_audio_formats}"},
+                status_code=400,
+            )
+        config.AUDIO_FORMAT = val
+        cfg.arm_config["AUDIO_FORMAT"] = val
+        changes.append(f"Audio Format={val}")
 
     if not changes:
         return JSONResponse({"success": False, "error": "No valid fields provided"}, status_code=400)
