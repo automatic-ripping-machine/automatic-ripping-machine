@@ -7,6 +7,7 @@ import musicbrainzngs as mb
 from discid import read, Disc
 
 import arm.config.config as cfg
+from arm.database import db
 from arm.ripper import utils as u
 
 
@@ -82,7 +83,6 @@ def music_brainz(discid: str, job) -> str:
 def _delete_job_tracks(job):
     """Delete all existing Track records for *job* (e.g. TOC placeholders)."""
     from arm.models.track import Track
-    from arm.database import db
     try:
         Track.query.filter_by(job_id=job.job_id).delete()
         db.session.commit()
@@ -105,8 +105,10 @@ def create_toc_tracks(job, discid):
         for toc_track in discid.tracks:
             u.put_track(
                 job, toc_track.number, toc_track.seconds,
-                "n/a", 0.1, False, "TOC", ""
+                "n/a", 0.1, False, "TOC", f"Track {toc_track.number}"
             )
+        job.no_of_titles = len(discid.tracks)
+        db.session.commit()
         logging.info("Created %d tracks from disc TOC", len(discid.tracks))
     except Exception as exc:
         logging.debug("Could not create TOC tracks: %s", exc)

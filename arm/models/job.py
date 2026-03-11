@@ -163,7 +163,7 @@ class Job(db.Model):
             self.video_type = cfg.arm_config['VIDEOTYPE']
         self.parse_udev()
         self.get_pid()
-        self.stage = str(round(time.time() * 100))
+        self.stage = ""
         self.manual_start = False
         self.manual_pause = False
         self.manual_mode = False

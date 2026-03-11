@@ -288,6 +288,12 @@ def identify(job):
     """
     logging.debug("Identify Entry point --- job ----")
 
+    # Music CDs are already identified during setup() via MusicBrainz —
+    # skip mount/identify since audio CDs have no filesystem and mount hangs.
+    if job.disctype == "music":
+        logging.info("Disc already identified as music — skipping filesystem identification")
+        return
+
     mounted = check_mount(job)
 
     try:
