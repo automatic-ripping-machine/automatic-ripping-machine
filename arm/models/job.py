@@ -37,14 +37,13 @@ class JobState(str, enum.Enum):
     # Manual wait (see job.config.MANUAL_WAIT)
     MANUAL_WAIT_STARTED = "waiting"
 
-    # Job Initialized or Pending
-    IDLE = "active"
-    """An Idle Job may proceed to ripping or to finished.
+    # Disc identification phase
+    IDENTIFYING = "identifying"
+    """Indicate that ARM is identifying the disc (reading label, querying APIs)."""
 
-    - When initializing a job, the job is set to active
-    - After Handbrake finishes, Job is set to active
-    - After ABCD finishes, Job is set to active
-    """
+    # Job identified and ready to rip
+    IDLE = "ready"
+    """Job has been identified and is ready to proceed to ripping."""
 
     # Video Ripping States
     VIDEO_RIPPING = "ripping"
@@ -67,6 +66,7 @@ JOB_STATUS_FINISHED = {
     JobState.FAILURE,
 }
 JOB_STATUS_RIPPING = {
+    JobState.IDENTIFYING,
     JobState.AUDIO_RIPPING,
     JobState.VIDEO_RIPPING,
     JobState.MANUAL_WAIT_STARTED,  # <-- not ripping, but undistinguishable

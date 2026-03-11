@@ -114,6 +114,7 @@ def main():
 
     # Re-initialize job log now that identification has resolved the label
     log_file = logger.setup_job_log(job)
+    job.status = JobState.IDLE.value
     db.session.commit()
 
     # Check db for entries matching the crc and successful
@@ -261,7 +262,7 @@ def setup():
 
     logging.info(f"************* Starting ARM processing at {datetime.datetime.now()} *************")
     # Set job status and start time
-    job.status = JobState.IDLE.value
+    job.status = JobState.IDENTIFYING.value
     job.start_time = datetime.datetime.now()
     utils.database_adder(job)
 
