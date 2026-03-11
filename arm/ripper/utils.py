@@ -354,6 +354,18 @@ def find_file(filename, search_path):
     return False
 
 
+def _update_music_tracks(job, ripped, status):
+    """Bulk-update ripped/status on all tracks for a music job."""
+    try:
+        Track.query.filter_by(job_id=job.job_id).update(
+            {"ripped": ripped, "status": status}
+        )
+        db.session.commit()
+    except Exception as exc:
+        logging.debug("Could not update music tracks: %s", exc)
+        db.session.rollback()
+
+
 def rip_music(job, logfile):
     """
     Rip music CD using abcde config\n
@@ -393,8 +405,10 @@ def rip_music(job, logfile):
                 logging.error(err)
                 args = {"status": JobState.FAILURE.value, "errors": err}
                 database_updater(args, job)
+                _update_music_tracks(job, ripped=False, status="fail")
                 return False
             logging.info("abcde call successful")
+            _update_music_tracks(job, ripped=True, status="success")
             args = {"status": JobState.IDLE.value}
             database_updater(args, job)
             return True
@@ -402,6 +416,7 @@ def rip_music(job, logfile):
             err = f"Call to abcde failed with code: {ab_error.returncode} ({ab_error.output})"
             args = {"status": JobState.FAILURE.value, "errors": err}
             database_updater(args, job)
+            _update_music_tracks(job, ripped=False, status="fail")
             logging.error(err)
     return False
 
