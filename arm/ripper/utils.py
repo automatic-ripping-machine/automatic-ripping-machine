@@ -170,19 +170,21 @@ def _build_webhook_payload(title, body, job, raw_basename):
                 payload["config_overrides"] = json.loads(job.transcode_overrides)
             except (json.JSONDecodeError, TypeError):
                 pass
-        # Multi-title: include per-track metadata for the transcoder
+        # Multi-title: include ALL track metadata for the transcoder.
+        # Tracks without per-track overrides inherit job-level defaults so
+        # the transcoder can route every file, not just custom-titled ones.
         if getattr(job, 'multi_title', False):
             payload["multi_title"] = True
             tracks_meta = []
             for track in job.tracks:
-                if track.title:
-                    tracks_meta.append({
-                        "track_number": str(track.track_number or ''),
-                        "title": str(track.title),
-                        "year": str(track.year or ''),
-                        "video_type": str(track.video_type or ''),
-                        "filename": str(track.filename or ''),
-                    })
+                tracks_meta.append({
+                    "track_number": str(track.track_number or ''),
+                    "title": str(track.title or job.title or ''),
+                    "year": str(track.year or job.year or ''),
+                    "video_type": str(track.video_type or job.video_type or ''),
+                    "filename": str(track.filename or ''),
+                    "has_custom_title": bool(track.title),
+                })
             if tracks_meta:
                 payload["tracks"] = tracks_meta
     return payload
@@ -433,13 +435,15 @@ _SPEED_PROFILES = {
 }
 
 
-def _build_custom_abcde_config(base_config, disc_number=None, speed_profile=None):
+def _build_custom_abcde_config(base_config, disc_number=None,
+                               disc_folder_pattern=None, speed_profile=None):
     """Create a temporary abcde config with per-job overrides.
 
     Supports two optional customizations applied to the base config:
 
-    * **disc_number** — injects ``Disc_N/`` into OUTPUTFORMAT after the
+    * **disc_number** — injects a disc subfolder into OUTPUTFORMAT after the
       album component so multi-disc sets get per-disc subfolders.
+      *disc_folder_pattern* controls the folder name (default ``Disc {num}``).
     * **speed_profile** — appends a ``CDPARANOIAOPTS`` line with the
       cdparanoia flags for the chosen speed profile (safe/fast/fastest).
     """
@@ -454,7 +458,8 @@ def _build_custom_abcde_config(base_config, disc_number=None, speed_profile=None
 
     # --- Disc subfolder injection ---
     if disc_number:
-        disc_dir = f"Disc_{disc_number}"
+        pattern = disc_folder_pattern or "Disc {num}"
+        disc_dir = pattern.replace("{num}", str(disc_number))
 
         def _inject_disc(match):
             fmt = match.group(1)
@@ -512,8 +517,17 @@ def rip_music(job, logfile):
         # Determine if we need a custom abcde config
         disc_num = getattr(job, "disc_number", None) or 0
         disc_tot = getattr(job, "disc_total", None) or 0
-        need_disc = isinstance(disc_num, int) and isinstance(disc_tot, int) \
+
+        multi_disc_enabled = getattr(job.config, "MUSIC_MULTI_DISC_SUBFOLDERS", None)
+        if multi_disc_enabled is None:
+            multi_disc_enabled = cfg.arm_config.get("MUSIC_MULTI_DISC_SUBFOLDERS", True)
+
+        need_disc = bool(multi_disc_enabled) \
+            and isinstance(disc_num, int) and isinstance(disc_tot, int) \
             and disc_num > 0 and disc_tot > 1
+
+        disc_folder_pattern = getattr(job.config, "MUSIC_DISC_FOLDER_PATTERN", None) \
+            or cfg.arm_config.get("MUSIC_DISC_FOLDER_PATTERN", "Disc {num}")
 
         speed = getattr(job.config, "RIP_SPEED_PROFILE", None) \
             or cfg.arm_config.get("RIP_SPEED_PROFILE", "safe")
@@ -523,6 +537,7 @@ def rip_music(job, logfile):
             tmp_config = _build_custom_abcde_config(
                 abcfile,
                 disc_number=disc_num if need_disc else None,
+                disc_folder_pattern=disc_folder_pattern if need_disc else None,
                 speed_profile=speed if need_speed else None,
             )
 

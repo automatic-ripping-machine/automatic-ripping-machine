@@ -132,8 +132,8 @@ def main():
         # Set output path for display (abcde uses its own OUTPUTDIR)
         try:
             job.path = job.build_final_path()
-        except Exception:
-            pass
+        except Exception as e:
+            logging.warning("Could not build final path for music job %s: %s", job.job_id, e)
         db.session.commit()
 
     # Check if user has manual wait time enabled

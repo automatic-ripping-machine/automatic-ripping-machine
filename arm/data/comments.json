@@ -84,6 +84,8 @@
   "TV_FOLDER_PATTERN": "# Pattern for TV series folder names. Use / for nested directories.\n# Use {variable} placeholders — available variables are listed in the UI.",
   "MUSIC_TITLE_PATTERN": "# Pattern for music display titles.\n# Use {variable} placeholders — available variables are listed in the UI.",
   "MUSIC_FOLDER_PATTERN": "# Pattern for music folder names. Use / for nested directories.\n# Use {variable} placeholders — available variables are listed in the UI.",
+  "MUSIC_MULTI_DISC_SUBFOLDERS": "# Enable per-disc subfolders for multi-CD album rips.\n# When true, multi-disc sets produce: Artist/Album/Disc 1/track.flac, Disc 2/track.flac, etc.\n# When false, all discs are mixed into one folder.",
+  "MUSIC_DISC_FOLDER_PATTERN": "# Folder name pattern for each disc in a multi-disc set.\n# {num} is replaced with the disc number (1, 2, 3…).\n# Examples: \"Disc {num}\", \"CD {num}\", \"CD{num}\"",
   "APPRISE": "# File location of your apprise.yaml file. \n# Docker default is '/etc/arm/config/apprise.yaml'.",
   "index_refresh": "How often to refresh the home page in milliseconds #\n (This updates jobs) #\n Default setting is '2000', updating the home page every 2 seconds.",
   "use_icons": "Use icons, if false A.R.M will use text \n##ripping|transcoding|etc",

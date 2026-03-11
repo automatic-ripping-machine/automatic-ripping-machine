@@ -120,6 +120,16 @@ AUDIO_FORMAT: "flac"
 #               Use only for pristine discs. ~5-10x faster.
 RIP_SPEED_PROFILE: "fast"
 
+# Enable per-disc subfolders for multi-CD album rips.
+# When true, multi-disc sets produce: Artist/Album/Disc 1/track.flac, Disc 2/track.flac, etc.
+# When false, all discs are mixed into one folder.
+MUSIC_MULTI_DISC_SUBFOLDERS: true
+
+# Folder name pattern for each disc in a multi-disc set.
+# {num} is replaced with the disc number (1, 2, 3…).
+# Examples: "Disc {num}", "CD {num}", "CD{num}"
+MUSIC_DISC_FOLDER_PATTERN: "Disc {num}"
+
 # Rip DVD Posters from JACKET_P folder
 # Requires FFmpeg
 RIP_POSTER: false

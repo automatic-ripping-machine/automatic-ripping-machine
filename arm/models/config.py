@@ -79,6 +79,8 @@ class Config(db.Model):
     GROUP_TV_DISCS_UNDER_SERIES = db.Column(db.Boolean)
     AUDIO_FORMAT = db.Column(db.String(20))
     RIP_SPEED_PROFILE = db.Column(db.String(20))
+    MUSIC_MULTI_DISC_SUBFOLDERS = db.Column(db.Boolean)
+    MUSIC_DISC_FOLDER_PATTERN = db.Column(db.String(50))
 
     def __init__(self, c, job_id):
         self.__dict__.update(c)

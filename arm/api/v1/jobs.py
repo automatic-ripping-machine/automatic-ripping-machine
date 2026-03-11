@@ -206,6 +206,23 @@ async def change_job_config(job_id: int, request: Request):
         cfg.arm_config["RIP_SPEED_PROFILE"] = val
         changes.append(f"Rip Speed={val}")
 
+    if 'MUSIC_MULTI_DISC_SUBFOLDERS' in body:
+        val = bool(body['MUSIC_MULTI_DISC_SUBFOLDERS'])
+        config.MUSIC_MULTI_DISC_SUBFOLDERS = val
+        cfg.arm_config["MUSIC_MULTI_DISC_SUBFOLDERS"] = val
+        changes.append(f"Multi-Disc Subfolders={val}")
+
+    if 'MUSIC_DISC_FOLDER_PATTERN' in body:
+        val = str(body['MUSIC_DISC_FOLDER_PATTERN']).strip()
+        if not val or '{num}' not in val:
+            return JSONResponse(
+                {"success": False, "error": "MUSIC_DISC_FOLDER_PATTERN must contain {num}"},
+                status_code=400,
+            )
+        config.MUSIC_DISC_FOLDER_PATTERN = val
+        cfg.arm_config["MUSIC_DISC_FOLDER_PATTERN"] = val
+        changes.append(f"Disc Folder Pattern={val}")
+
     if not changes:
         return JSONResponse({"success": False, "error": "No valid fields provided"}, status_code=400)
 
@@ -525,7 +542,16 @@ async def update_transcode_config(job_id: int, request: Request):
 async def transcode_callback(job_id: int, request: Request):
     """Receive status update from the external transcoder.
 
-    Expected payload: {"status": "transcoding"|"completed"|"failed", "error": "..."}
+    Expected payload::
+
+        {"status": "transcoding"|"completed"|"failed", "error": "..."}
+
+    Multi-title jobs may also include per-track results::
+
+        {"status": "completed", "track_results": [
+            {"track_number": "1", "status": "completed", "output_path": "..."},
+            {"track_number": "2", "status": "failed", "error": "codec error"},
+        ]}
     """
     job = Job.query.get(job_id)
     if not job:
@@ -543,6 +569,16 @@ async def transcode_callback(job_id: int, request: Request):
             f"'{job.title}' transcoding finished successfully"
         )
         db.session.add(notification)
+    elif status == "partial":
+        # Some tracks succeeded, some failed
+        job.status = JobState.SUCCESS.value
+        error_msg = body.get("error", "Some tracks failed to transcode")
+        job.errors = error_msg
+        notification = Notifications(
+            f"Job: {job.job_id} transcode partial",
+            f"'{job.title}' transcoding completed with errors: {error_msg}"
+        )
+        db.session.add(notification)
     elif status == "failed":
         job.status = JobState.FAILURE.value
         error_msg = body.get("error", "Transcode failed")
@@ -557,6 +593,20 @@ async def transcode_callback(job_id: int, request: Request):
             {"success": False, "error": f"Unknown status: {status}"},
             status_code=400,
         )
+
+    # Update per-track status from transcoder results
+    track_results = body.get("track_results")
+    if track_results and isinstance(track_results, list):
+        track_map = {str(t.track_number): t for t in job.tracks}
+        for tr in track_results:
+            track_num = str(tr.get("track_number", ""))
+            track = track_map.get(track_num)
+            if track:
+                tr_status = tr.get("status", "")
+                if tr_status == "completed":
+                    track.status = "transcoded"
+                elif tr_status == "failed":
+                    track.status = f"transcode_failed: {tr.get('error', '')[:200]}"
 
     db.session.commit()
     return {"success": True, "job_id": job.job_id, "status": job.status}
