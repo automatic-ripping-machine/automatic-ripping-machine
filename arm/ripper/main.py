@@ -139,10 +139,12 @@ def main():
     # For video discs, run MakeMKV title scan BEFORE the manual wait
     # so track info is available in the review widget during the waiting state.
     if job.disctype in ["dvd", "bluray", "bluray4k"]:
-        # Allow drive to settle after umount from identification.
-        # USB drives may reset during the identify phase; give them time
-        # to fully re-enumerate and spin up before MakeMKV accesses them.
-        time.sleep(10)
+        # Wait for drive to be ready after umount from identification.
+        # USB drives (Pioneer BDR-S12JX) go NOT_READY after unmount and
+        # can take 30-60s to spin back up.  Polling the ioctl avoids
+        # wasting pre-scan retries on a drive that isn't ready yet.
+        from arm.ripper.identify import _wait_for_drive_ready
+        _wait_for_drive_ready(job.devpath, timeout=120)
         for attempt in range(1, 4):
             try:
                 # Verify the device still exists before calling MakeMKV
