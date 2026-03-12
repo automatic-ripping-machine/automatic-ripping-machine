@@ -47,12 +47,25 @@ def _find_mountpoint(devpath: str) -> str | None:
 
 
 def _drive_has_disc(devpath: str) -> bool:
-    """Quick ioctl check — returns False if tray is open or disc was ejected."""
+    """Quick ioctl check — returns False only if tray is open or no disc.
+
+    CDROM_DRIVE_STATUS values:
+      0 = CDS_NO_INFO      → ambiguous, assume disc may be present
+      1 = CDS_NO_DISC       → definitely no disc
+      2 = CDS_TRAY_OPEN     → tray open, no disc available
+      3 = CDS_DRIVE_NOT_READY → disc present but drive spinning up (USB drives)
+      4 = CDS_DISC_OK       → disc loaded and ready
+
+    USB optical drives (e.g. Pioneer BDR-S12JX) report NOT_READY (3) for
+    30-60s during spin-up.  Treating that as "ejected" causes the mount
+    retry loop to abort prematurely.  Only NO_DISC and TRAY_OPEN are
+    definitive ejection indicators.
+    """
     try:
         fd = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
         try:
             status = fcntl.ioctl(fd, 0x5326, 0)  # CDROM_DRIVE_STATUS
-            return status == 4  # CDS_DISC_OK
+            return status not in (1, 2)  # only NO_DISC / TRAY_OPEN → False
         finally:
             os.close(fd)
     except OSError:

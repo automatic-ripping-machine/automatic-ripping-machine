@@ -222,12 +222,30 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
             Returns `None` if no (known) error occurred and `str` with the error
             message otherwise.
         """
+        import subprocess
+
+        if method == "eject":
+            # Best-effort umount — in Docker, eject's built-in umount may
+            # fail due to mount namespace differences.
+            subprocess.run(["umount", self.mount], capture_output=True, text=True)
+
+            # Unlock the drive door.  A previous process (MakeMKV, mount) may
+            # have locked it, preventing the physical eject button from working.
+            try:
+                fd = os.open(self.mount, os.O_RDONLY | os.O_NONBLOCK)
+                try:
+                    fcntl.ioctl(fd, 0x5329, 0)  # CDROM_LOCKDOOR: 0 = unlock
+                finally:
+                    os.close(fd)
+            except OSError:
+                pass  # best effort
+
         methods = {
             "eject": [],
             "close": ["--trayclose"],
             "toggle": ["--traytoggle"],
         }
-        options = ["--cdrom", "--scsi"]  # exclude floppy and tape drives
+        options = ["--force", "--cdrom", "--scsi"]
         cmd = ["eject", "--verbose"] + options + methods[method] + [self.mount]
         try:
             arm_subprocess(cmd, check=True)
