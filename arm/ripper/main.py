@@ -30,7 +30,7 @@ from arm.models.system_drives import CDS, SystemDrives  # noqa: E402
 from arm.database import db  # noqa E402
 import arm.constants as constants  # noqa E402
 from arm.ripper import (arm_ripper, identify, logger,  # noqa: E402
-                        music_brainz, utils)
+                        makemkv, music_brainz, utils)
 from arm.ripper.ARMInfo import ARMInfo  # noqa E402
 from arm.services import drives as drive_utils  # noqa E402
 
@@ -135,6 +135,23 @@ def main():
         except Exception as e:
             logging.warning("Could not build final path for music job %s: %s", job.job_id, e)
         db.session.commit()
+
+    # For video discs, run MakeMKV title scan BEFORE the manual wait
+    # so track info is available in the review widget during the waiting state.
+    if job.disctype in ["dvd", "bluray", "bluray4k"]:
+        try:
+            logging.info("Pre-scanning disc titles for review...")
+            makemkv.prep_mkv()
+            makemkv._resolve_mdisc(job)
+            makemkv.get_track_info(job.drive.mdisc, job)
+            # Auto-enable all tracks so review widget shows them checked
+            tracks = list(job.tracks)
+            for t in tracks:
+                t.enabled = True
+            db.session.commit()
+            logging.info("Pre-scan complete: %d tracks found", len(tracks))
+        except Exception as e:
+            logging.warning("Pre-scan failed (will retry during rip): %s", e)
 
     # Check if user has manual wait time enabled
     utils.check_for_wait(job)

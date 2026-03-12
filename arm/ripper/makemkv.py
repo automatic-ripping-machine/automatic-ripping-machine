@@ -666,8 +666,13 @@ def makemkv_mkv(job, rawpath):
     # Get drive mode for the current drive
     mode = utils.get_drive_mode(job.devpath)
     logging.info(f"Job running in {mode} mode")
-    # Get track info from mkv rip
-    get_track_info(job.drive.mdisc, job)
+    # Get track info from mkv rip (skip if pre-scanned during review)
+    existing_tracks = list(job.tracks)
+    pre_scanned = len(existing_tracks) > 0
+    if not pre_scanned:
+        get_track_info(job.drive.mdisc, job)
+    else:
+        logging.info("Skipping title scan — %d tracks already loaded from pre-scan", len(existing_tracks))
 
     # Bail out early if MakeMKV found nothing to rip
     if job.no_of_titles is not None and job.no_of_titles == 0:
@@ -678,29 +683,33 @@ def makemkv_mkv(job, rawpath):
 
     # Auto-flag tracks: when MAINFEATURE is enabled AND the disc is a
     # single-title type (not multi-title), enable only the best track.
-    # Otherwise enable all tracks.
-    is_single_track_type = getattr(job, 'video_type', None) in SINGLE_TRACK_VIDEO_TYPES
-    is_multi = getattr(job, 'multi_title', False)
-    mainfeature = bool(int(getattr(job.config, 'MAINFEATURE', 0) or 0))
-    if mainfeature and is_single_track_type and not is_multi:
-        for t in job.tracks:
-            t.enabled = False
-        best = Track.query.filter_by(job_id=job.job_id).order_by(
-            Track.chapters.desc(),
-            Track.length.desc(),
-            Track.filesize.desc(),
-            Track.track_number.asc()
-        ).first()
-        if best:
-            best.enabled = True
-        db.session.commit()
-        logging.info("MAINFEATURE: auto-flagged best track (single-title movie): %s", best)
+    # Otherwise enable all tracks.  Skip if tracks were pre-scanned
+    # (user may have already toggled enabled flags during review).
+    if not pre_scanned:
+        is_single_track_type = getattr(job, 'video_type', None) in SINGLE_TRACK_VIDEO_TYPES
+        is_multi = getattr(job, 'multi_title', False)
+        mainfeature = bool(int(getattr(job.config, 'MAINFEATURE', 0) or 0))
+        if mainfeature and is_single_track_type and not is_multi:
+            for t in job.tracks:
+                t.enabled = False
+            best = Track.query.filter_by(job_id=job.job_id).order_by(
+                Track.chapters.desc(),
+                Track.length.desc(),
+                Track.filesize.desc(),
+                Track.track_number.asc()
+            ).first()
+            if best:
+                best.enabled = True
+            db.session.commit()
+            logging.info("MAINFEATURE: auto-flagged best track (single-title movie): %s", best)
+        else:
+            for t in job.tracks:
+                t.enabled = True
+            db.session.commit()
+            logging.info("Auto-enabled all tracks (MAINFEATURE=%s, single=%s, multi=%s)",
+                         mainfeature, is_single_track_type, is_multi)
     else:
-        for t in job.tracks:
-            t.enabled = True
-        db.session.commit()
-        logging.info("Auto-enabled all tracks (MAINFEATURE=%s, single=%s, multi=%s)",
-                     mainfeature, is_single_track_type, is_multi)
+        logging.info("Preserving user track selections from review (pre-scanned)")
 
     # route to ripping functions.
     if mode == 'manual':  # Run if mode is manual, user selects tracks
