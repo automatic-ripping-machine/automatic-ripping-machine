@@ -139,19 +139,27 @@ def main():
     # For video discs, run MakeMKV title scan BEFORE the manual wait
     # so track info is available in the review widget during the waiting state.
     if job.disctype in ["dvd", "bluray", "bluray4k"]:
-        try:
-            logging.info("Pre-scanning disc titles for review...")
-            makemkv.prep_mkv()
-            makemkv._resolve_mdisc(job)
-            makemkv.get_track_info(job.drive.mdisc, job)
-            # Auto-enable all tracks so review widget shows them checked
-            tracks = list(job.tracks)
-            for t in tracks:
-                t.enabled = True
-            db.session.commit()
-            logging.info("Pre-scan complete: %d tracks found", len(tracks))
-        except Exception as e:
-            logging.warning("Pre-scan failed (will retry during rip): %s", e)
+        # Allow drive to settle after umount from identification
+        time.sleep(3)
+        for attempt in range(1, 4):
+            try:
+                logging.info("Pre-scanning disc titles for review (attempt %d)...", attempt)
+                makemkv.prep_mkv()
+                makemkv._resolve_mdisc(job)
+                makemkv.get_track_info(job.drive.mdisc, job)
+                # Auto-enable all tracks so review widget shows them checked
+                tracks = list(job.tracks)
+                for t in tracks:
+                    t.enabled = True
+                db.session.commit()
+                logging.info("Pre-scan complete: %d tracks found", len(tracks))
+                break
+            except Exception as e:
+                if attempt < 3:
+                    logging.warning("Pre-scan attempt %d failed: %s — retrying in 5s", attempt, e)
+                    time.sleep(5)
+                else:
+                    logging.warning("Pre-scan failed after %d attempts (will retry during rip): %s", attempt, e)
 
     # Check if user has manual wait time enabled
     utils.check_for_wait(job)

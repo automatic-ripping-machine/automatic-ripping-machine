@@ -34,8 +34,30 @@ if [[ -f /etc/environment ]]; then
 fi
 
 #######################################################################################
-# Log Discovered Type and Start Rip
+# Detect disc type and log it
 #######################################################################################
+
+# When called via 'docker exec' from a host udev rule, environment variables
+# like ID_CDROM_MEDIA_DVD are NOT automatically forwarded.  Query udevadm
+# inside the container to discover them reliably.
+if [[ -z "$ID_CDROM_MEDIA_DVD" ]] && [[ -z "$ID_CDROM_MEDIA_BD" ]] && [[ -z "$ID_CDROM_MEDIA_CD" ]]; then
+    UDEV_PROPS=$(udevadm info --query=property "/dev/${DEVNAME}" 2>/dev/null)
+    if echo "$UDEV_PROPS" | grep -q "ID_CDROM_MEDIA_DVD=1"; then
+        ID_CDROM_MEDIA_DVD=1
+    fi
+    if echo "$UDEV_PROPS" | grep -q "ID_CDROM_MEDIA_BD=1"; then
+        ID_CDROM_MEDIA_BD=1
+    fi
+    if echo "$UDEV_PROPS" | grep -q "ID_CDROM_MEDIA_CD=1"; then
+        ID_CDROM_MEDIA_CD=1
+    fi
+    if echo "$UDEV_PROPS" | grep -q "ID_CDROM_MEDIA_CD_R=1"; then
+        ID_CDROM_MEDIA_CD_R=1
+    fi
+    if echo "$UDEV_PROPS" | grep -qP "^ID_FS_TYPE="; then
+        ID_FS_TYPE=$(echo "$UDEV_PROPS" | grep -oP "^ID_FS_TYPE=\K.*")
+    fi
+fi
 
 # ID_CDROM_MEDIA_BD = Blu-ray
 # ID_CDROM_MEDIA_CD = CD
