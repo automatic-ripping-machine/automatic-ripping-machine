@@ -75,9 +75,10 @@ elif [[ "$ID_FS_TYPE" != "" ]]; then
     echo "$(date) [ARM] Starting ARM for Data Disk on ${DEVNAME} with FS ${ID_FS_TYPE}" >> "$ARMLOG"
     echo "[ARM] Starting ARM for Data Disk on ${DEVNAME} with FS ${ID_FS_TYPE}" | logger -t ARM -s
 else
-    echo "$(date) [ARM] No recognized disc type on ${DEVNAME}, skipping." >> "$ARMLOG"
-    echo "[ARM] No recognized disc type on ${DEVNAME}, skipping." | logger -t ARM -s
-    exit 0
+    # Disc type unknown — udev database may be stale after container restart.
+    # Proceed anyway; ARM's identify.py will detect the type by mounting.
+    echo "$(date) [ARM] Starting ARM for unknown disc type on ${DEVNAME}" >> "$ARMLOG"
+    echo "[ARM] Starting ARM for unknown disc type on ${DEVNAME}" | logger -t ARM -s
 fi
 
 cd /home/arm || exit 1
