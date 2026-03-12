@@ -82,4 +82,4 @@ else
 fi
 
 cd /home/arm || exit 1
-python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" | logger -t ARM -s
+exec /sbin/setuser arm python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" 2>&1 | logger -t ARM -s
