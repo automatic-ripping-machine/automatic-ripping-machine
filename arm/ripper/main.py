@@ -152,8 +152,10 @@ def main():
                 makemkv.prep_mkv()
                 makemkv._resolve_mdisc(job)
                 makemkv.get_track_info(job.drive.mdisc, job)
-                # Auto-enable all tracks so review widget shows them checked
                 tracks = list(job.tracks)
+                if len(tracks) == 0:
+                    raise RuntimeError("MakeMKV returned 0 titles (drive may still be spinning up)")
+                # Auto-enable all tracks so review widget shows them checked
                 for t in tracks:
                     t.enabled = True
                 db.session.commit()
