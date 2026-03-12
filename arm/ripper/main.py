@@ -139,10 +139,15 @@ def main():
     # For video discs, run MakeMKV title scan BEFORE the manual wait
     # so track info is available in the review widget during the waiting state.
     if job.disctype in ["dvd", "bluray", "bluray4k"]:
-        # Allow drive to settle after umount from identification
-        time.sleep(3)
+        # Allow drive to settle after umount from identification.
+        # USB drives may reset during the identify phase; give them time
+        # to fully re-enumerate and spin up before MakeMKV accesses them.
+        time.sleep(10)
         for attempt in range(1, 4):
             try:
+                # Verify the device still exists before calling MakeMKV
+                if not Path(job.devpath).exists():
+                    raise FileNotFoundError(f"{job.devpath} not found (drive may have disconnected)")
                 logging.info("Pre-scanning disc titles for review (attempt %d)...", attempt)
                 makemkv.prep_mkv()
                 makemkv._resolve_mdisc(job)
@@ -156,8 +161,9 @@ def main():
                 break
             except Exception as e:
                 if attempt < 3:
-                    logging.warning("Pre-scan attempt %d failed: %s — retrying in 5s", attempt, e)
-                    time.sleep(5)
+                    wait = 15 * attempt  # 15s, then 30s
+                    logging.warning("Pre-scan attempt %d failed: %s — retrying in %ds", attempt, e, wait)
+                    time.sleep(wait)
                 else:
                     logging.warning("Pre-scan failed after %d attempts (will retry during rip): %s", attempt, e)
 
