@@ -6,6 +6,7 @@
    - **Docker**
        - [Pull prebuilt image](docker)
        - [Build from Dockerfile](Building-ARM-docker-image-from-source)
+       - [Podman prebuilt image](Podman-prebuilt-image)
 
    - **Manual Install**
      - See Alternate Installations

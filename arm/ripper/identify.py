@@ -48,9 +48,7 @@ def check_mount(job: Job) -> bool:
         job.mountpoint = mountpoint
     else:
         logging.info(f"Trying to mount disc at {job.devpath}...")
-        # --all: Automount devpath to mountpoint specified in fstab
-        # -o X-mount.mkdir: create directory for the mountpoint, if necessary
-        arm_subprocess(["mount", "--all", "-o", "X-mount.mkdir", job.devpath])
+        arm_subprocess(["mount", "--source", job.devpath])
         if mountpoint := find_mount(job.devpath):
             logging.info(f"Successfully mounted disc to {mountpoint}")
             job.mountpoint = mountpoint
@@ -199,7 +197,7 @@ def identify_dvd(job):
     # rip out any SKU's at the end of the line
     dvd_title = re.sub(r"SKU\b", "", dvd_title)
     logging.debug(f"dvd_title SKU$: {dvd_title}")
-    
+
     # Do we really need metaselector if we have got from ARM online db?
     try:
         dvd_info_xml = metadata_selector(job, dvd_title, year)
