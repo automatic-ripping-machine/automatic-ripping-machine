@@ -82,4 +82,10 @@ else
 fi
 
 cd /home/arm || exit 1
-exec /sbin/setuser arm python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" 2>&1 | logger -t ARM -s
+# Drop privileges if running as root (docker exec from host udev).
+# When invoked by the in-container udev rule, setuser already ran.
+if [ "$(id -u)" = "0" ]; then
+    exec /sbin/setuser arm python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" 2>&1 | logger -t ARM -s
+else
+    exec python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" 2>&1 | logger -t ARM -s
+fi
