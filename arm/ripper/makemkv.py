@@ -969,6 +969,14 @@ def makemkv(job):
     Returns:
         str: path to ripped files.
     """
+    # Poll drive readiness before touching the disc.  After pre-scan +
+    # manual wait (60s+), USB drives can go NOT_READY again.
+    from arm.ripper.identify import _wait_for_drive_ready
+    if not _wait_for_drive_ready(job.devpath, timeout=120):
+        raise utils.RipperException(
+            f"Drive {job.devpath} not ready — disc may have been ejected"
+        )
+
     prep_mkv()
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     _resolve_mdisc(job)

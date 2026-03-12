@@ -144,7 +144,8 @@ def main():
         # can take 30-60s to spin back up.  Polling the ioctl avoids
         # wasting pre-scan retries on a drive that isn't ready yet.
         from arm.ripper.identify import _wait_for_drive_ready
-        _wait_for_drive_ready(job.devpath, timeout=120)
+        if not _wait_for_drive_ready(job.devpath, timeout=120):
+            logging.warning("Drive not ready for pre-scan — skipping (will retry during rip)")
         for attempt in range(1, 4):
             try:
                 if not Path(job.devpath).exists():
