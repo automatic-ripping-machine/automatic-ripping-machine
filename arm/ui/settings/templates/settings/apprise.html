@@ -11,7 +11,10 @@
                 <span class="input-group-text" id="{{ k }}">{{ k }}: </span>
             </div>
             <input type="text" class="form-control" aria-label="{{ k }}" name="{{ k }}" placeholder="{{ v }}"
-                   value="{{ v }}" aria-describedby="{{ k }}">
+                   value="{{ v }}" aria-describedby="{{ k }}"
+                   {% if apprise_read_only %}
+                     disabled="" title="apprise.yaml is read-only"
+                   {% endif %}>
         </div>
         {% endfor %}
         <button id="apprise_cfg" class="btn btn-secondary btn-lg btn-block" form="appriseCfg"
