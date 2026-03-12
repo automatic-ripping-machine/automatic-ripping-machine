@@ -826,6 +826,9 @@ def clean_old_jobs():
             logging.info(f"Job #{job.job_id} with PID {job.pid} has been abandoned. "
                          f"Updating job status to fail.")
             database_updater({'status': JobState.FAILURE.value}, job)
+            if job.drive is not None:
+                job.drive.release_current_job()
+                db.session.commit()
 
 
 def check_ip():
