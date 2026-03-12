@@ -1126,7 +1126,13 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
         elif cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
             logging.debug(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
             logging.debug(f"Value of have_dupes: {have_dupes}")
-            hb_out_path = hb_out_path + "_" + job.stage
+            suffix = job.stage if job.stage else str(int(time.time()))
+            hb_out_path = hb_out_path + "_" + suffix
+            # Also clean empty folders from failed rips at the deduped path
+            if _is_empty_failed_rip(hb_out_path, job.label):
+                import shutil
+                logging.info(f"Removing empty folder from failed rip: \"{hb_out_path}\"")
+                shutil.rmtree(hb_out_path)
             make_dir(hb_out_path, False)
         else:
             # We aren't allowed to rip dupes, notify and exit
