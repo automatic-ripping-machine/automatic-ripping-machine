@@ -577,7 +577,8 @@ def try_add_default_user():
         logging.error(error)
 
 
-def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename=""):
+def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
+              chapters=0, filesize=0):
     """
     Put data into a track instance.\n
     Having this here saves importing the models file everywhere\n
@@ -590,11 +591,14 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
     :param bool mainfeature: If the file is identified as the mainfeature
     :param str source: Source of information (HandBrake, MakeMKV, abcde)
     :param str filename: filename of track
+    :param int chapters: number of chapters in track
+    :param int filesize: size of track in bytes
     """
 
     logging.debug(
         f"Track #{int(t_no):02} Length: {seconds: >4} fps: {float(fps):2.3f} "
-        f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source}")
+        f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source} "
+        f"Chapters: {chapters} Filesize: {filesize}")
 
     job_track = Track(
         job_id=job.job_id,
@@ -605,7 +609,9 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="")
         main_feature=mainfeature,
         source=source,
         basename=job.title,
-        filename=filename
+        filename=filename,
+        chapters=chapters,
+        filesize=filesize
     )
     job_track.ripped = (seconds > int(job.config.MINLENGTH))
     database_adder(job_track)
