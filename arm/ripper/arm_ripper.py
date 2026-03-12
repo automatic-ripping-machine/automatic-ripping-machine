@@ -58,7 +58,17 @@ def rip_visual_media(have_dupes, job, logfile, protection):
     # Persist raw_path to DB — this is the actual directory on disk
     utils.database_updater({'raw_path': makemkv_out_path}, job)
     if job.config.NOTIFY_RIP:
+        # notify() also calls transcoder_notify internally
         utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} rip complete.")
+    else:
+        # Always notify the transcoder when TRANSCODER_URL is set, even if
+        # NOTIFY_RIP is off.  The transcoder webhook is a pipeline trigger,
+        # not a user notification.
+        import arm.config.config as cfg
+        utils.transcoder_notify(
+            cfg.arm_config, constants.NOTIFY_TITLE,
+            f"{job.title} rip complete.", job,
+        )
     logging.info("************* Ripping with MakeMKV completed *************")
 
     # Report errors if any
