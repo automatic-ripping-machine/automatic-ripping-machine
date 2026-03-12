@@ -55,10 +55,14 @@ services:
       # Transcoder integration (written to arm.yaml at startup)
       - ARM_TRANSCODER_URL=${ARM_TRANSCODER_URL:-http://arm-transcoder:5000/webhook/arm}
       - ARM_TRANSCODER_WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
+      # Local SSD scratch for ripping (moved to shared storage after rip)
+      - ARM_LOCAL_RAW_PATH=${ARM_LOCAL_RAW_PATH:-}
+      - ARM_SHARED_RAW_PATH=${ARM_SHARED_RAW_PATH:-}
     volumes:
       - ${ARM_MUSIC_PATH}:/home/arm/music
       - ${ARM_LOGS_PATH}:/home/arm/logs
       - ${ARM_MEDIA_PATH}:/home/arm/media
+      - ${ARM_SCRATCH_PATH:-/home/arm/media}:/home/arm/scratch
       - ${ARM_CONFIG_PATH}:/etc/arm/config
       - arm-db:/home/arm/db
       - ${ARM_MAKEMKV_PATH:-makemkv-settings}:/home/arm/.MakeMKV

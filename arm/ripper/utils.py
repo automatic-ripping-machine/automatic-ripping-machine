@@ -204,6 +204,14 @@ def transcoder_notify(cfg, title, body, job=None):
     raw_basename = os.path.basename(str(job.raw_path)) if job.raw_path else ''
     _move_to_shared_storage(cfg, raw_basename)
 
+    # Update job.raw_path to shared location after move
+    shared_raw = cfg.get('SHARED_RAW_PATH', '')
+    if shared_raw and raw_basename:
+        new_raw_path = os.path.join(shared_raw, raw_basename)
+        if os.path.isdir(new_raw_path):
+            job.raw_path = new_raw_path
+            db.session.commit()
+
     payload = _build_webhook_payload(title, body, job, raw_basename)
     headers = {"Content-Type": "application/json"}
     secret = cfg.get('TRANSCODER_WEBHOOK_SECRET', '')
