@@ -17,32 +17,10 @@ import arm.config.config as cfg
 
 KEYDB_CFG_TMP = "KEYDB.cfg.tmp"
 
-
-def ensure_libaacs_installed() -> None:
-    """Warn if libaacs does not appear to be installed (best-effort check)."""
-    try:
-        result = subprocess.run(
-            ["ldconfig", "--print-cache"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            check=False,
-            text=True,
-        )
-    except FileNotFoundError:
-        return
-
-    if "libaacs" not in result.stdout:
-        print("[!] The library libaacs seem to not be install on your system.")
-        print("\t-> Check with your package manager to install it.")
-
-
 def resolve_target_directory() -> Path:
-    """Resolve the target directory for KEYDB.cfg."""
-    uid = os.getuid() if hasattr(os, "getuid") else None
-    if uid is not None and uid != 0:
-        home = Path(os.path.expanduser("~"))
-        return home / ".config" / "aacs"
-    return Path("/etc/xdg/aacs")
+    """Resolve the target directory for KEYDB.cfg (MakeMKV user directory)."""
+    home = Path(os.path.expanduser("~"))
+    return home / ".MakeMKV"
 
 
 def ensure_directory(path: Path) -> None:
@@ -188,7 +166,7 @@ def get_primary_database_url() -> str:
     return "http://fvonline-db.bplaced.net/"
 
 
-def get_aacs_keydb_enabled() -> bool:
+def get_keydb_enabled() -> bool:
     """Return True if AACS KEYDB auto-update is enabled in config."""
     value = cfg.arm_config.get("AACS_KEYDB_ENABLED", False)
     if isinstance(value, bool):
@@ -246,10 +224,8 @@ def get_extra_sources_from_config() -> list[str]:
 
 def try_download_keydb() -> int:
 
-    if not get_aacs_keydb_enabled():
+    if not get_keydb_enabled():
         return 0
-
-    ensure_libaacs_installed()
 
     target = resolve_target_directory()
     ensure_directory(target)
@@ -264,7 +240,7 @@ def try_download_keydb() -> int:
     extra_sources = get_extra_sources_from_config()
 
     if extra_sources:
-        print("[*] Using configured AACS KEYDB sources from arm.yaml; skipping primary site.")
+        print("[*] Using configured KEYDB sources from arm.yaml; skipping primary site.")
         append_keys_from_sources(extra_sources, target)
         keydb_cfg = target / "KEYDB.cfg"
         if keydb_cfg.is_file():
