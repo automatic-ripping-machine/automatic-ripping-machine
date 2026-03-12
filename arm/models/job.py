@@ -150,6 +150,7 @@ class Job(db.Model):
     manual_start = db.Column(db.Boolean)
     manual_pause = db.Column(db.Boolean)
     manual_mode = db.Column(db.Boolean)
+    wait_start_time = db.Column(db.DateTime, nullable=True)
     tracks = db.relationship('Track', backref='job', lazy='dynamic')
     config = db.relationship('Config', uselist=False, backref="job")
 

@@ -1254,7 +1254,9 @@ def check_for_wait(job):
         logging.info("Global ripping paused. Waiting for manual start.")
     else:
         logging.info(f"Waiting {job.config.MANUAL_WAIT_TIME} seconds for manual override.")
-    database_updater({"status": JobState.MANUAL_WAIT_STARTED.value}, job)
+    import datetime
+    database_updater({"status": JobState.MANUAL_WAIT_STARTED.value,
+                      "wait_start_time": datetime.datetime.now()}, job)
     _poll_manual_wait(job)
     database_updater({"status": JobState.IDLE.value}, job)
 
