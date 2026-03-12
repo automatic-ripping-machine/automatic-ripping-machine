@@ -851,6 +851,91 @@ def _reconcile_filenames(job, rawpath):
         db.session.commit()
 
 
+def _run_with_timeout(cmd, select, timeout=300):
+    """Run makemkvcon with a watchdog timer and yield selected messages.
+
+    Same streaming pattern as run() but with a threading.Timer that kills
+    the process after *timeout* seconds.  Raises subprocess.TimeoutExpired
+    on timeout and MakeMkvRuntimeError on non-zero exit.
+    """
+    import threading
+    logging.debug(f"command (timeout={timeout}s): '{' '.join(cmd)}'")
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True) as proc:
+        timer = threading.Timer(timeout, proc.kill)
+        timer.start()
+        try:
+            for line in proc.stdout:
+                line = line.rstrip(os.linesep)
+                logging.debug(line)
+                try:
+                    msg_type, data = parse_line(line)
+                except MakeMkvParserError:
+                    continue
+                if msg_type in select:
+                    yield data
+        finally:
+            timer.cancel()
+    if proc.returncode == -9:
+        raise subprocess.TimeoutExpired(cmd, timeout)
+    if proc.returncode:
+        raise MakeMkvRuntimeError(proc.returncode, cmd, output="")
+    logging.info("MakeMKV info exits.")
+
+
+def prescan_resolve_mdisc(job, timeout=60):
+    """Resolve MakeMKV disc index with timeout.  Multi-drive safe.
+
+    If job.drive.mdisc is already populated, returns it immediately.
+    On timeout or failure, falls back to disc:0 with a warning.
+    """
+    if job.drive is not None and job.drive.mdisc is not None:
+        return job.drive.mdisc
+
+    try:
+        cmd = [shutil.which("makemkvcon"), "--robot", "--messages=-stdout",
+               "info", "disc:9999"]
+        for data in _run_with_timeout(cmd, OutputType.DRV, timeout=timeout):
+            if hasattr(data, 'mount') and data.mount == job.devpath:
+                if job.drive is not None:
+                    job.drive.mdisc = data.index
+                    db.session.commit()
+                return data.index
+        logging.warning("disc:9999 did not return drive for %s", job.devpath)
+    except (subprocess.TimeoutExpired, MakeMkvRuntimeError) as exc:
+        logging.warning("disc:9999 enumeration failed: %s — falling back to disc:0", exc)
+    return 0
+
+
+def prescan_disc_info(job, timeout=300):
+    """Low-level MakeMKV title scan with timeout.
+
+    Does NOT touch job.status, no concurrency limiter, no penalty sleep.
+    Yields CINFO/SINFO/TCOUNT/TINFO messages from makemkvcon info.
+    """
+    disc_index = prescan_resolve_mdisc(job, timeout=60)
+    cmd = [shutil.which("makemkvcon"), "--robot", "--messages=-stdout",
+           "info", "--cache=1", f"disc:{disc_index}", "--minlength=0"]
+    select = OutputType.CINFO | OutputType.SINFO | OutputType.TCOUNT | OutputType.TINFO
+    yield from _run_with_timeout(cmd, select, timeout=timeout)
+
+
+def prescan_track_info(job, timeout=300):
+    """High-level pre-scan: populate job tracks from MakeMKV without side effects.
+
+    Clears existing tracks (prevents duplicates on retry), then feeds
+    MakeMKV output through TrackInfoProcessor.
+    """
+    from arm.models.track import Track
+    Track.query.filter_by(job_id=job.job_id).delete()
+    db.session.flush()
+
+    disc_index = prescan_resolve_mdisc(job, timeout=60)
+    processor = TrackInfoProcessor(job, disc_index)
+    for message in prescan_disc_info(job, timeout=timeout):
+        processor._process_message(message)
+    processor._add_track()
+
+
 def _resolve_mdisc(job):
     """Ensure job.drive.mdisc is populated, scanning drives if needed."""
     if job.drive is not None and job.drive.mdisc is not None:

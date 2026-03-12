@@ -147,17 +147,15 @@ def main():
         _wait_for_drive_ready(job.devpath, timeout=120)
         for attempt in range(1, 4):
             try:
-                # Verify the device still exists before calling MakeMKV
                 if not Path(job.devpath).exists():
-                    raise FileNotFoundError(f"{job.devpath} not found (drive may have disconnected)")
+                    raise FileNotFoundError(f"{job.devpath} not found")
                 logging.info("Pre-scanning disc titles for review (attempt %d)...", attempt)
                 makemkv.prep_mkv()
-                makemkv._resolve_mdisc(job)
-                makemkv.get_track_info(job.drive.mdisc, job)
+                makemkv.prescan_track_info(job, timeout=300)
+                db.session.expire(job, ['tracks'])
                 tracks = list(job.tracks)
                 if len(tracks) == 0:
-                    raise RuntimeError("MakeMKV returned 0 titles (drive may still be spinning up)")
-                # Auto-enable all tracks so review widget shows them checked
+                    raise RuntimeError("MakeMKV returned 0 titles")
                 for t in tracks:
                     t.enabled = True
                 db.session.commit()
@@ -165,7 +163,7 @@ def main():
                 break
             except Exception as e:
                 if attempt < 3:
-                    wait = 15 * attempt  # 15s, then 30s
+                    wait = 30 * attempt  # 30s, 60s (longer for Pioneer USB recovery)
                     logging.warning("Pre-scan attempt %d failed: %s — retrying in %ds", attempt, e, wait)
                     time.sleep(wait)
                 else:
