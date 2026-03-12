@@ -62,11 +62,9 @@ services:
       - ${ARM_CONFIG_PATH}:/etc/arm/config
       - arm-db:/home/arm/db
       - ${ARM_MAKEMKV_PATH:-makemkv-settings}:/home/arm/.MakeMKV
-    # devices:
-    #   - ${ARM_DEVICE_0:-/dev/sr0}:/dev/sr0
-    #   - ${ARM_DEVICE_1:-/dev/sr1}:/dev/sr1
-    #   - ${ARM_DEVICE_2:-/dev/sr2}:/dev/sr2
-    #   - ${ARM_DEVICE_3:-/dev/sr3}:/dev/sr3
+      # Live /dev mount ensures USB optical drives remain visible after
+      # hot-plug, disconnect/reconnect, or device re-enumeration.
+      - /dev:/dev
     cpuset: ${ARM_CPUSET:-2,3,4,5,6,7}
     depends_on:
       arm-db-init:
