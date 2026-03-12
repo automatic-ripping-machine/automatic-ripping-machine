@@ -46,30 +46,31 @@ def _find_mountpoint(devpath: str) -> str | None:
     return None
 
 
-def _drive_has_disc(devpath: str) -> bool:
-    """Quick ioctl check — returns False only if tray is open or no disc.
+def _drive_status(devpath: str) -> int:
+    """Return raw CDROM_DRIVE_STATUS ioctl value, or -1 on error.
 
-    CDROM_DRIVE_STATUS values:
-      0 = CDS_NO_INFO      → ambiguous, assume disc may be present
-      1 = CDS_NO_DISC       → definitely no disc
-      2 = CDS_TRAY_OPEN     → tray open, no disc available
-      3 = CDS_DRIVE_NOT_READY → disc present but drive spinning up (USB drives)
-      4 = CDS_DISC_OK       → disc loaded and ready
-
-    USB optical drives (e.g. Pioneer BDR-S12JX) report NOT_READY (3) for
-    30-60s during spin-up.  Treating that as "ejected" causes the mount
-    retry loop to abort prematurely.  Only NO_DISC and TRAY_OPEN are
-    definitive ejection indicators.
+    Values:
+      0 = CDS_NO_INFO, 1 = CDS_NO_DISC, 2 = CDS_TRAY_OPEN,
+      3 = CDS_DRIVE_NOT_READY, 4 = CDS_DISC_OK, -1 = OS error
     """
     try:
         fd = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
         try:
-            status = fcntl.ioctl(fd, 0x5326, 0)  # CDROM_DRIVE_STATUS
-            return status not in (1, 2)  # only NO_DISC / TRAY_OPEN → False
+            return fcntl.ioctl(fd, 0x5326, 0)  # CDROM_DRIVE_STATUS
         finally:
             os.close(fd)
     except OSError:
-        return False
+        return -1
+
+
+def _drive_has_disc(devpath: str) -> bool:
+    """Quick check — returns False only if tray is open or no disc.
+
+    USB optical drives (e.g. Pioneer BDR-S12JX) report NOT_READY (3) for
+    30-60s during spin-up.  Only NO_DISC and TRAY_OPEN are definitive
+    ejection indicators.
+    """
+    return _drive_status(devpath) not in (-1, 1, 2)
 
 
 def find_mount(devpath: str) -> str | None:
@@ -89,17 +90,64 @@ def find_mount(devpath: str) -> str | None:
     return None
 
 
+def _wait_for_drive_ready(devpath: str, timeout: int = 120) -> bool:
+    """Poll drive until DISC_OK or timeout.
+
+    USB optical drives can take 30-60s+ to spin up after disc insertion
+    or tray close.  Calling ``mount`` while the drive reports NOT_READY
+    causes the mount syscall to block for minutes.  Polling first avoids
+    this and gives clear log output about what the drive is doing.
+
+    :return: ``True`` if drive reached DISC_OK, ``False`` if ejected/timeout
+    """
+    _STATUS_NAMES = {0: "NO_INFO", 1: "NO_DISC", 2: "TRAY_OPEN",
+                     3: "DRIVE_NOT_READY", 4: "DISC_OK", -1: "OS_ERROR"}
+    poll_interval = 3
+    elapsed = 0
+    last_status = None
+
+    while elapsed < timeout:
+        status = _drive_status(devpath)
+        if status == 4:  # CDS_DISC_OK
+            if elapsed > 0:
+                logging.info(f"Drive {devpath} ready after {elapsed}s")
+            return True
+        if status in (1, 2):  # NO_DISC or TRAY_OPEN — bail
+            logging.error(f"Disc ejected from {devpath} (status={_STATUS_NAMES.get(status)})")
+            return False
+        # Log state changes (not every poll)
+        if status != last_status:
+            logging.info(
+                f"Waiting for drive {devpath} to be ready "
+                f"(status={_STATUS_NAMES.get(status, status)}, {elapsed}s/{timeout}s)"
+            )
+            last_status = status
+        time.sleep(poll_interval)
+        elapsed += poll_interval
+
+    logging.error(
+        f"Drive {devpath} not ready after {timeout}s "
+        f"(last status={_STATUS_NAMES.get(last_status, last_status)})"
+    )
+    return False
+
+
 def check_mount(job: Job) -> bool:
     """
     Check if there is a suitable mount for ``job``, if not, try to mount.
 
-    USB optical drives can take 30-60s after disc insertion before the
-    filesystem is readable.  Retries with increasing delays to handle this.
-
-    Bails out early if the disc is ejected during the retry loop.
+    First waits for the drive to report DISC_OK (up to 120s) to avoid
+    blocking mount syscalls on USB drives that are still spinning up.
+    Then retries mount with increasing delays.
 
     :return: ``True`` if mount exists now, ``False`` otherwise
     """
+    # Wait for drive to be ready before attempting mount.
+    # USB drives (Pioneer BDR-S12JX) report NOT_READY for 30-60s after
+    # insertion; calling mount during this state blocks for ~5 minutes.
+    if not _wait_for_drive_ready(job.devpath, timeout=120):
+        return False
+
     max_attempts = 12  # ~60s total with backoff
 
     for attempt in range(1, max_attempts + 1):
