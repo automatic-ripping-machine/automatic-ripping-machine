@@ -1067,6 +1067,35 @@ def get_tv_folder_name(job):
     return job.formatted_title
 
 
+def _is_empty_failed_rip(path, label):
+    """Check if a directory is an empty leftover from a failed rip.
+
+    Returns True if the directory exists, contains no files, and the most
+    recent job with the same label is in a failure state (or no successful
+    job exists for this label).
+    """
+    if not os.path.isdir(path):
+        return False
+    # Check for any files (not just immediate children — recurse)
+    for _root, _dirs, files in os.walk(path):
+        if files:
+            return False
+    # Empty folder — check if last job with this label failed
+    if label is None:
+        return True
+    try:
+        last_job = (Job.query
+                    .filter_by(label=label)
+                    .order_by(Job.job_id.desc())
+                    .first())
+    except Exception:
+        # DB not available — be conservative, don't auto-clean
+        return False
+    if last_job is None:
+        return True
+    return last_job.status in (JobState.FAILURE.value,)
+
+
 def check_for_dupe_folder(have_dupes, hb_out_path, job):
     """
     Check if the folder already exists
@@ -1078,11 +1107,17 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
     """
     if (make_dir(hb_out_path)) is False:
         logging.info(f"Output directory \"{hb_out_path}\" already exists.")
+        # If the folder is empty and from a failed rip, clean it up and reuse
+        if _is_empty_failed_rip(hb_out_path, job.label):
+            import shutil
+            logging.info(f"Removing empty folder from failed rip: \"{hb_out_path}\"")
+            shutil.rmtree(hb_out_path)
+            make_dir(hb_out_path)
         # Only begin ripping if we are allowed to make duplicates
         # Or the successful rip of the disc is not found in our database
-        logging.debug(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
-        logging.debug(f"Value of have_dupes: {have_dupes}")
-        if cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
+        elif cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
+            logging.debug(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
+            logging.debug(f"Value of have_dupes: {have_dupes}")
             hb_out_path = hb_out_path + "_" + job.stage
             make_dir(hb_out_path, False)
         else:

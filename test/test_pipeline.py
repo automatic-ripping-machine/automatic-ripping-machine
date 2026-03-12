@@ -140,6 +140,79 @@ class TestCheckForDupeFolder:
             cfg.arm_config['ALLOW_DUPLICATES'] = original_allow
 
 
+    def test_empty_folder_from_failed_rip_is_reused(self, app_context, tmp_path):
+        """Empty folder from a failed rip is cleaned up and reused."""
+        from arm.ripper.utils import check_for_dupe_folder
+        from arm.database import db
+        from arm.models.job import Job, JobState
+        from arm.models.config import Config
+
+        existing = tmp_path / 'existing'
+        existing.mkdir()
+
+        # Create a failed job with matching label
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            prev_job = Job('/dev/sr0')
+        prev_job.label = 'TEST_LABEL'
+        prev_job.status = JobState.FAILURE.value
+        prev_job.arm_version = 'test'
+        prev_job.crc_id = ''
+        prev_job.logfile = 'test.log'
+        prev_job.devpath = '/dev/sr0'
+        prev_job.pid = 1
+        prev_job.pid_hash = 0
+        db.session.add(prev_job)
+        db.session.flush()
+        Config({'LOGPATH': '/tmp'}, prev_job.job_id)
+        db.session.commit()
+
+        job = unittest.mock.MagicMock()
+        job.label = 'TEST_LABEL'
+        job.stage = '170750493000'
+
+        result = check_for_dupe_folder(False, str(existing), job)
+        assert result == str(existing)
+        assert os.path.isdir(result)
+
+    def test_nonempty_folder_from_failed_rip_not_cleaned(self, app_context, tmp_path):
+        """Non-empty folder is NOT cleaned up even if last job failed."""
+        from arm.ripper.utils import check_for_dupe_folder
+        from arm.database import db
+        from arm.models.job import Job, JobState
+        from arm.models.config import Config
+
+        existing = tmp_path / 'existing'
+        existing.mkdir()
+        (existing / 'movie.mkv').write_text('data')
+
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            prev_job = Job('/dev/sr0')
+        prev_job.label = 'TEST_LABEL'
+        prev_job.status = JobState.FAILURE.value
+        prev_job.arm_version = 'test'
+        prev_job.crc_id = ''
+        prev_job.logfile = 'test.log'
+        prev_job.devpath = '/dev/sr0'
+        prev_job.pid = 1
+        prev_job.pid_hash = 0
+        db.session.add(prev_job)
+        db.session.flush()
+        Config({'LOGPATH': '/tmp'}, prev_job.job_id)
+        db.session.commit()
+
+        job = unittest.mock.MagicMock()
+        job.label = 'TEST_LABEL'
+        job.stage = '170750493000'
+
+        # Non-empty folder should NOT be cleaned — falls through to suffix
+        result = check_for_dupe_folder(False, str(existing), job)
+        assert result.endswith('_170750493000')
+        # Original folder still has the file
+        assert (existing / 'movie.mkv').exists()
+
+
 class TestFindFile:
     """Test find_file() recursive directory search."""
 
