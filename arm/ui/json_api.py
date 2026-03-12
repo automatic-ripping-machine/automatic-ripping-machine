@@ -6,6 +6,7 @@ import os
 import subprocess
 import re
 import html
+from collections import deque
 from pathlib import Path
 import datetime
 import psutil
@@ -247,18 +248,18 @@ def calc_process_time(starttime, cur_iter, max_iter):
     return f"{str(test).split('.', maxsplit=1)[0]} - @{finish_time.strftime('%H:%M:%S')}"
 
 
-def read_log_line(log_file):
+def read_log_line(log_file: os.PathLike):
     """
-    Try to catch if the logfile gets delete before the job is finished\n
-    :param log_file:
-    :return:
+    :param log_file: path to log file
+    :return: the last 20 lines of the file at ``log_file``
     """
     try:
-        line = subprocess.check_output(['tail', '-n', '20', log_file]).splitlines()
-    except subprocess.CalledProcessError:
+        with open(log_file, encoding="utf8", errors="ignore") as read_log_file:
+            lines = deque(read_log_file, maxlen=20)
+    except OSError:
         app.logger.debug(f"Error while reading {log_file}, unable to calculate ETA")
-        line = ["", ""]
-    return line
+        lines = ["", ""]
+    return lines
 
 
 def read_all_log_lines(log_file):
