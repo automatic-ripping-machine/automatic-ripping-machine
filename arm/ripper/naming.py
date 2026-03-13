@@ -51,8 +51,8 @@ def _build_variables(job):
         year = ''
     artist = getattr(job, 'artist_manual', None) or getattr(job, 'artist', None) or ''
     album = getattr(job, 'album_manual', None) or getattr(job, 'album', None) or ''
-    season = getattr(job, 'season_manual', None) or getattr(job, 'season', None) or ''
-    episode = getattr(job, 'episode_manual', None) or getattr(job, 'episode', None) or ''
+    season = getattr(job, 'season_manual', None) or getattr(job, 'season', None) or getattr(job, 'season_auto', None) or ''
+    episode = getattr(job, 'episode_manual', None) or getattr(job, 'episode', None) or getattr(job, 'episode_auto', None) or ''
 
     # Zero-pad season/episode to 2 digits if numeric
     if season and season.isdigit():
