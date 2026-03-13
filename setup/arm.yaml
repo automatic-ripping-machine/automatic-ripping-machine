@@ -385,6 +385,10 @@ TMDB_API_KEY: ""
 # for proper episode naming (e.g. "Show S01E03 - Speedy Death").
 TVDB_API_KEY: ""
 
+# Maximum number of seasons to scan when auto-detecting the best season
+# for TVDB episode matching (used when disc label has no season info).
+TVDB_MAX_SEASON_SCAN: 10
+
 # JSON_URL
 # Url to send Notifications to in JSON format
 JSON_URL: ""

@@ -604,6 +604,57 @@ async def transcode_callback(job_id: int, request: Request):
     return {"success": True, "job_id": job.job_id, "status": job.status}
 
 
+@router.post('/jobs/{job_id}/tvdb-match')
+async def tvdb_match(job_id: int, request: Request):
+    """Run TVDB episode matching for a job.
+
+    Body: {"season": int|null, "tolerance": int|null, "apply": bool}
+    season=null → auto-detect via multi-season scan
+    """
+    from arm.services.tvdb_sync import match_episodes_for_api
+
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    body = await request.json()
+    season = body.get("season")
+    tolerance = body.get("tolerance")
+    apply = bool(body.get("apply", False))
+
+    if season is not None:
+        season = int(season)
+    if tolerance is not None:
+        tolerance = int(tolerance)
+
+    result = match_episodes_for_api(job, season=season, tolerance=tolerance, apply=apply)
+    return result
+
+
+@router.get('/jobs/{job_id}/tvdb-episodes')
+def tvdb_episodes(job_id: int, season: int = 1):
+    """Fetch TVDB episodes for a job's series.
+
+    Query: ?season=2
+    """
+    import asyncio
+    from arm.services import tvdb
+
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    tvdb_id = getattr(job, 'tvdb_id', None)
+    if not tvdb_id:
+        return JSONResponse(
+            {"success": False, "error": "No TVDB ID on this job. Run TVDB match first."},
+            status_code=400,
+        )
+
+    episodes = asyncio.run(tvdb.get_season_episodes(tvdb_id, season))
+    return {"episodes": episodes, "tvdb_id": tvdb_id, "season": season}
+
+
 def _clean_for_filename(string):
     """Clean a string for use in filenames."""
     string = re.sub(r'\s+', ' ', string)

@@ -5,7 +5,7 @@ import unittest.mock
 
 import pytest
 
-from arm.services.tvdb import match_tracks_to_episodes
+from arm.services.tvdb import match_tracks_to_episodes, match_tracks_best_season
 
 
 class TestMatchTracksToEpisodes:
@@ -105,6 +105,117 @@ class TestMatchTracksToEpisodes:
         matches = match_tracks_to_episodes(tracks, episodes, tolerance=300)
         assert len(matches) == 1
         assert matches[0]["track_number"] == "3"
+
+
+class TestMatchTracksBestSeason:
+    """Test multi-season best-match selection."""
+
+    def _make_tracks(self, lengths):
+        return [{"track_number": str(i), "length": l} for i, l in enumerate(lengths)]
+
+    def _make_episodes(self, runtimes):
+        return [
+            {"number": i + 1, "name": f"Ep {i + 1}", "runtime": r}
+            for i, r in enumerate(runtimes)
+        ]
+
+    def test_picks_best_season(self):
+        """Season 2 episodes match better than season 1."""
+        tracks = self._make_tracks([3400, 3500, 2200])
+        seasons = {
+            1: self._make_episodes([2800, 2900, 3000]),  # poor match
+            2: self._make_episodes([3420, 3480, 2160]),  # excellent match
+        }
+        result = match_tracks_best_season(tracks, seasons, tolerance=300)
+        assert result["season"] == 2
+        assert result["match_count"] == 3
+        assert len(result["alternatives"]) >= 0
+
+    def test_no_match_any_season(self):
+        """No season matches within tolerance."""
+        tracks = self._make_tracks([100, 200])  # too short, all skipped
+        seasons = {
+            1: self._make_episodes([3400, 3500]),
+        }
+        result = match_tracks_best_season(tracks, seasons, tolerance=300)
+        assert result["match_count"] == 0
+
+    def test_empty_inputs(self):
+        result = match_tracks_best_season([], {}, tolerance=300)
+        assert result["season"] == 0
+        assert result["matches"] == []
+
+    def test_single_season(self):
+        tracks = self._make_tracks([3400])
+        seasons = {1: self._make_episodes([3420])}
+        result = match_tracks_best_season(tracks, seasons, tolerance=300)
+        assert result["season"] == 1
+        assert result["match_count"] == 1
+
+    def test_tiebreaker_by_delta(self):
+        """When match count is equal, prefer lower average delta."""
+        tracks = self._make_tracks([3400])
+        seasons = {
+            1: self._make_episodes([3500]),  # delta = 100
+            2: self._make_episodes([3410]),  # delta = 10 (better)
+        }
+        result = match_tracks_best_season(tracks, seasons, tolerance=300)
+        assert result["season"] == 2
+
+    def test_alternatives_only_include_nonzero_matches(self):
+        """Alternatives list should exclude seasons with zero matches."""
+        tracks = self._make_tracks([3400, 3500])
+        seasons = {
+            1: self._make_episodes([3420, 3480]),  # 2 matches
+            2: self._make_episodes([9999, 8888]),  # 0 matches
+            3: self._make_episodes([3450, 3550]),  # 2 matches but worse delta
+        }
+        result = match_tracks_best_season(tracks, seasons, tolerance=300)
+        assert result["match_count"] == 2
+        alt_seasons = {a["season"] for a in result["alternatives"]}
+        assert 2 not in alt_seasons  # season 2 had 0 matches
+
+    def test_never_mixes_episodes(self):
+        """Each season is scored independently — no cross-season mixing."""
+        tracks = self._make_tracks([3400, 5000])
+        seasons = {
+            1: self._make_episodes([3420]),       # matches track 0 only
+            2: self._make_episodes([5020]),       # matches track 1 only
+        }
+        # If mixing were allowed, both tracks would match. But per-season,
+        # each season can only match 1 track.
+        result = match_tracks_best_season(tracks, seasons, tolerance=300)
+        assert result["match_count"] == 1
+
+
+class TestGetAllSeasonEpisodes:
+    """Test the multi-season fetch function."""
+
+    def test_fetches_until_empty(self):
+        from arm.services import tvdb
+
+        async def mock_get_season_episodes(tvdb_id, season):
+            if season <= 3:
+                return [{"number": 1, "name": f"S{season}E1", "runtime": 3000}]
+            return []
+
+        with unittest.mock.patch.object(
+            tvdb, 'get_season_episodes', side_effect=mock_get_season_episodes
+        ):
+            result = asyncio.run(tvdb.get_all_season_episodes(12345, max_season=10))
+        assert set(result.keys()) == {1, 2, 3}
+
+    def test_respects_max_season(self):
+        from arm.services import tvdb
+
+        async def mock_get_season_episodes(tvdb_id, season):
+            return [{"number": 1, "name": f"S{season}E1", "runtime": 3000}]
+
+        with unittest.mock.patch.object(
+            tvdb, 'get_season_episodes', side_effect=mock_get_season_episodes
+        ):
+            result = asyncio.run(tvdb.get_all_season_episodes(12345, max_season=3))
+        assert set(result.keys()) == {1, 2, 3}
 
 
 class TestTvdbAsync:

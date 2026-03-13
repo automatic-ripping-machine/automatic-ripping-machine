@@ -137,6 +137,86 @@ async def _fetch_episodes(
     return all_episodes
 
 
+async def get_all_season_episodes(
+    tvdb_id: int, max_season: int = 10,
+) -> dict[int, list[dict[str, Any]]]:
+    """Fetch episodes for seasons 1..max_season.
+
+    Stops early when a season returns no episodes.
+    Returns dict keyed by season number.
+    """
+    result: dict[int, list[dict[str, Any]]] = {}
+    for s in range(1, max_season + 1):
+        eps = await get_season_episodes(tvdb_id, s)
+        if not eps:
+            break
+        result[s] = eps
+    return result
+
+
+def match_tracks_best_season(
+    tracks: list[dict],
+    seasons_episodes: dict[int, list[dict[str, Any]]],
+    tolerance: int = 300,
+) -> dict[str, Any]:
+    """Try each season independently, pick the best match.
+
+    Scores: primary = match count (higher better),
+    secondary = average runtime delta (lower better).
+    Never mixes episodes across seasons.
+
+    Returns::
+
+        {
+            "season": int,
+            "matches": [...],
+            "score": float,
+            "match_count": int,
+            "alternatives": [{"season": int, "score": float, "match_count": int}, ...],
+        }
+    """
+    if not tracks or not seasons_episodes:
+        return {"season": 0, "matches": [], "score": 0.0, "match_count": 0, "alternatives": []}
+
+    scored: list[tuple[int, list[dict], float, int]] = []  # (season, matches, avg_delta, count)
+    for season, episodes in sorted(seasons_episodes.items()):
+        matches = match_tracks_to_episodes(tracks, episodes, tolerance)
+        if not matches:
+            scored.append((season, [], 0.0, 0))
+            continue
+        # Calculate average delta for matched tracks
+        track_len_map = {str(t["track_number"]): t.get("length", 0) for t in tracks}
+        ep_runtime_map = {ep["number"]: ep.get("runtime", 0) for ep in episodes}
+        total_delta = 0
+        for m in matches:
+            t_len = track_len_map.get(m["track_number"], 0)
+            e_run = ep_runtime_map.get(m["episode_number"], 0)
+            total_delta += abs(t_len - e_run)
+        avg_delta = total_delta / len(matches)
+        scored.append((season, matches, avg_delta, len(matches)))
+
+    if not scored:
+        return {"season": 0, "matches": [], "score": 0.0, "match_count": 0, "alternatives": []}
+
+    # Sort: most matches first, then lowest avg_delta
+    scored.sort(key=lambda x: (-x[3], x[2]))
+    best_season, best_matches, best_delta, best_count = scored[0]
+
+    alternatives = [
+        {"season": s, "score": round(d, 1), "match_count": c}
+        for s, _, d, c in scored[1:]
+        if c > 0
+    ]
+
+    return {
+        "season": best_season,
+        "matches": best_matches,
+        "score": round(best_delta, 1),
+        "match_count": best_count,
+        "alternatives": alternatives,
+    }
+
+
 def match_tracks_to_episodes(
     tracks: list[dict], episodes: list[dict], tolerance: int = 300,
 ) -> list[dict]:
