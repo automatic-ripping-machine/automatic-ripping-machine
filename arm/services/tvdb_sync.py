@@ -63,8 +63,13 @@ def match_episodes_sync(job) -> bool:
             season = 1
             log.info("TVDB: no season number known, defaulting to season 1")
 
-        # Fetch episodes
+        # Fetch episodes — if resolved season has none, fall back to season 1
+        # (common for multi-disc single-season shows where disc_number != season)
         episodes = asyncio.run(tvdb.get_season_episodes(tvdb_id, season))
+        if not episodes and season != 1:
+            log.info("TVDB: no episodes for season %d, falling back to season 1", season)
+            season = 1
+            episodes = asyncio.run(tvdb.get_season_episodes(tvdb_id, season))
         if not episodes:
             log.info("TVDB: no episodes found for series %d season %d", tvdb_id, season)
             return False
