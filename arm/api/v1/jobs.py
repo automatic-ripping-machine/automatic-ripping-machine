@@ -423,19 +423,11 @@ async def update_track_title(job_id: int, track_id: int, request: Request):
     if not updated:
         return JSONResponse({"success": False, "error": "No fields to update"}, status_code=400)
 
-    # Auto-generate filename from naming pattern
-    from arm.ripper.naming import render_track_title, _clean_for_filename as _naming_clean
-    rendered = render_track_title(track, job, cfg.arm_config)
-    if rendered:
-        rendered = _naming_clean(rendered)
-        # Preserve extension from current filename or basename
-        import os
-        source = track.filename or track.basename or ''
-        _, ext = os.path.splitext(source)
-        if not ext:
-            ext = '.mkv'
-        track.filename = rendered + ext
-        updated['filename'] = track.filename
+    # Note: track.filename is NOT overwritten here — it stays as the MakeMKV
+    # original (e.g. "B1_t00.mkv") so the transcoder can match output files
+    # back to track metadata.  The custom title/year/video_type saved above
+    # flow via the webhook and get applied when the transcoder moves files
+    # to their final completed directory.
 
     db.session.commit()
     return {"success": True, "job_id": job_id, "track_id": track_id, "updated": updated}

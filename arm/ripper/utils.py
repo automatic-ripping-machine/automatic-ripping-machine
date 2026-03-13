@@ -154,17 +154,30 @@ def _move_to_shared_storage(cfg, raw_basename):
 
 
 def _build_webhook_payload(title, body, job, raw_basename):
-    """Build the JSON payload for the transcoder webhook."""
+    """Build the JSON payload for the transcoder webhook.
+
+    Includes pre-rendered naming from ARM's naming engine so the transcoder
+    doesn't need its own naming logic — ARM is the single source of truth
+    for folder/file naming patterns configured in arm.yaml.
+    """
+    from arm.ripper.naming import render_folder, render_title, render_track_title, render_track_folder, _clean_for_filename
+
     payload = {"title": title, "body": body, "type": "info"}
     if raw_basename:
         payload["path"] = raw_basename
     if job is not None:
+        config_dict = cfg.arm_config if hasattr(cfg, 'arm_config') else None
         payload["job_id"] = str(job.job_id)
         payload["video_type"] = str(job.video_type or '')
         payload["year"] = str(job.year or '')
         payload["disctype"] = str(job.disctype or '')
         payload["status"] = str(job.status or '')
         payload["poster_url"] = str(job.poster_url or '')
+        # Pre-rendered names from ARM's naming engine (arm.yaml patterns)
+        # render_folder may contain '/' for nested dirs (e.g. "Title/Season 01")
+        # — it already sanitizes each segment, so don't strip slashes here.
+        payload["folder_name"] = render_folder(job, config_dict)
+        payload["title_name"] = _clean_for_filename(render_title(job, config_dict))
         if job.transcode_overrides:
             try:
                 payload["config_overrides"] = json.loads(job.transcode_overrides)
@@ -177,6 +190,8 @@ def _build_webhook_payload(title, body, job, raw_basename):
             payload["multi_title"] = True
             tracks_meta = []
             for track in job.tracks:
+                track_title = render_track_title(track, job, config_dict)
+                track_folder = render_track_folder(track, job, config_dict)
                 tracks_meta.append({
                     "track_number": str(track.track_number or ''),
                     "title": str(track.title or job.title or ''),
@@ -184,6 +199,8 @@ def _build_webhook_payload(title, body, job, raw_basename):
                     "video_type": str(track.video_type or job.video_type or ''),
                     "filename": str(track.filename or ''),
                     "has_custom_title": bool(track.title),
+                    "folder_name": track_folder,
+                    "title_name": _clean_for_filename(track_title) if track_title else '',
                 })
             if tracks_meta:
                 payload["tracks"] = tracks_meta

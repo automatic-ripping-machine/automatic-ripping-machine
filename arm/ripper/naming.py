@@ -131,15 +131,9 @@ def render_folder(job, config_dict=None):
     return os.path.join(*segments) if segments else ''
 
 
-def render_track_title(track, job, config_dict=None):
-    """Render a display title for a single track on a multi-title disc.
-
-    Starts with job-level defaults from _build_variables(), then overrides
-    with any track-level fields (title, year, video_type).
-    Returns the rendered string without extension — caller adds it.
-    """
+def _build_track_variables(track, job):
+    """Build variables for a track, starting from job defaults and overriding with track-level fields."""
     variables = _build_variables(job)
-    # Override with track-level fields where set
     if getattr(track, 'title', None):
         variables['title'] = track.title
     if getattr(track, 'year', None):
@@ -147,10 +141,38 @@ def render_track_title(track, job, config_dict=None):
     track_video_type = getattr(track, 'video_type', None)
     if track_video_type:
         variables['video_type'] = track_video_type
+    return variables
+
+
+def render_track_title(track, job, config_dict=None):
+    """Render a display title for a single track on a multi-title disc.
+
+    Starts with job-level defaults from _build_variables(), then overrides
+    with any track-level fields (title, year, video_type).
+    Returns the rendered string without extension — caller adds it.
+    """
+    variables = _build_track_variables(track, job)
     video_type = variables.get('video_type', '')
     pattern = _get_pattern(config_dict, video_type, 'TITLE')
     rendered = pattern.format_map(variables)
     return _clean_empty_parens(rendered)
+
+
+def render_track_folder(track, job, config_dict=None):
+    """Render the folder path for a single track on a multi-title disc.
+
+    Like render_folder() but with track-level overrides applied.
+    Supports '/' for nested directories.
+    """
+    import os
+    variables = _build_track_variables(track, job)
+    video_type = variables.get('video_type', '')
+    pattern = _get_pattern(config_dict, video_type, 'FOLDER')
+    rendered = pattern.format_map(variables)
+    rendered = _clean_empty_parens(rendered)
+    segments = rendered.split('/')
+    segments = [_clean_for_filename(seg) for seg in segments if seg.strip()]
+    return os.path.join(*segments) if segments else ''
 
 
 def render_preview(pattern, variables):
