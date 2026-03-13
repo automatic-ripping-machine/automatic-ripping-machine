@@ -240,6 +240,7 @@ def match_tracks_to_episodes(
             "track_number": tracks[ti]["track_number"],
             "episode_number": episodes[ei]["number"],
             "episode_name": episodes[ei]["name"],
+            "episode_runtime": episodes[ei].get("runtime", 0),
         })
 
     return matches

@@ -21,6 +21,7 @@ class TrackMatch:
     track_number: str
     episode_number: int
     episode_name: str
+    episode_runtime: int = 0
 
 
 @dataclass

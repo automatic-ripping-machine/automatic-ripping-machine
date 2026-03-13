@@ -105,6 +105,7 @@ def match_episodes_for_api(job, season=None, tolerance=None, apply=False):
                 "track_number": m.track_number,
                 "episode_number": m.episode_number,
                 "episode_name": m.episode_name,
+                "episode_runtime": m.episode_runtime,
             }
             for m in result.matches
         ],
