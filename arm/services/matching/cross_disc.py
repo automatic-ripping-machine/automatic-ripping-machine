@@ -1,8 +1,9 @@
 """Cross-disc state: find episodes already matched on sibling discs.
 
 Queries the database for other jobs that share the same TVDB series ID
-and have tracks with assigned episode numbers.  These episodes are
-excluded from matching on the current disc to prevent duplicates.
+and season, with tracks that have assigned episode numbers.  These
+episodes are excluded from matching on the current disc to prevent
+duplicates.
 """
 
 from __future__ import annotations
@@ -14,11 +15,13 @@ from arm.database import db
 log = logging.getLogger(__name__)
 
 
-def get_excluded_episodes(job) -> set[int]:
+def get_excluded_episodes(job, season: int | None = None) -> set[int]:
     """Return episode numbers already matched on sibling discs.
 
-    Looks for other jobs with the same ``tvdb_id`` (and optionally the
-    same season) whose tracks have non-null ``episode_number`` values.
+    Looks for other jobs with the same ``tvdb_id`` whose tracks have
+    non-null ``episode_number`` values.  When *season* is provided,
+    restricts to siblings in the same season (prevents excluding
+    episodes from a different season that share the same numbering).
 
     Returns an empty set when there are no siblings or no matches.
     """
@@ -30,7 +33,7 @@ def get_excluded_episodes(job) -> set[int]:
     from arm.models.track import Track
 
     try:
-        rows = (
+        query = (
             db.session.query(Track.episode_number)
             .join(Job, Track.job_id == Job.job_id)
             .filter(
@@ -38,8 +41,16 @@ def get_excluded_episodes(job) -> set[int]:
                 Job.job_id != job.job_id,
                 Track.episode_number.isnot(None),
             )
-            .all()
         )
+        # Filter by season when known — episode numbers restart each season
+        if season is not None:
+            query = query.filter(
+                db.or_(
+                    Job.season == str(season),
+                    Job.season_auto == str(season),
+                )
+            )
+        rows = query.all()
     except Exception as e:
         log.warning("Cross-disc lookup failed: %s", e)
         return set()

@@ -46,33 +46,34 @@ class TvdbMatcher(MatchStrategy):
             tolerance: max runtime delta in seconds (default from config)
             exclude_episodes: set of episode numbers to skip (default: DB lookup)
         """
-        from arm.services import tvdb
-        from arm.services.matching._tvdb_resolve import resolve_and_cache_tvdb_id
+        from arm.services.matching._tvdb_resolve import resolve_tvdb_id
 
-        tolerance = kwargs.get("tolerance") or int(
-            cfg.arm_config.get("TVDB_MATCH_TOLERANCE", 300)
-        )
+        tolerance = kwargs.get("tolerance")
+        if tolerance is None:
+            tolerance = int(cfg.arm_config.get("TVDB_MATCH_TOLERANCE", 300))
         max_season = int(cfg.arm_config.get("TVDB_MAX_SEASON_SCAN", 10))
 
         imdb_id = getattr(job, "imdb_id", None) or getattr(job, "imdb_id_auto", None)
         if not imdb_id:
             return MatchResult(matcher=self.name, error="No IMDb ID")
 
-        tvdb_id = resolve_and_cache_tvdb_id(job, imdb_id)
+        tvdb_id = resolve_tvdb_id(job, imdb_id)
         if not tvdb_id:
             return MatchResult(matcher=self.name, error=f"No TVDB series for {imdb_id}")
-
-        # Cross-disc exclusion: find episodes already matched on sibling discs
-        exclude = kwargs.get("exclude_episodes")
-        if exclude is None:
-            exclude = get_excluded_episodes(job)
 
         disc_number = getattr(job, "disc_number", None)
         disc_total = getattr(job, "disc_total", None)
         if disc_number:
             log.info("TVDB matcher: disc %d of %s", disc_number, disc_total or "?")
 
-        season = kwargs.get("season") or _get_known_season(job)
+        season = kwargs.get("season")
+        if season is None:
+            season = _get_known_season(job)
+
+        # Cross-disc exclusion: find episodes already matched on sibling discs
+        exclude = kwargs.get("exclude_episodes")
+        if exclude is None:
+            exclude = get_excluded_episodes(job, season=season)
 
         if season:
             return self._match_single_season(
@@ -200,7 +201,9 @@ def match_tracks_to_episodes(
             log.info("All episodes excluded by cross-disc filter")
             return []
 
-    # Calculate expected episode position for this disc (for tiebreaking)
+    # Calculate expected episode position for this disc (for tiebreaking).
+    # Computed after exclusion filtering so the bias is relative to the
+    # remaining candidates, not the full season — this is intentional.
     use_position_bias = disc_number is not None and disc_number > 0
     if use_position_bias:
         disc_count = disc_total or disc_number

@@ -5,14 +5,20 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from arm.database import db
 from arm.services import tvdb
 
 log = logging.getLogger(__name__)
 
 
-def resolve_and_cache_tvdb_id(job, imdb_id: str) -> int | None:
-    """Resolve and cache TVDB series ID on the job. Returns tvdb_id or None."""
+def resolve_tvdb_id(job, imdb_id: str) -> int | None:
+    """Resolve TVDB series ID, using cached value if available.
+
+    Checks ``job.tvdb_id`` first.  If not set, queries the TVDB API.
+    Does NOT mutate the job or commit to the database — the caller
+    is responsible for persisting ``tvdb_id`` if desired.
+
+    Returns tvdb_id or None.
+    """
     tvdb_id = getattr(job, "tvdb_id", None)
     if tvdb_id:
         return tvdb_id
@@ -20,6 +26,4 @@ def resolve_and_cache_tvdb_id(job, imdb_id: str) -> int | None:
     if not tvdb_id:
         log.info("TVDB: no series found for %s", imdb_id)
         return None
-    job.tvdb_id = tvdb_id
-    db.session.commit()
     return tvdb_id

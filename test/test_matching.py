@@ -2,8 +2,6 @@
 
 import unittest.mock
 
-import pytest
-
 from arm.services.matching.base import MatchResult, MatchStrategy, TrackMatch
 from arm.services.matching.tvdb_matcher import (
     TvdbMatcher,
