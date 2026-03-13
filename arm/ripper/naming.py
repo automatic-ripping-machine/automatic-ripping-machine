@@ -141,6 +141,20 @@ def _build_track_variables(track, job):
     track_video_type = getattr(track, 'video_type', None)
     if track_video_type:
         variables['video_type'] = track_video_type
+    # Auto-fill episode from track_number (1-indexed) when not set,
+    # so TV pattern "{title} S{season}E{episode}" produces useful defaults
+    if not variables.get('episode'):
+        track_num = getattr(track, 'track_number', None)
+        if track_num is not None:
+            try:
+                variables['episode'] = str(int(track_num) + 1).zfill(2)
+            except (ValueError, TypeError):
+                pass
+    # Use disc_number as season fallback when season isn't set
+    if not variables.get('season'):
+        disc_num = getattr(job, 'disc_number', None)
+        if disc_num is not None:
+            variables['season'] = str(disc_num).zfill(2)
     return variables
 
 
