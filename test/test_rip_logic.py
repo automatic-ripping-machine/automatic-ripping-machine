@@ -306,7 +306,8 @@ class TestMakemkvDiscDiscovery:
         assert sample_job.drive is None
 
         with unittest.mock.patch('arm.ripper.makemkv.prep_mkv'), \
-             unittest.mock.patch('arm.ripper.makemkv.get_drives', return_value=iter([])):
+             unittest.mock.patch('arm.ripper.makemkv.get_drives', return_value=iter([])), \
+             unittest.mock.patch('arm.ripper.identify._wait_for_drive_ready', return_value=True):
             with pytest.raises(ValueError, match="No MakeMKV disc number"):
                 makemkv(sample_job)
 
@@ -328,7 +329,8 @@ class TestMakemkvDiscDiscovery:
         assert sample_job.drive.mdisc is None
 
         with unittest.mock.patch('arm.ripper.makemkv.prep_mkv'), \
-             unittest.mock.patch('arm.ripper.makemkv.get_drives', return_value=iter([])):
+             unittest.mock.patch('arm.ripper.makemkv.get_drives', return_value=iter([])), \
+             unittest.mock.patch('arm.ripper.identify._wait_for_drive_ready', return_value=True):
             with pytest.raises(ValueError, match="No MakeMKV disc number"):
                 makemkv(sample_job)
 
@@ -355,7 +357,8 @@ class TestMakemkvDiscDiscovery:
              unittest.mock.patch('arm.ripper.makemkv.makemkv_mkv'), \
              unittest.mock.patch.object(sample_job, 'eject'), \
              unittest.mock.patch('arm.ripper.makemkv._reconcile_filenames'), \
-             unittest.mock.patch.object(sample_job, 'build_raw_path', return_value='raw'):
+             unittest.mock.patch.object(sample_job, 'build_raw_path', return_value='raw'), \
+             unittest.mock.patch('arm.ripper.identify._wait_for_drive_ready', return_value=True):
             makemkv(sample_job)
 
         # get_drives should NOT have been called — mdisc was already set
@@ -1227,35 +1230,36 @@ class TestMainfeatureMakemkv:
         db.session.commit()
         db.session.refresh(sample_job)
 
-        # Create tracks — track 2 has more chapters (should win)
-        t1 = Track(
-            job_id=sample_job.job_id, track_number="1", length=7200,
-            aspect_ratio="16:9", fps="23.976", main_feature=False,
-            source="makemkv", basename="test", filename="t01.mkv",
-            chapters=5, filesize=5_000_000_000,
-        )
-        t2 = Track(
-            job_id=sample_job.job_id, track_number="2", length=7100,
-            aspect_ratio="16:9", fps="23.976", main_feature=False,
-            source="makemkv", basename="test", filename="t02.mkv",
-            chapters=28, filesize=4_500_000_000,
-        )
-        db.session.add_all([t1, t2])
-        db.session.commit()
+        # Tracks are created inside get_track_info mock (not before calling
+        # makemkv_mkv) so pre_scanned=False and auto-flagging runs.
+        def mock_get_track_info(mdisc, job):
+            t1 = Track(
+                job_id=job.job_id, track_number="1", length=7200,
+                aspect_ratio="16:9", fps="23.976", main_feature=False,
+                source="makemkv", basename="test", filename="t01.mkv",
+                chapters=5, filesize=5_000_000_000,
+            )
+            t2 = Track(
+                job_id=job.job_id, track_number="2", length=7100,
+                aspect_ratio="16:9", fps="23.976", main_feature=False,
+                source="makemkv", basename="test", filename="t02.mkv",
+                chapters=28, filesize=4_500_000_000,
+            )
+            db.session.add_all([t1, t2])
+            db.session.commit()
 
         from arm.ripper import makemkv as mkv_mod
 
         with unittest.mock.patch.object(mkv_mod.utils, 'get_drive_mode', return_value='auto'), \
-             unittest.mock.patch.object(mkv_mod, 'get_track_info'), \
+             unittest.mock.patch.object(mkv_mod, 'get_track_info', side_effect=mock_get_track_info), \
              unittest.mock.patch.object(mkv_mod, 'process_single_tracks'):
             mkv_mod.makemkv_mkv(sample_job, str(tmp_path))
 
         # After auto-flagging, only the best track (most chapters) is enabled
-        db.session.refresh(t1)
-        db.session.refresh(t2)
-        assert t1.enabled is False
-        assert t2.enabled is True
-        assert t2.chapters == 28
+        tracks = Track.query.filter_by(job_id=sample_job.job_id).order_by(Track.track_number).all()
+        assert tracks[0].enabled is False
+        assert tracks[1].enabled is True
+        assert tracks[1].chapters == 28
 
 
 class TestDuplicateRunCheck:

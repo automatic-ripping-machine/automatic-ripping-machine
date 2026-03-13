@@ -179,16 +179,21 @@ class TestUpdateTrackTitle:
 
     def test_set_title(self, app_context, job_with_tracks, client):
         job, tracks = job_with_tracks
+        track = tracks[0]
+        original_filename = track.filename
         resp = client.put(
-            f"/api/v1/jobs/{job.job_id}/tracks/{tracks[0].track_id}/title",
+            f"/api/v1/jobs/{job.job_id}/tracks/{track.track_id}/title",
             json={"title": "My Movie"},
         )
         assert resp.status_code == 200
         data = resp.json()
         assert data["success"] is True
         assert data["updated"]["title"] == "My Movie"
-        # Filename should be auto-generated
-        assert "filename" in data["updated"]
+        # Filename should NOT be overwritten — stays as MakeMKV original
+        # so the transcoder can match output files back to track metadata
+        assert "filename" not in data["updated"]
+        db.session.expire(track)
+        assert track.filename == original_filename
 
     def test_set_multiple_fields(self, app_context, job_with_tracks, client):
         job, tracks = job_with_tracks
