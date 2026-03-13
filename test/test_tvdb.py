@@ -107,6 +107,84 @@ class TestMatchTracksToEpisodes:
         assert matches[0]["track_number"] == "3"
 
 
+    def test_disc_number_prefers_later_episodes(self):
+        """Disc 2 should prefer later episodes when runtimes are identical."""
+        # Mrs. Bradley Mysteries scenario: 5 episodes, E01=5400s, E02-E05=3600s
+        episodes = [
+            {"number": 1, "name": "Speedy Death", "runtime": 5400},
+            {"number": 2, "name": "Death at the Opera", "runtime": 3600},
+            {"number": 3, "name": "The Rising of the Moon", "runtime": 3600},
+            {"number": 4, "name": "Laurels Are Poison", "runtime": 3600},
+            {"number": 5, "name": "The Worsted Viper", "runtime": 3600},
+        ]
+
+        # Disc 1: 3 tracks (one long, two standard)
+        disc1_tracks = [
+            {"track_number": "0", "length": 5380},
+            {"track_number": "1", "length": 3550},
+            {"track_number": "2", "length": 3570},
+        ]
+        disc1_matches = match_tracks_to_episodes(
+            disc1_tracks, episodes, tolerance=300,
+            disc_number=1, disc_total=2,
+        )
+        disc1_eps = {m["episode_number"] for m in disc1_matches}
+        assert 1 in disc1_eps  # E01 matched by runtime
+        # The other two should be E02+E03 (early episodes for disc 1)
+        assert disc1_eps == {1, 2, 3}
+
+        # Disc 2: 2 tracks (both standard runtime)
+        disc2_tracks = [
+            {"track_number": "0", "length": 3407},
+            {"track_number": "1", "length": 3535},
+        ]
+        disc2_matches = match_tracks_to_episodes(
+            disc2_tracks, episodes, tolerance=300,
+            disc_number=2, disc_total=2,
+        )
+        disc2_eps = {m["episode_number"] for m in disc2_matches}
+        # Disc 2 should get E04+E05, NOT E02+E03
+        assert disc2_eps == {4, 5}
+
+    def test_disc_number_no_effect_when_runtimes_differ(self):
+        """When runtimes are distinct, disc_number doesn't change the result."""
+        episodes = [
+            {"number": 1, "name": "Ep 1", "runtime": 3000},
+            {"number": 2, "name": "Ep 2", "runtime": 3600},
+            {"number": 3, "name": "Ep 3", "runtime": 4200},
+        ]
+        tracks = [{"track_number": "0", "length": 3590}]
+        # Without disc_number
+        m1 = match_tracks_to_episodes(tracks, episodes, tolerance=300)
+        # With disc_number=2
+        m2 = match_tracks_to_episodes(
+            tracks, episodes, tolerance=300, disc_number=2, disc_total=2,
+        )
+        # Both should match E02 (closest runtime)
+        assert m1[0]["episode_number"] == 2
+        assert m2[0]["episode_number"] == 2
+
+    def test_disc_number_without_disc_total(self):
+        """disc_total=None should still work (estimates from disc_number)."""
+        episodes = [
+            {"number": 1, "name": "Ep 1", "runtime": 3600},
+            {"number": 2, "name": "Ep 2", "runtime": 3600},
+            {"number": 3, "name": "Ep 3", "runtime": 3600},
+            {"number": 4, "name": "Ep 4", "runtime": 3600},
+        ]
+        tracks = [
+            {"track_number": "0", "length": 3550},
+            {"track_number": "1", "length": 3560},
+        ]
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=300,
+            disc_number=2, disc_total=None,
+        )
+        eps = {m["episode_number"] for m in matches}
+        # Disc 2 of unknown total — should prefer later episodes
+        assert eps == {3, 4}
+
+
 class TestMatchTracksBestSeason:
     """Test multi-season best-match selection."""
 

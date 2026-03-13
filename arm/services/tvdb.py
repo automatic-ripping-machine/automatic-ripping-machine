@@ -158,6 +158,8 @@ def match_tracks_best_season(
     tracks: list[dict],
     seasons_episodes: dict[int, list[dict[str, Any]]],
     tolerance: int = 300,
+    disc_number: int | None = None,
+    disc_total: int | None = None,
 ) -> dict[str, Any]:
     """Try each season independently, pick the best match.
 
@@ -180,7 +182,10 @@ def match_tracks_best_season(
 
     scored: list[tuple[int, list[dict], float, int]] = []  # (season, matches, avg_delta, count)
     for season, episodes in sorted(seasons_episodes.items()):
-        matches = match_tracks_to_episodes(tracks, episodes, tolerance)
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance,
+            disc_number=disc_number, disc_total=disc_total,
+        )
         if not matches:
             scored.append((season, [], 0.0, 0))
             continue
@@ -219,6 +224,7 @@ def match_tracks_best_season(
 
 def match_tracks_to_episodes(
     tracks: list[dict], episodes: list[dict], tolerance: int = 300,
+    disc_number: int | None = None, disc_total: int | None = None,
 ) -> list[dict]:
     """Match tracks to episodes by runtime similarity.
 
@@ -226,16 +232,31 @@ def match_tracks_to_episodes(
     by runtime delta, assign smallest first, no reuse. Tracks outside
     tolerance get no match.
 
+    When disc_number is provided, adds a position bias so that later discs
+    prefer later episodes. This prevents multi-disc sets with identical
+    episode runtimes from all matching the same early episodes.
+
     Args:
         tracks: [{"track_number": "0", "length": 3407}, ...]
         episodes: [{"number": 1, "name": "Pilot", "runtime": 3300}, ...]
         tolerance: max seconds difference for a valid match
+        disc_number: 1-based disc number (None = no position bias)
+        disc_total: total discs in set (None = estimate from disc_number)
 
     Returns:
         [{"track_number": "0", "episode_number": 1, "episode_name": "Pilot"}, ...]
     """
     if not tracks or not episodes:
         return []
+
+    # Calculate expected episode position for this disc (for tiebreaking)
+    use_position_bias = disc_number is not None and disc_number > 0
+    if use_position_bias:
+        disc_count = disc_total or disc_number
+        # Center of expected episode range for this disc
+        expected_center = (disc_number - 0.5) / disc_count * len(episodes)
+    else:
+        expected_center = 0.0
 
     # Build cost matrix: all (track_idx, episode_idx, delta) triples
     pairs = []
@@ -246,15 +267,17 @@ def match_tracks_to_episodes(
         for ei, ep in enumerate(episodes):
             delta = abs(t_len - ep.get("runtime", 0))
             if delta <= tolerance:
-                pairs.append((delta, ti, ei))
+                # Position bias: prefer episodes near expected center for this disc
+                pos_bias = abs(ei - expected_center) if use_position_bias else 0.0
+                pairs.append((delta, pos_bias, ti, ei))
 
-    # Greedy assignment: smallest delta first, no reuse
+    # Greedy assignment: smallest delta first, position bias breaks ties, no reuse
     pairs.sort()
     used_tracks: set[int] = set()
     used_episodes: set[int] = set()
     matches = []
 
-    for delta, ti, ei in pairs:
+    for delta, _pos_bias, ti, ei in pairs:
         if ti in used_tracks or ei in used_episodes:
             continue
         used_tracks.add(ti)

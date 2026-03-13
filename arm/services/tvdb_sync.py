@@ -95,6 +95,11 @@ def match_episodes_sync(job) -> bool:
 
         track_data = _build_track_data(job)
         season = _get_known_season(job)
+        disc_number = getattr(job, 'disc_number', None)
+        disc_total = getattr(job, 'disc_total', None)
+
+        if disc_number:
+            log.info("TVDB: disc %d of %s", disc_number, disc_total or "?")
 
         if season:
             # Known season — single-season matching (existing behavior)
@@ -102,7 +107,10 @@ def match_episodes_sync(job) -> bool:
             if not episodes:
                 log.info("TVDB: no episodes found for series %d season %d", tvdb_id, season)
                 return False
-            matches = tvdb.match_tracks_to_episodes(track_data, episodes, tolerance)
+            matches = tvdb.match_tracks_to_episodes(
+                track_data, episodes, tolerance,
+                disc_number=disc_number, disc_total=disc_total,
+            )
         else:
             # Unknown season — scan all seasons, pick best
             log.info("TVDB: no season from metadata, scanning seasons 1-%d", max_season)
@@ -112,7 +120,10 @@ def match_episodes_sync(job) -> bool:
             if not seasons_episodes:
                 log.info("TVDB: no episodes found for series %d", tvdb_id)
                 return False
-            result = tvdb.match_tracks_best_season(track_data, seasons_episodes, tolerance)
+            result = tvdb.match_tracks_best_season(
+                track_data, seasons_episodes, tolerance,
+                disc_number=disc_number, disc_total=disc_total,
+            )
             season = result["season"]
             matches = result["matches"]
             if season:
@@ -172,13 +183,18 @@ def match_episodes_for_api(job, season=None, tolerance=None, apply=False):
         return {"success": False, "error": f"No TVDB series found for {imdb_id}"}
 
     track_data = _build_track_data(job)
+    disc_number = getattr(job, 'disc_number', None)
+    disc_total = getattr(job, 'disc_total', None)
 
     if season is not None:
         # Explicit season
         episodes = asyncio.run(tvdb.get_season_episodes(tvdb_id, season))
         if not episodes:
             return {"success": True, "season": season, "matches": [], "alternatives": []}
-        matches = tvdb.match_tracks_to_episodes(track_data, episodes, tolerance)
+        matches = tvdb.match_tracks_to_episodes(
+            track_data, episodes, tolerance,
+            disc_number=disc_number, disc_total=disc_total,
+        )
         result = {
             "success": True,
             "season": season,
@@ -194,7 +210,10 @@ def match_episodes_for_api(job, season=None, tolerance=None, apply=False):
         )
         if not seasons_episodes:
             return {"success": True, "season": 0, "matches": [], "alternatives": []}
-        best = tvdb.match_tracks_best_season(track_data, seasons_episodes, tolerance)
+        best = tvdb.match_tracks_best_season(
+            track_data, seasons_episodes, tolerance,
+            disc_number=disc_number, disc_total=disc_total,
+        )
         season = best["season"]
         matches = best["matches"]
         result = {
