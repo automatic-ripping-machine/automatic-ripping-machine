@@ -28,6 +28,16 @@ fi
 echo "[ARM] Entering docker wrapper" | logger -t ARM -s
 echo "$(date) [ARM] Entering docker wrapper for ${DEVNAME}" >> "$ARMLOG"
 
+# --- Validate device node exists ---
+# USB re-enumeration can generate udev events for phantom devices (e.g. sr1
+# after a Pioneer USB drive power cycle).  Bail out early if the device
+# doesn't actually exist.
+if [[ ! -b "/dev/${DEVNAME}" ]]; then
+    echo "$(date) [ARM] /dev/${DEVNAME} does not exist (phantom udev event). Skipping." >> "$ARMLOG"
+    echo "[ARM] /dev/${DEVNAME} does not exist. Skipping." | logger -t ARM -s
+    exit 0
+fi
+
 # --- Source environment (udev doesn't provide PATH) ---
 if [[ -f /etc/environment ]]; then
     set -a && source /etc/environment && set +a
