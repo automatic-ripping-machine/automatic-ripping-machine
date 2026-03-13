@@ -1,10 +1,13 @@
-"""TVDB v4 API client for TV episode matching.
+"""TVDB v4 API client.
 
-Resolves TVDB series IDs from IMDb IDs, fetches season episodes with
-runtimes, and matches disc tracks to real episodes by duration similarity.
+Resolves TVDB series IDs from IMDb IDs and fetches season episodes with
+runtimes.  Prefers DVD episode ordering when available, falling back to
+aired order.
 
-Prefers DVD episode ordering when available, falling back to aired order.
 All functions are async (use tvdb_sync.py for the ripper's sync context).
+
+Note: matching algorithms have moved to arm.services.matching.tvdb_matcher.
+The old names are re-exported here for backward compatibility.
 """
 
 from __future__ import annotations
@@ -65,16 +68,13 @@ async def resolve_tvdb_id(imdb_id: str) -> int | None:
     """
     try:
         data = await _get(f"/search/remoteid/{imdb_id}")
-        # Response is a list of result objects, each with optional series/movie/etc
         results = data.get("data", [])
         for result in results:
-            # Each result may have a "series" key with the series info
             series = result.get("series")
             if series:
                 tvdb_id = series.get("id")
                 if tvdb_id:
                     return int(tvdb_id)
-            # Fallback: check top-level id field
             if result.get("id"):
                 return int(result["id"])
     except (httpx.HTTPError, KeyError, ValueError) as e:
@@ -154,138 +154,12 @@ async def get_all_season_episodes(
     return result
 
 
-def match_tracks_best_season(
-    tracks: list[dict],
-    seasons_episodes: dict[int, list[dict[str, Any]]],
-    tolerance: int = 300,
-    disc_number: int | None = None,
-    disc_total: int | None = None,
-) -> dict[str, Any]:
-    """Try each season independently, pick the best match.
-
-    Scores: primary = match count (higher better),
-    secondary = average runtime delta (lower better).
-    Never mixes episodes across seasons.
-
-    Returns::
-
-        {
-            "season": int,
-            "matches": [...],
-            "score": float,
-            "match_count": int,
-            "alternatives": [{"season": int, "score": float, "match_count": int}, ...],
-        }
-    """
-    if not tracks or not seasons_episodes:
-        return {"season": 0, "matches": [], "score": 0.0, "match_count": 0, "alternatives": []}
-
-    scored: list[tuple[int, list[dict], float, int]] = []  # (season, matches, avg_delta, count)
-    for season, episodes in sorted(seasons_episodes.items()):
-        matches = match_tracks_to_episodes(
-            tracks, episodes, tolerance,
-            disc_number=disc_number, disc_total=disc_total,
-        )
-        if not matches:
-            scored.append((season, [], 0.0, 0))
-            continue
-        # Calculate average delta for matched tracks
-        track_len_map = {str(t["track_number"]): t.get("length", 0) for t in tracks}
-        ep_runtime_map = {ep["number"]: ep.get("runtime", 0) for ep in episodes}
-        total_delta = 0
-        for m in matches:
-            t_len = track_len_map.get(m["track_number"], 0)
-            e_run = ep_runtime_map.get(m["episode_number"], 0)
-            total_delta += abs(t_len - e_run)
-        avg_delta = total_delta / len(matches)
-        scored.append((season, matches, avg_delta, len(matches)))
-
-    if not scored:
-        return {"season": 0, "matches": [], "score": 0.0, "match_count": 0, "alternatives": []}
-
-    # Sort: most matches first, then lowest avg_delta
-    scored.sort(key=lambda x: (-x[3], x[2]))
-    best_season, best_matches, best_delta, best_count = scored[0]
-
-    alternatives = [
-        {"season": s, "score": round(d, 1), "match_count": c}
-        for s, _, d, c in scored[1:]
-        if c > 0
-    ]
-
-    return {
-        "season": best_season,
-        "matches": best_matches,
-        "score": round(best_delta, 1),
-        "match_count": best_count,
-        "alternatives": alternatives,
-    }
-
-
-def match_tracks_to_episodes(
-    tracks: list[dict], episodes: list[dict], tolerance: int = 300,
-    disc_number: int | None = None, disc_total: int | None = None,
-) -> list[dict]:
-    """Match tracks to episodes by runtime similarity.
-
-    Uses greedy nearest-neighbor: build all (track, episode) pairs ranked
-    by runtime delta, assign smallest first, no reuse. Tracks outside
-    tolerance get no match.
-
-    When disc_number is provided, adds a position bias so that later discs
-    prefer later episodes. This prevents multi-disc sets with identical
-    episode runtimes from all matching the same early episodes.
-
-    Args:
-        tracks: [{"track_number": "0", "length": 3407}, ...]
-        episodes: [{"number": 1, "name": "Pilot", "runtime": 3300}, ...]
-        tolerance: max seconds difference for a valid match
-        disc_number: 1-based disc number (None = no position bias)
-        disc_total: total discs in set (None = estimate from disc_number)
-
-    Returns:
-        [{"track_number": "0", "episode_number": 1, "episode_name": "Pilot"}, ...]
-    """
-    if not tracks or not episodes:
-        return []
-
-    # Calculate expected episode position for this disc (for tiebreaking)
-    use_position_bias = disc_number is not None and disc_number > 0
-    if use_position_bias:
-        disc_count = disc_total or disc_number
-        # Center of expected episode range for this disc
-        expected_center = (disc_number - 0.5) / disc_count * len(episodes)
-    else:
-        expected_center = 0.0
-
-    # Build cost matrix: all (track_idx, episode_idx, delta) triples
-    pairs = []
-    for ti, track in enumerate(tracks):
-        t_len = track.get("length") or 0
-        if t_len < 120:  # skip very short tracks (menus, intros)
-            continue
-        for ei, ep in enumerate(episodes):
-            delta = abs(t_len - ep.get("runtime", 0))
-            if delta <= tolerance:
-                # Position bias: prefer episodes near expected center for this disc
-                pos_bias = abs(ei - expected_center) if use_position_bias else 0.0
-                pairs.append((delta, pos_bias, ti, ei))
-
-    # Greedy assignment: smallest delta first, position bias breaks ties, no reuse
-    pairs.sort()
-    used_tracks: set[int] = set()
-    used_episodes: set[int] = set()
-    matches = []
-
-    for delta, _pos_bias, ti, ei in pairs:
-        if ti in used_tracks or ei in used_episodes:
-            continue
-        used_tracks.add(ti)
-        used_episodes.add(ei)
-        matches.append({
-            "track_number": tracks[ti]["track_number"],
-            "episode_number": episodes[ei]["number"],
-            "episode_name": episodes[ei]["name"],
-        })
-
-    return matches
+# ------------------------------------------------------------------
+# Backward compatibility: matching functions moved to
+# arm.services.matching.tvdb_matcher but re-exported here so
+# existing imports and tests continue to work.
+# ------------------------------------------------------------------
+from arm.services.matching.tvdb_matcher import (  # noqa: E402, F401
+    match_tracks_to_episodes,
+    match_tracks_best_season,
+)
