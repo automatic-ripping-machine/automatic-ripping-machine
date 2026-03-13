@@ -49,9 +49,9 @@ def match_episodes_sync(job) -> bool:
             job.tvdb_id = tvdb_id
             db.session.commit()
 
-        # Determine season: prefer job.season, fall back to disc_number, then 1
+        # Determine season from metadata — disc_number is NOT season
         season = None
-        for field in ('season', 'season_auto', 'disc_number'):
+        for field in ('season', 'season_auto'):
             val = getattr(job, field, None)
             if val is not None:
                 try:
@@ -61,15 +61,10 @@ def match_episodes_sync(job) -> bool:
                     pass
         if not season:
             season = 1
-            log.info("TVDB: no season number known, defaulting to season 1")
+            log.info("TVDB: no season number from metadata, defaulting to season 1")
 
-        # Fetch episodes — if resolved season has none, fall back to season 1
-        # (common for multi-disc single-season shows where disc_number != season)
+        # Fetch episodes
         episodes = asyncio.run(tvdb.get_season_episodes(tvdb_id, season))
-        if not episodes and season != 1:
-            log.info("TVDB: no episodes for season %d, falling back to season 1", season)
-            season = 1
-            episodes = asyncio.run(tvdb.get_season_episodes(tvdb_id, season))
         if not episodes:
             log.info("TVDB: no episodes found for series %d season %d", tvdb_id, season)
             return False
