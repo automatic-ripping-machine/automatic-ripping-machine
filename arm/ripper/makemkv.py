@@ -886,7 +886,7 @@ def prescan_resolve_mdisc(job, timeout=60):
     """Resolve MakeMKV disc index with timeout.  Multi-drive safe.
 
     If job.drive.mdisc is already populated, returns it immediately.
-    On timeout or failure, falls back to disc:0 with a warning.
+    On timeout or failure, returns None so the rip phase re-resolves.
     """
     if job.drive is not None and job.drive.mdisc is not None:
         return job.drive.mdisc
@@ -902,8 +902,8 @@ def prescan_resolve_mdisc(job, timeout=60):
                 return data.index
         logging.warning("disc:9999 did not return drive for %s", job.devpath)
     except (subprocess.TimeoutExpired, MakeMkvRuntimeError) as exc:
-        logging.warning("disc:9999 enumeration failed: %s — falling back to disc:0", exc)
-    return 0
+        logging.warning("disc:9999 enumeration failed: %s — rip phase will re-resolve", exc)
+    return None
 
 
 def prescan_disc_info(job, timeout=300):
@@ -911,10 +911,11 @@ def prescan_disc_info(job, timeout=300):
 
     Does NOT touch job.status, no concurrency limiter, no penalty sleep.
     Yields CINFO/SINFO/TCOUNT/TINFO messages from makemkvcon info.
+    Uses dev:{devpath} to address the drive directly — no disc index
+    enumeration needed, safe for multi-drive setups.
     """
-    disc_index = prescan_resolve_mdisc(job, timeout=60)
     cmd = [shutil.which("makemkvcon"), "--robot", "--messages=-stdout",
-           "info", "--cache=1", f"disc:{disc_index}", "--minlength=0"]
+           "info", "--cache=1", f"dev:{job.devpath}", "--minlength=0"]
     select = OutputType.CINFO | OutputType.SINFO | OutputType.TCOUNT | OutputType.TINFO
     yield from _run_with_timeout(cmd, select, timeout=timeout)
 
@@ -924,13 +925,22 @@ def prescan_track_info(job, timeout=300):
 
     Clears existing tracks (prevents duplicates on retry), then feeds
     MakeMKV output through TrackInfoProcessor.
+
+    Also attempts to resolve the MakeMKV disc index in the background
+    (populates job.drive.mdisc for the later rip phase), but pre-scan
+    itself uses dev:{devpath} so this is non-blocking.
     """
     from arm.models.track import Track
     Track.query.filter_by(job_id=job.job_id).delete()
     db.session.flush()
 
-    disc_index = prescan_resolve_mdisc(job, timeout=60)
-    processor = TrackInfoProcessor(job, disc_index)
+    # Resolve disc index for later rip phase (best-effort, non-critical)
+    try:
+        prescan_resolve_mdisc(job, timeout=60)
+    except Exception as exc:
+        logging.warning("mdisc resolution failed (non-fatal): %s", exc)
+
+    processor = TrackInfoProcessor(job, 0)
     for message in prescan_disc_info(job, timeout=timeout):
         processor._process_message(message)
     processor._add_track()
@@ -1098,8 +1108,10 @@ def setup_rawpath(job, raw_path):
             err = f"Couldn't create the base file path: {raw_path}. Probably a permissions error"
             logging.error(err)
     else:
-        logging.info(f"{raw_path} exists.  Adding timestamp.")
-        raw_path = os.path.join(str(job.config.RAW_PATH), f"{job.title}_{job.stage}")
+        import time as _time
+        ts = str(int(_time.time()))
+        logging.info(f"{raw_path} exists.  Adding timestamp {ts}.")
+        raw_path = os.path.join(str(job.config.RAW_PATH), f"{job.title}_{ts}")
         logging.info(f"raw_path is {raw_path}")
         try:
             os.makedirs(raw_path)

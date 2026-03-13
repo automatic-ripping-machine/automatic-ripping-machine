@@ -28,6 +28,7 @@ from arm.models import Job
 
 from arm.ripper import utils
 from arm.ripper.ProcessHandler import arm_subprocess
+from arm.ripper.utils import RipperException
 from arm.database import db
 
 # flake8: noqa: W605
@@ -330,6 +331,13 @@ def _identify_video_title(job):
     if job.title is None or job.title == "None" or job.title == "":
         _apply_label_as_title(job)
 
+    # Auto-enable multi_title for TV series — episodes are distinct titles
+    # and the transcoder uses per-track metadata to name output files.
+    if job.video_type == "series" and not job.multi_title:
+        job.multi_title = True
+        db.session.commit()
+        logging.info("Auto-enabled multi_title for TV series disc")
+
     logging.info(f"Disc title Post ident -  title:{job.title} "
                  f"year:{job.year} video_type:{job.video_type} "
                  f"disctype: {job.disctype}")
@@ -356,6 +364,12 @@ def identify(job):
         return
 
     mounted = check_mount(job)
+
+    if not mounted and job.disctype is None:
+        raise RipperException(
+            f"Could not mount {job.devpath} — drive may be empty, "
+            f"still spinning up, or the device no longer exists"
+        )
 
     try:
         if mounted:
@@ -547,6 +561,13 @@ def update_job(job, search_results):
         'poster_url': best.poster_url or '',
         'hasnicetitle': True,
     }
+    # Persist disc number/season from label parsing (e.g. "Disc 2", "S01D03")
+    if selection.label_info:
+        if selection.label_info.disc_number is not None:
+            args['disc_number'] = selection.label_info.disc_number
+        if selection.label_info.season_number is not None:
+            args['season_auto'] = str(selection.label_info.season_number)
+            args['season'] = str(selection.label_info.season_number)
     return utils.database_updater(args, job)
 
 
