@@ -64,12 +64,19 @@ async def resolve_tvdb_id(imdb_id: str) -> int | None:
     Returns the first matching series ID, or None if not found.
     """
     try:
-        data = await _get("/search", {"remoteId": imdb_id, "type": "series"})
+        data = await _get(f"/search/remoteid/{imdb_id}")
+        # Response is a list of result objects, each with optional series/movie/etc
         results = data.get("data", [])
-        if results:
-            tvdb_id = results[0].get("tvdb_id") or results[0].get("id")
-            if tvdb_id:
-                return int(tvdb_id)
+        for result in results:
+            # Each result may have a "series" key with the series info
+            series = result.get("series")
+            if series:
+                tvdb_id = series.get("id")
+                if tvdb_id:
+                    return int(tvdb_id)
+            # Fallback: check top-level id field
+            if result.get("id"):
+                return int(result["id"])
     except (httpx.HTTPError, KeyError, ValueError) as e:
         log.warning("TVDB series lookup failed for %s: %s", imdb_id, e)
     return None

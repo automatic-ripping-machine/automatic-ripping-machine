@@ -114,7 +114,7 @@ class TestTvdbAsync:
         from arm.services import tvdb
 
         mock_response = {
-            "data": [{"tvdb_id": "71256", "id": "71256", "name": "Test Show"}]
+            "data": [{"series": {"id": "71256", "name": "Test Show"}}]
         }
         with unittest.mock.patch.object(tvdb, '_get', return_value=mock_response):
             result = asyncio.run(tvdb.resolve_tvdb_id("tt0167667"))
