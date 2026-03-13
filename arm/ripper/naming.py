@@ -141,9 +141,12 @@ def _build_track_variables(track, job):
     track_video_type = getattr(track, 'video_type', None)
     if track_video_type:
         variables['video_type'] = track_video_type
-    # Auto-fill episode from track_number (1-indexed) when not set,
-    # so TV pattern "{title} S{season}E{episode}" produces useful defaults
-    if not variables.get('episode'):
+    # Episode number: prefer TVDB-matched episode_number, then fall back
+    # to track_number + 1 as a rough default
+    ep_num = getattr(track, 'episode_number', None)
+    if ep_num:
+        variables['episode'] = str(ep_num).zfill(2)
+    elif not variables.get('episode'):
         track_num = getattr(track, 'track_number', None)
         if track_num is not None:
             try:

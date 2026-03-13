@@ -28,6 +28,9 @@ class Track(db.Model):
     imdb_id = db.Column(db.String(15), nullable=True)
     poster_url = db.Column(db.String(256), nullable=True)
     video_type = db.Column(db.String(20), nullable=True)
+    # Episode metadata from TVDB matching
+    episode_number = db.Column(db.String(10), nullable=True)
+    episode_name = db.Column(db.String(256), nullable=True)
 
     def __init__(self, job_id, track_number, length, aspect_ratio,
                  fps, main_feature, source, basename, filename,

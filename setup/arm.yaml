@@ -378,6 +378,13 @@ OMDB_API_KEY: ""
 # More info at https://www.themoviedb.org/documentation/api
 TMDB_API_KEY: ""
 
+# TVDB_API_KEY
+# TheTVDB v4 API Key for automatic TV episode matching.
+# Get a free key at https://thetvdb.com/dashboard/account/apikey
+# When set, ARM matches disc tracks to real episodes by runtime
+# for proper episode naming (e.g. "Show S01E03 - Speedy Death").
+TVDB_API_KEY: ""
+
 # JSON_URL
 # Url to send Notifications to in JSON format
 JSON_URL: ""

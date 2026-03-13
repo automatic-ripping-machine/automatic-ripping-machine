@@ -142,6 +142,7 @@ class Job(db.Model):
     multi_title = db.Column(db.Boolean, default=False)
     disc_number = db.Column(db.Integer, nullable=True)
     disc_total = db.Column(db.Integer, nullable=True)
+    tvdb_id = db.Column(db.Integer, nullable=True)
     ejected = db.Column(db.Boolean)
     updated = db.Column(db.Boolean)
     pid = db.Column(db.Integer)

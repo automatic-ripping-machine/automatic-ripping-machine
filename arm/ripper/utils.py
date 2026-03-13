@@ -201,6 +201,8 @@ def _build_webhook_payload(title, body, job, raw_basename):
                     "has_custom_title": bool(track.title),
                     "folder_name": track_folder,
                     "title_name": _clean_for_filename(track_title) if track_title else '',
+                    "episode_number": str(getattr(track, 'episode_number', '') or ''),
+                    "episode_name": str(getattr(track, 'episode_name', '') or ''),
                 })
             if tracks_meta:
                 payload["tracks"] = tracks_meta

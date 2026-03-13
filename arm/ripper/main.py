@@ -170,6 +170,16 @@ def main():
                 else:
                     logging.warning("Pre-scan failed after %d attempts (will retry during rip): %s", attempt, e)
 
+    # For TV series, attempt automatic episode matching via TVDB
+    if job.video_type == "series" and cfg.arm_config.get("TVDB_API_KEY"):
+        try:
+            from arm.services.tvdb_sync import match_episodes_sync
+            if match_episodes_sync(job):
+                db.session.expire(job, ['tracks'])
+                logging.info("TVDB episode matching applied to tracks")
+        except Exception as e:
+            logging.warning("TVDB episode matching failed (non-fatal): %s", e)
+
     # Check if user has manual wait time enabled
     utils.check_for_wait(job)
 
