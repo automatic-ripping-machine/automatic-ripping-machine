@@ -52,14 +52,11 @@ def match_episodes_sync(job) -> bool:
             return False
 
         # Persist tvdb_id if the matcher resolved one
-        if not getattr(job, "tvdb_id", None) and getattr(job, "imdb_id", None):
-            from arm.services.matching._tvdb_resolve import resolve_tvdb_id
-            resolved = resolve_tvdb_id(job, job.imdb_id or job.imdb_id_auto)
-            if resolved:
-                job.tvdb_id = resolved
+        if result.tvdb_id and not getattr(job, "tvdb_id", None):
+            job.tvdb_id = result.tvdb_id
 
         # Store detected season if the matcher found one
-        if result.season and not getattr(job, "season", None):
+        if result.season is not None and not getattr(job, "season", None):
             job.season_auto = str(result.season)
 
         matched_count = _apply_matches(job, result)
@@ -121,7 +118,9 @@ def match_episodes_for_api(job, season=None, tolerance=None, apply=False):
 
     if apply and result.success:
         matched_count = _apply_matches(job, result)
-        if result.season:
+        if result.tvdb_id and not getattr(job, "tvdb_id", None):
+            job.tvdb_id = result.tvdb_id
+        if result.season is not None:
             job.season_auto = str(result.season)
         if matched_count:
             db.session.commit()

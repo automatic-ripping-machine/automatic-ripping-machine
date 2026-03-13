@@ -75,7 +75,7 @@ class TvdbMatcher(MatchStrategy):
         if exclude is None:
             exclude = get_excluded_episodes(job, season=season)
 
-        if season:
+        if season is not None:
             return self._match_single_season(
                 tvdb_id, tracks, season, tolerance,
                 disc_number, disc_total, exclude,
@@ -99,7 +99,7 @@ class TvdbMatcher(MatchStrategy):
         episodes = asyncio.run(tvdb.get_season_episodes(tvdb_id, season))
         if not episodes:
             log.info("TVDB: no episodes for series %d season %d", tvdb_id, season)
-            return MatchResult(matcher=self.name, season=season)
+            return MatchResult(matcher=self.name, season=season, tvdb_id=tvdb_id)
 
         raw = match_tracks_to_episodes(
             tracks, episodes, tolerance,
@@ -111,6 +111,7 @@ class TvdbMatcher(MatchStrategy):
             season=season,
             matches=[TrackMatch(**m) for m in raw],
             match_count=len(raw),
+            tvdb_id=tvdb_id,
         )
 
     def _match_best_season(
@@ -125,7 +126,7 @@ class TvdbMatcher(MatchStrategy):
         )
         if not seasons_episodes:
             log.info("TVDB: no episodes found for series %d", tvdb_id)
-            return MatchResult(matcher=self.name)
+            return MatchResult(matcher=self.name, tvdb_id=tvdb_id)
 
         best = match_tracks_best_season(
             tracks, seasons_episodes, tolerance,
@@ -147,11 +148,12 @@ class TvdbMatcher(MatchStrategy):
 
         return MatchResult(
             matcher=self.name,
-            season=season,
+            season=season if season else None,
             matches=[TrackMatch(**m) for m in best["matches"]],
             match_count=best["match_count"],
             score=best["score"],
             alternatives=best.get("alternatives", []),
+            tvdb_id=tvdb_id,
         )
 
 

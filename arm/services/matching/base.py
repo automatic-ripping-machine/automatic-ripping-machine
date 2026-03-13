@@ -28,13 +28,15 @@ class MatchResult:
     """Complete result of a matching run."""
 
     matcher: str  # e.g. "tvdb", "sequential", "musicbrainz"
-    season: int = 0
+    season: int | None = None
     matches: list[TrackMatch] = field(default_factory=list)
     score: float = 0.0
     match_count: int = 0
     alternatives: list[dict[str, Any]] = field(default_factory=list)
     applied: bool = False
     error: str | None = None
+    # Provider-specific IDs resolved during matching (for caching by caller)
+    tvdb_id: int | None = None
 
     @property
     def success(self) -> bool:
