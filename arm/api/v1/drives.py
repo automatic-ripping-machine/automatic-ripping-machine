@@ -26,11 +26,18 @@ async def drive_diagnostic():
     checks: list[dict] = []
     issues: list[str] = []
 
-    # --- udevd running? ---
-    udevd_running = shutil.which("udevd") is not None and any(
-        "udevd" in (open(f"/proc/{pid}/comm").read().strip() if os.path.isfile(f"/proc/{pid}/comm") else "")
-        for pid in os.listdir("/proc") if pid.isdigit()
-    )
+    # --- udevd running? (may be udevd or systemd-udevd) ---
+    udevd_running = False
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        try:
+            comm = open(f"/proc/{pid}/comm").read().strip()
+            if "udevd" in comm:
+                udevd_running = True
+                break
+        except (FileNotFoundError, IOError):
+            continue
     if not udevd_running:
         issues.append("udevd is not running inside the container — disc hotplug events won't work")
 
