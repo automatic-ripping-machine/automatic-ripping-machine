@@ -1,5 +1,6 @@
 """API v1 — Drive endpoints."""
 import logging
+import subprocess
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -33,6 +34,40 @@ async def rescan_drives():
         }
     except Exception as e:
         log.exception("Drive rescan failed")
+        return JSONResponse(
+            {"success": False, "error": str(e)},
+            status_code=500,
+        )
+
+
+@router.post('/drives/{drive_id}/scan')
+async def scan_drive(drive_id: int):
+    """Trigger a disc scan on the given drive.
+
+    Runs rescan_drive.sh in the background, which checks for a disc
+    and starts a rip if one is found.  The script's own locking
+    (flock + ioctl disc-presence check) prevents duplicate runs.
+    """
+    drive = SystemDrives.query.get(drive_id)
+    if not drive:
+        return JSONResponse({"success": False, "error": "Drive not found"}, status_code=404)
+    if not drive.mount:
+        return JSONResponse({"success": False, "error": "Drive has no mount path"}, status_code=400)
+
+    # mount may be /dev/sr0 or /mnt/dev/sr0 — extract just the srN part
+    devname = drive.mount.rstrip("/").rsplit("/", 1)[-1]
+    script = "/opt/arm/scripts/docker/rescan_drive.sh"
+
+    try:
+        subprocess.Popen(
+            [script, devname],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        log.info("Scan triggered for drive %s (%s)", drive_id, devname)
+        return {"success": True, "drive_id": drive_id, "devname": devname}
+    except Exception as e:
+        log.exception("Failed to trigger scan for drive %s", drive_id)
         return JSONResponse(
             {"success": False, "error": str(e)},
             status_code=500,
