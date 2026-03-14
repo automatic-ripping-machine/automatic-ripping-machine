@@ -472,7 +472,7 @@ class TestProgressLog:
 
         job = unittest.mock.MagicMock()
         job.job_id = 42
-        job.config.LOGPATH = "/tmp/logs"
+        job.config.LOGPATH = "/home/arm/logs"
 
         result = progress_log(job)
         assert "42.log" in result

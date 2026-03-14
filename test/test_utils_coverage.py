@@ -124,7 +124,7 @@ class TestMoveToSharedStorage:
     def test_no_basename_does_nothing(self, tmp_path):
         from arm.ripper.utils import _move_to_shared_storage
 
-        cfg = {'LOCAL_RAW_PATH': '/tmp/local', 'SHARED_RAW_PATH': '/tmp/shared'}
+        cfg = {'LOCAL_RAW_PATH': '/home/arm/media/local', 'SHARED_RAW_PATH': '/home/arm/media/shared'}
         _move_to_shared_storage(cfg, "")  # Should not raise
 
 
@@ -432,7 +432,7 @@ class TestSaveDiscPoster:
         job.disctype = 'bluray'
 
         with unittest.mock.patch('subprocess.run') as mock_run:
-            save_disc_poster('/tmp', job)
+            save_disc_poster('/home/arm/media/raw', job)
         mock_run.assert_not_called()
 
     def test_skips_when_disabled(self):
@@ -445,7 +445,7 @@ class TestSaveDiscPoster:
             job = unittest.mock.MagicMock()
             job.disctype = 'dvd'
             with unittest.mock.patch('subprocess.run') as mock_run:
-                save_disc_poster('/tmp', job)
+                save_disc_poster('/home/arm/media/raw', job)
             mock_run.assert_not_called()
         finally:
             if old is not None:

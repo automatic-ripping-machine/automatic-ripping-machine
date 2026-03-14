@@ -501,7 +501,7 @@ class TestIdentifyBlurayKeyError:
     def _make_job(self):
         job = unittest.mock.MagicMock()
         job.disctype = 'bluray'
-        job.mountpoint = '/tmp/test'
+        job.mountpoint = '/mnt/dev/sr0'
         job.label = None
         return job
 
