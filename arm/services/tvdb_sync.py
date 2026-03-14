@@ -65,7 +65,7 @@ def match_episodes_sync(job) -> bool:
             db.session.commit()
             log.info(
                 "%s matcher: %d/%d tracks matched",
-                result.matcher, matched_count, len(job.tracks),
+                result.matcher, matched_count, len(list(job.tracks)),
             )
             return True
         return False
