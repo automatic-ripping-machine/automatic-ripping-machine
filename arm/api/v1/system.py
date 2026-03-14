@@ -104,8 +104,11 @@ def get_ripping_enabled():
 
 @router.get('/system/version')
 def get_version():
-    """Return ARM and MakeMKV versions."""
+    """Return ARM, MakeMKV, and database versions."""
     import re
+    import sqlite3
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
 
     arm_version = "unknown"
     install_path = cfg.arm_config.get("INSTALLPATH", "")
@@ -128,9 +131,35 @@ def get_version():
     except Exception:
         pass
 
+    # Database Alembic revision
+    db_version = "unknown"
+    db_head = "unknown"
+    db_file = cfg.arm_config.get("DBFILE", "")
+    mig_dir = os.path.join(install_path, "arm", "migrations")
+    try:
+        config = Config()
+        config.set_main_option("script_location", mig_dir)
+        script = ScriptDirectory.from_config(config)
+        db_head = script.get_current_head() or "unknown"
+    except Exception:
+        pass
+    if db_file and os.path.isfile(db_file):
+        try:
+            conn = sqlite3.connect(db_file)
+            c = conn.cursor()
+            c.execute('SELECT version_num FROM alembic_version')
+            row = c.fetchone()
+            if row:
+                db_version = row[0]
+            conn.close()
+        except Exception:
+            pass
+
     return {
         "arm_version": arm_version,
         "makemkv_version": makemkv_version,
+        "db_version": db_version,
+        "db_head": db_head,
     }
 
 
