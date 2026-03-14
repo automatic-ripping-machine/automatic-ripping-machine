@@ -637,8 +637,8 @@ def tvdb_episodes(job_id: int, season: int = 1):
 
     Query: ?season=2
     """
-    import asyncio
     from arm.services import tvdb
+    from arm.services.matching.tvdb_matcher import _run_async
 
     job = Job.query.get(job_id)
     if not job:
@@ -651,7 +651,7 @@ def tvdb_episodes(job_id: int, season: int = 1):
             status_code=400,
         )
 
-    episodes = asyncio.run(tvdb.get_season_episodes(tvdb_id, season))
+    episodes = _run_async(tvdb.get_season_episodes(tvdb_id, season))
     return {"episodes": episodes, "tvdb_id": tvdb_id, "season": season}
 
 

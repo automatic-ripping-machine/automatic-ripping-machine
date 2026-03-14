@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 
 from arm.services import tvdb
+from arm.services.matching.tvdb_matcher import _run_async
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ def resolve_tvdb_id(job, imdb_id: str) -> int | None:
     tvdb_id = getattr(job, "tvdb_id", None)
     if tvdb_id:
         return tvdb_id
-    tvdb_id = asyncio.run(tvdb.resolve_tvdb_id(imdb_id))
+    tvdb_id = _run_async(tvdb.resolve_tvdb_id(imdb_id))
     if not tvdb_id:
         log.info("TVDB: no series found for %s", imdb_id)
         return None
