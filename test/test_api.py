@@ -397,6 +397,145 @@ class TestApiNamingPreview:
         assert response.json()["rendered"] == "Lost S03E12"
 
 
+class TestApiDrivesRescan:
+    """Test POST /api/v1/drives/rescan endpoint."""
+
+    def test_rescan_success(self, client, app_context):
+        with unittest.mock.patch("arm.services.drives.drives_update", return_value=0), \
+             unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd:
+            mock_sd.query.count.side_effect = [2, 2]
+            response = client.post('/api/v1/drives/rescan')
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "drive_count" in data
+
+    def test_rescan_failure(self, client, app_context):
+        with unittest.mock.patch(
+            "arm.services.drives.drives_update", side_effect=RuntimeError("scan failed")
+        ), unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd:
+            mock_sd.query.count.return_value = 0
+            response = client.post('/api/v1/drives/rescan')
+        assert response.status_code == 500
+        assert response.json()["success"] is False
+
+
+class TestApiDriveScan:
+    """Test POST /api/v1/drives/{drive_id}/scan endpoint."""
+
+    def test_scan_not_found(self, client, app_context):
+        with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd:
+            mock_sd.query.get.return_value = None
+            response = client.post('/api/v1/drives/1/scan')
+        assert response.status_code == 404
+
+    def test_scan_no_mount(self, client, app_context):
+        mock_drive = unittest.mock.MagicMock()
+        mock_drive.mount = None
+        with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd:
+            mock_sd.query.get.return_value = mock_drive
+            response = client.post('/api/v1/drives/1/scan')
+        assert response.status_code == 400
+
+    def test_scan_success(self, client, app_context):
+        mock_drive = unittest.mock.MagicMock()
+        mock_drive.mount = "/dev/sr0"
+        with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd, \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.Popen") as mock_popen:
+            mock_sd.query.get.return_value = mock_drive
+            response = client.post('/api/v1/drives/1/scan')
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+    def test_scan_popen_fails(self, client, app_context):
+        mock_drive = unittest.mock.MagicMock()
+        mock_drive.mount = "/dev/sr0"
+        with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd, \
+             unittest.mock.patch(
+                 "arm.api.v1.drives.subprocess.Popen",
+                 side_effect=OSError("script missing"),
+             ):
+            mock_sd.query.get.return_value = mock_drive
+            response = client.post('/api/v1/drives/1/scan')
+        assert response.status_code == 500
+
+
+class TestApiDriveDelete:
+    """Test DELETE /api/v1/drives/{drive_id} endpoint."""
+
+    def test_delete_not_found(self, client, app_context):
+        with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd:
+            mock_sd.query.get.return_value = None
+            response = client.delete('/api/v1/drives/1')
+        assert response.status_code == 404
+
+    def test_delete_active_job(self, client, app_context):
+        mock_drive = unittest.mock.MagicMock()
+        mock_drive.processing = True
+        with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd:
+            mock_sd.query.get.return_value = mock_drive
+            response = client.delete('/api/v1/drives/1')
+        assert response.status_code == 409
+
+    def test_delete_success(self, client, app_context):
+        mock_drive = unittest.mock.MagicMock()
+        mock_drive.processing = False
+        mock_drive.name = "Test Drive"
+        mock_drive.mount = "/dev/sr0"
+        with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd, \
+             unittest.mock.patch("arm.api.v1.drives.db") as mock_db:
+            mock_sd.query.get.return_value = mock_drive
+            response = client.delete('/api/v1/drives/1')
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+
+class TestApiDriveUpdate:
+    """Test PATCH /api/v1/drives/{drive_id} endpoint."""
+
+    def test_update_not_found(self, client, app_context):
+        with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd:
+            mock_sd.query.get.return_value = None
+            response = client.patch('/api/v1/drives/1', json={"name": "My Drive"})
+        assert response.status_code == 404
+
+    def test_update_empty_body(self, client, app_context):
+        mock_drive = unittest.mock.MagicMock()
+        with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd:
+            mock_sd.query.get.return_value = mock_drive
+            response = client.patch('/api/v1/drives/1', json={})
+        assert response.status_code == 400
+
+    def test_update_name(self, client, app_context):
+        mock_drive = unittest.mock.MagicMock()
+        mock_drive.drive_id = 1
+        with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd, \
+             unittest.mock.patch("arm.api.v1.drives.db"):
+            mock_sd.query.get.return_value = mock_drive
+            response = client.patch('/api/v1/drives/1', json={"name": "My Drive"})
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+    def test_update_description_and_uhd(self, client, app_context):
+        mock_drive = unittest.mock.MagicMock()
+        mock_drive.drive_id = 1
+        with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd, \
+             unittest.mock.patch("arm.api.v1.drives.db"):
+            mock_sd.query.get.return_value = mock_drive
+            response = client.patch(
+                '/api/v1/drives/1',
+                json={"description": "Main drive", "uhd_capable": True},
+            )
+        assert response.status_code == 200
+
+    def test_update_no_valid_fields(self, client, app_context):
+        mock_drive = unittest.mock.MagicMock()
+        with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd:
+            mock_sd.query.get.return_value = mock_drive
+            response = client.patch('/api/v1/drives/1', json={"invalid_field": "value"})
+        assert response.status_code == 400
+
+
 class TestApiSettingsConfig:
     """Test GET /api/v1/settings/config endpoint."""
 
