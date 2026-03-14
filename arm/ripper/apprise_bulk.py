@@ -137,7 +137,7 @@ def ntfy_notify(cfg, title, body):
     if cfg['NTFY_TOPIC'] != "":
         try:
             ntfy_serverstring = _build_ntfy_url(cfg)
-            print(ntfy_serverstring)
+            logging.debug("Sending ntfy notification to topic: %s", cfg.get('NTFY_TOPIC', ''))
             apobj = apprise.Apprise()
             apobj.add(ntfy_serverstring)
             apobj.notify(body, title=title)
