@@ -246,6 +246,27 @@ async def scan_drive(drive_id: int):
         )
 
 
+@router.delete('/drives/{drive_id}')
+async def delete_drive(drive_id: int):
+    """Remove a stale drive from the database.
+
+    Only allows deletion of drives that are not currently processing a job.
+    """
+    drive = SystemDrives.query.get(drive_id)
+    if not drive:
+        return JSONResponse({"success": False, "error": "Drive not found"}, status_code=404)
+    if drive.processing:
+        return JSONResponse(
+            {"success": False, "error": "Cannot remove a drive with an active job"},
+            status_code=409,
+        )
+    drive_name = drive.name or drive.mount or f"Drive {drive_id}"
+    db.session.delete(drive)
+    db.session.commit()
+    log.info("Removed drive %s (%s)", drive_id, drive_name)
+    return {"success": True, "drive_id": drive_id}
+
+
 @router.patch('/drives/{drive_id}')
 async def update_drive(drive_id: int, request: Request):
     """Update a drive's user-editable fields (name, description)."""
