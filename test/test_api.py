@@ -194,6 +194,68 @@ class TestApiSystemRestart:
             assert response.status_code == 200
 
 
+class TestApiSystemVersion:
+    """Test GET /api/v1/system/version endpoint."""
+
+    def _patch_version(self, client, *, arm_version="1.0.0",
+                       makemkv_output="MakeMKV v1.18.3",
+                       db_file="/tmp/arm.db", install_path="/opt/arm",
+                       db_row=("abc123",), head="def456",
+                       version_file_error=None, db_file_exists=True):
+        """Call the version endpoint with all dependencies mocked."""
+        import unittest.mock as m
+
+        config = {"INSTALLPATH": install_path, "DBFILE": db_file}
+        proc = m.Mock(stdout=makemkv_output, stderr="")
+        mock_script = m.Mock()
+        mock_script.get_current_head.return_value = head
+        mock_cursor = m.Mock()
+        mock_cursor.fetchone.return_value = db_row
+        mock_conn = m.Mock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        open_side = version_file_error if version_file_error else None
+        open_mock = m.mock_open(read_data=arm_version) if not version_file_error else None
+
+        with (
+            m.patch("arm.api.v1.system.cfg.arm_config", config),
+            m.patch("arm.api.v1.system.subprocess.run", return_value=proc),
+            m.patch("arm.api.v1.system.os.path.isfile", return_value=db_file_exists),
+            m.patch("alembic.script.ScriptDirectory.from_config", return_value=mock_script),
+            m.patch("sqlite3.connect", return_value=mock_conn),
+            m.patch("builtins.open", open_mock or m.Mock(side_effect=open_side)),
+        ):
+            return client.get('/api/v1/system/version')
+
+    def test_version_returns_all_fields(self, client):
+        """All four version keys are present in the response."""
+        response = self._patch_version(client)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["arm_version"] == "1.0.0"
+        assert data["makemkv_version"] == "1.18.3"
+        assert data["db_version"] == "abc123"
+        assert data["db_head"] == "def456"
+
+    def test_version_arm_unknown_when_file_missing(self, client):
+        """arm_version is 'unknown' when VERSION file does not exist."""
+        response = self._patch_version(client, version_file_error=OSError("not found"))
+        assert response.status_code == 200
+        assert response.json()["arm_version"] == "unknown"
+
+    def test_version_db_version_from_sqlite(self, client):
+        """db_version matches the revision returned by sqlite."""
+        response = self._patch_version(client, db_row=("rev_99x",))
+        assert response.status_code == 200
+        assert response.json()["db_version"] == "rev_99x"
+
+    def test_version_db_unknown_when_no_dbfile(self, client):
+        """db_version is 'unknown' when DBFILE is empty or file does not exist."""
+        response = self._patch_version(client, db_file="", db_file_exists=False)
+        assert response.status_code == 200
+        assert response.json()["db_version"] == "unknown"
+
+
 class TestApiJobTitleUpdate:
     """Test PUT /api/v1/jobs/<id>/title endpoint."""
 
