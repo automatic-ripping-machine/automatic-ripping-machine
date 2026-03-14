@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from arm.services import tvdb
-from arm.services.matching.tvdb_matcher import _run_async
+from arm.services.matching._async_compat import run_async as _run_async
 
 log = logging.getLogger(__name__)
 

@@ -638,7 +638,7 @@ def tvdb_episodes(job_id: int, season: int = 1):
     Query: ?season=2
     """
     from arm.services import tvdb
-    from arm.services.matching.tvdb_matcher import _run_async
+    from arm.services.matching._async_compat import run_async as _run_async
 
     job = Job.query.get(job_id)
     if not job:
