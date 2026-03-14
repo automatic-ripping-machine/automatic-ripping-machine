@@ -28,6 +28,7 @@ from arm.models import Job
 
 from arm.ripper import utils
 from arm.ripper.ProcessHandler import arm_subprocess
+from arm.ripper.utils import RipperException
 from arm.database import db
 
 # flake8: noqa: W605
@@ -46,17 +47,31 @@ def _find_mountpoint(devpath: str) -> str | None:
     return None
 
 
-def _drive_has_disc(devpath: str) -> bool:
-    """Quick ioctl check — returns False if tray is open or disc was ejected."""
+def _drive_status(devpath: str) -> int:
+    """Return raw CDROM_DRIVE_STATUS ioctl value, or -1 on error.
+
+    Values:
+      0 = CDS_NO_INFO, 1 = CDS_NO_DISC, 2 = CDS_TRAY_OPEN,
+      3 = CDS_DRIVE_NOT_READY, 4 = CDS_DISC_OK, -1 = OS error
+    """
     try:
         fd = os.open(devpath, os.O_RDONLY | os.O_NONBLOCK)
         try:
-            status = fcntl.ioctl(fd, 0x5326, 0)  # CDROM_DRIVE_STATUS
-            return status == 4  # CDS_DISC_OK
+            return fcntl.ioctl(fd, 0x5326, 0)  # CDROM_DRIVE_STATUS
         finally:
             os.close(fd)
     except OSError:
-        return False
+        return -1
+
+
+def _drive_has_disc(devpath: str) -> bool:
+    """Quick check — returns False only if tray is open or no disc.
+
+    USB optical drives (e.g. Pioneer BDR-S12JX) report NOT_READY (3) for
+    30-60s during spin-up.  Only NO_DISC and TRAY_OPEN are definitive
+    ejection indicators.
+    """
+    return _drive_status(devpath) not in (-1, 1, 2)
 
 
 def find_mount(devpath: str) -> str | None:
@@ -76,17 +91,64 @@ def find_mount(devpath: str) -> str | None:
     return None
 
 
+def _wait_for_drive_ready(devpath: str, timeout: int = 120) -> bool:
+    """Poll drive until DISC_OK or timeout.
+
+    USB optical drives can take 30-60s+ to spin up after disc insertion
+    or tray close.  Calling ``mount`` while the drive reports NOT_READY
+    causes the mount syscall to block for minutes.  Polling first avoids
+    this and gives clear log output about what the drive is doing.
+
+    :return: ``True`` if drive reached DISC_OK, ``False`` if ejected/timeout
+    """
+    _STATUS_NAMES = {0: "NO_INFO", 1: "NO_DISC", 2: "TRAY_OPEN",
+                     3: "DRIVE_NOT_READY", 4: "DISC_OK", -1: "OS_ERROR"}
+    poll_interval = 3
+    elapsed = 0
+    last_status = None
+
+    while elapsed < timeout:
+        status = _drive_status(devpath)
+        if status == 4:  # CDS_DISC_OK
+            if elapsed > 0:
+                logging.info(f"Drive {devpath} ready after {elapsed}s")
+            return True
+        if status in (1, 2):  # NO_DISC or TRAY_OPEN — bail
+            logging.error(f"Disc ejected from {devpath} (status={_STATUS_NAMES.get(status)})")
+            return False
+        # Log state changes (not every poll)
+        if status != last_status:
+            logging.info(
+                f"Waiting for drive {devpath} to be ready "
+                f"(status={_STATUS_NAMES.get(status, status)}, {elapsed}s/{timeout}s)"
+            )
+            last_status = status
+        time.sleep(poll_interval)
+        elapsed += poll_interval
+
+    logging.error(
+        f"Drive {devpath} not ready after {timeout}s "
+        f"(last status={_STATUS_NAMES.get(last_status, last_status)})"
+    )
+    return False
+
+
 def check_mount(job: Job) -> bool:
     """
     Check if there is a suitable mount for ``job``, if not, try to mount.
 
-    USB optical drives can take 30-60s after disc insertion before the
-    filesystem is readable.  Retries with increasing delays to handle this.
-
-    Bails out early if the disc is ejected during the retry loop.
+    First waits for the drive to report DISC_OK (up to 120s) to avoid
+    blocking mount syscalls on USB drives that are still spinning up.
+    Then retries mount with increasing delays.
 
     :return: ``True`` if mount exists now, ``False`` otherwise
     """
+    # Wait for drive to be ready before attempting mount.
+    # USB drives (Pioneer BDR-S12JX) report NOT_READY for 30-60s after
+    # insertion; calling mount during this state blocks for ~5 minutes.
+    if not _wait_for_drive_ready(job.devpath, timeout=120):
+        return False
+
     max_attempts = 12  # ~60s total with backoff
 
     for attempt in range(1, max_attempts + 1):
@@ -269,6 +331,13 @@ def _identify_video_title(job):
     if job.title is None or job.title == "None" or job.title == "":
         _apply_label_as_title(job)
 
+    # Auto-enable multi_title for TV series — episodes are distinct titles
+    # and the transcoder uses per-track metadata to name output files.
+    if job.video_type == "series" and not job.multi_title:
+        job.multi_title = True
+        db.session.commit()
+        logging.info("Auto-enabled multi_title for TV series disc")
+
     logging.info(f"Disc title Post ident -  title:{job.title} "
                  f"year:{job.year} video_type:{job.video_type} "
                  f"disctype: {job.disctype}")
@@ -288,7 +357,19 @@ def identify(job):
     """
     logging.debug("Identify Entry point --- job ----")
 
+    # Music CDs are already identified during setup() via MusicBrainz —
+    # skip mount/identify since audio CDs have no filesystem and mount hangs.
+    if job.disctype == "music":
+        logging.info("Disc already identified as music — skipping filesystem identification")
+        return
+
     mounted = check_mount(job)
+
+    if not mounted and job.disctype is None:
+        raise RipperException(
+            f"Could not mount {job.devpath} — drive may be empty, "
+            f"still spinning up, or the device no longer exists"
+        )
 
     try:
         if mounted:
@@ -480,6 +561,13 @@ def update_job(job, search_results):
         'poster_url': best.poster_url or '',
         'hasnicetitle': True,
     }
+    # Persist disc number/season from label parsing (e.g. "Disc 2", "S01D03")
+    if selection.label_info:
+        if selection.label_info.disc_number is not None:
+            args['disc_number'] = selection.label_info.disc_number
+        if selection.label_info.season_number is not None:
+            args['season_auto'] = str(selection.label_info.season_number)
+            args['season'] = str(selection.label_info.season_number)
     return utils.database_updater(args, job)
 
 

@@ -55,18 +55,20 @@ services:
       # Transcoder integration (written to arm.yaml at startup)
       - ARM_TRANSCODER_URL=${ARM_TRANSCODER_URL:-http://arm-transcoder:5000/webhook/arm}
       - ARM_TRANSCODER_WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
+      # Local SSD scratch for ripping (moved to shared storage after rip)
+      - ARM_LOCAL_RAW_PATH=${ARM_LOCAL_RAW_PATH:-}
+      - ARM_SHARED_RAW_PATH=${ARM_SHARED_RAW_PATH:-}
     volumes:
       - ${ARM_MUSIC_PATH}:/home/arm/music
       - ${ARM_LOGS_PATH}:/home/arm/logs
       - ${ARM_MEDIA_PATH}:/home/arm/media
+      - ${ARM_SCRATCH_PATH:-/home/arm/media}:/home/arm/scratch
       - ${ARM_CONFIG_PATH}:/etc/arm/config
       - arm-db:/home/arm/db
       - ${ARM_MAKEMKV_PATH:-makemkv-settings}:/home/arm/.MakeMKV
-    # devices:
-    #   - ${ARM_DEVICE_0:-/dev/sr0}:/dev/sr0
-    #   - ${ARM_DEVICE_1:-/dev/sr1}:/dev/sr1
-    #   - ${ARM_DEVICE_2:-/dev/sr2}:/dev/sr2
-    #   - ${ARM_DEVICE_3:-/dev/sr3}:/dev/sr3
+      # Live /dev mount ensures USB optical drives remain visible after
+      # hot-plug, disconnect/reconnect, or device re-enumeration.
+      - /dev:/dev
     cpuset: ${ARM_CPUSET:-2,3,4,5,6,7}
     depends_on:
       arm-db-init:

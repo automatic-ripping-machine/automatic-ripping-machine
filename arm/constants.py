@@ -12,3 +12,6 @@ NOTIFY_TITLE = "ARM notification"
 PROCESS_COMPLETE = "processing complete."
 # Disc types that should be treated as Blu-ray for ripping/identification
 BLURAY_TYPES = {"bluray", "bluray4k"}
+# Video types where only the best track is auto-enabled after scan.
+# All other types (series, music, unknown, etc.) enable every track.
+SINGLE_TRACK_VIDEO_TYPES = {"movie"}

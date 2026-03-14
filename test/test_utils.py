@@ -33,7 +33,7 @@ class TestCheckForWait:
              unittest.mock.patch.object(db.session, 'refresh', side_effect=fake_refresh):
             check_for_wait(sample_job)
 
-        assert sample_job.status == "active"  # JobState.IDLE maps to "active"
+        assert sample_job.status == "ready"  # JobState.IDLE.value
 
     def test_manual_pause_holds_job(self, app_context, sample_job):
         """manual_pause=True prevents timeout from proceeding."""
@@ -99,7 +99,7 @@ class TestCheckForWait:
              unittest.mock.patch('arm.ripper.utils.is_ripping_paused', return_value=False):
             check_for_wait(sample_job)
 
-        assert sample_job.status == "active"  # JobState.IDLE maps to "active"
+        assert sample_job.status == "ready"  # JobState.IDLE.value
 
 
 class TestExtractYear:

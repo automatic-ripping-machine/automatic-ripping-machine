@@ -341,7 +341,7 @@ async def lookup_crc(crc64: str) -> dict[str, Any]:
             data = resp.json()
     except (httpx.HTTPError, httpx.ConnectError) as exc:
         log.warning("CRC database unreachable for %s: %s", crc64, exc)
-        return {"found": False, "results": [], "error": "CRC database unreachable"}
+        return {"found": False, "results": [], "error": "The community CRC database (1337server.pythonanywhere.com) appears to be offline. This is an external service not maintained by ARM."}
 
     if not data.get("success"):
         log.debug("CRC64 %s not found in database", crc64)

@@ -154,22 +154,58 @@ def _move_to_shared_storage(cfg, raw_basename):
 
 
 def _build_webhook_payload(title, body, job, raw_basename):
-    """Build the JSON payload for the transcoder webhook."""
+    """Build the JSON payload for the transcoder webhook.
+
+    Includes pre-rendered naming from ARM's naming engine so the transcoder
+    doesn't need its own naming logic — ARM is the single source of truth
+    for folder/file naming patterns configured in arm.yaml.
+    """
+    from arm.ripper.naming import render_folder, render_title, render_track_title, render_track_folder, _clean_for_filename
+
     payload = {"title": title, "body": body, "type": "info"}
     if raw_basename:
         payload["path"] = raw_basename
     if job is not None:
+        config_dict = cfg.arm_config if hasattr(cfg, 'arm_config') else None
         payload["job_id"] = str(job.job_id)
         payload["video_type"] = str(job.video_type or '')
         payload["year"] = str(job.year or '')
         payload["disctype"] = str(job.disctype or '')
         payload["status"] = str(job.status or '')
         payload["poster_url"] = str(job.poster_url or '')
+        # Pre-rendered names from ARM's naming engine (arm.yaml patterns)
+        # render_folder may contain '/' for nested dirs (e.g. "Title/Season 01")
+        # — it already sanitizes each segment, so don't strip slashes here.
+        payload["folder_name"] = render_folder(job, config_dict)
+        payload["title_name"] = _clean_for_filename(render_title(job, config_dict))
         if job.transcode_overrides:
             try:
                 payload["config_overrides"] = json.loads(job.transcode_overrides)
             except (json.JSONDecodeError, TypeError):
                 pass
+        # Multi-title: include ALL track metadata for the transcoder.
+        # Tracks without per-track overrides inherit job-level defaults so
+        # the transcoder can route every file, not just custom-titled ones.
+        if getattr(job, 'multi_title', False):
+            payload["multi_title"] = True
+            tracks_meta = []
+            for track in job.tracks:
+                track_title = render_track_title(track, job, config_dict)
+                track_folder = render_track_folder(track, job, config_dict)
+                tracks_meta.append({
+                    "track_number": str(track.track_number or ''),
+                    "title": str(track.title or job.title or ''),
+                    "year": str(track.year or job.year or ''),
+                    "video_type": str(track.video_type or job.video_type or ''),
+                    "filename": str(track.filename or ''),
+                    "has_custom_title": bool(track.title),
+                    "folder_name": track_folder,
+                    "title_name": _clean_for_filename(track_title) if track_title else '',
+                    "episode_number": str(getattr(track, 'episode_number', '') or ''),
+                    "episode_name": str(getattr(track, 'episode_name', '') or ''),
+                })
+            if tracks_meta:
+                payload["tracks"] = tracks_meta
     return payload
 
 
@@ -186,6 +222,14 @@ def transcoder_notify(cfg, title, body, job=None):
 
     raw_basename = os.path.basename(str(job.raw_path)) if job.raw_path else ''
     _move_to_shared_storage(cfg, raw_basename)
+
+    # Update job.raw_path to shared location after move
+    shared_raw = cfg.get('SHARED_RAW_PATH', '')
+    if shared_raw and raw_basename:
+        new_raw_path = os.path.join(shared_raw, raw_basename)
+        if os.path.isdir(new_raw_path):
+            job.raw_path = new_raw_path
+            db.session.commit()
 
     payload = _build_webhook_payload(title, body, job, raw_basename)
     headers = {"Content-Type": "application/json"}
@@ -225,7 +269,7 @@ def notify_entry(job):
             display_address = str(cfg.arm_config["UI_BASE_URL"])
         # Send the notifications
         notify(job, NOTIFY_TITLE,
-               f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {job.config.MAINFEATURE}."
+               f"Found disc: {job.title}. Disc type is {job.disctype}. "
                f"Edit entry here: {display_address}/jobdetail?job_id={job.job_id}")
     elif job.disctype == "music":
         notify(job, NOTIFY_TITLE, f"Found music CD: {job.label}. Ripping all tracks.")
@@ -339,6 +383,146 @@ def find_file(filename, search_path):
     return False
 
 
+def _update_music_tracks(job, ripped, status):
+    """Bulk-update ripped/status on all tracks for a music job."""
+    try:
+        Track.query.filter_by(job_id=job.job_id).update(
+            {"ripped": ripped, "status": status}
+        )
+        db.session.commit()
+    except Exception as exc:
+        logging.debug("Could not update music tracks: %s", exc)
+        db.session.rollback()
+
+
+def _poll_music_progress(proc, job, logpath):
+    """Poll abcde log during ripping to update per-track status.
+
+    Parses abcde output for three phases per track:
+      - ``Grabbing track NN:``  → status "ripping"
+      - ``Encoding track NN of`` → status "encoding", ripped=True
+      - ``Tagging track NN of``  → status "success", ripped=True
+    """
+    seen_grabbing: set[int] = set()
+    seen_encoding: set[int] = set()
+    seen_tagging: set[int] = set()
+
+    while proc.poll() is None:
+        time.sleep(5)
+        try:
+            with open(logpath, "r", errors="replace") as f:
+                content = f.read()
+            for m in re.finditer(r"Grabbing track (\d+):", content):
+                seen_grabbing.add(int(m.group(1)))
+            for m in re.finditer(r"Encoding track (\d+) of", content):
+                seen_encoding.add(int(m.group(1)))
+            for m in re.finditer(r"Tagging track (\d+) of", content):
+                seen_tagging.add(int(m.group(1)))
+            _apply_track_phases(job, seen_grabbing, seen_encoding, seen_tagging)
+        except OSError:
+            pass
+
+
+def _apply_track_phases(job, grabbing, encoding, tagging):
+    """Set per-track ripped/status based on the abcde phases observed so far."""
+    try:
+        tracks = Track.query.filter_by(job_id=job.job_id).all()
+        changed = False
+        for t in tracks:
+            try:
+                tn = int(t.track_number)
+            except (ValueError, TypeError):
+                continue
+            if tn in tagging:
+                if t.status != "success":
+                    t.ripped = True
+                    t.status = "success"
+                    changed = True
+            elif tn in encoding:
+                if t.status != "encoding":
+                    t.ripped = True
+                    t.status = "encoding"
+                    changed = True
+            elif tn in grabbing:
+                if t.status != "ripping":
+                    t.status = "ripping"
+                    changed = True
+        if changed:
+            db.session.commit()
+    except Exception as exc:
+        logging.debug("Could not update track phases: %s", exc)
+        db.session.rollback()
+
+
+# cdparanoia options keyed by RIP_SPEED_PROFILE
+_SPEED_PROFILES = {
+    "safe": "",                # full paranoia — slowest, best for scratched discs
+    "fast": "-Y",              # disable extra paranoia — good balance, ~2-4x faster
+    "fastest": "-Z",           # disable all paranoia — pristine discs only, ~5-10x faster
+}
+
+
+def _build_custom_abcde_config(base_config, disc_number=None,
+                               disc_folder_pattern=None, speed_profile=None):
+    """Create a temporary abcde config with per-job overrides.
+
+    Supports two optional customizations applied to the base config:
+
+    * **disc_number** — injects a disc subfolder into OUTPUTFORMAT after the
+      album component so multi-disc sets get per-disc subfolders.
+      *disc_folder_pattern* controls the folder name (default ``Disc {num}``).
+    * **speed_profile** — appends a ``CDPARANOIAOPTS`` line with the
+      cdparanoia flags for the chosen speed profile (safe/fast/fastest).
+    """
+    import tempfile
+
+    try:
+        with open(base_config, "r", errors="replace") as f:
+            content = f.read()
+    except OSError:
+        logging.warning("Could not read abcde config %s for overrides", base_config)
+        return None
+
+    # --- Disc subfolder injection ---
+    if disc_number:
+        pattern = disc_folder_pattern or "Disc {num}"
+        disc_dir = pattern.replace("{num}", str(disc_number))
+
+        def _inject_disc(match):
+            fmt = match.group(1)
+            if "${ALBUMFILE}/" in fmt:
+                fmt = fmt.replace("${ALBUMFILE}/", "${ALBUMFILE}/" + disc_dir + "/")
+            else:
+                fmt = disc_dir + "/" + fmt
+            return "OUTPUTFORMAT='" + fmt + "'"
+
+        def _inject_va_disc(match):
+            fmt = match.group(1)
+            if "${ALBUMFILE}/" in fmt:
+                fmt = fmt.replace("${ALBUMFILE}/", "${ALBUMFILE}/" + disc_dir + "/")
+            else:
+                fmt = disc_dir + "/" + fmt
+            return "VAOUTPUTFORMAT='" + fmt + "'"
+
+        content = re.sub(r"^OUTPUTFORMAT='([^']+)'", _inject_disc, content, count=1, flags=re.MULTILINE)
+        content = re.sub(r"^VAOUTPUTFORMAT='([^']+)'", _inject_va_disc, content, count=1, flags=re.MULTILINE)
+
+    # --- Speed profile (cdparanoia opts) ---
+    if speed_profile and speed_profile in _SPEED_PROFILES:
+        opts = _SPEED_PROFILES[speed_profile]
+        if opts:
+            # Remove any existing CDPARANOIAOPTS line, then append ours
+            content = re.sub(r"^#?CDPARANOIAOPTS=.*$", "", content, flags=re.MULTILINE)
+            content = content.rstrip() + f'\nCDPARANOIAOPTS="{opts}"\n'
+            logging.info("CD rip speed profile: %s (CDPARANOIAOPTS=%s)", speed_profile, opts)
+
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".conf", prefix="abcde_custom_", delete=False)
+    tmp.write(content)
+    tmp.close()
+    logging.info("Created custom abcde config: %s", tmp.name)
+    return tmp.name
+
+
 def rip_music(job, logfile):
     """
     Rip music CD using abcde config\n
@@ -348,22 +532,61 @@ def rip_music(job, logfile):
     """
 
     abcfile = cfg.arm_config["ABCDE_CONFIG_FILE"]
+    tmp_config = None
     if job.disctype == "music":
         logging.info("Disc identified as music")
+        logpath = os.path.join(job.config.LOGPATH, logfile)
+
+        # Audio output format (e.g. flac, mp3, vorbis)
+        audio_fmt = getattr(job.config, "AUDIO_FORMAT", None) or cfg.arm_config.get("AUDIO_FORMAT", "")
+        fmt_flag = f" -o {audio_fmt}" if audio_fmt else ""
+
+        # Determine if we need a custom abcde config
+        disc_num = getattr(job, "disc_number", None) or 0
+        disc_tot = getattr(job, "disc_total", None) or 0
+
+        multi_disc_enabled = getattr(job.config, "MUSIC_MULTI_DISC_SUBFOLDERS", None)
+        if multi_disc_enabled is None:
+            multi_disc_enabled = cfg.arm_config.get("MUSIC_MULTI_DISC_SUBFOLDERS", True)
+
+        need_disc = bool(multi_disc_enabled) \
+            and isinstance(disc_num, int) and isinstance(disc_tot, int) \
+            and disc_num > 0 and disc_tot > 1
+
+        disc_folder_pattern = getattr(job.config, "MUSIC_DISC_FOLDER_PATTERN", None) \
+            or cfg.arm_config.get("MUSIC_DISC_FOLDER_PATTERN", "Disc {num}")
+
+        speed = getattr(job.config, "RIP_SPEED_PROFILE", None) \
+            or cfg.arm_config.get("RIP_SPEED_PROFILE", "safe")
+        need_speed = speed in _SPEED_PROFILES and speed != "safe"
+
+        if (need_disc or need_speed) and os.path.isfile(abcfile):
+            tmp_config = _build_custom_abcde_config(
+                abcfile,
+                disc_number=disc_num if need_disc else None,
+                disc_folder_pattern=disc_folder_pattern if need_disc else None,
+                speed_profile=speed if need_speed else None,
+            )
+
+        config_to_use = tmp_config or (abcfile if os.path.isfile(abcfile) else None)
+
         # If user has set a cfg.arm_config file with ARM use it
-        if os.path.isfile(abcfile):
-            cmd = f'abcde -d "{job.devpath}" -c {abcfile} >> "{os.path.join(job.config.LOGPATH, logfile)}" 2>&1'
+        if config_to_use:
+            cmd = f'abcde -d "{job.devpath}" -c {config_to_use}{fmt_flag} >> "{logpath}" 2>&1'
         else:
-            cmd = f'abcde -d "{job.devpath}" >> "{os.path.join(job.config.LOGPATH, logfile)}" 2>&1'
+            cmd = f'abcde -d "{job.devpath}"{fmt_flag} >> "{logpath}" 2>&1'
 
         logging.debug(f"Sending command: {cmd}")
         args = {"status": JobState.AUDIO_RIPPING.value}
         database_updater(args, job)
 
         try:
-            subprocess.check_output(cmd, shell=True).decode("utf-8")
+            proc = subprocess.Popen(cmd, shell=True)
+            _poll_music_progress(proc, job, logpath)
+            proc.wait()
+            if proc.returncode != 0:
+                raise subprocess.CalledProcessError(proc.returncode, cmd)
             # abcde exits 0 even on drive I/O errors — check the log for failures
-            logpath = os.path.join(job.config.LOGPATH, logfile)
             try:
                 with open(logpath, "r", errors="replace") as f:
                     log_content = f.read()
@@ -378,8 +601,10 @@ def rip_music(job, logfile):
                 logging.error(err)
                 args = {"status": JobState.FAILURE.value, "errors": err}
                 database_updater(args, job)
+                _update_music_tracks(job, ripped=False, status="fail")
                 return False
             logging.info("abcde call successful")
+            _update_music_tracks(job, ripped=True, status="success")
             args = {"status": JobState.IDLE.value}
             database_updater(args, job)
             return True
@@ -387,7 +612,14 @@ def rip_music(job, logfile):
             err = f"Call to abcde failed with code: {ab_error.returncode} ({ab_error.output})"
             args = {"status": JobState.FAILURE.value, "errors": err}
             database_updater(args, job)
+            _update_music_tracks(job, ripped=False, status="fail")
             logging.error(err)
+        finally:
+            if tmp_config:
+                try:
+                    os.unlink(tmp_config)
+                except OSError:
+                    pass
     return False
 
 
@@ -473,7 +705,7 @@ def try_add_default_user():
 
 
 def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
-              chapters=0, filesize=0):
+              chapters=0, filesize=0, title=None):
     """
     Put data into a track instance.\n
     Having this here saves importing the models file everywhere\n
@@ -488,6 +720,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
     :param str filename: filename of track
     :param int chapters: number of chapters in track
     :param int filesize: size of track in bytes
+    :param str title: per-track title (e.g. song name from MusicBrainz)
     """
 
     logging.debug(
@@ -508,6 +741,8 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
         chapters=chapters,
         filesize=filesize
     )
+    if title:
+        job_track.title = title
     job_track.ripped = False
     database_adder(job_track)
 
@@ -618,6 +853,9 @@ def clean_old_jobs():
             logging.info(f"Job #{job.job_id} with PID {job.pid} has been abandoned. "
                          f"Updating job status to fail.")
             database_updater({'status': JobState.FAILURE.value}, job)
+            if job.drive is not None:
+                job.drive.release_current_job()
+                db.session.commit()
 
 
 def check_ip():
@@ -856,6 +1094,35 @@ def get_tv_folder_name(job):
     return job.formatted_title
 
 
+def _is_empty_failed_rip(path, label):
+    """Check if a directory is an empty leftover from a failed rip.
+
+    Returns True if the directory exists, contains no files, and the most
+    recent job with the same label is in a failure state (or no successful
+    job exists for this label).
+    """
+    if not os.path.isdir(path):
+        return False
+    # Check for any files (not just immediate children — recurse)
+    for _root, _dirs, files in os.walk(path):
+        if files:
+            return False
+    # Empty folder — check if last job with this label failed
+    if label is None:
+        return True
+    try:
+        last_job = (Job.query
+                    .filter_by(label=label)
+                    .order_by(Job.job_id.desc())
+                    .first())
+    except Exception:
+        # DB not available — be conservative, don't auto-clean
+        return False
+    if last_job is None:
+        return True
+    return last_job.status in (JobState.FAILURE.value,)
+
+
 def check_for_dupe_folder(have_dupes, hb_out_path, job):
     """
     Check if the folder already exists
@@ -867,12 +1134,24 @@ def check_for_dupe_folder(have_dupes, hb_out_path, job):
     """
     if (make_dir(hb_out_path)) is False:
         logging.info(f"Output directory \"{hb_out_path}\" already exists.")
+        # If the folder is empty and from a failed rip, clean it up and reuse
+        if _is_empty_failed_rip(hb_out_path, job.label):
+            import shutil
+            logging.info(f"Removing empty folder from failed rip: \"{hb_out_path}\"")
+            shutil.rmtree(hb_out_path)
+            make_dir(hb_out_path)
         # Only begin ripping if we are allowed to make duplicates
         # Or the successful rip of the disc is not found in our database
-        logging.debug(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
-        logging.debug(f"Value of have_dupes: {have_dupes}")
-        if cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
-            hb_out_path = hb_out_path + "_" + job.stage
+        elif cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
+            logging.debug(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
+            logging.debug(f"Value of have_dupes: {have_dupes}")
+            suffix = job.stage if job.stage else str(int(time.time()))
+            hb_out_path = hb_out_path + "_" + suffix
+            # Also clean empty folders from failed rips at the deduped path
+            if _is_empty_failed_rip(hb_out_path, job.label):
+                import shutil
+                logging.info(f"Removing empty folder from failed rip: \"{hb_out_path}\"")
+                shutil.rmtree(hb_out_path)
             make_dir(hb_out_path, False)
         else:
             # We aren't allowed to rip dupes, notify and exit
@@ -994,7 +1273,9 @@ def check_for_wait(job):
         logging.info("Global ripping paused. Waiting for manual start.")
     else:
         logging.info(f"Waiting {job.config.MANUAL_WAIT_TIME} seconds for manual override.")
-    database_updater({"status": JobState.MANUAL_WAIT_STARTED.value}, job)
+    import datetime
+    database_updater({"status": JobState.MANUAL_WAIT_STARTED.value,
+                      "wait_start_time": datetime.datetime.now()}, job)
     _poll_manual_wait(job)
     database_updater({"status": JobState.IDLE.value}, job)
 

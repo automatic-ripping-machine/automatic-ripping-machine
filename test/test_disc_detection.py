@@ -188,6 +188,7 @@ class TestIdentifyAudioCd:
         job = self._make_job()
         mock_discid = unittest.mock.MagicMock()
         with unittest.mock.patch('arm.ripper.music_brainz.get_disc_id', return_value=mock_discid), \
+             unittest.mock.patch('arm.ripper.music_brainz.create_toc_tracks'), \
              unittest.mock.patch('arm.ripper.music_brainz.get_title', return_value='Pink Floyd Dark Side'):
             result = job.identify_audio_cd()
         assert result == 'Pink Floyd Dark Side'
@@ -197,6 +198,7 @@ class TestIdentifyAudioCd:
         job = self._make_job()
         mock_discid = unittest.mock.MagicMock()
         with unittest.mock.patch('arm.ripper.music_brainz.get_disc_id', return_value=mock_discid), \
+             unittest.mock.patch('arm.ripper.music_brainz.create_toc_tracks'), \
              unittest.mock.patch('arm.ripper.music_brainz.get_title', return_value='not identified'):
             result = job.identify_audio_cd()
         assert result == 'music_cd'

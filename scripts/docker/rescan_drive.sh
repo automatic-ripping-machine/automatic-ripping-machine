@@ -3,12 +3,11 @@
 #
 # Called via: docker exec arm-rippers /opt/arm/scripts/docker/rescan_drive.sh sr0
 #
-# Creates the device node if missing (USB drive re-enumeration),
-# then triggers udev for that device only. The existing udev rule
-# (51-docker-arm.rules) fires the wrapper script if a disc is present.
-#
-# This avoids restarting the entire container, which would kill
-# in-progress rips on other drives.
+# 1. Cleans up stale sibling device nodes from USB re-enumeration
+# 2. Creates the device node if missing
+# 3. Checks if a disc is actually present (ioctl)
+# 4. Checks if ARM is already processing this drive (flock)
+# 5. Launches the ARM wrapper directly (no container udev rules needed)
 
 set -euo pipefail
 
@@ -67,11 +66,39 @@ if [[ ! -e "/dev/$DEVNAME" ]]; then
     log "Created missing device node /dev/$DEVNAME ($major:$minor)"
 fi
 
-# --- Trigger udev for this device only ---
-# ACTION=change matches the disc-detection rule (51-docker-arm.rules).
-# If a disc is present, the rule fires docker_arm_wrapper.sh → main.py.
-# If no disc is loaded, udev simply does nothing.
-udevadm trigger --action=change --name-match="/dev/$DEVNAME"
-udevadm settle --timeout=5
+# --- Check if a disc is present (ioctl) ---
+# CDROM_DRIVE_STATUS (0x5326): 1=NO_DISC, 2=TRAY_OPEN, 3=NOT_READY, 4=DISC_OK
+DISC_STATUS=$(python3 -c "
+import os, fcntl
+try:
+    fd = os.open('/dev/$DEVNAME', os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        print(fcntl.ioctl(fd, 0x5326, 0))
+    finally:
+        os.close(fd)
+except:
+    print(-1)
+" 2>/dev/null || echo "-1")
 
-log "Rescan complete for /dev/$DEVNAME"
+if [[ "$DISC_STATUS" == "1" || "$DISC_STATUS" == "2" ]]; then
+    log "No disc in /dev/$DEVNAME (status=$DISC_STATUS), skipping"
+    exit 0
+fi
+
+if [[ "$DISC_STATUS" == "-1" ]]; then
+    log "Cannot query /dev/$DEVNAME (status=$DISC_STATUS), skipping"
+    exit 0
+fi
+
+# --- Check if ARM is already processing this drive ---
+LOCKFILE="/home/arm/.arm_${DEVNAME}.lock"
+if ! flock -n "$LOCKFILE" true 2>/dev/null; then
+    log "ARM already running for $DEVNAME (lock held), skipping"
+    exit 0
+fi
+
+# --- Launch ARM wrapper directly ---
+# The wrapper has its own flock, so even if there's a race between our
+# check above and the exec below, double-runs are prevented.
+log "Disc present (status=$DISC_STATUS), launching ARM wrapper for $DEVNAME"
+exec /opt/arm/scripts/docker/docker_arm_wrapper.sh "$DEVNAME"

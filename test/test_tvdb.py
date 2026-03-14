@@ -1,0 +1,524 @@
+"""Tests for TVDB v4 API episode matching."""
+
+import asyncio
+import unittest.mock
+
+import pytest
+
+from arm.services.tvdb import match_tracks_to_episodes, match_tracks_best_season
+
+
+class TestMatchTracksToEpisodes:
+    """Test the runtime-based track-to-episode matching algorithm."""
+
+    def test_perfect_match(self):
+        tracks = [
+            {"track_number": "0", "length": 3400},
+            {"track_number": "1", "length": 3500},
+            {"track_number": "2", "length": 2200},
+        ]
+        episodes = [
+            {"number": 1, "name": "Speedy Death", "runtime": 3420},
+            {"number": 2, "name": "Death at the Opera", "runtime": 3480},
+            {"number": 3, "name": "The Rising of the Moon", "runtime": 2160},
+        ]
+        matches = match_tracks_to_episodes(tracks, episodes, tolerance=300)
+        assert len(matches) == 3
+        by_track = {m["track_number"]: m for m in matches}
+        assert by_track["0"]["episode_name"] == "Speedy Death"
+        assert by_track["1"]["episode_name"] == "Death at the Opera"
+        assert by_track["2"]["episode_name"] == "The Rising of the Moon"
+
+    def test_tolerance_exceeded(self):
+        tracks = [
+            {"track_number": "0", "length": 3400},
+            {"track_number": "1", "length": 100},   # way too short
+        ]
+        episodes = [
+            {"number": 1, "name": "Episode 1", "runtime": 3420},
+            {"number": 2, "name": "Episode 2", "runtime": 3500},
+        ]
+        matches = match_tracks_to_episodes(tracks, episodes, tolerance=300)
+        # Track 1 (100s) is <120s so skipped as menu/intro
+        assert len(matches) == 1
+        assert matches[0]["episode_name"] == "Episode 1"
+
+    def test_more_episodes_than_tracks(self):
+        """Disc has fewer tracks than episodes in the season (normal for multi-disc)."""
+        tracks = [
+            {"track_number": "0", "length": 3400},
+        ]
+        episodes = [
+            {"number": 1, "name": "Ep 1", "runtime": 3420},
+            {"number": 2, "name": "Ep 2", "runtime": 3500},
+            {"number": 3, "name": "Ep 3", "runtime": 3600},
+        ]
+        matches = match_tracks_to_episodes(tracks, episodes, tolerance=300)
+        assert len(matches) == 1
+        assert matches[0]["episode_number"] == 1
+
+    def test_more_tracks_than_episodes(self):
+        """Disc has extras/bonus tracks beyond episode count."""
+        tracks = [
+            {"track_number": "0", "length": 3400},
+            {"track_number": "1", "length": 3500},
+            {"track_number": "2", "length": 600},   # bonus/extra
+        ]
+        episodes = [
+            {"number": 1, "name": "Ep 1", "runtime": 3420},
+        ]
+        matches = match_tracks_to_episodes(tracks, episodes, tolerance=300)
+        assert len(matches) == 1
+        assert matches[0]["track_number"] == "0"
+
+    def test_empty_inputs(self):
+        assert match_tracks_to_episodes([], [], tolerance=300) == []
+        assert match_tracks_to_episodes([], [{"number": 1, "name": "X", "runtime": 3000}]) == []
+        assert match_tracks_to_episodes([{"track_number": "0", "length": 3000}], []) == []
+
+    def test_greedy_no_reuse(self):
+        """Two tracks with similar runtimes shouldn't both claim the same episode."""
+        tracks = [
+            {"track_number": "0", "length": 3400},
+            {"track_number": "1", "length": 3410},
+        ]
+        episodes = [
+            {"number": 1, "name": "Ep 1", "runtime": 3400},
+            {"number": 2, "name": "Ep 2", "runtime": 3500},
+        ]
+        matches = match_tracks_to_episodes(tracks, episodes, tolerance=300)
+        assert len(matches) == 2
+        eps = {m["episode_number"] for m in matches}
+        assert eps == {1, 2}  # both episodes assigned, no duplicates
+
+    def test_short_tracks_skipped(self):
+        """Tracks under 120s (menus/intros) are excluded from matching."""
+        tracks = [
+            {"track_number": "0", "length": 12},
+            {"track_number": "1", "length": 18},
+            {"track_number": "2", "length": 66},
+            {"track_number": "3", "length": 3400},
+        ]
+        episodes = [
+            {"number": 1, "name": "Ep 1", "runtime": 3420},
+        ]
+        matches = match_tracks_to_episodes(tracks, episodes, tolerance=300)
+        assert len(matches) == 1
+        assert matches[0]["track_number"] == "3"
+
+
+    def test_disc_number_prefers_later_episodes(self):
+        """Disc 2 should prefer later episodes when runtimes are identical."""
+        # Mrs. Bradley Mysteries scenario: 5 episodes, E01=5400s, E02-E05=3600s
+        episodes = [
+            {"number": 1, "name": "Speedy Death", "runtime": 5400},
+            {"number": 2, "name": "Death at the Opera", "runtime": 3600},
+            {"number": 3, "name": "The Rising of the Moon", "runtime": 3600},
+            {"number": 4, "name": "Laurels Are Poison", "runtime": 3600},
+            {"number": 5, "name": "The Worsted Viper", "runtime": 3600},
+        ]
+
+        # Disc 1: 3 tracks (one long, two standard)
+        disc1_tracks = [
+            {"track_number": "0", "length": 5380},
+            {"track_number": "1", "length": 3550},
+            {"track_number": "2", "length": 3570},
+        ]
+        disc1_matches = match_tracks_to_episodes(
+            disc1_tracks, episodes, tolerance=300,
+            disc_number=1, disc_total=2,
+        )
+        disc1_eps = {m["episode_number"] for m in disc1_matches}
+        assert 1 in disc1_eps  # E01 matched by runtime
+        # The other two should be E02+E03 (early episodes for disc 1)
+        assert disc1_eps == {1, 2, 3}
+
+        # Disc 2: 2 tracks (both standard runtime)
+        disc2_tracks = [
+            {"track_number": "0", "length": 3407},
+            {"track_number": "1", "length": 3535},
+        ]
+        disc2_matches = match_tracks_to_episodes(
+            disc2_tracks, episodes, tolerance=300,
+            disc_number=2, disc_total=2,
+        )
+        disc2_eps = {m["episode_number"] for m in disc2_matches}
+        # Disc 2 should get E04+E05, NOT E02+E03
+        assert disc2_eps == {4, 5}
+
+    def test_disc_number_no_effect_when_runtimes_differ(self):
+        """When runtimes are distinct, disc_number doesn't change the result."""
+        episodes = [
+            {"number": 1, "name": "Ep 1", "runtime": 3000},
+            {"number": 2, "name": "Ep 2", "runtime": 3600},
+            {"number": 3, "name": "Ep 3", "runtime": 4200},
+        ]
+        tracks = [{"track_number": "0", "length": 3590}]
+        # Without disc_number
+        m1 = match_tracks_to_episodes(tracks, episodes, tolerance=300)
+        # With disc_number=2
+        m2 = match_tracks_to_episodes(
+            tracks, episodes, tolerance=300, disc_number=2, disc_total=2,
+        )
+        # Both should match E02 (closest runtime)
+        assert m1[0]["episode_number"] == 2
+        assert m2[0]["episode_number"] == 2
+
+    def test_disc_number_without_disc_total(self):
+        """disc_total=None should still work (estimates from disc_number)."""
+        episodes = [
+            {"number": 1, "name": "Ep 1", "runtime": 3600},
+            {"number": 2, "name": "Ep 2", "runtime": 3600},
+            {"number": 3, "name": "Ep 3", "runtime": 3600},
+            {"number": 4, "name": "Ep 4", "runtime": 3600},
+        ]
+        tracks = [
+            {"track_number": "0", "length": 3550},
+            {"track_number": "1", "length": 3560},
+        ]
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=300,
+            disc_number=2, disc_total=None,
+        )
+        eps = {m["episode_number"] for m in matches}
+        # Disc 2 of unknown total — should prefer later episodes
+        assert eps == {3, 4}
+
+
+class TestMatchTracksBestSeason:
+    """Test multi-season best-match selection."""
+
+    def _make_tracks(self, lengths):
+        return [{"track_number": str(i), "length": l} for i, l in enumerate(lengths)]
+
+    def _make_episodes(self, runtimes):
+        return [
+            {"number": i + 1, "name": f"Ep {i + 1}", "runtime": r}
+            for i, r in enumerate(runtimes)
+        ]
+
+    def test_picks_best_season(self):
+        """Season 2 episodes match better than season 1."""
+        tracks = self._make_tracks([3400, 3500, 2200])
+        seasons = {
+            1: self._make_episodes([2800, 2900, 3000]),  # poor match
+            2: self._make_episodes([3420, 3480, 2160]),  # excellent match
+        }
+        result = match_tracks_best_season(tracks, seasons, tolerance=300)
+        assert result["season"] == 2
+        assert result["match_count"] == 3
+        assert isinstance(result["alternatives"], list)
+
+    def test_no_match_any_season(self):
+        """No season matches within tolerance."""
+        tracks = self._make_tracks([100, 200])  # too short, all skipped
+        seasons = {
+            1: self._make_episodes([3400, 3500]),
+        }
+        result = match_tracks_best_season(tracks, seasons, tolerance=300)
+        assert result["match_count"] == 0
+
+    def test_empty_inputs(self):
+        result = match_tracks_best_season([], {}, tolerance=300)
+        assert result["season"] == 0
+        assert result["matches"] == []
+
+    def test_single_season(self):
+        tracks = self._make_tracks([3400])
+        seasons = {1: self._make_episodes([3420])}
+        result = match_tracks_best_season(tracks, seasons, tolerance=300)
+        assert result["season"] == 1
+        assert result["match_count"] == 1
+
+    def test_tiebreaker_by_delta(self):
+        """When match count is equal, prefer lower average delta."""
+        tracks = self._make_tracks([3400])
+        seasons = {
+            1: self._make_episodes([3500]),  # delta = 100
+            2: self._make_episodes([3410]),  # delta = 10 (better)
+        }
+        result = match_tracks_best_season(tracks, seasons, tolerance=300)
+        assert result["season"] == 2
+
+    def test_alternatives_only_include_nonzero_matches(self):
+        """Alternatives list should exclude seasons with zero matches."""
+        tracks = self._make_tracks([3400, 3500])
+        seasons = {
+            1: self._make_episodes([3420, 3480]),  # 2 matches
+            2: self._make_episodes([9999, 8888]),  # 0 matches
+            3: self._make_episodes([3450, 3550]),  # 2 matches but worse delta
+        }
+        result = match_tracks_best_season(tracks, seasons, tolerance=300)
+        assert result["match_count"] == 2
+        alt_seasons = {a["season"] for a in result["alternatives"]}
+        assert 2 not in alt_seasons  # season 2 had 0 matches
+
+    def test_never_mixes_episodes(self):
+        """Each season is scored independently — no cross-season mixing."""
+        tracks = self._make_tracks([3400, 5000])
+        seasons = {
+            1: self._make_episodes([3420]),       # matches track 0 only
+            2: self._make_episodes([5020]),       # matches track 1 only
+        }
+        # If mixing were allowed, both tracks would match. But per-season,
+        # each season can only match 1 track.
+        result = match_tracks_best_season(tracks, seasons, tolerance=300)
+        assert result["match_count"] == 1
+
+
+class TestGetAllSeasonEpisodes:
+    """Test the multi-season fetch function."""
+
+    def test_fetches_until_empty(self):
+        from arm.services import tvdb
+
+        async def mock_get_season_episodes(tvdb_id, season):
+            if season <= 3:
+                return [{"number": 1, "name": f"S{season}E1", "runtime": 3000}]
+            return []
+
+        with unittest.mock.patch.object(
+            tvdb, 'get_season_episodes', side_effect=mock_get_season_episodes
+        ):
+            result = asyncio.run(tvdb.get_all_season_episodes(12345, max_season=10))
+        assert set(result.keys()) == {1, 2, 3}
+
+    def test_respects_max_season(self):
+        from arm.services import tvdb
+
+        async def mock_get_season_episodes(tvdb_id, season):
+            return [{"number": 1, "name": f"S{season}E1", "runtime": 3000}]
+
+        with unittest.mock.patch.object(
+            tvdb, 'get_season_episodes', side_effect=mock_get_season_episodes
+        ):
+            result = asyncio.run(tvdb.get_all_season_episodes(12345, max_season=3))
+        assert set(result.keys()) == {1, 2, 3}
+
+
+class TestTvdbAsync:
+    """Test async TVDB functions with mocked HTTP."""
+
+    def test_resolve_tvdb_id(self):
+        from arm.services import tvdb
+
+        mock_response = {
+            "data": [{"series": {"id": "71256", "name": "Test Show"}}]
+        }
+        with unittest.mock.patch.object(tvdb, '_get', return_value=mock_response):
+            result = asyncio.run(tvdb.resolve_tvdb_id("tt0167667"))
+        assert result == 71256
+
+    def test_resolve_tvdb_id_not_found(self):
+        from arm.services import tvdb
+
+        mock_response = {"data": []}
+        with unittest.mock.patch.object(tvdb, '_get', return_value=mock_response):
+            result = asyncio.run(tvdb.resolve_tvdb_id("tt9999999"))
+        assert result is None
+
+    def test_resolve_tvdb_id_fallback_to_result_id(self):
+        """When series sub-object is missing, use result.id directly."""
+        from arm.services import tvdb
+
+        mock_response = {
+            "data": [{"id": "99887"}]
+        }
+        with unittest.mock.patch.object(tvdb, '_get', return_value=mock_response):
+            result = asyncio.run(tvdb.resolve_tvdb_id("tt1234567"))
+        assert result == 99887
+
+    def test_resolve_tvdb_id_http_error(self):
+        """HTTP error returns None."""
+        import httpx
+        from arm.services import tvdb
+
+        async def _raise(*a, **kw):
+            raise httpx.HTTPError("connection failed")
+
+        with unittest.mock.patch.object(tvdb, '_get', side_effect=_raise):
+            result = asyncio.run(tvdb.resolve_tvdb_id("tt0000000"))
+        assert result is None
+
+    def test_get_season_episodes_dvd_order(self):
+        from arm.services import tvdb
+
+        page0_response = {
+            "data": {
+                "series": {},
+                "episodes": [
+                    {"number": 1, "name": "Pilot", "runtime": 55, "aired": "2000-01-01"},
+                    {"number": 2, "name": "Second", "runtime": 50, "aired": "2000-01-08"},
+                ],
+            }
+        }
+        page1_response = {"data": {"series": {}, "episodes": []}}
+        with unittest.mock.patch.object(
+            tvdb, '_get', side_effect=[page0_response, page1_response]
+        ):
+            eps = asyncio.run(tvdb.get_season_episodes(71256, 1))
+        assert len(eps) == 2
+        assert eps[0]["name"] == "Pilot"
+        assert eps[0]["runtime"] == 55 * 60  # converted to seconds
+        assert eps[1]["number"] == 2
+
+    def test_get_season_episodes_falls_back_to_default(self):
+        """When DVD order returns nothing, tries default order."""
+        from arm.services import tvdb
+
+        dvd_response = {"data": {"series": {}, "episodes": []}}
+        default_page0 = {
+            "data": {
+                "series": {},
+                "episodes": [
+                    {"number": 1, "name": "Aired Pilot", "runtime": 45, "aired": "2020-01-01"},
+                ],
+            }
+        }
+        default_page1 = {"data": {"series": {}, "episodes": []}}
+
+        with unittest.mock.patch.object(
+            tvdb, '_get', side_effect=[dvd_response, default_page0, default_page1]
+        ):
+            eps = asyncio.run(tvdb.get_season_episodes(71256, 1))
+        assert len(eps) == 1
+        assert eps[0]["name"] == "Aired Pilot"
+        assert eps[0]["runtime"] == 45 * 60
+
+    def test_get_season_episodes_both_empty(self):
+        """When both DVD and default order return nothing."""
+        from arm.services import tvdb
+
+        empty = {"data": {"series": {}, "episodes": []}}
+        with unittest.mock.patch.object(tvdb, '_get', return_value=empty):
+            eps = asyncio.run(tvdb.get_season_episodes(71256, 99))
+        assert eps == []
+
+    def test_fetch_episodes_404_breaks(self):
+        """HTTP 404 on a season type causes early break, not exception."""
+        import httpx
+        from arm.services import tvdb
+
+        mock_response = unittest.mock.MagicMock()
+        mock_response.status_code = 404
+
+        async def _raise_404(*a, **kw):
+            raise httpx.HTTPStatusError(
+                "Not Found", request=unittest.mock.MagicMock(), response=mock_response
+            )
+
+        # DVD order 404s, default order also 404s
+        with unittest.mock.patch.object(tvdb, '_get', side_effect=_raise_404):
+            eps = asyncio.run(tvdb.get_season_episodes(71256, 5))
+        assert eps == []
+
+    def test_fetch_episodes_non_404_raises(self):
+        """Non-404 HTTP error re-raises."""
+        import httpx
+        from arm.services import tvdb
+
+        mock_response = unittest.mock.MagicMock()
+        mock_response.status_code = 500
+
+        async def _raise_500(*a, **kw):
+            raise httpx.HTTPStatusError(
+                "Server Error", request=unittest.mock.MagicMock(), response=mock_response
+            )
+
+        with unittest.mock.patch.object(tvdb, '_get', side_effect=_raise_500):
+            with pytest.raises(httpx.HTTPStatusError):
+                asyncio.run(tvdb.get_season_episodes(71256, 1))
+
+
+class TestEnsureToken:
+    """Test _ensure_token() token acquisition."""
+
+    def test_acquires_new_token(self):
+        import httpx
+        from arm.services import tvdb
+
+        # Reset cached token
+        tvdb._TOKEN = None
+        tvdb._TOKEN_EXPIRES = 0
+
+        mock_response = unittest.mock.MagicMock()
+        mock_response.json.return_value = {"data": {"token": "test_token_123"}}
+        mock_response.raise_for_status = unittest.mock.MagicMock()
+
+        async def mock_post(url, json=None):
+            return mock_response
+
+        mock_client = unittest.mock.MagicMock()
+        mock_client.post = mock_post
+        mock_client.__aenter__ = unittest.mock.AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = unittest.mock.AsyncMock(return_value=False)
+
+        with unittest.mock.patch("arm.services.tvdb.cfg.arm_config",
+                                 {"TVDB_API_KEY": "test_key"}), \
+             unittest.mock.patch("arm.services.tvdb.httpx.AsyncClient",
+                                 return_value=mock_client):
+            token = asyncio.run(tvdb._ensure_token())
+
+        assert token == "test_token_123"
+
+    def test_reuses_cached_token(self):
+        import time
+        from arm.services import tvdb
+
+        tvdb._TOKEN = "cached_token"
+        tvdb._TOKEN_EXPIRES = time.time() + 3600  # valid for 1 hour
+
+        token = asyncio.run(tvdb._ensure_token())
+        assert token == "cached_token"
+
+        # Cleanup
+        tvdb._TOKEN = None
+        tvdb._TOKEN_EXPIRES = 0
+
+    def test_no_api_key_raises(self):
+        from arm.services import tvdb
+
+        tvdb._TOKEN = None
+        tvdb._TOKEN_EXPIRES = 0
+
+        with unittest.mock.patch("arm.services.tvdb.cfg.arm_config",
+                                 {"TVDB_API_KEY": ""}):
+            with pytest.raises(ValueError, match="TVDB_API_KEY not configured"):
+                asyncio.run(tvdb._ensure_token())
+
+
+class TestNamingWithEpisodeNumber:
+    """Test that episode_number from TVDB feeds into the naming engine."""
+
+    def test_episode_number_overrides_track_fallback(self, app_context):
+        from arm.ripper.naming import _build_track_variables
+
+        # Mock track with TVDB-matched episode_number
+        track = unittest.mock.MagicMock()
+        track.title = "Speedy Death"
+        track.year = None
+        track.video_type = "series"
+        track.episode_number = "3"
+        track.track_number = "0"
+
+        job = unittest.mock.MagicMock()
+        job.title = "Show"
+        job.title_manual = None
+        job.year = "1998"
+        job.year_manual = None
+        job.video_type = "series"
+        job.season = "1"
+        job.season_manual = None
+        job.episode = None
+        job.episode_manual = None
+        job.artist = None
+        job.artist_manual = None
+        job.album = None
+        job.album_manual = None
+        job.label = "SHOW_S1D1"
+        job.disc_number = 1
+
+        variables = _build_track_variables(track, job)
+        # Should use TVDB episode_number (3), not track_number+1 (1)
+        assert variables['episode'] == '03'
+        assert variables['title'] == 'Speedy Death'

@@ -7,6 +7,7 @@ import musicbrainzngs as mb
 from discid import read, Disc
 
 import arm.config.config as cfg
+from arm.database import db
 from arm.ripper import utils as u
 
 
@@ -61,34 +62,54 @@ def music_brainz(discid: str, job) -> str:
     - Returns early with an empty string on error.
     """
 
+    # Remove any placeholder TOC tracks before populating from MusicBrainz
+    _delete_job_tracks(job)
+
     disc_info = get_disc_info(job, discid)
     if disc_info == "":
         logging.error("ARM has encountered an error and stopping")
-        _create_toc_tracks(job, discid)
+        create_toc_tracks(job, discid)
         return ""
 
     artist_title = check_musicbrainz_data(job, disc_info)
     if artist_title == "":
         logging.error("ARM has encountered an error and stopping")
-        _create_toc_tracks(job, discid)
+        create_toc_tracks(job, discid)
         return ""
 
     return artist_title
 
 
-def _create_toc_tracks(job, discid):
-    """Create Track records from the disc TOC when MusicBrainz lookup fails.
+def _delete_job_tracks(job):
+    """Delete all existing Track records for *job* (e.g. TOC placeholders)."""
+    from arm.models.track import Track
+    try:
+        Track.query.filter_by(job_id=job.job_id).delete()
+        db.session.commit()
+    except Exception as exc:
+        logging.debug("Could not delete old tracks: %s", exc)
+        db.session.rollback()
 
-    Even without a MusicBrainz match, the physical CD TOC provides track
-    count and lengths. This creates placeholder tracks so the UI can display
-    track durations while the user searches for metadata manually.
+
+def create_toc_tracks(job, discid):
+    """Create Track records from the disc TOC.
+
+    The physical CD TOC provides track count and lengths even without a
+    MusicBrainz match.  Creates placeholder tracks so the UI can display
+    track durations while the user waits or searches manually.
+
+    Deletes any existing tracks first to avoid duplicates on re-insert.
     """
+    _delete_job_tracks(job)
     try:
         for toc_track in discid.tracks:
             u.put_track(
                 job, toc_track.number, toc_track.seconds,
-                "n/a", 0.1, False, "TOC", ""
+                "n/a", 0.1, False, "TOC", f"Track {toc_track.number}.flac",
+                title=f"Track {toc_track.number}"
             )
+        job.no_of_titles = len(discid.tracks)
+        db.session.commit()
         logging.info("Created %d tracks from disc TOC", len(discid.tracks))
     except Exception as exc:
         logging.debug("Could not create TOC tracks: %s", exc)
@@ -135,10 +156,11 @@ def get_disc_info(job, discid: str) -> str:
     return disc_info
 
 
-def _build_music_args(job_id, crc_id, artist, title, year, no_of_titles):
+def _build_music_args(job_id, crc_id, artist, title, year, no_of_titles,
+                      disc_number=None, disc_total=None):
     """Build the database update args dict for music metadata."""
     artist_title = artist + " " + title
-    return {
+    args = {
         'job_id': str(job_id),
         'crc_id': crc_id,
         'hasnicetitle': True,
@@ -153,32 +175,62 @@ def _build_music_args(job_id, crc_id, artist, title, year, no_of_titles):
         'artist_auto': artist,
         'album': title,
         'album_auto': title,
-    }, artist_title
+    }
+    if disc_number is not None:
+        args['disc_number'] = disc_number
+    if disc_total is not None:
+        args['disc_total'] = disc_total
+    return args, artist_title
 
 
-def _find_cd_release(release_list):
-    """Find the first CD-format release in a release list. Returns (index, medium_list) or None."""
+def _find_matching_medium(medium_list, disc_id):
+    """Find the medium whose disc-list contains *disc_id*.
+
+    For multi-disc releases each medium carries a ``disc-list`` with the
+    IDs of physical discs that match it.  Returns the medium dict, or
+    ``None`` if no match is found (caller should fall back to medium 0).
+    """
+    for med in medium_list:
+        for d in med.get('disc-list', []):
+            if d.get('id') == disc_id:
+                logging.info(f"Matched disc ID to medium position {med.get('position')}")
+                return med
+    return None
+
+
+def _find_cd_release(release_list, disc_id):
+    """Find the first CD-format release and the correct medium for *disc_id*.
+
+    Returns ``(release_index, medium)`` or ``None``.
+    """
     for i, release in enumerate(release_list):
         medium_list = release.get('medium-list', [])
-        if medium_list and medium_list[0].get('format') == "CD":
-            logging.info(f"Release [{i}] is a CD, tracking on...")
-            return i, medium_list
-        logging.debug(f"Checking release: [{i}] if CD")
+        has_cd = any(m.get('format') == 'CD' for m in medium_list)
+        if not has_cd:
+            logging.debug(f"Checking release: [{i}] if CD")
+            continue
+        logging.info(f"Release [{i}] is a CD, tracking on...")
+        medium = _find_matching_medium(medium_list, disc_id)
+        if medium is None:
+            medium = medium_list[0]
+            logging.debug("Could not match disc ID to medium, using first")
+        return i, medium
     return None
 
 
 def _process_disc_data(job, disc_info):
     """Process full disc metadata from MusicBrainz. Returns artist_title or empty string."""
     release_list = disc_info['disc'].get('release-list', [])
+    disc_id = disc_info['disc'].get('id', '')
     logging.debug(f"Number of releases: {len(release_list)}")
 
-    result = _find_cd_release(release_list)
+    result = _find_cd_release(release_list, disc_id)
     if not result:
         return ""
 
-    idx, medium_list = result
+    idx, medium = result
     logging.debug("-" * 50)
-    process_tracks(job, medium_list[0].get('track-list'))
+    process_tracks(job, medium.get('track-list'))
     logging.debug("-" * 50)
 
     release = disc_info['disc']['release-list'][idx]
@@ -187,8 +239,16 @@ def _process_disc_data(job, disc_info):
     artist = release['artist-credit'][0]['artist']['name']
     no_of_titles = disc_info['disc']['offset-count']
 
+    # Multi-disc info
+    medium_list = release.get('medium-list', [])
+    disc_number = medium.get('position')
+    disc_total = len(medium_list) if len(medium_list) > 1 else None
+    if disc_number:
+        disc_number = int(disc_number)
+
     args, artist_title = _build_music_args(
-        job.job_id, release['id'], artist, title, new_year, no_of_titles)
+        job.job_id, release['id'], artist, title, new_year, no_of_titles,
+        disc_number=disc_number, disc_total=disc_total)
     logging.info(f"CD args: {args}")
     u.database_updater(args, job)
     logging.debug(f"musicbrain works -  New title is {title}  New Year is: {new_year}")
@@ -426,17 +486,19 @@ def process_tracks(job, mb_track_list: list, is_stub=False):
         track_leng = 0
         try:
             if is_stub:
-                track_leng = int(track['length'])
+                track_leng = int(track['length']) // 1000
             else:
-                track_leng = int(track['recording']['length'])
-        except ValueError:
+                track_leng = int(track['recording']['length']) // 1000
+        except (ValueError, TypeError):
             logging.error("Failed to find track length")
         trackno = track.get('number', idx + 1)
         if is_stub:
-            title = track.get('title', f"Untitled track {trackno}")
+            song_title = track.get('title', f"Untitled track {trackno}")
         else:
-            title = track['recording']['title']
-        u.put_track(job, trackno, track_leng, "n/a", 0.1, False, "ABCDE", title)
+            song_title = track['recording']['title']
+        filename = f"{int(trackno):02d} - {song_title}.flac"
+        u.put_track(job, trackno, track_leng, "n/a", 0.1, False,
+                    "MusicBrainz", filename, title=song_title)
 
 
 if __name__ == "__main__":

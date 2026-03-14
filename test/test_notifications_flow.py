@@ -193,6 +193,15 @@ class TestRipMusic:
         job.config.LOGPATH = '/tmp'
         return job
 
+    @staticmethod
+    def _mock_popen(returncode=0):
+        """Create a mock Popen that finishes immediately with given return code."""
+        proc = unittest.mock.MagicMock()
+        proc.poll.return_value = returncode
+        proc.wait.return_value = returncode
+        proc.returncode = returncode
+        return proc
+
     def test_uses_abcde_config_when_exists(self):
         """Uses custom abcde config file when it exists."""
         from arm.ripper.utils import rip_music
@@ -202,10 +211,13 @@ class TestRipMusic:
         original = cfg.arm_config.get('ABCDE_CONFIG_FILE', '')
         cfg.arm_config['ABCDE_CONFIG_FILE'] = '/tmp/test_abcde.conf'
         try:
+            mock_proc = self._mock_popen(0)
             with unittest.mock.patch('os.path.isfile', return_value=True), \
                  unittest.mock.patch('arm.ripper.utils.database_updater'), \
-                 unittest.mock.patch('subprocess.check_output',
-                                     return_value=b'Finished.') as mock_cmd:
+                 unittest.mock.patch('arm.ripper.utils._poll_music_progress'), \
+                 unittest.mock.patch('arm.ripper.utils._update_music_tracks'), \
+                 unittest.mock.patch('subprocess.Popen',
+                                     return_value=mock_proc) as mock_cmd:
                 result = rip_music(job, 'test.log')
                 assert result is True
                 cmd = mock_cmd.call_args[0][0]
@@ -222,10 +234,13 @@ class TestRipMusic:
         original = cfg.arm_config.get('ABCDE_CONFIG_FILE', '')
         cfg.arm_config['ABCDE_CONFIG_FILE'] = '/nonexistent/path'
         try:
+            mock_proc = self._mock_popen(0)
             with unittest.mock.patch('os.path.isfile', return_value=False), \
                  unittest.mock.patch('arm.ripper.utils.database_updater'), \
-                 unittest.mock.patch('subprocess.check_output',
-                                     return_value=b'Finished.') as mock_cmd:
+                 unittest.mock.patch('arm.ripper.utils._poll_music_progress'), \
+                 unittest.mock.patch('arm.ripper.utils._update_music_tracks'), \
+                 unittest.mock.patch('subprocess.Popen',
+                                     return_value=mock_proc) as mock_cmd:
                 result = rip_music(job, 'test.log')
                 assert result is True
                 cmd = mock_cmd.call_args[0][0]
@@ -242,9 +257,12 @@ class TestRipMusic:
         original = cfg.arm_config.get('ABCDE_CONFIG_FILE', '')
         cfg.arm_config['ABCDE_CONFIG_FILE'] = ''
         try:
+            mock_proc = self._mock_popen(0)
             with unittest.mock.patch('os.path.isfile', return_value=False), \
                  unittest.mock.patch('arm.ripper.utils.database_updater') as mock_updater, \
-                 unittest.mock.patch('subprocess.check_output', return_value=b''):
+                 unittest.mock.patch('arm.ripper.utils._poll_music_progress'), \
+                 unittest.mock.patch('arm.ripper.utils._update_music_tracks'), \
+                 unittest.mock.patch('subprocess.Popen', return_value=mock_proc):
                 rip_music(job, 'test.log')
                 # First call should set status to ripping
                 first_call = mock_updater.call_args_list[0][0][0]
@@ -253,19 +271,20 @@ class TestRipMusic:
             cfg.arm_config['ABCDE_CONFIG_FILE'] = original
 
     def test_returns_false_on_failure(self):
-        """Returns False when abcde command fails."""
+        """Returns False when abcde command fails (non-zero exit)."""
         from arm.ripper.utils import rip_music
-        import subprocess
         import arm.config.config as cfg
 
         job = self._make_job()
         original = cfg.arm_config.get('ABCDE_CONFIG_FILE', '')
         cfg.arm_config['ABCDE_CONFIG_FILE'] = ''
         try:
+            mock_proc = self._mock_popen(1)
             with unittest.mock.patch('os.path.isfile', return_value=False), \
                  unittest.mock.patch('arm.ripper.utils.database_updater'), \
-                 unittest.mock.patch('subprocess.check_output',
-                                     side_effect=subprocess.CalledProcessError(1, 'abcde')):
+                 unittest.mock.patch('arm.ripper.utils._poll_music_progress'), \
+                 unittest.mock.patch('arm.ripper.utils._update_music_tracks'), \
+                 unittest.mock.patch('subprocess.Popen', return_value=mock_proc):
                 result = rip_music(job, 'test.log')
                 assert result is False
         finally:

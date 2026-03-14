@@ -19,8 +19,18 @@ class Track(db.Model):
     error = db.Column(db.Text)
     source = db.Column(db.String(32))
     process = db.Column(db.Boolean)
+    enabled = db.Column(db.Boolean, default=True)
     chapters = db.Column(db.Integer, default=0)
     filesize = db.Column(db.BigInteger, default=0)
+    # Per-track title metadata (nullable — inherits job-level when null)
+    title = db.Column(db.String(256), nullable=True)
+    year = db.Column(db.String(4), nullable=True)
+    imdb_id = db.Column(db.String(15), nullable=True)
+    poster_url = db.Column(db.String(256), nullable=True)
+    video_type = db.Column(db.String(20), nullable=True)
+    # Episode metadata from TVDB matching
+    episode_number = db.Column(db.String(10), nullable=True)
+    episode_name = db.Column(db.String(256), nullable=True)
 
     def __init__(self, job_id, track_number, length, aspect_ratio,
                  fps, main_feature, source, basename, filename,
@@ -35,8 +45,10 @@ class Track(db.Model):
         self.source = source
         self.basename = basename
         self.filename = filename
+        self.status = 'pending'
         self.ripped = False
         self.process = False
+        self.enabled = True
         self.chapters = chapters
         self.filesize = filesize
 

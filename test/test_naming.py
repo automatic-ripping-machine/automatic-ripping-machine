@@ -7,6 +7,9 @@ from arm.ripper.naming import (
     render_title,
     render_folder,
     render_preview,
+    render_track_title,
+    render_track_folder,
+    _clean_for_filename,
 )
 
 
@@ -209,3 +212,144 @@ def test_season_episode_no_padding_non_numeric():
 def test_year_0000_treated_as_empty():
     job = _make_job(title='Inception', year='0000', video_type='movie')
     assert render_title(job) == 'Inception'
+
+
+# --- render_track_title ---
+
+
+def _make_track(**kwargs):
+    """Create a SimpleNamespace that quacks like a Track."""
+    defaults = {
+        'title': None, 'year': None, 'video_type': None,
+        'imdb_id': None, 'poster_url': None,
+    }
+    defaults.update(kwargs)
+    return SimpleNamespace(**defaults)
+
+
+def test_track_title_inherits_job_defaults():
+    job = _make_job(title='Serial Mom', year='1994', video_type='movie')
+    track = _make_track()
+    assert render_track_title(track, job) == 'Serial Mom (1994)'
+
+
+def test_track_title_overrides_job_title():
+    job = _make_job(title='Disc Title', year='2020', video_type='movie')
+    track = _make_track(title='Special Feature')
+    assert render_track_title(track, job) == 'Special Feature (2020)'
+
+
+def test_track_title_overrides_year():
+    job = _make_job(title='Movie', year='2020', video_type='movie')
+    track = _make_track(year='2021')
+    assert render_track_title(track, job) == 'Movie (2021)'
+
+
+def test_track_title_overrides_video_type():
+    job = _make_job(title='Show', season='1', episode='1', video_type='movie')
+    track = _make_track(video_type='series')
+    # With video_type='series', uses TV pattern: '{title} S{season}E{episode}'
+    assert render_track_title(track, job) == 'Show S01E01'
+
+
+def test_track_title_no_overrides_uses_job():
+    job = _make_job(artist='Beatles', album='Help', video_type='music')
+    track = _make_track()
+    assert render_track_title(track, job) == 'Beatles - Help'
+
+
+def test_track_title_with_custom_config():
+    job = _make_job(title='Movie', year='2020', video_type='movie')
+    track = _make_track(title='Extended Cut')
+    cfg = {'MOVIE_TITLE_PATTERN': '{title} [{year}]'}
+    assert render_track_title(track, job, cfg) == 'Extended Cut [2020]'
+
+
+# --- _clean_for_filename ---
+
+
+def test_clean_for_filename_colons():
+    # ' : ' → ' - ', but ':' without surrounding spaces → '-'
+    assert _clean_for_filename('Star Wars : A New Hope') == 'Star Wars - A New Hope'
+    assert _clean_for_filename('Star Wars: A New Hope') == 'Star Wars- A New Hope'
+
+
+def test_clean_for_filename_ampersand():
+    assert _clean_for_filename('Tom & Jerry') == 'Tom and Jerry'
+
+
+def test_clean_for_filename_backslash():
+    assert _clean_for_filename('AC\\DC') == 'AC - DC'
+
+
+def test_clean_for_filename_special_chars():
+    result = _clean_for_filename('Movie? <Title>!')
+    assert '?' not in result
+    assert '<' not in result
+    assert '>' not in result
+
+
+def test_clean_for_filename_whitespace():
+    assert _clean_for_filename('  too   many   spaces  ') == 'too many spaces'
+
+
+# --- render_track_folder ---
+
+
+def test_track_folder_uses_show_name_not_episode_title():
+    """Track folder should use the job (show) title, not the per-track episode title."""
+    job = _make_job(title='The-Mrs-Bradley-Mysteries', year='1998', video_type='series', season='1')
+    track = _make_track(title='The Rising of the Moon', video_type='series')
+    result = render_track_folder(track, job)
+    assert 'The-Mrs-Bradley-Mysteries' in result
+    assert 'The Rising of the Moon' not in result
+
+
+def test_track_folder_disc_number_fallback():
+    """When season is unset, disc_number should produce 'Disc XX' not 'Season XX'."""
+    job = _make_job(title='Some Show', video_type='series')
+    job.disc_number = 3
+    track = _make_track(video_type='series')
+    result = render_track_folder(track, job)
+    assert 'Disc 03' in result
+    assert 'Season' not in result
+
+
+def test_track_folder_no_season_no_disc_defaults_to_season_01():
+    """When neither season nor disc_number is set, default to Season 01."""
+    job = _make_job(title='Some Show', video_type='series')
+    track = _make_track(video_type='series')
+    result = render_track_folder(track, job)
+    assert 'Season 01' in result
+
+
+def test_track_folder_uses_season_auto():
+    """When season_auto is set, use it for the folder."""
+    job = _make_job(title='Some Show', video_type='series', season_auto='2')
+    track = _make_track(video_type='series')
+    result = render_track_folder(track, job)
+    assert 'Season 02' in result
+
+
+def test_track_title_disc_number_fallback():
+    """When season is a disc_number fallback, title should use D instead of S."""
+    job = _make_job(title='Some Show', video_type='series')
+    job.disc_number = 2
+    track = _make_track(video_type='series', episode_number='3')
+    result = render_track_title(track, job)
+    assert 'D02E03' in result
+    assert 'S02' not in result
+
+
+def test_track_folder_all_tracks_same_folder():
+    """All tracks from a multi-title disc should land in the same show folder."""
+    job = _make_job(title='Show', year='2020', video_type='series', season='1')
+    tracks = [
+        _make_track(title='Episode One', video_type='series', episode_number='1'),
+        _make_track(title='Episode Two', video_type='series', episode_number='2'),
+        _make_track(title=None, video_type='series'),  # no custom title
+    ]
+    folders = [render_track_folder(t, job) for t in tracks]
+    # All should produce the same folder path
+    assert len(set(folders)) == 1
+    assert 'Show' in folders[0]

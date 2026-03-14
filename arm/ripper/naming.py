@@ -51,8 +51,8 @@ def _build_variables(job):
         year = ''
     artist = getattr(job, 'artist_manual', None) or getattr(job, 'artist', None) or ''
     album = getattr(job, 'album_manual', None) or getattr(job, 'album', None) or ''
-    season = getattr(job, 'season_manual', None) or getattr(job, 'season', None) or ''
-    episode = getattr(job, 'episode_manual', None) or getattr(job, 'episode', None) or ''
+    season = getattr(job, 'season_manual', None) or getattr(job, 'season', None) or getattr(job, 'season_auto', None) or ''
+    episode = getattr(job, 'episode_manual', None) or getattr(job, 'episode', None) or getattr(job, 'episode_auto', None) or ''
 
     # Zero-pad season/episode to 2 digits if numeric
     if season and season.isdigit():
@@ -126,6 +126,107 @@ def render_folder(job, config_dict=None):
     rendered = pattern.format_map(variables)
     rendered = _clean_empty_parens(rendered)
     # Sanitize each path segment individually
+    segments = rendered.split('/')
+    segments = [_clean_for_filename(seg) for seg in segments if seg.strip()]
+    return os.path.join(*segments) if segments else ''
+
+
+def _build_track_variables(track, job):
+    """Build variables for a track, starting from job defaults and overriding with track-level fields."""
+    variables = _build_variables(job)
+    if getattr(track, 'title', None):
+        variables['title'] = track.title
+    if getattr(track, 'year', None):
+        variables['year'] = track.year
+    track_video_type = getattr(track, 'video_type', None)
+    if track_video_type:
+        variables['video_type'] = track_video_type
+    # Episode number: prefer TVDB-matched episode_number, then fall back
+    # to track_number + 1 as a rough default
+    ep_num = getattr(track, 'episode_number', None)
+    if ep_num:
+        variables['episode'] = str(ep_num).zfill(2)
+    elif not variables.get('episode'):
+        track_num = getattr(track, 'track_number', None)
+        if track_num is not None:
+            try:
+                variables['episode'] = str(int(track_num) + 1).zfill(2)
+            except (ValueError, TypeError):
+                pass
+    # Season fallback: prefer season_auto (e.g. from TVDB), then fall back
+    # to disc_number — but label it "Disc" so the folder reflects reality.
+    if not variables.get('season'):
+        season_auto = getattr(job, 'season_auto', None)
+        if season_auto:
+            variables['season'] = str(season_auto).zfill(2)
+        else:
+            disc_num = getattr(job, 'disc_number', None)
+            if disc_num is not None:
+                variables['_disc_fallback'] = True
+                variables['season'] = str(disc_num).zfill(2)
+            else:
+                variables['season'] = '01'
+    return variables
+
+
+def render_track_title(track, job, config_dict=None):
+    """Render a display title for a single track on a multi-title disc.
+
+    Starts with job-level defaults from _build_variables(), then overrides
+    with any track-level fields (title, year, video_type).
+    Returns the rendered string without extension — caller adds it.
+    """
+    variables = _build_track_variables(track, job)
+    video_type = variables.get('video_type', '')
+    pattern = _get_pattern(config_dict, video_type, 'TITLE')
+    rendered = pattern.format_map(variables)
+    rendered = _clean_empty_parens(rendered)
+    # When season is actually a disc number, replace S02 with D02
+    if variables.get('_disc_fallback'):
+        season = variables.get('season', '')
+        rendered = rendered.replace(f'S{season}', f'D{season}')
+    return rendered
+
+
+def render_track_folder(track, job, config_dict=None):
+    """Render the folder path for a single track on a multi-title disc.
+
+    Uses the **job-level** title (show name) for the folder — NOT the
+    per-track episode title.  Only video_type, year, and season/episode
+    are taken from the track so that all episodes land under the same
+    show folder (e.g. "The-Mrs-Bradley-Mysteries/Season 01").
+    """
+    import os
+    # Start from job-level variables (keeps job title for {title})
+    variables = _build_variables(job)
+    # Override only type/year/season/episode from track
+    track_video_type = getattr(track, 'video_type', None)
+    if track_video_type:
+        variables['video_type'] = track_video_type
+    if getattr(track, 'year', None):
+        variables['year'] = track.year
+    ep_num = getattr(track, 'episode_number', None)
+    if ep_num:
+        variables['episode'] = str(ep_num).zfill(2)
+    # Season: prefer job season, then season_auto, then disc_number
+    if not variables.get('season'):
+        season_auto = getattr(job, 'season_auto', None)
+        if season_auto:
+            variables['season'] = str(season_auto).zfill(2)
+        else:
+            disc_num = getattr(job, 'disc_number', None)
+            if disc_num is not None:
+                variables['_disc_fallback'] = True
+                variables['season'] = str(disc_num).zfill(2)
+            else:
+                variables['season'] = '01'
+    video_type = variables.get('video_type', '')
+    pattern = _get_pattern(config_dict, video_type, 'FOLDER')
+    rendered = pattern.format_map(variables)
+    rendered = _clean_empty_parens(rendered)
+    # Replace "Season XX" with "Disc XX" when using disc_number fallback
+    if variables.get('_disc_fallback'):
+        rendered = rendered.replace('Season ', 'Disc ')
     segments = rendered.split('/')
     segments = [_clean_for_filename(seg) for seg in segments if seg.strip()]
     return os.path.join(*segments) if segments else ''

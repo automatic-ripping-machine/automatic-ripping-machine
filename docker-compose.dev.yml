@@ -62,5 +62,6 @@ services:
       - MINIMUM_FREE_SPACE_GB=1
     volumes:
       - ${TRANSCODER_SRC_PATH:-../automatic-ripping-machine-transcoder}/src:/app:ro
+      - ${TRANSCODER_SRC_PATH:-../automatic-ripping-machine-transcoder}/VERSION:/etc/arm-transcoder-version:ro
       - ${TRANSCODER_SRC_PATH:-../automatic-ripping-machine-transcoder}/presets:/config/presets:ro
       - ./dev-data/transcoder-logs:/data/logs:rw

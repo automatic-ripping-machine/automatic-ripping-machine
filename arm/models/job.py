@@ -37,14 +37,13 @@ class JobState(str, enum.Enum):
     # Manual wait (see job.config.MANUAL_WAIT)
     MANUAL_WAIT_STARTED = "waiting"
 
-    # Job Initialized or Pending
-    IDLE = "active"
-    """An Idle Job may proceed to ripping or to finished.
+    # Disc identification phase
+    IDENTIFYING = "identifying"
+    """Indicate that ARM is identifying the disc (reading label, querying APIs)."""
 
-    - When initializing a job, the job is set to active
-    - After Handbrake finishes, Job is set to active
-    - After ABCD finishes, Job is set to active
-    """
+    # Job identified and ready to rip
+    IDLE = "ready"
+    """Job has been identified and is ready to proceed to ripping."""
 
     # Video Ripping States
     VIDEO_RIPPING = "ripping"
@@ -67,6 +66,7 @@ JOB_STATUS_FINISHED = {
     JobState.FAILURE,
 }
 JOB_STATUS_RIPPING = {
+    JobState.IDENTIFYING,
     JobState.AUDIO_RIPPING,
     JobState.VIDEO_RIPPING,
     JobState.MANUAL_WAIT_STARTED,  # <-- not ripping, but undistinguishable
@@ -139,6 +139,10 @@ class Job(db.Model):
     episode_auto = db.Column(db.String(10))
     episode_manual = db.Column(db.String(10))
     transcode_overrides = db.Column(db.Text, nullable=True)  # JSON dict of per-job transcode settings
+    multi_title = db.Column(db.Boolean, default=False)
+    disc_number = db.Column(db.Integer, nullable=True)
+    disc_total = db.Column(db.Integer, nullable=True)
+    tvdb_id = db.Column(db.Integer, nullable=True)
     ejected = db.Column(db.Boolean)
     updated = db.Column(db.Boolean)
     pid = db.Column(db.Integer)
@@ -147,6 +151,7 @@ class Job(db.Model):
     manual_start = db.Column(db.Boolean)
     manual_pause = db.Column(db.Boolean)
     manual_mode = db.Column(db.Boolean)
+    wait_start_time = db.Column(db.DateTime, nullable=True)
     tracks = db.relationship('Track', backref='job', lazy='dynamic')
     config = db.relationship('Config', uselist=False, backref="job")
 
@@ -162,7 +167,7 @@ class Job(db.Model):
             self.video_type = cfg.arm_config['VIDEOTYPE']
         self.parse_udev()
         self.get_pid()
-        self.stage = str(round(time.time() * 100))
+        self.stage = ""
         self.manual_start = False
         self.manual_pause = False
         self.manual_mode = False
@@ -261,6 +266,11 @@ class Job(db.Model):
         # Use the music label if we can find it - defaults to music_cd.log
         disc_id = music_brainz.get_disc_id(self)
         logging.debug(f"music_id: {disc_id}")
+
+        # Create placeholder tracks from the disc TOC so the UI can
+        # display track durations during the manual-wait period.
+        music_brainz.create_toc_tracks(self, disc_id)
+
         mb_title = music_brainz.get_title(disc_id, self)
         logging.debug(f"mm_title: {mb_title}")
 

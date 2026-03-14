@@ -79,8 +79,10 @@ for dir in $SUBDIRS ; do
     echo "Creating dir: $thisDir"
     mkdir -p "$thisDir"
   fi
-  # Always fix ownership — Docker volumes mount as root by default
-  chown arm:arm "$thisDir"
+  # Try to fix ownership — Docker volumes mount as root by default.
+  # Use || true so NFS mounts with root_squash don't kill startup;
+  # check_folder_ownership (above) already verified actual access.
+  chown arm:arm "$thisDir" 2>/dev/null || true
 done
 
 # Download/update MakeMKV community keydb in background.

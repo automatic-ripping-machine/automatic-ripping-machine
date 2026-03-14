@@ -16,6 +16,7 @@ import psutil
 import arm.config.config as cfg
 from arm.models.job import Job, JobState, JOB_STATUS_FINISHED
 from arm.models.notifications import Notifications
+from arm.models.track import Track
 from arm.models.ui_settings import UISettings
 from arm.database import db
 from arm.services.files import database_updater, job_id_validator
@@ -61,6 +62,22 @@ def get_x_jobs(job_status):
         for key, value in j.get_d().items():
             if key != "config":
                 job_results[i][str(key)] = str(value)
+
+        # Include per-track status summary for music jobs
+        if j.disctype == "music":
+            tracks = Track.query.filter_by(job_id=j.job_id).all()
+            track_list = []
+            for t in tracks:
+                track_list.append({
+                    'track_number': t.track_number,
+                    'status': t.status or 'pending',
+                    'ripped': bool(t.ripped),
+                    'filename': t.filename or '',
+                })
+            job_results[i]['tracks'] = track_list
+            ripped_count = sum(1 for t in tracks if t.ripped)
+            job_results[i]['tracks_ripped'] = f"{ripped_count}/{len(tracks)}"
+
         i += 1
     if jobs:
         log.debug("jobs  - we have " + str(len(job_results)) + " jobs")
@@ -134,28 +151,49 @@ def process_makemkv_logfile(job, job_results):
 
 def process_audio_logfile(logfile, job, job_results):
     """
-    Process audio disc logs to show current ripping tracks
+    Process audio disc logs to show current ripping/encoding progress.
     :param logfile: will come in as only the bare logfile, no path
     :param job: current job, so we can update the stage
     :param job_results:
     :return:
     """
-    line = read_all_log_lines(os.path.join(cfg.arm_config["LOGPATH"], logfile))
-    for one_line in line:
-        job_stage_index = re.search(r"\(track([^[]+)", str(one_line))
-        if job_stage_index:
-            try:
-                current_index = f"Track: {job_stage_index.group(1)}/{job.no_of_titles}"
-                job.stage = job_results['stage'] = current_index
-                job.eta = calc_process_time(job.start_time, job_stage_index.group(1), job.no_of_titles)
-                job.progress = round(percentage(job_stage_index.group(1), job.no_of_titles + 1))
-                job.progress_round = round(job.progress)
-            except Exception as error:
-                log.debug("Error processing abcde logfile. Error dump"
-                          f"-  {error}", exc_info=True)
-                job.stage = "Unknown"
-                job.eta = "Unknown"
-                job.progress = job.progress_round = 0
+    content = "\n".join(read_all_log_lines(os.path.join(cfg.arm_config["LOGPATH"], logfile)))
+
+    # Use same patterns as _poll_music_progress in arm/ripper/utils.py
+    grabbing = {int(m.group(1)) for m in re.finditer(r"Grabbing track (\d+):", content)}
+    encoding = {int(m.group(1)) for m in re.finditer(r"Encoding track (\d+) of", content)}
+    tagging = {int(m.group(1)) for m in re.finditer(r"Tagging track (\d+) of", content)}
+
+    # Determine highest completed track and current phase
+    all_seen = grabbing | encoding | tagging
+    if not all_seen:
+        return job_results
+
+    try:
+        total = job.no_of_titles or len(all_seen)
+        completed = len(tagging)
+        current_track = max(all_seen)
+
+        if tagging:
+            phase = "tagged"
+        elif encoding:
+            phase = "encoding"
+        else:
+            phase = "ripping"
+
+        current_index = f"{completed}/{total} - {phase} track {current_track}"
+        job.stage = job_results['stage'] = current_index
+        job.eta = calc_process_time(job.start_time, max(completed, 1), total)
+        job.progress = round(percentage(completed, total))
+        job.progress_round = round(job.progress)
+        db.session.commit()
+    except Exception as error:
+        log.debug("Error processing abcde logfile. Error dump"
+                  f"-  {error}", exc_info=True)
+        job.stage = "Unknown"
+        job.eta = "Unknown"
+        job.progress = job.progress_round = 0
+
     return job_results
 
 

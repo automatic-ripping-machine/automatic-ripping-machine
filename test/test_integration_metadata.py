@@ -47,7 +47,7 @@ def ui():
 def _require_reachable(client: httpx.Client, label: str):
     try:
         client.get("/")
-    except httpx.ConnectError:
+    except (httpx.ConnectError, httpx.ReadTimeout):
         pytest.skip(f"{label} not reachable")
 
 

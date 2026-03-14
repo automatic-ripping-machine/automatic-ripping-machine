@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 import arm.config.config as cfg
+from arm.constants import SINGLE_TRACK_VIDEO_TYPES
 from arm.database import db
 from arm.models.job import Job, JobState
 from arm.models.track import Track
@@ -15,6 +16,32 @@ from arm.services import files as svc_files
 
 _JOB_NOT_FOUND = "Job not found"
 _NOT_WAITING = "Job is not in waiting state"
+
+
+def _auto_flag_tracks(job, mainfeature: bool):
+    """Re-flag track enabled state based on MAINFEATURE + video type.
+
+    When mainfeature is on AND the disc is a single-title type (not
+    multi-title), only the best track is enabled.  Otherwise all tracks
+    are enabled.
+    """
+    is_single = getattr(job, 'video_type', None) in SINGLE_TRACK_VIDEO_TYPES
+    is_multi = getattr(job, 'multi_title', False)
+    if mainfeature and is_single and not is_multi:
+        for t in job.tracks:
+            t.enabled = False
+        best = Track.query.filter_by(job_id=job.job_id).order_by(
+            Track.chapters.desc(),
+            Track.length.desc(),
+            Track.filesize.desc(),
+            Track.track_number.asc(),
+        ).first()
+        if best:
+            best.enabled = True
+    else:
+        for t in job.tracks:
+            t.enabled = True
+    db.session.flush()
 
 router = APIRouter(prefix="/api/v1", tags=["jobs"])
 
@@ -110,6 +137,11 @@ async def change_job_config(job_id: int, request: Request):
 
     valid_ripmethods = ('mkv', 'backup')
     valid_disctypes = ('dvd', 'bluray', 'bluray4k', 'music', 'data')
+    valid_audio_formats = (
+        'flac', 'mp3', 'vorbis', 'opus', 'm4a', 'wav', 'mka',
+        'wv', 'ape', 'mpc', 'spx', 'mp2', 'tta', 'aiff',
+    )
+    valid_speed_profiles = ('safe', 'fast', 'fastest')
 
     if 'RIPMETHOD' in body:
         val = str(body['RIPMETHOD']).lower()
@@ -137,6 +169,8 @@ async def change_job_config(job_id: int, request: Request):
         config.MAINFEATURE = val
         cfg.arm_config["MAINFEATURE"] = val
         changes.append(f"Main Feature={bool(val)}")
+        # Re-flag tracks based on the new setting
+        _auto_flag_tracks(job, mainfeature=bool(val))
 
     if 'MINLENGTH' in body:
         val = str(int(body['MINLENGTH']))
@@ -149,6 +183,45 @@ async def change_job_config(job_id: int, request: Request):
         config.MAXLENGTH = val
         cfg.arm_config["MAXLENGTH"] = val
         changes.append(f"Max Length={val}")
+
+    if 'AUDIO_FORMAT' in body:
+        val = str(body['AUDIO_FORMAT']).lower()
+        if val not in valid_audio_formats:
+            return JSONResponse(
+                {"success": False, "error": f"AUDIO_FORMAT must be one of {valid_audio_formats}"},
+                status_code=400,
+            )
+        config.AUDIO_FORMAT = val
+        cfg.arm_config["AUDIO_FORMAT"] = val
+        changes.append(f"Audio Format={val}")
+
+    if 'RIP_SPEED_PROFILE' in body:
+        val = str(body['RIP_SPEED_PROFILE']).lower()
+        if val not in valid_speed_profiles:
+            return JSONResponse(
+                {"success": False, "error": f"RIP_SPEED_PROFILE must be one of {valid_speed_profiles}"},
+                status_code=400,
+            )
+        config.RIP_SPEED_PROFILE = val
+        cfg.arm_config["RIP_SPEED_PROFILE"] = val
+        changes.append(f"Rip Speed={val}")
+
+    if 'MUSIC_MULTI_DISC_SUBFOLDERS' in body:
+        val = bool(body['MUSIC_MULTI_DISC_SUBFOLDERS'])
+        config.MUSIC_MULTI_DISC_SUBFOLDERS = val
+        cfg.arm_config["MUSIC_MULTI_DISC_SUBFOLDERS"] = val
+        changes.append(f"Multi-Disc Subfolders={val}")
+
+    if 'MUSIC_DISC_FOLDER_PATTERN' in body:
+        val = str(body['MUSIC_DISC_FOLDER_PATTERN']).strip()
+        if not val or '{num}' not in val:
+            return JSONResponse(
+                {"success": False, "error": "MUSIC_DISC_FOLDER_PATTERN must contain {num}"},
+                status_code=400,
+            )
+        config.MUSIC_DISC_FOLDER_PATTERN = val
+        cfg.arm_config["MUSIC_DISC_FOLDER_PATTERN"] = val
+        changes.append(f"Disc Folder Pattern={val}")
 
     if not changes:
         return JSONResponse({"success": False, "error": "No valid fields provided"}, status_code=400)
@@ -306,6 +379,81 @@ async def set_job_tracks(job_id: int, request: Request):
     return {"success": True, "job_id": job_id, "tracks_count": len(tracks)}
 
 
+@router.post('/jobs/{job_id}/multi-title')
+async def toggle_multi_title(job_id: int, request: Request):
+    """Toggle the multi_title flag on a job."""
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    body = await request.json()
+    enabled = bool(body.get('enabled', not getattr(job, 'multi_title', False)))
+    svc_files.database_updater({"multi_title": enabled}, job)
+    return {"success": True, "job_id": job.job_id, "multi_title": enabled}
+
+
+@router.put('/jobs/{job_id}/tracks/{track_id}/title')
+async def update_track_title(job_id: int, track_id: int, request: Request):
+    """Set per-track title metadata for a multi-title disc."""
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    track = Track.query.get(track_id)
+    if not track or track.job_id != job_id:
+        return JSONResponse({"success": False, "error": "Track not found"}, status_code=404)
+
+    body = await request.json()
+    updated = {}
+    track_fields = {
+        'title': ('title', str, 256),
+        'year': ('year', str, 4),
+        'imdb_id': ('imdb_id', str, 15),
+        'poster_url': ('poster_url', str, 256),
+        'video_type': ('video_type', str, 20),
+    }
+    for key, (attr, typ, maxlen) in track_fields.items():
+        if key in body and body[key] is not None:
+            value = typ(body[key]).strip()[:maxlen]
+            if key == 'title':
+                value = _clean_for_filename(value)
+            setattr(track, attr, value)
+            updated[key] = value
+
+    if not updated:
+        return JSONResponse({"success": False, "error": "No fields to update"}, status_code=400)
+
+    # Note: track.filename is NOT overwritten here — it stays as the MakeMKV
+    # original (e.g. "B1_t00.mkv") so the transcoder can match output files
+    # back to track metadata.  The custom title/year/video_type saved above
+    # flow via the webhook and get applied when the transcoder moves files
+    # to their final completed directory.
+
+    db.session.commit()
+    return {"success": True, "job_id": job_id, "track_id": track_id, "updated": updated}
+
+
+@router.delete('/jobs/{job_id}/tracks/{track_id}/title')
+def clear_track_title(job_id: int, track_id: int):
+    """Clear per-track title metadata (revert to job-level inheritance)."""
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    track = Track.query.get(track_id)
+    if not track or track.job_id != job_id:
+        return JSONResponse({"success": False, "error": "Track not found"}, status_code=404)
+
+    track.title = None
+    track.year = None
+    track.imdb_id = None
+    track.poster_url = None
+    track.video_type = None
+    track.filename = track.basename
+    db.session.commit()
+    return {"success": True, "job_id": job_id, "track_id": track_id}
+
+
 @router.post('/naming/preview')
 async def naming_preview(request: Request):
     """Preview a naming pattern with given variables."""
@@ -386,7 +534,16 @@ async def update_transcode_config(job_id: int, request: Request):
 async def transcode_callback(job_id: int, request: Request):
     """Receive status update from the external transcoder.
 
-    Expected payload: {"status": "transcoding"|"completed"|"failed", "error": "..."}
+    Expected payload::
+
+        {"status": "transcoding"|"completed"|"failed", "error": "..."}
+
+    Multi-title jobs may also include per-track results::
+
+        {"status": "completed", "track_results": [
+            {"track_number": "1", "status": "completed", "output_path": "..."},
+            {"track_number": "2", "status": "failed", "error": "codec error"},
+        ]}
     """
     job = Job.query.get(job_id)
     if not job:
@@ -404,6 +561,16 @@ async def transcode_callback(job_id: int, request: Request):
             f"'{job.title}' transcoding finished successfully"
         )
         db.session.add(notification)
+    elif status == "partial":
+        # Some tracks succeeded, some failed
+        job.status = JobState.SUCCESS.value
+        error_msg = body.get("error", "Some tracks failed to transcode")
+        job.errors = error_msg
+        notification = Notifications(
+            f"Job: {job.job_id} transcode partial",
+            f"'{job.title}' transcoding completed with errors: {error_msg}"
+        )
+        db.session.add(notification)
     elif status == "failed":
         job.status = JobState.FAILURE.value
         error_msg = body.get("error", "Transcode failed")
@@ -419,8 +586,73 @@ async def transcode_callback(job_id: int, request: Request):
             status_code=400,
         )
 
+    # Update per-track status from transcoder results
+    track_results = body.get("track_results")
+    if track_results and isinstance(track_results, list):
+        track_map = {str(t.track_number): t for t in job.tracks}
+        for tr in track_results:
+            track_num = str(tr.get("track_number", ""))
+            track = track_map.get(track_num)
+            if track:
+                tr_status = tr.get("status", "")
+                if tr_status == "completed":
+                    track.status = "transcoded"
+                elif tr_status == "failed":
+                    track.status = f"transcode_failed: {tr.get('error', '')[:200]}"
+
     db.session.commit()
     return {"success": True, "job_id": job.job_id, "status": job.status}
+
+
+@router.post('/jobs/{job_id}/tvdb-match')
+async def tvdb_match(job_id: int, request: Request):
+    """Run TVDB episode matching for a job.
+
+    Body: {"season": int|null, "tolerance": int|null, "apply": bool}
+    season=null → auto-detect via multi-season scan
+    """
+    from arm.services.tvdb_sync import match_episodes_for_api
+
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    body = await request.json()
+    season = body.get("season")
+    tolerance = body.get("tolerance")
+    apply = bool(body.get("apply", False))
+
+    if season is not None:
+        season = int(season)
+    if tolerance is not None:
+        tolerance = int(tolerance)
+
+    result = match_episodes_for_api(job, season=season, tolerance=tolerance, apply=apply)
+    return result
+
+
+@router.get('/jobs/{job_id}/tvdb-episodes')
+def tvdb_episodes(job_id: int, season: int = 1):
+    """Fetch TVDB episodes for a job's series.
+
+    Query: ?season=2
+    """
+    from arm.services import tvdb
+    from arm.services.matching._async_compat import run_async as _run_async
+
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    tvdb_id = getattr(job, 'tvdb_id', None)
+    if not tvdb_id:
+        return JSONResponse(
+            {"success": False, "error": "No TVDB ID on this job. Run TVDB match first."},
+            status_code=400,
+        )
+
+    episodes = _run_async(tvdb.get_season_episodes(tvdb_id, season))
+    return {"episodes": episodes, "tvdb_id": tvdb_id, "season": season}
 
 
 def _clean_for_filename(string):

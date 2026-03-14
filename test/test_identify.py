@@ -69,7 +69,8 @@ class TestCheckMount:
 
         job = unittest.mock.MagicMock()
         job.devpath = '/dev/sr0'
-        with unittest.mock.patch('arm.ripper.identify._find_mountpoint', return_value=str(tmp_path)):
+        with unittest.mock.patch('arm.ripper.identify._wait_for_drive_ready', return_value=True), \
+             unittest.mock.patch('arm.ripper.identify._find_mountpoint', return_value=str(tmp_path)):
             result = check_mount(job)
         assert result is True
         assert job.mountpoint == str(tmp_path)
@@ -81,7 +82,8 @@ class TestCheckMount:
         job = unittest.mock.MagicMock()
         job.devpath = '/dev/sr0'
         # First call: not mounted; second call after mount: found
-        with unittest.mock.patch('arm.ripper.identify._find_mountpoint',
+        with unittest.mock.patch('arm.ripper.identify._wait_for_drive_ready', return_value=True), \
+             unittest.mock.patch('arm.ripper.identify._find_mountpoint',
                                  side_effect=[None, str(tmp_path)]), \
              unittest.mock.patch('subprocess.run'):
             result = check_mount(job)
@@ -93,7 +95,8 @@ class TestCheckMount:
 
         job = unittest.mock.MagicMock()
         job.devpath = '/dev/sr0'
-        with unittest.mock.patch('arm.ripper.identify._find_mountpoint', return_value=None), \
+        with unittest.mock.patch('arm.ripper.identify._wait_for_drive_ready', return_value=True), \
+             unittest.mock.patch('arm.ripper.identify._find_mountpoint', return_value=None), \
              unittest.mock.patch('subprocess.run'), \
              unittest.mock.patch('arm.ripper.identify._drive_has_disc', return_value=False):
             result = check_mount(job)
@@ -105,10 +108,21 @@ class TestCheckMount:
 
         job = unittest.mock.MagicMock()
         job.devpath = '/dev/sr0'
-        with unittest.mock.patch('arm.ripper.identify._find_mountpoint', return_value=None), \
+        with unittest.mock.patch('arm.ripper.identify._wait_for_drive_ready', return_value=True), \
+             unittest.mock.patch('arm.ripper.identify._find_mountpoint', return_value=None), \
              unittest.mock.patch('subprocess.run'), \
              unittest.mock.patch('arm.ripper.identify._drive_has_disc', return_value=True), \
              unittest.mock.patch('time.sleep'):
+            result = check_mount(job)
+        assert result is False
+
+    def test_drive_not_ready_returns_false(self):
+        """If drive never becomes ready, check_mount returns False without mounting."""
+        from arm.ripper.identify import check_mount
+
+        job = unittest.mock.MagicMock()
+        job.devpath = '/dev/sr0'
+        with unittest.mock.patch('arm.ripper.identify._wait_for_drive_ready', return_value=False):
             result = check_mount(job)
         assert result is False
 
@@ -813,7 +827,7 @@ class TestIdentifyUnmount:
 
         job = unittest.mock.MagicMock()
         job.devpath = '/dev/sr0'
-        job.disctype = 'music'  # skip video identification
+        job.disctype = 'data'  # non-video, non-music — goes through try/finally
 
         with unittest.mock.patch('arm.ripper.identify.check_mount', return_value=True), \
              unittest.mock.patch('arm.ripper.identify.subprocess.run') as mock_run:

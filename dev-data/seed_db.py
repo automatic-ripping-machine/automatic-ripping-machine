@@ -209,6 +209,45 @@ jobs = [
      "/dev/sr2", "/mnt/dev/sr2", 1, None, "bluray",
      "FIGHT_CLUB", 0, 0, 15400, 96600,
      "/home/arm/media/movies/Fight Club (1999)", "170000000013", 0, 0, 0),
+
+    # 14: Waiting — MULTI-TITLE dvd (double feature, fully configured per-track metadata)
+    (VER, "b4c5d6e7f8a90014", "DOUBLE_FEATURE_DISC.log",
+     (now - timedelta(minutes=10)).isoformat(), None,
+     None, "waiting", 6,
+     "DOUBLE_FEATURE", "DOUBLE_FEATURE", None,
+     "0000", "0000", None,
+     "unknown", "unknown", None,
+     None, None, None,
+     None, None, None,
+     "/dev/sr0", "/mnt/dev/sr0", 0, None, "dvd",
+     "DOUBLE_FEATURE", 0, 0, 15500, 96500,
+     "/home/arm/media/unidentified/DOUBLE_FEATURE", "170000000014", 0, 0, 1),
+
+    # 15: Waiting — MULTI-TITLE bluray (partial: only some tracks have overrides)
+    (VER, "c5d6e7f8a9b00015", "JOHN_WATERS_COLLECTION.log",
+     (now - timedelta(minutes=8)).isoformat(), None,
+     None, "waiting", 8,
+     "John Waters Collection", "JOHN_WATERS_COLLECTION", "John Waters Collection",
+     "1994", "0000", "1994",
+     "movie", "unknown", "movie",
+     None, None, None,
+     None, None, None,
+     "/dev/sr1", "/mnt/dev/sr1", 0, None, "bluray",
+     "JOHN_WATERS_COLLECTION", 0, 0, 15600, 96400,
+     "/home/arm/media/movies/John Waters Collection (1994)", "170000000015", 0, 0, 1),
+
+    # 16: Completed — MULTI-TITLE dvd (multi_title flag set, no per-track overrides yet)
+    (VER, "d6e7f8a9b0c10016", "HORROR_DOUBLE.log",
+     (now - timedelta(hours=6)).isoformat(), (now - timedelta(hours=4)).isoformat(),
+     "2:10:00", "success", 4,
+     "Horror Double Feature", "HORROR_DOUBLE", "Horror Double Feature",
+     "2005", "0000", "2005",
+     "movie", "unknown", "movie",
+     None, None, None,
+     None, None, None,
+     "/dev/sr0", "/mnt/dev/sr0", 1, None, "dvd",
+     "HORROR_DOUBLE", 1, 0, 15700, 96300,
+     "/home/arm/media/movies/Horror Double Feature (2005)", "170000000016", 0, 0, 0),
 ]
 
 for j in jobs:
@@ -216,7 +255,7 @@ for j in jobs:
 print(f"Inserted {len(jobs)} jobs")
 
 # --- Configs (one per job) ---
-for job_id in range(1, 14):
+for job_id in range(1, 17):
     c.execute(
         """INSERT INTO config (job_id, ARM_CHECK_UDF, GET_VIDEO_TITLE, SKIP_TRANSCODE,
            VIDEOTYPE, MINLENGTH, MAXLENGTH, MANUAL_WAIT, MANUAL_WAIT_TIME,
@@ -227,7 +266,12 @@ for job_id in range(1, 14):
            '/opt/arm','/home/arm/logs','DEBUG','/home/arm/db/arm.db','mkv',0,'mkv',1,1)""",
         (job_id,),
     )
-print("Inserted 13 configs")
+print("Inserted 16 configs")
+
+# --- Set multi_title flag on jobs 14, 15, 16 ---
+for job_id in (14, 15, 16):
+    c.execute("UPDATE job SET multi_title = 1 WHERE job_id = ?", (job_id,))
+print("Set multi_title=1 on jobs 14, 15, 16")
 
 # --- Tracks ---
 tracks = [
@@ -303,6 +347,27 @@ tracks = [
     (13, "03", 180,  "16:9",  23.976, 0, "t02.mkv", "Fight_Club_t02.mkv", "success"),
     (13, "04", 120,  "16:9",  23.976, 0, "t03.mkv", None, None),
     (13, "05", 90,   "16:9",  23.976, 0, "t04.mkv", None, None),
+    # Job 14 — Double Feature DVD (multi-title, fully configured)
+    (14, "01", 5700, "16:9", 29.97, 1, "t00.mkv", "title_t00.mkv", None),
+    (14, "02", 5400, "16:9", 29.97, 1, "t01.mkv", "title_t01.mkv", None),
+    (14, "03", 120,  "16:9", 29.97, 0, "t02.mkv", "title_t02.mkv", None),
+    (14, "04", 90,   "16:9", 29.97, 0, "t03.mkv", "title_t03.mkv", None),
+    (14, "05", 45,   "16:9", 29.97, 0, "t04.mkv", "title_t04.mkv", None),
+    (14, "06", 30,   "16:9", 29.97, 0, "t05.mkv", "title_t05.mkv", None),
+    # Job 15 — John Waters Collection (multi-title, partial overrides)
+    (15, "01", 5280, "16:9", 23.976, 1, "t00.mkv", "title_t00.mkv", None),
+    (15, "02", 5160, "16:9", 23.976, 1, "t01.mkv", "title_t01.mkv", None),
+    (15, "03", 600,  "16:9", 23.976, 0, "t02.mkv", "title_t02.mkv", None),
+    (15, "04", 420,  "16:9", 23.976, 0, "t03.mkv", "title_t03.mkv", None),
+    (15, "05", 180,  "16:9", 23.976, 0, "t04.mkv", "title_t04.mkv", None),
+    (15, "06", 90,   "16:9", 23.976, 0, "t05.mkv", "title_t05.mkv", None),
+    (15, "07", 45,   "16:9", 23.976, 0, "t06.mkv", "title_t06.mkv", None),
+    (15, "08", 30,   "16:9", 23.976, 0, "t07.mkv", "title_t07.mkv", None),
+    # Job 16 — Horror Double Feature (multi-title, completed, no per-track overrides)
+    (16, "01", 5400, "16:9", 29.97, 1, "t00.mkv", "title_t00.mkv", "success"),
+    (16, "02", 5100, "16:9", 29.97, 1, "t01.mkv", "title_t01.mkv", "success"),
+    (16, "03", 180,  "16:9", 29.97, 0, "t02.mkv", "title_t02.mkv", "success"),
+    (16, "04", 60,   "16:9", 29.97, 0, "t03.mkv", "title_t03.mkv", "success"),
 ]
 
 for t in tracks:
@@ -314,6 +379,27 @@ for t in tracks:
         (t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7], ripped, t[8], "mkv"),
     )
 print(f"Inserted {len(tracks)} tracks")
+
+# --- Per-track metadata for multi-title discs ---
+# Job 14 — Double Feature: both main features have per-track titles
+per_track_meta = [
+    # (job_id, track_number, title, year, imdb_id, poster_url, video_type)
+    (14, "01", "Serial Mom", "1994", "tt0111127",
+     f"{TMDB}/xVWGkqMpJPAkyND9sJZ4lnSHj8k.jpg", "movie"),
+    (14, "02", "Pecker", "1998", "tt0126604",
+     f"{TMDB}/aYOo6A0qY1SYoTO4hFmMRYxMQPT.jpg", "movie"),
+    # Job 15 — John Waters Collection: only first track has override (partial)
+    (15, "01", "Serial Mom", "1994", "tt0111127",
+     f"{TMDB}/xVWGkqMpJPAkyND9sJZ4lnSHj8k.jpg", "movie"),
+    # Track 02 has NO override — will inherit job-level metadata
+]
+for pm in per_track_meta:
+    c.execute(
+        """UPDATE track SET title=?, year=?, imdb_id=?, poster_url=?, video_type=?
+           WHERE job_id=? AND track_number=?""",
+        (pm[2], pm[3], pm[4], pm[5], pm[6], pm[0], pm[1]),
+    )
+print(f"Set per-track metadata on {len(per_track_meta)} tracks")
 
 # --- Notifications ---
 notifs = [
@@ -341,6 +427,12 @@ notifs = [
      now - timedelta(minutes=5)),
     ("Job: 13 started", "Fight Club (1999) rip started on /dev/sr2",
      now - timedelta(minutes=20)),
+    ("Job: 14 waiting", "DOUBLE_FEATURE: multi-title disc waiting for user input on /dev/sr0",
+     now - timedelta(minutes=10)),
+    ("Job: 15 waiting", "John Waters Collection: multi-title disc waiting for user input on /dev/sr1",
+     now - timedelta(minutes=8)),
+    ("Job: 16 completed", "Horror Double Feature (2005) ripped successfully (multi-title)",
+     now - timedelta(hours=4)),
 ]
 for title, msg, t in notifs:
     c.execute(

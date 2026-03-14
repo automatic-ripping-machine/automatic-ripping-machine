@@ -30,7 +30,7 @@ from arm.models.system_drives import CDS, SystemDrives  # noqa: E402
 from arm.database import db  # noqa E402
 import arm.constants as constants  # noqa E402
 from arm.ripper import (arm_ripper, identify, logger,  # noqa: E402
-                        music_brainz, utils)
+                        makemkv, music_brainz, utils)
 from arm.ripper.ARMInfo import ARMInfo  # noqa E402
 from arm.services import drives as drive_utils  # noqa E402
 
@@ -113,7 +113,10 @@ def main():
     identify.identify(job)
 
     # Re-initialize job log now that identification has resolved the label
-    log_file = logger.setup_job_log(job)
+    # (skip for music — already identified during setup, no label change)
+    if job.disctype != "music":
+        log_file = logger.setup_job_log(job)
+    job.status = JobState.IDLE.value
     db.session.commit()
 
     # Check db for entries matching the crc and successful
@@ -121,6 +124,62 @@ def main():
     logging.debug(f"Value of have_dupes: {have_dupes}")
 
     utils.notify_entry(job)
+
+    # For music CDs, run full MusicBrainz lookup BEFORE the manual wait
+    # so tracks, cover art, and metadata are available during review.
+    if job.disctype == "music":
+        music_brainz.main(job)
+        # Set output path for display (abcde uses its own OUTPUTDIR)
+        try:
+            job.path = job.build_final_path()
+        except Exception as e:
+            logging.warning("Could not build final path for music job %s: %s", job.job_id, e)
+        db.session.commit()
+
+    # For video discs, run MakeMKV title scan BEFORE the manual wait
+    # so track info is available in the review widget during the waiting state.
+    if job.disctype in ["dvd", "bluray", "bluray4k"]:
+        # Wait for drive to be ready after umount from identification.
+        # USB drives (Pioneer BDR-S12JX) go NOT_READY after unmount and
+        # can take 30-60s to spin back up.  Polling the ioctl avoids
+        # wasting pre-scan retries on a drive that isn't ready yet.
+        from arm.ripper.identify import _wait_for_drive_ready
+        if not _wait_for_drive_ready(job.devpath, timeout=120):
+            logging.warning("Drive not ready for pre-scan — skipping (will retry during rip)")
+        for attempt in range(1, 4):
+            try:
+                if not Path(job.devpath).exists():
+                    raise FileNotFoundError(f"{job.devpath} not found")
+                logging.info("Pre-scanning disc titles for review (attempt %d)...", attempt)
+                makemkv.prep_mkv()
+                makemkv.prescan_track_info(job, timeout=300)
+                db.session.expire(job, ['tracks'])
+                tracks = list(job.tracks)
+                if len(tracks) == 0:
+                    raise RuntimeError("MakeMKV returned 0 titles")
+                for t in tracks:
+                    t.enabled = True
+                db.session.commit()
+                logging.info("Pre-scan complete: %d tracks found", len(tracks))
+                break
+            except Exception as e:
+                if attempt < 3:
+                    wait = 30 * attempt  # 30s, 60s (longer for Pioneer USB recovery)
+                    logging.warning("Pre-scan attempt %d failed: %s — retrying in %ds", attempt, e, wait)
+                    time.sleep(wait)
+                else:
+                    logging.warning("Pre-scan failed after %d attempts (will retry during rip): %s", attempt, e)
+
+    # For TV series, attempt automatic episode matching via TVDB
+    if job.video_type == "series" and cfg.arm_config.get("TVDB_API_KEY"):
+        try:
+            from arm.services.tvdb_sync import match_episodes_sync
+            if match_episodes_sync(job):
+                db.session.expire(job, ['tracks'])
+                logging.info("TVDB episode matching applied to tracks")
+        except Exception as e:
+            logging.warning("TVDB episode matching failed (non-fatal): %s", e)
+
     # Check if user has manual wait time enabled
     utils.check_for_wait(job)
 
@@ -134,8 +193,6 @@ def main():
 
     # Type: Music
     elif job.disctype == "music":
-        # Try to recheck music disc for auto ident
-        music_brainz.main(job)
         if utils.rip_music(job, log_file):
             utils.notify(job, constants.NOTIFY_TITLE, f"Music CD: {job.title} {constants.PROCESS_COMPLETE}")
             utils.scan_emby()
@@ -250,8 +307,6 @@ def setup():
     # ARM Job starts
     # Create new job
     job = Job(devpath)
-    # Setup logging
-    log_file = logger.setup_job_log(job)
 
     # Capture and report the ARM Info
     arminfo = ARMInfo(cfg.arm_config["INSTALLPATH"], cfg.arm_config['DBFILE'])
@@ -263,9 +318,14 @@ def setup():
 
     logging.info(f"************* Starting ARM processing at {datetime.datetime.now()} *************")
     # Set job status and start time
-    job.status = JobState.IDLE.value
+    job.status = JobState.IDENTIFYING.value
     job.start_time = datetime.datetime.now()
     utils.database_adder(job)
+
+    # Setup logging — must happen after job is persisted (job_id assigned) and
+    # arm_version is set, because music CDs trigger a MusicBrainz lookup here
+    # that needs both values.
+    log_file = logger.setup_job_log(job)
     # Sleep to lower chances of db locked - unlikely to be needed
     time.sleep(1)
     # Associate the job with the drive in the database

@@ -20,6 +20,7 @@ import subprocess
 from time import sleep
 
 import arm.config.config as cfg
+from arm.constants import SINGLE_TRACK_VIDEO_TYPES
 from arm.models import SystemDrives, Track
 from arm.models.job import JobState
 from arm.ripper import utils
@@ -665,8 +666,13 @@ def makemkv_mkv(job, rawpath):
     # Get drive mode for the current drive
     mode = utils.get_drive_mode(job.devpath)
     logging.info(f"Job running in {mode} mode")
-    # Get track info from mkv rip
-    get_track_info(job.drive.mdisc, job)
+    # Get track info from mkv rip (skip if pre-scanned during review)
+    existing_tracks = list(job.tracks)
+    pre_scanned = len(existing_tracks) > 0
+    if not pre_scanned:
+        get_track_info(job.drive.mdisc, job)
+    else:
+        logging.info("Skipping title scan — %d tracks already loaded from pre-scan", len(existing_tracks))
 
     # Bail out early if MakeMKV found nothing to rip
     if job.no_of_titles is not None and job.no_of_titles == 0:
@@ -675,17 +681,38 @@ def makemkv_mkv(job, rawpath):
             "The disc may be dirty, damaged, or copy-protected."
         )
 
+    # Auto-flag tracks: when MAINFEATURE is enabled AND the disc is a
+    # single-title type (not multi-title), enable only the best track.
+    # Otherwise enable all tracks.  Skip if tracks were pre-scanned
+    # (user may have already toggled enabled flags during review).
+    if not pre_scanned:
+        is_single_track_type = getattr(job, 'video_type', None) in SINGLE_TRACK_VIDEO_TYPES
+        is_multi = getattr(job, 'multi_title', False)
+        mainfeature = bool(int(getattr(job.config, 'MAINFEATURE', 0) or 0))
+        if mainfeature and is_single_track_type and not is_multi:
+            for t in job.tracks:
+                t.enabled = False
+            best = Track.query.filter_by(job_id=job.job_id).order_by(
+                Track.chapters.desc(),
+                Track.length.desc(),
+                Track.filesize.desc(),
+                Track.track_number.asc()
+            ).first()
+            if best:
+                best.enabled = True
+            db.session.commit()
+            logging.info("MAINFEATURE: auto-flagged best track (single-title movie): %s", best)
+        else:
+            for t in job.tracks:
+                t.enabled = True
+            db.session.commit()
+            logging.info("Auto-enabled all tracks (MAINFEATURE=%s, single=%s, multi=%s)",
+                         mainfeature, is_single_track_type, is_multi)
+    else:
+        logging.info("Preserving user track selections from review (pre-scanned)")
+
     # route to ripping functions.
-    if job.config.MAINFEATURE:
-        logging.info("Trying to find mainfeature")
-        track = Track.query.filter_by(job_id=job.job_id).order_by(
-            Track.chapters.desc(),
-            Track.length.desc(),
-            Track.filesize.desc(),
-            Track.track_number.asc()
-        ).first()
-        rip_mainfeature(job, track, rawpath)
-    elif mode == 'manual':  # Run if mode is manual, user selects tracks
+    if mode == 'manual':  # Run if mode is manual, user selects tracks
         # Set job status to waiting
         job.status = JobState.VIDEO_WAITING.value
         db.session.commit()
@@ -824,6 +851,101 @@ def _reconcile_filenames(job, rawpath):
         db.session.commit()
 
 
+def _run_with_timeout(cmd, select, timeout=300):
+    """Run makemkvcon with a watchdog timer and yield selected messages.
+
+    Same streaming pattern as run() but with a threading.Timer that kills
+    the process after *timeout* seconds.  Raises subprocess.TimeoutExpired
+    on timeout and MakeMkvRuntimeError on non-zero exit.
+    """
+    import threading
+    logging.debug(f"command (timeout={timeout}s): '{' '.join(cmd)}'")
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True) as proc:
+        timer = threading.Timer(timeout, proc.kill)
+        timer.start()
+        try:
+            for line in proc.stdout:
+                line = line.rstrip(os.linesep)
+                logging.debug(line)
+                try:
+                    msg_type, data = parse_line(line)
+                except MakeMkvParserError:
+                    continue
+                if msg_type in select:
+                    yield data
+        finally:
+            timer.cancel()
+    if proc.returncode == -9:
+        raise subprocess.TimeoutExpired(cmd, timeout)
+    if proc.returncode:
+        raise MakeMkvRuntimeError(proc.returncode, cmd, output="")
+    logging.info("MakeMKV info exits.")
+
+
+def prescan_resolve_mdisc(job, timeout=60):
+    """Resolve MakeMKV disc index with timeout.  Multi-drive safe.
+
+    If job.drive.mdisc is already populated, returns it immediately.
+    On timeout or failure, returns None so the rip phase re-resolves.
+    """
+    if job.drive is not None and job.drive.mdisc is not None:
+        return job.drive.mdisc
+
+    try:
+        cmd = [shutil.which("makemkvcon"), "--robot", "--messages=-stdout",
+               "info", "disc:9999"]
+        for data in _run_with_timeout(cmd, OutputType.DRV, timeout=timeout):
+            if hasattr(data, 'mount') and data.mount == job.devpath:
+                if job.drive is not None:
+                    job.drive.mdisc = data.index
+                    db.session.commit()
+                return data.index
+        logging.warning("disc:9999 did not return drive for %s", job.devpath)
+    except (subprocess.TimeoutExpired, MakeMkvRuntimeError) as exc:
+        logging.warning("disc:9999 enumeration failed: %s — rip phase will re-resolve", exc)
+    return None
+
+
+def prescan_disc_info(job, timeout=300):
+    """Low-level MakeMKV title scan with timeout.
+
+    Does NOT touch job.status, no concurrency limiter, no penalty sleep.
+    Yields CINFO/SINFO/TCOUNT/TINFO messages from makemkvcon info.
+    Uses dev:{devpath} to address the drive directly — no disc index
+    enumeration needed, safe for multi-drive setups.
+    """
+    cmd = [shutil.which("makemkvcon"), "--robot", "--messages=-stdout",
+           "info", "--cache=1", f"dev:{job.devpath}", "--minlength=0"]
+    select = OutputType.CINFO | OutputType.SINFO | OutputType.TCOUNT | OutputType.TINFO
+    yield from _run_with_timeout(cmd, select, timeout=timeout)
+
+
+def prescan_track_info(job, timeout=300):
+    """High-level pre-scan: populate job tracks from MakeMKV without side effects.
+
+    Clears existing tracks (prevents duplicates on retry), then feeds
+    MakeMKV output through TrackInfoProcessor.
+
+    Also attempts to resolve the MakeMKV disc index in the background
+    (populates job.drive.mdisc for the later rip phase), but pre-scan
+    itself uses dev:{devpath} so this is non-blocking.
+    """
+    from arm.models.track import Track
+    Track.query.filter_by(job_id=job.job_id).delete()
+    db.session.flush()
+
+    # Resolve disc index for later rip phase (best-effort, non-critical)
+    try:
+        prescan_resolve_mdisc(job, timeout=60)
+    except Exception as exc:
+        logging.warning("mdisc resolution failed (non-fatal): %s", exc)
+
+    processor = TrackInfoProcessor(job, 0)
+    for message in prescan_disc_info(job, timeout=timeout):
+        processor._process_message(message)
+    processor._add_track()
+
+
 def _resolve_mdisc(job):
     """Ensure job.drive.mdisc is populated, scanning drives if needed."""
     if job.drive is not None and job.drive.mdisc is not None:
@@ -857,6 +979,14 @@ def makemkv(job):
     Returns:
         str: path to ripped files.
     """
+    # Poll drive readiness before touching the disc.  After pre-scan +
+    # manual wait (60s+), USB drives can go NOT_READY again.
+    from arm.ripper.identify import _wait_for_drive_ready
+    if not _wait_for_drive_ready(job.devpath, timeout=120):
+        raise utils.RipperException(
+            f"Drive {job.devpath} not ready — disc may have been ejected"
+        )
+
     prep_mkv()
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     _resolve_mdisc(job)
@@ -978,8 +1108,10 @@ def setup_rawpath(job, raw_path):
             err = f"Couldn't create the base file path: {raw_path}. Probably a permissions error"
             logging.error(err)
     else:
-        logging.info(f"{raw_path} exists.  Adding timestamp.")
-        raw_path = os.path.join(str(job.config.RAW_PATH), f"{job.title}_{job.stage}")
+        import time as _time
+        ts = str(int(_time.time()))
+        logging.info(f"{raw_path} exists.  Adding timestamp {ts}.")
+        raw_path = os.path.join(str(job.config.RAW_PATH), f"{job.title}_{ts}")
         logging.info(f"raw_path is {raw_path}")
         try:
             os.makedirs(raw_path)

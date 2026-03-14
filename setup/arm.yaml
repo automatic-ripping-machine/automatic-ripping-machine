@@ -108,6 +108,28 @@ METADATA_PROVIDER: "omdb"
 # if "none" is used no label is identified
 GET_AUDIO_TITLE: "musicbrainz"
 
+# Audio output format for music CD ripping (passed to abcde -o).
+# Supported: flac, mp3, vorbis, opus, m4a, wav, mka, wv, ape, mpc, spx, mp2, tta, aiff
+AUDIO_FORMAT: "flac"
+
+# CD rip speed profile — controls cdparanoia error-correction aggressiveness.
+#   "safe"    — full paranoia (default). Best for scratched/damaged discs. Slowest.
+#   "fast"    — disable extra paranoia (-Y). Keeps jitter correction, skips
+#               scratch-detection passes. Good balance for most discs. ~2-4x faster.
+#   "fastest" — disable all paranoia (-Z). No error correction at all.
+#               Use only for pristine discs. ~5-10x faster.
+RIP_SPEED_PROFILE: "fast"
+
+# Enable per-disc subfolders for multi-CD album rips.
+# When true, multi-disc sets produce: Artist/Album/Disc 1/track.flac, Disc 2/track.flac, etc.
+# When false, all discs are mixed into one folder.
+MUSIC_MULTI_DISC_SUBFOLDERS: true
+
+# Folder name pattern for each disc in a multi-disc set.
+# {num} is replaced with the disc number (1, 2, 3…).
+# Examples: "Disc {num}", "CD {num}", "CD{num}"
+MUSIC_DISC_FOLDER_PATTERN: "Disc {num}"
+
 # Rip DVD Posters from JACKET_P folder
 # Requires FFmpeg
 RIP_POSTER: false
@@ -158,6 +180,9 @@ TRANSCODE_PATH: "/home/arm/media/transcode/"
 # Final directory of completed files
 # Ripped files end up here (moved by external transcoder after processing)
 COMPLETED_PATH: "/home/arm/media/completed/"
+
+# Music rip output directory (used by abcde)
+MUSIC_PATH: "/home/arm/music/"
 
 # Movie subdirectory name for "extras"
 # Valid names are dependent on your media server
@@ -326,8 +351,7 @@ BASH_SCRIPT: ""
 # URL of the arm-transcoder webhook endpoint.
 # Default works with docker-compose (same machine). For remote transcoder,
 # use the host IP/hostname (e.g. http://192.168.0.92:5000/webhook/arm).
-# Leave empty to disable built-in transcoder notifications.
-TRANSCODER_URL: ""
+TRANSCODER_URL: "http://arm-transcoder:5000/webhook/arm"
 
 # Webhook secret for authenticating with the transcoder.
 # Must match WEBHOOK_SECRET in arm-transcoder's .env.
@@ -353,6 +377,17 @@ OMDB_API_KEY: ""
 # This is the API key for https://www.themoviedb.org/ queries.
 # More info at https://www.themoviedb.org/documentation/api
 TMDB_API_KEY: ""
+
+# TVDB_API_KEY
+# TheTVDB v4 API Key for automatic TV episode matching.
+# Get a free key at https://thetvdb.com/dashboard/account/apikey
+# When set, ARM matches disc tracks to real episodes by runtime
+# for proper episode naming (e.g. "Show S01E03 - Speedy Death").
+TVDB_API_KEY: ""
+
+# Maximum number of seasons to scan when auto-detecting the best season
+# for TVDB episode matching (used when disc label has no season info).
+TVDB_MAX_SEASON_SCAN: 10
 
 # JSON_URL
 # Url to send Notifications to in JSON format
