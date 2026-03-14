@@ -204,10 +204,10 @@ async def rescan_drives():
             "drive_count": after,
             "drives_changed": before != after,
         }
-    except Exception as e:
+    except Exception:
         log.exception("Drive rescan failed")
         return JSONResponse(
-            {"success": False, "error": str(e)},
+            {"success": False, "error": "Drive rescan failed"},
             status_code=500,
         )
 
@@ -238,10 +238,10 @@ async def scan_drive(drive_id: int):
         )
         log.info("Scan triggered for drive %s (%s)", drive_id, devname)
         return {"success": True, "drive_id": drive_id, "devname": devname}
-    except Exception as e:
+    except Exception:
         log.exception("Failed to trigger scan for drive %s", drive_id)
         return JSONResponse(
-            {"success": False, "error": str(e)},
+            {"success": False, "error": "Scan failed"},
             status_code=500,
         )
 
