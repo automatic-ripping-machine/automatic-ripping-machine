@@ -53,12 +53,22 @@ async def drive_diagnostic():
         issues.append("/proc/sys/dev/cdrom/info not found — no optical drives visible to kernel")
 
     # --- per-drive checks ---
-    # Collect all srN names from kernel, sysfs, and /dev
+    # Collect all srN names from kernel, sysfs, /dev, AND the database
     all_devnames: set[str] = set(kernel_drives)
     for p in glob.glob("/sys/block/sr*"):
         all_devnames.add(os.path.basename(p))
     for p in glob.glob("/dev/sr*"):
         all_devnames.add(os.path.basename(p))
+
+    # Also include drives known to the database (may be stale)
+    db_drives = SystemDrives.query.all()
+    db_by_devname: dict[str, SystemDrives] = {}
+    for d in db_drives:
+        if d.mount:
+            dn = d.mount.rstrip("/").rsplit("/", 1)[-1]
+            if re.match(r'^sr\d+$', dn):
+                all_devnames.add(dn)
+                db_by_devname[dn] = d
 
     for devname in sorted(all_devnames):
         dev_path = f"/dev/{devname}"
@@ -66,6 +76,13 @@ async def drive_diagnostic():
         lock_path = f"/home/arm/.arm_{devname}.lock"
 
         diag: dict = {"devname": devname, "status": "ok", "issues": []}
+
+        # DB info
+        db_drv = db_by_devname.get(devname)
+        if db_drv:
+            diag["db_name"] = db_drv.name
+            diag["db_model"] = " ".join(filter(None, [db_drv.maker, db_drv.model]))
+            diag["db_connection"] = db_drv.connection
 
         # Device node
         diag["dev_node_exists"] = os.path.exists(dev_path)
@@ -147,10 +164,7 @@ async def drive_diagnostic():
                 pass
 
         # In database?
-        db_drive = SystemDrives.query.filter(
-            SystemDrives.mount.like(f"%{devname}")
-        ).first()
-        diag["in_database"] = db_drive is not None
+        diag["in_database"] = devname in db_by_devname
         if not diag["in_database"]:
             diag["issues"].append(f"{devname} not found in ARM database — run drive rescan")
 
