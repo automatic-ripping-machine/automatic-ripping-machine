@@ -317,6 +317,29 @@ class TestTvdbAsync:
             result = asyncio.run(tvdb.resolve_tvdb_id("tt9999999"))
         assert result is None
 
+    def test_resolve_tvdb_id_fallback_to_result_id(self):
+        """When series sub-object is missing, use result.id directly."""
+        from arm.services import tvdb
+
+        mock_response = {
+            "data": [{"id": "99887"}]
+        }
+        with unittest.mock.patch.object(tvdb, '_get', return_value=mock_response):
+            result = asyncio.run(tvdb.resolve_tvdb_id("tt1234567"))
+        assert result == 99887
+
+    def test_resolve_tvdb_id_http_error(self):
+        """HTTP error returns None."""
+        import httpx
+        from arm.services import tvdb
+
+        async def _raise(*a, **kw):
+            raise httpx.HTTPError("connection failed")
+
+        with unittest.mock.patch.object(tvdb, '_get', side_effect=_raise):
+            result = asyncio.run(tvdb.resolve_tvdb_id("tt0000000"))
+        assert result is None
+
     def test_get_season_episodes_dvd_order(self):
         from arm.services import tvdb
 
@@ -338,6 +361,130 @@ class TestTvdbAsync:
         assert eps[0]["name"] == "Pilot"
         assert eps[0]["runtime"] == 55 * 60  # converted to seconds
         assert eps[1]["number"] == 2
+
+    def test_get_season_episodes_falls_back_to_default(self):
+        """When DVD order returns nothing, tries default order."""
+        from arm.services import tvdb
+
+        dvd_response = {"data": {"series": {}, "episodes": []}}
+        default_page0 = {
+            "data": {
+                "series": {},
+                "episodes": [
+                    {"number": 1, "name": "Aired Pilot", "runtime": 45, "aired": "2020-01-01"},
+                ],
+            }
+        }
+        default_page1 = {"data": {"series": {}, "episodes": []}}
+
+        with unittest.mock.patch.object(
+            tvdb, '_get', side_effect=[dvd_response, default_page0, default_page1]
+        ):
+            eps = asyncio.run(tvdb.get_season_episodes(71256, 1))
+        assert len(eps) == 1
+        assert eps[0]["name"] == "Aired Pilot"
+        assert eps[0]["runtime"] == 45 * 60
+
+    def test_get_season_episodes_both_empty(self):
+        """When both DVD and default order return nothing."""
+        from arm.services import tvdb
+
+        empty = {"data": {"series": {}, "episodes": []}}
+        with unittest.mock.patch.object(tvdb, '_get', return_value=empty):
+            eps = asyncio.run(tvdb.get_season_episodes(71256, 99))
+        assert eps == []
+
+    def test_fetch_episodes_404_breaks(self):
+        """HTTP 404 on a season type causes early break, not exception."""
+        import httpx
+        from arm.services import tvdb
+
+        mock_response = unittest.mock.MagicMock()
+        mock_response.status_code = 404
+
+        async def _raise_404(*a, **kw):
+            raise httpx.HTTPStatusError(
+                "Not Found", request=unittest.mock.MagicMock(), response=mock_response
+            )
+
+        # DVD order 404s, default order also 404s
+        with unittest.mock.patch.object(tvdb, '_get', side_effect=_raise_404):
+            eps = asyncio.run(tvdb.get_season_episodes(71256, 5))
+        assert eps == []
+
+    def test_fetch_episodes_non_404_raises(self):
+        """Non-404 HTTP error re-raises."""
+        import httpx
+        from arm.services import tvdb
+
+        mock_response = unittest.mock.MagicMock()
+        mock_response.status_code = 500
+
+        async def _raise_500(*a, **kw):
+            raise httpx.HTTPStatusError(
+                "Server Error", request=unittest.mock.MagicMock(), response=mock_response
+            )
+
+        with unittest.mock.patch.object(tvdb, '_get', side_effect=_raise_500):
+            with pytest.raises(httpx.HTTPStatusError):
+                asyncio.run(tvdb.get_season_episodes(71256, 1))
+
+
+class TestEnsureToken:
+    """Test _ensure_token() token acquisition."""
+
+    def test_acquires_new_token(self):
+        import httpx
+        from arm.services import tvdb
+
+        # Reset cached token
+        tvdb._TOKEN = None
+        tvdb._TOKEN_EXPIRES = 0
+
+        mock_response = unittest.mock.MagicMock()
+        mock_response.json.return_value = {"data": {"token": "test_token_123"}}
+        mock_response.raise_for_status = unittest.mock.MagicMock()
+
+        async def mock_post(url, json=None):
+            return mock_response
+
+        mock_client = unittest.mock.MagicMock()
+        mock_client.post = mock_post
+        mock_client.__aenter__ = unittest.mock.AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = unittest.mock.AsyncMock(return_value=False)
+
+        with unittest.mock.patch("arm.services.tvdb.cfg.arm_config",
+                                 {"TVDB_API_KEY": "test_key"}), \
+             unittest.mock.patch("arm.services.tvdb.httpx.AsyncClient",
+                                 return_value=mock_client):
+            token = asyncio.run(tvdb._ensure_token())
+
+        assert token == "test_token_123"
+
+    def test_reuses_cached_token(self):
+        import time
+        from arm.services import tvdb
+
+        tvdb._TOKEN = "cached_token"
+        tvdb._TOKEN_EXPIRES = time.time() + 3600  # valid for 1 hour
+
+        token = asyncio.run(tvdb._ensure_token())
+        assert token == "cached_token"
+
+        # Cleanup
+        tvdb._TOKEN = None
+        tvdb._TOKEN_EXPIRES = 0
+
+    def test_no_api_key_raises(self):
+        from arm.services import tvdb
+
+        tvdb._TOKEN = None
+        tvdb._TOKEN_EXPIRES = 0
+
+        with unittest.mock.patch("arm.services.tvdb.cfg.arm_config",
+                                 {"TVDB_API_KEY": ""}):
+            with pytest.raises(ValueError, match="TVDB_API_KEY not configured"):
+                asyncio.run(tvdb._ensure_token())
 
 
 class TestNamingWithEpisodeNumber:

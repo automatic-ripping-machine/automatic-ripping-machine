@@ -1131,3 +1131,901 @@ class TestApiRippingEnabled:
                                json={"enabled": True})
         assert response.status_code == 200
         assert response.json()["ripping_enabled"] is True
+
+
+# ── Drive diagnostic helper function unit tests ──────────────────────────
+
+
+class TestCheckUdevd:
+    """Test _check_udevd() helper directly."""
+
+    def test_udevd_found_as_systemd_udevd(self):
+        from arm.api.v1.drives import _check_udevd
+
+        original_open = open
+
+        def _mock_listdir(path):
+            if path == "/proc":
+                return ["1", "42", "abc", "300"]
+            raise FileNotFoundError(path)
+
+        def _mock_open(path, *args, **kwargs):
+            if isinstance(path, str) and path == "/proc/42/comm":
+                return unittest.mock.mock_open(read_data="systemd-udevd\n")(path)
+            if isinstance(path, str) and path.startswith("/proc/") and path.endswith("/comm"):
+                return unittest.mock.mock_open(read_data="bash\n")(path)
+            return original_open(path, *args, **kwargs)
+
+        with unittest.mock.patch("arm.api.v1.drives.os.listdir", side_effect=_mock_listdir), \
+             unittest.mock.patch("builtins.open", side_effect=_mock_open):
+            assert _check_udevd() is True
+
+    def test_udevd_not_found(self):
+        from arm.api.v1.drives import _check_udevd
+
+        original_open = open
+
+        def _mock_open(path, *args, **kwargs):
+            if isinstance(path, str) and path.startswith("/proc/") and path.endswith("/comm"):
+                return unittest.mock.mock_open(read_data="python3\n")(path)
+            return original_open(path, *args, **kwargs)
+
+        with unittest.mock.patch("arm.api.v1.drives.os.listdir", return_value=["1", "2"]), \
+             unittest.mock.patch("builtins.open", side_effect=_mock_open):
+            assert _check_udevd() is False
+
+    def test_udevd_skips_non_digit_pids(self):
+        from arm.api.v1.drives import _check_udevd
+
+        with unittest.mock.patch("arm.api.v1.drives.os.listdir",
+                                 return_value=["self", "bus", "net"]):
+            assert _check_udevd() is False
+
+    def test_udevd_handles_file_not_found(self):
+        from arm.api.v1.drives import _check_udevd
+
+        def _mock_open(path, *args, **kwargs):
+            raise FileNotFoundError(path)
+
+        with unittest.mock.patch("arm.api.v1.drives.os.listdir", return_value=["1", "2"]), \
+             unittest.mock.patch("builtins.open", side_effect=_mock_open):
+            assert _check_udevd() is False
+
+    def test_udevd_handles_ioerror(self):
+        from arm.api.v1.drives import _check_udevd
+
+        def _mock_open(path, *args, **kwargs):
+            raise IOError("permission denied")
+
+        with unittest.mock.patch("arm.api.v1.drives.os.listdir", return_value=["1"]), \
+             unittest.mock.patch("builtins.open", side_effect=_mock_open):
+            assert _check_udevd() is False
+
+
+class TestReadKernelCdromInfo:
+    """Test _read_kernel_cdrom_info() helper directly."""
+
+    def test_reads_two_drives(self):
+        from arm.api.v1.drives import _read_kernel_cdrom_info
+
+        content = "CD-ROM information, Id: cdrom.c 3.20 2003/12/17\n\ndrive name:\tsr0\tsr1\n"
+
+        with unittest.mock.patch("builtins.open",
+                                 unittest.mock.mock_open(read_data=content)):
+            exists, drives = _read_kernel_cdrom_info()
+        assert exists is True
+        assert drives == ["sr0", "sr1"]
+
+    def test_reads_single_drive(self):
+        from arm.api.v1.drives import _read_kernel_cdrom_info
+
+        content = "drive name:\tsr0\n"
+        with unittest.mock.patch("builtins.open",
+                                 unittest.mock.mock_open(read_data=content)):
+            exists, drives = _read_kernel_cdrom_info()
+        assert exists is True
+        assert drives == ["sr0"]
+
+    def test_file_not_found(self):
+        from arm.api.v1.drives import _read_kernel_cdrom_info
+
+        with unittest.mock.patch("builtins.open", side_effect=FileNotFoundError):
+            exists, drives = _read_kernel_cdrom_info()
+        assert exists is False
+        assert drives == []
+
+    def test_no_drive_name_line(self):
+        from arm.api.v1.drives import _read_kernel_cdrom_info
+
+        content = "CD-ROM information, Id: cdrom.c 3.20\n\nsome other info\n"
+        with unittest.mock.patch("builtins.open",
+                                 unittest.mock.mock_open(read_data=content)):
+            exists, drives = _read_kernel_cdrom_info()
+        assert exists is True
+        assert drives == []
+
+
+class TestRunDriveDiagnostic:
+    """Test _run_drive_diagnostic() helper directly."""
+
+    def test_drive_with_sysfs_and_major_minor(self):
+        from arm.api.v1.drives import _run_drive_diagnostic
+
+        original_open = open
+
+        def _mock_open(path, *args, **kwargs):
+            if isinstance(path, str) and path == "/sys/block/sr0/dev":
+                return unittest.mock.mock_open(read_data="11:0\n")(path)
+            return original_open(path, *args, **kwargs)
+
+        with unittest.mock.patch("arm.api.v1.drives.os.path.exists", return_value=True), \
+             unittest.mock.patch("arm.api.v1.drives.os.path.isdir", return_value=True), \
+             unittest.mock.patch("builtins.open", side_effect=_mock_open), \
+             unittest.mock.patch("arm.api.v1.drives.os.open", return_value=3), \
+             unittest.mock.patch("arm.api.v1.drives.fcntl.ioctl", return_value=4), \
+             unittest.mock.patch("arm.api.v1.drives.os.close"), \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.run") as mock_run:
+            mock_result = unittest.mock.MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = "ID_CDROM=1\nID_CDROM_DVD=1\n"
+            mock_run.return_value = mock_result
+
+            issues = []
+            checks = _run_drive_diagnostic({}, {"sr0"}, ["sr0"], issues)
+
+        assert len(checks) == 1
+        assert checks[0]["major_minor"] == "11:0"
+        assert checks[0]["tray_status"] == 4
+        assert checks[0]["tray_status_name"] == "DISC_OK"
+        assert checks[0]["udevadm"]["ID_CDROM"] == "1"
+
+    def test_drive_not_in_kernel_cdrom(self):
+        from arm.api.v1.drives import _run_drive_diagnostic
+
+        with unittest.mock.patch("arm.api.v1.drives.os.path.exists", return_value=False), \
+             unittest.mock.patch("arm.api.v1.drives.os.path.isdir", return_value=False), \
+             unittest.mock.patch("builtins.open", side_effect=FileNotFoundError), \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.run",
+                                 side_effect=FileNotFoundError("udevadm")):
+            issues = []
+            checks = _run_drive_diagnostic({}, {"sr0"}, [], issues)
+
+        assert checks[0]["in_kernel_cdrom"] is False
+        assert any("not listed" in i for i in checks[0]["issues"])
+
+    def test_drive_ioctl_oserror(self):
+        from arm.api.v1.drives import _run_drive_diagnostic
+
+        with unittest.mock.patch("arm.api.v1.drives.os.path.exists", return_value=True), \
+             unittest.mock.patch("arm.api.v1.drives.os.path.isdir", return_value=False), \
+             unittest.mock.patch("builtins.open", side_effect=FileNotFoundError), \
+             unittest.mock.patch("arm.api.v1.drives.os.open", return_value=3), \
+             unittest.mock.patch("arm.api.v1.drives.fcntl.ioctl",
+                                 side_effect=OSError("ioctl failed")), \
+             unittest.mock.patch("arm.api.v1.drives.os.close"), \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.run",
+                                 side_effect=FileNotFoundError("udevadm")):
+            issues = []
+            checks = _run_drive_diagnostic({}, {"sr0"}, ["sr0"], issues)
+
+        assert "ioctl failed" in checks[0]["tray_status_name"]
+        assert any("Cannot read tray status" in i for i in checks[0]["issues"])
+
+    def test_drive_open_oserror(self):
+        from arm.api.v1.drives import _run_drive_diagnostic
+
+        with unittest.mock.patch("arm.api.v1.drives.os.path.exists", return_value=True), \
+             unittest.mock.patch("arm.api.v1.drives.os.path.isdir", return_value=False), \
+             unittest.mock.patch("builtins.open", side_effect=FileNotFoundError), \
+             unittest.mock.patch("arm.api.v1.drives.os.open",
+                                 side_effect=OSError("open failed")), \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.run",
+                                 side_effect=FileNotFoundError("udevadm")):
+            issues = []
+            checks = _run_drive_diagnostic({}, {"sr0"}, ["sr0"], issues)
+
+        assert "open failed" in checks[0]["tray_status_name"]
+        assert any("Cannot open" in i for i in checks[0]["issues"])
+
+    def test_udevadm_nonzero_returncode(self):
+        from arm.api.v1.drives import _run_drive_diagnostic
+
+        with unittest.mock.patch("arm.api.v1.drives.os.path.exists", return_value=False), \
+             unittest.mock.patch("arm.api.v1.drives.os.path.isdir", return_value=False), \
+             unittest.mock.patch("builtins.open", side_effect=FileNotFoundError), \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.run") as mock_run:
+            mock_result = unittest.mock.MagicMock()
+            mock_result.returncode = 1
+            mock_result.stderr = "error message"
+            mock_run.return_value = mock_result
+
+            issues = []
+            checks = _run_drive_diagnostic({}, {"sr0"}, ["sr0"], issues)
+
+        assert any("udevadm info failed" in i for i in checks[0]["issues"])
+
+    def test_udevadm_timeout(self):
+        import subprocess
+        from arm.api.v1.drives import _run_drive_diagnostic
+
+        with unittest.mock.patch("arm.api.v1.drives.os.path.exists", return_value=False), \
+             unittest.mock.patch("arm.api.v1.drives.os.path.isdir", return_value=False), \
+             unittest.mock.patch("builtins.open", side_effect=FileNotFoundError), \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.run",
+                                 side_effect=subprocess.TimeoutExpired("udevadm", 5)):
+            issues = []
+            checks = _run_drive_diagnostic({}, {"sr0"}, ["sr0"], issues)
+
+        assert any("timed out" in i for i in checks[0]["issues"])
+
+    def test_udevadm_no_cdrom_properties(self):
+        from arm.api.v1.drives import _run_drive_diagnostic
+
+        with unittest.mock.patch("arm.api.v1.drives.os.path.exists", return_value=False), \
+             unittest.mock.patch("arm.api.v1.drives.os.path.isdir", return_value=False), \
+             unittest.mock.patch("builtins.open", side_effect=FileNotFoundError), \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.run") as mock_run:
+            mock_result = unittest.mock.MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = "DEVPATH=/dev/sr0\nSUBSYSTEM=block\n"
+            mock_run.return_value = mock_result
+
+            issues = []
+            checks = _run_drive_diagnostic({}, {"sr0"}, ["sr0"], issues)
+
+        assert checks[0]["udevadm"] == {}
+        assert any("no CDROM properties" in i for i in checks[0]["issues"])
+
+    def test_flock_arm_processing(self):
+        from arm.api.v1.drives import _run_drive_diagnostic
+
+        with unittest.mock.patch("arm.api.v1.drives.os.path.exists") as mock_exists, \
+             unittest.mock.patch("arm.api.v1.drives.os.path.isdir", return_value=False), \
+             unittest.mock.patch("builtins.open", side_effect=FileNotFoundError), \
+             unittest.mock.patch("arm.api.v1.drives.os.open", return_value=3), \
+             unittest.mock.patch("arm.api.v1.drives.fcntl.flock",
+                                 side_effect=BlockingIOError("locked")), \
+             unittest.mock.patch("arm.api.v1.drives.os.close"), \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.run",
+                                 side_effect=FileNotFoundError("udevadm")):
+            def exists_side_effect(path):
+                if path == "/home/arm/.arm_sr0.lock":
+                    return True
+                return False
+            mock_exists.side_effect = exists_side_effect
+
+            issues = []
+            checks = _run_drive_diagnostic({}, {"sr0"}, ["sr0"], issues)
+
+        assert checks[0]["arm_processing"] is True
+
+    def test_flock_not_locked(self):
+        from arm.api.v1.drives import _run_drive_diagnostic
+
+        with unittest.mock.patch("arm.api.v1.drives.os.path.exists") as mock_exists, \
+             unittest.mock.patch("arm.api.v1.drives.os.path.isdir", return_value=False), \
+             unittest.mock.patch("builtins.open", side_effect=FileNotFoundError), \
+             unittest.mock.patch("arm.api.v1.drives.os.open", return_value=3), \
+             unittest.mock.patch("arm.api.v1.drives.fcntl.flock"), \
+             unittest.mock.patch("arm.api.v1.drives.os.close"), \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.run",
+                                 side_effect=FileNotFoundError("udevadm")):
+            def exists_side_effect(path):
+                if path == "/home/arm/.arm_sr0.lock":
+                    return True
+                return False
+            mock_exists.side_effect = exists_side_effect
+
+            issues = []
+            checks = _run_drive_diagnostic({}, {"sr0"}, ["sr0"], issues)
+
+        assert checks[0]["arm_processing"] is False
+
+    def test_flock_oserror(self):
+        from arm.api.v1.drives import _run_drive_diagnostic
+
+        with unittest.mock.patch("arm.api.v1.drives.os.path.exists") as mock_exists, \
+             unittest.mock.patch("arm.api.v1.drives.os.path.isdir", return_value=False), \
+             unittest.mock.patch("builtins.open", side_effect=FileNotFoundError), \
+             unittest.mock.patch("arm.api.v1.drives.os.open",
+                                 side_effect=OSError("can't open")), \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.run",
+                                 side_effect=FileNotFoundError("udevadm")):
+            def exists_side_effect(path):
+                if path == "/home/arm/.arm_sr0.lock":
+                    return True
+                return False
+            mock_exists.side_effect = exists_side_effect
+
+            issues = []
+            checks = _run_drive_diagnostic({}, {"sr0"}, ["sr0"], issues)
+
+        assert checks[0]["arm_processing"] is False
+
+    def test_drive_with_db_entry(self):
+        from arm.api.v1.drives import _run_drive_diagnostic
+
+        mock_db_drive = unittest.mock.MagicMock()
+        mock_db_drive.name = "Pioneer BDR"
+        mock_db_drive.maker = "Pioneer"
+        mock_db_drive.model = "BDR-S12J"
+        mock_db_drive.connection = "usb"
+
+        with unittest.mock.patch("arm.api.v1.drives.os.path.exists", return_value=False), \
+             unittest.mock.patch("arm.api.v1.drives.os.path.isdir", return_value=False), \
+             unittest.mock.patch("builtins.open", side_effect=FileNotFoundError), \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.run",
+                                 side_effect=FileNotFoundError("udevadm")):
+            issues = []
+            checks = _run_drive_diagnostic(
+                {"sr0": mock_db_drive}, {"sr0"}, ["sr0"], issues
+            )
+
+        assert checks[0]["db_name"] == "Pioneer BDR"
+        assert checks[0]["db_model"] == "Pioneer BDR-S12J"
+        assert checks[0]["db_connection"] == "usb"
+        assert checks[0]["in_database"] is True
+
+    def test_drive_not_in_database(self):
+        from arm.api.v1.drives import _run_drive_diagnostic
+
+        with unittest.mock.patch("arm.api.v1.drives.os.path.exists", return_value=False), \
+             unittest.mock.patch("arm.api.v1.drives.os.path.isdir", return_value=False), \
+             unittest.mock.patch("builtins.open", side_effect=FileNotFoundError), \
+             unittest.mock.patch("arm.api.v1.drives.subprocess.run",
+                                 side_effect=FileNotFoundError("udevadm")):
+            issues = []
+            checks = _run_drive_diagnostic({}, {"sr0"}, ["sr0"], issues)
+
+        assert checks[0]["in_database"] is False
+        assert any("not found in ARM database" in i for i in checks[0]["issues"])
+
+
+# ── Additional API job endpoint tests ────────────────────────────────────
+
+
+class TestApiJobStart:
+    """Test POST /api/v1/jobs/<id>/start endpoint."""
+
+    def test_start_nonexistent_job(self, client):
+        response = client.post('/api/v1/jobs/99999/start')
+        assert response.status_code == 404
+
+    def test_start_job_not_waiting(self, client, sample_job, app_context):
+        from arm.ripper.utils import database_updater
+        database_updater({"status": "active"}, sample_job)
+        response = client.post(f'/api/v1/jobs/{sample_job.job_id}/start')
+        assert response.status_code == 409
+
+    def test_start_waiting_job_success(self, client, sample_job, app_context):
+        from arm.ripper.utils import database_updater
+        database_updater({"status": "waiting"}, sample_job)
+        with unittest.mock.patch("arm.api.v1.jobs.svc_files.database_updater"):
+            response = client.post(f'/api/v1/jobs/{sample_job.job_id}/start')
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+
+class TestApiJobCancel:
+    """Test POST /api/v1/jobs/<id>/cancel endpoint."""
+
+    def test_cancel_nonexistent_job(self, client):
+        response = client.post('/api/v1/jobs/99999/cancel')
+        assert response.status_code == 404
+
+    def test_cancel_not_waiting(self, client, sample_job, app_context):
+        from arm.ripper.utils import database_updater
+        database_updater({"status": "active"}, sample_job)
+        response = client.post(f'/api/v1/jobs/{sample_job.job_id}/cancel')
+        assert response.status_code == 409
+
+    def test_cancel_waiting_job_success(self, client, sample_job, app_context):
+        from arm.ripper.utils import database_updater
+        database_updater({"status": "waiting"}, sample_job)
+        with unittest.mock.patch("arm.api.v1.jobs.svc_files.database_updater"):
+            response = client.post(f'/api/v1/jobs/{sample_job.job_id}/cancel')
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+
+class TestApiJobConfig:
+    """Test PATCH /api/v1/jobs/<id>/config endpoint."""
+
+    def test_config_not_found(self, client):
+        response = client.patch('/api/v1/jobs/99999/config', json={"RIPMETHOD": "mkv"})
+        assert response.status_code == 404
+
+    def test_config_empty_body(self, client, sample_job, app_context):
+        response = client.patch(f'/api/v1/jobs/{sample_job.job_id}/config', json={})
+        assert response.status_code == 400
+
+    def test_config_invalid_ripmethod(self, client, sample_job, app_context):
+        response = client.patch(
+            f'/api/v1/jobs/{sample_job.job_id}/config',
+            json={"RIPMETHOD": "invalid"}
+        )
+        assert response.status_code == 400
+
+    def test_config_invalid_disctype(self, client, sample_job, app_context):
+        response = client.patch(
+            f'/api/v1/jobs/{sample_job.job_id}/config',
+            json={"DISCTYPE": "invalid"}
+        )
+        assert response.status_code == 400
+
+    def test_config_valid_ripmethod(self, client, sample_job, app_context):
+        with unittest.mock.patch("arm.api.v1.jobs.svc_files.database_updater"):
+            response = client.patch(
+                f'/api/v1/jobs/{sample_job.job_id}/config',
+                json={"RIPMETHOD": "backup"}
+            )
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+    def test_config_maxlength(self, client, sample_job, app_context):
+        with unittest.mock.patch("arm.api.v1.jobs.svc_files.database_updater"):
+            response = client.patch(
+                f'/api/v1/jobs/{sample_job.job_id}/config',
+                json={"MAXLENGTH": 7200}
+            )
+        assert response.status_code == 200
+
+    def test_config_minlength(self, client, sample_job, app_context):
+        with unittest.mock.patch("arm.api.v1.jobs.svc_files.database_updater"):
+            response = client.patch(
+                f'/api/v1/jobs/{sample_job.job_id}/config',
+                json={"MINLENGTH": 300}
+            )
+        assert response.status_code == 200
+
+    def test_config_audio_format_valid(self, client, sample_job, app_context):
+        with unittest.mock.patch("arm.api.v1.jobs.svc_files.database_updater"):
+            response = client.patch(
+                f'/api/v1/jobs/{sample_job.job_id}/config',
+                json={"AUDIO_FORMAT": "flac"}
+            )
+        assert response.status_code == 200
+
+    def test_config_audio_format_invalid(self, client, sample_job, app_context):
+        response = client.patch(
+            f'/api/v1/jobs/{sample_job.job_id}/config',
+            json={"AUDIO_FORMAT": "invalid_format"}
+        )
+        assert response.status_code == 400
+
+    def test_config_speed_profile_valid(self, client, sample_job, app_context):
+        with unittest.mock.patch("arm.api.v1.jobs.svc_files.database_updater"):
+            response = client.patch(
+                f'/api/v1/jobs/{sample_job.job_id}/config',
+                json={"RIP_SPEED_PROFILE": "fast"}
+            )
+        assert response.status_code == 200
+
+    def test_config_speed_profile_invalid(self, client, sample_job, app_context):
+        response = client.patch(
+            f'/api/v1/jobs/{sample_job.job_id}/config',
+            json={"RIP_SPEED_PROFILE": "ludicrous"}
+        )
+        assert response.status_code == 400
+
+    def test_config_disctype_valid(self, client, sample_job, app_context):
+        with unittest.mock.patch("arm.api.v1.jobs.svc_files.database_updater"):
+            response = client.patch(
+                f'/api/v1/jobs/{sample_job.job_id}/config',
+                json={"DISCTYPE": "dvd"}
+            )
+        assert response.status_code == 200
+
+    def test_config_mainfeature(self, client, sample_job, app_context):
+        with unittest.mock.patch("arm.api.v1.jobs.svc_files.database_updater"):
+            response = client.patch(
+                f'/api/v1/jobs/{sample_job.job_id}/config',
+                json={"MAINFEATURE": True}
+            )
+        assert response.status_code == 200
+
+    def test_config_no_valid_fields(self, client, sample_job, app_context):
+        response = client.patch(
+            f'/api/v1/jobs/{sample_job.job_id}/config',
+            json={"UNKNOWN_FIELD": "value"}
+        )
+        assert response.status_code == 400
+
+    def test_config_disc_folder_pattern_valid(self, client, sample_job, app_context):
+        with unittest.mock.patch("arm.api.v1.jobs.svc_files.database_updater"):
+            response = client.patch(
+                f'/api/v1/jobs/{sample_job.job_id}/config',
+                json={"MUSIC_DISC_FOLDER_PATTERN": "Disc {num}"}
+            )
+        assert response.status_code == 200
+
+    def test_config_disc_folder_pattern_invalid(self, client, sample_job, app_context):
+        response = client.patch(
+            f'/api/v1/jobs/{sample_job.job_id}/config',
+            json={"MUSIC_DISC_FOLDER_PATTERN": "no_num_placeholder"}
+        )
+        assert response.status_code == 400
+
+
+class TestApiJobTracks:
+    """Test PUT /api/v1/jobs/<id>/tracks endpoint."""
+
+    def test_set_tracks_not_found(self, client):
+        response = client.put('/api/v1/jobs/99999/tracks',
+                               json={"tracks": []})
+        assert response.status_code == 404
+
+    def test_set_tracks_invalid_type(self, client, sample_job, app_context):
+        response = client.put(
+            f'/api/v1/jobs/{sample_job.job_id}/tracks',
+            json={"tracks": "not a list"}
+        )
+        assert response.status_code == 400
+
+    def test_set_tracks_success(self, client, sample_job, app_context):
+        tracks_data = [
+            {"track_number": "1", "title": "Track 1", "length_ms": 240000},
+            {"track_number": "2", "title": "Track 2", "length_ms": 180000},
+        ]
+        response = client.put(
+            f'/api/v1/jobs/{sample_job.job_id}/tracks',
+            json={"tracks": tracks_data}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["tracks_count"] == 2
+
+
+class TestApiJobMultiTitle:
+    """Test POST /api/v1/jobs/<id>/multi-title endpoint."""
+
+    def test_multi_title_not_found(self, client):
+        response = client.post('/api/v1/jobs/99999/multi-title',
+                                json={"enabled": True})
+        assert response.status_code == 404
+
+    def test_multi_title_toggle(self, client, sample_job, app_context):
+        with unittest.mock.patch("arm.api.v1.jobs.svc_files.database_updater"):
+            response = client.post(
+                f'/api/v1/jobs/{sample_job.job_id}/multi-title',
+                json={"enabled": True}
+            )
+        assert response.status_code == 200
+        assert response.json()["multi_title"] is True
+
+
+class TestApiTrackTitle:
+    """Test PUT/DELETE /api/v1/jobs/<id>/tracks/<track_id>/title endpoints."""
+
+    def _create_track(self, sample_job):
+        from arm.models.track import Track
+        from arm.database import db
+
+        track = Track(
+            job_id=sample_job.job_id,
+            track_number="0",
+            length=3600,
+            aspect_ratio="16:9",
+            fps=23.976,
+            main_feature=True,
+            source="MakeMKV",
+            basename="title_t00.mkv",
+            filename="title_t00.mkv",
+        )
+        db.session.add(track)
+        db.session.commit()
+        return track
+
+    def test_update_track_title_not_found_job(self, client):
+        response = client.put('/api/v1/jobs/99999/tracks/1/title',
+                               json={"title": "Test"})
+        assert response.status_code == 404
+
+    def test_update_track_title_not_found_track(self, client, sample_job, app_context):
+        response = client.put(
+            f'/api/v1/jobs/{sample_job.job_id}/tracks/99999/title',
+            json={"title": "Test"}
+        )
+        assert response.status_code == 404
+
+    def test_update_track_title_success(self, client, sample_job, app_context):
+        track = self._create_track(sample_job)
+        response = client.put(
+            f'/api/v1/jobs/{sample_job.job_id}/tracks/{track.track_id}/title',
+            json={"title": "My Movie", "year": "2024", "video_type": "movie"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["updated"]["title"] == "My Movie"
+
+    def test_update_track_no_fields(self, client, sample_job, app_context):
+        track = self._create_track(sample_job)
+        response = client.put(
+            f'/api/v1/jobs/{sample_job.job_id}/tracks/{track.track_id}/title',
+            json={}
+        )
+        assert response.status_code == 400
+
+    def test_clear_track_title_success(self, client, sample_job, app_context):
+        track = self._create_track(sample_job)
+        track.title = "Custom"
+        from arm.database import db
+        db.session.commit()
+
+        response = client.delete(
+            f'/api/v1/jobs/{sample_job.job_id}/tracks/{track.track_id}/title'
+        )
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+    def test_clear_track_title_not_found(self, client, sample_job, app_context):
+        response = client.delete(
+            f'/api/v1/jobs/{sample_job.job_id}/tracks/99999/title'
+        )
+        assert response.status_code == 404
+
+
+class TestApiTranscodeConfig:
+    """Test PATCH /api/v1/jobs/<id>/transcode-config endpoint."""
+
+    def test_transcode_config_not_found(self, client):
+        response = client.patch('/api/v1/jobs/99999/transcode-config',
+                                 json={"video_encoder": "x265"})
+        assert response.status_code == 404
+
+    def test_transcode_config_empty_body(self, client, sample_job, app_context):
+        response = client.patch(
+            f'/api/v1/jobs/{sample_job.job_id}/transcode-config',
+            json=""
+        )
+        assert response.status_code == 400
+
+    def test_transcode_config_unknown_key(self, client, sample_job, app_context):
+        response = client.patch(
+            f'/api/v1/jobs/{sample_job.job_id}/transcode-config',
+            json={"bad_key": "value"}
+        )
+        assert response.status_code == 400
+
+    def test_transcode_config_valid(self, client, sample_job, app_context):
+        response = client.patch(
+            f'/api/v1/jobs/{sample_job.job_id}/transcode-config',
+            json={"video_encoder": "nvenc_h265", "video_quality": "22"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["overrides"]["video_encoder"] == "nvenc_h265"
+        assert data["overrides"]["video_quality"] == 22
+
+
+class TestApiTranscodeCallback:
+    """Test POST /api/v1/jobs/<id>/transcode-callback endpoint."""
+
+    def test_callback_not_found(self, client):
+        response = client.post('/api/v1/jobs/99999/transcode-callback',
+                                json={"status": "completed"})
+        assert response.status_code == 404
+
+    def test_callback_unknown_status(self, client, sample_job, app_context):
+        response = client.post(
+            f'/api/v1/jobs/{sample_job.job_id}/transcode-callback',
+            json={"status": "invalid_status"}
+        )
+        assert response.status_code == 400
+
+    def test_callback_transcoding(self, client, sample_job, app_context):
+        response = client.post(
+            f'/api/v1/jobs/{sample_job.job_id}/transcode-callback',
+            json={"status": "transcoding"}
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "transcoding"
+
+    def test_callback_completed(self, client, sample_job, app_context):
+        response = client.post(
+            f'/api/v1/jobs/{sample_job.job_id}/transcode-callback',
+            json={"status": "completed"}
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "success"
+
+    def test_callback_failed(self, client, sample_job, app_context):
+        response = client.post(
+            f'/api/v1/jobs/{sample_job.job_id}/transcode-callback',
+            json={"status": "failed", "error": "codec error"}
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "fail"
+
+    def test_callback_partial(self, client, sample_job, app_context):
+        response = client.post(
+            f'/api/v1/jobs/{sample_job.job_id}/transcode-callback',
+            json={"status": "partial", "error": "Some tracks failed"}
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "success"
+
+    def test_callback_with_track_results(self, client, sample_job, app_context):
+        from arm.models.track import Track
+        from arm.database import db
+
+        track = Track(
+            job_id=sample_job.job_id, track_number="1", length=3600,
+            aspect_ratio="16:9", fps=23.976, main_feature=True,
+            source="MakeMKV", basename="t.mkv", filename="t.mkv",
+        )
+        db.session.add(track)
+        db.session.commit()
+
+        response = client.post(
+            f'/api/v1/jobs/{sample_job.job_id}/transcode-callback',
+            json={
+                "status": "completed",
+                "track_results": [
+                    {"track_number": "1", "status": "completed", "output_path": "/out/t.mkv"},
+                ],
+            }
+        )
+        assert response.status_code == 200
+        db.session.refresh(track)
+        assert track.status == "transcoded"
+
+    def test_callback_track_failed(self, client, sample_job, app_context):
+        from arm.models.track import Track
+        from arm.database import db
+
+        track = Track(
+            job_id=sample_job.job_id, track_number="2", length=3600,
+            aspect_ratio="16:9", fps=23.976, main_feature=True,
+            source="MakeMKV", basename="t.mkv", filename="t.mkv",
+        )
+        db.session.add(track)
+        db.session.commit()
+
+        response = client.post(
+            f'/api/v1/jobs/{sample_job.job_id}/transcode-callback',
+            json={
+                "status": "failed",
+                "error": "codec problem",
+                "track_results": [
+                    {"track_number": "2", "status": "failed", "error": "codec error"},
+                ],
+            }
+        )
+        assert response.status_code == 200
+        db.session.refresh(track)
+        assert "transcode_failed" in track.status
+
+
+class TestApiTvdbMatch:
+    """Test POST /api/v1/jobs/<id>/tvdb-match endpoint."""
+
+    def test_tvdb_match_not_found(self, client):
+        response = client.post('/api/v1/jobs/99999/tvdb-match',
+                                json={"season": 1})
+        assert response.status_code == 404
+
+    def test_tvdb_match_success(self, client, sample_job, app_context):
+        mock_result = {"success": True, "matches": [], "season": 1}
+        with unittest.mock.patch("arm.services.tvdb_sync.match_episodes_for_api",
+                                  return_value=mock_result):
+            response = client.post(
+                f'/api/v1/jobs/{sample_job.job_id}/tvdb-match',
+                json={"season": 1, "tolerance": 120, "apply": False}
+            )
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+
+class TestApiTvdbEpisodes:
+    """Test GET /api/v1/jobs/<id>/tvdb-episodes endpoint."""
+
+    def test_tvdb_episodes_not_found(self, client):
+        response = client.get('/api/v1/jobs/99999/tvdb-episodes?season=1')
+        assert response.status_code == 404
+
+    def test_tvdb_episodes_no_tvdb_id(self, client, sample_job, app_context):
+        response = client.get(
+            f'/api/v1/jobs/{sample_job.job_id}/tvdb-episodes?season=1'
+        )
+        assert response.status_code == 400
+
+    def test_tvdb_episodes_success(self, client, sample_job, app_context):
+        from arm.database import db
+        sample_job.tvdb_id = 12345
+        db.session.commit()
+
+        mock_episodes = [{"number": 1, "name": "Pilot", "runtime": 3300}]
+        with unittest.mock.patch("arm.services.matching._async_compat.run_async",
+                                  return_value=mock_episodes):
+            response = client.get(
+                f'/api/v1/jobs/{sample_job.job_id}/tvdb-episodes?season=1'
+            )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["tvdb_id"] == 12345
+        assert len(data["episodes"]) == 1
+
+
+class TestApiCleanForFilename:
+    """Test _clean_for_filename helper in jobs.py."""
+
+    def test_colons_replaced(self):
+        from arm.api.v1.jobs import _clean_for_filename
+        assert _clean_for_filename("Movie: Subtitle") == "Movie- Subtitle"
+
+    def test_ampersand_replaced(self):
+        from arm.api.v1.jobs import _clean_for_filename
+        assert _clean_for_filename("Tom & Jerry") == "Tom and Jerry"
+
+    def test_backslash_replaced(self):
+        from arm.api.v1.jobs import _clean_for_filename
+        assert _clean_for_filename("A\\B") == "A - B"
+
+    def test_special_chars_removed(self):
+        from arm.api.v1.jobs import _clean_for_filename
+        result = _clean_for_filename("Movie! (2024) #1")
+        assert "!" not in result
+        assert "#" not in result
+
+
+class TestApiAutoFlagTracks:
+    """Test _auto_flag_tracks helper."""
+
+    def test_mainfeature_single_type(self, app_context):
+        from arm.api.v1.jobs import _auto_flag_tracks
+        from arm.models.track import Track
+        from arm.models.job import Job
+        from arm.database import db
+
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            job = Job('/dev/sr0')
+        job.video_type = "movie"
+        job.multi_title = False
+        db.session.add(job)
+        db.session.flush()
+
+        t1 = Track(job_id=job.job_id, track_number="0", length=7200,
+                    aspect_ratio="16:9", fps=23.976, main_feature=True,
+                    source="MakeMKV", basename="t.mkv", filename="t.mkv",
+                    chapters=20, filesize=10000000)
+        t2 = Track(job_id=job.job_id, track_number="1", length=120,
+                    aspect_ratio="16:9", fps=23.976, main_feature=False,
+                    source="MakeMKV", basename="t2.mkv", filename="t2.mkv",
+                    chapters=1, filesize=100)
+        db.session.add_all([t1, t2])
+        db.session.commit()
+
+        _auto_flag_tracks(job, mainfeature=True)
+        db.session.refresh(t1)
+        db.session.refresh(t2)
+        assert t1.enabled is True
+        assert t2.enabled is False
+
+    def test_mainfeature_off_enables_all(self, app_context):
+        from arm.api.v1.jobs import _auto_flag_tracks
+        from arm.models.track import Track
+        from arm.models.job import Job
+        from arm.database import db
+
+        with unittest.mock.patch.object(Job, 'parse_udev'), \
+             unittest.mock.patch.object(Job, 'get_pid'):
+            job = Job('/dev/sr0')
+        job.video_type = "movie"
+        db.session.add(job)
+        db.session.flush()
+
+        t1 = Track(job_id=job.job_id, track_number="0", length=7200,
+                    aspect_ratio="16:9", fps=23.976, main_feature=True,
+                    source="MakeMKV", basename="t.mkv", filename="t.mkv")
+        t1.enabled = False
+        db.session.add(t1)
+        db.session.commit()
+
+        _auto_flag_tracks(job, mainfeature=False)
+        db.session.refresh(t1)
+        assert t1.enabled is True

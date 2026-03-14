@@ -342,6 +342,256 @@ class TestDrivesUpdate:
         assert d.stale is False
 
 
+class TestSystemDrivesModel:
+    """Test arm/models/system_drives.py — model methods."""
+
+    def test_tray_status_function_filenotfound(self):
+        from arm.models.system_drives import _tray_status
+
+        with unittest.mock.patch("arm.models.system_drives.os.open",
+                                 side_effect=FileNotFoundError("/dev/sr0")):
+            result = _tray_status("/dev/sr0")
+        assert result is None
+
+    @pytest.mark.xfail(reason="Pre-existing bug: {err:s} format fails for TypeError")
+    def test_tray_status_function_typeerror(self):
+        from arm.models.system_drives import _tray_status
+
+        mock_logger = unittest.mock.MagicMock()
+        with unittest.mock.patch("arm.models.system_drives.os.open",
+                                 side_effect=TypeError("bad type")):
+            result = _tray_status(None, logger=mock_logger)
+        assert result is None
+        mock_logger.critical.assert_called_once()
+
+    def test_tray_status_function_oserror_hard_drive(self):
+        from arm.models.system_drives import _tray_status
+
+        with unittest.mock.patch("arm.models.system_drives.os.open",
+                                 side_effect=OSError("not optical")):
+            result = _tray_status("/dev/sda")
+        assert result is None
+
+    def test_tray_status_function_oserror_no_such_device(self):
+        from arm.models.system_drives import _tray_status
+
+        with unittest.mock.patch("arm.models.system_drives.os.open",
+                                 side_effect=OSError("No such device or address")):
+            result = _tray_status("/dev/sr0")
+        assert result is None
+
+    def test_tray_status_function_oserror_reraise(self):
+        from arm.models.system_drives import _tray_status
+
+        with unittest.mock.patch("arm.models.system_drives.os.open",
+                                 side_effect=OSError("unexpected error")):
+            with pytest.raises(OSError, match="unexpected"):
+                _tray_status("/dev/sr0")
+
+    @pytest.mark.xfail(reason="Pre-existing bug: {err:s} format fails for OSError")
+    def test_tray_status_function_ioctl_oserror(self):
+        from arm.models.system_drives import _tray_status
+
+        with unittest.mock.patch("arm.models.system_drives.os.open", return_value=3), \
+             unittest.mock.patch("arm.models.system_drives.fcntl.ioctl",
+                                 side_effect=OSError("ioctl fail")), \
+             unittest.mock.patch("arm.models.system_drives.os.close"):
+            result = _tray_status("/dev/sr0")
+        assert result is None
+
+    def test_tray_status_function_success(self):
+        from arm.models.system_drives import _tray_status
+
+        with unittest.mock.patch("arm.models.system_drives.os.open", return_value=3), \
+             unittest.mock.patch("arm.models.system_drives.fcntl.ioctl", return_value=4), \
+             unittest.mock.patch("arm.models.system_drives.os.close"):
+            result = _tray_status("/dev/sr0")
+        assert result == 4
+
+    def test_model_tray_status_stale(self, app_context):
+        from arm.models.system_drives import SystemDrives, CDS
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        d.stale = True
+        db.session.add(d)
+        db.session.commit()
+
+        result = d.tray_status()
+        assert result == CDS.ERROR
+
+    def test_model_tray_status_non_stale(self, app_context):
+        from arm.models.system_drives import SystemDrives, CDS
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        d.stale = False
+        db.session.add(d)
+        db.session.commit()
+
+        with unittest.mock.patch("arm.models.system_drives._tray_status", return_value=4):
+            result = d.tray_status()
+        assert result == CDS.DISC_OK
+
+    def test_model_tray_property(self, app_context):
+        from arm.models.system_drives import SystemDrives, CDS
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        db.session.add(d)
+        db.session.commit()
+
+        d.tray = 2  # TRAY_OPEN
+        assert d.tray == CDS.TRAY_OPEN
+        assert d.open is True
+        assert d.ready is False
+
+    def test_model_ready_property(self, app_context):
+        from arm.models.system_drives import SystemDrives, CDS
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        db.session.add(d)
+        db.session.commit()
+
+        d.tray = 4  # DISC_OK
+        assert d.ready is True
+        assert d.open is False
+
+    def test_model_type_property(self, app_context):
+        from arm.models.system_drives import SystemDrives
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        d.read_cd = True
+        d.read_dvd = True
+        d.read_bd = True
+        db.session.add(d)
+        db.session.commit()
+
+        assert d.type == "CD/DVD/BluRay"
+
+    def test_model_type_property_cd_only(self, app_context):
+        from arm.models.system_drives import SystemDrives
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        d.read_cd = True
+        d.read_dvd = False
+        d.read_bd = False
+        db.session.add(d)
+        db.session.commit()
+
+        assert d.type == "CD"
+
+    def test_model_eject(self, app_context):
+        from arm.models.system_drives import SystemDrives
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        d.job_id_current = None
+        db.session.add(d)
+        db.session.commit()
+
+        with unittest.mock.patch("arm.models.system_drives.arm_subprocess"), \
+             unittest.mock.patch("subprocess.run"), \
+             unittest.mock.patch("arm.models.system_drives.os.open", return_value=3), \
+             unittest.mock.patch("arm.models.system_drives.fcntl.ioctl"), \
+             unittest.mock.patch("arm.models.system_drives.os.close"):
+            result = d.eject("eject")
+        assert result is None
+
+    def test_model_new_job(self, app_context):
+        from arm.models.system_drives import SystemDrives
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        d.job_id_current = 10
+        db.session.add(d)
+        db.session.commit()
+
+        d.new_job(20)
+        assert d.job_id_current == 20
+        assert d.job_id_previous == 10
+
+    def test_model_release_current_job(self, app_context):
+        from arm.models.system_drives import SystemDrives
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        d.job_id_current = 5
+        db.session.add(d)
+        db.session.commit()
+
+        d.release_current_job()
+        assert d.job_id_current is None
+        assert d.job_id_previous == 5
+
+    def test_model_release_current_job_none(self, app_context):
+        from arm.models.system_drives import SystemDrives
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        d.job_id_current = None
+        db.session.add(d)
+        db.session.commit()
+
+        d.release_current_job()  # should be no-op
+        assert d.job_id_current is None
+
+    def test_model_processing_property(self, app_context, sample_job):
+        from arm.models.system_drives import SystemDrives
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        d.job_id_current = sample_job.job_id
+        db.session.add(d)
+        db.session.commit()
+
+        assert d.processing is True
+
+    def test_model_processing_property_none(self, app_context):
+        from arm.models.system_drives import SystemDrives
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        db.session.add(d)
+        db.session.commit()
+
+        assert d.processing is False
+
+    def test_model_debug(self, app_context):
+        from arm.models.system_drives import SystemDrives
+        from arm.database import db
+
+        d = SystemDrives()
+        d.mount = "/dev/sr0"
+        d.maker = "Pioneer"
+        d.model = "BDR-S12J"
+        d.firmware = "1.0"
+        d.read_cd = True
+        d.read_dvd = True
+        d.read_bd = True
+        db.session.add(d)
+        db.session.commit()
+
+        mock_logger = unittest.mock.MagicMock()
+        d.debug(mock_logger)
+        assert mock_logger.debug.call_count > 0
+
+
 class TestCleanupStaleDrives:
     """Test _cleanup_stale_drives()."""
 

@@ -867,6 +867,137 @@ class TestProcessMakemkvLogfile:
         assert "progress" in job_results or job.progress is not None
 
 
+class TestProcessAudioLogfile:
+    """Test process_audio_logfile."""
+
+    def test_audio_log_with_progress(self, app_context, tmp_path):
+        from arm.services.jobs import process_audio_logfile
+
+        logfile = tmp_path / "audio.log"
+        logfile.write_text(
+            "Grabbing track 1: foo\n"
+            "Encoding track 1 of 3\n"
+            "Tagging track 1 of 3\n"
+            "Grabbing track 2: bar\n"
+            "Encoding track 2 of 3\n"
+        )
+
+        job = MagicMock()
+        job.no_of_titles = 3
+        job.start_time = datetime.datetime.now() - datetime.timedelta(minutes=5)
+        job_results = {}
+
+        with patch("arm.services.jobs.cfg") as mock_cfg, \
+             patch("arm.services.jobs.db"):
+            mock_cfg.arm_config = {"LOGPATH": str(tmp_path)}
+            result = process_audio_logfile("audio.log", job, job_results)
+
+        assert "stage" in result
+        assert "1/3" in result["stage"]
+
+    def test_audio_log_no_progress(self, app_context, tmp_path):
+        from arm.services.jobs import process_audio_logfile
+
+        logfile = tmp_path / "audio.log"
+        logfile.write_text("Starting audio rip...\n")
+
+        job = MagicMock()
+        job.no_of_titles = 3
+        job_results = {}
+
+        with patch("arm.services.jobs.cfg") as mock_cfg:
+            mock_cfg.arm_config = {"LOGPATH": str(tmp_path)}
+            result = process_audio_logfile("audio.log", job, job_results)
+
+        # No progress data found — returns unchanged
+        assert result == job_results
+
+    def test_audio_log_with_error(self, app_context, tmp_path):
+        from arm.services.jobs import process_audio_logfile
+
+        logfile = tmp_path / "audio.log"
+        logfile.write_text("Grabbing track 1: foo\n")
+
+        job = MagicMock()
+        job.no_of_titles = None  # will cause issue in calculation
+        job.start_time = None
+        job_results = {}
+
+        with patch("arm.services.jobs.cfg") as mock_cfg, \
+             patch("arm.services.jobs.db"):
+            mock_cfg.arm_config = {"LOGPATH": str(tmp_path)}
+            result = process_audio_logfile("audio.log", job, job_results)
+
+        # Should not raise, handles errors gracefully
+        assert isinstance(result, dict)
+
+
+class TestGetXJobsMusic:
+    """Test get_x_jobs with music disc type and track details."""
+
+    def test_music_job_includes_tracks(self, sample_job):
+        from arm.services.jobs import get_x_jobs
+        from arm.models.track import Track
+        from arm.database import db
+
+        sample_job.disctype = "music"
+        track = Track(
+            job_id=sample_job.job_id, track_number="1", length=240,
+            aspect_ratio="n/a", fps=0.1, main_feature=False,
+            source="abcde", basename="track1.flac", filename="track1.flac",
+        )
+        track.ripped = True
+        track.status = "ripped"
+        db.session.add(track)
+        db.session.commit()
+
+        with patch("arm.services.jobs.cfg") as mock_cfg, \
+             patch("arm.services.jobs.process_logfile"):
+            mock_cfg.arm_config = {"LOGPATH": "/home/arm/logs", "ARM_NAME": "test-arm"}
+            result = get_x_jobs("joblist")
+
+        assert result["success"] is True
+        first_result = result["results"][0]
+        assert "tracks" in first_result
+        assert first_result["tracks_ripped"] == "1/1"
+
+    def test_config_not_found(self, sample_job):
+        """When job.config is None, handles AttributeError gracefully."""
+        from arm.services.jobs import get_x_jobs
+        from arm.database import db
+        from arm.models.config import Config
+
+        # Delete the config to trigger AttributeError
+        Config.query.filter_by(job_id=sample_job.job_id).delete()
+        db.session.commit()
+
+        with patch("arm.services.jobs.cfg") as mock_cfg, \
+             patch("arm.services.jobs.process_logfile"):
+            mock_cfg.arm_config = {"LOGPATH": "/home/arm/logs", "ARM_NAME": "test-arm"}
+            result = get_x_jobs("joblist")
+
+        assert result["success"] is True
+        first_result = result["results"][0]
+        assert first_result["config"] == "config not found"
+
+
+class TestSearchConfigNotFound:
+    """Test search with jobs that have no config."""
+
+    def test_search_config_not_found(self, sample_job):
+        from arm.services.jobs import search
+        from arm.database import db
+        from arm.models.config import Config
+
+        Config.query.filter_by(job_id=sample_job.job_id).delete()
+        db.session.commit()
+
+        result = search("SERIAL")
+        assert result["success"] is True
+        first = result["results"][0]
+        assert first["config"] == "config not found"
+
+
 class TestRestartUi:
     """Test restart_ui."""
 
@@ -879,6 +1010,23 @@ class TestRestartUi:
 
         assert result["success"] is False  # always returns False
         assert "Shutting down" in result["error"]
+
+
+class TestGenerateLogEncoding:
+    """Test generate_log with encoding issues."""
+
+    def test_log_with_encoding_errors(self, sample_job, tmp_path):
+        from arm.services.jobs import generate_log
+
+        logfile = tmp_path / "test.log"
+        # Write some bytes that are invalid UTF-8
+        logfile.write_bytes(b"Normal line\n\xff\xfe Bad encoding\n")
+        sample_job.logfile = "test.log"
+        from arm.database import db
+        db.session.commit()
+
+        result = generate_log(str(tmp_path), str(sample_job.job_id))
+        assert result["success"] is True
 
 
 # ═══════════════════════════════════════════════════════════════════════
