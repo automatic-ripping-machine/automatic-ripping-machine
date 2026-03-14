@@ -1,5 +1,10 @@
 """API v1 — Drive endpoints."""
+import fcntl
+import glob
 import logging
+import os
+import re
+import shutil
 import subprocess
 
 from fastapi import APIRouter, Request
@@ -11,6 +16,152 @@ from arm.models.system_drives import SystemDrives
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["drives"])
+
+_CDS_NAMES = {0: "NO_INFO", 1: "NO_DISC", 2: "TRAY_OPEN", 3: "NOT_READY", 4: "DISC_OK"}
+
+
+@router.get('/drives/diagnostic')
+async def drive_diagnostic():
+    """Run udev and device diagnostics for all optical drives."""
+    checks: list[dict] = []
+    issues: list[str] = []
+
+    # --- udevd running? ---
+    udevd_running = shutil.which("udevd") is not None and any(
+        "udevd" in (open(f"/proc/{pid}/comm").read().strip() if os.path.isfile(f"/proc/{pid}/comm") else "")
+        for pid in os.listdir("/proc") if pid.isdigit()
+    )
+    if not udevd_running:
+        issues.append("udevd is not running inside the container — disc hotplug events won't work")
+
+    # --- kernel cdrom info ---
+    kernel_drives: list[str] = []
+    try:
+        with open("/proc/sys/dev/cdrom/info") as f:
+            for line in f:
+                if line.startswith("drive name:"):
+                    kernel_drives = line.split(":")[1].split()
+                    break
+    except FileNotFoundError:
+        issues.append("/proc/sys/dev/cdrom/info not found — no optical drives visible to kernel")
+
+    # --- per-drive checks ---
+    # Collect all srN names from kernel, sysfs, and /dev
+    all_devnames: set[str] = set(kernel_drives)
+    for p in glob.glob("/sys/block/sr*"):
+        all_devnames.add(os.path.basename(p))
+    for p in glob.glob("/dev/sr*"):
+        all_devnames.add(os.path.basename(p))
+
+    for devname in sorted(all_devnames):
+        dev_path = f"/dev/{devname}"
+        sys_path = f"/sys/block/{devname}"
+        lock_path = f"/home/arm/.arm_{devname}.lock"
+
+        diag: dict = {"devname": devname, "status": "ok", "issues": []}
+
+        # Device node
+        diag["dev_node_exists"] = os.path.exists(dev_path)
+        if not diag["dev_node_exists"]:
+            diag["issues"].append(f"{dev_path} missing — device node not created")
+
+        # sysfs
+        diag["sysfs_exists"] = os.path.isdir(sys_path)
+        if not diag["sysfs_exists"]:
+            diag["issues"].append(f"{sys_path} missing — kernel doesn't see this drive")
+
+        # major:minor
+        diag["major_minor"] = None
+        try:
+            with open(f"{sys_path}/dev") as f:
+                diag["major_minor"] = f.read().strip()
+        except (FileNotFoundError, IOError):
+            pass
+
+        # In kernel cdrom list?
+        diag["in_kernel_cdrom"] = devname in kernel_drives
+        if not diag["in_kernel_cdrom"]:
+            diag["issues"].append(f"{devname} not listed in /proc/sys/dev/cdrom/info")
+
+        # ioctl tray status
+        diag["tray_status"] = None
+        diag["tray_status_name"] = None
+        if diag["dev_node_exists"]:
+            try:
+                fd = os.open(dev_path, os.O_RDONLY | os.O_NONBLOCK)
+                try:
+                    status = fcntl.ioctl(fd, 0x5326, 0)
+                    diag["tray_status"] = status
+                    diag["tray_status_name"] = _CDS_NAMES.get(status, f"UNKNOWN({status})")
+                except OSError as e:
+                    diag["tray_status_name"] = f"ioctl failed: {e}"
+                    diag["issues"].append(f"Cannot read tray status: {e}")
+                finally:
+                    os.close(fd)
+            except OSError as e:
+                diag["tray_status_name"] = f"open failed: {e}"
+                diag["issues"].append(f"Cannot open {dev_path}: {e}")
+
+        # udevadm properties
+        diag["udevadm"] = {}
+        try:
+            result = subprocess.run(
+                ["udevadm", "info", "--query=property", dev_path],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0:
+                for line in result.stdout.splitlines():
+                    if "=" in line:
+                        k, v = line.split("=", 1)
+                        if k.startswith("ID_CDROM") or k in ("ID_VENDOR_ENC", "ID_MODEL_ENC", "ID_BUS", "ID_FS_TYPE", "ID_FS_LABEL"):
+                            diag["udevadm"][k] = v
+                if not diag["udevadm"]:
+                    diag["issues"].append("udevadm returned no CDROM properties — udev database may be empty in container")
+            else:
+                diag["issues"].append(f"udevadm info failed: {result.stderr.strip()}")
+        except FileNotFoundError:
+            diag["issues"].append("udevadm not found in container")
+        except subprocess.TimeoutExpired:
+            diag["issues"].append("udevadm info timed out")
+
+        # flock check
+        diag["arm_processing"] = False
+        if os.path.exists(lock_path):
+            try:
+                fd = os.open(lock_path, os.O_RDONLY)
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    fcntl.flock(fd, fcntl.LOCK_UN)
+                except BlockingIOError:
+                    diag["arm_processing"] = True
+                finally:
+                    os.close(fd)
+            except OSError:
+                pass
+
+        # In database?
+        db_drive = SystemDrives.query.filter(
+            SystemDrives.mount.like(f"%{devname}")
+        ).first()
+        diag["in_database"] = db_drive is not None
+        if not diag["in_database"]:
+            diag["issues"].append(f"{devname} not found in ARM database — run drive rescan")
+
+        if diag["issues"]:
+            diag["status"] = "warning"
+
+        checks.append(diag)
+
+    if not all_devnames:
+        issues.append("No optical drives found anywhere (kernel, sysfs, or /dev)")
+
+    return {
+        "success": True,
+        "udevd_running": udevd_running,
+        "kernel_drives": kernel_drives,
+        "drives": checks,
+        "issues": issues,
+    }
 
 
 @router.post('/drives/rescan')
