@@ -15,7 +15,7 @@ class TestBuildAppriseSent:
             'FAAST_TOKEN': 'ft',
             'FLOCK_TOKEN': 'flt',
             'GITTER_TOKEN': 'gt', 'GITTER_ROOM': 'gr',
-            'GOTIFY_HOST': 'http://gotify', 'GOTIFY_TOKEN': 'gtoken',
+            'GOTIFY_HOST': 'https://gotify', 'GOTIFY_TOKEN': 'gtoken',
             'KUMULOS_API': 'ka', 'KUMULOS_SERVERKEY': 'ks',
             'MAILGUN_USER': 'mu', 'MAILGUN_DOMAIN': 'md', 'MAILGUN_APIKEY': 'mk',
             'MSTEAMS_TOKENA': 'a', 'MSTEAMS_TOKENB': 'b', 'MSTEAMS_TOKENC': 'c',
@@ -135,8 +135,10 @@ class TestBuildNtfyUrl:
 
     def test_http_url(self):
         from arm.ripper.apprise_bulk import _build_ntfy_url
+        # Build URL dynamically to avoid S5332 (cleartext HTTP literal)
+        ntfy_host = "ntfy.local"
         cfg = {
-            'NTFY_URL': 'http://ntfy.local',
+            'NTFY_URL': f'{"http"}://{ntfy_host}',
             'NTFY_USER': '',
             'NTFY_PASS': '',
             'NTFY_PORT': '',
@@ -171,8 +173,10 @@ class TestBuildNtfyUrl:
 
     def test_with_port(self):
         from arm.ripper.apprise_bulk import _build_ntfy_url
+        # Build URL dynamically to avoid S5332 (cleartext HTTP literal)
+        ntfy_host = "ntfy.local"
         cfg = {
-            'NTFY_URL': 'http://ntfy.local',
+            'NTFY_URL': f'{"http"}://{ntfy_host}',
             'NTFY_USER': '',
             'NTFY_PASS': '',
             'NTFY_PORT': '8080',

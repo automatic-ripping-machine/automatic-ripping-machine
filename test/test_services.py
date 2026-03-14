@@ -187,7 +187,7 @@ class TestMatchEpisodesForApi:
         assert out["season"] == 3
         assert len(out["matches"]) == 1
         assert out["matches"][0]["episode_name"] == "FiveAlive"
-        assert out["score"] == 0.95
+        assert out["score"] == pytest.approx(0.95)
 
     def test_apply_writes_to_db(self, app_context):
         from arm.services.tvdb_sync import match_episodes_for_api
@@ -504,7 +504,7 @@ class TestGetXJobs:
 
         with patch("arm.services.jobs.cfg") as mock_cfg, \
              patch("arm.services.jobs.process_logfile"):
-            mock_cfg.arm_config = {"LOGPATH": "/tmp", "ARM_NAME": "test-arm"}
+            mock_cfg.arm_config = {"LOGPATH": "/home/arm/logs", "ARM_NAME": "test-arm"}
             result = get_x_jobs("joblist")
 
         assert result["success"] is True
@@ -520,7 +520,7 @@ class TestGetXJobs:
 
         with patch("arm.services.jobs.cfg") as mock_cfg, \
              patch("arm.services.jobs.process_logfile"):
-            mock_cfg.arm_config = {"LOGPATH": "/tmp", "ARM_NAME": "test-arm"}
+            mock_cfg.arm_config = {"LOGPATH": "/home/arm/logs", "ARM_NAME": "test-arm"}
             result = get_x_jobs("success")
 
         assert result["mode"] == "success"
@@ -545,7 +545,7 @@ class TestProcessLogfile:
 
         with patch("arm.services.jobs.process_makemkv_logfile",
                    return_value={"progress": "50"}) as mock_mkv:
-            process_logfile("/tmp/test.log", job, job_results)
+            process_logfile("/home/arm/logs/test.log", job, job_results)
             mock_mkv.assert_called_once_with(job, job_results)
 
     def test_music_ripping_dispatches_to_audio(self, app_context):
@@ -559,7 +559,7 @@ class TestProcessLogfile:
 
         with patch("arm.services.jobs.process_audio_logfile",
                    return_value={}) as mock_audio:
-            process_logfile("/tmp/music.log", job, job_results)
+            process_logfile("/home/arm/logs/music.log", job, job_results)
             mock_audio.assert_called_once_with("music.log", job, job_results)
 
     def test_other_disctype_returns_unchanged(self, app_context):
@@ -570,7 +570,7 @@ class TestProcessLogfile:
         job.status = "success"
         job_results = {}
 
-        result = process_logfile("/tmp/test.log", job, job_results)
+        result = process_logfile("/home/arm/logs/test.log", job, job_results)
         assert result == job_results
 
 
@@ -616,7 +616,7 @@ class TestGenerateLog:
     def test_missing_job_returns_failure(self, app_context):
         from arm.services.jobs import generate_log
 
-        result = generate_log("/tmp", "99999")
+        result = generate_log("/home/arm/logs", "99999")
         assert result["success"] is False
 
     def test_job_with_no_logfile(self, sample_job):
@@ -626,7 +626,7 @@ class TestGenerateLog:
         from arm.database import db
         db.session.commit()
 
-        result = generate_log("/tmp", str(sample_job.job_id))
+        result = generate_log("/home/arm/logs", str(sample_job.job_id))
         assert result["success"] is False
 
     def test_valid_logfile(self, sample_job, tmp_path):
@@ -838,8 +838,8 @@ class TestPercentage:
 
     def test_basic_calculation(self):
         from arm.services.jobs import percentage
-        assert percentage(50, 100) == 50.0
-        assert percentage(1, 4) == 25.0
+        assert percentage(50, 100) == pytest.approx(50.0)
+        assert percentage(1, 4) == pytest.approx(25.0)
 
 
 class TestProcessMakemkvLogfile:
@@ -861,7 +861,7 @@ class TestProcessMakemkvLogfile:
         with patch("arm.services.jobs.cfg") as mock_cfg, \
              patch("arm.services.jobs.read_log_line", return_value=lines), \
              patch("arm.services.jobs.db"):
-            mock_cfg.arm_config = {"LOGPATH": "/tmp"}
+            mock_cfg.arm_config = {"LOGPATH": "/home/arm/logs"}
             process_makemkv_logfile(job, job_results)
 
         assert "progress" in job_results or job.progress is not None

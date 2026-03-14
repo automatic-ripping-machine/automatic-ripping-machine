@@ -47,10 +47,10 @@ def sample_job_with_drive(app_context):
     db.session.flush()
 
     config = Config({
-        'RAW_PATH': '/tmp/raw',
-        'TRANSCODE_PATH': '/tmp/transcode',
-        'COMPLETED_PATH': '/tmp/completed',
-        'LOGPATH': '/tmp/logs',
+        'RAW_PATH': '/home/arm/media/raw',
+        'TRANSCODE_PATH': '/home/arm/media/transcode',
+        'COMPLETED_PATH': '/home/arm/media/completed',
+        'LOGPATH': '/home/arm/logs',
         'EXTRAS_SUB': 'extras',
         'MINLENGTH': '0',
         'MAXLENGTH': '99999',

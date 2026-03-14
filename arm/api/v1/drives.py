@@ -1,10 +1,10 @@
 """API v1 — Drive endpoints."""
+import asyncio
 import fcntl
 import glob
 import logging
 import os
 import re
-import shutil
 import subprocess
 
 from fastapi import APIRouter, Request
@@ -20,55 +20,12 @@ router = APIRouter(prefix="/api/v1", tags=["drives"])
 _CDS_NAMES = {0: "NO_INFO", 1: "NO_DISC", 2: "TRAY_OPEN", 3: "NOT_READY", 4: "DISC_OK"}
 
 
-@router.get('/drives/diagnostic')
-async def drive_diagnostic():
-    """Run udev and device diagnostics for all optical drives."""
+def _run_drive_diagnostic(db_by_devname: dict[str, "SystemDrives"],
+                          all_devnames: set[str],
+                          kernel_drives: list[str],
+                          issues: list[str]) -> list[dict]:
+    """Synchronous per-drive diagnostic checks (file I/O, ioctl, subprocess)."""
     checks: list[dict] = []
-    issues: list[str] = []
-
-    # --- udevd running? (may be udevd or systemd-udevd) ---
-    udevd_running = False
-    for pid in os.listdir("/proc"):
-        if not pid.isdigit():
-            continue
-        try:
-            comm = open(f"/proc/{pid}/comm").read().strip()
-            if "udevd" in comm:
-                udevd_running = True
-                break
-        except (FileNotFoundError, IOError):
-            continue
-    if not udevd_running:
-        issues.append("udevd is not running inside the container — disc hotplug events won't work")
-
-    # --- kernel cdrom info ---
-    kernel_drives: list[str] = []
-    try:
-        with open("/proc/sys/dev/cdrom/info") as f:
-            for line in f:
-                if line.startswith("drive name:"):
-                    kernel_drives = line.split(":")[1].split()
-                    break
-    except FileNotFoundError:
-        issues.append("/proc/sys/dev/cdrom/info not found — no optical drives visible to kernel")
-
-    # --- per-drive checks ---
-    # Collect all srN names from kernel, sysfs, /dev, AND the database
-    all_devnames: set[str] = set(kernel_drives)
-    for p in glob.glob("/sys/block/sr*"):
-        all_devnames.add(os.path.basename(p))
-    for p in glob.glob("/dev/sr*"):
-        all_devnames.add(os.path.basename(p))
-
-    # Also include drives known to the database (may be stale)
-    db_drives = SystemDrives.query.all()
-    db_by_devname: dict[str, SystemDrives] = {}
-    for d in db_drives:
-        if d.mount:
-            dn = d.mount.rstrip("/").rsplit("/", 1)[-1]
-            if re.match(r'^sr\d+$', dn):
-                all_devnames.add(dn)
-                db_by_devname[dn] = d
 
     for devname in sorted(all_devnames):
         dev_path = f"/dev/{devname}"
@@ -173,6 +130,77 @@ async def drive_diagnostic():
 
         checks.append(diag)
 
+    return checks
+
+
+def _check_udevd() -> bool:
+    """Check if udevd is running (synchronous /proc scan)."""
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        try:
+            with open(f"/proc/{pid}/comm") as f:
+                comm = f.read().strip()
+            if "udevd" in comm:
+                return True
+        except (FileNotFoundError, IOError):
+            continue
+    return False
+
+
+def _read_kernel_cdrom_info() -> tuple[bool, list[str]]:
+    """Read kernel cdrom drive names (synchronous /proc read).
+
+    Returns (file_exists, drive_names).
+    """
+    try:
+        with open("/proc/sys/dev/cdrom/info") as f:
+            for line in f:
+                if line.startswith("drive name:"):
+                    return True, line.split(":")[1].split()
+        return True, []
+    except FileNotFoundError:
+        return False, []
+
+
+@router.get('/drives/diagnostic')
+async def drive_diagnostic():
+    """Run udev and device diagnostics for all optical drives."""
+    issues: list[str] = []
+
+    # --- udevd running? (may be udevd or systemd-udevd) ---
+    udevd_running = await asyncio.to_thread(_check_udevd)
+    if not udevd_running:
+        issues.append("udevd is not running inside the container — disc hotplug events won't work")
+
+    # --- kernel cdrom info ---
+    cdrom_file_exists, kernel_drives = await asyncio.to_thread(_read_kernel_cdrom_info)
+    if not cdrom_file_exists:
+        issues.append("/proc/sys/dev/cdrom/info not found — no optical drives visible to kernel")
+
+    # --- per-drive checks ---
+    # Collect all srN names from kernel, sysfs, /dev, AND the database
+    all_devnames: set[str] = set(kernel_drives)
+    for p in glob.glob("/sys/block/sr*"):
+        all_devnames.add(os.path.basename(p))
+    for p in glob.glob("/dev/sr*"):
+        all_devnames.add(os.path.basename(p))
+
+    # Also include drives known to the database (may be stale)
+    db_drives = SystemDrives.query.all()
+    db_by_devname: dict[str, SystemDrives] = {}
+    for d in db_drives:
+        if d.mount:
+            dn = d.mount.rstrip("/").rsplit("/", 1)[-1]
+            if re.match(r'^sr\d+$', dn):
+                all_devnames.add(dn)
+                db_by_devname[dn] = d
+
+    # Run synchronous I/O diagnostics in a thread
+    checks = await asyncio.to_thread(
+        _run_drive_diagnostic, db_by_devname, all_devnames, kernel_drives, issues,
+    )
+
     if not all_devnames:
         issues.append("No optical drives found anywhere (kernel, sysfs, or /dev)")
 
@@ -231,10 +259,10 @@ async def scan_drive(drive_id: int):
     script = "/opt/arm/scripts/docker/rescan_drive.sh"
 
     try:
-        subprocess.Popen(
-            [script, devname],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+        await asyncio.create_subprocess_exec(
+            script, devname,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
         )
         log.info("Scan triggered for drive %s (%s)", drive_id, devname)
         return {"success": True, "drive_id": drive_id, "devname": devname}

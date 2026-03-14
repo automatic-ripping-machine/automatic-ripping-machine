@@ -164,7 +164,7 @@ class TestCheckForDupeFolder:
         prev_job.pid_hash = 0
         db.session.add(prev_job)
         db.session.flush()
-        Config({'LOGPATH': '/tmp'}, prev_job.job_id)
+        Config({'LOGPATH': '/home/arm/logs'}, prev_job.job_id)
         db.session.commit()
 
         job = unittest.mock.MagicMock()
@@ -199,7 +199,7 @@ class TestCheckForDupeFolder:
         prev_job.pid_hash = 0
         db.session.add(prev_job)
         db.session.flush()
-        Config({'LOGPATH': '/tmp'}, prev_job.job_id)
+        Config({'LOGPATH': '/home/arm/logs'}, prev_job.job_id)
         db.session.commit()
 
         job = unittest.mock.MagicMock()

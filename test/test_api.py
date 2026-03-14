@@ -199,7 +199,7 @@ class TestApiSystemVersion:
 
     def _patch_version(self, client, *, arm_version="1.0.0",
                        makemkv_output="MakeMKV v1.18.3",
-                       db_file="/tmp/arm.db", install_path="/opt/arm",
+                       db_file="/home/arm/db/arm.db", install_path="/opt/arm",
                        db_row=("abc123",), head="def456",
                        version_file_error=None, db_file_exists=True):
         """Call the version endpoint with all dependencies mocked."""
@@ -440,8 +440,13 @@ class TestApiDriveScan:
     def test_scan_success(self, client, app_context):
         mock_drive = unittest.mock.MagicMock()
         mock_drive.mount = "/dev/sr0"
+
+        async def mock_create_subprocess(*args, **kwargs):
+            return unittest.mock.MagicMock()
+
         with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd, \
-             unittest.mock.patch("arm.api.v1.drives.subprocess.Popen") as mock_popen:
+             unittest.mock.patch("arm.api.v1.drives.asyncio.create_subprocess_exec",
+                                 side_effect=mock_create_subprocess):
             mock_sd.query.get.return_value = mock_drive
             response = client.post('/api/v1/drives/1/scan')
         assert response.status_code == 200
@@ -452,7 +457,7 @@ class TestApiDriveScan:
         mock_drive.mount = "/dev/sr0"
         with unittest.mock.patch("arm.api.v1.drives.SystemDrives") as mock_sd, \
              unittest.mock.patch(
-                 "arm.api.v1.drives.subprocess.Popen",
+                 "arm.api.v1.drives.asyncio.create_subprocess_exec",
                  side_effect=OSError("script missing"),
              ):
             mock_sd.query.get.return_value = mock_drive
@@ -702,7 +707,7 @@ class TestApiFilesRoots:
 
     def test_get_roots(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.get_roots",
-                                 return_value=[{"key": "raw", "label": "Raw", "path": "/tmp"}]):
+                                 return_value=[{"key": "raw", "label": "Raw", "path": "/home/arm/media/raw"}]):
             response = client.get('/api/v1/files/roots')
         assert response.status_code == 200
         data = response.json()
@@ -715,8 +720,8 @@ class TestApiFilesList:
 
     def test_list_success(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.list_directory",
-                                 return_value={"path": "/tmp", "parent": None, "entries": []}):
-            response = client.get('/api/v1/files/list?path=/tmp')
+                                 return_value={"path": "/home/arm/media", "parent": None, "entries": []}):
+            response = client.get('/api/v1/files/list?path=/home/arm/media')
         assert response.status_code == 200
         assert response.json()["entries"] == []
 
@@ -735,13 +740,13 @@ class TestApiFilesList:
     def test_list_not_a_directory(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.list_directory",
                                  side_effect=NotADirectoryError):
-            response = client.get('/api/v1/files/list?path=/tmp/file.txt')
+            response = client.get('/api/v1/files/list?path=/home/arm/media/file.txt')
         assert response.status_code == 400
 
     def test_list_os_error(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.list_directory",
                                  side_effect=OSError("disk failure")):
-            response = client.get('/api/v1/files/list?path=/tmp')
+            response = client.get('/api/v1/files/list?path=/home/arm/media')
         assert response.status_code == 500
 
 
@@ -750,14 +755,14 @@ class TestApiFilesRename:
 
     def test_rename_success(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.rename_item",
-                                 return_value={"success": True, "new_path": "/tmp/new.mkv"}):
+                                 return_value={"success": True, "new_path": "/home/arm/media/new.mkv"}):
             response = client.post('/api/v1/files/rename',
-                                   json={"path": "/tmp/old.mkv", "new_name": "new.mkv"})
+                                   json={"path": "/home/arm/media/old.mkv", "new_name": "new.mkv"})
         assert response.status_code == 200
         assert response.json()["success"] is True
 
     def test_rename_missing_fields(self, client, app_context):
-        response = client.post('/api/v1/files/rename', json={"path": "/tmp/old.mkv"})
+        response = client.post('/api/v1/files/rename', json={"path": "/home/arm/media/old.mkv"})
         assert response.status_code == 400
 
     def test_rename_access_denied(self, client, app_context):
@@ -771,21 +776,21 @@ class TestApiFilesRename:
         with unittest.mock.patch("arm.services.file_browser.rename_item",
                                  side_effect=FileNotFoundError):
             response = client.post('/api/v1/files/rename',
-                                   json={"path": "/tmp/gone.mkv", "new_name": "x"})
+                                   json={"path": "/home/arm/media/gone.mkv", "new_name": "x"})
         assert response.status_code == 404
 
     def test_rename_already_exists(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.rename_item",
                                  side_effect=FileExistsError):
             response = client.post('/api/v1/files/rename',
-                                   json={"path": "/tmp/a.mkv", "new_name": "b.mkv"})
+                                   json={"path": "/home/arm/media/a.mkv", "new_name": "b.mkv"})
         assert response.status_code == 409
 
     def test_rename_os_error(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.rename_item",
                                  side_effect=OSError("io error")):
             response = client.post('/api/v1/files/rename',
-                                   json={"path": "/tmp/a.mkv", "new_name": "b.mkv"})
+                                   json={"path": "/home/arm/media/a.mkv", "new_name": "b.mkv"})
         assert response.status_code == 500
 
 
@@ -794,41 +799,41 @@ class TestApiFilesMove:
 
     def test_move_success(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.move_item",
-                                 return_value={"success": True, "new_path": "/tmp/dest/file.mkv"}):
+                                 return_value={"success": True, "new_path": "/home/arm/media/dest/file.mkv"}):
             response = client.post('/api/v1/files/move',
-                                   json={"path": "/tmp/file.mkv", "destination": "/tmp/dest"})
+                                   json={"path": "/home/arm/media/file.mkv", "destination": "/home/arm/media/dest"})
         assert response.status_code == 200
 
     def test_move_missing_fields(self, client, app_context):
-        response = client.post('/api/v1/files/move', json={"path": "/tmp/file.mkv"})
+        response = client.post('/api/v1/files/move', json={"path": "/home/arm/media/file.mkv"})
         assert response.status_code == 400
 
     def test_move_access_denied(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.move_item",
                                  side_effect=ValueError):
             response = client.post('/api/v1/files/move',
-                                   json={"path": "/tmp/a", "destination": "/etc"})
+                                   json={"path": "/home/arm/media/a", "destination": "/etc"})
         assert response.status_code == 403
 
     def test_move_not_found(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.move_item",
                                  side_effect=FileNotFoundError):
             response = client.post('/api/v1/files/move',
-                                   json={"path": "/tmp/gone", "destination": "/tmp/dest"})
+                                   json={"path": "/home/arm/media/gone", "destination": "/home/arm/media/dest"})
         assert response.status_code == 404
 
     def test_move_conflict(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.move_item",
                                  side_effect=FileExistsError):
             response = client.post('/api/v1/files/move',
-                                   json={"path": "/tmp/a", "destination": "/tmp/b"})
+                                   json={"path": "/home/arm/media/a", "destination": "/home/arm/media/b"})
         assert response.status_code == 409
 
     def test_move_os_error(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.move_item",
                                  side_effect=OSError("io")):
             response = client.post('/api/v1/files/move',
-                                   json={"path": "/tmp/a", "destination": "/tmp/b"})
+                                   json={"path": "/home/arm/media/a", "destination": "/home/arm/media/b"})
         assert response.status_code == 500
 
 
@@ -837,13 +842,13 @@ class TestApiFilesMkdir:
 
     def test_mkdir_success(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.create_directory",
-                                 return_value={"success": True, "new_path": "/tmp/newdir"}):
+                                 return_value={"success": True, "new_path": "/home/arm/media/newdir"}):
             response = client.post('/api/v1/files/mkdir',
-                                   json={"path": "/tmp", "name": "newdir"})
+                                   json={"path": "/home/arm/media", "name": "newdir"})
         assert response.status_code == 200
 
     def test_mkdir_missing_fields(self, client, app_context):
-        response = client.post('/api/v1/files/mkdir', json={"path": "/tmp"})
+        response = client.post('/api/v1/files/mkdir', json={"path": "/home/arm/media"})
         assert response.status_code == 400
 
     def test_mkdir_access_denied(self, client, app_context):
@@ -864,14 +869,14 @@ class TestApiFilesMkdir:
         with unittest.mock.patch("arm.services.file_browser.create_directory",
                                  side_effect=FileExistsError):
             response = client.post('/api/v1/files/mkdir',
-                                   json={"path": "/tmp", "name": "existing"})
+                                   json={"path": "/home/arm/media", "name": "existing"})
         assert response.status_code == 409
 
     def test_mkdir_os_error(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.create_directory",
                                  side_effect=OSError("fail")):
             response = client.post('/api/v1/files/mkdir',
-                                   json={"path": "/tmp", "name": "dir"})
+                                   json={"path": "/home/arm/media", "name": "dir"})
         assert response.status_code == 500
 
 
@@ -882,7 +887,7 @@ class TestApiFilesFixPermissions:
         with unittest.mock.patch("arm.services.file_browser.fix_item_permissions",
                                  return_value={"success": True, "fixed": 5}):
             response = client.post('/api/v1/files/fix-permissions',
-                                   json={"path": "/tmp/media"})
+                                   json={"path": "/home/arm/media/media"})
         assert response.status_code == 200
         assert response.json()["fixed"] == 5
 
@@ -901,14 +906,14 @@ class TestApiFilesFixPermissions:
         with unittest.mock.patch("arm.services.file_browser.fix_item_permissions",
                                  side_effect=FileNotFoundError):
             response = client.post('/api/v1/files/fix-permissions',
-                                   json={"path": "/tmp/gone"})
+                                   json={"path": "/home/arm/media/gone"})
         assert response.status_code == 404
 
     def test_fix_perms_os_error(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.fix_item_permissions",
                                  side_effect=OSError("perm denied")):
             response = client.post('/api/v1/files/fix-permissions',
-                                   json={"path": "/tmp/media"})
+                                   json={"path": "/home/arm/media/media"})
         assert response.status_code == 500
 
 
@@ -919,7 +924,7 @@ class TestApiFilesDelete:
         with unittest.mock.patch("arm.services.file_browser.delete_item",
                                  return_value={"success": True}):
             response = client.request('DELETE', '/api/v1/files/delete',
-                                      json={"path": "/tmp/file.mkv"})
+                                      json={"path": "/home/arm/media/file.mkv"})
         assert response.status_code == 200
 
     def test_delete_missing_path(self, client, app_context):
@@ -937,14 +942,14 @@ class TestApiFilesDelete:
         with unittest.mock.patch("arm.services.file_browser.delete_item",
                                  side_effect=FileNotFoundError):
             response = client.request('DELETE', '/api/v1/files/delete',
-                                      json={"path": "/tmp/gone"})
+                                      json={"path": "/home/arm/media/gone"})
         assert response.status_code == 404
 
     def test_delete_os_error(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.delete_item",
                                  side_effect=OSError("io")):
             response = client.request('DELETE', '/api/v1/files/delete',
-                                      json={"path": "/tmp/file"})
+                                      json={"path": "/home/arm/media/file"})
         assert response.status_code == 500
 
 
@@ -965,7 +970,7 @@ class TestApiSystemInfo:
         assert response.status_code == 200
         data = response.json()
         assert data["cpu"] == "Intel Xeon E5"
-        assert data["memory_total_gb"] == 16.0
+        assert data["memory_total_gb"] == pytest.approx(16.0)
 
 
 class TestApiSystemStats:
@@ -985,9 +990,9 @@ class TestApiSystemStats:
         mock_disk.percent = 50.0
 
         config = {
-            "RAW_PATH": "/tmp/raw",
+            "RAW_PATH": "/home/arm/media/raw",
             "TRANSCODE_PATH": "",
-            "COMPLETED_PATH": "/tmp/completed",
+            "COMPLETED_PATH": "/home/arm/media/completed",
         }
 
         with unittest.mock.patch("arm.api.v1.system.psutil.cpu_percent", return_value=25.0), \
@@ -1001,8 +1006,8 @@ class TestApiSystemStats:
             response = client.get('/api/v1/system/stats')
         assert response.status_code == 200
         data = response.json()
-        assert data["cpu_percent"] == 25.0
-        assert data["memory"]["percent"] == 50.0
+        assert data["cpu_percent"] == pytest.approx(25.0)
+        assert data["memory"]["percent"] == pytest.approx(50.0)
         assert len(data["storage"]) == 2  # RAW_PATH and COMPLETED_PATH
 
     def test_stats_with_cpu_temp(self, client):
@@ -1024,7 +1029,7 @@ class TestApiSystemStats:
                                  {"RAW_PATH": "", "TRANSCODE_PATH": "", "COMPLETED_PATH": ""}):
             response = client.get('/api/v1/system/stats')
         data = response.json()
-        assert data["cpu_temp"] == 65.0
+        assert data["cpu_temp"] == pytest.approx(65.0)
 
     def test_stats_disk_not_found(self, client):
         """Storage paths that don't exist are silently skipped."""
@@ -1054,8 +1059,8 @@ class TestApiSystemPaths:
 
     def test_paths_returns_list(self, client):
         config = {
-            "RAW_PATH": "/tmp",
-            "COMPLETED_PATH": "/tmp",
+            "RAW_PATH": "/home/arm/media",
+            "COMPLETED_PATH": "/home/arm/media",
             "TRANSCODE_PATH": "",
             "LOGPATH": "",
             "DBFILE": "",

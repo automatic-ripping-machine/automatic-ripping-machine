@@ -112,7 +112,7 @@ class TestSystemInfo:
                                  return_value=mock_mem):
             si = SystemInfo()
             si.get_memory()
-        assert si.mem_total == 16.0
+        assert si.mem_total == pytest.approx(16.0)
 
     def test_get_memory_failure(self, app_context):
         from arm.models.system_info import SystemInfo

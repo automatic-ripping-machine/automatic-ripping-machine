@@ -207,7 +207,7 @@ class TestMatchTracksBestSeason:
         result = match_tracks_best_season(tracks, seasons, tolerance=300)
         assert result["season"] == 2
         assert result["match_count"] == 3
-        assert len(result["alternatives"]) >= 0
+        assert isinstance(result["alternatives"], list)
 
     def test_no_match_any_season(self):
         """No season matches within tolerance."""
