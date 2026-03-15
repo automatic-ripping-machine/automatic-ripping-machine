@@ -947,15 +947,15 @@ def save_disc_poster(final_directory, job):
     if job.disctype != "dvd" or not cfg.arm_config["RIP_POSTER"]:
         return
 
-    try:
-        result = subprocess.run(
-            ["mount", job.devpath],
-            capture_output=True, text=True,
-        )
-        if result.returncode != 0:
-            logging.error(f"Failed to mount {job.devpath}: {result.stderr.strip()}")
-            return
+    result = subprocess.run(
+        ["mount", job.devpath],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        logging.error(f"Failed to mount {job.devpath}: {result.stderr.strip()}")
+        return
 
+    try:
         ntsc_poster = os.path.join(job.mountpoint, "JACKET_P", "J00___5L.MP2")
         pal_poster = os.path.join(job.mountpoint, "JACKET_P", "J00___6L.MP2")
         poster_out = os.path.join(final_directory, "poster.png")

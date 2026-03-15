@@ -223,6 +223,25 @@ class TestSaveDiscPoster:
 
         mock_run.assert_not_called()
 
+    def test_mount_failure_skips_umount(self, app_context, sample_job):
+        """When mount fails, umount should NOT be called (#1664)."""
+        from arm.ripper.utils import save_disc_poster
+
+        sample_job.disctype = "dvd"
+        sample_job.devpath = "/dev/sr0"
+        sample_job.mountpoint = "/mnt/sr0"
+
+        with unittest.mock.patch('arm.ripper.utils.cfg') as mock_cfg, \
+             unittest.mock.patch('arm.ripper.utils.subprocess.run') as mock_run:
+            mock_cfg.arm_config = {"RIP_POSTER": True}
+            mock_run.return_value = unittest.mock.Mock(returncode=1, stderr="mount failed")
+
+            save_disc_poster("/tmp/final", sample_job)
+
+            # subprocess.run should be called once (mount) but NOT twice (umount)
+            assert mock_run.call_count == 1
+            assert mock_run.call_args_list[0][0][0][0] == "mount"
+
 
 class TestRipMusic:
     """Test rip_music() audio CD ripping logic."""
