@@ -223,7 +223,7 @@ class TestSaveDiscPoster:
 
         mock_run.assert_not_called()
 
-    def test_mount_failure_skips_umount(self, app_context, sample_job):
+    def test_mount_failure_skips_umount(self, app_context, sample_job, tmp_path):
         """When mount fails, umount should NOT be called (#1664)."""
         from arm.ripper.utils import save_disc_poster
 
@@ -236,7 +236,7 @@ class TestSaveDiscPoster:
             mock_cfg.arm_config = {"RIP_POSTER": True}
             mock_run.return_value = unittest.mock.Mock(returncode=1, stderr="mount failed")
 
-            save_disc_poster("/tmp/final", sample_job)
+            save_disc_poster(str(tmp_path / "final"), sample_job)
 
             # subprocess.run should be called once (mount) but NOT twice (umount)
             assert mock_run.call_count == 1
