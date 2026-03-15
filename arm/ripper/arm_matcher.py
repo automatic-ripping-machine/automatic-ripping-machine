@@ -24,6 +24,20 @@ class LabelInfo:
     raw_label: str           # original input: "LOTR_FELLOWSHIP_OF_THE_RING_P1"
     season_number: int | None = None  # 1, 2, etc. (None if not a TV season disc)
 
+    @property
+    def disc_identifier(self) -> str | None:
+        """Format season/disc as a compact identifier (e.g. 'S1D1', 'S2', 'D3').
+
+        Returns None when neither season nor disc number is available.
+        """
+        if self.season_number is not None and self.disc_number is not None:
+            return f"S{self.season_number}D{self.disc_number}"
+        if self.season_number is not None:
+            return f"S{self.season_number}"
+        if self.disc_number is not None:
+            return f"D{self.disc_number}"
+        return None
+
 
 @dataclass
 class MatchResult:

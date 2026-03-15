@@ -1456,6 +1456,35 @@ class TestDriveLookupGraceful:
         assert result.mount == "/dev/sr99"
 
 
+class TestLabelInfoDiscIdentifier:
+    """Test LabelInfo.disc_identifier property."""
+
+    def test_season_and_disc(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("BB_S1D1")
+        assert info.disc_identifier == "S1D1"
+
+    def test_season_only(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("BB_S1")
+        assert info.disc_identifier == "S1"
+
+    def test_disc_only(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("BB_D2")
+        assert info.disc_identifier == "D2"
+
+    def test_no_identifiers(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("BREAKING_BAD_2008")
+        assert info.disc_identifier is None
+
+    def test_season_disc_with_leading_zeros(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("GOT_S05_D03")
+        assert info.disc_identifier == "S5D3"
+
+
 class TestLabelSeparatorNormalization:
     """Test that hyphens and dots in disc labels are treated as word separators (#60)."""
 
