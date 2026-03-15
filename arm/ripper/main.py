@@ -402,7 +402,11 @@ if __name__ == "__main__":
                 job.status = JobState.SUCCESS.value
     finally:
         if job:
+            final_status = job.status
+            job.status = JobState.EJECTING.value
+            db.session.commit()
             job.eject()  # each job stores its eject status, so it is safe to call.
+            job.status = final_status
             job.stop_time = datetime.datetime.now()
             job_length = job.stop_time - job.start_time if job.start_time else 0
             minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)

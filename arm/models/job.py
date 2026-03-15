@@ -56,6 +56,12 @@ class JobState(str, enum.Enum):
     # Audio ripping states
     AUDIO_RIPPING = "ripping"
 
+    # Post-rip states
+    COPYING = "copying"
+    """Indicate that ripped files are being moved to shared/network storage."""
+    EJECTING = "ejecting"
+    """Indicate that the disc is being ejected from the drive."""
+
     # Transcoding states
     TRANSCODE_ACTIVE = "transcoding"
     TRANSCODE_WAITING = "waiting_transcode"
@@ -72,6 +78,8 @@ JOB_STATUS_RIPPING = {
     JobState.MANUAL_WAIT_STARTED,  # <-- not ripping, but undistinguishable
     JobState.VIDEO_WAITING,
     JobState.VIDEO_INFO,
+    JobState.COPYING,
+    JobState.EJECTING,
 }
 JOB_STATUS_TRANSCODING = {
     JobState.TRANSCODE_ACTIVE,

@@ -136,7 +136,7 @@ def bash_notify(cfg, title, body, job=None):
             logging.error(f"Failed sending notification via bash. Continuing  processing...{error}")
 
 
-def _move_to_shared_storage(cfg, raw_basename):
+def _move_to_shared_storage(cfg, raw_basename, job=None):
     """Move raw directory from local scratch to shared storage if configured."""
     local_raw = cfg.get('LOCAL_RAW_PATH', '')
     shared_raw = cfg.get('SHARED_RAW_PATH', '')
@@ -146,6 +146,8 @@ def _move_to_shared_storage(cfg, raw_basename):
     dst = os.path.join(shared_raw, raw_basename)
     if os.path.isdir(src):
         try:
+            if job:
+                database_updater({'status': JobState.COPYING.value}, job)
             os.makedirs(shared_raw, exist_ok=True)
             shutil.move(src, dst)
             logging.info(f"Moved {src} -> {dst}")
@@ -221,7 +223,7 @@ def transcoder_notify(cfg, title, body, job=None):
         return
 
     raw_basename = os.path.basename(str(job.raw_path)) if job.raw_path else ''
-    _move_to_shared_storage(cfg, raw_basename)
+    _move_to_shared_storage(cfg, raw_basename, job)
 
     # Update job.raw_path to shared location after move
     shared_raw = cfg.get('SHARED_RAW_PATH', '')
