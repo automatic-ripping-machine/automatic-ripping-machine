@@ -117,8 +117,10 @@ cd automatic-ripping-machine-transcoder
 # Create .env from template
 cp .env.example .env
 
-# Edit .env — set HOST_RAW_PATH, HOST_COMPLETED_PATH to your NFS mount paths,
-# and choose the correct VIDEO_ENCODER for your GPU
+# Edit .env — set HOST_RAW_PATH, HOST_COMPLETED_PATH to your NFS mount paths.
+# Set ARM_CALLBACK_URL to the ARM host (e.g. http://<ARM_HOST>:8080) so the
+# transcoder can notify ARM when jobs complete.
+# VIDEO_ENCODER and presets are auto-detected from GPU hardware at startup.
 nano .env
 
 # Create local directories

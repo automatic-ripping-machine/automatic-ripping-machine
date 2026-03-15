@@ -51,7 +51,7 @@ Edit `.env` — the critical settings to review:
 | `ARM_LOGS_PATH` | `/home/arm/logs` | |
 | `ARM_CONFIG_PATH` | `/etc/arm/config` | Where `arm.yaml` lives |
 | `ARM_MUSIC_PATH` | `/home/arm/music` | For CD rips |
-| `VIDEO_ENCODER` | `x265` (CPU) or `nvenc_h265` (NVIDIA GPU) | Default is `x265` for CPU-only |
+| `VIDEO_ENCODER` | `x265` (CPU, default) | GPU auto-detected at startup; override with `nvenc_h265`, `vaapi_h265`, `qsv_h265` |
 | `TRANSCODER_WORK_PATH` | Path to fast local storage (SSD) | Scratch space during transcoding |
 
 ### 4. Uncomment optical drives

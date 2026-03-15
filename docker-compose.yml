@@ -140,6 +140,8 @@ services:
       - MINIMUM_FREE_SPACE_GB=${MINIMUM_FREE_SPACE_GB:-10}
       - MAX_RETRY_COUNT=${MAX_RETRY_COUNT:-3}
       - LOG_PATH=/data/logs
+      # ARM callback — transcoder notifies ARM when jobs complete/fail
+      - ARM_CALLBACK_URL=${ARM_CALLBACK_URL:-http://arm-rippers:8080}
     volumes:
       - ${ARM_MEDIA_PATH}/raw:/data/raw:rw
       - ${ARM_MEDIA_PATH}/completed:/data/completed:rw

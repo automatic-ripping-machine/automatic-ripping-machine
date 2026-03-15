@@ -6,11 +6,23 @@
 
 # Automatic Ripping Machine (ARM) - Neu
 
-A fork of the [Automatic Ripping Machine](https://github.com/automatic-ripping-machine/automatic-ripping-machine) with bug fixes, improvements, and better integration with companion services.
+A fork of the [Automatic Ripping Machine](https://github.com/automatic-ripping-machine/automatic-ripping-machine) with many bug fixes, new features, and a companion service architecture for offloading GPU transcoding to a separate machine.
+
+### What's different from upstream
+
+- **Offloaded GPU transcoding** — dedicated [transcoder service](https://github.com/uprightbass360/automatic-ripping-machine-transcoder) with auto-detected GPU encoding (NVIDIA NVENC, Intel QSV, AMD VCN/VAAPI, or CPU fallback)
+- **Modern dashboard** — [replacement UI](https://github.com/uprightbass360/automatic-ripping-machine-ui) built with SvelteKit, replacing the original Flask/Jinja2 templates and deployed separately.
+- **TVDB episode matching** — runtime-based track-to-episode mapping for TV series discs
+- **REST API** — updated structured JSON API for job management, metadata, and external integrations
+- **Richer notifications** — webhook payloads include job ID, paths, video type, and env vars for custom scripts
+- **Auto keydb updates** — community makemkv Blu-ray decryption keys fetched automatically at startup. No more reliance on Russian servers (unfortunately very unreliable in America)
+- **Docker Compose deployment** — single-machine or split ripper/transcoder across hosts with published images. Many examples and dev overlays available.
+- **Pre-scan drive detection** — richer workflow for new job reviewing
+- **Many bug fixes**
 
 ## Related Projects
 
-Part of the Automatic Ripping Machine ecosystem:
+Part of the Automatic Ripping Machine (neu) ecosystem:
 
 | Project | Description |
 |---------|-------------|
@@ -20,16 +32,30 @@ Part of the Automatic Ripping Machine ecosystem:
 
 Insert an optical disc (Blu-ray, DVD, CD) and ARM automatically detects, identifies, rips, and transcodes it. Headless and server-based, designed for unattended operation with one or more optical drives. This fork adds bug fixes, better notification payloads for external service integration, and improved compatibility with the companion transcoder and UI projects.
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Dashboard](screenshots/01-dashboard.png) | ![Job Detail](screenshots/15-job-detail-tracks.png) |
+| Dashboard with active rips and job cards | Job detail with per-episode track status |
+
+More screenshots and theme examples in the [UI project README](https://github.com/uprightbass360/automatic-ripping-machine-ui#screenshots).
+
 ## Features
 
-- Detects insertion of disc using udev
-- Determines disc type (Blu-ray, DVD, CD, data)
-- Video discs: retrieves metadata from OMDb/TMDb, rips with MakeMKV, queues transcoding
-- Audio CDs: rips using abcde with MusicBrainz metadata
+- Automatic disc detection via udev — insert a disc and walk away
+- Identifies Blu-ray, DVD, CD, and data discs automatically
+- Video discs: metadata lookup via OMDb/TMDb, rips with MakeMKV, queues transcoding
+- Audio CDs: rips with abcde using MusicBrainz metadata
 - Data discs: creates ISO backups
-- Notifications via Apprise (Discord, Slack, Telegram, email, and many more)
-- Multi-drive parallel ripping
-- Flask web UI for job management
+- TVDB episode matching for TV series discs (runtime-based track-to-episode mapping)
+- Multi-drive parallel ripping with per-drive naming
+- GPU-accelerated transcoding via companion service (NVIDIA, AMD, Intel, or CPU fallback)
+- Notifications via Apprise (Discord, Slack, Telegram, email, and 30+ more), Pushbullet, Pushover, IFTTT, or custom scripts
+- Modern dashboard UI with real-time job tracking, file browser, and settings management
+- REST API for job management and external integrations
+- Automatic MakeMKV community keydb updates for Blu-ray decryption
+- Docker-first deployment — single-machine or split ripper/transcoder across hosts
 
 ## Requirements
 

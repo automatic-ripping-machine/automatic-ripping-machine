@@ -39,7 +39,6 @@ services:
 
   # ARM ripper — creates the database on first startup
   arm-rippers:
-    build: .
     image: uprightbass360/automatic-ripping-machine:${ARM_VERSION:-latest}
     container_name: arm-rippers
     restart: always
@@ -50,6 +49,8 @@ services:
       - ARM_UID=${ARM_UID}
       - ARM_GID=${ARM_GID}
       - TZ=${TZ}
+      # FindVUK community keydb for Blu-ray decryption (true/false, default: true)
+      - ARM_COMMUNITY_KEYDB=${ARM_COMMUNITY_KEYDB:-true}
       # Transcoder integration (written to arm.yaml at startup)
       - ARM_TRANSCODER_URL=${ARM_TRANSCODER_URL:-http://${TRANSCODER_HOST}:${TRANSCODER_PORT:-5000}/webhook/arm}
       - ARM_TRANSCODER_WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
@@ -65,7 +66,6 @@ services:
       - ${ARM_CONFIG_PATH}:/etc/arm/config
       - arm-db:/home/arm/db
       - ${ARM_MAKEMKV_PATH:-makemkv-settings}:/home/arm/.MakeMKV
-      - ./scripts/docker/rescan_drive.sh:/opt/arm/scripts/docker/rescan_drive.sh
     cpuset: ${ARM_CPUSET:-2,3,4,5,6,7}
     depends_on:
       arm-db-init:
