@@ -92,6 +92,7 @@ async def update_config(request: Request):
 
     try:
         new_values = await asyncio.to_thread(_read_config)
+        new_values = new_values or {}
         cfg.arm_config.clear()
         cfg.arm_config.update(new_values)
     except Exception as e:

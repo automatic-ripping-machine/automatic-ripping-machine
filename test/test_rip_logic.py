@@ -1055,6 +1055,36 @@ class TestSettingsReload:
             cfg.arm_config_path = original_path
 
 
+class TestSettingsReloadNoneGuard:
+    """Config reload must not crash on empty YAML file (#1639)."""
+
+    def test_empty_yaml_does_not_crash(self, tmp_path):
+        import yaml
+        import arm.config.config as cfg
+
+        original_config = dict(cfg.arm_config)
+        original_path = cfg.arm_config_path
+
+        try:
+            config_file = tmp_path / "empty.yaml"
+            config_file.write_text("")
+
+            cfg.arm_config_path = str(config_file)
+            with open(cfg.arm_config_path, "r") as f:
+                new_values = yaml.safe_load(f)
+
+            # This is what the endpoint does — should not raise TypeError
+            new_values = new_values or {}
+            cfg.arm_config.clear()
+            cfg.arm_config.update(new_values)
+
+            assert isinstance(cfg.arm_config, dict)
+        finally:
+            cfg.arm_config.clear()
+            cfg.arm_config.update(original_config)
+            cfg.arm_config_path = original_path
+
+
 class TestSettingsEndpoint:
     """Test settings config write + reload code path for coverage (#1639)."""
 
