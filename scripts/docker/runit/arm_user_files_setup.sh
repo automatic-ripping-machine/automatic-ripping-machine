@@ -142,6 +142,8 @@ apply_yaml_override TRANSCODER_URL ARM_TRANSCODER_URL
 apply_yaml_override TRANSCODER_WEBHOOK_SECRET ARM_TRANSCODER_WEBHOOK_SECRET
 apply_yaml_override LOCAL_RAW_PATH ARM_LOCAL_RAW_PATH
 apply_yaml_override SHARED_RAW_PATH ARM_SHARED_RAW_PATH
+# sed -i may reset file ownership to root — restore arm ownership
+chown arm:arm "$ARM_YAML" 2>/dev/null || true
 
 ##### abcde config setup
 # abcde.conf is expected in /etc by the abcde installation
@@ -154,7 +156,7 @@ fi
 # check if abcde is in config main location - only copy if it doesnt exist
 if ! [[ -f /etc/arm/config/abcde.conf ]]; then
   echo "abcde.conf doesnt exist"
-  cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
+  install -o arm -g arm -m 644 /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
   # chown arm:arm /etc/arm/config/abcde.conf
 fi
 # The system link to the fake default file -not really needed but as a precaution to the -C variable being blank
