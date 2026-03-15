@@ -1,5 +1,22 @@
 # Changelog
 
+## [13.1.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.0.0...v13.1.0) (2026-03-15)
+
+
+### Features
+
+* add disc_identifier property to LabelInfo ([04545f4](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/04545f4468b02b6b96b96a153bb433ad4cbfd8f1))
+
+
+### Bug Fixes
+
+* consolidate TV disc label parser onto arm_matcher ([#1605](https://github.com/uprightbass360/automatic-ripping-machine-neu/issues/1605)) ([bc96516](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/bc9651680dc655bbed6d138ed67dcea02a22513e))
+* correct file ownership in setup script ([#1660](https://github.com/uprightbass360/automatic-ripping-machine-neu/issues/1660)) ([380abfb](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/380abfba74851c30a20cabe2a874e046c1faa625))
+* guard against None from yaml.safe_load in config reload ([#1639](https://github.com/uprightbass360/automatic-ripping-machine-neu/issues/1639)) ([a923649](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/a9236498484aca26314c8f5049900ddfcf88df26))
+* normalize hyphens and dots as word separators in parse_label ([#60](https://github.com/uprightbass360/automatic-ripping-machine-neu/issues/60)) ([30a5611](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/30a5611d313d1be783e381076738f756cc391f6a))
+* skip umount when mount fails in save_disc_poster ([#1664](https://github.com/uprightbass360/automatic-ripping-machine-neu/issues/1664)) ([b85b607](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/b85b607627aa51db3f617c469f7b995ee84a481a))
+* use tmp_path fixture instead of /tmp in test (SonarCloud S5443) ([0e9e549](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/0e9e5498e7faac90f51b09344c809e473347e857))
+
 ## [13.0.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v12.0.0...v13.0.0) (2026-03-14)
 
 
