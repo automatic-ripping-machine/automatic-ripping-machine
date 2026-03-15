@@ -1454,3 +1454,42 @@ class TestDriveLookupGraceful:
         result = SystemDrives.query.filter_by(mount="/dev/sr99").first()
         assert result is not None
         assert result.mount == "/dev/sr99"
+
+
+class TestLabelSeparatorNormalization:
+    """Test that hyphens and dots in disc labels are treated as word separators (#60)."""
+
+    def test_hyphenated_label_normalized(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("THE-BOONDOCK-SAINTS")
+        assert info.title == "the boondock saints"
+
+    def test_hyphenated_sequel_normalized(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("SPIDER-MAN-2")
+        assert info.title == "spider man 2"
+
+    def test_bluray_suffix_still_removed(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("X-MEN - Blu-rayTM")
+        assert info.title == "x men"
+        assert "blu" not in info.title
+
+    def test_hyphenated_with_disc_suffix(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("X-MEN-FIRST-CLASS D1")
+        assert info.title == "x men first class"
+        assert info.disc_number == 1
+
+    def test_dot_separated_label(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("Breaking.Bad.S02.D02")
+        assert info.season_number == 2
+        assert info.disc_number == 2
+        assert "breaking" in info.title
+        assert "bad" in info.title
+
+    def test_dot_separated_title_only(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("The.Wire")
+        assert info.title == "the wire"

@@ -196,6 +196,11 @@ def parse_label(raw_label: str) -> LabelInfo:
     for suffix in _BLURAY_SUFFIXES:
         s = s.replace(suffix, '')
 
+    # Treat hyphens and dots as word separators (after suffix removal to
+    # preserve literal hyphens in _BLURAY_SUFFIXES like ' - Blu-rayTM')
+    s = s.replace('-', ' ')
+    s = s.replace('.', ' ')
+
     # 5a. Extract season+disc combined suffixes (S1D1, S1_D1)
     m = _SEASON_DISC_RE.search(s)
     if m:
