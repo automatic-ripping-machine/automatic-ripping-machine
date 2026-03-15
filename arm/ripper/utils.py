@@ -981,55 +981,6 @@ def save_disc_poster(final_directory, job):
             logging.error(f"Failed to umount {job.devpath}: {umount.stderr.strip()}")
 
 
-def parse_disc_label_for_identifiers(disc_label):
-    """Parse disc label to extract season/disc identifiers.
-
-    Supports multiple common patterns (case-insensitive):
-    - S##D## or S##_D## or S##-D## (e.g., S1D1, S01_D02, S1-D2)
-    - S##E##D## (e.g., S01E01D1, S1E1D1)
-    - Season##Disc## variations (e.g., Season1Disc1, Season 01 Disc 2)
-    - Separate S## and D## tokens anywhere in label
-
-    :param disc_label: The disc volume label string
-    :return: Normalized identifier string (e.g., "S1D1", "S01D02") or None
-    """
-    if not disc_label:
-        return None
-
-    # Pattern 1: S##[E##]D## with optional separators
-    pattern1 = re.compile(
-        r'S0*(\d{1,2})(?:[E_\-\s.]+0*(\d{1,2}))?[_\-\s.]*D0*(\d{1,2})',
-        re.IGNORECASE,
-    )
-    match = pattern1.search(disc_label)
-    if match:
-        season = match.group(1)
-        episode = match.group(2)
-        disc = match.group(3)
-        if episode:
-            return f"S{season}E{episode}D{disc}"
-        return f"S{season}D{disc}"
-
-    # Pattern 2: Season##Disc## with optional separators/spaces
-    pattern2 = re.compile(
-        r'Season[\s_\-]*0*(\d{1,2})[\s_\-]*Disc[\s_\-]*0*(\d{1,2})',
-        re.IGNORECASE,
-    )
-    match = pattern2.search(disc_label)
-    if match:
-        return f"S{match.group(1)}D{match.group(2)}"
-
-    # Pattern 3: Find S## and D## separately anywhere in the label
-    season_match = re.search(r'(?<![a-zA-Z])S0*(\d{1,2})(?!\d)', disc_label, re.IGNORECASE)
-    disc_match = re.search(
-        r'(?<![a-zA-Z])D(?:isc)?[\s_\-]*0*(\d{1,2})(?!\d)', disc_label, re.IGNORECASE
-    )
-    if season_match and disc_match:
-        return f"S{season_match.group(1)}D{disc_match.group(1)}"
-
-    logging.debug(f"Could not parse disc identifiers from label: '{disc_label}'")
-    return None
-
 
 def normalize_series_name(series_name):
     """Normalize series name into a safe, consistent folder name.
@@ -1066,8 +1017,10 @@ def get_tv_folder_name(job):
     Otherwise, falls back to standard naming via formatted_title.
 
     :param job: Job object containing title, label, year, etc.
-    :return: Folder name string
+    :return: Folder name string (never empty — falls back to formatted_title)
     """
+    from arm.ripper.arm_matcher import parse_label
+
     use_disc_label = getattr(job.config, 'USE_DISC_LABEL_FOR_TV', False) if hasattr(job, 'config') else False
 
     if not use_disc_label:
@@ -1079,12 +1032,13 @@ def get_tv_folder_name(job):
     series_name = job.title_manual if job.title_manual else job.title
     if not series_name:
         logging.warning("No series title available, falling back to standard naming")
-        return ""
+        return job.formatted_title
 
-    disc_identifier = parse_disc_label_for_identifiers(job.label)
-    if disc_identifier:
+    label_info = parse_label(job.label)
+    disc_id = label_info.disc_identifier
+    if disc_id:
         normalized_name = normalize_series_name(series_name)
-        folder_name = f"{normalized_name}_{disc_identifier}"
+        folder_name = f"{normalized_name}_{disc_id}"
         logging.info(f"Using disc label-based folder name: '{folder_name}' "
                      f"(from series '{series_name}' and label '{job.label}')")
         return folder_name

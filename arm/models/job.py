@@ -437,6 +437,8 @@ class Job(db.Model):
         # TV series disc label naming overrides the normal pipeline
         if self.video_type == "series" and getattr(self.config, 'USE_DISC_LABEL_FOR_TV', False):
             folder = get_tv_folder_name(self)
+            if not folder:
+                folder = self.formatted_title
             if getattr(self.config, 'GROUP_TV_DISCS_UNDER_SERIES', False):
                 parent = get_tv_series_parent_folder(self)
                 return os.path.join(self.config.COMPLETED_PATH, self.type_subfolder, parent, folder)

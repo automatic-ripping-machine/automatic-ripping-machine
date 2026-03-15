@@ -365,62 +365,6 @@ class TestMakemkvDiscDiscovery:
         mock_get_drives.assert_not_called()
 
 
-class TestDiscLabelParsing:
-    """Test parse_disc_label_for_identifiers() (#1605)."""
-
-    def test_s_d_no_separator(self):
-        from arm.ripper.utils import parse_disc_label_for_identifiers
-        assert parse_disc_label_for_identifiers("BB_S1D1") == "S1D1"
-        assert parse_disc_label_for_identifiers("S01D02") == "S1D2"
-
-    def test_s_d_with_underscore(self):
-        from arm.ripper.utils import parse_disc_label_for_identifiers
-        assert parse_disc_label_for_identifiers("S1_D1") == "S1D1"
-        assert parse_disc_label_for_identifiers("S01_D02") == "S1D2"
-
-    def test_s_d_with_hyphen(self):
-        from arm.ripper.utils import parse_disc_label_for_identifiers
-        assert parse_disc_label_for_identifiers("S1-D1") == "S1D1"
-
-    def test_s_e_d_format(self):
-        from arm.ripper.utils import parse_disc_label_for_identifiers
-        assert parse_disc_label_for_identifiers("S1E1D1") == "S1E1D1"
-        assert parse_disc_label_for_identifiers("S01E01D1") == "S1E1D1"
-
-    def test_season_disc_word_format(self):
-        from arm.ripper.utils import parse_disc_label_for_identifiers
-        assert parse_disc_label_for_identifiers("Season1Disc1") == "S1D1"
-        assert parse_disc_label_for_identifiers("SEASON01DISC02") == "S1D2"
-        assert parse_disc_label_for_identifiers("Season 1 Disc 1") == "S1D1"
-
-    def test_separate_s_and_d_tokens(self):
-        from arm.ripper.utils import parse_disc_label_for_identifiers
-        assert parse_disc_label_for_identifiers("Breaking Bad S01 Disc 1") == "S1D1"
-        assert parse_disc_label_for_identifiers("GOT S5 D3") == "S5D3"
-
-    def test_case_insensitivity(self):
-        from arm.ripper.utils import parse_disc_label_for_identifiers
-        assert parse_disc_label_for_identifiers("s1d1") == "S1D1"
-        assert parse_disc_label_for_identifiers("BREAKING_BAD_S01_D02") == "S1D2"
-
-    def test_no_match_returns_none(self):
-        from arm.ripper.utils import parse_disc_label_for_identifiers
-        assert parse_disc_label_for_identifiers("BREAKING_BAD_2008") is None
-        assert parse_disc_label_for_identifiers("Disc1") is None
-        assert parse_disc_label_for_identifiers("S1") is None
-
-    def test_empty_or_none(self):
-        from arm.ripper.utils import parse_disc_label_for_identifiers
-        assert parse_disc_label_for_identifiers("") is None
-        assert parse_disc_label_for_identifiers(None) is None
-
-    def test_complex_labels(self):
-        from arm.ripper.utils import parse_disc_label_for_identifiers
-        assert parse_disc_label_for_identifiers("TheWire_S01_D01_BluRay") == "S1D1"
-        assert parse_disc_label_for_identifiers("GOT_Season_05_Disc_03") == "S5D3"
-        assert parse_disc_label_for_identifiers("Breaking.Bad.S02.D02") == "S2D2"
-
-
 class TestNormalizeSeriesName:
     """Test normalize_series_name() (#1605)."""
 
@@ -1001,30 +945,33 @@ class TestTrackInfoProcessorIntegration:
 class TestTVFolderNameEdgeCases:
     """Test get_tv_folder_name() edge cases for full coverage."""
 
-    def test_no_series_name_returns_empty(self, app_context, sample_job):
-        """When series title is None/empty, fall back to empty string."""
+    def test_no_series_name_falls_back_to_formatted_title(self, app_context, sample_job):
+        """When series title is None, fall back to formatted_title (not empty)."""
         from arm.ripper.utils import get_tv_folder_name
 
         sample_job.video_type = "series"
         sample_job.title = None
         sample_job.title_manual = None
         sample_job.label = "BB_S1D1"
+        sample_job.year = "2008"
         sample_job.config.USE_DISC_LABEL_FOR_TV = True
         result = get_tv_folder_name(sample_job)
-        assert result == ""
+        assert result == sample_job.formatted_title
+        assert result != ""
 
-    def test_empty_title_returns_empty(self, app_context, sample_job):
-        """When title is empty string and title_manual is None, return empty."""
+    def test_empty_title_falls_back_to_formatted_title(self, app_context, sample_job):
+        """When title is empty string, fall back to formatted_title."""
         from arm.ripper.utils import get_tv_folder_name
 
         sample_job.video_type = "series"
         sample_job.title = ""
         sample_job.title_manual = None
         sample_job.label = "BB_S1D1"
+        sample_job.year = "2008"
         sample_job.config.USE_DISC_LABEL_FOR_TV = True
 
         result = get_tv_folder_name(sample_job)
-        assert result == ""
+        assert result == sample_job.formatted_title
 
     def test_no_config_attribute(self, app_context, sample_job):
         """When job has no config attribute, fall back to formatted_title."""
@@ -1049,6 +996,23 @@ class TestTVFolderNameEdgeCases:
         sample_job.config.USE_DISC_LABEL_FOR_TV = True
         result = get_tv_folder_name(sample_job)
         assert result == "Breaking_Bad_S1D1"
+
+
+class TestBuildFinalPathEmptyFolderGuard:
+    """build_final_path must never produce a path ending in just the type subfolder."""
+
+    def test_none_title_falls_back_to_formatted_title(self, app_context, sample_job):
+        sample_job.video_type = "series"
+        sample_job.title = None
+        sample_job.title_manual = None
+        sample_job.label = "BB_S1D1"
+        sample_job.config.USE_DISC_LABEL_FOR_TV = True
+        sample_job.config.COMPLETED_PATH = "/media/completed"
+        path = sample_job.build_final_path()
+        # Must not end with just "tv/" — should have a folder name
+        assert not path.endswith("/tv/")
+        assert not path.endswith("/tv")
+        assert path.count("/") >= 3  # /media/completed/tv/something
 
 
 class TestSettingsReload:
