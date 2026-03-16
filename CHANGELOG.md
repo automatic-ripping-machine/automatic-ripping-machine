@@ -1,5 +1,14 @@
 # Changelog
 
+## [13.2.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.1.0...v13.2.0) (2026-03-16)
+
+
+### Features
+
+* add copying and ejecting job statuses ([f97168b](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/f97168b5e910e0b7649ace0143cf1608f4b67842))
+* add themes volume mount for extractable theme system ([6945e25](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/6945e259c3b5b7853ab7b6dcac24ed346bd4afee))
+* support testing unsaved metadata API keys ([c2a0097](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/c2a0097fb27171903ee95f723e62fae7400304b7))
+
 ## [13.1.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.0.0...v13.1.0) (2026-03-15)
 
 
