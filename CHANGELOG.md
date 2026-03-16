@@ -1,5 +1,17 @@
 # Changelog
 
+## [13.3.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.2.0...v13.3.0) (2026-03-16)
+
+
+### Features
+
+* add themes volume mount to remote-transcoder compose ([f432707](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/f432707fde9f5041e991ed69567048c4456732bb))
+
+
+### Bug Fixes
+
+* add missing transcoder env vars to docker-compose ([ff5210d](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/ff5210d3f385011a30bc40e96eb29aa4d7707771))
+
 ## [13.2.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.1.0...v13.2.0) (2026-03-16)
 
 
