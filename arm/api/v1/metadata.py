@@ -62,9 +62,12 @@ async def get_music_detail(release_id: str):
 
 
 @router.get("/test-key")
-async def test_metadata_key():
-    """Test the currently configured metadata API key by making a real API call."""
-    return await test_configured_key()
+async def test_metadata_key(
+    key: str | None = Query(None, description="API key to test (uses saved config if omitted)"),
+    provider: str | None = Query(None, description="Provider to test against: omdb or tmdb (uses saved config if omitted)"),
+):
+    """Test a metadata API key by making a real API call."""
+    return await test_configured_key(override_key=key, override_provider=provider)
 
 
 # --- CRC route before {imdb_id} catch-all ---

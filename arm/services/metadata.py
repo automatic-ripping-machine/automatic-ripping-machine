@@ -100,8 +100,7 @@ async def _test_omdb_key(key: str) -> dict[str, str]:
             return {"success": False, "message": "OMDb returned an invalid response"}
         return {"success": False, "message": f"OMDb returned HTTP {resp.status_code}"}
     if data.get("Response") == "True":
-        found = data.get("Title", "")
-        return {"success": True, "message": f"OMDb key valid \u2014 found \"{found}\""}
+        return {"success": True, "message": "OMDb API key is valid"}
     error_msg = data.get("Error", "")
     if "Invalid API key" in error_msg:
         return {"success": False, "message": "Invalid OMDb API key"}
@@ -110,11 +109,11 @@ async def _test_omdb_key(key: str) -> dict[str, str]:
     return {"success": True, "message": "OMDb API key accepted"}
 
 
-async def test_configured_key() -> dict[str, Any]:
-    """Test the currently configured metadata API key. Returns {success, message, provider}."""
+async def test_configured_key(override_key: str | None = None, override_provider: str | None = None) -> dict[str, Any]:
+    """Test a metadata API key. Uses overrides if given, else the saved config."""
     keys = _get_keys()
-    provider = keys["provider"]
-    key = keys["tmdb_key"] if provider == "tmdb" else keys["omdb_key"]
+    provider = override_provider or keys["provider"]
+    key = override_key or (keys["tmdb_key"] if provider == "tmdb" else keys["omdb_key"])
     if not key or not key.strip():
         return {"success": False, "message": f"No API key configured for {provider.upper()}", "provider": provider}
     try:
