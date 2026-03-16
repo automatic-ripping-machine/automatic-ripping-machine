@@ -92,6 +92,11 @@ MAX_CONCURRENT_MAKEMKVINFO: 0
 # of this period, ARM exits gracefully instead of throwing an error.
 DRIVE_READY_TIMEOUT: 60
 
+# How long (in seconds) to wait for MakeMKV pre-scan to complete per attempt.
+# Large discs (e.g. 40+ title UHD Blu-rays) may need 600s or more.
+# The pre-scan runs up to 3 attempts before giving up.
+PRESCAN_TIMEOUT: 300
+
 # Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
 # "status=progress" to log progress
 DATA_RIP_PARAMETERS: ""
