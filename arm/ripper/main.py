@@ -152,7 +152,8 @@ def main():
                     raise FileNotFoundError(f"{job.devpath} not found")
                 logging.info("Pre-scanning disc titles for review (attempt %d)...", attempt)
                 makemkv.prep_mkv()
-                makemkv.prescan_track_info(job, timeout=300)
+                prescan_timeout = int(cfg.arm_config.get('PRESCAN_TIMEOUT', 300))
+                makemkv.prescan_track_info(job, timeout=prescan_timeout)
                 db.session.expire(job, ['tracks'])
                 tracks = list(job.tracks)
                 if len(tracks) == 0:
