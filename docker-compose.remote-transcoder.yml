@@ -86,10 +86,12 @@ services:
       - ARM_UI_TRANSCODER_URL=http://${TRANSCODER_HOST}:${TRANSCODER_PORT:-5000}
       - ARM_UI_ARM_HB_PRESETS_PATH=/data/hb-presets/presets.json
       - ARM_UI_TRANSCODER_API_KEY=${TRANSCODER_API_KEY:-}
+      - ARM_UI_ARM_THEMES_PATH=/data/config/themes
     volumes:
       - arm-db:/data/db:ro
       - ${ARM_LOGS_PATH}:/data/logs:ro
       - ${ARM_CONFIG_PATH}:/data/arm-config:rw
+      - ${ARM_CONFIG_PATH:-/etc/arm/config}/themes:/data/config/themes:rw
       - hb-presets:/data/hb-presets:ro
     depends_on:
       arm-rippers:
