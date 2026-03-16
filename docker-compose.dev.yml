@@ -40,6 +40,7 @@ services:
       - ${UI_SRC_PATH:-../automatic-ripping-machine-ui}/frontend/build:/app/frontend/build:ro
       - ./dev-data/logs:/data/logs:ro
       - ./dev-data/config:/data/arm-config:rw
+      - ./dev-data/config/themes:/data/config/themes:rw
       - ./dev-data/hb-presets:/data/hb-presets:ro
 
   arm-transcoder:
