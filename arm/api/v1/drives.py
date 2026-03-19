@@ -350,4 +350,7 @@ async def eject_drive(drive_id: int, request: Request):
         return {"success": True, "drive_id": drive.drive_id, "method": method}
     except Exception as e:
         log.error("Drive %s eject(%s) failed: %s", drive_id, method, e)
-        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+        return JSONResponse(
+            {"success": False, "error": "Failed to control drive tray"},
+            status_code=500,
+        )
