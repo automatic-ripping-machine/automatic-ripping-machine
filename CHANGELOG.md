@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.5.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.4.0...v13.5.0) (2026-03-19)
+
+
+### Features
+
+* add drive eject/close endpoint, drive_mode PATCH, and job stats ([3d24bb7](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/3d24bb7de5b018045f1acf24baf630a7269ad38b))
+
 ## [13.4.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.3.0...v13.4.0) (2026-03-19)
 
 
