@@ -18,5 +18,5 @@ requests==2.32.5
 SQLAlchemy==2.0.48
 structlog>=24.4.0
 urllib3==2.6.3
-uvicorn[standard]==0.41.0
+uvicorn[standard]==0.42.0
 xmltodict==1.0.4
