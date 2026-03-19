@@ -1117,13 +1117,15 @@ class TestCheckDbVersion:
         conn.commit()
         conn.close()
 
-        with patch("alembic.script.ScriptDirectory") as mock_sd:
+        with patch("alembic.script.ScriptDirectory") as mock_sd, \
+             patch("arm.services.config._alembic_upgrade") as mock_upgrade:
             mock_script = MagicMock()
             mock_script.get_current_head.return_value = "abc123"
             mock_sd.from_config.return_value = mock_script
 
-            # Should not raise — handles OperationalError gracefully
+            # Should run migrations when alembic_version table is missing
             check_db_version(str(tmp_path), db_file)
+            mock_upgrade.assert_called_once()
 
 
 class TestGenerateComments:

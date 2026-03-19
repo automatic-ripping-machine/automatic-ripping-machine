@@ -77,8 +77,9 @@ def check_db_version(install_path, db_file):
         c.execute('SELECT version_num FROM alembic_version')
         db_version = c.fetchone()[0]
     except sqlite3.OperationalError:
-        log.warning("alembic_version table missing — database may need migration.")
+        log.warning("alembic_version table missing — running migrations to initialize database.")
         conn.close()
+        _alembic_upgrade(mig_dir, db_uri)
         return
 
     log.debug(f"Database version is: {db_version}")

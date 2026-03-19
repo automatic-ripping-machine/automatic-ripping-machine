@@ -28,6 +28,13 @@ def _clear_stale_pause():
 
 def startup():
     db.init_engine('sqlite:///' + cfg.arm_config['DBFILE'])
+    try:
+        svc_config.check_db_version(
+            cfg.arm_config['INSTALLPATH'],
+            cfg.arm_config['DBFILE'],
+        )
+    except Exception as e:
+        logging.error("Database initialization failed: %s", e)
     _clear_stale_pause()
     db_update = svc_config.arm_db_check()
     if db_update["db_current"]:
