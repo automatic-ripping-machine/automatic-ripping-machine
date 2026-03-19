@@ -239,4 +239,7 @@ def get_job_stats():
         }
     except Exception as e:
         log.error("Failed to get job stats: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse(
+            {"error": "Failed to retrieve job statistics"},
+            status_code=500,
+        )
