@@ -316,9 +316,38 @@ async def update_drive(drive_id: int, request: Request):
     if 'uhd_capable' in body:
         drive.uhd_capable = bool(body['uhd_capable'])
         updated['uhd_capable'] = drive.uhd_capable
+    if 'drive_mode' in body:
+        mode = str(body['drive_mode']).strip().lower()
+        if mode not in ('auto', 'manual'):
+            return JSONResponse({"success": False, "error": "drive_mode must be 'auto' or 'manual'"}, status_code=400)
+        drive.drive_mode = mode
+        updated['drive_mode'] = drive.drive_mode
 
     if not updated:
         return JSONResponse({"success": False, "error": "No valid fields provided"}, status_code=400)
 
     db.session.commit()
     return {"success": True, "drive_id": drive.drive_id}
+
+
+@router.post('/drives/{drive_id}/eject')
+async def eject_drive(drive_id: int, request: Request):
+    """Eject, close, or toggle the drive tray."""
+    drive = SystemDrives.query.get(drive_id)
+    if not drive:
+        return JSONResponse({"success": False, "error": "Drive not found"}, status_code=404)
+
+    body = await request.json() if await request.body() else {}
+    method = body.get('method', 'toggle')
+    if method not in ('eject', 'close', 'toggle'):
+        return JSONResponse(
+            {"success": False, "error": "method must be 'eject', 'close', or 'toggle'"},
+            status_code=400,
+        )
+
+    try:
+        drive.eject(method=method)
+        return {"success": True, "drive_id": drive.drive_id, "method": method}
+    except Exception as e:
+        log.error("Drive %s eject(%s) failed: %s", drive_id, method, e)
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)

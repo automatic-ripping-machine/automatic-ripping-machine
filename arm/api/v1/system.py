@@ -204,3 +204,39 @@ async def set_ripping_enabled(request: Request):
         "success": True,
         "ripping_enabled": not state.ripping_paused,
     }
+
+
+@router.get('/system/stats/jobs')
+def get_job_stats():
+    """Return job counts grouped by status and video type."""
+    from arm.models.job import Job
+    from sqlalchemy import func
+
+    try:
+        # Counts by status
+        status_rows = (
+            db.session.query(Job.status, func.count(Job.job_id))
+            .group_by(Job.status)
+            .all()
+        )
+        by_status = {str(status): count for status, count in status_rows}
+
+        # Counts by video_type
+        type_rows = (
+            db.session.query(Job.video_type, func.count(Job.job_id))
+            .filter(Job.video_type.isnot(None))
+            .group_by(Job.video_type)
+            .all()
+        )
+        by_type = {str(vtype): count for vtype, count in type_rows}
+
+        total = sum(by_status.values())
+
+        return {
+            "by_status": by_status,
+            "by_type": by_type,
+            "total": total,
+        }
+    except Exception as e:
+        log.error("Failed to get job stats: %s", e)
+        return JSONResponse({"error": str(e)}, status_code=500)
