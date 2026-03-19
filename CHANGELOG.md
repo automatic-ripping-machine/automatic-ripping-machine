@@ -1,5 +1,18 @@
 # Changelog
 
+## [13.4.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.3.0...v13.4.0) (2026-03-19)
+
+
+### Features
+
+* add configurable PRESCAN_TIMEOUT setting ([8f5f991](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/8f5f9914bb37ca06c1010a2c316170bceb60ec2d))
+* auto-initialize database on startup and add setup wizard endpoints ([661f1cf](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/661f1cf699661f8ad7592b6761ac02ff6beb3180))
+
+
+### Bug Fixes
+
+* migration data check uses job count instead of app_state row ([7723993](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/7723993c12e50799886dae4c9c5509e29feddbe9))
+
 ## [13.3.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.2.0...v13.3.0) (2026-03-16)
 
 
