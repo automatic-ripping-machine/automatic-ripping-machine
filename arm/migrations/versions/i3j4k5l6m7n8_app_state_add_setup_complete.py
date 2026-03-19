@@ -18,22 +18,19 @@ def upgrade():
         batch_op.add_column(sa.Column('setup_complete', sa.Boolean(), nullable=False, server_default='0'))
 
     # Data migration: mark existing deployments as setup-complete so they
-    # don't see the setup wizard on upgrade.  During a fresh `alembic upgrade
-    # head` this migration is the newest, so no *other* revision will be in
-    # alembic_version yet — the check below detects that and leaves the
-    # default (False) in place.
+    # don't see the setup wizard on upgrade.  We detect an existing deployment
+    # by checking if the job table has any rows — fresh installs have zero jobs.
     conn = op.get_bind()
     try:
-        result = conn.execute(sa.text(
-            "SELECT COUNT(*) FROM app_state WHERE id = 1"
-        ))
-        if result.scalar() > 0:
-            # Row exists → this is an upgrade, not a fresh install
+        result = conn.execute(sa.text("SELECT COUNT(*) FROM job"))
+        job_count = result.scalar()
+        if job_count > 0:
+            # Jobs exist → existing deployment, skip the wizard
             conn.execute(sa.text(
                 "UPDATE app_state SET setup_complete = 1 WHERE id = 1"
             ))
     except Exception:
-        pass  # Table might not have any rows yet on fresh install
+        pass  # job table might not exist yet during fresh alembic upgrade head
 
 
 def downgrade():
