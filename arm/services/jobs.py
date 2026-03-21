@@ -51,8 +51,9 @@ def get_x_jobs(job_status):
     i = 0
     for j in jobs:
         job_results[i] = {}
-        job_log = os.path.join(cfg.arm_config['LOGPATH'], str(j.logfile))
-        process_logfile(job_log, j, job_results[i])
+        if j.logfile:
+            job_log = os.path.join(cfg.arm_config['LOGPATH'], str(j.logfile))
+            process_logfile(job_log, j, job_results[i])
         try:
             job_results[i]['config'] = j.config.get_d()
         except AttributeError:
