@@ -738,7 +738,7 @@ def makemkv_mkv(job, rawpath):
         cmd += shlex.split(job.config.MKV_ARGS)
         cmd += [
             f"--progress={progress_log(job)}",
-            f"dev:{job.devpath}",
+            job.makemkv_source,
             "all",
             rawpath,
             f"--minlength={job.config.MINLENGTH}",
@@ -915,7 +915,7 @@ def prescan_disc_info(job, timeout=300):
     enumeration needed, safe for multi-drive setups.
     """
     cmd = [shutil.which("makemkvcon"), "--robot", "--messages=-stdout",
-           "info", "--cache=1", f"dev:{job.devpath}", "--minlength=0"]
+           "info", "--cache=1", job.makemkv_source, "--minlength=0"]
     select = OutputType.CINFO | OutputType.SINFO | OutputType.TCOUNT | OutputType.TINFO
     yield from _run_with_timeout(cmd, select, timeout=timeout)
 
@@ -935,10 +935,12 @@ def prescan_track_info(job, timeout=300):
     db.session.flush()
 
     # Resolve disc index for later rip phase (best-effort, non-critical)
-    try:
-        prescan_resolve_mdisc(job, timeout=60)
-    except Exception as exc:
-        logging.warning("mdisc resolution failed (non-fatal): %s", exc)
+    # Skip for folder imports — no physical drive to resolve
+    if not getattr(job, 'is_folder_import', False):
+        try:
+            prescan_resolve_mdisc(job, timeout=60)
+        except Exception as exc:
+            logging.warning("mdisc resolution failed (non-fatal): %s", exc)
 
     processor = TrackInfoProcessor(job, 0)
     for message in prescan_disc_info(job, timeout=timeout):
@@ -1025,7 +1027,7 @@ def rip_mainfeature(job, track, rawpath):
     cmd += shlex.split(job.config.MKV_ARGS)
     cmd += [
         f"--progress={progress_log(job)}",
-        f"dev:{job.devpath}",
+        job.makemkv_source,
         track.track_number,
         rawpath,
         f"--minlength={job.config.MINLENGTH}",
@@ -1079,7 +1081,7 @@ def process_single_tracks(job, rawpath, mode: str):
             cmd += [
                 f"--minlength={job.config.MINLENGTH}",
                 f"--progress={progress_log(job)}",
-                f"dev:{job.devpath}",
+                job.makemkv_source,
                 track.track_number,
                 rawpath,
             ]
