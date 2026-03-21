@@ -81,14 +81,22 @@ def _label_from_bluray_xml(folder_path: str) -> str | None:
 
 def _parse_title_year(label: str, folder_path: str) -> tuple[str, str | None]:
     folder_name = os.path.basename(folder_path)
-    # Match "Title (2024)" — use [^(] to avoid polynomial backtracking
-    match = re.match(r"([^(]+?)\s*\((\d{4})\)", folder_name)
-    if match:
-        return match.group(1).strip(), match.group(2)
-    # Match "Title 2024" — split on last 4-digit year
-    match = re.match(r"(.+\S)\s+(\d{4})(?:\s|$)", folder_name)
-    if match:
-        return match.group(1).strip(), match.group(2)
+
+    # Match "Title (2024)" — split on literal parenthesised year
+    paren_idx = folder_name.rfind("(")
+    if paren_idx > 0:
+        maybe_year = folder_name[paren_idx + 1 : paren_idx + 5]
+        if maybe_year.isdigit() and len(maybe_year) == 4:
+            return folder_name[:paren_idx].strip(), maybe_year
+
+    # Match "Title 2024" — find last standalone 4-digit year
+    parts = folder_name.split()
+    for i in range(len(parts) - 1, -1, -1):
+        if len(parts[i]) == 4 and parts[i].isdigit() and int(parts[i]) >= 1900:
+            title = " ".join(parts[:i]).strip()
+            if title:
+                return title, parts[i]
+
     clean = re.sub(r"[_.]", " ", label).strip()
     return clean, None
 
