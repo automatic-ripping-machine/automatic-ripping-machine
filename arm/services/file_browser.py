@@ -241,8 +241,12 @@ def list_directory(path: str) -> dict:
     try:
         for item in resolved.iterdir():
             try:
+                # Verify the name is valid UTF-8 before building the entry —
+                # NFS shares sometimes contain filenames with surrogate bytes
+                # that crash JSON serialization.
+                item.name.encode('utf-8')
                 entries.append(_build_entry(item, item.stat(), shallow=shallow))
-            except OSError as exc:
+            except (OSError, UnicodeEncodeError) as exc:
                 log.debug("Skipping inaccessible entry %s: %s", item, exc)
     except PermissionError as exc:
         log.error("Cannot list directory %s: %s", resolved, exc)
