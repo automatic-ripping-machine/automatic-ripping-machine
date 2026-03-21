@@ -1,8 +1,71 @@
-"""Shared fixtures for folder import tests."""
+"""Shared fixtures for folder import tests.
+
+Sets up ARM_CONFIG_FILE env var and stubs hardware-dependent modules
+so that importing arm.ripper.folder_scan (which triggers arm.__init__)
+works without /etc/arm/config/arm.yaml or physical devices.
+"""
 import os
+import sys
 import tempfile
+import types
+import unittest.mock
+
 import pytest
-from unittest.mock import MagicMock, patch
+import yaml
+
+# --- Stub hardware-dependent modules BEFORE any arm imports ---
+if "discid" not in sys.modules:
+    _discid_stub = types.ModuleType("discid")
+    _discid_stub.read = unittest.mock.MagicMock()
+    _discid_stub.put = unittest.mock.MagicMock()
+    _discid_stub.Disc = unittest.mock.MagicMock()
+    _discid_stub.DiscError = type("DiscError", (Exception,), {})
+    sys.modules["discid"] = _discid_stub
+    sys.modules["discid.disc"] = _discid_stub
+    sys.modules["discid.libdiscid"] = _discid_stub
+
+try:
+    import pyudev  # noqa: F401
+except (ImportError, OSError):
+    _pyudev_stub = types.ModuleType("pyudev")
+    _pyudev_stub.Context = unittest.mock.MagicMock()
+    _pyudev_stub.Devices = unittest.mock.MagicMock()
+    _pyudev_stub.Device = unittest.mock.MagicMock()
+    sys.modules["pyudev"] = _pyudev_stub
+
+# --- Bootstrap config BEFORE any arm imports ---
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_TEST_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "test")
+_TEST_CONFIG = os.path.join(_TEST_DIR, "test_arm.yaml")
+
+_ABCDE_TMP = tempfile.NamedTemporaryFile(
+    mode="w", suffix=".conf", prefix="abcde_test_", delete=False
+)
+_ABCDE_TMP.write("# test abcde config\n")
+_ABCDE_TMP.close()
+
+_DB_TMP = tempfile.NamedTemporaryFile(
+    suffix=".db", prefix="arm_test_db_", delete=False
+)
+_DB_TMP.close()
+os.unlink(_DB_TMP.name)
+
+with open(_TEST_CONFIG, "r") as f:
+    test_cfg = yaml.safe_load(f)
+test_cfg["INSTALLPATH"] = _PROJECT_ROOT + "/"
+test_cfg["ABCDE_CONFIG_FILE"] = _ABCDE_TMP.name
+test_cfg["DBFILE"] = _DB_TMP.name
+
+_PATCHED_CONFIG = tempfile.NamedTemporaryFile(
+    mode="w", suffix=".yaml", prefix="arm_test_cfg_", delete=False
+)
+yaml.dump(test_cfg, _PATCHED_CONFIG)
+_PATCHED_CONFIG.close()
+
+os.environ["ARM_CONFIG_FILE"] = _PATCHED_CONFIG.name
+
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 
 @pytest.fixture
