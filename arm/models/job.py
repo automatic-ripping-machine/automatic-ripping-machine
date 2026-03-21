@@ -165,7 +165,7 @@ class Job(db.Model):
     tracks = db.relationship('Track', backref='job', lazy='dynamic')
     config = db.relationship('Config', uselist=False, backref="job")
 
-    def __init__(self, devpath):
+    def __init__(self, devpath, _skip_hardware=False):
         """Return a disc object"""
         self.devpath = devpath
         self.mountpoint = ""
@@ -173,10 +173,11 @@ class Job(db.Model):
         self.video_type = "unknown"
         self.ejected = False
         self.updated = False
-        if cfg.arm_config['VIDEOTYPE'] != "auto":
+        if cfg.arm_config.get('VIDEOTYPE', 'auto') != "auto":
             self.video_type = cfg.arm_config['VIDEOTYPE']
-        self.parse_udev()
-        self.get_pid()
+        if not _skip_hardware:
+            self.parse_udev()
+            self.get_pid()
         self.stage = ""
         self.manual_start = False
         self.manual_pause = False
@@ -186,23 +187,14 @@ class Job(db.Model):
     @classmethod
     def from_folder(cls, source_path: str, disctype: str):
         """Create a Job from a folder path, bypassing udev/drive detection."""
-        job = cls.__new__(cls)
-        db.Model.__init__(job)
+        job = cls(
+            devpath=None,
+            _skip_hardware=True,
+        )
         job.source_type = "folder"
         job.source_path = source_path
-        job.devpath = None
         job.disctype = disctype
         job.start_time = dt.now()
-        job.mountpoint = ""
-        job.hasnicetitle = False
-        job.video_type = "unknown"
-        job.ejected = False
-        job.updated = False
-        job.stage = ""
-        job.manual_start = False
-        job.manual_pause = False
-        job.manual_mode = False
-        job.has_track_99 = False
         job.is_iso = False
         if cfg.arm_config.get('VIDEOTYPE', 'auto') != "auto":
             job.video_type = cfg.arm_config['VIDEOTYPE']

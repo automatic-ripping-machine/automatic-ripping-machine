@@ -114,6 +114,8 @@ class TestFolderCreate:
             "year": "2024",
             "video_type": "movie",
             "disctype": "bluray",
+            "imdb_id": "tt1234567",
+            "poster_url": "https://example.com/poster.jpg",
         })
         assert resp.status_code == 201
         data = resp.json()
@@ -122,6 +124,9 @@ class TestFolderCreate:
         assert data["source_type"] == "folder"
         mock_threading.Thread.assert_called_once()
         mock_threading.Thread.return_value.start.assert_called_once()
+        # Verify optional fields were set on the job object
+        assert mock_job.imdb_id == "tt1234567"
+        assert mock_job.poster_url == "https://example.com/poster.jpg"
 
     @patch("arm.api.v1.folder.cfg")
     def test_create_no_ingress_configured(self, mock_cfg):
@@ -179,3 +184,22 @@ class TestFolderCreate:
         })
         assert resp.status_code == 409
         assert "Active job already exists" in resp.json()["error"]
+
+    @patch("arm.api.v1.folder.validate_ingress_path", side_effect=FileNotFoundError("not found"))
+    @patch("arm.api.v1.folder.cfg")
+    def test_create_source_not_found(self, mock_cfg, mock_validate):
+        """FileNotFoundError from validate_ingress_path returns 400 (line 74)."""
+        mock_cfg.arm_config = {"INGRESS_PATH": "/ingress"}
+
+        from fastapi.testclient import TestClient
+        from arm.app import app
+        client = TestClient(app)
+
+        resp = client.post("/api/v1/jobs/folder", json={
+            "source_path": "/ingress/missing_folder",
+            "title": "Ghost",
+            "video_type": "movie",
+            "disctype": "bluray",
+        })
+        assert resp.status_code == 400
+        assert "Source folder not found" in resp.json()["error"]

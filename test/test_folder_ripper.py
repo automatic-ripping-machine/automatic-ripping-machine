@@ -151,3 +151,49 @@ class TestRipFolder:
 
         assert job.status == "fail"
         assert "MakeMKV failed" in str(job.errors)
+
+    @patch("arm.ripper.folder_ripper.db")
+    @patch("arm.ripper.folder_ripper.utils.transcoder_notify")
+    @patch("arm.ripper.folder_ripper._reconcile_filenames")
+    @patch("arm.ripper.folder_ripper.process_single_tracks")
+    @patch("arm.ripper.folder_ripper.prescan_track_info")
+    @patch("arm.ripper.folder_ripper.setup_rawpath", return_value="/tmp/raw/Test Movie")
+    @patch("arm.ripper.folder_ripper.prep_mkv")
+    def test_mainfeature_no_tracks_falls_back(
+        self, mock_prep, mock_setup, mock_prescan, mock_process,
+        mock_reconcile, mock_notify, mock_db, tmp_path
+    ):
+        """When MAINFEATURE is set but no tracks found, falls back to all tracks (lines 81-82)."""
+        from arm.ripper.folder_ripper import rip_folder
+
+        job = self._make_job(tmp_path)
+        job.config.MAINFEATURE = 1
+
+        mock_track_cls = MagicMock()
+        mock_track_cls.query.filter_by.return_value.order_by.return_value.first.return_value = None
+
+        with patch("arm.ripper.folder_ripper.cfg") as mock_cfg, \
+             patch("arm.ripper.folder_ripper.Track", mock_track_cls):
+            mock_cfg.arm_config = {"TRANSCODER_URL": ""}
+            rip_folder(job)
+
+        # Should fall back to process_single_tracks
+        mock_process.assert_called_once_with(job, "/tmp/raw/Test Movie", "auto")
+        assert job.status == "waiting_transcode"
+
+    @patch("arm.ripper.folder_ripper.db")
+    def test_failure_status_update_exception(self, mock_db, tmp_path):
+        """When both the rip AND the failure status update raise, the original
+        exception is still re-raised (lines 110-111)."""
+        from arm.ripper.folder_ripper import rip_folder
+
+        job = MagicMock()
+        job.job_id = 99
+        job.source_path = "/nonexistent/path"
+        job.errors = None
+
+        # Make the commit in the except block raise too
+        mock_db.session.commit.side_effect = RuntimeError("DB is down")
+
+        with pytest.raises(FileNotFoundError):
+            rip_folder(job)
