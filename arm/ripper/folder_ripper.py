@@ -15,8 +15,6 @@ from arm.ripper.makemkv import (
     _reconcile_filenames,
     prep_mkv,
     prescan_track_info,
-    process_single_tracks,
-    rip_mainfeature,
     setup_rawpath,
 )
 
@@ -59,29 +57,28 @@ def rip_folder(job):
         # 4. Pre-scan tracks
         prescan_track_info(job)
 
-        # 5. Rip
-        mainfeature = bool(
-            int(getattr(job.config, "MAINFEATURE", 0) or 0)
-        )
-        if mainfeature:
-            # Find the best track for mainfeature rip
-            best = (
-                Track.query.filter_by(job_id=job.job_id)
-                .order_by(
-                    Track.chapters.desc(),
-                    Track.length.desc(),
-                    Track.filesize.desc(),
-                    Track.track_number.asc(),
-                )
-                .first()
-            )
-            if best:
-                rip_mainfeature(job, best, rawpath)
-            else:
-                log.warning("MAINFEATURE enabled but no tracks found, falling back to all tracks")
-                process_single_tracks(job, rawpath, "auto")
-        else:
-            process_single_tracks(job, rawpath, "auto")
+        # 5. Rip — always use "all" mode for folder imports.
+        # MakeMKV's per-track numbering from file: sources doesn't match
+        # the prescan track numbers, so single-track extraction fails.
+        # "all" with --minlength lets MakeMKV handle track selection.
+        import collections
+        import shlex
+        from arm.ripper.makemkv import run, OutputType, progress_log
+
+        cmd = ["mkv"]
+        cmd += shlex.split(job.config.MKV_ARGS or "")
+        cmd += [
+            f"--progress={progress_log(job)}",
+            job.makemkv_source,
+            "all",
+            rawpath,
+            f"--minlength={job.config.MINLENGTH}",
+        ]
+        log.info("Ripping all tracks from folder source: %s", job.source_path)
+        collections.deque(run(cmd, OutputType.MSG), maxlen=0)
+        for track in job.tracks:
+            track.ripped = True
+        db.session.commit()
 
         # 6. Reconcile filenames
         _reconcile_filenames(job, rawpath)
