@@ -190,14 +190,22 @@ def _compute_parent(resolved_str, roots):
     return None
 
 
-def _build_entry(item, st):
-    """Build a directory entry dict from a Path and its stat result."""
+def _build_entry(item, st, shallow=False):
+    """Build a directory entry dict from a Path and its stat result.
+
+    When *shallow* is True, directory sizes are reported as 0 instead of
+    recursively calculated — much faster for large or NFS-backed trees.
+    """
     is_dir = item.is_dir()
     owner, group = _get_owner_group(st)
+    if is_dir:
+        size = 0 if shallow else _dir_size(item)
+    else:
+        size = st.st_size
     return {
         'name': item.name,
         'type': 'directory' if is_dir else 'file',
-        'size': _dir_size(item) if is_dir else st.st_size,
+        'size': size,
         'modified': datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
         'extension': '' if is_dir else item.suffix.lstrip('.').lower(),
         'category': 'directory' if is_dir else classify_file(item.name),
@@ -221,13 +229,19 @@ def list_directory(path: str) -> dict:
         raise NotADirectoryError(f"Not a directory: {path}")
 
     resolved_str = str(resolved)
-    parent = _compute_parent(resolved_str, get_allowed_roots())
+    roots = get_allowed_roots()
+    parent = _compute_parent(resolved_str, roots)
+
+    # Use shallow mode (skip recursive dir sizes) for the ingress root
+    # to avoid slow NFS traversal of large media libraries.
+    ingress_root = roots.get('ingress', '')
+    shallow = bool(ingress_root and resolved_str.startswith(ingress_root))
 
     entries = []
     try:
         for item in resolved.iterdir():
             try:
-                entries.append(_build_entry(item, item.stat()))
+                entries.append(_build_entry(item, item.stat(), shallow=shallow))
             except OSError as exc:
                 log.debug("Skipping inaccessible entry %s: %s", item, exc)
     except PermissionError as exc:
