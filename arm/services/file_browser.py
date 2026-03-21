@@ -38,6 +38,7 @@ def get_allowed_roots() -> dict[str, str]:
         'completed': 'COMPLETED_PATH',
         'transcode': 'TRANSCODE_PATH',
         'music': 'MUSIC_PATH',
+        'ingress': 'INGRESS_PATH',
     }
     for key, config_key in mapping.items():
         path = cfg.arm_config.get(config_key, '')
@@ -93,6 +94,7 @@ def get_roots() -> list[dict[str, str]]:
         'completed': 'Completed',
         'transcode': 'Transcode',
         'music': 'Music',
+        'ingress': 'Ingress',
     }
     host_mounts = _read_host_mounts()
     results = []

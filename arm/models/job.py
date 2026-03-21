@@ -156,6 +156,8 @@ class Job(db.Model):
     pid = db.Column(db.Integer)
     pid_hash = db.Column(db.Integer)
     is_iso = db.Column(db.Boolean)
+    source_type = db.Column(db.String(16), default="disc", nullable=False, server_default="disc")
+    source_path = db.Column(db.String(1024), nullable=True)
     manual_start = db.Column(db.Boolean)
     manual_pause = db.Column(db.Boolean)
     manual_mode = db.Column(db.Boolean)
@@ -180,6 +182,31 @@ class Job(db.Model):
         self.manual_pause = False
         self.manual_mode = False
         self.has_track_99 = False
+
+    @classmethod
+    def from_folder(cls, source_path: str, disctype: str):
+        """Create a Job from a folder path, bypassing udev/drive detection."""
+        job = cls.__new__(cls)
+        db.Model.__init__(job)
+        job.source_type = "folder"
+        job.source_path = source_path
+        job.devpath = None
+        job.disctype = disctype
+        job.start_time = dt.now()
+        job.mountpoint = ""
+        job.hasnicetitle = False
+        job.video_type = "unknown"
+        job.ejected = False
+        job.updated = False
+        job.stage = ""
+        job.manual_start = False
+        job.manual_pause = False
+        job.manual_mode = False
+        job.has_track_99 = False
+        job.is_iso = False
+        if cfg.arm_config.get('VIDEOTYPE', 'auto') != "auto":
+            job.video_type = cfg.arm_config['VIDEOTYPE']
+        return job
 
     def __str__(self):
         """Returns a string of the object"""
@@ -368,6 +395,18 @@ class Job(db.Model):
             return True
         logging.info(f"Job is ripping {self.devpath}.")
         return False
+
+    @property
+    def makemkv_source(self) -> str:
+        """Return the MakeMKV source string for this job."""
+        if self.source_type == "folder":
+            return f"file:{self.source_path}"
+        return f"dev:{self.devpath}"
+
+    @property
+    def is_folder_import(self) -> bool:
+        """Return True if this job was created from a folder import."""
+        return self.source_type == "folder"
 
     @property
     def type_subfolder(self):

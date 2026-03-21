@@ -189,6 +189,11 @@ COMPLETED_PATH: "/home/arm/media/completed/"
 # Music rip output directory (used by abcde)
 MUSIC_PATH: "/home/arm/music/"
 
+# ---- Folder Import ----
+# Root path for folder imports. The UI file browser is scoped to this path.
+# Point this at a directory containing BDMV/VIDEO_TS folders from disc backups.
+INGRESS_PATH: ""
+
 # Movie subdirectory name for "extras"
 # Valid names are dependent on your media server
 # For Emby see https://github.com/MediaBrowser/Wiki/wiki/Movie%20naming#user-content-movie-extras
