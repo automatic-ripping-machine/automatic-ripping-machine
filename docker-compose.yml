@@ -63,6 +63,7 @@ services:
       - ${ARM_LOGS_PATH}:/home/arm/logs
       - ${ARM_MEDIA_PATH}:/home/arm/media
       - ${ARM_SCRATCH_PATH:-/home/arm/media}:/home/arm/scratch
+      - ${ARM_INGRESS_PATH:-/home/arm/media/ingress}:/home/arm/media/ingress:ro
       - ${ARM_CONFIG_PATH}:/etc/arm/config
       - arm-db:/home/arm/db
       - ${ARM_MAKEMKV_PATH:-makemkv-settings}:/home/arm/.MakeMKV
