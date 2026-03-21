@@ -44,14 +44,14 @@ def scan_folder_endpoint(req: FolderScanRequest):
         )
     try:
         result = scan_folder(req.path, ingress_path)
-    except FileNotFoundError as exc:
+    except FileNotFoundError:
         return JSONResponse(
-            {"success": False, "error": str(exc)},
+            {"success": False, "error": "Folder not found or path is not accessible"},
             status_code=400,
         )
-    except ValueError as exc:
+    except ValueError:
         return JSONResponse(
-            {"success": False, "error": str(exc)},
+            {"success": False, "error": "Not a valid disc folder (no BDMV or VIDEO_TS structure found)"},
             status_code=422,
         )
     return {"success": True, **result}
@@ -70,9 +70,14 @@ def create_folder_job(req: FolderCreateRequest):
     # Validate path is under ingress root
     try:
         validate_ingress_path(req.source_path, ingress_path)
-    except (FileNotFoundError, ValueError) as exc:
+    except FileNotFoundError:
         return JSONResponse(
-            {"success": False, "error": str(exc)},
+            {"success": False, "error": "Source folder not found"},
+            status_code=400,
+        )
+    except ValueError:
+        return JSONResponse(
+            {"success": False, "error": "Path is outside the configured ingress directory"},
             status_code=400,
         )
 

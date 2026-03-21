@@ -75,16 +75,18 @@ def _label_from_bluray_xml(folder_path: str) -> str | None:
         title = doc["disclib"]["di:discinfo"]["di:title"]["di:name"]
         return str(title).strip()
     except Exception:
-        logger.warning("Failed to parse bdmt_eng.xml at %s", xml_path, exc_info=True)
+        logger.warning("Failed to parse bdmt_eng.xml at %s", xml_path)
         return None
 
 
 def _parse_title_year(label: str, folder_path: str) -> tuple[str, str | None]:
     folder_name = os.path.basename(folder_path)
-    match = re.search(r"^(.+?)\s*\((\d{4})\)", folder_name)
+    # Match "Title (2024)" — use [^(] to avoid polynomial backtracking
+    match = re.match(r"([^(]+?)\s*\((\d{4})\)", folder_name)
     if match:
         return match.group(1).strip(), match.group(2)
-    match = re.search(r"^(.+?)\s+(\d{4})\b", folder_name)
+    # Match "Title 2024" — split on last 4-digit year
+    match = re.match(r"(.+\S)\s+(\d{4})(?:\s|$)", folder_name)
     if match:
         return match.group(1).strip(), match.group(2)
     clean = re.sub(r"[_.]", " ", label).strip()
