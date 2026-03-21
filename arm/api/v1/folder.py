@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 import arm.config.config as cfg
 from arm.database import db
+from arm.models.config import Config
 from arm.models.job import Job, JobState
 from arm.ripper.folder_ripper import rip_folder
 from arm.ripper.folder_scan import scan_folder, validate_ingress_path
@@ -111,6 +112,11 @@ def create_folder_job(req: FolderCreateRequest):
     job.status = JobState.VIDEO_RIPPING.value
 
     db.session.add(job)
+    db.session.flush()  # assigns job_id
+
+    # Create Config (copies current arm.yaml settings for this job)
+    config = Config(cfg.arm_config, job_id=job.job_id)
+    db.session.add(config)
     db.session.commit()
 
     log.info("Created folder import job %s for %s", job.job_id, req.source_path)
