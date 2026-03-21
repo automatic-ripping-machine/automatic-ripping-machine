@@ -29,7 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from arm.api.v1 import jobs, logs, metadata, notifications, settings, system, drives, files, setup  # noqa: E402
+from arm.api.v1 import jobs, logs, metadata, notifications, settings, system, drives, files, setup, folder  # noqa: E402
 
 app.include_router(jobs.router)
 app.include_router(logs.router)
@@ -40,3 +40,4 @@ app.include_router(system.router)
 app.include_router(drives.router)
 app.include_router(files.router)
 app.include_router(setup.router)
+app.include_router(folder.router)
