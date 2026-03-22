@@ -1,5 +1,29 @@
 # Changelog
 
+## [13.6.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.5.0...v13.6.0) (2026-03-22)
+
+
+### Features
+
+* add ARM_INGRESS_PATH volume bind for folder import ([ad95d15](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/ad95d15d55bf369eb0f67138620fb079227fb8b3))
+* add folder import API endpoints (scan and create) ([af2c82b](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/af2c82b757688207a790ad67bff3c6381d12840c))
+* add folder import fields to Job model with migration and config ([d6fc214](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/d6fc21484911d191429ec14c2c12bccac5b01911))
+* add folder ripper module for folder import pipeline ([0f7be57](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/0f7be57784526a2bd8a5ce414e75ff3dd861124f))
+* add folder scan module for disc type detection and metadata extraction ([b2836f5](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/b2836f5e35f030271331c8b74277bc3559a92ffc))
+
+
+### Bug Fixes
+
+* create Config record for folder import jobs ([f186803](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/f1868036768a12a943d7671e26e527e769ca4e7b))
+* handle null logfile in job list and set logfile for folder imports ([cbaba65](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/cbaba65773c844960455200e5167178bbdca61f5))
+* move tests to test/ directory for CI coverage pickup ([719f380](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/719f380817f6e25f5025e414ac1bc5c864c2d274))
+* replace regex with string operations to eliminate polynomial backtracking ([5db90c0](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/5db90c01069cc3e6c684d4b95301d7845a128657))
+* resolve CodeQL findings — sanitize error responses and fix regex backtracking ([d3a1960](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/d3a1960e55e352d421ad3a2e6ab3649a87801464))
+* skip entries with invalid UTF-8 filenames in directory listing ([94cedb6](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/94cedb692a2df1172adf5ae735d3fb91980eec7b))
+* skip recursive dir size calculation for ingress paths ([74f1780](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/74f1780eb13e40f7628ff65e0153a9a730902362))
+* update ripper tests for all-mode MakeMKV extraction ([a913f75](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/a913f75474d98f2aaaab57dc19ad7f046658a0b4))
+* use MakeMKV 'all' mode for folder imports instead of per-track ([3ec73f0](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/3ec73f08ae10045a51c85cf76acb7654eebc00f4))
+
 ## [13.5.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.4.0...v13.5.0) (2026-03-19)
 
 
