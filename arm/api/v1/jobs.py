@@ -664,3 +664,49 @@ def _clean_for_filename(string):
     string = string.replace("\\", " - ")
     string = re.sub(r"[^\w -]", "", string)
     return string.strip()
+
+
+# --- Track field updates ---
+
+_TRACK_EDITABLE_FIELDS: dict[str, type] = {"enabled": bool, "filename": str, "ripped": bool}
+
+
+@router.patch('/jobs/{job_id}/tracks/{track_id}')
+def update_track_fields(job_id: int, track_id: int, body: dict):
+    """Update editable fields (enabled, filename, ripped) on a track."""
+    invalid = set(body.keys()) - _TRACK_EDITABLE_FIELDS.keys()
+    if invalid:
+        return JSONResponse(
+            {"success": False, "error": f"Unknown fields: {', '.join(sorted(invalid))}"},
+            status_code=400,
+        )
+    if not body:
+        return JSONResponse(
+            {"success": False, "error": "No fields to update"},
+            status_code=400,
+        )
+
+    clean: dict = {}
+    for key, value in body.items():
+        expected = _TRACK_EDITABLE_FIELDS[key]
+        if expected is bool:
+            if isinstance(value, bool):
+                clean[key] = value
+            elif isinstance(value, str):
+                clean[key] = value.lower() in ("true", "1", "yes")
+            else:
+                clean[key] = bool(value)
+        else:
+            clean[key] = str(value)
+
+    track = Track.query.filter_by(track_id=track_id, job_id=job_id).first()
+    if not track:
+        return JSONResponse(
+            {"success": False, "error": "Track not found"},
+            status_code=404,
+        )
+
+    for key, value in clean.items():
+        setattr(track, key, value)
+    db.session.commit()
+    return {"success": True, "job_id": job_id, "track_id": track_id, "updated": clean}

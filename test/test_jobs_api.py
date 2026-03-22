@@ -263,3 +263,43 @@ class TestClearTrackTitle:
             f"/api/v1/jobs/{sample_job.job_id}/tracks/99999/title",
         )
         assert resp.status_code == 404
+
+
+class TestTrackFieldUpdates:
+    """Test PATCH /api/v1/jobs/{job_id}/tracks/{track_id}."""
+
+    def test_patch_track_enabled(self, app_context, job_with_tracks, client):
+        job, tracks = job_with_tracks
+        resp = client.patch(
+            f"/api/v1/jobs/{job.job_id}/tracks/{tracks[0].track_id}",
+            json={"enabled": False},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+        db.session.expire_all()
+        refreshed = Track.query.get(tracks[0].track_id)
+        assert refreshed.enabled is False
+
+    def test_patch_track_filename(self, app_context, job_with_tracks, client):
+        job, tracks = job_with_tracks
+        resp = client.patch(
+            f"/api/v1/jobs/{job.job_id}/tracks/{tracks[0].track_id}",
+            json={"filename": "new-name.mkv"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["updated"]["filename"] == "new-name.mkv"
+
+    def test_patch_track_invalid_field(self, app_context, job_with_tracks, client):
+        job, tracks = job_with_tracks
+        resp = client.patch(
+            f"/api/v1/jobs/{job.job_id}/tracks/{tracks[0].track_id}",
+            json={"bad_field": True},
+        )
+        assert resp.status_code == 400
+
+    def test_patch_track_not_found(self, app_context, sample_job, client):
+        resp = client.patch(
+            f"/api/v1/jobs/{sample_job.job_id}/tracks/99999",
+            json={"enabled": True},
+        )
+        assert resp.status_code == 404
