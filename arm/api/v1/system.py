@@ -97,9 +97,16 @@ def get_system_stats():
 
 @router.get('/system/ripping-enabled')
 def get_ripping_enabled():
-    """Return whether ripping is currently enabled (not paused)."""
+    """Return whether ripping is currently enabled, plus MakeMKV key status."""
     state = AppState.get()
-    return {"ripping_enabled": not state.ripping_paused}
+    return {
+        "ripping_enabled": not state.ripping_paused,
+        "makemkv_key_valid": state.makemkv_key_valid,
+        "makemkv_key_checked_at": (
+            state.makemkv_key_checked_at.isoformat()
+            if state.makemkv_key_checked_at else None
+        ),
+    }
 
 
 @router.get('/system/version')
@@ -186,6 +193,9 @@ def get_paths():
     return results
 
 
+from arm.ripper.makemkv import prep_mkv
+
+
 @router.post('/system/ripping-enabled')
 async def set_ripping_enabled(request: Request):
     """Toggle global ripping pause."""
@@ -203,6 +213,40 @@ async def set_ripping_enabled(request: Request):
     return {
         "success": True,
         "ripping_enabled": not state.ripping_paused,
+    }
+
+
+@router.post('/system/makemkv-key-check')
+def check_makemkv_key():
+    """Run prep_mkv() to validate/update the MakeMKV key."""
+    from arm.ripper.makemkv import UpdateKeyRunTimeError, UpdateKeyErrorCodes
+
+    message = "MakeMKV key is valid"
+    try:
+        prep_mkv()
+    except UpdateKeyRunTimeError as exc:
+        code = UpdateKeyErrorCodes(exc.returncode)
+        messages = {
+            UpdateKeyErrorCodes.URL_ERROR: (
+                "Could not reach forum.makemkv.com — set MAKEMKV_PERMA_KEY "
+                "in arm.yaml to use a purchased key"
+            ),
+            UpdateKeyErrorCodes.PARSE_ERROR: "MakeMKV settings file is corrupt",
+            UpdateKeyErrorCodes.INTERNAL_ERROR: "Key update script produced invalid output",
+            UpdateKeyErrorCodes.INVALID_MAKEMKV_SERIAL: (
+                "Invalid MakeMKV serial key format — should match M-XXXX-..."
+            ),
+        }
+        message = messages.get(code, f"Key update failed (error {code.name})")
+
+    state = AppState.get()
+    return {
+        "key_valid": state.makemkv_key_valid,
+        "checked_at": (
+            state.makemkv_key_checked_at.isoformat()
+            if state.makemkv_key_checked_at else None
+        ),
+        "message": message,
     }
 
 
