@@ -13,6 +13,8 @@ class AppState(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ripping_paused = db.Column(db.Boolean, default=False, nullable=False)
     setup_complete = db.Column(db.Boolean, default=False, nullable=False)
+    makemkv_key_valid = db.Column(db.Boolean, nullable=True, default=None)
+    makemkv_key_checked_at = db.Column(db.DateTime, nullable=True, default=None)
 
     @classmethod
     def get(cls):
