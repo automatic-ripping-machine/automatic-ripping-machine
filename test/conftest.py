@@ -262,3 +262,31 @@ def mock_config(tmp_ingress, tmp_path):
         'LOCAL_RAW_PATH': '',
         'SHARED_RAW_PATH': '',
     }
+
+
+# --- Maintenance fixtures ---
+
+@pytest.fixture
+def tmp_logs(tmp_path):
+    """Create a temporary log directory with test log files."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    (log_dir / "orphan1.log").write_text("log content")
+    (log_dir / "orphan2.log").write_text("log content")
+    (log_dir / "referenced.log").write_text("log content")
+    (log_dir / "not-a-log.txt").write_text("ignored")
+    return log_dir
+
+
+@pytest.fixture
+def tmp_media(tmp_path):
+    """Create temporary raw and completed directories with test folders."""
+    raw = tmp_path / "raw"
+    completed = tmp_path / "completed" / "movies"
+    raw.mkdir()
+    completed.mkdir(parents=True)
+    (raw / "Orphan Movie").mkdir()
+    (raw / "Orphan Movie" / "title.mkv").write_bytes(b"\x00" * 1024)
+    (raw / "SERIAL_MOM").mkdir()  # matches sample_job.title
+    (completed / "Another Orphan").mkdir()
+    return {"raw": str(raw), "completed": str(tmp_path / "completed")}

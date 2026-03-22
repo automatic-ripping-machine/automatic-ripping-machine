@@ -1,0 +1,59 @@
+"""API v1 — Maintenance endpoints for orphan detection and cleanup."""
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from arm.services import maintenance as svc
+
+router = APIRouter(prefix="/api/v1", tags=["maintenance"])
+
+
+class PathRequest(BaseModel):
+    path: str
+
+
+class BulkPathRequest(BaseModel):
+    paths: list[str]
+
+
+@router.get("/maintenance/counts")
+def get_counts():
+    """Return orphan counts for summary display."""
+    return svc.get_counts()
+
+
+@router.get("/maintenance/orphan-logs")
+def get_orphan_logs():
+    """List log files not referenced by any job."""
+    return svc.get_orphan_logs()
+
+
+@router.get("/maintenance/orphan-folders")
+def get_orphan_folders():
+    """List folders in RAW_PATH/COMPLETED_PATH not matching any job."""
+    return svc.get_orphan_folders()
+
+
+@router.post("/maintenance/delete-log")
+def delete_log(req: PathRequest):
+    result = svc.delete_log(req.path)
+    if not result["success"] and "outside" in result.get("error", ""):
+        raise HTTPException(status_code=403, detail=result["error"])
+    return result
+
+
+@router.post("/maintenance/delete-folder")
+def delete_folder(req: PathRequest):
+    result = svc.delete_folder(req.path)
+    if not result["success"] and "outside" in result.get("error", ""):
+        raise HTTPException(status_code=403, detail=result["error"])
+    return result
+
+
+@router.post("/maintenance/bulk-delete-logs")
+def bulk_delete_logs(req: BulkPathRequest):
+    return svc.bulk_delete_logs(req.paths)
+
+
+@router.post("/maintenance/bulk-delete-folders")
+def bulk_delete_folders(req: BulkPathRequest):
+    return svc.bulk_delete_folders(req.paths)
