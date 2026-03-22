@@ -452,6 +452,7 @@ class UpdateKeyRunTimeError(RuntimeError):
     """
 
     def __init__(self, returncode, cmd, output=None):
+        self.returncode = returncode
         if len(cmd) == 3:
             cmd[2] = cmd[2][:4] + "XXXX"  # don't log the key to cli
         logging.debug(f"Updating Key with command: '{' '.join(cmd)}'")
@@ -1125,11 +1126,16 @@ def setup_rawpath(job, raw_path):
 
 def prep_mkv():
     """
-    Make sure the MakeMKV key is up-to-date
+    Make sure the MakeMKV key is up-to-date.
+
+    Persists the result to AppState so the UI can display key validity.
 
     Raises:
         UpdateKeyRunTimeError
     """
+    from datetime import datetime, timezone
+    from arm.models.app_state import AppState
+
     try:
         logging.info("Updating MakeMKV key...")
         cmd = [
@@ -1144,6 +1150,13 @@ def prep_mkv():
         proc = subprocess.run(cmd, capture_output=True, check=True)
         stdout = proc.stdout.decode("utf-8")
         logging.debug(f"Command Output for update_key.sh: {stdout.splitlines()}")
+
+        # Persist success
+        state = AppState.get()
+        state.makemkv_key_valid = True
+        state.makemkv_key_checked_at = datetime.now(timezone.utc)
+        db.session.commit()
+
     except subprocess.CalledProcessError as err:
         rc = err.returncode
         output = err.stdout.decode("utf-8") if err.stdout else ""
@@ -1153,6 +1166,13 @@ def prep_mkv():
                 "The server may be unreachable. Set MAKEMKV_PERMA_KEY in "
                 "arm.yaml to use a purchased key and avoid this dependency."
             )
+
+        # Persist failure
+        state = AppState.get()
+        state.makemkv_key_valid = False
+        state.makemkv_key_checked_at = datetime.now(timezone.utc)
+        db.session.commit()
+
         raise UpdateKeyRunTimeError(rc, cmd, output=output)
 
 
