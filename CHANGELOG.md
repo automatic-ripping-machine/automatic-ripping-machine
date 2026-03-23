@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.7.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.7.0...v13.7.1) (2026-03-23)
+
+
+### Bug Fixes
+
+* resolve duplicate alembic revision ID j4k5l6m7n8o9 ([9fc3b93](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/9fc3b9319a0cba64be31f9b9866575566a592b84))
+
 ## [13.7.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.6.0...v13.7.0) (2026-03-23)
 
 
