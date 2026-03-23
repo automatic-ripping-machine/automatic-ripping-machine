@@ -41,7 +41,7 @@ def rip_folder(job):
     file_handler = None
     try:
         # 0. Set up per-job log file so the UI can display rip progress
-        if job.logfile:
+        if isinstance(getattr(job, "logfile", None), str) and job.logfile:
             root_logger = logging.getLogger()
             file_handler = _create_file_handler(job.logfile)
             root_logger.addHandler(file_handler)
