@@ -1,6 +1,5 @@
 """API v1 — Folder import endpoints."""
 import logging
-import re
 import threading
 from typing import Optional
 
@@ -111,9 +110,6 @@ def create_folder_job(req: FolderCreateRequest):
         job.poster_url = req.poster_url
     job.multi_title = req.multi_title
     job.status = JobState.VIDEO_RIPPING.value
-    # Set logfile name (used by job list endpoint and log viewer)
-    safe_title = re.sub(r'[^\w\-.]', '_', req.title or 'folder_import')
-    job.logfile = f"{safe_title}.log"
 
     db.session.add(job)
     db.session.flush()  # assigns job_id

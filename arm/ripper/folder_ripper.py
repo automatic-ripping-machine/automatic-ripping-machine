@@ -13,7 +13,7 @@ from arm.database import db
 from arm.models.job import JobState
 from arm.models.track import Track
 from arm.ripper import utils
-from arm.ripper.logger import create_file_handler
+from arm.ripper.logger import create_file_handler, log_filename
 from arm.ripper.makemkv import (
     _reconcile_filenames,
     prep_mkv,
@@ -41,16 +41,18 @@ def rip_folder(job):
     file_handler = None
     try:
         # 0. Set up per-job log file so the UI can display rip progress
-        if isinstance(getattr(job, "logfile", None), str) and job.logfile:
-            root_logger = logging.getLogger()
-            file_handler = create_file_handler(job.logfile)
-            root_logger.addHandler(file_handler)
-            structlog.contextvars.clear_contextvars()
-            structlog.contextvars.bind_contextvars(
-                job_id=job.job_id,
-                source_type="folder",
-                source_path=job.source_path,
-            )
+        log_file = log_filename(job.job_id)
+        job.logfile = log_file
+
+        root_logger = logging.getLogger()
+        file_handler = create_file_handler(log_file)
+        root_logger.addHandler(file_handler)
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(
+            job_id=job.job_id,
+            source_type="folder",
+            source_path=job.source_path,
+        )
 
         # 1. Validate source folder
         source = job.source_path
@@ -124,7 +126,8 @@ def rip_folder(job):
             log.exception("Failed to update job status to FAILURE")
         raise
     finally:
-        # Clean up the per-job file handler
+        # Clean up the per-job file handler and structlog context
         if file_handler:
             logging.getLogger().removeHandler(file_handler)
             file_handler.close()
+        structlog.contextvars.clear_contextvars()

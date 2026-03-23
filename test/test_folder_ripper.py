@@ -7,6 +7,17 @@ from unittest.mock import MagicMock, patch
 class TestRipFolder:
     """Test rip_folder happy path and error paths."""
 
+    @pytest.fixture(autouse=True)
+    def _mock_logging(self):
+        """Mock create_file_handler so tests don't need a real LOGPATH."""
+        import logging
+        handler = logging.Handler()
+        handler.emit = MagicMock()
+        with patch("arm.ripper.folder_ripper.create_file_handler", return_value=handler):
+            yield
+            # Clean up handler from root logger
+            logging.getLogger().removeHandler(handler)
+
     def _make_job(self, tmp_path):
         """Create a mock job with required attributes."""
         source = tmp_path / "disc"
