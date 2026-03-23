@@ -127,6 +127,14 @@ def test_stdlib_compatibility(log_dir):
     assert "logger" in parsed
 
 
+def test_log_filename_format():
+    """log_filename() returns JOB_{id}_Rip.log"""
+    from arm.ripper.logger import log_filename
+    assert log_filename(42) == "JOB_42_Rip.log"
+    assert log_filename(1) == "JOB_1_Rip.log"
+    assert log_filename(9999) == "JOB_9999_Rip.log"
+
+
 def test_clean_up_logs(log_dir):
     """clean_up_logs() deletes old files, keeps recent ones."""
     old_log = log_dir / "old_job.log"

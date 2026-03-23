@@ -13,7 +13,7 @@ from arm.database import db
 from arm.models.job import JobState
 from arm.models.track import Track
 from arm.ripper import utils
-from arm.ripper.logger import _create_file_handler
+from arm.ripper.logger import create_file_handler
 from arm.ripper.makemkv import (
     _reconcile_filenames,
     prep_mkv,
@@ -43,7 +43,7 @@ def rip_folder(job):
         # 0. Set up per-job log file so the UI can display rip progress
         if isinstance(getattr(job, "logfile", None), str) and job.logfile:
             root_logger = logging.getLogger()
-            file_handler = _create_file_handler(job.logfile)
+            file_handler = create_file_handler(job.logfile)
             root_logger.addHandler(file_handler)
             structlog.contextvars.clear_contextvars()
             structlog.contextvars.bind_contextvars(

@@ -80,7 +80,12 @@ def _syslog_formatter():
     )
 
 
-def _create_file_handler(filename):
+def log_filename(job_id: int) -> str:
+    """Canonical log filename for a rip job. Single source of truth."""
+    return f"JOB_{job_id}_Rip.log"
+
+
+def create_file_handler(filename):
     """Create a FileHandler with JSON formatting."""
     file_handler = logging.FileHandler(
         os.path.join(cfg.arm_config["LOGPATH"], filename)
@@ -122,7 +127,7 @@ def setup_job_log(job):
         if isinstance(handler, logging.FileHandler):
             logger.removeHandler(handler)
 
-    logger.addHandler(_create_file_handler(log_file))
+    logger.addHandler(create_file_handler(log_file))
 
     # Bind job context into structlog contextvars — all subsequent log calls
     # from any module will include these fields automatically
@@ -188,7 +193,7 @@ def create_early_logger(stdout=True, syslog=True, file=True):
     root_logger.setLevel(cfg.arm_config["LOGLEVEL"])
 
     if file:
-        handler = _create_file_handler("arm.log")
+        handler = create_file_handler("arm.log")
         arm_logger.addHandler(handler)
         root_logger.addHandler(handler)
 
