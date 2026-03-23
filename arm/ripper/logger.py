@@ -98,23 +98,11 @@ def setup_job_log(job):
     """
     Setup logging and return the path to the logfile for redirection of external calls.
 
-    We need to return the full logfile path but set the job.logfile to just the filename.
+    Sets job.logfile to the canonical ID-based filename. Returns the full path.
     Binds job context (job_id, label, devpath) into structlog contextvars so every
     subsequent log call automatically includes these fields.
     """
-    # This isn't catching all of them
-    if job.label == "" or job.label is None:
-        if job.disctype == "music":
-            valid_label = job.identify_audio_cd()
-        else:
-            valid_label = "no_label"
-    else:
-        valid_label = job.label.replace("/", "_")
-
-    log_file_name = f"{valid_label}.log"
-    new_log_file = f"{valid_label}_{job.stage}.log"
-    temp_log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file_name)
-    log_file = new_log_file if os.path.isfile(temp_log_full) else log_file_name
+    log_file = log_filename(job.job_id)
     log_full = os.path.join(cfg.arm_config['LOGPATH'], log_file)
 
     job.logfile = log_file

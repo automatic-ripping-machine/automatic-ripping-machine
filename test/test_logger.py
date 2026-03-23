@@ -78,7 +78,7 @@ def test_contextvars_binding(log_dir):
 
 
 def test_setup_job_log_swaps_handler(log_dir):
-    """setup_job_log() replaces FileHandler with per-job file."""
+    """setup_job_log() replaces FileHandler with per-job file using ID-based naming."""
     arm_logger = logger.create_early_logger(stdout=False, syslog=False, file=True)
 
     # Create a mock job
@@ -91,13 +91,13 @@ def test_setup_job_log_swaps_handler(log_dir):
 
     log_full = logger.setup_job_log(job)
 
-    assert job.logfile == "TEST_DISC.log"
-    assert log_full == os.path.join(str(log_dir), "TEST_DISC.log")
+    assert job.logfile == "JOB_7_Rip.log"
+    assert log_full == os.path.join(str(log_dir), "JOB_7_Rip.log")
 
     # Now log something — should go to the per-job file, not arm.log
     arm_logger.info("per-job message")
 
-    job_log = log_dir / "TEST_DISC.log"
+    job_log = log_dir / "JOB_7_Rip.log"
     assert job_log.exists()
 
     lines = [l for l in job_log.read_text().splitlines() if l.strip()]
