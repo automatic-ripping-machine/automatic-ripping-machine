@@ -6,11 +6,14 @@ MakeMKV rip pipeline for folder-based imports (no physical drive).
 import logging
 import os
 
+import structlog
+
 import arm.config.config as cfg
 from arm.database import db
 from arm.models.job import JobState
 from arm.models.track import Track
 from arm.ripper import utils
+from arm.ripper.logger import _create_file_handler
 from arm.ripper.makemkv import (
     _reconcile_filenames,
     prep_mkv,
@@ -35,7 +38,20 @@ def rip_folder(job):
       8. Set status to TRANSCODE_WAITING on success, FAILURE on error
       9. No eject step (no physical drive)
     """
+    file_handler = None
     try:
+        # 0. Set up per-job log file so the UI can display rip progress
+        if job.logfile:
+            root_logger = logging.getLogger()
+            file_handler = _create_file_handler(job.logfile)
+            root_logger.addHandler(file_handler)
+            structlog.contextvars.clear_contextvars()
+            structlog.contextvars.bind_contextvars(
+                job_id=job.job_id,
+                source_type="folder",
+                source_path=job.source_path,
+            )
+
         # 1. Validate source folder
         source = job.source_path
         if not source or not os.path.isdir(source):
@@ -107,3 +123,8 @@ def rip_folder(job):
         except Exception:
             log.exception("Failed to update job status to FAILURE")
         raise
+    finally:
+        # Clean up the per-job file handler
+        if file_handler:
+            logging.getLogger().removeHandler(file_handler)
+            file_handler.close()
