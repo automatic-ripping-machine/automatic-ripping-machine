@@ -1,14 +1,14 @@
 """Add makemkv_key_valid and makemkv_key_checked_at to app_state.
 
-Revision ID: j4k5l6m7n8o9
-Revises: i3j4k5l6m7n8
+Revision ID: k5l6m7n8o9p0
+Revises: j4k5l6m7n8o9
 Create Date: 2026-03-22
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = 'j4k5l6m7n8o9'
-down_revision = 'i3j4k5l6m7n8'
+revision = 'k5l6m7n8o9p0'
+down_revision = 'j4k5l6m7n8o9'
 branch_labels = None
 depends_on = None
 
