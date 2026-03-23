@@ -158,7 +158,8 @@ def delete_log(path_str: str) -> dict[str, Any]:
         resolved.unlink()
         return {"success": True, "path": path_str}
     except OSError as exc:
-        return {"success": False, "path": path_str, "error": str(exc)}
+        log.error("Failed to delete log %s: %s", path_str, exc)
+        return {"success": False, "path": path_str, "error": "Failed to delete file"}
 
 
 def delete_folder(path_str: str) -> dict[str, Any]:
@@ -184,7 +185,8 @@ def delete_folder(path_str: str) -> dict[str, Any]:
         shutil.rmtree(resolved)
         return {"success": True, "path": path_str}
     except OSError as exc:
-        return {"success": False, "path": path_str, "error": str(exc)}
+        log.error("Failed to delete folder %s: %s", path_str, exc)
+        return {"success": False, "path": path_str, "error": "Failed to delete directory"}
 
 
 def bulk_delete_logs(paths: list[str]) -> dict[str, Any]:

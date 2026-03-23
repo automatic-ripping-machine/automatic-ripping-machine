@@ -1,4 +1,6 @@
 """API v1 — Maintenance endpoints for orphan detection and cleanup."""
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -39,9 +41,9 @@ def delete_log(req: PathRequest):
     if not result["success"]:
         error = result.get("error", "")
         if "outside" in error:
-            raise HTTPException(status_code=403, detail=error)
+            raise HTTPException(status_code=403, detail="Access denied")
         if "not found" in error.lower():
-            raise HTTPException(status_code=404, detail=error)
+            raise HTTPException(status_code=404, detail="File not found")
     return result
 
 
@@ -51,17 +53,28 @@ def delete_folder(req: PathRequest):
     if not result["success"]:
         error = result.get("error", "")
         if "outside" in error:
-            raise HTTPException(status_code=403, detail=error)
+            raise HTTPException(status_code=403, detail="Access denied")
         if "not found" in error.lower():
-            raise HTTPException(status_code=404, detail=error)
+            raise HTTPException(status_code=404, detail="Directory not found")
     return result
 
 
 @router.post("/maintenance/bulk-delete-logs")
 def bulk_delete_logs(req: BulkPathRequest):
-    return svc.bulk_delete_logs(req.paths)
+    result = svc.bulk_delete_logs(req.paths)
+    # Sanitize error messages — don't expose internal paths
+    result["errors"] = [
+        f"{Path(e.split(':')[0]).name}: operation failed" if ':' in e else e
+        for e in result.get("errors", [])
+    ]
+    return result
 
 
 @router.post("/maintenance/bulk-delete-folders")
 def bulk_delete_folders(req: BulkPathRequest):
-    return svc.bulk_delete_folders(req.paths)
+    result = svc.bulk_delete_folders(req.paths)
+    result["errors"] = [
+        f"{Path(e.split(':')[0]).name}: operation failed" if ':' in e else e
+        for e in result.get("errors", [])
+    ]
+    return result
