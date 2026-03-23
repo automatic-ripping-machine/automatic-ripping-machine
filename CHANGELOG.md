@@ -1,5 +1,24 @@
 # Changelog
 
+## [13.7.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.6.0...v13.7.0) (2026-03-23)
+
+
+### Features
+
+* add maintenance REST router with orphan detection and cleanup endpoints ([56e412b](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/56e412bd8a1a2b759f7e707309e055d0b36b68a9))
+* add maintenance service for orphan detection and cleanup ([3532e67](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/3532e67687da6d348c2d3917efaabbbaf67e941f))
+* add MakeMKV key check endpoint and expose key status in ripping-enabled ([d1f0fb9](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/d1f0fb9fa67e1767c447728f9f4a924c6ebc1649))
+* add makemkv_key_valid and makemkv_key_checked_at to AppState ([4172cd6](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/4172cd6f36f1069093c049278eddc5150c9772ac))
+* add track-fields PATCH endpoint ([491f71b](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/491f71b99087044a9a7e4e7139b1af465e6c0e2c))
+* persist MakeMKV key validity to AppState in prep_mkv() ([8b08405](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/8b0840564003ca3ef9ecc85258ca412a89d43e92))
+
+
+### Bug Fixes
+
+* don't expose exception details in setup/complete endpoint ([6f6817e](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/6f6817ebdd54d885778c23311b97bb121c5d484f))
+* prevent path traversal in maintenance delete endpoints ([e90757e](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/e90757e8bbd0a77c510b9521118c042581dd842d))
+* sanitize error messages in maintenance endpoints ([3fd2dca](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/3fd2dca9f7e2bdd5114c6ea00b031871e7128c79))
+
 ## [13.6.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.5.0...v13.6.0) (2026-03-22)
 
 
