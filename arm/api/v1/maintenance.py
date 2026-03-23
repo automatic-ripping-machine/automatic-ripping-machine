@@ -36,16 +36,24 @@ def get_orphan_folders():
 @router.post("/maintenance/delete-log")
 def delete_log(req: PathRequest):
     result = svc.delete_log(req.path)
-    if not result["success"] and "outside" in result.get("error", ""):
-        raise HTTPException(status_code=403, detail=result["error"])
+    if not result["success"]:
+        error = result.get("error", "")
+        if "outside" in error:
+            raise HTTPException(status_code=403, detail=error)
+        if "not found" in error.lower():
+            raise HTTPException(status_code=404, detail=error)
     return result
 
 
 @router.post("/maintenance/delete-folder")
 def delete_folder(req: PathRequest):
     result = svc.delete_folder(req.path)
-    if not result["success"] and "outside" in result.get("error", ""):
-        raise HTTPException(status_code=403, detail=result["error"])
+    if not result["success"]:
+        error = result.get("error", "")
+        if "outside" in error:
+            raise HTTPException(status_code=403, detail=error)
+        if "not found" in error.lower():
+            raise HTTPException(status_code=404, detail=error)
     return result
 
 

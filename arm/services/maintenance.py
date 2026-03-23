@@ -123,25 +123,34 @@ def get_counts() -> dict[str, int]:
     }
 
 
-def _is_path_within(path: Path, root: Path) -> bool:
-    """Check if path is contained within root after resolving symlinks."""
+def _resolve_within(name: str, root: Path) -> Path | None:
+    """Resolve a filename safely within a root directory.
+
+    Only the basename is used — any directory components in *name* are
+    stripped to prevent path traversal.  Returns the resolved path if it
+    lives within *root*, or None otherwise.
+    """
     try:
-        resolved = path.resolve()
+        safe_name = Path(name).name  # strip directory components
+        if not safe_name or safe_name in ('.', '..'):
+            return None
+        resolved = (root / safe_name).resolve()
         root_resolved = root.resolve()
-        return resolved.is_relative_to(root_resolved)
+        if resolved.is_relative_to(root_resolved):
+            return resolved
     except (ValueError, OSError):
-        return False
+        pass
+    return None
 
 
 def delete_log(path_str: str) -> dict[str, Any]:
-    """Delete a single log file. Path must be within LOGPATH."""
-    target = Path(path_str)
+    """Delete a single log file. Only the filename is used; it must exist within LOGPATH."""
     log_root = Path(cfg.arm_config["LOGPATH"])
+    resolved = _resolve_within(path_str, log_root)
 
-    if not _is_path_within(target, log_root):
+    if resolved is None:
         return {"success": False, "path": path_str, "error": "Path outside allowed root"}
 
-    resolved = target.resolve()
     if not resolved.is_file():
         return {"success": False, "path": path_str, "error": "File not found"}
 
@@ -153,17 +162,21 @@ def delete_log(path_str: str) -> dict[str, Any]:
 
 
 def delete_folder(path_str: str) -> dict[str, Any]:
-    """Delete a single folder. Path must be within RAW_PATH or COMPLETED_PATH."""
-    target = Path(path_str)
+    """Delete a single folder. Only the folder name is used; it must exist within RAW_PATH or COMPLETED_PATH."""
     allowed_roots = [
         Path(cfg.arm_config.get("RAW_PATH", "")),
         Path(cfg.arm_config.get("COMPLETED_PATH", "")),
     ]
 
-    if not any(_is_path_within(target, root) for root in allowed_roots):
+    resolved = None
+    for root in allowed_roots:
+        resolved = _resolve_within(path_str, root)
+        if resolved is not None:
+            break
+
+    if resolved is None:
         return {"success": False, "path": path_str, "error": "Path outside allowed roots"}
 
-    resolved = target.resolve()
     if not resolved.is_dir():
         return {"success": False, "path": path_str, "error": "Directory not found"}
 
