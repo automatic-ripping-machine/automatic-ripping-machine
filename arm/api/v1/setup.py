@@ -90,5 +90,5 @@ def complete_setup():
         log.error("Failed to mark setup complete: %s", e)
         return JSONResponse(
             status_code=500,
-            content={"success": False, "error": str(e)},
+            content={"success": False, "error": "Failed to mark setup complete"},
         )
