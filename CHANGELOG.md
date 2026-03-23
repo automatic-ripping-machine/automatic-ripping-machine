@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.7.2](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.7.1...v13.7.2) (2026-03-23)
+
+
+### Bug Fixes
+
+* add missing ingress volume mount to remote-transcoder compose ([f6dd1d1](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/f6dd1d1e685f6c0d9ff5f4acb6993fa6ee93f391))
+
 ## [13.7.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.7.0...v13.7.1) (2026-03-23)
 
 
