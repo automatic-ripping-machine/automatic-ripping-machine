@@ -88,16 +88,17 @@ class TestFolderScan:
 class TestFolderCreate:
     """Test POST /api/v1/jobs/folder."""
 
+    @patch("arm.api.v1.folder.threading")
     @patch("arm.api.v1.folder.db")
     @patch("arm.api.v1.folder.validate_ingress_path")
     @patch("arm.api.v1.folder.Job")
     @patch("arm.api.v1.folder.cfg")
-    def test_create_success(self, mock_cfg, mock_job_cls, mock_validate, mock_db):
+    def test_create_success(self, mock_cfg, mock_job_cls, mock_validate, mock_db, mock_threading):
         mock_cfg.arm_config = {"INGRESS_PATH": "/ingress", "VIDEOTYPE": "auto"}
 
         mock_job = MagicMock()
         mock_job.job_id = 42
-        mock_job.status = "waiting"
+        mock_job.status = "identifying"
         mock_job.source_type = "folder"
         mock_job.source_path = "/ingress/movie"
         mock_job_cls.from_folder.return_value = mock_job
@@ -121,8 +122,10 @@ class TestFolderCreate:
         assert data["success"] is True
         assert data["job_id"] == 42
         assert data["source_type"] == "folder"
-        assert data["status"] == "waiting"
-        # No background thread launched — job waits for review
+        assert data["status"] == "identifying"
+        # Prescan thread launched in background
+        mock_threading.Thread.assert_called_once()
+        mock_threading.Thread.return_value.start.assert_called_once()
         # Verify optional fields were set on the job object
         assert mock_job.imdb_id == "tt1234567"
         assert mock_job.poster_url == "https://example.com/poster.jpg"
