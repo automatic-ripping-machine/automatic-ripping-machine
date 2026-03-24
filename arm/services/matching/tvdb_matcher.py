@@ -203,7 +203,7 @@ def match_tracks_to_episodes(
             log.info("All episodes excluded by cross-disc filter")
             return []
 
-    # Calculate expected episode position for this disc (for tiebreaking).
+    # Calculate expected episode position for this disc.
     # Computed after exclusion filtering so the bias is relative to the
     # remaining candidates, not the full season — this is intentional.
     use_position_bias = disc_number is not None and disc_number > 0
@@ -212,6 +212,14 @@ def match_tracks_to_episodes(
         expected_center = (disc_number - 0.5) / disc_count * len(episodes)
     else:
         expected_center = 0.0
+
+    # Position weight: how much (in seconds) each episode-position offset
+    # penalises the score.  When disc info is available, being one episode
+    # away from the expected center adds pos_weight seconds to the cost —
+    # making position a real factor rather than just a tiebreaker.
+    # 60s per position means a 5-episode offset costs 300s, comparable to
+    # typical runtime inaccuracies between TVDB and actual disc runtimes.
+    pos_weight = 60.0 if use_position_bias else 0.0
 
     # Build cost matrix
     pairs = []
@@ -223,15 +231,16 @@ def match_tracks_to_episodes(
             delta = abs(t_len - ep.get("runtime", 0))
             if delta <= tolerance:
                 pos_bias = abs(ei - expected_center) if use_position_bias else 0.0
-                pairs.append((delta, pos_bias, ti, ei))
+                score = delta + pos_bias * pos_weight
+                pairs.append((score, delta, pos_bias, ti, ei))
 
-    # Greedy assignment: smallest delta first, position bias breaks ties
+    # Greedy assignment: lowest combined score first
     pairs.sort()
     used_tracks: set[int] = set()
     used_episodes: set[int] = set()
     matches = []
 
-    for delta, _pos_bias, ti, ei in pairs:
+    for _score, _delta, _pos_bias, ti, ei in pairs:
         if ti in used_tracks or ei in used_episodes:
             continue
         used_tracks.add(ti)
