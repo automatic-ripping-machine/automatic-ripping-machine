@@ -112,6 +112,27 @@ class TestExtractMetadata:
         assert meta["season"] == 1
         assert meta["disc_number"] == 3
 
+    def test_extract_metadata_disc_with_trailing_junk(self, tmp_path):
+        """Fallback regex extracts disc info from names with trailing suffixes."""
+        from arm.ripper.folder_scan import extract_metadata
+        disc_dir = tmp_path / "Kolchak - The Night Stalker (1974 - 1975) - Disc 4 of 4 - BD50 - Untouched"
+        (disc_dir / "BDMV" / "STREAM").mkdir(parents=True)
+        (disc_dir / "BDMV" / "STREAM" / "00001.m2ts").write_bytes(b"\x00" * 100)
+        meta = extract_metadata(str(disc_dir), "bluray")
+        assert meta["disc_number"] == 4
+        assert meta["disc_total"] == 4
+
+    def test_extract_metadata_season_from_parent_with_trailing_junk(self, tmp_path):
+        """Fallback regex extracts season from parent folder names."""
+        from arm.ripper.folder_scan import extract_metadata
+        parent = tmp_path / "Show Name Season 2 - Complete"
+        disc_dir = parent / "Disc 1 - BD50"
+        (disc_dir / "BDMV" / "STREAM").mkdir(parents=True)
+        (disc_dir / "BDMV" / "STREAM" / "00001.m2ts").write_bytes(b"\x00" * 100)
+        meta = extract_metadata(str(disc_dir), "bluray")
+        assert meta["season"] == 2
+        assert meta["disc_number"] == 1
+
 
 class TestValidateIngressPath:
     def test_valid_path_passes(self, tmp_ingress, bdmv_folder):

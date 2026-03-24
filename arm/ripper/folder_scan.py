@@ -8,6 +8,18 @@ import xmltodict
 
 from arm.ripper.arm_matcher import parse_label
 
+# Non-anchored regex for extracting disc info from folder names with trailing junk
+# e.g. "Show Name - Disc 4 of 4 - BD50 - Untouched"
+# Uses (?:^|[\s_-]) to also match at start of string (e.g. "Disc 1 - BD50")
+_FOLDER_DISC_RE = re.compile(
+    r'(?:^|[\s_-])(D|DISC)[\s_-]?(\d+)(?:[\s_-](?:OF|of)[\s_-]?(\d+))?',
+    re.IGNORECASE,
+)
+_FOLDER_SEASON_RE = re.compile(
+    r'(?:^|[\s_-])(?:S|SEASON)[\s_-]?(\d+)',
+    re.IGNORECASE,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,6 +65,21 @@ def extract_metadata(folder_path: str, disc_type: str) -> dict:
     disc_number = label_info.disc_number
     disc_total = label_info.disc_total
     season = label_info.season_number or parent_info.season_number
+
+    # Fallback: non-anchored regex for folder names with trailing junk
+    # e.g. "Show - Disc 4 of 4 - BD50 - Untouched" where parse_label fails
+    # because the disc pattern isn't at the end of the string
+    if disc_number is None:
+        m = _FOLDER_DISC_RE.search(folder_name)
+        if m:
+            disc_number = int(m.group(2))
+            disc_total = int(m.group(3)) if m.group(3) else None
+    if season is None:
+        m = _FOLDER_SEASON_RE.search(folder_name)
+        if not m:
+            m = _FOLDER_SEASON_RE.search(Path(folder_path).parent.name)
+        if m:
+            season = int(m.group(1))
 
     return {
         "label": label,
