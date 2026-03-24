@@ -22,6 +22,7 @@ class LabelInfo:
     disc_number: int | None  # 1, 2, etc. (None if not a numbered disc)
     disc_type: str | None    # "part", "disc", "bonus", "extras", "special_features"
     raw_label: str           # original input: "LOTR_FELLOWSHIP_OF_THE_RING_P1"
+    disc_total: int | None = None     # total discs in set (from "Disc N of M")
     season_number: int | None = None  # 1, 2, etc. (None if not a TV season disc)
 
     @property
@@ -75,7 +76,7 @@ class MatchSelection:
 # (e.g., "The Godfather Part II", "Dune: Part Two"), not a disc indicator.
 # Studios use P1/D1/DISC_1 for physical disc numbering.
 _DISC_SUFFIX_RE = re.compile(
-    r'[\s_-](P|D|DISC)[\s_-]?(\d+)$',
+    r'[\s_-](P|D|DISC)[\s_-]?(\d+)(?:[\s_-](?:OF|of)[\s_-]?(\d+))?$',
     re.IGNORECASE,
 )
 
@@ -145,30 +146,31 @@ def _classify_special_disc(raw_type):
 
 
 def _extract_disc_suffix(s):
-    """Extract disc number/type from the label string.
+    """Extract disc number/type/total from the label string.
 
-    Returns (remaining_string, disc_number, disc_type).
+    Returns (remaining_string, disc_number, disc_type, disc_total).
     """
     # Word-number suffixes first (DISC_ONE)
     m = _DISC_WORD_SUFFIX_RE.search(s)
     if m:
         keyword = m.group(1).lower()
         disc_type = 'part' if keyword == 'part' else 'disc'
-        return s[:m.start()], _WORD_NUMBERS[m.group(2).lower()], disc_type
+        return s[:m.start()], _WORD_NUMBERS[m.group(2).lower()], disc_type, None
 
-    # Numeric suffixes (P1, D2, DISC_1)
+    # Numeric suffixes (P1, D2, DISC_1, DISC 4 OF 4)
     m = _DISC_SUFFIX_RE.search(s)
     if m:
-        return s[:m.start()], int(m.group(2)), 'disc'
+        disc_total = int(m.group(3)) if m.group(3) else None
+        return s[:m.start()], int(m.group(2)), 'disc', disc_total
 
     # Special disc types (BONUS, EXTRAS, SPECIAL_FEATURES)
     m = _SPECIAL_DISC_RE.search(s)
     if m:
         disc_type = _classify_special_disc(m.group(1))
         if disc_type:
-            return s[:m.start()], None, disc_type
+            return s[:m.start()], None, disc_type, None
 
-    return s, None, None
+    return s, None, None, None
 
 
 def _extract_season_suffix(s):
@@ -201,6 +203,7 @@ def parse_label(raw_label: str) -> LabelInfo:
     s = raw_label
     disc_number = None
     disc_type = None
+    disc_total = None
     season_number = None
 
     # 1-4. Basic cleanup
@@ -223,8 +226,8 @@ def parse_label(raw_label: str) -> LabelInfo:
         disc_type = 'disc'
         s = s[:m.start()]
     else:
-        # 5b. Extract disc-only suffixes
-        s, disc_number, disc_type = _extract_disc_suffix(s)
+        # 5b. Extract disc-only suffixes (including "Disc N of M")
+        s, disc_number, disc_type, disc_total = _extract_disc_suffix(s)
         # 5c. Extract season-only suffixes
         s, season_number = _extract_season_suffix(s)
 
@@ -236,6 +239,7 @@ def parse_label(raw_label: str) -> LabelInfo:
         disc_number=disc_number,
         disc_type=disc_type,
         raw_label=raw_label,
+        disc_total=disc_total,
         season_number=season_number,
     )
 

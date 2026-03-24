@@ -1535,3 +1535,39 @@ class TestLabelSeparatorNormalization:
         from arm.ripper.arm_matcher import parse_label
         info = parse_label("The.Wire")
         assert info.title == "the wire"
+
+
+class TestDiscTotal:
+    """Test disc_total extraction from 'Disc N of M' patterns."""
+
+    def test_disc_of_total_underscores(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("SHOW_NAME_DISC_4_OF_4")
+        assert info.disc_number == 4
+        assert info.disc_total == 4
+        assert info.title == "show name"
+
+    def test_disc_of_total_spaces(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("Show Name Disc 2 of 6")
+        assert info.disc_number == 2
+        assert info.disc_total == 6
+
+    def test_disc_no_total(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("SHOW_DISC_3")
+        assert info.disc_number == 3
+        assert info.disc_total is None
+
+    def test_d_of_total(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("SHOW_D2_OF_4")
+        assert info.disc_number == 2
+        assert info.disc_total == 4
+
+    def test_kolchak_real_world(self):
+        from arm.ripper.arm_matcher import parse_label
+        info = parse_label("Kolchak The Night Stalker Disc 4 of 4")
+        assert info.disc_number == 4
+        assert info.disc_total == 4
+        assert "kolchak" in info.title
