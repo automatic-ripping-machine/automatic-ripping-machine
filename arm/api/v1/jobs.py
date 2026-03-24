@@ -1,6 +1,7 @@
 """API v1 — Job endpoints."""
 import json
 import re
+import threading
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -11,6 +12,7 @@ from arm.database import db
 from arm.models.job import Job, JobState
 from arm.models.track import Track
 from arm.models.notifications import Notifications
+from arm.ripper.folder_ripper import rip_folder
 from arm.services import jobs as svc_jobs
 from arm.services import files as svc_files
 
@@ -81,6 +83,15 @@ def start_waiting_job(job_id: int):
     if job.status != JobState.MANUAL_WAIT_STARTED.value:
         return JSONResponse({"success": False, "error": _NOT_WAITING}, status_code=409)
 
+    if job.source_type == "folder":
+        # Folder jobs: launch rip_folder in a background thread
+        job.status = JobState.VIDEO_RIPPING.value
+        db.session.commit()
+        thread = threading.Thread(target=rip_folder, args=(job,), daemon=True)
+        thread.start()
+        return {"success": True, "job_id": job.job_id, "status": job.status}
+
+    # Disc rip — existing behavior (signal running ripper thread to proceed)
     svc_files.database_updater({"manual_start": True}, job)
     return {"success": True, "job_id": job.job_id}
 

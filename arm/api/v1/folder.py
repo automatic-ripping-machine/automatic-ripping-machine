@@ -1,6 +1,5 @@
 """API v1 — Folder import endpoints."""
 import logging
-import threading
 from typing import Optional
 
 from fastapi import APIRouter
@@ -11,7 +10,6 @@ import arm.config.config as cfg
 from arm.database import db
 from arm.models.config import Config
 from arm.models.job import Job, JobState
-from arm.ripper.folder_ripper import rip_folder
 from arm.ripper.folder_scan import scan_folder, validate_ingress_path
 
 log = logging.getLogger(__name__)
@@ -60,7 +58,7 @@ def scan_folder_endpoint(req: FolderScanRequest):
 
 @router.post("/jobs/folder", status_code=201)
 def create_folder_job(req: FolderCreateRequest):
-    """Create a folder import job and start rip pipeline in background."""
+    """Create a folder import job in review state."""
     ingress_path = cfg.arm_config.get("INGRESS_PATH", "")
     if not ingress_path:
         return JSONResponse(
@@ -109,7 +107,7 @@ def create_folder_job(req: FolderCreateRequest):
     if req.poster_url:
         job.poster_url = req.poster_url
     job.multi_title = req.multi_title
-    job.status = JobState.VIDEO_RIPPING.value
+    job.status = JobState.MANUAL_WAIT_STARTED.value
 
     db.session.add(job)
     db.session.flush()  # assigns job_id
@@ -119,11 +117,7 @@ def create_folder_job(req: FolderCreateRequest):
     db.session.add(config)
     db.session.commit()
 
-    log.info("Created folder import job %s for %s", job.job_id, req.source_path)
-
-    # Launch rip pipeline in background
-    thread = threading.Thread(target=rip_folder, args=(job,), daemon=True)
-    thread.start()
+    log.info("Created folder import job %s for %s (waiting for review)", job.job_id, req.source_path)
 
     return {
         "success": True,
