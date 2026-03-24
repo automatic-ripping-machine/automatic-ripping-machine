@@ -2,8 +2,11 @@
 import logging
 import os
 import re
+from pathlib import Path
 
 import xmltodict
+
+from arm.ripper.arm_matcher import parse_label
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +43,26 @@ def extract_metadata(folder_path: str, disc_type: str) -> dict:
     title_suggestion, year_suggestion = _parse_title_year(label, folder_path)
     folder_size = _calculate_folder_size(folder_path)
     stream_count = _count_streams(folder_path, disc_type)
+
+    # Extract disc/season metadata via centralized label parser
+    folder_name = Path(folder_path).name
+    label_info = parse_label(folder_name)
+    parent_info = parse_label(Path(folder_path).parent.name)
+
+    # Prefer disc info from the folder itself, season from parent if not in folder
+    disc_number = label_info.disc_number
+    disc_total = label_info.disc_total
+    season = label_info.season_number or parent_info.season_number
+
     return {
         "label": label,
         "title_suggestion": title_suggestion,
         "year_suggestion": year_suggestion,
         "folder_size_bytes": folder_size,
         "stream_count": stream_count,
+        "disc_number": disc_number,
+        "disc_total": disc_total,
+        "season": season,
     }
 
 

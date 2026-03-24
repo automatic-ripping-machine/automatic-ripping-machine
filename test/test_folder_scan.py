@@ -74,6 +74,44 @@ class TestExtractMetadata:
         assert meta["title_suggestion"] == "DVD Movie"
         assert meta["year_suggestion"] == "2020"
 
+    def test_extract_metadata_disc_number(self, tmp_path):
+        """extract_metadata returns disc_number/disc_total from folder name."""
+        from arm.ripper.folder_scan import extract_metadata
+        disc_dir = tmp_path / "Show Name Disc 3 of 4"
+        (disc_dir / "BDMV" / "STREAM").mkdir(parents=True)
+        (disc_dir / "BDMV" / "STREAM" / "00001.m2ts").write_bytes(b"\x00" * 100)
+        meta = extract_metadata(str(disc_dir), "bluray")
+        assert meta["disc_number"] == 3
+        assert meta["disc_total"] == 4
+
+    def test_extract_metadata_season_from_parent(self, tmp_path):
+        """extract_metadata extracts season from parent folder."""
+        from arm.ripper.folder_scan import extract_metadata
+        parent = tmp_path / "Show Name Season 2"
+        disc_dir = parent / "Show Name Disc 1"
+        (disc_dir / "BDMV" / "STREAM").mkdir(parents=True)
+        (disc_dir / "BDMV" / "STREAM" / "00001.m2ts").write_bytes(b"\x00" * 100)
+        meta = extract_metadata(str(disc_dir), "bluray")
+        assert meta["season"] == 2
+        assert meta["disc_number"] == 1
+
+    def test_extract_metadata_no_disc_info(self, bdmv_folder):
+        """extract_metadata returns None for disc fields when not parseable."""
+        from arm.ripper.folder_scan import extract_metadata
+        meta = extract_metadata(str(bdmv_folder), "bluray")
+        assert meta["disc_number"] is None
+        assert meta["disc_total"] is None
+
+    def test_extract_metadata_season_in_folder_name(self, tmp_path):
+        """Season from the disc folder itself takes priority."""
+        from arm.ripper.folder_scan import extract_metadata
+        disc_dir = tmp_path / "Show S01D03"
+        (disc_dir / "VIDEO_TS").mkdir(parents=True)
+        (disc_dir / "VIDEO_TS" / "VIDEO_TS.IFO").write_bytes(b"\x00" * 100)
+        meta = extract_metadata(str(disc_dir), "dvd")
+        assert meta["season"] == 1
+        assert meta["disc_number"] == 3
+
 
 class TestValidateIngressPath:
     def test_valid_path_passes(self, tmp_ingress, bdmv_folder):
