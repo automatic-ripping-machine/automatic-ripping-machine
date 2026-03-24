@@ -1,5 +1,6 @@
 """API v1 — Folder import endpoints."""
 import logging
+import threading
 from typing import Optional
 
 from fastapi import APIRouter
@@ -107,7 +108,7 @@ def create_folder_job(req: FolderCreateRequest):
     if req.poster_url:
         job.poster_url = req.poster_url
     job.multi_title = req.multi_title
-    job.status = JobState.MANUAL_WAIT_STARTED.value
+    job.status = JobState.IDENTIFYING.value
 
     db.session.add(job)
     db.session.flush()  # assigns job_id
@@ -117,7 +118,13 @@ def create_folder_job(req: FolderCreateRequest):
     db.session.add(config)
     db.session.commit()
 
-    log.info("Created folder import job %s for %s (waiting for review)", job.job_id, req.source_path)
+    log.info("Created folder import job %s for %s (prescanning)", job.job_id, req.source_path)
+
+    # Run prescan in background — populates tracks, then moves to MANUAL_WAIT
+    thread = threading.Thread(
+        target=_prescan_and_wait, args=(job.job_id,), daemon=True
+    )
+    thread.start()
 
     return {
         "success": True,
@@ -126,3 +133,26 @@ def create_folder_job(req: FolderCreateRequest):
         "source_type": job.source_type,
         "source_path": job.source_path,
     }
+
+
+def _prescan_and_wait(job_id: int):
+    """Background: prescan tracks with MakeMKV, then move job to MANUAL_WAIT."""
+    from arm.ripper.makemkv import prep_mkv, prescan_track_info
+
+    job = Job.query.get(job_id)
+    if not job:
+        log.error("Prescan: job %s not found", job_id)
+        return
+
+    try:
+        prep_mkv()
+        prescan_track_info(job)
+        job.status = JobState.MANUAL_WAIT_STARTED.value
+        db.session.commit()
+        log.info("Prescan complete for job %s — %d tracks found, waiting for review",
+                 job_id, len(list(job.tracks)))
+    except Exception as exc:
+        log.error("Prescan failed for job %s: %s", job_id, exc)
+        job.status = JobState.MANUAL_WAIT_STARTED.value
+        job.errors = f"Prescan failed: {exc}"
+        db.session.commit()
