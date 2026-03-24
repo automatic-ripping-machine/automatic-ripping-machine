@@ -303,3 +303,86 @@ class TestTrackFieldUpdates:
             json={"enabled": True},
         )
         assert resp.status_code == 404
+
+
+class TestTvdbMatch:
+    """Test POST /jobs/{id}/tvdb-match disc override logic."""
+
+    def test_disc_overrides_set_on_job_before_matching(self, app_context, sample_job, client):
+        """disc_number and disc_total from request body are set on the job before matching."""
+        sample_job.disc_number = 1
+        sample_job.disc_total = 1
+        sample_job.status = "waiting"
+        db.session.commit()
+
+        captured_disc_number = None
+        captured_disc_total = None
+
+        def fake_match(job, season=None, tolerance=None, apply=False):
+            nonlocal captured_disc_number, captured_disc_total
+            captured_disc_number = job.disc_number
+            captured_disc_total = job.disc_total
+            return {"success": True, "matches": [], "preview": True}
+
+        with unittest.mock.patch("arm.services.tvdb_sync.match_episodes_for_api", side_effect=fake_match):
+            resp = client.post(
+                f"/api/v1/jobs/{sample_job.job_id}/tvdb-match",
+                json={"season": 2, "disc_number": 3, "disc_total": 6, "apply": False},
+            )
+
+        assert resp.status_code == 200
+        # The matcher should have seen the overridden values
+        assert captured_disc_number == 3
+        assert captured_disc_total == 6
+
+    def test_preview_mode_restores_originals(self, app_context, sample_job, client):
+        """In preview mode (apply=false), original disc values are restored after matching."""
+        sample_job.disc_number = 1
+        sample_job.disc_total = 2
+        sample_job.status = "waiting"
+        db.session.commit()
+
+        def fake_match(job, season=None, tolerance=None, apply=False):
+            return {"success": True, "matches": [], "preview": True}
+
+        with unittest.mock.patch("arm.services.tvdb_sync.match_episodes_for_api", side_effect=fake_match):
+            resp = client.post(
+                f"/api/v1/jobs/{sample_job.job_id}/tvdb-match",
+                json={"season": 1, "disc_number": 5, "disc_total": 10, "apply": False},
+            )
+
+        assert resp.status_code == 200
+        # Originals should be restored
+        db.session.expire(sample_job)
+        assert sample_job.disc_number == 1
+        assert sample_job.disc_total == 2
+
+    def test_apply_mode_persists_overrides(self, app_context, sample_job, client):
+        """In apply mode (apply=true), disc overrides persist on the job."""
+        sample_job.disc_number = 1
+        sample_job.disc_total = 2
+        sample_job.status = "waiting"
+        db.session.commit()
+
+        def fake_match(job, season=None, tolerance=None, apply=False):
+            return {"success": True, "matches": [], "applied": True}
+
+        with unittest.mock.patch("arm.services.tvdb_sync.match_episodes_for_api", side_effect=fake_match):
+            resp = client.post(
+                f"/api/v1/jobs/{sample_job.job_id}/tvdb-match",
+                json={"season": 1, "disc_number": 5, "disc_total": 10, "apply": True},
+            )
+
+        assert resp.status_code == 200
+        # Overrides should persist (not restored)
+        db.session.expire(sample_job)
+        assert sample_job.disc_number == 5
+        assert sample_job.disc_total == 10
+
+    def test_tvdb_match_job_not_found(self, app_context, client):
+        """Non-existent job returns 404."""
+        resp = client.post(
+            "/api/v1/jobs/99999/tvdb-match",
+            json={"season": 1},
+        )
+        assert resp.status_code == 404

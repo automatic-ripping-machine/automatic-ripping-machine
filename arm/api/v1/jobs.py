@@ -654,6 +654,9 @@ async def tvdb_match(job_id: int, request: Request):
     if not apply:
         job.disc_number = saved_disc_number
         job.disc_total = saved_disc_total
+    else:
+        # Persist disc overrides when applying
+        db.session.commit()
     return result
 
 

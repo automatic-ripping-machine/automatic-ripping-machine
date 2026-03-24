@@ -179,3 +179,46 @@ class TestRipFolder:
 
         with pytest.raises(FileNotFoundError):
             rip_folder(job)
+
+    @patch("arm.ripper.folder_ripper.db")
+    @patch("arm.ripper.folder_ripper.structlog")
+    @patch("arm.ripper.folder_ripper.prescan_track_info", side_effect=RuntimeError("boom"))
+    @patch("arm.ripper.folder_ripper.setup_rawpath", return_value="/tmp/raw/Test")
+    @patch("arm.ripper.folder_ripper.prep_mkv")
+    def test_clear_contextvars_called_on_failure(
+        self, mock_prep, mock_setup, mock_prescan, mock_structlog, mock_db, tmp_path
+    ):
+        """structlog.contextvars.clear_contextvars() is called in the finally block even when rip fails."""
+        from arm.ripper.folder_ripper import rip_folder
+
+        job = self._make_job(tmp_path)
+
+        with patch("arm.ripper.folder_ripper.cfg") as mock_cfg:
+            mock_cfg.arm_config = {"TRANSCODER_URL": ""}
+            with pytest.raises(RuntimeError, match="boom"):
+                rip_folder(job)
+
+        mock_structlog.contextvars.clear_contextvars.assert_called()
+
+    @patch("arm.ripper.folder_ripper.db")
+    @patch("arm.ripper.folder_ripper.prescan_track_info", side_effect=RuntimeError("boom"))
+    @patch("arm.ripper.folder_ripper.setup_rawpath", return_value="/tmp/raw/Test")
+    @patch("arm.ripper.folder_ripper.prep_mkv")
+    def test_file_handler_removed_on_failure(
+        self, mock_prep, mock_setup, mock_prescan, mock_db, tmp_path
+    ):
+        """File handler is removed from root logger on cleanup even when rip fails."""
+        import logging
+        from arm.ripper.folder_ripper import rip_folder
+
+        job = self._make_job(tmp_path)
+        root_logger = logging.getLogger()
+        handlers_before = len(root_logger.handlers)
+
+        with patch("arm.ripper.folder_ripper.cfg") as mock_cfg:
+            mock_cfg.arm_config = {"TRANSCODER_URL": ""}
+            with pytest.raises(RuntimeError, match="boom"):
+                rip_folder(job)
+
+        # The handler added during rip should be removed in the finally block
+        assert len(root_logger.handlers) <= handlers_before

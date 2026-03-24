@@ -205,3 +205,106 @@ class TestFolderCreate:
         })
         assert resp.status_code == 400
         assert "Source folder not found" in resp.json()["error"]
+
+    @patch("arm.api.v1.folder.threading")
+    @patch("arm.api.v1.folder.db")
+    @patch("arm.api.v1.folder.validate_ingress_path")
+    @patch("arm.api.v1.folder.Job")
+    @patch("arm.api.v1.folder.cfg")
+    def test_create_with_season_and_disc_fields(
+        self, mock_cfg, mock_job_cls, mock_validate, mock_db, mock_threading
+    ):
+        """season, disc_number, disc_total are stored on the job."""
+        mock_cfg.arm_config = {"INGRESS_PATH": "/ingress", "VIDEOTYPE": "auto"}
+
+        mock_job = MagicMock()
+        mock_job.job_id = 55
+        mock_job.status = "identifying"
+        mock_job.source_type = "folder"
+        mock_job.source_path = "/ingress/tv_show"
+        mock_job_cls.from_folder.return_value = mock_job
+        mock_job_cls.query.filter.return_value.first.return_value = None
+
+        from fastapi.testclient import TestClient
+        from arm.app import app
+        client = TestClient(app)
+
+        resp = client.post("/api/v1/jobs/folder", json={
+            "source_path": "/ingress/tv_show",
+            "title": "My TV Show",
+            "year": "2025",
+            "video_type": "series",
+            "disctype": "bluray",
+            "season": 1,
+            "disc_number": 4,
+            "disc_total": 4,
+        })
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["success"] is True
+        assert data["job_id"] == 55
+        # Verify season fields
+        assert mock_job.season == "1"
+        assert mock_job.season_manual == "1"
+        # Verify disc fields
+        assert mock_job.disc_number == 4
+        assert mock_job.disc_total == 4
+
+
+class TestPrescanAndWait:
+    """Test _prescan_and_wait background function."""
+
+    @patch("arm.api.v1.folder.db")
+    @patch("arm.api.v1.folder.Job")
+    def test_prescan_success(self, mock_job_cls, mock_db):
+        """Job transitions from IDENTIFYING to MANUAL_WAIT_STARTED on success."""
+        from arm.api.v1.folder import _prescan_and_wait
+
+        mock_job = MagicMock()
+        mock_job.job_id = 10
+        mock_job.tracks = [MagicMock(), MagicMock()]
+        mock_job_cls.query.get.return_value = mock_job
+
+        with patch("arm.ripper.makemkv.prep_mkv") as mock_prep, \
+             patch("arm.ripper.makemkv.prescan_track_info") as mock_prescan:
+            _prescan_and_wait(10)
+
+        mock_prep.assert_called_once()
+        mock_prescan.assert_called_once_with(mock_job)
+        assert mock_job.status == "waiting"
+        mock_db.session.commit.assert_called()
+
+    @patch("arm.api.v1.folder.db")
+    @patch("arm.api.v1.folder.Job")
+    def test_prescan_failure_still_transitions(self, mock_job_cls, mock_db):
+        """On failure, job gets error message and still transitions to MANUAL_WAIT_STARTED."""
+        from arm.api.v1.folder import _prescan_and_wait
+
+        mock_job = MagicMock()
+        mock_job.job_id = 11
+        mock_job.errors = None
+        mock_job_cls.query.get.return_value = mock_job
+
+        with patch("arm.ripper.makemkv.prep_mkv"), \
+             patch("arm.ripper.makemkv.prescan_track_info",
+                   side_effect=RuntimeError("MakeMKV crashed")):
+            _prescan_and_wait(11)
+
+        assert mock_job.status == "waiting"
+        assert "Prescan failed" in mock_job.errors
+        assert "MakeMKV crashed" in mock_job.errors
+        mock_db.session.commit.assert_called()
+
+    @patch("arm.api.v1.folder.db")
+    @patch("arm.api.v1.folder.Job")
+    def test_prescan_job_not_found(self, mock_job_cls, mock_db):
+        """When job is not found, logs error and returns gracefully."""
+        from arm.api.v1.folder import _prescan_and_wait
+
+        mock_job_cls.query.get.return_value = None
+
+        # Should not raise
+        _prescan_and_wait(999)
+
+        # DB commit should NOT be called since there's no job to update
+        mock_db.session.commit.assert_not_called()
