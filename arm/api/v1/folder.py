@@ -31,6 +31,9 @@ class FolderCreateRequest(BaseModel):
     imdb_id: Optional[str] = None
     poster_url: Optional[str] = None
     multi_title: bool = False
+    season: Optional[int] = None
+    disc_number: Optional[int] = None
+    disc_total: Optional[int] = None
 
 
 @router.post("/jobs/folder/scan")
@@ -108,6 +111,13 @@ def create_folder_job(req: FolderCreateRequest):
     if req.poster_url:
         job.poster_url = req.poster_url
     job.multi_title = req.multi_title
+    if req.season is not None:
+        job.season = str(req.season)
+        job.season_manual = str(req.season)
+    if req.disc_number is not None:
+        job.disc_number = req.disc_number
+    if req.disc_total is not None:
+        job.disc_total = req.disc_total
     job.status = JobState.IDENTIFYING.value
 
     db.session.add(job)

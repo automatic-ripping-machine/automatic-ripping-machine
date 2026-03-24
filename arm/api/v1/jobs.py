@@ -268,7 +268,7 @@ _FIELD_MAP = {
     'season': ('season', 'season_manual'),
     'episode': ('episode', 'episode_manual'),
 }
-_DIRECT_FIELDS = ('path', 'label', 'disctype')
+_DIRECT_FIELDS = ('path', 'label', 'disctype', 'disc_number', 'disc_total')
 _STRUCTURED_KEYS = frozenset(('artist', 'album', 'season', 'episode'))
 _VALID_DISCTYPES = ('dvd', 'bluray', 'bluray4k', 'music', 'data')
 
@@ -632,13 +632,28 @@ async def tvdb_match(job_id: int, request: Request):
     season = body.get("season")
     tolerance = body.get("tolerance")
     apply = bool(body.get("apply", False))
+    disc_number = body.get("disc_number")
+    disc_total = body.get("disc_total")
 
     if season is not None:
         season = int(season)
     if tolerance is not None:
         tolerance = int(tolerance)
 
+    # Temporarily set disc overrides on the job for this match run
+    saved_disc_number = job.disc_number
+    saved_disc_total = job.disc_total
+    if disc_number is not None:
+        job.disc_number = int(disc_number)
+    if disc_total is not None:
+        job.disc_total = int(disc_total)
+
     result = match_episodes_for_api(job, season=season, tolerance=tolerance, apply=apply)
+
+    # Restore originals if not applying (preview mode)
+    if not apply:
+        job.disc_number = saved_disc_number
+        job.disc_total = saved_disc_total
     return result
 
 
