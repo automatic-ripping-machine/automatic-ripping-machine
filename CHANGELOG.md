@@ -1,5 +1,35 @@
 # Changelog
 
+## [13.8.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.7.2...v13.8.0) (2026-03-25)
+
+
+### Features
+
+* add clear-raw maintenance endpoint ([aed1d90](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/aed1d90464e449af8374e0bcb9569fdc1e2e082b))
+* add naming API endpoints and update manifest ([7fe293c](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/7fe293c8fd5b5d3b3e408eea44ec0cab2a1ace12))
+* add naming-preview endpoint returning rendered filenames for all tracks ([3527625](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/3527625e38ea73891dbf6963c9aa3c0c0dbc1c2d))
+* add season/disc_number/disc_total to folder create and job update APIs ([0c13b86](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/0c13b86a2ab3666829feabef23968f01ef337a50))
+* always send per-track naming manifest to transcoder ([0723019](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/0723019d0eab8488f5630c1c5a1d9e8cb69b5a88))
+* auto-enable multi_title when episode matching is applied ([c228fc8](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/c228fc8a5d268606514cabc13acde040e1c6dff6))
+* extract disc_total from 'Disc N of M' patterns in parse_label() ([343e4e1](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/343e4e17734d0aeb237ac94f82a57bafb72e6f67))
+* extract disc/season metadata from folder paths via parse_label() ([07bc707](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/07bc707e984a0c014e1d857c0d7fccb1706c8535))
+* folder import creates review job, start endpoint dispatches rip_folder ([a5c9e19](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/a5c9e195e86afa2c8a7c7e400e6a5e2f4946659d))
+* per-job naming overrides and custom filenames ([ba0286f](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/ba0286f64c84a2a714b1bbe07c4b85efeb5a922a))
+* prescan tracks on folder import before entering review state ([a564cab](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/a564cab4f1df9ea7f3b587c0825e3db80d648506))
+* windowed positional episode matching for multi-disc sets ([d1be086](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/d1be086d947eb3f10c0b2e780f4487afc52a61be))
+
+
+### Bug Fixes
+
+* fallback regex for disc/season extraction from folder names with trailing junk ([7dfdfe7](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/7dfdfe786704542f0528c4436877138239255dba))
+* guard _get_pattern override against non-string values (MagicMock) ([30aab4d](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/30aab4d53754360424f6f73a7fe5959789211a59))
+* guard logfile check against mock objects in tests ([2615660](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/2615660160487a1f605f0dc6ffe8de64bb8adeb9))
+* position bias now a weighted factor in episode matching, not just a tiebreaker ([07abea9](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/07abea96f98f48ad3bba8fcb1b9ee98ff5a0ad2f))
+* prevent DB pool exhaustion by cleaning up scoped session in prescan thread ([8211992](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/82119922754acb5dc5b2ec29839fc18692035638))
+* prevent DB pool exhaustion in all background thread entry points ([8f02be1](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/8f02be1062bebc2a47a98bb339e9c538447bd785))
+* re-order episode matches so track sequence maps to episode sequence ([7c7c4f5](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/7c7c4f56faca7b50d3fdef437cbeb5c1c245f64f))
+* set up per-job log file for folder import rips ([c8fd191](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/c8fd1915f9cd091ddd262620ebde5c7826ef423b))
+
 ## [13.7.2](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.7.1...v13.7.2) (2026-03-23)
 
 
