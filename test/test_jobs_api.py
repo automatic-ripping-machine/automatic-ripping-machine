@@ -386,3 +386,39 @@ class TestTvdbMatch:
             json={"season": 1},
         )
         assert resp.status_code == 404
+
+
+class TestNamingPreviewForJob:
+    """Test GET /api/v1/jobs/{job_id}/naming-preview."""
+
+    def test_returns_rendered_titles_for_tracks(self, app_context, job_with_tracks, client):
+        job, tracks = job_with_tracks
+        job.video_type = 'series'
+        job.season = '1'
+        tracks[0].episode_number = '1'
+        tracks[0].episode_name = 'Pilot'
+        tracks[0].title = 'Pilot'
+        db.session.commit()
+
+        resp = client.get(f"/api/v1/jobs/{job.job_id}/naming-preview")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert "job_title" in data
+        assert "job_folder" in data
+        assert len(data["tracks"]) == 3
+        # First track should have rendered title with episode info
+        t0 = data["tracks"][0]
+        assert "rendered_title" in t0
+        assert "rendered_folder" in t0
+        assert t0["track_number"] is not None
+
+    def test_returns_404_for_missing_job(self, app_context, client):
+        resp = client.get("/api/v1/jobs/99999/naming-preview")
+        assert resp.status_code == 404
+
+    def test_empty_tracks(self, app_context, sample_job, client):
+        resp = client.get(f"/api/v1/jobs/{sample_job.job_id}/naming-preview")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["tracks"] == []

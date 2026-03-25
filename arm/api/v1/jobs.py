@@ -478,6 +478,33 @@ async def naming_preview(request: Request):
     return {"success": True, "rendered": rendered}
 
 
+@router.get('/jobs/{job_id}/naming-preview')
+def naming_preview_for_job(job_id: int):
+    """Return rendered filenames for all tracks on a job using the naming engine."""
+    from arm.ripper.naming import render_track_title, render_track_folder, render_title, render_folder
+
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    config_dict = cfg.arm_config
+
+    tracks_preview = []
+    for track in sorted(job.tracks, key=lambda t: int(t.track_number or 0)):
+        tracks_preview.append({
+            "track_number": track.track_number,
+            "rendered_title": render_track_title(track, job, config_dict),
+            "rendered_folder": render_track_folder(track, job, config_dict),
+        })
+
+    return {
+        "success": True,
+        "job_title": render_title(job, config_dict),
+        "job_folder": render_folder(job, config_dict),
+        "tracks": tracks_preview,
+    }
+
+
 TRANSCODE_OVERRIDE_KEYS = {
     'video_encoder', 'video_quality', 'audio_encoder', 'subtitle_mode',
     'handbrake_preset', 'handbrake_preset_4k', 'handbrake_preset_dvd',
