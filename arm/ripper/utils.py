@@ -185,29 +185,29 @@ def _build_webhook_payload(title, body, job, raw_basename):
                 payload["config_overrides"] = json.loads(job.transcode_overrides)
             except (json.JSONDecodeError, TypeError):
                 pass
-        # Multi-title: include ALL track metadata for the transcoder.
-        # Tracks without per-track overrides inherit job-level defaults so
-        # the transcoder can route every file, not just custom-titled ones.
+        # Always include per-track manifest with pre-rendered filenames.
+        # ARM is the single source of truth for naming — the transcoder
+        # uses these names directly and never invents its own.
         if getattr(job, 'multi_title', False):
             payload["multi_title"] = True
-            tracks_meta = []
-            for track in job.tracks:
-                track_title = render_track_title(track, job, config_dict)
-                track_folder = render_track_folder(track, job, config_dict)
-                tracks_meta.append({
-                    "track_number": str(track.track_number or ''),
-                    "title": str(track.title or job.title or ''),
-                    "year": str(track.year or job.year or ''),
-                    "video_type": str(track.video_type or job.video_type or ''),
-                    "filename": str(track.filename or ''),
-                    "has_custom_title": bool(track.title),
-                    "folder_name": track_folder,
-                    "title_name": _clean_for_filename(track_title) if track_title else '',
-                    "episode_number": str(getattr(track, 'episode_number', '') or ''),
-                    "episode_name": str(getattr(track, 'episode_name', '') or ''),
-                })
-            if tracks_meta:
-                payload["tracks"] = tracks_meta
+        tracks_meta = []
+        for track in job.tracks:
+            track_title = render_track_title(track, job, config_dict)
+            track_folder = render_track_folder(track, job, config_dict)
+            tracks_meta.append({
+                "track_number": str(track.track_number or ''),
+                "title": str(track.title or job.title or ''),
+                "year": str(track.year or job.year or ''),
+                "video_type": str(track.video_type or job.video_type or ''),
+                "filename": str(track.filename or ''),
+                "has_custom_title": bool(track.title),
+                "folder_name": track_folder,
+                "title_name": _clean_for_filename(track_title) if track_title else '',
+                "episode_number": str(getattr(track, 'episode_number', '') or ''),
+                "episode_name": str(getattr(track, 'episode_name', '') or ''),
+            })
+        if tracks_meta:
+            payload["tracks"] = tracks_meta
     return payload
 
 
