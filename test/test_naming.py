@@ -23,6 +23,7 @@ def _make_job(**kwargs):
         'season': None, 'season_manual': None, 'season_auto': None,
         'episode': None, 'episode_manual': None, 'episode_auto': None,
         'video_type': 'movie', 'label': None,
+        'title_pattern_override': None, 'folder_pattern_override': None,
     }
     defaults.update(kwargs)
     return SimpleNamespace(**defaults)
@@ -221,7 +222,7 @@ def _make_track(**kwargs):
     """Create a SimpleNamespace that quacks like a Track."""
     defaults = {
         'title': None, 'year': None, 'video_type': None,
-        'imdb_id': None, 'poster_url': None,
+        'imdb_id': None, 'poster_url': None, 'custom_filename': None,
     }
     defaults.update(kwargs)
     return SimpleNamespace(**defaults)
@@ -353,3 +354,228 @@ def test_track_folder_all_tracks_same_folder():
     # All should produce the same folder path
     assert len(set(folders)) == 1
     assert 'Show' in folders[0]
+
+
+# ======================================================================
+# Per-job naming overrides and custom filenames
+# ======================================================================
+
+from arm.ripper.naming import (
+    VALID_VARS, validate_pattern, render_all_tracks, _get_pattern,
+)
+
+
+class TestValidVars:
+    def test_valid_vars_matches_pattern_variables(self):
+        from arm.ripper.naming import PATTERN_VARIABLES
+        assert VALID_VARS == frozenset(PATTERN_VARIABLES.keys())
+
+    def test_contains_expected_vars(self):
+        for v in ('title', 'year', 'season', 'episode', 'label', 'video_type', 'artist', 'album'):
+            assert v in VALID_VARS
+
+
+class TestValidatePattern:
+    def test_valid_pattern(self):
+        result = validate_pattern('{title} S{season}E{episode}')
+        assert result['valid'] is True
+        assert result['invalid_vars'] == []
+
+    def test_invalid_variable(self):
+        result = validate_pattern('{title} S{season}E{episde}')
+        assert result['valid'] is False
+        assert 'episde' in result['invalid_vars']
+
+    def test_suggestion_for_typo(self):
+        result = validate_pattern('{titl}')
+        assert result['valid'] is False
+        assert result['suggestions'].get('titl') == 'title'
+
+    def test_no_suggestion_for_distant_typo(self):
+        result = validate_pattern('{xyzabc}')
+        assert result['valid'] is False
+        assert 'xyzabc' not in result['suggestions']
+
+    def test_empty_pattern_is_valid(self):
+        result = validate_pattern('literal text no vars')
+        assert result['valid'] is True
+
+    def test_multiple_invalid_vars(self):
+        result = validate_pattern('{titl} {yar}')
+        assert result['valid'] is False
+        assert len(result['invalid_vars']) == 2
+
+
+class TestGetPatternWithJobOverride:
+    def test_job_title_override_takes_priority(self):
+        job = _make_job(title_pattern_override='{title} - E{episode}')
+        config = {'TV_TITLE_PATTERN': '{title} S{season}E{episode}'}
+        result = _get_pattern(config, 'series', 'TITLE', job=job)
+        assert result == '{title} - E{episode}'
+
+    def test_job_folder_override_takes_priority(self):
+        job = _make_job(folder_pattern_override='{title}/S{season}')
+        config = {'TV_FOLDER_PATTERN': '{title}/Season {season}'}
+        result = _get_pattern(config, 'series', 'FOLDER', job=job)
+        assert result == '{title}/S{season}'
+
+    def test_no_override_uses_global(self):
+        job = _make_job()
+        config = {'TV_TITLE_PATTERN': '{title} S{season}E{episode}'}
+        result = _get_pattern(config, 'series', 'TITLE', job=job)
+        assert result == '{title} S{season}E{episode}'
+
+    def test_none_job_uses_global(self):
+        config = {'TV_TITLE_PATTERN': '{title} S{season}E{episode}'}
+        result = _get_pattern(config, 'series', 'TITLE', job=None)
+        assert result == '{title} S{season}E{episode}'
+
+    def test_override_is_video_type_agnostic(self):
+        """Job override applies regardless of video_type."""
+        job = _make_job(video_type='movie', title_pattern_override='{title} custom')
+        config = {'MOVIE_TITLE_PATTERN': '{title} ({year})'}
+        result = _get_pattern(config, 'movie', 'TITLE', job=job)
+        assert result == '{title} custom'
+
+
+class TestCustomFilename:
+    def test_custom_filename_overrides_pattern(self):
+        job = _make_job(title='Show', video_type='series', season='1')
+        track = _make_track(track_number='0', episode_number='1', custom_filename='My Custom Name')
+        result = render_track_title(track, job)
+        assert result == 'My Custom Name'
+
+    def test_custom_filename_is_sanitized(self):
+        job = _make_job(title='Show', video_type='series')
+        track = _make_track(track_number='0', custom_filename='Bad: Name & Stuff')
+        result = render_track_title(track, job)
+        assert ':' not in result
+        assert '&' not in result
+        assert 'Bad- Name and Stuff' == result
+
+    def test_custom_filename_prevents_path_traversal(self):
+        job = _make_job(title='Show')
+        track = _make_track(track_number='0', custom_filename='../../etc/passwd')
+        result = render_track_title(track, job)
+        assert '..' not in result
+        assert '/' not in result
+
+    def test_no_custom_filename_uses_pattern(self):
+        job = _make_job(title='Show', video_type='series', season='1')
+        track = _make_track(track_number='0', episode_number='5', custom_filename=None)
+        result = render_track_title(track, job)
+        assert 'S01E05' in result
+
+    def test_job_pattern_override_with_no_custom_filename(self):
+        job = _make_job(
+            title='Show', video_type='series', season='1',
+            title_pattern_override='{title} - E{episode}',
+        )
+        track = _make_track(track_number='0', episode_number='5')
+        result = render_track_title(track, job)
+        assert result == 'Show - E05'
+
+    def test_custom_filename_overrides_job_pattern(self):
+        """Custom filename beats job pattern override."""
+        job = _make_job(
+            title='Show', video_type='series', season='1',
+            title_pattern_override='{title} - E{episode}',
+        )
+        track = _make_track(track_number='0', episode_number='5', custom_filename='Override')
+        result = render_track_title(track, job)
+        assert result == 'Override'
+
+
+class TestRenderAllTracks:
+    def _make_job_with_tracks(self, tracks_data, **job_kwargs):
+        job = _make_job(**job_kwargs)
+        tracks = []
+        for td in tracks_data:
+            tracks.append(_make_track(**td))
+        job.tracks = tracks
+        return job
+
+    def test_renders_all_tracks(self):
+        job = self._make_job_with_tracks(
+            [
+                {'track_number': '0', 'episode_number': '1'},
+                {'track_number': '1', 'episode_number': '2'},
+            ],
+            title='Show', video_type='series', season='1',
+        )
+        results = render_all_tracks(job)
+        assert len(results) == 2
+        assert 'S01E01' in results[0]['rendered_title']
+        assert 'S01E02' in results[1]['rendered_title']
+
+    def test_duplicate_detection_appends_track_number(self):
+        """Literal pattern with no per-track variation → duplicates detected."""
+        job = self._make_job_with_tracks(
+            [
+                {'track_number': '0'},
+                {'track_number': '1'},
+            ],
+            title='Movie', video_type='movie', year='2024',
+            title_pattern_override='Same Name',
+        )
+        results = render_all_tracks(job)
+        titles = [r['rendered_title'] for r in results]
+        assert titles[0] != titles[1]
+        assert 'Track 0' in titles[0]
+        assert 'Track 1' in titles[1]
+
+    def test_cross_tier_duplicate_detection(self):
+        """Custom filename collides with pattern-rendered name."""
+        job = self._make_job_with_tracks(
+            [
+                {'track_number': '0', 'episode_number': '1', 'custom_filename': 'Show S01E02'},
+                {'track_number': '1', 'episode_number': '2'},
+            ],
+            title='Show', video_type='series', season='1',
+        )
+        results = render_all_tracks(job)
+        titles = [r['rendered_title'] for r in results]
+        # Both would be "Show S01E02" — duplicates should be disambiguated
+        assert titles[0] != titles[1]
+
+    def test_no_duplicates_no_modification(self):
+        job = self._make_job_with_tracks(
+            [
+                {'track_number': '0', 'episode_number': '1'},
+                {'track_number': '1', 'episode_number': '2'},
+            ],
+            title='Show', video_type='series', season='1',
+        )
+        results = render_all_tracks(job)
+        titles = [r['rendered_title'] for r in results]
+        assert 'Track' not in titles[0]
+        assert 'Track' not in titles[1]
+
+    def test_single_track_no_duplicate(self):
+        job = self._make_job_with_tracks(
+            [{'track_number': '0', 'custom_filename': 'Solo'}],
+            title='Movie', video_type='movie',
+        )
+        results = render_all_tracks(job)
+        assert results[0]['rendered_title'] == 'Solo'
+        assert 'Track' not in results[0]['rendered_title']
+
+
+class TestRenderWithJobFolderOverride:
+    def test_folder_override_applies(self):
+        job = _make_job(
+            title='Show', video_type='series', season='1',
+            folder_pattern_override='{title}/S{season}',
+        )
+        result = render_folder(job)
+        assert 'S01' in result
+        assert 'Season' not in result
+
+    def test_title_override_in_render_title(self):
+        job = _make_job(
+            title='Show', video_type='series', season='1',
+            title_pattern_override='{title} Episode {episode}',
+        )
+        result = render_title(job)
+        assert 'Episode' in result
+        assert 'S01' not in result

@@ -31,6 +31,8 @@ class Track(db.Model):
     # Episode metadata from TVDB matching
     episode_number = db.Column(db.String(10), nullable=True)
     episode_name = db.Column(db.String(256), nullable=True)
+    # User-specified output filename (overrides pattern rendering)
+    custom_filename = db.Column(db.String(512), nullable=True)
 
     def __init__(self, job_id, track_number, length, aspect_ratio,
                  fps, main_feature, source, basename, filename,

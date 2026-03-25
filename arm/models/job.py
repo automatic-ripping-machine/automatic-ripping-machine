@@ -162,6 +162,8 @@ class Job(db.Model):
     manual_pause = db.Column(db.Boolean)
     manual_mode = db.Column(db.Boolean)
     wait_start_time = db.Column(db.DateTime, nullable=True)
+    title_pattern_override = db.Column(db.String(512), nullable=True)
+    folder_pattern_override = db.Column(db.String(512), nullable=True)
     tracks = db.relationship('Track', backref='job', lazy='dynamic')
     config = db.relationship('Config', uselist=False, backref="job")
 

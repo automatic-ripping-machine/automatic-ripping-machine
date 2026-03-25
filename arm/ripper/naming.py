@@ -2,6 +2,7 @@
 
 Supports per-type patterns with {variable} placeholders.
 Variables are extracted from Job fields, preferring manual over auto values.
+Per-job pattern overrides and per-track custom filenames are supported.
 """
 import re
 
@@ -17,7 +18,7 @@ DEFAULTS = {
 }
 
 # Canonical list of variables available in naming patterns.
-# This is the single source of truth — UI and config docs derive from this.
+# This is the single source of truth — UI, validation, and config docs derive from this.
 PATTERN_VARIABLES = {
     'title':      'Disc title (prefers manual over auto-detected)',
     'year':       'Release year',
@@ -28,6 +29,9 @@ PATTERN_VARIABLES = {
     'label':      'Original disc label from drive',
     'video_type': 'Media type: movie, series, or music',
 }
+
+# Frozen set for fast validation — derived from PATTERN_VARIABLES
+VALID_VARS: frozenset = frozenset(PATTERN_VARIABLES.keys())
 
 # Map video_type to pattern key prefixes
 _TYPE_PREFIX = {
@@ -85,11 +89,22 @@ def _clean_for_filename(s):
     s = s.replace('&', 'and')
     s = s.replace('\\', ' - ')
     s = re.sub(r'[^\w .()-]', '', s)
-    return s.strip()
+    # Prevent path traversal — strip leading dots and collapse sequences
+    s = re.sub(r'\.{2,}', '.', s)
+    return s.strip('. ')
 
 
-def _get_pattern(config_dict, video_type, kind):
-    """Look up the pattern for a given video_type and kind (TITLE or FOLDER)."""
+def _get_pattern(config_dict, video_type, kind, job=None):
+    """Look up the pattern for a given video_type and kind (TITLE or FOLDER).
+
+    When job has a pattern override for the given kind, it takes priority
+    over the global config pattern regardless of video_type.
+    """
+    if job is not None:
+        if kind == 'TITLE' and getattr(job, 'title_pattern_override', None):
+            return job.title_pattern_override
+        if kind == 'FOLDER' and getattr(job, 'folder_pattern_override', None):
+            return job.folder_pattern_override
     prefix = _TYPE_PREFIX.get(video_type)
     if not prefix:
         # Fall back to movie patterns for unknown types
@@ -108,7 +123,7 @@ def render_title(job, config_dict=None):
     """
     variables = _build_variables(job)
     video_type = variables.get('video_type', '')
-    pattern = _get_pattern(config_dict, video_type, 'TITLE')
+    pattern = _get_pattern(config_dict, video_type, 'TITLE', job=job)
     rendered = pattern.format_map(variables)
     return _clean_empty_parens(rendered)
 
@@ -122,7 +137,7 @@ def render_folder(job, config_dict=None):
     import os
     variables = _build_variables(job)
     video_type = variables.get('video_type', '')
-    pattern = _get_pattern(config_dict, video_type, 'FOLDER')
+    pattern = _get_pattern(config_dict, video_type, 'FOLDER', job=job)
     rendered = pattern.format_map(variables)
     rendered = _clean_empty_parens(rendered)
     # Sanitize each path segment individually
@@ -172,13 +187,18 @@ def _build_track_variables(track, job):
 def render_track_title(track, job, config_dict=None):
     """Render a display title for a single track on a multi-title disc.
 
-    Starts with job-level defaults from _build_variables(), then overrides
-    with any track-level fields (title, year, video_type).
-    Returns the rendered string without extension — caller adds it.
+    Precedence:
+    1. track.custom_filename (sanitized, used as-is)
+    2. job pattern override → rendered with variables
+    3. global pattern → rendered with variables
     """
+    # Custom filename takes highest priority
+    if getattr(track, 'custom_filename', None):
+        return _clean_for_filename(track.custom_filename)
+
     variables = _build_track_variables(track, job)
     video_type = variables.get('video_type', '')
-    pattern = _get_pattern(config_dict, video_type, 'TITLE')
+    pattern = _get_pattern(config_dict, video_type, 'TITLE', job=job)
     rendered = pattern.format_map(variables)
     rendered = _clean_empty_parens(rendered)
     # When season is actually a disc number, replace S02 with D02
@@ -221,7 +241,7 @@ def render_track_folder(track, job, config_dict=None):
             else:
                 variables['season'] = '01'
     video_type = variables.get('video_type', '')
-    pattern = _get_pattern(config_dict, video_type, 'FOLDER')
+    pattern = _get_pattern(config_dict, video_type, 'FOLDER', job=job)
     rendered = pattern.format_map(variables)
     rendered = _clean_empty_parens(rendered)
     # Replace "Season XX" with "Disc XX" when using disc_number fallback
@@ -232,6 +252,36 @@ def render_track_folder(track, job, config_dict=None):
     return os.path.join(*segments) if segments else ''
 
 
+def render_all_tracks(job, config_dict=None):
+    """Render filenames for all tracks with duplicate collision detection.
+
+    Returns a list of dicts with track_number, rendered_title, rendered_folder.
+    When duplicate rendered_titles are detected, appends ' - Track {N}' to
+    disambiguate (covers both pattern collisions and cross-tier collisions
+    between custom_filename and pattern-rendered names).
+    """
+    results = []
+    for track in sorted(job.tracks, key=lambda t: int(t.track_number or 0)):
+        results.append({
+            "track_number": track.track_number,
+            "rendered_title": render_track_title(track, job, config_dict),
+            "rendered_folder": render_track_folder(track, job, config_dict),
+        })
+    # Detect duplicates and append track number
+    seen = {}
+    for r in results:
+        name = r["rendered_title"]
+        if name in seen:
+            # Mark both the first occurrence and this one
+            if seen[name] is not None:
+                seen[name]["rendered_title"] += f" - Track {seen[name]['track_number']}"
+                seen[name] = None  # already fixed
+            r["rendered_title"] += f" - Track {r['track_number']}"
+        else:
+            seen[name] = r
+    return results
+
+
 def render_preview(pattern, variables):
     """Render a pattern with explicit variables dict (for API preview).
 
@@ -240,3 +290,43 @@ def render_preview(pattern, variables):
     safe_vars = _SafeDict(variables)
     rendered = pattern.format_map(safe_vars)
     return _clean_empty_parens(rendered)
+
+
+# ======================================================================
+# Pattern validation
+# ======================================================================
+
+
+def _levenshtein(s1, s2):
+    """Simple Levenshtein distance for fuzzy matching suggestions."""
+    if len(s1) < len(s2):
+        return _levenshtein(s2, s1)
+    if len(s2) == 0:
+        return len(s1)
+    prev_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        curr_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            cost = 0 if c1 == c2 else 1
+            curr_row.append(min(
+                curr_row[j] + 1,
+                prev_row[j + 1] + 1,
+                prev_row[j] + cost,
+            ))
+        prev_row = curr_row
+    return prev_row[-1]
+
+
+def validate_pattern(pattern):
+    """Validate a naming pattern against VALID_VARS.
+
+    Returns {"valid": bool, "invalid_vars": [...], "suggestions": {...}}.
+    """
+    tokens = re.findall(r'\{(\w+)\}', pattern)
+    invalid = [t for t in tokens if t not in VALID_VARS]
+    suggestions = {}
+    for inv in invalid:
+        best = min(VALID_VARS, key=lambda v: _levenshtein(inv, v))
+        if _levenshtein(inv, best) <= 2:
+            suggestions[inv] = best
+    return {"valid": len(invalid) == 0, "invalid_vars": invalid, "suggestions": suggestions}
