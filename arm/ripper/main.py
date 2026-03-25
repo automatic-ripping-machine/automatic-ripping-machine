@@ -414,3 +414,6 @@ if __name__ == "__main__":
             hours, minutes = divmod(minutes, 60)
             job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
         db.session.commit()
+        # Release scoped session to prevent DB connection pool exhaustion
+        # (this function runs in a daemon thread spawned by udev/drive detection)
+        db.session.remove()
