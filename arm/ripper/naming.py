@@ -101,10 +101,13 @@ def _get_pattern(config_dict, video_type, kind, job=None):
     over the global config pattern regardless of video_type.
     """
     if job is not None:
-        if kind == 'TITLE' and getattr(job, 'title_pattern_override', None):
-            return job.title_pattern_override
-        if kind == 'FOLDER' and getattr(job, 'folder_pattern_override', None):
-            return job.folder_pattern_override
+        override = None
+        if kind == 'TITLE':
+            override = getattr(job, 'title_pattern_override', None)
+        elif kind == 'FOLDER':
+            override = getattr(job, 'folder_pattern_override', None)
+        if override and isinstance(override, str):
+            return override
     prefix = _TYPE_PREFIX.get(video_type)
     if not prefix:
         # Fall back to movie patterns for unknown types
