@@ -271,6 +271,8 @@ class TestPrescanAndWait:
 
         mock_prep.assert_called_once()
         mock_prescan.assert_called_once_with(mock_job)
+        # Session must be cleaned up to prevent pool exhaustion
+        mock_db.session.remove.assert_called_once()
         assert mock_job.status == "waiting"
         mock_db.session.commit.assert_called()
 
@@ -292,6 +294,7 @@ class TestPrescanAndWait:
 
         assert mock_job.status == "waiting"
         assert "Prescan failed" in mock_job.errors
+        mock_db.session.remove.assert_called_once()
         assert "MakeMKV crashed" in mock_job.errors
         mock_db.session.commit.assert_called()
 
@@ -308,3 +311,26 @@ class TestPrescanAndWait:
 
         # DB commit should NOT be called since there's no job to update
         mock_db.session.commit.assert_not_called()
+        # Session must still be cleaned up
+        mock_db.session.remove.assert_called_once()
+
+    @patch("arm.api.v1.folder.db")
+    @patch("arm.api.v1.folder.Job")
+    def test_prescan_session_cleaned_on_commit_failure(self, mock_job_cls, mock_db):
+        """Session is cleaned up even when the error-path commit fails."""
+        from arm.api.v1.folder import _prescan_and_wait
+
+        mock_job = MagicMock()
+        mock_job.job_id = 12
+        mock_job.errors = None
+        mock_job_cls.query.get.return_value = mock_job
+        # First commit (in except block) raises
+        mock_db.session.commit.side_effect = RuntimeError("DB locked")
+
+        with patch("arm.ripper.makemkv.prep_mkv"), \
+             patch("arm.ripper.makemkv.prescan_track_info",
+                   side_effect=RuntimeError("MakeMKV crashed")):
+            _prescan_and_wait(12)
+
+        # Session must still be cleaned up despite double failure
+        mock_db.session.remove.assert_called_once()

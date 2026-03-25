@@ -146,23 +146,34 @@ def create_folder_job(req: FolderCreateRequest):
 
 
 def _prescan_and_wait(job_id: int):
-    """Background: prescan tracks with MakeMKV, then move job to MANUAL_WAIT."""
+    """Background: prescan tracks with MakeMKV, then move job to MANUAL_WAIT.
+
+    Runs in a daemon thread. Must clean up the scoped DB session on exit
+    to prevent connection pool exhaustion.
+    """
     from arm.ripper.makemkv import prep_mkv, prescan_track_info
 
-    job = Job.query.get(job_id)
-    if not job:
-        log.error("Prescan: job %s not found", job_id)
-        return
-
     try:
-        prep_mkv()
-        prescan_track_info(job)
-        job.status = JobState.MANUAL_WAIT_STARTED.value
-        db.session.commit()
-        log.info("Prescan complete for job %s — %d tracks found, waiting for review",
-                 job_id, len(list(job.tracks)))
-    except Exception as exc:
-        log.error("Prescan failed for job %s: %s", job_id, exc)
-        job.status = JobState.MANUAL_WAIT_STARTED.value
-        job.errors = f"Prescan failed: {exc}"
-        db.session.commit()
+        job = Job.query.get(job_id)
+        if not job:
+            log.error("Prescan: job %s not found", job_id)
+            return
+
+        try:
+            prep_mkv()
+            prescan_track_info(job)
+            job.status = JobState.MANUAL_WAIT_STARTED.value
+            db.session.commit()
+            log.info("Prescan complete for job %s — %d tracks found, waiting for review",
+                     job_id, len(list(job.tracks)))
+        except Exception as exc:
+            log.error("Prescan failed for job %s: %s", job_id, exc)
+            try:
+                job.status = JobState.MANUAL_WAIT_STARTED.value
+                job.errors = f"Prescan failed: {exc}"
+                db.session.commit()
+            except Exception:
+                log.exception("Failed to update job %s status after prescan error", job_id)
+    finally:
+        # Release the scoped session for this thread to prevent pool exhaustion
+        db.session.remove()
