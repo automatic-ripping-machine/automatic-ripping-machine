@@ -213,3 +213,41 @@ def bulk_delete_folders(paths: list[str]) -> dict[str, Any]:
         else:
             errors.append(f"{Path(p).name}: {result.get('error', 'unknown')}")
     return {"removed": removed, "errors": errors}
+
+
+def clear_raw_directories() -> dict[str, Any]:
+    """Clear all contents of the raw/scratch directory.
+
+    Removes all files and subdirectories within RAW_PATH but keeps the
+    directory itself.  Returns count of items removed and bytes freed.
+    """
+    raw_path = Path(cfg.arm_config.get("RAW_PATH", ""))
+    if not raw_path.is_dir():
+        return {"success": False, "error": "RAW_PATH not configured or does not exist"}
+
+    cleared = 0
+    freed_bytes = 0
+    errors = []
+
+    for item in raw_path.iterdir():
+        try:
+            if item.is_file() or item.is_symlink():
+                freed_bytes += item.stat().st_size
+                item.unlink()
+                cleared += 1
+            elif item.is_dir():
+                dir_size = sum(f.stat().st_size for f in item.rglob('*') if f.is_file())
+                shutil.rmtree(item)
+                freed_bytes += dir_size
+                cleared += 1
+        except OSError as exc:
+            log.error("Failed to remove %s: %s", item.name, exc)
+            errors.append(item.name)
+
+    return {
+        "success": True,
+        "cleared": cleared,
+        "freed_bytes": freed_bytes,
+        "errors": errors,
+        "path": str(raw_path),
+    }

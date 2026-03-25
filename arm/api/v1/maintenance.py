@@ -78,3 +78,12 @@ def bulk_delete_folders(req: BulkPathRequest):
         for e in result.get("errors", [])
     ]
     return result
+
+
+@router.post("/maintenance/clear-raw")
+def clear_raw():
+    """Clear all contents of the raw/scratch directory."""
+    result = svc.clear_raw_directories()
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result.get("error", "Failed"))
+    return result

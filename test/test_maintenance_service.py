@@ -107,3 +107,49 @@ class TestMaintenanceCounts:
 
         assert result["orphan_logs"] == 2
         assert result["orphan_folders"] >= 2  # Orphan Movie + Another Orphan
+
+
+class TestClearRawDirectories:
+    def test_clears_files_and_dirs(self, tmp_path):
+        """Should remove all contents of RAW_PATH and report counts."""
+        raw = tmp_path / "raw"
+        raw.mkdir()
+        (raw / "file1.mkv").write_bytes(b"x" * 1000)
+        (raw / "file2.mkv").write_bytes(b"y" * 2000)
+        subdir = raw / "job_123"
+        subdir.mkdir()
+        (subdir / "track.mkv").write_bytes(b"z" * 500)
+
+        with unittest.mock.patch("arm.config.config.arm_config", {"RAW_PATH": str(raw)}):
+            from arm.services.maintenance import clear_raw_directories
+            result = clear_raw_directories()
+
+        assert result["success"] is True
+        assert result["cleared"] == 3  # 2 files + 1 dir
+        assert result["freed_bytes"] == 3500
+        assert result["path"] == str(raw)
+        # Directory itself still exists, but empty
+        assert raw.is_dir()
+        assert list(raw.iterdir()) == []
+
+    def test_empty_raw_succeeds(self, tmp_path):
+        """Empty RAW_PATH should succeed with zero counts."""
+        raw = tmp_path / "raw"
+        raw.mkdir()
+
+        with unittest.mock.patch("arm.config.config.arm_config", {"RAW_PATH": str(raw)}):
+            from arm.services.maintenance import clear_raw_directories
+            result = clear_raw_directories()
+
+        assert result["success"] is True
+        assert result["cleared"] == 0
+        assert result["freed_bytes"] == 0
+
+    def test_missing_raw_path_fails(self):
+        """Non-existent RAW_PATH should return error."""
+        with unittest.mock.patch("arm.config.config.arm_config", {"RAW_PATH": "/nonexistent/path"}):
+            from arm.services.maintenance import clear_raw_directories
+            result = clear_raw_directories()
+
+        assert result["success"] is False
+        assert "not configured" in result["error"]
