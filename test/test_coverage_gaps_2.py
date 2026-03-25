@@ -56,7 +56,7 @@ class TestBuildWebhookPayload:
     """Test _build_webhook_payload in arm/ripper/utils.py."""
 
     def test_basic_payload_no_multi_title(self, app_context, sample_job):
-        """Job with multi_title=False should not include tracks array."""
+        """Job with multi_title=False still includes track manifest (ARM controls naming)."""
         from arm.ripper.utils import _build_webhook_payload
 
         sample_job.multi_title = False
@@ -69,8 +69,28 @@ class TestBuildWebhookPayload:
         assert payload["job_id"] == str(sample_job.job_id)
         assert payload["video_type"] == "movie"
         assert payload["year"] == "1994"
-        assert "tracks" not in payload
+        # multi_title flag not set when job.multi_title is False
         assert "multi_title" not in payload
+
+    def test_single_title_with_tracks_includes_manifest(self, app_context, job_with_tracks):
+        """Single-title job with tracks still includes track manifest for naming."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        job, tracks = job_with_tracks
+        job.multi_title = False
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+        assert "multi_title" not in payload
+        # Tracks are always included — ARM controls naming
+        assert "tracks" in payload
+        assert len(payload["tracks"]) == 3
+        # Each track has title_name from naming engine
+        for t_meta in payload["tracks"]:
+            assert "title_name" in t_meta
+            assert "folder_name" in t_meta
+            assert "filename" in t_meta
 
     def test_multi_title_with_custom_titles(self, app_context, job_with_tracks):
         """Multi-title job with per-track custom titles includes tracks metadata."""
