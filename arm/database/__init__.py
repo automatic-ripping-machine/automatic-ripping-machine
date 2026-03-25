@@ -98,6 +98,12 @@ class _DB:
             log.debug("Database engine already initialised — skipping.")
             return
         engine_kw.setdefault('pool_pre_ping', True)
+        # Increase pool size to handle concurrent background threads
+        # (disc rips, folder rips, prescans all run in daemon threads).
+        # Skip when caller provides a custom poolclass (e.g. StaticPool in tests).
+        if 'poolclass' not in engine_kw:
+            engine_kw.setdefault('pool_size', 20)
+            engine_kw.setdefault('max_overflow', 10)
         # SQLite: enable WAL mode (readers never block writers) and set a
         # 30-second busy_timeout so concurrent writes wait instead of
         # immediately raising SQLITE_BUSY.

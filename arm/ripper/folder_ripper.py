@@ -131,3 +131,6 @@ def rip_folder(job):
             logging.getLogger().removeHandler(file_handler)
             file_handler.close()
         structlog.contextvars.clear_contextvars()
+        # Release scoped session to prevent DB connection pool exhaustion
+        # (this function runs in a daemon thread)
+        db.session.remove()
