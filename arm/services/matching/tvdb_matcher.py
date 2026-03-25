@@ -252,6 +252,23 @@ def match_tracks_to_episodes(
             "episode_runtime": episodes[ei].get("runtime", 0),
         })
 
+    # Re-order matches so track order maps to episode order.
+    # The greedy algorithm picks by score, which can scramble the natural
+    # track→episode sequence.  Sort both sides independently and re-pair
+    # so that the earliest track gets the earliest episode.
+    if len(matches) > 1:
+        sorted_tracks = sorted(matches, key=lambda m: int(m["track_number"]))
+        sorted_eps = sorted(matches, key=lambda m: m["episode_number"])
+        matches = [
+            {
+                "track_number": t["track_number"],
+                "episode_number": e["episode_number"],
+                "episode_name": e["episode_name"],
+                "episode_runtime": e["episode_runtime"],
+            }
+            for t, e in zip(sorted_tracks, sorted_eps)
+        ]
+
     return matches
 
 
