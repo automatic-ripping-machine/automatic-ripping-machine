@@ -481,7 +481,7 @@ async def naming_preview(request: Request):
 @router.get('/jobs/{job_id}/naming-preview')
 def naming_preview_for_job(job_id: int):
     """Return rendered filenames for all tracks on a job using the naming engine."""
-    from arm.ripper.naming import render_track_title, render_track_folder, render_title, render_folder
+    from arm.ripper.naming import render_all_tracks, render_title, render_folder
 
     job = Job.query.get(job_id)
     if not job:
@@ -489,19 +489,68 @@ def naming_preview_for_job(job_id: int):
 
     config_dict = cfg.arm_config
 
-    tracks_preview = []
-    for track in sorted(job.tracks, key=lambda t: int(t.track_number or 0)):
-        tracks_preview.append({
-            "track_number": track.track_number,
-            "rendered_title": render_track_title(track, job, config_dict),
-            "rendered_folder": render_track_folder(track, job, config_dict),
-        })
-
     return {
         "success": True,
         "job_title": render_title(job, config_dict),
         "job_folder": render_folder(job, config_dict),
-        "tracks": tracks_preview,
+        "tracks": render_all_tracks(job, config_dict),
+    }
+
+
+@router.patch('/jobs/{job_id}/naming')
+async def update_job_naming(job_id: int, request: Request):
+    """Update per-job naming pattern overrides."""
+    from arm.ripper.naming import validate_pattern
+
+    job = Job.query.get(job_id)
+    if not job:
+        return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
+
+    body = await request.json()
+
+    for field in ('title_pattern_override', 'folder_pattern_override'):
+        if field in body:
+            value = body[field]
+            if value is not None and value != '':
+                result = validate_pattern(value)
+                if not result['valid']:
+                    return JSONResponse({
+                        "success": False,
+                        "error": f"Invalid variables in pattern: {result['invalid_vars']}",
+                        "invalid_vars": result['invalid_vars'],
+                        "suggestions": result['suggestions'],
+                    }, status_code=400)
+                setattr(job, field, value)
+            else:
+                setattr(job, field, None)
+
+    db.session.commit()
+    return {
+        "success": True,
+        "title_pattern_override": job.title_pattern_override,
+        "folder_pattern_override": job.folder_pattern_override,
+    }
+
+
+@router.post('/naming/validate')
+async def validate_naming_pattern(request: Request):
+    """Validate a naming pattern against known variables."""
+    from arm.ripper.naming import validate_pattern
+
+    body = await request.json()
+    pattern = body.get('pattern', '')
+    if not pattern:
+        return {"valid": True, "invalid_vars": [], "suggestions": {}}
+    return validate_pattern(pattern)
+
+
+@router.get('/naming/variables')
+def get_naming_variables():
+    """Return the list of valid naming pattern variables."""
+    from arm.ripper.naming import VALID_VARS, PATTERN_VARIABLES
+    return {
+        "variables": sorted(VALID_VARS),
+        "descriptions": PATTERN_VARIABLES,
     }
 
 
@@ -726,7 +775,7 @@ def _clean_for_filename(string):
 
 # --- Track field updates ---
 
-_TRACK_EDITABLE_FIELDS: dict[str, type] = {"enabled": bool, "filename": str, "ripped": bool}
+_TRACK_EDITABLE_FIELDS: dict[str, type] = {"enabled": bool, "filename": str, "ripped": bool, "custom_filename": str}
 
 
 @router.patch('/jobs/{job_id}/tracks/{track_id}')

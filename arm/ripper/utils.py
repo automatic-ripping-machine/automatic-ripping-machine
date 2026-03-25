@@ -162,7 +162,7 @@ def _build_webhook_payload(title, body, job, raw_basename):
     doesn't need its own naming logic — ARM is the single source of truth
     for folder/file naming patterns configured in arm.yaml.
     """
-    from arm.ripper.naming import render_folder, render_title, render_track_title, render_track_folder, _clean_for_filename
+    from arm.ripper.naming import render_folder, render_title, render_all_tracks, _clean_for_filename
 
     payload = {"title": title, "body": body, "type": "info"}
     if raw_basename:
@@ -188,21 +188,24 @@ def _build_webhook_payload(title, body, job, raw_basename):
         # Always include per-track manifest with pre-rendered filenames.
         # ARM is the single source of truth for naming — the transcoder
         # uses these names directly and never invents its own.
+        # render_all_tracks handles duplicate detection and custom filenames.
         if getattr(job, 'multi_title', False):
             payload["multi_title"] = True
+        rendered = render_all_tracks(job, config_dict)
+        # Build a lookup from track_number → rendered result
+        rendered_map = {r["track_number"]: r for r in rendered}
         tracks_meta = []
         for track in job.tracks:
-            track_title = render_track_title(track, job, config_dict)
-            track_folder = render_track_folder(track, job, config_dict)
+            r = rendered_map.get(str(track.track_number or ''), {})
             tracks_meta.append({
                 "track_number": str(track.track_number or ''),
                 "title": str(track.title or job.title or ''),
                 "year": str(track.year or job.year or ''),
                 "video_type": str(track.video_type or job.video_type or ''),
                 "filename": str(track.filename or ''),
-                "has_custom_title": bool(track.title),
-                "folder_name": track_folder,
-                "title_name": _clean_for_filename(track_title) if track_title else '',
+                "has_custom_title": bool(track.title) or bool(getattr(track, 'custom_filename', None)),
+                "folder_name": r.get("rendered_folder", ''),
+                "title_name": _clean_for_filename(r.get("rendered_title", '')) if r.get("rendered_title") else '',
                 "episode_number": str(getattr(track, 'episode_number', '') or ''),
                 "episode_name": str(getattr(track, 'episode_name', '') or ''),
             })
