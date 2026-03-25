@@ -682,7 +682,9 @@ async def tvdb_match(job_id: int, request: Request):
         job.disc_number = saved_disc_number
         job.disc_total = saved_disc_total
     else:
-        # Persist disc overrides when applying
+        # Persist disc overrides and enable multi_title when applying
+        # (matched episodes imply distinct per-track names for transcoder)
+        job.multi_title = True
         db.session.commit()
     return result
 
