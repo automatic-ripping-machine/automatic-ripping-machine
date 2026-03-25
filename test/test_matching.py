@@ -42,6 +42,191 @@ class TestMatchResult:
         assert r.success is False
 
 
+class TestWindowedPositionalMatching:
+    """Test disc-windowed positional episode assignment."""
+
+    def _make_season(self, count=20, runtime=2700, first_two_runtime=3060):
+        """Build a season of episodes. First two have different runtime (like Kolchak)."""
+        eps = []
+        for i in range(1, count + 1):
+            r = first_two_runtime if i <= 2 else runtime
+            eps.append({"number": i, "name": f"Episode {i}", "runtime": r})
+        return eps
+
+    def _make_tracks(self, count=5, length=3087):
+        """Build main tracks with similar lengths."""
+        return [{"track_number": str(i), "length": length} for i in range(count)]
+
+    def test_disc_2_of_4_matches_episodes_6_to_10(self):
+        """Disc 2/4 of a 20-episode season should match E6-E10, not E1-E2."""
+        episodes = self._make_season(20)
+        tracks = self._make_tracks(5, length=3087)  # ~51m tracks
+
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=600,
+            disc_number=2, disc_total=4,
+        )
+        eps = [m["episode_number"] for m in matches]
+        assert len(matches) == 5
+        assert eps == [6, 7, 8, 9, 10], f"Expected E6-E10, got E{eps}"
+
+    def test_disc_4_of_4_matches_last_episodes(self):
+        """Last disc should match the last episodes of the season."""
+        episodes = self._make_season(20)
+        tracks = self._make_tracks(5, length=3087)
+
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=600,
+            disc_number=4, disc_total=4,
+        )
+        eps = [m["episode_number"] for m in matches]
+        assert len(matches) == 5
+        assert eps == [16, 17, 18, 19, 20], f"Expected E16-E20, got E{eps}"
+
+    def test_disc_1_of_4_matches_first_episodes(self):
+        """First disc should match the first episodes."""
+        episodes = self._make_season(20)
+        tracks = self._make_tracks(5, length=3087)
+
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=600,
+            disc_number=1, disc_total=4,
+        )
+        eps = [m["episode_number"] for m in matches]
+        assert len(matches) == 5
+        assert eps == [1, 2, 3, 4, 5], f"Expected E1-E5, got E{eps}"
+
+    def test_uneven_distribution_6_5_5_4(self):
+        """Handles uneven episode distribution across discs."""
+        episodes = self._make_season(20, runtime=2700, first_two_runtime=2700)
+        # Disc 1 has 6 tracks (more than average 5)
+        tracks = self._make_tracks(6, length=2750)
+
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=600,
+            disc_number=1, disc_total=4,
+        )
+        eps = [m["episode_number"] for m in matches]
+        assert len(matches) == 6
+        # Should get first 6 episodes
+        assert eps == [1, 2, 3, 4, 5, 6], f"Expected E1-E6, got E{eps}"
+
+    def test_disc_3_of_4_with_varied_runtimes(self):
+        """Disc 3 with Kolchak-like runtimes (E1-2=51m, rest=45m)."""
+        episodes = self._make_season(20)  # E1-2=3060s, E3-20=2700s
+        tracks = self._make_tracks(5, length=3087)  # all ~51m
+
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=600,
+            disc_number=3, disc_total=4,
+        )
+        eps = [m["episode_number"] for m in matches]
+        assert len(matches) == 5
+        assert eps == [11, 12, 13, 14, 15], f"Expected E11-E15, got E{eps}"
+
+    def test_track_order_preserved(self):
+        """Track 0 gets earliest episode, track N gets latest."""
+        episodes = self._make_season(10, runtime=2700, first_two_runtime=2700)
+        tracks = [
+            {"track_number": "0", "length": 2750},
+            {"track_number": "1", "length": 2680},
+            {"track_number": "2", "length": 2720},
+        ]
+
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=600,
+            disc_number=2, disc_total=4,
+        )
+        # Track numbers should be in ascending order, episode numbers too
+        tns = [m["track_number"] for m in matches]
+        eps = [m["episode_number"] for m in matches]
+        assert tns == sorted(tns, key=int)
+        assert eps == sorted(eps)
+
+    def test_no_disc_info_falls_back_to_greedy(self):
+        """Without disc info, uses greedy runtime matching."""
+        episodes = self._make_season(20)
+        tracks = self._make_tracks(5, length=3087)
+
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=600,
+            disc_number=None, disc_total=None,
+        )
+        # Greedy will pick by runtime — E1/E2 (3060s) are closest to 3087s
+        assert len(matches) == 5
+        # Should still get 5 matches (greedy finds them)
+        eps = [m["episode_number"] for m in matches]
+        assert 1 in eps or 2 in eps  # greedy prefers runtime-close episodes
+
+    def test_tolerance_filters_bad_matches(self):
+        """Positional matches outside tolerance are skipped."""
+        episodes = [
+            {"number": 6, "name": "Ep 6", "runtime": 2700},
+            {"number": 7, "name": "Ep 7", "runtime": 2700},
+            {"number": 8, "name": "Ep 8", "runtime": 2700},
+        ]
+        # Track with very different runtime
+        tracks = [
+            {"track_number": "0", "length": 2750},   # close to 2700
+            {"track_number": "1", "length": 1200},    # 20 min — way off from 45m
+            {"track_number": "2", "length": 2680},    # close to 2700
+        ]
+
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=300,
+            disc_number=2, disc_total=4,
+        )
+        # Track 1 (1200s) is too far from 2700s (delta=1500 > 300 tolerance)
+        assert len(matches) == 2
+        tns = {m["track_number"] for m in matches}
+        assert "1" not in tns
+
+    def test_windowed_fallback_to_greedy_when_worse(self):
+        """If windowed matching gets fewer results, greedy is used instead."""
+        episodes = self._make_season(20, runtime=2700, first_two_runtime=2700)
+        # Only 2 tracks, but they have runtimes matching E1-E2 (not in disc 3 window)
+        tracks = [
+            {"track_number": "0", "length": 2750},
+            {"track_number": "1", "length": 2680},
+        ]
+
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=300,
+            disc_number=3, disc_total=4,
+        )
+        # Both windowed and greedy should get 2 matches — windowed picks from
+        # the disc 3 window, greedy picks by runtime
+        assert len(matches) == 2
+
+    def test_exclude_episodes_with_windowed(self):
+        """Cross-disc exclusion works with windowed matching."""
+        episodes = self._make_season(20, runtime=2700, first_two_runtime=2700)
+        tracks = self._make_tracks(3, length=2750)
+
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=600,
+            disc_number=2, disc_total=4,
+            exclude_episodes={6, 7},  # E6-E7 already matched
+        )
+        # Should skip E6-E7 and match from remaining
+        eps = [m["episode_number"] for m in matches]
+        assert 6 not in eps
+        assert 7 not in eps
+        assert len(matches) == 3
+
+    def test_short_season_single_disc(self):
+        """Single disc with all episodes — no windowing needed."""
+        episodes = self._make_season(6, runtime=2700, first_two_runtime=2700)
+        tracks = self._make_tracks(6, length=2750)
+
+        matches = match_tracks_to_episodes(
+            tracks, episodes, tolerance=600,
+            disc_number=1, disc_total=1,
+        )
+        eps = [m["episode_number"] for m in matches]
+        assert eps == [1, 2, 3, 4, 5, 6]
+
+
 class TestCrossDiscExclusion:
     """Test exclude_episodes parameter in matching functions."""
 

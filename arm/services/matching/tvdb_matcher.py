@@ -170,17 +170,13 @@ def match_tracks_to_episodes(
     disc_total: int | None = None,
     exclude_episodes: set[int] | None = None,
 ) -> list[dict]:
-    """Match tracks to episodes by runtime similarity.
+    """Match tracks to episodes using disc-windowed positional assignment.
 
-    Uses greedy nearest-neighbor: build all (track, episode) pairs ranked
-    by runtime delta, assign smallest first, no reuse.
-
-    When disc_number is provided, adds a position bias so that later discs
-    prefer later episodes (prevents all discs matching early episodes when
-    runtimes are identical).
-
-    When exclude_episodes is provided, those episode numbers are skipped
-    entirely (used for cross-disc deduplication).
+    Strategy:
+    1. When disc info is available, compute an episode window for this disc
+       and assign tracks positionally (track 0 → first episode in window).
+    2. Runtime is used as validation, not as the primary signal.
+    3. Falls back to greedy runtime matching when no disc info is given.
 
     Args:
         tracks: [{"track_number": "0", "length": 3407}, ...]
@@ -203,59 +199,163 @@ def match_tracks_to_episodes(
             log.info("All episodes excluded by cross-disc filter")
             return []
 
-    # Calculate expected episode position for this disc.
-    # Computed after exclusion filtering so the bias is relative to the
-    # remaining candidates, not the full season — this is intentional.
-    use_position_bias = disc_number is not None and disc_number > 0
-    if use_position_bias:
-        disc_count = disc_total or disc_number
-        expected_center = (disc_number - 0.5) / disc_count * len(episodes)
+    # Identify main tracks (>= 2 min), sorted by track number
+    main_tracks = sorted(
+        [t for t in tracks if (t.get("length") or 0) >= 120],
+        key=lambda t: int(t.get("track_number") or 0),
+    )
+    if not main_tracks:
+        return []
+
+    # Sort episodes by number for positional assignment
+    episodes = sorted(episodes, key=lambda ep: ep["number"])
+
+    use_disc_window = disc_number is not None and disc_number > 0
+    if use_disc_window:
+        return _match_windowed(main_tracks, episodes, tolerance, disc_number, disc_total)
     else:
-        expected_center = 0.0
+        return _match_greedy(main_tracks, episodes, tolerance)
 
-    # Position weight: how much (in seconds) each episode-position offset
-    # penalises the score.  When disc info is available, being one episode
-    # away from the expected center adds pos_weight seconds to the cost —
-    # making position a real factor rather than just a tiebreaker.
-    # 60s per position means a 5-episode offset costs 300s, comparable to
-    # typical runtime inaccuracies between TVDB and actual disc runtimes.
-    pos_weight = 60.0 if use_position_bias else 0.0
 
-    # Build cost matrix
+def _match_windowed(
+    main_tracks: list[dict],
+    episodes: list[dict],
+    tolerance: int,
+    disc_number: int,
+    disc_total: int | None,
+) -> list[dict]:
+    """Windowed positional matching: disc position determines episode range.
+
+    1. Compute a generous window (1.5x expected disc share) centered on
+       this disc's expected position in the season.
+    2. Pair tracks to windowed episodes positionally (T0→first, T1→second).
+    3. Validate each pair with runtime tolerance; flag but keep mismatches.
+    4. If the window produces fewer matches than greedy would, fall back.
+    """
+    n_tracks = len(main_tracks)
+    n_episodes = len(episodes)
+    disc_count = disc_total or disc_number
+
+    # Expected share per disc and center position
+    share = n_episodes / disc_count
+    center = (disc_number - 0.5) * share
+
+    # Window: 1.5x the expected share, clamped to episode bounds
+    half_window = max(share * 0.75, n_tracks * 0.75)
+    win_start = max(0, int(center - half_window))
+    win_end = min(n_episodes, int(center + half_window + 1))
+
+    # Ensure window is at least as wide as the number of tracks
+    if win_end - win_start < n_tracks:
+        # Expand symmetrically, clamped
+        deficit = n_tracks - (win_end - win_start)
+        win_start = max(0, win_start - (deficit + 1) // 2)
+        win_end = min(n_episodes, win_end + (deficit + 1) // 2)
+
+    windowed = episodes[win_start:win_end]
+
+    log.info(
+        "Disc %d/%d: episode window E%d-E%d (%d candidates for %d tracks)",
+        disc_number, disc_count,
+        windowed[0]["number"] if windowed else 0,
+        windowed[-1]["number"] if windowed else 0,
+        len(windowed), n_tracks,
+    )
+
+    # Positional assignment: pair tracks with windowed episodes by position
+    # When more episodes than tracks, pick the best-fitting slice
+    if len(windowed) > n_tracks:
+        # Find the contiguous slice of n_tracks episodes with minimum
+        # total runtime delta against the tracks.
+        # Bias the offset toward where the disc center falls within the window
+        # so that disc 4/4 prefers the END of its window, disc 1/4 the START.
+        expected_offset = center - win_start - n_tracks / 2
+        expected_offset = max(0, min(len(windowed) - n_tracks, expected_offset))
+
+        best_offset = 0
+        best_cost = float("inf")
+        for offset in range(len(windowed) - n_tracks + 1):
+            cost = sum(
+                abs((main_tracks[i].get("length") or 0) - (windowed[offset + i].get("runtime") or 0))
+                for i in range(n_tracks)
+            )
+            cost += abs(offset - expected_offset) * 30  # bias toward expected position
+            if cost < best_cost:
+                best_cost = cost
+                best_offset = offset
+        selected = windowed[best_offset:best_offset + n_tracks]
+    elif len(windowed) < n_tracks:
+        # Fewer episodes than tracks — match what we can positionally,
+        # remaining tracks get no match
+        selected = windowed
+    else:
+        selected = windowed
+
+    # Build positional matches
+    matches = []
+    for i, ep in enumerate(selected):
+        if i >= len(main_tracks):
+            break
+        track = main_tracks[i]
+        delta = abs((track.get("length") or 0) - (ep.get("runtime") or 0))
+        if delta <= tolerance:
+            matches.append({
+                "track_number": track["track_number"],
+                "episode_number": ep["number"],
+                "episode_name": ep["name"],
+                "episode_runtime": ep.get("runtime", 0),
+            })
+
+    # Fallback: if windowed matching got fewer results than greedy would,
+    # use greedy instead (handles edge cases where disc info is wrong)
+    greedy = _match_greedy(main_tracks, episodes, tolerance)
+    if len(greedy) > len(matches):
+        log.info(
+            "Windowed matching (%d) worse than greedy (%d), using greedy",
+            len(matches), len(greedy),
+        )
+        return greedy
+
+    return matches
+
+
+def _match_greedy(
+    main_tracks: list[dict],
+    episodes: list[dict],
+    tolerance: int,
+) -> list[dict]:
+    """Greedy runtime matching: no disc info, pure runtime similarity.
+
+    Builds all (track, episode) pairs within tolerance, assigns by
+    smallest delta first, then re-orders so track sequence matches
+    episode sequence.
+    """
     pairs = []
-    for ti, track in enumerate(tracks):
+    for ti, track in enumerate(main_tracks):
         t_len = track.get("length") or 0
-        if t_len < 120:  # skip very short tracks (menus, intros)
-            continue
         for ei, ep in enumerate(episodes):
             delta = abs(t_len - ep.get("runtime", 0))
             if delta <= tolerance:
-                pos_bias = abs(ei - expected_center) if use_position_bias else 0.0
-                score = delta + pos_bias * pos_weight
-                pairs.append((score, delta, pos_bias, ti, ei))
+                pairs.append((delta, ti, ei))
 
-    # Greedy assignment: lowest combined score first
     pairs.sort()
     used_tracks: set[int] = set()
     used_episodes: set[int] = set()
     matches = []
 
-    for _score, _delta, _pos_bias, ti, ei in pairs:
+    for _delta, ti, ei in pairs:
         if ti in used_tracks or ei in used_episodes:
             continue
         used_tracks.add(ti)
         used_episodes.add(ei)
         matches.append({
-            "track_number": tracks[ti]["track_number"],
+            "track_number": main_tracks[ti]["track_number"],
             "episode_number": episodes[ei]["number"],
             "episode_name": episodes[ei]["name"],
             "episode_runtime": episodes[ei].get("runtime", 0),
         })
 
-    # Re-order matches so track order maps to episode order.
-    # The greedy algorithm picks by score, which can scramble the natural
-    # track→episode sequence.  Sort both sides independently and re-pair
-    # so that the earliest track gets the earliest episode.
+    # Re-order: track sequence → episode sequence
     if len(matches) > 1:
         sorted_tracks = sorted(matches, key=lambda m: int(m["track_number"]))
         sorted_eps = sorted(matches, key=lambda m: m["episode_number"])
