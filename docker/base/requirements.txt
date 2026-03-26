@@ -14,7 +14,7 @@ psutil==7.2.2
 pydvdid==1.1
 PyYAML==6.0.2
 pyudev==0.24.4
-requests==2.32.5
+requests==2.33.0
 SQLAlchemy==2.0.48
 structlog>=24.4.0
 urllib3==2.6.3
