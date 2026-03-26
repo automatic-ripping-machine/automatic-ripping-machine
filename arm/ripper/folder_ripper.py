@@ -72,8 +72,13 @@ def rip_folder(job):
         job.raw_path = rawpath
         db.session.commit()
 
-        # 4. Pre-scan tracks
-        prescan_track_info(job)
+        # 4. Pre-scan tracks (skip if already scanned during job creation)
+        db.session.expire(job, ['tracks'])
+        existing_tracks = list(job.tracks)
+        if existing_tracks:
+            log.info("Skipping prescan — %d tracks already exist from review", len(existing_tracks))
+        else:
+            prescan_track_info(job)
 
         # 5. Rip — always use "all" mode for folder imports.
         # MakeMKV's per-track numbering from file: sources doesn't match
