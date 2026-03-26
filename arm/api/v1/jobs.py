@@ -828,5 +828,9 @@ def update_track_fields(job_id: int, track_id: int, body: dict):
 
     for key, value in clean.items():
         setattr(track, key, value)
+    # Keep track.title in sync — the webhook payload reads track.title for
+    # the filename, so it must reflect the current episode_name when set.
+    if "episode_name" in clean and clean["episode_name"]:
+        track.title = clean["episode_name"]
     db.session.commit()
     return {"success": True, "job_id": job_id, "track_id": track_id, "updated": clean}

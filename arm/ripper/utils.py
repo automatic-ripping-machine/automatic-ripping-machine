@@ -199,7 +199,9 @@ def _build_webhook_payload(title, body, job, raw_basename):
             r = rendered_map.get(str(track.track_number or ''), {})
             tracks_meta.append({
                 "track_number": str(track.track_number or ''),
-                "title": str(track.title or job.title or ''),
+                # Prefer episode_name for series tracks — track.title can be stale
+                # if the user corrected episodes via the UI after auto-match.
+                "title": str(getattr(track, 'episode_name', '') or track.title or job.title or ''),
                 "year": str(track.year or job.year or ''),
                 "video_type": str(track.video_type or job.video_type or ''),
                 "filename": str(track.filename or ''),

@@ -169,6 +169,55 @@ class TestBuildWebhookPayload:
         payload = _build_webhook_payload("Test", "body", sample_job, "")
         assert "path" not in payload
 
+    def test_episode_name_preferred_over_track_title(self, app_context, job_with_tracks):
+        """Webhook title field prefers episode_name over track.title (stale auto-match fix)."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        job, tracks = job_with_tracks
+        # Simulate the desync: track.title has stale auto-match, episode_name has correct value
+        tracks[0].title = "The Werewolf"
+        tracks[0].episode_name = "Firefall"
+        tracks[0].episode_number = "6"
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+        t0 = payload["tracks"][0]
+        assert t0["title"] == "Firefall", "episode_name should take priority over stale track.title"
+        assert t0["episode_name"] == "Firefall"
+        assert t0["episode_number"] == "6"
+
+    def test_track_title_used_when_no_episode_name(self, app_context, job_with_tracks):
+        """When episode_name is empty, falls back to track.title then job.title."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        job, tracks = job_with_tracks
+        tracks[0].title = "Custom Title"
+        tracks[0].episode_name = None
+        tracks[0].episode_number = None
+        # Track without title or episode_name falls back to job.title
+        tracks[1].title = None
+        tracks[1].episode_name = None
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+        assert payload["tracks"][0]["title"] == "Custom Title"
+        assert payload["tracks"][1]["title"] == job.title
+
+    def test_empty_episode_name_does_not_override_title(self, app_context, job_with_tracks):
+        """Empty string episode_name should fall back to track.title."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        job, tracks = job_with_tracks
+        tracks[0].title = "My Title"
+        tracks[0].episode_name = ""
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+        assert payload["tracks"][0]["title"] == "My Title"
+
 
 # ── transcode_callback tests ─────────────────────────────────────────────
 

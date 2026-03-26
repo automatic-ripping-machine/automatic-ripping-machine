@@ -304,6 +304,61 @@ class TestTrackFieldUpdates:
         )
         assert resp.status_code == 404
 
+    def test_patch_episode_name_syncs_title(self, app_context, job_with_tracks, client):
+        """Setting episode_name via PATCH must also update track.title so the
+        webhook payload uses the correct name for the output filename."""
+        job, tracks = job_with_tracks
+        track = tracks[0]
+        track.title = "Stale Auto-Match Name"
+        db.session.commit()
+
+        resp = client.patch(
+            f"/api/v1/jobs/{job.job_id}/tracks/{track.track_id}",
+            json={"episode_number": "6", "episode_name": "Firefall"},
+        )
+        assert resp.status_code == 200
+        db.session.expire_all()
+        refreshed = Track.query.get(track.track_id)
+        assert refreshed.episode_name == "Firefall"
+        assert refreshed.episode_number == "6"
+        # title must be synced to episode_name
+        assert refreshed.title == "Firefall"
+
+    def test_patch_empty_episode_name_preserves_title(self, app_context, job_with_tracks, client):
+        """Empty episode_name should NOT overwrite an existing track.title."""
+        job, tracks = job_with_tracks
+        track = tracks[0]
+        track.title = "Original Title"
+        db.session.commit()
+
+        resp = client.patch(
+            f"/api/v1/jobs/{job.job_id}/tracks/{track.track_id}",
+            json={"episode_name": ""},
+        )
+        assert resp.status_code == 200
+        db.session.expire_all()
+        refreshed = Track.query.get(track.track_id)
+        assert refreshed.episode_name == ""
+        # title should NOT be overwritten with empty string
+        assert refreshed.title == "Original Title"
+
+    def test_patch_episode_name_only_without_number(self, app_context, job_with_tracks, client):
+        """Patching episode_name alone (no episode_number) still syncs title."""
+        job, tracks = job_with_tracks
+        track = tracks[0]
+        track.title = "Old Name"
+        db.session.commit()
+
+        resp = client.patch(
+            f"/api/v1/jobs/{job.job_id}/tracks/{track.track_id}",
+            json={"episode_name": "New Episode"},
+        )
+        assert resp.status_code == 200
+        db.session.expire_all()
+        refreshed = Track.query.get(track.track_id)
+        assert refreshed.episode_name == "New Episode"
+        assert refreshed.title == "New Episode"
+
 
 class TestTvdbMatch:
     """Test POST /jobs/{id}/tvdb-match disc override logic."""

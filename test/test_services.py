@@ -48,6 +48,54 @@ class TestApplyMatches:
         assert track1.episode_number == "1"
         assert track2.episode_name == "Second"
 
+    def test_all_three_fields_synced(self, app_context):
+        """title, episode_number, episode_name are all set from the same match."""
+        from arm.services.tvdb_sync import _apply_matches
+        from arm.services.matching.base import MatchResult, TrackMatch
+
+        job = MagicMock()
+        track = MagicMock()
+        track.track_number = "0"
+        # Simulate stale title from a previous auto-match
+        track.title = "Stale Episode Name"
+        track.episode_number = "5"
+        track.episode_name = "Stale Episode Name"
+        job.tracks = [track]
+
+        result = MatchResult(
+            matcher="tvdb",
+            season=1,
+            matches=[
+                TrackMatch(track_number="0", episode_number=6,
+                           episode_name="Firefall", episode_runtime=51),
+            ],
+            match_count=1,
+        )
+
+        count = _apply_matches(job, result)
+        assert count == 1
+        # All three must be updated together
+        assert track.title == "Firefall"
+        assert track.episode_number == "6"  # stored as string
+        assert track.episode_name == "Firefall"
+
+    def test_empty_matches_returns_zero(self, app_context):
+        """Empty match list returns zero without modifying any tracks."""
+        from arm.services.tvdb_sync import _apply_matches
+        from arm.services.matching.base import MatchResult
+
+        job = MagicMock()
+        track = MagicMock()
+        track.track_number = "0"
+        track.title = "Original"
+        job.tracks = [track]
+
+        result = MatchResult(matcher="tvdb", season=1, matches=[], match_count=0)
+        count = _apply_matches(job, result)
+        assert count == 0
+        # Track should not be modified
+        assert track.title == "Original"
+
     def test_unmatched_tracks_skipped(self, app_context):
         from arm.services.tvdb_sync import _apply_matches
         from arm.services.matching.base import MatchResult, TrackMatch

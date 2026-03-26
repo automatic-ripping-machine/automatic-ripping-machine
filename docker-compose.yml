@@ -67,6 +67,8 @@ services:
       - ${ARM_CONFIG_PATH}:/etc/arm/config
       - arm-db:/home/arm/db
       - ${ARM_MAKEMKV_PATH:-makemkv-settings}:/home/arm/.MakeMKV
+      # Transcoder work directory — lets the file browser show in-progress transcodes
+      - ${TRANSCODER_WORK_PATH:-./work}:/home/arm/media/transcode:ro
       # Live /dev mount ensures USB optical drives remain visible after
       # hot-plug, disconnect/reconnect, or device re-enumeration.
       - /dev:/dev
