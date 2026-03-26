@@ -20,6 +20,16 @@ _JOB_NOT_FOUND = "Job not found"
 _NOT_WAITING = "Job is not in waiting state"
 
 
+def _rip_folder_by_id(job_id: int):
+    """Re-query job by ID in the thread's own session, then run rip_folder."""
+    import logging
+    job = Job.query.get(job_id)
+    if not job:
+        logging.error("rip_folder thread: job %s not found", job_id)
+        return
+    rip_folder(job)
+
+
 def _auto_flag_tracks(job, mainfeature: bool):
     """Re-flag track enabled state based on MAINFEATURE + video type.
 
@@ -84,12 +94,15 @@ def start_waiting_job(job_id: int):
         return JSONResponse({"success": False, "error": _NOT_WAITING}, status_code=409)
 
     if job.source_type == "folder":
-        # Folder jobs: launch rip_folder in a background thread
+        # Folder jobs: launch rip_folder in a background thread.
+        # Pass job_id, not the ORM object — the thread has its own session
+        # scope and the original object would be detached.
         job.status = JobState.VIDEO_RIPPING.value
         db.session.commit()
-        thread = threading.Thread(target=rip_folder, args=(job,), daemon=True)
+        job_id = job.job_id
+        thread = threading.Thread(target=_rip_folder_by_id, args=(job_id,), daemon=True)
         thread.start()
-        return {"success": True, "job_id": job.job_id, "status": job.status}
+        return {"success": True, "job_id": job_id, "status": job.status}
 
     # Disc rip — existing behavior (signal running ripper thread to proceed)
     svc_files.database_updater({"manual_start": True}, job)
