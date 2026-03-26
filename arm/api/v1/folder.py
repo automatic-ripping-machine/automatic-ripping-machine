@@ -159,10 +159,14 @@ def _prescan_and_wait(job_id: int):
             log.error("Prescan: job %s not found", job_id)
             return
 
-        # Set logfile early so the UI can display logs during prescan
-        from arm.ripper.logger import log_filename
-        job.logfile = log_filename(job_id)
+        # Set logfile and create file handler so prescan output is captured
+        from arm.ripper.logger import log_filename, create_file_handler
+        import logging as _logging
+        log_file = log_filename(job_id)
+        job.logfile = log_file
         db.session.commit()
+        _file_handler = create_file_handler(log_file)
+        _logging.getLogger().addHandler(_file_handler)
 
         try:
             prep_mkv()
@@ -180,5 +184,9 @@ def _prescan_and_wait(job_id: int):
             except Exception:
                 log.exception("Failed to update job %s status after prescan error", job_id)
     finally:
+        # Clean up file handler
+        if '_file_handler' in dir():
+            _logging.getLogger().removeHandler(_file_handler)
+            _file_handler.close()
         # Release the scoped session for this thread to prevent pool exhaustion
         db.session.remove()
