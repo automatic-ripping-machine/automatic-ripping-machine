@@ -12,7 +12,7 @@ from arm.ripper.arm_matcher import parse_label
 # e.g. "Show Name - Disc 4 of 4 - BD50 - Untouched"
 # Uses (?:^|[\s_-]) to also match at start of string (e.g. "Disc 1 - BD50")
 _FOLDER_DISC_RE = re.compile(
-    r'(?:^|[\s_-])(D|DISC)[\s_-]?(\d+)(?:[\s_-](?:OF|of)[\s_-]?(\d+))?',
+    r'(?:^|[\s_-])(D|DISC)[\s_-]?(\d+)(?:[\s_-]OF[\s_-]?(\d+))?',
     re.IGNORECASE,
 )
 _FOLDER_SEASON_RE = re.compile(

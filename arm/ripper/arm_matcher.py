@@ -76,7 +76,7 @@ class MatchSelection:
 # (e.g., "The Godfather Part II", "Dune: Part Two"), not a disc indicator.
 # Studios use P1/D1/DISC_1 for physical disc numbering.
 _DISC_SUFFIX_RE = re.compile(
-    r'[\s_-](P|D|DISC)[\s_-]?(\d+)(?:[\s_-](?:OF|of)[\s_-]?(\d+))?$',
+    r'[\s_-](P|D|DISC)[\s_-]?(\d+)(?:[\s_-]OF[\s_-]?(\d+))?$',
     re.IGNORECASE,
 )
 
