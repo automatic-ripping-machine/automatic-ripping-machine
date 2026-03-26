@@ -43,10 +43,12 @@ def rip_folder(job):
         # 0. Set up per-job log file so the UI can display rip progress
         log_file = log_filename(job.job_id)
         job.logfile = log_file
+        db.session.commit()
 
         root_logger = logging.getLogger()
         file_handler = create_file_handler(log_file)
         root_logger.addHandler(file_handler)
+        log.info("Starting folder import rip for job %s: %s", job.job_id, job.source_path)
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(
             job_id=job.job_id,
