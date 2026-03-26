@@ -211,7 +211,8 @@ class TestMatchEpisodesForApi:
             out = match_episodes_for_api(job, apply=True)
 
         assert out["applied"] is True
-        mock_db.session.commit.assert_called_once()
+        # Two commits: one for tvdb_id persist, one for apply
+        assert mock_db.session.commit.call_count == 2
         assert job.tvdb_id == 555
 
     def test_error_included_in_output(self, app_context):

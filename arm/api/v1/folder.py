@@ -165,12 +165,16 @@ def _prescan_and_wait(job_id: int):
         log_file = log_filename(job_id)
         job.logfile = log_file
         db.session.commit()
-        _file_handler = create_file_handler(log_file)
-        _log_level = cfg.arm_config.get("LOGLEVEL", "INFO")
-        _file_handler.setLevel(_log_level)
-        _root = _logging.getLogger()
-        _root.addHandler(_file_handler)
-        _root.setLevel(_log_level)
+        try:
+            _file_handler = create_file_handler(log_file)
+            _log_level = cfg.arm_config.get("LOGLEVEL", "INFO")
+            _file_handler.setLevel(_log_level)
+            _root = _logging.getLogger()
+            _root.addHandler(_file_handler)
+            _root.setLevel(_log_level)
+        except OSError:
+            _file_handler = None
+            log.warning("Could not create log file handler for %s", log_file)
 
         try:
             prep_mkv()
@@ -189,7 +193,7 @@ def _prescan_and_wait(job_id: int):
                 log.exception("Failed to update job %s status after prescan error", job_id)
     finally:
         # Clean up file handler
-        if '_file_handler' in dir():
+        if '_file_handler' in dir() and _file_handler is not None:
             _logging.getLogger().removeHandler(_file_handler)
             _file_handler.close()
         # Release the scoped session for this thread to prevent pool exhaustion

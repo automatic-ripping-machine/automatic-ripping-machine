@@ -324,8 +324,8 @@ class TestPrescanAndWait:
         mock_job.job_id = 12
         mock_job.errors = None
         mock_job_cls.query.get.return_value = mock_job
-        # First commit (in except block) raises
-        mock_db.session.commit.side_effect = RuntimeError("DB locked")
+        # First commit (logfile save) succeeds, second (in except block) raises
+        mock_db.session.commit.side_effect = [None, RuntimeError("DB locked")]
 
         with patch("arm.ripper.makemkv.prep_mkv"), \
              patch("arm.ripper.makemkv.prescan_track_info",

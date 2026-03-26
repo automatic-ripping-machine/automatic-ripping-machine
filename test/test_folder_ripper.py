@@ -175,7 +175,8 @@ class TestRipFolder:
         job.source_path = "/nonexistent/path"
         job.errors = None
 
-        mock_db.session.commit.side_effect = RuntimeError("DB is down")
+        # First commit (logfile save) succeeds, subsequent commits fail
+        mock_db.session.commit.side_effect = [None, RuntimeError("DB is down")]
 
         with pytest.raises(FileNotFoundError):
             rip_folder(job)
