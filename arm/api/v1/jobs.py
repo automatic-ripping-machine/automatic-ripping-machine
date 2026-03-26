@@ -740,9 +740,6 @@ async def tvdb_match(job_id: int, request: Request):
     result = match_episodes_for_api(job, season=season, tolerance=tolerance, apply=apply)
 
     # Restore originals if not applying (preview mode)
-    # Always persist tvdb_id so fetchTvdbEpisodes works for full dropdown
-    if job.tvdb_id:
-        db.session.commit()
     if not apply:
         job.disc_number = saved_disc_number
         job.disc_total = saved_disc_total

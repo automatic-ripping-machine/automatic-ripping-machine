@@ -117,10 +117,13 @@ def match_episodes_for_api(job, season=None, tolerance=None, apply=False):
     if result.error:
         out["error"] = result.error
 
+    # Always persist tvdb_id so fetchTvdbEpisodes can load full season dropdown
+    if result.tvdb_id and not getattr(job, "tvdb_id", None):
+        job.tvdb_id = result.tvdb_id
+        db.session.commit()
+
     if apply and result.success:
         matched_count = _apply_matches(job, result)
-        if result.tvdb_id and not getattr(job, "tvdb_id", None):
-            job.tvdb_id = result.tvdb_id
         if result.season is not None:
             job.season_auto = str(result.season)
         if matched_count:
