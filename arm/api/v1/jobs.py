@@ -775,7 +775,7 @@ def _clean_for_filename(string):
 
 # --- Track field updates ---
 
-_TRACK_EDITABLE_FIELDS: dict[str, type] = {"enabled": bool, "filename": str, "ripped": bool, "custom_filename": str}
+_TRACK_EDITABLE_FIELDS: dict[str, type] = {"enabled": bool, "filename": str, "ripped": bool, "custom_filename": str, "episode_number": str, "episode_name": str}
 
 
 @router.patch('/jobs/{job_id}/tracks/{track_id}')
