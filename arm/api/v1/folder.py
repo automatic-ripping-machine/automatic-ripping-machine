@@ -159,6 +159,11 @@ def _prescan_and_wait(job_id: int):
             log.error("Prescan: job %s not found", job_id)
             return
 
+        # Set logfile early so the UI can display logs during prescan
+        from arm.ripper.logger import log_filename
+        job.logfile = log_filename(job_id)
+        db.session.commit()
+
         try:
             prep_mkv()
             prescan_track_info(job)
