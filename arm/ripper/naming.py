@@ -201,6 +201,17 @@ def render_track_title(track, job, config_dict=None):
 
     variables = _build_track_variables(track, job)
     video_type = variables.get('video_type', '')
+
+    # For series tracks without an episode match and no job-level episode,
+    # use a simple track-based name instead of the TV pattern. This avoids
+    # fake S01E04 names derived from track_number on menu/intro tracks.
+    ep_num = getattr(track, 'episode_number', None)
+    job_episode = getattr(job, 'episode_manual', None) or getattr(job, 'episode', None) or getattr(job, 'episode_auto', None)
+    if video_type == 'series' and not ep_num and not job_episode:
+        title = variables.get('title', '')
+        track_num = getattr(track, 'track_number', None) or '0'
+        return f'{title} - Track {track_num}' if title else f'Track {track_num}'
+
     pattern = _get_pattern(config_dict, video_type, 'TITLE', job=job)
     rendered = pattern.format_map(variables)
     rendered = _clean_empty_parens(rendered)
