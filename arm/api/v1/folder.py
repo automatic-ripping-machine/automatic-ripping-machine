@@ -166,7 +166,11 @@ def _prescan_and_wait(job_id: int):
         job.logfile = log_file
         db.session.commit()
         _file_handler = create_file_handler(log_file)
-        _logging.getLogger().addHandler(_file_handler)
+        _file_handler.setLevel(_logging.DEBUG)
+        _root = _logging.getLogger()
+        _root.addHandler(_file_handler)
+        if _root.level > _logging.DEBUG:
+            _root.setLevel(_logging.DEBUG)
 
         try:
             prep_mkv()

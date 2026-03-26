@@ -47,7 +47,10 @@ def rip_folder(job):
 
         root_logger = logging.getLogger()
         file_handler = create_file_handler(log_file)
+        file_handler.setLevel(logging.DEBUG)
         root_logger.addHandler(file_handler)
+        if root_logger.level > logging.DEBUG:
+            root_logger.setLevel(logging.DEBUG)
         log.info("Starting folder import rip for job %s: %s", job.job_id, job.source_path)
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(
