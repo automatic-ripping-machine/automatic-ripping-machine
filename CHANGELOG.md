@@ -1,5 +1,25 @@
 # Changelog
 
+## [14.0.1](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v14.0.0...v14.0.1) (2026-03-26)
+
+
+### Bug Fixes
+
+* add episode_number and episode_name to track editable fields ([dc1f72a](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/dc1f72a36330c78a17ce35f0d47c99fe2a015669))
+* commit logfile to DB in rip_folder and add startup log entry ([22b8911](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/22b89111cefd76cbbb49aecdd5f97728c74aac2e))
+* create log file handler during prescan so logs are visible in waiting state ([0dee286](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/0dee286a65e062ae9202a5bb88267be754fd7fae))
+* pass job_id to rip_folder thread to prevent detached session error ([aa832a6](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/aa832a6d91703a568a75bb62bb9dc93fc4044a1c))
+* persist tvdb_id in match_episodes_for_api regardless of apply mode ([a9a66e9](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/a9a66e91a7a7e48a0687a983340c02e52eff2223))
+* persist tvdb_id in preview mode so full episode dropdown loads on first match ([4644703](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/464470327ffaa8559cf9b7f84d8ae6521c4963c9))
+* remove redundant OF|of alternatives with IGNORECASE (SonarCloud) ([7375361](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/7375361009ddcb66aaa699f17701c2dc81fc93c6))
+* set log handler and root logger to DEBUG so rip logs are captured ([b38a4b7](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/b38a4b767048a5e8bed0964aefe0907532abd197))
+* set logfile on folder import jobs during prescan for UI log display ([6e8dea5](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/6e8dea526760932ec9d700693f01fb3581742a3f))
+* set SQLite busy_timeout to 30s to prevent database locked during rips ([49f45b4](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/49f45b45cb1ed00e94ac4e199a5aab51b8946b1e))
+* skip redundant prescan in rip_folder when tracks exist from review ([1bb8219](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/1bb8219d847ad7830e6ed427d09110d1837f37dd))
+* unmatched series tracks use Track N name instead of fake S01E numbering ([06045d3](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/06045d363ee7bb1e7cb2c26b724a3ac6293d417e))
+* update tests for logfile handler and tvdb_id persist changes ([533b1a6](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/533b1a6ae6824cc7928a9900fd02f94bf22b0bf6))
+* use LOGLEVEL from config for folder rip log handlers instead of hardcoded DEBUG ([a547475](https://github.com/uprightbass360/automatic-ripping-machine-neu/commit/a54747599d23cf7afa0a33370c267789df23f288))
+
 ## [14.0.0](https://github.com/uprightbass360/automatic-ripping-machine-neu/compare/v13.7.2...v14.0.0) (2026-03-25)
 
 
