@@ -42,6 +42,17 @@ def get_excluded_episodes(job, season: int | None = None) -> set[int]:
                 Track.episode_number.isnot(None),
             )
         )
+        # Only exclude from jobs on DIFFERENT disc numbers.
+        # Re-runs of the same disc (same disc_number) should not
+        # exclude their own episodes from matching.
+        disc_number = getattr(job, "disc_number", None)
+        if disc_number is not None:
+            query = query.filter(
+                db.or_(
+                    Job.disc_number != disc_number,
+                    Job.disc_number.is_(None),
+                )
+            )
         # Filter by season when known — episode numbers restart each season
         if season is not None:
             query = query.filter(
