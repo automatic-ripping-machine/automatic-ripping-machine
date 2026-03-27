@@ -1,9 +1,13 @@
-"""API v1 — Job endpoints."""
+"""API v1 — Job endpoints.
+
+All handlers use sync def (not async def) so FastAPI runs them in a
+threadpool, preventing blocking the event loop during DB queries,
+external HTTP calls, or filesystem operations.
+"""
 import json
 import re
 import threading
-
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 import arm.config.config as cfg
@@ -145,13 +149,11 @@ def cancel_waiting_job(job_id: int):
 
 
 @router.patch('/jobs/{job_id}/config')
-async def change_job_config(job_id: int, request: Request):
+def change_job_config(job_id: int, body: dict):
     """Update job rip parameters."""
     job = Job.query.get(job_id)
     if not job:
         return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
-
-    body = await request.json()
     if not body:
         return JSONResponse({"success": False, "error": "No fields to update"}, status_code=400)
 
@@ -336,13 +338,11 @@ def _re_render_title(job, updated):
 
 
 @router.put('/jobs/{job_id}/title')
-async def update_job_title(job_id: int, request: Request):
+def update_job_title(job_id: int, body: dict):
     """Update a job's title metadata."""
     job = Job.query.get(job_id)
     if not job:
         return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
-
-    body = await request.json()
     old_title, old_year = job.title, job.year
 
     args, updated, structured_changed = _process_mapped_fields(body)
@@ -369,13 +369,11 @@ async def update_job_title(job_id: int, request: Request):
 
 
 @router.put('/jobs/{job_id}/tracks')
-async def set_job_tracks(job_id: int, request: Request):
+def set_job_tracks(job_id: int, body: dict):
     """Replace a job's tracks with MusicBrainz track data."""
     job = Job.query.get(job_id)
     if not job:
         return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
-
-    body = await request.json()
     tracks = body.get('tracks', [])
     if not isinstance(tracks, list):
         return JSONResponse({"success": False, "error": "tracks must be a list"}, status_code=400)
@@ -404,20 +402,18 @@ async def set_job_tracks(job_id: int, request: Request):
 
 
 @router.post('/jobs/{job_id}/multi-title')
-async def toggle_multi_title(job_id: int, request: Request):
+def toggle_multi_title(job_id: int, body: dict):
     """Toggle the multi_title flag on a job."""
     job = Job.query.get(job_id)
     if not job:
         return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
-
-    body = await request.json()
     enabled = bool(body.get('enabled', not getattr(job, 'multi_title', False)))
     svc_files.database_updater({"multi_title": enabled}, job)
     return {"success": True, "job_id": job.job_id, "multi_title": enabled}
 
 
 @router.put('/jobs/{job_id}/tracks/{track_id}/title')
-async def update_track_title(job_id: int, track_id: int, request: Request):
+def update_track_title(job_id: int, track_id: int, body: dict):
     """Set per-track title metadata for a multi-title disc."""
     job = Job.query.get(job_id)
     if not job:
@@ -426,8 +422,6 @@ async def update_track_title(job_id: int, track_id: int, request: Request):
     track = Track.query.get(track_id)
     if not track or track.job_id != job_id:
         return JSONResponse({"success": False, "error": "Track not found"}, status_code=404)
-
-    body = await request.json()
     updated = {}
     track_fields = {
         'title': ('title', str, 256),
@@ -479,10 +473,9 @@ def clear_track_title(job_id: int, track_id: int):
 
 
 @router.post('/naming/preview')
-async def naming_preview(request: Request):
+def naming_preview(body: dict):
     """Preview a naming pattern with given variables."""
     from arm.ripper.naming import render_preview
-    body = await request.json()
     pattern = body.get('pattern', '')
     variables = body.get('variables', {})
     if not pattern:
@@ -511,15 +504,13 @@ def naming_preview_for_job(job_id: int):
 
 
 @router.patch('/jobs/{job_id}/naming')
-async def update_job_naming(job_id: int, request: Request):
+def update_job_naming(job_id: int, body: dict):
     """Update per-job naming pattern overrides."""
     from arm.ripper.naming import validate_pattern
 
     job = Job.query.get(job_id)
     if not job:
         return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
-
-    body = await request.json()
 
     for field in ('title_pattern_override', 'folder_pattern_override'):
         if field in body:
@@ -546,11 +537,9 @@ async def update_job_naming(job_id: int, request: Request):
 
 
 @router.post('/naming/validate')
-async def validate_naming_pattern(request: Request):
+def validate_naming_pattern(body: dict):
     """Validate a naming pattern against known variables."""
     from arm.ripper.naming import validate_pattern
-
-    body = await request.json()
     pattern = body.get('pattern', '')
     if not pattern:
         return {"valid": True, "invalid_vars": [], "suggestions": {}}
@@ -610,13 +599,11 @@ def _validate_transcode_overrides(body):
 
 
 @router.patch('/jobs/{job_id}/transcode-config')
-async def update_transcode_config(job_id: int, request: Request):
+def update_transcode_config(job_id: int, body: dict):
     """Set per-job transcode override settings."""
     job = Job.query.get(job_id)
     if not job:
         return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
-
-    body = await request.json()
     if not body or not isinstance(body, dict):
         return JSONResponse({"success": False, "error": "Request body must be a JSON object"}, status_code=400)
 
@@ -631,7 +618,7 @@ async def update_transcode_config(job_id: int, request: Request):
 
 
 @router.post('/jobs/{job_id}/transcode-callback')
-async def transcode_callback(job_id: int, request: Request):
+def transcode_callback(job_id: int, body: dict):
     """Receive status update from the external transcoder.
 
     Expected payload::
@@ -648,8 +635,6 @@ async def transcode_callback(job_id: int, request: Request):
     job = Job.query.get(job_id)
     if not job:
         return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
-
-    body = await request.json()
     status = body.get("status")
 
     if status == "transcoding":
@@ -705,7 +690,7 @@ async def transcode_callback(job_id: int, request: Request):
 
 
 @router.post('/jobs/{job_id}/tvdb-match')
-async def tvdb_match(job_id: int, request: Request):
+def tvdb_match(job_id: int, body: dict):
     """Run TVDB episode matching for a job.
 
     Body: {"season": int|null, "tolerance": int|null, "apply": bool}
@@ -716,8 +701,6 @@ async def tvdb_match(job_id: int, request: Request):
     job = Job.query.get(job_id)
     if not job:
         return JSONResponse({"success": False, "error": _JOB_NOT_FOUND}, status_code=404)
-
-    body = await request.json()
     season = body.get("season")
     tolerance = body.get("tolerance")
     apply = bool(body.get("apply", False))

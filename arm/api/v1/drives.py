@@ -7,7 +7,7 @@ import os
 import re
 import subprocess
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from arm.database import db
@@ -214,7 +214,7 @@ async def drive_diagnostic():
 
 
 @router.post('/drives/rescan')
-async def rescan_drives():
+def rescan_drives():
     """Re-detect optical drives and update the database.
 
     Python-level only — refreshes the drive inventory in the DB
@@ -275,7 +275,7 @@ async def scan_drive(drive_id: int):
 
 
 @router.delete('/drives/{drive_id}')
-async def delete_drive(drive_id: int):
+def delete_drive(drive_id: int):
     """Remove a stale drive from the database.
 
     Only allows deletion of drives that are not currently processing a job.
@@ -296,13 +296,12 @@ async def delete_drive(drive_id: int):
 
 
 @router.patch('/drives/{drive_id}')
-async def update_drive(drive_id: int, request: Request):
+def update_drive(drive_id: int, body: dict):
     """Update a drive's user-editable fields (name, description)."""
     drive = SystemDrives.query.get(drive_id)
     if not drive:
         return JSONResponse({"success": False, "error": "Drive not found"}, status_code=404)
 
-    body = await request.json()
     if not body:
         return JSONResponse({"success": False, "error": "No fields to update"}, status_code=400)
 
@@ -331,13 +330,12 @@ async def update_drive(drive_id: int, request: Request):
 
 
 @router.post('/drives/{drive_id}/eject')
-async def eject_drive(drive_id: int, request: Request):
+def eject_drive(drive_id: int, body: dict = {}):
     """Eject, close, or toggle the drive tray."""
     drive = SystemDrives.query.get(drive_id)
     if not drive:
         return JSONResponse({"success": False, "error": "Drive not found"}, status_code=404)
 
-    body = await request.json() if await request.body() else {}
     method = body.get('method', 'toggle')
     if method not in ('eject', 'close', 'toggle'):
         return JSONResponse(

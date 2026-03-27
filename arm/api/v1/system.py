@@ -4,7 +4,7 @@ import platform
 import subprocess
 
 import psutil
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 import arm.config.config as cfg
@@ -197,9 +197,8 @@ from arm.ripper.makemkv import prep_mkv
 
 
 @router.post('/system/ripping-enabled')
-async def set_ripping_enabled(request: Request):
+def set_ripping_enabled(body: dict):
     """Toggle global ripping pause."""
-    body = await request.json()
     if 'enabled' not in body:
         return JSONResponse(
             {"success": False, "error": "'enabled' field required"},
