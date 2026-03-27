@@ -121,6 +121,39 @@ class TestReconcileWithTitleMap:
             assert track5.filename == "Show_t04.mkv", \
                 f"Track 5 should map to Show_t04.mkv via title_map, got {track5.filename}"
 
+    def test_skipped_track_not_matched_to_claimed_file(self):
+        """A skipped track whose original filename collides with a file
+        claimed by another track via title_map should NOT be matched."""
+        from unittest.mock import patch
+        from arm.ripper.makemkv import _reconcile_filenames
+
+        job = MagicMock()
+        # Prescan: track 3 (skipped, 22s) and tracks 4,5 (episodes)
+        # MakeMKV output: _t00.mkv (=title 4), _t01.mkv (=title 5)
+        track3 = MagicMock(track_number="3", filename="Show_t03.mkv", track_id=103)
+        track4 = MagicMock(track_number="4", filename="Show_t04.mkv", track_id=104)
+        track5 = MagicMock(track_number="5", filename="Show_t05.mkv", track_id=105)
+        all_tracks = [track3, track4, track5]
+        job.tracks.filter_by.return_value.order_by.return_value = all_tracks
+
+        import tempfile
+        with tempfile.TemporaryDirectory() as rawpath:
+            Path(rawpath, "Show_t00.mkv").touch()
+            Path(rawpath, "Show_t01.mkv").touch()
+
+            # title_map: output 0 (_t00) -> title 4, output 1 (_t01) -> title 5
+            title_map = {0: 4, 1: 5}
+
+            with patch("arm.ripper.makemkv.db"):
+                _reconcile_filenames(job, rawpath, title_map=title_map)
+
+            # Track 4 mapped to _t00.mkv, track 5 mapped to _t01.mkv
+            assert track4.filename == "Show_t00.mkv"
+            assert track5.filename == "Show_t01.mkv"
+            # Track 3 was skipped - its original filename Show_t03.mkv
+            # doesn't exist on disk, so it won't match in Pass 1 either
+            assert track3.filename == "Show_t03.mkv"  # unchanged
+
     def test_reconcile_without_title_map_unchanged(self):
         """Without title_map, existing pattern matching still works (backwards compat)."""
         from arm.ripper.makemkv import _reconcile_filenames
@@ -143,8 +176,112 @@ class TestReconcileWithTitleMap:
             assert track1.filename == "Movie_t01.mkv"
 
 
+class TestBuildTitleMapFromTracks:
+    """Test _build_title_map_from_tracks which uses prescan track data
+    and output file count to build the deterministic mapping."""
+
+    def test_skipped_short_track_default_threshold(self, tmp_path):
+        """Tracks below MakeMKV's default 120s threshold are skipped.
+        The Kolchak disc 4 scenario: tracks 3 (22s) and 6 (49s) are
+        below 120s, so 5 episode tracks map to 5 output files."""
+        from arm.ripper.folder_ripper import _build_title_map_from_tracks
+
+        rawpath = tmp_path / "raw"
+        rawpath.mkdir()
+        for i in range(5):
+            (rawpath / f"Show_t0{i}.mkv").write_bytes(b"x")
+
+        job = MagicMock()
+        tracks = []
+        for tn, length in [(0, 3012), (1, 3012), (2, 3015), (3, 22), (4, 3017), (5, 3011), (6, 49)]:
+            t = MagicMock()
+            t.track_number = str(tn)
+            t.length = length
+            tracks.append(t)
+        job.tracks = tracks
+
+        title_map = _build_title_map_from_tracks(job, str(rawpath))
+        # Default 120s threshold: tracks 0,1,2,4,5 qualify (>=120s)
+        assert title_map == {0: 0, 1: 1, 2: 2, 3: 4, 4: 5}
+
+    def test_fallback_threshold_search(self, tmp_path):
+        """When default threshold doesn't match, searches for the right one."""
+        from arm.ripper.folder_ripper import _build_title_map_from_tracks
+
+        rawpath = tmp_path / "raw"
+        rawpath.mkdir()
+        for i in range(3):
+            (rawpath / f"Show_t0{i}.mkv").write_bytes(b"x")
+
+        job = MagicMock()
+        # 5 tracks: 3 long + 2 medium (above 120s but MakeMKV still skipped them)
+        tracks = []
+        for tn, length in [(0, 3012), (1, 200), (2, 3015), (3, 150), (4, 3017)]:
+            t = MagicMock()
+            t.track_number = str(tn)
+            t.length = length
+            tracks.append(t)
+        job.tracks = tracks
+
+        title_map = _build_title_map_from_tracks(job, str(rawpath))
+        # Default 120s gives 5 qualifying (all >= 120) != 3 output
+        # Fallback search finds threshold >=200: tracks 0,2,4 = 3 files
+        assert title_map == {0: 0, 1: 2, 2: 4}
+
+    def test_no_skip_identity_map(self, tmp_path):
+        """When all tracks qualify, mapping is identity."""
+        from arm.ripper.folder_ripper import _build_title_map_from_tracks
+
+        rawpath = tmp_path / "raw"
+        rawpath.mkdir()
+        for i in range(3):
+            (rawpath / f"Movie_t0{i}.mkv").write_bytes(b"x")
+
+        job = MagicMock()
+        tracks = []
+        for tn in range(3):
+            t = MagicMock()
+            t.track_number = str(tn)
+            t.length = 3000
+            tracks.append(t)
+        job.tracks = tracks
+
+        title_map = _build_title_map_from_tracks(job, str(rawpath))
+        assert title_map == {0: 0, 1: 1, 2: 2}
+
+    def test_empty_rawpath(self):
+        """Empty or missing rawpath returns empty map."""
+        from arm.ripper.folder_ripper import _build_title_map_from_tracks
+        job = MagicMock()
+        job.tracks = []
+        assert _build_title_map_from_tracks(job, "") == {}
+        assert _build_title_map_from_tracks(job, "/nonexistent") == {}
+
+    def test_count_mismatch_returns_empty(self, tmp_path):
+        """When output count doesn't match qualifying tracks, returns empty."""
+        from arm.ripper.folder_ripper import _build_title_map_from_tracks
+
+        rawpath = tmp_path / "raw"
+        rawpath.mkdir()
+        # 3 output files but 4 qualifying tracks
+        for i in range(3):
+            (rawpath / f"Show_t0{i}.mkv").write_bytes(b"x")
+
+        job = MagicMock()
+        tracks = []
+        for tn in range(4):
+            t = MagicMock()
+            t.track_number = str(tn)
+            t.length = 3000
+            tracks.append(t)
+        job.tracks = tracks
+
+        title_map = _build_title_map_from_tracks(job, str(rawpath))
+        assert title_map == {}
+
+
 class TestFolderRipperTitleMap:
-    """Test that folder_ripper.py collects PRGC messages and passes title_map."""
+    """Test that folder_ripper builds title_map and passes to reconcile."""
 
     @pytest.fixture(autouse=True)
     def _mock_logging(self):
@@ -170,34 +307,32 @@ class TestFolderRipperTitleMap:
         job.config.MAINFEATURE = 0
         job.config.MKV_ARGS = ""
         job.config.MINLENGTH = "600"
+        job.config.LOGPATH = str(tmp_path / "logs")
         job.build_raw_path.return_value = str(tmp_path / "raw" / "Test Show")
         job.raw_path = None
         job.errors = None
         job.tracks = []
         return job
 
-    def test_prgc_messages_collected_and_passed_to_reconcile(self, tmp_path):
-        """folder_ripper should request PRGC messages from run() and pass
-        the resulting title_map to _reconcile_filenames."""
-        from unittest.mock import patch, call
-        from arm.ripper.makemkv import ProgressBarCurrent, OutputType
+    def test_title_map_passed_to_reconcile(self, tmp_path):
+        """folder_ripper builds title_map from prescan tracks and passes
+        it to _reconcile_filenames."""
+        from unittest.mock import patch
 
         rawpath = tmp_path / "raw" / "Test Show"
         rawpath.mkdir(parents=True)
+        # 2 output files
+        (rawpath / "Show_t00.mkv").write_bytes(b"x")
+        (rawpath / "Show_t01.mkv").write_bytes(b"x")
 
         job = self._make_job(tmp_path)
+        # 3 prescan tracks: 2 episodes + 1 very short
+        t0 = MagicMock(track_number="0", length=3000, filename="Show_t00.mkv", ripped=False)
+        t1 = MagicMock(track_number="1", length=5, filename="Show_t01.mkv", ripped=False)  # below threshold
+        t2 = MagicMock(track_number="2", length=3000, filename="Show_t02.mkv", ripped=False)
+        job.tracks = [t0, t1, t2]
 
-        # Mock run() to yield PRGC messages
-        prgc0 = ProgressBarCurrent(code=0, oid=0, name="Test_Show_t00")
-        prgc1 = ProgressBarCurrent(code=0, oid=1, name="Test_Show_t02")  # skipped t01
-
-        def mock_run(cmd, select):
-            # Should be called with MSG | PRGC
-            assert OutputType.PRGC in select, "folder_ripper must request PRGC messages"
-            yield prgc0
-            yield prgc1
-
-        with patch("arm.ripper.makemkv.run", side_effect=mock_run), \
+        with patch("arm.ripper.makemkv.run", return_value=iter([])), \
              patch("arm.ripper.folder_ripper.setup_rawpath", return_value=str(rawpath)), \
              patch("arm.ripper.folder_ripper.prep_mkv"), \
              patch("arm.ripper.folder_ripper.prescan_track_info"), \
@@ -209,11 +344,9 @@ class TestFolderRipperTitleMap:
             from arm.ripper.folder_ripper import rip_folder
             rip_folder(job)
 
-        # _reconcile_filenames should be called with title_map keyword
         m_reconcile.assert_called_once()
         call_args = m_reconcile.call_args
-        assert "title_map" in call_args.kwargs, \
-            "_reconcile_filenames must receive title_map keyword argument"
+        assert "title_map" in call_args.kwargs
         tm = call_args.kwargs["title_map"]
-        assert tm == {0: 0, 1: 2}, \
-            f"title_map should map output 0->title 0, output 1->title 2, got {tm}"
+        # 2 output files, 2 qualifying tracks (0, 2) -> map {0: 0, 1: 2}
+        assert tm == {0: 0, 1: 2}, f"Expected {{0: 0, 1: 2}}, got {tm}"

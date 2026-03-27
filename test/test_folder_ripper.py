@@ -123,9 +123,9 @@ class TestRipFolder:
         )
 
         job = self._make_job(tmp_path)
-        track0 = MagicMock(filename="movie_t00.mkv", ripped=False)
-        track1 = MagicMock(filename="movie_t01.mkv", ripped=False)
-        track2 = MagicMock(filename="movie_t02.mkv", ripped=False)
+        track0 = MagicMock(track_number="0", filename="movie_t00.mkv", ripped=False, length=3000)
+        track1 = MagicMock(track_number="1", filename="movie_t01.mkv", ripped=False, length=3000)
+        track2 = MagicMock(track_number="2", filename="movie_t02.mkv", ripped=False, length=3000)
         job.tracks = [track0, track1, track2]
         mock_run.return_value = iter([])
 

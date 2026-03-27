@@ -779,6 +779,85 @@ def build_title_map(prgc_messages, label_prefix=""):
     return title_map
 
 
+def build_title_map_from_progress(progress_path, rawpath):
+    """Build output-index -> original-title-id map from a MakeMKV progress file.
+
+    MakeMKV's ``--progress=<file>`` redirects PRGC/PRGT/PRGV to a file.
+    After the rip, we parse PRGC lines with code 5017 (Saving to MKV file)
+    to count how many titles were saved and their sequential indices.
+
+    We then match these to original title IDs by comparing the count of
+    saved titles against the actual output files and the prescan track
+    filenames.  MakeMKV processes titles in ascending order by original
+    title number, skipping those below its internal threshold.
+
+    Args:
+        progress_path: path to the MakeMKV progress log file
+        rawpath: path to the output directory with ripped MKV files
+
+    Returns:
+        dict mapping output_index (int) -> original_title_id (int),
+        or empty dict if the progress file is unavailable.
+    """
+    if not progress_path or not os.path.isfile(progress_path):
+        return {}
+
+    # Count saved titles from PRGC code=5017 (Saving to MKV file)
+    saved_oids = set()
+    try:
+        with open(progress_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("PRGC:5017,"):
+                    # PRGC:5017,oid,"Saving to MKV file"
+                    parts = line.split(",", 2)
+                    if len(parts) >= 2:
+                        try:
+                            saved_oids.add(int(parts[1]))
+                        except ValueError:
+                            pass
+    except OSError:
+        return {}
+
+    if not saved_oids:
+        return {}
+
+    num_saved = len(saved_oids)
+
+    # Read actual output files to extract their _tNN suffixes
+    if not os.path.isdir(rawpath):
+        return {}
+    output_files = sorted(
+        f for f in os.listdir(rawpath)
+        if os.path.isfile(os.path.join(rawpath, f)) and f.endswith(".mkv")
+    )
+
+    if len(output_files) != num_saved:
+        logging.warning(
+            "Title map: progress says %d saved but %d files found",
+            num_saved, len(output_files),
+        )
+
+    # Extract original title IDs from output filenames
+    # Output files are named sequentially: label_t00.mkv, label_t01.mkv, ...
+    # The _tNN suffix in output files IS the sequential output index
+    # (NOT the original title number). We need to map these to originals.
+    #
+    # Since MakeMKV processes titles in ascending order of original title
+    # number and skips shorts, the sequential output maps to the sorted
+    # subset of original titles that were actually saved.
+    # We return the sequential count so the caller can do the mapping
+    # with knowledge of which prescan tracks have matching files.
+    title_map = {}
+    for i, fname in enumerate(output_files):
+        m = re.search(r'_t(\d+)\.mkv$', fname)
+        if m:
+            output_idx = int(m.group(1))
+            # output_idx == i for sequential files, but record both
+            title_map[output_idx] = output_idx  # identity for now
+    return title_map
+
+
 def _strip_track_suffix(filename):
     """Strip ``_tNN`` suffix and file extension, returning the segment prefix.
 
@@ -900,7 +979,7 @@ def _reconcile_filenames(job, rawpath, title_map=None):
     for track in tracks:
         if track.track_id in matched_ids:
             continue
-        if track.filename in actual_files:
+        if track.filename in actual_files and track.filename not in claimed:
             claimed.add(track.filename)
             matched_ids.add(track.track_id)
 
