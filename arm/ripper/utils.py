@@ -137,7 +137,13 @@ def bash_notify(cfg, title, body, job=None):
 
 
 def _move_to_shared_storage(cfg, raw_basename, job=None):
-    """Move raw directory from local scratch to shared storage if configured."""
+    """Move raw directory from local scratch to shared storage if configured.
+
+    Uses copytree + rmtree instead of shutil.move because move nests the
+    source inside an existing destination directory rather than merging.
+    This caused file loss when multiple discs of the same show shared a
+    raw directory name.
+    """
     local_raw = cfg.get('LOCAL_RAW_PATH', '')
     shared_raw = cfg.get('SHARED_RAW_PATH', '')
     if not (local_raw and shared_raw and raw_basename):
@@ -148,11 +154,25 @@ def _move_to_shared_storage(cfg, raw_basename, job=None):
         try:
             if job:
                 database_updater({'status': JobState.COPYING.value}, job)
-            os.makedirs(shared_raw, exist_ok=True)
-            shutil.move(src, dst)
-            logging.info(f"Moved {src} -> {dst}")
+            os.makedirs(dst, exist_ok=True)
+            src_files = [f for f in os.listdir(src) if os.path.isfile(os.path.join(src, f))]
+            logging.info(f"Copying {len(src_files)} files from {src} -> {dst}")
+            for fname in src_files:
+                src_file = os.path.join(src, fname)
+                dst_file = os.path.join(dst, fname)
+                shutil.copy2(src_file, dst_file)
+                logging.info(f"Copied {fname} ({os.path.getsize(dst_file)} bytes)")
+            # Verify all files arrived before removing source
+            dst_files = set(os.listdir(dst))
+            missing = [f for f in src_files if f not in dst_files]
+            if missing:
+                logging.error(f"File copy verification failed! Missing: {missing}")
+                raise OSError(f"Copy verification failed: {len(missing)} files missing at destination")
+            shutil.rmtree(src)
+            logging.info(f"Moved {len(src_files)} files from {src} -> {dst} (verified)")
         except OSError as e:
             logging.error(f"Failed to move {src} -> {dst}: {e}")
+            raise
 
 
 def _build_webhook_payload(title, body, job, raw_basename):

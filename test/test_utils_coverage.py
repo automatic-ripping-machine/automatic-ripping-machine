@@ -101,7 +101,7 @@ class TestBashNotify:
 
 
 class TestMoveToSharedStorage:
-    """Test _move_to_shared_storage() file movement (lines 145-153)."""
+    """Test _move_to_shared_storage() file copy + verify + remove."""
 
     def test_moves_directory(self, tmp_path):
         from arm.ripper.utils import _move_to_shared_storage
@@ -113,7 +113,62 @@ class TestMoveToSharedStorage:
 
         cfg = {'LOCAL_RAW_PATH': local_raw, 'SHARED_RAW_PATH': shared_raw}
         _move_to_shared_storage(cfg, "movie")
-        assert os.path.isdir(os.path.join(shared_raw, "movie"))
+        assert os.path.isfile(os.path.join(shared_raw, "movie", "file.mkv"))
+        # Source should be removed after verified copy
+        assert not os.path.exists(os.path.join(local_raw, "movie"))
+
+    def test_merges_into_existing_directory(self, tmp_path):
+        """When destination dir already exists (e.g. from a previous disc),
+        files should merge into it rather than nesting as a subdirectory.
+        This was the root cause of the disc 4 track 5 file loss."""
+        from arm.ripper.utils import _move_to_shared_storage
+
+        local_raw = str(tmp_path / "local")
+        shared_raw = str(tmp_path / "shared")
+        src = os.path.join(local_raw, "Show")
+        dst = os.path.join(shared_raw, "Show")
+
+        os.makedirs(src)
+        os.makedirs(dst)
+        # Old file from previous disc (transcoder may not have cleaned dir)
+        (tmp_path / "shared" / "Show" / "old_disc3.mkv").write_bytes(b"old")
+        # New disc files
+        for i in range(6):
+            (tmp_path / "local" / "Show" / f"disc4_t0{i}.mkv").write_bytes(b"x" * (i + 1))
+
+        cfg = {'LOCAL_RAW_PATH': local_raw, 'SHARED_RAW_PATH': shared_raw}
+        _move_to_shared_storage(cfg, "Show")
+
+        # All 6 new files should be directly in dst (not nested)
+        dst_files = os.listdir(dst)
+        for i in range(6):
+            assert f"disc4_t0{i}.mkv" in dst_files, f"disc4_t0{i}.mkv missing from destination"
+        # Old file preserved
+        assert "old_disc3.mkv" in dst_files
+        # No nested subdirectory
+        assert "Show" not in dst_files, "Source was nested inside destination (shutil.move bug)"
+        # Source removed
+        assert not os.path.exists(src)
+
+    def test_multiple_files_all_verified(self, tmp_path):
+        """All source files must arrive at destination before source is removed."""
+        from arm.ripper.utils import _move_to_shared_storage
+
+        local_raw = str(tmp_path / "local")
+        shared_raw = str(tmp_path / "shared")
+        src = os.path.join(local_raw, "movie")
+        os.makedirs(src)
+        for i in range(5):
+            (tmp_path / "local" / "movie" / f"track_{i}.mkv").write_bytes(b"x" * 100)
+
+        cfg = {'LOCAL_RAW_PATH': local_raw, 'SHARED_RAW_PATH': shared_raw}
+        _move_to_shared_storage(cfg, "movie")
+
+        dst = os.path.join(shared_raw, "movie")
+        dst_files = os.listdir(dst)
+        assert len(dst_files) == 5
+        for i in range(5):
+            assert f"track_{i}.mkv" in dst_files
 
     def test_no_config_does_nothing(self, tmp_path):
         from arm.ripper.utils import _move_to_shared_storage
@@ -126,6 +181,21 @@ class TestMoveToSharedStorage:
 
         cfg = {'LOCAL_RAW_PATH': '/home/arm/media/local', 'SHARED_RAW_PATH': '/home/arm/media/shared'}
         _move_to_shared_storage(cfg, "")  # Should not raise
+
+    def test_copy_failure_raises(self, tmp_path):
+        """OSError during copy should propagate (not be silently swallowed)."""
+        from arm.ripper.utils import _move_to_shared_storage
+
+        local_raw = str(tmp_path / "local")
+        shared_raw = str(tmp_path / "shared")
+        src = os.path.join(local_raw, "movie")
+        os.makedirs(src)
+        (tmp_path / "local" / "movie" / "file.mkv").write_bytes(b"data")
+
+        cfg = {'LOCAL_RAW_PATH': local_raw, 'SHARED_RAW_PATH': shared_raw}
+        with unittest.mock.patch("shutil.copy2", side_effect=OSError("NFS write failed")):
+            with pytest.raises(OSError, match="NFS write failed"):
+                _move_to_shared_storage(cfg, "movie")
 
 
 class TestTranscoderNotify:
