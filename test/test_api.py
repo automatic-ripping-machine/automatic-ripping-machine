@@ -763,7 +763,7 @@ class TestApiFilesRename:
 
     def test_rename_missing_fields(self, client, app_context):
         response = client.post('/api/v1/files/rename', json={"path": "/home/arm/media/old.mkv"})
-        assert response.status_code == 400
+        assert response.status_code == 422  # Pydantic validation
 
     def test_rename_access_denied(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.rename_item",
@@ -806,7 +806,7 @@ class TestApiFilesMove:
 
     def test_move_missing_fields(self, client, app_context):
         response = client.post('/api/v1/files/move', json={"path": "/home/arm/media/file.mkv"})
-        assert response.status_code == 400
+        assert response.status_code == 422  # Pydantic validation
 
     def test_move_access_denied(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.move_item",
@@ -849,7 +849,7 @@ class TestApiFilesMkdir:
 
     def test_mkdir_missing_fields(self, client, app_context):
         response = client.post('/api/v1/files/mkdir', json={"path": "/home/arm/media"})
-        assert response.status_code == 400
+        assert response.status_code == 422  # Pydantic validation
 
     def test_mkdir_access_denied(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.create_directory",
@@ -893,7 +893,7 @@ class TestApiFilesFixPermissions:
 
     def test_fix_perms_missing_path(self, client, app_context):
         response = client.post('/api/v1/files/fix-permissions', json={})
-        assert response.status_code == 400
+        assert response.status_code == 422  # Pydantic validation
 
     def test_fix_perms_access_denied(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.fix_item_permissions",
@@ -929,7 +929,7 @@ class TestApiFilesDelete:
 
     def test_delete_missing_path(self, client, app_context):
         response = client.request('DELETE', '/api/v1/files/delete', json={})
-        assert response.status_code == 400
+        assert response.status_code == 422  # Pydantic validation
 
     def test_delete_access_denied(self, client, app_context):
         with unittest.mock.patch("arm.services.file_browser.delete_item",

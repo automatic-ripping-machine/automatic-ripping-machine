@@ -374,9 +374,9 @@ class TestAPIEndpoints:
         assert resp.status_code == 200
         assert resp.json()['success'] is True
 
-    def test_rename_missing_params_400(self, client, media_tree):
+    def test_rename_missing_params_422(self, client, media_tree):
         resp = client.post("/api/v1/files/rename", json={"path": "/some/path"})
-        assert resp.status_code == 400
+        assert resp.status_code == 422  # Pydantic validation error
 
     def test_move_success(self, client, media_tree):
         path = os.path.join(media_tree['roots']['music'], "album.flac")

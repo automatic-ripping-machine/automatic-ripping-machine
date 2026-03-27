@@ -1,8 +1,18 @@
-"""API v1 — File browser endpoints."""
+"""API v1 — File browser endpoints.
+
+All handlers use sync def (not async def) so FastAPI runs them in a
+threadpool via anyio.to_thread.run_sync().  This prevents blocking the
+event loop during heavy filesystem I/O (shutil.move, shutil.rmtree,
+recursive os.walk + chown).
+
+Request bodies use Pydantic BaseModel instead of raw Request objects,
+which eliminates the need for async def + await request.json().
+"""
 import logging
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from arm.services import file_browser
 
@@ -12,6 +22,25 @@ _ACCESS_DENIED = "Access denied"
 _PATH_NOT_FOUND = "Path not found"
 
 router = APIRouter(prefix="/api/v1", tags=["files"])
+
+
+class RenameRequest(BaseModel):
+    path: str
+    new_name: str
+
+
+class MoveRequest(BaseModel):
+    path: str
+    destination: str
+
+
+class MkdirRequest(BaseModel):
+    path: str
+    name: str
+
+
+class PathRequest(BaseModel):
+    path: str
 
 
 @router.get('/files/roots')
@@ -37,18 +66,10 @@ def list_directory(path: str = Query(..., description="Directory path to list"))
 
 
 @router.post('/files/rename')
-async def rename_item(request: Request):
+def rename_item(req: RenameRequest):
     """Rename a file or directory."""
-    body = await request.json()
-    path = body.get('path')
-    new_name = body.get('new_name')
-    if not path or not new_name:
-        return JSONResponse(
-            {"success": False, "error": "Both 'path' and 'new_name' are required"},
-            status_code=400,
-        )
     try:
-        return file_browser.rename_item(path, new_name)
+        return file_browser.rename_item(req.path, req.new_name)
     except ValueError:
         return JSONResponse({"success": False, "error": _ACCESS_DENIED}, status_code=403)
     except FileNotFoundError:
@@ -56,23 +77,15 @@ async def rename_item(request: Request):
     except FileExistsError:
         return JSONResponse({"success": False, "error": "Target already exists"}, status_code=409)
     except OSError as exc:
-        log.error("Error renaming %s: %s", path, exc)
+        log.error("Error renaming %s: %s", req.path, exc)
         return JSONResponse({"success": False, "error": "Failed to rename item"}, status_code=500)
 
 
 @router.post('/files/move')
-async def move_item(request: Request):
+def move_item(req: MoveRequest):
     """Move a file or directory to a new location."""
-    body = await request.json()
-    path = body.get('path')
-    destination = body.get('destination')
-    if not path or not destination:
-        return JSONResponse(
-            {"success": False, "error": "Both 'path' and 'destination' are required"},
-            status_code=400,
-        )
     try:
-        return file_browser.move_item(path, destination)
+        return file_browser.move_item(req.path, req.destination)
     except ValueError:
         return JSONResponse({"success": False, "error": _ACCESS_DENIED}, status_code=403)
     except FileNotFoundError:
@@ -80,23 +93,15 @@ async def move_item(request: Request):
     except (NotADirectoryError, FileExistsError):
         return JSONResponse({"success": False, "error": "Target already exists or is not a directory"}, status_code=409)
     except OSError as exc:
-        log.error("Error moving %s: %s", path, exc)
+        log.error("Error moving %s: %s", req.path, exc)
         return JSONResponse({"success": False, "error": "Failed to move item"}, status_code=500)
 
 
 @router.post('/files/mkdir')
-async def create_directory(request: Request):
+def create_directory(req: MkdirRequest):
     """Create a new directory."""
-    body = await request.json()
-    path = body.get('path')
-    name = body.get('name')
-    if not path or not name:
-        return JSONResponse(
-            {"success": False, "error": "Both 'path' and 'name' are required"},
-            status_code=400,
-        )
     try:
-        return file_browser.create_directory(path, name)
+        return file_browser.create_directory(req.path, req.name)
     except ValueError:
         return JSONResponse({"success": False, "error": _ACCESS_DENIED}, status_code=403)
     except FileNotFoundError:
@@ -104,47 +109,33 @@ async def create_directory(request: Request):
     except (NotADirectoryError, FileExistsError):
         return JSONResponse({"success": False, "error": "Directory already exists or parent is not a directory"}, status_code=409)
     except OSError as exc:
-        log.error("Error creating directory in %s: %s", path, exc)
+        log.error("Error creating directory in %s: %s", req.path, exc)
         return JSONResponse({"success": False, "error": "Failed to create directory"}, status_code=500)
 
 
 @router.post('/files/fix-permissions')
-async def fix_permissions(request: Request):
+def fix_permissions(req: PathRequest):
     """Fix ownership and permissions for a file or directory."""
-    body = await request.json()
-    path = body.get('path')
-    if not path:
-        return JSONResponse(
-            {"success": False, "error": "'path' is required"},
-            status_code=400,
-        )
     try:
-        return file_browser.fix_item_permissions(path)
+        return file_browser.fix_item_permissions(req.path)
     except ValueError:
         return JSONResponse({"success": False, "error": _ACCESS_DENIED}, status_code=403)
     except FileNotFoundError:
         return JSONResponse({"success": False, "error": _PATH_NOT_FOUND}, status_code=404)
     except OSError as exc:
-        log.error("Error fixing permissions on %s: %s", path, exc)
+        log.error("Error fixing permissions on %s: %s", req.path, exc)
         return JSONResponse({"success": False, "error": "Failed to fix permissions"}, status_code=500)
 
 
 @router.delete('/files/delete')
-async def delete_item(request: Request):
+def delete_item(req: PathRequest):
     """Delete a file or directory."""
-    body = await request.json()
-    path = body.get('path')
-    if not path:
-        return JSONResponse(
-            {"success": False, "error": "'path' is required"},
-            status_code=400,
-        )
     try:
-        return file_browser.delete_item(path)
+        return file_browser.delete_item(req.path)
     except ValueError:
         return JSONResponse({"success": False, "error": _ACCESS_DENIED}, status_code=403)
     except FileNotFoundError:
         return JSONResponse({"success": False, "error": _PATH_NOT_FOUND}, status_code=404)
     except OSError as exc:
-        log.error("Error deleting %s: %s", path, exc)
+        log.error("Error deleting %s: %s", req.path, exc)
         return JSONResponse({"success": False, "error": "Failed to delete item"}, status_code=500)

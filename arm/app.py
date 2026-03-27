@@ -2,13 +2,30 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 import arm.config.config as cfg
 from arm.database import db
 
 log = logging.getLogger(__name__)
+
+
+class SessionCleanupMiddleware(BaseHTTPMiddleware):
+    """Remove scoped DB sessions after each request.
+
+    FastAPI runs sync def handlers in a threadpool.  AnyIO reuses threads,
+    so scoped_session (keyed by thread ID) can leak uncommitted state from
+    one request to the next on the same thread.  Calling db.session.remove()
+    returns the connection to the pool and resets the session.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        if db._engine is not None:
+            db.session.remove()
+        return response
 
 
 @asynccontextmanager
@@ -22,6 +39,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="ARM API", lifespan=lifespan)
 
+app.add_middleware(SessionCleanupMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
