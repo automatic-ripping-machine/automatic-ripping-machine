@@ -118,7 +118,7 @@ _SEASON_KEYWORD_RE = re.compile(
 )
 
 # SKU patterns at end of string
-_SKU_RE = re.compile(r'\s*SKU\w*', re.IGNORECASE)
+_SKU_RE = re.compile(r' *SKU\w*', re.IGNORECASE)
 
 # Aspect ratio markers
 _ASPECT_RE = re.compile(r'\b16[xX]9\b')
