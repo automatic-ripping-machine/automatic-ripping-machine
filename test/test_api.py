@@ -1780,7 +1780,7 @@ class TestApiTranscodeConfig:
             f'/api/v1/jobs/{sample_job.job_id}/transcode-config',
             json=""
         )
-        assert response.status_code in (400, 422)
+        assert response.status_code == 422
 
     def test_transcode_config_unknown_key(self, client, sample_job, app_context):
         response = client.patch(
