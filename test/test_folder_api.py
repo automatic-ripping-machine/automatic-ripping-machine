@@ -262,7 +262,9 @@ class TestPrescanAndWait:
 
         mock_job = MagicMock()
         mock_job.job_id = 10
-        mock_job.tracks = [MagicMock(), MagicMock()]
+        track1 = MagicMock(length=3000, enabled=True)
+        track2 = MagicMock(length=3000, enabled=True)
+        mock_job.tracks = [track1, track2]
         mock_job_cls.query.get.return_value = mock_job
 
         with patch("arm.ripper.makemkv.prep_mkv") as mock_prep, \
@@ -271,10 +273,31 @@ class TestPrescanAndWait:
 
         mock_prep.assert_called_once()
         mock_prescan.assert_called_once_with(mock_job)
-        # Session must be cleaned up to prevent pool exhaustion
         mock_db.session.remove.assert_called_once()
         assert mock_job.status == "waiting"
         mock_db.session.commit.assert_called()
+
+    @patch("arm.api.v1.folder.db")
+    @patch("arm.api.v1.folder.Job")
+    def test_prescan_auto_disables_short_tracks(self, mock_job_cls, mock_db):
+        """Tracks shorter than MINLENGTH are auto-disabled after prescan."""
+        from arm.api.v1.folder import _prescan_and_wait
+
+        mock_job = MagicMock()
+        mock_job.job_id = 13
+        episode = MagicMock(length=3012, enabled=True)
+        short_extra = MagicMock(length=22, enabled=True)
+        medium_extra = MagicMock(length=49, enabled=True)
+        mock_job.tracks = [episode, short_extra, medium_extra]
+        mock_job_cls.query.get.return_value = mock_job
+
+        with patch("arm.ripper.makemkv.prep_mkv"), \
+             patch("arm.ripper.makemkv.prescan_track_info"):
+            _prescan_and_wait(13)
+
+        assert episode.enabled is True, "Episode track should stay enabled"
+        assert short_extra.enabled is False, "22s track should be auto-disabled"
+        assert medium_extra.enabled is False, "49s track should be auto-disabled (< 120s default)"
 
     @patch("arm.api.v1.folder.db")
     @patch("arm.api.v1.folder.Job")

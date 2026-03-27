@@ -179,6 +179,20 @@ def _prescan_and_wait(job_id: int):
         try:
             prep_mkv()
             prescan_track_info(job)
+
+            # Auto-disable tracks shorter than MakeMKV's minlength threshold.
+            # MakeMKV silently skips these during rip regardless of the
+            # checkbox state, so disabling them prevents misleading UI.
+            minlength = int(cfg.arm_config.get("MINLENGTH", 120))
+            disabled_count = 0
+            for track in job.tracks:
+                if track.length is not None and track.length < minlength:
+                    track.enabled = False
+                    disabled_count += 1
+            if disabled_count:
+                log.info("Auto-disabled %d tracks shorter than %ds",
+                         disabled_count, minlength)
+
             job.status = JobState.MANUAL_WAIT_STARTED.value
             db.session.commit()
             log.info("Prescan complete for job %s — %d tracks found, waiting for review",
