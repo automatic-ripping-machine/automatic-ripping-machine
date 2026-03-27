@@ -88,13 +88,13 @@ def rip_folder(job):
         # 5. Rip — always use "all" mode for folder imports.
         # MakeMKV's per-track numbering from file: sources doesn't match
         # the prescan track numbers, so single-track extraction fails.
-        # Do NOT use --minlength here: it causes MakeMKV to renumber output
-        # files sequentially (skipping short titles), breaking the track
-        # number correspondence with the prescan.  The user already selected
-        # tracks in the review UI; short extras are tiny and rip in seconds.
-        import collections
+        # Collect PRGC messages to build a deterministic mapping from
+        # sequential output index to original title ID, since MakeMKV
+        # may skip short titles and renumber output files.
         import shlex
-        from arm.ripper.makemkv import run, OutputType, progress_log
+        from arm.ripper.makemkv import (
+            run, OutputType, ProgressBarCurrent, build_title_map, progress_log,
+        )
 
         cmd = ["mkv"]
         cmd += shlex.split(job.config.MKV_ARGS or "")
@@ -105,10 +105,25 @@ def rip_folder(job):
             rawpath,
         ]
         log.info("Ripping all tracks from folder source: %s", job.source_path)
-        collections.deque(run(cmd, OutputType.MSG), maxlen=0)
 
-        # Mark tracks as ripped only if their file actually exists on disk.
-        # MakeMKV may skip some titles (e.g. zero-length or copy-protected).
+        # Consume run() output, collecting PRGC messages for title mapping
+        prgc_messages = []
+        for msg in run(cmd, OutputType.MSG | OutputType.PRGC):
+            if isinstance(msg, ProgressBarCurrent):
+                prgc_messages.append(msg)
+
+        # Build deterministic output-index -> original-title-id map
+        label = os.path.basename(rawpath)
+        title_map = build_title_map(prgc_messages, label)
+        if title_map:
+            log.info("Title map from PRGC: %s", title_map)
+
+        # 6. Reconcile filenames using deterministic title_map when available,
+        # falling back to heuristic matching for disc rips without PRGC data.
+        _reconcile_filenames(job, rawpath, title_map=title_map)
+
+        # Mark tracks as ripped only if their file actually exists on disk
+        # (after reconciliation so filenames are corrected).
         actual_files = set(os.listdir(rawpath)) if os.path.isdir(rawpath) else set()
         for track in job.tracks:
             if track.filename and track.filename in actual_files:
@@ -119,9 +134,6 @@ def rip_folder(job):
         log.info("Ripped %d of %d tracks to %s",
                  sum(1 for t in job.tracks if t.ripped),
                  len(list(job.tracks)), rawpath)
-
-        # 6. Reconcile filenames
-        _reconcile_filenames(job, rawpath)
 
         # 7. Notify transcoder if configured
         transcoder_url = cfg.arm_config.get("TRANSCODER_URL", "")

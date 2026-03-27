@@ -63,7 +63,11 @@ class TestRipFolder:
 
         mock_prep.assert_called_once()
         mock_prescan.assert_called_once_with(job)
-        mock_reconcile.assert_called_once_with(job, str(rawpath))
+        mock_reconcile.assert_called_once()
+        args, kwargs = mock_reconcile.call_args
+        assert args[0] is job
+        assert args[1] == str(rawpath)
+        assert "title_map" in kwargs
         mock_notify.assert_not_called()
         assert job.status == "waiting_transcode"
 

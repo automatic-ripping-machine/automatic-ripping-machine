@@ -753,6 +753,32 @@ def makemkv_mkv(job, rawpath):
         process_single_tracks(job, rawpath, 'auto')
 
 
+def build_title_map(prgc_messages, label_prefix=""):
+    """Build a deterministic output-index -> original-title-id map from PRGC messages.
+
+    During ripping, MakeMKV emits ``PRGC:code,oid,name`` messages where
+    ``oid`` is the sequential output index and ``name`` is the output
+    filename stem (e.g. ``Show_Disc_4_t03``).  The ``_tNN`` suffix in
+    the name contains the **original** title number, not the sequential
+    output index.
+
+    Returns a dict mapping output_index (int) -> original_title_id (int).
+    When MakeMKV skips titles, the output indices are contiguous but the
+    original title IDs have gaps.
+    """
+    title_map = {}
+    for msg in prgc_messages:
+        oid = int(msg.oid)
+        if oid in title_map:
+            continue  # skip duplicate PRGC for same output
+        name = msg.name
+        # Extract original title number from _tNN suffix
+        m = re.search(r'_t(\d+)$', name)
+        if m:
+            title_map[oid] = int(m.group(1))
+    return title_map
+
+
 def _strip_track_suffix(filename):
     """Strip ``_tNN`` suffix and file extension, returning the segment prefix.
 
@@ -817,12 +843,16 @@ def _positional_match_pass(tracks, actual_files, matched_ids, claimed):
     return True
 
 
-def _reconcile_filenames(job, rawpath):
+def _reconcile_filenames(job, rawpath, title_map=None):
     """Update track filenames to match actual files on disk after MakeMKV rip.
 
     MakeMKV's scan-time filenames (from 'makemkvcon info') may differ from
     the actual rip-time filenames. This reconciliation ensures the database
     reflects the files that were actually created (#1355, #1281).
+
+    When *title_map* is provided (from PRGC messages during ripping), it
+    gives a deterministic mapping from sequential output index to original
+    title ID, which is used as Pass 0 before any heuristic matching.
     """
     if not rawpath or not os.path.isdir(rawpath):
         return
@@ -837,15 +867,45 @@ def _reconcile_filenames(job, rawpath):
     tracks = list(job.tracks.filter_by(source=SOURCE).order_by(Track.track_number))
     claimed = set()
     matched_ids = set()
+    updated = False
 
-    # Pass 1: Exact match
+    # Pass 0: Deterministic mapping from PRGC messages (folder imports)
+    # title_map: {output_index: original_title_id}
+    # output files are named sequentially (_t00, _t01, ...),
+    # title_map tells us which original title each output corresponds to.
+    if title_map:
+        track_by_number = {str(t.track_number): t for t in tracks}
+        for output_idx, original_tid in sorted(title_map.items()):
+            # Find the output file with this sequential index
+            suffix = f"_t{output_idx:02d}.mkv"
+            output_file = next((f for f in actual_files if f.endswith(suffix)), None)
+            if not output_file:
+                continue
+            # Map to the original prescan track
+            track = track_by_number.get(str(original_tid))
+            if track and track.track_id not in matched_ids:
+                if track.filename != output_file:
+                    logging.info(
+                        "Reconciled track #%s by title_map (output %d -> title %d): "
+                        "'%s' -> '%s'",
+                        track.track_number, output_idx, original_tid,
+                        track.filename, output_file,
+                    )
+                    track.filename = output_file
+                    updated = True
+                claimed.add(output_file)
+                matched_ids.add(track.track_id)
+
+    # Pass 1: Exact match (for tracks not handled by title_map)
     for track in tracks:
+        if track.track_id in matched_ids:
+            continue
         if track.filename in actual_files:
             claimed.add(track.filename)
             matched_ids.add(track.track_id)
 
-    # Pass 2 & 3
-    updated = _prefix_match_pass(tracks, actual_files, claimed, matched_ids)
+    # Pass 2 & 3: Heuristic matching (backwards compat for disc rips)
+    updated = _prefix_match_pass(tracks, actual_files, claimed, matched_ids) or updated
     updated = _positional_match_pass(tracks, actual_files, matched_ids, claimed) or updated
 
     if updated:
