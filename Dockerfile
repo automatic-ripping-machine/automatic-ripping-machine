@@ -54,8 +54,12 @@ FROM base AS automatic-ripping-machine
 
 COPY . /opt/arm/
 
-# Ensure Python deps are up-to-date, create udev symlink, allow git in container
-RUN pip3 install --no-cache-dir -r /opt/arm/docker/base/requirements.txt \
+# Ensure Python deps are up-to-date, install rsync for NFS-safe file transfer,
+# create udev symlink, allow git in container
+RUN apt-get update -qq \
+    && apt-get install -y --no-install-recommends rsync \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip3 install --no-cache-dir -r /opt/arm/docker/base/requirements.txt \
     && ln -sv /opt/arm/setup/61-docker-arm.rules /lib/udev/rules.d/ \
     && git config --global --add safe.directory /opt/arm
 
