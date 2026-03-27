@@ -364,7 +364,8 @@ class TestGetsize:
         mock_stats.f_bavail = 1073741824  # 1 GB in blocks of size 1
         mock_stats.f_frsize = 1
 
-        with patch("arm.services.files.os.statvfs", return_value=mock_stats):
+        with patch("arm.services.disk_usage_cache.get_disk_usage", return_value=None), \
+             patch("arm.services.files.os.statvfs", return_value=mock_stats):
             result = getsize("/")
         assert result == pytest.approx(1.0)
 

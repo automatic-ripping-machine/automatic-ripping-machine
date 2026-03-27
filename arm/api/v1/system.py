@@ -65,6 +65,8 @@ def get_system_stats():
         "percent": mem.percent,
     }
 
+    from arm.services.disk_usage_cache import get_disk_usage
+
     media_paths = [
         ("Raw", cfg.arm_config.get("RAW_PATH", "")),
         ("Transcode", cfg.arm_config.get("TRANSCODE_PATH", "")),
@@ -74,18 +76,16 @@ def get_system_stats():
     for name, path in media_paths:
         if not path:
             continue
-        try:
-            usage = psutil.disk_usage(path)
+        usage = get_disk_usage(path)
+        if usage:
             storage.append({
                 "name": name,
                 "path": path,
-                "total_gb": round(usage.total / 1073741824, 1),
-                "used_gb": round(usage.used / 1073741824, 1),
-                "free_gb": round(usage.free / 1073741824, 1),
-                "percent": usage.percent,
+                "total_gb": round(usage["total"] / 1073741824, 1),
+                "used_gb": round(usage["used"] / 1073741824, 1),
+                "free_gb": round(usage["free"] / 1073741824, 1),
+                "percent": usage["percent"],
             })
-        except FileNotFoundError:
-            continue
 
     return {
         "cpu_percent": cpu_percent,

@@ -193,8 +193,9 @@ class TestMoveToSharedStorage:
         (tmp_path / "local" / "movie" / "file.mkv").write_bytes(b"data")
 
         cfg = {'LOCAL_RAW_PATH': local_raw, 'SHARED_RAW_PATH': shared_raw}
-        with unittest.mock.patch("shutil.copy2", side_effect=OSError("NFS write failed")):
-            with pytest.raises(OSError, match="NFS write failed"):
+        mock_result = unittest.mock.MagicMock(returncode=1, stderr="rsync: NFS write failed")
+        with unittest.mock.patch("arm.ripper.utils.subprocess.run", return_value=mock_result):
+            with pytest.raises(OSError, match="rsync failed"):
                 _move_to_shared_storage(cfg, "movie")
 
 

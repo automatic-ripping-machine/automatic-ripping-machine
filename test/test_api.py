@@ -995,13 +995,14 @@ class TestApiSystemStats:
             "COMPLETED_PATH": "/home/arm/media/completed",
         }
 
+        mock_usage = {"total": 500107862016, "used": 250053931008, "free": 250053931008, "percent": 50.0}
         with unittest.mock.patch("arm.api.v1.system.psutil.cpu_percent", return_value=25.0), \
              unittest.mock.patch("arm.api.v1.system.psutil.sensors_temperatures",
                                  return_value={}), \
              unittest.mock.patch("arm.api.v1.system.psutil.virtual_memory",
                                  return_value=mock_mem), \
-             unittest.mock.patch("arm.api.v1.system.psutil.disk_usage",
-                                 return_value=mock_disk), \
+             unittest.mock.patch("arm.services.disk_usage_cache.get_disk_usage",
+                                 return_value=mock_usage), \
              unittest.mock.patch("arm.api.v1.system.cfg.arm_config", config):
             response = client.get('/api/v1/system/stats')
         assert response.status_code == 200

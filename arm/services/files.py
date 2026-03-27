@@ -69,11 +69,15 @@ def make_dir(path):
 
 
 def getsize(path):
-    """Simple function to get the free space left in a path"""
+    """Get the free space left in a path. Uses cached values to avoid NFS stalls."""
+    from arm.services.disk_usage_cache import get_disk_usage
+    usage = get_disk_usage(path)
+    if usage:
+        return usage["free"] / 1073741824
+    # Fallback for paths not in cache (non-NFS)
     path_stats = os.statvfs(path)
     free = (path_stats.f_bavail * path_stats.f_frsize)
-    free_gb = free / 1073741824
-    return free_gb
+    return free / 1073741824
 
 
 def clean_for_filename(string):

@@ -32,6 +32,16 @@ class SessionCleanupMiddleware(BaseHTTPMiddleware):
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
     db.init_engine('sqlite:///' + cfg.arm_config['DBFILE'])
+
+    # Start cached disk usage - never blocks on NFS stalls
+    from arm.services.disk_usage_cache import register_paths, start_background_refresh
+    register_paths([
+        cfg.arm_config.get("RAW_PATH", ""),
+        cfg.arm_config.get("TRANSCODE_PATH", ""),
+        cfg.arm_config.get("COMPLETED_PATH", ""),
+    ])
+    start_background_refresh()
+
     log.info("ARM API server starting up.")
     yield
     log.info("ARM API server shutting down.")

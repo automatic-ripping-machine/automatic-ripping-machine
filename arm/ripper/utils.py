@@ -139,10 +139,10 @@ def bash_notify(cfg, title, body, job=None):
 def _move_to_shared_storage(cfg, raw_basename, job=None):
     """Move raw directory from local scratch to shared storage if configured.
 
-    Uses copytree + rmtree instead of shutil.move because move nests the
-    source inside an existing destination directory rather than merging.
-    This caused file loss when multiple discs of the same show shared a
-    raw directory name.
+    Uses rsync subprocess instead of shutil.copy2 so the NFS I/O happens in
+    a child process that can be abandoned if it stalls.  This prevents the
+    ARM API from becoming unresponsive during large file copies (shutil.copy2
+    in a thread causes kernel D-state that blocks statvfs on the same mount).
     """
     local_raw = cfg.get('LOCAL_RAW_PATH', '')
     shared_raw = cfg.get('SHARED_RAW_PATH', '')
@@ -155,21 +155,32 @@ def _move_to_shared_storage(cfg, raw_basename, job=None):
             if job:
                 database_updater({'status': JobState.COPYING.value}, job)
             os.makedirs(dst, exist_ok=True)
-            src_files = [f for f in os.listdir(src) if os.path.isfile(os.path.join(src, f))]
-            logging.info(f"Copying {len(src_files)} files from {src} -> {dst}")
-            for fname in src_files:
-                src_file = os.path.join(src, fname)
-                dst_file = os.path.join(dst, fname)
-                shutil.copy2(src_file, dst_file)
-                logging.info(f"Copied {fname} ({os.path.getsize(dst_file)} bytes)")
-            # Verify all files arrived before removing source
-            dst_files = set(os.listdir(dst))
-            missing = [f for f in src_files if f not in dst_files]
-            if missing:
-                logging.error(f"File copy verification failed! Missing: {missing}")
-                raise OSError(f"Copy verification failed: {len(missing)} files missing at destination")
-            shutil.rmtree(src)
-            logging.info(f"Moved {len(src_files)} files from {src} -> {dst} (verified)")
+
+            # Use rsync to copy files - runs as a subprocess so NFS D-state
+            # doesn't block our process threads.  --remove-source-files deletes
+            # each source file after successful transfer (verified by rsync).
+            # Trailing slash on src ensures contents are merged into dst.
+            cmd = [
+                "rsync", "-a", "--remove-source-files",
+                "--info=name1,progress2",
+                src + "/",
+                dst + "/",
+            ]
+            logging.info(f"rsync {src}/ -> {dst}/")
+            result = subprocess.run(cmd, capture_output=True, text=True)
+
+            if result.returncode != 0:
+                logging.error(f"rsync failed (exit {result.returncode}): {result.stderr}")
+                raise OSError(f"rsync failed: {result.stderr[:200]}")
+
+            # Log transferred files from rsync output
+            for line in result.stdout.strip().splitlines():
+                if line.strip():
+                    logging.info(f"rsync: {line.strip()}")
+
+            # rsync --remove-source-files removes files but leaves empty dirs
+            shutil.rmtree(src, ignore_errors=True)
+            logging.info(f"rsync complete: {src} -> {dst}")
         except OSError as e:
             logging.error(f"Failed to move {src} -> {dst}: {e}")
             raise
