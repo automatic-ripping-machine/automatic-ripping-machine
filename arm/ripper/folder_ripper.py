@@ -88,7 +88,10 @@ def rip_folder(job):
         # 5. Rip — always use "all" mode for folder imports.
         # MakeMKV's per-track numbering from file: sources doesn't match
         # the prescan track numbers, so single-track extraction fails.
-        # "all" with --minlength lets MakeMKV handle track selection.
+        # Do NOT use --minlength here: it causes MakeMKV to renumber output
+        # files sequentially (skipping short titles), breaking the track
+        # number correspondence with the prescan.  The user already selected
+        # tracks in the review UI; short extras are tiny and rip in seconds.
         import collections
         import shlex
         from arm.ripper.makemkv import run, OutputType, progress_log
@@ -100,13 +103,22 @@ def rip_folder(job):
             job.makemkv_source,
             "all",
             rawpath,
-            f"--minlength={job.config.MINLENGTH}",
         ]
         log.info("Ripping all tracks from folder source: %s", job.source_path)
         collections.deque(run(cmd, OutputType.MSG), maxlen=0)
+
+        # Mark tracks as ripped only if their file actually exists on disk.
+        # MakeMKV may skip some titles (e.g. zero-length or copy-protected).
+        actual_files = set(os.listdir(rawpath)) if os.path.isdir(rawpath) else set()
         for track in job.tracks:
-            track.ripped = True
+            if track.filename and track.filename in actual_files:
+                track.ripped = True
+            else:
+                track.ripped = False
         db.session.commit()
+        log.info("Ripped %d of %d tracks to %s",
+                 sum(1 for t in job.tracks if t.ripped),
+                 len(list(job.tracks)), rawpath)
 
         # 6. Reconcile filenames
         _reconcile_filenames(job, rawpath)

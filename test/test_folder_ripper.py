@@ -43,25 +43,27 @@ class TestRipFolder:
     @patch("arm.ripper.folder_ripper._reconcile_filenames")
     @patch("arm.ripper.makemkv.run")
     @patch("arm.ripper.folder_ripper.prescan_track_info")
-    @patch("arm.ripper.folder_ripper.setup_rawpath", return_value="/tmp/raw/Test Movie")
     @patch("arm.ripper.folder_ripper.prep_mkv")
     def test_happy_path_all_mode(
-        self, mock_prep, mock_setup, mock_prescan, mock_run,
+        self, mock_prep, mock_prescan, mock_run,
         mock_reconcile, mock_notify, mock_db, tmp_path
     ):
         from arm.ripper.folder_ripper import rip_folder
 
+        rawpath = tmp_path / "raw" / "Test Movie"
+        rawpath.mkdir(parents=True)
+
         job = self._make_job(tmp_path)
         mock_run.return_value = iter([])  # MakeMKV yields nothing on success
 
-        with patch("arm.ripper.folder_ripper.cfg") as mock_cfg:
+        with patch("arm.ripper.folder_ripper.setup_rawpath", return_value=str(rawpath)), \
+             patch("arm.ripper.folder_ripper.cfg") as mock_cfg:
             mock_cfg.arm_config = {"TRANSCODER_URL": ""}
             rip_folder(job)
 
         mock_prep.assert_called_once()
-        mock_setup.assert_called_once_with(job, job.build_raw_path())
         mock_prescan.assert_called_once_with(job)
-        mock_reconcile.assert_called_once_with(job, "/tmp/raw/Test Movie")
+        mock_reconcile.assert_called_once_with(job, str(rawpath))
         mock_notify.assert_not_called()
         assert job.status == "waiting_transcode"
 
@@ -70,18 +72,21 @@ class TestRipFolder:
     @patch("arm.ripper.folder_ripper._reconcile_filenames")
     @patch("arm.ripper.makemkv.run")
     @patch("arm.ripper.folder_ripper.prescan_track_info")
-    @patch("arm.ripper.folder_ripper.setup_rawpath", return_value="/tmp/raw/Test Movie")
     @patch("arm.ripper.folder_ripper.prep_mkv")
     def test_happy_path_with_transcoder_notify(
-        self, mock_prep, mock_setup, mock_prescan, mock_run,
+        self, mock_prep, mock_prescan, mock_run,
         mock_reconcile, mock_notify, mock_db, tmp_path
     ):
         from arm.ripper.folder_ripper import rip_folder
 
+        rawpath = tmp_path / "raw" / "Test Movie"
+        rawpath.mkdir(parents=True)
+
         job = self._make_job(tmp_path)
         mock_run.return_value = iter([])
 
-        with patch("arm.ripper.folder_ripper.cfg") as mock_cfg:
+        with patch("arm.ripper.folder_ripper.setup_rawpath", return_value=str(rawpath)), \
+             patch("arm.ripper.folder_ripper.cfg") as mock_cfg:
             mock_cfg.arm_config = {"TRANSCODER_URL": "http://transcoder:8080"}
             rip_folder(job)
 
@@ -93,26 +98,40 @@ class TestRipFolder:
     @patch("arm.ripper.folder_ripper._reconcile_filenames")
     @patch("arm.ripper.makemkv.run")
     @patch("arm.ripper.folder_ripper.prescan_track_info")
-    @patch("arm.ripper.folder_ripper.setup_rawpath", return_value="/tmp/raw/Test Movie")
     @patch("arm.ripper.folder_ripper.prep_mkv")
-    def test_tracks_marked_ripped(
-        self, mock_prep, mock_setup, mock_prescan, mock_run,
+    def test_tracks_marked_ripped_only_if_file_exists(
+        self, mock_prep, mock_prescan, mock_run,
         mock_reconcile, mock_notify, mock_db, tmp_path
     ):
+        """Only tracks whose filename exists on disk should be marked ripped."""
         from arm.ripper.folder_ripper import rip_folder
 
+        # Create raw output dir with 2 of 3 track files
+        rawpath = tmp_path / "raw" / "Test Movie"
+        rawpath.mkdir(parents=True)
+        (rawpath / "movie_t00.mkv").write_bytes(b"data")
+        (rawpath / "movie_t01.mkv").write_bytes(b"data")
+        # movie_t02.mkv intentionally missing (MakeMKV skipped it)
+
+        mock_setup = patch(
+            "arm.ripper.folder_ripper.setup_rawpath",
+            return_value=str(rawpath),
+        )
+
         job = self._make_job(tmp_path)
-        track1 = MagicMock()
-        track2 = MagicMock()
-        job.tracks = [track1, track2]
+        track0 = MagicMock(filename="movie_t00.mkv", ripped=False)
+        track1 = MagicMock(filename="movie_t01.mkv", ripped=False)
+        track2 = MagicMock(filename="movie_t02.mkv", ripped=False)
+        job.tracks = [track0, track1, track2]
         mock_run.return_value = iter([])
 
-        with patch("arm.ripper.folder_ripper.cfg") as mock_cfg:
+        with patch("arm.ripper.folder_ripper.cfg") as mock_cfg, mock_setup:
             mock_cfg.arm_config = {"TRANSCODER_URL": ""}
             rip_folder(job)
 
+        assert track0.ripped is True
         assert track1.ripped is True
-        assert track2.ripped is True
+        assert track2.ripped is False, "Track without file on disk should not be marked ripped"
 
     @patch("arm.ripper.folder_ripper.db")
     def test_missing_source_folder(self, mock_db):
