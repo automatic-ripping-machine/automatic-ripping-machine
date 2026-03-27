@@ -78,7 +78,7 @@ def _build_variables(job):
 
 def _clean_empty_parens(s):
     """Remove empty parentheses like '()' left from missing variables."""
-    return re.sub(r'\s*\(\s*\)', '', s).strip()
+    return re.sub(r' *\( *\)', '', s).strip()
 
 
 def _clean_for_filename(s):
