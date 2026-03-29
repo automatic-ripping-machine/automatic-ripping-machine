@@ -114,9 +114,9 @@ def find_last_regex_match(pattern, iterable):
     else:
         reversed_iterable = reversed(list(iterable))
     for item in reversed_iterable:
-        retVal = regex.search(item)
-        if retVal:
-            return retVal
+        retval = regex.search(item)
+        if retval:
+            return retval
     return None
 	
 def process_makemkv_logfile(job, job_results):
