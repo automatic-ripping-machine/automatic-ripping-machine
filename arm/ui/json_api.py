@@ -104,7 +104,21 @@ def percentage(part, whole):
     percent = 100 * float(part) / float(whole)
     return percent
 
-
+def find_last_regex_match(pattern, iterable):
+    """
+    Find the last matching regex pattern in a given iterable and return the regex object
+    """
+    regex = re.compile(pattern)
+    if isinstance(iterable, (list, tuple, str)):
+        reversed_iterable = reversed(iterable)
+    else:
+        reversed_iterable = reversed(list(iterable))
+    for item in reversed_iterable:
+        retVal = regex.search(item)
+        if retVal:
+            return retVal
+    return None
+	
 def process_makemkv_logfile(job, job_results):
     """
     Process the logfile and find current status and job progress percent\n
@@ -112,11 +126,10 @@ def process_makemkv_logfile(job, job_results):
     """
     job_progress_status = None
     job_stage_index = None
-    lines = read_log_line(os.path.join(cfg.arm_config['LOGPATH'], 'progress', str(job.job_id)) + '.log')
+    lines = read_log_line(os.path.join(cfg.arm_config['LOGPATH'], job.logfile))
     # Correctly get last entry for progress bar
-    for line in lines:
-        job_progress_status = re.search(r"PRGV:(\d{3,}),(\d+),(\d{3,})", str(line))
-        job_stage_index = re.search(r"PRGC:\d+,(\d+),\"([\w -]{2,})\"", str(line))
+    job_progress_status = find_last_regex_match(r"PRGV:(\d{3,}),(\d+),(\d{3,})", lines)
+    job_stage_index = find_last_regex_match(r"PRGC:\d+,(\d+),\"([\w -]{2,})\"", lines)
 
     if job_progress_status is not None:
         app.logger.debug(f"job_progress_status: {job_progress_status}")
@@ -130,7 +143,9 @@ def process_makemkv_logfile(job, job_results):
 
     if job_stage_index is not None:
         try:
-            current_index = f"{(int(job_stage_index.group(1)) + 1)}/{job.no_of_titles} - {job_stage_index.group(2)}"
+            app.logger.debug(f"job_stage_index: {job_stage_index}")
+            current_index = f"{job_stage_index.group(2)}"
+            ''' Preserve for future use - current_index = f"{(int(job_stage_index.group(1)) + 1)}/{job.no_of_titles} - {job_stage_index.group(2)}"'''
             job.stage = job_results['stage'] = current_index
             db.session.commit()
         except Exception as error:
@@ -139,7 +154,6 @@ def process_makemkv_logfile(job, job_results):
     job.eta = "Unknown"
 
     return job_results
-
 
 def process_handbrake_logfile(logfile, job, job_results):
     """
