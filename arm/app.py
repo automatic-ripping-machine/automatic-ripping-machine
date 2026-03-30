@@ -39,6 +39,9 @@ async def lifespan(app: FastAPI):
         cfg.arm_config.get("RAW_PATH", ""),
         cfg.arm_config.get("TRANSCODE_PATH", ""),
         cfg.arm_config.get("COMPLETED_PATH", ""),
+        cfg.arm_config.get("LOGPATH", ""),
+        cfg.arm_config.get("DBFILE", ""),
+        cfg.arm_config.get("INSTALLPATH", ""),
     ])
     start_background_refresh()
 

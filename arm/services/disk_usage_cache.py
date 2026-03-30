@@ -61,21 +61,41 @@ def get_disk_usage(path: str) -> dict | None:
     return None
 
 
+def get_path_status(path: str) -> dict | None:
+    """Return cached path existence/writability for *path*, or None if unavailable.
+
+    Never blocks on NFS — reads from the same cache populated by the
+    background subprocess probe.
+    """
+    with _cache_lock:
+        entry = _cache.get(path)
+    if entry and "exists" in entry:
+        return {"exists": entry["exists"], "writable": entry["writable"]}
+    return None
+
+
 def _refresh_path(path: str):
-    """Refresh disk usage for a single path using a subprocess with timeout."""
+    """Refresh disk usage and path status using a subprocess with timeout."""
     try:
         # Use a subprocess so D-state statvfs doesn't block our threads.
-        # The subprocess runs a tiny Python snippet that calls os.statvfs.
+        # The subprocess probes existence, writability, and disk usage in one call.
         result = subprocess.run(
             [
                 "python3", "-c",
                 "import os, json, sys; "
-                "s = os.statvfs(sys.argv[1]); "
-                "total = s.f_frsize * s.f_blocks; "
-                "free = s.f_frsize * s.f_bavail; "
-                "used = total - (s.f_frsize * s.f_bfree); "
-                "pct = round(used / total * 100, 1) if total else 0; "
-                "json.dump({'total': total, 'used': used, 'free': free, 'percent': pct}, sys.stdout)",
+                "p = sys.argv[1]; "
+                "e = os.path.exists(p); "
+                "w = os.access(p, os.W_OK) if e else False; "
+                "d = {'exists': e, 'writable': w}; "
+                "try:\n"
+                "  s = os.statvfs(p); "
+                "  d['total'] = s.f_frsize * s.f_blocks; "
+                "  d['free'] = s.f_frsize * s.f_bavail; "
+                "  d['used'] = d['total'] - (s.f_frsize * s.f_bfree); "
+                "  d['percent'] = round(d['used'] / d['total'] * 100, 1) if d['total'] else 0\n"
+                "except OSError:\n"
+                "  pass\n"
+                "json.dump(d, sys.stdout)",
                 path,
             ],
             capture_output=True,

@@ -172,7 +172,14 @@ def get_version():
 
 @router.get('/system/paths')
 def get_paths():
-    """Check existence and writability of configured ARM paths."""
+    """Check existence and writability of configured ARM paths.
+
+    Reads from the disk-usage cache to avoid blocking on stale NFS mounts.
+    Falls back to direct checks only for paths not yet in the cache (e.g.
+    DBFILE, LOGPATH which are local and won't stall).
+    """
+    from arm.services.disk_usage_cache import get_path_status, register_paths as _reg
+
     path_keys = [
         "RAW_PATH", "COMPLETED_PATH", "TRANSCODE_PATH",
         "LOGPATH", "DBFILE", "INSTALLPATH",
@@ -182,8 +189,22 @@ def get_paths():
         value = cfg.arm_config.get(key, "")
         if not value:
             continue
-        exists = os.path.exists(value)
-        writable = os.access(value, os.W_OK) if exists else False
+        status = get_path_status(value)
+        if status:
+            exists = status["exists"]
+            writable = status["writable"]
+        else:
+            # Path not in cache yet — register it and probe (with timeout).
+            # Local paths (DBFILE, LOGPATH) resolve instantly; NFS paths
+            # get a 5s timeout via the subprocess probe.
+            _reg([value])
+            status = get_path_status(value)
+            if status:
+                exists = status["exists"]
+                writable = status["writable"]
+            else:
+                exists = False
+                writable = False
         results.append({
             "setting": key,
             "path": value,
