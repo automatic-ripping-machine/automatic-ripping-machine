@@ -1,0 +1,50 @@
+# apparmor profile to use instead of the default for docker
+abi <abi/3.0>,
+
+#include <tunables/global>
+
+# Based on the Moby project's default docker-default profile.
+# Copyright The Moby Authors. SPDX-License-Identifier: Apache-2.0
+# Extended with mount rules for optical disc access.
+
+profile docker-arm flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  network,
+  capability,
+  file,
+  umount,
+
+  # Host (privileged) processes may send signals to container processes.
+  signal (receive) peer=unconfined,
+  # runc may send signals to container processes.
+  signal (receive) peer=runc,
+  # crun may send signals to container processes.
+  signal (receive) peer=crun,
+  # dockerd may send signals to container processes.
+  signal (receive) peer=docker-default,
+  # Container processes may send signals amongst themselves.
+  signal (send,receive) peer=docker-arm,
+
+  deny @{PROC}/* w,
+  deny @{PROC}/{[^1-9],[^1-9][^0-9],[^1-9s][^0-9y][^0-9s],[^1-9][^0-9][^0-9][^0-9/]*}/** w,
+  deny @{PROC}/sys/[^k]** w,
+  deny @{PROC}/sys/kernel/{?,??,[^s][^h][^m]**} w,
+  deny @{PROC}/sysrq-trigger rwklx,
+  deny @{PROC}/kcore rwklx,
+
+  deny /sys/[^f]*/** wklx,
+  deny /sys/f[^s]*/** wklx,
+  deny /sys/fs/[^c]*/** wklx,
+  deny /sys/fs/c[^g]*/** wklx,
+  deny /sys/fs/cg[^r]*/** wklx,
+  deny /sys/firmware/** rwklx,
+  deny /sys/devices/virtual/powercap/** rwklx,
+  deny /sys/kernel/security/** rwklx,
+
+  ptrace (trace,tracedby,read,readby) peer=docker-arm,
+
+  # ARM-specific: allow mounting optical discs
+  mount fstype=(udf,iso9660) /dev/sr* -> /mnt/dev/sr*/,
+  mount options=(rw,move) -> /mnt/dev/sr*/,
+}

@@ -1,0 +1,136 @@
+###########################################################
+# MakeMKV
+FROM debian:trixie-slim AS build-makemkv
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates g++ gcc make pkg-config gnupg wget \
+        qtbase5-dev libavcodec-dev libssl-dev libexpat-dev zlib1g-dev
+
+COPY docker/install_makemkv.sh /tmp/install_makemkv.sh
+COPY docker/VERSION_MAKEMKV /tmp/VERSION_MAKEMKV
+RUN chmod +x /tmp/install_makemkv.sh && \
+    cd /tmp && ./install_makemkv.sh "$(cat /tmp/VERSION_MAKEMKV)"
+
+
+###########################################################
+# HandBrake
+FROM rust:1-trixie AS build-handbrake
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates g++ gcc make pkg-config gnupg wget git curl \
+        autoconf automake autopoint appstream build-essential cmake \
+        libass-dev libbz2-dev libfontconfig1-dev libfreetype-dev \
+        libfribidi-dev libharfbuzz-dev libjansson-dev liblzma-dev \
+        libmp3lame-dev libnuma-dev libogg-dev libopus-dev \
+        libsamplerate-dev libspeex-dev libtheora-dev libtool libtool-bin \
+        libturbojpeg0-dev libvorbis-dev libx264-dev libxml2-dev \
+        libvpx-dev m4 meson nasm ninja-build patch zlib1g-dev clang \
+        libavcodec-dev libva-dev libdrm-dev \
+        libssl-dev
+
+COPY docker/VERSION_HANDBRAKE docker/install_handbrake.sh /tmp/
+RUN chmod +x /tmp/install_handbrake.sh && /tmp/install_handbrake.sh
+
+
+###########################################################
+# Mount helper (Go static binary)
+FROM golang:1.26-trixie AS build-mount-helper
+COPY docker/mount-helper/ /src/
+RUN cd /src && CGO_ENABLED=0 go build -o /mount-helper .
+
+
+###########################################################
+# Final image
+FROM debian:trixie-slim
+
+LABEL org.opencontainers.image.source=https://github.com/automatic-ripping-machine/automatic-ripping-machine
+LABEL org.opencontainers.image.license=MIT
+LABEL org.opencontainers.image.description='Automatic Ripping Machine (Debian Trixie with Intel QSV support)'
+EXPOSE 8080
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN sed -i 's/Components: main/Components: main contrib non-free non-free-firmware/' \
+        /etc/apt/sources.list.d/debian.sources
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+          abcde atomicparsley cdparanoia curl default-jre-headless eject \
+          eyed3 fdkaac ffmpeg flac git glyrc gosu id3 id3v2 \
+          intel-media-va-driver-non-free lame libass9 libavcodec-extra \
+          libbluray2 libdiscid0 libdrm2 libdvd-pkg libexpat1 libjansson4 \
+          libmfx-gen1.2 libmp3lame0 libnuma1 libogg0 libopus0 \
+          libsamplerate0 libspeex1 libssl3t64 libtheora0 libturbojpeg0 \
+          libva2 libvorbis0a lsdvd mesa-va-drivers mkcue nano opus-tools \
+          procps runit socat tzdata udev vainfo vorbis-tools wget \
+    && dpkg-reconfigure libdvd-pkg \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+ENV UV_PYTHON_INSTALL_DIR="/opt/python"
+ENV UV_LINK_MODE=copy
+RUN uv python install 3.14
+ENV VIRTUAL_ENV=/opt/arm/.venv
+ENV PATH="/opt/arm/.venv/bin:$PATH"
+
+RUN groupadd -g 1000 arm && \
+    useradd -rm -d /home/arm -s /bin/bash -g arm -G video,cdrom -u 1000 arm && \
+    groupadd -g 990 optical && \
+    usermod -aG optical,render arm
+
+ENV ARM_UID=1000
+ENV ARM_GID=1000
+ENV TZ=Etc/UTC
+ENV LIBVA_DRIVERS_PATH="/usr/lib/x86_64-linux-gnu/dri"
+
+COPY --from=build-makemkv /usr/local/bin/makemkv /usr/local/bin/makemkvcon \
+     /usr/local/bin/mmccextr /usr/local/bin/mmgplsrv /usr/local/bin/
+RUN ln -s makemkvcon /usr/local/bin/sdftool
+COPY --from=build-makemkv /usr/local/lib/ /usr/local/lib/
+COPY --from=build-makemkv /usr/local/share/MakeMKV/ /usr/local/share/MakeMKV/
+COPY --from=build-handbrake /usr/local/bin/HandBrakeCLI /usr/local/bin/
+
+RUN ldconfig; \
+    ln -s /dev/null /dev/log
+
+COPY pyproject.toml uv.lock /opt/arm/
+RUN uv venv --python 3.14 /opt/arm/.venv && \
+    uv sync --frozen --no-dev --python /opt/arm/.venv/bin/python \
+        --directory /opt/arm
+
+RUN mkdir -m 0777 -p /home/arm /home/arm/config && \
+    for i in $(seq 0 20); do \
+        mkdir -p /mnt/dev/sr$i; \
+        echo "/dev/sr$i  /mnt/dev/sr$i  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab; \
+    done
+
+COPY --from=build-mount-helper /mount-helper /usr/local/bin/mount-helper
+COPY docker/mount-helper-client.sh /usr/local/lib/mount-helper-client.sh
+RUN chmod +x /usr/local/lib/mount-helper-client.sh && \
+    for cmd in mount umount eject; do \
+        ln -s /usr/local/lib/mount-helper-client.sh /usr/local/bin/$cmd; \
+    done
+
+RUN mkdir -p /etc/sv/armui /etc/sv/disc-monitor /etc/sv/mount-helper /etc/service
+COPY docker/armui.sh /etc/sv/armui/run
+COPY docker/disc-monitor.sh /etc/sv/disc-monitor/run
+COPY <<'EOF' /etc/sv/mount-helper/run
+#!/bin/sh
+exec /usr/local/bin/mount-helper
+EOF
+RUN chmod +x /etc/sv/armui/run /etc/sv/disc-monitor/run /etc/sv/mount-helper/run && \
+    ln -s /etc/sv/armui /etc/service/armui && \
+    ln -s /etc/sv/disc-monitor /etc/service/disc-monitor && \
+    ln -s /etc/sv/mount-helper /etc/service/mount-helper
+
+COPY docker/entrypoint.sh /entrypoint.sh
+COPY docker/healthcheck.sh /healthcheck.sh
+RUN chmod +x /entrypoint.sh /healthcheck.sh
+HEALTHCHECK --interval=5m --timeout=15s --start-period=30s CMD /healthcheck.sh
+
+RUN git config --global --add safe.directory /opt/arm
+
+COPY . /opt/arm/
+
+WORKDIR /home/arm
+CMD ["/entrypoint.sh"]
