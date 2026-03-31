@@ -11,7 +11,7 @@ CMD=$(basename "$0")
 REAL_CMD="/bin/$CMD"
 LOG="/home/arm/logs/mount-helper.log"
 
-log() { echo "$(date) [mount-helper-client] $*" >> "$LOG" 2>/dev/null; }
+log() { echo "$(date) [mount-helper-client] $*" >> "$LOG" 2>/dev/null; return 0; }
 
 log "called: $CMD $* (pid=$$, uid=$(id -u), $0)"
 
@@ -23,7 +23,7 @@ for arg in "$@"; do
     fi
 done
 
-if $has_optical && [ -S "$SOCKET" ]; then
+if $has_optical && [[ -S "$SOCKET" ]]; then
     log "routing through daemon: $CMD $*"
     # 30s timeout because optical drives can be slow
     response=$(echo "$CMD $*" | socat -t 30 - UNIX-CONNECT:"$SOCKET" 2>/dev/null)
@@ -34,6 +34,6 @@ if $has_optical && [ -S "$SOCKET" ]; then
         *) log "unexpected response, falling through to $REAL_CMD"; exec "$REAL_CMD" "$@" ;;
     esac
 else
-    log "passthrough to $REAL_CMD (has_optical=$has_optical, socket_exists=$([ -S "$SOCKET" ] && echo true || echo false))"
+    log "passthrough to $REAL_CMD (has_optical=$has_optical, socket_exists=$([[ -S "$SOCKET" ]] && echo true || echo false))"
     exec "$REAL_CMD" "$@"
 fi

@@ -10,11 +10,12 @@ check_folder_ownership() {
     check_dir="$1"
     folder_uid=$(stat -c "%u" "$check_dir")
     folder_gid=$(stat -c "%g" "$check_dir")
-    if [ "$folder_uid" != "$ARM_UID" ] || [ "$folder_gid" != "$ARM_GID" ]; then
-        echo "[ERROR]: ARM does not have permissions to $check_dir using $ARM_UID:$ARM_GID"
-        echo "Folder permissions: $folder_uid:$folder_gid"
+    if [[ "$folder_uid" != "$ARM_UID" ]] || [[ "$folder_gid" != "$ARM_GID" ]]; then
+        echo "[ERROR]: ARM does not have permissions to $check_dir using $ARM_UID:$ARM_GID" >&2
+        echo "Folder permissions: $folder_uid:$folder_gid" >&2
         exit 1
     fi
+    return 0
 }
 
 if [[ $ARM_UID -ne $DEFAULT_UID ]]; then
@@ -24,7 +25,7 @@ if [[ $ARM_GID -ne $DEFAULT_GID ]]; then
     groupmod -og "$ARM_GID" arm
 fi
 # Match the render group GID to the actual device GID so arm can access the GPU
-if [ -e /dev/dri/renderD128 ]; then
+if [[ -e /dev/dri/renderD128 ]]; then
     RENDER_GID=$(stat -c "%g" /dev/dri/renderD128)
     if ! getent group "$RENDER_GID" >/dev/null 2>&1; then
         groupmod -g "$RENDER_GID" render
@@ -44,7 +45,7 @@ for dir in media media/completed media/raw media/movies media/transcode logs log
     fi
 done
 
-[ -h /home/arm/Music ] && unlink /home/arm/Music
+[[ -h /home/arm/Music ]] && unlink /home/arm/Music
 
 mkdir -p /etc/arm/config
 for conf in arm.yaml apprise.yaml; do
@@ -54,9 +55,9 @@ for conf in arm.yaml apprise.yaml; do
     fi
 done
 
-[ -h /etc/arm/config/abcde.conf ] && unlink /etc/arm/config/abcde.conf
-[ ! -f /etc/arm/config/abcde.conf ] && cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
-[ ! -h /etc/abcde.conf ] && ln -sf /etc/arm/config/abcde.conf /etc/abcde.conf
+[[ -h /etc/arm/config/abcde.conf ]] && unlink /etc/arm/config/abcde.conf
+[[ ! -f /etc/arm/config/abcde.conf ]] && cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
+[[ ! -h /etc/abcde.conf ]] && ln -sf /etc/arm/config/abcde.conf /etc/abcde.conf
 
 ln -sf /usr/share/zoneinfo/"$TZ" /etc/localtime
 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure --frontend noninteractive tzdata 2>/dev/null || true

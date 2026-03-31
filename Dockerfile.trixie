@@ -52,9 +52,8 @@ EXPOSE 8080
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN sed -i 's/Components: main/Components: main contrib non-free non-free-firmware/' \
-        /etc/apt/sources.list.d/debian.sources
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
+        /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && apt-get install -y --no-install-recommends \
           abcde atomicparsley cdparanoia curl default-jre-headless eject \
           eyed3 fdkaac ffmpeg flac git glyrc gosu id3 id3v2 \
           intel-media-va-driver-non-free lame libass9 libavcodec-extra \
@@ -90,15 +89,14 @@ COPY --from=build-makemkv /usr/local/lib/ /usr/local/lib/
 COPY --from=build-makemkv /usr/local/share/MakeMKV/ /usr/local/share/MakeMKV/
 COPY --from=build-handbrake /usr/local/bin/HandBrakeCLI /usr/local/bin/
 
-RUN ldconfig; \
+RUN ldconfig && \
     ln -s /dev/null /dev/log
 
 COPY pyproject.toml uv.lock /opt/arm/
 RUN uv venv --python 3.14 /opt/arm/.venv && \
     uv sync --frozen --no-dev --python /opt/arm/.venv/bin/python \
-        --directory /opt/arm
-
-RUN mkdir -m 0777 -p /home/arm /home/arm/config && \
+        --directory /opt/arm && \
+    mkdir -m 0777 -p /home/arm /home/arm/config && \
     for i in $(seq 0 20); do \
         mkdir -p /mnt/dev/sr$i; \
         echo "/dev/sr$i  /mnt/dev/sr$i  udf,iso9660  defaults,users,utf8,ro  0  0" >> /etc/fstab; \
@@ -109,9 +107,8 @@ COPY docker/mount-helper-client.sh /usr/local/lib/mount-helper-client.sh
 RUN chmod +x /usr/local/lib/mount-helper-client.sh && \
     for cmd in mount umount eject; do \
         ln -s /usr/local/lib/mount-helper-client.sh /usr/local/bin/$cmd; \
-    done
-
-RUN mkdir -p /etc/sv/armui /etc/sv/disc-monitor /etc/sv/mount-helper /etc/service
+    done && \
+    mkdir -p /etc/sv/armui /etc/sv/disc-monitor /etc/sv/mount-helper /etc/service
 COPY docker/armui.sh /etc/sv/armui/run
 COPY docker/disc-monitor.sh /etc/sv/disc-monitor/run
 COPY <<'EOF' /etc/sv/mount-helper/run

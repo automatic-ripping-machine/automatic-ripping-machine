@@ -11,7 +11,7 @@ declare -A PRESENT
 
 while true; do
     for dev in /dev/sr[0-9]*; do
-        [ -b "$dev" ] || continue
+        [[ -b "$dev" ]] || continue
         DEVNAME=${dev##*/}
 
         if pgrep -f "dev:$dev" >/dev/null 2>&1; then
@@ -21,12 +21,12 @@ while true; do
         CDROM_INFO=$(/lib/udev/cdrom_id "$dev" 2>/dev/null)
         ID_CDROM_MEDIA=$(echo "$CDROM_INFO" | sed -n 's/^ID_CDROM_MEDIA=//p')
 
-        if [ "$ID_CDROM_MEDIA" != "1" ]; then
+        if [[ "$ID_CDROM_MEDIA" != "1" ]]; then
             PRESENT[$DEVNAME]=
             continue
         fi
 
-        [ -n "${PRESENT[$DEVNAME]}" ] && continue
+        [[ -n "${PRESENT[$DEVNAME]}" ]] && continue
         PRESENT[$DEVNAME]=1
 
         echo "$(date) [disc-monitor] Disc detected on $DEVNAME"

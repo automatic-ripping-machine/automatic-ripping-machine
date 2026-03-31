@@ -38,13 +38,13 @@ for ball in makemkv-oss makemkv-bin; do
     wget -O "$ball.tgz" "https://www.makemkv.com/download/${ball}-${MAKEMKV_VERSION}.tar.gz"
     sha256="$(grep "  $ball-${MAKEMKV_VERSION}[.]tar[.]gz\$" sha256sums.txt)"
     sha256="${sha256%% *}"
-    [ -n "$sha256" ]
+    [[ -n "$sha256" ]]
     echo "$sha256 *$ball.tgz" | sha256sum -c -
     mkdir -p "$ball"
     tar -xf "$ball.tgz" -C "$ball" --strip-components=1
     rm "$ball.tgz"
     cd "$ball"
-    if [ -f configure ]; then
+    if [[ -f configure ]]; then
         ./configure --prefix="$PREFIX"
     else
         mkdir -p tmp && touch tmp/eula_accepted
