@@ -1,0 +1,46 @@
+[project]
+name = "automatic-ripping-machine"
+version = "2.23.1"
+description = "Automatic Ripping Machine for fully automated Blu-ray, DVD and audio disc ripping"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "alembic",
+    "apprise",
+    "bcrypt",
+    "discid",
+    "Flask",
+    "Flask-Cors",
+    "Flask-Login",
+    "Flask-Migrate",
+    "Flask-SQLAlchemy",
+    "Flask-WTF",
+    "Markdown",
+    "musicbrainzngs",
+    "netifaces2",
+    "prettytable",
+    "psutil",
+    "pydvdid",
+    "pyudev",
+    "PyYAML",
+    "requests",
+    "SQLAlchemy",
+    "waitress",
+    "Werkzeug",
+    "WTForms",
+    "xmltodict",
+]
+
+[project.optional-dependencies]
+dev = [
+    "colorama",
+    "flake8",
+]
+
+[tool.flake8]
+exclude = [".git", "*/migrations/*"]
+max-line-length = 160
+
+[tool.uv.extra-build-dependencies]
+discid = ["setuptools"]
