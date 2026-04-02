@@ -105,6 +105,7 @@ def percentage(part, whole):
     percent = 100 * float(part) / float(whole)
     return percent
 
+
 def find_last_regex_match(pattern, iterable):
     """
     Find the last matching regex pattern in a given iterable
@@ -119,6 +120,7 @@ def find_last_regex_match(pattern, iterable):
         if retval:
             return retval
     return None
+
 
 def process_makemkv_logfile(job, job_results):
     """
@@ -146,7 +148,11 @@ def process_makemkv_logfile(job, job_results):
         elapsed_time = current_time - job_start_time
         total_time = int((elapsed_time * 100) / float(job.progress))
         time_remaining = total_time - elapsed_time
-        app.logger.debug(f"ETA values: Elapsed seconds: {elapsed_time}, Percent: {job.progress}, Projected time: {total_time}, Time remaining: {time_remaining}")
+        app.logger.debug(f"ETA values: Elapsed seconds: {elapsed_time}, "
+                         f"Percent: {job.progress}, "
+                         f"Projected time: {total_time}, "
+                         f"Time remaining: {time_remaining}"
+                         )
         job.eta = strftime("%Hh%Mm%Ss", gmtime(time_remaining))
     else:
         app.logger.debug(f"Job [{job.job_id}] MakeMKV status not defined - setting progress to 0%")
@@ -161,7 +167,6 @@ def process_makemkv_logfile(job, job_results):
             db.session.commit()
         except Exception as error:
             job.stage = f"Unknown -  {error}"
-
 
     return job_results
 

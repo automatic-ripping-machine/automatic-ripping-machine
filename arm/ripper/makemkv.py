@@ -838,7 +838,7 @@ def process_single_tracks(job, rawpath, mode: str):
             track.track_number,
             rawpath,
         ]
-        '''Create a batch info file so the web gui can know when this process started, which track, and how many tracks'''
+        # Create a batch info file so the web gui can know when this process started, which track, and how many tracks
         logging.debug(f"Saving batch position info: BINF:{int(time())},{process_index},{len(tracks_to_process)}")
         with open(logfile_base+".batchinfo", 'w') as f:
             f.write(f"BINF:{int(time())},{process_index},{len(tracks_to_process)}")
@@ -846,6 +846,7 @@ def process_single_tracks(job, rawpath, mode: str):
         logging.debug("Starting to rip single track.")
         collections.deque(run(cmd, OutputType.MSG), maxlen=0)
         process_index += 1
+
 
 def setup_rawpath(job, raw_path):
     """
