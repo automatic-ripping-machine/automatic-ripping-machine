@@ -31,7 +31,6 @@ from arm.ripper import apprise_bulk
 
 NOTIFY_TITLE = "ARM notification"
 
-
 class RipperException(Exception):
     pass
 
@@ -332,10 +331,10 @@ def move_files_main(old_file, new_file, base_path):
         logging.info(f"File: {new_file} already exists.  Not moving.")
 
 
-def move_movie_poster(final_directory, hb_out_path):
+def move_movie_poster(hb_out_path, final_directory):
     """move movie poster\n
     ---------\n
-    DEPRECIATED - Arm already builds the final path so moving is no longer needed"""
+    """
     src_poster = os.path.join(hb_out_path, "poster.png")
     dst_poster = os.path.join(final_directory, "poster.png")
     if os.path.isfile(src_poster):
@@ -374,7 +373,7 @@ def delete_raw_files(dir_list):
     if cfg.arm_config["DELRAWFILES"]:
         for raw_folder in dir_list:
             try:
-                logging.info(f"Removing raw path - {raw_folder}")
+                logging.info(f"Removing path - {raw_folder}")
                 shutil.rmtree(raw_folder)
             except UnboundLocalError as error:
                 logging.debug(f"No raw files found to delete in {raw_folder}- {error}")
@@ -804,81 +803,109 @@ def save_disc_poster(final_directory, job):
             os.system(f'ffmpeg -i "{job.mountpoint}/JACKET_P/J00___6L.MP2" "{final_directory}/poster.png"')
         os.system(f"umount {job.devpath}")
 
-
-def check_for_dupe_folder(have_dupes, hb_out_path, job):
+def generate_safe_output_dir_name(have_dupes, hb_out_path, job) -> str:
     """
-    Check if the folder already exists
-     if it exists lets make a new one using random numbers
-    :param have_dupes: is this title in the local arm database
+    Check if the folder already exists.
+    If it already exists we make and return a new
+    path that has not been made yet.
+    DOES NOT CREATE A DIRECTORY.
+    :param have_dupes: Does this disc already exist in the database
     :param hb_out_path: path to HandBrake out
     :param job: Current job
     :return: Final media directory path
     """
-    if (make_dir(hb_out_path)) is False:
+
+    if os.path.exists(hb_out_path):
         logging.info(f"Output directory \"{hb_out_path}\" already exists.")
-        # Only begin ripping if we are allowed to make duplicates
-        # Or the successful rip of the disc is not found in our database
         logging.debug(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
         logging.debug(f"Value of have_dupes: {have_dupes}")
         if cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
+            #job.stage is used as a makeshift random number generator
             hb_out_path = hb_out_path + "_" + job.stage
-            make_dir(hb_out_path, False)
+            logging.debug(f"Attempting to generate a new path: {hb_out_path}")
+            if os.path.exists(hb_out_path):
+                # This should never happen, but if someone is mucking around
+                # in their directories it might
+                logging.exception(
+                    "A fatal error has occurred and ARM is exiting.  "
+                        f"Randomly generated directory suffix is not unique: {hb_out_path}")
+                notify(job, NOTIFY_TITLE,
+                       f"ARM encountered a fatal error processing {job.title}."
+                       f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
+                database_updater({'status': JobState.FAILURE.value, 'errors': 'Generating unique path failed'}, job)
+                raise RipperException(f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
         else:
-            # We aren't allowed to rip dupes, notify and exit
-            logging.info("Duplicate rips are disabled.")
-            notify(job, NOTIFY_TITLE, f"ARM Detected a duplicate disc. For {job.title}. "
-                                      f"Duplicate rips are disabled. "
-                                      f"You can re-enable them from your config file. ")
-            raise RipperException("Duplicate rips are disabled")
-    logging.info(f"Final Output directory \"{hb_out_path}\"")
+            logging.exception(
+                "A fatal error has occurred and ARM is exiting.  "
+                    f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
+            notify(job, NOTIFY_TITLE,
+                   f"ARM encountered a fatal error processing {job.title}."
+                    f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
+            database_updater({'status': JobState.FAILURE.value, 'errors': 'Stopping duplicate job'}, job)
+            raise RipperException(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
+        return hb_out_path
+    else:
+        return hb_out_path
+
+def check_if_dupe_should_exit_early(job : Job) -> bool:
+    """
+    The job has duplicate entries. This checks whether the system should exit early.
+    :return: True if the media is a dupe and you should exit early. False if you can keep going
+    """
+    if cfg.arm_config["ALLOW_DUPLICATES"] == False:
+        logging.exception(
+            "A fatal error has occurred and ARM is exiting.  "
+                f" Duplicate job exists and config 'ALLOW_DUPLICATES' is set to: {cfg.arm_config['ALLOW_DUPLICATES']}")
+        notify(job, NOTIFY_TITLE,
+               f"ARM encountered a fatal error processing {job.title}."
+                f" Duplicate job exists: and config 'ALLOW_DUPLICATES' is set to: {cfg.arm_config['ALLOW_DUPLICATES']}")
+        # Its very important that we set "Failure" here as a job state, since future duplicate checks
+        # Rely on filtering this
+        database_updater({'status': JobState.FAILURE.value, 'errors': 'Duplicate job already exists'}, job)
+        return True
+    return False
+
+
+def create_unique_dir(hb_out_path, job):
+    if (make_dir(hb_out_path)) is False:
+        # job.stage is used as a makeshift random number generator.
+        # This should only be replaced if its not fit for the task
+        hb_out_path = hb_out_path + "_" + job.stage
+        logging.debug(f"Attempting to generate a new path: {hb_out_path}")
+        if os.path.exists(hb_out_path):
+            # This should never happen, but if someone is mucking around
+            # in their directories it might
+            logging.exception(
+                "A fatal error has occurred and ARM is exiting.  "
+                    f"Randomly generated directory suffix is not unique: {hb_out_path}")
+            notify(job, NOTIFY_TITLE,
+                   f"ARM encountered a fatal error processing {job.title}."
+                   f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
+            database_updater({'status': JobState.FAILURE.value, 'errors': 'Generating unique path failed'}, job)
+            raise RipperException(f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
     return hb_out_path
 
 
-def job_dupe_check(job):
+def get_all_dupe_jobs(job) -> list[Job] | None:
     """
-    function for checking the database to look for jobs that have completed
-    successfully with the same label
-    :param job: The job obj, so we can use the crc/title etc.
-    :return: True/False, dict/None
+    function for checking the database to look for jobs that
+    have not failed with the same label.
+    This means currently running jobs might be grabbed
+    :param job: The job obj, so we can use the label etc.
+    :return: List[Job]/None
     """
     logging.debug(f"Trying to find jobs with matching Label={job.label}")
     if job.label is None:
         logging.info("Disc title 'None' not searched in database")
-        return False
+        return None
     else:
-        previous_rips = Job.query.filter_by(label=job.label, status=JobState.SUCCESS.value)
-        results = {}
-        i = 0
-        for j in previous_rips:
-            # logging.debug(f"job obj= {j.get_d()}")
-            job_dict = j.get_d().items()
-            results[i] = {}
-            for key, value in iter(job_dict):
-                results[i][str(key)] = str(value)
-            i += 1
-
-    # logging.debug(f"previous rips = {results}")
-    if results:
-        logging.debug(f"we have {len(results)} jobs")
-        # Check if results too large (over 1), skip if too many
-        if len(results) == 1:
-            # This might need some tweaks to because of title/year manual
-            title = results[0]['title'] if results[0]['title'] else job.label
-            year = results[0]['year'] if results[0]['year'] != "" else ""
-            poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
-            hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
-            video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
-            active_rip = {
-                "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
-                "video_type": video_type}
-            database_updater(active_rip, job)
-            return True
-        else:
-            logging.debug(f"Skipping - There are too many results [{len(results)}]")
-            return False
-    else:
-        logging.info("We have no previous rips/jobs matching this label")
-        return False
+        # We don't count failures when doing Dupe Checks, 
+        # but anything else thats currently in progress can be a Dupe
+        matching_jobs = Job.query.filter(Job.label==job.label, Job.status != JobState.FAILURE.value, Job.job_id != job.job_id).all()
+        results = []
+        for j in matching_jobs:
+            results.append(j)
+        return results
 
 
 def check_for_wait(job):
