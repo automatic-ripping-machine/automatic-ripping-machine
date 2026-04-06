@@ -205,25 +205,51 @@ class Job(db.Model):
         :param found_hvdvd_ts:  gets pushed in from utils - saves importing utils
         :return: None
         """
+        # Use listdir on the mountpoint root to detect disc structure.
+        # os.path.isdir() can fail with OSError (e.g. stale file handle) on
+        # burned UDF discs where the directory entry exists but the inode is
+        # unreadable. Checking the parent listing avoids that issue.
+        try:
+            mount_contents = [e.upper() for e in os.listdir(self.mountpoint)]
+        except OSError:
+            mount_contents = []
+
+        def dir_in_mount(name):
+            """Check for directory by name in mountpoint listing, falling back
+            to os.path.isdir if the name isn't visible in the listing."""
+            if name.upper() in mount_contents:
+                return True
+            try:
+                return os.path.isdir(self.mountpoint + "/" + name)
+            except OSError:
+                return False
+
+        def listdir_safe(path):
+            """os.listdir but returns [] on any error."""
+            try:
+                return os.listdir(path)
+            except OSError:
+                return []
+
         if self.disctype == "music":
             logging.debug("Disc is music.")
             self.label = music_brainz.main(self)
-        elif (os.path.isdir(self.mountpoint + "/AUDIO_TS")
-              and len(os.listdir(self.mountpoint + "/AUDIO_TS")) > 0) \
-            or (os.path.isdir(self.mountpoint + "/audio_ts")
-                and len(os.listdir(self.mountpoint + "/audio_ts")) > 0):
+        elif (dir_in_mount("AUDIO_TS")
+              and len(listdir_safe(self.mountpoint + "/AUDIO_TS")) > 0) \
+            or (dir_in_mount("audio_ts")
+                and len(listdir_safe(self.mountpoint + "/audio_ts")) > 0):
             logging.debug(f"Found: {self.mountpoint}/AUDIO_TS")
             self.disctype = "data"
-        elif os.path.isdir(self.mountpoint + "/VIDEO_TS"):
+        elif dir_in_mount("VIDEO_TS"):
             logging.debug(f"Found: {self.mountpoint}/VIDEO_TS")
             self.disctype = "dvd"
-        elif os.path.isdir(self.mountpoint + "/video_ts"):
+        elif dir_in_mount("video_ts"):
             logging.debug(f"Found: {self.mountpoint}/video_ts")
             self.disctype = "dvd"
-        elif os.path.isdir(self.mountpoint + "/BDMV"):
+        elif dir_in_mount("BDMV"):
             logging.debug(f"Found: {self.mountpoint}/BDMV")
             self.disctype = "bluray"
-        elif os.path.isdir(self.mountpoint + "/HVDVD_TS"):
+        elif dir_in_mount("HVDVD_TS"):
             logging.debug(f"Found: {self.mountpoint}/HVDVD_TS")
             # do something here
         elif found_hvdvd_ts:
