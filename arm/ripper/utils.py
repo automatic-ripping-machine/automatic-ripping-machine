@@ -9,10 +9,7 @@ import time
 import random
 import re
 from logging import Logger
-from pathlib import Path, PurePath
 from math import ceil
-
-import bcrypt
 import requests
 import apprise
 import psutil
@@ -25,7 +22,6 @@ from arm.ui import db  # needs to be imported before models
 from arm.models.job import Job, JobState
 from arm.models.notifications import Notifications
 from arm.models.track import Track
-from arm.models.user import User
 from arm.models.system_drives import SystemDrives
 from arm.ripper import apprise_bulk
 
@@ -770,7 +766,7 @@ def check_if_dupe_should_exit_early(job: Job) -> bool:
     """
     # SPECIAL CASE: DVDs that are not correctly mounted or titles extracted, but can still be ripped, sometimes
     # end up with a label called "DVDVolume". We do not want to stop these with a dupe check.
-    if job.label is "DVDVolume":
+    if job.label == "DVDVolume":
         return False
     if cfg.arm_config["ALLOW_DUPLICATES"] is False:
         logging.exception(
