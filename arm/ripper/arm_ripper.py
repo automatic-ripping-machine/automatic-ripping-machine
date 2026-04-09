@@ -180,30 +180,55 @@ def notify_exit(job):
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} {constants.PROCESS_COMPLETE}")
 
 
-def move_files_post(input_path, job):
+def move_files_post(input_path, job : Job):
     """
     Logic for moving files post transcoding\n
     if series move all to 1 folder\n
-    if movie check what source we got them from, for MakeMKV use skip_transcode_movie, so we can check filesize\n
-    :param input_path: This should either be the RAW_PATH from MakeMKV, /dev/srX or TRANSCODE_PATH
+    if movie check what source we got them from, for MakeMKV we can check filesize\n
+    :param input_path: This should either be the input_path from MakeMKV, /dev/srX or TRANSCODE_PATH
     :param job: current job
     :return: None
     """
-    tracks = job.tracks.filter_by(ripped=True)  # .order_by(job.tracks.length.desc())
     if job.video_type == "series":
+        tracks = job.tracks.filter_by(ripped=True) 
         for track in tracks:
             utils.move_files(input_path, track.filename, job, False)
-    else:
-        for track in tracks:
-            if tracks.count() == 1:
-                utils.move_files(input_path, track.filename, job, True)
+        return
+    is_bonus_disc = guess_if_bonus_disc(job) 
+    tracks = job.tracks.filter_by(ripped=True).order_by(job.tracks.filesize.desc())
+    largest_file = True
+    if tracks.count() == 1:
+        utils.move_files(input_path, tracks[0].filename, job, True)
+        return
+    for track in tracks:
+        if track.source == "MakeMKV":
+            logging.debug(f"Videotype: {job.video_type}")
+            # if video_type is movie, then move the biggest title to media_dir
+            # move the rest of the files to the extras' folder
+            # find largest filesize
+            temp_path = os.path.join(input_path, track.filename)
+
+            if os.stat(temp_path).st_size <= 1:  # sanity check for filesize
+                logging.info(f"{input_path} is empty or very small size. - Folder size: {os.stat(temp_path).st_size}")
+                continue
+            if largest_file == True:
+                largest_file = False 
+                logging.debug(f"Largest file is: {track.filename}")
+                # We only treat it as main feauture if its not a bonus disc
+                utils.move_files(input_path, track.filename, job, is_main_feature=is_bonus_disc == False)
             else:
-                # If source is MakeMKV we know the mainfeature will be wrong let skip_transcode_movie handle it
-                if track.source == "MakeMKV":
-                    skip_transcode_movie(os.listdir(input_path), job, input_path)
-                    break
-                # If HandBrake was used we can pass track.main_feature
-                utils.move_files(input_path, track.filename, job, track.main_feature)
+                # If mainfeature is enabled - skip to the next file
+                if job.config.MAINFEATURE and is_bonus_disc is False:
+                    logging.info(f"MAINFEATURE IS {job.config.MAINFEATURE} - Skipping move of {track.filename}")
+                    continue
+                # Other/extras
+                if str(job.config.EXTRAS_SUB).lower() != "none":
+                    utils.move_files(input_path, track.filename, job, is_main_feature=False)
+                else:
+                    logging.info(f"Not moving extra: \"{track.filename}\" - Sub folder is not set or named incorrectly")
+        else:
+            # If HandBrake was used we can pass track.main_feature
+            utils.move_files(input_path, track.filename, job, track.main_feature and is_bonus_disc is False)
 
 
 def rip_with_mkv(current_job, protection=0):
@@ -231,41 +256,33 @@ def rip_with_mkv(current_job, protection=0):
         mkv_ripped = True
     return mkv_ripped
 
+def guess_if_bonus_disc(job : Job) -> bool:
+    """
+    If the disc is a bonus disc, we dont want to assume there is a main feature
+    :return: True if bonus disc
+    """
+    if job.video_type != "movie":
+        # We assume that only movies have bonus discs
+        return False
+    # All of these have been seen in real disc labels
+    bonus_disc_labels = ["_DISC_2", "_Disc_2", "_BONUS_DISC", "_SPECIAL_FEATURES", "Special_Features", "_Bonus_Disc"]
+    label = str(job.label)
+    for substring in bonus_disc_labels:
+        if substring in label:
+            return True
+    # Bonus disc hint is usually at the end of the label
+    # Some of these strings are short, so we only want to interpret them
+    # If theyre close to the second half of the label
+    last_half = ["_D2"] 
+    label_len = len(label)
+    label_last_half = label[slice(int(label_len//2), label_len)]
+    for half in last_half:
+        if half in label_last_half:
+            return True
 
-def skip_transcode_movie(files, job, raw_path):
-    """
-    Only ran if job is a movie - find the largest file use it as mainfeature\n
-    Move everything else to extras folder\n
-    If mainfeature is enabled skip moving everything but the main file\n
-    :param files: os.listdir(RAW_PATH)
-    :param job: Current job
-    :param raw_path: RAW_PATH of ripped mkv files (mkvoutpath)
-    :return: None
-    """
-    logging.debug(f"Videotype: {job.video_type}")
-    # if video_type is movie, then move the biggest title to media_dir
-    # move the rest of the files to the extras' folder
-    # find largest filesize
-    logging.debug("Finding largest file")
-    largest_file_name = utils.find_largest_file(files, raw_path)
-    # largest_file_name should be the largest file
-    logging.debug(f"Largest file is: {largest_file_name}")
-    temp_path = os.path.join(raw_path, largest_file_name)
-    if os.stat(temp_path).st_size <= 1:  # sanity check for filesize
-        logging.info(f"{raw_path} is empty or very small size. - Folder size: {os.stat(temp_path).st_size}")
-    for file in files:
-        # move main into main folder
-        # move others into extras folder
-        if file == largest_file_name:
-            # largest movie
-            utils.move_files(raw_path, file, job, True)
-        else:
-            # If mainfeature is enabled - skip to the next file
-            if job.config.MAINFEATURE:
-                logging.info(f"MAINFEATURE IS {job.config.MAINFEATURE} - Skipping move of {file}")
-                continue
-            # Other/extras
-            if str(job.config.EXTRAS_SUB).lower() != "none":
-                utils.move_files(raw_path, file, job, False)
-            else:
-                logging.info(f"Not moving extra: \"{file}\" - Sub folder is not set or named incorrectly")
+    suffixes = [ "_BONUS" ]
+    for suffix in suffixes:
+        if label.endswith(suffix):
+            return True
+    return False
+

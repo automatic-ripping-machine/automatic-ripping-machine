@@ -186,7 +186,7 @@ def fix_job_title(job):
 
 
 #  ############## Start of post processing functions
-def move_files(base_path, filename, job, is_main_feature=False):
+def move_files(base_path, filename, job, is_main_feature=False) -> str | None:
     """
     Run extra checks then move files from RAW_PATH or TRANSCODE_PATH to final media directory\n
     :param str base_path: Path to source directory\n
@@ -420,24 +420,6 @@ def find_file(filename, search_path):
             return True
     return False
 
-
-def find_largest_file(files, mkv_out_path):
-    """
-    Step through given dir and return the largest file name\n
-    :param files: dir in os.listdir() format
-    :param mkv_out_path: RAW_PATH
-    :return: largest file name
-    """
-    largest_file_name = ""
-    for file in files:
-        # initialize largest_file_name
-        if largest_file_name == "":
-            largest_file_name = file
-        temp_path_f = os.path.join(mkv_out_path, file)
-        temp_path_largest = os.path.join(mkv_out_path, largest_file_name)
-        if os.stat(temp_path_f).st_size > os.stat(temp_path_largest).st_size:
-            largest_file_name = file
-    return largest_file_name
 
 
 def rip_music(job, logfile):
