@@ -106,21 +106,19 @@ def check_fstab():
 def main():
     """main disc processing function"""
     logging.info("Starting Disc identification")
-    if job == None:
+    if job is None:
         raise utils.RipperException("Job is null or empty")
     identify.identify(job)
-
-
     # --- Duplicate Check -----
     # DVDs that are not correctly mounted or titles extracted, but can still be ripped, sometimes
     # end up with a label called "DVDVolume". We do not want to stop these with a dupe check.
     skip_dupe_check = job.label == "DVDVolume"
     # We want to exit as early as possible if the user does
     # not allow Dupes
-    if skip_dupe_check == False: 
+    if skip_dupe_check is False:
         # Check db for any ongoing jobs that match the Label
         dupes = utils.get_all_dupe_jobs(job)
-        if dupes != None and len(dupes) > 0:
+        if dupes is not None and len(dupes) > 0:
             logging.debug(f"{len(dupes)} dupes found")
             for dupe in dupes:
                 logging.debug(f"{dupe}")
