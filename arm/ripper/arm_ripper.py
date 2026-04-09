@@ -17,7 +17,7 @@ from arm.ui import app, db, constants  # noqa E402
 from arm.models.job import Job, JobState  # noqa E402
 
 
-def rip_visual_media(job : Job, logfile, protection):
+def rip_visual_media(job: Job, logfile, protection):
     """
     Main ripping function for dvd and Blu-rays, movies or series
     \n
@@ -44,28 +44,25 @@ def rip_visual_media(job : Job, logfile, protection):
         if job.config.NOTIFY_RIP:
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} rip complete. Starting transcode. ")
         logging.info("************* Ripping with MakeMKV completed *************")
-    
-    if raw_output_path == None:
+    if raw_output_path is None:
         raise utils.RipperException("No output path for rip")
 
     # Save poster image from disc if enabled
     utils.save_disc_poster(raw_output_path, job)
-    
     # Fix the sub-folder type - (movie|tv|unknown)
     type_sub_folder = utils.convert_job_type(job.video_type)
     # Fix the job title - Title (Year) | Title
     job_title = utils.fix_job_title(job)
-    
     # --------------- POST PROCESSING ---------------
     # Start moving and (optionally) deleting the raw files
     final_input_path = None
     logging.debug(f"Transcode status: [{job.config.SKIP_TRANSCODE}] and MakeMKV Status: [{use_make_mkv}]")
     if job.config.SKIP_TRANSCODE:
-        # If we skip transcoding, then we want to copy the files from the raw folder into the end destination 
-        final_input_path = raw_output_path 
+        # If we skip transcoding, then we want to copy the files from the raw folder into the end destination
+        final_input_path = raw_output_path
         logging.info("Skipping transcode")
     else:
-        #The input for this step is the output of the last step
+        # The input for this step is the output of the last step
         transcode_input_path = raw_output_path
 
         # We need to construct the transcode path
@@ -81,7 +78,7 @@ def rip_visual_media(job : Job, logfile, protection):
     final_output_path = utils.ensure_dir_exists(final_output_path)
     # Update the job.path with the final directory
     utils.database_updater({'path': final_output_path}, job)
-    # Movie the movie poster if we have one 
+    # Movie the movie poster if we have one
     utils.move_movie_poster(raw_output_path, final_output_path)
     # Move to final folder. The final_output_path is stored in job.path
     move_files_post(final_input_path, job)
@@ -113,7 +110,7 @@ def start_transcode(job, logfile, raw_in_path, transcode_out_path, protection):
         return None
 
     # Update db with transcoding status
-    utils.database_updater({'status': JobState.TRANSCODE_ACTIVE.value }, job)
+    utils.database_updater({'status': JobState.TRANSCODE_ACTIVE.value}, job)
     # Use FFMPEG or HandBrake depending on arm.yaml setting
     if job.config.USE_FFMPEG:
         logging.info("************* Starting Transcode With FFMPEG *************")
@@ -132,8 +129,8 @@ def start_transcode(job, logfile, raw_in_path, transcode_out_path, protection):
             ffmpeg.ffmpeg_all(raw_in_path, transcode_out_path, job)
             db.session.commit()
         logging.info("************* Finished Transcode With FFMPEG *************")
-        # After transcoding update db status back to idle 
-        utils.database_updater({'status': JobState.IDLE.value }, job)
+        # After transcoding update db status back to idle
+        utils.database_updater({'status': JobState.IDLE.value}, job)
         return True
 
     elif not job.config.USE_FFMPEG:
@@ -154,7 +151,7 @@ def start_transcode(job, logfile, raw_in_path, transcode_out_path, protection):
             db.session.commit()
         logging.info("************* Finished Transcode With HandBrake *************")
         # After transcoding update db status back to idle
-        utils.database_updater({'status': JobState.IDLE.value },job)
+        utils.database_updater({'status': JobState.IDLE.value}, job)
         return True
     else:
         logging.info("Invalid transcoding option selected. Skipping transcode."
@@ -180,7 +177,7 @@ def notify_exit(job):
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} {constants.PROCESS_COMPLETE}")
 
 
-def move_files_post(input_path, job : Job):
+def move_files_post(input_path, job: Job):
     """
     Logic for moving files post transcoding\n
     if series move all to 1 folder\n
@@ -190,11 +187,11 @@ def move_files_post(input_path, job : Job):
     :return: None
     """
     if job.video_type == "series":
-        tracks = job.tracks.filter_by(ripped=True) 
+        tracks = job.tracks.filter_by(ripped=True)
         for track in tracks:
             utils.move_files(input_path, track.filename, job, False)
         return
-    is_bonus_disc = guess_if_bonus_disc(job) 
+    is_bonus_disc = guess_if_bonus_disc(job)
     tracks = job.tracks.filter_by(ripped=True).order_by(job.tracks.filesize.desc())
     largest_file = True
     if tracks.count() == 1:
@@ -211,11 +208,11 @@ def move_files_post(input_path, job : Job):
             if os.stat(temp_path).st_size <= 1:  # sanity check for filesize
                 logging.info(f"{input_path} is empty or very small size. - Folder size: {os.stat(temp_path).st_size}")
                 continue
-            if largest_file == True:
-                largest_file = False 
+            if largest_file is True:
+                largest_file = False
                 logging.debug(f"Largest file is: {track.filename}")
                 # We only treat it as main feauture if its not a bonus disc
-                utils.move_files(input_path, track.filename, job, is_main_feature=is_bonus_disc == False)
+                utils.move_files(input_path, track.filename, job, is_main_feature=is_bonus_disc is False)
             else:
                 # If mainfeature is enabled - skip to the next file
                 if job.config.MAINFEATURE and is_bonus_disc is False:
@@ -256,9 +253,12 @@ def rip_with_mkv(current_job, protection=0):
         mkv_ripped = True
     return mkv_ripped
 
-def guess_if_bonus_disc(job : Job) -> bool:
+
+def guess_if_bonus_disc(job: Job) -> bool:
     """
-    If the disc is a bonus disc, we dont want to assume there is a main feature
+    If the disc is a bonus disc,
+    we dont want to assume there is a main feature
+    :param job: current job
     :return: True if bonus disc
     """
     if job.video_type != "movie":
@@ -273,16 +273,15 @@ def guess_if_bonus_disc(job : Job) -> bool:
     # Bonus disc hint is usually at the end of the label
     # Some of these strings are short, so we only want to interpret them
     # If theyre close to the second half of the label
-    last_half = ["_D2"] 
+    last_half = ["_D2"]
     label_len = len(label)
     label_last_half = label[slice(int(label_len//2), label_len)]
     for half in last_half:
         if half in label_last_half:
             return True
 
-    suffixes = [ "_BONUS" ]
+    suffixes = ["_BONUS"]
     for suffix in suffixes:
         if label.endswith(suffix):
             return True
     return False
-
