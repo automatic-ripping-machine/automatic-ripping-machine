@@ -768,6 +768,10 @@ def check_if_dupe_should_exit_early(job: Job) -> bool:
     The job has duplicate entries. This checks whether the system should exit early.
     :return: True if the media is a dupe and you should exit early. False if you can keep going
     """
+    # SPECIAL CASE: DVDs that are not correctly mounted or titles extracted, but can still be ripped, sometimes
+    # end up with a label called "DVDVolume". We do not want to stop these with a dupe check.
+    if job.label is "DVDVolume":
+        return False
     if cfg.arm_config["ALLOW_DUPLICATES"] is False:
         logging.exception(
             "A fatal error has occurred and ARM is exiting.  "

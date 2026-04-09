@@ -110,20 +110,14 @@ def main():
         raise utils.RipperException("Job is null or empty")
     identify.identify(job)
     # --- Duplicate Check -----
-    # DVDs that are not correctly mounted or titles extracted, but can still be ripped, sometimes
-    # end up with a label called "DVDVolume". We do not want to stop these with a dupe check.
-    skip_dupe_check = job.label == "DVDVolume"
-    # We want to exit as early as possible if the user does
-    # not allow Dupes
-    if skip_dupe_check is False:
-        # Check db for any ongoing jobs that match the Label
-        dupes = utils.get_all_dupe_jobs(job)
-        if dupes is not None and len(dupes) > 0:
-            logging.debug(f"{len(dupes)} dupes found")
-            for dupe in dupes:
-                logging.debug(f"{dupe}")
-            if utils.check_if_dupe_should_exit_early(job):
-                raise utils.RipperException("Job killed due to Duplicate check")
+    # Check db for any ongoing jobs that match the Label
+    dupes = utils.get_all_dupe_jobs(job)
+    if dupes is not None and len(dupes) > 0:
+        logging.debug(f"{len(dupes)} dupes found")
+        for dupe in dupes:
+            logging.debug(f"{dupe}")
+        if utils.check_if_dupe_should_exit_early(job):
+            raise utils.RipperException("Job killed due to Duplicate check")
     utils.notify_entry(job)
 
     # Check if user has manual wait time enabled
