@@ -19,9 +19,12 @@ class Track(db.Model):
     error = db.Column(db.Text)
     source = db.Column(db.String(32))
     process = db.Column(db.Boolean)
+    chapters = db.Column(db.Integer, default=0)
+    filesize = db.Column(db.BigInteger, default=0)
 
     def __init__(self, job_id, track_number, length, aspect_ratio,
-                 fps, main_feature, source, basename, filename):
+                 fps, main_feature, source, basename, filename,
+                 chapters=0, filesize=0):
         """Return a track object"""
         self.job_id = job_id
         self.track_number = track_number
@@ -34,6 +37,8 @@ class Track(db.Model):
         self.filename = filename
         self.ripped = False
         self.process = False
+        self.chapters = chapters
+        self.filesize = filesize
 
     def __repr__(self):
         return f'<Track {self.track_number}>'

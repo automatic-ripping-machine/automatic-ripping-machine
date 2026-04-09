@@ -181,7 +181,9 @@ class TrackID(enum.IntEnum):
     """
     Definition of the Track ID and its reference to the stored content
     """
+    CHAPTERS = 8
     DURATION = 9
+    FILESIZE = 11
     FILENAME = 27
 
 
@@ -591,7 +593,7 @@ def makemkv_info(job, select=None, index=9999, options=None):
     if not isinstance(options, list):
         raise TypeError(options)
     # 1MB cache size to get info on the specified disc(s)
-    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}", "--minlength=0"]
+    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}", f"--minlength={job.config.MINLENGTH}"]
     wait_time = job.config.MANUAL_WAIT_TIME
     max_processes = cfg.arm_config["MAX_CONCURRENT_MAKEMKVINFO"]
     job.status = JobState.VIDEO_WAITING.value
@@ -666,8 +668,9 @@ def makemkv_mkv(job, rawpath):
     get_track_info(job.drive.mdisc, job)
     # route to ripping functions.
     if job.config.MAINFEATURE:
-        logging.info("Trying to find mainfeature")
-        track = Track.query.filter_by(job_id=job.job_id).order_by(Track.length.desc()).first()
+        logging.info("Trying to find mainfeature (sorting by chapters desc, filesize desc, track_number asc)")
+        track = Track.query.filter_by(job_id=job.job_id).order_by(
+            Track.chapters.desc(), Track.filesize.desc(), Track.track_number.asc()).first()
         rip_mainfeature(job, track, rawpath)
     elif mode == 'manual':  # Run if mode is manual, user selects tracks
         # Set job status to waiting
@@ -927,6 +930,8 @@ class TrackInfoProcessor:
         self.fps = 0.0
         self.filename = ""
         self.stream_type = None
+        self.chapters = 0
+        self.filesize = 0
 
     def process_messages(self):
         output_types = (
@@ -977,6 +982,10 @@ class TrackInfoProcessor:
             self.filename = next(iter(message.value.split('"')[1::2]), message.value)
         elif message.id == TrackID.DURATION:
             self.seconds = convert_to_seconds(message.value.strip())
+        elif message.id == TrackID.CHAPTERS:
+            self.chapters = int(message.value.strip())
+        elif message.id == TrackID.FILESIZE:
+            self.filesize = int(message.value.strip())
 
     def _handle_titles(self, message):
         logging.info(f"Found {message.count:d} titles")
@@ -993,13 +1002,17 @@ class TrackInfoProcessor:
             str(self.fps),
             False,
             SOURCE,
-            self.filename
+            self.filename,
+            self.chapters,
+            self.filesize
         )
         # Reset track info after adding if needed
         self.seconds = 0
         self.aspect = ""
         self.fps = 0.0
         self.filename = ""
+        self.chapters = 0
+        self.filesize = 0
 
 
 def get_track_info(index, job):
@@ -1191,7 +1204,7 @@ def run(options, select):
                 yield data
     if proc.returncode:
         raise MakeMkvRuntimeError(proc.returncode, cmd, output=os.linesep.join(buffer))
-    if buffer:
+    if buffer and proc.returncode:
         logging.warning(f"Cannot parse {len(buffer)} lines: {os.linesep.join(buffer)}")
         raise MakeMkvRuntimeError(proc.returncode, cmd, output=os.linesep.join(buffer))
     logging.info("MakeMKV exits gracefully.")

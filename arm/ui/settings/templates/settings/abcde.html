@@ -7,7 +7,13 @@
                     {{ form.hidden_tag() }}
                     <label for="abcdeConfigText">ABCDE Config:</label>
                     <textarea id="abcdeConfigText" name="abcdeConfig" spellcheck="false"
-                              class="w-100 form-control min-vh-100">{{ abcde_cfg }}</textarea>
+                              class="w-100 form-control min-vh-100"
+                              {% if abcde_read_only %}
+                                disabled="" title="abcde.conf is read-only"
+                              {% endif %}
+                              >
+                              {{ abcde_cfg }}
+                            </textarea>
                     <br>
                     <button id="abcdeConfigSubmit" class="btn btn-secondary btn-lg btn-block"
                             form="abcdeSettings">Submit
