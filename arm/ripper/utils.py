@@ -535,29 +535,6 @@ def set_permissions(directory_to_traverse):
     return True
 
 
-def try_add_default_user():
-    """
-    Added to fix missmatch from the armui and armripper\n
-    This will try to add a default user for the armui
-    with the details\n
-    Username: admin\n
-    Password: password\n
-    :return: None
-    """
-    try:
-        username = "admin"
-        pass1 = "password".encode('utf-8')
-        hashed = bcrypt.gensalt(12)
-        database_adder(User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed))
-        perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
-        write_permission_file = open(perm_file, "w")
-        write_permission_file.write("boop!")
-        write_permission_file.close()
-    except Exception as error:
-        #  notify("", str(error), str(error))
-        logging.error(error)
-
-
 def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
               chapters=0, filesize=0):
     """
