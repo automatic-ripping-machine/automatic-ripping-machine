@@ -865,10 +865,21 @@ def check_if_dupe_should_exit_early(job : Job) -> bool:
         return True
     return False
 
+def ensure_dir_exists(out_path):
+    """
+    ensures that the target directory exists. Does not create a new directory
+    if it exists
+    """
+    if make_dir(out_path, True) is False:
+        logging.debug(f"directory already exists: {out_path}")
+
 
 def create_unique_dir(hb_out_path, job):
-    if (make_dir(hb_out_path)) is False:
-        # job.stage is used as a makeshift random number generator.
+    """
+    Will always create a unique directory if one exists already
+    """
+    if make_dir(hb_out_path, True) is False:
+        # job.stage is used as a pseudo-random number generator.
         # This should only be replaced if its not fit for the task
         hb_out_path = hb_out_path + "_" + job.stage
         logging.debug(f"Attempting to generate a new path: {hb_out_path}")

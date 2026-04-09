@@ -14,10 +14,10 @@ if find_spec("arm") is None:
 
 from arm.ripper import utils, makemkv, handbrake, ffmpeg  # noqa E402
 from arm.ui import app, db, constants  # noqa E402
-from arm.models.job import JobState  # noqa E402
+from arm.models.job import Job, JobState  # noqa E402
 
 
-def rip_visual_media(job, logfile, protection):
+def rip_visual_media(job : Job, logfile, protection):
     """
     Main ripping function for dvd and Blu-rays, movies or series
     \n
@@ -78,7 +78,7 @@ def rip_visual_media(job, logfile, protection):
 
     # Check folders for already ripped jobs -> creates folder
     final_output_path = os.path.join(job.config.COMPLETED_PATH, type_sub_folder, job_title)
-    final_output_path = utils.create_unique_dir(final_output_path, job)
+    final_output_path = utils.ensure_dir_exists(final_output_path)
     # Update the job.path with the final directory
     utils.database_updater({'path': final_output_path}, job)
     # Movie the movie poster if we have one 
