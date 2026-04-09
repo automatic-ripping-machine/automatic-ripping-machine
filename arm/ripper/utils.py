@@ -31,6 +31,7 @@ from arm.ripper import apprise_bulk
 
 NOTIFY_TITLE = "ARM notification"
 
+
 class RipperException(Exception):
     pass
 
@@ -421,7 +422,6 @@ def find_file(filename, search_path):
     return False
 
 
-
 def rip_music(job, logfile):
     """
     Rip music CD using abcde config\n
@@ -785,6 +785,7 @@ def save_disc_poster(final_directory, job):
             os.system(f'ffmpeg -i "{job.mountpoint}/JACKET_P/J00___6L.MP2" "{final_directory}/poster.png"')
         os.system(f"umount {job.devpath}")
 
+
 def generate_safe_output_dir_name(have_dupes, hb_out_path, job) -> str:
     """
     Check if the folder already exists.
@@ -802,7 +803,7 @@ def generate_safe_output_dir_name(have_dupes, hb_out_path, job) -> str:
         logging.debug(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
         logging.debug(f"Value of have_dupes: {have_dupes}")
         if cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
-            #job.stage is used as a makeshift random number generator
+            # job.stage is used as a makeshift random number generator
             hb_out_path = hb_out_path + "_" + job.stage
             logging.debug(f"Attempting to generate a new path: {hb_out_path}")
             if os.path.exists(hb_out_path):
@@ -810,7 +811,7 @@ def generate_safe_output_dir_name(have_dupes, hb_out_path, job) -> str:
                 # in their directories it might
                 logging.exception(
                     "A fatal error has occurred and ARM is exiting.  "
-                        f"Randomly generated directory suffix is not unique: {hb_out_path}")
+                    f"Randomly generated directory suffix is not unique: {hb_out_path}")
                 notify(job, NOTIFY_TITLE,
                        f"ARM encountered a fatal error processing {job.title}."
                        f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
@@ -819,33 +820,35 @@ def generate_safe_output_dir_name(have_dupes, hb_out_path, job) -> str:
         else:
             logging.exception(
                 "A fatal error has occurred and ARM is exiting.  "
-                    f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
+                f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
             notify(job, NOTIFY_TITLE,
                    f"ARM encountered a fatal error processing {job.title}."
-                    f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
+                   f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
             database_updater({'status': JobState.FAILURE.value, 'errors': 'Stopping duplicate job'}, job)
             raise RipperException(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
         return hb_out_path
     else:
         return hb_out_path
 
-def check_if_dupe_should_exit_early(job : Job) -> bool:
+
+def check_if_dupe_should_exit_early(job: Job) -> bool:
     """
     The job has duplicate entries. This checks whether the system should exit early.
     :return: True if the media is a dupe and you should exit early. False if you can keep going
     """
-    if cfg.arm_config["ALLOW_DUPLICATES"] == False:
+    if cfg.arm_config["ALLOW_DUPLICATES"] is False:
         logging.exception(
             "A fatal error has occurred and ARM is exiting.  "
-                f" Duplicate job exists and config 'ALLOW_DUPLICATES' is set to: {cfg.arm_config['ALLOW_DUPLICATES']}")
+            f" Duplicate job exists and config 'ALLOW_DUPLICATES' is set to: {cfg.arm_config['ALLOW_DUPLICATES']}")
         notify(job, NOTIFY_TITLE,
                f"ARM encountered a fatal error processing {job.title}."
-                f" Duplicate job exists: and config 'ALLOW_DUPLICATES' is set to: {cfg.arm_config['ALLOW_DUPLICATES']}")
+               f" Duplicate job exists: and config 'ALLOW_DUPLICATES' is set to: {cfg.arm_config['ALLOW_DUPLICATES']}")
         # Its very important that we set "Failure" here as a job state, since future duplicate checks
         # Rely on filtering this
         database_updater({'status': JobState.FAILURE.value, 'errors': 'Duplicate job already exists'}, job)
         return True
     return False
+
 
 def ensure_dir_exists(out_path):
     """
@@ -870,7 +873,7 @@ def create_unique_dir(hb_out_path, job):
             # in their directories it might
             logging.exception(
                 "A fatal error has occurred and ARM is exiting.  "
-                    f"Randomly generated directory suffix is not unique: {hb_out_path}")
+                f"Randomly generated directory suffix is not unique: {hb_out_path}")
             notify(job, NOTIFY_TITLE,
                    f"ARM encountered a fatal error processing {job.title}."
                    f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
@@ -892,9 +895,11 @@ def get_all_dupe_jobs(job) -> list[Job] | None:
         logging.info("Disc title 'None' not searched in database")
         return None
     else:
-        # We don't count failures when doing Dupe Checks, 
+        # We don't count failures when doing Dupe Checks,
         # but anything else thats currently in progress can be a Dupe
-        matching_jobs = Job.query.filter(Job.label==job.label, Job.status != JobState.FAILURE.value, Job.disctype == job.disctype, Job.job_id != job.job_id).all()
+        matching_jobs = Job.query.filter(Job.label == job.label,
+                                         Job.status != JobState.FAILURE.value,
+                                         Job.disctype == job.disctype, Job.job_id != job.job_id).all()
         results = []
         for j in matching_jobs:
             results.append(j)
