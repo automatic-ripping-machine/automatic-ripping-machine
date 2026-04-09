@@ -125,7 +125,7 @@ def main():
             for dupe in dupes:
                 logging.debug(f"{dupe}")
             if utils.check_if_dupe_should_exit_early(job):
-                raise utils.RipperException(f"Job killed due to Duplicate check")
+                raise utils.RipperException("Job killed due to Duplicate check")
     utils.notify_entry(job)
 
     # Check if user has manual wait time enabled
