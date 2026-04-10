@@ -6,6 +6,7 @@ import os
 import logging
 from importlib.util import find_spec
 from pathlib import Path
+from typing import Tuple
 
 # If the arm module can't be found, add the folder this file is in to PYTHONPATH
 # This is a bad workaround for non-existent packaging
@@ -17,17 +18,17 @@ from arm.ui import app, db, constants  # noqa E402
 from arm.models.job import Job, JobState  # noqa E402
 
 
-def rip_visual_media(job: Job, logfile, protection) -> str:
+def rip_visual_media(job: Job, logfile, protection) -> Tuple[str, bool]:
     """
     Main ripping function for dvd and Blu-rays, movies or series
     \n
     :param job: Current job
     :param logfile: Current logfile
     :param protection: Does the disc have 99 track protection
-    :return: None
+    :return: the output path of the rip, and whether the files are raw from disc or transcoded
     """
-
-    raw_output_path = utils.create_unique_dir(os.path.join(str(job.config.RAW_PATH), str(job.title)), job)
+    is_transcoded = False
+    output_path = utils.create_unique_dir(os.path.join(str(job.config.RAW_PATH), str(job.title)), job)
     # Do we need to use MakeMKV - Blu-rays, protected dvd's, and dvd with mainfeature off
     if should_rip_with_MakeMKV(job, protection):
         logging.debug("Using MakeMKV")
@@ -36,27 +37,29 @@ def rip_visual_media(job: Job, logfile, protection) -> str:
         job.status = JobState.VIDEO_RIPPING.value
         db.session.commit()
         try:
-            makemkv.makemkv(job, raw_output_path)
+            makemkv.makemkv(job, output_path)
         except Exception as mkv_error:  # noqa: E722
             raise utils.RipperException("Error while running MakeMKV") from mkv_error
         if job.config.NOTIFY_RIP:
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} rip complete. Starting transcode. ")
         logging.info("************* Ripping with MakeMKV completed *************")
     else:
-        logging.debug("Skipping MakeMKV: Using FFMPEG or Handbrake")
+        logging.debug("Skipping MakeMKV: Using FFMPEG or Handbrake to ")
         utils.database_updater({'status': JobState.VIDEO_RIPPING.value}, job)
         if job.config.USE_FFMPEG:
-            _rip_ffmpeg(job, drive_path=job.devpath, raw_output_path=raw_output_path)
+            _transcode_rip_ffmpeg(job, drive_path=job.devpath, raw_output_path=output_path)
         else:
-            _rip_handbrake(job, logfile, drive_path=job.devpath, raw_output_path=raw_output_path)
+            _transcode_rip_handbrake(job, logfile, drive_path=job.devpath, raw_output_path=output_path)
+        # These ripping methods transcode the files during rip
+        is_transcoded = True
     # Save poster image from disc if enabled
-    utils.save_disc_poster(raw_output_path, job)
-    return raw_output_path
+    utils.save_disc_poster(output_path, job)
+    return output_path, is_transcoded
 
 
-def transcode_visual_media(job: Job, logfile, raw_output_path: str) -> str | None:
+def transcode_visual_media(job: Job, logfile, raw_output_path: str, skip_transcode: bool) -> str | None:
     logging.debug(f"Transcode status: [{job.config.SKIP_TRANSCODE}]")
-    if job.config.SKIP_TRANSCODE:
+    if job.config.SKIP_TRANSCODE or skip_transcode:
         logging.info("Skipping transcode")
         return None
     # Fix the job title - Title (Year) | Title
@@ -149,12 +152,12 @@ def start_ripping_dvd(job: Job, logfile, raw_in_path, transcode_out_path):
     """
     utils.database_updater({'status': JobState.VIDEO_RIPPING.value}, job)
     if job.config.USE_FFMPEG:
-        return _rip_ffmpeg(job, raw_in_path, transcode_out_path)
+        return _transcode_rip_ffmpeg(job, raw_in_path, transcode_out_path)
     else:
-        return _rip_handbrake(job, logfile, raw_in_path, transcode_out_path)
+        return _transcode_rip_handbrake(job, logfile, raw_in_path, transcode_out_path)
 
 
-def _rip_ffmpeg(job: Job, drive_path: str, raw_output_path: str):
+def _transcode_rip_ffmpeg(job: Job, drive_path: str, raw_output_path: str):
     """
     Passes the job to the right ffmpeg ripping function
     :param job: Current job
@@ -178,7 +181,7 @@ def _rip_ffmpeg(job: Job, drive_path: str, raw_output_path: str):
     utils.database_updater({'status': JobState.IDLE.value}, job)
 
 
-def _rip_handbrake(job: Job, logfile, drive_path: str, raw_output_path: str):
+def _transcode_rip_handbrake(job: Job, logfile, drive_path: str, raw_output_path: str):
     """
     Passes the job to the right HandBrake ripping function
     :param job: Current job

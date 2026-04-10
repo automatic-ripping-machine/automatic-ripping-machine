@@ -120,8 +120,8 @@ def main():
     # Ripper type assessment for the various media types
     # Type: dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
-        raw_out = arm_ripper.rip_visual_media(job, log_file, job.has_track_99)
-        transcode_out = arm_ripper.transcode_visual_media(job, log_file, raw_out)
+        raw_out, skip_transcode = arm_ripper.rip_visual_media(job, log_file, job.has_track_99)
+        transcode_out = arm_ripper.transcode_visual_media(job, log_file, raw_out, skip_transcode)
         arm_ripper.post_process_ripping_job_cleanup(job, transcode_out, raw_out)
 
     # Type: Music
