@@ -73,14 +73,14 @@ def rip_visual_media(job: Job, logfile, protection):
         start_transcode(job, logfile, transcode_input_path, transcode_output_path, protection)
         final_input_path = transcode_output_path
 
-    # Check folders for already ripped jobs -> creates folder
+    # ensure the final directory exists
     final_output_path = os.path.join(job.config.COMPLETED_PATH, type_sub_folder, job_title)
-    final_output_path = utils.ensure_dir_exists(final_output_path)
+    utils.ensure_dir_exists(final_output_path)
     # Update the job.path with the final directory
     utils.database_updater({'path': final_output_path}, job)
-    # Movie the movie poster if we have one
+    # Move the movie poster if we have one
     utils.move_movie_poster(raw_output_path, final_output_path)
-    # Move to final folder. The final_output_path is stored in job.path
+    # Move to final folder.
     move_files_post(final_input_path, job)
     # Scan Emby if arm.yaml requires it
     utils.scan_emby()
