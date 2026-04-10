@@ -75,13 +75,17 @@ def rip_visual_media(job: Job, logfile, protection):
 
     # ensure the final directory exists
     final_output_path = os.path.join(job.config.COMPLETED_PATH, type_sub_folder, job_title)
-    utils.ensure_dir_exists(final_output_path)
+    utils.make_dir(final_output_path, True)
     # Update the job.path with the final directory
     utils.database_updater({'path': final_output_path}, job)
     # Move the movie poster if we have one
     utils.move_movie_poster(raw_output_path, final_output_path)
     # Move to final folder.
-    move_files_post(final_input_path, job)
+    if is_bonus_disc(job):
+        logging.info(f"Disc is Bonus Disc")
+        move_files_post(final_input_path, job, bonus_disc=True)
+    else:
+        move_files_post(final_input_path, job, bonus_disc=False)
     # Scan Emby if arm.yaml requires it
     utils.scan_emby()
     # Set permissions if arm.yaml requires it
@@ -177,7 +181,7 @@ def notify_exit(job):
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} {constants.PROCESS_COMPLETE}")
 
 
-def move_files_post(input_path, job: Job):
+def move_files_post(input_path, job: Job, bonus_disc : bool):
     """
     Logic for moving files post transcoding\n
     if series move all to 1 folder\n
@@ -186,12 +190,11 @@ def move_files_post(input_path, job: Job):
     :param job: current job
     :return: None
     """
-    if job.video_type == "series":
+    if job.video_type == "series" or bonus_disc:
         tracks = job.tracks.filter_by(ripped=True)
         for track in tracks:
             utils.move_files(input_path, track.filename, job, False)
         return
-    is_bonus_disc = guess_if_bonus_disc(job)
     tracks = job.tracks.filter_by(ripped=True).order_by(job.tracks.filesize.desc())
     largest_file = True
     if tracks.count() == 1:
@@ -212,10 +215,10 @@ def move_files_post(input_path, job: Job):
                 largest_file = False
                 logging.debug(f"Largest file is: {track.filename}")
                 # We only treat it as main feauture if its not a bonus disc
-                utils.move_files(input_path, track.filename, job, is_main_feature=is_bonus_disc is False)
+                utils.move_files(input_path, track.filename, job, is_main_feature=True)
             else:
                 # If mainfeature is enabled - skip to the next file
-                if job.config.MAINFEATURE and is_bonus_disc is False:
+                if job.config.MAINFEATURE:
                     logging.info(f"MAINFEATURE IS {job.config.MAINFEATURE} - Skipping move of {track.filename}")
                     continue
                 # Other/extras
@@ -225,8 +228,7 @@ def move_files_post(input_path, job: Job):
                     logging.info(f"Not moving extra: \"{track.filename}\" - Sub folder is not set or named incorrectly")
         else:
             # If HandBrake was used we can pass track.main_feature
-            utils.move_files(input_path, track.filename, job, track.main_feature and is_bonus_disc is False)
-
+            utils.move_files(input_path, track.filename, job, track.main_feature)
 
 def rip_with_mkv(current_job, protection=0):
     """
@@ -254,7 +256,7 @@ def rip_with_mkv(current_job, protection=0):
     return mkv_ripped
 
 
-def guess_if_bonus_disc(job: Job) -> bool:
+def is_bonus_disc(job: Job) -> bool:
     """
     If the disc is a bonus disc,
     we dont want to assume there is a main feature

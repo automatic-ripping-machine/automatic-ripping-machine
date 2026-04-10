@@ -782,15 +782,6 @@ def check_if_dupe_should_exit_early(job: Job) -> bool:
     return False
 
 
-def ensure_dir_exists(out_path):
-    """
-    ensures that the target directory exists. Does not create a new directory
-    if it exists
-    """
-    if make_dir(out_path, True) is False:
-        logging.debug(f"directory already exists: {out_path}")
-
-
 def create_unique_dir(hb_out_path, job):
     """
     Will always create a unique directory if one exists already
@@ -811,6 +802,7 @@ def create_unique_dir(hb_out_path, job):
                    f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
             database_updater({'status': JobState.FAILURE.value, 'errors': 'Generating unique path failed'}, job)
             raise RipperException(f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
+        make_dir(hb_out_path, True)
     return hb_out_path
 
 
