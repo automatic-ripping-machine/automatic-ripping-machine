@@ -82,7 +82,7 @@ def rip_visual_media(job: Job, logfile, protection):
     utils.move_movie_poster(raw_output_path, final_output_path)
     # Move to final folder.
     if is_bonus_disc(job):
-        logging.info(f"Disc is Bonus Disc")
+        logging.info("Disc is Bonus Disc")
         move_files_post(final_input_path, job, bonus_disc=True)
     else:
         move_files_post(final_input_path, job, bonus_disc=False)
@@ -181,7 +181,7 @@ def notify_exit(job):
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} {constants.PROCESS_COMPLETE}")
 
 
-def move_files_post(input_path, job: Job, bonus_disc : bool):
+def move_files_post(input_path, job: Job, bonus_disc: bool):
     """
     Logic for moving files post transcoding\n
     if series move all to 1 folder\n
@@ -229,6 +229,7 @@ def move_files_post(input_path, job: Job, bonus_disc : bool):
         else:
             # If HandBrake was used we can pass track.main_feature
             utils.move_files(input_path, track.filename, job, track.main_feature)
+
 
 def rip_with_mkv(current_job, protection=0):
     """
