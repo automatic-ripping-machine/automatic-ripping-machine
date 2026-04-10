@@ -198,9 +198,10 @@ def move_files_post(input_path, job: Job, bonus_disc: bool):
         for track in tracks:
             utils.move_files(input_path, track.filename, job, False)
         return
-    tracks = job.tracks.filter_by(ripped=True).sort(key=lambda x: x.filesize, reversed=True)
+    tracks = job.tracks.filter_by(ripped=True).all()
     # tracks
-    if tracks.count() == 1:
+    tracks = sorted(tracks, key=lambda x: x.filesize, reverse=True)
+    if len(tracks) == 1:
         utils.move_files(input_path, tracks[0].filename, job, True)
         return
     is_largest_file = True
