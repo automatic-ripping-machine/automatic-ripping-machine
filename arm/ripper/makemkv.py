@@ -22,6 +22,7 @@ import arm.config.config as cfg
 from arm.models import SystemDrives, Track
 from arm.models.job import JobState
 from arm.ripper import utils
+from arm.ripper.arm_ripper import is_bonus_disc
 from arm.ripper.utils import notify
 from arm.ui import db
 
@@ -629,7 +630,7 @@ def get_drives(job):
             yield drive
 
 
-def makemkv_backup(job, rawpath):
+def makemkv_backup(job, rawpath: str):
     """
     Rip BluRay with Backup Method
 
@@ -653,7 +654,7 @@ def makemkv_backup(job, rawpath):
     collections.deque(run(cmd, OutputType.MSG), maxlen=0)
 
 
-def makemkv_mkv(job, rawpath):
+def makemkv_mkv(job, rawpath: str):
     """
     Rip Blu-ray without enhanced protection or dvd disc
 
@@ -667,10 +668,9 @@ def makemkv_mkv(job, rawpath):
     # Get track info form mkv rip
     get_track_info(job.drive.mdisc, job)
     # route to ripping functions.
-    if job.config.MAINFEATURE:
+    if job.config.MAINFEATURE and not is_bonus_disc(job):
         logging.info("Trying to find mainfeature (sorting by chapters desc, filesize desc, track_number asc)")
-        track = Track.query.filter_by(job_id=job.job_id).order_by(
-            Track.chapters.desc(), Track.filesize.desc(), Track.track_number.asc()).first()
+        track = Track.query.filter_by(job_id=job.job_id).order_by(Track.filesize.desc()).first()
         rip_mainfeature(job, track, rawpath)
     elif mode == 'manual':  # Run if mode is manual, user selects tracks
         # Set job status to waiting
@@ -757,10 +757,9 @@ def makemkv(job, rawpath: str):
         logging.info("I'm confused what to do....  Passing on MakeMKV")
     job.eject()
     logging.info(f"Exiting MakeMKV processing with return value of: {rawpath}")
-    return rawpath
 
 
-def rip_mainfeature(job, track, rawpath):
+def rip_mainfeature(job, track: Track, rawpath):
     """
     Find and rip only the main feature when using Blu-rays
 
@@ -784,6 +783,8 @@ def rip_mainfeature(job, track, rawpath):
     ]
     logging.info("Ripping main feature")
     # Possibly update db to say track was ripped
+    track.main_feature = True
+    db.session.commit()
     collections.deque(run(cmd, OutputType.MSG), maxlen=0)
 
 
