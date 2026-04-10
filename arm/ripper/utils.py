@@ -10,6 +10,7 @@ import random
 import re
 from logging import Logger
 from math import ceil
+from typing import List
 import requests
 import apprise
 import psutil
@@ -361,7 +362,7 @@ def scan_emby():
         logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
 
 
-def delete_raw_files(dir_list):
+def delete_raw_files(dir_list: List[str | None]):
     """
     Delete the raw folders from arm after job has finished
     :param list dir_list: Python list containing strings of the folders to be deleted
@@ -369,6 +370,8 @@ def delete_raw_files(dir_list):
     """
     if cfg.arm_config["DELRAWFILES"]:
         for raw_folder in dir_list:
+            if raw_folder is None:
+                continue
             try:
                 logging.info(f"Removing path - {raw_folder}")
                 shutil.rmtree(raw_folder)

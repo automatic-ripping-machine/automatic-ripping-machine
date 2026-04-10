@@ -17,7 +17,7 @@ from arm.ui import app, db, constants  # noqa E402
 from arm.models.job import Job, JobState  # noqa E402
 
 
-def rip_visual_media(job: Job, logfile, protection):
+def rip_visual_media(job: Job, logfile, protection) -> str:
     """
     Main ripping function for dvd and Blu-rays, movies or series
     \n
@@ -27,13 +27,10 @@ def rip_visual_media(job: Job, logfile, protection):
     :return: None
     """
 
-    raw_output_path = None
-    # Fix the sub-folder type - (movie|tv|unknown)
-    type_sub_folder = utils.convert_job_type(job.video_type)
+    raw_output_path = utils.create_unique_dir(os.path.join(str(job.config.RAW_PATH), str(job.title)), job)
     # Do we need to use MakeMKV - Blu-rays, protected dvd's, and dvd with mainfeature off
-    if rip_with_MakeMKV(job, protection):
+    if should_rip_with_MakeMKV(job, protection):
         logging.debug("Using MakeMKV")
-        raw_output_path = utils.create_unique_dir(os.path.join(str(job.config.RAW_PATH), str(job.title)), job)
         logging.info("************* Ripping disc with MakeMKV *************")
         # Run MakeMKV and get path to output
         job.status = JobState.VIDEO_RIPPING.value
@@ -47,40 +44,52 @@ def rip_visual_media(job: Job, logfile, protection):
         logging.info("************* Ripping with MakeMKV completed *************")
     else:
         logging.debug("Skipping MakeMKV: Using FFMPEG or Handbrake")
-        raw_output_path = utils.create_unique_dir(os.path.join(str(job.config.RAW_PATH), str(job.title)), job)
-        start_transcode(job, logfile, raw_in_path=job.devpath, transcode_out_path=raw_output_path)
-
+        utils.database_updater({'status': JobState.VIDEO_RIPPING.value}, job)
+        if job.config.USE_FFMPEG:
+            _rip_ffmpeg(job, drive_path=job.devpath, raw_output_path=raw_output_path)
+        else:
+            _rip_handbrake(job, logfile, drive_path=job.devpath, raw_output_path=raw_output_path)
     # Save poster image from disc if enabled
     utils.save_disc_poster(raw_output_path, job)
-    # Fix the job title - Title (Year) | Title
-    job_title = utils.fix_job_title(job)
-    # --------------- POST PROCESSING ---------------
-    # Start moving and (optionally) deleting the raw files
-    final_input_path = None
+    return raw_output_path
+
+
+def transcode_visual_media(job: Job, logfile, raw_output_path: str) -> str | None:
     logging.debug(f"Transcode status: [{job.config.SKIP_TRANSCODE}]")
     if job.config.SKIP_TRANSCODE:
-        # If we skip transcoding, then we want to copy the files from the raw folder into the end destination
-        final_input_path = raw_output_path
         logging.info("Skipping transcode")
-    else:
-        # The input for this step is the output of the last step
-        transcode_input_path = raw_output_path
+        return None
+    # Fix the job title - Title (Year) | Title
+    job_title = utils.fix_job_title(job)
+    # Fix the sub-folder type - (movie|tv|unknown)
+    type_sub_folder = utils.convert_job_type(job.video_type)
+    # We need to construct the transcode path
+    transcode_output_path = os.path.join(job.config.TRANSCODE_PATH, type_sub_folder, job_title)
+    transcode_output_path = utils.create_unique_dir(transcode_output_path, job)
+    logging.info(f"Processing files to: {transcode_output_path}")
+    # Begin transcoding section - only transcode if skip_transcode is false
+    start_transcode(job, logfile, raw_in_path=raw_output_path, transcode_out_path=transcode_output_path)
+    return transcode_output_path
 
-        # We need to construct the transcode path
-        transcode_output_path = os.path.join(job.config.TRANSCODE_PATH, type_sub_folder, job_title)
-        transcode_output_path = utils.create_unique_dir(transcode_output_path, job)
-        logging.info(f"Processing files to: {transcode_output_path}")
-        # Begin transcoding section - only transcode if skip_transcode is false
-        start_transcode(job, logfile, transcode_input_path, transcode_output_path)
-        final_input_path = transcode_output_path
 
+def post_process_ripping_job_cleanup(job: Job, transcode_path: str | None, raw_path: str):
+    """
+    After transcoding and ripping, do cleanup by moving files and posters
+    and delete raw files based on arm.yaml config
+    """
+    final_input_path = transcode_path if transcode_path else raw_path
+    # --------------- POST PROCESSING ---------------
+    job_title = utils.fix_job_title(job)
+    # Fix the sub-folder type - (movie|tv|unknown)
+    type_sub_folder = utils.convert_job_type(job.video_type)
+    # Start moving and (optionally) deleting the raw files
     # ensure the final directory exists
     final_output_path = os.path.join(job.config.COMPLETED_PATH, type_sub_folder, job_title)
     utils.make_dir(final_output_path, True)
     # Update the job.path with the final directory
     utils.database_updater({'path': final_output_path}, job)
     # Move the movie poster if we have one
-    utils.move_movie_poster(raw_output_path, final_output_path)
+    utils.move_movie_poster(raw_path, final_output_path)
     # Move to final folder.
     if is_bonus_disc(job):
         logging.info("Disc is Bonus Disc")
@@ -93,13 +102,13 @@ def rip_visual_media(job: Job, logfile, protection):
     utils.set_permissions(final_output_path)
     # If set in the arm.yaml remove the raw files
     # Removes files in both the raw path and the transcode path.
-    utils.delete_raw_files([raw_output_path, final_input_path])
+    utils.delete_raw_files([raw_path, transcode_path])
     # report errors if any
     notify_exit(job)
     logging.info("************* ARM processing complete *************")
 
 
-def start_transcode(job, logfile, raw_in_path, transcode_out_path):
+def start_transcode(job: Job, logfile, raw_in_path: str, transcode_out_path: str):
     """
     Passes the job to the right transcoding function, first if handbrake or ffmpeg
     should be used, then how it should be ripped\n
@@ -114,54 +123,81 @@ def start_transcode(job, logfile, raw_in_path, transcode_out_path):
     utils.database_updater({'status': JobState.TRANSCODE_ACTIVE.value}, job)
     # Use FFMPEG or HandBrake depending on arm.yaml setting
     if job.config.USE_FFMPEG:
-        return _transcode_ffmpeg(job, raw_in_path, transcode_out_path)
-    elif not job.config.USE_FFMPEG:
-        return _transcode_handbrake(job, logfile, raw_in_path, transcode_out_path)
-    else:
-        logging.info("Invalid transcoding option selected. Skipping transcode."
-                     "Set USE_FFMPEG with valid boolean value fix error")
-        return None
-
-
-def _transcode_ffmpeg(job: Job, raw_in_path, transcode_out_path):
-    logging.info("************* Starting Transcode With FFMPEG *************")
-    # If it was ripped with MakeMKV or we are doing a mkv rip then run the ffmpeg_mkv function
-    if job.config.RIPMETHOD == "mkv":
+        logging.info("************* Starting Transcode With FFMPEG *************")
         logging.debug(f"ffmpeg_mkv: {raw_in_path}, {transcode_out_path}")
         ffmpeg.ffmpeg_mkv(raw_in_path, transcode_out_path, job)
-    # Otherwise if it is a movie and mainfeature is enabled then run ffmpeg_main_feature
-    elif job.video_type == "movie" and job.config.MAINFEATURE:
-        logging.debug(f"ffmpeg_main_feature: {raw_in_path}, {transcode_out_path}")
-        ffmpeg.ffmpeg_main_feature(raw_in_path, transcode_out_path, job)
+        logging.info("************* Finished Transcode With FFMPEG *************")
         db.session.commit()
-    # Finally if it is a series or mainfeature is disabled run ffmpeg_all to transcode all tracks
     else:
-        logging.debug(f"ffmpeg_all: {raw_in_path}, {transcode_out_path}")
-        ffmpeg.ffmpeg_all(raw_in_path, transcode_out_path, job)
+        logging.info("************* Starting Transcode With HandBrake *************")
+        # If it was ripped with MakeMKV or we are doing a mkv rip then run the handbrake_mkv function
+        logging.debug(f"handbrake_mkv: {raw_in_path}, {transcode_out_path}")
+        handbrake.handbrake_mkv(raw_in_path, transcode_out_path, logfile, job)
+        logging.info("************* Finished Transcode With HandBrake *************")
+
+
+def start_ripping_dvd(job: Job, logfile, raw_in_path, transcode_out_path):
+    """
+    Passes the job to the right transcoding function, first if handbrake or ffmpeg
+    should be used, then how it should be ripped\n
+    :param raw_in_path: HandBrake in path (mkv_out_path|/dev/sr0)
+    :param transcode_out_path: Path HandBrake should put the files (transcode_path)
+    :param job: Current job
+    :param logfile: Current logfile
+    :param protection: If disc has 99 track protection
+    :return: None
+    """
+    utils.database_updater({'status': JobState.VIDEO_RIPPING.value}, job)
+    if job.config.USE_FFMPEG:
+        return _rip_ffmpeg(job, raw_in_path, transcode_out_path)
+    else:
+        return _rip_handbrake(job, logfile, raw_in_path, transcode_out_path)
+
+
+def _rip_ffmpeg(job: Job, drive_path: str, raw_output_path: str):
+    """
+    Passes the job to the right ffmpeg ripping function
+    :param job: Current job
+    :param drive_path: /dev/sr0 and similar
+    :param raw_output_path : Path FFMPEG should put the files.
+    """
+    logging.info("************* Starting Rip With FFMPEG *************")
+    # if it is a movie and mainfeature is enabled then run ffmpeg_main_feature
+    if job.video_type == "movie" and job.config.MAINFEATURE:
+        logging.debug(f"ffmpeg_main_feature: {drive_path}, {raw_output_path}")
+        ffmpeg.ffmpeg_main_feature(drive_path, raw_output_path, job)
         db.session.commit()
-    logging.info("************* Finished Transcode With FFMPEG *************")
+    # if it is a series or mainfeature is disabled run ffmpeg_all to transcode all tracks
+    else:
+        logging.debug(f"ffmpeg_all: {drive_path}, {raw_output_path}")
+        ffmpeg.ffmpeg_all(drive_path, raw_output_path, job)
+        db.session.commit()
+    # If it was ripped with MakeMKV or we are doing a mkv rip then run the ffmpeg_mkv function
+    logging.info("************* Finished Rip With FFMPEG *************")
     # After transcoding update db status back to idle
     utils.database_updater({'status': JobState.IDLE.value}, job)
-    return True
 
 
-def _transcode_handbrake(job: Job, logfile, raw_in_path, transcode_out_path):
-    logging.info("************* Starting Transcode With HandBrake *************")
+def _rip_handbrake(job: Job, logfile, drive_path: str, raw_output_path: str):
+    """
+    Passes the job to the right HandBrake ripping function
+    :param job: Current job
+    :param logfile: The output file to write handbrake logs to
+    :param drive_path: /dev/sr0 and similar
+    :param raw_output_path : Path FFMPEG should put the files.
+    """
+    logging.info("************* Starting Rip With HandBrake *************")
     # Otherwise if it is a movie and mainfeature is enabled then run handbrake_main_feature
     if job.video_type == "movie" and job.config.MAINFEATURE:
-        logging.debug(f"handbrake_main_feature: {raw_in_path}, {transcode_out_path}")
-        handbrake.handbrake_main_feature(raw_in_path, transcode_out_path, logfile, job)
+        logging.debug(f"handbrake_main_feature: {drive_path}, {raw_output_path}")
+        handbrake.handbrake_main_feature(drive_path, raw_output_path, logfile, job)
         db.session.commit()
-    # If it was ripped with MakeMKV or we are doing a mkv rip then run the handbrake_mkv function
-    # elif job.config.RIPMETHOD == "mkv":
-    #     logging.debug(f"handbrake_mkv: {raw_in_path}, {transcode_out_path}")
-    #     handbrake.handbrake_mkv(raw_in_path, transcode_out_path, logfile, job)
     # Finally if it is a series or mainfeature is disabled run handbrake_all to transcode all tracks
     else:
-        logging.debug(f"handbrake_all: {raw_in_path}, {transcode_out_path}")
-        handbrake.handbrake_all(raw_in_path, transcode_out_path, logfile, job)
+        logging.debug(f"handbrake_all: {drive_path}, {raw_output_path}")
+        handbrake.handbrake_all(drive_path, raw_output_path, logfile, job)
         db.session.commit()
-    logging.info("************* Finished Transcode With HandBrake *************")
+    logging.info("************* Finished Rip With HandBrake *************")
     # After transcoding update db status back to idle
     utils.database_updater({'status': JobState.IDLE.value}, job)
     return True
@@ -237,7 +273,7 @@ def move_files_post(input_path, job: Job, bonus_disc: bool):
             utils.move_files(input_path, track.filename, job, track.main_feature)
 
 
-def rip_with_MakeMKV(current_job, protection=0):
+def should_rip_with_MakeMKV(current_job, protection=0):
     """
     Test to check if title was or should be ripped by MakeMKV\n
     :param current_job: current job
