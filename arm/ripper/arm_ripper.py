@@ -139,24 +139,6 @@ def start_transcode(job: Job, logfile, raw_in_path: str, transcode_out_path: str
         logging.info("************* Finished Transcode With HandBrake *************")
 
 
-def start_ripping_dvd(job: Job, logfile, raw_in_path, transcode_out_path):
-    """
-    Passes the job to the right transcoding function, first if handbrake or ffmpeg
-    should be used, then how it should be ripped\n
-    :param raw_in_path: HandBrake in path (mkv_out_path|/dev/sr0)
-    :param transcode_out_path: Path HandBrake should put the files (transcode_path)
-    :param job: Current job
-    :param logfile: Current logfile
-    :param protection: If disc has 99 track protection
-    :return: None
-    """
-    utils.database_updater({'status': JobState.VIDEO_RIPPING.value}, job)
-    if job.config.USE_FFMPEG:
-        return _transcode_rip_ffmpeg(job, raw_in_path, transcode_out_path)
-    else:
-        return _transcode_rip_handbrake(job, logfile, raw_in_path, transcode_out_path)
-
-
 def _transcode_rip_ffmpeg(job: Job, drive_path: str, raw_output_path: str):
     """
     Passes the job to the right ffmpeg ripping function
