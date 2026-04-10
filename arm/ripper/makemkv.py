@@ -709,7 +709,7 @@ def makemkv_mkv(job, rawpath):
         process_single_tracks(job, rawpath, 'auto')
 
 
-def makemkv(job):
+def makemkv(job, rawpath: str):
     """
     Rip Blu-rays/DVDs with MakeMKV
 
@@ -746,7 +746,6 @@ def makemkv(job):
                 raise ValueError(f"No drive found for device {job.devpath}")
     logging.info(f"MakeMKV disc number: {job.drive.mdisc:d}")
     # get filesystem in order
-    rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
     logging.info(f"Processing files to: {rawpath}")
     # Rip BluRay
     if (job.config.RIPMETHOD in ("backup", "backup_dvd")) and job.disctype == "bluray":
@@ -837,36 +836,6 @@ def process_single_tracks(job, rawpath, mode: str):
             ]
             logging.debug("Starting to rip single track.")
             collections.deque(run(cmd, OutputType.MSG), maxlen=0)
-
-
-def setup_rawpath(job, raw_path):
-    """
-    Checks if we need to create path and does so if needed\n\n
-
-    Parameters:
-        job: arm.models.job.Job
-        raw_path
-    Returns:
-        str: modified path
-    """
-
-    logging.info(f"Destination is {raw_path}")
-    if not os.path.exists(raw_path):
-        try:
-            os.makedirs(raw_path)
-        except OSError:
-            err = f"Couldn't create the base file path: {raw_path}. Probably a permissions error"
-            logging.error(err)
-    else:
-        logging.info(f"{raw_path} exists.  Adding timestamp.")
-        raw_path = os.path.join(str(job.config.RAW_PATH), f"{job.title}_{job.stage}")
-        logging.info(f"raw_path is {raw_path}")
-        try:
-            os.makedirs(raw_path)
-        except OSError:
-            err = f"Couldn't create the base file path: {raw_path}. Probably a permissions error"
-            raise OSError(err) from OSError
-    return raw_path
 
 
 def prep_mkv():
