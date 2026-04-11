@@ -226,7 +226,7 @@ def move_video_files_post(input_path, job: Job, bonus_disc: bool):
         return
     tracks = sorted(tracks, key=lambda x: x.filesize, reverse=True)
     is_main_feature = True
-    #All cases below are movies
+    # All cases below are movies
     logging.debug(f"Largest file is: {tracks[0].filename}")
     for track in tracks:
         if track.source == "MakeMKV":
@@ -236,8 +236,9 @@ def move_video_files_post(input_path, job: Job, bonus_disc: bool):
                 logging.error(f"{input_path} is empty or very small size. - Folder size: {os.stat(temp_path).st_size}")
                 continue
             utils.move_files(input_path, track.filename, job, is_main_feature=is_main_feature)
-            # All other files are NOT MainFeature
-            is_main_feature=False
+            # The first and largest file is treated as the Main Feature.
+            # All other files are not
+            is_main_feature = False
         else:
             # If HandBrake was used we can pass track.main_feature
             utils.move_files(input_path, track.filename, job, track.main_feature)
