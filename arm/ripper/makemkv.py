@@ -670,7 +670,7 @@ def makemkv_mkv(job, rawpath: str):
     # route to ripping functions.
     if job.config.MAINFEATURE and not is_bonus_disc(job):
         logging.info("Trying to find mainfeature (sorting by chapters desc, filesize desc, track_number asc)")
-        track = Track.query.filter_by(job_id=job.job_id).order_by(Track.filesize.desc()).first()
+        track = Track.query.filter_by(job_id=job.job_id).order_by(Track.filesize.desc(), Track.track_number.asc()).first()
         rip_mainfeature(job, track, rawpath)
     elif mode == 'manual':  # Run if mode is manual, user selects tracks
         # Set job status to waiting
