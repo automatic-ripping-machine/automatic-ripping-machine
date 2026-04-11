@@ -212,8 +212,12 @@ def move_files(base_path, filename, job, is_main_feature=False) -> str | None:
         move_files_main(os.path.join(base_path, filename), movie_file, movie_path, job)
     else:
         # Don't make the extra's path unless we need it
-        if job.config.EXTRAS_SUB == "none":
-            logging.info(f"EXTRAS_SUB is {job.config.EXTRAS_SUB} ... Skipping moving extra {filename}")
+        if str(job.config.EXTRAS_SUB).lower() != "none":
+            logging.info(f"EXTRAS_SUB is {job.config.EXTRAS_SUB} ... Skipping making extras folder")
+            movie_file = os.path.join(movie_path, filename)
+            move_files_main(os.path.join(base_path, filename), os.path.join(movie_path, filename), movie_path, job)
+            move_files_main(os.path.join(base_path, filename), movie_file, movie_path, job)
+            return movie_path
         extras_path = os.path.join(movie_path, job.config.EXTRAS_SUB) if job.video_type != "series" else movie_path
         make_dir(extras_path, True)
         logging.info(f"Moving '{os.path.join(base_path, filename)}' to {extras_path}")

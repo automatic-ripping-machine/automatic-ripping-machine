@@ -226,24 +226,18 @@ def move_video_files_post(input_path, job: Job, bonus_disc: bool):
         return
     tracks = sorted(tracks, key=lambda x: x.filesize, reverse=True)
     is_main_feature = True
+    #All cases below are movies
+    logging.debug(f"Largest file is: {tracks[0].filename}")
     for track in tracks:
         if track.source == "MakeMKV":
             logging.debug(f"Videotype: {job.video_type}")
             temp_path = os.path.join(input_path, track.filename)
-
             if os.stat(temp_path).st_size <= 1:  # sanity check for filesize
                 logging.error(f"{input_path} is empty or very small size. - Folder size: {os.stat(temp_path).st_size}")
                 continue
-            if is_main_feature is True:
-                logging.debug(f"Largest file is: {track.filename}")
-                # We only treat it as main feauture if its not a bonus disc
-                utils.move_files(input_path, track.filename, job, is_main_feature=True)
-                is_main_feature = False
-            else:
-                if str(job.config.EXTRAS_SUB).lower() != "none":
-                    utils.move_files(input_path, track.filename, job, is_main_feature=False)
-                else:
-                    logging.error(f"Not moving extra: \"{track.filename}\" - Sub folder is not set or named incorrectly")
+            utils.move_files(input_path, track.filename, job, is_main_feature=is_main_feature)
+            # All other files are NOT MainFeature
+            is_main_feature=False
         else:
             # If HandBrake was used we can pass track.main_feature
             utils.move_files(input_path, track.filename, job, track.main_feature)
