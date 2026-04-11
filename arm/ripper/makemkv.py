@@ -22,8 +22,7 @@ import arm.config.config as cfg
 from arm.models import SystemDrives, Track
 from arm.models.job import JobState
 from arm.ripper import utils
-from arm.ripper.arm_ripper import is_bonus_disc
-from arm.ripper.utils import notify
+from arm.ripper.utils import notify, is_bonus_disc
 from arm.ui import db
 
 MAKEMKV_INFO_WAIT_TIME = 60  # [s]

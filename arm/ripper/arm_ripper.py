@@ -7,7 +7,6 @@ import logging
 from importlib.util import find_spec
 from pathlib import Path
 from typing import Tuple
-
 # If the arm module can't be found, add the folder this file is in to PYTHONPATH
 # This is a bad workaround for non-existent packaging
 if find_spec("arm") is None:
@@ -94,11 +93,11 @@ def post_process_ripping_job_cleanup(job: Job, transcode_path: str | None, raw_p
     # Move the movie poster if we have one
     utils.move_movie_poster(raw_path, final_output_path)
     # Move to final folder.
-    if is_bonus_disc(job):
+    if utils.is_bonus_disc(job):
         logging.info("Disc is Bonus Disc")
-        move_files_post(final_input_path, job, bonus_disc=True)
+        move_video_files_post(final_input_path, job, bonus_disc=True)
     else:
-        move_files_post(final_input_path, job, bonus_disc=False)
+        move_video_files_post(final_input_path, job, bonus_disc=False)
     # Scan Emby if arm.yaml requires it
     utils.scan_emby()
     # Set permissions if arm.yaml requires it
@@ -148,7 +147,7 @@ def _transcode_rip_ffmpeg(job: Job, drive_path: str, raw_output_path: str):
     """
     logging.info("************* Starting Rip With FFMPEG *************")
     # if it is a movie and mainfeature is enabled then run ffmpeg_main_feature
-    if job.video_type == "movie" and job.config.MAINFEATURE:
+    if utils.check_if_main_feature_applicable(job):
         logging.debug(f"ffmpeg_main_feature: {drive_path}, {raw_output_path}")
         ffmpeg.ffmpeg_main_feature(drive_path, raw_output_path, job)
         db.session.commit()
@@ -173,7 +172,8 @@ def _transcode_rip_handbrake(job: Job, logfile, drive_path: str, raw_output_path
     """
     logging.info("************* Starting Rip With HandBrake *************")
     # Otherwise if it is a movie and mainfeature is enabled then run handbrake_main_feature
-    if job.video_type == "movie" and job.config.MAINFEATURE:
+
+    if utils.check_if_main_feature_applicable(job):
         logging.debug(f"handbrake_main_feature: {drive_path}, {raw_output_path}")
         handbrake.handbrake_main_feature(drive_path, raw_output_path, logfile, job)
         db.session.commit()
@@ -206,7 +206,7 @@ def notify_exit(job):
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} {constants.PROCESS_COMPLETE}")
 
 
-def move_files_post(input_path, job: Job, bonus_disc: bool):
+def move_video_files_post(input_path, job: Job, bonus_disc: bool):
     """
     Logic for moving files post transcoding\n
     if series move all to 1 folder\n
@@ -221,38 +221,29 @@ def move_files_post(input_path, job: Job, bonus_disc: bool):
             utils.move_files(input_path, track.filename, job, False)
         return
     tracks = job.tracks.filter_by(ripped=True).all()
-    # tracks
-    tracks = sorted(tracks, key=lambda x: x.filesize, reverse=True)
     if len(tracks) == 1:
         utils.move_files(input_path, tracks[0].filename, job, True)
         return
-    is_largest_file = True
+    tracks = sorted(tracks, key=lambda x: x.filesize, reverse=True)
+    is_main_feature = True
     for track in tracks:
         if track.source == "MakeMKV":
             logging.debug(f"Videotype: {job.video_type}")
-            # if video_type is movie, then move the biggest title to media_dir
-            # move the rest of the files to the extras' folder
-            # find largest filesize
             temp_path = os.path.join(input_path, track.filename)
 
             if os.stat(temp_path).st_size <= 1:  # sanity check for filesize
-                logging.info(f"{input_path} is empty or very small size. - Folder size: {os.stat(temp_path).st_size}")
+                logging.error(f"{input_path} is empty or very small size. - Folder size: {os.stat(temp_path).st_size}")
                 continue
-            if is_largest_file is True:
+            if is_main_feature is True:
                 logging.debug(f"Largest file is: {track.filename}")
                 # We only treat it as main feauture if its not a bonus disc
                 utils.move_files(input_path, track.filename, job, is_main_feature=True)
-                is_largest_file = False
+                is_main_feature = False
             else:
-                # If mainfeature is enabled - skip to the next file
-                if job.config.MAINFEATURE:
-                    logging.info(f"MAINFEATURE IS {job.config.MAINFEATURE} - Skipping move of {track.filename}")
-                    continue
-                # Other/extras
                 if str(job.config.EXTRAS_SUB).lower() != "none":
                     utils.move_files(input_path, track.filename, job, is_main_feature=False)
                 else:
-                    logging.info(f"Not moving extra: \"{track.filename}\" - Sub folder is not set or named incorrectly")
+                    logging.error(f"Not moving extra: \"{track.filename}\" - Sub folder is not set or named incorrectly")
         else:
             # If HandBrake was used we can pass track.main_feature
             utils.move_files(input_path, track.filename, job, track.main_feature)
@@ -282,36 +273,3 @@ def should_rip_with_MakeMKV(current_job, protection=0):
     if current_job.config.RIPMETHOD == "backup_dvd":
         mkv_ripped = True
     return mkv_ripped
-
-
-def is_bonus_disc(job: Job) -> bool:
-    """
-    If the disc is a bonus disc,
-    we dont want to assume there is a main feature
-    :param job: current job
-    :return: True if bonus disc
-    """
-    if job.video_type != "movie":
-        # We assume that only movies have bonus discs
-        return False
-    # All of these have been seen in real disc labels
-    bonus_disc_labels = ["_DISC_2", "_Disc_2", "_BONUS_DISC", "_SPECIAL_FEATURES", "Special_Features", "_Bonus_Disc"]
-    label = str(job.label)
-    for substring in bonus_disc_labels:
-        if substring in label:
-            return True
-    # Bonus disc hint is usually at the end of the label
-    # Some of these strings are short, so we only want to interpret them
-    # If theyre close to the second half of the label
-    last_half = ["_D2"]
-    label_len = len(label)
-    label_last_half = label[slice(int(label_len//2), label_len)]
-    for half in last_half:
-        if half in label_last_half:
-            return True
-
-    suffixes = ["_BONUS", "_Bonus"]
-    for suffix in suffixes:
-        if label.endswith(suffix):
-            return True
-    return False

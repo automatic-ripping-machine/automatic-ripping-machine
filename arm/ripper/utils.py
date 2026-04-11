@@ -204,19 +204,21 @@ def move_files(base_path, filename, job, is_main_feature=False) -> str | None:
     movie_path = job.path
     logging.info(f"Moving {job.video_type} {filename} to {movie_path}")
     # For series there are no extras so always use the base path
-    extras_path = os.path.join(movie_path, job.config.EXTRAS_SUB) if job.video_type != "series" else movie_path
-    make_dir(movie_path)
+    make_dir(movie_path, True)
 
     if is_main_feature:
         movie_file = os.path.join(movie_path, video_title + "." + job.config.DEST_EXT)
         logging.info(f"Track is the Main Title.  Moving '{os.path.join(base_path, filename)}' to {movie_file}")
-        move_files_main(os.path.join(base_path, filename), movie_file, movie_path)
+        move_files_main(os.path.join(base_path, filename), movie_file, movie_path, job)
     else:
         # Don't make the extra's path unless we need it
-        make_dir(extras_path)
+        if job.config.EXTRAS_SUB == "none":
+            logging.info(f"EXTRAS_SUB is {job.config.EXTRAS_SUB} ... Skipping moving extra {filename}")
+        extras_path = os.path.join(movie_path, job.config.EXTRAS_SUB) if job.video_type != "series" else movie_path
+        make_dir(extras_path, True)
         logging.info(f"Moving '{os.path.join(base_path, filename)}' to {extras_path}")
         # This also handles series - But it doesn't use the extras folder
-        move_files_main(os.path.join(base_path, filename), os.path.join(extras_path, filename), extras_path)
+        move_files_main(os.path.join(base_path, filename), os.path.join(extras_path, filename), extras_path, job)
     return movie_path
 
 
@@ -309,7 +311,7 @@ def find_matching_file(expected_file):
     return expected_file
 
 
-def move_files_main(old_file, new_file, base_path):
+def move_files_main(old_file, new_file, base_path, job: Job):
     """
     The base function for moving files with logging\n
     :param str old_file: The file to be moved - must include full path
@@ -325,8 +327,14 @@ def move_files_main(old_file, new_file, base_path):
             shutil.move(actual_old_file, new_file)
         except Exception as error:
             logging.error(f"Unable to move '{actual_old_file}' to '{base_path}' - Error: {error}")
+            notify(job, NOTIFY_TITLE,
+                   f"Unable to move '{actual_old_file}' to '{base_path}' - Error: {error}"
+                   f"ARM encountered a Post Processing error on {job.title}.")
     else:
-        logging.info(f"File: {new_file} already exists.  Not moving.")
+        logging.error(f"File: {new_file} already exists.  Not moving.")
+        notify(job, NOTIFY_TITLE,
+               f"ARM encountered a Post Processing error on {job.title}."
+               f"Unable to move '{new_file}' to '{base_path}' as it already exists")
 
 
 def move_movie_poster(hb_out_path, final_directory):
@@ -489,7 +497,7 @@ def rip_data(job):
         subprocess.check_output(cmd, shell=True).decode("utf-8")
         full_final_file = os.path.join(final_path, f"{str(job.label)}.iso")
         logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
-        move_files_main(incomplete_filename, full_final_file, final_path)
+        move_files_main(incomplete_filename, full_final_file, final_path, job)
         logging.info("Data rip call successful")
         success = True
     except subprocess.CalledProcessError as dd_error:
@@ -878,3 +886,52 @@ def get_drive_mode(devpath: str) -> str:
     else:
         mode = 'auto'
     return mode
+
+
+def is_bonus_disc(job: Job) -> bool:
+    """
+    If the disc is a bonus disc,
+    we dont want to assume there is a main feature
+    :param job: current job
+    :return: True if bonus disc
+    """
+    if job.video_type != "movie":
+        # We assume that only movies have bonus discs
+        return False
+    # All of these have been seen in real disc labels
+    bonus_disc_labels = ["_DISC_2", "_Disc_2", "_BONUS_DISC", "_SPECIAL_FEATURES", "Special_Features", "_Bonus_Disc"]
+    label = str(job.label)
+    for substring in bonus_disc_labels:
+        if substring in label:
+            return True
+    # Bonus disc hint is usually at the end of the label
+    # Some of these strings are short, so we only want to interpret them
+    # If theyre close to the second half of the label
+    last_half = ["_D2"]
+    label_len = len(label)
+    label_last_half = label[slice(int(label_len//2), label_len)]
+    for half in last_half:
+        if half in label_last_half:
+            return True
+
+    suffixes = ["_BONUS", "_Bonus"]
+    for suffix in suffixes:
+        if label.endswith(suffix):
+            return True
+    return False
+
+
+def check_if_main_feature_applicable(job: Job) -> bool:
+    """
+    Check whether MainFeature is applicable and should be used.
+    MainFeature should only be used for discs that are Movies, not
+    for Bonus Discs or Series.
+    """
+    if job.config.MAINFEATURE == False:
+        return False
+    if is_bonus_disc(job):
+        return False
+    if job.video_type != "movie":
+        return False
+    return True
+
