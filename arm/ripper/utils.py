@@ -9,10 +9,8 @@ import time
 import random
 import re
 from logging import Logger
-from pathlib import Path, PurePath
 from math import ceil
-
-import bcrypt
+from typing import List
 import requests
 import apprise
 import psutil
@@ -25,7 +23,6 @@ from arm.ui import db  # needs to be imported before models
 from arm.models.job import Job, JobState
 from arm.models.notifications import Notifications
 from arm.models.track import Track
-from arm.models.user import User
 from arm.models.system_drives import SystemDrives
 from arm.ripper import apprise_bulk
 
@@ -187,7 +184,7 @@ def fix_job_title(job):
 
 
 #  ############## Start of post processing functions
-def move_files(base_path, filename, job, is_main_feature=False):
+def move_files(base_path, filename, job, is_main_feature=False) -> str | None:
     """
     Run extra checks then move files from RAW_PATH or TRANSCODE_PATH to final media directory\n
     :param str base_path: Path to source directory\n
@@ -207,19 +204,25 @@ def move_files(base_path, filename, job, is_main_feature=False):
     movie_path = job.path
     logging.info(f"Moving {job.video_type} {filename} to {movie_path}")
     # For series there are no extras so always use the base path
-    extras_path = os.path.join(movie_path, job.config.EXTRAS_SUB) if job.video_type != "series" else movie_path
-    make_dir(movie_path)
+    make_dir(movie_path, True)
 
     if is_main_feature:
         movie_file = os.path.join(movie_path, video_title + "." + job.config.DEST_EXT)
         logging.info(f"Track is the Main Title.  Moving '{os.path.join(base_path, filename)}' to {movie_file}")
-        move_files_main(os.path.join(base_path, filename), movie_file, movie_path)
+        move_files_main(os.path.join(base_path, filename), movie_file, movie_path, job)
     else:
         # Don't make the extra's path unless we need it
-        make_dir(extras_path)
+        if str(job.config.EXTRAS_SUB).lower() != "none":
+            logging.info(f"EXTRAS_SUB is {job.config.EXTRAS_SUB} ... Skipping making extras folder")
+            movie_file = os.path.join(movie_path, filename)
+            move_files_main(os.path.join(base_path, filename), os.path.join(movie_path, filename), movie_path, job)
+            move_files_main(os.path.join(base_path, filename), movie_file, movie_path, job)
+            return movie_path
+        extras_path = os.path.join(movie_path, job.config.EXTRAS_SUB) if job.video_type != "series" else movie_path
+        make_dir(extras_path, True)
         logging.info(f"Moving '{os.path.join(base_path, filename)}' to {extras_path}")
         # This also handles series - But it doesn't use the extras folder
-        move_files_main(os.path.join(base_path, filename), os.path.join(extras_path, filename), extras_path)
+        move_files_main(os.path.join(base_path, filename), os.path.join(extras_path, filename), extras_path, job)
     return movie_path
 
 
@@ -312,7 +315,7 @@ def find_matching_file(expected_file):
     return expected_file
 
 
-def move_files_main(old_file, new_file, base_path):
+def move_files_main(old_file, new_file, base_path, job: Job):
     """
     The base function for moving files with logging\n
     :param str old_file: The file to be moved - must include full path
@@ -328,14 +331,20 @@ def move_files_main(old_file, new_file, base_path):
             shutil.move(actual_old_file, new_file)
         except Exception as error:
             logging.error(f"Unable to move '{actual_old_file}' to '{base_path}' - Error: {error}")
+            notify(job, NOTIFY_TITLE,
+                   f"Unable to move '{actual_old_file}' to '{base_path}' - Error: {error}"
+                   f"ARM encountered a Post Processing error on {job.title}.")
     else:
-        logging.info(f"File: {new_file} already exists.  Not moving.")
+        logging.error(f"File: {new_file} already exists.  Not moving.")
+        notify(job, NOTIFY_TITLE,
+               f"ARM encountered a Post Processing error on {job.title}."
+               f"Unable to move '{new_file}' to '{base_path}' as it already exists")
 
 
-def move_movie_poster(final_directory, hb_out_path):
+def move_movie_poster(hb_out_path, final_directory):
     """move movie poster\n
     ---------\n
-    DEPRECIATED - Arm already builds the final path so moving is no longer needed"""
+    """
     src_poster = os.path.join(hb_out_path, "poster.png")
     dst_poster = os.path.join(final_directory, "poster.png")
     if os.path.isfile(src_poster):
@@ -365,7 +374,7 @@ def scan_emby():
         logging.info("EMBY_REFRESH config parameter is false.  Skipping emby scan.")
 
 
-def delete_raw_files(dir_list):
+def delete_raw_files(dir_list: List[str | None]):
     """
     Delete the raw folders from arm after job has finished
     :param list dir_list: Python list containing strings of the folders to be deleted
@@ -373,8 +382,10 @@ def delete_raw_files(dir_list):
     """
     if cfg.arm_config["DELRAWFILES"]:
         for raw_folder in dir_list:
+            if raw_folder is None:
+                continue
             try:
-                logging.info(f"Removing raw path - {raw_folder}")
+                logging.info(f"Removing path - {raw_folder}")
                 shutil.rmtree(raw_folder)
             except UnboundLocalError as error:
                 logging.debug(f"No raw files found to delete in {raw_folder}- {error}")
@@ -420,25 +431,6 @@ def find_file(filename, search_path):
         if filename in filenames:
             return True
     return False
-
-
-def find_largest_file(files, mkv_out_path):
-    """
-    Step through given dir and return the largest file name\n
-    :param files: dir in os.listdir() format
-    :param mkv_out_path: RAW_PATH
-    :return: largest file name
-    """
-    largest_file_name = ""
-    for file in files:
-        # initialize largest_file_name
-        if largest_file_name == "":
-            largest_file_name = file
-        temp_path_f = os.path.join(mkv_out_path, file)
-        temp_path_largest = os.path.join(mkv_out_path, largest_file_name)
-        if os.stat(temp_path_f).st_size > os.stat(temp_path_largest).st_size:
-            largest_file_name = file
-    return largest_file_name
 
 
 def rip_music(job, logfile):
@@ -509,7 +501,7 @@ def rip_data(job):
         subprocess.check_output(cmd, shell=True).decode("utf-8")
         full_final_file = os.path.join(final_path, f"{str(job.label)}.iso")
         logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
-        move_files_main(incomplete_filename, full_final_file, final_path)
+        move_files_main(incomplete_filename, full_final_file, final_path, job)
         logging.info("Data rip call successful")
         success = True
     except subprocess.CalledProcessError as dd_error:
@@ -552,29 +544,6 @@ def set_permissions(directory_to_traverse):
     except Exception as error:
         logging.error(f"Permissions setting failed as: {error}")
     return True
-
-
-def try_add_default_user():
-    """
-    Added to fix missmatch from the armui and armripper\n
-    This will try to add a default user for the armui
-    with the details\n
-    Username: admin\n
-    Password: password\n
-    :return: None
-    """
-    try:
-        username = "admin"
-        pass1 = "password".encode('utf-8')
-        hashed = bcrypt.gensalt(12)
-        database_adder(User(email=username, password=bcrypt.hashpw(pass1, hashed), hashed=hashed))
-        perm_file = Path(PurePath(cfg.arm_config['INSTALLPATH'], "installed"))
-        write_permission_file = open(perm_file, "w")
-        write_permission_file.write("boop!")
-        write_permission_file.close()
-    except Exception as error:
-        #  notify("", str(error), str(error))
-        logging.error(error)
 
 
 def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
@@ -805,80 +774,75 @@ def save_disc_poster(final_directory, job):
         os.system(f"umount {job.devpath}")
 
 
-def check_for_dupe_folder(have_dupes, hb_out_path, job):
+def check_if_dupe_should_exit_early(job: Job) -> bool:
     """
-    Check if the folder already exists
-     if it exists lets make a new one using random numbers
-    :param have_dupes: is this title in the local arm database
-    :param hb_out_path: path to HandBrake out
-    :param job: Current job
-    :return: Final media directory path
+    The job has duplicate entries. This checks whether the system should exit early.
+    :return: True if the media is a dupe and you should exit early. False if you can keep going
     """
-    if (make_dir(hb_out_path)) is False:
-        logging.info(f"Output directory \"{hb_out_path}\" already exists.")
-        # Only begin ripping if we are allowed to make duplicates
-        # Or the successful rip of the disc is not found in our database
-        logging.debug(f"Value of ALLOW_DUPLICATES: {cfg.arm_config['ALLOW_DUPLICATES']}")
-        logging.debug(f"Value of have_dupes: {have_dupes}")
-        if cfg.arm_config["ALLOW_DUPLICATES"] or not have_dupes:
-            hb_out_path = hb_out_path + "_" + job.stage
-            make_dir(hb_out_path, False)
-        else:
-            # We aren't allowed to rip dupes, notify and exit
-            logging.info("Duplicate rips are disabled.")
-            notify(job, NOTIFY_TITLE, f"ARM Detected a duplicate disc. For {job.title}. "
-                                      f"Duplicate rips are disabled. "
-                                      f"You can re-enable them from your config file. ")
-            raise RipperException("Duplicate rips are disabled")
-    logging.info(f"Final Output directory \"{hb_out_path}\"")
+    # SPECIAL CASE: DVDs that are not correctly mounted or titles extracted, but can still be ripped, sometimes
+    # end up with a label called "DVDVolume". We do not want to stop these with a dupe check.
+    if job.label == "DVDVolume":
+        return False
+    if cfg.arm_config["ALLOW_DUPLICATES"] is False:
+        logging.exception(
+            "A fatal error has occurred and ARM is exiting.  "
+            f" Duplicate job exists and config 'ALLOW_DUPLICATES' is set to: {cfg.arm_config['ALLOW_DUPLICATES']}")
+        notify(job, NOTIFY_TITLE,
+               f"ARM encountered a fatal error processing {job.title}."
+               f" Duplicate job exists: and config 'ALLOW_DUPLICATES' is set to: {cfg.arm_config['ALLOW_DUPLICATES']}")
+        # Its very important that we set "Failure" here as a job state, since future duplicate checks
+        # Rely on filtering this
+        database_updater({'status': JobState.FAILURE.value, 'errors': 'Duplicate job already exists'}, job)
+        return True
+    return False
+
+
+def create_unique_dir(hb_out_path, job):
+    """
+    Will always create a unique directory if one exists already
+    """
+    if make_dir(hb_out_path, True) is False:
+        # job.stage is used as a pseudo-random number generator.
+        # This should only be replaced if its not fit for the task
+        hb_out_path = hb_out_path + "_" + job.stage
+        logging.debug(f"Attempting to generate a new path: {hb_out_path}")
+        if os.path.exists(hb_out_path):
+            # This should never happen, but if someone is mucking around
+            # in their directories it might
+            logging.exception(
+                "A fatal error has occurred and ARM is exiting.  "
+                f"Randomly generated directory suffix is not unique: {hb_out_path}")
+            notify(job, NOTIFY_TITLE,
+                   f"ARM encountered a fatal error processing {job.title}."
+                   f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
+            database_updater({'status': JobState.FAILURE.value, 'errors': 'Generating unique path failed'}, job)
+            raise RipperException(f" Randomly generated path suffix hit a duplicate collision: {hb_out_path} ")
+        make_dir(hb_out_path, True)
     return hb_out_path
 
 
-def job_dupe_check(job):
+def get_all_dupe_jobs(job) -> list[Job] | None:
     """
-    function for checking the database to look for jobs that have completed
-    successfully with the same label
-    :param job: The job obj, so we can use the crc/title etc.
-    :return: True/False, dict/None
+    function for checking the database to look for jobs that
+    have not failed with the same label.
+    This means currently running jobs might be grabbed
+    :param job: The job obj, so we can use the label etc.
+    :return: List[Job]/None
     """
     logging.debug(f"Trying to find jobs with matching Label={job.label}")
     if job.label is None:
         logging.info("Disc title 'None' not searched in database")
-        return False
+        return None
     else:
-        previous_rips = Job.query.filter_by(label=job.label, status=JobState.SUCCESS.value)
-        results = {}
-        i = 0
-        for j in previous_rips:
-            # logging.debug(f"job obj= {j.get_d()}")
-            job_dict = j.get_d().items()
-            results[i] = {}
-            for key, value in iter(job_dict):
-                results[i][str(key)] = str(value)
-            i += 1
-
-    # logging.debug(f"previous rips = {results}")
-    if results:
-        logging.debug(f"we have {len(results)} jobs")
-        # Check if results too large (over 1), skip if too many
-        if len(results) == 1:
-            # This might need some tweaks to because of title/year manual
-            title = results[0]['title'] if results[0]['title'] else job.label
-            year = results[0]['year'] if results[0]['year'] != "" else ""
-            poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
-            hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
-            video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
-            active_rip = {
-                "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
-                "video_type": video_type}
-            database_updater(active_rip, job)
-            return True
-        else:
-            logging.debug(f"Skipping - There are too many results [{len(results)}]")
-            return False
-    else:
-        logging.info("We have no previous rips/jobs matching this label")
-        return False
+        # We don't count failures when doing Dupe Checks,
+        # but anything else thats currently in progress can be a Dupe
+        matching_jobs = Job.query.filter(Job.label == job.label,
+                                         Job.status != JobState.FAILURE.value,
+                                         Job.disctype == job.disctype, Job.job_id != job.job_id).all()
+        results = []
+        for j in matching_jobs:
+            results.append(j)
+        return results
 
 
 def check_for_wait(job):
@@ -926,3 +890,51 @@ def get_drive_mode(devpath: str) -> str:
     else:
         mode = 'auto'
     return mode
+
+
+def is_bonus_disc(job: Job) -> bool:
+    """
+    If the disc is a bonus disc,
+    we dont want to assume there is a main feature
+    :param job: current job
+    :return: True if bonus disc
+    """
+    if job.video_type != "movie":
+        # We assume that only movies have bonus discs
+        return False
+    # All of these have been seen in real disc labels
+    bonus_disc_labels = ["_DISC_2", "_Disc_2", "_BONUS_DISC", "_SPECIAL_FEATURES", "Special_Features", "_Bonus_Disc"]
+    label = str(job.label)
+    for substring in bonus_disc_labels:
+        if substring in label:
+            return True
+    # Bonus disc hint is usually at the end of the label
+    # Some of these strings are short, so we only want to interpret them
+    # If theyre close to the second half of the label
+    last_half = ["_D2"]
+    label_len = len(label)
+    label_last_half = label[slice(int(label_len//2), label_len)]
+    for half in last_half:
+        if half in label_last_half:
+            return True
+
+    suffixes = ["_BONUS", "_Bonus"]
+    for suffix in suffixes:
+        if label.endswith(suffix):
+            return True
+    return False
+
+
+def check_if_main_feature_applicable(job: Job) -> bool:
+    """
+    Check whether MainFeature is applicable and should be used.
+    MainFeature should only be used for discs that are Movies, not
+    for Bonus Discs or Series.
+    """
+    if job.config.MAINFEATURE is False:
+        return False
+    if is_bonus_disc(job):
+        return False
+    if job.video_type != "movie":
+        return False
+    return True

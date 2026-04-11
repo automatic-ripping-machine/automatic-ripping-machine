@@ -22,7 +22,7 @@ import arm.config.config as cfg
 from arm.models import SystemDrives, Track
 from arm.models.job import JobState
 from arm.ripper import utils
-from arm.ripper.utils import notify
+from arm.ripper.utils import notify, is_bonus_disc
 from arm.ui import db
 
 MAKEMKV_INFO_WAIT_TIME = 60  # [s]
@@ -629,7 +629,7 @@ def get_drives(job):
             yield drive
 
 
-def makemkv_backup(job, rawpath):
+def makemkv_backup(job, rawpath: str):
     """
     Rip BluRay with Backup Method
 
@@ -653,7 +653,7 @@ def makemkv_backup(job, rawpath):
     collections.deque(run(cmd, OutputType.MSG), maxlen=0)
 
 
-def makemkv_mkv(job, rawpath):
+def makemkv_mkv(job, rawpath: str):
     """
     Rip Blu-ray without enhanced protection or dvd disc
 
@@ -667,10 +667,9 @@ def makemkv_mkv(job, rawpath):
     # Get track info form mkv rip
     get_track_info(job.drive.mdisc, job)
     # route to ripping functions.
-    if job.config.MAINFEATURE:
+    if utils.check_if_main_feature_applicable(job):
         logging.info("Trying to find mainfeature (sorting by chapters desc, filesize desc, track_number asc)")
-        track = Track.query.filter_by(job_id=job.job_id).order_by(
-            Track.chapters.desc(), Track.filesize.desc(), Track.track_number.asc()).first()
+        track = Track.query.filter_by(job_id=job.job_id).order_by(Track.filesize.desc(), Track.track_number.asc()).first()
         rip_mainfeature(job, track, rawpath)
     elif mode == 'manual':  # Run if mode is manual, user selects tracks
         # Set job status to waiting
@@ -709,7 +708,7 @@ def makemkv_mkv(job, rawpath):
         process_single_tracks(job, rawpath, 'auto')
 
 
-def makemkv(job):
+def makemkv(job, rawpath: str):
     """
     Rip Blu-rays/DVDs with MakeMKV
 
@@ -746,7 +745,6 @@ def makemkv(job):
                 raise ValueError(f"No drive found for device {job.devpath}")
     logging.info(f"MakeMKV disc number: {job.drive.mdisc:d}")
     # get filesystem in order
-    rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
     logging.info(f"Processing files to: {rawpath}")
     # Rip BluRay
     if (job.config.RIPMETHOD in ("backup", "backup_dvd")) and job.disctype == "bluray":
@@ -758,10 +756,9 @@ def makemkv(job):
         logging.info("I'm confused what to do....  Passing on MakeMKV")
     job.eject()
     logging.info(f"Exiting MakeMKV processing with return value of: {rawpath}")
-    return rawpath
 
 
-def rip_mainfeature(job, track, rawpath):
+def rip_mainfeature(job, track: Track, rawpath):
     """
     Find and rip only the main feature when using Blu-rays
 
@@ -785,6 +782,8 @@ def rip_mainfeature(job, track, rawpath):
     ]
     logging.info("Ripping main feature")
     # Possibly update db to say track was ripped
+    track.main_feature = True
+    db.session.commit()
     collections.deque(run(cmd, OutputType.MSG), maxlen=0)
 
 
@@ -837,36 +836,6 @@ def process_single_tracks(job, rawpath, mode: str):
             ]
             logging.debug("Starting to rip single track.")
             collections.deque(run(cmd, OutputType.MSG), maxlen=0)
-
-
-def setup_rawpath(job, raw_path):
-    """
-    Checks if we need to create path and does so if needed\n\n
-
-    Parameters:
-        job: arm.models.job.Job
-        raw_path
-    Returns:
-        str: modified path
-    """
-
-    logging.info(f"Destination is {raw_path}")
-    if not os.path.exists(raw_path):
-        try:
-            os.makedirs(raw_path)
-        except OSError:
-            err = f"Couldn't create the base file path: {raw_path}. Probably a permissions error"
-            logging.error(err)
-    else:
-        logging.info(f"{raw_path} exists.  Adding timestamp.")
-        raw_path = os.path.join(str(job.config.RAW_PATH), f"{job.title}_{job.stage}")
-        logging.info(f"raw_path is {raw_path}")
-        try:
-            os.makedirs(raw_path)
-        except OSError:
-            err = f"Couldn't create the base file path: {raw_path}. Probably a permissions error"
-            raise OSError(err) from OSError
-    return raw_path
 
 
 def prep_mkv():
