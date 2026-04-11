@@ -927,11 +927,10 @@ def check_if_main_feature_applicable(job: Job) -> bool:
     MainFeature should only be used for discs that are Movies, not
     for Bonus Discs or Series.
     """
-    if job.config.MAINFEATURE == False:
+    if job.config.MAINFEATURE is False:
         return False
     if is_bonus_disc(job):
         return False
     if job.video_type != "movie":
         return False
     return True
-
