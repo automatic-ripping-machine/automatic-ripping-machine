@@ -193,8 +193,8 @@ def process_handbrake_logfile(logfile, job, job_results):
     job_results['stage'] = job.stage
     job_results['progress'] = job.progress
     job_results['eta'] = job.eta
-    job_results['cur_fps'] = job.cur_fps if hasattr(job, 'cur_fps') else "Unk"
-    job_results['avg_fps'] = job.avg_fps if hasattr(job, 'avg_fps') else "Unk"
+    job_results['cur_fps'] = job.cur_fps if hasattr(job, 'cur_fps') else -1
+    job_results['avg_fps'] = job.avg_fps if hasattr(job, 'avg_fps') else -1
     job_results['progress_round'] = int(float(job_results['progress']))
 
     if job_status_index:
