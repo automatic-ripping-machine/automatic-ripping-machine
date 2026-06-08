@@ -1,0 +1,25 @@
+{
+  "id": "gaming",
+  "label": "Gaming",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Neon cyberpunk glow for night sessions",
+  "swatch": "#d946ef",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(0, 135, 164)",
+    "--color-primary-hover": "rgb(188, 19, 254)",
+    "--color-primary-dark": "rgb(27, 27, 47)",
+    "--color-primary-light-bg": "rgb(0, 210, 255)",
+    "--color-primary-light-bg-dark": "rgb(0, 30, 50)",
+    "--color-primary-text": "rgb(0, 210, 255)",
+    "--color-primary-text-dark": "rgb(0, 210, 255)",
+    "--color-primary-border": "rgb(0, 210, 255)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(5, 5, 10)",
+    "--color-page-dark": "rgb(5, 5, 10)",
+    "--color-surface": "rgb(12, 12, 18)",
+    "--color-surface-dark": "rgb(12, 12, 18)",
+    "--radius": "0px"
+  }
+}

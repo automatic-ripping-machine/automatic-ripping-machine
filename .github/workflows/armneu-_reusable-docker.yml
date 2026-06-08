@@ -1,0 +1,81 @@
+name: armneu-reusable-docker
+# NOTE: update branch refs when this work moves to its final branch/fork
+on:
+  workflow_call:
+    inputs:
+      context:
+        required: true
+        type: string
+      dockerfile:
+        required: false
+        type: string
+        default: "Dockerfile"
+      image:
+        required: true
+        type: string
+      tag:
+        required: false
+        type: string
+        default: "pr"
+      push:
+        required: false
+        type: boolean
+        default: false
+      variants:
+        required: false
+        type: string
+        default: '[""]'
+      contracts-context:
+        required: false
+        type: string
+        default: "arm-neu/contracts"
+      build-args:
+        required: false
+        type: string
+        default: ""
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: ${{ fromJSON(inputs.variants) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v4
+      - name: Log in to Docker Hub
+        if: ${{ inputs.push }}
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Compute dockerfile and tag suffix
+        id: m
+        env:
+          OWNER: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERFILE: ${{ inputs.dockerfile }}
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          echo "owner=${OWNER:-local}" >> "$GITHUB_OUTPUT"
+          if [ -n "$VARIANT" ]; then
+            echo "file=${DOCKERFILE}.${VARIANT}" >> "$GITHUB_OUTPUT"
+            echo "suffix=-${VARIANT}" >> "$GITHUB_OUTPUT"
+          else
+            echo "file=${DOCKERFILE}" >> "$GITHUB_OUTPUT"
+            echo "suffix=" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.context }}/${{ steps.m.outputs.file }}
+          push: ${{ inputs.push }}
+          platforms: linux/amd64
+          build-contexts: |
+            contracts=${{ inputs.contracts-context }}
+          build-args: ${{ inputs.build-args }}
+          cache-from: type=gha,scope=${{ inputs.image }}${{ steps.m.outputs.suffix }}
+          cache-to: type=gha,scope=${{ inputs.image }}${{ steps.m.outputs.suffix }},mode=max
+          tags: |
+            ${{ steps.m.outputs.owner }}/${{ inputs.image }}:${{ inputs.tag }}${{ steps.m.outputs.suffix }}
+            ${{ steps.m.outputs.owner }}/${{ inputs.image }}:latest${{ steps.m.outputs.suffix }}

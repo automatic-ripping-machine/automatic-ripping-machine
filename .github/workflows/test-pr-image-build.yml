@@ -11,6 +11,9 @@ concurrency:
 
 on:
     pull_request:
+        paths-ignore:
+            - 'arm-neu/**'
+            - 'docs/**'
 
 jobs:
     build:

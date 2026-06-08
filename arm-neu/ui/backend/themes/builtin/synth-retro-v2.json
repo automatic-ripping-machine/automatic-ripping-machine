@@ -1,0 +1,25 @@
+{
+  "id": "synth-retro-v2",
+  "label": "Synth Noir",
+  "version": 2,
+  "author": "Gemini",
+  "description": "Refined vaporwave aesthetic focusing on neon outlines and depth",
+  "swatch": "#ff007f",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(255, 0, 127)",
+    "--color-primary-hover": "rgb(220, 0, 110)",
+    "--color-primary-dark": "rgb(80, 0, 40)",
+    "--color-primary-light-bg": "rgb(25, 10, 20)",
+    "--color-primary-light-bg-dark": "rgb(20, 5, 15)",
+    "--color-primary-text": "rgb(255, 100, 180)",
+    "--color-primary-text-dark": "rgb(255, 150, 210)",
+    "--color-primary-border": "rgb(150, 0, 80)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(10, 6, 14)",
+    "--color-page-dark": "rgb(8, 4, 10)",
+    "--color-surface": "rgb(18, 12, 24)",
+    "--color-surface-dark": "rgb(14, 10, 18)",
+    "--radius": "0.5rem"
+  }
+}

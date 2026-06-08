@@ -1,0 +1,170 @@
+# All-in-one: ARM + UI + Transcoder on a single machine
+# Copy .env.example to .env and adjust values before starting.
+#
+# CPU-only:  docker compose up -d --build
+# With GPU:  docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+
+services:
+  # Fix ownership on the shared DB volume before ARM starts
+  arm-db-init:
+    image: alpine
+    container_name: arm-db-init
+    volumes:
+      - arm-db:/data/db
+    command: chown -R ${ARM_UID:-1000}:${ARM_GID:-1000} /data/db
+    restart: "no"
+
+  # ARM ripper — creates the database on first startup
+  arm-rippers:
+    image: uprightbass360/automatic-ripping-machine:${ARM_VERSION:-latest}
+    container_name: arm-rippers
+    restart: always
+    privileged: true
+    ports:
+      - "${ARM_PORT:-8080}:8080"
+    environment:
+      - ARM_UID=${ARM_UID:-1000}
+      - ARM_GID=${ARM_GID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+      # FindVUK community keydb for Blu-ray decryption (true/false, default: true)
+      - ARM_COMMUNITY_KEYDB=${ARM_COMMUNITY_KEYDB:-true}
+      # Transcoder integration (written to arm.yaml at startup)
+      - ARM_TRANSCODER_URL=${ARM_TRANSCODER_URL:-http://arm-transcoder:5000/webhook/arm}
+      - ARM_TRANSCODER_WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
+      # Local SSD scratch for ripping (moved to shared storage after rip)
+      - ARM_LOCAL_RAW_PATH=${ARM_LOCAL_RAW_PATH:-}
+      - ARM_SHARED_RAW_PATH=${ARM_SHARED_RAW_PATH:-}
+      # Output organization subdirs (also passed to transcoder; entrypoint
+      # rewrites arm.yaml at boot so ARM honors them too).
+      - MOVIES_SUBDIR=${MOVIES_SUBDIR:-movies}
+      - TV_SUBDIR=${TV_SUBDIR:-tv}
+      - AUDIO_SUBDIR=${AUDIO_SUBDIR:-music}
+      - UNIDENTIFIED_SUBDIR=${UNIDENTIFIED_SUBDIR:-unidentified}
+      # Host path mapping for preflight health checks
+      - ARM_MEDIA_PATH=${ARM_MEDIA_PATH}
+      - ARM_CONFIG_PATH=${ARM_CONFIG_PATH}
+      - ARM_LOGS_PATH=${ARM_LOGS_PATH}
+      - ARM_MUSIC_PATH=${ARM_MUSIC_PATH}
+    volumes:
+      - ${ARM_MUSIC_PATH}:/home/arm/music
+      - ${ARM_LOGS_PATH}:/home/arm/logs
+      - ${ARM_MEDIA_PATH}:/home/arm/media
+      - ${ARM_COMPLETED_PATH:-${ARM_MEDIA_PATH}/completed}:/home/arm/media/completed
+      - ${ARM_SCRATCH_PATH:-/home/arm/media}:/home/arm/scratch
+      - ${ARM_INGRESS_PATH:-/home/arm/media/ingress}:/home/arm/media/ingress:ro
+      - ${ARM_CONFIG_PATH}:/etc/arm/config
+      - arm-db:/home/arm/db
+      - ${ARM_MAKEMKV_PATH:-makemkv-settings}:/home/arm/.MakeMKV
+      # Transcoder work directory — lets the file browser show in-progress transcodes
+      - ${TRANSCODER_WORK_PATH:-./work}:/home/arm/media/transcode:ro
+      # Live /dev mount ensures USB optical drives remain visible after
+      # hot-plug, disconnect/reconnect, or device re-enumeration.
+      - /dev:/dev
+    cpuset: ${ARM_CPUSET:-2,3,4,5,6,7}
+    depends_on:
+      arm-db-init:
+        condition: service_completed_successfully
+
+  # Replacement dashboard (SvelteKit + FastAPI)
+  arm-ui:
+    image: uprightbass360/arm-ui:${UI_VERSION:-latest}
+    container_name: arm-ui
+    restart: unless-stopped
+    ports:
+      - "${UI_PORT:-8888}:8888"
+    environment:
+      - ARM_UI_ARM_URL=http://arm-rippers:8080
+      - ARM_UI_TRANSCODER_URL=${ARM_UI_TRANSCODER_URL:-http://arm-transcoder:5000}
+      - ARM_UI_TRANSCODER_API_KEY=${TRANSCODER_API_KEY:-}
+      - ARM_UI_TRANSCODER_WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
+      - ARM_UI_THEMES_PATH=/data/themes
+      - ARM_UI_IMAGE_CACHE_PATH=/data/cache/images
+    volumes:
+      - arm-ui-themes:/data/themes:rw
+      - ui-image-cache:/data/cache/images:rw
+    depends_on:
+      arm-rippers:
+        condition: service_healthy
+
+  # Fix ownership on the transcoder work directory before it starts.
+  # Docker creates bind-mount targets as root; the transcoder entrypoint
+  # does a shallow chown but cannot fix a root-owned top-level dir it
+  # doesn't own.  This one-shot container ensures the work dir is usable.
+  arm-transcoder-init:
+    image: alpine
+    container_name: arm-transcoder-init
+    volumes:
+      - ${TRANSCODER_WORK_PATH:-./work}:/data/work
+    command: chown -R ${ARM_UID:-1000}:${ARM_GID:-1000} /data/work
+    restart: "no"
+
+  # GPU-accelerated transcoding service
+  arm-transcoder:
+    image: uprightbass360/arm-transcoder:${TRANSCODER_VERSION:-latest}
+    container_name: arm-transcoder
+    restart: unless-stopped
+    ports:
+      - "${TRANSCODER_PORT:-5000}:5000"
+    environment:
+      - TZ=${TZ:-Etc/UTC}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Match ARM's UID/GID so the transcoder can read raw files and write completed
+      - TRANSCODER_UID=${ARM_UID:-1000}
+      - TRANSCODER_GID=${ARM_GID:-1000}
+      # Paths inside container
+      - RAW_PATH=/data/raw
+      - COMPLETED_PATH=/data/completed
+      - WORK_PATH=/data/work
+      - DB_PATH=/data/db/transcoder.db
+      # Authentication
+      - REQUIRE_API_AUTH=${REQUIRE_API_AUTH:-false}
+      - API_KEYS=${API_KEYS:-}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
+      # Transcoding
+      - VIDEO_ENCODER=${VIDEO_ENCODER:-x265}
+      - VIDEO_QUALITY=${VIDEO_QUALITY:-22}
+      - AUDIO_ENCODER=${AUDIO_ENCODER:-copy}
+      - SUBTITLE_MODE=${SUBTITLE_MODE:-all}
+      - HANDBRAKE_PRESET=${HANDBRAKE_PRESET:-}
+      - HANDBRAKE_PRESET_4K=${HANDBRAKE_PRESET_4K:-}
+      - HANDBRAKE_PRESET_DVD=${HANDBRAKE_PRESET_DVD:-}
+      - HANDBRAKE_PRESET_FILE=${HANDBRAKE_PRESET_FILE:-}
+      - LOG_LEVEL_LIBRARIES=${LOG_LEVEL_LIBRARIES:-WARNING}
+      # File handling
+      - DELETE_SOURCE=${DELETE_SOURCE:-true}
+      - OUTPUT_EXTENSION=${OUTPUT_EXTENSION:-mkv}
+      # Output organization (MOVIES_SUBDIR / TV_SUBDIR / AUDIO_SUBDIR /
+      # UNIDENTIFIED_SUBDIR) is ARM-side only since v18.0.0 - the
+      # transcoder reads payload.output_path from the webhook and writes
+      # under ${COMPLETED_PATH}/<output_path> with no per-type routing.
+      # Performance
+      - MAX_CONCURRENT=${MAX_CONCURRENT:-1}
+      - STABILIZE_SECONDS=${STABILIZE_SECONDS:-60}
+      - MINIMUM_FREE_SPACE_GB=${MINIMUM_FREE_SPACE_GB:-10}
+      - MAX_RETRY_COUNT=${MAX_RETRY_COUNT:-3}
+      - LOG_PATH=/data/logs
+      # ARM callback — transcoder notifies ARM when jobs complete/fail
+      - ARM_CALLBACK_URL=${ARM_CALLBACK_URL:-http://arm-rippers:8080}
+    volumes:
+      - ${ARM_MEDIA_PATH}/raw:/data/raw:rw
+      - ${ARM_COMPLETED_PATH:-${ARM_MEDIA_PATH}/completed}:/data/completed:rw
+      - ${TRANSCODER_WORK_PATH:-./work}:/data/work:rw
+      - transcoder-db:/data/db:rw
+      - transcoder-logs:/data/logs:rw
+      - ${TRANSCODER_PRESET_PATH:-./presets}:/config/presets:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      arm-transcoder-init:
+        condition: service_completed_successfully
+
+volumes:
+  arm-db:
+  makemkv-settings:
+  transcoder-db:
+  transcoder-logs:
+  ui-image-cache:
+  arm-ui-themes:

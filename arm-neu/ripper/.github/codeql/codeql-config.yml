@@ -1,0 +1,36 @@
+# Central CodeQL alert suppression config.
+# Maintain suppressions here instead of inline comments.
+# Ref: https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning
+
+name: "ARM CodeQL Config"
+
+paths-ignore:
+  - test/
+
+query-filters:
+  # ── Path injection (py/path-injection) ──────────────────────────
+  # All file browser operations go through validate_path() which
+  # resolves symlinks and checks the prefix against allowed roots.
+  # CodeQL cannot track this sanitizer so it flags every downstream
+  # filesystem call as tainted.  Safe to suppress globally.
+  - exclude:
+      id: py/path-injection
+  # -- Command-line injection (py/command-line-injection) ----------
+  # Every subprocess call in this codebase uses argv-list form
+  # (subprocess.run(cmd, ...) where cmd is a list) and never uses
+  # shell=True, so shell-metacharacter injection is not possible.
+  # CodeQL flags any user-controlled value reaching argv even when
+  # it cannot be exploited via a shell. Safe to suppress globally.
+  - exclude:
+      id: py/command-line-injection
+  # -- Server-side request forgery (py/full-ssrf) ------------------
+  # The only request-controlled outbound URL is the unsaved-config
+  # webhook test endpoint, which validates the URL via
+  # arm.notifications.url_safety.assert_public_http_url() (rejects
+  # loopback/private/link-local/reserved hosts) before sending.
+  # Saved channels use operator-controlled URLs from the DB. CodeQL
+  # cannot model the IP allowlist as a sanitizer; github/codeql
+  # issue #17353 confirms this is the correct control for the webhook
+  # case and advises dismissal. Safe to suppress globally.
+  - exclude:
+      id: py/full-ssrf

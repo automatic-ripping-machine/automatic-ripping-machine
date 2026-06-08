@@ -1,0 +1,24 @@
+{
+  "id": "forest",
+  "label": "Forest",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Natural emerald greens from the forest floor",
+  "swatch": "#10b981",
+  "tokens": {
+    "--color-primary": "rgb(5, 150, 105)",
+    "--color-primary-hover": "rgb(4, 120, 87)",
+    "--color-primary-dark": "rgb(6, 95, 70)",
+    "--color-primary-light-bg": "rgb(209, 250, 229)",
+    "--color-primary-light-bg-dark": "rgb(6, 78, 59)",
+    "--color-primary-text": "rgb(4, 120, 87)",
+    "--color-primary-text-dark": "rgb(110, 231, 183)",
+    "--color-primary-border": "rgb(16, 185, 129)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(228, 248, 238)",
+    "--color-page-dark": "rgb(12, 19, 15)",
+    "--color-surface": "rgb(237, 252, 244)",
+    "--color-surface-dark": "rgb(21, 54, 37)",
+    "--radius": "0.5rem"
+  }
+}

@@ -1,0 +1,55 @@
+# ARM Configuration Overlay for External Transcoding
+#
+# Mount this file into your ARM container at /etc/arm/config/arm.yaml
+# to configure ARM to send completed rips to arm-transcoder.
+#
+# Only settings that differ from ARM defaults are included here.
+# ARM will use its built-in defaults for everything else.
+
+# ========== TRANSCODING ==========
+# SKIP_TRANSCODE controls whether ARM sends jobs to the transcoder.
+# When false (default), ARM sends ripped files to arm-transcoder for encoding.
+# When true, ARM finalizes raw MKV files directly without transcoding.
+SKIP_TRANSCODE: false
+RIPMETHOD: "mkv"
+
+# Keep raw files after rip. arm-transcoder will clean up
+# source files after successful transcode (controlled by DELETE_SOURCE).
+DELRAWFILES: false
+
+# Disable ARM's concurrent transcode limiter (not needed since ARM won't transcode)
+MAX_CONCURRENT_TRANSCODES: 0
+
+# ========== PATHS ==========
+# These should be shared storage mounts (NFS, SMB/CIFS, etc.) accessible
+# by both the ARM ripper and the transcoder.
+# arm-transcoder reads from RAW_PATH and writes to COMPLETED_PATH.
+#
+# Adjust these to match your shared mount points:
+RAW_PATH: "/home/arm/media/raw/"
+TRANSCODE_PATH: "/home/arm/media/transcode/"
+COMPLETED_PATH: "/home/arm/media/completed/"
+
+# ========== NOTIFICATIONS ==========
+# ARM sends a JSON webhook when a rip completes.
+# Replace TRANSCODER_IP with the IP/hostname of your transcoder machine.
+#
+# Option 1: Simple webhook (no authentication)
+#   Set TRANSCODER_URL and leave BASH_SCRIPT empty.
+#
+# Option 2: Authenticated webhook (recommended)
+#   Leave TRANSCODER_URL empty and set BASH_SCRIPT to use the notify script,
+#   which sends the X-Webhook-Secret header.
+
+# --- Option 1: Simple webhook (no auth) ---
+TRANSCODER_URL: "http://TRANSCODER_IP:5000/webhook/arm"
+
+# --- Option 2: Authenticated webhook ---
+# TRANSCODER_URL: ""
+# BASH_SCRIPT: "/home/arm/scripts/notify_transcoder.sh"
+
+# Notify after rip completes (triggers the webhook to arm-transcoder)
+NOTIFY_RIP: true
+
+# Disable transcode notification (ARM won't be transcoding)
+NOTIFY_TRANSCODE: false

@@ -1,0 +1,42 @@
+# Opt-in overlay for NFS-backed deployments.
+#
+# Adds an NFS-readiness gate so arm-rippers will not start if the NFS
+# mount is missing or stale. Without this gate, when docker starts
+# before NFS is mounted on the host, container binds capture the
+# local-disk shadow of the mount point, rips silently land on the
+# wrong filesystem, and the remote transcoder never sees the files.
+#
+# Setup (one-time, on the NFS server):
+#   touch /path/to/share/.arm-nfs-heartbeat
+#
+# The sentinel must be visible at ${ARM_MEDIA_PATH}/.arm-nfs-heartbeat
+# inside arm-rippers' bind. If NFS isn't mounted at that path, the
+# sentinel is missing and arm-rippers refuses to start with a clear
+# error instead of silently fossilizing.
+#
+# Usage (apply on top of any primary compose):
+#   docker compose -f docker-compose.yml                    -f docker-compose.nfs.yml up -d
+#   docker compose -f docker-compose.remote-transcoder.yml  -f docker-compose.nfs.yml up -d
+#   docker compose -f docker-compose.ripper-only.yml        -f docker-compose.nfs.yml up -d
+
+services:
+  arm-nfs-check:
+    image: alpine
+    container_name: arm-nfs-check
+    volumes:
+      - ${ARM_MEDIA_PATH}:/nfs-check:ro
+    command:
+      - sh
+      - -c
+      - |
+        if [ ! -f /nfs-check/.arm-nfs-heartbeat ]; then
+          echo "ERROR: NFS readiness sentinel missing at \${ARM_MEDIA_PATH}/.arm-nfs-heartbeat" >&2
+          echo "       Run on the NFS server: touch <share-path>/.arm-nfs-heartbeat" >&2
+          exit 1
+        fi
+    restart: "no"
+
+  arm-rippers:
+    depends_on:
+      arm-nfs-check:
+        condition: service_completed_successfully

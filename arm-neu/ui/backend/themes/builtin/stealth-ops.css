@@ -1,0 +1,19 @@
+[data-scheme="stealth-ops"] .section-frame {
+	border: 1px solid #222 !important;
+}
+[data-scheme="stealth-ops"] .section-frame-bar-top {
+	background: #111 !important;
+	color: #666 !important;
+	border-bottom: 1px solid #222;
+	text-transform: uppercase;
+	letter-spacing: 0.2em;
+}
+[data-scheme="stealth-ops"] aside nav a[data-active="true"] {
+	color: #ef4444 !important;
+	background: transparent !important;
+	border-right: 2px solid #ef4444;
+}
+[data-scheme="stealth-ops"] [data-progress-fill] {
+	background: #ef4444 !important;
+	box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}

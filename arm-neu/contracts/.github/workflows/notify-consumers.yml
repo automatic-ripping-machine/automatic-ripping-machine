@@ -1,0 +1,27 @@
+name: Notify consumers
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        consumer:
+          - automatic-ripping-machine-transcoder
+          - automatic-ripping-machine-neu
+          - automatic-ripping-machine-ui
+    steps:
+      - name: Dispatch contracts-bump-available to ${{ matrix.consumer }}
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.RELEASE_PAT }}
+          repository: uprightbass360/${{ matrix.consumer }}
+          event-type: contracts-bump-available
+          client-payload: |
+            {
+              "contracts_sha": "${{ github.sha }}"
+            }

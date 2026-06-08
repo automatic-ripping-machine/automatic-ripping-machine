@@ -1,0 +1,16 @@
+[data-scheme="research-outpost"] .section-frame {
+	border: 1px solid rgba(249, 115, 22, 0.2) !important;
+	border-left: 4px solid #f97316 !important;
+}
+[data-scheme="research-outpost"] .section-frame-bar-top {
+	background: linear-gradient(90deg, rgba(249, 115, 22, 0.3), transparent) !important;
+	border-bottom: 1px solid rgba(249, 115, 22, 0.2);
+	color: #fdba74 !important;
+}
+[data-scheme="research-outpost"] aside {
+	background: #0f0f14 !important;
+	border-right: 2px solid #1e1e24 !important;
+}
+[data-scheme="research-outpost"] [data-progress-fill] {
+	background: linear-gradient(90deg, #f97316, #fbbf24) !important;
+}

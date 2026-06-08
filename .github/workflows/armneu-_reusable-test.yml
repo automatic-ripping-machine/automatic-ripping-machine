@@ -1,0 +1,62 @@
+name: armneu-reusable-test
+# NOTE: update branch refs when this work moves to its final branch/fork
+on:
+  workflow_call:
+    inputs:
+      workdir:
+        required: true
+        type: string
+      python-version:
+        required: false
+        type: string
+        default: "3.12"
+      install-cmd:
+        required: true
+        type: string
+      test-cmd:
+        required: true
+        type: string
+      needs-contracts:
+        required: false
+        type: boolean
+        default: false
+      upload-coverage:
+        required: false
+        type: boolean
+        default: false
+      codecov-flags:
+        required: false
+        type: string
+        default: ""
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.workdir }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Materialize contracts (for consumers)
+        if: ${{ inputs.needs-contracts }}
+        run: |
+          mkdir -p components
+          cp -r "$GITHUB_WORKSPACE/arm-neu/contracts" components/contracts
+      - name: Install
+        env:
+          INSTALL_CMD: ${{ inputs.install-cmd }}
+        run: bash -c "$INSTALL_CMD"
+      - name: Test
+        env:
+          TEST_CMD: ${{ inputs.test-cmd }}
+        run: bash -c "$TEST_CMD"
+      - name: Upload coverage to Codecov
+        if: ${{ always() && inputs.upload-coverage }}
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ inputs.workdir }}/coverage.xml
+          flags: ${{ inputs.codecov-flags }}
+          fail_ci_if_error: false

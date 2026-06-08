@@ -1,0 +1,20 @@
+{
+  "id": 1,
+  "type": "apprise",
+  "name": "Family Discord",
+  "enabled": true,
+  "config": {
+    "type": "apprise",
+    "url": "discord://1234567890/abcdefghijklmnop?tts=yes"
+  },
+  "subscribed_events": ["job.started", "job.rip_complete", "job.failed"],
+  "templates": {
+    "job.failed": {
+      "title": "ARM job {job_id} failed",
+      "body": "Phase: {phase} — {error_message}"
+    }
+  },
+  "last_fired_at": "2026-05-18T10:00:00+00:00",
+  "last_success_at": "2026-05-18T10:00:00+00:00",
+  "last_error": null
+}

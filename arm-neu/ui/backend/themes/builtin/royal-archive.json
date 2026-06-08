@@ -1,0 +1,25 @@
+{
+  "id": "royal-archive",
+  "label": "Archive",
+  "version": 1,
+  "author": "Gemini",
+  "description": "Sophisticated navy and gold for a premium archival feel",
+  "swatch": "#fbbf24",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(251, 191, 36)",
+    "--color-primary-hover": "rgb(245, 158, 11)",
+    "--color-primary-dark": "rgb(180, 83, 9)",
+    "--color-primary-light-bg": "rgb(30, 25, 10)",
+    "--color-primary-light-bg-dark": "rgb(20, 15, 5)",
+    "--color-primary-text": "rgb(251, 191, 36)",
+    "--color-primary-text-dark": "rgb(253, 230, 138)",
+    "--color-primary-border": "rgb(251, 191, 36)",
+    "--color-on-primary": "rgb(0, 0, 0)",
+    "--color-page": "rgb(15, 17, 23)",
+    "--color-page-dark": "rgb(10, 12, 18)",
+    "--color-surface": "rgb(30, 41, 59)",
+    "--color-surface-dark": "rgb(15, 23, 42)",
+    "--radius": "0.5rem"
+  }
+}

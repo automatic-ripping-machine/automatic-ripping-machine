@@ -1,0 +1,85 @@
+name: armneu-ui-ci
+# NOTE: update branch refs when this work moves to its final branch/fork
+on:
+  push:
+    branches: [3.0_devel]
+    paths:
+      - "arm-neu/ui/**"
+      - "arm-neu/contracts/**"
+      - ".github/workflows/armneu-ui-ci.yml"
+      - ".github/workflows/armneu-_reusable-test.yml"
+      - ".github/workflows/armneu-_reusable-docker.yml"
+  pull_request:
+    paths:
+      - "arm-neu/ui/**"
+      - "arm-neu/contracts/**"
+      - ".github/workflows/armneu-ui-ci.yml"
+      - ".github/workflows/armneu-_reusable-test.yml"
+      - ".github/workflows/armneu-_reusable-docker.yml"
+jobs:
+  backend:
+    uses: ./.github/workflows/armneu-_reusable-test.yml
+    secrets: inherit
+    with:
+      workdir: arm-neu/ui
+      python-version: "3.12"
+      install-cmd: "pip install -r requirements-test.txt"
+      test-cmd: "pytest tests/ -v --cov=backend --cov-report=xml --cov-report=term-missing"
+      needs-contracts: true
+      codecov-flags: ui-backend
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: arm-neu/ui/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: arm-neu/ui/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - run: npm run test:coverage
+  codegen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: arm-neu/ui/frontend/package-lock.json
+      - name: Materialize contracts
+        working-directory: arm-neu/ui
+        run: |
+          mkdir -p components
+          cp -r "$GITHUB_WORKSPACE/arm-neu/contracts" components/contracts
+      - name: Install backend deps
+        working-directory: arm-neu/ui
+        run: pip install -r requirements-test.txt
+      - name: Install frontend deps
+        working-directory: arm-neu/ui/frontend
+        run: npm ci
+      - name: Sync SvelteKit
+        working-directory: arm-neu/ui/frontend
+        run: npx svelte-kit sync
+      - name: Run codegen
+        working-directory: arm-neu/ui
+        run: bash scripts/codegen.sh
+      - name: Detect drift
+        run: git diff --exit-code arm-neu/ui/frontend/src/lib/types/api.gen.ts
+  pr-build:
+    uses: ./.github/workflows/armneu-_reusable-docker.yml
+    secrets: inherit
+    with:
+      context: arm-neu/ui
+      image: arm-ui
+      push: false
+      variants: '[""]'
+      contracts-context: arm-neu/contracts

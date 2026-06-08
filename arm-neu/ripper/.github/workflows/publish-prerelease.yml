@@ -1,0 +1,101 @@
+name: Publish Pre-release Docker Image
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main]
+    paths:
+      - "arm/**"
+      - "docker/**"
+      - "scripts/**"
+      - "setup/**"
+      - "Dockerfile"
+      - "requirements*.txt"
+      - "VERSION"
+  workflow_dispatch:
+    # Manual trigger to rebuild the RC from main between release-please
+    # PRs (e.g. after a chore(deps) bump that doesn't refresh the
+    # release-please PR). Reads VERSION from the dispatched ref and
+    # publishes <VERSION>-rc.
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
+concurrency:
+  group: prerelease-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/automatic-ripping-machine
+  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/automatic-ripping-machine-neu
+
+jobs:
+  prerelease:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release-please')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Read VERSION file
+        id: version
+        run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            IMAGE_TAG=${{ steps.version.outputs.version }}-rc
+          build-contexts: |
+            contracts=components/contracts
+          tags: |
+            ${{ env.DOCKERHUB_IMAGE }}:${{ steps.version.outputs.version }}-rc
+            ${{ env.GHCR_IMAGE }}:${{ steps.version.outputs.version }}-rc
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}-rc
+
+      - name: Find existing pre-release comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/find-comment@v4
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: github-actions[bot]
+          body-includes: Pre-release image published
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            Pre-release image published:
+            - `${{ env.DOCKERHUB_IMAGE }}:${{ steps.version.outputs.version }}-rc`
+            - `${{ env.GHCR_IMAGE }}:${{ steps.version.outputs.version }}-rc`

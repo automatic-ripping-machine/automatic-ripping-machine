@@ -1,0 +1,25 @@
+{
+  "id": "deep-sea-abyss",
+  "label": "Deep Sea",
+  "version": 1,
+  "author": "Gemini",
+  "description": "Deep oceanic blues with bioluminescent coral accents",
+  "swatch": "#0ea5e9",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(0, 109, 109)",
+    "--color-primary-hover": "rgb(2, 132, 199)",
+    "--color-primary-dark": "rgb(7, 89, 133)",
+    "--color-primary-light-bg": "rgb(8, 20, 30)",
+    "--color-primary-light-bg-dark": "rgb(4, 15, 25)",
+    "--color-primary-text": "rgb(56, 189, 248)",
+    "--color-primary-text-dark": "rgb(125, 211, 252)",
+    "--color-primary-border": "rgb(12, 74, 110)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(6, 10, 15)",
+    "--color-page-dark": "rgb(4, 7, 12)",
+    "--color-surface": "rgb(15, 23, 42)",
+    "--color-surface-dark": "rgb(10, 15, 25)",
+    "--radius": "0.5rem"
+  }
+}

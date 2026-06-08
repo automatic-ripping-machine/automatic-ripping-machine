@@ -1,0 +1,22 @@
+name: armneu-gitleaks
+# NOTE: update branch refs when this work moves to its final branch/fork
+on:
+  push:
+    branches: [3.0_devel]
+    paths: ["arm-neu/**"]
+  pull_request:
+    paths: ["arm-neu/**"]
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks (license-free CLI)
+        env:
+          GITLEAKS_VERSION: "8.21.2"
+        run: |
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          ./gitleaks dir arm-neu --redact --no-banner --exit-code 1

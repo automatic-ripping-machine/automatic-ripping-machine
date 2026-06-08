@@ -11,7 +11,13 @@ concurrency:
 
 on:
     push:
+        paths-ignore:
+            - 'arm-neu/**'
+            - 'docs/**'
     pull_request:
+        paths-ignore:
+            - 'arm-neu/**'
+            - 'docs/**'
     workflow_dispatch:
 
 jobs:

@@ -1,0 +1,5 @@
+# ARM — trigger rip when a disc is inserted into an optical drive.
+# Install on the HOST (not inside Docker):
+#   sudo cp setup/51-arm-disc-insert.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules
+ACTION=="change", SUBSYSTEM=="block", KERNEL=="sr[0-9]*", ENV{ID_CDROM_MEDIA}=="1", RUN+="/usr/bin/docker exec -d arm-rippers /opt/arm/scripts/docker/docker_arm_wrapper.sh %k"

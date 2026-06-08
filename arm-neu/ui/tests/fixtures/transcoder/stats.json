@@ -1,0 +1,14 @@
+{
+  "online": true,
+  "stats": {
+    "pending": 0,
+    "processing": 1,
+    "completed": 5,
+    "failed": 0,
+    "cancelled": 0,
+    "worker_running": true,
+    "current_job": "Test Movie",
+    "active_count": 1,
+    "max_concurrent": 2
+  }
+}

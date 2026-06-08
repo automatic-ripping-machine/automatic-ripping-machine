@@ -1,0 +1,18 @@
+[data-scheme="deep-sea-abyss"] .section-frame {
+	border: 1px solid rgba(14, 165, 233, 0.1) !important;
+	box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+[data-scheme="deep-sea-abyss"] .section-frame-bar-top {
+	background: rgba(14, 165, 233, 0.2) !important;
+	color: rgb(125, 211, 252) !important;
+	border-bottom: 1px solid rgba(14, 165, 233, 0.15);
+}
+[data-scheme="deep-sea-abyss"] .section-frame-bar-bottom {
+	background: rgba(14, 165, 233, 0.1) !important;
+}
+[data-scheme="deep-sea-abyss"] [data-progress-fill] {
+	background: linear-gradient(90deg, #0ea5e9, #2dd4bf) !important;
+}
+[data-scheme="deep-sea-abyss"] aside nav a:hover {
+	background: linear-gradient(90deg, rgba(14, 165, 233, 0.1), transparent) !important;
+}

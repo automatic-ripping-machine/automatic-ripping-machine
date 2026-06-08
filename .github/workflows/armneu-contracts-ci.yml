@@ -1,0 +1,24 @@
+name: armneu-contracts-ci
+# NOTE: update branch refs when this work moves to its final branch/fork
+on:
+  push:
+    branches: [3.0_devel]
+    paths:
+      - "arm-neu/contracts/**"
+      - ".github/workflows/armneu-contracts-ci.yml"
+      - ".github/workflows/armneu-_reusable-test.yml"
+  pull_request:
+    paths:
+      - "arm-neu/contracts/**"
+      - ".github/workflows/armneu-contracts-ci.yml"
+      - ".github/workflows/armneu-_reusable-test.yml"
+jobs:
+  test:
+    uses: ./.github/workflows/armneu-_reusable-test.yml
+    secrets: inherit
+    with:
+      workdir: arm-neu/contracts
+      python-version: "3.12"
+      install-cmd: "pip install -r requirements-test.txt -e ."
+      test-cmd: "pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing"
+      codecov-flags: contracts

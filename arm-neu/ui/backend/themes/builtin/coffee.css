@@ -1,0 +1,10 @@
+[data-scheme="coffee"] .section-frame {
+	border: 1px solid #504945 !important;
+}
+[data-scheme="coffee"] .section-frame-bar-top {
+	background: #504945 !important;
+	color: #ebdbb2 !important;
+}
+[data-scheme="coffee"] [data-progress-fill] {
+	background: rgb(160, 129, 108) !important;
+}

@@ -1,0 +1,49 @@
+services:
+  arm-transcoder:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      additional_contexts:
+        contracts: ./components/contracts
+    container_name: arm-transcoder-dev
+    ports:
+      - "5000:5000"
+    environment:
+      - TZ=America/New_York
+      - LOG_LEVEL=DEBUG
+      # Paths inside container
+      - RAW_PATH=/data/raw
+      - COMPLETED_PATH=/data/completed
+      - WORK_PATH=/data/work
+      - DB_PATH=/data/db/transcoder.db
+      # Authentication
+      - REQUIRE_API_AUTH=false
+      - API_KEYS=
+      - WEBHOOK_SECRET=
+      # ARM callback — notify ARM when jobs complete/fail (set on
+      # docker compose run for dev with a real ARM, otherwise leave empty)
+      - ARM_CALLBACK_URL=${ARM_CALLBACK_URL:-}
+      # Encoder selection is driven by the preset system. v1 flat keys
+      # (VIDEO_ENCODER / HANDBRAKE_PRESET*) were retired in the v17.x
+      # preset rollout. Dev runs against the software preset by default.
+      # File handling
+      - DELETE_SOURCE=false
+      - OUTPUT_EXTENSION=mkv
+      # Performance
+      - MAX_CONCURRENT=1
+      - STABILIZE_SECONDS=10
+      - MINIMUM_FREE_SPACE_GB=10
+      - MAX_RETRY_COUNT=3
+      - LOG_PATH=/data/logs
+    volumes:
+      - ./dev-data/raw:/data/raw:rw
+      - ./dev-data/completed:/data/completed:rw
+      - ./dev-data/work:/data/work:rw
+      - ./dev-data/db:/data/db:rw
+      - ./presets:/config/presets:ro
+      - ./dev-data/logs:/data/logs:rw
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

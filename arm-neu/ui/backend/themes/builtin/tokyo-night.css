@@ -1,0 +1,17 @@
+[data-scheme="tokyo-night"] .section-frame {
+	border: 1px solid rgba(122, 162, 247, 0.1) !important;
+}
+[data-scheme="tokyo-night"] .section-frame-bar-top {
+	background: rgba(122, 162, 247, 0.15) !important;
+	color: rgb(122, 162, 247) !important;
+}
+[data-scheme="tokyo-night"] .section-frame-bar-bottom {
+	background: rgba(122, 162, 247, 0.08) !important;
+}
+[data-scheme="tokyo-night"] aside nav a[data-active="true"] {
+	color: #7aa2f7 !important;
+	background: rgba(122, 162, 247, 0.1) !important;
+}
+[data-scheme="tokyo-night"] [data-progress-fill] {
+	background: linear-gradient(90deg, #7aa2f7, #bb9af7) !important;
+}

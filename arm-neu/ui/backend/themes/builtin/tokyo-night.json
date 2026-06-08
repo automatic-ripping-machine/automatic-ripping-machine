@@ -1,0 +1,25 @@
+{
+  "id": "tokyo-night",
+  "label": "Tokyo Night",
+  "version": 1,
+  "author": "Gemini",
+  "description": "Modern sleek aesthetic with deep blues and neon accents",
+  "swatch": "#7aa2f7",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(122, 162, 247)",
+    "--color-primary-hover": "rgb(187, 154, 247)",
+    "--color-primary-dark": "rgb(65, 72, 104)",
+    "--color-primary-light-bg": "rgb(26, 27, 38)",
+    "--color-primary-light-bg-dark": "rgb(22, 22, 30)",
+    "--color-primary-text": "rgb(122, 162, 247)",
+    "--color-primary-text-dark": "rgb(158, 206, 106)",
+    "--color-primary-border": "rgb(122, 162, 247)",
+    "--color-on-primary": "rgb(26, 27, 38)",
+    "--color-page": "rgb(26, 27, 38)",
+    "--color-page-dark": "rgb(15, 15, 21)",
+    "--color-surface": "rgb(36, 37, 52)",
+    "--color-surface-dark": "rgb(22, 22, 30)",
+    "--radius": "0.5rem"
+  }
+}

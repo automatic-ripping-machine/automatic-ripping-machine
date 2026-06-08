@@ -1,0 +1,213 @@
+[data-scheme="hollywood-video-v2"] {
+	font-family: 'Inter', system-ui, -apple-system, sans-serif;
+	color: white;
+}
+
+[data-scheme="hollywood-video-v2"]::before {
+	content: "";
+	display: block;
+	position: fixed;
+	top: 0; left: 0; bottom: 0; right: 0;
+	background:
+		linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+		linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+	background-size: 100% 3px, 3px 100%;
+	z-index: 9999;
+	pointer-events: none;
+	opacity: 0.4;
+}
+
+[data-scheme="hollywood-video-v2"] aside {
+	background-color: #160E26 !important;
+	border-right: 4px solid #D90B1C !important;
+	box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+}
+
+[data-scheme="hollywood-video-v2"] aside nav a {
+	text-transform: uppercase;
+	font-weight: 900;
+	letter-spacing: 0.1em;
+	border-radius: 0;
+	padding: 0.75rem;
+	margin: 8px 0;
+	transition: all 0.2s ease;
+	border: 2px solid transparent;
+}
+
+[data-scheme="hollywood-video-v2"] aside nav a:hover {
+	color: #F2B705 !important;
+	background: rgba(242, 183, 5, 0.1) !important;
+}
+
+[data-scheme="hollywood-video-v2"] aside nav a[data-active="true"] {
+	background-color: #231640 !important;
+	color: #F2B705 !important;
+	border: 2px solid #231640;
+	text-shadow: 0 0 8px rgba(35, 22, 64, 0.5);
+}
+
+[data-scheme="hollywood-video-v2"] aside [data-logo] img {
+	filter: drop-shadow(0 0 6px rgba(217, 11, 28, 0.4));
+}
+
+[data-scheme="hollywood-video-v2"] header {
+	background: linear-gradient(180deg, #160E26 0%, #231640 100%) !important;
+	border-bottom: 3px solid #231640 !important;
+	position: relative;
+}
+
+[data-scheme="hollywood-video-v2"] header > * {
+	position: relative;
+	z-index: 1;
+}
+
+[data-scheme="hollywood-video-v2"] header::before {
+	content: "";
+	position: absolute;
+	top: -50%;
+	left: 20%;
+	width: 150px;
+	height: 300%;
+	background: linear-gradient(to right, transparent, rgba(242, 183, 5, 0.06), transparent);
+	transform: rotate(25deg);
+	pointer-events: none;
+}
+
+[data-scheme="hollywood-video-v2"] header::after {
+	content: "";
+	position: absolute;
+	bottom: -2px;
+	left: 0;
+	right: 0;
+	height: 30px;
+	background-color: var(--color-page);
+	clip-path: polygon(0% 100%, 10% 20%, 20% 60%, 35% 10%, 50% 70%, 65% 15%, 80% 60%, 90% 25%, 100% 100%);
+}
+
+[data-scheme="hollywood-video-v2"] [data-progress-track] {
+	background: #000 !important;
+	height: 20px !important;
+	border: 2px solid #333;
+	border-radius: 0 !important;
+	padding: 2px;
+}
+
+[data-scheme="hollywood-video-v2"] [data-progress-fill] {
+	background: repeating-linear-gradient(
+		90deg,
+		#F2B705,
+		#F2B705 15px,
+		#000 15px,
+		#000 20px
+	) !important;
+	box-shadow: 0 0 10px rgba(242, 183, 5, 0.6);
+	border-radius: 0 !important;
+}
+
+[data-scheme="hollywood-video-v2"] aside [data-stats] {
+	background: #f4f4f4 !important;
+	color: #111 !important;
+	border: 1px solid #ccc;
+	border-radius: 2px;
+	padding: 1rem;
+	font-family: 'Courier New', Courier, monospace;
+	transform: rotate(-2deg);
+	box-shadow: 5px 5px 0px rgba(0,0,0,0.9);
+	margin: 1.5rem 0.75rem;
+}
+
+[data-scheme="hollywood-video-v2"] aside [data-stats] * {
+	color: #111 !important;
+}
+
+[data-scheme="hollywood-video-v2"] .section-frame-bar-top {
+	display: flex;
+	align-items: center;
+	height: 36px;
+	background: linear-gradient(180deg, #D90B1C 0%, #a0080f 100%);
+	border: 3px solid #000;
+	border-bottom: none;
+	padding: 0 16px;
+	font-family: 'Courier New', Courier, monospace;
+	font-weight: 900;
+	font-size: 0.75rem;
+	letter-spacing: 0.15em;
+	text-transform: uppercase;
+	color: #F2B705;
+	text-shadow: 1px 1px 0 #000, 2px 2px 0 rgba(0,0,0,0.3);
+	box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3);
+}
+
+[data-scheme="hollywood-video-v2"] .section-frame-bar-top span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-scheme="hollywood-video-v2"] .section-frame-bar-bottom {
+	display: block;
+	height: 6px;
+	background: #D90B1C;
+	border: 3px solid #000;
+	border-top: none;
+}
+
+[data-scheme="hollywood-video-v2"] .section-frame-body {
+	background: #160E26;
+	border-left: 3px solid #000;
+	border-right: 3px solid #000;
+	padding: 1rem;
+}
+
+[data-scheme="hollywood-video-v2"] .section-frame {
+	box-shadow: 8px 8px 0px rgba(0,0,0,0.5);
+}
+
+[data-scheme="hollywood-video-v2"] .section-frame-body div[class*="border"]:not([data-diag]):not(.border-transparent) {
+	border-color: rgba(217, 11, 28, 0.5) !important;
+	border-width: 1px !important;
+}
+
+[data-scheme="hollywood-video-v2"] .section-frame-body div[class*="shadow-xs"] {
+	box-shadow: 2px 2px 0px rgba(0,0,0,0.25);
+}
+
+[data-scheme="hollywood-video-v2"] .section-frame-body div[class*="border-b"] {
+	border-bottom-color: rgba(217, 11, 28, 0.4) !important;
+}
+
+[data-scheme="hollywood-video-v2"] .section-frame-body input[class*="border"],
+
+[data-scheme="hollywood-video-v2"] .section-frame-body select[class*="border"],
+
+[data-scheme="hollywood-video-v2"] .section-frame-body textarea[class*="border"] {
+	border-color: rgba(217, 11, 28, 0.25) !important;
+	border-width: 1px !important;
+}
+
+[data-scheme="hollywood-video-v2"] hr {
+	border-color: #D90B1C !important;
+	opacity: 0.5;
+}
+
+[data-scheme="hollywood-video-v2"] .section-frame-body .border-2.border-primary {
+	border-color: #231640 !important;
+}
+
+[data-scheme="hollywood-video-v2"] .section-frame-body .border-2.border-primary > .bg-primary {
+	background-color: #231640 !important;
+}
+
+[data-scheme="hollywood-video-v2"] button.bg-primary {
+	font-weight: 900;
+	text-transform: uppercase;
+	font-style: italic;
+	border: 3px solid #000;
+	box-shadow: 4px 4px 0px #000;
+	transition: transform 0.1s, box-shadow 0.1s;
+}
+
+[data-scheme="hollywood-video-v2"] button.bg-primary:active {
+	transform: translate(2px, 2px);
+	box-shadow: 2px 2px 0px #000;
+}

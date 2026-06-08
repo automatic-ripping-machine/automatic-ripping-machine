@@ -1,0 +1,121 @@
+[data-scheme="gaming"] {
+	font-family: 'Rajdhani', sans-serif;
+}
+
+[data-scheme="gaming"] aside::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, #bc13fe, #00d2ff);
+	box-shadow: 0 0 15px #bc13fe;
+	z-index: 10;
+}
+
+[data-scheme="gaming"] aside {
+	position: relative;
+	border-color: #1b1b2f !important;
+	box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+}
+
+[data-scheme="gaming"] aside [data-logo] img {
+	filter: drop-shadow(0 0 10px #00d2ff) drop-shadow(0 0 2px #bc13fe);
+	transition: transform 0.3s ease;
+}
+
+[data-scheme="gaming"] aside [data-logo] img:hover {
+	transform: scale(1.1) rotate(5deg);
+}
+
+[data-scheme="gaming"] aside nav a {
+	text-transform: uppercase;
+	font-weight: 700;
+	font-size: 0.95rem;
+	letter-spacing: 0.1em;
+	border-radius: 0;
+	color: #8b8ba9;
+	clip-path: polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%);
+	border-left: 0px solid transparent;
+	transition: all 0.2s ease-in-out;
+}
+
+[data-scheme="gaming"] aside nav a:hover {
+	background: rgba(188, 19, 254, 0.1) !important;
+	color: #fff !important;
+	border-left: 4px solid #bc13fe !important;
+	padding-left: 1.5rem;
+}
+
+[data-scheme="gaming"] aside nav a[data-active="true"] {
+	background: rgba(0, 210, 255, 0.15) !important;
+	border-left: 4px solid #00d2ff !important;
+	color: #00d2ff !important;
+	text-shadow: 0 0 10px #00d2ff;
+	animation: gaming-breathe 3s infinite ease-in-out;
+}
+
+[data-scheme="gaming"] aside [data-stats] {
+	border-color: #1b1b2f;
+	background: #08080e;
+}
+
+[data-scheme="gaming"] [data-progress-fill] {
+	background: linear-gradient(90deg, #bc13fe, #00d2ff) !important;
+	box-shadow: 0 0 10px rgba(0, 210, 255, 0.4);
+	border-radius: 2px !important;
+	position: relative;
+	overflow: hidden;
+}
+
+[data-scheme="gaming"] [data-progress-fill]::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100px;
+	width: 50px;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+	animation: gaming-scan 2s infinite linear;
+}
+
+[data-scheme="gaming"] [data-progress-track] {
+	background: #11111d !important;
+	border-radius: 2px !important;
+}
+
+[data-scheme="gaming"] aside hr {
+	border: none;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, #bc13fe, #00d2ff, transparent);
+	opacity: 0.6;
+	margin-left: 10px;
+	margin-right: 10px;
+}
+
+[data-scheme="gaming"] header {
+	border-color: #1b1b2f !important;
+}
+
+[data-scheme="gaming"] aside .text-gray-400,
+
+[data-scheme="gaming"] aside .text-gray-500,
+
+[data-scheme="gaming"] aside .text-gray-600,
+
+[data-scheme="gaming"] aside .dark\:text-gray-300,
+
+[data-scheme="gaming"] aside .dark\:text-gray-400,
+
+[data-scheme="gaming"] aside .dark\:text-gray-500 {
+	color: #6a6a8a !important;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	font-weight: 700;
+}
+
+[data-scheme="gaming"] aside .text-orange-500 {
+	color: #bc13fe !important;
+	font-weight: bold;
+}

@@ -1,0 +1,25 @@
+{
+  "id": "terminal",
+  "label": "Terminal",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Retro green-on-black CRT terminal",
+  "swatch": "#4ade80",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(57, 255, 20)",
+    "--color-primary-hover": "rgb(45, 200, 16)",
+    "--color-primary-dark": "rgb(10, 26, 5)",
+    "--color-primary-light-bg": "rgb(10, 26, 5)",
+    "--color-primary-light-bg-dark": "rgb(10, 26, 5)",
+    "--color-primary-text": "rgb(57, 255, 20)",
+    "--color-primary-text-dark": "rgb(57, 255, 20)",
+    "--color-primary-border": "rgb(57, 255, 20)",
+    "--color-on-primary": "rgb(5, 5, 5)",
+    "--color-page": "rgb(5, 5, 5)",
+    "--color-page-dark": "rgb(5, 5, 5)",
+    "--color-surface": "rgb(8, 8, 8)",
+    "--color-surface-dark": "rgb(8, 8, 8)",
+    "--radius": "0px"
+  }
+}

@@ -1,0 +1,654 @@
+"""Tests covering coverage gaps in webhook payload, transcode callback,
+job config new fields, and custom abcde config with disc folder patterns.
+
+Targets:
+- arm/ripper/utils.py: _build_webhook_payload (multi-title, custom titles, overrides, None job)
+- arm/api/v1/jobs.py: transcode_callback (partial, completed with track_results, unknown status)
+- arm/api/v1/jobs.py: change_job_config (MUSIC_MULTI_DISC_SUBFOLDERS, MUSIC_DISC_FOLDER_PATTERN)
+- arm/ripper/utils.py: _build_custom_abcde_config (disc_folder_pattern, default pattern, speed only)
+"""
+import json
+import os
+import tempfile
+import unittest.mock
+
+import pytest
+
+from arm.database import db
+from arm.models.job import Job, JobState
+from arm.models.track import Track
+from arm.models.config import Config
+
+
+@pytest.fixture
+def client(app_context):
+    """Create a test client with DB context."""
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from arm.api.v1.jobs import router
+
+    app = FastAPI()
+    app.include_router(router)
+
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture
+def job_with_tracks(sample_job):
+    """Create a job with several tracks for testing."""
+    t1 = Track(sample_job.job_id, '1', 3600, '16:9', 24.0, False, 'makemkv',
+               'title_t00.mkv', 'title_t00.mkv', chapters=20, filesize=5000000)
+    t2 = Track(sample_job.job_id, '2', 1800, '16:9', 24.0, False, 'makemkv',
+               'title_t01.mkv', 'title_t01.mkv', chapters=10, filesize=2500000)
+    t3 = Track(sample_job.job_id, '3', 600, '16:9', 24.0, False, 'makemkv',
+               'title_t02.mkv', 'title_t02.mkv', chapters=5, filesize=800000)
+    db.session.add_all([t1, t2, t3])
+    db.session.commit()
+    db.session.refresh(sample_job)
+    return sample_job, [t1, t2, t3]
+
+
+# ── _build_webhook_payload tests ─────────────────────────────────────────
+
+
+class TestBuildWebhookPayload:
+    """Test _build_webhook_payload in arm/ripper/utils.py."""
+
+    def test_basic_payload_no_multi_title(self, app_context, sample_job):
+        """Job with multi_title=False still includes track manifest (ARM controls naming)."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        sample_job.multi_title = False
+        db.session.commit()
+
+        payload = _build_webhook_payload("Rip done", "body text", sample_job, "SERIAL_MOM")
+        assert payload["title"] == "Rip done"
+        assert payload["body"] == "body text"
+        # input_path falls back to raw_basename when job.raw_path is unset
+        # (sample_job sets raw_path=None) — keeps notification-style
+        # payloads working until a real ripper run populates raw_path.
+        assert payload["input_path"] == "SERIAL_MOM"
+        # output_path = type_subfolder + rendered folder. sample_job is a
+        # movie with title SERIAL_MOM and year 1994.
+        assert payload["output_path"].startswith("movies")
+        # Legacy fields are gone.
+        assert "path" not in payload
+        assert "folder_name" not in payload
+        # arm_contracts.WebhookPayload coerces job_id to int on the wire
+        # (contract decision; transcoder receiver accepts the int form).
+        assert payload["job_id"] == sample_job.job_id
+        assert payload["video_type"] == "movie"
+        assert payload["year"] == "1994"
+        # multi_title flag not set when job.multi_title is False
+        assert "multi_title" not in payload
+
+    def test_single_title_with_tracks_includes_manifest(self, app_context, job_with_tracks):
+        """Single-title job with tracks still includes track manifest for naming."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        job, tracks = job_with_tracks
+        job.multi_title = False
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+        assert "multi_title" not in payload
+        # Tracks are always included — ARM controls naming
+        assert "tracks" in payload
+        assert len(payload["tracks"]) == 3
+        # Each track has title_name from naming engine + output_path
+        # (the per-track output dir relative to completed_path).
+        for t_meta in payload["tracks"]:
+            assert "title_name" in t_meta
+            assert "output_path" in t_meta
+            assert "folder_name" not in t_meta  # field removed in v3.0.0
+            assert "filename" in t_meta
+
+    def test_multi_title_with_custom_titles(self, app_context, job_with_tracks):
+        """Multi-title job with per-track custom titles includes tracks metadata."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        job, tracks = job_with_tracks
+        job.multi_title = True
+        # Set custom title on track 1 only
+        tracks[0].title = "Custom Movie"
+        tracks[0].year = "2020"
+        tracks[0].video_type = "movie"
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+        assert payload["multi_title"] is True
+        assert "tracks" in payload
+        assert len(payload["tracks"]) == 3
+
+        # Track 1 has custom title
+        t1_meta = payload["tracks"][0]
+        assert t1_meta["title"] == "Custom Movie"
+        assert t1_meta["year"] == "2020"
+        assert t1_meta["video_type"] == "movie"
+        assert t1_meta["has_custom_title"] is True
+
+    def test_multi_title_without_custom_titles(self, app_context, job_with_tracks):
+        """Multi-title tracks without custom titles inherit job-level values."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        job, tracks = job_with_tracks
+        job.multi_title = True
+        # No custom titles on any tracks — they should inherit job-level
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+        assert payload["multi_title"] is True
+        assert len(payload["tracks"]) == 3
+
+        for t_meta in payload["tracks"]:
+            # Inherits job title/year/video_type
+            assert t_meta["title"] == job.title
+            assert t_meta["year"] == str(job.year)
+            assert t_meta["video_type"] == str(job.video_type)
+            assert t_meta["has_custom_title"] is False
+
+    def test_job_with_transcode_overrides(self, app_context, sample_job):
+        """Transcode overrides JSON is included in payload."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        overrides = {"preset_slug": "nvidia_balanced", "overrides": {"shared": {"video_quality": 22}}}
+        sample_job.transcode_overrides = json.dumps(overrides)
+        db.session.commit()
+
+        payload = _build_webhook_payload("Rip done", "body", sample_job, "raw_dir")
+        assert "config_overrides" in payload
+        assert payload["config_overrides"]["preset_slug"] == "nvidia_balanced"
+        assert payload["config_overrides"]["overrides"]["shared"]["video_quality"] == 22
+
+    def test_job_is_none(self):
+        """When job is None, payload has only basic fields. Notification-
+        only payloads carry no path info (nothing to transcode)."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        payload = _build_webhook_payload("Test", "body", None, "some_path")
+        assert payload["title"] == "Test"
+        assert payload["body"] == "body"
+        # Legacy 'path' field is gone in contracts v3.0.0; the
+        # notification-only branch carries no path keys at all.
+        assert "path" not in payload
+        assert "input_path" not in payload
+        assert "output_path" not in payload
+        assert "job_id" not in payload
+        assert "tracks" not in payload
+
+    def test_no_raw_basename(self, app_context, sample_job):
+        """When raw_basename is empty AND raw_path is None, input_path
+        is omitted from the payload."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        payload = _build_webhook_payload("Test", "body", sample_job, "")
+        assert "path" not in payload
+        assert "input_path" not in payload
+
+    def test_episode_name_preferred_over_track_title(self, app_context, job_with_tracks):
+        """Webhook title field prefers episode_name over track.title (stale auto-match fix)."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        job, tracks = job_with_tracks
+        # Simulate the desync: track.title has stale auto-match, episode_name has correct value
+        tracks[0].title = "The Werewolf"
+        tracks[0].episode_name = "Firefall"
+        tracks[0].episode_number = "6"
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+        t0 = payload["tracks"][0]
+        assert t0["title"] == "Firefall", "episode_name should take priority over stale track.title"
+        assert t0["episode_name"] == "Firefall"
+        assert t0["episode_number"] == "6"
+
+    def test_track_title_used_when_no_episode_name(self, app_context, job_with_tracks):
+        """When episode_name is empty, falls back to track.title then job.title."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        job, tracks = job_with_tracks
+        tracks[0].title = "Custom Title"
+        tracks[0].episode_name = None
+        tracks[0].episode_number = None
+        # Track without title or episode_name falls back to job.title
+        tracks[1].title = None
+        tracks[1].episode_name = None
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+        assert payload["tracks"][0]["title"] == "Custom Title"
+        assert payload["tracks"][1]["title"] == job.title
+
+    def test_empty_episode_name_does_not_override_title(self, app_context, job_with_tracks):
+        """Empty string episode_name should fall back to track.title."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        job, tracks = job_with_tracks
+        tracks[0].title = "My Title"
+        tracks[0].episode_name = ""
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+        assert payload["tracks"][0]["title"] == "My Title"
+
+    def test_input_path_resolves_relative_to_raw_root(self, app_context, sample_job, monkeypatch):
+        """input_path is job.raw_path made relative to RAW_PATH (or
+        SHARED_RAW_PATH when local-shared scratch staging is configured)."""
+        from arm.ripper.utils import _build_webhook_payload
+        import arm.config.config as cfg
+
+        monkeypatch.setattr(cfg, "arm_config", {
+            "RAW_PATH": "/home/arm/media/raw/",
+            "MOVIES_SUBDIR": "Movies/0.Rips",
+            "TV_SUBDIR": "TV/0.Rips",
+            "AUDIO_SUBDIR": "music",
+            "UNIDENTIFIED_SUBDIR": "unidentified",
+        })
+        sample_job.raw_path = "/home/arm/media/raw/movies/Foo_xyz"
+        db.session.commit()
+
+        payload = _build_webhook_payload("Rip done", "body", sample_job, "Foo_xyz")
+
+        assert payload["input_path"] == "movies/Foo_xyz"
+
+    def test_output_path_uses_type_subfolder_for_movies(self, app_context, sample_job, monkeypatch):
+        """output_path = job.type_subfolder / render_folder(job, cfg)."""
+        from arm.ripper.utils import _build_webhook_payload
+        import arm.config.config as cfg
+
+        monkeypatch.setattr(cfg, "arm_config", {
+            "RAW_PATH": "/home/arm/media/raw/",
+            "MOVIES_SUBDIR": "Movies/0.Rips",
+            "TV_SUBDIR": "TV/0.Rips",
+            "AUDIO_SUBDIR": "music",
+            "UNIDENTIFIED_SUBDIR": "unidentified",
+        })
+        # sample_job is a movie titled SERIAL_MOM, year 1994.
+        sample_job.raw_path = "/home/arm/media/raw/movies/SERIAL_MOM_xyz"
+        db.session.commit()
+
+        payload = _build_webhook_payload("Rip done", "body", sample_job, "SERIAL_MOM_xyz")
+
+        assert payload["output_path"].startswith("Movies/0.Rips/")
+
+    def test_legacy_fields_not_in_payload(self, app_context, sample_job):
+        """folder_name and path no longer ship on the wire (contracts v3.0.0)."""
+        from arm.ripper.utils import _build_webhook_payload
+
+        payload = _build_webhook_payload("Rip done", "body", sample_job, "raw_dir")
+
+        assert "folder_name" not in payload
+        assert "path" not in payload
+        # Per-track too.
+        if "tracks" in payload:
+            for t in payload["tracks"]:
+                assert "folder_name" not in t
+
+    def test_track_output_path_uses_track_video_type_subdir(self, app_context, job_with_tracks, monkeypatch):
+        """Per-track output_path picks the subdir from the track's
+        video_type, supporting mixed multi-title discs."""
+        from arm.ripper.utils import _build_webhook_payload
+        import arm.config.config as cfg
+
+        monkeypatch.setattr(cfg, "arm_config", {
+            "RAW_PATH": "/home/arm/media/raw/",
+            "MOVIES_SUBDIR": "Movies/0.Rips",
+            "TV_SUBDIR": "TV/0.Rips",
+            "AUDIO_SUBDIR": "music",
+            "UNIDENTIFIED_SUBDIR": "unidentified",
+        })
+        job, tracks = job_with_tracks
+        tracks[0].video_type = "movie"
+        tracks[1].video_type = "series"
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+
+        # Track 0 (movie) -> Movies subdir; Track 1 (series) -> TV subdir.
+        assert payload["tracks"][0]["output_path"].startswith("Movies/0.Rips")
+        assert payload["tracks"][1]["output_path"].startswith("TV/0.Rips")
+
+    def test_track_output_path_unknown_video_disc_lands_in_unidentified(
+        self, app_context, job_with_tracks, monkeypatch,
+    ):
+        """An unidentified DVD/Blu-ray/UHD with no per-track video_type
+        routes each track to UNIDENTIFIED_SUBDIR. The operator picks up
+        the rip from the triage bucket, fills in metadata, and re-imports
+        - presuming Movies on the wire misroutes series box-sets and
+        hides misclassification under the Movies tree."""
+        from arm.ripper.utils import _build_webhook_payload
+        import arm.config.config as cfg
+
+        monkeypatch.setattr(cfg, "arm_config", {
+            "RAW_PATH": "/home/arm/media/raw/",
+            "MOVIES_SUBDIR": "Movies/0.Rips",
+            "TV_SUBDIR": "TV/0.Rips",
+            "AUDIO_SUBDIR": "music",
+            "UNIDENTIFIED_SUBDIR": "unidentified",
+        })
+        job, tracks = job_with_tracks
+        # Simulate hifi job 213: DVD, no OMDB match, video_type stayed
+        # 'unknown' on both job and tracks.
+        job.video_type = "unknown"
+        job.disctype = "dvd"
+        for t in tracks:
+            t.video_type = None
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+
+        assert payload["output_path"].startswith("unidentified")
+        for t in payload["tracks"]:
+            assert t["output_path"].startswith("unidentified"), (
+                f"track output_path={t['output_path']} should default to "
+                "unidentified for unclassified video discs"
+            )
+
+    def test_track_output_path_unknown_data_disc_stays_unidentified(
+        self, app_context, job_with_tracks, monkeypatch,
+    ):
+        """Tracks on a data disc with unknown video_type stay in
+        UNIDENTIFIED_SUBDIR (same fallback as video discs)."""
+        from arm.ripper.utils import _build_webhook_payload
+        import arm.config.config as cfg
+
+        monkeypatch.setattr(cfg, "arm_config", {
+            "RAW_PATH": "/home/arm/media/raw/",
+            "MOVIES_SUBDIR": "Movies/0.Rips",
+            "TV_SUBDIR": "TV/0.Rips",
+            "AUDIO_SUBDIR": "music",
+            "UNIDENTIFIED_SUBDIR": "unidentified",
+        })
+        job, tracks = job_with_tracks
+        job.video_type = "unknown"
+        job.disctype = "data"
+        for t in tracks:
+            t.video_type = None
+        db.session.commit()
+        db.session.refresh(job)
+
+        payload = _build_webhook_payload("Rip done", "body", job, "raw_dir")
+
+        for t in payload["tracks"]:
+            assert t["output_path"].startswith("unidentified")
+
+
+# ── transcode_callback tests ─────────────────────────────────────────────
+
+
+class TestTranscodeCallback:
+    """Test POST /jobs/{id}/transcode-callback endpoint."""
+
+    def test_partial_status_with_track_results(self, app_context, job_with_tracks, client):
+        """status=partial sets job status to success with error message."""
+        job, tracks = job_with_tracks
+
+        resp = client.post(
+            f"/api/v1/jobs/{job.job_id}/transcode-callback",
+            json={
+                "status": "partial",
+                "error": "Track 3 failed",
+                "track_results": [
+                    {"track_number": "1", "status": "completed"},
+                    {"track_number": "2", "status": "completed"},
+                    {"track_number": "3", "status": "failed", "error": "codec error"},
+                ],
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert data["status"] == JobState.SUCCESS.value
+
+        db.session.expire_all()
+        refreshed_job = Job.query.get(job.job_id)
+        assert refreshed_job.errors == "Track 3 failed"
+
+        # Verify track statuses updated
+        t1 = Track.query.filter_by(job_id=job.job_id, track_number='1').first()
+        assert t1.status == "transcoded"
+        t3 = Track.query.filter_by(job_id=job.job_id, track_number='3').first()
+        assert "transcode_failed" in t3.status
+
+    def test_completed_with_track_results(self, app_context, job_with_tracks, client):
+        """status=completed with track_results updates per-track statuses."""
+        job, tracks = job_with_tracks
+
+        resp = client.post(
+            f"/api/v1/jobs/{job.job_id}/transcode-callback",
+            json={
+                "status": "completed",
+                "track_results": [
+                    {"track_number": "1", "status": "completed"},
+                    {"track_number": "2", "status": "completed"},
+                ],
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.json()["status"] == JobState.SUCCESS.value
+
+        db.session.expire_all()
+        t1 = Track.query.filter_by(job_id=job.job_id, track_number='1').first()
+        t2 = Track.query.filter_by(job_id=job.job_id, track_number='2').first()
+        assert t1.status == "transcoded"
+        assert t2.status == "transcoded"
+
+    def test_track_results_nonmatching_ignored(self, app_context, job_with_tracks, client):
+        """track_results with non-matching track numbers are silently ignored."""
+        job, tracks = job_with_tracks
+        original_status = tracks[0].status
+
+        resp = client.post(
+            f"/api/v1/jobs/{job.job_id}/transcode-callback",
+            json={
+                "status": "completed",
+                "track_results": [
+                    {"track_number": "999", "status": "completed"},
+                    {"track_number": "888", "status": "failed", "error": "nope"},
+                ],
+            },
+        )
+        assert resp.status_code == 200
+
+        # Existing tracks should be unchanged
+        db.session.expire_all()
+        t1 = Track.query.filter_by(job_id=job.job_id, track_number='1').first()
+        assert t1.status == original_status
+
+    def test_unknown_status_returns_422(self, app_context, sample_job, client):
+        """Unknown status value returns 422 with structured field-level errors.
+
+        Pydantic enum validation rejects values outside JobStatus before
+        the handler runs; the structured response makes the field name
+        explicit so callers can fix their callback shape.
+        """
+        resp = client.post(
+            f"/api/v1/jobs/{sample_job.job_id}/transcode-callback",
+            json={"status": "banana"},
+        )
+        assert resp.status_code == 422
+        body = resp.json()
+        assert body["error"] == "Invalid callback payload"
+        assert any(e["loc"] == ["status"] for e in body["errors"])
+
+    def test_nonexistent_job_returns_404(self, app_context, client):
+        """Callback for nonexistent job returns 404."""
+        resp = client.post(
+            "/api/v1/jobs/99999/transcode-callback",
+            json={"status": "completed"},
+        )
+        assert resp.status_code == 404
+
+
+# ── change_job_config new fields tests ───────────────────────────────────
+
+
+class TestChangeJobConfigNewFields:
+    """Test MUSIC_MULTI_DISC_SUBFOLDERS and MUSIC_DISC_FOLDER_PATTERN in change_job_config."""
+
+    def test_multi_disc_subfolders_true(self, app_context, sample_job, client):
+        """Setting MUSIC_MULTI_DISC_SUBFOLDERS=true succeeds."""
+        resp = client.patch(
+            f"/api/v1/jobs/{sample_job.job_id}/config",
+            json={"MUSIC_MULTI_DISC_SUBFOLDERS": True},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+
+    def test_multi_disc_subfolders_false(self, app_context, sample_job, client):
+        """Setting MUSIC_MULTI_DISC_SUBFOLDERS=false succeeds."""
+        resp = client.patch(
+            f"/api/v1/jobs/{sample_job.job_id}/config",
+            json={"MUSIC_MULTI_DISC_SUBFOLDERS": False},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+
+    def test_disc_folder_pattern_valid(self, app_context, sample_job, client):
+        """Valid pattern containing {num} is accepted."""
+        resp = client.patch(
+            f"/api/v1/jobs/{sample_job.job_id}/config",
+            json={"MUSIC_DISC_FOLDER_PATTERN": "CD {num}"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+
+    def test_disc_folder_pattern_missing_num_returns_400(self, app_context, sample_job, client):
+        """Pattern without {num} placeholder returns 400."""
+        resp = client.patch(
+            f"/api/v1/jobs/{sample_job.job_id}/config",
+            json={"MUSIC_DISC_FOLDER_PATTERN": "Disc"},
+        )
+        assert resp.status_code == 400
+        assert "{num}" in resp.json()["error"]
+
+    def test_disc_folder_pattern_empty_returns_400(self, app_context, sample_job, client):
+        """Empty pattern returns 400."""
+        resp = client.patch(
+            f"/api/v1/jobs/{sample_job.job_id}/config",
+            json={"MUSIC_DISC_FOLDER_PATTERN": ""},
+        )
+        assert resp.status_code == 400
+
+
+# ── _build_custom_abcde_config tests ─────────────────────────────────────
+
+
+class TestBuildCustomAbcdeConfig:
+    """Test _build_custom_abcde_config with disc_folder_pattern and speed_profile."""
+
+    @pytest.fixture
+    def base_config(self, tmp_path):
+        """Create a temporary base abcde config file."""
+        config = tmp_path / "abcde.conf"
+        config.write_text(
+            "# abcde config\n"
+            "OUTPUTFORMAT='${ARTISTFILE}/${ALBUMFILE}/${TRACKNUM} - ${TRACKFILE}'\n"
+            "VAOUTPUTFORMAT='Various/${ALBUMFILE}/${TRACKNUM} - ${TRACKFILE}'\n"
+            "CDROM=/dev/sr0\n"
+        )
+        return str(config)
+
+    def test_disc_number_with_custom_pattern(self, base_config):
+        """disc_number with custom disc_folder_pattern like 'CD {num}'."""
+        from arm.ripper.utils import _build_custom_abcde_config
+
+        result = _build_custom_abcde_config(
+            base_config, disc_number=2, disc_folder_pattern="CD {num}"
+        )
+        assert result is not None
+
+        try:
+            with open(result, "r") as f:
+                content = f.read()
+            assert "CD 2" in content
+            # Check that the disc dir is injected after ALBUMFILE
+            assert "${ALBUMFILE}/CD 2/" in content
+        finally:
+            os.unlink(result)
+
+    def test_disc_number_with_default_pattern(self, base_config):
+        """disc_number with None pattern defaults to 'Disc {num}'."""
+        from arm.ripper.utils import _build_custom_abcde_config
+
+        result = _build_custom_abcde_config(
+            base_config, disc_number=3, disc_folder_pattern=None
+        )
+        assert result is not None
+
+        try:
+            with open(result, "r") as f:
+                content = f.read()
+            assert "Disc 3" in content
+            assert "${ALBUMFILE}/Disc 3/" in content
+        finally:
+            os.unlink(result)
+
+    def test_disc_number_injects_into_va_output(self, base_config):
+        """disc_number is also injected into VAOUTPUTFORMAT."""
+        from arm.ripper.utils import _build_custom_abcde_config
+
+        result = _build_custom_abcde_config(
+            base_config, disc_number=1, disc_folder_pattern="Part {num}"
+        )
+        assert result is not None
+
+        try:
+            with open(result, "r") as f:
+                content = f.read()
+            assert "VAOUTPUTFORMAT=" in content
+            assert "${ALBUMFILE}/Part 1/" in content
+        finally:
+            os.unlink(result)
+
+    def test_speed_profile_only(self, base_config):
+        """speed_profile without disc_number appends CDPARANOIAOPTS."""
+        from arm.ripper.utils import _build_custom_abcde_config
+
+        result = _build_custom_abcde_config(
+            base_config, speed_profile="fast"
+        )
+        assert result is not None
+
+        try:
+            with open(result, "r") as f:
+                content = f.read()
+            assert 'CDPARANOIAOPTS="-Y"' in content
+            # Should NOT inject disc folders
+            assert "Disc " not in content
+        finally:
+            os.unlink(result)
+
+    def test_speed_profile_safe_no_opts(self, base_config):
+        """Safe speed profile has empty opts, so no CDPARANOIAOPTS line added."""
+        from arm.ripper.utils import _build_custom_abcde_config
+
+        result = _build_custom_abcde_config(
+            base_config, speed_profile="safe"
+        )
+        assert result is not None
+
+        try:
+            with open(result, "r") as f:
+                content = f.read()
+            assert "CDPARANOIAOPTS" not in content
+        finally:
+            os.unlink(result)
+
+    def test_nonexistent_base_config_returns_none(self):
+        """Missing base config file returns None."""
+        from arm.ripper.utils import _build_custom_abcde_config
+
+        result = _build_custom_abcde_config(
+            "/nonexistent/abcde.conf", disc_number=1
+        )
+        assert result is None

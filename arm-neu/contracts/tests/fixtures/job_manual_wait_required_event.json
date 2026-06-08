@@ -1,0 +1,11 @@
+{
+  "event_key": "job.manual_wait_required",
+  "event_id": "66666666-6666-4666-8666-666666666666",
+  "occurred_at": "2026-05-18T10:15:00+00:00",
+  "job_id": 169,
+  "job_title": "Mysterysuspense",
+  "job_disc_type": "dvd",
+  "job_imdb_id": "tt0903747",
+  "wait_minutes_remaining": 25,
+  "reason": "manual_mode_activated"
+}

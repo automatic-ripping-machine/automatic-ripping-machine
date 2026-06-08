@@ -1,0 +1,25 @@
+{
+  "id": "royale",
+  "label": "Royale",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Battle royale blue and yellow",
+  "swatch": "#facc15",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(0, 123, 255)",
+    "--color-primary-hover": "rgb(248, 251, 17)",
+    "--color-primary-dark": "rgb(17, 42, 94)",
+    "--color-primary-light-bg": "rgb(11, 26, 61)",
+    "--color-primary-light-bg-dark": "rgb(11, 26, 61)",
+    "--color-primary-text": "rgb(248, 251, 17)",
+    "--color-primary-text-dark": "rgb(248, 251, 17)",
+    "--color-primary-border": "rgb(17, 42, 94)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(5, 5, 5)",
+    "--color-page-dark": "rgb(5, 5, 5)",
+    "--color-surface": "rgb(2, 11, 36)",
+    "--color-surface-dark": "rgb(2, 11, 36)",
+    "--radius": "0.5rem"
+  }
+}

@@ -1,0 +1,8 @@
+ARG BASE_TAG=latest
+FROM uprightbass360/arm-transcoder-base:${BASE_TAG}
+
+# nvidia-container-toolkit injects the driver (NVENC/NVDEC libs) at runtime.
+# These env vars tell the toolkit what capabilities to expose.
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+ENV GPU_VENDOR=nvidia

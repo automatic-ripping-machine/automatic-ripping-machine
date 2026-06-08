@@ -1,0 +1,25 @@
+{
+  "jobs": [
+    {
+      "id": 1,
+      "title": "Test Movie",
+      "source_path": "/raw/test.iso",
+      "status": "processing",
+      "progress": 42.5,
+      "current_fps": 24.0,
+      "error": null,
+      "logfile": "transcode_1.log",
+      "video_type": "movie",
+      "year": "2026",
+      "disctype": "bluray",
+      "output_path": "/completed/test.mkv",
+      "total_tracks": 1,
+      "poster_url": null,
+      "config_overrides": null,
+      "created_at": "2026-05-03T00:00:00Z",
+      "started_at": "2026-05-03T00:01:00Z",
+      "completed_at": null
+    }
+  ],
+  "total": 1
+}

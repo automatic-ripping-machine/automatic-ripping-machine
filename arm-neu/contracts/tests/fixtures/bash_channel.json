@@ -1,0 +1,15 @@
+{
+  "id": 3,
+  "type": "bash",
+  "name": "Log everything",
+  "enabled": false,
+  "config": {
+    "type": "bash",
+    "script_path": "/opt/arm/scripts/notify.sh"
+  },
+  "subscribed_events": [],
+  "templates": {},
+  "last_fired_at": null,
+  "last_success_at": null,
+  "last_error": null
+}

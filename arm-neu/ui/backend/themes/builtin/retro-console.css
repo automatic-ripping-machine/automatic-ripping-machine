@@ -1,0 +1,20 @@
+[data-scheme="retro-console"] .section-frame {
+	border: 2px solid #4b5563 !important;
+	box-shadow: 2px 2px 0px #000;
+}
+[data-scheme="retro-console"] .section-frame-bar-top {
+	background: rgb(124, 58, 237) !important;
+	color: white !important;
+	text-transform: uppercase;
+	clip-path: polygon(0 0, 98% 0, 100% 100%, 0% 100%);
+	letter-spacing: 0.15em;
+	font-weight: 800;
+}
+[data-scheme="retro-console"] aside nav a[data-active="true"] {
+	box-shadow: inset 4px 0 0 rgb(124, 58, 237);
+	text-shadow: 0 0 8px rgba(124, 58, 237, 0.5);
+}
+[data-scheme="retro-console"] [data-progress-track] {
+	background: #000 !important;
+	border: 1px solid #4b5563;
+}

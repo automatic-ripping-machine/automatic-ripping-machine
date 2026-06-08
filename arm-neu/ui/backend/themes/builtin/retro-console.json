@@ -1,0 +1,24 @@
+{
+  "id": "retro-console",
+  "label": "90s Console",
+  "version": 1,
+  "author": "Gemini",
+  "description": "Industrial gray and royal purple inspired by 32-bit consoles",
+  "swatch": "#7c3aed",
+  "tokens": {
+    "--color-primary": "rgb(124, 58, 237)",
+    "--color-primary-hover": "rgb(109, 40, 217)",
+    "--color-primary-dark": "rgb(76, 29, 149)",
+    "--color-primary-light-bg": "rgb(243, 244, 246)",
+    "--color-primary-light-bg-dark": "rgb(31, 41, 55)",
+    "--color-primary-text": "rgb(109, 40, 217)",
+    "--color-primary-text-dark": "rgb(167, 139, 250)",
+    "--color-primary-border": "rgb(124, 58, 237)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(209, 213, 219)",
+    "--color-page-dark": "rgb(17, 24, 39)",
+    "--color-surface": "rgb(229, 231, 235)",
+    "--color-surface-dark": "rgb(31, 41, 55)",
+    "--radius": "0px"
+  }
+}

@@ -1,0 +1,125 @@
+name: "PR - Test Docker Build"
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Detect if HandBrake files changed
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      handbrake: ${{ steps.filter.outputs.handbrake }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            handbrake:
+              - Dockerfile.handbrake
+              - VERSION_HANDBRAKE
+
+  # Only runs when HandBrake files changed (~15 min)
+  test-handbrake-build:
+    needs: changes
+    if: needs.changes.outputs.handbrake == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+      - name: Read HandBrake version
+        id: hb_version
+        run: echo "version=$(cat VERSION_HANDBRAKE)" >> "$GITHUB_OUTPUT"
+      - name: Build HandBrake image
+        uses: docker/build-push-action@v7
+        with:
+          push: false
+          context: .
+          file: Dockerfile.handbrake
+          platforms: linux/amd64
+          build-args: HANDBRAKE_VERSION=${{ steps.hb_version.outputs.version }}
+          build-contexts: |
+            contracts=components/contracts
+          tags: arm-handbrake:test
+
+  # Always runs — uses published HandBrake image (~1 min)
+  test-base-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: docker/setup-buildx-action@v4
+      - name: Read HandBrake version
+        id: hb_version
+        run: echo "version=$(cat VERSION_HANDBRAKE)" >> "$GITHUB_OUTPUT"
+      - name: Build base image
+        uses: docker/build-push-action@v7
+        with:
+          push: false
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          build-args: HANDBRAKE_TAG=${{ steps.hb_version.outputs.version }}
+          build-contexts: |
+            contracts=components/contracts
+          tags: uprightbass360/arm-transcoder-base:latest
+          load: true
+          outputs: type=docker
+
+  test-variant-builds:
+    needs: test-base-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - variant: nvidia
+            suffix: "-nvidia"
+          - variant: amd
+            suffix: "-amd"
+          - variant: intel
+            suffix: "-intel"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: docker/setup-buildx-action@v4
+      - name: Read HandBrake version
+        id: hb_version
+        run: echo "version=$(cat VERSION_HANDBRAKE)" >> "$GITHUB_OUTPUT"
+      - name: Build base (for FROM reference)
+        uses: docker/build-push-action@v7
+        with:
+          push: false
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          build-args: HANDBRAKE_TAG=${{ steps.hb_version.outputs.version }}
+          build-contexts: |
+            contracts=components/contracts
+          tags: uprightbass360/arm-transcoder-base:latest
+          load: true
+      - name: Build GPU variant (${{ matrix.variant }})
+        uses: docker/build-push-action@v7
+        with:
+          push: false
+          context: .
+          file: Dockerfile.${{ matrix.variant }}
+          platforms: linux/amd64
+          build-args: BASE_TAG=latest
+          build-contexts: |
+            uprightbass360/arm-transcoder-base:latest=docker-image://uprightbass360/arm-transcoder-base:latest
+            contracts=components/contracts
+          tags: arm-transcoder:pr${{ github.event.number }}${{ matrix.suffix }}

@@ -1,0 +1,40 @@
+FROM python:3.14-slim
+
+LABEL org.opencontainers.image.source="https://github.com/uprightbass360/automatic-ripping-machine-transcoder"
+LABEL org.opencontainers.image.license="MIT"
+LABEL org.opencontainers.image.description="GPU-accelerated transcoding service for ARM (dev)"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Match production UID/GID so dev and prod containers can share
+# the same DB volume without permission errors.
+ARG TRANSCODER_UID=1000
+ARG TRANSCODER_GID=1000
+RUN groupadd -g ${TRANSCODER_GID} transcoder \
+    && useradd -m -s /bin/bash -u ${TRANSCODER_UID} -g transcoder transcoder
+
+WORKDIR /app
+COPY requirements.txt .
+COPY --from=contracts . /app/components/contracts
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/ /app/
+COPY VERSION /app/
+
+# Stamp the dev fallback path with a "-dev" suffix so the Settings ->
+# Versions panel shows "this is a dev build, not the released semver".
+# The /app/VERSION above is shadowed by the docker-compose src bind, so
+# main.py:_read_version() falls through to /etc/arm-transcoder-version.
+RUN echo "$(cat /app/VERSION)-dev" > /etc/arm-transcoder-version
+
+RUN mkdir -p /data/raw /data/completed /data/work /data/db /data/logs \
+    && chown -R transcoder:transcoder /data /app
+
+USER transcoder
+
+EXPOSE 5000
+
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000", "--reload", "--reload-dir", "/app"]

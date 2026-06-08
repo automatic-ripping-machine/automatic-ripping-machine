@@ -1,0 +1,12 @@
+{
+  "event_key": "job.failed",
+  "event_id": "44444444-4444-4444-8444-444444444444",
+  "occurred_at": "2026-05-18T10:05:00+00:00",
+  "job_id": 169,
+  "job_title": "Mysterysuspense",
+  "job_disc_type": "dvd",
+  "job_imdb_id": null,
+  "phase": "rip",
+  "error_message": "makemkvcon exited with code 253",
+  "error_code": "MAKEMKV_FAILED"
+}

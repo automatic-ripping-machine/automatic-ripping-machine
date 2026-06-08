@@ -1,0 +1,24 @@
+# Build-context hygiene for the `contracts` named build context.
+# KEEP (editable install `pip install -e .` needs these): src/, pyproject.toml,
+# README.md (pyproject readme=), LICENSE, VERSION.
+
+# Tests & test config
+tests/
+pytest.ini
+requirements-test.txt
+
+# CI / release tooling
+.github/
+release-please-config.json
+.release-please-manifest.json
+CHANGELOG.md
+
+# VCS / Python caches
+.git
+.gitignore
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

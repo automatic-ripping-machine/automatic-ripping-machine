@@ -1,0 +1,35 @@
+# Compile HandBrake CLI with GPU encoders (NVENC, NVDEC, QSV).
+# Published as uprightbass360/arm-handbrake:VERSION
+# Rebuilt only when VERSION_HANDBRAKE changes or on weekly schedule.
+FROM nvidia/cuda:13.3.0-devel-ubuntu24.04 AS builder
+
+ARG HANDBRAKE_VERSION
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    autoconf automake build-essential ca-certificates clang cmake git \
+    libtool libtool-bin \
+    libass-dev libbz2-dev libfontconfig-dev libfreetype-dev \
+    libfribidi-dev libharfbuzz-dev libjansson-dev liblzma-dev \
+    libmp3lame-dev libnuma-dev libogg-dev libopus-dev \
+    libsamplerate0-dev libspeex-dev libssl-dev libtheora-dev \
+    libturbojpeg0-dev libva-dev libvpl-dev libdrm-dev libvorbis-dev \
+    libvpx-dev libx264-dev libxml2-dev m4 make meson nasm \
+    ninja-build patch pkg-config python3 tar zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+RUN git clone https://github.com/HandBrake/HandBrake.git \
+        --branch ${HANDBRAKE_VERSION} --depth 1 \
+    && cd HandBrake \
+    && ./configure --prefix=/usr/local \
+                   --disable-gtk \
+                   --enable-nvenc \
+                   --enable-nvdec \
+                   --enable-qsv \
+                   --enable-numa \
+                   --launch-jobs=$(nproc) \
+                   --launch \
+    && make -j$(nproc) --directory=build install
+
+# Minimal output — just the binary, no OS
+FROM scratch
+COPY --from=builder /usr/local/bin/HandBrakeCLI /HandBrakeCLI

@@ -1,0 +1,75 @@
+name: Codegen check
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  codegen-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Python deps
+        run: pip install -r requirements-test.txt
+
+      - name: Install Node deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Sync SvelteKit (generates .svelte-kit/tsconfig.json)
+        working-directory: frontend
+        run: npx svelte-kit sync
+
+      - name: Run codegen
+        run: bash scripts/codegen.sh
+
+      - name: Detect drift
+        id: drift
+        run: |
+          if git diff --exit-code frontend/src/lib/types/api.gen.ts; then
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit back (first-party PRs)
+        if: steps.drift.outputs.drift == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          git config user.name "arm-codegen-bot"
+          git config user.email "arm-codegen-bot@users.noreply.github.com"
+          git add frontend/src/lib/types/api.gen.ts
+          git commit -m "chore(types): regenerate api.gen.ts"
+          git push
+
+      - name: Fail on fork drift
+        if: steps.drift.outputs.drift == 'true' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          echo "::error::frontend/src/lib/types/api.gen.ts is out of date. Run 'npm run codegen' locally and push."
+          exit 1

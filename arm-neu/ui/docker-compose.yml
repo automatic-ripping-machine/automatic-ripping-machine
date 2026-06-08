@@ -1,0 +1,37 @@
+# Standalone dev UI - connects to ARM and Transcoder on the host network.
+# Talks to the ripper exclusively over HTTP; uses UI-owned named volumes
+# for themes and image cache. Zero filesystem coupling to the ripper.
+#
+# Set WEBHOOK_SECRET in .env to authenticate outbound transcoder webhook
+# calls. The compose file translates that bare name into the
+# ARM_UI_-prefixed var the BFF reads, matching the same convention used
+# by the arm-neu and transcoder stacks (one secret, three translations).
+
+services:
+  arm-ui:
+    build:
+      context: .
+      additional_contexts:
+        contracts: ./components/contracts
+    network_mode: host
+    environment:
+      - ARM_UI_ARM_URL=http://localhost:8080
+      # Set to "true" to serve built-in demo data with NO ARM/Transcoder
+      # present (frontend review/handoff). Default false: normal proxying.
+      - ARM_UI_DEMO_MODE=${ARM_UI_DEMO_MODE:-false}
+      - ARM_UI_TRANSCODER_URL=${ARM_UI_TRANSCODER_URL:-http://localhost:5000}
+      - ARM_UI_TRANSCODER_ENABLED=${ARM_UI_TRANSCODER_ENABLED:-true}
+      - ARM_UI_TRANSCODER_API_KEY=${ARM_UI_TRANSCODER_API_KEY:-}
+      # Translates bare WEBHOOK_SECRET (same name used by arm-neu and the
+      # transcoder) into the ARM_UI_-prefixed var the BFF reads.
+      - ARM_UI_TRANSCODER_WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
+      - ARM_UI_THEMES_PATH=/data/themes
+      - ARM_UI_IMAGE_CACHE_PATH=/data/cache/images
+    volumes:
+      - arm-ui-themes:/data/themes:rw
+      - image-cache:/data/cache/images:rw
+    restart: unless-stopped
+
+volumes:
+  arm-ui-themes:
+  image-cache:

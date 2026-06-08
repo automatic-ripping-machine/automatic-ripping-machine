@@ -1,0 +1,25 @@
+{
+  "id": "cinema",
+  "label": "Cinema",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Gold on black, inspired by classic movie theaters",
+  "swatch": "#ca8a04",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(212, 175, 55)",
+    "--color-primary-hover": "rgb(188, 155, 40)",
+    "--color-primary-dark": "rgb(138, 109, 59)",
+    "--color-primary-light-bg": "rgb(30, 25, 10)",
+    "--color-primary-light-bg-dark": "rgb(30, 25, 10)",
+    "--color-primary-text": "rgb(212, 175, 55)",
+    "--color-primary-text-dark": "rgb(212, 175, 55)",
+    "--color-primary-border": "rgb(138, 109, 59)",
+    "--color-on-primary": "rgb(13, 13, 13)",
+    "--color-page": "rgb(26, 26, 26)",
+    "--color-page-dark": "rgb(26, 26, 26)",
+    "--color-surface": "rgb(13, 13, 13)",
+    "--color-surface-dark": "rgb(13, 13, 13)",
+    "--radius": "0.5rem"
+  }
+}

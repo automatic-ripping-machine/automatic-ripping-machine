@@ -1,0 +1,132 @@
+name: Publish Docker Image
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/automatic-ripping-machine
+  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/automatic-ripping-machine-neu
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Read VERSION file
+        id: version
+        run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            IMAGE_TAG=${{ steps.version.outputs.version }}
+          build-contexts: |
+            contracts=components/contracts
+          tags: |
+            ${{ env.DOCKERHUB_IMAGE }}:latest
+            ${{ env.DOCKERHUB_IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.GHCR_IMAGE }}:latest
+            ${{ env.GHCR_IMAGE }}:${{ steps.version.outputs.version }}
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+
+  bundle-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Read component versions
+        id: versions
+        run: |
+          # ARM version from the release tag (strip v prefix)
+          echo "arm=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          # UI and Transcoder from submodule release-please manifests
+          echo "ui=$(jq -r '.["."]' components/ui/.release-please-manifest.json)" >> "$GITHUB_OUTPUT"
+          echo "transcoder=$(jq -r '.["."]' components/transcoder/.release-please-manifest.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Build release bundle
+        run: |
+          VERSION="${{ steps.versions.outputs.arm }}"
+          UI_VERSION="${{ steps.versions.outputs.ui }}"
+          TRANSCODER_VERSION="${{ steps.versions.outputs.transcoder }}"
+          DIR="arm-deploy-${VERSION}"
+          mkdir "$DIR"
+
+          cp docker-compose.yml "$DIR/"
+          cp docker-compose.gpu.yml "$DIR/"
+          cp docker-compose.remote-transcoder.yml "$DIR/"
+          cp .env.example "$DIR/"
+          cp .env.remote-transcoder.example "$DIR/"
+          cp deploy/DEPLOY.md "$DIR/"
+          cp dev-data/config/notify_transcoder.sh "$DIR/"
+
+          # Pin versions in env files
+          sed -i "s/^ARM_VERSION=latest/ARM_VERSION=${VERSION}/" \
+            "$DIR"/.env.example "$DIR"/.env.remote-transcoder.example
+          sed -i "s/^UI_VERSION=latest/UI_VERSION=${UI_VERSION}/" \
+            "$DIR"/.env.example "$DIR"/.env.remote-transcoder.example
+          sed -i "s/^TRANSCODER_VERSION=latest/TRANSCODER_VERSION=${TRANSCODER_VERSION}/" \
+            "$DIR"/.env.example
+
+          # Remove build: lines (users pull published images)
+          sed -i '/^\s*build:/d' "$DIR"/docker-compose.remote-transcoder.yml
+
+          # Fix --build flags in compose comments (users pull images, not build)
+          sed -i 's/ --build$//' "$DIR"/docker-compose.yml "$DIR"/docker-compose.gpu.yml
+
+          # Fix DEPLOY.md paths for bundle context
+          sed -i 's|^git clone .*|# Files are already in this directory from the release bundle|' "$DIR"/DEPLOY.md
+          sed -i 's|^cd automatic-ripping-machine-neu|# cd arm-deploy-'"${VERSION}"'|' "$DIR"/DEPLOY.md
+          sed -i 's|dev-data/config/notify_transcoder.sh|notify_transcoder.sh|' "$DIR"/DEPLOY.md
+
+          zip -r "arm-deploy-${VERSION}.zip" "$DIR"
+
+      - name: Upload release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.versions.outputs.arm }}"
+          gh release upload "${{ github.event.release.tag_name }}" \
+            "arm-deploy-${VERSION}.zip" \
+            --clobber

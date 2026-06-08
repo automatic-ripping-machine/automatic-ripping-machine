@@ -1,0 +1,39 @@
+{
+  "name": "arm-ui-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots",
+    "codegen": "cd .. && bash scripts/codegen.sh"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.98.1",
+    "@playwright/test": "^1.60.0",
+    "@sveltejs/adapter-static": "^3",
+    "@sveltejs/kit": "^2",
+    "@sveltejs/vite-plugin-svelte": "^7",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/svelte": "^5",
+    "@vitest/coverage-v8": "^4.1.8",
+    "jsdom": "^29",
+    "svelte": "^5",
+    "svelte-check": "^4",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6",
+    "vite": "^8",
+    "vitest": "^4.0.18"
+  },
+  "type": "module",
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "lucide-svelte": "^1.0.1"
+  }
+}

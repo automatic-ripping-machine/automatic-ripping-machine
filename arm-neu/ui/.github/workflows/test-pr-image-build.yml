@@ -1,0 +1,33 @@
+name: "PR - Test Docker Build"
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-pr-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v7
+        with:
+          push: false
+          context: .
+          build-contexts: |
+            contracts=components/contracts
+          platforms: linux/amd64,linux/arm64
+          tags: arm-ui:pr${{ github.event.number }}

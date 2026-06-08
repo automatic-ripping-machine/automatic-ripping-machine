@@ -1,0 +1,68 @@
+[data-scheme="glass"] body {
+	background: linear-gradient(45deg, #0f172a, #1e1b4b, #581c87) !important;
+	background-attachment: fixed !important;
+}
+
+[data-scheme="glass"] aside {
+	background: rgba(255, 255, 255, 0.05) !important;
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border-color: rgba(255, 255, 255, 0.1) !important;
+	box-shadow: 10px 0 30px rgba(0, 0, 0, 0.2);
+}
+
+[data-scheme="glass"] header {
+	background: rgba(255, 255, 255, 0.03) !important;
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-scheme="glass"] main {
+	background: transparent;
+}
+
+[data-scheme="glass"] aside [data-logo] {
+	text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+[data-scheme="glass"] aside nav a {
+	border-radius: 9999px;
+	border: 1px solid transparent;
+}
+
+[data-scheme="glass"] aside nav a:hover {
+	background: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-scheme="glass"] aside nav a[data-active="true"] {
+	background: rgba(255, 255, 255, 0.15) !important;
+	border-color: rgba(255, 255, 255, 0.2);
+	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+[data-scheme="glass"] aside [data-stats] {
+	background: rgba(0, 0, 0, 0.2);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 1rem;
+	margin: 0.5rem;
+	padding: 1rem;
+}
+
+[data-scheme="glass"] [data-progress-fill] {
+	background: linear-gradient(90deg, #38bdf8, #818cf8) !important;
+	box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+}
+
+[data-scheme="glass"] [data-progress-track] {
+	background: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-scheme="glass"] main .bg-surface,
+
+[data-scheme="glass"] main .dark\:bg-surface-dark {
+	background: rgba(255, 255, 255, 0.05) !important;
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border-color: rgba(255, 255, 255, 0.1) !important;
+}

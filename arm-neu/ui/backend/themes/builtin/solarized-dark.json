@@ -1,0 +1,25 @@
+{
+  "id": "solarized-dark",
+  "label": "Solarized",
+  "version": 1,
+  "author": "Gemini",
+  "description": "The classic precision-engineered developer theme",
+  "swatch": "#268bd2",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(38, 139, 210)",
+    "--color-primary-hover": "rgb(42, 161, 152)",
+    "--color-primary-dark": "rgb(7, 54, 66)",
+    "--color-primary-light-bg": "rgb(0, 43, 54)",
+    "--color-primary-light-bg-dark": "rgb(0, 30, 38)",
+    "--color-primary-text": "rgb(38, 139, 210)",
+    "--color-primary-text-dark": "rgb(147, 161, 161)",
+    "--color-primary-border": "rgb(38, 139, 210)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(0, 43, 54)",
+    "--color-page-dark": "rgb(0, 43, 54)",
+    "--color-surface": "rgb(7, 54, 66)",
+    "--color-surface-dark": "rgb(7, 54, 66)",
+    "--radius": "0.25rem"
+  }
+}

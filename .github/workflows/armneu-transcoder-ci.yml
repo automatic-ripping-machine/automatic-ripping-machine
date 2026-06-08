@@ -1,0 +1,38 @@
+name: armneu-transcoder-ci
+# NOTE: update branch refs when this work moves to its final branch/fork
+on:
+  push:
+    branches: [3.0_devel]
+    paths:
+      - "arm-neu/transcoder/**"
+      - "arm-neu/contracts/**"
+      - ".github/workflows/armneu-transcoder-ci.yml"
+      - ".github/workflows/armneu-_reusable-test.yml"
+      - ".github/workflows/armneu-_reusable-docker.yml"
+  pull_request:
+    paths:
+      - "arm-neu/transcoder/**"
+      - "arm-neu/contracts/**"
+      - ".github/workflows/armneu-transcoder-ci.yml"
+      - ".github/workflows/armneu-_reusable-test.yml"
+      - ".github/workflows/armneu-_reusable-docker.yml"
+jobs:
+  test:
+    uses: ./.github/workflows/armneu-_reusable-test.yml
+    secrets: inherit
+    with:
+      workdir: arm-neu/transcoder
+      python-version: "3.12"
+      install-cmd: "pip install -r requirements.txt -r requirements-test.txt"
+      test-cmd: "pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing"
+      needs-contracts: true
+      codecov-flags: transcoder
+  pr-build:
+    uses: ./.github/workflows/armneu-_reusable-docker.yml
+    secrets: inherit
+    with:
+      context: arm-neu/transcoder
+      image: arm-transcoder
+      push: false
+      variants: '["", "amd", "intel", "nvidia"]'
+      contracts-context: arm-neu/contracts

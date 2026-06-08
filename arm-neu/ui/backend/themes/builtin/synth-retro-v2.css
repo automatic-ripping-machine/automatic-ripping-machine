@@ -1,0 +1,29 @@
+[data-scheme="synth-retro-v2"] .section-frame {
+	border: 1px solid rgba(255, 0, 127, 0.2) !important;
+	background: rgba(255, 0, 127, 0.02) !important;
+	border-radius: 4px;
+}
+[data-scheme="synth-retro-v2"] .section-frame-bar-top {
+	background: linear-gradient(90deg, rgba(255, 0, 127, 0.4), transparent) !important;
+	border-bottom: 1px solid rgba(255, 0, 127, 0.3);
+	height: 28px !important;
+}
+[data-scheme="synth-retro-v2"] aside {
+	background: linear-gradient(180deg, rgb(14, 10, 18) 0%, rgb(8, 4, 10) 100%) !important;
+	border-right: 1px solid rgba(255, 0, 127, 0.1) !important;
+}
+[data-scheme="synth-retro-v2"] [data-progress-track] {
+	background: rgba(255, 0, 127, 0.05) !important;
+	border: 1px solid rgba(255, 0, 127, 0.1);
+	height: 6px !important;
+}
+[data-scheme="synth-retro-v2"] [data-progress-fill] {
+	background: linear-gradient(90deg, #9333ea, #ff007f) !important;
+	box-shadow: 0 0 10px rgba(255, 0, 127, 0.5);
+}
+[data-scheme="synth-retro-v2"] aside nav a[data-active="true"] {
+	color: #ff007f !important;
+	background: rgba(255, 0, 127, 0.05) !important;
+	border-left: 3px solid #ff007f;
+	text-shadow: 0 0 8px rgba(255, 0, 127, 0.3);
+}

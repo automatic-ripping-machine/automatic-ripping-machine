@@ -1,0 +1,119 @@
+"""Tests for arm/api/v1/maintenance.py — maintenance REST endpoints."""
+import os
+import unittest.mock
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from arm.database import db
+from arm.models.job import Job
+
+
+@pytest.fixture
+def maint_client(app_context):
+    from arm.api.v1.maintenance import router
+    app = FastAPI()
+    app.include_router(router)
+    with TestClient(app) as c:
+        yield c
+
+
+class TestMaintenanceCountsEndpoint:
+    def test_returns_counts(self, app_context, sample_job, tmp_logs, maint_client):
+        sample_job.logfile = "referenced.log"
+        db.session.commit()
+
+        mock_cfg = {"LOGPATH": str(tmp_logs), "RAW_PATH": "/nonexistent", "COMPLETED_PATH": "/nonexistent"}
+        with unittest.mock.patch("arm.config.config.arm_config", mock_cfg):
+            resp = maint_client.get("/api/v1/maintenance/counts")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "orphan_logs" in data
+        assert "orphan_folders" in data
+
+
+class TestOrphanEndpoints:
+    def test_get_orphan_logs(self, app_context, sample_job, tmp_logs, maint_client):
+        sample_job.logfile = "referenced.log"
+        db.session.commit()
+
+        with unittest.mock.patch("arm.config.config.arm_config", {"LOGPATH": str(tmp_logs)}):
+            resp = maint_client.get("/api/v1/maintenance/orphan-logs")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "files" in data
+        names = [f["relative_path"] for f in data["files"]]
+        assert "orphan1.log" in names
+
+    def test_get_orphan_folders(self, app_context, sample_job, tmp_media, maint_client):
+        mock_cfg = {"RAW_PATH": tmp_media["raw"], "COMPLETED_PATH": tmp_media["completed"]}
+        with unittest.mock.patch("arm.config.config.arm_config", mock_cfg):
+            resp = maint_client.get("/api/v1/maintenance/orphan-folders")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        names = [f["name"] for f in data["folders"]]
+        assert "Orphan Movie" in names
+        assert data["roots"] == [tmp_media["raw"], tmp_media["completed"]]
+
+
+class TestDeleteEndpoints:
+    def test_delete_log_success(self, app_context, tmp_logs, maint_client):
+        target = tmp_logs / "orphan1.log"
+        with unittest.mock.patch("arm.config.config.arm_config", {"LOGPATH": str(tmp_logs)}):
+            resp = maint_client.post("/api/v1/maintenance/delete-log", json={"path": "orphan1.log"})
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        assert body["error"] is None
+        assert not target.exists()
+
+    def test_delete_log_traversal_rejected(self, app_context, tmp_logs, tmp_path, maint_client):
+        """Path traversal attempts use basename only — file won't exist in LOGPATH."""
+        outside = tmp_path / "evil.log"
+        outside.write_text("x")
+        with unittest.mock.patch("arm.config.config.arm_config", {"LOGPATH": str(tmp_logs)}):
+            resp = maint_client.post("/api/v1/maintenance/delete-log", json={"path": str(outside)})
+        # basename "evil.log" doesn't exist in LOGPATH
+        assert resp.status_code == 404
+        # original file was NOT deleted
+        assert outside.exists()
+
+    def test_delete_log_dotdot_rejected(self, app_context, tmp_logs, maint_client):
+        """Dot-dot traversal is stripped to basename."""
+        with unittest.mock.patch("arm.config.config.arm_config", {"LOGPATH": str(tmp_logs)}):
+            resp = maint_client.post("/api/v1/maintenance/delete-log", json={"path": "../../etc/passwd"})
+        assert resp.status_code in (403, 404)
+
+    def test_delete_folder_success(self, app_context, tmp_media, maint_client):
+        mock_cfg = {"RAW_PATH": tmp_media["raw"], "COMPLETED_PATH": tmp_media["completed"]}
+        with unittest.mock.patch("arm.config.config.arm_config", mock_cfg):
+            resp = maint_client.post("/api/v1/maintenance/delete-folder", json={"path": "Orphan Movie"})
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        assert body["error"] is None
+
+    def test_bulk_delete_logs(self, app_context, tmp_logs, maint_client):
+        paths = ["orphan1.log", "orphan2.log", "nonexistent.log"]
+        with unittest.mock.patch("arm.config.config.arm_config", {"LOGPATH": str(tmp_logs)}):
+            resp = maint_client.post("/api/v1/maintenance/bulk-delete-logs", json={"paths": paths})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is False  # mixed: 2 removed, 1 error
+        assert len(data["removed"]) == 2
+        assert len(data["errors"]) == 1
+
+    def test_bulk_delete_logs_all_success(self, app_context, tmp_logs, maint_client):
+        with unittest.mock.patch("arm.config.config.arm_config", {"LOGPATH": str(tmp_logs)}):
+            resp = maint_client.post(
+                "/api/v1/maintenance/bulk-delete-logs",
+                json={"paths": ["orphan1.log", "orphan2.log"]},
+            )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert data["errors"] == []

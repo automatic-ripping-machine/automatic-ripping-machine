@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arm-auth"
+dynamic = ["version"]
+description = "Shared authentication library for the Automatic Ripping Machine ecosystem"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "sqlalchemy>=2.0",
+    "bcrypt>=4.0",
+    "click>=8.0",
+]
+
+[project.optional-dependencies]
+fastapi = ["fastapi>=0.100"]
+cli = []
+dev = [
+    "pytest>=8.0",
+    "pytest-cov",
+    "arm-auth[fastapi,cli]",
+    "httpx",
+]
+
+[project.scripts]
+arm-auth = "arm_auth.cli:main"
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

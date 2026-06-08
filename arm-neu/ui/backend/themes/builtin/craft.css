@@ -1,0 +1,105 @@
+[data-scheme="craft"] {
+	font-family: 'Courier New', Courier, monospace;
+	image-rendering: pixelated;
+}
+
+[data-scheme="craft"] aside {
+	border-right-width: 4px;
+	border-color: #000 !important;
+	padding: 4px;
+}
+
+[data-scheme="craft"] aside [data-logo] {
+	color: #38ff38;
+	text-shadow: 2px 2px #000;
+}
+
+[data-scheme="craft"] aside [data-logo] img {
+	filter: brightness(1.2) saturate(0.8);
+	image-rendering: pixelated;
+}
+
+[data-scheme="craft"] aside hr {
+	border: none;
+	height: 2px;
+	background: #000;
+	margin: 2px 4px;
+}
+
+[data-scheme="craft"] aside nav a {
+	background: #707070;
+	border: 2px solid #000;
+	border-top-color: #aaa;
+	border-left-color: #aaa;
+	border-radius: 0;
+	color: #e0e0e0;
+	text-align: center;
+	font-weight: bold;
+	text-shadow: 2px 2px #333;
+	justify-content: center;
+	padding: 0.7rem;
+	margin: 2px 0;
+}
+
+[data-scheme="craft"] aside nav a svg {
+	display: none;
+}
+
+[data-scheme="craft"] aside nav a:hover {
+	background: #8080ff !important;
+	border-top-color: #9999ff;
+	border-left-color: #9999ff;
+	color: #ffffa0 !important;
+}
+
+[data-scheme="craft"] aside nav a[data-active="true"] {
+	background: #4a4a4a !important;
+	border-top-color: #222;
+	border-left-color: #222;
+	color: #38ff38 !important;
+	text-shadow: 2px 2px #000;
+}
+
+[data-scheme="craft"] aside [data-stats] {
+	background: #222;
+	border: 2px solid #000;
+	margin: 4px;
+}
+
+[data-scheme="craft"] [data-progress-track] {
+	background: #000 !important;
+	border: 1px solid #555;
+	border-radius: 0 !important;
+	height: 10px !important;
+}
+
+[data-scheme="craft"] [data-progress-fill] {
+	background: #38ff38 !important;
+	box-shadow: inset 0 2px #7fff7f, inset 0 -2px #00aa00;
+	border-radius: 0 !important;
+}
+
+[data-scheme="craft"] aside .text-gray-400,
+
+[data-scheme="craft"] aside .text-gray-500,
+
+[data-scheme="craft"] aside .text-gray-600,
+
+[data-scheme="craft"] aside .dark\:text-gray-300,
+
+[data-scheme="craft"] aside .dark\:text-gray-400,
+
+[data-scheme="craft"] aside .dark\:text-gray-500 {
+	color: #fff !important;
+	font-size: 0.7rem;
+}
+
+[data-scheme="craft"] aside .text-orange-500 {
+	color: #ff5555 !important;
+}
+
+[data-scheme="craft"] header {
+	border-color: #000 !important;
+	border-bottom-width: 4px;
+	background: #313131 !important;
+}

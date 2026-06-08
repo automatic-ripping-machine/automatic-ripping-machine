@@ -1,0 +1,20 @@
+# NVIDIA GPU overlay for the transcoder.
+#
+# Compatible base files: docker-compose.yml only.
+# This overlay patches the `arm-transcoder` service. It is NOT compatible
+# with docker-compose.ripper-only.yml (no arm-transcoder service) or
+# docker-compose.remote-transcoder.yml (the transcoder runs on a remote
+# host - configure NVIDIA on that host's transcoder compose file).
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+
+services:
+  arm-transcoder:
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu, video, compute]

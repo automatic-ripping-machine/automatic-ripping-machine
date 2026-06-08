@@ -1,0 +1,25 @@
+{
+  "id": "hollywood-video-v2",
+  "label": "Hollywood Video",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Deep purple and gold inspired by Hollywood Video stores",
+  "swatch": "#4c1d95",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(217, 11, 28)",
+    "--color-primary-hover": "rgb(170, 8, 22)",
+    "--color-primary-dark": "rgb(110, 5, 14)",
+    "--color-primary-light-bg": "rgb(35, 22, 64)",
+    "--color-primary-light-bg-dark": "rgb(22, 14, 38)",
+    "--color-primary-text": "rgb(242, 183, 5)",
+    "--color-primary-text-dark": "rgb(242, 183, 5)",
+    "--color-primary-border": "rgb(35, 22, 64)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(22, 14, 38)",
+    "--color-page-dark": "rgb(22, 14, 38)",
+    "--color-surface": "rgb(35, 22, 64)",
+    "--color-surface-dark": "rgb(35, 22, 64)",
+    "--radius": "0.5rem"
+  }
+}

@@ -1,0 +1,18 @@
+[data-scheme="library-archive"] {
+	font-family: 'Georgia', serif;
+}
+[data-scheme="library-archive"] aside {
+	background-color: rgb(240, 235, 220) !important;
+	border-right: 2px solid #ddd !important;
+}
+[data-scheme="library-archive"] .section-frame-bar-top {
+	border-bottom: 2px solid #333 !important;
+	background: transparent !important;
+	color: #333 !important;
+	font-family: 'Times New Roman', serif;
+	font-variant: small-caps;
+}
+[data-scheme="library-archive"] [data-progress-fill] {
+	background: #7f1d1d !important;
+	border-radius: 0 !important;
+}

@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest>=9.0.3,<10
+pytest-asyncio>=1.4.0,<2
+pytest-cov>=7.1.0,<8

@@ -1,0 +1,25 @@
+{
+  "id": "tactical",
+  "label": "Tactical",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Military tactical display with teal HUD elements",
+  "swatch": "#2dd4bf",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(0, 120, 100)",
+    "--color-primary-hover": "rgb(80, 200, 175)",
+    "--color-primary-dark": "rgb(10, 25, 47)",
+    "--color-primary-light-bg": "rgb(10, 25, 47)",
+    "--color-primary-light-bg-dark": "rgb(10, 25, 47)",
+    "--color-primary-text": "rgb(100, 255, 218)",
+    "--color-primary-text-dark": "rgb(100, 255, 218)",
+    "--color-primary-border": "rgb(100, 255, 218)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(2, 6, 23)",
+    "--color-page-dark": "rgb(2, 6, 23)",
+    "--color-surface": "rgb(10, 25, 47)",
+    "--color-surface-dark": "rgb(10, 25, 47)",
+    "--radius": "0px"
+  }
+}

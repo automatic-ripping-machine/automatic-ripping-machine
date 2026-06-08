@@ -1,0 +1,93 @@
+[data-scheme="blockbuster"] {
+	font-family: "ITC Eras", "Eras Bold ITC", "Arial Black", "Arial", sans-serif;
+	letter-spacing: -0.02em;
+}
+
+[data-scheme="blockbuster"] body {
+	background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+	                  linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+	background-size: 100% 4px, 3px 100%;
+}
+
+[data-scheme="blockbuster"] aside {
+	border-right: 4px solid rgb(255, 235, 0) !important;
+}
+
+[data-scheme="blockbuster"] aside nav a {
+	text-transform: uppercase;
+	font-weight: 900;
+	font-style: italic;
+	margin: 4px 8px;
+	border-radius: 4px;
+	transition: transform 0.1s ease;
+}
+
+[data-scheme="blockbuster"] aside nav a:hover {
+	background-color: rgb(255, 235, 0) !important;
+	color: rgb(0, 51, 153) !important;
+	transform: scale(1.05);
+}
+
+[data-scheme="blockbuster"] aside nav a[data-active="true"] {
+	background-color: rgb(255, 235, 0) !important;
+	color: rgb(0, 51, 153) !important;
+	box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.5);
+}
+
+[data-scheme="blockbuster"] aside [data-logo] img {
+	filter: drop-shadow(3px 3px 0px #000);
+}
+
+[data-scheme="blockbuster"] [data-progress-track] {
+	background: #fff !important;
+	border: 2px solid #000 !important;
+	border-radius: 0px !important;
+	height: 12px !important;
+}
+
+[data-scheme="blockbuster"] [data-progress-fill] {
+	background: rgb(0, 51, 153) !important;
+	border-right: 2px solid #000;
+}
+
+[data-scheme="blockbuster"] aside [data-stats] {
+	background: #fff !important;
+	color: #000 !important;
+	border: 2px dashed #666 !important;
+	font-family: "Courier New", Courier, monospace;
+	font-weight: bold;
+	transform: rotate(-1deg);
+	margin: 1rem;
+}
+
+[data-scheme="blockbuster"] aside [data-stats] > div:first-child {
+	background: rgb(255, 235, 0) !important;
+}
+
+[data-scheme="blockbuster"] aside [data-stats] button {
+	color: #000 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+
+[data-scheme="blockbuster"] aside [data-stats] button.shadow-xs {
+	background: rgb(0, 51, 153) !important;
+	color: rgb(255, 235, 0) !important;
+}
+
+[data-scheme="blockbuster"] aside [data-stats] span,
+
+[data-scheme="blockbuster"] aside [data-stats] p {
+	color: #333 !important;
+}
+
+[data-scheme="blockbuster"] header {
+	border-bottom: 4px solid rgb(255, 235, 0) !important;
+}
+
+[data-scheme="blockbuster"] .card,
+
+[data-scheme="blockbuster"] [data-surface] {
+	border: 2px solid rgb(255, 235, 0) !important;
+	box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.3);
+}

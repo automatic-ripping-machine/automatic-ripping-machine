@@ -1,0 +1,129 @@
+name: Bump submodule
+
+on:
+  repository_dispatch:
+    types: [contracts-bump-available]
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - name: Bump components/contracts to main tip
+        id: bump
+        run: |
+          # Fetch full contracts history so OLD..NEW range is walkable.
+          # The default submodule clone is shallow; without this, git log
+          # OLD..NEW would silently return nothing on cross-release bumps.
+          git -C components/contracts fetch --unshallow origin main 2>/dev/null \
+            || git -C components/contracts fetch origin main
+          OLD=$(git -C components/contracts rev-parse HEAD)
+          NEW=$(git -C components/contracts rev-parse origin/main)
+          if [ "$OLD" = "$NEW" ]; then
+            echo "already_current=true" >> "$GITHUB_OUTPUT"
+            echo "Already at $NEW; nothing to do."
+            exit 0
+          fi
+
+          # Inspect contracts commits being absorbed and pick the highest-impact
+          # Conventional Commit prefix so consumer release-please reflects the
+          # real semver impact:
+          #   feat!: / fix!: / "BREAKING CHANGE:" footer  -> feat! (major bump)
+          #   feat:                                       -> feat  (minor bump)
+          #   fix:                                        -> fix   (patch bump)
+          #   else                                        -> chore (no release)
+          RANGE_LOG=$(git -C components/contracts log --format='%s%n%b%n---' "$OLD..$NEW")
+          impact="chore"
+          if echo "$RANGE_LOG" | grep -qE '(^|\n)(feat|fix|chore|refactor|perf|build)(\([^)]*\))?!:|BREAKING CHANGE:'; then
+            impact="breaking"
+          elif echo "$RANGE_LOG" | grep -qE '(^|\n)feat(\([^)]*\))?:'; then
+            impact="feat"
+          elif echo "$RANGE_LOG" | grep -qE '(^|\n)fix(\([^)]*\))?:'; then
+            impact="fix"
+          fi
+          echo "Impact classification: $impact"
+
+          case "$impact" in
+            breaking) prefix="feat!" ;;
+            feat)     prefix="feat"  ;;
+            fix)      prefix="fix"   ;;
+            *)        prefix="chore" ;;
+          esac
+
+          git -C components/contracts checkout "$NEW"
+          echo "already_current=false" >> "$GITHUB_OUTPUT"
+          SHORT_SHA="${NEW:0:7}"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "full_sha=$NEW" >> "$GITHUB_OUTPUT"
+          echo "impact=$impact" >> "$GITHUB_OUTPUT"
+          echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
+
+          COMMITS=$(git -C components/contracts log --format='%h %s' "$OLD..$NEW")
+
+          # Build the full commit message body in shell so the conditional
+          # BREAKING CHANGE footer doesn't leak into a fragile YAML expression.
+          {
+            echo "commit_message<<__END_CM__"
+            echo "${prefix}: bump components/contracts to ${SHORT_SHA}"
+            echo
+            echo "Contracts commits absorbed:"
+            echo "$COMMITS"
+            if [ "$impact" = "breaking" ]; then
+              echo
+              echo "BREAKING CHANGE: contracts has breaking commits in this bump."
+              echo "Review the commit list above and verify consumer code still"
+              echo "compiles before merging. release-please will cut a major"
+              echo "consumer release when this PR lands."
+            fi
+            echo "__END_CM__"
+          } >> "$GITHUB_OUTPUT"
+
+          # Also expose the commit list separately for the PR body.
+          {
+            echo "commits<<__END_COMMITS__"
+            echo "$COMMITS"
+            echo "__END_COMMITS__"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Configure git identity for PR
+        if: steps.bump.outputs.already_current != 'true'
+        run: |
+          git config user.name "uprightbass360-bot"
+          git config user.email "uprightbass360-bot@users.noreply.github.com"
+
+      - name: Create PR
+        if: steps.bump.outputs.already_current != 'true'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
+        with:
+          token: ${{ secrets.RELEASE_PAT }}
+          branch: auto-bump/contracts-${{ steps.bump.outputs.short_sha }}
+          delete-branch: true
+          title: "${{ steps.bump.outputs.prefix }}: bump components/contracts to ${{ steps.bump.outputs.short_sha }}"
+          body: |
+            Automated submodule bump to contracts main.
+
+            New SHA: `${{ steps.bump.outputs.full_sha }}`
+            Impact classification: **${{ steps.bump.outputs.impact }}** (release-please will treat the merged commit as `${{ steps.bump.outputs.prefix }}:`)
+
+            ## Contracts commits absorbed
+
+            ```
+            ${{ steps.bump.outputs.commits }}
+            ```
+
+            This PR is auto-generated by the Bump submodule workflow in
+            response to a push to the automatic-ripping-machine-contracts
+            repo. The Conventional Commit prefix above is derived from the
+            contracts commits in the OLD..NEW range so a breaking contract
+            change cuts a major consumer release instead of being silently
+            dropped under a `chore:`.
+          labels: auto-bump-contracts
+          commit-message: ${{ steps.bump.outputs.commit_message }}

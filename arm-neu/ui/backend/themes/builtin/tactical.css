@@ -1,0 +1,108 @@
+[data-scheme="tactical"] aside {
+	border-color: rgba(100, 255, 218, 0.2) !important;
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+}
+
+[data-scheme="tactical"] aside [data-logo]::before {
+	content: '';
+	display: block;
+	height: 1px;
+	width: 100%;
+	background: linear-gradient(90deg, transparent, #64ffda, transparent);
+	box-shadow: 0 0 10px #64ffda;
+	margin-bottom: 1rem;
+}
+
+[data-scheme="tactical"] aside [data-logo] {
+	flex-direction: column;
+	text-shadow: 0 0 15px rgba(100, 255, 218, 0.8);
+}
+
+[data-scheme="tactical"] aside [data-logo] img {
+	filter: drop-shadow(0 0 10px rgba(100, 255, 218, 0.6));
+}
+
+[data-scheme="tactical"] aside hr {
+	border: none;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, #64ffda, transparent);
+	box-shadow: 0 0 8px rgba(100, 255, 218, 0.4);
+}
+
+[data-scheme="tactical"] aside nav a {
+	text-transform: uppercase;
+	font-size: 0.7rem;
+	letter-spacing: 0.2em;
+	border-radius: 0;
+	border-left: 1px solid rgba(100, 255, 218, 0.3);
+	color: #64ffda;
+	transition: all 0.3s;
+}
+
+[data-scheme="tactical"] aside nav a svg {
+	display: none;
+}
+
+[data-scheme="tactical"] aside nav a:hover {
+	background: rgba(100, 255, 218, 0.05) !important;
+	border-left: 1px solid #64ffda;
+	padding-left: 1.5rem;
+}
+
+[data-scheme="tactical"] aside nav a[data-active="true"] {
+	background: rgba(100, 255, 218, 0.1) !important;
+	border-left: 3px solid #64ffda;
+	color: #fff !important;
+}
+
+[data-scheme="tactical"] aside [data-stats] {
+	border: 1px solid rgba(100, 255, 218, 0.2);
+	background: transparent;
+	margin: 0.5rem;
+}
+
+[data-scheme="tactical"] [data-progress-track] {
+	background: rgba(100, 255, 218, 0.1) !important;
+	height: 2px !important;
+	border-radius: 0 !important;
+}
+
+[data-scheme="tactical"] [data-progress-fill] {
+	background: #64ffda !important;
+	box-shadow: 0 0 10px #64ffda;
+	border-radius: 0 !important;
+}
+
+[data-scheme="tactical"] aside .text-gray-400,
+
+[data-scheme="tactical"] aside .text-gray-500,
+
+[data-scheme="tactical"] aside .text-gray-600,
+
+[data-scheme="tactical"] aside .dark\:text-gray-300,
+
+[data-scheme="tactical"] aside .dark\:text-gray-400,
+
+[data-scheme="tactical"] aside .dark\:text-gray-500 {
+	color: #64ffda !important;
+	font-size: 0.6rem;
+	letter-spacing: 0.15em;
+	text-transform: uppercase;
+}
+
+[data-scheme="tactical"] aside .text-orange-500 {
+	color: #64ffda !important;
+}
+
+[data-scheme="tactical"] header {
+	border-color: rgba(100, 255, 218, 0.2) !important;
+}
+
+[data-scheme="tactical"] .bg-primary .text-on-primary {
+	color: rgb(0, 223, 169) !important;
+}
+
+[data-scheme="tactical"] body {
+	background: radial-gradient(circle at 20% 50%, #0a192f 0%, #020617 100%) !important;
+}

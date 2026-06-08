@@ -1,0 +1,62 @@
+name: armneu-release-please
+# NOTE: update branch refs when this work moves to its final branch/fork
+on:
+  push:
+    branches: [3.0_devel]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      transcoder_released: ${{ steps.rp.outputs['arm-neu/transcoder--release_created'] }}
+      transcoder_version: ${{ steps.rp.outputs['arm-neu/transcoder--version'] }}
+      ui_released: ${{ steps.rp.outputs['arm-neu/ui--release_created'] }}
+      ui_version: ${{ steps.rp.outputs['arm-neu/ui--version'] }}
+      ripper_released: ${{ steps.rp.outputs['arm-neu/ripper--release_created'] }}
+      ripper_version: ${{ steps.rp.outputs['arm-neu/ripper--version'] }}
+    steps:
+      - id: rp
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+  publish-transcoder:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.transcoder_released == 'true' }}
+    uses: ./.github/workflows/armneu-_reusable-docker.yml
+    secrets: inherit
+    with:
+      context: arm-neu/transcoder
+      image: arm-transcoder
+      push: true
+      tag: ${{ needs.release-please.outputs.transcoder_version }}
+      variants: '["", "amd", "intel", "nvidia"]'
+      contracts-context: arm-neu/contracts
+  publish-ui:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.ui_released == 'true' }}
+    uses: ./.github/workflows/armneu-_reusable-docker.yml
+    secrets: inherit
+    with:
+      context: arm-neu/ui
+      image: arm-ui
+      push: true
+      tag: ${{ needs.release-please.outputs.ui_version }}
+      variants: '[""]'
+      contracts-context: arm-neu/contracts
+  publish-ripper:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.ripper_released == 'true' }}
+    uses: ./.github/workflows/armneu-_reusable-docker.yml
+    secrets: inherit
+    with:
+      context: arm-neu/ripper
+      image: automatic-ripping-machine
+      push: true
+      tag: ${{ needs.release-please.outputs.ripper_version }}
+      variants: '[""]'
+      contracts-context: arm-neu/contracts
+      build-args: "BASE_IMAGE=uprightbass360/arm-dependencies:latest"

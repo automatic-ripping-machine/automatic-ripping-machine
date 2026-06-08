@@ -1,0 +1,17 @@
+[data-scheme="nordic-frost"] .section-frame {
+	border: 1px solid rgba(136, 192, 208, 0.2) !important;
+}
+[data-scheme="nordic-frost"] .section-frame-bar-top {
+	background: rgba(76, 86, 106, 0.8) !important;
+	color: rgb(236, 239, 244) !important;
+}
+[data-scheme="nordic-frost"] .section-frame-bar-bottom {
+	background: rgba(136, 192, 208, 0.15) !important;
+}
+[data-scheme="nordic-frost"] aside nav a[data-active="true"] {
+	background: rgba(136, 192, 208, 0.15) !important;
+	color: rgb(94, 129, 172) !important;
+}
+[data-scheme="nordic-frost"] [data-progress-track] {
+	background: rgba(76, 86, 106, 0.3) !important;
+}

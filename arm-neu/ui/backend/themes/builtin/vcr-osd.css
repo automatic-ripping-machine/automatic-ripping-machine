@@ -1,0 +1,17 @@
+[data-scheme="vcr-osd"] {
+	font-family: 'Courier New', monospace !important;
+	text-transform: uppercase;
+}
+[data-scheme="vcr-osd"] .section-frame-bar-top {
+	background: white !important;
+	color: #0000bb !important;
+	font-weight: 900 !important;
+}
+[data-scheme="vcr-osd"] [data-progress-fill] {
+	background: #00ff00 !important;
+	box-shadow: 0 0 10px #00ff00;
+}
+[data-scheme="vcr-osd"] aside nav a[data-active="true"] {
+	background: white !important;
+	color: #0000bb !important;
+}

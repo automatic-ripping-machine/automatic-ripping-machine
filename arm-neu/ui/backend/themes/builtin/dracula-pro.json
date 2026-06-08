@@ -1,0 +1,25 @@
+{
+  "id": "dracula-pro",
+  "label": "Dracula",
+  "version": 1,
+  "author": "Gemini",
+  "description": "The world's most popular dark theme with vibrant purple accents",
+  "swatch": "#bd93f9",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(189, 147, 249)",
+    "--color-primary-hover": "rgb(255, 121, 198)",
+    "--color-primary-dark": "rgb(98, 114, 164)",
+    "--color-primary-light-bg": "rgb(68, 71, 90)",
+    "--color-primary-light-bg-dark": "rgb(40, 42, 54)",
+    "--color-primary-text": "rgb(189, 147, 249)",
+    "--color-primary-text-dark": "rgb(139, 233, 253)",
+    "--color-primary-border": "rgb(189, 147, 249)",
+    "--color-on-primary": "rgb(40, 42, 54)",
+    "--color-page": "rgb(40, 42, 54)",
+    "--color-page-dark": "rgb(33, 34, 44)",
+    "--color-surface": "rgb(68, 71, 90)",
+    "--color-surface-dark": "rgb(40, 42, 54)",
+    "--radius": "0.5rem"
+  }
+}

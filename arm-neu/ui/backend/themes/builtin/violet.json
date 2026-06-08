@@ -1,0 +1,24 @@
+{
+  "id": "violet",
+  "label": "Grape",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Rich purple grape tones",
+  "swatch": "#a855f7",
+  "tokens": {
+    "--color-primary": "rgb(147, 51, 234)",
+    "--color-primary-hover": "rgb(126, 34, 206)",
+    "--color-primary-dark": "rgb(107, 33, 168)",
+    "--color-primary-light-bg": "rgb(237, 226, 255)",
+    "--color-primary-light-bg-dark": "rgb(76, 29, 149)",
+    "--color-primary-text": "rgb(126, 34, 206)",
+    "--color-primary-text-dark": "rgb(192, 132, 252)",
+    "--color-primary-border": "rgb(168, 85, 247)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(243, 235, 255)",
+    "--color-page-dark": "rgb(16, 13, 26)",
+    "--color-surface": "rgb(247, 243, 255)",
+    "--color-surface-dark": "rgb(48, 22, 92)",
+    "--radius": "0.5rem"
+  }
+}

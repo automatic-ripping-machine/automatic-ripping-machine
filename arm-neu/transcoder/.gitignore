@@ -1,0 +1,61 @@
+# Environment
+.env
+*.env.local
+
+# Python
+__pycache__/
+.coverage
+coverage.xml
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+.venv/
+
+# Data
+*.db
+*.sqlite
+*.sqlite3
+data/
+work/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Docker
+.docker/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
+.superpowers/
+
+# Playwright MCP session artifacts
+.playwright-mcp/

@@ -1,0 +1,25 @@
+{
+  "id": "blockbuster",
+  "label": "Blockbuster Video",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Yellow and blue nostalgia from the video rental era",
+  "swatch": "#2563eb",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(255, 235, 0)",
+    "--color-primary-hover": "rgb(215, 200, 0)",
+    "--color-primary-dark": "rgb(180, 160, 0)",
+    "--color-primary-light-bg": "rgb(0, 51, 153)",
+    "--color-primary-light-bg-dark": "rgb(0, 31, 103)",
+    "--color-primary-text": "rgb(255, 235, 0)",
+    "--color-primary-text-dark": "rgb(255, 235, 0)",
+    "--color-primary-border": "rgb(255, 235, 0)",
+    "--color-on-primary": "rgb(0, 0, 0)",
+    "--color-page": "rgb(0, 41, 123)",
+    "--color-page-dark": "rgb(0, 41, 123)",
+    "--color-surface": "rgb(0, 51, 153)",
+    "--color-surface-dark": "rgb(0, 51, 153)",
+    "--radius": "0px"
+  }
+}

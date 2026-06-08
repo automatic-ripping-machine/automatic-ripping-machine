@@ -1,0 +1,22 @@
+# Pre-commit hooks for arm-ui.
+#
+# Local install (one-time after cloning):
+#   pip install pre-commit
+#   pre-commit install
+#
+# Manual run on the whole tree:
+#   pre-commit run --all-files
+#
+# CI runs scripts/codegen.sh independently and verifies no diff;
+# this hook is a developer convenience that keeps api.gen.ts up to
+# date locally before commits land.
+
+repos:
+  - repo: local
+    hooks:
+      - id: codegen-frontend-types
+        name: Regenerate frontend TypeScript types from FastAPI OpenAPI
+        entry: scripts/codegen.sh
+        language: system
+        files: ^(backend/models/.*\.py|backend/routers/.*\.py|scripts/(codegen\.sh|dump_openapi\.py))$
+        pass_filenames: false

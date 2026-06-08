@@ -1,0 +1,25 @@
+{
+  "id": "vcr-osd",
+  "label": "VCR OSD",
+  "version": 1,
+  "author": "Gemini",
+  "description": "Classic 90s blue screen VCR menu aesthetic",
+  "swatch": "#0000bb",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(255, 255, 255)",
+    "--color-primary-hover": "rgb(200, 200, 200)",
+    "--color-primary-dark": "rgb(150, 150, 150)",
+    "--color-primary-light-bg": "rgb(0, 0, 130)",
+    "--color-primary-light-bg-dark": "rgb(0, 0, 80)",
+    "--color-primary-text": "rgb(255, 255, 255)",
+    "--color-primary-text-dark": "rgb(180, 180, 180)",
+    "--color-primary-border": "rgb(255, 255, 255)",
+    "--color-on-primary": "rgb(0, 0, 187)",
+    "--color-page": "rgb(0, 0, 187)",
+    "--color-page-dark": "rgb(0, 0, 150)",
+    "--color-surface": "rgb(0, 0, 220)",
+    "--color-surface-dark": "rgb(0, 0, 180)",
+    "--radius": "0px"
+  }
+}

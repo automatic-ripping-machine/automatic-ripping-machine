@@ -1,0 +1,9 @@
+# ARM Drive Watcher — rescan when USB optical drive re-enumerates.
+# Rate-limited by arm-drive-watcher.sh to prevent infinite loops
+# from Pioneer/USB drives that fire continuous ADD events.
+# Install on the HOST (not inside Docker):
+#   sudo cp scripts/host/arm-drive-watcher.sh /usr/local/bin/
+#   sudo chmod +x /usr/local/bin/arm-drive-watcher.sh
+#   sudo cp setup/99-arm-drive-watcher.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules
+ACTION=="add", SUBSYSTEM=="block", KERNEL=="sr[0-9]*", RUN+="/usr/local/bin/arm-drive-watcher.sh %k"

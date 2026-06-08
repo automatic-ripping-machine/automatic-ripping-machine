@@ -1,0 +1,177 @@
+"""Folder structure detection and metadata extraction for folder imports."""
+import logging
+import os
+import re
+from pathlib import Path
+
+import xmltodict
+
+from arm.common.path_safety import safe_join
+from arm.ripper.arm_matcher import parse_label
+
+# Non-anchored regex for extracting disc info from folder names with trailing junk
+# e.g. "Show Name - Disc 4 of 4 - BD50 - Untouched"
+# Uses (?:^|[\s_-]) to also match at start of string (e.g. "Disc 1 - BD50")
+_FOLDER_DISC_RE = re.compile(
+    r'(?:^|[\s_-])(D|DISC)[\s_-]?(\d+)(?:[\s_-]OF[\s_-]?(\d+))?',
+    re.IGNORECASE,
+)
+_FOLDER_SEASON_RE = re.compile(
+    r'(?:^|[\s_-])(?:S|SEASON)[\s_-]?(\d+)',
+    re.IGNORECASE,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def validate_ingress_path(path: str, ingress_root: str) -> str:
+    """Validate that path is under ingress_root after resolving symlinks.
+
+    Confines the user-controlled `path` to `ingress_root` via
+    :func:`arm.common.path_safety.safe_join` and returns the validated
+    absolute path. Callers should use the returned value for filesystem
+    access.
+    """
+    # safe_join resolves symlinks and raises ValueError on any escape.
+    try:
+        real_path = safe_join(ingress_root, path)
+    except ValueError as exc:
+        raise ValueError(f"Path {path} resolves outside ingress root") from exc
+    if not os.path.exists(real_path):
+        raise FileNotFoundError(f"Path does not exist: {path}")
+    return real_path
+
+
+def detect_disc_type(folder_path: str) -> str:
+    """Detect disc type from folder structure. Returns 'bluray4k', 'bluray', or 'dvd'."""
+    if not os.path.exists(folder_path):
+        raise FileNotFoundError(f"Folder not found: {folder_path}")
+    bdmv = os.path.join(folder_path, "BDMV")
+    video_ts = os.path.join(folder_path, "VIDEO_TS")
+    if os.path.isdir(bdmv):
+        uhd_marker = os.path.join(folder_path, "CERTIFICATE", "id.bdmv")
+        if os.path.isfile(uhd_marker):
+            return "bluray4k"
+        return "bluray"
+    if os.path.isdir(video_ts):
+        return "dvd"
+    raise ValueError(f"No disc structure (BDMV or VIDEO_TS) found in {folder_path}")
+
+
+def extract_metadata(folder_path: str, disc_type: str) -> dict:
+    """Extract metadata from a disc folder."""
+    label = _extract_label(folder_path, disc_type)
+    title_suggestion, year_suggestion = _parse_title_year(label, folder_path)
+    folder_size = _calculate_folder_size(folder_path)
+    stream_count = _count_streams(folder_path, disc_type)
+
+    # Extract disc/season metadata via centralized label parser
+    folder_name = Path(folder_path).name
+    label_info = parse_label(folder_name)
+    parent_info = parse_label(Path(folder_path).parent.name)
+
+    # Prefer disc info from the folder itself, season from parent if not in folder
+    disc_number = label_info.disc_number
+    disc_total = label_info.disc_total
+    season = label_info.season_number or parent_info.season_number
+
+    # Fallback: non-anchored regex for folder names with trailing junk
+    # e.g. "Show - Disc 4 of 4 - BD50 - Untouched" where parse_label fails
+    # because the disc pattern isn't at the end of the string
+    if disc_number is None:
+        m = _FOLDER_DISC_RE.search(folder_name)
+        if m:
+            disc_number = int(m.group(2))
+            disc_total = int(m.group(3)) if m.group(3) else None
+    if season is None:
+        m = _FOLDER_SEASON_RE.search(folder_name)
+        if not m:
+            m = _FOLDER_SEASON_RE.search(Path(folder_path).parent.name)
+        if m:
+            season = int(m.group(1))
+
+    return {
+        "label": label,
+        "title_suggestion": title_suggestion,
+        "year_suggestion": year_suggestion,
+        "folder_size_bytes": folder_size,
+        "stream_count": stream_count,
+        "disc_number": disc_number,
+        "disc_total": disc_total,
+        "season": season,
+    }
+
+
+def scan_folder(folder_path: str, ingress_root: str) -> dict:
+    """Top-level scan: validate, detect type, extract metadata."""
+    safe_path = validate_ingress_path(folder_path, ingress_root)
+    disc_type = detect_disc_type(safe_path)
+    metadata = extract_metadata(safe_path, disc_type)
+    return {"disc_type": disc_type, **metadata}
+
+
+def _extract_label(folder_path: str, disc_type: str) -> str:
+    if disc_type in ("bluray", "bluray4k"):
+        xml_label = _label_from_bluray_xml(folder_path)
+        if xml_label:
+            return xml_label
+    return os.path.basename(folder_path)
+
+
+def _label_from_bluray_xml(folder_path: str) -> str | None:
+    xml_path = os.path.join(folder_path, "BDMV", "META", "DL", "bdmt_eng.xml")
+    if not os.path.isfile(xml_path):
+        return None
+    try:
+        with open(xml_path, "r", encoding="utf-8") as f:
+            doc = xmltodict.parse(f.read())
+        title = doc["disclib"]["di:discinfo"]["di:title"]["di:name"]
+        return str(title).strip()
+    except Exception:
+        logger.warning("Failed to parse bdmt_eng.xml at %s", xml_path)
+        return None
+
+
+def _parse_title_year(label: str, folder_path: str) -> tuple[str, str | None]:
+    folder_name = os.path.basename(folder_path)
+
+    # Match "Title (2024)" — split on literal parenthesised year
+    paren_idx = folder_name.rfind("(")
+    if paren_idx > 0:
+        maybe_year = folder_name[paren_idx + 1 : paren_idx + 5]
+        if maybe_year.isdigit() and len(maybe_year) == 4:
+            return folder_name[:paren_idx].strip(), maybe_year
+
+    # Match "Title 2024" — find last standalone 4-digit year
+    parts = folder_name.split()
+    for i in range(len(parts) - 1, -1, -1):
+        if len(parts[i]) == 4 and parts[i].isdigit() and int(parts[i]) >= 1900:
+            title = " ".join(parts[:i]).strip()
+            if title:
+                return title, parts[i]
+
+    clean = re.sub(r"[_.]", " ", label).strip()
+    return clean, None
+
+
+def _calculate_folder_size(folder_path: str) -> int:
+    total = 0
+    for dirpath, _, filenames in os.walk(folder_path):
+        for f in filenames:
+            try:
+                total += os.path.getsize(os.path.join(dirpath, f))
+            except OSError:
+                pass
+    return total
+
+
+def _count_streams(folder_path: str, disc_type: str) -> int:
+    if disc_type in ("bluray", "bluray4k"):
+        stream_dir = os.path.join(folder_path, "BDMV", "STREAM")
+    elif disc_type == "dvd":
+        stream_dir = os.path.join(folder_path, "VIDEO_TS")
+    else:
+        return 0
+    if not os.path.isdir(stream_dir):
+        return 0
+    return len([f for f in os.listdir(stream_dir) if os.path.isfile(os.path.join(stream_dir, f))])

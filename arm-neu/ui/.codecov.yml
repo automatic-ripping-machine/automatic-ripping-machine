@@ -1,0 +1,19 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: 50%
+
+flags:
+  backend:
+    paths: ["backend/"]
+  frontend:
+    paths: ["frontend/src/"]
+
+comment:
+  layout: "header"
+  require_changes: false

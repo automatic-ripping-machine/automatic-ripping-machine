@@ -1,0 +1,55 @@
+name: Check Base Image Dependencies
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Check for dependency updates
+        id: check
+        run: |
+          CURRENT_MKV=$(cat docker/base/VERSION_MAKEMKV | tr -d '[:space:]')
+
+          LATEST_MKV=$(curl -s https://www.makemkv.com/download/ \
+            | grep -o '[0-9.]*\.txt' | sed 's/\.txt//' | head -1)
+
+          echo "current_mkv=$CURRENT_MKV" >> "$GITHUB_OUTPUT"
+          echo "latest_mkv=$LATEST_MKV" >> "$GITHUB_OUTPUT"
+
+          UPDATES=""
+          if [ "$CURRENT_MKV" != "$LATEST_MKV" ]; then
+            echo "$LATEST_MKV" > docker/base/VERSION_MAKEMKV
+            UPDATES="makemkv"
+          fi
+
+          echo "updates=$UPDATES" >> "$GITHUB_OUTPUT"
+
+      - name: Create pull request
+        if: steps.check.outputs.updates != ''
+        uses: peter-evans/create-pull-request@v8.1.1
+        with:
+          token: ${{ secrets.RELEASE_PAT }}
+          branch: deps/base-image-update
+          delete-branch: true
+          title: "build(deps): update base image dependencies"
+          body: |
+            ## Base Image Dependency Updates
+
+            | Dependency | Current | Latest | Changed |
+            |-----------|---------|--------|---------|
+            | MakeMKV | `${{ steps.check.outputs.current_mkv }}` | `${{ steps.check.outputs.latest_mkv }}` | ${{ contains(steps.check.outputs.updates, 'makemkv') && '**yes**' || 'no' }} |
+
+            Merging this PR will trigger a base image rebuild via the `publish-base-image` workflow.
+          commit-message: "build(deps): bump base image dependencies"
+          labels: dependencies

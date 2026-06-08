@@ -1,0 +1,25 @@
+{
+  "id": "craft",
+  "label": "Craft",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Blocky pixel-art style inspired by Minecraft",
+  "swatch": "#22c55e",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(30, 130, 30)",
+    "--color-primary-hover": "rgb(128, 128, 255)",
+    "--color-primary-dark": "rgb(34, 34, 34)",
+    "--color-primary-light-bg": "rgb(74, 74, 74)",
+    "--color-primary-light-bg-dark": "rgb(74, 74, 74)",
+    "--color-primary-text": "rgb(56, 255, 56)",
+    "--color-primary-text-dark": "rgb(56, 255, 56)",
+    "--color-primary-border": "rgb(0, 0, 0)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(30, 30, 30)",
+    "--color-page-dark": "rgb(30, 30, 30)",
+    "--color-surface": "rgb(49, 49, 49)",
+    "--color-surface-dark": "rgb(49, 49, 49)",
+    "--radius": "0px"
+  }
+}

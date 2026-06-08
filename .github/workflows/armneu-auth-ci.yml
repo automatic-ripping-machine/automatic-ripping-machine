@@ -1,0 +1,24 @@
+name: armneu-auth-ci
+# NOTE: update branch refs when this work moves to its final branch/fork
+on:
+  push:
+    branches: [3.0_devel]
+    paths:
+      - "arm-neu/auth/**"
+      - ".github/workflows/armneu-auth-ci.yml"
+      - ".github/workflows/armneu-_reusable-test.yml"
+  pull_request:
+    paths:
+      - "arm-neu/auth/**"
+      - ".github/workflows/armneu-auth-ci.yml"
+      - ".github/workflows/armneu-_reusable-test.yml"
+jobs:
+  test:
+    uses: ./.github/workflows/armneu-_reusable-test.yml
+    secrets: inherit
+    with:
+      workdir: arm-neu/auth
+      python-version: "3.12"
+      install-cmd: "pip install -e '.[dev]'"
+      test-cmd: "pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing"
+      codecov-flags: auth

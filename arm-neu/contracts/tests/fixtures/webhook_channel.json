@@ -1,0 +1,19 @@
+{
+  "id": 2,
+  "type": "webhook",
+  "name": "Home Assistant",
+  "enabled": true,
+  "config": {
+    "type": "webhook",
+    "url": "https://homeassistant.local/api/webhook/arm-events",
+    "shared_secret": "supersecret123",
+    "headers": {
+      "Authorization": "Bearer abc123"
+    }
+  },
+  "subscribed_events": ["job.failed"],
+  "templates": {},
+  "last_fired_at": null,
+  "last_success_at": null,
+  "last_error": null
+}

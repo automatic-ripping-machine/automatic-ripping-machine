@@ -1,0 +1,25 @@
+{
+  "id": "library-archive",
+  "label": "Library",
+  "version": 1,
+  "author": "Gemini",
+  "description": "Paper and ink aesthetic for a classic media library feel",
+  "swatch": "#7f1d1d",
+  "mode": "light",
+  "tokens": {
+    "--color-primary": "rgb(127, 29, 29)",
+    "--color-primary-hover": "rgb(153, 27, 27)",
+    "--color-primary-dark": "rgb(69, 10, 10)",
+    "--color-primary-light-bg": "rgb(254, 242, 242)",
+    "--color-primary-light-bg-dark": "rgb(24, 10, 10)",
+    "--color-primary-text": "rgb(127, 29, 29)",
+    "--color-primary-text-dark": "rgb(248, 113, 113)",
+    "--color-primary-border": "rgb(185, 28, 28)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(250, 247, 240)",
+    "--color-page-dark": "rgb(20, 18, 16)",
+    "--color-surface": "rgb(255, 255, 255)",
+    "--color-surface-dark": "rgb(28, 25, 23)",
+    "--radius": "0.5rem"
+  }
+}

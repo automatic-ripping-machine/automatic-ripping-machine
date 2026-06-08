@@ -1,0 +1,39 @@
+name: armneu-ripper-ci
+# NOTE: update branch refs when this work moves to its final branch/fork
+on:
+  push:
+    branches: [3.0_devel]
+    paths:
+      - "arm-neu/ripper/**"
+      - "arm-neu/contracts/**"
+      - ".github/workflows/armneu-ripper-ci.yml"
+      - ".github/workflows/armneu-_reusable-test.yml"
+      - ".github/workflows/armneu-_reusable-docker.yml"
+  pull_request:
+    paths:
+      - "arm-neu/ripper/**"
+      - "arm-neu/contracts/**"
+      - ".github/workflows/armneu-ripper-ci.yml"
+      - ".github/workflows/armneu-_reusable-test.yml"
+      - ".github/workflows/armneu-_reusable-docker.yml"
+jobs:
+  test:
+    uses: ./.github/workflows/armneu-_reusable-test.yml
+    secrets: inherit
+    with:
+      workdir: arm-neu/ripper
+      python-version: "3.11"
+      install-cmd: "pip install -r requirements.txt"
+      test-cmd: "pytest test/ -v --cov=arm --cov-report=xml --cov-report=term-missing"
+      needs-contracts: true
+      codecov-flags: ripper
+  pr-build:
+    uses: ./.github/workflows/armneu-_reusable-docker.yml
+    secrets: inherit
+    with:
+      context: arm-neu/ripper
+      image: automatic-ripping-machine
+      push: false
+      variants: '[""]'
+      contracts-context: arm-neu/contracts
+      build-args: "BASE_IMAGE=uprightbass360/arm-dependencies:latest"

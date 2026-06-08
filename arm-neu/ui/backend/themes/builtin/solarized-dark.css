@@ -1,0 +1,11 @@
+[data-scheme="solarized-dark"] {
+	letter-spacing: 0.02em;
+}
+[data-scheme="solarized-dark"] aside {
+	background: #002b36 !important;
+	border-right: 1px solid #073642 !important;
+}
+[data-scheme="solarized-dark"] .section-frame-bar-top {
+	background: #073642 !important;
+	color: #93a1a1 !important;
+}

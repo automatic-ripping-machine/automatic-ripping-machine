@@ -1,0 +1,89 @@
+# Dev overlay: build from local working copies with hot-reload.
+#
+# Builds from in-repo subtrees:
+#   ./ripper      (rippers)
+#   ./ui          (UI)
+#   ./transcoder  (transcoder)
+#   ./contracts   (shared contracts, injected as additional_contexts)
+#
+# Compatible base files: docker-compose.yml only.
+# This overlay patches `arm-rippers`, `arm-ui`, AND `arm-transcoder`.
+# It is NOT compatible with docker-compose.ripper-only.yml (no
+# arm-transcoder service to override) or docker-compose.remote-transcoder.yml
+# (the transcoder runs on a remote host - dev-build it from its own repo).
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+
+services:
+  arm-rippers:
+    build:
+      context: ./ripper
+      additional_contexts:
+        contracts: ./contracts
+    image: arm:dev
+    volumes:
+      - ./dev-data/music:/home/arm/music
+      - ./dev-data/logs:/home/arm/logs
+      # NB: media is NOT overridden here — it uses ${ARM_MEDIA_PATH} from .env
+      # (NFS share) so the transcoder can find ripped files.
+      - ./dev-data/config:/etc/arm/config
+      - ./dev-data/makemkv:/home/arm/.MakeMKV
+
+  arm-ui:
+    build:
+      context: ./ui
+      additional_contexts:
+        contracts: ./contracts
+    command:
+      - uvicorn
+      - backend.main:app
+      - --host=0.0.0.0
+      - --port=8888
+      - --reload
+      - --reload-dir=/app/backend
+    volumes:
+      # NB: VERSION is intentionally NOT mounted from source. The image's
+      # build-time RUN stamps it with a "-dev" suffix so the Settings ->
+      # Versions panel reflects "this is a dev build", not the last
+      # released semver. Source VERSION only changes on release-please
+      # commits, which already require a rebuild.
+      - ./ui/backend:/app/backend:ro
+      - ./ui/frontend/build:/app/frontend/build:ro
+      - ./dev-data/cache/images:/data/cache/images:rw
+
+  arm-transcoder:
+    build:
+      context: ./transcoder
+      dockerfile: Dockerfile.dev
+      additional_contexts:
+        contracts: ./contracts
+    command:
+      - python
+      - -m
+      - uvicorn
+      - main:app
+      - --host=0.0.0.0
+      - --port=5000
+      - --reload
+      - --reload-dir=/app
+    environment:
+      - LOG_LEVEL=DEBUG
+      - STABILIZE_SECONDS=10
+      - DELETE_SOURCE=false
+      - MINIMUM_FREE_SPACE_GB=1
+    volumes:
+      # NB: /app is mounted rw (not ro) so docker can create the
+      # /app/components mountpoint for the contracts re-mount below.
+      # The container runs as a non-root user and main.py doesn't write
+      # back to /app at runtime; rw is functionally equivalent for dev.
+      - ./transcoder/src:/app
+      # Re-mount the arm_contracts package alongside src. The src bind
+      # shadows the image's /app/components and the editable-install
+      # .pth points at /app/components/contracts/src, so without this
+      # `import arm_contracts` fails inside the dev container.
+      - ./contracts:/app/components/contracts:ro
+      # NB: VERSION is intentionally NOT mounted from source. Dockerfile.dev
+      # stamps /etc/arm-transcoder-version with a "-dev" suffix at build time
+      # so the Settings -> Versions panel reflects "this is a dev build".
+      - ./transcoder/presets:/config/presets:ro
+      - ./dev-data/transcoder-logs:/data/logs:rw

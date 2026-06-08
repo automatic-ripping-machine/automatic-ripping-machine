@@ -1,0 +1,404 @@
+# ARM (Automatic Ripping Machine) config file
+
+#################
+## ARM Options ##
+#################
+
+# A friendly name for this machine. Useful if you are running multiple instances.
+# Used in notification titles.
+ARM_NAME: ""
+
+# ARM_CHILDREN
+# Comma delimited list of child ARM servers to display on the Home Page
+# Should be full protocol, path, and port: http://192.168.0.100:8080
+ARM_CHILDREN: ""
+
+# Workaround for Track 99
+# A DRM scheme used on some DVDs which creates fake titles which confuses Handbrake.
+# When set to "false" affected DVDs will be passed to MakeMKV for ripping, but this can crash or hang
+# Setting this to true will eject the disc and log only to the system logging
+PREVENT_99: true
+
+# Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.
+ARM_CHECK_UDF: true
+
+# Umask for created files (in RAW_PATH and COMPLETED_PATH).
+# Setting this to 0o002 (octal) makes these files group writable.
+# For general information about umask, see for example https://en.wikipedia.org/wiki/Umask
+UMASK: 0o002
+
+# When enabled if the disc is a DVD use dvdid to calculate a crc64 and query Windows Media Meta Services for the Movie Title.
+# For BluRays attempts to extract the title from an XML file on the disc
+GET_VIDEO_TITLE: true
+
+# ARM dvd crc64 api key
+# This is only needed if you would like to send movies to the database
+ARM_API_KEY: ""
+
+# Do you want to be forced to login to view/edit jobs
+# True will leave all of the pages open to be editable/viewable by anyone
+# False will require you to login to view/edit jobs or settings from the ui
+# ARMui will need to be restared for this to update
+DISABLE_LOGIN: false
+
+# Video type identification.  Options are "auto", "series", "movie".
+# If "auto" then ARM will get the video type when querying the movie webservice.  This is default.
+# If the disc is not clearly a movie or series, or if ARM is having difficulty getting the right video type
+# you can override the automatic identification with "series" or "movie"
+VIDEOTYPE: "auto"
+
+# Minimum length of track for ARM rip (in seconds)
+MINLENGTH: "600"
+
+# Maximum length of track for ARM rip (in seconds)
+# Use "99999" to indicate no maximum length
+MAXLENGTH: "99999"
+
+# Wait for manual identification
+MANUAL_WAIT: true
+
+# Wait time for manual identification (in seconds)
+MANUAL_WAIT_TIME: 60
+
+# Allows you to format the date/time to your own liking
+# This will be used throughout ARM and ARMui
+DATE_FORMAT: "%m-%d-%Y %H:%M:%S"
+
+## Do you want to allow Rips of the same disk multiple times
+## With this set as false the task will exit if it recognises the same movie being ripped
+## recommended to set to true for series
+ALLOW_DUPLICATES: false
+
+# Use disc label for TV series output folder naming.
+# When enabled, ARM parses the disc label for season/disc identifiers
+# (e.g., STARGATE_ATLANTIS_S1_D2 -> "Stargate_Atlantis_S1D2")
+# If parsing fails, falls back to standard naming.
+USE_DISC_LABEL_FOR_TV: false
+
+# Group TV series discs under a parent series folder.
+# Structure: {COMPLETED_PATH}/tv/{Series Title (Year)}/{Series_S1D1, Series_S1D2, ...}
+# Works best when combined with USE_DISC_LABEL_FOR_TV.
+GROUP_TV_DISCS_UNDER_SERIES: false
+
+# Number of concurrent makemkv info calls. For some drives makemkv info may
+# crash makemkv backup|mkv. Setting this to 1 waits for free makemkv slots and
+# uses the time set in MANUAL_WAIT_TIME after each call to makemkv info to
+# allow pending info processes to pick up a free slot.
+# Set to 0 to disable
+MAX_CONCURRENT_MAKEMKVINFO: 0
+
+# How long (in seconds) to wait for the drive to become ready after disc insertion.
+# Some drives take longer to spin up. If the drive reports NO_DISC for the majority
+# of this period, ARM exits gracefully instead of throwing an error.
+DRIVE_READY_TIMEOUT: 60
+
+# How long (in seconds) to wait for MakeMKV pre-scan to complete per attempt.
+# Large discs (e.g. 40+ title UHD Blu-rays) may need 600s or more.
+# The pre-scan runs up to PRESCAN_RETRIES attempts before giving up.
+PRESCAN_TIMEOUT: 300
+
+# MakeMKV cache size in MB for pre-scan/info phases.
+# Higher values help with scratched or damaged discs.
+PRESCAN_CACHE_MB: 1
+
+# Number of pre-scan attempts before giving up.
+PRESCAN_RETRIES: 3
+
+# Seconds to wait for MakeMKV disc enumeration (disc:9999).
+# Some drives are slow to spin up and need more time.
+DISC_ENUM_TIMEOUT: 60
+
+# Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
+# "status=progress" to log progress
+DATA_RIP_PARAMETERS: ""
+
+# This selects the metadata provider, Each provider has their own ups and downs
+# But a general rule would be
+#    OMDB for movies and shows
+#    TMDB for movies only
+# You will still need to provide an api key for the provider you have selected
+METADATA_PROVIDER: "omdb"
+
+# Set to one of "none", "musicbrainz", "freecddb"
+# if "musicbrainz" is used the disc information are asked from musicbrainz.org
+# if "none" is used no label is identified
+GET_AUDIO_TITLE: "musicbrainz"
+
+# Audio output format for music CD ripping (passed to abcde -o).
+# Supported: flac, mp3, vorbis, opus, m4a, wav, mka, wv, ape, mpc, spx, mp2, tta, aiff
+AUDIO_FORMAT: "flac"
+
+# CD rip speed profile — controls cdparanoia error-correction aggressiveness.
+#   "safe"    — full paranoia (default). Best for scratched/damaged discs. Slowest.
+#   "fast"    — disable extra paranoia (-Y). Keeps jitter correction, skips
+#               scratch-detection passes. Good balance for most discs. ~2-4x faster.
+#   "fastest" — disable all paranoia (-Z). No error correction at all.
+#               Use only for pristine discs. ~5-10x faster.
+RIP_SPEED_PROFILE: "fast"
+
+# Maximum seconds to wait for output from cdparanoia during a CD rip.
+# If no output is received within this time, the rip is killed and marked failed.
+# Increase for scratched discs that need many retries. Set 0 to disable.
+CD_RIP_TIMEOUT: 600
+
+# Enable per-disc subfolders for multi-CD album rips.
+# When true, multi-disc sets produce: Artist/Album/Disc 1/track.flac, Disc 2/track.flac, etc.
+# When false, all discs are mixed into one folder.
+MUSIC_MULTI_DISC_SUBFOLDERS: true
+
+# Folder name pattern for each disc in a multi-disc set.
+# {num} is replaced with the disc number (1, 2, 3…).
+# Examples: "Disc {num}", "CD {num}", "CD{num}"
+MUSIC_DISC_FOLDER_PATTERN: "Disc {num}"
+
+# Rip DVD Posters from JACKET_P folder
+# Requires FFmpeg
+RIP_POSTER: false
+
+
+########################
+## Naming Patterns    ##
+########################
+
+# Patterns for display titles and folder names.
+# Available variables:
+#   All types: {title}, {year}, {label}, {disc_number}, {disc_total}
+#   TV series: {show} (always the series name), {season}, {episode}, {episode_name}
+#   Music:     {artist}, {album}
+# For TV: {title} may be the episode title on multi-title discs.
+#          Use {show} if you always want the series name.
+# Use / in folder patterns to create nested directories.
+
+# Movie naming
+MOVIE_TITLE_PATTERN: "{title} ({year})"
+MOVIE_FOLDER_PATTERN: "{title} ({year})"
+
+# TV series naming
+TV_TITLE_PATTERN: "{show} S{season}E{episode}"
+TV_FOLDER_PATTERN: "{show}/Season {season}"
+
+# Music naming
+MUSIC_TITLE_PATTERN: "{artist} - {album}"
+MUSIC_FOLDER_PATTERN: "{artist}/{album} ({year})"
+
+# Auto-ejects disks
+# Auto-ejects disks when complete etc
+# Set to false to disable auto-ejection
+AUTO_EJECT: true
+
+
+#####################
+## Directory setup ##
+#####################
+
+# Location of your ABCDE config file
+# This over-rides any other abcde.conf files
+ABCDE_CONFIG_FILE: "/etc/arm/config/abcde.conf"
+
+# Path to raw MakeMKV directory
+# Destination for MakeMKV output
+RAW_PATH: "/home/arm/media/raw/"
+
+# Intermediary directory for transcoding files
+# Used by external transcoder service
+TRANSCODE_PATH: "/home/arm/media/transcode/"
+
+# Final directory of completed files
+# Ripped files end up here (moved by external transcoder after processing)
+COMPLETED_PATH: "/home/arm/media/completed/"
+
+# Music rip output directory (used by abcde)
+MUSIC_PATH: "/home/arm/music/"
+
+# ---- Folder Import ----
+# Root path for folder imports. The UI file browser is scoped to this path.
+# Point this at a directory containing BDMV/VIDEO_TS folders from disc backups.
+INGRESS_PATH: ""
+
+# Movie subdirectory name for "extras"
+# Valid names are dependent on your media server
+# For Emby see https://github.com/MediaBrowser/Wiki/wiki/Movie%20naming#user-content-movie-extras
+# For Plex see https://support.plex.tv/hc/en-us/articles/200220677
+EXTRAS_SUB: "extras"
+
+# Output organization subdirs under COMPLETED_PATH and TRANSCODE_PATH.
+# Each value may contain '/' for nested dirs (e.g. "Movies/0.Rips").
+# Operators using the transcoder should set MOVIES_SUBDIR / TV_SUBDIR /
+# AUDIO_SUBDIR consistently in their .env so both services land files in
+# the same library tree.
+MOVIES_SUBDIR: "movies"
+TV_SUBDIR: "tv"
+AUDIO_SUBDIR: "music"
+UNIDENTIFIED_SUBDIR: "unidentified"
+
+# Path to installation of ARM
+INSTALLPATH: "/opt/arm/"
+
+# Path to directory to hold log files
+# Make sure to include trailing /
+LOGPATH: "/home/arm/logs/"
+
+# Log level.  DEBUG, INFO, WARNING, ERROR, CRITICAL
+# The default is INFO
+# If you are experiencing difficulties set this to DEBUG
+LOGLEVEL: "INFO"
+
+# How long to let log files live before deleting (in days)
+# Set to 0 to disable
+LOGLIFE: 1
+
+# Path to ARM database file
+DBFILE: "/home/arm/db/arm.db"
+
+
+##################
+##  Web Server  ##
+##################
+
+# IP address of web server (this machine)
+# Use x.x.x.x to autodetect the IP address to use
+WEBSERVER_IP: x.x.x.x
+
+# Port for web server
+WEBSERVER_PORT: 8080
+
+# Base URL to use for notifications and display purposes
+# Be sure to include protocol and port if needed (e.g. http://example.com:8091 or https://example.com)
+UI_BASE_URL: ""
+
+########################
+##  File Permissions  ##
+########################
+
+# Enabling this setting will allow you to adjust the default file permissions of the outputted files
+# The default value is set to 777 for read/write/execute for all users, but can be changed below using the "CHMOD_VALUE" setting
+# This setting is helpful when storing the data locally on the system
+SET_MEDIA_PERMISSIONS: false
+CHMOD_VALUE: 777
+
+SET_MEDIA_OWNER: false
+CHOWN_USER:
+CHOWN_GROUP:
+
+
+########################
+## MakeMKV Parameters ##
+########################
+
+# Storage for a purchased key the user may have paid for. Populating will prevent the beta key updater from running.
+MAKEMKV_PERMA_KEY: ""
+
+# Download the community keydb.cfg from the FindVUK Online Database at container startup.
+# This provides Volume Unique Keys (VUKs) needed for Blu-ray decryption when MakeMKV's
+# built-in key server is unavailable. Set to false to disable automatic updates.
+MAKEMKV_COMMUNITY_KEYDB: true
+
+# Method of MakeMKV to use for Blu-ray discs
+# Options are "mkv", "backup", or "backup_dvd".
+# backup decrypts the dvd and then copies it to the hard drive.
+# backup_dvd forces arm to extract the dvd with MakeMKV prior to any post-processing
+RIPMETHOD: "mkv"
+
+# MakeMKV Arguments
+# MakeMKV Profile used for controlling Audio Track Selection.
+# This is the default profile MakeMKV uses for Audio track selection. Updating this file or changing it is considered
+# to be advanced usage of MakeMKV. But this will allow users to alternatively tell makemkv to select HD audio tracks and etc.
+# MKV_ARGS: "--profile=/opt/arm/default.mmcp.xml"
+# MKV_ARGS: "--debug=-stdout"  # this will enable more detailed logging
+MKV_ARGS: ""
+
+# Remove any files created in the raw path for the job after processing is complete
+DELRAWFILES: true
+
+# Rip only the main feature track (largest title).
+# When true, MakeMKV will rip only the main feature; extras are skipped.
+# When false, all tracks meeting MINLENGTH/MAXLENGTH criteria are ripped.
+MAINFEATURE: false
+
+
+#####################
+## Emby Parameters ##
+#####################
+
+# Parameters to enable automatic library scan in Emby.  This will trigger only if MainFeature is true above.
+# Scan emby library after successful placement of mainfeature (see above)
+EMBY_REFRESH: false
+
+# Server parameters
+# Server can be ip address or domain name
+EMBY_SERVER: ""
+EMBY_PORT: "8096"
+
+# Emby authentication fluff parameters.  These can be anything.
+EMBY_CLIENT: "ARM"
+EMBY_DEVICE: "ARM"
+EMBY_DEVICEID: "ARM"
+
+# Emby authentication parameters.  These are parameters that must be set to a current user in Emby.
+EMBY_USERNAME: ""
+
+# EMBY_USERID is the user ID associated with the username above.  You can find this by going to the following address on your emby server
+# <server>:<port>/Users/Public and getting the ID value for the username above.
+EMBY_USERID: ""
+
+# This is the SHA1 encrypted password for the username above.  You can generate the SHA1 hash of your password by executing the following at
+# the command line:
+# echo -n your-password | sha1sum | awk '{print $1}'
+# or using an online generator like the one located at https://www.sha1-online.com/
+EMBY_PASSWORD: ""
+
+# Emby API key.  This can be found (generated) by going to Advanced/Security in the
+# Emby dashboard
+EMBY_API_KEY: ""
+
+
+## Transcoder Integration
+
+# Skip transcoding — finalize ripped files directly without sending to
+# the transcoder service.  When true, TRANSCODER_URL is ignored and jobs
+# go straight to SUCCESS after ripping.
+# Per-job override: the review panel toggle overrides this default.
+# v16+ breaking change: replaces the old TRANSCODER_URL empty-check behavior.
+SKIP_TRANSCODE: false
+
+# URL of the arm-transcoder webhook endpoint.
+# Default works with docker-compose (same machine). For remote transcoder,
+# use the host IP/hostname (e.g. http://192.168.0.92:5000/webhook/arm).
+TRANSCODER_URL: "http://arm-transcoder:5000/webhook/arm"
+
+# Webhook secret for authenticating with the transcoder.
+# Must match WEBHOOK_SECRET in arm-transcoder's .env.
+TRANSCODER_WEBHOOK_SECRET: ""
+
+# When both paths are set, ripped files are moved from local scratch
+# storage to shared storage before notifying the transcoder.
+# Leave both empty if ARM writes directly to shared/NFS storage.
+LOCAL_RAW_PATH: ""
+SHARED_RAW_PATH: ""
+
+
+# OMDB_API_KEY
+# omdbapi.com API Key
+# See README-OMDBAPI for background and info
+# This is the API key for omdbapi.com queries.
+# More info at https://omdbapi.com/
+OMDB_API_KEY: ""
+
+# TMDB_API_KEY
+# https://www.themoviedb.org/ API Key
+# See README-OMDBAPI for background and info
+# This is the API key for https://www.themoviedb.org/ queries.
+# More info at https://www.themoviedb.org/documentation/api
+TMDB_API_KEY: ""
+
+# TVDB_API_KEY
+# TheTVDB v4 API Key for automatic TV episode matching.
+# Get a free key at https://thetvdb.com/dashboard/account/apikey
+# When set, ARM matches disc tracks to real episodes by runtime
+# for proper episode naming (e.g. "Show S01E03 - Speedy Death").
+TVDB_API_KEY: ""
+
+# Maximum number of seasons to scan when auto-detecting the best season
+# for TVDB episode matching (used when disc label has no season info).
+TVDB_MAX_SEASON_SCAN: 10
+

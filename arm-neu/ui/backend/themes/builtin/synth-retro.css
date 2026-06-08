@@ -1,0 +1,14 @@
+[data-scheme="synth-retro"] {
+	font-family: 'Inter', sans-serif;
+}
+[data-scheme="synth-retro"] body {
+	background-image: linear-gradient(to bottom, rgb(18, 12, 28) 0%, rgb(12, 8, 20) 100%);
+}
+[data-scheme="synth-retro"] aside nav a[data-active="true"] {
+	text-shadow: 0 0 10px rgb(255, 0, 127);
+	border-right: 3px solid rgb(255, 0, 127);
+}
+[data-scheme="synth-retro"] [data-progress-fill] {
+	background: linear-gradient(90deg, rgb(150, 0, 80), rgb(255, 0, 127)) !important;
+	box-shadow: 0 0 12px rgba(255, 0, 127, 0.6);
+}

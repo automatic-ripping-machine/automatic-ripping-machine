@@ -1,0 +1,25 @@
+{
+  "id": "research-outpost",
+  "label": "Outpost",
+  "version": 1,
+  "author": "Gemini",
+  "description": "Arctic research facility aesthetic with safety orange accents",
+  "swatch": "#f97316",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(249, 115, 22)",
+    "--color-primary-hover": "rgb(234, 88, 12)",
+    "--color-primary-dark": "rgb(154, 52, 18)",
+    "--color-primary-light-bg": "rgb(40, 20, 10)",
+    "--color-primary-light-bg-dark": "rgb(25, 12, 8)",
+    "--color-primary-text": "rgb(251, 146, 60)",
+    "--color-primary-text-dark": "rgb(253, 186, 116)",
+    "--color-primary-border": "rgb(249, 115, 22)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(15, 15, 20)",
+    "--color-page-dark": "rgb(12, 12, 16)",
+    "--color-surface": "rgb(28, 28, 35)",
+    "--color-surface-dark": "rgb(20, 20, 26)",
+    "--radius": "0.5rem"
+  }
+}

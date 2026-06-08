@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.ico" sizes="any" />
+		<link rel="icon" type="image/png" href="%sveltekit.assets%/favicon.png" sizes="32x32" />
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>ARM</title>
+		<style>body { visibility: hidden; }</style>
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<script>
+			(function() {
+				var darkSchemes = ['glass','cinema','gaming','royale','lcars','tactical','craft','terminal','blockbuster','hollywood-video-v2'];
+				var cs = localStorage.getItem('colorScheme');
+				if (darkSchemes.indexOf(cs) !== -1) {
+					document.documentElement.classList.add('dark');
+				} else {
+					var t = localStorage.getItem('theme');
+					if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+						document.documentElement.classList.add('dark');
+					}
+				}
+
+				// Theme CSS cache: inject cached theme style before the CSS bundle loads
+				try {
+					var themeKey = cs || 'default';
+					var cached = localStorage.getItem('theme-cache-v1-' + themeKey);
+					if (cached) {
+						var style = document.createElement('style');
+						style.id = 'theme-cache';
+						style.textContent = cached;
+						document.head.appendChild(style);
+					}
+				} catch {
+					// localStorage unavailable - fall through to network-loaded theme
+				}
+			})();
+		</script>
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

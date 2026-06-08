@@ -1,0 +1,523 @@
+#!/usr/bin/env python3
+"""
+The main runner for Automatic Ripping Machine
+
+For help please visit https://github.com/uprightbass360/automatic-ripping-machine-neu
+"""
+import argparse  # noqa: E402
+import faulthandler
+import logging  # noqa: E402
+import os
+import sys
+import time  # noqa: E402
+import datetime  # noqa: E402
+import re  # noqa: E402
+from argparse import Namespace
+from importlib.util import find_spec
+from pathlib import Path
+from signal import signal, SIGTERM, SIGPIPE, SIGHUP, SIGUSR1, SIGUSR2, SIG_IGN
+from typing import Optional
+
+# Enable faulthandler early -- writes C-level tracebacks on SIGSEGV, SIGBUS,
+# SIGABRT, SIGFPE to stderr. Also dumps all thread stacks on SIGUSR1.
+faulthandler.enable(all_threads=True)
+_fault_file = None
+try:
+    _fault_file = open("/home/arm/logs/faulthandler.log", "a")
+    faulthandler.enable(file=_fault_file, all_threads=True)
+    faulthandler.register(SIGUSR1, file=_fault_file, all_threads=True)
+    print(f"[ARM] faulthandler enabled, PID={os.getpid()}", file=_fault_file, flush=True)
+except Exception:
+    faulthandler.enable(all_threads=True)  # fallback to stderr
+
+import pyudev  # noqa: E402
+
+# If the arm module can't be found, add the folder this file is in to PYTHONPATH
+# This is a bad workaround for non-existent packaging
+if find_spec("arm") is None:
+    sys.path.append(str(Path(__file__).parents[2]))
+
+from datetime import timezone
+from uuid import uuid4
+
+import arm.config.config as cfg  # noqa E402
+from arm.models.config import Config  # noqa: E402
+from arm.models.job import Job, JobState  # noqa: E402
+from arm.models.system_drives import CDS, SystemDrives  # noqa: E402
+from arm.database import db  # noqa E402
+import arm.constants as constants  # noqa E402
+from arm.notifications import publish_event  # noqa E402
+from arm_contracts import (  # noqa E402
+    JobFailedEvent,
+    JobRipCompleteEvent,
+)
+from arm.ripper import (arm_ripper, identify, logger,  # noqa: E402
+                        makemkv, music_brainz, utils)
+from arm.ripper._notify_helpers import (  # noqa E402
+    job_disc_type as _job_disc_type,
+    rip_duration_seconds as _rip_duration_seconds,
+)
+from arm.ripper.ARMInfo import ARMInfo  # noqa E402
+from arm.services import drives as drive_utils  # noqa E402
+
+# Initialise standalone database (no Flask)
+db.init_engine(cfg.get_db_uri())
+# Ripper threads are more tolerant of delays than API requests —
+# set a higher commit retry timeout (90s vs the default 10s).
+db.session.commit_timeout = 90
+
+job: Optional[Job] = None
+args: Optional[Namespace] = None
+log_file: Optional[str] = None
+
+
+def entry():
+    """ Entry to program, parses arguments"""
+    parser = argparse.ArgumentParser(description='Process disc using ARM')
+    parser.add_argument('-d', '--devpath', help='Devpath', required=True)
+    parser.add_argument(
+        "--syslog",
+        help="Log to /dev/log",
+        required=False,
+        default=True,
+        action=argparse.BooleanOptionalAction,
+    )
+    return parser.parse_args()
+
+
+def log_udev_params(dev_path):
+    """log all udev parameters"""
+
+    logging.debug("******************* Logging udev attributes *******************")
+    context = pyudev.Context()
+    device = pyudev.Devices.from_device_file(context, dev_path)
+    for key, value in device.items():
+        logging.debug(f"{key}:{value}")
+    logging.debug("******************* End udev attributes *******************")
+
+
+def log_arm_params(job):
+    """log all entry parameters"""
+
+    # log arm parameters
+    logging.info("******************* Logging ARM variables *******************")
+    for key in ("devpath", "mountpoint", "title", "year", "video_type",
+                "hasnicetitle", "label", "disctype", "manual_start"):
+        logging.info(f"{key}: {str(getattr(job, key))}")
+    logging.info("******************* End of ARM variables *******************")
+    logging.info("******************* Logging config parameters *******************")
+    for key in ("MAINFEATURE", "MINLENGTH", "MAXLENGTH",
+                "VIDEOTYPE", "MANUAL_WAIT", "MANUAL_WAIT_TIME", "RIPMETHOD",
+                "MKV_ARGS", "DELRAWFILES", "RAW_PATH", "TRANSCODE_PATH",
+                "COMPLETED_PATH", "EXTRAS_SUB", "EMBY_REFRESH", "EMBY_SERVER",
+                "EMBY_PORT",
+                "MAX_CONCURRENT_MAKEMKVINFO"):
+        logging.info(f"{key.lower()}: {str(cfg.arm_config.get(key, '<not given>'))}")
+    logging.info("******************* End of config parameters *******************")
+
+
+def check_fstab():
+    """
+    Check the fstab entries to see if ARM has been set up correctly
+    :return: None
+
+    # todo: remove this from the ripper and add into the ARM UI with a warning
+    """
+    logging.info("Checking for fstab entry.")
+    with open('/etc/fstab', 'r') as fstab:
+        lines = fstab.readlines()
+        for line in lines:
+            # Now grabs the real uncommented fstab entry
+            if re.search("^" + job.devpath, line):
+                logging.info(f"fstab entry is: {line.rstrip()}")
+                return
+    logging.error("No fstab entry found.  ARM will likely fail.")
+
+
+def main():
+    """main disc processing function"""
+    global log_file
+
+    logging.info("Starting Disc identification")
+    identify.identify(job)
+
+    # Re-initialize job log now that identification has resolved the label
+    # (skip for music — already identified during setup, no label change)
+    if job.disctype != "music":
+        log_file = logger.setup_job_log(job)
+    job.status = JobState.IDLE.value
+    db.session.commit()
+
+    # Check db for entries matching the crc and successful
+    have_dupes = utils.job_dupe_check(job)
+    logging.debug(f"Value of have_dupes: {have_dupes}")
+
+    utils.notify_entry(job)
+
+    # For music CDs, run full MusicBrainz lookup BEFORE the manual wait
+    # so tracks, cover art, and metadata are available during review.
+    if job.disctype == "music":
+        music_brainz.main(job)
+        # Refresh from DB to ensure MusicBrainz metadata is loaded into the
+        # session (database_updater commits + SQLAlchemy expires on commit).
+        db.session.refresh(job)
+        # Set output path for display (abcde uses its own OUTPUTDIR)
+        try:
+            job.path = job.build_final_path()
+        except Exception as e:
+            logging.warning("Could not build final path for music job %s: %s", job.job_id, e)
+        db.session.commit()
+
+    # For video discs, run MakeMKV title scan BEFORE the manual wait
+    # so track info is available in the review widget during the waiting state.
+    if job.disctype in ["dvd", "bluray", "bluray4k"]:
+        # Wait for drive to be ready after umount from identification.
+        # USB drives (Pioneer BDR-S12JX) go NOT_READY after unmount and
+        # can take 30-60s to spin back up.  Polling the ioctl avoids
+        # wasting pre-scan retries on a drive that isn't ready yet.
+        from arm.ripper.identify import _wait_for_drive_ready
+        if not _wait_for_drive_ready(job.devpath, timeout=120):
+            logging.warning("Drive not ready for pre-scan — skipping (will retry during rip)")
+        # Resolve per-drive overrides with global fallback
+        drive = getattr(job, 'drive', None)
+        prescan_timeout = getattr(drive, 'prescan_timeout', None) if drive else None
+        if prescan_timeout is None:
+            prescan_timeout = int(cfg.arm_config.get('PRESCAN_TIMEOUT', 300))
+        prescan_retries = getattr(drive, 'prescan_retries', None) if drive else None
+        if prescan_retries is None:
+            prescan_retries = int(cfg.arm_config.get('PRESCAN_RETRIES', 3))
+        prescan_cache_mb = getattr(drive, 'prescan_cache_mb', None) if drive else None
+        if prescan_cache_mb is None:
+            prescan_cache_mb = int(cfg.arm_config.get('PRESCAN_CACHE_MB', 1))
+        disc_enum_timeout = getattr(drive, 'disc_enum_timeout', None) if drive else None
+        if disc_enum_timeout is None:
+            disc_enum_timeout = int(cfg.arm_config.get('DISC_ENUM_TIMEOUT', 60))
+
+        for attempt in range(1, prescan_retries + 1):
+            try:
+                if not Path(job.devpath).exists():
+                    raise FileNotFoundError(f"{job.devpath} not found")
+                logging.info("Pre-scanning disc titles for review (attempt %d)...", attempt)
+                makemkv.prep_mkv()
+                makemkv.prescan_track_info(
+                    job,
+                    timeout=prescan_timeout,
+                    cache_mb=prescan_cache_mb,
+                    enum_timeout=disc_enum_timeout,
+                )
+                db.session.expire(job, ['tracks'])
+                tracks = list(job.tracks)
+                if len(tracks) == 0:
+                    raise RuntimeError("MakeMKV returned 0 titles")
+                for t in tracks:
+                    t.enabled = True
+                # Stamp process=False + skip_reason on out-of-bounds
+                # tracks so the disc-review widget renders them as 'skip'
+                # before the rip phase decides. arm-ui's
+                # DiscReviewWidget.isFiltered() trusts backend truth
+                # (track.process / skip_reason) per fb08d0a; long-enough
+                # tracks keep process=None and render rippable.
+                try:
+                    minlength = int(job.config.MINLENGTH)
+                except (TypeError, ValueError):
+                    minlength = 0
+                try:
+                    maxlength = int(job.config.MAXLENGTH)
+                except (TypeError, ValueError):
+                    maxlength = 99999
+                utils.mark_prescan_filter_state(job, minlength, maxlength)
+                db.session.commit()
+                logging.info("Pre-scan complete: %d tracks found", len(tracks))
+                break
+            except Exception as e:
+                if attempt < prescan_retries:
+                    wait = 30 * attempt  # 30s, 60s (longer for Pioneer USB recovery)
+                    logging.warning("Pre-scan attempt %d failed: %s - retrying in %ds", attempt, e, wait)
+                    time.sleep(wait)
+                else:
+                    logging.warning("Pre-scan failed after %d attempts (will retry during rip): %s", attempt, e)
+
+    # For TV series, attempt automatic episode matching via TVDB
+    if job.video_type == "series" and cfg.arm_config.get("TVDB_API_KEY"):
+        try:
+            from arm.services.tvdb_sync import match_episodes_sync
+            if match_episodes_sync(job):
+                db.session.expire(job, ['tracks'])
+                logging.info("TVDB episode matching applied to tracks")
+        except Exception as e:
+            logging.warning("TVDB episode matching failed (non-fatal): %s", e)
+
+
+    # Check if user has manual wait time enabled
+    utils.check_for_wait(job)
+
+    log_arm_params(job)
+    check_fstab()
+
+    # Ripper type assessment for the various media types
+    # Type: dvd/bluray/bluray4k
+    if job.disctype in ["dvd", "bluray", "bluray4k"]:
+        arm_ripper.rip_visual_media(have_dupes, job, log_file, job.has_track_99)
+
+    # Type: Music
+    elif job.disctype == "music":
+        if utils.rip_music(job, log_file):
+            publish_event(JobRipCompleteEvent(
+                event_id=uuid4(),
+                occurred_at=datetime.datetime.now(timezone.utc),
+                job_id=job.job_id,
+                job_title=job.title or "",
+                job_disc_type=_job_disc_type(job),
+                job_imdb_id=job.imdb_id,
+                rip_duration_seconds=_rip_duration_seconds(job),
+                track_count=job.tracks.count(),
+            ))
+            utils.scan_emby()
+            # This shouldn't be needed. but to be safe
+            job.status = JobState.SUCCESS.value
+            db.session.commit()
+        else:
+            logging.critical("Music rip failed.  See previous errors.  Exiting. ")
+            job.status = JobState.FAILURE.value
+            db.session.commit()
+
+    # Type: Data
+    elif job.disctype == "data":
+        logging.info("Disc identified as data")
+        if utils.rip_data(job):
+            publish_event(JobRipCompleteEvent(
+                event_id=uuid4(),
+                occurred_at=datetime.datetime.now(timezone.utc),
+                job_id=job.job_id,
+                job_title=job.title or "",
+                job_disc_type=_job_disc_type(job),
+                job_imdb_id=job.imdb_id,
+                rip_duration_seconds=_rip_duration_seconds(job),
+                track_count=job.tracks.count(),
+            ))
+        else:
+            logging.critical("Data rip failed.  See previous errors.  Exiting.")
+
+    # Type: undefined
+    else:
+        logging.critical("Couldn't identify the disc type. Exiting without any action.")
+
+
+def setup():
+    global job
+    global args
+    global log_file
+
+    def signal_handler(_signal, _frame_type):
+        import traceback
+        logging.critical("Received signal %s in %s:%d\n%s",
+                         _signal, _frame_type.f_code.co_filename, _frame_type.f_lineno,
+                         "".join(traceback.format_stack(_frame_type)))
+        raise utils.RipperException(f"Received signal {_signal}")
+
+    # Handle SIGTERM so we can exit gracefully. Without this, no except: or finally: blocks are
+    # run and the program exits immediately, potentially leaving the database in an invalid state.
+    signal(SIGTERM, signal_handler)
+    signal(SIGHUP, signal_handler)
+
+    # Explicitly ignore SIGPIPE. Python sets SIG_IGN at startup, but
+    # MakeMKV child processes can reset signal dispositions. A broken pipe
+    # (e.g. MakeMKV closing stdout while Python reads) must not kill us.
+    signal(SIGPIPE, SIG_IGN)
+
+    # Get arguments from arg parser
+    args = entry()
+    devpath = f"/dev/{args.devpath}"
+    # Setup base logger - will log to <log directory>/arm.log, syslog & stdout
+    # This will catch any permission errors
+    arm_log = logger.create_early_logger(syslog=args.syslog)
+    # Make sure all directories are fully setup
+    utils.arm_setup(arm_log)
+
+    # Auto-migrate database schema if out of date (before any DB queries)
+    from arm.services.config import check_db_version
+    try:
+        check_db_version(cfg.arm_config['INSTALLPATH'], cfg.get_db_uri())
+    except Exception as e:
+        # Migration may fail if another ripper process is migrating concurrently.
+        # Re-check: if DB is now current (other process succeeded), continue.
+        from arm.services.config import arm_alembic_get, arm_db_get
+        head = arm_alembic_get()
+        current = arm_db_get()
+        if current and current.version_num == head:
+            logging.info("Migration failed but DB is current (migrated by another process).")
+        else:
+            raise utils.RipperException(
+                f"Database migration failed and schema is still outdated "
+                f"(head={head}, db={current.version_num if current else 'unknown'}): {e}"
+            ) from e
+
+    drive = SystemDrives.query.filter_by(mount=devpath).first()
+    if drive is None:
+        # Drive may have reconnected on a different device node — re-detect.
+        logging.info(f"No drive record for {devpath}, re-scanning drives...")
+        drive_utils.drives_update()
+        drive = SystemDrives.query.filter_by(mount=devpath).first()
+    if drive is None:
+        logging.info(f"Drive {devpath} not found after re-scan. Exiting gracefully.")
+        return False
+
+    # With some drives and some disks, there is a race condition between creating the Job()
+    # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)
+    drive_ready_timeout = int(cfg.arm_config.get('DRIVE_READY_TIMEOUT', 60))
+    poll_interval = 2
+    max_polls = max(drive_ready_timeout // poll_interval, 1)
+    no_disc_threshold = max_polls // 2  # >50% of timeout with NO_DISC → exit gracefully
+    no_disc_count = 0
+    drive_is_ready = False
+
+    for num in range(1, max_polls + 1):
+        drive.tray_status()
+        if drive.ready:
+            drive_is_ready = True
+            break
+        state_name = drive.tray.name if drive.tray else "UNKNOWN"
+        if drive.tray == CDS.NO_DISC:
+            no_disc_count += 1
+        logging.info(
+            f"[{num}/{max_polls}] Drive [{drive.mount}] not ready "
+            f"(state: {state_name}). Waiting {poll_interval}s"
+        )
+        if no_disc_count > no_disc_threshold:
+            logging.info(
+                f"Drive [{drive.mount}] reported NO_DISC for majority of "
+                f"checks ({no_disc_count}/{num}). Exiting gracefully."
+            )
+            return False
+        time.sleep(poll_interval)
+
+    if not drive_is_ready:
+        state_name = drive.tray.name if drive.tray else "UNKNOWN"
+        logging.info(
+            f"Timed out waiting for drive [{drive.mount}] to be ready "
+            f"after {drive_ready_timeout}s (last state: {state_name}). "
+            f"Exiting gracefully."
+        )
+        return False
+
+    # ARM Job starts
+    # Create new job
+    job = Job(devpath)
+
+    # Capture and report the ARM Info
+    arminfo = ARMInfo(cfg.arm_config["INSTALLPATH"], cfg.arm_config['DBFILE'])
+    job.arm_version = arminfo.arm_version
+    arminfo.get_values()
+
+    # Sometimes drives trigger twice this stops multi runs from 1 udev trigger
+    utils.duplicate_run_check(devpath)
+
+    logging.info(f"************* Starting ARM processing at {datetime.datetime.now()} *************")
+    # Set job status and start time
+    job.status = JobState.IDENTIFYING.value
+    job.start_time = datetime.datetime.now()
+    utils.database_adder(job)
+
+    # Setup logging — must happen after job is persisted (job_id assigned) and
+    # arm_version is set, because music CDs trigger a MusicBrainz lookup here
+    # that needs both values.
+    log_file = logger.setup_job_log(job)
+    # Sleep to lower chances of db locked - unlikely to be needed
+    time.sleep(1)
+    # Associate the job with the drive in the database
+    drive_utils.update_drive_job(job)
+    # Add the job.config to db
+    config = Config(cfg.arm_config, job_id=job.job_id)  # noqa: F811
+    # Check if the drive mode is set to manual, and load to the job config for later use
+    logging.debug(f"drive_mode: {drive.drive_mode}")
+    if drive.drive_mode == 'manual':
+        job.manual_mode = True
+        db.session.commit()
+    else:
+        job.manual_mode = False
+        db.session.commit()
+    utils.database_adder(config)
+
+    try:
+        # Delete old log files
+        logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])
+    except Exception as error:
+        logging.error(error, exc_info=True)
+
+    logging.info(f"Job: {job.label}")  # This will sometimes be none
+    # Check for zombie jobs and update status to 'failed'
+    utils.clean_old_jobs()
+    # Log all params/attribs from the drive
+    log_udev_params(devpath)
+    return True
+
+
+if __name__ == "__main__":
+    job = None
+    try:
+        ready = setup()
+        if not ready:
+            # Drive not ready or no disc — exit cleanly without error
+            sys.exit(0)
+        main()
+    except Exception as error:
+        logging.critical("A fatal error has occurred and ARM is exiting.")
+        print_stacktrace = (
+            logging.getLogger().getEffectiveLevel() == logging.DEBUG
+            or not isinstance(error, utils.RipperException)
+        )
+        logging.critical(error, exc_info=(error if print_stacktrace else None),)
+
+        if job:
+            job.status = JobState.FAILURE.value
+            job.errors = str(error)
+            try:
+                publish_event(JobFailedEvent(
+                    event_id=uuid4(),
+                    occurred_at=datetime.datetime.now(timezone.utc),
+                    job_id=job.job_id,
+                    job_title=job.title or "",
+                    job_disc_type=_job_disc_type(job),
+                    job_imdb_id=job.imdb_id,
+                    phase="rip",
+                    error_message=str(error)[:200] or "unknown failure",
+                    error_code=None,
+                ))
+            except Exception:  # pragma: no cover - top-level safety net
+                logging.exception("Failed to publish job.failed event for fatal error")
+        # No job means failure happened during setup before a Job row existed;
+        # nothing to publish (publish_event requires a job_id).
+        # Possibly add cleanup section here for failed job files
+    else:
+        # Success path: _post_rip_handoff has already committed the correct
+        # terminal status (SUCCESS / TRANSCODE_WAITING / FAILURE). Nothing
+        # to do here.
+        pass
+    finally:
+        if job:
+            final_status = job.status
+            job.status = JobState.EJECTING.value
+            db.session.commit()
+            job.eject()  # each job stores its eject status, so it is safe to call.
+            job.status = final_status
+            job.stop_time = datetime.datetime.now()
+            job_length = job.stop_time - job.start_time if job.start_time else 0
+            minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
+            hours, minutes = divmod(minutes, 60)
+            job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
+        db.session.commit()
+        # Release scoped session to prevent DB connection pool exhaustion
+        # (this function runs in a daemon thread spawned by udev/drive detection)
+        db.session.remove()
+        # Remove the per-device lock file so it doesn't persist on the
+        # bind-mounted volume after the flock is released.  The wrapper
+        # script holds flock on fd 9 which auto-releases when this
+        # process exits, but the file itself would remain and confuse
+        # stale-lock detection.  Best-effort removal (ignore errors).
+        try:  # pragma: no cover — entry-point cleanup, not reachable in unit tests
+            import os
+            dev = args.devpath if args else None
+            if dev:
+                os.remove(f"/home/arm/.arm_{dev}.lock")
+        except Exception:
+            pass

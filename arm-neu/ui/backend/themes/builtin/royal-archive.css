@@ -1,0 +1,15 @@
+[data-scheme="royal-archive"] .section-frame {
+	border: 1px solid rgba(251, 191, 36, 0.1) !important;
+}
+[data-scheme="royal-archive"] .section-frame-bar-top {
+	background: #1e293b !important;
+	color: #fbbf24 !important;
+	border-bottom: 2px solid #fbbf24;
+}
+[data-scheme="royal-archive"] [data-progress-fill] {
+	background: linear-gradient(90deg, #b45309, #fbbf24) !important;
+}
+[data-scheme="royal-archive"] aside nav a[data-active="true"] {
+	color: #fbbf24 !important;
+	font-weight: 900;
+}

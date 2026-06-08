@@ -1,0 +1,141 @@
+name: Publish Docker Image
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOCKERHUB_BASE: ${{ secrets.DOCKERHUB_USERNAME }}/arm-transcoder-base
+  DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/arm-transcoder
+  GHCR_BASE: ghcr.io/${{ github.repository_owner }}/arm-transcoder-base
+  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/automatic-ripping-machine-transcoder
+
+jobs:
+  build-base:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Read VERSION file
+        id: version
+        run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Read HandBrake version
+        id: hb_version
+        run: echo "version=$(cat VERSION_HANDBRAKE)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push base image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          platforms: linux/amd64
+          cache-from: type=gha,scope=base
+          cache-to: type=gha,scope=base,mode=max
+          build-contexts: |
+            contracts=components/contracts
+          build-args: |
+            HANDBRAKE_TAG=${{ steps.hb_version.outputs.version }}
+            IMAGE_TAG=${{ steps.version.outputs.version }}
+          tags: |
+            ${{ env.DOCKERHUB_BASE }}:${{ steps.version.outputs.version }}
+            ${{ env.DOCKERHUB_BASE }}:latest
+            ${{ env.DOCKERHUB_IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.DOCKERHUB_IMAGE }}:latest
+            ${{ env.GHCR_BASE }}:${{ steps.version.outputs.version }}
+            ${{ env.GHCR_BASE }}:latest
+            ${{ env.GHCR_IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.GHCR_IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+  build-variants:
+    needs: build-base
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - variant: nvidia
+            suffix: "-nvidia"
+          - variant: amd
+            suffix: "-amd"
+          - variant: intel
+            suffix: "-intel"
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: tags
+        run: |
+          VERSION="${{ needs.build-base.outputs.version }}"
+          SUFFIX="${{ matrix.suffix }}"
+          TAGS="${{ env.DOCKERHUB_IMAGE }}:${VERSION}${SUFFIX}"
+          TAGS="${TAGS},${{ env.DOCKERHUB_IMAGE }}:latest${SUFFIX}"
+          TAGS="${TAGS},${{ env.GHCR_IMAGE }}:${VERSION}${SUFFIX}"
+          TAGS="${TAGS},${{ env.GHCR_IMAGE }}:latest${SUFFIX}"
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push GPU variant
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.${{ matrix.variant }}
+          push: true
+          platforms: linux/amd64
+          cache-from: type=gha,scope=${{ matrix.variant }}
+          cache-to: type=gha,scope=${{ matrix.variant }},mode=max
+          build-contexts: |
+            contracts=components/contracts
+          build-args: BASE_TAG=${{ needs.build-base.outputs.version }}
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.build-base.outputs.version }}

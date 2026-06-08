@@ -1,0 +1,25 @@
+{
+  "id": "lcars",
+  "label": "LCARS",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Star Trek LCARS computer interface",
+  "swatch": "#fb923c",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(255, 153, 0)",
+    "--color-primary-hover": "rgb(255, 204, 51)",
+    "--color-primary-dark": "rgb(40, 30, 0)",
+    "--color-primary-light-bg": "rgb(153, 153, 255)",
+    "--color-primary-light-bg-dark": "rgb(30, 30, 60)",
+    "--color-primary-text": "rgb(255, 204, 51)",
+    "--color-primary-text-dark": "rgb(255, 153, 0)",
+    "--color-primary-border": "rgb(255, 153, 0)",
+    "--color-on-primary": "rgb(0, 0, 0)",
+    "--color-page": "rgb(0, 0, 0)",
+    "--color-page-dark": "rgb(0, 0, 0)",
+    "--color-surface": "rgb(0, 0, 0)",
+    "--color-surface-dark": "rgb(0, 0, 0)",
+    "--radius": "20px"
+  }
+}

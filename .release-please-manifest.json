@@ -1,0 +1,7 @@
+{
+  "arm-neu/contracts": "4.1.0",
+  "arm-neu/auth": "0.1.0",
+  "arm-neu/transcoder": "19.0.1",
+  "arm-neu/ui": "19.1.1",
+  "arm-neu/ripper": "19.1.0"
+}

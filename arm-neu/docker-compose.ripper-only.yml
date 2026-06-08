@@ -1,0 +1,91 @@
+# Ripper-only: ARM + UI on a single machine, no transcoder.
+# ARM writes final named files directly via finalize_output (the
+# ripper-only completion path triggered by ARM_TRANSCODER_ENABLED=false).
+# Copy .env.ripper-only.example to .env and adjust values before starting.
+#
+# Start: docker compose -f docker-compose.ripper-only.yml up -d --build
+#
+# Compatible overlays: docker-compose.nfs.yml only.
+# docker-compose.dev.yml and docker-compose.gpu.yml both patch the
+# arm-transcoder service which this file does not declare.
+
+services:
+  # Fix ownership on the shared DB volume before ARM starts
+  arm-db-init:
+    image: alpine
+    container_name: arm-db-init
+    volumes:
+      - arm-db:/data/db
+    command: chown -R ${ARM_UID:-1000}:${ARM_GID:-1000} /data/db
+    restart: "no"
+
+  # ARM ripper - creates the database on first startup.
+  # No transcoder: ARM_TRANSCODER_ENABLED=false forces empty TRANSCODER_URL
+  # in arm.yaml and the ripper falls into the finalize_output path.
+  arm-rippers:
+    image: uprightbass360/automatic-ripping-machine:${ARM_VERSION:-latest}
+    container_name: arm-rippers
+    restart: always
+    privileged: true
+    ports:
+      - "${ARM_PORT:-8080}:8080"
+    environment:
+      - ARM_UID=${ARM_UID:-1000}
+      - ARM_GID=${ARM_GID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+      - ARM_COMMUNITY_KEYDB=${ARM_COMMUNITY_KEYDB:-true}
+      - ARM_TRANSCODER_ENABLED=false
+      - ARM_LOCAL_RAW_PATH=${ARM_LOCAL_RAW_PATH:-}
+      - ARM_SHARED_RAW_PATH=${ARM_SHARED_RAW_PATH:-}
+      # Output organization subdirs - entrypoint rewrites arm.yaml so
+      # finalize_output (the ripper-only completion path) honors them.
+      - MOVIES_SUBDIR=${MOVIES_SUBDIR:-movies}
+      - TV_SUBDIR=${TV_SUBDIR:-tv}
+      - AUDIO_SUBDIR=${AUDIO_SUBDIR:-music}
+      - UNIDENTIFIED_SUBDIR=${UNIDENTIFIED_SUBDIR:-unidentified}
+      - ARM_MEDIA_PATH=${ARM_MEDIA_PATH}
+      - ARM_CONFIG_PATH=${ARM_CONFIG_PATH}
+      - ARM_LOGS_PATH=${ARM_LOGS_PATH}
+      - ARM_MUSIC_PATH=${ARM_MUSIC_PATH}
+    volumes:
+      - ${ARM_MUSIC_PATH}:/home/arm/music
+      - ${ARM_LOGS_PATH}:/home/arm/logs
+      - ${ARM_MEDIA_PATH}:/home/arm/media
+      - ${ARM_COMPLETED_PATH:-${ARM_MEDIA_PATH}/completed}:/home/arm/media/completed
+      - ${ARM_SCRATCH_PATH:-/home/arm/media}:/home/arm/scratch
+      - ${ARM_INGRESS_PATH:-/home/arm/media/ingress}:/home/arm/media/ingress:ro
+      - ${ARM_CONFIG_PATH}:/etc/arm/config
+      - arm-db:/home/arm/db
+      - ${ARM_MAKEMKV_PATH:-makemkv-settings}:/home/arm/.MakeMKV
+      # Live /dev mount ensures USB optical drives remain visible after
+      # hot-plug, disconnect/reconnect, or device re-enumeration.
+      - /dev:/dev
+    cpuset: ${ARM_CPUSET:-2,3,4,5,6,7}
+    depends_on:
+      arm-db-init:
+        condition: service_completed_successfully
+
+  # Replacement dashboard (SvelteKit + FastAPI)
+  arm-ui:
+    image: uprightbass360/arm-ui:${UI_VERSION:-latest}
+    container_name: arm-ui
+    restart: unless-stopped
+    ports:
+      - "${UI_PORT:-8888}:8888"
+    environment:
+      - ARM_UI_ARM_URL=http://arm-rippers:8080
+      - ARM_UI_TRANSCODER_ENABLED=false
+      - ARM_UI_THEMES_PATH=/data/themes
+      - ARM_UI_IMAGE_CACHE_PATH=/data/cache/images
+    volumes:
+      - arm-ui-themes:/data/themes:rw
+      - ui-image-cache:/data/cache/images:rw
+    depends_on:
+      arm-rippers:
+        condition: service_healthy
+
+volumes:
+  arm-db:
+  makemkv-settings:
+  ui-image-cache:
+  arm-ui-themes:

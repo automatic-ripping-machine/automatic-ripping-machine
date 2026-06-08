@@ -1,0 +1,19 @@
+ARG BASE_TAG=latest
+FROM uprightbass360/arm-transcoder-base:${BASE_TAG}
+
+# Intel Quick Sync Video (QSV) via VA-API + oneVPL
+# - intel-media-va-driver-non-free: full iHD VAAPI driver with all codec support
+#   (the "free" variant has limited/missing encoding for HEVC, AVC, etc.)
+# - libmfxgen1.2: oneVPL GPU runtime for Gen12+ (Alder Lake and newer).
+#   Without this, the libvpl2 dispatcher finds zero implementations and
+#   HandBrake/FFmpeg fail with "Error creating a MFX session: -9"
+# - libvpl2: oneVPL dispatcher (routes QSV calls to the GPU runtime)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    intel-media-va-driver-non-free \
+    libmfx-gen1.2 \
+    libvpl2 \
+    intel-gpu-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV GPU_VENDOR=intel
+ENV LIBVA_DRIVER_NAME=iHD

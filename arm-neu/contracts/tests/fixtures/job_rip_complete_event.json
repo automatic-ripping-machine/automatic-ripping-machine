@@ -1,0 +1,11 @@
+{
+  "event_key": "job.rip_complete",
+  "event_id": "22222222-2222-4222-8222-222222222222",
+  "occurred_at": "2026-05-18T10:30:00+00:00",
+  "job_id": 169,
+  "job_title": "Mysterysuspense",
+  "job_disc_type": "dvd",
+  "job_imdb_id": "tt0903747",
+  "rip_duration_seconds": 1800,
+  "track_count": 7
+}

@@ -1,0 +1,25 @@
+{
+  "id": "stealth-ops",
+  "label": "Stealth",
+  "version": 1,
+  "author": "Gemini",
+  "description": "Tactical monochrome with critical red highlights",
+  "swatch": "#ef4444",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(239, 68, 68)",
+    "--color-primary-hover": "rgb(220, 38, 38)",
+    "--color-primary-dark": "rgb(153, 27, 27)",
+    "--color-primary-light-bg": "rgb(30, 10, 10)",
+    "--color-primary-light-bg-dark": "rgb(20, 5, 5)",
+    "--color-primary-text": "rgb(248, 113, 113)",
+    "--color-primary-text-dark": "rgb(252, 165, 165)",
+    "--color-primary-border": "rgb(239, 68, 68)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(10, 10, 10)",
+    "--color-page-dark": "rgb(5, 5, 5)",
+    "--color-surface": "rgb(20, 20, 20)",
+    "--color-surface-dark": "rgb(15, 15, 15)",
+    "--radius": "0.5rem"
+  }
+}

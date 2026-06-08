@@ -1,0 +1,33 @@
+name: Submodule lockstep
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lockstep:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Verify components/contracts is at its main tip
+        run: |
+          cd components/contracts
+          git fetch origin main --depth=1
+          LOCAL=$(git rev-parse HEAD)
+          REMOTE=$(git rev-parse origin/main)
+          echo "local=$LOCAL remote=$REMOTE"
+          if [ "$LOCAL" != "$REMOTE" ]; then
+            echo ""
+            echo "::error::components/contracts submodule is $LOCAL but contracts main is $REMOTE."
+            echo "Run:  git submodule update --remote --init components/contracts"
+            echo "then commit the submodule bump and push."
+            exit 1
+          fi
+          echo "components/contracts is in lockstep with main."

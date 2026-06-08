@@ -1,0 +1,108 @@
+[data-scheme="terminal"] {
+	font-family: 'Courier New', Courier, monospace;
+	cursor: crosshair;
+}
+
+[data-scheme="terminal"] aside::before {
+	content: "";
+	display: block;
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.12) 50%),
+		linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+	background-size: 100% 3px, 2px 100%;
+	pointer-events: none;
+	z-index: 10;
+	animation: crt-flicker 0.15s infinite;
+}
+
+[data-scheme="terminal"] aside {
+	position: relative;
+	text-shadow: 0 0 5px rgb(57 255 20 / 0.4);
+	box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5), inset -2px 0 10px rgb(57 255 20 / 0.15);
+}
+
+[data-scheme="terminal"] aside nav a {
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	border-radius: 0;
+	font-size: 0.8rem;
+}
+
+[data-scheme="terminal"] aside nav a::before {
+	content: "> ";
+	flex-shrink: 0;
+}
+
+[data-scheme="terminal"] aside nav a svg {
+	display: none;
+}
+
+[data-scheme="terminal"] aside nav a[data-active="true"] {
+	border: 1px solid rgb(57 255 20);
+	background: rgb(10 26 5) !important;
+	text-shadow: 0 0 8px rgb(57 255 20 / 0.6);
+}
+
+[data-scheme="terminal"] aside nav a:hover {
+	background: rgb(57 255 20) !important;
+	color: rgb(5 5 5) !important;
+	text-shadow: none;
+	box-shadow: 0 0 15px rgb(57 255 20 / 0.5);
+}
+
+[data-scheme="terminal"] aside [data-logo] {
+	border: 1px solid rgb(57 255 20);
+	text-shadow: 0 0 5px rgb(57 255 20 / 0.4);
+	margin-left: 0.75rem;
+	margin-right: 0.75rem;
+	padding: 0.5rem;
+}
+
+[data-scheme="terminal"] aside [data-stats] {
+	border: 1px solid rgb(57 255 20);
+	background: rgb(57 255 20 / 0.05);
+}
+
+[data-scheme="terminal"] [data-progress-fill] {
+	background: repeating-linear-gradient(
+		90deg,
+		rgb(57 255 20),
+		rgb(57 255 20) 6px,
+		rgb(5 5 5) 6px,
+		rgb(5 5 5) 9px
+	) !important;
+	box-shadow: 0 0 10px rgb(57 255 20 / 0.4);
+	border-radius: 0 !important;
+}
+
+[data-scheme="terminal"] [data-progress-track] {
+	border: 1px solid rgb(57 255 20);
+	border-radius: 0 !important;
+	background: rgb(0 0 0) !important;
+}
+
+[data-scheme="terminal"] header {
+	border-color: rgb(57 255 20) !important;
+}
+
+[data-scheme="terminal"] .text-gray-400,
+
+[data-scheme="terminal"] .text-gray-500,
+
+[data-scheme="terminal"] .text-gray-600,
+
+[data-scheme="terminal"] .text-gray-700,
+
+[data-scheme="terminal"] .dark\:text-gray-300,
+
+[data-scheme="terminal"] .dark\:text-gray-400,
+
+[data-scheme="terminal"] .dark\:text-gray-500 {
+	color: rgb(57 255 20) !important;
+}
+
+[data-scheme="terminal"] .text-orange-500 {
+	color: rgb(57 255 20) !important;
+}

@@ -1,0 +1,24 @@
+{
+  "id": "nordic-frost",
+  "label": "Nordic Frost",
+  "version": 1,
+  "author": "Gemini",
+  "description": "Arctic-inspired dual-mode theme with frosty blues",
+  "swatch": "#88c0d0",
+  "tokens": {
+    "--color-primary": "rgb(136, 192, 208)",
+    "--color-primary-hover": "rgb(129, 161, 193)",
+    "--color-primary-dark": "rgb(94, 129, 172)",
+    "--color-primary-light-bg": "rgb(236, 239, 244)",
+    "--color-primary-light-bg-dark": "rgb(46, 52, 64)",
+    "--color-primary-text": "rgb(94, 129, 172)",
+    "--color-primary-text-dark": "rgb(143, 188, 187)",
+    "--color-primary-border": "rgb(136, 192, 208)",
+    "--color-on-primary": "rgb(46, 52, 64)",
+    "--color-page": "rgb(229, 233, 240)",
+    "--color-page-dark": "rgb(46, 52, 64)",
+    "--color-surface": "rgb(240, 244, 250)",
+    "--color-surface-dark": "rgb(59, 66, 82)",
+    "--radius": "0.5rem"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "ocean",
+  "label": "Ocean",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Cool teal tones inspired by the deep ocean",
+  "swatch": "#14b8a6",
+  "tokens": {
+    "--color-primary": "rgb(13, 148, 136)",
+    "--color-primary-hover": "rgb(15, 118, 110)",
+    "--color-primary-dark": "rgb(17, 94, 89)",
+    "--color-primary-light-bg": "rgb(204, 251, 241)",
+    "--color-primary-light-bg-dark": "rgb(19, 78, 74)",
+    "--color-primary-text": "rgb(15, 118, 110)",
+    "--color-primary-text-dark": "rgb(94, 234, 212)",
+    "--color-primary-border": "rgb(20, 184, 166)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(228, 248, 245)",
+    "--color-page-dark": "rgb(12, 19, 20)",
+    "--color-surface": "rgb(238, 252, 249)",
+    "--color-surface-dark": "rgb(9, 69, 79)",
+    "--radius": "0.5rem"
+  }
+}

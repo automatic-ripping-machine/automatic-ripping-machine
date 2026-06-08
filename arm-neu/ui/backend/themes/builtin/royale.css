@@ -1,0 +1,92 @@
+[data-scheme="royale"] {
+	font-family: 'Arial Black', 'Arial Bold', Impact, sans-serif;
+	text-transform: uppercase;
+}
+
+[data-scheme="royale"] aside {
+	border-right-width: 4px;
+	border-color: #112a5e !important;
+}
+
+[data-scheme="royale"] aside [data-logo] {
+	transform: skew(-10deg);
+}
+
+[data-scheme="royale"] aside [data-logo] img {
+	filter: drop-shadow(3px 3px 0px #007bff);
+}
+
+[data-scheme="royale"] aside nav a {
+	font-style: italic;
+	font-weight: 900;
+	letter-spacing: 0.05em;
+	border-radius: 0;
+	background: #0b1a3d;
+	clip-path: polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%);
+	border-bottom: 3px solid rgba(0, 0, 0, 0.3);
+	margin: 2px 0;
+	padding: 0.85rem 1.25rem;
+	transition: all 0.1s;
+}
+
+[data-scheme="royale"] aside nav a:hover {
+	background: #007bff !important;
+	transform: scale(1.05) skew(-2deg);
+	color: #fff !important;
+}
+
+[data-scheme="royale"] aside nav a[data-active="true"] {
+	background: #f8fb11 !important;
+	color: #000 !important;
+	box-shadow: 0 0 20px rgba(248, 251, 17, 0.4);
+	text-shadow: none;
+}
+
+[data-scheme="royale"] aside hr {
+	border: none;
+	height: 4px;
+	background: #112a5e;
+}
+
+[data-scheme="royale"] aside [data-stats] {
+	background: rgba(0, 0, 0, 0.4);
+	border-color: #112a5e;
+}
+
+[data-scheme="royale"] [data-progress-track] {
+	background: #111 !important;
+	height: 14px !important;
+	border-radius: 0 !important;
+	clip-path: polygon(1.5% 0%, 100% 0%, 98.5% 100%, 0% 100%);
+	border: 1px solid #333;
+}
+
+[data-scheme="royale"] [data-progress-fill] {
+	background: #007bff !important;
+	border-radius: 0 !important;
+}
+
+[data-scheme="royale"] aside .text-gray-400,
+
+[data-scheme="royale"] aside .text-gray-500,
+
+[data-scheme="royale"] aside .text-gray-600,
+
+[data-scheme="royale"] aside .dark\:text-gray-300,
+
+[data-scheme="royale"] aside .dark\:text-gray-400,
+
+[data-scheme="royale"] aside .dark\:text-gray-500 {
+	color: #aaa !important;
+	font-size: 0.65rem;
+	letter-spacing: 0.05em;
+}
+
+[data-scheme="royale"] aside .text-orange-500 {
+	color: #f8fb11 !important;
+}
+
+[data-scheme="royale"] header {
+	border-color: #112a5e !important;
+	border-bottom-width: 4px;
+}

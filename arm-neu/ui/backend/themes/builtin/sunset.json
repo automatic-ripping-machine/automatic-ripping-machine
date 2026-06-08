@@ -1,0 +1,24 @@
+{
+  "id": "sunset",
+  "label": "Red Alert",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Bold red accents for a high-alert look",
+  "swatch": "#ef4444",
+  "tokens": {
+    "--color-primary": "rgb(220, 38, 38)",
+    "--color-primary-hover": "rgb(185, 28, 28)",
+    "--color-primary-dark": "rgb(153, 27, 27)",
+    "--color-primary-light-bg": "rgb(254, 226, 226)",
+    "--color-primary-light-bg-dark": "rgb(127, 29, 29)",
+    "--color-primary-text": "rgb(185, 28, 28)",
+    "--color-primary-text-dark": "rgb(248, 113, 113)",
+    "--color-primary-border": "rgb(239, 68, 68)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(255, 235, 235)",
+    "--color-page-dark": "rgb(38, 0, 0)",
+    "--color-surface": "rgb(255, 243, 243)",
+    "--color-surface-dark": "rgb(68, 1, 0)",
+    "--radius": "0.5rem"
+  }
+}

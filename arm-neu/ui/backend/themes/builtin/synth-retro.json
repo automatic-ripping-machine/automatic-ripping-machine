@@ -1,0 +1,25 @@
+{
+  "id": "synth-retro",
+  "label": "Synth Retro",
+  "version": 1,
+  "author": "Gemini",
+  "description": "80s neon synthwave aesthetic with pink and violet glows",
+  "swatch": "#ff007f",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(255, 0, 127)",
+    "--color-primary-hover": "rgb(220, 0, 110)",
+    "--color-primary-dark": "rgb(150, 0, 80)",
+    "--color-primary-light-bg": "rgb(40, 0, 30)",
+    "--color-primary-light-bg-dark": "rgb(30, 0, 20)",
+    "--color-primary-text": "rgb(255, 0, 127)",
+    "--color-primary-text-dark": "rgb(255, 120, 200)",
+    "--color-primary-border": "rgb(255, 0, 127)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(18, 12, 28)",
+    "--color-page-dark": "rgb(12, 8, 20)",
+    "--color-surface": "rgb(30, 20, 45)",
+    "--color-surface-dark": "rgb(22, 14, 32)",
+    "--radius": "0.5rem"
+  }
+}

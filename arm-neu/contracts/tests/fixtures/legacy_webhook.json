@@ -1,0 +1,27 @@
+{
+  "preset_slug": "software-balanced",
+  "overrides": {
+    "shared": {
+      "video_encoder": "x265",
+      "audio_encoder": "copy",
+      "subtitle_mode": "all"
+    },
+    "tiers": {
+      "dvd": {
+        "handbrake_preset": "H.265 MKV 720p30",
+        "video_quality": 22,
+        "handbrake_extra_args": []
+      },
+      "bluray": {
+        "handbrake_preset": "H.265 MKV 1080p30",
+        "video_quality": 22
+      },
+      "uhd": {
+        "handbrake_preset": "H.265 MKV 2160p60 4K",
+        "video_quality": 24
+      }
+    }
+  },
+  "delete_source": false,
+  "output_extension": "mkv"
+}

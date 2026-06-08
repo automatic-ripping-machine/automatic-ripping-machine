@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/.svelte-kit/
+frontend/build/
+frontend/coverage/
+
+# Environment
+.env
+
+# Claude Code
+.claude/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Worktrees
+.worktrees/
+
+# Logs
+*.log
+.superpowers/
+
+# Coverage / test tooling
+.coverage
+.playwright-mcp/
+
+# Local MCP config
+.mcp.json
+
+# Root-level screenshots (keep curated ones under screenshots/)
+/*.png
+.worktrees/

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "event": {
+    "event_key": "job.failed",
+    "event_id": "55555555-5555-4555-8555-555555555555",
+    "occurred_at": "2026-05-18T10:05:00+00:00",
+    "job_id": 169,
+    "job_title": "Mysterysuspense",
+    "job_disc_type": "dvd",
+    "job_imdb_id": null,
+    "phase": "rip",
+    "error_message": "makemkvcon exited with code 253",
+    "error_code": "MAKEMKV_FAILED"
+  },
+  "title": "ARM job 169 failed",
+  "body": "Phase: rip — makemkvcon exited with code 253",
+  "channel": {
+    "id": 2,
+    "name": "Home Assistant",
+    "type": "webhook"
+  },
+  "arm_instance_name": "hifi",
+  "sent_at": "2026-05-18T10:05:01+00:00"
+}

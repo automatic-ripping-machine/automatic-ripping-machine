@@ -1,0 +1,13 @@
+MakeMKV v1.18.3 linux(x64-release) started
+Using LibreDrive mode (v02.1 id=2AE09FD4F501)
+Using direct disc access mode
+Title #1 was added (6 cell(s), 1:16:08)
+Title #1/1 was added (6 cell(s), 1:07:16)
+Title #2 has length of 21 seconds which is less than minimum title length of 600 seconds and was therefore skipped
+Title #3 has length of 249 seconds which is less than minimum title length of 600 seconds and was therefore skipped
+Title #4 has length of 188 seconds which is less than minimum title length of 600 seconds and was therefore skipped
+Title #5 has length of 50 seconds which is less than minimum title length of 600 seconds and was therefore skipped
+Title #6 has length of 60 seconds which is less than minimum title length of 600 seconds and was therefore skipped
+Operation successfully completed
+Saving 2 titles into directory file:///tmp/test
+2 titles saved

@@ -1,0 +1,24 @@
+{
+  "id": "blue",
+  "label": "Default",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Classic blue theme — the ARM default",
+  "swatch": "#3b82f6",
+  "tokens": {
+    "--color-primary": "rgb(37, 99, 235)",
+    "--color-primary-hover": "rgb(29, 78, 216)",
+    "--color-primary-dark": "rgb(30, 64, 175)",
+    "--color-primary-light-bg": "rgb(219, 234, 254)",
+    "--color-primary-light-bg-dark": "rgb(30, 58, 138)",
+    "--color-primary-text": "rgb(29, 78, 216)",
+    "--color-primary-text-dark": "rgb(96, 165, 250)",
+    "--color-primary-border": "rgb(59, 130, 246)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(232, 240, 255)",
+    "--color-page-dark": "rgb(13, 16, 28)",
+    "--color-surface": "rgb(241, 247, 255)",
+    "--color-surface-dark": "rgb(22, 28, 45)",
+    "--radius": "0.5rem"
+  }
+}

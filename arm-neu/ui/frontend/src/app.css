@@ -1,0 +1,219 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+	--color-primary: rgb(37, 99, 235);
+	--color-primary-hover: rgb(29, 78, 216);
+	--color-primary-dark: rgb(30, 64, 175);
+	--color-primary-light-bg: rgb(219, 234, 254);
+	--color-primary-light-bg-dark: rgb(30, 58, 138);
+	--color-primary-text: rgb(29, 78, 216);
+	--color-primary-text-dark: rgb(96, 165, 250);
+	--color-primary-border: rgb(59, 130, 246);
+	--color-on-primary: rgb(255, 255, 255);
+	--color-page: rgb(232, 240, 255);
+	--color-page-dark: rgb(13, 16, 28);
+	--color-surface: rgb(241, 247, 255);
+	--color-surface-dark: rgb(22, 28, 45);
+
+	/* Status semantic colors — overrideable per theme via colorScheme tokens.
+	   Cards and badges read these via var() so themes can re-tone them
+	   independently of the primary brand color. */
+	--color-status-ripping: rgb(59, 130, 246);
+	--color-status-transcoding: rgb(139, 92, 246);
+	--color-status-finishing: rgb(245, 158, 11);
+	--color-status-waiting: rgb(234, 179, 8);
+	--color-status-scanning: rgb(6, 182, 212);
+	--color-status-success: rgb(34, 197, 94);
+	--color-status-error: rgb(239, 68, 68);
+
+	--radius-sm: calc(var(--radius) * 0.25);
+	--radius-md: calc(var(--radius) * 0.75);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) * 1.5);
+	--radius-2xl: calc(var(--radius) * 2);
+
+	--animate-indeterminate: indeterminate 1.5s ease-in-out infinite;
+}
+
+:root {
+	--radius: 0.5rem;
+}
+
+@keyframes indeterminate {
+	0% { transform: translateX(-100%); }
+	100% { transform: translateX(400%); }
+}
+
+@layer base {
+	:root {
+		color-scheme: light;
+	}
+
+	.dark {
+		color-scheme: dark;
+	}
+
+	button:not(:disabled),
+	[role="button"]:not(:disabled) {
+		cursor: pointer;
+	}
+
+	body {
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		text-rendering: optimizeLegibility;
+		@apply bg-page text-gray-900 dark:bg-page-dark dark:text-gray-100;
+	}
+
+	select option,
+	select optgroup {
+		background-color: var(--color-surface);
+		color: #111827;
+	}
+	.dark select option,
+	.dark select optgroup {
+		background-color: var(--color-surface-dark);
+		color: #fff;
+	}
+}
+
+/* ------------------------------------------------------------------ */
+/* Section Frame — themed section container with accent bar & label   */
+/* ------------------------------------------------------------------ */
+
+@layer components {
+	.section-frame {
+		--_accent: var(--frame-accent, var(--color-primary, #3b82f6));
+		border-radius: var(--radius);
+		overflow: hidden;
+	}
+
+	.section-frame-bar-top {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		height: 2rem;
+		background: var(--_accent);
+		padding: 0 1rem;
+		font-size: 0.75rem;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: #000;
+	}
+
+	.section-frame-bar-bottom {
+		height: 0.25rem;
+		background: var(--_accent);
+		opacity: 0.4;
+	}
+
+	.section-frame-sidebar {
+		display: none;
+	}
+
+	.section-frame-body {
+		padding: 0.75rem 0.5rem;
+		border-left: 2px solid color-mix(in srgb, var(--_accent) 30%, transparent);
+		border-right: 2px solid color-mix(in srgb, var(--_accent) 30%, transparent);
+	}
+
+	/* Status badge semantic colors — back the .status-* classes used by
+	   StatusBadge with the themeable --color-status-* tokens. The unknown
+	   bucket stays neutral gray (not theme-tinted on purpose). */
+	.status-scanning   { background: var(--color-status-scanning); }
+	.status-active     { background: var(--color-status-ripping); }
+	.status-finishing  { background: var(--color-status-finishing); }
+	.status-warning    { background: var(--color-status-waiting); }
+	.status-processing { background: var(--color-status-transcoding); }
+	.status-success    { background: var(--color-status-success); }
+	.status-error      { background: var(--color-status-error); }
+	.status-unknown    { @apply bg-gray-500; }
+
+	/* File icon category colors */
+	.file-icon-directory { @apply text-amber-500; }
+	.file-icon-video     { @apply text-purple-500; }
+	.file-icon-audio     { @apply text-green-500; }
+	.file-icon-image     { @apply text-blue-500; }
+	.file-icon-text      { @apply text-gray-500 dark:text-gray-400; }
+	.file-icon-archive   { @apply text-yellow-600 dark:text-yellow-500; }
+	.file-icon-other     { @apply text-gray-400 dark:text-gray-500; }
+
+	/* Setup wizard status text */
+	.setup-status-ok   { @apply text-green-600 dark:text-green-400; }
+	.setup-status-warn { @apply text-red-600 dark:text-red-400; }
+	.setup-status-off  { @apply text-gray-500 dark:text-gray-400; }
+	.setup-status-wait { @apply text-gray-400; }
+
+	/* Confirm dialog button variants */
+	.confirm-btn-danger  { @apply bg-red-600 text-white hover:bg-red-700; }
+	.confirm-btn-primary { @apply bg-primary text-on-primary hover:bg-primary/90; }
+
+	/* ------------------------------------------------------------------ */
+	/* Responsive table — stacks to cards below lg (1024px)               */
+	/*                                                                     */
+	/* Usage: add .responsive-table to the <table>. Each <td> that should  */
+	/* show a label when stacked must set data-label="Column Name".        */
+	/* The <thead> is hidden below lg; rows become cards with label cells. */
+	/* ------------------------------------------------------------------ */
+	@media (max-width: 1023.98px) {
+		.responsive-table,
+		.responsive-table thead,
+		.responsive-table tbody,
+		.responsive-table tr,
+		.responsive-table th,
+		.responsive-table td {
+			display: block;
+		}
+		.responsive-table thead {
+			position: absolute;
+			left: -9999px;
+		}
+		.responsive-table tr {
+			padding: 0.5rem 0.75rem;
+			border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 15%, transparent);
+		}
+		.responsive-table tr:last-child { border-bottom: 0; }
+		.responsive-table td {
+			padding: 0.25rem 0;
+			border: 0;
+			max-width: 100%;
+		}
+		.responsive-table td[data-label]:not([data-label=""])::before {
+			content: attr(data-label);
+			display: block;
+			color: color-mix(in srgb, currentColor 55%, transparent);
+			font-size: 0.6875rem;
+			font-weight: 500;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+			margin-bottom: 0.125rem;
+		}
+	}
+}
+
+/* Safe-area insets for mobile browsers */
+@layer utilities {
+	.safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+	.safe-top    { padding-top:    max(0.5rem, env(safe-area-inset-top));    }
+}
+
+/* Metadata grid edge-border strip — column count changes at sm/lg */
+@layer components {
+	.metadata-grid .metadata-cell:nth-child(2n) { border-right-width: 0; }
+	@media (min-width: 640px) {
+		.metadata-grid .metadata-cell:nth-child(2n) { border-right-width: 1px; }
+		.metadata-grid .metadata-cell:nth-child(3n) { border-right-width: 0; }
+	}
+	@media (min-width: 1024px) {
+		.metadata-grid .metadata-cell:nth-child(3n) { border-right-width: 1px; }
+		.metadata-grid .metadata-cell:nth-child(4n) { border-right-width: 0; }
+	}
+}
+
+/* FOUC prevention: overrides the inline visibility:hidden in app.html.
+   Must be unlayered so it beats the unlayered inline <style>. */
+body { visibility: visible; }

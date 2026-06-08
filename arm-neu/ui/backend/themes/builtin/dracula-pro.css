@@ -1,0 +1,17 @@
+[data-scheme="dracula-pro"] .section-frame {
+	border: 1px solid rgba(189, 147, 249, 0.15) !important;
+}
+[data-scheme="dracula-pro"] .section-frame-bar-top {
+	background: #44475a !important;
+	color: #f8f8f2 !important;
+}
+[data-scheme="dracula-pro"] .section-frame-bar-bottom {
+	background: #44475a !important;
+}
+[data-scheme="dracula-pro"] [data-progress-fill] {
+	background: linear-gradient(90deg, #bd93f9, #ff79c6) !important;
+}
+[data-scheme="dracula-pro"] aside nav a[data-active="true"] {
+	border-left: 2px solid #ff79c6;
+	background: rgba(189, 147, 249, 0.1) !important;
+}

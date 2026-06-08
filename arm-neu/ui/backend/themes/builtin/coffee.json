@@ -1,0 +1,25 @@
+{
+  "id": "coffee",
+  "label": "Coffee",
+  "version": 1,
+  "author": "Gemini",
+  "description": "Warm earthy tones inspired by roasted coffee beans",
+  "swatch": "#a0816c",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(160, 129, 108)",
+    "--color-primary-hover": "rgb(138, 108, 88)",
+    "--color-primary-dark": "rgb(90, 70, 55)",
+    "--color-primary-light-bg": "rgb(60, 56, 54)",
+    "--color-primary-light-bg-dark": "rgb(40, 40, 40)",
+    "--color-primary-text": "rgb(160, 129, 108)",
+    "--color-primary-text-dark": "rgb(235, 219, 178)",
+    "--color-primary-border": "rgb(160, 129, 108)",
+    "--color-on-primary": "rgb(40, 40, 40)",
+    "--color-page": "rgb(29, 32, 33)",
+    "--color-page-dark": "rgb(29, 32, 33)",
+    "--color-surface": "rgb(40, 40, 40)",
+    "--color-surface-dark": "rgb(40, 40, 40)",
+    "--radius": "0.5rem"
+  }
+}

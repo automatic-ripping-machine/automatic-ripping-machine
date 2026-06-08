@@ -1,0 +1,47 @@
+{
+  "title": "ARM rip complete",
+  "body": "Mysterysuspense ripped 2 of 7 tracks",
+  "type": "info",
+  "input_path": "movies/0519314c-a7e0-4617-94e6-f110899cfdf0",
+  "output_path": "Movies/0.Rips/Mysterysuspense",
+  "job_id": "169",
+  "video_type": "unknown",
+  "year": "",
+  "disctype": "dvd",
+  "status": "transcoding",
+  "poster_url": "",
+  "title_name": "Mysterysuspense",
+  "config_overrides": {
+    "preset_slug": "software-balanced",
+    "overrides": {
+      "shared": {"audio_encoder": "copy"},
+      "tiers": {"dvd": {"video_quality": 22}}
+    }
+  },
+  "tracks": [
+    {
+      "track_number": "0",
+      "title": "Mysterysuspense",
+      "year": "",
+      "video_type": "unknown",
+      "filename": "B1_t00.mkv",
+      "has_custom_title": false,
+      "output_path": "Movies/0.Rips/Mysterysuspense",
+      "title_name": "Mysterysuspense - Track 0",
+      "episode_number": "",
+      "episode_name": ""
+    },
+    {
+      "track_number": "1",
+      "title": "Mysterysuspense",
+      "year": "",
+      "video_type": "unknown",
+      "filename": "B1_t01.mkv",
+      "has_custom_title": false,
+      "output_path": "Movies/0.Rips/Mysterysuspense",
+      "title_name": "Mysterysuspense - Track 1",
+      "episode_number": "",
+      "episode_name": ""
+    }
+  ]
+}

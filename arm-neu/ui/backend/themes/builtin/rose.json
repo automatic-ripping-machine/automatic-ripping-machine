@@ -1,0 +1,24 @@
+{
+  "id": "rose",
+  "label": "Rose",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Soft pink tones for a rosy appearance",
+  "swatch": "#ec4899",
+  "tokens": {
+    "--color-primary": "rgb(219, 39, 119)",
+    "--color-primary-hover": "rgb(190, 24, 93)",
+    "--color-primary-dark": "rgb(157, 23, 77)",
+    "--color-primary-light-bg": "rgb(252, 231, 243)",
+    "--color-primary-light-bg-dark": "rgb(131, 24, 67)",
+    "--color-primary-text": "rgb(190, 24, 93)",
+    "--color-primary-text-dark": "rgb(244, 114, 182)",
+    "--color-primary-border": "rgb(236, 72, 153)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(252, 232, 243)",
+    "--color-page-dark": "rgb(47, 0, 23)",
+    "--color-surface": "rgb(253, 242, 249)",
+    "--color-surface-dark": "rgb(132, 28, 81)",
+    "--radius": "0.5rem"
+  }
+}

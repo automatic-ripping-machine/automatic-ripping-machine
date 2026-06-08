@@ -1,0 +1,11 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "separate-pull-requests": true,
+  "packages": {
+    "arm-neu/contracts":  { "release-type": "simple", "component": "contracts" },
+    "arm-neu/auth":       { "release-type": "simple", "component": "auth" },
+    "arm-neu/transcoder": { "release-type": "simple", "component": "transcoder" },
+    "arm-neu/ui":         { "release-type": "simple", "component": "ui" },
+    "arm-neu/ripper":     { "release-type": "simple", "component": "ripper" }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "glass",
+  "label": "Glass",
+  "version": 1,
+  "author": "ARM Team",
+  "description": "Frosted glass with gradient backdrop",
+  "swatch": "#818cf8",
+  "mode": "dark",
+  "tokens": {
+    "--color-primary": "rgb(129, 140, 248)",
+    "--color-primary-hover": "rgb(99, 102, 241)",
+    "--color-primary-dark": "rgb(67, 56, 202)",
+    "--color-primary-light-bg": "rgb(49, 46, 129)",
+    "--color-primary-light-bg-dark": "rgb(49, 46, 129)",
+    "--color-primary-text": "rgb(165, 180, 252)",
+    "--color-primary-text-dark": "rgb(165, 180, 252)",
+    "--color-primary-border": "rgb(129, 140, 248)",
+    "--color-on-primary": "rgb(255, 255, 255)",
+    "--color-page": "rgb(15, 23, 42)",
+    "--color-page-dark": "rgb(15, 23, 42)",
+    "--color-surface": "rgb(30, 27, 75)",
+    "--color-surface-dark": "rgb(30, 27, 75)",
+    "--radius": "0.5rem"
+  }
+}
