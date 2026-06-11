@@ -960,7 +960,7 @@ function SetupFolders() {
 
 function CreateAndStartService() {
   echo -e "${RED}Installing ARM service${NC}"
-  cp /opt/arm/setup/arm.service /lib/systemd/system/armui.service
+  cp /opt/arm/setup/armui.service /lib/systemd/system/armui.service
   systemctl daemon-reload
   systemctl enable armui
   systemctl start armui
