@@ -199,8 +199,8 @@ def process_handbrake_logfile(logfile, job, job_results):
     lines = read_log_line(logfile)
     for line in lines:
         # This correctly get the very last ETA and % for HandBrake
-        hb_search = re.search(r"Encoding: task (\d of \d), (\d{1,3}\.\d{2}) %.{0,40}"
-                              r"ETA ([\dhms]*?)\)(?!\\rEncod)", str(line))
+        hb_search = re.search(r"Encoding: task (\d of \d), (\d{1,3}\.\d{2}) %.*?"
+                              r"\((\d+\.\d+) fps, avg (\d+\.\d+) fps, ETA ([\dhms]*?)\)(?!\\rEncod)", str(line))
         if hb_search:
             job_status = hb_search
 
@@ -219,7 +219,9 @@ def process_handbrake_logfile(logfile, job, job_results):
         app.logger.debug(job_status.group())
         job.stage = job_status.group(1)
         job.progress = job_status.group(2)
-        job.eta = job_status.group(3)
+        job.cur_fps = job_status.group(3)
+        job.avg_fps = job_status.group(4)
+        job.eta = job_status.group(5)
         job.progress_round = int(float(job.progress))
     elif ffmpeg_job_status is not None:
         job.stage = "Transcoding"
@@ -235,6 +237,8 @@ def process_handbrake_logfile(logfile, job, job_results):
     job_results['stage'] = job.stage
     job_results['progress'] = job.progress
     job_results['eta'] = job.eta
+    job_results['cur_fps'] = getattr(job, 'cur_fps', 0)
+    job_results['avg_fps'] = getattr(job, 'avg_fps', 0)
     job_results['progress_round'] = int(float(job_results['progress']))
 
     if job_status_index:
