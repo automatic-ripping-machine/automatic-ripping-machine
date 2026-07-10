@@ -107,7 +107,7 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
     :return: None
     """
     handbrake_sleep_check(job)
-    logging.info("Starting DVD Movie main_feature processing")
+    logging.info("Starting Movie main_feature processing")
 
     filename = job.title + "." + cfg.arm_config["DEST_EXT"]
     filepathname = os.path.join(basepath, filename)
@@ -144,7 +144,7 @@ def handbrake_main_feature(srcpath, basepath, logfile, job):
 
 def handbrake_all(srcpath, basepath, logfile, job):
     """
-    Process all titles on the dvd\n
+    Process all titles on the dvd or in folder\n
     :param srcpath: Path to source for HB (dvd or files)\n
     :param basepath: Path where HB will save trancoded files\n
     :param logfile: Logfile for HB to redirect output to\n

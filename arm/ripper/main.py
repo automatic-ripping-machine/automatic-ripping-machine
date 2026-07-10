@@ -106,13 +106,11 @@ def check_fstab():
 def main():
     """main disc processing function"""
     logging.info("Starting Disc identification")
+    if job is None:
+        raise utils.RipperException("Job is null or empty")
     identify.identify(job)
-
-    # Check db for entries matching the crc and successful
-    have_dupes = utils.job_dupe_check(job)
-    logging.debug(f"Value of have_dupes: {have_dupes}")
-
     utils.notify_entry(job)
+    dupe_check(job)
     # Check if user has manual wait time enabled
     utils.check_for_wait(job)
 
@@ -122,7 +120,9 @@ def main():
     # Ripper type assessment for the various media types
     # Type: dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
-        arm_ripper.rip_visual_media(have_dupes, job, log_file, job.has_track_99)
+        raw_out, skip_transcode = arm_ripper.rip_visual_media(job, log_file, job.has_track_99)
+        transcode_out = arm_ripper.transcode_visual_media(job, log_file, raw_out, skip_transcode)
+        arm_ripper.post_process_ripping_job_cleanup(job, transcode_out, raw_out)
 
     # Type: Music
     elif job.disctype == "music":
@@ -232,6 +232,18 @@ def setup():
     utils.clean_old_jobs()
     # Log all params/attribs from the drive
     log_udev_params(devpath)
+
+
+def dupe_check(job: Job):
+    # --- Duplicate Check -----
+    # Check db for any ongoing jobs that match the Label
+    dupes = utils.get_all_dupe_jobs(job)
+    if dupes is not None and len(dupes) > 0:
+        logging.debug(f"{len(dupes)} dupes found")
+        for dupe in dupes:
+            logging.debug(f"{dupe}")
+        if utils.check_if_dupe_should_exit_early(job):
+            raise utils.RipperException("Job killed due to Duplicate check")
 
 
 if __name__ == "__main__":
