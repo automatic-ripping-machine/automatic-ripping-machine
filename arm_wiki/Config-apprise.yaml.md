@@ -94,12 +94,14 @@ If you would like a services added to ARM that is not yet listed here, please op
 
 ## Service Specific Configurations
 
-- **Gotify**
-    - The Gotify settings expect a server address in one of the following formats:
-    ```
-    https://[GOTIFY-IP-ADDRESS]
-    http://[GOTIFY-IP-ADDRESS]
-    ```
-    - Use **https** if your Gotify server is configured with SSL/TLS (**secure connection**).
-    - Use **http** if your Gotify server is **not** configured with SSL/TLS (**insecure connection**).
-  
+### **Gotify**
+
+The Gotify settings expect a server address in one of the following formats:
+
+```
+gotifys://[GOTIFY-ADDRESS]
+gotify://[GOTIFY-ADDRESS]
+```
+
+- Use **gotifys** if your Gotify server is configured with SSL/TLS (**secure connection**).
+- Use **gotify** if your Gotify server is **not** configured with SSL/TLS (**insecure connection**).

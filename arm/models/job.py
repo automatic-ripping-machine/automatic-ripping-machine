@@ -19,6 +19,27 @@ from arm.models.track import Track  # noqa: F401
 from arm.models.config import Config  # noqa: F401
 
 
+def _disc_dir_exists(mountpoint, name):
+    """Check if a directory name exists in a disc mountpoint.
+
+    Uses os.listdir on the parent rather than os.path.isdir on the target,
+    to handle burned UDF discs where the directory entry is visible in the
+    listing but os.stat() fails with a stale file handle.
+    """
+    try:
+        return name.upper() in [e.upper() for e in os.listdir(mountpoint)]
+    except OSError:
+        return False
+
+
+def _listdir_safe(path):
+    """Return os.listdir(path), or [] if the path is inaccessible."""
+    try:
+        return os.listdir(path)
+    except OSError:
+        return []
+
+
 class JobState(str, enum.Enum):
     """Possible states for Job.status.
 
@@ -136,7 +157,7 @@ class Job(db.Model):
     def __init__(self, devpath):
         """Return a disc object"""
         self.devpath = devpath
-        self.mountpoint = "/mnt" + devpath
+        self.mountpoint = ""
         self.hasnicetitle = False
         self.video_type = "unknown"
         self.ejected = False
@@ -208,22 +229,16 @@ class Job(db.Model):
         if self.disctype == "music":
             logging.debug("Disc is music.")
             self.label = music_brainz.main(self)
-        elif (os.path.isdir(self.mountpoint + "/AUDIO_TS")
-              and len(os.listdir(self.mountpoint + "/AUDIO_TS")) > 0) \
-            or (os.path.isdir(self.mountpoint + "/audio_ts")
-                and len(os.listdir(self.mountpoint + "/audio_ts")) > 0):
+        elif _disc_dir_exists(self.mountpoint, "AUDIO_TS") and _listdir_safe(self.mountpoint + "/AUDIO_TS"):
             logging.debug(f"Found: {self.mountpoint}/AUDIO_TS")
             self.disctype = "data"
-        elif os.path.isdir(self.mountpoint + "/VIDEO_TS"):
+        elif _disc_dir_exists(self.mountpoint, "VIDEO_TS"):
             logging.debug(f"Found: {self.mountpoint}/VIDEO_TS")
             self.disctype = "dvd"
-        elif os.path.isdir(self.mountpoint + "/video_ts"):
-            logging.debug(f"Found: {self.mountpoint}/video_ts")
-            self.disctype = "dvd"
-        elif os.path.isdir(self.mountpoint + "/BDMV"):
+        elif _disc_dir_exists(self.mountpoint, "BDMV"):
             logging.debug(f"Found: {self.mountpoint}/BDMV")
             self.disctype = "bluray"
-        elif os.path.isdir(self.mountpoint + "/HVDVD_TS"):
+        elif _disc_dir_exists(self.mountpoint, "HVDVD_TS"):
             logging.debug(f"Found: {self.mountpoint}/HVDVD_TS")
             # do something here
         elif found_hvdvd_ts:
@@ -248,16 +263,10 @@ class Job(db.Model):
         logging.debug(f"mm_title: {mb_title}")
 
         if mb_title == "not identified":
-            self.label = self.title = "not identified"
-            logfile = "music_cd.log"
-            new_log_file = f"music_cd_{round(time.time() * 100)}.log"
+            self.label = self.title = mb_title
+            return "music_cd"
         else:
-            logfile = f"{mb_title}.log"
-            new_log_file = f"{mb_title}_{round(time.time() * 100)}.log"
-
-        temp_log_full = os.path.join(cfg.arm_config['LOGPATH'], logfile)
-        logfile = new_log_file if os.path.isfile(temp_log_full) else logfile
-        return logfile
+            return mb_title
 
     def pretty_table(self):
         """Returns a string of the prettytable"""
@@ -295,9 +304,7 @@ class Job(db.Model):
             logging.info("Skipping auto eject")
             self.drive.release_current_job()  # release job without ejecting
             return
-        # release job from drive after ejecting
-        if (error := self.drive.eject(method="eject", logger=logging)) is not None:
-            logging.debug(f"{self.devpath} couldn't be ejected: {error}")
+        self.drive.eject()
         self.ejected = True
 
     @hybrid_property

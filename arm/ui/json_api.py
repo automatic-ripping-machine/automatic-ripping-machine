@@ -6,10 +6,12 @@ import os
 import subprocess
 import re
 import html
+from collections import deque
 from pathlib import Path
 import datetime
 import psutil
 from flask import request
+from time import time, strftime, gmtime
 
 import arm.config.config as cfg
 from arm.models.config import Config
@@ -104,6 +106,22 @@ def percentage(part, whole):
     return percent
 
 
+def find_last_regex_match(pattern, iterable):
+    """
+    Find the last matching regex pattern in a given iterable
+    """
+    regex = re.compile(pattern)
+    if isinstance(iterable, (list, tuple, str)):
+        reversed_iterable = reversed(iterable)
+    else:
+        reversed_iterable = reversed(list(iterable))
+    for item in reversed_iterable:
+        retval = regex.search(item)
+        if retval:
+            return retval
+    return None
+
+
 def process_makemkv_logfile(job, job_results):
     """
     Process the logfile and find current status and job progress percent\n
@@ -111,12 +129,14 @@ def process_makemkv_logfile(job, job_results):
     """
     job_progress_status = None
     job_stage_index = None
-    progress_log = os.path.join(job.config.LOGPATH, 'progress', str(job.job_id)) + '.log'
-    lines = read_log_line(progress_log)
+    batch_log_path = os.path.join(cfg.arm_config['LOGPATH'], 'progress', str(job.job_id)) + '.log.batchinfo'
+    lines = read_log_line(os.path.join(cfg.arm_config['LOGPATH'], 'progress', str(job.job_id)) + '.log')
+    batch_index = read_log_line(batch_log_path)
     # Correctly get last entry for progress bar
-    for line in lines:
-        job_progress_status = re.search(r"PRGV:(\d{3,}),(\d+),(\d{3,})", str(line))
-        job_stage_index = re.search(r"PRGC:\d+,(\d+),\"([\w -]{2,})\"", str(line))
+
+    job_progress_status = find_last_regex_match(r"PRGV:(\d{3,}),(\d+),(\d{3,})", lines)
+    job_stage_index = find_last_regex_match(r"PRGC:(\d+),(\d+),\"([\w -]{2,})\"", lines)
+    job_batch_info = find_last_regex_match(r"BINF:(\d{10}),(\d+),(\d+),(\d+)", batch_index)
 
     if job_progress_status is not None:
         app.logger.debug(f"job_progress_status: {job_progress_status}")
@@ -124,19 +144,43 @@ def process_makemkv_logfile(job, job_results):
             f"{percentage(job_progress_status.group(1), job_progress_status.group(3)):.2f}"
         job.progress_round = percentage(job_progress_status.group(1),
                                         job_progress_status.group(3))
+        job_start_time = int(job_batch_info.group(1))
+        current_time = int(time())
+        elapsed_time = current_time - job_start_time
+        total_time = int((elapsed_time * 100) / float(job.progress))
+        time_remaining = total_time - elapsed_time
+        app.logger.debug(f"ETA values for job {job.job_id}: Elapsed seconds: {elapsed_time}, "
+                         f"Percent: {job.progress}, "
+                         f"Projected time: {total_time}, "
+                         f"Time remaining: {time_remaining}"
+                         )
+        job.eta = strftime("%Hh%Mm%Ss", gmtime(time_remaining))
     else:
         app.logger.debug(f"Job [{job.job_id}] MakeMKV status not defined - setting progress to 0%")
         job.progress = job.progress_round = job_results['progress'] = 0
+        job.eta = "Unknown"
 
     if job_stage_index is not None:
         try:
-            current_index = f"{(int(job_stage_index.group(1)) + 1)}/{job.no_of_titles} - {job_stage_index.group(2)}"
+            if job_batch_info.group(4) != job_stage_index.group(1):
+                app.logger.debug(f"Appending new batch position info for job {job.job_id}: "
+                                 f"BINF:{int(time())},"
+                                 f"{job_batch_info.group(2)},"
+                                 f"{job_batch_info.group(3)},"
+                                 f"{job_stage_index.group(1)}"
+                                 )
+                with open(batch_log_path, 'a') as f:
+                    f.write(f"\nBINF:{int(time())},"
+                            f"{job_batch_info.group(2)},"
+                            f"{job_batch_info.group(3)},"
+                            f"{job_stage_index.group(1)}"
+                            )
+            app.logger.debug(f"job_stage_index: {job_stage_index}")
+            current_index = f"Track {job_batch_info.group(2)}/{job_batch_info.group(3)}<br>{job_stage_index.group(3)}"
             job.stage = job_results['stage'] = current_index
             db.session.commit()
         except Exception as error:
             job.stage = f"Unknown -  {error}"
-
-    job.eta = "Unknown"
 
     return job_results
 
@@ -155,8 +199,8 @@ def process_handbrake_logfile(logfile, job, job_results):
     lines = read_log_line(logfile)
     for line in lines:
         # This correctly get the very last ETA and % for HandBrake
-        hb_search = re.search(r"Encoding: task (\d of \d), (\d{1,3}\.\d{2}) %.{0,40}"
-                              r"ETA ([\dhms]*?)\)(?!\\rEncod)", str(line))
+        hb_search = re.search(r"Encoding: task (\d of \d), (\d{1,3}\.\d{2}) %.*?"
+                              r"\((\d+\.\d+) fps, avg (\d+\.\d+) fps, ETA ([\dhms]*?)\)(?!\\rEncod)", str(line))
         if hb_search:
             job_status = hb_search
 
@@ -175,7 +219,9 @@ def process_handbrake_logfile(logfile, job, job_results):
         app.logger.debug(job_status.group())
         job.stage = job_status.group(1)
         job.progress = job_status.group(2)
-        job.eta = job_status.group(3)
+        job.cur_fps = job_status.group(3)
+        job.avg_fps = job_status.group(4)
+        job.eta = job_status.group(5)
         job.progress_round = int(float(job.progress))
     elif ffmpeg_job_status is not None:
         job.stage = "Transcoding"
@@ -191,6 +237,8 @@ def process_handbrake_logfile(logfile, job, job_results):
     job_results['stage'] = job.stage
     job_results['progress'] = job.progress
     job_results['eta'] = job.eta
+    job_results['cur_fps'] = getattr(job, 'cur_fps', 0)
+    job_results['avg_fps'] = getattr(job, 'avg_fps', 0)
     job_results['progress_round'] = int(float(job_results['progress']))
 
     if job_status_index:
@@ -248,18 +296,18 @@ def calc_process_time(starttime, cur_iter, max_iter):
     return f"{str(test).split('.', maxsplit=1)[0]} - @{finish_time.strftime('%H:%M:%S')}"
 
 
-def read_log_line(log_file):
+def read_log_line(log_file: os.PathLike):
     """
-    Try to catch if the logfile gets delete before the job is finished\n
-    :param log_file:
-    :return:
+    :param log_file: path to log file
+    :return: the last 20 lines of the file at ``log_file``
     """
     try:
-        line = subprocess.check_output(['tail', '-n', '20', log_file]).splitlines()
-    except subprocess.CalledProcessError:
+        with open(log_file, encoding="utf8", errors="ignore") as read_log_file:
+            lines = deque(read_log_file, maxlen=100)
+    except OSError:
         app.logger.debug(f"Error while reading {log_file}, unable to calculate ETA")
-        line = ["", ""]
-    return line
+        lines = ["", ""]
+    return lines
 
 
 def read_all_log_lines(log_file):

@@ -12,7 +12,7 @@ This requires you to build an image from source.
   -run `sudo mkdir -p /mnt/dev/sr0` and repeat for each device, e.g., sr1, sr2, etc  
   -edit fstab and add an entry for each drive, incrementing the sr* number for each  
   `sudo nano /etc/fstab`     
-  `/dev/sr0  /mnt/dev/sr0  udf,iso9660  users,noauto,exec,utf8  0  0`
+  `/dev/sr0  /mnt/dev/sr0  udf,iso9660  defaults,users,utf8,ro  0  0`
 
 ### Add the arm user and group (Recommended)
 This help with permission issues, and isolates A.R.M to its own user.

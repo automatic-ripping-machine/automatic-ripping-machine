@@ -321,3 +321,18 @@ html[data-theme="dark"] .bg-light {
   background-color: #3a3f44;
   border-top: 1px solid #272b30;
 }
+
+/* ---------- Toasts ---------- */
+[data-theme="dark"] .toast-header {
+  background-color: #3a3f44;
+  color: #e0e0e0;
+
+  .close {
+    color: #e0e0e0;
+  }
+}
+
+[data-theme="dark"] .toast-body {
+  background-color: #454748;
+  color: #e0e0e0;  
+}

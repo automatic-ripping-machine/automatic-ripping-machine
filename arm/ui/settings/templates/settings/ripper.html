@@ -9,7 +9,10 @@
                         <span class="input-group-text" id="{{ k }}">{{ k }}: </span>
                     </div>
                     <input type="text" class="form-control" aria-label="{{ k }}" name="{{ k }}"
-                           placeholder="{{ v }}" value="{{ v }}" aria-describedby="{{ k }}">
+                           placeholder="{{ v }}" value="{{ v }}" aria-describedby="{{ k }}"
+                           {% if ripper_read_only %}
+                             disabled="" title="arm.yaml is read-only"
+                           {% endif %}>
                     <a class="popovers" onClick='return false;' href=""
                        data-content="{{ jsoncomments[k]| replace("#", "\n") }}" rel="popover"
                        data-placement="top" data-original-title="{{ k }}">

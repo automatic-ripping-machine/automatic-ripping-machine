@@ -67,7 +67,9 @@ function updateProgress(job, oldJob) {
                              </small></div></div>`;
     const mainProgressBar = `<div id="jobId${job.job_id}_stage"><b>Stage: </b>${job.stage}</div>
                              <div id="jobId${job.job_id}_progress" ><div class="progress">${subProgressBar}</div>
-                             <div id="jobId${job.job_id}_eta"><b>ETA: </b>${job.eta}</div>`;
+                             <div id="jobId${job.job_id}_eta"><b>ETA: </b>${job.eta}</div>
+                             <div id="jobId${job.job_id}_cur_fps"><b>CUR FPS: </b>${job.cur_fps}</div>
+                             <div id="jobId${job.job_id}_avg_fps"><b>AVG FPS: </b>${job.avg_fps}</div>`;
     const progressSection = $(`#jobId${job.job_id}_progress_section`);
     const stage = $(`#jobId${job.job_id}_stage`);
     const eta = $(`#jobId${job.job_id}_eta`);
@@ -90,6 +92,23 @@ function updateProgress(job, oldJob) {
             }
             updateContents(stage, job, "Stage", job.stage);
             updateContents(eta, job, "ETA", job.eta);
+
+            const curFpsDiv = $(`#jobId${job.job_id}_cur_fps`);
+            const avgFpsDiv = $(`#jobId${job.job_id}_avg_fps`);
+
+            if (job.cur_fps === undefined || job.cur_fps === '-1') {
+                curFpsDiv.hide();
+            } else {
+                curFpsDiv.show();
+                updateContents(curFpsDiv, job, "CUR FPS", job.cur_fps);
+            }
+
+            if (job.avg_fps === undefined || job.avg_fps === '-1') {
+                avgFpsDiv.hide();
+            } else {
+                avgFpsDiv.show();
+                updateContents(avgFpsDiv, job, "AVG FPS", job.avg_fps);
+            }
         }
     }
 }

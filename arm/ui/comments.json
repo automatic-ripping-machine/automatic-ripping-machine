@@ -32,7 +32,6 @@
   "METADATA_PROVIDER": "# This selects the metadata provider, Each provider has their own ups and downs\n# But a general rule would be \n# OMDB for movies and shows \n# TMDB for movies only\n# You will still need to provide an api key for the provider you have selected",
   "GET_AUDIO_TITLE": "# Set to one of \"none\", \"musicbrainz\", \"freecddb\"\n# if \"musicbrainz\" is used the disc information are asked from musicbrainz.org\n# if \"none\" is used no label is identified",
   "RIP_POSTER": "# Rip DVD Posters from JACKET_P folder\n# Requires FFmpeg",
-  "UNIDENTIFIED_EJECT": "# Auto-eject unidentified discs (blank etc)\n# May want to set this to false on certain (Pioneer slim) drives to prevent the immediate eject\n# issue (https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/779)",
   "AUTO_EJECT": "# Auto-ejects disks\n# Auto-ejects disks when complete etc\n# Set to false to disable auto-ejection",
   "ABCDE_CONFIG_FILE": "# Location of your ABCDE config file",
   "RAW_PATH": "# Path to raw MakeMKV directory\n# Destination for MakeMKV and source for HandBrake",

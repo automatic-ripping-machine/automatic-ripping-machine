@@ -6,6 +6,7 @@
    - **Docker**
        - [Pull prebuilt image](docker)
        - [Build from Dockerfile](Building-ARM-docker-image-from-source)
+       - [Podman prebuilt image](Podman-prebuilt-image)
 
    - **Manual Install**
      - See Alternate Installations
@@ -43,7 +44,7 @@
      - [Debian](Alternate-Install-Debian)
      - [Open Media Vault](Alternate-Install-OMV)
      - [TrueNAS](Alternate-Install-TrueNAS)
-
+     - [macOS with UTM (Docker)](Alternate-Install-macOS-UTM)
 
 **Hardware Configuration**
    - [Adding Intel QSV Support](Hardware-Transcode-Intel-QSV)

@@ -4,36 +4,51 @@ The main runner for Automatic Ripping Machine
 
 For help please visit https://github.com/automatic-ripping-machine/automatic-ripping-machine
 """
-import sys
 import argparse  # noqa: E402
-import os  # noqa: E402
 import logging  # noqa: E402
-import logging.handlers  # noqa: E402
+import sys
 import time  # noqa: E402
 import datetime  # noqa: E402
 import re  # noqa: E402
-import getpass  # noqa E402
+from argparse import Namespace
+from importlib.util import find_spec
+from pathlib import Path
+from signal import signal, SIGTERM
+from typing import Optional
+
 import pyudev  # noqa: E402
-import psutil  # noqa E402
 
-# set the PATH to /opt/arm so we can handle imports properly
-sys.path.append("/opt/arm")
+# If the arm module can't be found, add the folder this file is in to PYTHONPATH
+# This is a bad workaround for non-existent packaging
+if find_spec("arm") is None:
+    sys.path.append(str(Path(__file__).parents[2]))
 
-from arm.ripper import logger, utils, identify, arm_ripper, music_brainz  # noqa: E402
 import arm.config.config as cfg  # noqa E402
 from arm.models.config import Config  # noqa: E402
 from arm.models.job import Job, JobState  # noqa: E402
 from arm.models.system_drives import SystemDrives  # noqa: E402
-from arm.ui import app, db, constants  # noqa E402
-from arm.ui.settings import DriveUtils as drive_utils # noqa E402
-import arm.config.config as cfg  # noqa E402
+from arm.ripper import (arm_ripper, identify, logger,  # noqa: E402
+                        music_brainz, utils)
 from arm.ripper.ARMInfo import ARMInfo  # noqa E402
+from arm.ui import app, constants, db  # noqa E402
+from arm.ui.settings import DriveUtils as drive_utils  # noqa E402
+
+job: Optional[Job] = None
+args: Optional[Namespace] = None
+log_file: Optional[str] = None
 
 
 def entry():
     """ Entry to program, parses arguments"""
     parser = argparse.ArgumentParser(description='Process disc using ARM')
     parser.add_argument('-d', '--devpath', help='Devpath', required=True)
+    parser.add_argument(
+        "--syslog",
+        help="Log to /dev/log",
+        required=False,
+        default=True,
+        action=argparse.BooleanOptionalAction,
+    )
     return parser.parse_args()
 
 
@@ -88,7 +103,7 @@ def check_fstab():
     logging.error("No fstab entry found.  ARM will likely fail.")
 
 
-def main(logfile, job):
+def main():
     """main disc processing function"""
     logging.info("Starting Disc identification")
     identify.identify(job)
@@ -107,23 +122,22 @@ def main(logfile, job):
     # Ripper type assessment for the various media types
     # Type: dvd/bluray
     if job.disctype in ["dvd", "bluray"]:
-        arm_ripper.rip_visual_media(have_dupes, job, logfile, job.has_track_99)
+        arm_ripper.rip_visual_media(have_dupes, job, log_file, job.has_track_99)
 
     # Type: Music
     elif job.disctype == "music":
         # Try to recheck music disc for auto ident
         music_brainz.main(job)
-        if utils.rip_music(job, logfile):
+        if utils.rip_music(job, log_file):
             utils.notify(job, constants.NOTIFY_TITLE, f"Music CD: {job.title} {constants.PROCESS_COMPLETE}")
             utils.scan_emby()
             # This shouldn't be needed. but to be safe
             job.status = JobState.SUCCESS.value
             db.session.commit()
         else:
-            logging.info("Music rip failed.  See previous errors.  Exiting. ")
+            logging.critical("Music rip failed.  See previous errors.  Exiting. ")
             job.status = JobState.FAILURE.value
             db.session.commit()
-        job.eject()
 
     # Type: Data
     elif job.disctype == "data":
@@ -131,28 +145,37 @@ def main(logfile, job):
         if utils.rip_data(job):
             utils.notify(job, constants.NOTIFY_TITLE, f"Data disc: {job.label} copying complete. ")
         else:
-            logging.info("Data rip failed.  See previous errors.  Exiting.")
-        job.eject()
+            logging.critical("Data rip failed.  See previous errors.  Exiting.")
 
     # Type: undefined
     else:
-        logging.info("Couldn't identify the disc type. Exiting without any action.")
+        logging.critical("Couldn't identify the disc type. Exiting without any action.")
 
 
-if __name__ == "__main__":
-    # Setup base logger - will log to /var/log/arm.log, /home/arm/logs/arm.log & stdout
-    # This will catch any permission errors
-    arm_log = logger.create_logger("ARM", logging.DEBUG, True, True, True)
-    # Make sure all directories are fully setup
-    utils.arm_setup(arm_log)
+def setup():
+    global job
+    global args
+    global log_file
+
+    def signal_handler(_signal, _frame_type):
+        raise utils.RipperException("Received SIGTERM")
+
+    # Handle SIGTERM so we can exit gracefully. Without this, no except: or finally: blocks are
+    # run and the program exits immediately, potentially leaving the database in an invalid state.
+    signal(SIGTERM, signal_handler)
+
     # Get arguments from arg parser
     args = entry()
     devpath = f"/dev/{args.devpath}"
+    # Setup base logger - will log to <log directory>/arm.log, syslog & stdout
+    # This will catch any permission errors
+    arm_log = logger.create_early_logger(syslog=args.syslog)
+    # Make sure all directories are fully setup
+    utils.arm_setup(arm_log)
     drive = SystemDrives.query.filter_by(mount=devpath).one()  # unique mounts
 
     # With some drives and some disks, there is a race condition between creating the Job()
     # below and the drive being ready, so give it a chance to get ready (observed with LG SP80NB80)
-    ready_count = 1
     for num in range(1, 11):
         drive.tray_status()
         if drive.ready:
@@ -160,23 +183,14 @@ if __name__ == "__main__":
         msg = f"[{num} of 10] Drive [{drive.mount}] appears to be empty or is not ready. Waiting 1s"
         logging.info(msg)
         time.sleep(1)
-    else:
-        # This should really never trigger now as arm_wrapper should be taking care of this.
-        msg = f"Failed to wait for drive ready (ioctl tray status: {drive.tray})."
-        logging.info(msg)
-        arm_log.info(msg)
-        sys.exit()
+    else:  # no break
+        raise utils.RipperException(f"Timed out waiting for drive to be ready (ioctl tray status: {drive.tray}).")
 
     # ARM Job starts
     # Create new job
     job = Job(devpath)
     # Setup logging
-    log_file = logger.setup_logging(job)
-
-    # Don't put out anything if we are using the empty.log NAS_[0-9].log or NAS1_[0-9].log
-    if log_file.find("empty.log") != -1 or re.search(r"(NAS|NAS1)_\d+\.log", log_file) is not None:
-        arm_log.info("ARM is trying to write a job to the empty.log, or NAS**.log")
-        sys.exit()
+    log_file = logger.setup_job_log(job)
 
     # Capture and report the ARM Info
     arminfo = ARMInfo(cfg.arm_config["INSTALLPATH"], cfg.arm_config['DBFILE'])
@@ -206,35 +220,58 @@ if __name__ == "__main__":
         job.manual_mode = False
         db.session.commit()
     utils.database_adder(config)
-    # Log version number
-    with open(os.path.join(cfg.arm_config["INSTALLPATH"], 'VERSION')) as version_file:
-        version = version_file.read().strip()
 
-    # Delete old log files
-    logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])
+    try:
+        # Delete old log files
+        logger.clean_up_logs(cfg.arm_config["LOGPATH"], cfg.arm_config["LOGLIFE"])
+    except Exception as error:
+        logging.error(error, exc_info=True)
+
     logging.info(f"Job: {job.label}")  # This will sometimes be none
     # Check for zombie jobs and update status to 'failed'
     utils.clean_old_jobs()
     # Log all params/attribs from the drive
     log_udev_params(devpath)
 
+
+if __name__ == "__main__":
+    job = None
     try:
-        main(log_file, job)
+        setup()
+        main()
     except Exception as error:
-        logging.error(error, exc_info=True)
-        logging.error("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
-        utils.notify(job, constants.NOTIFY_TITLE, "ARM encountered a fatal error processing "
-                                                  f"{job.title}. Check the logs for more details. {error}")
+        logging.critical("A fatal error has occurred and ARM is exiting.")
+        print_stacktrace = (
+            logging.getLogger().getEffectiveLevel() == logging.DEBUG
+            or not isinstance(error, utils.RipperException)
+        )
+        logging.critical(error, exc_info=(error if print_stacktrace else None),)
+
+        if job:
+            utils.notify(
+                job,
+                constants.NOTIFY_TITLE,
+                f"ARM encountered a fatal error processing {job.title}. "
+                f"Check the logs for more details. {error}"
+            )
+        else:
+            utils.notify(
+                job,
+                constants.NOTIFY_TITLE,
+                f"ARM encountered a fatal error during job setup."
+                f"Check the logs for more details. {error}"
+            )
         job.status = JobState.FAILURE.value
         job.errors = str(error)
         # Possibly add cleanup section here for failed job files
     else:
         job.status = JobState.SUCCESS.value
     finally:
-        job.eject()  # each job stores its eject status, so it is safe to call.
-        job.stop_time = datetime.datetime.now()
-        job_length = job.stop_time - job.start_time
-        minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
-        hours, minutes = divmod(minutes, 60)
-        job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
+        if job:
+            job.eject()  # each job stores its eject status, so it is safe to call.
+            job.stop_time = datetime.datetime.now()
+            job_length = job.stop_time - job.start_time if job.start_time else 0
+            minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
+            hours, minutes = divmod(minutes, 60)
+            job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
         db.session.commit()

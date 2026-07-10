@@ -74,7 +74,7 @@ sudo ln -sf /etc/.abcde.conf /etc/arm/config/abcde.conf
   Create entries in /etc/fstab to allow non-root to mount dvd-roms
   Example (create for each optical drive you plan on using for ARM):
   ```
-  /dev/sr0  /mnt/dev/sr0  udf,iso9660  users,noauto,exec,utf8  0  0
+  /dev/sr0  /mnt/dev/sr0  udf,iso9660  defaults,users,utf8,ro  0  0
   ```
 
 

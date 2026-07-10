@@ -70,7 +70,8 @@ def build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile,
     if main_feature:
         cmd += "--main-feature "
 
-    cmd += f"--preset \"{hb_preset}\" "
+    if hb_preset:
+        cmd += f"--preset \"{hb_preset}\" "
 
     if track_number is not None:
         cmd += f"-t {track_number} "

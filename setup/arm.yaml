@@ -109,12 +109,6 @@ GET_AUDIO_TITLE: "musicbrainz"
 # Requires FFmpeg
 RIP_POSTER: false
 
-# Auto-eject unidentified discs (blank etc)
-# May want to set this to false on certain (Pioneer slim) drives to prevent the immediate eject
-# issue (https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/779)
-UNIDENTIFIED_EJECT: true
-
-
 # Auto-ejects disks
 # Auto-ejects disks when complete etc
 # Set to false to disable auto-ejection

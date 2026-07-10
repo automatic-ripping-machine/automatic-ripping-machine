@@ -6,8 +6,9 @@ import fcntl
 import logging
 import os
 import re
-import subprocess
+from subprocess import CalledProcessError
 
+from arm.ripper.ProcessHandler import arm_subprocess
 from arm.ui import db
 
 
@@ -203,7 +204,7 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
         """Drive has medium loaded and is ready for reading."""
         return self.tray == CDS.DISC_OK
 
-    def eject(self, logger=logging, method="eject"):
+    def eject(self, method="eject"):
         """Open or close the drive
 
         Uses [eject](https://man7.org/linux/man-pages/man1/eject.1.html)
@@ -216,7 +217,7 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
         Returns
         -------
         str or None
-            Returns `None` if no (known) error occured and `str` with the error
+            Returns `None` if no (known) error occurred and `str` with the error
             message otherwise.
         """
         methods = {
@@ -227,16 +228,11 @@ class SystemDrives(db.Model):  # pylint: disable=too-many-instance-attributes
         options = ["--cdrom", "--scsi"]  # exclude floppy and tape drives
         cmd = ["eject", "--verbose"] + options + methods[method] + [self.mount]
         try:
-            proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        except subprocess.CalledProcessError as err:
-            logger.debug(err.stdout)
-            logger.error(err.stderr)
+            arm_subprocess(cmd, check=True)
+        except CalledProcessError as err:
             return err.stderr
-        else:
-            logger.debug(proc.stdout)
         finally:
             self.release_current_job()
-        return None
 
     def debug(self, logger=logging):
         """

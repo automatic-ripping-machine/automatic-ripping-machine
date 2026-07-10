@@ -13,20 +13,17 @@ import enum
 import itertools
 import logging
 import os
-import subprocess
-
 import shlex
 import shutil
-from time import sleep
+import subprocess
+from time import sleep, time
 
-from arm.models import Track, SystemDrives
+import arm.config.config as cfg
+from arm.models import SystemDrives, Track
 from arm.models.job import JobState
 from arm.ripper import utils
-from arm.ui import db
-import arm.config.config as cfg
-
 from arm.ripper.utils import notify
-
+from arm.ui import db
 
 MAKEMKV_INFO_WAIT_TIME = 60  # [s]
 """Wait for concurrent MakeMKV info processes.
@@ -184,7 +181,9 @@ class TrackID(enum.IntEnum):
     """
     Definition of the Track ID and its reference to the stored content
     """
+    CHAPTERS = 8
     DURATION = 9
+    FILESIZE = 11
     FILENAME = 27
 
 
@@ -594,9 +593,9 @@ def makemkv_info(job, select=None, index=9999, options=None):
     if not isinstance(options, list):
         raise TypeError(options)
     # 1MB cache size to get info on the specified disc(s)
-    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}"]
+    info_options = ["info", "--cache=1"] + options + [f"disc:{index:d}", f"--minlength={job.config.MINLENGTH}"]
     wait_time = job.config.MANUAL_WAIT_TIME
-    max_processes = job.config.MAX_CONCURRENT_MAKEMKVINFO
+    max_processes = cfg.arm_config["MAX_CONCURRENT_MAKEMKVINFO"]
     job.status = JobState.VIDEO_WAITING.value
     db.session.commit()
     utils.sleep_check_process("makemkvcon", max_processes, sleep=(10, wait_time, 10))
@@ -669,8 +668,9 @@ def makemkv_mkv(job, rawpath):
     get_track_info(job.drive.mdisc, job)
     # route to ripping functions.
     if job.config.MAINFEATURE:
-        logging.info("Trying to find mainfeature")
-        track = Track.query.filter_by(job_id=job.job_id).order_by(Track.length.desc()).first()
+        logging.info("Trying to find mainfeature (sorting by chapters desc, filesize desc, track_number asc)")
+        track = Track.query.filter_by(job_id=job.job_id).order_by(
+            Track.chapters.desc(), Track.filesize.desc(), Track.track_number.asc()).first()
         rip_mainfeature(job, track, rawpath)
     elif mode == 'manual':  # Run if mode is manual, user selects tracks
         # Set job status to waiting
@@ -688,8 +688,8 @@ def makemkv_mkv(job, rawpath):
             message = "You left me alone in the cold and dark, I forgot who I was. Your job has been abandoned."
             notify(job, title, message)
 
-            # Setting rawpath to None to set the job as failed when returning to arm_ripper
-            rawpath = None
+            raise utils.RipperException("Manual mode: Timed out waiting for user input")
+
     # if no maximum length, process the whole disc in one command
     elif int(job.config.MAXLENGTH) > 99998:
         cmd = [
@@ -722,14 +722,28 @@ def makemkv(job):
     prep_mkv()
     logging.info(f"Starting MakeMKV rip. Method is {job.config.RIPMETHOD}")
     # get MakeMKV disc number
-    if job.drive.mdisc is None:
+    # Fix: Check if job.drive is None before accessing job.drive.mdisc
+    if job.drive is None or job.drive.mdisc is None:
         logging.debug("Storing new MakeMKV disc numbers to database.")
+        disc_index = None
         with db.session.no_autoflush:
             for drive in get_drives(job):
                 for db_drive in SystemDrives.query.filter_by(mount=drive.mount).all():
                     db_drive.mdisc = drive.index
                     db.session.add(db_drive)
+                    # Track disc index for current job's device
+                    if drive.mount == job.devpath:
+                        disc_index = drive.index
         db.session.commit()
+        # Refresh job to get updated drive relationship
+        db.session.refresh(job)
+        # If job.drive is still None after refresh, log warning with available info
+        if job.drive is None:
+            if disc_index is not None:
+                logging.warning(f"job.drive is None but found disc index {disc_index} for {job.devpath}")
+            else:
+                logging.error(f"Could not find drive for {job.devpath}")
+                raise ValueError(f"No drive found for device {job.devpath}")
     logging.info(f"MakeMKV disc number: {job.drive.mdisc:d}")
     # get filesystem in order
     rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
@@ -784,9 +798,9 @@ def process_single_tracks(job, rawpath, mode: str):
         mode: drive mode (auto or manual)
     """
     # process one track at a time based on track length
-    for track in job.tracks:
+    if mode == 'auto':
         # Process single track automatically based on start and finish times
-        if mode == 'auto':
+        for track in job.tracks:
             if track.length < int(job.config.MINLENGTH):
                 # too short
                 logging.info(f"Track #{track.track_number} of {job.no_of_titles}. Length ({track.length}) "
@@ -803,25 +817,42 @@ def process_single_tracks(job, rawpath, mode: str):
                 # track is just right
                 track.process = True
 
-        # Rip the track if the user has set it to rip, or in auto mode and the time is good
-        if track.process:
-            logging.info(f"Processing track #{track.track_number} of {(job.no_of_titles - 1)}. "
-                         f"Length is {track.length} seconds.")
-            filepathname = os.path.join(rawpath, track.filename)
-            logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
+    # Rip the track if the user has set it to rip, or in auto mode and the time is good
 
-            cmd = [
-                "mkv",
-            ]
-            cmd += shlex.split(job.config.MKV_ARGS)
-            cmd += [
-                f"--progress={progress_log(job)}",
-                f"dev:{job.devpath}",
-                track.track_number,
-                rawpath,
-            ]
-            logging.debug("Starting to rip single track.")
-            collections.deque(run(cmd, OutputType.MSG), maxlen=0)
+    tracks_to_process = [track for track in job.tracks if track.process]
+    process_index = 1
+    for track in tracks_to_process:
+        logging.info(f"Processing track #{process_index} of {len(tracks_to_process)}. "
+                     f"Length is {track.length} seconds.")
+        filepathname = os.path.join(rawpath, track.filename)
+        logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
+        logfile_base = progress_log(job)
+        cmd = [
+            "mkv",
+        ]
+        cmd += shlex.split(job.config.MKV_ARGS)
+        cmd += [
+            f"--minlength={job.config.MINLENGTH}",
+            f"--progress={logfile_base}",
+            f"dev:{job.devpath}",
+            track.track_number,
+            rawpath,
+        ]
+        # Create a batch info file so the web gui can know when this process started, which track, and how many tracks
+        logging.debug(f"Saving batch position info for job {job.job_id}: "
+                      f"BINF:{int(time())},{process_index},{len(tracks_to_process)},0000"
+                      )
+        batch_info_file = logfile_base+".batchinfo"
+        if not os.path.exists(batch_info_file):
+            with open(batch_info_file, 'w') as f:
+                f.write(f"BINF:{int(time())},{process_index},{len(tracks_to_process)},0000")
+        else:
+            with open(batch_info_file, 'a') as f:
+                f.write(f"\nBINF:{int(time())},{process_index},{len(tracks_to_process)},0000")
+
+        logging.debug("Starting to rip single track.")
+        collections.deque(run(cmd, OutputType.MSG), maxlen=0)
+        process_index += 1
 
 
 def setup_rawpath(job, raw_path):
@@ -865,7 +896,7 @@ def prep_mkv():
         logging.info("Updating MakeMKV key...")
         cmd = [
             shutil.which("bash") or "/bin/bash",
-            "/opt/arm/scripts/update_key.sh",
+            os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh"),
         ]
         # if MAKEMKV_PERMA_KEY is populated
         if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
@@ -915,6 +946,8 @@ class TrackInfoProcessor:
         self.fps = 0.0
         self.filename = ""
         self.stream_type = None
+        self.chapters = 0
+        self.filesize = 0
 
     def process_messages(self):
         output_types = (
@@ -965,6 +998,10 @@ class TrackInfoProcessor:
             self.filename = next(iter(message.value.split('"')[1::2]), message.value)
         elif message.id == TrackID.DURATION:
             self.seconds = convert_to_seconds(message.value.strip())
+        elif message.id == TrackID.CHAPTERS:
+            self.chapters = int(message.value.strip())
+        elif message.id == TrackID.FILESIZE:
+            self.filesize = int(message.value.strip())
 
     def _handle_titles(self, message):
         logging.info(f"Found {message.count:d} titles")
@@ -981,13 +1018,17 @@ class TrackInfoProcessor:
             str(self.fps),
             False,
             SOURCE,
-            self.filename
+            self.filename,
+            self.chapters,
+            self.filesize
         )
         # Reset track info after adding if needed
         self.seconds = 0
         self.aspect = ""
         self.fps = 0.0
         self.filename = ""
+        self.chapters = 0
+        self.filesize = 0
 
 
 def get_track_info(index, job):
@@ -1150,8 +1191,7 @@ def run(options, select):
     if not isinstance(select, OutputType):
         raise TypeError(select)
     # Check makemkvcon path, resolves baremetal unique install issues
-    # Docker container uses /usr/local/bin/makemkvcon
-    makemkvcon_path = shutil.which("makemkvcon") or "/usr/local/bin/makemkvcon"
+    makemkvcon_path = shutil.which("makemkvcon")
     # robot process of makemkvcon with
     cmd = [
         makemkvcon_path,
@@ -1180,7 +1220,7 @@ def run(options, select):
                 yield data
     if proc.returncode:
         raise MakeMkvRuntimeError(proc.returncode, cmd, output=os.linesep.join(buffer))
-    if buffer:
+    if buffer and proc.returncode:
         logging.warning(f"Cannot parse {len(buffer)} lines: {os.linesep.join(buffer)}")
         raise MakeMkvRuntimeError(proc.returncode, cmd, output=os.linesep.join(buffer))
     logging.info("MakeMKV exits gracefully.")

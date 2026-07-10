@@ -44,7 +44,7 @@ class SystemInfo(db.Model):
             # amd       model name  : AMD Ryzen 5 3600 6-Core Processor
             # arm       model name  : ARMv8 Processor rev 3 (v8l)
             # arm alt  Model : Raspberry Pi 4 Model B Rev 1.2
-            regex_match = re.search(r"(?:model name|Model)\s*:\s*(.*)", fulldump, re.IGNORECASE)
+            regex_match = re.search(r"(?:model name|Model)\s*:\s*(.*)", fulldump)
 
             logging.debug(f"Regex output: {regex_match}")
             if regex_match:
