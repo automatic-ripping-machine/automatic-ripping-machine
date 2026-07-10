@@ -11,6 +11,9 @@ if [[ -f /etc/os-release ]]; then
 # shellcheck disable=SC1091
     . /etc/os-release
     OS_ID="$ID"
+else
+    echo "${RED}Cannot determine operating system.${NC}"
+    exit 1
 fi
 
 function usage() {
@@ -35,24 +38,25 @@ IMAGE="$FORK/automatic-ripping-machine:$TAG"
 
 function install_reqs() {
     case "$OS_ID" in
-        debian|ubuntu)
-            apt update -y && apt upgrade -y
+        debian|ubuntu|linuxmint)
+            apt update
             apt install -y curl lsscsi
             ;;
         arch|cachyos|manjaro)
             pacman -Syu --noconfirm curl lsscsi
             ;;
-        fedora)
+        fedora|rocky|almalinux)
             dnf install -y curl lsscsi
             ;;
-        rhel|centos|rocky|almalinux)
-            yum install -y curl lsscsi
-            ;;
-        alpine)
-            apk add --no-cache curl lsscsi
+        centos|rhel)
+            if command -v dnf >/dev/null 2>&1; then
+                dnf install -y curl lsscsi
+            else
+                yum install -y curl lsscsi
+            fi
             ;;
         *)
-            echo "${RED}Unsupported Linux distro: $ID"
+            echo "${RED}Unsupported Linux distro: $OS_ID ${NC}"
             exit 2
             ;;
     esac
@@ -77,34 +81,29 @@ function add_arm_user() {
     
     getent group cdrom >/dev/null || groupadd cdrom
     getent group video >/dev/null || groupadd video
-    usermod -aG cdrom,video arm && echo -e "${GREEN}Adds user arm to cdrom, video group${NC}"
+    usermod -aG cdrom,video arm && echo -e "${GREEN}Added user 'arm' to 'cdrom' and 'video' group${NC}"
 }
 
 function launch_setup() {
     # install docker
     if [ -e /usr/bin/docker ]; then
         echo -e "${GREEN}Docker installation detected, skipping...${NC}"
-        usermod -aG docker arm && echo -e "${GREEN}Adds user arm to docker user group${NC}"
+        usermod -aG docker arm && echo -e "${GREEN}Added user 'arm' to 'docker' user group${NC}"
     else
         echo -e "${GREEN}Installing Docker${NC}"
         # the convenience script auto-detects OS and handles install accordingly
         case "$OS_ID" in
-            debian|ubuntu|fedora|rhel|centos|rocky|almalinux)
+            debian|ubuntu|linuxmint|fedora|rhel|centos|rocky|almalinux)
                 curl -sSL https://get.docker.com | bash
-                usermod -aG docker arm && echo -e "${GREEN}Adds user arm to docker user group${NC}"
+                usermod -aG docker arm && echo -e "${GREEN}Added user 'arm' to 'docker' user group${NC}"
                 ;;
             arch|cachyos|manjaro)
                 pacman -S docker iptables-nft
                 systemctl enable --now docker.service
                 systemctl start docker.service
                 ;;
-            alpine)
-                apk add docker
-                rc-update add docker default
-                /etc/init.d/docker start
-                ;;
             *)
-                echo -e "${RED} Error when attempting to install Docker."
+                echo -e "${RED} Error when attempting to install Docker.${NC}"
                 exit 2
                 ;;
         esac
@@ -146,5 +145,5 @@ pull_image
 setup_mountpoints
 save_start_command
 
-ARM_HOME=$(eval echo ~arm)
+ARM_HOME=~arm
 echo -e "${GREEN}Installation complete. A template command to run the ARM container is located in: $ARM_HOME ${NC}"
