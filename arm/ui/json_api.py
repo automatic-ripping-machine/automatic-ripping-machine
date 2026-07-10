@@ -144,17 +144,21 @@ def process_makemkv_logfile(job, job_results):
             f"{percentage(job_progress_status.group(1), job_progress_status.group(3)):.2f}"
         job.progress_round = percentage(job_progress_status.group(1),
                                         job_progress_status.group(3))
-        job_start_time = int(job_batch_info.group(1))
-        current_time = int(time())
-        elapsed_time = current_time - job_start_time
-        total_time = int((elapsed_time * 100) / float(job.progress))
-        time_remaining = total_time - elapsed_time
-        app.logger.debug(f"ETA values for job {job.job_id}: Elapsed seconds: {elapsed_time}, "
-                         f"Percent: {job.progress}, "
-                         f"Projected time: {total_time}, "
-                         f"Time remaining: {time_remaining}"
-                         )
-        job.eta = strftime("%Hh%Mm%Ss", gmtime(time_remaining))
+        if job_batch_info is not None:
+            job_start_time = int(job_batch_info.group(1))
+            current_time = int(time())
+            elapsed_time = current_time - job_start_time
+            total_time = int((elapsed_time * 100) / float(job.progress))
+            time_remaining = total_time - elapsed_time
+            app.logger.debug(f"ETA values for job {job.job_id}: Elapsed seconds: {elapsed_time}, "
+                             f"Percent: {job.progress}, "
+                             f"Projected time: {total_time}, "
+                             f"Time remaining: {time_remaining}"
+                             )
+            job.eta = strftime("%Hh%Mm%Ss", gmtime(time_remaining))
+        else:
+            app.logger.debug(f"Job [{job.job_id}] batch info not yet available - setting eta to Unknown")
+            job.eta = "Unknown"
     else:
         app.logger.debug(f"Job [{job.job_id}] MakeMKV status not defined - setting progress to 0%")
         job.progress = job.progress_round = job_results['progress'] = 0
