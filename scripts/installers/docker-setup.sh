@@ -74,7 +74,6 @@ function add_arm_user() {
     # create arm user if it doesn't already exist
     if ! id arm >/dev/null 2>&1; then
         useradd -m arm -g arm
-        usermod -aG arm arm
         passwd arm
     else
         echo -e "${GREEN}arm user already exists, skipping...${NC}"
@@ -82,7 +81,7 @@ function add_arm_user() {
     
     getent group cdrom >/dev/null || groupadd cdrom
     getent group video >/dev/null || groupadd video
-    usermod -aG cdrom,video arm && echo -e "${GREEN}Added user 'arm' to 'cdrom' and 'video' group${NC}"
+    usermod -aG cdrom,video,arm arm && echo -e "${GREEN}Added user 'arm' to 'cdrom' and 'video' group${NC}"
 }
 
 function launch_setup() {
