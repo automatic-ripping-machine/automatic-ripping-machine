@@ -893,17 +893,18 @@ def prep_mkv():
     Raises:
         UpdateKeyRunTimeError
     """
+    cmd = [
+        shutil.which("bash") or "/bin/bash",
+        os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh"),
+    ]
+    # if MAKEMKV_PERMA_KEY is populated, use it directly - no need to fetch the beta key
+    if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
+        logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
+        # add MAKEMKV_PERMA_KEY as an argument to the command
+        cmd += [cfg.arm_config['MAKEMKV_PERMA_KEY']]
+
     try:
         logging.info("Updating MakeMKV key...")
-        cmd = [
-            shutil.which("bash") or "/bin/bash",
-            os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh"),
-        ]
-        # if MAKEMKV_PERMA_KEY is populated
-        if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
-            logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
-            # add MAKEMKV_PERMA_KEY as an argument to the command
-            cmd += [cfg.arm_config['MAKEMKV_PERMA_KEY']]
         proc = subprocess.run(cmd, capture_output=True, check=True)
         stdout = proc.stdout.decode("utf-8")
         logging.debug(f"Command Output for update_key.sh: {stdout.splitlines()}")
