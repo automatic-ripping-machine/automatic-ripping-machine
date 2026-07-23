@@ -897,11 +897,20 @@ def prep_mkv():
         shutil.which("bash") or "/bin/bash",
         os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh"),
     ]
-    # if MAKEMKV_PERMA_KEY is populated, use it directly - no need to fetch the beta key
+    # if MAKEMKV_PERMA_KEY is populated, use it directly - no need to fetch the beta key,
+    # so the network-specific fallback handling below doesn't apply here
     if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
         logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
         # add MAKEMKV_PERMA_KEY as an argument to the command
         cmd += [cfg.arm_config['MAKEMKV_PERMA_KEY']]
+        try:
+            logging.info("Updating MakeMKV key...")
+            proc = subprocess.run(cmd, capture_output=True, check=True)
+            stdout = proc.stdout.decode("utf-8")
+            logging.debug(f"Command Output for update_key.sh: {stdout.splitlines()}")
+        except subprocess.CalledProcessError as err:
+            raise UpdateKeyRunTimeError(err.returncode, cmd, output=err.stdout.decode("utf-8")) from err
+        return
 
     try:
         logging.info("Updating MakeMKV key...")
