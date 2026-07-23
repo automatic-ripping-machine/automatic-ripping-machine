@@ -13,6 +13,7 @@ import enum
 import itertools
 import logging
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -892,22 +893,63 @@ def prep_mkv():
     Raises:
         UpdateKeyRunTimeError
     """
+    cmd = [
+        shutil.which("bash") or "/bin/bash",
+        os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh"),
+    ]
+    # if MAKEMKV_PERMA_KEY is populated, use it directly - no need to fetch the beta key,
+    # so the network-specific fallback handling below doesn't apply here
+    if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
+        logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
+        # add MAKEMKV_PERMA_KEY as an argument to the command
+        cmd += [cfg.arm_config['MAKEMKV_PERMA_KEY']]
+        try:
+            logging.info("Updating MakeMKV key...")
+            proc = subprocess.run(cmd, capture_output=True, check=True)
+            stdout = proc.stdout.decode("utf-8")
+            logging.debug(f"Command Output for update_key.sh: {stdout.splitlines()}")
+        except subprocess.CalledProcessError as err:
+            raise UpdateKeyRunTimeError(err.returncode, cmd, output=err.stdout.decode("utf-8")) from err
+        return
+
     try:
         logging.info("Updating MakeMKV key...")
-        cmd = [
-            shutil.which("bash") or "/bin/bash",
-            os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh"),
-        ]
-        # if MAKEMKV_PERMA_KEY is populated
-        if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
-            logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
-            # add MAKEMKV_PERMA_KEY as an argument to the command
-            cmd += [cfg.arm_config['MAKEMKV_PERMA_KEY']]
         proc = subprocess.run(cmd, capture_output=True, check=True)
         stdout = proc.stdout.decode("utf-8")
         logging.debug(f"Command Output for update_key.sh: {stdout.splitlines()}")
     except subprocess.CalledProcessError as err:
+        error_code = UpdateKeyErrorCodes(err.returncode)
+        # A URL_ERROR means the beta-key scrape source (forum.makemkv.com) was
+        # unreachable - a transient network issue, not a problem with the key
+        # itself. If we already have a working key on disk from a previous
+        # successful update, fall back to it instead of aborting the whole
+        # job. See: https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/1785
+        if error_code == UpdateKeyErrorCodes.URL_ERROR and _makemkv_key_present():
+            logging.warning(
+                "Failed to refresh the MakeMKV key due to a network error while "
+                "fetching the current beta key. A key already exists in "
+                "settings.conf, so continuing the job with it instead of aborting."
+            )
+            return
         raise UpdateKeyRunTimeError(err.returncode, cmd, output=err.stdout.decode("utf-8"))
+
+
+def _makemkv_key_present():
+    """
+    Check whether settings.conf already contains a MakeMKV key.
+
+    Used by prep_mkv() to decide whether a transient failure to *refresh*
+    the key (e.g. the beta-key source site being temporarily unreachable)
+    can be safely ignored in favor of the last-known-good key, rather than
+    treating it the same as a genuinely invalid/rejected key.
+    """
+    settings_file = "/home/arm/.MakeMKV/settings.conf"
+    try:
+        with open(settings_file) as settings:
+            contents = settings.read()
+    except OSError:
+        return False
+    return re.search(r'app_Key\s*=\s*"[A-Z]-.+"', contents) is not None
 
 
 def progress_log(job):
