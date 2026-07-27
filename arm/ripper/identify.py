@@ -300,6 +300,16 @@ def metadata_selector(job, title=None, year=None):
 
     :return: json/dict object or None
     """
+    # A disc whose label could not be read is given the placeholder
+    # "not identified" in identify_dvd(). Searching for that string finds real
+    # films with unhelpful names -- TMDB matches a 2018 Brazilian film titled
+    # "Prefiro nao ser identificada" -- and update_job() then overwrites
+    # job.title with it. The guard in get_video_details() cannot catch this,
+    # because by the time it runs job.title is the bogus match rather than the
+    # placeholder. Refuse the search here instead, where every caller passes.
+    if title is None or str(title).strip().lower() in ("", "not identified"):
+        logging.info(f"Not searching for placeholder title: {title!r}")
+        return None
     search_results = None
     if cfg.arm_config['METADATA_PROVIDER'].lower() == "tmdb":
         logging.debug("provider tmdb")
