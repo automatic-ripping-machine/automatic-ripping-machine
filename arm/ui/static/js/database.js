@@ -20,7 +20,7 @@ function checkNewUser(seen) {
         hrrref = "entryWarn";
         $("div .modal-title").html("<p class=\"text-center text-danger\">WARNING");
         $("div.modal-body").html("<p class=\"text-center bg-danger text-white\">This can be dangerous if you don't know what you're doing. <br>" +
-            "You could delete all your of your database entries if you're not careful!!! <br>" +
+            "You could delete all of your database entries if you're not careful!!! <br>" +
             "Be careful!<br><br> Are you sure you want to continue ?</p>");
         $(MODEL_ID).modal("show");
         $(DB_SUCCESS_BTN_ID ).addClass("d-none");
