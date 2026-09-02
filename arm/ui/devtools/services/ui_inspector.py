@@ -130,7 +130,7 @@ def _title(root: _Node) -> str | None:
 
 
 def _stable_snapshot_id(route: str, content: str) -> str:
-    digest = hashlib.sha1(f"{route}\n{content}".encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(f"{route}\n{content}".encode("utf-8")).hexdigest()
     return f"view-{route.lstrip('/').replace('/', '-')}-{digest[:12]}"
 
 
