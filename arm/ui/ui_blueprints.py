@@ -25,3 +25,7 @@ def register_blueprints(app):
     app.register_blueprint(route_jobs)
     app.register_blueprint(route_sendmovies)
     app.register_blueprint(route_notifications)
+    # Developer JSON API - registered only when enabled in arm.yaml
+    if app.config.get('ENABLE_DEVTOOLS', False):
+        from ui.devtools import create_blueprint
+        app.register_blueprint(create_blueprint())

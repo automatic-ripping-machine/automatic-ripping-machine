@@ -1,0 +1,29 @@
+# Development overrides - adapts docker-compose.yml to a dev checkout.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# - remaps the UI to host port 8081 (8080 stays free for other ARM stacks)
+# - remaps the DBs to 3307/3308 so both can run side by side
+# - bind-mounts live source into the UI container (no rebuilds on edits)
+# - keeps all data under ./dev-data instead of /arm on the host
+services:
+  arm-ui:
+    ports: !override
+      - "8081:8080"
+    volumes: !override
+      - ./arm:/opt/arm/arm
+      - ./setup:/opt/arm/setup
+      - ./test_ui:/opt/arm/test_ui
+      - ./test_ripper:/opt/arm/test_ripper
+      - ./devtools:/opt/arm/devtools
+      - ./dev-data/config:/arm/config
+      - ./dev-data/logs:/arm/logs
+      - ./dev-data/db:/arm/db
+      - ./dev-data/media:/home/arm/media
+  arm-db:
+    ports: !override
+      - "3307:3306"
+    volumes: !override
+      - ./dev-data/db/mysql:/var/lib/mysql
+  arm-db-test:
+    ports: !override
+      - "3308:3306"

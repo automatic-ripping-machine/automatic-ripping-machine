@@ -55,5 +55,10 @@ def init_db(test_app):
 
     yield db                # Provide db to pytest session
 
-    db.session.close()      # Close connection to the test database
-    db.drop_all()           # Drop all tables after testing
+    with test_app.app_context():
+        # Roll back and release every session first - leaked transactions
+        # (e.g. from tests erroring mid-fixture) otherwise hold MySQL
+        # metadata locks and db.drop_all() hangs indefinitely.
+        db.session.rollback()
+        db.session.close_all()
+        db.drop_all()       # Drop all tables after testing

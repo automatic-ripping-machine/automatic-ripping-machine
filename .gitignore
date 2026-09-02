@@ -183,3 +183,7 @@ removed/*
 /installed
 
 arm.yaml
+
+# Development environment and tool state
+dev-data/
+devtools/armdevtools_mcp/devapi_errors.log

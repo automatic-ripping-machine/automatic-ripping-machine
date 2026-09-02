@@ -146,6 +146,7 @@ class UIConfig:
         self.WERKZEUG_DEBUG: bool = False
         self.ENV: str = 'default'
         self.LOGIN_DISABLED: bool = cfg.arm_config['DISABLE_LOGIN']
+        self.ENABLE_DEVTOOLS: bool = cfg.arm_config.get('ENABLE_DEVTOOLS', False)
         self.TESTING: bool = False
 
         self.LOGLEVEL: str = cfg.arm_config['LOGLEVEL']
