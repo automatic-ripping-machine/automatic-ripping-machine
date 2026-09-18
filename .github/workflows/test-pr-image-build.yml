@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
+        uses: docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003
 
       - name: Build Docker image
         id: build
