@@ -237,7 +237,7 @@ def move_video_files_post(input_path, job: Job):
         move_movie_files_post(input_path, tracks, job)
 
 
-def move_movie_files_post(input_path, tracks, job)
+def move_movie_files_post(input_path, tracks, job):
     """
     Move movie files to the final folder.
     """
