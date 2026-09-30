@@ -106,10 +106,13 @@ def create_final_output_path(job) -> Path:
     type_sub_folder = utils.convert_job_type(job.video_type)
     final_output_path = Path(job.config.COMPLETED_PATH, type_sub_folder, job_title)
     if job.video_type == "series":
-        #Series are a special case: we want to put the episodes in a Disc folder
-        #Example: competed/tv/{series_name}/Disc_2
-        if job.label != "" and job.label != None:
-            final_output_path = Path(job.config.COMPLETED_PATH, type_sub_folder, job_title, utils.clean_for_filename(job.label))
+        # Series are a special case: we want to put the episodes in a Disc folder
+        # Example: competed/tv/{series_name}/Disc_2
+        if job.label != "" and job.label is not None:
+            final_output_path = Path(job.config.COMPLETED_PATH,
+                                     type_sub_folder,
+                                     job_title,
+                                     utils.clean_for_filename(job.label))
     utils.make_dir(final_output_path, True)
     utils.database_updater({'path': final_output_path}, job)
     db.session.commit()
@@ -229,7 +232,7 @@ def move_video_files_post(input_path, job: Job):
     if utils.is_bonus_disc(job):
         logging.info("Disc is Bonus Disc")
         bonus_disc_path = extras_path(job)
-        make_dir(bonus_disc_path, exist_ok=True)
+        utils.make_dir(bonus_disc_path, exist_ok=True)
         for track in tracks:
             utils.move_files_main(Path(input_path, track.filename), Path(bonus_disc_path, track.filename), job)
         return 
@@ -249,7 +252,7 @@ def move_movie_files_post(input_path, tracks, job):
     tracks = sorted(tracks, key=lambda x: x.filesize, reverse=True)
     is_main_feature = True
     extras_dir = extras_path(job)
-    make_dir(extras_dir, exist_ok=True)
+    utils.make_dir(extras_dir, exist_ok=True)
     logging.debug(f"Largest file is: {tracks[0].filename}")
     for track in tracks:
         logging.debug(f"Videotype: {job.video_type}")
@@ -261,16 +264,17 @@ def move_movie_files_post(input_path, tracks, job):
         final_filepath = Path(job.path, track.filename)
         if track.source == "MakeMKV":
             if is_main_feature:
-                final_filepath = Path(movie_path, main_feature_filename(job))
+                final_filepath = Path(job.path, main_feature_filename(job))
                 logging.info(f"Track is the Main Title.  Moving '{input_filepath}' to {final_filepath}")
                 is_main_feature = False
             utils.move_files_main(input_filepath, final_filepath, job)
         else:
             # If HandBrake was used we can pass track.main_feature
             if track.main_feature:
-                final_filepath = Path(movie_path, main_feature_filename(job))
+                final_filepath = Path(job.path, main_feature_filename(job))
                 logging.info(f"Track is Handbrake Main Title.  Moving '{input_filepath}' to {final_filepath}")
-            utils.move_files_main(input_filepath final_filepath, job)
+            utils.move_files_main(input_filepath, final_filepath, job)
+
 
 def main_feature_filename(job) -> str:
     return f"{utils.fix_job_title(job)}.{job.config.DEST_EXT}"
