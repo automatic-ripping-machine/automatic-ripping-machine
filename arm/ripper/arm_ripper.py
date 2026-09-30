@@ -209,39 +209,75 @@ def notify_exit(job):
 def move_video_files_post(input_path, job: Job, bonus_disc: bool):
     """
     Logic for moving files post transcoding\n
-    if series move all to 1 folder\n
+    if series move all to 1 main folder containing Disc_label folders\n
     if movie check what source we got them from, for MakeMKV we can check filesize\n
     :param input_path: This should either be the input_path from MakeMKV, /dev/srX or TRANSCODE_PATH
     :param job: current job
     :return: None
     """
-    if job.video_type == "series" or bonus_disc:
-        tracks = job.tracks.filter_by(ripped=True)
+    tracks = job.tracks.filter_by(ripped=True)
+    if job.video_type == "series":
+        series_disc_path = Path(job.path)
+        if job.label != "" and job.label != None:
+            series_disc_path = Path(job.path, utils.clean_for_filename(job.label))
+        utils.make_dir(series_disc_path, exist_ok=True)
         for track in tracks:
-            utils.move_files(input_path, track.filename, job, False)
+            utils.move_files_main(Path(input_path, track.filename), Path(series_disc_path, track.filename), job)
         return
-    tracks = job.tracks.filter_by(ripped=True).all()
+    if bonus_disc:
+        bonus_disc_path = extras_path(job)
+        make_dir(bonus_disc_path, exist_ok=True)
+        for track in tracks:
+            utils.move_files_main(Path(input_path, track.filename), Path(bonus_disc_path, track.filename), job)
+        return 
+    if job.video_type = "movie":
+        move_movie_files_post(input_path, tracks, job)
+
+
+def move_movie_files_post(input_path, tracks, job)
+    """
+    Move movie files to the final folder.
+    """
     if len(tracks) == 1:
-        utils.move_files(input_path, tracks[0].filename, job, True)
+        final_filepath = Path(movie_path, main_feature_filename(job))
+        logging.info(f"Track is the Main Title.  Moving '{Path(input_path, tracks[0].filename)}' to {final_filepath}")
+        utils.move_files_main(Path(input_path, tracks[0].filename), final_filepath, job)
         return
     tracks = sorted(tracks, key=lambda x: x.filesize, reverse=True)
     is_main_feature = True
-    # All cases below are movies
+    extras_dir = extras_path(job)
+    make_dir(extras_dir, exist_ok=True)
     logging.debug(f"Largest file is: {tracks[0].filename}")
     for track in tracks:
-        if track.source == "MakeMKV":
-            logging.debug(f"Videotype: {job.video_type}")
-            temp_path = os.path.join(input_path, track.filename)
-            if os.stat(temp_path).st_size <= 1:  # sanity check for filesize
-                logging.error(f"{input_path} is empty or very small size. - Folder size: {os.stat(temp_path).st_size}")
-                continue
-            utils.move_files(input_path, track.filename, job, is_main_feature=is_main_feature)
-            # The first and largest file is treated as the Main Feature.
-            # All other files are not
+        logging.debug(f"Videotype: {job.video_type}")
+        input_filepath = Path(input_path, track.filename)
+        if os.stat(input_filepath).st_size <= 1:  # sanity check for filesize
+            logging.error(f"{input_path} is empty or very small size. - Folder size: {os.stat(input_filepath).st_size}")
             is_main_feature = False
+            continue
+        final_filepath = Path(job.path, track.filename)
+        if track.source == "MakeMKV":
+            if is_main_feature:
+                final_filepath = Path(movie_path, main_feature_filename(job))
+                logging.info(f"Track is the Main Title.  Moving '{input_filepath}' to {final_filepath}")
+                is_main_feature = False
+            utils.move_files_main(input_filepath, final_filepath, job)
         else:
             # If HandBrake was used we can pass track.main_feature
-            utils.move_files(input_path, track.filename, job, track.main_feature)
+            if track.main_feature:
+                final_filepath = Path(movie_path, main_feature_filename(job))
+                logging.info(f"Track is Handbrake Main Title.  Moving '{input_filepath}' to {final_filepath}")
+            utils.move_files_main(input_filepath final_filepath, job)
+
+def main_feature_filename(job) -> str:
+    return f"{utils.fix_job_title(job)}.{job.config.DEST_EXT}"
+
+
+def extras_path(job) -> Path:
+    if str(job.config.EXTRAS_SUB).lower() == "none":
+        logging.info(f"EXTRAS_SUB is {job.config.EXTRAS_SUB} ... Skipping making extras folder")
+        return Path(job.path)
+    return Path(job.path, job.config.EXTRAS_SUB)
 
 
 def should_rip_with_MakeMKV(current_job, protection=0):

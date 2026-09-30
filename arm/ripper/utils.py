@@ -184,46 +184,6 @@ def fix_job_title(job):
 
 
 #  ############## Start of post processing functions
-def move_files(base_path, filename, job, is_main_feature=False) -> str | None:
-    """
-    Run extra checks then move files from RAW_PATH or TRANSCODE_PATH to final media directory\n
-    :param str base_path: Path to source directory\n
-    :param str filename: name of file to be moved\n
-    :param job: instance of Job class\n
-    :param bool is_main_feature: if current is main feature move to main dir
-    :return str: Full movie path
-    """
-    video_title = fix_job_title(job)
-    logging.debug(f"Arguments: {base_path} : {filename} : "
-                  f"{job.hasnicetitle} : {video_title} : {is_main_feature}")
-    # If filename is blank skip and return
-    if filename == "":
-        logging.info(f"{filename} is empty... Skipping")
-        return None
-
-    movie_path = job.path
-    logging.info(f"Moving {job.video_type} {filename} to {movie_path}")
-    # For series there are no extras so always use the base path
-    make_dir(movie_path, True)
-
-    if is_main_feature:
-        movie_file = os.path.join(movie_path, video_title + "." + job.config.DEST_EXT)
-        logging.info(f"Track is the Main Title.  Moving '{os.path.join(base_path, filename)}' to {movie_file}")
-        move_files_main(os.path.join(base_path, filename), movie_file, movie_path, job)
-    else:
-        # Don't make the extra's path unless we need it
-        if str(job.config.EXTRAS_SUB).lower() == "none":
-            logging.info(f"EXTRAS_SUB is {job.config.EXTRAS_SUB} ... Skipping making extras folder")
-            movie_file = os.path.join(movie_path, filename)
-            move_files_main(os.path.join(base_path, filename), os.path.join(movie_path, filename), movie_path, job)
-            return movie_path
-        extras_path = os.path.join(movie_path, job.config.EXTRAS_SUB) if job.video_type != "series" else movie_path
-        make_dir(extras_path, True)
-        logging.info(f"Moving '{os.path.join(base_path, filename)}' to {extras_path}")
-        # This also handles series - But it doesn't use the extras folder
-        move_files_main(os.path.join(base_path, filename), os.path.join(extras_path, filename), extras_path, job)
-    return movie_path
-
 
 def _calculate_filename_similarity(expected_base, actual_base):
     """
@@ -314,30 +274,29 @@ def find_matching_file(expected_file):
     return expected_file
 
 
-def move_files_main(old_file, new_file, base_path, job: Job):
+def move_files_main(old_filepath, new_filepath, job: Job):
     """
     The base function for moving files with logging\n
-    :param str old_file: The file to be moved - must include full path
-    :param str new_file: Final destination of file - must include full path
-    :param str base_path: The base path of the new file - used for logging
+    :param str old_filepath: The file to be moved - must include full path
+    :param str new_filepath: Final destination of file - must include full path
     :return: None
     """
-    if not os.path.isfile(new_file):
+    if not os.path.isfile(new_filepath):
         # Try to find the file, handling minor naming discrepancies
-        actual_old_file = find_matching_file(old_file)
+        actual_old_file = find_matching_file(old_filepath)
 
         try:
-            shutil.move(actual_old_file, new_file)
+            shutil.move(actual_old_file, new_filepath)
         except Exception as error:
-            logging.error(f"Unable to move '{actual_old_file}' to '{base_path}' - Error: {error}")
+            logging.error(f"Unable to move '{actual_old_file}' to '{new_filepath}' - Error: {error}")
             notify(job, NOTIFY_TITLE,
-                   f"Unable to move '{actual_old_file}' to '{base_path}' - Error: {error}"
+                   f"Unable to move '{actual_old_file}' to '{new_filepath}' - Error: {error}"
                    f"ARM encountered a Post Processing error on {job.title}.")
     else:
-        logging.error(f"File: {new_file} already exists.  Not moving.")
+        logging.error(f"File: {new_filepath} already exists.  Not moving.")
         notify(job, NOTIFY_TITLE,
                f"ARM encountered a Post Processing error on {job.title}."
-               f"Unable to move '{new_file}' to '{base_path}' as it already exists")
+               f"Unable to move '{old_filepath}' to '{new_filepath}' as it already exists")
 
 
 def move_movie_poster(hb_out_path, final_directory):
@@ -500,7 +459,7 @@ def rip_data(job):
         subprocess.check_output(cmd, shell=True).decode("utf-8")
         full_final_file = os.path.join(final_path, f"{str(job.label)}.iso")
         logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
-        move_files_main(incomplete_filename, full_final_file, final_path, job)
+        move_files_main(incomplete_filename, full_final_file, job)
         logging.info("Data rip call successful")
         success = True
     except subprocess.CalledProcessError as dd_error:
