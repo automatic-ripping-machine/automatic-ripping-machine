@@ -235,7 +235,7 @@ def move_video_files_post(input_path, job: Job):
         utils.make_dir(bonus_disc_path, exist_ok=True)
         for track in tracks:
             utils.move_files_main(Path(input_path, track.filename), Path(bonus_disc_path, track.filename), job)
-        return 
+        return
     if job.video_type == "movie":
         move_movie_files_post(input_path, tracks, job)
 
