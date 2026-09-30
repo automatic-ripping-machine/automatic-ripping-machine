@@ -127,7 +127,7 @@ def ntfy_notify(cfg, title, body):
                 ntfy_serverstring += host
 
             if host != "" and cfg['NTFY_PORT'] != "":
-                ntfy_serverstring += ':' + cfg['NTFY_PORT'] + '/'
+                ntfy_serverstring += ':' + str(cfg['NTFY_PORT']) + '/'
             else:
                 if ntfy_serverstring != 'ntfy://':
                     ntfy_serverstring += '/'

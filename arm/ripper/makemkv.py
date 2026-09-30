@@ -13,10 +13,11 @@ import enum
 import itertools
 import logging
 import os
+import re
 import shlex
 import shutil
 import subprocess
-from time import sleep
+from time import sleep, time
 
 import arm.config.config as cfg
 from arm.models import SystemDrives, Track
@@ -798,9 +799,9 @@ def process_single_tracks(job, rawpath, mode: str):
         mode: drive mode (auto or manual)
     """
     # process one track at a time based on track length
-    for track in job.tracks:
+    if mode == 'auto':
         # Process single track automatically based on start and finish times
-        if mode == 'auto':
+        for track in job.tracks:
             if track.length < int(job.config.MINLENGTH):
                 # too short
                 logging.info(f"Track #{track.track_number} of {job.no_of_titles}. Length ({track.length}) "
@@ -817,26 +818,42 @@ def process_single_tracks(job, rawpath, mode: str):
                 # track is just right
                 track.process = True
 
-        # Rip the track if the user has set it to rip, or in auto mode and the time is good
-        if track.process:
-            logging.info(f"Processing track #{track.track_number} of {(job.no_of_titles - 1)}. "
-                         f"Length is {track.length} seconds.")
-            filepathname = os.path.join(rawpath, track.filename)
-            logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
+    # Rip the track if the user has set it to rip, or in auto mode and the time is good
 
-            cmd = [
-                "mkv",
-            ]
-            cmd += shlex.split(job.config.MKV_ARGS)
-            cmd += [
-                f"--minlength={job.config.MINLENGTH}",
-                f"--progress={progress_log(job)}",
-                f"dev:{job.devpath}",
-                track.track_number,
-                rawpath,
-            ]
-            logging.debug("Starting to rip single track.")
-            collections.deque(run(cmd, OutputType.MSG), maxlen=0)
+    tracks_to_process = [track for track in job.tracks if track.process]
+    process_index = 1
+    for track in tracks_to_process:
+        logging.info(f"Processing track #{process_index} of {len(tracks_to_process)}. "
+                     f"Length is {track.length} seconds.")
+        filepathname = os.path.join(rawpath, track.filename)
+        logging.info(f"Ripping title {track.track_number} to {shlex.quote(filepathname)}")
+        logfile_base = progress_log(job)
+        cmd = [
+            "mkv",
+        ]
+        cmd += shlex.split(job.config.MKV_ARGS)
+        cmd += [
+            f"--minlength={job.config.MINLENGTH}",
+            f"--progress={logfile_base}",
+            f"dev:{job.devpath}",
+            track.track_number,
+            rawpath,
+        ]
+        # Create a batch info file so the web gui can know when this process started, which track, and how many tracks
+        logging.debug(f"Saving batch position info for job {job.job_id}: "
+                      f"BINF:{int(time())},{process_index},{len(tracks_to_process)},0000"
+                      )
+        batch_info_file = logfile_base+".batchinfo"
+        if not os.path.exists(batch_info_file):
+            with open(batch_info_file, 'w') as f:
+                f.write(f"BINF:{int(time())},{process_index},{len(tracks_to_process)},0000")
+        else:
+            with open(batch_info_file, 'a') as f:
+                f.write(f"\nBINF:{int(time())},{process_index},{len(tracks_to_process)},0000")
+
+        logging.debug("Starting to rip single track.")
+        collections.deque(run(cmd, OutputType.MSG), maxlen=0)
+        process_index += 1
 
 
 def prep_mkv():
@@ -846,22 +863,63 @@ def prep_mkv():
     Raises:
         UpdateKeyRunTimeError
     """
+    cmd = [
+        shutil.which("bash") or "/bin/bash",
+        os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh"),
+    ]
+    # if MAKEMKV_PERMA_KEY is populated, use it directly - no need to fetch the beta key,
+    # so the network-specific fallback handling below doesn't apply here
+    if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
+        logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
+        # add MAKEMKV_PERMA_KEY as an argument to the command
+        cmd += [cfg.arm_config['MAKEMKV_PERMA_KEY']]
+        try:
+            logging.info("Updating MakeMKV key...")
+            proc = subprocess.run(cmd, capture_output=True, check=True)
+            stdout = proc.stdout.decode("utf-8")
+            logging.debug(f"Command Output for update_key.sh: {stdout.splitlines()}")
+        except subprocess.CalledProcessError as err:
+            raise UpdateKeyRunTimeError(err.returncode, cmd, output=err.stdout.decode("utf-8")) from err
+        return
+
     try:
         logging.info("Updating MakeMKV key...")
-        cmd = [
-            shutil.which("bash") or "/bin/bash",
-            os.path.join(cfg.arm_config["INSTALLPATH"], "scripts/update_key.sh"),
-        ]
-        # if MAKEMKV_PERMA_KEY is populated
-        if cfg.arm_config['MAKEMKV_PERMA_KEY'] is not None and cfg.arm_config['MAKEMKV_PERMA_KEY'] != "":
-            logging.debug("MAKEMKV_PERMA_KEY populated, using that...")
-            # add MAKEMKV_PERMA_KEY as an argument to the command
-            cmd += [cfg.arm_config['MAKEMKV_PERMA_KEY']]
         proc = subprocess.run(cmd, capture_output=True, check=True)
         stdout = proc.stdout.decode("utf-8")
         logging.debug(f"Command Output for update_key.sh: {stdout.splitlines()}")
     except subprocess.CalledProcessError as err:
+        error_code = UpdateKeyErrorCodes(err.returncode)
+        # A URL_ERROR means the beta-key scrape source (forum.makemkv.com) was
+        # unreachable - a transient network issue, not a problem with the key
+        # itself. If we already have a working key on disk from a previous
+        # successful update, fall back to it instead of aborting the whole
+        # job. See: https://github.com/automatic-ripping-machine/automatic-ripping-machine/issues/1785
+        if error_code == UpdateKeyErrorCodes.URL_ERROR and _makemkv_key_present():
+            logging.warning(
+                "Failed to refresh the MakeMKV key due to a network error while "
+                "fetching the current beta key. A key already exists in "
+                "settings.conf, so continuing the job with it instead of aborting."
+            )
+            return
         raise UpdateKeyRunTimeError(err.returncode, cmd, output=err.stdout.decode("utf-8"))
+
+
+def _makemkv_key_present():
+    """
+    Check whether settings.conf already contains a MakeMKV key.
+
+    Used by prep_mkv() to decide whether a transient failure to *refresh*
+    the key (e.g. the beta-key source site being temporarily unreachable)
+    can be safely ignored in favor of the last-known-good key, rather than
+    treating it the same as a genuinely invalid/rejected key.
+    """
+    settings_file = "/home/arm/.MakeMKV/settings.conf"
+    try:
+        with open(settings_file) as settings:
+            contents = settings.read()
+    except OSError:
+        return False
+    return re.search(r'app_Key\s*=\s*"[A-Z]-.+"', contents) is not None
 
 
 def progress_log(job):

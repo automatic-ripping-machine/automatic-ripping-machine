@@ -65,6 +65,8 @@ function transcodingCheck(job) {
                 </div>
               </div></div>`;
         x += `<div id="jobId${job.job_id}_eta"><strong>ETA: </strong>${job.eta}</div>`;
+        x += `<div id="jobId${job.job_id}_cur_fps"><strong>CUR FPS: </strong>${job.cur_fps}</div>`;
+        x += `<div id="jobId${job.job_id}_avg_fps"><strong>AVG FPS: </strong>${job.avg_fps}</div>`;
     }
     // YYYY-MM-DD
     const d = new Date(Date.parse(job.start_time));
