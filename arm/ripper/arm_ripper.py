@@ -81,19 +81,11 @@ def post_process_ripping_job_cleanup(job: Job, transcode_path: str | None, raw_p
     """
     final_input_path = transcode_path if transcode_path else raw_path
     # --------------- POST PROCESSING ---------------
-    job_title = utils.fix_job_title(job)
-    # Fix the sub-folder type - (movie|tv|unknown)
-    type_sub_folder = utils.convert_job_type(job.video_type)
-    # Start moving and (optionally) deleting the raw files
-    # ensure the final directory exists
-    final_output_path = os.path.join(job.config.COMPLETED_PATH, type_sub_folder, job_title)
-    utils.make_dir(final_output_path, True)
-    # Update the job.path with the final directory
-    utils.database_updater({'path': final_output_path}, job)
-    # Move the movie poster if we have one
-    utils.move_movie_poster(raw_path, final_output_path)
+    final_output_path = create_final_output_path(job)
     # Move to final folder.
     move_video_files_post(final_input_path, job)
+    # Move the movie poster if we have one
+    utils.move_movie_poster(raw_path, final_output_path)
     # Scan Emby if arm.yaml requires it
     utils.scan_emby()
     # Set permissions if arm.yaml requires it
@@ -104,6 +96,24 @@ def post_process_ripping_job_cleanup(job: Job, transcode_path: str | None, raw_p
     # report errors if any
     notify_exit(job)
     logging.info("************* ARM processing complete *************")
+def create_final_output_path(job) -> Path:
+    """
+    Create the final destination folder and (in the case of series) disc_number sub directory.
+    Update the path property on the job to represent this final path.
+    """
+    job_title = utils.fix_job_title(job)
+    # Fix the sub-folder type - (movie|tv|unknown)
+    type_sub_folder = utils.convert_job_type(job.video_type)
+    final_output_path = Path(job.config.COMPLETED_PATH, type_sub_folder, job_title)
+    if job.video_type == "series":
+        #Series are a special case: we want to put the episodes in a Disc folder
+        #Example: competed/tv/{series_name}/Disc_2
+        if job.label != "" and job.label != None:
+            final_output_path = Path(job.config.COMPLETED_PATH, type_sub_folder, job_title, utils.clean_for_filename(job.label))
+    utils.make_dir(final_output_path, True)
+    utils.database_updater({'path': final_output_path}, job)
+    db.session.commit()
+    return final_output_path
 
 
 def start_transcode(job: Job, logfile, raw_in_path: str, transcode_out_path: str):
@@ -213,12 +223,8 @@ def move_video_files_post(input_path, job: Job):
     """
     tracks = job.tracks.filter_by(ripped=True)
     if job.video_type == "series":
-        series_disc_path = Path(job.path)
-        if job.label != "" and job.label != None:
-            series_disc_path = Path(job.path, utils.clean_for_filename(job.label))
-        utils.make_dir(series_disc_path, exist_ok=True)
         for track in tracks:
-            utils.move_files_main(Path(input_path, track.filename), Path(series_disc_path, track.filename), job)
+            utils.move_files_main(Path(input_path, track.filename), Path(job.path, track.filename), job)
         return
     if utils.is_bonus_disc(job):
         logging.info("Disc is Bonus Disc")
@@ -236,7 +242,7 @@ def move_movie_files_post(input_path, tracks, job)
     Move movie files to the final folder.
     """
     if len(tracks) == 1:
-        final_filepath = Path(movie_path, main_feature_filename(job))
+        final_filepath = Path(job.path, main_feature_filename(job))
         logging.info(f"Track is the Main Title.  Moving '{Path(input_path, tracks[0].filename)}' to {final_filepath}")
         utils.move_files_main(Path(input_path, tracks[0].filename), final_filepath, job)
         return

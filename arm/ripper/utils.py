@@ -14,7 +14,7 @@ from typing import List
 import requests
 import apprise
 import psutil
-
+from pathlib import Path
 from netifaces import interfaces, ifaddresses, AF_INET
 
 import arm.config.config as cfg
@@ -299,14 +299,14 @@ def move_files_main(old_filepath, new_filepath, job: Job):
                f"Unable to move '{old_filepath}' to '{new_filepath}' as it already exists")
 
 
-def move_movie_poster(hb_out_path, final_directory):
+def move_movie_poster(hb_out_path: str, final_directory: Path):
     """move movie poster\n
     ---------\n
     """
-    src_poster = os.path.join(hb_out_path, "poster.png")
-    dst_poster = os.path.join(final_directory, "poster.png")
-    if os.path.isfile(src_poster):
-        if not os.path.isfile(dst_poster):
+    src_poster = Path(hb_out_path, "poster.png")
+    dst_poster = Path(final_directory, "poster.png")
+    if Path.is_file(src_poster):
+        if not Path.is_file(dst_poster):
             try:
                 shutil.move(src_poster, dst_poster)
             except Exception as poster_error:
@@ -476,7 +476,7 @@ def rip_data(job):
     return success
 
 
-def set_permissions(directory_to_traverse):
+def set_permissions(directory_to_traverse: Path):
     """
 
     :param directory_to_traverse: directory to fix permissions
