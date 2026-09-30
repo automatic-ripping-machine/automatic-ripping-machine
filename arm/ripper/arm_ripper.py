@@ -93,11 +93,7 @@ def post_process_ripping_job_cleanup(job: Job, transcode_path: str | None, raw_p
     # Move the movie poster if we have one
     utils.move_movie_poster(raw_path, final_output_path)
     # Move to final folder.
-    if utils.is_bonus_disc(job):
-        logging.info("Disc is Bonus Disc")
-        move_video_files_post(final_input_path, job, bonus_disc=True)
-    else:
-        move_video_files_post(final_input_path, job, bonus_disc=False)
+    move_video_files_post(final_input_path, job)
     # Scan Emby if arm.yaml requires it
     utils.scan_emby()
     # Set permissions if arm.yaml requires it
@@ -206,7 +202,7 @@ def notify_exit(job):
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} {constants.PROCESS_COMPLETE}")
 
 
-def move_video_files_post(input_path, job: Job, bonus_disc: bool):
+def move_video_files_post(input_path, job: Job):
     """
     Logic for moving files post transcoding\n
     if series move all to 1 main folder containing Disc_label folders\n
@@ -224,13 +220,14 @@ def move_video_files_post(input_path, job: Job, bonus_disc: bool):
         for track in tracks:
             utils.move_files_main(Path(input_path, track.filename), Path(series_disc_path, track.filename), job)
         return
-    if bonus_disc:
+    if utils.is_bonus_disc(job):
+        logging.info("Disc is Bonus Disc")
         bonus_disc_path = extras_path(job)
         make_dir(bonus_disc_path, exist_ok=True)
         for track in tracks:
             utils.move_files_main(Path(input_path, track.filename), Path(bonus_disc_path, track.filename), job)
         return 
-    if job.video_type = "movie":
+    if job.video_type == "movie":
         move_movie_files_post(input_path, tracks, job)
 
 
