@@ -96,6 +96,8 @@ def post_process_ripping_job_cleanup(job: Job, transcode_path: str | None, raw_p
     # report errors if any
     notify_exit(job)
     logging.info("************* ARM processing complete *************")
+
+
 def create_final_output_path(job) -> Path:
     """
     Create the final destination folder and (in the case of series) disc_number sub directory.
