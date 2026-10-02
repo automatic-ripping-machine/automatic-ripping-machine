@@ -794,13 +794,10 @@ def get_all_dupe_jobs(job) -> list[Job] | None:
     else:
         # We don't count failures when doing Dupe Checks,
         # but anything else thats currently in progress can be a Dupe
-        matching_jobs = Job.query.filter(Job.label == job.label,
-                                         Job.status != JobState.FAILURE.value,
-                                         Job.disctype == job.disctype, Job.job_id != job.job_id).all()
-        results = []
-        for j in matching_jobs:
-            results.append(j)
-        return results
+        return Job.query.filter(Job.label == job.label,
+                                Job.status != JobState.FAILURE.value,
+                                Job.disctype == job.disctype,
+                                Job.job_id != job.job_id).all()
 
 
 def check_for_wait(job):

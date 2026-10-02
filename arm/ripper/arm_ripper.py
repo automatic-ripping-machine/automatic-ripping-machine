@@ -116,7 +116,7 @@ def create_final_output_path(job) -> Path:
                                      job_title,
                                      utils.clean_for_filename(job.label))
     utils.make_dir(final_output_path, True)
-    utils.database_updater({'path': final_output_path}, job)
+    utils.database_updater({'path': str(final_output_path)}, job)
     db.session.commit()
     return final_output_path
 
