@@ -93,13 +93,17 @@ def check_fstab():
     # todo: remove this from the ripper and add into the ARM UI with a warning
     """
     logging.info("Checking for fstab entry.")
-    with open('/etc/fstab', 'r') as fstab:
-        lines = fstab.readlines()
-        for line in lines:
-            # Now grabs the real uncommented fstab entry
-            if re.search("^" + job.devpath, line):
-                logging.info(f"fstab entry is: {line.rstrip()}")
-                return
+    try:
+        with open('/etc/fstab', 'r') as fstab:
+            lines = fstab.readlines()
+    except OSError as error:
+        logging.warning(f"Could not read /etc/fstab ({error}). Skipping fstab check.")
+        return
+    for line in lines:
+        # Now grabs the real uncommented fstab entry
+        if re.search("^" + re.escape(job.devpath), line):
+            logging.info(f"fstab entry is: {line.rstrip()}")
+            return
     logging.error("No fstab entry found.  ARM will likely fail.")
 
 
@@ -254,24 +258,28 @@ if __name__ == "__main__":
                 f"ARM encountered a fatal error processing {job.title}. "
                 f"Check the logs for more details. {error}"
             )
+            job.status = JobState.FAILURE.value
+            job.errors = str(error)
         else:
             utils.notify(
-                job,
+                None,
                 constants.NOTIFY_TITLE,
-                f"ARM encountered a fatal error during job setup."
+                f"ARM encountered a fatal error during job setup. "
                 f"Check the logs for more details. {error}"
             )
-        job.status = JobState.FAILURE.value
-        job.errors = str(error)
         # Possibly add cleanup section here for failed job files
     else:
-        job.status = JobState.SUCCESS.value
+        if job:
+            job.status = JobState.SUCCESS.value
     finally:
         if job:
             job.eject()  # each job stores its eject status, so it is safe to call.
             job.stop_time = datetime.datetime.now()
-            job_length = job.stop_time - job.start_time if job.start_time else 0
-            minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
-            hours, minutes = divmod(minutes, 60)
-            job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
-        db.session.commit()
+            if job.start_time:
+                job_length = job.stop_time - job.start_time
+                minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
+                hours, minutes = divmod(minutes, 60)
+                job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
+            else:
+                job.job_length = "0:00:00"
+            db.session.commit()
