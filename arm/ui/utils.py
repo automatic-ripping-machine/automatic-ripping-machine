@@ -52,6 +52,8 @@ def database_updater(args, job, wait_time=90):
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
             db.session.commit()
+            app.logger.debug("successfully written to the database")
+            return True
         except Exception as error:
             if "locked" in str(error):
                 sleep(1)
@@ -61,8 +63,8 @@ def database_updater(args, job, wait_time=90):
                 db.session.rollback()
                 raise RuntimeError(str(error)) from error
 
-    app.logger.debug("successfully written to the database")
-    return True
+    app.logger.error(f"database is locked after {wait_time}s; update was not committed")
+    return False
 
 
 def check_db_version(install_path, db_file):

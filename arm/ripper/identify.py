@@ -12,6 +12,7 @@ from ast import literal_eval
 
 import pydvdid
 import xmltodict
+import xml.parsers.expat
 import arm.config.config as cfg
 from arm.models import Job
 
@@ -90,7 +91,7 @@ def identify(job):
                          f"disctype: {job.disctype}")
             logging.debug(f"identify.job.end ---- \n\r{job.pretty_table()}")
     # No need to warn if we cant unmount
-    os.system("umount " + job.devpath)
+    arm_subprocess(["umount", job.devpath])
 
 
 def identify_bluray(job):
@@ -98,7 +99,41 @@ def identify_bluray(job):
 
     try:
         with open(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml', "rb") as xml_file:
-            doc = xmltodict.parse(xml_file.read())
+            xml_data = xml_file.read()
+
+            try:
+                doc = xmltodict.parse(xml_data)
+            except xml.parsers.expat.ExpatError as error:
+                lines = xml_data.decode("utf-8", errors="replace").splitlines()
+
+                offending = ""
+                if 1 <= error.lineno <= len(lines):
+                    offending = lines[error.lineno - 1].strip()
+
+                logging.warning(
+                    "Malformed Blu-ray metadata XML at line %d column %d: %s\n"
+                    "Offending line: %s\n"
+                    "Attempting automatic repair.",
+                    error.lineno,
+                    error.offset,
+                    error,
+                    offending,
+                )
+
+                repaired = repair_bluray_xml(xml_data)
+                try:
+                    doc = xmltodict.parse(repaired)
+                    logging.info("Successfully repaired malformed Blu-ray metadata XML.")
+                except xml.parsers.expat.ExpatError as error:
+                    logging.exception(
+                        "Blu-ray metadata XML remains malformed at line %d column %d: %s. "
+                        "Using disc label '%s'.",
+                        error.lineno,
+                        error.offset,
+                        error,
+                        job.label,
+                    )
+                    doc = None
     except OSError as error:
         logging.error("Disc is a bluray, but bdmt_eng.xml could not be found. "
                       "Disc cannot be identified.  Error "
@@ -119,13 +154,20 @@ def identify_bluray(job):
             db.session.commit()
             return True
 
-    try:
-        bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
-        if not bluray_title:
-            bluray_title = job.label
-    except KeyError:
+    if doc is None:
         bluray_title = str(job.label)
-        logging.error("Could not parse title from bdmt_eng.xml file.  Disc cannot be identified.")
+    else:
+        try:
+            bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
+            if not bluray_title:
+                bluray_title = str(job.label)
+        except KeyError:
+            bluray_title = str(job.label)
+            logging.error(
+                "Could not parse title from bdmt_eng.xml file. "
+                "Using disc label '%s'.",
+                job.label,
+            )
 
     bluray_modified_timestamp = os.path.getmtime(job.mountpoint + '/BDMV/META/DL/bdmt_eng.xml')
     bluray_year = (datetime.datetime.fromtimestamp(bluray_modified_timestamp).strftime('%Y'))
@@ -400,3 +442,13 @@ def try_with_year(job, response, title, year):
         logging.debug("Subtracting 1 year...")
         response = metadata_selector(job, title, str(int(year) - 1))
     return response
+
+
+def repair_bluray_xml(xml_data):
+    # some Sunrise discs have malformed XML where href=foo instead of href="foo"
+    xml_data = re.sub(
+        rb'(?<!")href=([^"\s>][^\s>]*)',
+        rb'href="\1"',
+        xml_data,
+    )
+    return xml_data
