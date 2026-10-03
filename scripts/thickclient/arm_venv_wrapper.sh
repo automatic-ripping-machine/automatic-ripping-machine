@@ -8,7 +8,8 @@ USER="arm"
 #######################################################################################
 # Log Discovered Type and Start Rip
 # ID_CDROM_MEDIA_BD = Blu-ray
-# ID_CDROM_MEDIA_CD = CD
+# ID_CDROM_MEDIA_CD = pressed CD
+# ID_CDROM_MEDIA_CD_R / ID_CDROM_MEDIA_CD_RW = recordable audio CD
 # ID_CDROM_MEDIA_DVD = DVD
 #######################################################################################
 
@@ -18,7 +19,7 @@ if [ "$ID_CDROM_MEDIA_DVD" == "1" ]; then
 elif [ "$ID_CDROM_MEDIA_BD" == "1" ]; then
 	echo "[ARM] Starting ARM for Blu-ray on ${DEVNAME}" | logger -t ARM -s
 
-elif [ "$ID_CDROM_MEDIA_CD" == "1" ]; then
+elif [[ "$ID_CDROM_MEDIA_CD" == "1" || "$ID_CDROM_MEDIA_CD_R" == "1" || "$ID_CDROM_MEDIA_CD_RW" == "1" ]]; then
 	echo "[ARM] Starting ARM for CD on ${DEVNAME}" | logger -t ARM -s
 
 elif [ "$ID_FS_TYPE" != "" ]; then
