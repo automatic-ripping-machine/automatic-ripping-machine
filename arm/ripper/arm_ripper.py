@@ -14,7 +14,7 @@ if find_spec("arm") is None:
 
 from arm.ripper import utils, makemkv, handbrake, ffmpeg  # noqa E402
 from arm.ui import app, db, constants  # noqa E402
-from arm.models.job import Job, JobState  # noqa E402
+from arm.models.job import Job, Track, JobState  # noqa E402
 
 
 def rip_visual_media(job: Job, logfile, protection) -> Tuple[str, bool]:
@@ -226,7 +226,7 @@ def move_video_files_post(input_path, job: Job):
     :param job: current job
     :return: None
     """
-    tracks = job.tracks.filter_by(ripped=True)
+    tracks = job.tracks.filter_by(ripped=True).all()
     if job.video_type == "series":
         for track in tracks:
             utils.move_files_main(Path(input_path, track.filename), Path(job.path, track.filename), job)
@@ -242,7 +242,7 @@ def move_video_files_post(input_path, job: Job):
         move_movie_files_post(input_path, tracks, job)
 
 
-def move_movie_files_post(input_path, tracks, job):
+def move_movie_files_post(input_path, tracks: list[Track], job):
     """
     Move movie files to the final folder.
     """
