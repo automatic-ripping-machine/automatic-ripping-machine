@@ -664,6 +664,8 @@ def database_updater(args, job, wait_time=90):
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
             db.session.commit()
+            logging.debug("successfully written to the database")
+            return True
         except Exception as error:
             if "locked" in str(error):
                 time.sleep(1)
@@ -671,8 +673,8 @@ def database_updater(args, job, wait_time=90):
             else:
                 logging.debug(f"Error: {error}")
                 raise RuntimeError(str(error)) from error
-    logging.debug("successfully written to the database")
-    return True
+    logging.error(f"database is locked after {wait_time}s; update was not committed")
+    return False
 
 
 def database_adder(obj_class):
@@ -687,7 +689,8 @@ def database_adder(obj_class):
             logging.debug(f"Trying to add {type(obj_class).__name__}")
             db.session.add(obj_class)
             db.session.commit()
-            break
+            logging.debug(f"successfully written {type(obj_class).__name__} to the database")
+            return True
         except Exception as error:
             if "locked" in str(error):
                 time.sleep(1)
@@ -695,8 +698,8 @@ def database_adder(obj_class):
             else:
                 logging.error(f"Error: {error}")
                 raise RuntimeError(str(error)) from error
-    logging.debug(f"successfully written {type(obj_class).__name__} to the database")
-    return True
+    logging.error(f"database is locked after 90s; {type(obj_class).__name__} was not added")
+    return False
 
 
 def clean_old_jobs():
@@ -775,8 +778,8 @@ def duplicate_run_check(dev_path):
         logging.info(f"Device {dev_path}: Job ({job.job_id}) status '{job.status}'")
     # check for running jobs by associated drive.
     drive = SystemDrives.query.filter_by(mount=dev_path).first()
-    if not drive.processing:
-        return  # drive is not processing, so we are safe to start another run.
+    if drive is None or not drive.processing:
+        return  # unknown or idle drive is safe to start another run.
     job = drive.job_current
     logging.critical(f'Drive {dev_path} has an active Job ({job.job_id}): {job.status}.')
     # log time

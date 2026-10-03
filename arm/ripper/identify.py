@@ -90,7 +90,7 @@ def identify(job):
                          f"disctype: {job.disctype}")
             logging.debug(f"identify.job.end ---- \n\r{job.pretty_table()}")
     # No need to warn if we cant unmount
-    os.system("umount " + job.devpath)
+    arm_subprocess(["umount", job.devpath])
 
 
 def identify_bluray(job):
