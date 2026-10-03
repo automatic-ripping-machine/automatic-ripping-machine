@@ -1,0 +1,61 @@
+{
+  "servers": [
+    {
+      "name": "jcodemunch",
+      "description": "jCodeMunch code-intelligence server (symbols, references, outlines; indexes under ~/.code-index)",
+      "command": "jcodemunch-mcp",
+      "args": ["serve"],
+      "env": {},
+      "cwd": null,
+      "enabled": true,
+      "version_timeout_s": 10,
+      "handshake_timeout_s": 60,
+      "default_call_timeout_s": 120,
+      "deny_patterns": ["invalidate", "tune_weights", "uninstall", "init", "hook", "watch-install", "keyring"],
+      "health_tools": ["list_repos"]
+    },
+    {
+      "name": "jdocmunch",
+      "description": "jDocMunch documentation-retrieval server (docs, sections, search, backlinks)",
+      "command": "jdocmunch-mcp",
+      "args": ["serve"],
+      "env": {},
+      "cwd": null,
+      "enabled": true,
+      "version_timeout_s": 10,
+      "handshake_timeout_s": 60,
+      "default_call_timeout_s": 120,
+      "deny_patterns": ["delete", "finalize_handoff", "uninstall", "init", "hook", "watch-install", "keyring"],
+      "health_tools": ["get_index_overview"]
+    },
+    {
+      "name": "git",
+      "description": "Official mcp-server-git (modelcontextprotocol): status, diffs, log, branches, add/commit/checkout",
+      "command": "mcp-server-git",
+      "args": [],
+      "env": {},
+      "cwd": null,
+      "enabled": true,
+      "version_timeout_s": 10,
+      "handshake_timeout_s": 60,
+      "default_call_timeout_s": 120,
+      "deny_patterns": ["reset", "init"],
+      "health_tools": ["git_status"],
+      "health_tool_args": {"repo_path": "."}
+    },
+    {
+      "name": "pyright",
+      "description": "jons-mcp-pyright: LSP code intelligence for the ARM checkout (definitions, references, diagnostics, type_info)",
+      "command": "jons-mcp-pyright",
+      "args": [],
+      "env": {},
+      "cwd": null,
+      "enabled": true,
+      "version_timeout_s": 10,
+      "handshake_timeout_s": 60,
+      "default_call_timeout_s": 120,
+      "deny_patterns": [],
+      "health_tools": ["list_environments"]
+    }
+  ]
+}

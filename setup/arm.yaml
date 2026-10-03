@@ -41,6 +41,11 @@ ARM_API_KEY: ""
 # ARMui will need to be restared for this to update
 DISABLE_LOGIN: false
 
+# Development tools - enables the developer JSON API under /__devtools on the UI
+# Intended for developer tooling and coding agents; keep disabled in production
+# ARMui will need to be restarted for this to update
+ENABLE_DEVTOOLS: false
+
 # Skip transcoding if you want the original MakeMKV files as your final output
 # This will produce the highest quality videos (and use the most storage)
 # Note: RIPMETHOD must be set to "mkv" for this feature to work
