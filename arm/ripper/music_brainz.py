@@ -217,7 +217,7 @@ def check_musicbrainz_data(job, disc_info: dict) -> str:
 
         # Update ARM with disc info
         title = str(disc_info['cdstub']['title'])
-        artist = disc_info['cdstub']['artist']
+        artist = artist = disc_info['cdstub'].get('artist') or 'Unknown Artist'
         no_of_titles = disc_info['cdstub']['track-count']
         new_year = ''
         artist_title = artist + " " + title
