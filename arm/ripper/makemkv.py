@@ -1142,9 +1142,6 @@ class MakeMKVOutputChecker:
         """Dispatch processing based on message code."""
         code = self.data.code
 
-        if code == MessageID.RIP_TITLE_ERROR:
-            self.rip_title_error()
-
         if code == MessageID.RIP_COMPLETED:
             return self.zero_saved_files()
 
@@ -1174,14 +1171,6 @@ class MakeMKVOutputChecker:
             logging.critical(self.data.message)
             raise MakeMkvRuntimeError(1, ["RIP_COMPLETED"],
                                       output=f"{saved} titles were saved. See log for more details")
-
-    def rip_title_error(self):
-        """
-        If a single item fails, raise MakeMkvRuntimeError
-        """
-        logging.critical(self.data.message)
-        raise MakeMkvRuntimeError(1, ["RIP_TITLE_ERROR"],
-                                  output=self.data.message)
 
     def read_error(self):
         error_msg = self.data.sprintf[1]
