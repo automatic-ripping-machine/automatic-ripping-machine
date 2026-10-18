@@ -89,6 +89,8 @@ def rip_visual_media(have_dupes, job, logfile, protection):
 
     # Move to final folder
     move_files_post(transcode_out_path, job)
+    # Keep the webcam photo of the disc with the rip
+    utils.copy_disc_photo(final_directory, job)
     # Movie the movie poster if we have one - no longer needed, now handled by save_movie_poster
     utils.move_movie_poster(final_directory, transcode_out_path)
     # Scan Emby if arm.yaml requires it

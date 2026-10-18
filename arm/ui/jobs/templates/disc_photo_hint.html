@@ -1,0 +1,36 @@
+{# Disc photo and OCR hints shown above the title forms. Expects `job` and optional `ocr` (dict with candidates/year). #}
+{% if job and (job.disc_photo or ocr) %}
+<div class="container mb-3">
+    <div class="row justify-content-center">
+        <div class="col-auto text-center">
+            {% if job.disc_photo %}
+                <a href="discphoto?job_id={{ job.job_id }}" target="_blank" title="Open the full size disc photo">
+                    <img src="discphoto?job_id={{ job.job_id }}" alt="Disc photo" class="img-thumbnail" style="max-width: 320px;">
+                </a>
+                <div><small class="text-muted">Photo of the disc taken as the tray closed</small></div>
+            {% endif %}
+        </div>
+        {% if ocr %}
+        <div class="col-md-5">
+            <div class="alert alert-secondary mb-0" role="alert">
+                <strong>Text read from the disc label:</strong>
+                <ul class="mb-1 pl-3">
+                    {% for candidate in ocr.candidates %}
+                        <li><a href="#" class="ocr-candidate" data-title="{{ candidate }}">{{ candidate }}</a></li>
+                    {% endfor %}
+                </ul>
+                {% if ocr.year %}<small class="text-muted">Year hint: {{ ocr.year }}</small>{% endif %}
+            </div>
+        </div>
+        <script>
+            $(function () {
+                $(".ocr-candidate").on("click", function (event) {
+                    event.preventDefault();
+                    $("input[name='title']").val($(this).data("title"));
+                });
+            });
+        </script>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

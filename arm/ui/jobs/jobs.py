@@ -14,8 +14,10 @@ Covers
 """
 
 import json
+import os
+from pathlib import Path
 from flask_login import LoginManager, login_required, current_user  # noqa: F401
-from flask import render_template, request, Blueprint, flash, redirect, url_for
+from flask import render_template, request, Blueprint, flash, redirect, url_for, send_file, abort
 from werkzeug.routing import ValidationError
 
 import arm.ui.utils as ui_utils
@@ -24,10 +26,50 @@ from arm.models.job import Job, JobState
 from arm.models.notifications import Notifications
 import arm.config.config as cfg
 from arm.ui.forms import TitleSearchForm, ChangeParamsForm, TrackFormDynamic
+from arm.ripper import disc_photo
 
 route_jobs = Blueprint('route_jobs', __name__,
                        template_folder='templates',
                        static_folder='../static')
+
+
+def ocr_suggestion(job):
+    """
+    Title and year candidates read from the disc photo by OCR, for pre-filling the title forms.
+
+    :return: dict with 'candidates' (list of str) and 'year' (str or None), or None
+    """
+    if job is None or not job.disc_photo_ocr:
+        return None
+    candidates, year = disc_photo.clean_ocr_text(job.disc_photo_ocr)
+    if not candidates:
+        return None
+    return {'candidates': candidates, 'year': year}
+
+
+@route_jobs.route('/discphoto')
+@login_required
+def discphoto():
+    """
+    Serve the webcam photo of the disc attached to a job.
+
+    The client only supplies a job id; the filename comes from the database and the resolved
+    path must stay inside DISC_PHOTO_PATH.
+    """
+    job_id = request.args.get('job_id')
+    ui_utils.job_id_validator(job_id)
+    job = Job.query.get(job_id)
+    if job is None or not job.disc_photo:
+        abort(404)
+    photo_dir = cfg.arm_config.get('DISC_PHOTO_PATH', '')
+    if not photo_dir:
+        abort(404)
+    base = Path(photo_dir).resolve()
+    photo = (base / os.path.basename(job.disc_photo)).resolve()
+    if base not in photo.parents or not photo.is_file():
+        app.logger.warning(f"Disc photo for job {job_id} is missing or outside {base}: {photo}")
+        abort(404)
+    return send_file(str(photo), mimetype='image/jpeg', max_age=3600)
 
 
 @route_jobs.route('/jobdetail')
@@ -130,7 +172,8 @@ def title_search():
         flash(f'Search for {request.args.get("title")}, year={request.args.get("year")}', 'success')
         return redirect(url_for('route_jobs.list_titles', title=request.args.get("title"),
                                 year=request.args.get("year"), job_id=job_id))
-    return render_template('titlesearch.html', title='Update Title', form=form, job=job)
+    return render_template('titlesearch.html', title='Update Title', form=form, job=job,
+                           ocr=ocr_suggestion(job))
 
 
 @route_jobs.route('/customTitle')
@@ -156,7 +199,8 @@ def customtitle():
         ui_utils.database_updater(args, job)
         flash(f'Custom title changed. Title={job.title}, Year={job.year}.', "success")
         return redirect(url_for('home'))
-    return render_template('customTitle.html', title='Change Title', form=form, job=job)
+    return render_template('customTitle.html', title='Change Title', form=form, job=job,
+                           ocr=ocr_suggestion(job))
 
 
 @route_jobs.route('/gettitle')

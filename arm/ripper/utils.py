@@ -11,6 +11,7 @@ import re
 from logging import Logger
 from pathlib import Path, PurePath
 from math import ceil
+from typing import Optional
 
 import bcrypt
 import requests
@@ -28,6 +29,7 @@ from arm.models.track import Track
 from arm.models.user import User
 from arm.models.system_drives import SystemDrives
 from arm.ripper import apprise_bulk
+from arm.ripper import disc_photo
 
 NOTIFY_TITLE = "ARM notification"
 
@@ -628,12 +630,15 @@ def arm_setup(arm_log: Logger) -> None:
         cfg.arm_config['COMPLETED_PATH'],
         cfg.arm_config['LOGPATH'],
         os.path.join(cfg.arm_config['LOGPATH'], "progress"),
+        cfg.arm_config.get('DISC_PHOTO_PATH', ''),
     )
     # Check if DB file is writeable
     if not os.access(cfg.arm_config['DBFILE'], os.W_OK):
         arm_log.critical(f"Can't write to database file: {cfg.arm_config['DBFILE']}")
     # Check directories for read/write permission -> create if they don't exist
     for folder in arm_directories:
+        if not folder:
+            continue
         os.makedirs(folder, exist_ok=True)
         if not os.access(folder, os.R_OK):
             arm_log.error(f"Can't read from folder: {folder}")
@@ -929,3 +934,93 @@ def get_drive_mode(devpath: str) -> str:
     else:
         mode = 'auto'
     return mode
+
+
+def _disc_photo_dir() -> Optional[str]:
+    """Return the configured DISC_PHOTO_PATH, or None when the feature is unconfigured."""
+    photo_dir = cfg.arm_config.get("DISC_PHOTO_PATH", "")
+    return photo_dir if photo_dir else None
+
+
+def attach_disc_photo(job) -> Optional[str]:
+    """
+    Attach the most recent camera photo of this drive's tray to the job.
+
+    The camera daemon (arm/camera) saves ``<devname>_<timestamp>.jpg`` into DISC_PHOTO_PATH
+    when a tray closes; udev then starts ARM a few seconds later. Look back DISC_PHOTO_MAX_AGE
+    seconds from the job start for a photo of this drive and store its filename on the job.
+
+    :param job: the current job (needs devpath and start_time)
+    :return: the attached filename or None
+    """
+    photo_dir = _disc_photo_dir()
+    if photo_dir is None or not os.path.isdir(photo_dir):
+        logging.debug("Disc photo folder not configured or missing, skipping photo attach")
+        return None
+    try:
+        max_age = int(cfg.arm_config.get("DISC_PHOTO_MAX_AGE", 180))
+    except (TypeError, ValueError):
+        max_age = 180
+    before = job.start_time or datetime.datetime.now()
+    devname = os.path.basename(str(job.devpath))
+    filename = disc_photo.find_disc_photo(photo_dir, devname, before, max_age)
+    if filename:
+        logging.info(f"Attaching disc photo {filename} to job #{job.job_id}")
+        database_updater({'disc_photo': filename}, job)
+    else:
+        logging.info(f"No disc photo found for {devname} within the last {max_age}s")
+    return filename
+
+
+def clean_old_disc_photos() -> int:
+    """
+    Delete disc photos older than DISC_PHOTO_RETENTION_DAYS that no job references.
+
+    :return: number of files removed
+    """
+    photo_dir = _disc_photo_dir()
+    if photo_dir is None or not os.path.isdir(photo_dir):
+        return 0
+    try:
+        retention = int(cfg.arm_config.get("DISC_PHOTO_RETENTION_DAYS", 14))
+    except (TypeError, ValueError):
+        retention = 14
+    referenced = {row[0] for row in db.session.query(Job.disc_photo).filter(Job.disc_photo.isnot(None)).all()}
+    removed = 0
+    for orphan in disc_photo.find_orphan_photos(photo_dir, referenced, retention):
+        try:
+            orphan.unlink()
+            removed += 1
+        except OSError as error:
+            logging.warning(f"Could not delete old disc photo {orphan}: {error}")
+    if removed:
+        logging.info(f"Removed {removed} unattached disc photo(s) older than {retention} days")
+    return removed
+
+
+def copy_disc_photo(final_directory, job) -> Optional[str]:
+    """
+    Copy the job's disc photo into the completed rip folder as disc.jpg when DISC_PHOTO_COPY is set.
+
+    :param final_directory: folder the finished rip lives in
+    :param job: the current job
+    :return: destination path or None
+    """
+    if not cfg.arm_config.get("DISC_PHOTO_COPY", False) or not job.disc_photo:
+        return None
+    photo_dir = _disc_photo_dir()
+    if photo_dir is None:
+        return None
+    source = os.path.join(photo_dir, job.disc_photo)
+    if not os.path.isfile(source):
+        logging.warning(f"Disc photo {source} is missing, nothing to copy")
+        return None
+    try:
+        os.makedirs(final_directory, exist_ok=True)
+        destination = os.path.join(final_directory, disc_photo.COPY_FILENAME)
+        shutil.copy2(source, destination)
+        logging.info(f"Copied disc photo to {destination}")
+        return destination
+    except OSError as error:
+        logging.error(f"Failed to copy disc photo to {final_directory}: {error}")
+        return None

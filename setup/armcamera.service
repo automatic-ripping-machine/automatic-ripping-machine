@@ -1,0 +1,26 @@
+[Unit]
+Description=ARM disc camera service
+## Photographs discs in the open drive tray so the ripper can attach the photo to the job
+After=network-online.target
+Wants=network-online.target
+Before=shutdown.target
+
+[Service]
+Type=simple
+User=arm
+Group=arm
+## Define log paths
+StandardOutput=append:/home/arm/logs/camera.log
+StandardError=append:/home/arm/logs/camera.log
+Restart=always
+RestartSec=3
+ExecStart=/opt/arm/venv/bin/python3 /opt/arm/arm/camera/daemon.py
+
+## Graceful shutdown behaviour
+KillSignal=SIGTERM
+TimeoutStopSec=30
+KillMode=mixed
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target

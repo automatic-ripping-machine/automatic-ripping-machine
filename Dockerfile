@@ -44,10 +44,21 @@ RUN \
 # Remove SSH
 RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 
+# Disc camera: OpenCV for the webcam daemon, tesseract for reading disc labels
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip3 install --no-cache-dir --prefer-binary opencv-python-headless==4.11.0.86
+
 # Add ARMui service
 RUN mkdir /etc/service/armui
 COPY ./scripts/docker/runsv/armui.sh /etc/service/armui/run
 RUN chmod +x /etc/service/armui/run
+
+# Add disc camera service (idles when CAMERA_ENABLED is false)
+RUN mkdir /etc/service/armcamera
+COPY ./scripts/docker/runsv/armcamera.sh /etc/service/armcamera/run
+RUN chmod +x /etc/service/armcamera/run
 
 # Create our startup scripts
 RUN mkdir -p /etc/my_init.d

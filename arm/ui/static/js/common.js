@@ -38,9 +38,9 @@ function addJobItem(job, authenticated) {
     // Main holder for the 3 sections of info - includes 1 section (Poster img)
     // We need to check if idsplit is undefined, database page doesn't have splitid's
     if (idsplit[1] === undefined) {
-        x += `<div class="row no-gutters"><div class="col-lg-4"><a href="/jobdetail?job_id=${job.job_id}">${posterCheck(job)}</a></div>`;
+        x += `<div class="row no-gutters"><div class="col-lg-4"><a href="/jobdetail?job_id=${job.job_id}">${posterCheck(job)}</a>${discPhotoCheck(job, idsplit)}</div>`;
     } else {
-        x += `<div class="row no-gutters"><div class="col-lg-4"><a href="${job.server_url}/jobdetail?job_id=${idsplit[1]}">${posterCheck(job)}</a></div>`;
+        x += `<div class="row no-gutters"><div class="col-lg-4"><a href="${job.server_url}/jobdetail?job_id=${idsplit[1]}">${posterCheck(job)}</a>${discPhotoCheck(job, idsplit)}</div>`;
     }
     // Section 2 (Middle)  Contains Job info (status, type, device, start time, progress)
     x += buildMiddleSection(job);
@@ -102,6 +102,31 @@ function posterCheck(job) {
         x = `<img id="jobId${job.job_id}_poster_url" alt="poster img" src="/static/img/${image}" width="240px" class="img-thumbnail">`;
     }
     return x;
+}
+
+/**
+ * Build the URL of the webcam photo of the disc for a job, local or remote server
+ * @param {Class} job
+ * @param {Array} idsplit   job id split into [server, id]
+ */
+function discPhotoUrl(job, idsplit) {
+    if (idsplit[1] === undefined) {
+        return `/discphoto?job_id=${job.job_id}`;
+    }
+    return `${job.server_url}/discphoto?job_id=${idsplit[1]}`;
+}
+
+/**
+ * Thumbnail of the disc photo taken by the camera daemon, hidden until the job has one
+ * @param {Class} job
+ * @param {Array} idsplit
+ */
+function discPhotoCheck(job, idsplit) {
+    const hasPhoto = job.disc_photo !== undefined && job.disc_photo !== "None" && job.disc_photo !== "";
+    const src = hasPhoto ? discPhotoUrl(job, idsplit) : "";
+    const display = hasPhoto ? "" : "display: none;";
+    return `<a id="jobId${job.job_id}_disc_photo_link" href="${src}" target="_blank" style="${display}" title="Photo of the disc taken as the tray closed">
+                <img id="jobId${job.job_id}_disc_photo" alt="disc photo" src="${src}" width="120px" class="img-thumbnail mt-1"></a>`;
 }
 
 function titleManual(job) {

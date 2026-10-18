@@ -50,6 +50,7 @@
    - [Adding Intel QSV Support](Hardware-Transcode-Intel-QSV)
    - [Adding AMD VCE Support](Hardware-Transcode-AMD-VCE)
    - [NVIDIA NVENC support](Hardware-Transcode-Nvidia-NVENC)
+   - [Disc Camera (webcam disc photos)](Disc-Camera)
 
 
 **Troubleshooting**

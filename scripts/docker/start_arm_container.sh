@@ -13,6 +13,7 @@ docker run -d \
     --device="/dev/sr1:/dev/sr1" \
     --device="/dev/sr2:/dev/sr2" \
     --device="/dev/sr3:/dev/sr3" \
+    --device="/dev/video0:/dev/video0" \
     --privileged \
     --restart "always" \
     --name "arm-rippers" \

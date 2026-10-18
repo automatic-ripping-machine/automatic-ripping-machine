@@ -8,6 +8,8 @@ import re
 import datetime
 import unicodedata
 import json
+import subprocess
+import tempfile
 from ast import literal_eval
 
 import pydvdid
@@ -17,6 +19,7 @@ import arm.config.config as cfg
 from arm.models import Job
 
 from arm.ripper import utils
+from arm.ripper import disc_photo
 from arm.ripper.ProcessHandler import arm_subprocess
 from arm.ui import db
 
@@ -452,3 +455,108 @@ def repair_bluray_xml(xml_data):
         xml_data,
     )
     return xml_data
+
+
+def _preprocess_for_ocr(photo_path):
+    """
+    Produce a cleaner image for tesseract: grayscale, upscale small photos and threshold.
+
+    Uses OpenCV when it is installed (the camera daemon needs it anyway) and falls back to the
+    original photo otherwise.
+
+    :return: path to the image tesseract should read, and whether it is a temp file to delete
+    """
+    try:
+        import cv2  # noqa: F401  pylint: disable=import-outside-toplevel
+    except ImportError:
+        return photo_path, False
+    try:
+        image = cv2.imread(photo_path, cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            return photo_path, False
+        height, width = image.shape[:2]
+        if max(height, width) < 1600:
+            scale = 1600 / max(height, width)
+            image = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+        image = cv2.GaussianBlur(image, (3, 3), 0)
+        _, image = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        handle, temp_path = tempfile.mkstemp(prefix="arm_ocr_", suffix=".png")
+        os.close(handle)
+        cv2.imwrite(temp_path, image)
+        return temp_path, True
+    except Exception as error:  # cv2 raises its own error type
+        logging.debug(f"OCR preprocessing failed, using raw photo: {error}")
+        return photo_path, False
+
+
+def ocr_disc_photo(photo_path, timeout=90):
+    """
+    Run tesseract over a disc photo and return the raw text, or None when OCR is unavailable.
+
+    tesseract's progress chatter goes to stderr, which is discarded so it never ends up in
+    the text we search with.
+    """
+    source, is_temp = _preprocess_for_ocr(photo_path)
+    cmd = ["tesseract", source, "stdout", "--psm", "11"]
+    logging.debug(f"Running OCR: {cmd}")
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                encoding="utf-8", errors="replace", timeout=timeout, check=False)
+    except FileNotFoundError:
+        logging.warning("tesseract is not installed, disc photo OCR is unavailable")
+        return None
+    except subprocess.TimeoutExpired:
+        logging.warning(f"tesseract timed out after {timeout}s on {photo_path}")
+        return None
+    finally:
+        if is_temp:
+            try:
+                os.remove(source)
+            except OSError:
+                pass
+    if result.returncode != 0:
+        logging.warning(f"tesseract exited with {result.returncode} on {photo_path}")
+        return None
+    return result.stdout
+
+
+def identify_from_photo(job):
+    """
+    Fallback identification: read the disc label from the webcam photo of the disc.
+
+    Only runs for video discs that the normal identification could not match
+    (``hasnicetitle`` is False), when DISC_PHOTO_OCR is enabled and the job has a photo.
+    The raw OCR text is kept on the job so the UI can show it on the title fix page even
+    when no online match is found.
+
+    :return: True when a title was found from the photo
+    """
+    if not cfg.arm_config.get("DISC_PHOTO_OCR", False):
+        return False
+    if job.disctype not in ["dvd", "bluray"] or not job.disc_photo or job.hasnicetitle:
+        return False
+    photo_path = os.path.join(cfg.arm_config.get("DISC_PHOTO_PATH", ""), job.disc_photo)
+    if not os.path.isfile(photo_path):
+        logging.warning(f"Disc photo {photo_path} is missing, skipping OCR")
+        return False
+
+    logging.info(f"Disc not identified, trying OCR on disc photo {job.disc_photo}")
+    text = ocr_disc_photo(photo_path)
+    if not text:
+        return False
+    utils.database_updater({'disc_photo_ocr': text}, job)
+    candidates, year = disc_photo.clean_ocr_text(text)
+    logging.info(f"OCR title candidates: {candidates} year hint: {year}")
+
+    for candidate in candidates:
+        try:
+            response = try_with_year(job, None, candidate, year)
+            response = try_without_year(job, response, candidate)
+        except Exception as error:
+            logging.debug(f"Metadata lookup for OCR candidate '{candidate}' failed: {error}")
+            response = None
+        if response and 'Search' in response:
+            logging.info(f"Identified disc from photo as '{job.title}' ({job.year}) via '{candidate}'")
+            return True
+    logging.info("OCR text did not match any title online")
+    return False

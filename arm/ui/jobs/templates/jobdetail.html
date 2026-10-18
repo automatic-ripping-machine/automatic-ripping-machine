@@ -86,6 +86,10 @@
                                     <a id="posterClick" href="#">
                                     <img src="static/img/none.png" alt="Not found" width="240px" class="img-thumbnail"></a>
                                 {% endif %}
+                                {% if jobs.disc_photo %}
+                                    <a href="discphoto?job_id={{ jobs.job_id }}" target="_blank" title="Photo of the disc taken as the tray closed">
+                                    <img src="discphoto?job_id={{ jobs.job_id }}" width="240px" class="img-thumbnail ml-2" alt="Disc photo"></a>
+                                {% endif %}
                                 {% if jobs.video_type != "Music" %}
                                     <div class="btn-group float-right mt-2" role="group">
                                         <a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title
@@ -101,6 +105,10 @@
                                 <a id="posterClick" href="#">
                                     <img src="{{ jobs.poster_url }}" width="240px" class="img-thumbnail"
                                          alt="Movie Poster"></a>
+                                {% if jobs.disc_photo %}
+                                    <a href="discphoto?job_id={{ jobs.job_id }}" target="_blank" title="Photo of the disc taken as the tray closed">
+                                    <img src="discphoto?job_id={{ jobs.job_id }}" width="240px" class="img-thumbnail ml-2" alt="Disc photo"></a>
+                                {% endif %}
                                 {% if jobs.video_type != "Music" %}
                                     <div class="btn-group float-right mt-2" role="group">
                                         <a href="titlesearch?job_id={{ jobs.job_id }}" class="btn btn-primary">Title
@@ -211,6 +219,20 @@
                                 <tr>
                                     <td style="text-align:left"><strong>imdb_id_manual</strong></td>
                                     <td style="text-align:left">{{ jobs.imdb_id_manual }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align:left"><strong>disc_photo</strong></td>
+                                    <td style="text-align:left">
+                                        {% if jobs.disc_photo %}
+                                            <a href="discphoto?job_id={{ jobs.job_id }}" target="_blank"><img
+                                                    src="discphoto?job_id={{ jobs.job_id }}" alt="Disc photo"
+                                                    title="{{ jobs.disc_photo }}" width=50></a><br/>{{ jobs.disc_photo }}
+                                        {% else %}None{% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align:left"><strong>disc_photo_ocr</strong></td>
+                                    <td style="text-align:left"><pre class="mb-0 text-wrap">{{ jobs.disc_photo_ocr if jobs.disc_photo_ocr else 'None' }}</pre></td>
                                 </tr>
                                 {% if not jobs.poster_url %}
                                     <tr>
