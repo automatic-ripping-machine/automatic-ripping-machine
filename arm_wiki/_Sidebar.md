@@ -51,6 +51,7 @@
    - [Adding AMD VCE Support](Hardware-Transcode-AMD-VCE)
    - [NVIDIA NVENC support](Hardware-Transcode-Nvidia-NVENC)
    - [Disc Camera (webcam disc photos)](Disc-Camera)
+   - [Barcode Scanner (case UPC lookup)](Barcode-Scanner)
 
 
 **Troubleshooting**

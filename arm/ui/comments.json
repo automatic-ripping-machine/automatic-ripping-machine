@@ -10,7 +10,8 @@
     "EMBY_ADDITIONAL": "# Parameters to enable automatic library scan in Emby.  This will trigger only if MainFeature is true above.",
     "NOTIFY_PERMS": "#############################\n## Notification Parameters ##\n#############################",
     "APPRISE": "#################################################\n##            APPRISE NOTIFICATIONS            ##\n#################################################",
-    "DISC_CAMERA": "#################################################\n##               DISC CAMERA                   ##\n#################################################"
+    "DISC_CAMERA": "#################################################\n##               DISC CAMERA                   ##\n#################################################",
+    "BARCODE_SCANNER": "#################################################\n##             BARCODE SCANNER                 ##\n#################################################"
   },
   "ARM_NAME": "# A friendly name for this machine. Useful if you are running multiple instances.\n# Used in notification titles.",
   "ARM_CHILDREN": "# Comma delimited list of child ARM servers to display on the Home Page\n# Should be full protocol, path, and port: http://192.168.0.100:8080/",
@@ -104,6 +105,10 @@
   "DISC_PHOTO_RETENTION_DAYS": "# Delete disc photos older than this many days that are not attached to any job\n# (empty-tray closes and ejects produce unattached photos).",
   "DISC_PHOTO_OCR": "# When disc identification fails, run tesseract OCR on the disc photo\n# and use the text as a fallback title search.\n# Requires the tesseract binary. Off by default: text misread from the label\n# can give a rip the wrong title, so check the title fix page when enabling it.",
   "DISC_PHOTO_COPY": "# Copy the disc photo into the completed rip folder as disc.jpg",
+  "BARCODE_ENABLED": "# Enable the USB barcode scanner (runs inside the disc camera daemon, no webcam needed).\n# Scan the barcode on the disc case, put the disc in and close the tray: the code is attached\n# to the job and, when disc identification fails, looked up to find the title.",
+  "BARCODE_DEVICE": "# Input device of the scanner, e.g. /dev/input/by-id/usb-Eyoyo_EY-H2-event-kbd or /dev/input/event5.\n# Leave blank to pick the first keyboard device whose name contains \"Eyoyo\", \"barcode\" or \"scanner\".\n# Docker: pass it through with --device=/dev/input/eventN:/dev/input/eventN",
+  "BARCODE_PAIR_SECONDS": "# How long (seconds) a scan waits for a tray to close before it is forgotten.",
+  "BARCODE_LOOKUP": "# Look the barcode up online (upcitemdb for video discs, MusicBrainz for audio CDs)\n# when ARM could not identify the disc from the disc itself.",
   "index_refresh": "How often to refresh the home page in milliseconds #\n (This updates jobs) #\n Default setting is '2000', updating the home page every 2 seconds.",
   "use_icons": "Use icons, if false A.R.M will use text \n##ripping|transcoding|etc",
   "save_remote_images": "Save job images locally ? \n# If True: A.R.M will copy remote images to a local directory and use the update the job to use the local version.",

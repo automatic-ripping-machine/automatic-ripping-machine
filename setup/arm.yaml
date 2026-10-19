@@ -424,3 +424,25 @@ DISC_PHOTO_OCR: false
 
 # Copy the disc photo into the completed rip folder as disc.jpg
 DISC_PHOTO_COPY: true
+
+
+#################################################
+##             BARCODE SCANNER                 ##
+#################################################
+
+# Enable the USB barcode scanner (runs inside the disc camera daemon, no webcam needed).
+# Scan the barcode on the disc case, put the disc in and close the tray: the code is attached
+# to the job and, when disc identification fails, looked up to find the title.
+BARCODE_ENABLED: false
+
+# Input device of the scanner, e.g. /dev/input/by-id/usb-Eyoyo_EY-H2-event-kbd or /dev/input/event5.
+# Leave blank to pick the first keyboard device whose name contains "Eyoyo", "barcode" or "scanner".
+# Docker: pass it through with --device=/dev/input/eventN:/dev/input/eventN
+BARCODE_DEVICE: ""
+
+# How long (seconds) a scan waits for a tray to close before it is forgotten.
+BARCODE_PAIR_SECONDS: 120
+
+# Look the barcode up online (upcitemdb for video discs, MusicBrainz for audio CDs)
+# when ARM could not identify the disc from the disc itself.
+BARCODE_LOOKUP: true

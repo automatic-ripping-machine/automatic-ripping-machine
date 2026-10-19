@@ -1,4 +1,6 @@
-# Extra Python dependencies for the disc camera daemon (arm/camera).
-# Kept out of requirements.txt because OpenCV has no wheel for 32-bit ARM and most installs
-# have no webcam. The Debian installer and the Dockerfile install this file; keep the pin in sync.
+# Extra Python dependencies for the disc camera / barcode scanner daemon (arm/camera).
+# Kept out of requirements.txt because OpenCV has no wheel for 32-bit ARM, evdev only builds on
+# Linux, and most installs have no webcam or scanner. The Debian installer and the Dockerfile
+# install this file; keep the pins in sync.
 opencv-python-headless==4.11.0.86
+evdev==1.9.3; sys_platform == "linux"

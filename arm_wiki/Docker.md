@@ -59,6 +59,8 @@ The script will now:
 
        If you use the [Disc Camera](Disc-Camera) feature, also add the line `--device="/dev/video0:/dev/video0" \` so the webcam is visible inside the container. It is not in the default script because `docker run` fails when the device does not exist. Run `ls /dev/video*` to find the right device.
 
+       If you use the [Barcode Scanner](Barcode-Scanner) feature, pass the scanner's input node through too, e.g. `--device="/dev/input/event5:/dev/input/event5" \`. Run `ls -l /dev/input/by-id/` on the host to see which `eventN` your scanner is, and set `BARCODE_DEVICE` in `arm.yaml` to that `/dev/input/eventN` path. Remove the line if you have no scanner.
+
     6. Fill in the list of CPU core threads to give the container in `--cpuset-cpus`. It's highly recommended to leave at least one core for the hypervisor to use, so the host machine doesn't get choked out during transcoding! Also, CPUs with multiple threads per core will be numbered in pairs. In the below example, only core #4 would be passed to ARM.
    
        Example: `--cpuset-cpus='5,6'`

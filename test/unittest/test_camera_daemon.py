@@ -74,6 +74,16 @@ class TestConfigHelpers(unittest.TestCase):
         finally:
             shutil.rmtree(folder)
 
+    def test_barcode_filename_matches_ripper_pattern(self):
+        name = daemon.barcode_filename("sr2")
+        self.assertRegex(name, r"^sr2_\d{8}-\d{6}\.barcode$")
+
+    def test_barcode_defaults(self):
+        config = daemon.load_config("/nonexistent/arm.yaml")
+        self.assertFalse(daemon.as_bool(config["BARCODE_ENABLED"]))
+        self.assertEqual(config["BARCODE_DEVICE"], "")
+        self.assertEqual(daemon.as_number(config["BARCODE_PAIR_SECONDS"], 0), 120)
+
     def test_photo_filename_matches_ripper_pattern(self):
         name = daemon.photo_filename("sr2")
         self.assertRegex(name, r"^sr2_\d{8}-\d{6}\.jpg$")
@@ -180,7 +190,7 @@ class TestDaemonTick(unittest.TestCase):
 
     def tearDown(self):
         if self.dmn is not None:
-            self.dmn.buffer.stop()
+            self.dmn.close()
         shutil.rmtree(self.folder)
 
     def write_cfg(self, extra):
@@ -283,6 +293,53 @@ class TestDaemonTick(unittest.TestCase):
         self.assertEqual(len(writes), 3, "a config change is written straight away")
         self.assertEqual(self.read_status()["lead_seconds"], 3)
 
+    def test_ui_test_capture_does_not_claim_pending_scan(self):
+        dmn = self.make_daemon()
+        dmn.tick(10.0)
+        self.assertTrue(dmn.buffer.wait_for_frame(5.0))
+        dmn.scans.hold("085391163926", now=10.0)
+        Path(os.path.join(self.photos, ".capture_sr1")).touch()
+        dmn.tick(11.0)
+        names = sorted(f for f in os.listdir(self.photos) if not f.startswith("."))
+        self.assertEqual(len(names), 1)
+        self.assertTrue(names[0].endswith(".jpg"), "the test capture saves a photo only")
+        self.assertEqual(dmn.scans.peek(now=12.0), "085391163926", "a UI test capture must not use up the scan")
+        self.assertEqual(self.read_status()["pending_scan"], "085391163926")
+        # a real tray close claims it
+        self.states["/dev/sr0"] = tray.TrayState.DISC_OK
+        dmn.tick(13.0)
+        names = sorted(f for f in os.listdir(self.photos) if not f.startswith("."))
+        self.assertEqual([n.rsplit(".", 1)[1] for n in names], ["barcode", "jpg", "jpg"])
+        self.assertIsNone(dmn.scans.peek(now=14.0))
+        status = self.read_status()
+        self.assertEqual(status["last_barcode"], {"sr0": "085391163926"})
+        self.assertIsNone(status["pending_scan"])
+
+    def test_barcode_only_mode_watches_trays_without_camera(self):
+        self.write_cfg("CAMERA_ENABLED: false\nBARCODE_ENABLED: true\nBARCODE_DEVICE: /nonexistent/input/event9\n")
+        dmn = self.make_daemon(watch_config=True)
+        self.assertTrue(dmn.barcode_enabled)
+        self.assertIsNotNone(dmn.reader, "a configured device is used as given")
+        self.assertEqual(dmn.reader.device, "/nonexistent/input/event9")
+        dmn.tick(10.0)
+        self.assertFalse(dmn.buffer.running, "no camera in barcode-only mode")
+        dmn.scans.hold("5050582868043", now=10.0)
+        self.states["/dev/sr0"] = tray.TrayState.DISC_OK
+        dmn.tick(11.0)
+        names = [f for f in os.listdir(self.photos) if not f.startswith(".")]
+        self.assertEqual(len(names), 1)
+        self.assertRegex(names[0], r"^sr0_\d{8}-\d{6}\.barcode$")
+        status = self.read_status()
+        self.assertFalse(status["running"])
+        self.assertTrue(status["barcode_enabled"])
+        self.assertEqual(status["barcode_device"], "/nonexistent/input/event9")
+        # turning the scanner off at runtime releases it
+        time.sleep(0.02)
+        self.write_cfg("CAMERA_ENABLED: false\nBARCODE_ENABLED: false\n")
+        dmn.tick(12.0)
+        self.assertIsNone(dmn.reader)
+        self.assertFalse(self.read_status()["barcode_enabled"])
+
     def test_preview_written_while_requested_and_stops_when_stale(self):
         dmn = self.make_daemon()
         request_file = os.path.join(self.photos, daemon.PREVIEW_REQUEST_FILE)
@@ -362,6 +419,95 @@ class TestDaemonTick(unittest.TestCase):
         time.sleep(0.02)
         self.write_cfg("CAMERA_ENABLED: false\n")
         self.assertIn("CAMERA_ENABLED", dmn.check_config())
+
+
+class TestDaemonBarcode(unittest.TestCase):
+    """Barcode handling through ``Daemon.handle`` and the CLI, without camera or scanner hardware."""
+
+    def setUp(self):
+        self.folder = tempfile.mkdtemp()
+        self.photos = os.path.join(self.folder, "photos")
+        self.image = os.path.join(self.folder, "disc.jpg")
+        with open(self.image, "wb") as handle:
+            handle.write(TINY_JPEG)
+        self.cfg = os.path.join(self.folder, "arm.yaml")
+        with open(self.cfg, "w") as handle:
+            handle.write(f"CAMERA_ENABLED: false\nBARCODE_ENABLED: false\nDISC_PHOTO_PATH: \"{self.photos}\"\n"
+                         f"LOGPATH: \"{self.folder}/logs\"\nCAMERA_FPS: 20\nCAMERA_LEAD_SECONDS: 0\n"
+                         f"BARCODE_PAIR_SECONDS: 60\n")
+
+    def tearDown(self):
+        shutil.rmtree(self.folder)
+
+    def _close(self, devname="sr0", now=None):
+        return tray.TrayTransition(devname, tray.TrayState.TRAY_OPEN, tray.TrayState.DISC_OK,
+                                   time.monotonic() if now is None else now)
+
+    def _daemon(self, **kwargs):
+        return daemon.Daemon(daemon.load_config(self.cfg), drives=[], **kwargs)
+
+    def test_save_barcode_writes_plain_text_atomically(self):
+        path = daemon.save_barcode("085391163926", self._close("sr3"), self.photos)
+        self.assertRegex(os.path.basename(path), r"^sr3_\d{8}-\d{6}\.barcode$")
+        with open(path) as handle:
+            self.assertEqual(handle.read(), "085391163926\n")
+        self.assertEqual(os.listdir(self.photos), [os.path.basename(path)])
+
+    def test_everything_off_saves_nothing_on_close(self):
+        dmn = self._daemon()
+        self.assertFalse(dmn.enabled)
+        self.assertFalse(dmn.barcode_enabled)
+        self.assertIsNone(dmn.reader)
+        self.assertEqual(dmn.scans.pair_seconds, 60)
+        self.assertIsNone(dmn.handle(self._close()))
+        self.assertFalse(os.path.exists(self.photos))
+
+    def test_pending_scan_is_written_on_tray_close(self):
+        dmn = self._daemon()
+        dmn.scans.hold("085391163926", now=100.0)
+        saved = dmn.handle(self._close("sr1", now=130.0))
+        self.assertIsNotNone(saved)
+        self.assertRegex(os.path.basename(saved), r"^sr1_\d{8}-\d{6}\.barcode$")
+        self.assertEqual(os.listdir(self.photos), [os.path.basename(saved)], "no photo while the camera is off")
+        # claimed: a second close gets nothing
+        self.assertIsNone(dmn.handle(self._close("sr1", now=131.0)))
+
+    def test_expired_scan_is_not_written(self):
+        dmn = self._daemon()
+        dmn.scans.hold("085391163926", now=100.0)
+        self.assertIsNone(dmn.handle(self._close("sr1", now=100.0 + 60.1)))
+        self.assertFalse(os.path.exists(self.photos))
+
+    def test_tray_open_does_not_claim_scan(self):
+        dmn = self._daemon()
+        dmn.scans.hold("085391163926", now=100.0)
+        opened = tray.TrayTransition("sr0", tray.TrayState.NO_DISC, tray.TrayState.TRAY_OPEN, 101.0)
+        self.assertIsNone(dmn.handle(opened))
+        self.assertEqual(dmn.scans.peek(now=102.0), "085391163926")
+
+    def test_camera_and_barcode_together_save_both(self):
+        dmn = self._daemon(source=capture.FakeFrameSource(self.image), force_enabled=True)
+        dmn.scans.hold("5050582868043")
+        saved = dmn.simulate_close("sr2")
+        self.assertIsNotNone(saved)
+        names = sorted(os.listdir(self.photos))
+        self.assertEqual(len(names), 2)
+        self.assertRegex(names[0], r"^sr2_\d{8}-\d{6}\.barcode$")
+        self.assertRegex(names[1], r"^sr2_\d{8}-\d{6}\.jpg$")
+
+    def test_cli_scan_and_simulate_close(self):
+        rc = daemon.main(["--config", self.cfg, "--scan", "085391163926", "--simulate-close", "sr0"])
+        self.assertEqual(rc, 0)
+        files = os.listdir(self.photos)
+        self.assertEqual(len(files), 1)
+        self.assertRegex(files[0], r"^sr0_\d{8}-\d{6}\.barcode$")
+        with open(os.path.join(self.photos, files[0])) as handle:
+            self.assertEqual(handle.read().strip(), "085391163926")
+
+    def test_cli_rejects_bad_scan(self):
+        rc = daemon.main(["--config", self.cfg, "--scan", "no", "--simulate-close", "sr0"])
+        self.assertEqual(rc, 1)
+        self.assertFalse(os.path.exists(self.photos))
 
 
 if __name__ == '__main__':

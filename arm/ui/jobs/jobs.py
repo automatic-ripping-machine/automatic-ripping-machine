@@ -35,16 +35,31 @@ route_jobs = Blueprint('route_jobs', __name__,
 
 def ocr_suggestion(job):
     """
-    Title and year candidates read from the disc photo by OCR, for pre-filling the title forms.
+    Title and year candidates for pre-filling the title forms.
 
-    :return: dict with 'candidates' (list of str) and 'year' (str or None), or None
+    The product title the case barcode looked up to comes first (it names the exact release),
+    followed by what OCR read from the disc photo.
+
+    :return: dict with 'candidates' (list of str), 'year' (str or None) and 'barcode' (dict or None), or None
     """
-    if job is None or not job.disc_photo_ocr:
+    if job is None:
         return None
-    candidates, year = disc_photo.clean_ocr_text(job.disc_photo_ocr)
-    if not candidates:
+    candidates, year, barcode = [], None, None
+    if job.disc_barcode:
+        barcode = {'code': job.disc_barcode, 'raw': job.disc_barcode_title, 'title': None}
+        if job.disc_barcode_title:
+            title, barcode_year = disc_photo.clean_upc_title(job.disc_barcode_title)
+            if title:
+                barcode['title'] = title
+                candidates.append(title)
+                year = barcode_year
+    if job.disc_photo_ocr:
+        ocr_candidates, ocr_year = disc_photo.clean_ocr_text(job.disc_photo_ocr)
+        candidates.extend(c for c in ocr_candidates if c.lower() not in (x.lower() for x in candidates))
+        year = year or ocr_year
+    if not candidates and barcode is None:
         return None
-    return {'candidates': candidates, 'year': year}
+    return {'candidates': candidates, 'year': year, 'barcode': barcode}
 
 
 @route_jobs.route('/discphoto')

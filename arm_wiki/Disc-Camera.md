@@ -17,6 +17,8 @@ ARM itself only wakes up on the udev `change` event, which fires after the tray 
 
 Photos that no job claims (empty-tray closes, ejects) are deleted after `DISC_PHOTO_RETENTION_DAYS`.
 
+The same daemon also drives the [Barcode Scanner](Barcode-Scanner): a scan of the disc case is paired with the next tray close in exactly the same way. Either feature works on its own.
+
 ## Hardware
 
 - Any UVC USB webcam works (`/dev/video0` on most systems). 720p is plenty; 1080p helps OCR.

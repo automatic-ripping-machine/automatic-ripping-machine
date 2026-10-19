@@ -972,9 +972,45 @@ def attach_disc_photo(job) -> Optional[str]:
     return filename
 
 
+def attach_disc_barcode(job) -> Optional[str]:
+    """
+    Attach the barcode the daemon paired with this drive's last tray close to the job.
+
+    Works like :func:`attach_disc_photo`: the daemon writes ``<devname>_<timestamp>.barcode``
+    into DISC_PHOTO_PATH when a tray closes after a scan, and the newest one for this drive
+    inside the DISC_PHOTO_MAX_AGE window is copied onto the job. The file is then renamed
+    ``*.barcode.used`` so a different disc inserted a moment later cannot inherit the code.
+
+    :return: the attached barcode or None
+    """
+    photo_dir = _disc_photo_dir()
+    if photo_dir is None or not os.path.isdir(photo_dir):
+        logging.debug("Disc photo folder not configured or missing, skipping barcode attach")
+        return None
+    try:
+        max_age = int(cfg.arm_config.get("DISC_PHOTO_MAX_AGE", 180))
+    except (TypeError, ValueError):
+        max_age = 180
+    before = job.start_time or datetime.datetime.now()
+    devname = os.path.basename(str(job.devpath))
+    found = disc_photo.find_disc_barcode(photo_dir, devname, before, max_age)
+    if found:
+        filename, code = found
+        logging.info(f"Attaching barcode {code} ({filename}) to job #{job.job_id}")
+        database_updater({'disc_barcode': code}, job)
+        if disc_photo.consume_barcode_file(os.path.join(photo_dir, filename)) is None:
+            logging.warning(f"Could not mark {filename} as used; a disc swapped within "
+                            f"{max_age}s may be given the same barcode")
+        return code
+    logging.info(f"No barcode scan found for {devname} within the last {max_age}s")
+    return None
+
+
 def clean_old_disc_photos() -> int:
     """
     Delete disc photos older than DISC_PHOTO_RETENTION_DAYS that no job references.
+
+    Barcode files written by the daemon are pruned on the same schedule.
 
     :return: number of files removed
     """

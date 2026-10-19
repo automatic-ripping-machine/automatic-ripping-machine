@@ -234,6 +234,12 @@
                                     <td style="text-align:left"><strong>disc_photo_ocr</strong></td>
                                     <td style="text-align:left"><pre class="mb-0 text-wrap">{{ jobs.disc_photo_ocr if jobs.disc_photo_ocr else 'None' }}</pre></td>
                                 </tr>
+                                <tr>
+                                    <td style="text-align:left"><strong>disc_barcode</strong></td>
+                                    <td style="text-align:left">{{ jobs.disc_barcode if jobs.disc_barcode else 'None' }}
+                                        {% if jobs.disc_barcode_title %}<br/><small class="text-muted">{{ jobs.disc_barcode_title }}</small>{% endif %}
+                                    </td>
+                                </tr>
                                 {% if not jobs.poster_url %}
                                     <tr>
                                         <td style="text-align:left"><strong>poster_url</strong></td>

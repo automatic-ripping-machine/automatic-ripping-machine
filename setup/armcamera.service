@@ -1,6 +1,6 @@
 [Unit]
-Description=ARM disc camera service
-## Photographs discs in the open drive tray so the ripper can attach the photo to the job
+Description=ARM disc camera and barcode scanner service
+## Photographs discs in the open drive tray and records case barcodes so the ripper can attach them to the job
 After=network-online.target
 Wants=network-online.target
 Before=shutdown.target
