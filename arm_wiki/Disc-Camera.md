@@ -25,7 +25,7 @@ Photos that no job claims (empty-tray closes, ejects) are deleted after `DISC_PH
 
 ## Configuration
 
-All settings live in `arm.yaml` (Settings > Ripper Settings in the UI) under the **Disc Camera** heading.
+All settings live in `arm.yaml` under the **Disc Camera** heading. Use the **Disc Camera** page in the web UI (see below) to change them; it only rewrites these keys and the daemon picks the new values up without a restart.
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -43,9 +43,21 @@ All settings live in `arm.yaml` (Settings > Ripper Settings in the UI) under the
 | `DISC_PHOTO_OCR` | `true` | Run tesseract on the photo when identification fails. |
 | `DISC_PHOTO_COPY` | `true` | Copy the photo into the completed rip folder as `disc.jpg`. |
 
-**Tuning the lead time.** Trays take one to two seconds to retract. If your photos show a half-closed tray, raise `CAMERA_LEAD_SECONDS`; if they show the tray before you placed the disc, lower it. Open and close a tray a few times and look at the results in `DISC_PHOTO_PATH`.
+## The Disc Camera page
 
-**Finding crop regions.** Take a full-frame photo first (leave `CAMERA_DRIVE_REGIONS` blank), open it in an image viewer and note the pixel box around each tray.
+Open **Disc Camera** in the web UI's navigation bar. Everything needed to set the camera up is on that one page:
+
+- **Status card.** Whether the `armcamera` daemon is running, whether it has the camera open, the frame size and rate, how many frames it has read, and the tray state and last photo of each drive. A red *Daemon not running* badge means the service is not up (or cannot write to `DISC_PHOTO_PATH`); a yellow *idle* badge means it is up but `CAMERA_ENABLED` is off.
+- **Live preview.** The camera image refreshes once a second while the page is open, so you can aim the camera and check the lighting. Regions already saved in `arm.yaml` are drawn in green.
+- **Crop regions.** Pick a drive, drag a box around its tray on the preview and the pixel coordinates are filled in for you (scaled to the real camera resolution). Clear a drive to go back to the full frame.
+- **Camera and timing / Disc photos.** Every `CAMERA_*` and `DISC_PHOTO_*` key with its help text. Save writes only those keys back to `arm.yaml`; the daemon reloads them within a second or two.
+- **Test capture.** Takes a photo of one drive exactly as a real tray close would, using the current lead time, and shows it in the gallery underneath.
+
+**Tuning the lead time.** Trays take one to two seconds to retract. Open a tray, press **Test capture** for that drive and look at the photo in the gallery: a half-closed tray means raise `CAMERA_LEAD_SECONDS`, an empty tray means lower it. Save and repeat until the disc is clearly visible. Keep `CAMERA_BUFFER_SECONDS` comfortably above the lead time.
+
+**Finding crop regions.** Draw them on the live preview as described above; there is no need to measure pixels by hand. Leave `CAMERA_DRIVE_REGIONS` blank to save the full frame.
+
+The daemon and the web UI never talk to each other directly. The page works through a few hidden files in `DISC_PHOTO_PATH`: `.camera_status.json` (written by the daemon every second), `.preview_requested` and `.preview.jpg` (preview frames while the page is open) and `.capture_srN` (a test capture request). If the page says the daemon is not running but `sv status armcamera` says it is, check that both processes can read and write that folder.
 
 ## Docker
 
@@ -59,7 +71,7 @@ All settings live in `arm.yaml` (Settings > Ripper Settings in the UI) under the
 
 3. **Database upgrade.** This feature adds two columns to the job table. The migration runs when the web UI starts, so after upgrading start the container once and let the UI come up before inserting a disc.
 
-Check it is running:
+Check it is running (the Disc Camera page in the UI shows the same thing):
 
 ```bash
 docker exec -it arm-rippers sv status armcamera
@@ -91,8 +103,8 @@ A file named `sr0_<timestamp>.jpg` should appear in `DISC_PHOTO_PATH`.
 
 ## Troubleshooting
 
-- **No photos appear.** Check `camera.log`. "Could not open camera" means the device is missing (Docker: check the `--device` line) or the `arm` user cannot read it (group `video`). "tray closed but the frame buffer is empty" means the camera opened but is not delivering frames; try another `CAMERA_DEVICE` or a lower resolution camera.
+- **No photos appear.** Look at the status card on the Disc Camera page first, then `camera.log`. "Could not open camera" means the device is missing (Docker: check the `--device` line) or the `arm` user cannot read it (group `video`). "tray closed but the frame buffer is empty" means the camera opened but is not delivering frames; try another `CAMERA_DEVICE` or a lower resolution camera.
 - **Photos exist but jobs do not show them.** The photo must be of the same drive (`sr0_…` for `/dev/sr0`) and taken less than `DISC_PHOTO_MAX_AGE` seconds before the job started. Check the job log for "Attaching disc photo" or "No disc photo found".
-- **Photo is of a closed tray.** Increase `CAMERA_LEAD_SECONDS`.
+- **Photo is of a closed tray.** Increase `CAMERA_LEAD_SECONDS` on the Disc Camera page and use **Test capture** to check.
 - **OCR never finds anything.** Run `tesseract /home/arm/media/disc_photos/<file>.jpg stdout` by hand to see what it reads. Better lighting and a crop region help far more than a higher resolution camera.
 - **Job fails right after upgrading.** The database has not been migrated yet. Restart the web UI (or the container) once.

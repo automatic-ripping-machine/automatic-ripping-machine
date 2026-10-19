@@ -1,5 +1,6 @@
 """Tests for arm/camera/daemon.py and capture.py without camera hardware."""
 import importlib.util
+import json
 import os
 import re
 import shutil
@@ -129,6 +130,157 @@ class TestDaemonEndToEnd(unittest.TestCase):
         transition = tray.TrayTransition("sr0", tray.TrayState.NO_DISC, tray.TrayState.TRAY_OPEN, time.monotonic())
         self.assertIsNone(dmn.handle(transition))
         self.assertFalse(os.path.exists(self.photos))
+
+
+class TestDaemonTick(unittest.TestCase):
+    """Status file, preview, test-capture markers and config reload driven through ``Daemon.tick``."""
+
+    def setUp(self):
+        self.folder = tempfile.mkdtemp()
+        self.photos = os.path.join(self.folder, "photos")
+        self.image = os.path.join(self.folder, "disc.jpg")
+        with open(self.image, "wb") as handle:
+            handle.write(TINY_JPEG)
+        self.cfg = os.path.join(self.folder, "arm.yaml")
+        self.write_cfg("CAMERA_ENABLED: true\nCAMERA_LEAD_SECONDS: 0\nCAMERA_DRIVE_REGIONS: \"sr0:0,0,1,1\"\n")
+        self.states = {"/dev/sr0": tray.TrayState.TRAY_OPEN, "/dev/sr1": tray.TrayState.DISC_OK}
+        self.dmn = None
+
+    def tearDown(self):
+        if self.dmn is not None:
+            self.dmn.buffer.stop()
+        shutil.rmtree(self.folder)
+
+    def write_cfg(self, extra):
+        with open(self.cfg, "w") as handle:
+            handle.write(f"DISC_PHOTO_PATH: \"{self.photos}\"\nLOGPATH: \"{self.folder}/logs\"\nCAMERA_FPS: 20\n"
+                         f"CAMERA_DEVICE: \"/dev/video7\"\n{extra}")
+
+    def make_daemon(self, watch_config=False):
+        self.dmn = daemon.Daemon(daemon.load_config(self.cfg), source=capture.FakeFrameSource(self.image),
+                                 drives=["/dev/sr0", "/dev/sr1"], poll_interval=0.01,
+                                 config_file=self.cfg if watch_config else None,
+                                 status_fn=lambda devpath: self.states[devpath])
+        self.dmn.status_interval = 0
+        self.dmn.preview_interval = 0
+        return self.dmn
+
+    def read_status(self):
+        with open(os.path.join(self.photos, daemon.STATUS_FILE)) as handle:
+            return json.load(handle)
+
+    def test_status_file_contents_when_enabled(self):
+        dmn = self.make_daemon()
+        dmn.tick()
+        self.assertTrue(dmn.buffer.wait_for_frame(5.0))
+        dmn.tick()
+        status = self.read_status()
+        self.assertTrue(status["running"])
+        self.assertTrue(status["enabled"])
+        self.assertTrue(status["camera_open"])
+        self.assertEqual(status["device"], "/dev/video7")
+        self.assertEqual(status["drives"], ["sr0", "sr1"])
+        self.assertEqual(status["tray_state"], {"sr0": "TRAY_OPEN", "sr1": "DISC_OK"})
+        self.assertEqual(status["lead_seconds"], 0)
+        self.assertEqual(status["fps"], 20)
+        self.assertEqual(status["regions"], {"sr0": [0, 0, 1, 1]})
+        self.assertEqual(status["pid"], os.getpid())
+        self.assertGreaterEqual(status["frames_read"], 1)
+        self.assertIsNotNone(status["last_frame_age_seconds"])
+        self.assertIn(status["frame_width"], (None, 1))  # 1 with OpenCV decoding the fake frame, None without
+        self.assertAlmostEqual(status["timestamp"], time.time(), delta=5)
+        self.assertEqual(status["last_photo"], {})
+        self.assertFalse(any(f.endswith(".tmp") for f in os.listdir(self.photos)))
+
+    def test_status_file_in_disabled_mode(self):
+        self.write_cfg("CAMERA_ENABLED: false\n")
+        dmn = self.make_daemon()
+        dmn.tick()
+        status = self.read_status()
+        self.assertFalse(status["running"])
+        self.assertFalse(status["enabled"])
+        self.assertFalse(status["camera_open"])
+        self.assertFalse(dmn.buffer.running, "camera must stay closed while disabled")
+
+    def test_preview_written_while_requested_and_stops_when_stale(self):
+        dmn = self.make_daemon()
+        request_file = os.path.join(self.photos, daemon.PREVIEW_REQUEST_FILE)
+        preview = os.path.join(self.photos, daemon.PREVIEW_FILE)
+        dmn.tick()
+        self.assertTrue(dmn.buffer.wait_for_frame(5.0))
+        dmn.tick()
+        self.assertFalse(os.path.exists(preview), "no preview without a request")
+        self.assertFalse(dmn.preview_requested())
+        Path(request_file).touch()
+        self.assertTrue(dmn.preview_requested())
+        dmn.tick()
+        self.assertTrue(os.path.isfile(preview))
+        with open(preview, "rb") as handle:
+            self.assertTrue(handle.read(2) == b"\xff\xd8")
+        # request goes stale: no more preview frames
+        stale = time.time() - daemon.PREVIEW_REQUEST_MAX_AGE - 5
+        os.utime(request_file, (stale, stale))
+        os.remove(preview)
+        self.assertFalse(dmn.preview_requested())
+        dmn.tick()
+        self.assertFalse(os.path.exists(preview))
+
+    def test_capture_trigger_file_saves_photo_and_is_removed(self):
+        dmn = self.make_daemon()
+        dmn.tick()
+        self.assertTrue(dmn.buffer.wait_for_frame(5.0))
+        trigger = os.path.join(self.photos, ".capture_sr1")
+        ignored = os.path.join(self.photos, ".capture_video0")
+        Path(trigger).touch()
+        Path(ignored).touch()
+        dmn.tick()
+        self.assertFalse(os.path.exists(trigger))
+        self.assertTrue(os.path.exists(ignored), "only .capture_srN markers are consumed")
+        photos = [f for f in os.listdir(self.photos) if f.endswith(".jpg") and not f.startswith(".")]
+        self.assertEqual(len(photos), 1)
+        self.assertRegex(photos[0], r"^sr1_\d{8}-\d{6}\.jpg$")
+        self.assertEqual(self.read_status()["last_photo"], {"sr1": photos[0]})
+
+    def test_config_reload_toggles_capture_and_applies_settings(self):
+        self.write_cfg("CAMERA_ENABLED: false\n")
+        dmn = self.make_daemon(watch_config=True)
+        dmn.tick()
+        self.assertFalse(dmn.enabled)
+        self.assertFalse(dmn.buffer.running)
+        self.assertEqual(dmn.check_config(), {}, "unchanged file must not reload")
+
+        time.sleep(0.02)
+        self.write_cfg("CAMERA_ENABLED: true\nCAMERA_LEAD_SECONDS: \"0.5\"\n"
+                       "CAMERA_DRIVE_REGIONS: \"sr0:10,20,30,40;sr1:1,2,3,4\"\nCAMERA_BUFFER_SECONDS: 6\n")
+        changes = dmn.check_config()
+        self.assertEqual(set(changes), {"CAMERA_ENABLED", "CAMERA_LEAD_SECONDS", "CAMERA_DRIVE_REGIONS",
+                                        "CAMERA_BUFFER_SECONDS"})
+        self.assertEqual(changes["CAMERA_ENABLED"], (False, True))
+        self.assertTrue(dmn.enabled)
+        self.assertEqual(dmn.lead_seconds, 0.5)
+        self.assertEqual(dmn.regions, {"sr0": (10, 20, 30, 40), "sr1": (1, 2, 3, 4)})
+        self.assertEqual(dmn.buffer.buffer_seconds, 6)
+        dmn.tick()
+        self.assertTrue(dmn.buffer.running, "enabling at runtime starts capturing")
+        self.assertTrue(self.read_status()["running"])
+
+        time.sleep(0.02)
+        self.write_cfg("CAMERA_ENABLED: false\n")
+        dmn.tick()
+        self.assertFalse(dmn.enabled)
+        self.assertFalse(dmn.buffer.running, "disabling at runtime releases the camera")
+        self.assertFalse(self.read_status()["running"])
+
+    def test_config_reload_skips_half_written_file(self):
+        dmn = self.make_daemon(watch_config=True)
+        time.sleep(0.02)
+        with open(self.cfg, "w") as handle:
+            handle.write("CAMERA_ENABLED: [unterminated\n")
+        self.assertEqual(dmn.check_config(), {})
+        self.assertTrue(dmn.enabled, "a broken file must not change the running settings")
+        time.sleep(0.02)
+        self.write_cfg("CAMERA_ENABLED: false\n")
+        self.assertIn("CAMERA_ENABLED", dmn.check_config())
 
 
 if __name__ == '__main__':

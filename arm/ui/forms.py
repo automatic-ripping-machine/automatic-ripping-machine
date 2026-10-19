@@ -45,6 +45,26 @@ class SettingsForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
+class CameraSettingsForm(FlaskForm):
+    """Disc camera settings form used on pages\n
+              - /camera
+    Only the CAMERA_* and DISC_PHOTO_* keys of arm.yaml; everything else is left as it is."""
+    CAMERA_ENABLED = BooleanField('CAMERA_ENABLED')
+    CAMERA_DEVICE = StringField('CAMERA_DEVICE', validators=[DataRequired()])
+    CAMERA_DRIVES = StringField('CAMERA_DRIVES', validators=[Optional()])
+    CAMERA_DRIVE_REGIONS = StringField('CAMERA_DRIVE_REGIONS', validators=[Optional()])
+    CAMERA_FPS = StringField('CAMERA_FPS', validators=[DataRequired()])
+    CAMERA_BUFFER_SECONDS = StringField('CAMERA_BUFFER_SECONDS', validators=[DataRequired()])
+    CAMERA_LEAD_SECONDS = StringField('CAMERA_LEAD_SECONDS', validators=[DataRequired()])
+    CAMERA_JPEG_QUALITY = StringField('CAMERA_JPEG_QUALITY', validators=[DataRequired()])
+    DISC_PHOTO_PATH = StringField('DISC_PHOTO_PATH', validators=[DataRequired()])
+    DISC_PHOTO_MAX_AGE = StringField('DISC_PHOTO_MAX_AGE', validators=[DataRequired()])
+    DISC_PHOTO_RETENTION_DAYS = StringField('DISC_PHOTO_RETENTION_DAYS', validators=[DataRequired()])
+    DISC_PHOTO_OCR = BooleanField('DISC_PHOTO_OCR')
+    DISC_PHOTO_COPY = BooleanField('DISC_PHOTO_COPY')
+    submit = SubmitField('Save')
+
+
 class UiSettingsForm(FlaskForm):
     """UI settings form, used on pages\n
                   - /ui_settings"""

@@ -98,6 +98,18 @@ class TrayWatcher:
         """``/dev/sr0`` -> ``sr0``"""
         return os.path.basename(devpath)
 
+    def states(self) -> Dict[str, Optional[str]]:
+        """Last seen tray state per drive as ``TrayState`` names (``None`` when the drive could not be read)."""
+        result: Dict[str, Optional[str]] = {}
+        for devpath in self.drives:
+            name = self.devname(devpath)
+            state = self._last.get(name)
+            try:
+                result[name] = TrayState(state).name if state is not None else None
+            except ValueError:
+                result[name] = str(state)
+        return result
+
     def poll(self, now: Optional[float] = None) -> List[TrayTransition]:
         """
         Read every drive once.

@@ -12,7 +12,7 @@ import logging
 import os
 import threading
 import time
-from typing import Any, Deque, List, Optional, Tuple
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 Region = Tuple[int, int, int, int]
 """x, y, width, height in pixels"""
@@ -129,6 +129,8 @@ class FrameBuffer:
         self._thread: Optional[threading.Thread] = None
         self._logger = logger
         self.frames_read = 0
+        self.camera_open = False
+        """True while the source is delivering frames (updated by the capture thread)."""
 
     def start(self) -> None:
         if self._thread is not None:
@@ -143,11 +145,20 @@ class FrameBuffer:
             self._thread.join(timeout)
             self._thread = None
         self.source.release()
+        self.camera_open = False
+        with self._lock:
+            self._frames.clear()
+
+    @property
+    def running(self) -> bool:
+        """True while the capture thread is alive."""
+        return self._thread is not None and self._thread.is_alive()
 
     def _run(self) -> None:
         backoff = 1.0
         opened = self.source.open()
         while not self._stop.is_set():
+            self.camera_open = opened
             if not opened:
                 self._logger.warning(f"Camera unavailable, retrying in {backoff:.0f}s")
                 if self._stop.wait(backoff):
@@ -178,6 +189,11 @@ class FrameBuffer:
         with self._lock:
             return len(self._frames)
 
+    def latest(self) -> Optional[Tuple[float, Any]]:
+        """The newest ``(timestamp, frame)`` pair, or ``None`` when the buffer is empty."""
+        with self._lock:
+            return self._frames[-1] if self._frames else None
+
     def frame_at(self, timestamp: float) -> Optional[Any]:
         """The buffered frame captured closest to ``timestamp``, or ``None`` when the buffer is empty."""
         with self._lock:
@@ -206,6 +222,35 @@ def crop(frame: Any, region: Optional[Region]) -> Any:
     if x1 <= x0 or y1 <= y0:
         return frame
     return frame[y0:y1, x0:x1]
+
+
+def frame_size(frame: Any) -> Optional[Tuple[int, int]]:
+    """``(width, height)`` of a numpy frame; ``None`` for raw byte frames or when there is no frame."""
+    shape = getattr(frame, "shape", None)
+    if not shape or len(shape) < 2:
+        return None
+    return int(shape[1]), int(shape[0])
+
+
+def draw_regions(frame: Any, regions: Dict[str, Region]) -> Any:
+    """
+    Return a copy of a numpy frame with each crop region drawn as a labelled rectangle.
+
+    Raw byte frames (no OpenCV) and empty region maps pass through untouched.
+    """
+    if not regions or isinstance(frame, (bytes, bytearray)) or getattr(frame, "shape", None) is None:
+        return frame
+    try:
+        cv2 = _cv2()
+    except ImportError:
+        return frame
+    canvas = frame.copy()
+    for name, (x, y, width, height) in sorted(regions.items()):
+        cv2.rectangle(canvas, (int(x), int(y)), (int(x + width), int(y + height)), (0, 255, 0), 2)
+        label_y = int(y) - 8 if y > 20 else int(y + height) + 20
+        cv2.putText(canvas, str(name), (int(x) + 4, label_y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2,
+                    cv2.LINE_AA)
+    return canvas
 
 
 def encode_jpeg(frame: Any, quality: int = 85) -> bytes:
