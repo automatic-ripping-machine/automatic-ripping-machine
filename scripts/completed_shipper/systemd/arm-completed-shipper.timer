@@ -1,0 +1,12 @@
+[Unit]
+Description=Periodically ship finished ARM rips to the media box
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+# Spread the start a little so it does not line up with other timers.
+RandomizedDelaySec=60
+Persistent=true
+
+[Install]
+WantedBy=timers.target

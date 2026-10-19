@@ -1,0 +1,47 @@
+# Configuration for the ARM completed-rip shipper.
+# Copy to /etc/arm-completed-shipper.conf and edit.  Paths on the ripping box
+# must match arm.yaml; paths on the media box are where Plex (or you) look.
+
+[shipper]
+# ARM's sqlite database (DBFILE in arm.yaml).  Opened read-only.
+db_path = /home/arm/db/arm.db
+
+# ARM's COMPLETED_PATH from arm.yaml.  Only its movies/, tv/ and unidentified/
+# sub-folders are shipped.
+completed_path = /home/arm/media/completed
+
+# ssh target on the media box, e.g. "arm@t620".  Leave empty when the
+# destination paths below are local (an NFS or SMB mount on this box).
+remote_host = arm@t620
+
+# Destination directories.  Each job folder lands as <path>/<Title (Year)>/.
+# The parent directories must already exist and be writable by remote_host.
+remote_movies_path = /srv/plex/Movies
+remote_tv_path = /srv/plex/TV
+remote_unidentified_path = /srv/arm-staging/unidentified
+
+# rsync --bwlimit in KiB/s.  0 means unlimited.  Recognized rips (movies/tv)
+# normally go full speed; unidentified rips are throttled so they never crowd
+# out the next recognized rip or Plex playback.
+bwlimit_recognized = 0
+bwlimit_unidentified = 8000
+
+# Options appended to the ssh command rsync uses.  BatchMode stops ssh from
+# hanging on a password prompt when run from systemd.
+ssh_options = -o BatchMode=yes -o StrictHostKeyChecking=accept-new
+
+# rsync binary and any extra arguments (e.g. --chmod=D775,F664 or --chown=plex:plex).
+rsync_path = rsync
+rsync_extra_args =
+
+# Seconds of I/O silence before rsync gives up (the folder is retried next run).
+rsync_timeout = 300
+
+# Lock file so timer runs never overlap.
+lock_file = /run/lock/arm-completed-shipper.lock
+
+# Optional shell command run after each folder ships.  SHIPPER_TYPE (movies,
+# tv, unidentified), SHIPPER_FOLDER and SHIPPER_DESTINATION are set in its
+# environment.  Example: kick a Plex library scan on the media box.
+# post_ship_command = curl -fsS "http://t620:32400/library/sections/all/refresh?X-Plex-Token=XXXX"
+post_ship_command =

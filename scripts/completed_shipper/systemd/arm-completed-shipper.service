@@ -1,0 +1,18 @@
+[Unit]
+Description=Ship finished ARM rips to the media box
+Documentation=file:///opt/arm/scripts/completed_shipper/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=arm
+Group=arm
+ExecStart=/usr/bin/python3 /opt/arm/scripts/completed_shipper/arm_completed_shipper.py --config /etc/arm-completed-shipper.conf
+# Let the shipper finish a folder in progress when the timer fires again or
+# the service is stopped; rsync leaves partial files for the next run anyway.
+TimeoutStopSec=120
+KillMode=mixed
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
