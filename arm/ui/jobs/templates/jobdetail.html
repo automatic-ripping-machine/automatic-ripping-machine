@@ -383,6 +383,7 @@
                                         <th scope="col" style="text-align:left">Aspect Ratio</th>
                                         <th scope="col" style="text-align:left">Main Feature</th>
                                         {% if jobs.video_type != "Music" %}
+                                            <th scope="col" style="text-align:left">Duplicate Of</th>
                                             <th scope="col" style="text-align:left">Manual Process</th>
                                         {% endif %}
                                         <th scope="col" style="text-align:left">Ripped</th>
@@ -403,6 +404,9 @@
                                             <td style="text-align:left">{{ track.aspect_ratio }}</td>
                                             <td style="text-align:left">{{ track.main_feature }}</td>
                                             {% if jobs.video_type != "Music" %}
+                                                <td style="text-align:left" title="{{ track.source_file or '' }} {{ track.segment_map or '' }}">
+                                                    {{ "Track " ~ track.duplicate_of if track.duplicate_of else "" }}
+                                                </td>
                                                 <td style="text-align:center">
                                                         {{ form.track_ref[loop.index0].checkbox }}
                                                         {{ form.track_ref[loop.index0].track_ref }}

@@ -217,6 +217,14 @@ RIPMETHOD_BR: "PLACEHOLDER"
 # MKV_ARGS: "--debug=-stdout"  # this will enable more detailed logging
 MKV_ARGS: ""
 
+# Rip titles that are copies of the same content only once.
+# Many Blu-rays and 4K discs list the main film twice: two playlists with the same runtime and size,
+# one with chapters and one with none. With this enabled ARM keeps the title with the most chapters
+# (same segment map, or the same duration and size when MakeMKV gives no segment map) and skips the
+# other copies. Extras are not affected. Only applies to RIPMETHOD "mkv" with MAINFEATURE false;
+# in manual drive mode the duplicates are shown unticked and you can still pick them.
+SKIP_DUPLICATE_TITLES: true
+
 # Remove any files created in the raw and transcode paths for the job after processing is complete
 DELRAWFILES: true
 

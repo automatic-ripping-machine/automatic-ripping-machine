@@ -71,6 +71,13 @@
 
                     <div class="input-group mb-3 flex-nowrap">
                         <div class="input-group-prepend">
+                            <span class="input-group-text">{{ form.SKIP_DUPLICATE_TITLES.label }}</span>
+                        </div>
+                        {{ form.SKIP_DUPLICATE_TITLES(class="switch") }}
+                    </div>
+
+                    <div class="input-group mb-3 flex-nowrap">
+                        <div class="input-group-prepend">
                             <span class="input-group-text">{{ form.MINLENGTH.label }}</span>
                         </div>
                         {{ form.MINLENGTH }}

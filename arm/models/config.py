@@ -54,6 +54,7 @@ class Config(db.Model):
     FFMPEG_LOCAL = db.Column(db.String(256))
     USE_FFMPEG = db.Column(db.Boolean)
     MAINFEATURE = db.Column(db.Boolean)
+    SKIP_DUPLICATE_TITLES = db.Column(db.Boolean)
     HB_ARGS_DVD = db.Column(db.String(256))
     HB_ARGS_BD = db.Column(db.String(256))
     EMBY_REFRESH = db.Column(db.Boolean)

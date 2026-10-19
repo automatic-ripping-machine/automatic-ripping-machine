@@ -580,7 +580,7 @@ def try_add_default_user():
 
 
 def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
-              chapters=0, filesize=0):
+              chapters=0, filesize=0, source_file="", segment_map=""):
     """
     Put data into a track instance.\n
     Having this here saves importing the models file everywhere\n
@@ -595,12 +595,14 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
     :param str filename: filename of track
     :param int chapters: number of chapters in track
     :param int filesize: size of track in bytes
+    :param str source_file: source file name on the disc (MakeMKV: playlist / VOB)
+    :param str segment_map: MakeMKV segment map, the stream files making up the title
     """
 
     logging.debug(
         f"Track #{int(t_no):02} Length: {seconds: >4} fps: {float(fps):2.3f} "
         f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source} "
-        f"Chapters: {chapters} Filesize: {filesize}")
+        f"Chapters: {chapters} Filesize: {filesize} Source file: {source_file} Segments: {segment_map}")
 
     job_track = Track(
         job_id=job.job_id,
@@ -613,7 +615,9 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
         basename=job.title,
         filename=filename,
         chapters=chapters,
-        filesize=filesize
+        filesize=filesize,
+        source_file=source_file,
+        segment_map=segment_map
     )
     job_track.ripped = (seconds > int(job.config.MINLENGTH))
     database_adder(job_track)
