@@ -1132,7 +1132,8 @@ def _titles_match(kept, candidate):
     Both must have (almost) the same duration and file size. When MakeMKV reported a
     segment map for both, the maps must be identical as well: two different sets of
     stream files are two different titles even if their lengths and sizes happen to
-    match (think of the episodes of a series).
+    match (think of the episodes of a series). Without segment maps the duration and
+    size are all there is to go on, so both sizes must actually be known.
 
     Parameters:
         kept: arm.models.track.Track (or anything with length, filesize, segment_map)
@@ -1149,7 +1150,7 @@ def _titles_match(kept, candidate):
     candidate_map = (candidate.segment_map or "").strip()
     if kept_map and candidate_map:
         return kept_map == candidate_map
-    return True
+    return kept_size > 0 and candidate_size > 0
 
 
 def find_duplicate_titles(tracks):

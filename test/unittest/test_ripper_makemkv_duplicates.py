@@ -136,6 +136,16 @@ class TestFindDuplicateTitles(unittest.TestCase):
         self.assertEqual(groups[0][0], main)
         self.assertEqual(groups[0][1], [copy])
 
+    def test_fallback_without_size_information_is_not_a_duplicate(self):
+        # same duration, no size and no segment map: not enough to tell copies from episodes
+        main = _track(0, 6903, 0, 20)
+        copy = _track(1, 6903, 0, 0)
+        self.assertEqual(makemkv.find_duplicate_titles([main, copy]), [])
+        # an identical segment map is enough on its own
+        main = _track(0, 6903, 0, 20, "1,2,3")
+        copy = _track(1, 6903, 0, 0, "1,2,3")
+        self.assertEqual(makemkv.find_duplicate_titles([main, copy]), [(main, [copy])])
+
     def test_segment_map_on_one_side_only_falls_back_to_duration_and_size(self):
         main = _track(0, 6903, 75_000_000_000, 20, "1,2,3")
         copy = _track(1, 6903, 75_000_000_000, 0, "")
