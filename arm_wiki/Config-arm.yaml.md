@@ -20,6 +20,7 @@ They include
   - Emby notification/server details (allowing emby refresh after rips)
   - Notification settings (Pushbullet, IFTTT, Pushover)
   - Disc camera settings (webcam photo of each disc, OCR fallback for titles) - see [Disc Camera](Disc-Camera)
+  - Barcode scanner settings (scan the case, look the UPC up when identification fails) - see [Barcode Scanner](Barcode-Scanner)
   - The location of your [apprise.yaml](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/apprise.yaml) (allows notifications to Discord, Slack, Telegram, Kodi, and lots of others)
 
 

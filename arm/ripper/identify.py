@@ -560,3 +560,96 @@ def identify_from_photo(job):
             return True
     logging.info("OCR text did not match any title online")
     return False
+
+
+def identify_from_barcode(job):
+    """
+    Fallback identification: look up the UPC/EAN scanned from the disc case.
+
+    Runs when BARCODE_LOOKUP is enabled, the job has a barcode and the disc is still not
+    identified (``hasnicetitle`` is False). Video discs go through upcitemdb and then the
+    normal metadata search; music discs ask MusicBrainz for a release with that barcode.
+    The looked-up product title is kept on the job so the title fix pages can offer it even
+    when no online match is found.
+
+    :return: True when a title was found from the barcode
+    """
+    if not cfg.arm_config.get("BARCODE_LOOKUP", True):
+        return False
+    if not job.disc_barcode or job.hasnicetitle:
+        return False
+    if job.disctype in ["dvd", "bluray"]:
+        return _identify_video_from_barcode(job)
+    if job.disctype == "music":
+        return _identify_music_from_barcode(job)
+    return False
+
+
+def _identify_video_from_barcode(job):
+    logging.info(f"Disc not identified, looking up barcode {job.disc_barcode}")
+    candidates = disc_photo.lookup_upc(job.disc_barcode, user_agent=f"arm/{job.arm_version}")
+    if not candidates:
+        logging.info("Barcode lookup returned no video products")
+        return False
+    best = candidates[0]
+    logging.info(f"Barcode {job.disc_barcode} is '{best['raw']}' -> searching '{best['title']}' ({best['year']})")
+    utils.database_updater({'disc_barcode_title': best['raw'][:256]}, job)
+    for candidate in candidates[:3]:
+        try:
+            response = try_with_year(job, None, candidate['title'], candidate['year'])
+            response = try_without_year(job, response, candidate['title'])
+        except Exception as error:
+            logging.debug(f"Metadata lookup for barcode candidate '{candidate['title']}' failed: {error}")
+            response = None
+        if response and 'Search' in response:
+            logging.info(f"Identified disc from barcode as '{job.title}' ({job.year}) via '{candidate['title']}'")
+            return True
+    logging.info("Barcode product title did not match any title online")
+    return False
+
+
+def _identify_music_from_barcode(job):
+    """
+    Ask MusicBrainz for a release carrying this barcode and take artist and title from it.
+
+    Both the 12 digit UPC-A and the 13 digit EAN-13 spelling are tried, since scanners and
+    the MusicBrainz database disagree on which one is stored.
+    """
+    import musicbrainzngs as mb  # pylint: disable=import-outside-toplevel
+
+    logging.info(f"Audio disc not identified, searching MusicBrainz for barcode {job.disc_barcode}")
+    mb.set_useragent(app="arm", version=str(job.arm_version), contact="https://github.com/automatic-ripping-machine")
+    releases = []
+    for form in disc_photo.barcode_forms(job.disc_barcode):
+        try:
+            result = mb.search_releases(barcode=form, limit=5)
+        except mb.WebServiceError as error:
+            logging.warning(f"MusicBrainz barcode search failed: {error}")
+            return False
+        releases = result.get('release-list') or []
+        if releases:
+            break
+        logging.debug(f"No MusicBrainz release with barcode {form}")
+    if not releases:
+        logging.info("No MusicBrainz release carries that barcode")
+        return False
+    release = releases[0]
+    title = str(release.get('title') or "")
+    artist = str(release.get('artist-credit-phrase') or "")
+    if not title:
+        return False
+    artist_title = f"{artist} {title}".strip()
+    year = str(release.get('date') or "")[:4]
+    logging.info(f"Barcode {job.disc_barcode} is '{artist_title}' ({year or 'no year'}) on MusicBrainz")
+    args = {
+        'crc_id': release.get('id'),
+        'title': artist_title,
+        'title_auto': artist_title,
+        'year': year,
+        'year_auto': year,
+        'video_type': "Music",
+        'hasnicetitle': True,
+        'disc_barcode_title': artist_title[:256],
+    }
+    utils.database_updater(args, job)
+    return True

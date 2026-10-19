@@ -7,6 +7,10 @@ from ``CAMERA_LEAD_SECONDS`` earlier (the disc sitting in the open tray) as
 ``DISC_PHOTO_PATH/<srN>_<YYYYmmdd-HHMMSS>.jpg``. The ripper picks that file up when udev starts
 a job for the same drive.
 
+It also listens to a USB barcode scanner (``BARCODE_ENABLED``). The most recent scan is paired
+with the next tray close and written as ``DISC_PHOTO_PATH/<srN>_<YYYYmmdd-HHMMSS>.barcode`` so
+the ripper can attach the case's UPC to the job. Either feature can run on its own.
+
 Run as a service::
 
     python3 /opt/arm/arm/camera/daemon.py
@@ -14,6 +18,7 @@ Run as a service::
 Run without hardware (handy for checking the install)::
 
     python3 /opt/arm/arm/camera/daemon.py --frames-from /path/to/disc.jpg --simulate-close sr0
+    python3 /opt/arm/arm/camera/daemon.py --scan 085391163926 --simulate-close sr0
 
 Config comes from the ARM config file (``ARM_CONFIG_FILE``, default ``/etc/arm/config/arm.yaml``)
 merged over the template in ``setup/arm.yaml``. It is read directly rather than through
@@ -37,6 +42,7 @@ import yaml
 # Sibling modules are imported by path so that ``arm/__init__.py`` (which pulls in the whole
 # ripper and the web UI) is never executed by this process.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import barcode  # noqa: E402
 import capture  # noqa: E402
 import tray  # noqa: E402
 
@@ -52,6 +58,9 @@ DEFAULTS = {
     "CAMERA_BUFFER_SECONDS": 4,
     "CAMERA_LEAD_SECONDS": 1.5,
     "CAMERA_JPEG_QUALITY": 85,
+    "BARCODE_ENABLED": False,
+    "BARCODE_DEVICE": "",
+    "BARCODE_PAIR_SECONDS": 120,
     "DISC_PHOTO_PATH": "/home/arm/media/disc_photos/",
     "LOGPATH": "/home/arm/logs/",
     "LOGLEVEL": "INFO",
@@ -70,7 +79,7 @@ PREVIEW_REQUEST_MAX_AGE = 10.0
 """Seconds after the last touch of ``PREVIEW_REQUEST_FILE`` before preview frames stop."""
 CAPTURE_TRIGGER_RE = re.compile(r"^\.capture_(sr\d+)$")
 """``.capture_sr0`` in the photo folder asks for a photo as if that drive's tray had just closed."""
-RELOAD_PREFIXES = ("CAMERA_", "DISC_PHOTO_")
+RELOAD_PREFIXES = ("CAMERA_", "DISC_PHOTO_", "BARCODE_")
 """Config keys that are re-read from arm.yaml while the daemon runs."""
 
 
@@ -176,6 +185,27 @@ def photo_filename(devname: str, when: Optional[datetime.datetime] = None) -> st
     return f"{devname}_{when:%Y%m%d-%H%M%S}.jpg"
 
 
+def barcode_filename(devname: str, when: Optional[datetime.datetime] = None) -> str:
+    when = when or datetime.datetime.now()
+    return f"{devname}_{when:%Y%m%d-%H%M%S}.barcode"
+
+
+def save_barcode(code: str, transition: tray.TrayTransition, photo_dir: str) -> str:
+    """
+    Record the barcode scanned before this drive's tray closed.
+
+    The file holds just the code; the ripper reads it with the same drive/time matching it uses
+    for photos and renames it once attached to a job.
+
+    :return: the saved file path
+    """
+    os.makedirs(photo_dir, exist_ok=True)
+    final_path = os.path.join(photo_dir, barcode_filename(transition.devname))
+    write_bytes_atomic(final_path, f"{code}\n".encode("utf-8"))
+    logging.info(f"{transition.devname}: tray closed, saved barcode {code} to {final_path}")
+    return final_path
+
+
 def save_photo(buffer: capture.FrameBuffer, transition: tray.TrayTransition, photo_dir: str,
                lead_seconds: float, regions: Dict[str, capture.Region], quality: int) -> Optional[str]:
     """
@@ -201,12 +231,13 @@ def save_photo(buffer: capture.FrameBuffer, transition: tray.TrayTransition, pho
 
 class Daemon:
     """
-    Wires the tray watcher and the frame buffer together.
+    Wires the tray watcher, the frame buffer and the barcode scanner together.
 
     ``tick()`` does one round of work and is what ``run()`` loops over; tests call it directly.
-    Besides saving photos on tray closes it keeps the status file fresh, serves preview frames
-    while the setup page asks for them, honours test-capture marker files and re-reads arm.yaml
-    when it changes.
+    Besides saving photos and barcodes on tray closes it keeps the status file fresh, serves
+    preview frames while the setup page asks for them, honours test-capture marker files and
+    re-reads arm.yaml when it changes. The camera runs while ``CAMERA_ENABLED`` is set, the
+    scanner while ``BARCODE_ENABLED`` is set; trays are watched when either is.
     """
 
     def __init__(self, config: Dict, source=None, drives=None, poll_interval: float = 0.25,
@@ -223,6 +254,7 @@ class Daemon:
         """How often the status file is rewritten while CAMERA_ENABLED is false (plus on every change)."""
         self.preview_interval = 1.0
         self.last_photo: Dict[str, str] = {}
+        self.last_barcode: Dict[str, str] = {}
         self._injected_source = source
         self._fixed_drives = list(drives) if drives is not None else None
         self._status_fn = status_fn
@@ -239,6 +271,11 @@ class Daemon:
         self.source = None
         self.buffer: Optional[capture.FrameBuffer] = None
         self.watcher: Optional[tray.TrayWatcher] = None
+        self.barcode_enabled = False
+        self.barcode_device = ""
+        self.scans = barcode.ScanHolder()
+        self.reader: Optional[barcode.BarcodeReader] = None
+        self._scanner_warned = False
         self._config_stamps = self._config_mtimes()
         self.apply_config(config)
 
@@ -266,6 +303,10 @@ class Daemon:
         self.buffer_seconds = as_number(config.get("CAMERA_BUFFER_SECONDS"), 4)
         self.device = str(config.get("CAMERA_DEVICE") or "/dev/video0")
         self._apply_source(previous_device=previous.get("CAMERA_DEVICE"))
+        self.barcode_enabled = as_bool(config.get("BARCODE_ENABLED", False))
+        self.barcode_device = str(config.get("BARCODE_DEVICE") or "")
+        self.scans.pair_seconds = as_number(config.get("BARCODE_PAIR_SECONDS"), 120)
+        self._apply_reader()
         drives = (list(self._fixed_drives) if self._fixed_drives is not None
                   else tray.discover_drives(str(config.get("CAMERA_DRIVES") or "")))
         if self.watcher is None or drives != self.drives:
@@ -290,6 +331,24 @@ class Daemon:
             return
         self.buffer.interval = 1.0 / max(float(self.fps), 0.5)
         self.buffer.buffer_seconds = max(float(self.buffer_seconds), self.buffer.interval)
+
+    def _apply_reader(self) -> None:
+        """Start, stop or swap the scanner thread to match BARCODE_ENABLED and BARCODE_DEVICE."""
+        device = None
+        if self.barcode_enabled:
+            device = barcode.find_scanner_device(self.barcode_device)
+            if device is None and not self._scanner_warned:
+                logging.warning("BARCODE_ENABLED is set but no scanner was found; set BARCODE_DEVICE in arm.yaml")
+                self._scanner_warned = True
+        else:
+            self._scanner_warned = False
+        if self.reader is not None and self.reader.device != device:
+            self.reader.stop()
+            self.reader = None
+            logging.info("Barcode scanner released")
+        if device is not None and self.reader is None:
+            self.reader = barcode.BarcodeReader(device, self.scans.hold)
+            self.reader.start()
 
     def _config_mtimes(self):
         stamps = []
@@ -325,20 +384,33 @@ class Daemon:
 
     # -- photos --------------------------------------------------------------------------
 
-    def handle(self, transition: tray.TrayTransition) -> Optional[str]:
-        if tray.is_tray_close(transition):
+    def handle(self, transition: tray.TrayTransition, claim_scan: bool = True) -> Optional[str]:
+        """
+        React to a tray transition: on a close save the photo (camera on) and the pending scan.
+
+        :param claim_scan: False for test captures from the web UI, which must not use up a scan
+        :return: the saved photo path, else the saved barcode path, else None
+        """
+        if not tray.is_tray_close(transition):
+            return None
+        saved = None
+        if self.enabled or self.buffer.running:
             saved = save_photo(self.buffer, transition, self.photo_dir, self.lead_seconds,
                                self.regions, self.quality)
             if saved:
                 self.last_photo[transition.devname] = os.path.basename(saved)
-            return saved
-        return None
+        code = self.scans.claim(transition.timestamp) if claim_scan else None
+        if code:
+            barcode_path = save_barcode(code, transition, self.photo_dir)
+            self.last_barcode[transition.devname] = code
+            saved = saved or barcode_path
+        return saved
 
-    def _safe_handle(self, transition: tray.TrayTransition) -> None:
+    def _safe_handle(self, transition: tray.TrayTransition, claim_scan: bool = True) -> None:
         try:
-            self.handle(transition)
+            self.handle(transition, claim_scan)
         except Exception as error:  # keep the service alive whatever happens
-            logging.error(f"Failed to save disc photo: {error}", exc_info=True)
+            logging.error(f"Failed to save disc photo or barcode: {error}", exc_info=True)
 
     def pop_capture_triggers(self) -> list:
         """Delete any ``.capture_srN`` marker files in the photo folder and return their drive names."""
@@ -407,6 +479,10 @@ class Daemon:
             "drives": [tray.TrayWatcher.devname(d) for d in self.drives],
             "tray_state": self.watcher.states(),
             "last_photo": dict(self.last_photo),
+            "barcode_enabled": self.barcode_enabled,
+            "barcode_device": self.reader.device if self.reader else None,
+            "pending_scan": self.scans.peek(now),
+            "last_barcode": dict(self.last_barcode),
             "lead_seconds": self.lead_seconds,
             "regions": {name: list(region) for name, region in self.regions.items()},
             "photo_dir": self.photo_dir,
@@ -454,32 +530,45 @@ class Daemon:
         """One round: reload config if needed, poll trays, honour marker files, refresh status."""
         now = time.monotonic() if now is None else now
         status_due = bool(self.check_config())
+        active = self.enabled or self.barcode_enabled
         if self.enabled:
             if not self.buffer.running:
                 self._start_capture(now)
-            for transition in self.watcher.poll(now):
-                self._safe_handle(transition)
-            for devname in self.pop_capture_triggers():
-                self._safe_handle(tray.TrayTransition(devname, tray.TrayState.TRAY_OPEN, tray.TrayState.DISC_OK, now))
-            self._maybe_write_preview(now)
         else:
             if self.buffer.running:
                 self.buffer.stop()
                 logging.info("CAMERA_ENABLED is now false; camera released")
                 status_due = True
             self._next_start, self._start_backoff = 0.0, 1.0
-            if not self._idle_logged:
-                logging.info("CAMERA_ENABLED is false; the disc camera daemon is idle until it is enabled in arm.yaml")
-                self._idle_logged = True
-        # While disabled nothing in the status changes between config reloads, so rewrite the
+        if active:
+            for transition in self.watcher.poll(now):
+                self._safe_handle(transition)
+            for devname in self.pop_capture_triggers():
+                self._safe_handle(tray.TrayTransition(devname, tray.TrayState.TRAY_OPEN, tray.TrayState.DISC_OK, now),
+                                  claim_scan=False)
+            if self.enabled:
+                self._maybe_write_preview(now)
+            self._idle_logged = False
+        elif not self._idle_logged:
+            logging.info("CAMERA_ENABLED and BARCODE_ENABLED are both false; the disc camera daemon is idle "
+                         "until one is enabled in arm.yaml")
+            self._idle_logged = True
+        # While idle nothing in the status changes between config reloads, so rewrite the
         # file rarely instead of once a second (the UI allows a longer stale period for idle status)
-        interval = self.status_interval if self.enabled else self.idle_status_interval
+        interval = self.status_interval if active else self.idle_status_interval
         if status_due or self._last_status < 0 or now - self._last_status >= interval:
             self.write_status(now)
             self._last_status = now
 
     def stop(self, *_args) -> None:
         self._running = False
+
+    def close(self) -> None:
+        """Release the camera and the scanner."""
+        if self.reader is not None:
+            self.reader.stop()
+            self.reader = None
+        self.buffer.stop()
 
     def run(self) -> int:
         if not self.drives:
@@ -490,16 +579,17 @@ class Daemon:
                 self.tick()
                 time.sleep(self.poll_interval)
         finally:
-            self.buffer.stop()
+            self.close()
             self.write_status(running=False)
             logging.info("Camera daemon stopped")
         return 0
 
     def simulate_close(self, devname: str, wait: float = 5.0) -> Optional[str]:
-        """Capture one frame and save it as if ``devname`` had just closed its tray."""
-        self.buffer.start()
+        """Capture one frame and/or claim the held scan as if ``devname`` had just closed its tray."""
+        if self.enabled:
+            self.buffer.start()
         try:
-            if not self.buffer.wait_for_frame(wait):
+            if self.enabled and not self.buffer.wait_for_frame(wait):
                 logging.error("No frame captured, cannot simulate a tray close")
                 return None
             now = time.monotonic()
@@ -513,8 +603,10 @@ def parse_args(argv):
     parser.add_argument("--config", default=DEFAULT_CONFIG_FILE, help="ARM config file (arm.yaml)")
     parser.add_argument("--frames-from", metavar="PATH",
                         help="use an image file or folder of images instead of the camera")
+    parser.add_argument("--scan", metavar="CODE",
+                        help="pretend this barcode was just scanned (use with --simulate-close)")
     parser.add_argument("--simulate-close", metavar="SRN",
-                        help="save one photo as if this drive's tray just closed, then exit")
+                        help="save one photo and/or barcode as if this drive's tray just closed, then exit")
     parser.add_argument("--drives", help="override CAMERA_DRIVES (comma separated, e.g. sr0,sr1)")
     parser.add_argument("--photo-dir", help="override DISC_PHOTO_PATH")
     parser.add_argument("--poll-interval", type=float, default=0.25, help="tray poll interval in seconds")
@@ -526,6 +618,8 @@ def main(argv=None) -> int:
     args = parse_args(argv)
     config = load_config(args.config)
     overrides = {"DISC_PHOTO_PATH": args.photo_dir} if args.photo_dir else {}
+    if args.scan:
+        overrides["BARCODE_ENABLED"] = False  # a fake scan means a test: leave any real scanner alone
     config.update(overrides)
     setup_logging(str(config.get("LOGPATH") or DEFAULTS["LOGPATH"]), str(config.get("LOGLEVEL") or "INFO"))
 
@@ -535,12 +629,14 @@ def main(argv=None) -> int:
     daemon = Daemon(config, source=source, drives=drives, poll_interval=args.poll_interval,
                     config_file=args.config, force_enabled=bool(args.force or args.frames_from),
                     overrides=overrides)
+    if args.scan and not daemon.scans.hold(args.scan):
+        return 1
 
     if args.simulate_close:
         saved = daemon.simulate_close(os.path.basename(args.simulate_close))
         return 0 if saved else 1
 
-    # When CAMERA_ENABLED is false the loop idles (status file only) until the setting changes,
+    # When CAMERA_ENABLED and BARCODE_ENABLED are false the loop idles (status file only) until one changes,
     # so runit/systemd never restart the service in a loop.
     signal.signal(signal.SIGTERM, daemon.stop)
     signal.signal(signal.SIGINT, daemon.stop)

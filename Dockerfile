@@ -44,7 +44,8 @@ RUN \
 # Remove SSH
 RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 
-# Disc camera: OpenCV for the webcam daemon, tesseract for reading disc labels
+# Disc camera: OpenCV for the webcam daemon, evdev for the USB barcode scanner (built from source,
+# the base image has gcc and python3-dev), tesseract for reading disc labels
 COPY ./requirements-camera.txt /tmp/requirements-camera.txt
 RUN apt-get update && \
     apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng && \
@@ -57,7 +58,7 @@ RUN mkdir /etc/service/armui
 COPY ./scripts/docker/runsv/armui.sh /etc/service/armui/run
 RUN chmod +x /etc/service/armui/run
 
-# Add disc camera service (idles when CAMERA_ENABLED is false)
+# Add disc camera / barcode scanner service (idles when CAMERA_ENABLED and BARCODE_ENABLED are false)
 RUN mkdir /etc/service/armcamera
 COPY ./scripts/docker/runsv/armcamera.sh /etc/service/armcamera/run
 RUN chmod +x /etc/service/armcamera/run

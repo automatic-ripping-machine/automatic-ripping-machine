@@ -1,4 +1,4 @@
-{# Disc photo and OCR hints shown above the title forms. Expects `job` and optional `ocr` (dict with candidates/year). #}
+{# Disc photo, barcode and OCR hints shown above the title forms. Expects `job` and optional `ocr` (dict with candidates/year/barcode). #}
 {% if job and (job.disc_photo or ocr) %}
 <div class="container mb-3">
     <div class="row justify-content-center">
@@ -13,12 +13,26 @@
         {% if ocr %}
         <div class="col-md-5">
             <div class="alert alert-secondary mb-0" role="alert">
-                <strong>Text read from the disc label:</strong>
+                {% if ocr.barcode %}
+                    <strong>Case barcode:</strong> <code>{{ ocr.barcode.code }}</code>
+                    {% if ocr.barcode.title %}
+                        &rarr; <a href="#" class="ocr-candidate" data-title="{{ ocr.barcode.title }}"
+                                  title="{{ ocr.barcode.raw }}">{{ ocr.barcode.title }}</a>
+                    {% elif ocr.barcode.raw %}
+                        &rarr; {{ ocr.barcode.raw }}
+                    {% else %}
+                        <small class="text-muted">(not found online)</small>
+                    {% endif %}
+                    <br/>
+                {% endif %}
+                {% if ocr.candidates %}
+                <strong>Title suggestions:</strong>
                 <ul class="mb-1 pl-3">
                     {% for candidate in ocr.candidates %}
                         <li><a href="#" class="ocr-candidate" data-title="{{ candidate }}">{{ candidate }}</a></li>
                     {% endfor %}
                 </ul>
+                {% endif %}
                 {% if ocr.year %}<small class="text-muted">Year hint: {{ ocr.year }}</small>{% endif %}
             </div>
         </div>

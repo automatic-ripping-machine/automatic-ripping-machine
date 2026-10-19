@@ -53,6 +53,9 @@ echo "Adding arm user to 'render' group"
 usermod -a -G render arm
 echo "Adding arm user to 'video' group (webcam access for the disc camera)"
 usermod -a -G video arm
+echo "Adding arm user to 'input' group (barcode scanner access)"
+getent group input > /dev/null || groupadd -r input
+usermod -a -G input arm
 
 ### Setup Files
 chown -R arm:arm /opt/arm

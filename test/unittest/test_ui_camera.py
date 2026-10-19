@@ -7,6 +7,7 @@ config file, so it must never point at a real arm.yaml even when ARM_CONFIG_FILE
 skips itself when the ARM package cannot be imported, e.g. on a machine without the Linux
 libraries ARM needs. Run it in the ARM Docker image or on an ARM install.
 """
+import importlib
 import json
 import os
 import shutil
@@ -42,7 +43,8 @@ _template.update({
 })
 with open(os.path.join(_TEMP_ROOT, "arm.yaml"), "w") as _handle:
     yaml.safe_dump(_template, _handle)
-os.environ["ARM_CONFIG_FILE"] = os.path.join(_TEMP_ROOT, "arm.yaml")
+_CONFIG_PATH = os.path.join(_TEMP_ROOT, "arm.yaml")
+os.environ["ARM_CONFIG_FILE"] = _CONFIG_PATH
 
 try:
     import arm.config.config as cfg
@@ -66,6 +68,11 @@ def tearDownModule():
 class TestCameraPage(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # Another test module may have imported ARM with its own throwaway config, or changed the
+        # env var (which /camera/save re-reads when it reloads the config): make both point at ours
+        os.environ["ARM_CONFIG_FILE"] = _CONFIG_PATH
+        if cfg.arm_config_path != _CONFIG_PATH:
+            importlib.reload(cfg)
         app.config["TESTING"] = True
         app.config["WTF_CSRF_ENABLED"] = False
         app.config["LOGIN_DISABLED"] = True

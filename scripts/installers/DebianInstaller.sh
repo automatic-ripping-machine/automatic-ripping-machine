@@ -619,7 +619,7 @@ function DeleteArmUser() {
 
 # Make sure the 'arm' user is part of the 'cdrom', 'video' and 'render' groups.
 function MakeArmUserPartOfRequiredGroups() {
-  usermod -aG cdrom,video,render arm
+  usermod -aG cdrom,video,render,input arm
 }
 
 #Give the User the option of setting a custom password.  The User may decline, in which event
@@ -834,6 +834,7 @@ function InstallArmDependencies() {
                   python3-venv \
                   python3-libdiscid \
                   python3-pip \
+                  python3-dev \
                   tesseract-ocr \
                   tesseract-ocr-eng
 
@@ -970,9 +971,11 @@ function CreateAndStartService() {
 }
 
 function CreateAndStartCameraService() {
-  echo -e "${RED}Installing ARM disc camera service${NC}"
-  # OpenCV is only needed by the camera daemon and has no wheel for 32-bit ARM, so it lives in its own file
-  sudo -u arm /opt/arm/venv/bin/pip3 install -r /opt/arm/requirements-camera.txt
+  echo -e "${RED}Installing ARM disc camera / barcode scanner service${NC}"
+  # OpenCV and evdev are only needed by the camera daemon and OpenCV has no wheel for 32-bit ARM,
+  # so they live in their own file and a failure here must not stop the rest of the install
+  sudo -u arm /opt/arm/venv/bin/pip3 install -r /opt/arm/requirements-camera.txt || \
+    echo -e "${RED}Could not install the disc camera Python packages; the camera and barcode scanner will be unavailable${NC}"
   cp /opt/arm/setup/armcamera.service /lib/systemd/system/armcamera.service
   systemctl daemon-reload
   systemctl enable armcamera

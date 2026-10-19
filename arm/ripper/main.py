@@ -111,7 +111,14 @@ def main():
     """main disc processing function"""
     logging.info("Starting Disc identification")
     identify.identify(job)
-    # Fall back to reading the disc label from the camera photo; never let it stop the rip
+    # Fall back to the barcode scanned from the case (video discs only here: music discs get the
+    # precise MusicBrainz disc-id lookup first, below, and its barcode search is rate limited),
+    # then to reading the disc label from the camera photo; never let either stop the rip
+    if job.disctype in ("dvd", "bluray"):
+        try:
+            identify.identify_from_barcode(job)
+        except Exception as error:
+            logging.error(f"Barcode lookup failed: {error}", exc_info=True)
     try:
         identify.identify_from_photo(job)
     except Exception as error:
@@ -137,6 +144,11 @@ def main():
     elif job.disctype == "music":
         # Try to recheck music disc for auto ident
         music_brainz.main(job)
+        # Disc id unknown to MusicBrainz? The case barcode may still find the release
+        try:
+            identify.identify_from_barcode(job)
+        except Exception as error:
+            logging.error(f"Barcode lookup failed: {error}", exc_info=True)
         if utils.rip_music(job, log_file):
             utils.notify(job, constants.NOTIFY_TITLE, f"Music CD: {job.title} {constants.PROCESS_COMPLETE}")
             utils.scan_emby()
@@ -229,11 +241,15 @@ def setup():
         job.manual_mode = False
         db.session.commit()
     utils.database_adder(config)
-    # Attach the webcam photo of this disc, if the camera daemon took one
+    # Attach the webcam photo of this disc and the barcode scanned from its case, if the daemon saved them
     try:
         utils.attach_disc_photo(job)
     except Exception as error:
         logging.error(f"Failed to attach disc photo: {error}", exc_info=True)
+    try:
+        utils.attach_disc_barcode(job)
+    except Exception as error:
+        logging.error(f"Failed to attach disc barcode: {error}", exc_info=True)
 
     try:
         # Delete old log files
