@@ -275,5 +275,31 @@ class TestUpcLookup(unittest.TestCase):
         get.assert_not_called()
 
 
+class TestWriteBarcodeSidecar(unittest.TestCase):
+    def setUp(self):
+        self.folder = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.folder, ignore_errors=True)
+
+    def test_writes_code_and_newline(self):
+        target = os.path.join(self.folder, "Film (2001)")
+        path = disc_photo.write_barcode_sidecar(target, " 085391163926 ")
+        self.assertEqual(path, os.path.join(target, "disc.barcode"))
+        with open(path, encoding="utf-8") as handle:
+            self.assertEqual(handle.read(), "085391163926\n")
+
+    def test_overwrites_an_earlier_file(self):
+        disc_photo.write_barcode_sidecar(self.folder, "111111111111")
+        disc_photo.write_barcode_sidecar(self.folder, "222222222222")
+        with open(os.path.join(self.folder, "disc.barcode"), encoding="utf-8") as handle:
+            self.assertEqual(handle.read(), "222222222222\n")
+
+    def test_refuses_implausible_codes(self):
+        for code in ("", None, "ab", "0" * 40, "12 34"):
+            self.assertIsNone(disc_photo.write_barcode_sidecar(self.folder, code))
+        self.assertFalse(os.path.exists(os.path.join(self.folder, "disc.barcode")))
+
+
 if __name__ == '__main__':
     unittest.main()

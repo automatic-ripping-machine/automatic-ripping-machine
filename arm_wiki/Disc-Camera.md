@@ -43,7 +43,7 @@ All settings live in `arm.yaml` under the **Disc Camera** heading. Use the **Dis
 | `DISC_PHOTO_MAX_AGE` | `180` | Seconds. A photo older than this when the job starts is not attached. |
 | `DISC_PHOTO_RETENTION_DAYS` | `14` | Unattached photos older than this are deleted. |
 | `DISC_PHOTO_OCR` | `false` | Run tesseract on the photo when identification fails. Off by default because misread label text can retitle a rip; only lines of two or more words, or six or more letters, are searched. |
-| `DISC_PHOTO_COPY` | `true` | Copy the photo into the completed rip folder as `disc.jpg`. |
+| `DISC_PHOTO_COPY` | `true` | Copy the photo into the completed rip folder as `disc.jpg` (and a scanned [barcode](Barcode-Scanner) as `disc.barcode`). |
 
 ## The Disc Camera page
 

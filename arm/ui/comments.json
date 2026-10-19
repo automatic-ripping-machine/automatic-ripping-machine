@@ -104,7 +104,7 @@
   "DISC_PHOTO_MAX_AGE": "# Maximum age (seconds) of a photo for it to be attached to a job starting on that drive.\n# Covers the delay between the tray closing and udev starting ARM.",
   "DISC_PHOTO_RETENTION_DAYS": "# Delete disc photos older than this many days that are not attached to any job\n# (empty-tray closes and ejects produce unattached photos).",
   "DISC_PHOTO_OCR": "# When disc identification fails, run tesseract OCR on the disc photo\n# and use the text as a fallback title search.\n# Requires the tesseract binary. Off by default: text misread from the label\n# can give a rip the wrong title, so check the title fix page when enabling it.",
-  "DISC_PHOTO_COPY": "# Copy the disc photo into the completed rip folder as disc.jpg",
+  "DISC_PHOTO_COPY": "# Copy the disc photo into the completed rip folder as disc.jpg, and the barcode scanned\n# from the case as disc.barcode (one line, the code), so both stay with the rip.",
   "BARCODE_ENABLED": "# Enable the USB barcode scanner (runs inside the disc camera daemon, no webcam needed).\n# Scan the barcode on the disc case, put the disc in and close the tray: the code is attached\n# to the job and, when disc identification fails, looked up to find the title.",
   "BARCODE_DEVICE": "# Input device of the scanner, e.g. /dev/input/by-id/usb-Eyoyo_EY-H2-event-kbd or /dev/input/event5.\n# Leave blank to pick the first keyboard device whose name contains \"Eyoyo\", \"barcode\" or \"scanner\".\n# Docker: pass it through with --device=/dev/input/eventN:/dev/input/eventN",
   "BARCODE_PAIR_SECONDS": "# How long (seconds) a scan waits for a tray to close before it is forgotten.",
