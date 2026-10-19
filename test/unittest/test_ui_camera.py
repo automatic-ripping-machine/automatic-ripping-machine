@@ -2,9 +2,10 @@
 Flask test-client smoke tests for the disc camera setup page (arm/ui/camera).
 
 Importing ``arm.ui`` loads the ARM config, the Flask app and the SQLite database, so this
-module builds a throwaway config under a temp folder first (unless ARM_CONFIG_FILE is already
-set) and skips itself when the ARM package cannot be imported, e.g. on a machine without the
-Linux libraries ARM needs. Run it in the ARM Docker image or on an ARM install.
+module always builds a throwaway config under a temp folder first (the save test rewrites the
+config file, so it must never point at a real arm.yaml even when ARM_CONFIG_FILE is set) and
+skips itself when the ARM package cannot be imported, e.g. on a machine without the Linux
+libraries ARM needs. Run it in the ARM Docker image or on an ARM install.
 """
 import json
 import os
@@ -24,25 +25,24 @@ TINY_JPEG = bytes.fromhex(
     "003f00d2cf20ffd9"
 )
 
-_TEMP_ROOT = None
-if "ARM_CONFIG_FILE" not in os.environ:
-    _TEMP_ROOT = tempfile.mkdtemp(prefix="arm-ui-test-")
-    for sub in ("logs", "db", "photos"):
-        os.makedirs(os.path.join(_TEMP_ROOT, sub))
-    with open(REPO_ROOT / "setup" / "arm.yaml") as _handle:
-        _template = yaml.safe_load(_handle)
-    _template.update({
-        "INSTALLPATH": str(REPO_ROOT),
-        "DBFILE": os.path.join(_TEMP_ROOT, "db", "arm.db"),
-        "LOGPATH": os.path.join(_TEMP_ROOT, "logs") + "/",
-        "ABCDE_CONFIG_FILE": str(REPO_ROOT / "setup" / ".abcde.conf"),
-        "DISC_PHOTO_PATH": os.path.join(_TEMP_ROOT, "photos") + "/",
-        "DISABLE_LOGIN": True,
-        "CAMERA_DRIVES": "sr0,sr1",
-    })
-    with open(os.path.join(_TEMP_ROOT, "arm.yaml"), "w") as _handle:
-        yaml.safe_dump(_template, _handle)
-    os.environ["ARM_CONFIG_FILE"] = os.path.join(_TEMP_ROOT, "arm.yaml")
+_ORIGINAL_CONFIG_FILE = os.environ.get("ARM_CONFIG_FILE")
+_TEMP_ROOT = tempfile.mkdtemp(prefix="arm-ui-test-")
+for _sub in ("logs", "db", "photos"):
+    os.makedirs(os.path.join(_TEMP_ROOT, _sub))
+with open(REPO_ROOT / "setup" / "arm.yaml") as _handle:
+    _template = yaml.safe_load(_handle)
+_template.update({
+    "INSTALLPATH": str(REPO_ROOT),
+    "DBFILE": os.path.join(_TEMP_ROOT, "db", "arm.db"),
+    "LOGPATH": os.path.join(_TEMP_ROOT, "logs") + "/",
+    "ABCDE_CONFIG_FILE": str(REPO_ROOT / "setup" / ".abcde.conf"),
+    "DISC_PHOTO_PATH": os.path.join(_TEMP_ROOT, "photos") + "/",
+    "DISABLE_LOGIN": True,
+    "CAMERA_DRIVES": "sr0,sr1",
+})
+with open(os.path.join(_TEMP_ROOT, "arm.yaml"), "w") as _handle:
+    yaml.safe_dump(_template, _handle)
+os.environ["ARM_CONFIG_FILE"] = os.path.join(_TEMP_ROOT, "arm.yaml")
 
 try:
     import arm.config.config as cfg
@@ -55,8 +55,11 @@ except Exception as error:  # pragma: no cover - depends on the host
 
 
 def tearDownModule():
-    if _TEMP_ROOT:
-        shutil.rmtree(_TEMP_ROOT, ignore_errors=True)
+    shutil.rmtree(_TEMP_ROOT, ignore_errors=True)
+    if _ORIGINAL_CONFIG_FILE is None:
+        os.environ.pop("ARM_CONFIG_FILE", None)
+    else:
+        os.environ["ARM_CONFIG_FILE"] = _ORIGINAL_CONFIG_FILE
 
 
 @unittest.skipIf(IMPORT_ERROR is not None, f"ARM web UI cannot be imported here: {IMPORT_ERROR}")

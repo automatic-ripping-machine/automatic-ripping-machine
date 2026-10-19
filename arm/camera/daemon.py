@@ -60,7 +60,8 @@ DEFAULTS = {
 # Files the daemon shares with the web UI inside DISC_PHOTO_PATH. The UI never talks to the
 # daemon directly; it reads the status file and drops marker files that the daemon picks up.
 STATUS_FILE = ".camera_status.json"
-"""Rewritten about once a second with the daemon's state (see ``Daemon.status``)."""
+"""Rewritten about once a second with the daemon's state (see ``Daemon.status``); about once a minute while
+CAMERA_ENABLED is false."""
 PREVIEW_REQUEST_FILE = ".preview_requested"
 """Touched by the UI while the setup page is open; the daemon keeps ``PREVIEW_FILE`` fresh meanwhile."""
 PREVIEW_FILE = ".preview.jpg"
@@ -218,6 +219,8 @@ class Daemon:
         self.force_enabled = force_enabled
         self.overrides = dict(overrides or {})
         self.status_interval = 1.0
+        self.idle_status_interval = 60.0
+        """How often the status file is rewritten while CAMERA_ENABLED is false (plus on every change)."""
         self.preview_interval = 1.0
         self.last_photo: Dict[str, str] = {}
         self._injected_source = source
@@ -227,6 +230,9 @@ class Daemon:
         self._last_preview = -1.0
         self._status_error_logged = False
         self._idle_logged = False
+        self._next_start = 0.0
+        self._start_backoff = 1.0
+        self._frames_at_start = 0
         self._running = False
         self.config: Dict = {}
         self.drives: list = []
@@ -422,16 +428,35 @@ class Daemon:
 
     # -- main loop -----------------------------------------------------------------------
 
+    def _start_capture(self, now: float) -> None:
+        """
+        (Re)start the capture thread with an exponential backoff.
+
+        A thread that dies at once (cv2 missing, camera error) would otherwise be restarted on
+        every tick. The backoff resets once the thread has delivered a frame.
+        """
+        if self.buffer.frames_read > self._frames_at_start:
+            self._start_backoff = 1.0
+        if now < self._next_start:
+            return
+        if self._start_backoff > 1.0:
+            logging.warning(f"Camera capture thread stopped, restarting (next retry in {self._start_backoff:.0f}s)")
+        else:
+            logging.info(f"Watching {', '.join(self.drives) or 'nothing'}; photos go to {self.photo_dir}; "
+                         f"lead {self.lead_seconds}s; regions {self.regions or 'full frame'}")
+        self._frames_at_start = self.buffer.frames_read
+        self.buffer.start()
+        self._next_start = now + self._start_backoff
+        self._start_backoff = min(self._start_backoff * 2, 60.0)
+        self._idle_logged = False
+
     def tick(self, now: Optional[float] = None) -> None:
         """One round: reload config if needed, poll trays, honour marker files, refresh status."""
         now = time.monotonic() if now is None else now
-        self.check_config()
+        status_due = bool(self.check_config())
         if self.enabled:
             if not self.buffer.running:
-                logging.info(f"Watching {', '.join(self.drives) or 'nothing'}; photos go to {self.photo_dir}; "
-                             f"lead {self.lead_seconds}s; regions {self.regions or 'full frame'}")
-                self.buffer.start()
-                self._idle_logged = False
+                self._start_capture(now)
             for transition in self.watcher.poll(now):
                 self._safe_handle(transition)
             for devname in self.pop_capture_triggers():
@@ -441,10 +466,15 @@ class Daemon:
             if self.buffer.running:
                 self.buffer.stop()
                 logging.info("CAMERA_ENABLED is now false; camera released")
+                status_due = True
+            self._next_start, self._start_backoff = 0.0, 1.0
             if not self._idle_logged:
                 logging.info("CAMERA_ENABLED is false; the disc camera daemon is idle until it is enabled in arm.yaml")
                 self._idle_logged = True
-        if self._last_status < 0 or now - self._last_status >= self.status_interval:
+        # While disabled nothing in the status changes between config reloads, so rewrite the
+        # file rarely instead of once a second (the UI allows a longer stale period for idle status)
+        interval = self.status_interval if self.enabled else self.idle_status_interval
+        if status_due or self._last_status < 0 or now - self._last_status >= interval:
             self.write_status(now)
             self._last_status = now
 

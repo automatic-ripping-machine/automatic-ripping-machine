@@ -27,6 +27,23 @@ TINY_JPEG = bytes.fromhex(
 )
 
 
+class FailingSource:
+    """A camera whose ``open`` blows up, like cv2 missing or a V4L2 error."""
+
+    def __init__(self):
+        self.opens = 0
+
+    def open(self):
+        self.opens += 1
+        raise RuntimeError("no camera here")
+
+    def read(self):  # pragma: no cover - never reached
+        return None
+
+    def release(self):
+        pass
+
+
 class TestConfigHelpers(unittest.TestCase):
     def test_parse_regions(self):
         regions = daemon.parse_regions("sr0:10,20,300,200; /dev/sr1:0,0,640,480;bad;sr2:1,2")
@@ -72,6 +89,21 @@ class TestFrameBuffer(unittest.TestCase):
         self.assertEqual(buffer.frame_at(10.6), "b")
         self.assertEqual(buffer.frame_at(50.0), "c")
         self.assertIsNone(capture.FrameBuffer(source=None).frame_at(1.0))
+
+    def test_exception_ends_thread_and_start_restarts_it(self):
+        source = FailingSource()
+        buffer = capture.FrameBuffer(source=source, fps=10, buffer_seconds=1.0)
+        buffer.start()
+        first = buffer._thread
+        first.join(5.0)
+        self.assertFalse(buffer.running, "an exception in the source must end the thread, not hang it")
+        self.assertFalse(buffer.camera_open)
+        self.assertEqual(source.opens, 1)
+        buffer.start()
+        self.assertIsNot(buffer._thread, first, "start() must replace a dead thread")
+        buffer._thread.join(5.0)
+        self.assertEqual(source.opens, 2)
+        buffer.stop()
 
     def test_crop_and_encode_pass_bytes_through(self):
         self.assertEqual(capture.crop(TINY_JPEG, (0, 0, 1, 1)), TINY_JPEG)
@@ -201,6 +233,55 @@ class TestDaemonTick(unittest.TestCase):
         self.assertFalse(status["enabled"])
         self.assertFalse(status["camera_open"])
         self.assertFalse(dmn.buffer.running, "camera must stay closed while disabled")
+
+    def test_dying_capture_thread_is_restarted_with_backoff(self):
+        source = FailingSource()
+        dmn = self.dmn = daemon.Daemon(daemon.load_config(self.cfg), source=source, drives=["/dev/sr0"],
+                                       status_fn=lambda devpath: self.states[devpath])
+
+        def tick_and_settle(now):
+            dmn.tick(now)
+            if dmn.buffer._thread is not None:
+                dmn.buffer._thread.join(5.0)
+
+        tick_and_settle(100.0)
+        self.assertEqual(source.opens, 1)
+        self.assertFalse(dmn.buffer.running)
+        tick_and_settle(100.25)
+        tick_and_settle(100.5)
+        self.assertEqual(source.opens, 1, "no restart before the 1s backoff")
+        tick_and_settle(101.1)
+        self.assertEqual(source.opens, 2)
+        tick_and_settle(102.5)
+        self.assertEqual(source.opens, 2, "second backoff is 2s")
+        tick_and_settle(103.2)
+        self.assertEqual(source.opens, 3)
+        self.assertFalse(self.read_status()["camera_open"])
+        # disabling resets the backoff so a re-enable starts at once
+        dmn.enabled = False
+        dmn.tick(103.3)
+        dmn.enabled = True
+        tick_and_settle(103.4)
+        self.assertEqual(source.opens, 4)
+
+    def test_disabled_daemon_writes_status_rarely_and_on_change(self):
+        self.write_cfg("CAMERA_ENABLED: false\n")
+        dmn = self.make_daemon(watch_config=True)
+        writes = []
+        original = dmn.write_status
+        dmn.write_status = lambda *args, **kwargs: writes.append(args) or original(*args, **kwargs)
+        dmn.tick(1000.0)
+        self.assertEqual(len(writes), 1, "first tick writes")
+        for step in (1.0, 2.0, 30.0, 59.0):
+            dmn.tick(1000.0 + step)
+        self.assertEqual(len(writes), 1, "idle: no rewrite every second")
+        dmn.tick(1000.0 + dmn.idle_status_interval + 0.5)
+        self.assertEqual(len(writes), 2)
+        time.sleep(0.02)
+        self.write_cfg("CAMERA_ENABLED: false\nCAMERA_LEAD_SECONDS: 3\n")
+        dmn.tick(1000.0 + dmn.idle_status_interval + 1.0)
+        self.assertEqual(len(writes), 3, "a config change is written straight away")
+        self.assertEqual(self.read_status()["lead_seconds"], 3)
 
     def test_preview_written_while_requested_and_stops_when_stale(self):
         dmn = self.make_daemon()

@@ -45,6 +45,9 @@ _URL_RE = re.compile(r"(https?://\S+|www\.\S+|\S+\.(com|net|org|co\.uk)\b)", re.
 _YEAR_RE = re.compile(r"\b(19[0-9]{2}|20[0-9]{2})\b")
 _KEEP_CHARS_RE = re.compile(r"[^0-9A-Za-z &'’:\-!?.,]")
 _SPACES_RE = re.compile(r"\s+")
+MIN_CANDIDATE_WORDS = 2
+MIN_CANDIDATE_LETTERS = 6
+"""An OCR line is only searched online when it has this many words, or this many letters."""
 
 
 def photo_devname(filename: str) -> Optional[str]:
@@ -131,8 +134,9 @@ def clean_ocr_text(text: Optional[str], max_candidates: int = 3) -> Tuple[List[s
     Turn raw tesseract output into title search candidates.
 
     Lines are cleaned of label boilerplate (format, studio, region text, URLs), lines that are
-    mostly OCR noise are dropped, and the survivors are ranked longest-first so the biggest
-    text on the label, which is normally the title, is tried first. The most common four digit
+    mostly OCR noise or too short to be a safe search (``MIN_CANDIDATE_WORDS`` /
+    ``MIN_CANDIDATE_LETTERS``) are dropped, and the survivors are ranked longest-first so the
+    biggest text on the label, which is normally the title, is tried first. The most common four digit
     year on the label is returned as a year hint.
 
     :return: ``(candidates, year)`` where ``candidates`` may be empty and ``year`` may be ``None``
@@ -151,7 +155,9 @@ def clean_ocr_text(text: Optional[str], max_candidates: int = 3) -> Tuple[List[s
         line = _KEEP_CHARS_RE.sub(" ", line)
         line = _SPACES_RE.sub(" ", line).strip(" -:.,!?'’&")
         alpha = sum(ch.isalpha() for ch in line)
-        if alpha < 3:
+        # A lone short word ("FOX", "NEW", a misread fragment) matches some title online and
+        # would retitle the rip, so require two words or a reasonably long one
+        if alpha < MIN_CANDIDATE_LETTERS and len(line.split()) < MIN_CANDIDATE_WORDS:
             continue
         # Mostly symbols or digits is OCR noise, not a title
         if alpha / max(len(line.replace(" ", "")), 1) < 0.6:

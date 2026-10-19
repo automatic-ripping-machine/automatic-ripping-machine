@@ -40,7 +40,7 @@ All settings live in `arm.yaml` under the **Disc Camera** heading. Use the **Dis
 | `DISC_PHOTO_PATH` | `/home/arm/media/disc_photos/` | Where photos are stored. In Docker this is inside the media volume so photos persist. |
 | `DISC_PHOTO_MAX_AGE` | `180` | Seconds. A photo older than this when the job starts is not attached. |
 | `DISC_PHOTO_RETENTION_DAYS` | `14` | Unattached photos older than this are deleted. |
-| `DISC_PHOTO_OCR` | `true` | Run tesseract on the photo when identification fails. |
+| `DISC_PHOTO_OCR` | `false` | Run tesseract on the photo when identification fails. Off by default because misread label text can retitle a rip; only lines of two or more words, or six or more letters, are searched. |
 | `DISC_PHOTO_COPY` | `true` | Copy the photo into the completed rip folder as `disc.jpg`. |
 
 ## The Disc Camera page
@@ -57,11 +57,11 @@ Open **Disc Camera** in the web UI's navigation bar. Everything needed to set th
 
 **Finding crop regions.** Draw them on the live preview as described above; there is no need to measure pixels by hand. Leave `CAMERA_DRIVE_REGIONS` blank to save the full frame.
 
-The daemon and the web UI never talk to each other directly. The page works through a few hidden files in `DISC_PHOTO_PATH`: `.camera_status.json` (written by the daemon every second), `.preview_requested` and `.preview.jpg` (preview frames while the page is open) and `.capture_srN` (a test capture request). If the page says the daemon is not running but `sv status armcamera` says it is, check that both processes can read and write that folder.
+The daemon and the web UI never talk to each other directly. The page works through a few hidden files in `DISC_PHOTO_PATH`: `.camera_status.json` (written by the daemon every second, or about once a minute while the camera is disabled), `.preview_requested` and `.preview.jpg` (preview frames while the page is open) and `.capture_srN` (a test capture request). If the page says the daemon is not running but `sv status armcamera` says it is, check that both processes can read and write that folder.
 
 ## Docker
 
-1. Add the camera to `start_arm_container.sh` (the default script already has it):
+1. Add the camera to `start_arm_container.sh` (it is not in the default script, since `docker run` fails when the host has no `/dev/video0`):
 
    ```bash
    --device="/dev/video0:/dev/video0" \
@@ -80,11 +80,11 @@ docker exec -it arm-rippers tail -f /home/arm/logs/camera.log
 
 ## Bare metal install
 
-The Debian installer installs `tesseract-ocr`, adds `opencv-python-headless` to the venv and installs the `armcamera` systemd unit. On an existing install:
+The Debian installer installs `tesseract-ocr`, adds `opencv-python-headless` (from `requirements-camera.txt`, kept separate because it has no 32-bit ARM wheel) to the venv and installs the `armcamera` systemd unit. On an existing install:
 
 ```bash
 sudo apt install tesseract-ocr tesseract-ocr-eng
-sudo -u arm /opt/arm/venv/bin/pip install -r /opt/arm/requirements.txt
+sudo -u arm /opt/arm/venv/bin/pip install -r /opt/arm/requirements-camera.txt
 sudo cp /opt/arm/setup/armcamera.service /lib/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now armcamera
 ```

@@ -9,9 +9,10 @@ Before=shutdown.target
 Type=simple
 User=arm
 Group=arm
-## Define log paths
-StandardOutput=append:/home/arm/logs/camera.log
-StandardError=append:/home/arm/logs/camera.log
+## The daemon writes and rotates /home/arm/logs/camera.log itself; stdout goes to the journal
+## so every line is not written to that file twice.
+StandardOutput=journal
+StandardError=journal
 Restart=always
 RestartSec=3
 ExecStart=/opt/arm/venv/bin/python3 /opt/arm/arm/camera/daemon.py

@@ -102,7 +102,7 @@
   "DISC_PHOTO_PATH": "# Folder where disc photos are stored. Must be writable by the arm user.\n# Docker default is inside the media volume so photos persist.",
   "DISC_PHOTO_MAX_AGE": "# Maximum age (seconds) of a photo for it to be attached to a job starting on that drive.\n# Covers the delay between the tray closing and udev starting ARM.",
   "DISC_PHOTO_RETENTION_DAYS": "# Delete disc photos older than this many days that are not attached to any job\n# (empty-tray closes and ejects produce unattached photos).",
-  "DISC_PHOTO_OCR": "# When disc identification fails, run tesseract OCR on the disc photo\n# and use the text as a fallback title search.\n# Requires the tesseract binary.",
+  "DISC_PHOTO_OCR": "# When disc identification fails, run tesseract OCR on the disc photo\n# and use the text as a fallback title search.\n# Requires the tesseract binary. Off by default: text misread from the label\n# can give a rip the wrong title, so check the title fix page when enabling it.",
   "DISC_PHOTO_COPY": "# Copy the disc photo into the completed rip folder as disc.jpg",
   "index_refresh": "How often to refresh the home page in milliseconds #\n (This updates jobs) #\n Default setting is '2000', updating the home page every 2 seconds.",
   "use_icons": "Use icons, if false A.R.M will use text \n##ripping|transcoding|etc",

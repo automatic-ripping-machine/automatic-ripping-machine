@@ -45,10 +45,12 @@ RUN \
 RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 
 # Disc camera: OpenCV for the webcam daemon, tesseract for reading disc labels
+COPY ./requirements-camera.txt /tmp/requirements-camera.txt
 RUN apt-get update && \
     apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng && \
     rm -rf /var/lib/apt/lists/* && \
-    pip3 install --no-cache-dir --prefer-binary opencv-python-headless==4.11.0.86
+    pip3 install --no-cache-dir --prefer-binary -r /tmp/requirements-camera.txt && \
+    rm /tmp/requirements-camera.txt
 
 # Add ARMui service
 RUN mkdir /etc/service/armui

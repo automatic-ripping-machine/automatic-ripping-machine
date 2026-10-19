@@ -6,5 +6,3 @@ colorama==0.4.6
 #requirements added for PR#650
 flake8==7.3.0
 waitress==2.1.2
-#requirements added for the disc camera daemon (arm/camera)
-opencv-python-headless==4.11.0.86

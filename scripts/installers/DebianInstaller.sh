@@ -971,6 +971,8 @@ function CreateAndStartService() {
 
 function CreateAndStartCameraService() {
   echo -e "${RED}Installing ARM disc camera service${NC}"
+  # OpenCV is only needed by the camera daemon and has no wheel for 32-bit ARM, so it lives in its own file
+  sudo -u arm /opt/arm/venv/bin/pip3 install -r /opt/arm/requirements-camera.txt
   cp /opt/arm/setup/armcamera.service /lib/systemd/system/armcamera.service
   systemctl daemon-reload
   systemctl enable armcamera

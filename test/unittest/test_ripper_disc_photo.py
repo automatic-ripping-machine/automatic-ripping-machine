@@ -121,11 +121,18 @@ class TestCleanOcrText(unittest.TestCase):
         self.assertEqual(year, "2003")
 
     def test_dedupes_and_limits_candidates(self):
-        text = "ALPHA\nalpha\nBRAVO FILM\nCHARLIE PICTURE\nDELTA MOVIE TITLE\n"
+        text = "ALPHABET\nalphabet\nBRAVO FILM\nCHARLIE PICTURE\nDELTA MOVIE TITLE\n"
         candidates, _ = disc_photo.clean_ocr_text(text, max_candidates=3)
         self.assertEqual(len(candidates), 3)
         self.assertEqual(candidates[0], "DELTA MOVIE TITLE")
-        self.assertNotIn("alpha", candidates)
+        self.assertNotIn("alphabet", candidates)
+        self.assertIn("ALPHABET", disc_photo.clean_ocr_text(text, max_candidates=4)[0])
+
+    def test_short_single_words_are_not_searched(self):
+        # "FOX", "NEW" or a misread fragment all match some title online and would retitle the rip
+        text = "FOX\nNEW\nUP\nABCDE\nINCEPTION\nTHE ROCK\nAN OK\n"
+        candidates, _ = disc_photo.clean_ocr_text(text, max_candidates=10)
+        self.assertEqual(candidates, ["INCEPTION", "THE ROCK", "AN OK"])
 
 
 if __name__ == '__main__':

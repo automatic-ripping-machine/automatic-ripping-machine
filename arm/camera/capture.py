@@ -133,7 +133,8 @@ class FrameBuffer:
         """True while the source is delivering frames (updated by the capture thread)."""
 
     def start(self) -> None:
-        if self._thread is not None:
+        """Start the capture thread, or restart it after it died (see ``_run``)."""
+        if self._thread is not None and self._thread.is_alive():
             return
         self._stop.clear()
         self._thread = threading.Thread(target=self._run, name="arm-camera-capture", daemon=True)
@@ -155,6 +156,22 @@ class FrameBuffer:
         return self._thread is not None and self._thread.is_alive()
 
     def _run(self) -> None:
+        """
+        Thread body. Any exception from the source (a missing cv2, a V4L2 error) is logged once
+        and ends the thread with ``camera_open`` False; the daemon restarts it with a backoff.
+        """
+        try:
+            self._capture_loop()
+        except Exception as error:  # pylint: disable=broad-except
+            self._logger.error(f"Camera capture stopped: {error}", exc_info=True)
+        finally:
+            self.camera_open = False
+            try:
+                self.source.release()
+            except Exception:  # pylint: disable=broad-except
+                pass
+
+    def _capture_loop(self) -> None:
         backoff = 1.0
         opened = self.source.open()
         while not self._stop.is_set():

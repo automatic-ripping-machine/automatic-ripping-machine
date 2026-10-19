@@ -304,15 +304,15 @@
                 holder.innerHTML = drives.map(d => {
                     const r = regions[d] || ['', '', '', ''];
                     const fields = ['x', 'y', 'w', 'h'].map((n, i) =>
-                        `<input type="number" min="0" class="form-control form-control-sm mr-1" data-drive="${d}" data-field="${i}"
+                        `<input type="number" min="0" class="form-control form-control-sm mr-1" data-drive="${esc(d)}" data-field="${i}"
                                 placeholder="${n}" value="${r[i]}" ${init.readOnly ? 'disabled' : ''}>`).join('');
-                    return `<div class="region-row d-flex align-items-center flex-wrap mb-2" data-drive="${d}">
+                    return `<div class="region-row d-flex align-items-center flex-wrap mb-2" data-drive="${esc(d)}">
                         <div class="custom-control custom-radio mr-3" style="min-width: 5em;">
-                            <input type="radio" class="custom-control-input" name="regionDrive" id="rd_${d}" value="${d}" ${d === selected ? 'checked' : ''}>
-                            <label class="custom-control-label" for="rd_${d}"><span class="region-swatch" style="background:${colorOf(d)}"></span>${d}</label>
+                            <input type="radio" class="custom-control-input" name="regionDrive" id="rd_${esc(d)}" value="${esc(d)}" ${d === selected ? 'checked' : ''}>
+                            <label class="custom-control-label" for="rd_${esc(d)}"><span class="region-swatch" style="background:${colorOf(d)}"></span>${esc(d)}</label>
                         </div>
                         ${fields}
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-clear="${d}" ${init.readOnly ? 'disabled' : ''}>Clear</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-clear="${esc(d)}" ${init.readOnly ? 'disabled' : ''}>Clear</button>
                     </div>`;
                 }).join('');
                 holder.querySelectorAll('input[name=regionDrive]').forEach(el =>

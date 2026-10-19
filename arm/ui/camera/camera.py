@@ -45,6 +45,8 @@ CAPTURE_TRIGGER_PREFIX = ".capture_"
 
 STALE_STATUS_SECONDS = 5.0
 """The daemon rewrites its status every second; older than this and it is not running."""
+STALE_IDLE_STATUS_SECONDS = 90.0
+"""A daemon with CAMERA_ENABLED false rewrites its status about once a minute, not once a second."""
 STALE_PREVIEW_SECONDS = 15.0
 """Preview frames older than this are not shown so a frozen frame is never mistaken for live video."""
 GALLERY_SIZE = 12
@@ -135,7 +137,8 @@ def read_status():
         status.update(data)
     status["found"] = True
     status["age_seconds"] = round(age, 1)
-    status["stale"] = age > STALE_STATUS_SECONDS
+    stale_after = STALE_STATUS_SECONDS if status.get("enabled") else STALE_IDLE_STATUS_SECONDS
+    status["stale"] = age > stale_after
     if status["stale"]:
         status["running"] = False
     return status

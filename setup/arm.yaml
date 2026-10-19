@@ -418,8 +418,9 @@ DISC_PHOTO_RETENTION_DAYS: 14
 
 # When disc identification fails, run tesseract OCR on the disc photo
 # and use the text as a fallback title search.
-# Requires the tesseract binary.
-DISC_PHOTO_OCR: true
+# Requires the tesseract binary. Off by default: text misread from the label
+# can give a rip the wrong title, so check the title fix page when enabling it.
+DISC_PHOTO_OCR: false
 
 # Copy the disc photo into the completed rip folder as disc.jpg
 DISC_PHOTO_COPY: true
