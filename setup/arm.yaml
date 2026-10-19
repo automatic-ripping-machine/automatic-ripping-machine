@@ -422,7 +422,8 @@ DISC_PHOTO_RETENTION_DAYS: 14
 # can give a rip the wrong title, so check the title fix page when enabling it.
 DISC_PHOTO_OCR: false
 
-# Copy the disc photo into the completed rip folder as disc.jpg
+# Copy the disc photo into the completed rip folder as disc.jpg, and the barcode scanned
+# from the case as disc.barcode (one line, the code), so both stay with the rip.
 DISC_PHOTO_COPY: true
 
 

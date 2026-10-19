@@ -25,6 +25,8 @@ BARCODE_USED_SUFFIX = ".used"
 BARCODE_ANY_FILENAME_RE = re.compile(r"^(?P<dev>sr\d+)_(?P<stamp>\d{8}-\d{6})\.barcode(\.used)?$", re.IGNORECASE)
 PHOTO_TIMESTAMP_FORMAT = "%Y%m%d-%H%M%S"
 COPY_FILENAME = "disc.jpg"
+BARCODE_COPY_FILENAME = "disc.barcode"
+"""The scanned case barcode, kept next to the rip as one line of text."""
 BARCODE_RE = re.compile(r"^[0-9A-Za-z\-]{4,32}$")
 UPC_LOOKUP_URL = "https://api.upcitemdb.com/prod/trial/lookup"
 
@@ -167,6 +169,27 @@ def consume_barcode_file(path) -> Optional[str]:
     except OSError:
         return None
     return used
+
+
+def write_barcode_sidecar(final_directory, code) -> Optional[str]:
+    """
+    Write the scanned case barcode next to the finished rip as ``disc.barcode``: the code and a
+    newline, nothing else, so it stays trivially machine readable. Keeping it with the rip means
+    the code survives a lost database and is there even when the online lookup was rate limited
+    or found nothing.
+
+    :param final_directory: folder the finished rip lives in
+    :param code: the UPC/EAN as scanned
+    :return: the file written, or None when there was no plausible code to write
+    """
+    code = (code or "").strip()
+    if not BARCODE_RE.match(code):
+        return None
+    os.makedirs(final_directory, exist_ok=True)
+    destination = os.path.join(final_directory, BARCODE_COPY_FILENAME)
+    with open(destination, "w", encoding="utf-8") as handle:
+        handle.write(code + "\n")
+    return destination
 
 
 def barcode_forms(code) -> List[str]:

@@ -21,6 +21,10 @@ Handheld scanners such as the Eyoyo EY-H2 show up as a USB keyboard and "type" t
 3. udev starts the ripper for that drive a few seconds later. The ripper looks for the newest `.barcode` file for that drive inside `DISC_PHOTO_MAX_AGE` seconds and stores the code on the job.
 4. If normal identification fails, the code is looked up: video discs through [upcitemdb](https://www.upcitemdb.com/) (free, no key, roughly 100 lookups a day), audio CDs through MusicBrainz' release barcode search. The product title is cleaned of packaging words ("Blu-ray + DVD", "2-Disc Set", "Widescreen") and fed into the normal TMDB/OMDb title search. The product title is also kept on the job and offered on the Title Search page.
 5. The disc photo OCR fallback, if enabled, runs after the barcode lookup.
+6. After the rip, the code is written next to the finished rip as `disc.barcode` (one line, the
+   digits as scanned) when `DISC_PHOTO_COPY` is on, the same switch that copies the photo as
+   `disc.jpg`. So the code stays with the rip even when the lookup was rate limited or found
+   nothing, and can be looked up later by hand.
 
 Barcode files in `DISC_PHOTO_PATH` are pruned together with unattached photos after `DISC_PHOTO_RETENTION_DAYS`.
 

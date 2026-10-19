@@ -1034,6 +1034,29 @@ def clean_old_disc_photos() -> int:
     return removed
 
 
+def copy_disc_barcode(final_directory, job) -> Optional[str]:
+    """
+    Keep the barcode scanned from the case with the finished rip, as disc.barcode, when
+    DISC_PHOTO_COPY is set (the same switch that copies the photo as disc.jpg).
+
+    :param final_directory: folder the finished rip lives in
+    :param job: the current job
+    :return: destination path or None
+    """
+    if not cfg.arm_config.get("DISC_PHOTO_COPY", False) or not job.disc_barcode:
+        return None
+    try:
+        destination = disc_photo.write_barcode_sidecar(final_directory, job.disc_barcode)
+    except OSError as error:
+        logging.error(f"Failed to write the disc barcode to {final_directory}: {error}")
+        return None
+    if destination is None:
+        logging.warning(f"Barcode {job.disc_barcode!r} on job #{job.job_id} is not plausible, not kept with the rip")
+        return None
+    logging.info(f"Kept disc barcode {job.disc_barcode} in {destination}")
+    return destination
+
+
 def copy_disc_photo(final_directory, job) -> Optional[str]:
     """
     Copy the job's disc photo into the completed rip folder as disc.jpg when DISC_PHOTO_COPY is set.
