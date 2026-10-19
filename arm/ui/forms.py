@@ -23,6 +23,7 @@ class ChangeParamsForm(FlaskForm):
                                                    ('music', 'Music'), ('data', 'Data')])
     # "music", "dvd", "bluray" and "data"
     MAINFEATURE = BooleanField('Main Feature: ')
+    SKIP_DUPLICATE_TITLES = BooleanField('Skip Duplicate Titles: ')
     MINLENGTH = IntegerField('Minimum Length: ')
     MAXLENGTH = IntegerField('Maximum Length: ')
     submit = SubmitField('Submit')

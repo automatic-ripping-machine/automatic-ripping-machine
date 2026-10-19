@@ -21,10 +21,16 @@ class Track(db.Model):
     process = db.Column(db.Boolean)
     chapters = db.Column(db.Integer, default=0)
     filesize = db.Column(db.BigInteger, default=0)
+    source_file = db.Column(db.String(256))
+    """MakeMKV source file name (TINFO id 16), e.g. 00800.mpls"""
+    segment_map = db.Column(db.Text)
+    """MakeMKV segment map (TINFO id 26): the stream files this title plays, e.g. 155,156,157"""
+    duplicate_of = db.Column(db.String(4))
+    """track_number of the title this one duplicates (ripping that one instead), or None"""
 
     def __init__(self, job_id, track_number, length, aspect_ratio,
                  fps, main_feature, source, basename, filename,
-                 chapters=0, filesize=0):
+                 chapters=0, filesize=0, source_file="", segment_map=""):
         """Return a track object"""
         self.job_id = job_id
         self.track_number = track_number
@@ -39,6 +45,9 @@ class Track(db.Model):
         self.process = False
         self.chapters = chapters
         self.filesize = filesize
+        self.source_file = source_file
+        self.segment_map = segment_map
+        self.duplicate_of = None
 
     def __repr__(self):
         return f'<Track {self.track_number}>'

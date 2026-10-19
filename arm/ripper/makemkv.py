@@ -40,6 +40,11 @@ MAX_DEVICES = 16
 SOURCE = "MakeMKV"
 """Used as input argument for put_track"""
 
+DUPLICATE_DURATION_TOLERANCE = 2  # [s]
+"""Titles whose durations differ by more than this are never treated as duplicates of each other"""
+DUPLICATE_FILESIZE_TOLERANCE = 0.02
+"""Titles whose sizes differ by more than this fraction of the larger one are never treated as duplicates"""
+
 ERROR_MESSAGE_OPERATION_RESULT = "Internal error - Operation result is incorrect (132)"
 ERROR_MESSAGE_TRAY_OPEN = "Scsi error - NOT READY:MEDIUM NOT PRESENT - TRAY OPEN"
 ERROR_MESSAGE_MEDIUM_ERROR = "Scsi error - MEDIUM ERROR:L-EC UNCORRECTABLE ERROR"
@@ -181,11 +186,21 @@ class StreamID(enum.IntEnum):
 class TrackID(enum.IntEnum):
     """
     Definition of the Track ID and its reference to the stored content
+
+    Values are AP_ItemAttributeId from MakeMKV's apdefs.h (makemkv-oss, makemkvgui/inc/lgpl/apdefs.h).
     """
     CHAPTERS = 8
+    """ap_iaChapterCount"""
     DURATION = 9
+    """ap_iaDuration, H:MM:SS"""
     FILESIZE = 11
+    """ap_iaDiskSizeBytes"""
+    SOURCE_FILENAME = 16
+    """ap_iaSourceFileName, the playlist (00800.mpls) or VOB the title comes from"""
+    SEGMENTS_MAP = 26
+    """ap_iaSegmentsMap, the stream files (m2ts / cells) the title plays, e.g. '155,156,157'"""
     FILENAME = 27
+    """ap_iaOutputFileName"""
 
 
 @dataclasses.dataclass
@@ -667,6 +682,8 @@ def makemkv_mkv(job, rawpath):
     logging.info(f"Job running in {mode} mode")
     # Get track info form mkv rip
     get_track_info(job.drive.mdisc, job)
+    # Titles that are copies of another title (same content, different playlist) get ripped once only
+    skipped = skip_duplicate_titles(job) if job.config.SKIP_DUPLICATE_TITLES else []
     # route to ripping functions.
     if job.config.MAINFEATURE:
         logging.info("Trying to find mainfeature (sorting by chapters desc, filesize desc, track_number asc)")
@@ -691,8 +708,8 @@ def makemkv_mkv(job, rawpath):
 
             raise utils.RipperException("Manual mode: Timed out waiting for user input")
 
-    # if no maximum length, process the whole disc in one command
-    elif int(job.config.MAXLENGTH) > 99998:
+    # if no maximum length and nothing to leave out, process the whole disc in one command
+    elif int(job.config.MAXLENGTH) > 99998 and not skipped:
         cmd = [
             "mkv",
         ]
@@ -707,6 +724,8 @@ def makemkv_mkv(job, rawpath):
         logging.info("Process all tracks from disc.")
         collections.deque(run(cmd, OutputType.MSG), maxlen=0)
     else:
+        if skipped:
+            logging.info(f"{len(skipped)} duplicate title(s) skipped, ripping the remaining titles one at a time.")
         process_single_tracks(job, rawpath, 'auto')
 
 
@@ -802,7 +821,13 @@ def process_single_tracks(job, rawpath, mode: str):
     if mode == 'auto':
         # Process single track automatically based on start and finish times
         for track in job.tracks:
-            if track.length < int(job.config.MINLENGTH):
+            if track.duplicate_of:
+                # same content as another title that is ripped instead
+                logging.info(f"Track #{track.track_number} of {job.no_of_titles}. "
+                             f"Duplicate of track #{track.duplicate_of}.  Skipping")
+                track.process = False
+
+            elif track.length < int(job.config.MINLENGTH):
                 # too short
                 logging.info(f"Track #{track.track_number} of {job.no_of_titles}. Length ({track.length}) "
                              f"is less than minimum length ({job.config.MINLENGTH}).  Skipping")
@@ -990,6 +1015,8 @@ class TrackInfoProcessor:
         self.stream_type = None
         self.chapters = 0
         self.filesize = 0
+        self.source_file = ""
+        self.segment_map = ""
 
     def process_messages(self):
         output_types = (
@@ -1044,6 +1071,10 @@ class TrackInfoProcessor:
             self.chapters = int(message.value.strip())
         elif message.id == TrackID.FILESIZE:
             self.filesize = int(message.value.strip())
+        elif message.id == TrackID.SOURCE_FILENAME:
+            self.source_file = message.value.strip()
+        elif message.id == TrackID.SEGMENTS_MAP:
+            self.segment_map = message.value.strip()
 
     def _handle_titles(self, message):
         logging.info(f"Found {message.count:d} titles")
@@ -1062,7 +1093,9 @@ class TrackInfoProcessor:
             SOURCE,
             self.filename,
             self.chapters,
-            self.filesize
+            self.filesize,
+            self.source_file,
+            self.segment_map
         )
         # Reset track info after adding if needed
         self.seconds = 0
@@ -1071,6 +1104,8 @@ class TrackInfoProcessor:
         self.filename = ""
         self.chapters = 0
         self.filesize = 0
+        self.source_file = ""
+        self.segment_map = ""
 
 
 def get_track_info(index, job):
@@ -1088,6 +1123,90 @@ def get_track_info(index, job):
     """
     processor = TrackInfoProcessor(job, index)
     processor.process_messages()
+
+
+def _titles_match(kept, candidate):
+    """
+    Decide whether `candidate` is a copy of `kept`: the same content listed as another title.
+
+    Both must have (almost) the same duration and file size. When MakeMKV reported a
+    segment map for both, the maps must be identical as well: two different sets of
+    stream files are two different titles even if their lengths and sizes happen to
+    match (think of the episodes of a series).
+
+    Parameters:
+        kept: arm.models.track.Track (or anything with length, filesize, segment_map)
+        candidate: arm.models.track.Track
+    Returns:
+        bool
+    """
+    if abs(int(kept.length or 0) - int(candidate.length or 0)) > DUPLICATE_DURATION_TOLERANCE:
+        return False
+    kept_size, candidate_size = int(kept.filesize or 0), int(candidate.filesize or 0)
+    if abs(kept_size - candidate_size) > max(kept_size, candidate_size) * DUPLICATE_FILESIZE_TOLERANCE:
+        return False
+    kept_map = (kept.segment_map or "").strip()
+    candidate_map = (candidate.segment_map or "").strip()
+    if kept_map and candidate_map:
+        return kept_map == candidate_map
+    return True
+
+
+def find_duplicate_titles(tracks):
+    """
+    Group titles that are copies of the same content.
+
+    Many Blu-rays list the main film twice, e.g. one playlist with chapters and one
+    without, with the same runtime and size. Within each group the title with the
+    most chapters is kept (tie-break: larger file size, then lower track number).
+
+    Parameters:
+        tracks: iterable of arm.models.track.Track
+    Returns:
+        list of (kept_track, [duplicate_tracks]) for every title that has duplicates
+    """
+    ranked = sorted(tracks, key=lambda track: (-int(track.chapters or 0),
+                                               -int(track.filesize or 0),
+                                               int(track.track_number)))
+    groups = []
+    for track in ranked:
+        for kept, duplicates in groups:
+            if _titles_match(kept, track):
+                duplicates.append(track)
+                break
+        else:
+            groups.append((track, []))
+    return [(kept, duplicates) for kept, duplicates in groups if duplicates]
+
+
+def skip_duplicate_titles(job):
+    """
+    Mark the titles of a job that duplicate another title so that only one copy gets ripped.
+
+    The skipped tracks get `duplicate_of` set to the kept track's number and `process`
+    cleared; the manual mode track list shows them unticked and the auto mode of
+    process_single_tracks leaves them out.
+
+    Parameters:
+        job: arm.models.job.Job
+    Returns:
+        list of the skipped arm.models.track.Track
+    """
+    skipped = []
+    for kept, duplicates in find_duplicate_titles(job.tracks.all()):
+        for track in duplicates:
+            reason = "same segment map" if kept.segment_map and track.segment_map else "same duration and size"
+            logging.info(f"Title {track.track_number} ({track.chapters} chapters, {track.length}s, "
+                         f"{track.filesize} bytes, {track.source_file or 'unknown source'}) is a copy of "
+                         f"title {kept.track_number} ({kept.chapters} chapters, "
+                         f"{kept.source_file or 'unknown source'}): {reason}. "
+                         f"Skipping it, ripping title {kept.track_number} only.")
+            track.duplicate_of = str(kept.track_number)
+            track.process = False
+            skipped.append(track)
+    if skipped:
+        db.session.commit()
+    return skipped
 
 
 def convert_to_seconds(hms_value):

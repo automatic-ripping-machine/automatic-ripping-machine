@@ -29,6 +29,15 @@ Two specific settings that may be particularly useful to create or copy are the 
 > * While the `dvd_MinimumTitleLength` (corresponding to the GUIs Preferences > Video > "Minimum title length (seconds)" setting) is harmless to create, it has no effect as it is overriden by A.R.M.'s `MINLENGTH` setting.
 > * The `app_Key` should be left untouched. If you have a permanent key see [MakeMKV Licence](#makemkv-licence) above.
 
+### Duplicate titles
+Many Blu-rays and 4K discs list the main film twice: two playlists with the same runtime and (almost) the same size,
+one with chapters and one with none or one. Ripping with `MAINFEATURE: false` would save both, so with
+`SKIP_DUPLICATE_TITLES: true` (the default) A.R.M. keeps only the title with the most chapters out of every set of
+titles that play the same segment map (or, when MakeMKV reports no segment map, have the same duration within 2 seconds
+and the same size within 2 %). The skipped titles are logged and shown with their `duplicate_of` track in the job
+details; extras are still ripped as usual. In manual drive mode the duplicates are only pre-unticked, you can still
+select them.
+
 ### Profiles
 MakeMKV can also use the concept of profiles to decide which audio tracks and which subtitle tracks to include in the 
 *.mkv files. The defaults are usually sufficient. However, A.R.M. allows you to change these defaults if needed.  This is 

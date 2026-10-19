@@ -551,8 +551,11 @@ def change_job_params(config_id):
         cfg.arm_config["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
         # must be 1 for True 0 for False
         cfg.arm_config["MAINFEATURE"] = config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
+        cfg.arm_config["SKIP_DUPLICATE_TITLES"] = config.SKIP_DUPLICATE_TITLES = \
+            1 if format(form.SKIP_DUPLICATE_TITLES.data).lower() == "true" else 0
         args = {'disctype': job.disctype}
         message = f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},' \
+                  f'Skip Duplicate Titles={config.SKIP_DUPLICATE_TITLES},' \
                   f'Minimum Length={config.MINLENGTH}, Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}'
         # We don't need to set the config as they are set with job commit
         notification = Notifications(f"Job: {job.job_id} Config updated!", message)
