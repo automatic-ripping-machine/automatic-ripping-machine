@@ -1,0 +1,564 @@
+{% extends "base.html" %}
+
+{% macro text_input(key, type='text', step=None, min=None, max=None) -%}
+    <div class="form-group">
+        <label for="{{ key }}" class="mb-0 font-weight-bold">{{ key }}</label>
+        <input type="{{ type }}" class="form-control" id="{{ key }}" name="{{ key }}" value="{{ values[key] }}"
+               {% if step %}step="{{ step }}"{% endif %} {% if min is not none %}min="{{ min }}"{% endif %}
+               {% if max is not none %}max="{{ max }}"{% endif %}
+               {% if read_only %}disabled title="arm.yaml is read-only"{% endif %}>
+        <small class="form-text text-muted">{{ help[key] }}</small>
+    </div>
+{%- endmacro %}
+
+{% macro switch(key) -%}
+    <div class="form-group">
+        <div class="custom-control custom-switch">
+            <input type="checkbox" class="custom-control-input" id="{{ key }}" name="{{ key }}" value="y"
+                   {% if bool_values[key] %}checked{% endif %} {% if read_only %}disabled{% endif %}>
+            <label class="custom-control-label font-weight-bold" for="{{ key }}">{{ key }}</label>
+        </div>
+        <small class="form-text text-muted">{{ help[key] }}</small>
+    </div>
+{%- endmacro %}
+
+{% block content %}
+    <style>
+        #previewWrap { position: relative; display: inline-block; max-width: 100%; line-height: 0; user-select: none; }
+        #preview { max-width: 100%; height: auto; display: block; background: #222; border-radius: 4px; }
+        #overlay { position: absolute; left: 0; top: 0; cursor: crosshair; touch-action: none; }
+        .region-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 4px;
+                         vertical-align: middle; }
+        .region-row input[type=number] { width: 4.6em; display: inline-block; padding-left: 0.3em; padding-right: 0.2em; }
+        #cameraForm label { font-size: 0.9rem; word-break: break-all; }
+        #statusTable th { width: 40%; font-weight: 600; white-space: nowrap; }
+        #gallery img { object-fit: cover; width: 100%; height: 110px; }
+        #gallery .caption { font-size: 0.8rem; line-height: 1.2; }
+        .card-header.sub { font-weight: 600; }
+    </style>
+
+    <script type="application/json" id="cameraInit">{{ {
+        "csrf": csrf_token(),
+        "drives": drives,
+        "regions": regions,
+        "status": status,
+        "photoDir": photo_dir,
+        "readOnly": read_only,
+        "device": values["CAMERA_DEVICE"]
+    }|tojson }}</script>
+
+    <div class="container-fluid" id="cameraPage">
+        <div class="d-flex align-items-center flex-wrap mb-3">
+            <h2 class="mb-0 mr-3">Disc Camera</h2>
+            <span id="daemonState" class="badge badge-pill badge-secondary" style="font-size: 0.9rem;">
+                {%- if not status.found or status.stale %}Daemon not running
+                {%- elif not status.enabled %}Daemon idle: camera not enabled
+                {%- elif not status.camera_open %}Running, camera not open
+                {%- else %}Running{% endif -%}
+            </span>
+            <a class="ml-auto small" href="https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Disc-Camera"
+               target="_blank" rel="noopener">Disc camera wiki</a>
+        </div>
+        {% if read_only %}
+            <div class="alert alert-warning">arm.yaml is read-only, so settings can be viewed but not saved here.</div>
+        {% endif %}
+        <div id="cameraMessages"></div>
+
+        <div class="row">
+            <!-- Live preview -->
+            <div class="col-xl-8 col-lg-7 mb-3">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="font-weight-bold">Live preview</span>
+                        <span><small class="text-muted mr-2" id="previewInfo"></small>
+                              <span id="previewState" class="badge badge-secondary">waiting for a frame</span></span>
+                    </div>
+                    <div class="card-body p-2 text-center">
+                        <div id="previewWrap">
+                            <img id="preview" src="{{ url_for('static', filename='img/camera_placeholder.png') }}"
+                                 alt="Camera preview">
+                            <canvas id="overlay"></canvas>
+                        </div>
+                        <div class="mt-2 small text-muted text-left">
+                            Refreshes once a second while this page is open. Solid green boxes are the regions saved
+                            in arm.yaml (drawn by the daemon); dashed boxes are the editor below and only apply once
+                            saved.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Status -->
+            <div class="col-xl-4 col-lg-5 mb-3">
+                <div class="card h-100">
+                    <div class="card-header font-weight-bold">Daemon status</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0" id="statusTable">
+                            <tbody>
+                            <tr><th>Daemon</th><td id="stDaemon">
+                                {%- if status.found %}status written {{ status.age_seconds }}s ago
+                                {%- else %}no status file in {{ photo_dir or 'DISC_PHOTO_PATH' }}{% endif %}</td></tr>
+                            <tr><th>Camera</th><td id="stCamera">{{ 'open' if status.camera_open else 'closed' }}</td></tr>
+                            <tr><th>Device</th><td id="stDevice">{{ status.device or values['CAMERA_DEVICE'] }}</td></tr>
+                            <tr><th>Frame</th><td id="stFrame">
+                                {%- if status.frame_width %}{{ status.frame_width }}&times;{{ status.frame_height }} @ {{ status.fps }} fps
+                                {%- else %}&ndash;{% endif %}</td></tr>
+                            <tr><th>Frames read</th><td id="stFrames">{{ status.frames_read or 0 }}</td></tr>
+                            <tr><th>Last frame</th><td id="stLastFrame">
+                                {%- if status.last_frame_age_seconds is not none %}{{ status.last_frame_age_seconds }}s ago
+                                {%- else %}&ndash;{% endif %}</td></tr>
+                            <tr><th>Lead time</th><td id="stLead">
+                                {%- if status.found %}{{ status.lead_seconds }}s (buffer {{ status.buffer_seconds }}s)
+                                {%- else %}{{ values['CAMERA_LEAD_SECONDS'] }}s{% endif %}</td></tr>
+                            <tr><th>Photo folder</th><td id="stDir" class="text-break">{{ photo_dir }}</td></tr>
+                            <tr><th>PID</th><td id="stPid">{{ status.pid or '&ndash;'|safe }}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-header sub border-top">Drives</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th>Drive</th><th>Tray</th><th>Last photo</th><th></th></tr></thead>
+                            <tbody id="driveRows">
+                            {% for drive in drives %}
+                                <tr>
+                                    <td>{{ drive }}</td>
+                                    <td>{{ status.tray_state[drive] if status.tray_state and status.tray_state[drive] else '&ndash;'|safe }}</td>
+                                    <td>{% if status.last_photo and status.last_photo[drive] %}
+                                        <a href="camera/photo?name={{ status.last_photo[drive] }}" target="_blank">{{ status.last_photo[drive] }}</a>
+                                        {% else %}&ndash;{% endif %}</td>
+                                    <td><button type="button" class="btn btn-sm btn-outline-primary" data-capture="{{ drive }}"
+                                                {% if not status.running %}disabled{% endif %}>Test capture</button></td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="4" class="text-muted">No optical drives found. Set CAMERA_DRIVES below.</td></tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" action="camera/save" id="cameraForm">
+            {{ form.hidden_tag() }}
+            <div class="row">
+                <!-- Region editor -->
+                <div class="col-lg-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header font-weight-bold">Crop regions</div>
+                        <div class="card-body">
+                            <p class="small text-muted">
+                                Pick a drive, then drag a box around its tray on the preview. The numbers are camera
+                                pixels (<span id="frameSizeNote">frame size unknown until the camera delivers a frame</span>).
+                                Leave a drive blank to keep the full frame.
+                            </p>
+                            <div id="regionDrives"></div>
+                            <div class="form-group mt-3 mb-0">
+                                <label for="CAMERA_DRIVE_REGIONS" class="mb-0 font-weight-bold">CAMERA_DRIVE_REGIONS</label>
+                                <input type="text" class="form-control" id="CAMERA_DRIVE_REGIONS" name="CAMERA_DRIVE_REGIONS"
+                                       value="{{ values['CAMERA_DRIVE_REGIONS'] }}" {% if read_only %}disabled{% endif %}>
+                                <small class="form-text text-muted">{{ help['CAMERA_DRIVE_REGIONS'] }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Capture settings -->
+                <div class="col-lg-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header font-weight-bold">Camera and timing</div>
+                        <div class="card-body">
+                            {{ switch('CAMERA_ENABLED') }}
+                            {{ text_input('CAMERA_DEVICE') }}
+                            {{ text_input('CAMERA_DRIVES') }}
+                            {{ text_input('CAMERA_LEAD_SECONDS', 'number', '0.1', 0) }}
+                            {{ text_input('CAMERA_BUFFER_SECONDS', 'number', '0.5', 0.5) }}
+                            {{ text_input('CAMERA_FPS', 'number', '1', 1, 60) }}
+                            {{ text_input('CAMERA_JPEG_QUALITY', 'number', '1', 1, 100) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header font-weight-bold">Disc photos</div>
+                        <div class="card-body">
+                            {{ text_input('DISC_PHOTO_PATH') }}
+                            {{ text_input('DISC_PHOTO_MAX_AGE', 'number', '1', 0) }}
+                            {{ text_input('DISC_PHOTO_RETENTION_DAYS', 'number', '1', 0) }}
+                            {{ switch('DISC_PHOTO_OCR') }}
+                            {{ switch('DISC_PHOTO_COPY') }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 mb-3 d-flex flex-column">
+                    <div class="card flex-grow-1">
+                        <div class="card-header font-weight-bold">Tuning tips</div>
+                        <div class="card-body small">
+                            <ul class="pl-3 mb-0">
+                                <li>Trays take one to two seconds to retract. Use <b>Test capture</b> on a drive with its
+                                    tray open, then check the photo in the gallery: a half-closed tray means raise the
+                                    lead time, an empty tray means lower it.</li>
+                                <li>Keep <b>CAMERA_BUFFER_SECONDS</b> comfortably above the lead time.</li>
+                                <li>Only the CAMERA_* and DISC_PHOTO_* keys are written; the rest of arm.yaml is left
+                                    untouched. The daemon reloads them within a second or two, no restart needed.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg btn-block mt-3" id="saveButton"
+                            {% if read_only %}disabled{% endif %}>Save camera settings</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Gallery -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="font-weight-bold">Recent photos</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshGallery">Refresh</button>
+            </div>
+            <div class="card-body">
+                <div class="row" id="gallery">
+                    {% for photo in photos %}
+                        <div class="col-6 col-md-3 col-xl-2 mb-3">
+                            <a href="camera/photo?name={{ photo.name }}" target="_blank" rel="noopener">
+                                <img class="rounded" src="camera/photo?name={{ photo.name }}" alt="{{ photo.name }}"></a>
+                            <div class="caption mt-1"><b>{{ photo.drive }}</b> {{ photo.taken }}<br>
+                                <span class="text-muted">{{ photo.size_kb }} KB</span></div>
+                        </div>
+                    {% else %}
+                        <div class="col text-muted" id="galleryEmpty">No disc photos yet in {{ photo_dir or 'DISC_PHOTO_PATH' }}.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    {{ super() }}
+    <script type="application/javascript">
+        activeTab("camera");
+
+        (function () {
+            const init = JSON.parse(document.getElementById('cameraInit').textContent);
+            const csrf = init.csrf;
+            const COLORS = ['#ff9f1c', '#2ec4b6', '#e71d36', '#9b5de5', '#00bbf9', '#f15bb5', '#ffd166'];
+            const img = document.getElementById('preview');
+            const canvas = document.getElementById('overlay');
+            const ctx = canvas.getContext('2d');
+            const regionsInput = document.getElementById('CAMERA_DRIVE_REGIONS');
+
+            let regions = Object.assign({}, init.regions);   // {sr0: [x, y, w, h]} as edited here
+            let drives = init.drives.slice();
+            let selected = null;
+            let frameW = init.status.frame_width || 0, frameH = init.status.frame_height || 0;
+            let previewLive = false, previewBusy = false, drag = null;
+            let lastStatus = init.status;
+
+            // ---- helpers ------------------------------------------------------------------
+            function esc(text) {
+                return String(text).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+            }
+            function message(text, level) {
+                const box = document.getElementById('cameraMessages');
+                const el = document.createElement('div');
+                el.className = `alert alert-${level || 'info'} alert-dismissible fade show py-2`;
+                el.innerHTML = `${esc(text)}<button type="button" class="close py-1" data-dismiss="alert">&times;</button>`;
+                box.appendChild(el);
+                setTimeout(() => $(el).alert('close'), 8000);
+            }
+            function colorOf(drive) {
+                const index = Math.max(0, drives.indexOf(drive));
+                return COLORS[index % COLORS.length];
+            }
+            function drivesFromStatus(status) {
+                const seen = new Set(drives);
+                (status.drives || []).concat(Object.keys(regions)).forEach(d => {
+                    if (!seen.has(d)) { seen.add(d); drives.push(d); }
+                });
+            }
+
+            // ---- region editor --------------------------------------------------------------
+            function serialiseRegions() {
+                regionsInput.value = Object.keys(regions).sort().map(d => `${d}:${regions[d].join(',')}`).join(';');
+            }
+            function parseRegionsInput() {
+                const parsed = {};
+                regionsInput.value.split(';').forEach(entry => {
+                    const m = entry.trim().match(/^(sr\d+):(\d+),(\d+),(\d+),(\d+)$/);
+                    if (m) parsed[m[1]] = [+m[2], +m[3], +m[4], +m[5]];
+                });
+                regions = parsed;
+                drivesFromStatus({});
+                renderRegionRows();
+                draw();
+            }
+            function renderRegionRows() {
+                const holder = document.getElementById('regionDrives');
+                if (!drives.length) {
+                    holder.innerHTML = '<div class="text-muted small">No drives to draw regions for yet.</div>';
+                    return;
+                }
+                if (!selected || drives.indexOf(selected) < 0) selected = drives[0];
+                holder.innerHTML = drives.map(d => {
+                    const r = regions[d] || ['', '', '', ''];
+                    const fields = ['x', 'y', 'w', 'h'].map((n, i) =>
+                        `<input type="number" min="0" class="form-control form-control-sm mr-1" data-drive="${esc(d)}" data-field="${i}"
+                                placeholder="${n}" value="${r[i]}" ${init.readOnly ? 'disabled' : ''}>`).join('');
+                    return `<div class="region-row d-flex align-items-center flex-wrap mb-2" data-drive="${esc(d)}">
+                        <div class="custom-control custom-radio mr-3" style="min-width: 5em;">
+                            <input type="radio" class="custom-control-input" name="regionDrive" id="rd_${esc(d)}" value="${esc(d)}" ${d === selected ? 'checked' : ''}>
+                            <label class="custom-control-label" for="rd_${esc(d)}"><span class="region-swatch" style="background:${colorOf(d)}"></span>${esc(d)}</label>
+                        </div>
+                        ${fields}
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-clear="${esc(d)}" ${init.readOnly ? 'disabled' : ''}>Clear</button>
+                    </div>`;
+                }).join('');
+                holder.querySelectorAll('input[name=regionDrive]').forEach(el =>
+                    el.addEventListener('change', () => { selected = el.value; draw(); }));
+                holder.querySelectorAll('input[type=number]').forEach(el => el.addEventListener('change', () => {
+                    const d = el.dataset.drive;
+                    const vals = Array.from(holder.querySelectorAll(`input[type=number][data-drive="${d}"]`)).map(i => i.value);
+                    if (vals.every(v => v !== '' && +v >= 0) && +vals[2] > 0 && +vals[3] > 0) {
+                        regions[d] = vals.map(v => Math.round(+v));
+                    } else if (vals.every(v => v === '')) {
+                        delete regions[d];
+                    }
+                    serialiseRegions();
+                    draw();
+                }));
+                holder.querySelectorAll('button[data-clear]').forEach(el => el.addEventListener('click', () => {
+                    delete regions[el.dataset.clear];
+                    serialiseRegions();
+                    renderRegionRows();
+                    draw();
+                }));
+            }
+            function syncCanvas() {
+                canvas.width = img.clientWidth;
+                canvas.height = img.clientHeight;
+                canvas.style.width = img.clientWidth + 'px';
+                canvas.style.height = img.clientHeight + 'px';
+                document.getElementById('frameSizeNote').textContent =
+                    frameW ? `camera frame is ${frameW}×${frameH}` : 'frame size unknown until the camera delivers a frame';
+                draw();
+            }
+            function scale() {
+                return (frameW && canvas.width) ? frameW / canvas.width : 0;
+            }
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const s = scale();
+                if (!s) return;
+                Object.keys(regions).forEach(d => {
+                    const [x, y, w, h] = regions[d];
+                    ctx.save();
+                    ctx.strokeStyle = colorOf(d);
+                    ctx.lineWidth = d === selected ? 3 : 2;
+                    ctx.setLineDash([8, 4]);
+                    ctx.strokeRect(x / s, y / s, w / s, h / s);
+                    ctx.setLineDash([]);
+                    ctx.font = 'bold 13px sans-serif';
+                    ctx.fillStyle = colorOf(d);
+                    ctx.fillText(d, x / s + 4, y / s > 16 ? y / s - 4 : y / s + 15);
+                    ctx.restore();
+                });
+                if (drag) {
+                    ctx.save();
+                    ctx.strokeStyle = colorOf(selected);
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 4]);
+                    ctx.strokeRect(drag.x0, drag.y0, drag.x1 - drag.x0, drag.y1 - drag.y0);
+                    ctx.restore();
+                }
+            }
+            canvas.addEventListener('pointerdown', e => {
+                if (init.readOnly || !selected) return;
+                if (!scale()) { message('Wait for the camera to deliver a frame before drawing a region.', 'warning'); return; }
+                drag = {x0: e.offsetX, y0: e.offsetY, x1: e.offsetX, y1: e.offsetY};
+                canvas.setPointerCapture(e.pointerId);
+                e.preventDefault();
+            });
+            canvas.addEventListener('pointermove', e => {
+                if (!drag) return;
+                drag.x1 = Math.max(0, Math.min(canvas.width, e.offsetX));
+                drag.y1 = Math.max(0, Math.min(canvas.height, e.offsetY));
+                draw();
+            });
+            function endDrag(e) {
+                if (!drag) return;
+                const s = scale();
+                const x0 = Math.min(drag.x0, drag.x1), y0 = Math.min(drag.y0, drag.y1);
+                const w = Math.abs(drag.x1 - drag.x0), h = Math.abs(drag.y1 - drag.y0);
+                drag = null;
+                if (w >= 4 && h >= 4 && s) {
+                    const clampX = v => Math.max(0, Math.min(frameW, Math.round(v * s)));
+                    const clampY = v => Math.max(0, Math.min(frameH, Math.round(v * s)));
+                    const x = clampX(x0), y = clampY(y0);
+                    regions[selected] = [x, y, clampX(x0 + w) - x, clampY(y0 + h) - y];
+                    serialiseRegions();
+                    renderRegionRows();
+                }
+                draw();
+            }
+            canvas.addEventListener('pointerup', endDrag);
+            canvas.addEventListener('pointercancel', endDrag);
+            regionsInput.addEventListener('change', parseRegionsInput);
+            window.addEventListener('resize', syncCanvas);
+
+            // ---- live preview ---------------------------------------------------------------
+            async function refreshPreview() {
+                if (document.hidden || previewBusy) return;
+                previewBusy = true;
+                try {
+                    const response = await fetch('camera/preview.jpg?t=' + Date.now(), {cache: 'no-store'});
+                    const live = response.headers.get('X-ARM-Preview') === 'live';
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const previous = img.src;
+                    img.onload = () => {
+                        if (live && img.naturalWidth) { frameW = img.naturalWidth; frameH = img.naturalHeight; }
+                        previewLive = live;
+                        const badge = document.getElementById('previewState');
+                        badge.textContent = live ? 'live' : 'no recent frame';
+                        badge.className = 'badge ' + (live ? 'badge-success' : 'badge-secondary');
+                        document.getElementById('previewInfo').textContent = live ? `${frameW}×${frameH}` : '';
+                        syncCanvas();
+                        if (previous.startsWith('blob:')) URL.revokeObjectURL(previous);
+                    };
+                    img.src = url;
+                } catch (error) {
+                    console.log('preview fetch failed', error);
+                } finally {
+                    previewBusy = false;
+                }
+            }
+            function keepalive() {
+                if (document.hidden) return;
+                fetch('camera/preview/keepalive?t=' + Date.now(), {cache: 'no-store'}).catch(() => {});
+            }
+
+            // ---- status ---------------------------------------------------------------------
+            function setBadge(text, level) {
+                const badge = document.getElementById('daemonState');
+                badge.textContent = text;
+                badge.className = `badge badge-pill badge-${level}`;
+            }
+            function applyStatus(s) {
+                lastStatus = s;
+                const text = id => document.getElementById(id);
+                if (!s.found || s.stale) {
+                    setBadge('Daemon not running', 'danger');
+                    text('stDaemon').textContent = s.found
+                        ? `status file is ${s.age_seconds}s old; is the armcamera service running?`
+                        : `no status file in ${init.photoDir || 'DISC_PHOTO_PATH'}; is the armcamera service running?`;
+                } else if (!s.enabled) {
+                    setBadge('Daemon idle: camera not enabled', 'warning');
+                    text('stDaemon').textContent = `idle, waiting for CAMERA_ENABLED (status written ${s.age_seconds}s ago)`;
+                } else if (!s.camera_open) {
+                    setBadge('Running, camera not open', 'warning');
+                    text('stDaemon').textContent = `running, cannot open ${s.device} (status written ${s.age_seconds}s ago)`;
+                } else {
+                    setBadge('Running', 'success');
+                    text('stDaemon').textContent = `running (status written ${s.age_seconds}s ago)`;
+                }
+                text('stCamera').textContent = s.camera_open ? 'open' : 'closed';
+                text('stDevice').textContent = s.device || init.device;
+                text('stFrame').textContent = s.frame_width ? `${s.frame_width}×${s.frame_height} @ ${s.fps} fps` : '–';
+                text('stFrames').textContent = s.frames_read || 0;
+                text('stLastFrame').textContent = (s.last_frame_age_seconds === null || s.last_frame_age_seconds === undefined)
+                    ? '–' : `${s.last_frame_age_seconds}s ago`;
+                text('stLead').textContent = s.found ? `${s.lead_seconds}s (buffer ${s.buffer_seconds}s)` : '–';
+                text('stDir').textContent = s.photo_dir || init.photoDir;
+                text('stPid').textContent = s.pid || '–';
+                if (s.frame_width && !previewLive) { frameW = s.frame_width; frameH = s.frame_height; syncCanvas(); }
+                const before = drives.length;
+                drivesFromStatus(s);
+                if (drives.length !== before) renderRegionRows();
+                renderDriveRows(s);
+            }
+            function renderDriveRows(s) {
+                const body = document.getElementById('driveRows');
+                if (!drives.length) {
+                    body.innerHTML = '<tr><td colspan="4" class="text-muted">No optical drives found. Set CAMERA_DRIVES below.</td></tr>';
+                    return;
+                }
+                body.innerHTML = drives.map(d => {
+                    const tray = (s.tray_state && s.tray_state[d]) || '–';
+                    const photo = s.last_photo && s.last_photo[d];
+                    return `<tr><td>${esc(d)}</td><td>${esc(tray)}</td>
+                        <td>${photo ? `<a href="camera/photo?name=${encodeURIComponent(photo)}" target="_blank">${esc(photo)}</a>` : '–'}</td>
+                        <td><button type="button" class="btn btn-sm btn-outline-primary" data-capture="${esc(d)}" ${s.running ? '' : 'disabled'}>Test capture</button></td></tr>`;
+                }).join('');
+                body.querySelectorAll('button[data-capture]').forEach(el =>
+                    el.addEventListener('click', () => testCapture(el.dataset.capture)));
+            }
+            async function refreshStatus() {
+                try {
+                    const response = await fetch('camera/status?t=' + Date.now(), {cache: 'no-store'});
+                    applyStatus(await response.json());
+                } catch (error) {
+                    console.log('status fetch failed', error);
+                }
+            }
+
+            // ---- test capture and gallery ---------------------------------------------------
+            async function testCapture(drive) {
+                try {
+                    const response = await fetch('camera/capture?drive=' + encodeURIComponent(drive),
+                        {method: 'POST', headers: {'X-CSRFToken': csrf}});
+                    const data = await response.json();
+                    if (data.success) {
+                        message(`Test capture requested for ${drive}` + (data.warning ? `: ${data.warning}` : '. The photo appears below in a moment.'),
+                            data.warning ? 'warning' : 'success');
+                        setTimeout(refreshGallery, 2500);
+                        setTimeout(refreshGallery, 6000);
+                    } else {
+                        message(data.error || 'Test capture failed', 'danger');
+                    }
+                } catch (error) {
+                    message('Test capture failed: ' + error, 'danger');
+                }
+            }
+            async function refreshGallery() {
+                try {
+                    const response = await fetch('camera/photos?t=' + Date.now(), {cache: 'no-store'});
+                    const data = await response.json();
+                    const gallery = document.getElementById('gallery');
+                    if (!data.photos.length) {
+                        gallery.innerHTML = `<div class="col text-muted">No disc photos yet in ${esc(init.photoDir || 'DISC_PHOTO_PATH')}.</div>`;
+                        return;
+                    }
+                    gallery.innerHTML = data.photos.map(p => {
+                        const href = 'camera/photo?name=' + encodeURIComponent(p.name);
+                        return `<div class="col-6 col-md-3 col-xl-2 mb-3">
+                            <a href="${href}" target="_blank" rel="noopener"><img class="rounded" src="${href}&t=${p.age_seconds}" alt="${esc(p.name)}"></a>
+                            <div class="caption mt-1"><b>${esc(p.drive)}</b> ${esc(p.taken)}<br><span class="text-muted">${p.size_kb} KB</span></div></div>`;
+                    }).join('');
+                } catch (error) {
+                    console.log('gallery fetch failed', error);
+                }
+            }
+            document.getElementById('refreshGallery').addEventListener('click', refreshGallery);
+            document.querySelectorAll('button[data-capture]').forEach(el =>
+                el.addEventListener('click', () => testCapture(el.dataset.capture)));
+
+            // ---- start up -------------------------------------------------------------------
+            renderRegionRows();
+            serialiseRegions();
+            img.addEventListener('load', syncCanvas);
+            syncCanvas();
+            applyStatus(init.status);
+            keepalive();
+            refreshPreview();
+            refreshStatus();
+            setInterval(refreshPreview, 1000);
+            setInterval(keepalive, 3000);
+            setInterval(refreshStatus, 2000);
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) { keepalive(); refreshPreview(); refreshStatus(); }
+            });
+        })();
+    </script>
+{% endblock %}

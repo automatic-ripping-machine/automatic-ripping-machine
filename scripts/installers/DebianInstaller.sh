@@ -833,7 +833,9 @@ function InstallArmDependencies() {
                   python3 \
                   python3-venv \
                   python3-libdiscid \
-                  python3-pip
+                  python3-pip \
+                  tesseract-ocr \
+                  tesseract-ocr-eng
 
   DEBIAN_FRONTEND=noninteractive apt -y install libdvd-pkg
   dpkg-reconfigure --frontend noninteractive libdvd-pkg
@@ -956,6 +958,7 @@ function SetupFolders() {
   sudo -u arm mkdir -p ~arm/media/transcode/
   sudo -u arm mkdir -p ~arm/media/completed/
   sudo -u arm mkdir -p ~arm/media/raw/
+  sudo -u arm mkdir -p ~arm/media/disc_photos/
 }
 
 function CreateAndStartService() {
@@ -964,6 +967,16 @@ function CreateAndStartService() {
   systemctl daemon-reload
   systemctl enable armui
   systemctl start armui
+}
+
+function CreateAndStartCameraService() {
+  echo -e "${RED}Installing ARM disc camera service${NC}"
+  # OpenCV is only needed by the camera daemon and has no wheel for 32-bit ARM, so it lives in its own file
+  sudo -u arm /opt/arm/venv/bin/pip3 install -r /opt/arm/requirements-camera.txt
+  cp /opt/arm/setup/armcamera.service /lib/systemd/system/armcamera.service
+  systemctl daemon-reload
+  systemctl enable armcamera
+  systemctl start armcamera
 }
 
 function LaunchSetup() {
@@ -1041,4 +1054,5 @@ CreateUDEVRules
 MountDrives
 SetupFolders
 CreateAndStartService
+CreateAndStartCameraService
 LaunchSetup

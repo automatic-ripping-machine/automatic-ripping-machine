@@ -63,6 +63,7 @@
                                 <th scope="col" style="cursor: pointer;">Start Time</th>
                                 <th scope="col" style="cursor: pointer;">Duration</th>
                                 <th scope="col" style="cursor: pointer;">Status</th>
+                                <th scope="col">Disc</th>
                                 <th scope="col" style="cursor: pointer;">Logfile</th>
                             </tr>
                             </thead>
@@ -78,6 +79,9 @@
                                 <td class="{{ job.status }}"><img src="static/img/{{ job.status }}.png" height="30px"
                                                                   width="30px" alt="{{ job.status }}"
                                                                   title="{{ job.status }}"></td>
+                                <td>{% if job.disc_photo %}<a href="discphoto?job_id={{ job.job_id }}" target="_blank"><img
+                                        src="discphoto?job_id={{ job.job_id }}" height="30px" alt="Disc photo"
+                                        title="{{ job.disc_photo }}"></a>{% endif %}</td>
                                 <td><a href="logs?logfile={{ job.logfile }}&mode=full">{{ job.logfile|truncate(50, True)
                                     if job.logfile is not none else 'Unknown logfile' }}</a></td>
                             </tr>

@@ -57,6 +57,8 @@ The script will now:
 
     5. Fill in your CD, DVD and Blu-Ray drives. Each `--device="/dev/sr0:/dev/sr0" \` line gives A.R.M. access to an optical drive.  To list all the drives (SSD, HD, Optical and others) found on your system, Run the command `lsscsi -g`.  For each Optical drive, the second column will have the "cd/dvd" entry, note the `/dev/sr#` (replace the pound sign # with the number) and add a device entry to your script.  By default, the script has `/dev/sr0` through `/dev/sr3` pre-entered.  Add or remove entries as necessary. You should have one entry for each "cd/dvd" that `lsscsi -g` finds.  
 
+       If you use the [Disc Camera](Disc-Camera) feature, also add the line `--device="/dev/video0:/dev/video0" \` so the webcam is visible inside the container. It is not in the default script because `docker run` fails when the device does not exist. Run `ls /dev/video*` to find the right device.
+
     6. Fill in the list of CPU core threads to give the container in `--cpuset-cpus`. It's highly recommended to leave at least one core for the hypervisor to use, so the host machine doesn't get choked out during transcoding! Also, CPUs with multiple threads per core will be numbered in pairs. In the below example, only core #4 would be passed to ARM.
    
        Example: `--cpuset-cpus='5,6'`

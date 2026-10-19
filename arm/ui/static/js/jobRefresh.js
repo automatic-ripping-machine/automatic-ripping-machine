@@ -175,6 +175,18 @@ function updateJobItem(oldJob, job) {
     if (job.poster_url !== posterUrl[0].src && job.poster_url !== "None" && job.poster_url !== "N/A") {
         posterUrl[0].src = job.poster_url;
     }
+    // Show the disc photo once the ripper has attached one
+    const discPhoto = $(`#jobId${job.job_id}_disc_photo`);
+    if (discPhoto.length && job.disc_photo !== undefined && job.disc_photo !== "None" && job.disc_photo !== "") {
+        const idsplit = job.job_id.split("_");
+        const photoUrl = discPhotoUrl(job, idsplit);
+        if (!discPhoto[0].src.endsWith(photoUrl)) {
+            discPhoto[0].src = photoUrl;
+            const link = $(`#jobId${job.job_id}_disc_photo_link`);
+            link.attr("href", photoUrl);
+            link.show();
+        }
+    }
     // Update job status image
     if (job.status !== status[0].title) {
         status[0].src = `static/img/${job.status}.png`;

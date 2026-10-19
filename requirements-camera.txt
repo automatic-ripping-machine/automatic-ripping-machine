@@ -1,0 +1,4 @@
+# Extra Python dependencies for the disc camera daemon (arm/camera).
+# Kept out of requirements.txt because OpenCV has no wheel for 32-bit ARM and most installs
+# have no webcam. The Debian installer and the Dockerfile install this file; keep the pin in sync.
+opencv-python-headless==4.11.0.86

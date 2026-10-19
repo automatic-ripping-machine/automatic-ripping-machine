@@ -368,3 +368,59 @@ JSON_URL: ""
 # File location of your apprise.yaml file
 # Leave blank to disable
 APPRISE: ""
+
+
+#################################################
+##               DISC CAMERA                   ##
+#################################################
+
+# Enable the disc camera daemon.
+# A webcam looking down at the open drive trays photographs each disc just before the tray closes,
+# and the photo is attached to the job as a record of what was inserted.
+CAMERA_ENABLED: false
+
+# Video device the camera daemon reads from (V4L2 / UVC webcam).
+# Docker: pass it through with --device=/dev/video0:/dev/video0
+CAMERA_DEVICE: "/dev/video0"
+
+# Optical drives to watch, comma separated kernel names (e.g. sr0,sr1,sr2).
+# Leave blank to watch every /dev/sr* device.
+CAMERA_DRIVES: ""
+
+# Optional crop region per drive so each photo only shows that tray.
+# Format: sr0:x,y,w,h;sr1:x,y,w,h  (pixels in the camera frame). Blank = full frame.
+CAMERA_DRIVE_REGIONS: ""
+
+# Frames per second the camera daemon keeps in its rolling buffer.
+CAMERA_FPS: 5
+
+# How many seconds of frames to keep in the rolling buffer.
+CAMERA_BUFFER_SECONDS: 4
+
+# How far back (seconds) from the tray-closed event to pick the photo.
+# Tune so the saved frame shows the disc sitting in the open tray, just before it retracts.
+CAMERA_LEAD_SECONDS: 1.5
+
+# JPEG quality (1-100) for saved disc photos.
+CAMERA_JPEG_QUALITY: 85
+
+# Folder where disc photos are stored. Must be writable by the arm user.
+# Docker default is inside the media volume so photos persist.
+DISC_PHOTO_PATH: "/home/arm/media/disc_photos/"
+
+# Maximum age (seconds) of a photo for it to be attached to a job starting on that drive.
+# Covers the delay between the tray closing and udev starting ARM.
+DISC_PHOTO_MAX_AGE: 180
+
+# Delete disc photos older than this many days that are not attached to any job
+# (empty-tray closes and ejects produce unattached photos).
+DISC_PHOTO_RETENTION_DAYS: 14
+
+# When disc identification fails, run tesseract OCR on the disc photo
+# and use the text as a fallback title search.
+# Requires the tesseract binary. Off by default: text misread from the label
+# can give a rip the wrong title, so check the title fix page when enabling it.
+DISC_PHOTO_OCR: false
+
+# Copy the disc photo into the completed rip folder as disc.jpg
+DISC_PHOTO_COPY: true

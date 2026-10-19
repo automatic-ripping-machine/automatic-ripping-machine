@@ -137,6 +137,8 @@ class Job(db.Model):
     poster_url = db.Column(db.String(256))
     poster_url_auto = db.Column(db.String(256))
     poster_url_manual = db.Column(db.String(256))
+    disc_photo = db.Column(db.String(256))  # filename inside DISC_PHOTO_PATH
+    disc_photo_ocr = db.Column(db.Text)  # raw OCR text from the disc photo
     devpath = db.Column(db.String(15))
     mountpoint = db.Column(db.String(20))
     hasnicetitle = db.Column(db.Boolean)

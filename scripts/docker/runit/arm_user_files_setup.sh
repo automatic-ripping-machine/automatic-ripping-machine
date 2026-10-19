@@ -51,6 +51,8 @@ elif [[ $ARM_GID -eq $DEFAULT_GID ]]; then
 fi
 echo "Adding arm user to 'render' group"
 usermod -a -G render arm
+echo "Adding arm user to 'video' group (webcam access for the disc camera)"
+usermod -a -G video arm
 
 ### Setup Files
 chown -R arm:arm /opt/arm
@@ -59,7 +61,7 @@ chown -R arm:arm /opt/arm
 check_folder_ownership "/home/arm"
 
 # setup needed/expected dirs if not found
-SUBDIRS="media media/completed media/raw media/movies media/transcode logs logs/progress db music .MakeMKV"
+SUBDIRS="media media/completed media/raw media/movies media/transcode media/disc_photos logs logs/progress db music .MakeMKV"
 for dir in $SUBDIRS ; do
   thisDir="$ARM_HOME/$dir"
   if [[ ! -d "$thisDir" ]] ; then
