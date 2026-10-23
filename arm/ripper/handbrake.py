@@ -71,13 +71,15 @@ def build_handbrake_command(srcpath, filepathname, hb_preset, hb_args, logfile,
         cmd += "--main-feature "
 
     if hb_preset:
-        cmd += f"--preset \"{hb_preset}\" "
+        cmd += f"--preset {shlex.quote(hb_preset)} "
 
     if track_number is not None:
-        cmd += f"-t {track_number} "
+        cmd += f"-t {shlex.quote(str(track_number))} "
 
+    # hb_args is the operator's own HandBrake argument string; every path is quoted (#1457:
+    # a title such as "Ocean's Eleven" puts a single quote into the log file name).
     cmd += f"{hb_args} " \
-           f">> {logfile} 2>&1"
+           f">> {shlex.quote(str(logfile))} 2>&1"
 
     return cmd
 
