@@ -9,6 +9,7 @@ import datetime
 import unicodedata
 import json
 from ast import literal_eval
+from typing import Optional
 
 import pydvdid
 import xmltodict
@@ -24,7 +25,7 @@ from arm.ui import db
 from arm.ui import utils as ui_utils
 
 
-def find_mount(devpath: str) -> str | None:
+def find_mount(devpath: str) -> Optional[str]:
     """
     Find existing, readable mountpoint for ``devpath`` by calling ``findmnt``
 
