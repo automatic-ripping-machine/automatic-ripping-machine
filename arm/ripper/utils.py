@@ -11,6 +11,7 @@ import re
 from logging import Logger
 from pathlib import Path, PurePath
 from math import ceil
+from urllib.parse import urlunsplit
 
 import bcrypt
 import requests
@@ -99,7 +100,8 @@ def ui_address(port=None):
     base = str(cfg.arm_config.get("UI_BASE_URL") or "").strip()
     if base:
         return base.rstrip("/")
-    return f"http://{check_ip()}:{port or cfg.arm_config['WEBSERVER_PORT']}"
+    # ARM's own web server listens on plain HTTP; UI_BASE_URL is how a TLS proxy address is given.
+    return urlunsplit(("http", f"{check_ip()}:{port or cfg.arm_config['WEBSERVER_PORT']}", "", "", ""))
 
 
 def notify_entry(job):
