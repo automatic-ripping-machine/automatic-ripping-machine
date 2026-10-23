@@ -83,8 +83,13 @@ def logreader():
         offset = max(0, int(request.args.get('offset', 0)))
     except ValueError:
         offset = 0
-    # One bounded read per poll; the page asks again from X-Log-Offset (#1561, #1631).
-    text, next_offset = ui_utils.read_log_chunk(full_path, offset)
+    # Read only a file that resolves inside LOGPATH, then one bounded read per poll;
+    # the page asks again from X-Log-Offset (#1561, #1631).
+    log_root = os.path.realpath(log_path)
+    real_path = os.path.realpath(full_path)
+    if not real_path.startswith(log_root + os.sep):
+        raise ValidationError("logfile is outside the log folder")
+    text, next_offset = ui_utils.read_log_chunk(real_path, offset)
     if mode == "armcat":
         text = "".join(line for line in text.splitlines(keepends=True) if "ARM:" in line)
     response = app.response_class(text, mimetype='text/plain')

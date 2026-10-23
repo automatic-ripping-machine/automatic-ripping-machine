@@ -18,7 +18,8 @@ def test_log_reads_are_bounded_closed_and_tolerant(tmp_path, monkeypatch):
     monkeypatch.setattr(ui_utils, "sleep", lambda *_: pytest.fail("log reader must not sleep"))
     path = write_log(tmp_path / "job.log", b"ARM: one\nplain \xff\xfe bytes\nARM: two\npartial")
     text, offset = ui_utils.read_log_chunk(path)
-    assert text == "ARM: one\nplain �� bytes\nARM: two\npartial" and offset == path.stat().st_size
+    assert text == "ARM: one\nplain �� bytes\nARM: two\npartial"
+    assert offset == path.stat().st_size
     assert ui_utils.read_log_chunk(path, offset) == ("", offset)
     with path.open("ab") as stream:
         stream.write(b" line\nARM: three\n")
@@ -39,9 +40,28 @@ def test_logreader_serves_increments_and_the_page_appends(monkeypatch):
     log = Path(cfg.arm_config["LOGPATH"]) / "increment-test.log"
     write_log(log, b"first\nARM: second\n")
     response = client.get("/logreader?logfile=increment-test.log&mode=full&offset=6")
-    assert response.data == b"ARM: second\n" and response.headers["X-Log-Offset"] == str(log.stat().st_size)
+    assert response.data == b"ARM: second\n"
+    assert response.headers["X-Log-Offset"] == str(log.stat().st_size)
     armcat = client.get("/logreader?logfile=increment-test.log&mode=armcat")
     assert armcat.data == b"ARM: second\n"
     page = client.get("/logs?logfile=increment-test.log&mode=tail").data.decode()
-    assert "appendChild" in page and "setInterval" not in page and "X-Log-Offset" in page
+    assert "appendChild" in page
+    assert "setInterval" not in page
+    assert "X-Log-Offset" in page
     log.unlink()
+
+
+def test_logreader_refuses_a_log_that_resolves_outside_the_log_folder(monkeypatch, tmp_path):
+    from arm.ui import app
+    import arm.ui.routes  # noqa: F401 -- registers the blueprints like runui
+
+    monkeypatch.setitem(app.config, "LOGIN_DISABLED", True)
+    secret = tmp_path / "secret.txt"
+    secret.write_text("not a log\n")
+    link = Path(cfg.arm_config["LOGPATH"]) / "escape-test.log"
+    link.symlink_to(secret)
+    try:
+        response = app.test_client().get("/logreader?logfile=escape-test.log&mode=full")
+        assert b"not a log" not in response.data
+    finally:
+        link.unlink()
