@@ -595,14 +595,15 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
     :param int filesize: size of track in bytes
     """
 
+    # t_no is a label, not necessarily numeric (MusicBrainz "A1"; #1846): never int() it.
     logging.debug(
-        f"Track #{int(t_no):02} Length: {seconds: >4} fps: {float(fps):2.3f} "
+        f"Track #{str(t_no):>2} Length: {seconds: >4} fps: {float(fps):2.3f} "
         f"aspect: {aspect: >4} Mainfeature: {mainfeature} Source: {source} "
         f"Chapters: {chapters} Filesize: {filesize}")
 
     job_track = Track(
         job_id=job.job_id,
-        track_number=t_no,
+        track_number=str(t_no),
         length=seconds,
         aspect_ratio=aspect,
         fps=fps,
