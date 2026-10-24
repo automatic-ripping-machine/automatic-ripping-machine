@@ -11,7 +11,7 @@ def test_series_result_never_takes_the_movie_with_the_same_id(monkeypatch):
     monkeypatch.setitem(cfg.arm_config, "TMDB_API_KEY", "fixture")
     requested = []
 
-    def get(url):
+    def get(url, **kwargs):  # kwargs: e.g. a request timeout
         requested.append(url.split("?")[0])
         if "/tv/" in url:
             return SimpleNamespace(text=json.dumps({"imdb_id": "tt0903747"}))
