@@ -33,8 +33,8 @@ def rip_visual_media(have_dupes, job, logfile, protection):
     job_title = utils.fix_job_title(job)
 
     # We need to check/construct the final path, and the transcode path
-    transcode_out_path = os.path.join(job.config.TRANSCODE_PATH, type_sub_folder, job_title)
-    final_directory = os.path.join(job.config.COMPLETED_PATH, type_sub_folder, job_title)
+    transcode_out_path = utils.contained_path(job.config.TRANSCODE_PATH, type_sub_folder, job_title)
+    final_directory = utils.contained_path(job.config.COMPLETED_PATH, type_sub_folder, job_title)
 
     # Check folders for already ripped jobs -> creates folder
     transcode_out_path = utils.check_for_dupe_folder(have_dupes, transcode_out_path, job)
@@ -83,7 +83,7 @@ def rip_visual_media(have_dupes, job, logfile, protection):
         # Remove the old final dir
         utils.delete_raw_files([final_directory])
         job_title = utils.fix_job_title(job)
-        final_directory = os.path.join(job.config.COMPLETED_PATH, type_sub_folder, job_title)
+        final_directory = utils.contained_path(job.config.COMPLETED_PATH, type_sub_folder, job_title)
         # Update the job.path with the final directory
         utils.database_updater({'path': final_directory}, job)
 
