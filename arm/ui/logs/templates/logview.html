@@ -13,24 +13,33 @@
 {% block js %}
 {{ super() }}
 <script>
-    const output = document.getElementById('{{ file }}');
+    (function () {
+        // Fetch only new log bytes and append them; never rewrite the whole page (#1561, #1631).
+        const output = document.getElementById({{ file|tojson }});
+        const mode = {{ ('full' if mode in ['tail', 'full'] else mode)|tojson }};
+        const tail = {{ (mode == 'tail')|tojson }};
+        const base = '/logreader?logfile=' + encodeURIComponent({{ file|tojson }}) + '&mode=' + encodeURIComponent(mode);
+        let offset = 0;
 
-    const xhr = new XMLHttpRequest();
-    {% if mode == 'tail' or mode == 'full' %}
-        xhr.open('GET', '/logreader?logfile={{ file }}&mode=full&json=1');
-    {% else %}
-        xhr.open('GET', '/logreader?logfile={{ file }}&mode={{ mode }}&json=1');
-    {% endif %}
-    xhr.open
-    xhr.send();
-
-    setInterval(function() {
-        output.textContent = xhr.responseText;
-        {% if mode == 'tail' %}
-            window.scrollTo(0, document.querySelector("#content").scrollHeight);
-        {% endif %}
-    }, 1000);
-
+        function poll() {
+            fetch(base + '&offset=' + offset, {cache: 'no-store', credentials: 'same-origin'})
+                .then(function (response) {
+                    if (!response.ok) { throw new Error(response.status); }
+                    const next = parseInt(response.headers.get('X-Log-Offset') || offset, 10);
+                    return response.text().then(function (text) {
+                        if (next < offset) { output.textContent = ''; }
+                        offset = next;
+                        if (text) {
+                            output.appendChild(document.createTextNode(text));
+                            if (tail) { window.scrollTo(0, document.body.scrollHeight); }
+                        }
+                        setTimeout(poll, text.length >= 1048000 ? 50 : 2000);
+                    });
+                })
+                .catch(function () { setTimeout(poll, 5000); });
+        }
+        poll();
+    }());
 </script>
 {% endblock %}
 

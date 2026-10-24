@@ -362,41 +362,49 @@ def generate_comments():
     return comments
 
 
-def generate_full_log(full_path):
-    """
-    Gets/tails all lines from log file
-    :param full_path: full path to job logfile
-    :return: None
-    """
-    try:
-        with open(full_path) as read_log_file:
-            while True:
-                yield read_log_file.read()
-                sleep(1)
-    except IOError:
-        try:
-            with open(full_path, encoding="utf8", errors='ignore') as read_log_file:
-                while True:
-                    yield read_log_file.read()
-                    sleep(1)
-        except FileNotFoundError as error:
-            raise FileNotFoundError("Not found with utf8 encoding") from error
+LOG_CHUNK_BYTES = 1024 * 1024
 
 
-def generate_arm_cat(full_path):
+def read_log_chunk(full_path, offset=0, limit=LOG_CHUNK_BYTES):
     """
-    Read from log file and only output ARM: logs
+    Read new log text from a byte offset (#1561, #1631).\n
+    The file is opened once, read without sleeping and closed. Bytes are decoded tolerantly; when the
+    chunk limit stops short of the end, the read ends on a line boundary.
+    A file that shrank (rotated) is read again from the start.
+    :return: (text, next_offset)
+    """
+    with open(full_path, "rb") as log_file:
+        size = os.fstat(log_file.fileno()).st_size
+        offset = offset if 0 <= offset <= size else 0
+        log_file.seek(offset)
+        data = log_file.read(limit)
+    if offset + len(data) < size and b"\n" in data:
+        data = data[:data.rindex(b"\n") + 1]  # never split a line (or a UTF-8 sequence) at the chunk limit
+    return data.decode("utf-8", errors="replace"), offset + len(data)
+
+
+def generate_full_log(full_path, offset=0):
+    """
+    Yield the log from ``offset`` to its current end, then stop (no endless per-line sleeping).
     :param full_path: full path to job logfile
-    :return: None
     """
-    read_log_file = open(full_path)
     while True:
-        new = read_log_file.readline()
-        if new:
-            if "ARM:" in new:
-                yield new
-            else:
-                sleep(1)
+        text, next_offset = read_log_chunk(full_path, offset)
+        if next_offset == offset:
+            return
+        yield text
+        offset = next_offset
+
+
+def generate_arm_cat(full_path, offset=0):
+    """
+    Yield only ARM: lines from ``offset`` to the current end; the file is closed afterwards.
+    :param full_path: full path to job logfile
+    """
+    for chunk in generate_full_log(full_path, offset):
+        for line in chunk.splitlines(keepends=True):
+            if "ARM:" in line:
+                yield line
 
 
 def setup_database():
