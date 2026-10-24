@@ -853,11 +853,16 @@ def job_dupe_check(job):
         results = {}
         i = 0
         for j in previous_rips:
+            # A generic label (DVD_VIDEO, "not identified") is shared by different discs; a
+            # different DVD fingerprint is not this disc and must not lend it its identity.
+            if job.crc_id and j.crc_id and j.crc_id != job.crc_id:
+                continue
             # logging.debug(f"job obj= {j.get_d()}")
             job_dict = j.get_d().items()
             results[i] = {}
             for key, value in iter(job_dict):
-                results[i][str(key)] = str(value)
+                # get_d() stringifies None; never store the literal "None" as a title/year/poster
+                results[i][str(key)] = "" if value in (None, "None") else str(value)
             i += 1
 
     # logging.debug(f"previous rips = {results}")
@@ -870,7 +875,7 @@ def job_dupe_check(job):
             year = results[0]['year'] if results[0]['year'] != "" else ""
             poster_url = results[0]['poster_url'] if results[0]['poster_url'] != "" else None
             hasnicetitle = (str(results[0]['hasnicetitle']).lower() == 'true')
-            video_type = results[0]['video_type'] if results[0]['hasnicetitle'] != "" else "unknown"
+            video_type = results[0]['video_type'] or "unknown"
             active_rip = {
                 "title": title, "year": year, "poster_url": poster_url, "hasnicetitle": hasnicetitle,
                 "video_type": video_type}
