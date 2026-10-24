@@ -50,6 +50,9 @@ login_manager.init_app(app)
 # Set Flask database connection configurations
 app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Every drive runs its own ripper process next to the UI, all writing to this one SQLite file.
+# Wait up to 30s for another writer's lock instead of Python's 5s default before "database is locked".
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"connect_args": {"timeout": 30}}
 # We should really generate a key for each system
 app.config['SECRET_KEY'] = "Big secret key"  # TODO: make this random!
 # Set the global Flask Login state, set to True will ignore any @login_required
