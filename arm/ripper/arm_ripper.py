@@ -79,11 +79,14 @@ def rip_visual_media(have_dupes, job, logfile, protection):
 
     # Update final path if user has set a custom/manual title
     logging.debug(f"Job title status: [{job.title_manual}]")
-    if job.title_manual:
+    if job.title_manual and utils.fix_job_title(job) != job_title:
         # Remove the old final dir
         utils.delete_raw_files([final_directory])
         job_title = utils.fix_job_title(job)
         final_directory = os.path.join(job.config.COMPLETED_PATH, type_sub_folder, job_title)
+        # The new folder may already exist (e.g. another disc of the same series) - make a new one like
+        # at the start. The disc is already ripped, so don't apply the duplicate rip setting here
+        final_directory = utils.check_for_dupe_folder(False, final_directory, job)
         # Update the job.path with the final directory
         utils.database_updater({'path': final_directory}, job)
 
