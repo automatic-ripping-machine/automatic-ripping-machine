@@ -11,6 +11,7 @@ import re
 from logging import Logger
 from pathlib import Path, PurePath
 from math import ceil
+from urllib.parse import urlunsplit
 
 import bcrypt
 import requests
@@ -91,6 +92,18 @@ def bash_notify(cfg, title, body):
         arm_subprocess(["/usr/bin/env", "bash", cfg['BASH_SCRIPT'], title, body])
 
 
+def ui_address(port=None):
+    """
+    The ARM UI address used in notifications: UI_BASE_URL when set, else http://<ip>:<port>.
+    The settings-page test notification uses the same address (#1769).
+    """
+    base = str(cfg.arm_config.get("UI_BASE_URL") or "").strip()
+    if base:
+        return base.rstrip("/")
+    # ARM's own web server listens on plain HTTP; UI_BASE_URL is how a TLS proxy address is given.
+    return urlunsplit(("http", f"{check_ip()}:{port or cfg.arm_config['WEBSERVER_PORT']}", "", "", ""))
+
+
 def notify_entry(job):
     """
     Notify On Entry\n
@@ -103,10 +116,7 @@ def notify_entry(job):
                                  f"{job.disctype} at {datetime.datetime.now()}")
     database_adder(notification)
     if job.disctype in ["dvd", "bluray"]:
-        if cfg.arm_config["UI_BASE_URL"] == "":
-            display_address = (f"http://{check_ip()}:{job.config.WEBSERVER_PORT}")
-        else:
-            display_address = str(cfg.arm_config["UI_BASE_URL"])
+        display_address = ui_address(job.config.WEBSERVER_PORT)
         # Send the notifications
         notify(job, NOTIFY_TITLE,
                f"Found disc: {job.title}. Disc type is {job.disctype}. Main Feature is {job.config.MAINFEATURE}."
