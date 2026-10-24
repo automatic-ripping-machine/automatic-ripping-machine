@@ -68,12 +68,7 @@ def login():
         # we know there is only ever 1 admin account, so we can pull it and check against it locally
         admin = User.query.filter_by().first()
         app.logger.debug("user= " + str(admin))
-        # our pass
-        password = admin.password
-        # hashed pass the user provided
-        login_hashed = bcrypt.hashpw(login_password, admin.hash)
-
-        if login_hashed == password and login_username == admin.email:
+        if admin is not None and login_username == admin.email and _password_matches(login_password, admin):
             login_user(admin)
             app.logger.debug("user was logged in - redirecting")
             return_redirect = redirect(constants.HOME_PAGE)
@@ -85,6 +80,15 @@ def login():
         return_redirect = render_template('login.html', form=form)
 
     return return_redirect
+
+
+def _password_matches(password, user):
+    """Constant-time check of a bcrypt password; a malformed stored hash is a mismatch, not a 500."""
+    stored = user.password.encode() if isinstance(user.password, str) else user.password
+    try:
+        return bool(stored) and bcrypt.checkpw(password, stored)
+    except (TypeError, ValueError):
+        return False
 
 
 @route_auth.route("/logout")
@@ -118,13 +122,11 @@ def update_password():
         old_password = form.old_password.data.strip().encode('utf-8')
 
         # Get current password and dehash
-        user = User.query.filter_by(email=username).first()
-        current_password = user.password
-        hashed = user.hash
-        login_hashed = bcrypt.hashpw(old_password, hashed)
-
+        account = User.query.filter_by(email=username).first()
         # If user entered correct password
-        if login_hashed == current_password:
+        if account is not None and _password_matches(old_password, account):
+            user = account
+            hashed = bcrypt.gensalt(12)
             hashed_password = bcrypt.hashpw(new_password, hashed)
             user.password = hashed_password
             user.hash = hashed
@@ -140,7 +142,7 @@ def update_password():
             flash("Current password does not match", "danger")
             app.logger.error("Current password does not match")
 
-    return render_template('update_password.html', user=user.email, form=form)
+    return render_template('update_password.html', user=user.email if user else "", form=form)
 
 
 @login_manager.user_loader
