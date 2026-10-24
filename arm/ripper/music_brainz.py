@@ -3,6 +3,8 @@
 
 import logging
 import re
+import socket
+from contextlib import contextmanager
 import musicbrainzngs as mb
 import werkzeug
 from discid import read, Disc
@@ -12,6 +14,28 @@ from arm.ripper import utils as u
 
 
 werkzeug.cached_property = werkzeug.utils.cached_property
+
+# Seconds to wait on a MusicBrainz / Cover Art Archive socket before giving up
+MUSICBRAINZ_TIMEOUT = 30
+
+
+@contextmanager
+def musicbrainz_timeout():
+    """
+    Apply MUSICBRAINZ_TIMEOUT to the musicbrainzngs calls made inside the block.
+
+    musicbrainzngs opens its connections with urllib and passes no timeout, so a
+    stalled connection would block the job forever. It offers no timeout option,
+    so set the process-wide default socket timeout and restore it afterwards.
+    The ripper runs one job per process and makes these calls from its main
+    thread, so the temporary change does not leak into other work.
+    """
+    previous = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(MUSICBRAINZ_TIMEOUT)
+    try:
+        yield
+    finally:
+        socket.setdefaulttimeout(previous)
 
 
 def main(disc):
@@ -105,7 +129,8 @@ def get_disc_info(job, discid: str) -> str:
 
     # Get CD info from musicbrainz and catch any errors
     try:
-        disc_info = mb.get_releases_by_discid(discid, includes=['artist-credits', 'recordings'])
+        with musicbrainz_timeout():
+            disc_info = mb.get_releases_by_discid(discid, includes=['artist-credits', 'recordings'])
         logging.debug(f"discid: [{discid}]")
         # Debugging, will dump the entire xml/json data from musicbrainz
         # logging.debug(f"disc_info: {disc_info}")
@@ -303,7 +328,8 @@ def get_title(discid: str, job) -> str:
     # at http://wiki.musicbrainz.org/XML_Web_Service/Rate_Limiting )
     mb.set_useragent("arm", version=str(job.arm_version), contact="https://github.com/automatic-ripping-machine")
     try:
-        disc_info = mb.get_releases_by_discid(discid, includes=['artist-credits'])
+        with musicbrainz_timeout():
+            disc_info = mb.get_releases_by_discid(discid, includes=['artist-credits'])
         logging.debug(f"disc_info: {disc_info}")
         logging.debug(f"discid = {discid}")
         if 'disc' in disc_info:
@@ -379,7 +405,8 @@ def get_cd_art(job, disc_info: str) -> bool:
                 # 400: Releaseid is not a valid UUID
                 # 404: No release exists with an MBID of releaseid
                 # 503: Ratelimit exceeded
-                artlist = mb.get_image_list(first_release_with_artwork['id'])
+                with musicbrainz_timeout():
+                    artlist = mb.get_image_list(first_release_with_artwork['id'])
                 logging.debug(f"artlist: {artlist}")
 
                 for image in artlist["images"]:
