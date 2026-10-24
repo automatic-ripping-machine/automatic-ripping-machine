@@ -47,15 +47,19 @@ def database_updater(args, job, wait_time=90):
     """
     # Loop through our args and try to set any of our job variables
     for (key, value) in args.items():
-        setattr(job, key, value)
         app.logger.debug(f"Setting {key}: {value}")
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
+            # (re)apply the values, a rollback after a failed try discards them
+            for (key, value) in args.items():
+                setattr(job, key, value)
             db.session.commit()
             app.logger.debug("successfully written to the database")
             return True
         except Exception as error:
             if "locked" in str(error):
+                # the failed flush leaves the session unusable until it is rolled back
+                db.session.rollback()
                 sleep(1)
                 app.logger.debug(f"database is locked - trying in 1 second {i}/{wait_time} - {error}")
             else:
