@@ -71,10 +71,12 @@ def notify(job, title: str, body: str):
         apobj.add('pover://' + str(cfg.arm_config["PO_USER_KEY"]) + "@" + str(cfg.arm_config["PO_APP_KEY"]))
     if cfg.arm_config["JSON_URL"] != "":
         apobj.add(str(cfg.arm_config["JSON_URL"]).replace("http://", "json://").replace("https://", "jsons://"))
-    try:
-        apobj.notify(body, title=title)
-    except Exception as error:  # noqa: E722
-        logging.error(f"Failed sending notifications. error:{error}. Continuing processing...")
+    # Without configured services apprise logs "There are no service(s) to notify" as an error.
+    if len(apobj):
+        try:
+            apobj.notify(body, title=title)
+        except Exception as error:  # noqa: E722
+            logging.error(f"Failed sending notifications. error:{error}. Continuing processing...")
 
     # Bulk send notifications, using the config set on the ripper config page
     if cfg.arm_config["APPRISE"] != "":
