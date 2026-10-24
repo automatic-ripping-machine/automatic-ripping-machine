@@ -278,7 +278,7 @@ def list_titles():
     if search_results is None or 'Error' in search_results or (
             'Search' in search_results and len(search_results['Search']) < 1):
         app.logger.debug("No results found. Trying without year")
-        flash(f"No search results found for {title} ({year})<br/> Trying without year", 'danger')
+        flash(f"No search results found for {title} ({year}). Trying without year", 'danger')
         search_results = ui_utils.metadata_selector("search", title, "")
 
     if search_results is None or 'Error' in search_results or (
