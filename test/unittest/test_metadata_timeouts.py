@@ -42,3 +42,17 @@ def test_tmdb_and_omdb_requests_have_a_timeout(metadata):
     metadata.module.get_omdb_poster("Hercules", "1997")
     assert len(metadata.calls) >= 5
     assert set(metadata.calls) == {metadata.module.REQUEST_TIMEOUT}
+
+
+def test_tmdb_find_keeps_the_imdb_id_inside_the_find_path(metadata, monkeypatch):
+    requested = []
+
+    def get(url, timeout=None):
+        requested.append(url.split("?")[0])
+        movie = {"poster_path": "/p.jpg", "overview": "", "backdrop_path": "/b.jpg", "release_date": "1997-06-13",
+                 "title": "Hercules"}
+        return SimpleNamespace(text=json.dumps({"movie_results": [movie], "tv_results": []}))
+
+    monkeypatch.setattr(metadata.module.requests, "get", get)
+    metadata.module.tmdb_find("../movie/1")
+    assert requested == ["https://api.themoviedb.org/3/find/..%2Fmovie%2F1"]

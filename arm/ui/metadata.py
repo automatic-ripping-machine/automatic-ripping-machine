@@ -1,5 +1,6 @@
 """Main file for interacting with omdb and tmdb"""
 import urllib
+import urllib.parse
 import json
 import re
 import requests
@@ -239,7 +240,9 @@ def tmdb_find(imdb_id):
     :return: dict in the standard 'arm' format
     """
     tmdb_api_key = cfg.arm_config['TMDB_API_KEY']
-    url = f"https://api.themoviedb.org/3/find/{imdb_id}?api_key={tmdb_api_key}&external_source=imdb_id"
+    # The id comes from the job/web form; keep it a single path segment of the /find/ endpoint
+    find_id = urllib.parse.quote(str(imdb_id), safe="")
+    url = f"https://api.themoviedb.org/3/find/{find_id}?api_key={tmdb_api_key}&external_source=imdb_id"
     poster_size = "original"
     poster_base = f"https://image.tmdb.org/t/p/{poster_size}"
     # Making a get request
