@@ -2,6 +2,7 @@
 Basic json api for access to A.R.M UI
 Also used to connect to both omdb and tmdb
 """
+import contextlib
 import os
 import subprocess
 import re
@@ -512,10 +513,13 @@ def abandon_job(job_id):
     return json_return
 
 
-def terminate_process(pid):
+def terminate_process(pid, timeout=5):
     """
-    Terminates the process associated with a given pid.
+    Terminates the process associated with a given pid, and all of its children.
+    HandBrakeCLI, makemkvcon and ffmpeg run as children of the ripper, so they
+    have to be stopped as well or they keep running after the job is abandoned.
     :param pid: Process ID (int)
+    :param timeout: Seconds to wait after SIGTERM before killing survivors
     :raises: ValueError if access is denied
     """
     if pid is None:
@@ -524,7 +528,16 @@ def terminate_process(pid):
         return
     try:
         job_process = psutil.Process(pid)
-        job_process.terminate()  # or job_process.kill()
+        # Collect the children before the parent dies, they get re-parented after that
+        processes = job_process.children(recursive=True) + [job_process]
+        for process in processes:
+            with contextlib.suppress(psutil.NoSuchProcess):
+                process.terminate()
+        _, alive = psutil.wait_procs(processes, timeout=timeout)
+        for process in alive:
+            app.logger.warning(f"Process {process.pid} did not exit after SIGTERM, killing it.")
+            with contextlib.suppress(psutil.NoSuchProcess):
+                process.kill()
     except psutil.NoSuchProcess:
         message = f"Process id {pid} was not found. Job has already been terminated."
         app.logger.warning(message)
