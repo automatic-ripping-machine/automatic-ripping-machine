@@ -288,6 +288,10 @@ def list_titles():
                            form=form, title=title, year=year)
 
 
+STATE_CHANGING_MODES = frozenset(
+    {'delete', 'abandon', 'fixperms', 'send_item', 'change_job_params', 'read_notification', 'restart'})
+
+
 @route_jobs.route('/json', methods=['GET'])
 def feed_json():
     """
@@ -347,6 +351,11 @@ def feed_json():
             'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
         }
     # prepare JSON data
+    if mode in STATE_CHANGING_MODES and request.headers.get("X-Requested-With") != "XMLHttpRequest":
+        # A link or top-level navigation from another site carries the session cookie (SameSite=Lax) but
+        # cannot add this header; the UI's jQuery requests always do.
+        refused = {'mode': mode, 'success': False, 'Error': 'This action must come from the ARM UI'}
+        return app.response_class(response=json.dumps(refused), status=403, mimetype=constants.JSON_TYPE)
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
         return_json = valid_modes[mode]['funct'](*args)
