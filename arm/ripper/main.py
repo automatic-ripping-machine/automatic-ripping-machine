@@ -140,8 +140,9 @@ def main():
             db.session.commit()
         else:
             logging.critical("Music rip failed.  See previous errors.  Exiting. ")
-            job.status = JobState.FAILURE.value
-            db.session.commit()
+            # Raise so __main__ marks the job as failed rather than successful.
+            # Reuse the rip's own error, since the handler overwrites job.errors
+            raise utils.RipperException(job.errors or "Music rip failed")
 
     # Type: Data
     elif job.disctype == "data":
@@ -150,10 +151,12 @@ def main():
             utils.notify(job, constants.NOTIFY_TITLE, f"Data disc: {job.label} copying complete. ")
         else:
             logging.critical("Data rip failed.  See previous errors.  Exiting.")
+            raise utils.RipperException(job.errors or "Data rip failed")
 
     # Type: undefined
     else:
         logging.critical("Couldn't identify the disc type. Exiting without any action.")
+        raise utils.RipperException(f"Couldn't identify the disc type: {job.disctype}")
 
 
 def setup():
