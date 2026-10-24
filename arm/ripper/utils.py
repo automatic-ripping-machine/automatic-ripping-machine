@@ -71,6 +71,10 @@ def notify(job, title: str, body: str):
         apobj.add('pover://' + str(cfg.arm_config["PO_USER_KEY"]) + "@" + str(cfg.arm_config["PO_APP_KEY"]))
     if cfg.arm_config["JSON_URL"] != "":
         apobj.add(str(cfg.arm_config["JSON_URL"]).replace("http://", "json://").replace("https://", "jsons://"))
+    # Any other Apprise URLs, separated by spaces or commas. Never log them, they hold credentials
+    if cfg.arm_config.get("APPRISE_URLS"):
+        if not apobj.add(str(cfg.arm_config["APPRISE_URLS"])):
+            logging.error("One or more APPRISE_URLS could not be loaded, check their format.")
     try:
         apobj.notify(body, title=title)
     except Exception as error:  # noqa: E722

@@ -54,6 +54,19 @@ _UI_BASE_URL_ and _WEBSERVER_PORT_
 [Apprise](https://github.com/caronc/apprise/wiki) does support more methods than are listed here. 
 If you would like a services added to ARM that is not yet listed here, please open an issue or submit a pull request.
 
+**Other Apprise services (APPRISE_URLS)**
+
+Any service supported by the bundled Apprise version can be used without editing apprise.yaml.
+From the ARM Settings / Ripper Settings page, set _APPRISE_URLS_ to one or more
+[Apprise URLs](https://github.com/caronc/apprise/wiki), separated by spaces or commas, for example:
+
+```
+APPRISE_URLS: "mailtos://user:app_password@gmail.com, hassios://hass.example.com/long_lived_access_token"
+```
+
+These are sent alongside the services above, and 'Send Test Notification' includes them.
+Leave it blank to disable.
+
 **Supported Services**. 
 
   - LaMetric
