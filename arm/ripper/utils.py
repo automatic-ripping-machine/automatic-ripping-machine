@@ -256,6 +256,13 @@ def _calculate_filename_similarity(expected_base, actual_base):
     return score
 
 
+def _different_number(expected_base, actual_base):
+    """title_t01 vs title_t00: same length, differing only where both have digits - another title."""
+    if len(expected_base) != len(actual_base):
+        return False
+    return any(a != b and a.isdigit() and b.isdigit() for a, b in zip(expected_base, actual_base))
+
+
 def find_matching_file(expected_file):
     """
     Find a file that matches the expected filename, handling minor naming discrepancies.
@@ -296,6 +303,8 @@ def find_matching_file(expected_file):
     best_score = 0
 
     for file, base in candidate_files:
+        if _different_number(expected_base, base):
+            continue
         score = _calculate_filename_similarity(expected_base, base)
         if score > best_score:
             best_score = score
