@@ -382,7 +382,10 @@ def get_cd_art(job, disc_info: str) -> bool:
                 artlist = mb.get_image_list(first_release_with_artwork['id'])
                 logging.debug(f"artlist: {artlist}")
 
-                for image in artlist["images"]:
+                # Prefer the front cover, the CAA lists images in upload order (#1197)
+                images = sorted(artlist["images"],
+                                key=lambda img: not (img.get("front") or "Front" in img.get("types", [])))
+                for image in images:
                     # We dont care if its verified ?
                     if "image" in image:
                         args = {
