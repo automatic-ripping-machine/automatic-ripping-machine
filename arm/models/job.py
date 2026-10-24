@@ -204,7 +204,9 @@ class Job(db.Model):
             elif key == "ID_CDROM_MEDIA_BD":
                 self.disctype = "bluray"
             elif key == "ID_CDROM_MEDIA_DVD":
-                self.disctype = "dvd"
+                # Hybrid BD/DVD media report both flags; Blu-ray wins whatever the key order (#1831).
+                if self.disctype != "bluray":
+                    self.disctype = "dvd"
             elif key == "ID_CDROM_MEDIA_TRACK_COUNT_AUDIO":
                 self.disctype = "music"
             else:
@@ -232,12 +234,13 @@ class Job(db.Model):
         elif _disc_dir_exists(self.mountpoint, "AUDIO_TS") and _listdir_safe(self.mountpoint + "/AUDIO_TS"):
             logging.debug(f"Found: {self.mountpoint}/AUDIO_TS")
             self.disctype = "data"
+        elif _disc_dir_exists(self.mountpoint, "BDMV"):
+            # Checked before VIDEO_TS: hybrid Blu-ray discs carry both trees (#1831).
+            logging.debug(f"Found: {self.mountpoint}/BDMV")
+            self.disctype = "bluray"
         elif _disc_dir_exists(self.mountpoint, "VIDEO_TS"):
             logging.debug(f"Found: {self.mountpoint}/VIDEO_TS")
             self.disctype = "dvd"
-        elif _disc_dir_exists(self.mountpoint, "BDMV"):
-            logging.debug(f"Found: {self.mountpoint}/BDMV")
-            self.disctype = "bluray"
         elif _disc_dir_exists(self.mountpoint, "HVDVD_TS"):
             logging.debug(f"Found: {self.mountpoint}/HVDVD_TS")
             # do something here
