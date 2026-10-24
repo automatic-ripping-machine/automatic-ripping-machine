@@ -36,6 +36,9 @@ class RipperException(Exception):
     pass
 
 
+UNSAFE_TITLE_FALLBACK = "Untitled-disc"
+
+
 def notify(job, title: str, body: str):
     """
     Send notifications with apprise\n
@@ -487,17 +490,17 @@ def rip_data(job):
     if job.label == "" or job.label is None:
         job.label = "data-disc"
     # get filesystem in order
-    raw_path = os.path.join(job.config.RAW_PATH, str(job.label))
+    raw_path = contained_path(job.config.RAW_PATH, str(job.label))
     final_path = os.path.join(job.config.COMPLETED_PATH, convert_job_type(job.video_type))
     final_file_name = str(job.label)
 
     if (make_dir(raw_path)) is False:
         random_time = str(round(time.time() * 100))
-        raw_path = os.path.join(job.config.RAW_PATH, str(job.label) + "_" + random_time)
+        raw_path = contained_path(job.config.RAW_PATH, str(job.label) + "_" + random_time)
         final_file_name = f"{job.label}_{random_time}"
         make_dir(raw_path, False)
 
-    final_path = os.path.join(final_path, final_file_name)
+    final_path = contained_path(final_path, final_file_name)
     incomplete_filename = os.path.join(raw_path, str(job.label) + ".part")
     make_dir(final_path)
     logging.info(f"Ripping data disc to: {incomplete_filename}")
@@ -755,7 +758,29 @@ def clean_for_filename(string):
     string = string.replace("\\", " - ")
     string = string.replace(" ", " - ")
     string = string.strip()
-    return re.sub('[^\\w.() -]', '', string)
+    string = re.sub('[^\\w.() -]', '', string)
+    # "." / ".." (or nothing at all) would address the parent or the base folder
+    # itself when joined under RAW_PATH/COMPLETED_PATH; never use them as a name.
+    if not string.strip(". "):
+        return UNSAFE_TITLE_FALLBACK
+    return string
+
+
+def contained_path(base, *parts):
+    """Join folder names under base, refusing any that would escape it or alias it.
+
+    Returns the same unresolved string os.path.join would, after checking that
+    no component is dot-only/empty and that the resolved target stays strictly
+    below the resolved base.
+    """
+    for part in parts:
+        if not str(part).strip(". "):
+            raise RipperException(f"Refusing unsafe output folder name {str(part)!r}")
+    root = Path(str(base)).resolve()
+    target = root.joinpath(*(str(part) for part in parts)).resolve()
+    if target == root or not target.is_relative_to(root):
+        raise RipperException("Refusing an output folder outside its configured root")
+    return os.path.join(str(base), *(str(part) for part in parts))
 
 
 def duplicate_run_check(dev_path):

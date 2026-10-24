@@ -332,7 +332,8 @@ def clean_for_filename(string):
     # Strip out any remaining illegal chars
     string = re.sub(r"[^\w -]", "", string)
     string = string.strip()
-    return string
+    # An empty title would make the job folder the RAW/COMPLETED root itself.
+    return string or "Untitled-disc"
 
 
 def getsize(path):
