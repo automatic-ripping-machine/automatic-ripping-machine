@@ -37,3 +37,11 @@ def test_same_disc_is_still_a_dupe_without_literal_none_values(dupe_check):
     assert utils.job_dupe_check(job) is True
     assert updates == [{"title": "Foo", "year": "", "poster_url": None, "hasnicetitle": True,
                         "video_type": "unknown"}]
+
+
+def test_an_earlier_rip_without_a_fingerprint_is_not_this_disc(dupe_check):
+    utils, rows, updates = dupe_check
+    rows.append(previous_rip(crc_id=None, title="not identified"))
+    job = SimpleNamespace(label="not identified", crc_id="ade5cef9590c59d1")
+    assert utils.job_dupe_check(job) is False
+    assert updates == []

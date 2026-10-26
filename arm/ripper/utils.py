@@ -853,9 +853,10 @@ def job_dupe_check(job):
         results = {}
         i = 0
         for j in previous_rips:
-            # A generic label (DVD_VIDEO, "not identified") is shared by different discs; a
-            # different DVD fingerprint is not this disc and must not lend it its identity.
-            if job.crc_id and j.crc_id and j.crc_id != job.crc_id:
+            # A generic label (DVD_VIDEO, "not identified") is shared by different discs. Only the
+            # same DVD fingerprint is this disc: a different one, or an earlier rip without one,
+            # must not lend it its identity.
+            if job.crc_id and j.crc_id != job.crc_id:
                 continue
             # logging.debug(f"job obj= {j.get_d()}")
             job_dict = j.get_d().items()
