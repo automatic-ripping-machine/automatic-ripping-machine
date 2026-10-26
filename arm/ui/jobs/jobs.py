@@ -4,13 +4,13 @@ Covers
 - jobdetail [GET]
 - jobdetailload [POST]
 - titlesearch [GET]
-- custometitle [GET]
+- custometitle [GET, POST]
 - gettitle / customtitle [GET]
-- updatetitle [GET]
+- updatetitle [POST]
 - activerips [GET]
 - changeparams [GET]
 - list_titles [GET]
-- json [JSON GET]
+- json [JSON GET; state-changing modes POST]
 """
 
 import json
@@ -133,25 +133,26 @@ def title_search():
     return render_template('titlesearch.html', title='Update Title', form=form, job=job)
 
 
-@route_jobs.route('/customTitle')
+@route_jobs.route('/customTitle', methods=['GET', 'POST'])
 @login_required
 def customtitle():
     """
     For setting custom title for series with multiple discs
+    A GET shows the form; only its POST (checked for the CSRF token) changes the job
     """
-    job_id = request.args.get('job_id')
+    job_id = request.values.get('job_id')
     ui_utils.job_id_validator(job_id)
     job = Job.query.get(job_id)
     form = TitleSearchForm(obj=job)
-    if request.args.get("title"):
+    if request.method == 'POST' and request.form.get("title"):
         args = {
-            'title': request.args.get("title"),
-            'title_manual': request.args.get("title"),
-            'year': request.args.get("year")
+            'title': request.form.get("title"),
+            'title_manual': request.form.get("title"),
+            'year': request.form.get("year")
         }
         notification = Notifications(f"Job: {job.job_id} was updated",
                                      f'Title: {job.title} ({job.year}) was updated to '
-                                     f'{request.args.get("title")} ({request.args.get("year")})')
+                                     f'{request.form.get("title")} ({request.form.get("year")})')
         db.session.add(notification)
         ui_utils.database_updater(args, job)
         flash(f'Custom title changed. Title={job.title}, Year={job.year}.', "success")
@@ -183,16 +184,17 @@ def gettitle():
     return render_template('showtitle.html', results=dvd_info, job_id=job_id)
 
 
-@route_jobs.route('/updatetitle')
+@route_jobs.route('/updatetitle', methods=['POST'])
 @login_required
 def updatetitle():
     """
     used to save the details from the search
-    Example URL
-    updatetitle?title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
+    A POST with the CSRF token (the "Update Title" form on showtitle.html)
+    Example form data
+    title=Home&amp;year=2015&amp;imdbID=tt2224026&amp;type=movie&amp;
     poster=http://image.tmdb.org/t/p/original/usFenYnk6mr8C62dB1MoAfSWMGR.jpg&amp;job_id=109
 
-    args
+    form fields
     title - new movie title
     year - new movie year
     imdbID - new movie IMDB reference
@@ -202,35 +204,35 @@ def updatetitle():
     """
     #
 
-    job_id = request.args.get('job_id')
+    job_id = request.form.get('job_id')
     job = Job.query.get(job_id)
     old_title = job.title
     old_year = job.year
     app.logger.debug(f"Old Title and Year: {old_title}, {old_year}")
 
-    app.logger.debug(f"New Title: {request.args.get('title')}")
-    new_title = ui_utils.clean_for_filename(request.args.get('title'))
+    app.logger.debug(f"New Title: {request.form.get('title')}")
+    new_title = ui_utils.clean_for_filename(request.form.get('title'))
     app.logger.debug(f"Cleaned New Title: {new_title}")
     job.title = job.title_manual = new_title
 
-    app.logger.debug(f"New Year: {request.args.get('year')}")
-    app.logger.debug(f"New Type: {request.args.get('type')}")
-    app.logger.debug(f"New IMDB: {request.args.get('imdbID')}")
-    app.logger.debug(f"New Poster: {request.args.get('poster')}")
+    app.logger.debug(f"New Year: {request.form.get('year')}")
+    app.logger.debug(f"New Type: {request.form.get('type')}")
+    app.logger.debug(f"New IMDB: {request.form.get('imdbID')}")
+    app.logger.debug(f"New Poster: {request.form.get('poster')}")
 
-    job.year = job.year_manual = request.args.get('year')
-    job.video_type = job.video_type_manual = request.args.get('type')
-    job.imdb_id = job.imdb_id_manual = request.args.get('imdbID')
-    job.poster_url = job.poster_url_manual = request.args.get('poster')
+    job.year = job.year_manual = request.form.get('year')
+    job.video_type = job.video_type_manual = request.form.get('type')
+    job.imdb_id = job.imdb_id_manual = request.form.get('imdbID')
+    job.poster_url = job.poster_url_manual = request.form.get('poster')
 
     job.hasnicetitle = True
     notification = Notifications(f"Job: {job.job_id} was updated",
                                  f'Title: {old_title} ({old_year}) was updated to '
-                                 f'{request.args.get("title")} ({request.args.get("year")})')
+                                 f'{request.form.get("title")} ({request.form.get("year")})')
     db.session.add(notification)
     db.session.commit()
     flash(f'Title: {old_title} ({old_year}) was updated to '
-          f'{request.args.get("title")} ({request.args.get("year")})', "success")
+          f'{request.form.get("title")} ({request.form.get("year")})', "success")
     return redirect("/")
 
 
@@ -292,7 +294,7 @@ STATE_CHANGING_MODES = frozenset(
     {'delete', 'abandon', 'fixperms', 'send_item', 'change_job_params', 'read_notification', 'restart'})
 
 
-@route_jobs.route('/json', methods=['GET'])
+@route_jobs.route('/json', methods=['GET', 'POST'])
 def feed_json():
     """
     json mini API
@@ -304,21 +306,21 @@ def feed_json():
     # Check if users is authenticated
     # Return data when authenticated, but allow basic job info when not
     authenticated = ui_utils.authenticated_state()
-    mode = str(request.args.get('mode'))
+    mode = str(request.values.get('mode'))
     return_json = {'mode': mode, 'success': False}
 
     if authenticated:
         # Hold valid data (post/get data) we might receive from pages - not in here ? it's going to throw a key error
         valid_data = {
-            'j_id': request.args.get('job'),
-            'searchq': request.args.get('q'),
+            'j_id': request.values.get('job'),
+            'searchq': request.values.get('q'),
             'logpath': cfg.arm_config['LOGPATH'],
             'fail': 'fail',
             'success': 'success',
             'joblist': 'joblist',
             'mode': mode,
-            'config_id': request.args.get('config_id'),
-            'notify_id': request.args.get('notify_id'),
+            'config_id': request.values.get('config_id'),
+            'notify_id': request.values.get('notify_id'),
             'notify_timeout': {'funct': json_api.get_notify_timeout, 'args': ('notify_timeout',)},
             'restart': {'funct': json_api.restart_ui, 'args': ()},
         }
@@ -351,11 +353,12 @@ def feed_json():
             'joblist': {'funct': json_api.get_x_jobs, 'args': ('joblist',)},
         }
     # prepare JSON data
-    if mode in STATE_CHANGING_MODES and request.headers.get("X-Requested-With") != "XMLHttpRequest":
-        # A link or top-level navigation from another site carries the session cookie (SameSite=Lax) but
-        # cannot add this header; the UI's jQuery requests always do.
-        refused = {'mode': mode, 'success': False, 'Error': 'This action must come from the ARM UI'}
-        return app.response_class(response=json.dumps(refused), status=403, mimetype=constants.JSON_TYPE)
+    if mode in STATE_CHANGING_MODES and request.method != 'POST':
+        # A link, image or top-level navigation from another site is a GET that carries the session cookie.
+        # Changes must be POSTs, which CSRFProtect checks for the page's token before we get here.
+        refused = {'mode': mode, 'success': False, 'Error': 'This action must be a POST from the ARM UI'}
+        return app.response_class(response=json.dumps(refused), status=405, mimetype=constants.JSON_TYPE,
+                                  headers={'Allow': 'POST'})
     if mode in valid_modes:
         args = [valid_data[x] for x in valid_modes[mode]['args']]
         return_json = valid_modes[mode]['funct'](*args)

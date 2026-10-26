@@ -46,7 +46,7 @@
     <div class="container justify-content-center">
         <div class="row justify-content-center" style="flex-wrap: nowrap">
             <div class="col-7">
-                <form id="changeParams" name="changeParams" action="" method="get" novalidate>
+                <form id="changeParams" name="changeParams" action="" method="post" novalidate>
                     {{ form.hidden_tag() }}
                     <div class="input-group mb-3 flex-nowrap">
                         <div class="input-group-prepend">
@@ -102,7 +102,7 @@
         $(function () {
             function sendSettings(formToSend, sendTo) {
                 $.ajax({
-                    type: 'GET',
+                    type: 'POST',
                     url: sendTo,
                     data: formToSend.serialize()
                 }).done(function (data) {

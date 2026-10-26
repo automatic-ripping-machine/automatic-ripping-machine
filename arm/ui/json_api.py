@@ -543,7 +543,8 @@ def change_job_params(config_id):
     if job is None or job.config is None:
         return {'return': '', 'success': False}
     config = job.config
-    form = ChangeParamsForm(request.args, meta={'csrf': False})
+    # A POST: CSRFProtect has already checked the page's token, the form itself carries none
+    form = ChangeParamsForm(request.form, meta={'csrf': False})
     app.logger.debug("Before valid")
     if form.validate():
         app.logger.debug("Valid")

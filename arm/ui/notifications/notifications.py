@@ -3,7 +3,7 @@ ARM route blueprint for notifications pages
 Covers
 - arm_nav_notify [GET]
 - arm_notification [GET]
-- arm_notification_close [GET}
+- arm_notification_close [POST]
 """
 
 from flask_login import login_required  # noqa: F401
@@ -58,7 +58,7 @@ def arm_notification():
                            notifications_new=notifications_new)
 
 
-@route_notifications.route('/notificationclose')
+@route_notifications.route('/notificationclose', methods=['POST'])
 @login_required
 def arm_notification_close():
     """

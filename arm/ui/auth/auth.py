@@ -4,7 +4,7 @@ Covers
 - user_loader [GET, POST]
 - unauthorized_handler [GET]
 - login [GET, POST]
-- logout [GET]
+- logout [POST]
 - update_password [GET, POST]
 """
 from sqlite3 import OperationalError
@@ -87,10 +87,11 @@ def login():
     return return_redirect
 
 
-@route_auth.route("/logout")
+@route_auth.route("/logout", methods=["POST"])
 def logout():
     """
     Log user out
+    A POST with the CSRF token, so another site can't sign the user out
     :return:
     """
     logout_user()
@@ -132,7 +133,8 @@ def update_password():
                 db.session.commit()
                 flash("Password successfully updated", "success")
                 app.logger.info("Password successfully updated")
-                return redirect("logout")
+                logout_user()
+                return redirect('/login')
             except Exception as error:
                 flash(str(error), "danger")
                 app.logger.error(f"Error in updating password: {error}")

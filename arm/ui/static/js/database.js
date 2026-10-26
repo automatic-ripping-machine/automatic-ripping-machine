@@ -216,11 +216,13 @@ function checkHref() {
             $(DB_FAIL_BTN_ID).removeClass("d-none");
             hrrref = "";
         }
-        $.get(hrrref, function (data) {
+        // Delete, abandon and fix permissions change the job: a POST, sent with the page's CSRF token
+        const changesJob = ["delete", "abandon", "fixperms"].indexOf(actionType) !== -1;
+        $.ajax({url: hrrref, type: changesJob ? "post" : "get", dataType: "json", success: function (data) {
             console.log(data.success);
             console.log("#jobId" + activeJob);
             proccessReturn(data);
-        }, "json");
+        }});
     }
 }
 

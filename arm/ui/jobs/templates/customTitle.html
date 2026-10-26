@@ -12,7 +12,8 @@
 <div class="container justify-content-center">
     <div class="row justify-content-center" style="flex-wrap: nowrap">
         <div class="col-7">
-		<form action="" method="get" novalidate>
+		<form action="" method="post" novalidate>
+			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 			<div class="input-group mb-3 flex-nowrap">
 				<div class="input-group-prepend">
 					<span class="input-group-text" id="searchtitle">Title</span>
