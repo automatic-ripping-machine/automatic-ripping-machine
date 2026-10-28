@@ -32,7 +32,7 @@
    - **Configuration Files**
       - [arm.yaml](Config-arm.yaml)
       - [apprise.yaml](Config-apprise.yaml)
-      - [.abcde.conf](Config-abcde.conf)
+      - [whipper.conf](Config-whipper.conf)
       - [Skins for ARM ui](Config-ui-skins)
       - [MakeMKV](MakeMKV-Info)
       - [FFmpeg Alternative Transcoder](ffmpeg.md)

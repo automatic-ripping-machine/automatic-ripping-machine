@@ -130,26 +130,28 @@ It is recommended that this password be changed.
     Where ~arm is the home directory of the arm user.
     3. Extracts and builds MakeMKV, accepts the MakeMKV Eula
 12. Install the A.R.M. Prerequisite Debian packages.
-    1. `abcde`
+    1. `whipper`
     2. `at`
     3. `cdparanoia`
-    4. `default-jre-headless`
-    5. `eject`
-    6. `ffmpeg`
-    7. `flac`
-    8. `glyrc`
-    9. `handbrake-cli`
-    10. `imagemagick`
-    11. `libavcodec-extra`
-    12. `libcurl4-openssl-dev`
-    13. `libdvd-pkg`
-    14. `libdvdcss2`
-    15. `libssl-dev`
-    16. `lsdvd`
-    17. `python3`
-    18. `python3-venv`
-    19. `python3-libdiscid`
-    20. `python3-pip`
+    4. `cdrdao`
+    5. `default-jre-headless`
+    6. `eject`
+    7. `ffmpeg`
+    8. `flac`
+    9. `sox`
+    10. `glyrc`
+    11. `handbrake-cli`
+    12. `imagemagick`
+    13. `libavcodec-extra`
+    14. `libcurl4-openssl-dev`
+    15. `libdvd-pkg`
+    16. `libdvdcss2`
+    17. `libssl-dev`
+    18. `lsdvd`
+    19. `python3`
+    20. `python3-venv`
+    21. `python3-libdiscid`
+    22. `python3-pip`
 13. Downloads A.R.M. If a fork or tag (branch) were specified, download the chosen version. 
 If either fork or tag was not provided, use the default values (Default Fork: `automatic-ripping-machine`; 
 Default Tag; `latest`) (“latest” will search Git Hub for the latest tagged release of A.R.M. and download that one.)

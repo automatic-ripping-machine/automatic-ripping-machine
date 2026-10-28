@@ -43,7 +43,7 @@ If you use an unsupported operating system and can't or don't want to reimage, t
     - Eject disc and queue up Handbrake transcoding when done
     - Transcoding jobs are asynchronously batched from ripping
     - Send notifications on updates via IFTTT, Pushbullet, Pushover, Discord, Slack, Telegram and many more!
-  - If audio (CD) - rip using abcde  (get discdata and album art from musicbrainz)
+  - If audio (CD) - rip using whipper with AccurateRip verification (get discdata and album art from musicbrainz)
   - If data (Blu-Ray, DVD, or CD) - make an ISO backup
 - Headless, designed to be run from a server
 - Ripping from multiple-optical drives in parallel
