@@ -27,7 +27,7 @@ from arm.models.notifications import Notifications
 from arm.models.track import Track
 from arm.models.user import User
 from arm.models.system_drives import SystemDrives
-from arm.ripper import apprise_bulk
+from arm.ripper import apprise_bulk, abcde
 
 NOTIFY_TITLE = "ARM notification"
 
@@ -441,54 +441,11 @@ def find_largest_file(files, mkv_out_path):
     return largest_file_name
 
 
-ABCDE_EXTENSIONS = {"flac": "flac", "mp3": "mp3", "vorbis": "ogg", "ogg": "ogg", "opus": "opus", "m4a": "m4a",
-                    "aac": "m4a", "wav": "wav", "mka": "mka", "mpc": "mpc", "wv": "wv", "ape": "ape", "aiff": "aiff"}
-
-
-def abcde_outputs(config_text):
-    """
-    Read OUTPUTDIR and OUTPUTTYPE from an abcde config\n
-    :param config_text: contents of the abcde config file
-    :return: (OUTPUTDIR, [file extensions]); OUTPUTDIR is None when it is not a plain absolute path
-    """
-    values = {}
-    for line in config_text.splitlines():
-        match = re.match(r"^\s*(OUTPUTDIR|OUTPUTTYPE)=(.*)$", line)
-        if match:
-            values[match.group(1)] = match.group(2).strip().strip("'\"")
-    directory = values.get("OUTPUTDIR")
-    if not directory or "$" in directory or "`" in directory or not os.path.isabs(directory):
-        directory = None
-    types = [t.strip().split(":")[0] for t in values.get("OUTPUTTYPE", "vorbis").split(",") if t.strip()]
-    return directory, [ABCDE_EXTENSIONS.get(t, t) for t in types]
-
-
-def abcde_output_error(output_dir, extensions, expected, started):
-    """
-    Check that abcde wrote one non-empty file per audio track for every output type\n
-    :return: an error message, or None when every track was written
-    """
-    produced = {}
-    for root, _dirs, files in os.walk(output_dir):
-        for name in files:
-            path = os.path.join(root, name)
-            extension = name.rsplit(".", 1)[-1].lower() if "." in name else ""
-            if extension in extensions and os.path.getmtime(path) >= started:
-                produced.setdefault(extension, []).append(path)
-    for extension in extensions:
-        files = produced.get(extension, [])
-        if len(files) != expected:
-            return f"abcde produced {len(files)} {extension} file(s); the disc has {expected} audio tracks"
-        if any(os.path.getsize(path) <= 0 for path in files):
-            return f"abcde produced an empty {extension} file"
-    return None
-
-
 def rip_music(job, logfile):
     """
     Rip music CD using abcde config\n
     abcde can exit 0 after an incomplete rip (#1526), so success also requires its "Finished." line
-    and, when the config names an absolute OUTPUTDIR, one non-empty file per audio track.\n
+    and one non-empty output file per audio track, recorded by this invocation.\n
     :param job: job object
     :param logfile: location of logfile\n
     :return: Bool on success or fail
@@ -503,14 +460,6 @@ def rip_music(job, logfile):
 
     logging.info("Disc identified as music")
     abcfile = cfg.arm_config["ABCDE_CONFIG_FILE"]
-    command = ["abcde", "-d", job.devpath]
-    config_text = ""
-    # If user has set a cfg.arm_config file with ARM use it
-    if os.path.isfile(abcfile):
-        command += ["-c", abcfile]
-        with open(abcfile, encoding="utf-8", errors="replace") as config_file:
-            config_text = config_file.read()
-    output_dir, extensions = abcde_outputs(config_text)
     try:
         from arm.ripper import music_brainz
         expected = len(music_brainz.get_disc_id(job).tracks)
@@ -519,25 +468,23 @@ def rip_music(job, logfile):
         expected = None
     log_path = os.path.join(job.config.LOGPATH, logfile)
     database_updater({"status": JobState.AUDIO_RIPPING.value}, job)
-    started = time.time() - 1
     offset = os.path.getsize(log_path) if os.path.exists(log_path) else 0
-    logging.debug(f"Sending command: {command}")
     try:
-        with open(log_path, "ab") as log:
-            subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True)
+        with abcde.output_manifest(abcfile) as (config, manifest, types):
+            command = ["abcde", "-d", job.devpath, "-c", str(config)]
+            logging.debug(f"Sending command: {command}")
+            with open(log_path, "ab") as log:
+                subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True)
+            with open(log_path, "rb") as log:
+                log.seek(offset)
+                output = log.read().decode("utf-8", errors="replace")
+            if not re.search(r"^Finished\.(?: Not cleaning .+)?\s*$", output, re.MULTILINE):
+                return fail("abcde did not report 'Finished.'; the rip is incomplete")
+            error = abcde.output_error(manifest, types, expected)
+            if error:
+                return fail(error)
     except (OSError, subprocess.CalledProcessError) as ab_error:
         return fail(f"Call to abcde failed: {ab_error}")
-    with open(log_path, "rb") as log:
-        log.seek(offset)
-        output = log.read().decode("utf-8", errors="replace")
-    if not re.search(r"^Finished\.\s*$", output, re.MULTILINE):
-        return fail("abcde did not report 'Finished.'; the rip is incomplete")
-    if output_dir is None or expected is None:
-        logging.warning("abcde OUTPUTDIR is not an absolute path; output files were not counted")
-    else:
-        error = abcde_output_error(output_dir, extensions, expected, started)
-        if error:
-            return fail(error)
     database_updater({"status": JobState.IDLE.value}, job)
     logging.info("abcde call successful")
     return True
