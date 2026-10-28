@@ -64,20 +64,45 @@ See: https://b3n.org/automatic-ripping-machine
 
 ## Install
 
-[For normal installation please see the wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
-
-[For docker installation please see here](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
+[For bare-metal installation please see the wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
 
 [For WSL Integration please see here]()
 
+### Docker Compose (Quick Start)
+
+ARM can be started directly using Docker Compose:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/KM-Kinter/automatic-ripping-machine.git
+   cd automatic-ripping-machine
+   ```
+
+2. Review `docker-compose.yml` (or copy and modify from `docker-compose.example.yml`). Verify that optical drive paths (`/dev/sr0`, `/dev/sg0`), user permissions (`ARM_UID`, `ARM_GID`), and volume mount directories match your environment.
+
+3. Create the host directories and ensure proper permissions:
+   ```bash
+   sudo mkdir -p /etc/arm/config /home/arm/music /home/arm/logs /home/arm/raw
+   sudo chown -R 1000:1000 /etc/arm/config /home/arm/music /home/arm/logs /home/arm/raw
+   ```
+
+4. Launch the ARM container in detached mode:
+   ```bash
+   docker compose up -d
+   ```
+
+5. Access the web interface at `http://<HOST_IP>:8080` (Default credentials: `admin` / `password`).
+
+For advanced configuration, multi-drive setups, and troubleshooting, refer to the [Docker Wiki Guide](https://github.com/KM-Kinter/automatic-ripping-machine/wiki/docker).
+
 ## Troubleshooting
- [Please see the wiki for troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
+ [Please see the wiki for troubleshooting](https://github.com/KM-Kinter/automatic-ripping-machine/wiki/).
 
 ## Contributing
 
-Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contributing-Guide)
+Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/KM-Kinter/automatic-ripping-machine/wiki/Contributing-Guide)
 
-If you set ARM up in a different environment (hardware/OS/virtual/etc.), please consider [submitting a howto to the wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).
+If you set ARM up in a different environment (hardware/OS/virtual/etc.), please consider [submitting a howto to the wiki](https://github.com/KM-Kinter/automatic-ripping-machine/wiki).
 
 ## License
 

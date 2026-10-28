@@ -1,0 +1,28 @@
+services:
+  arm:
+    container_name: arm
+    # image: automaticrippingmachine/automatic-ripping-machine:latest
+    # To build the image locally from source instead:
+    build: .
+    restart: unless-stopped
+    privileged: true
+    environment:
+      - ARM_UID=1000
+      - ARM_GID=1000
+      # - TZ=UTC
+    ports:
+      - "8080:8080"
+    devices:
+      - /dev/sr0:/dev/sr0
+      # - /dev/sg0:/dev/sg0
+      # Additional or alternate optical drive devices:
+      # - /dev/sr1:/dev/sr1
+      - /dev/sg1:/dev/sg1
+    volumes:
+      - /etc/arm/config:/etc/arm/config
+      - /home/arm/music:/home/arm/music
+      - /home/arm/logs:/home/arm/logs
+      - /home/arm/raw:/home/arm/raw
+      # Optional additional media mount points:
+      # - /home/arm/media:/home/arm/media
+      # - /home/arm/media/completed:/home/arm/media/completed
