@@ -63,6 +63,27 @@ def get_x_jobs(job_status):
         for key, value in j.get_d().items():
             if key != "config":
                 job_results[i][str(key)] = str(value)
+
+        # Ensure dynamic progress/eta fields computed from logfile are not omitted or overridden
+        if hasattr(j, 'progress'):
+            job_results[i]['progress'] = j.progress
+        else:
+            job_results[i].setdefault('progress', 0)
+
+        if hasattr(j, 'progress_round'):
+            job_results[i]['progress_round'] = j.progress_round
+        else:
+            job_results[i].setdefault('progress_round', 0)
+
+        if hasattr(j, 'eta'):
+            job_results[i]['eta'] = j.eta
+        else:
+            job_results[i].setdefault('eta', "Calculating...")
+
+        if hasattr(j, 'stage') and j.stage:
+            job_results[i]['stage'] = j.stage
+        else:
+            job_results[i].setdefault('stage', "Ripping")
         i += 1
     if jobs:
         app.logger.debug("jobs  - we have " + str(len(job_results)) + " jobs")
@@ -272,17 +293,27 @@ def process_audio_logfile(logfile, job, job_results):
     Process audio disc logs to show current ripping tracks
     :param logfile: will come in as only the bare logfile, no path
     :param job: current job, so we can update the stage
-    :param job_results:
-    :return:
+    :param job_results: dict for JSON API results
+    :return: dict
     """
-    # \((track[^[]+)(?!track)
-    line = read_all_log_lines(os.path.join(cfg.arm_config["LOGPATH"], logfile))
-    for one_line in line:
-        curr_track = None
-        total_tracks = job.no_of_titles
+    job.stage = getattr(job, 'stage', 'Ripping')
+    if not job.stage or job.stage.isdigit():
+        job.stage = "Ripping track"
+    job.progress = getattr(job, 'progress', 0) or 0
+    job.progress_round = getattr(job, 'progress_round', 0) or 0
+    job.eta = getattr(job, 'eta', 'Calculating...') or "Calculating..."
+    job.cur_fps = getattr(job, 'cur_fps', 0)
+    job.avg_fps = getattr(job, 'avg_fps', 0)
 
-        # Whipper progress pattern: "Ripping track 1 of 10" or "Track 1 of 10"
-        whipper_match = re.search(r"(?:Ripping track|Track)\s+(\d+)\s+of\s+(\d+)", str(one_line), re.IGNORECASE)
+    log_file_path = os.path.join(cfg.arm_config["LOGPATH"], logfile) if logfile else ""
+    line = read_all_log_lines(log_file_path) if log_file_path else []
+
+    curr_track = None
+    total_tracks = job.no_of_titles or 0
+
+    for one_line in line:
+        # Whipper progress pattern: "Ripping track 1 of 10", "ripping track 1 of 10", "Track: 1 of 10", "Track 1 of 10", etc.
+        whipper_match = re.search(r"(?:ripping\s+track|track:?)\s+(\d+)\s+(?:of|/)\s+(\d+)", str(one_line), re.IGNORECASE)
         if whipper_match:
             curr_track = int(whipper_match.group(1))
             total_tracks = int(whipper_match.group(2))
@@ -295,21 +326,30 @@ def process_audio_logfile(logfile, job, job_results):
                 try:
                     curr_track = int(abcde_match.group(1).strip())
                 except (ValueError, TypeError):
-                    curr_track = None
+                    pass
 
-        if curr_track is not None and total_tracks:
-            try:
-                current_index = f"Track: {curr_track}/{total_tracks}"
-                job.stage = job_results['stage'] = current_index
-                job.eta = calc_process_time(job.start_time, curr_track, total_tracks)
-                job.progress = round(percentage(curr_track, total_tracks + 1))
-                job.progress_round = round(job.progress)
-            except Exception as error:
-                app.logger.debug("Error processing audio logfile. Error dump"
-                                 f"-  {error}", exc_info=True)
-                job.stage = "Unknown"
-                job.eta = "Unknown"
-                job.progress = job.progress_round = 0
+    if curr_track is not None and total_tracks > 0:
+        try:
+            current_index = f"Track: {curr_track}/{total_tracks}"
+            job.stage = current_index
+            job.eta = calc_process_time(job.start_time, curr_track, total_tracks)
+            calc_prog = percentage(curr_track, total_tracks)
+            job.progress = round(calc_prog)
+            job.progress_round = int(job.progress)
+        except Exception as error:
+            app.logger.debug(f"Error processing audio logfile: {error}", exc_info=True)
+            job.stage = f"Track: {curr_track}/{total_tracks}"
+            job.eta = "Calculating..."
+            job.progress = job.progress_round = 0
+    elif total_tracks > 0:
+        job.stage = f"Track: 0/{total_tracks}"
+
+    job_results['stage'] = job.stage
+    job_results['progress'] = job.progress
+    job_results['progress_round'] = job.progress_round
+    job_results['eta'] = job.eta
+    job_results['cur_fps'] = job.cur_fps
+    job_results['avg_fps'] = job.avg_fps
     return job_results
 
 

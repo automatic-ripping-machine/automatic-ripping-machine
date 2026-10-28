@@ -208,6 +208,47 @@ class TestWhipperRipper(unittest.TestCase):
         self.assertFalse(success)
         self.assertIn("Physical read error / damaged disc", msg)
 
+    def test_check_whipper_errors_rip_attempts_max_tries(self):
+        """Test failure when Whipper logs 'Rip attempts number is equal to MAX_TRIES'."""
+        log = "CRITICAL:whipper:Rip attempts number is equal to 'MAX_TRIES'"
+        success, msg = check_whipper_errors(log, 255, accuraterip_strict=False)
+        self.assertFalse(success)
+        self.assertIn("Physical read error / damaged disc", msg)
+
+    def test_check_whipper_errors_code_255_not_falsely_accuraterip(self):
+        """Test that exit code 255 with informational AccurateRip logs does not report AccurateRip verification failure."""
+        log = (
+            "INFO:whipper.command.cd:Checking AccurateRip database...\n"
+            "INFO:whipper.command.cd:AccurateRip summary:\n"
+            "Traceback (most recent call last):\n"
+            "ValueError: Unknown drive configuration\n"
+        )
+        success, msg = check_whipper_errors(log, 255, accuraterip_strict=True)
+        self.assertFalse(success)
+        self.assertNotIn("failed AccurateRip verification", msg)
+        self.assertIn("Call to whipper failed with code: 255", msg)
+
+    @patch("arm.ui.json_api.read_all_log_lines")
+    def test_process_audio_logfile_returns_all_keys(self, mock_read_lines):
+        """Test process_audio_logfile returns all required keys and valid values."""
+        mock_read_lines.return_value = [
+            "INFO:whipper.command.cd:ripping track 4 of 10"
+        ]
+        job = MagicMock()
+        job.no_of_titles = 10
+        job.start_time = MagicMock()
+        job_results = {}
+
+        with patch("arm.config.config.arm_config", {"LOGPATH": "/tmp"}):
+            res = process_audio_logfile("test.log", job, job_results)
+            self.assertIn("progress", res)
+            self.assertIn("progress_round", res)
+            self.assertIn("eta", res)
+            self.assertIn("stage", res)
+            self.assertEqual(res["progress"], 40)
+            self.assertEqual(res["progress_round"], 40)
+            self.assertEqual(res["stage"], "Track: 4/10")
+
     @patch("arm.ripper.utils.check_cd_present")
     @patch("arm.ripper.utils.subprocess.run")
     @patch("arm.ripper.utils.database_updater")
@@ -229,6 +270,34 @@ class TestWhipperRipper(unittest.TestCase):
 
         # Simulate log containing cdparanoia giving up on track after MAX_TRIES
         log_content = "CRITICAL:whipper: giving up on track 2... MAX_TRIES\n"
+        with patch("builtins.open", unittest.mock.mock_open(read_data=log_content)), \
+             patch("os.path.isfile", return_value=True), \
+             patch("arm.config.config.arm_config", {"AUTO_EJECT": True, "LOGPATH": "/tmp", "WHIPPER_ACCURATERIP": True}):
+            res = rip_music(job, "test_job.log")
+            self.assertFalse(res)
+            self.assertEqual(job.errors, "Physical read error / damaged disc")
+            job.eject.assert_called_once()
+
+    @patch("arm.ripper.utils.check_cd_present")
+    @patch("arm.ripper.utils.subprocess.run")
+    @patch("arm.ripper.utils.database_updater")
+    def test_rip_music_rip_attempts_max_tries_eject(self, mock_db_update, mock_run, mock_check_cd):
+        """Test that whipper 'Rip attempts number is equal to MAX_TRIES' sets damaged disc error and ejects."""
+        mock_check_cd.return_value = (True, "")
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 255
+        mock_run.return_value = mock_proc
+
+        job = MagicMock()
+        job.disctype = "music"
+        job.devpath = "/dev/sr0"
+        job.crc_id = None
+        job.config.LOGPATH = "/tmp"
+        job.config.COMPLETED_PATH = "/tmp/completed"
+        job.eject = MagicMock()
+
+        log_content = "CRITICAL:whipper:Rip attempts number is equal to 'MAX_TRIES'\n"
         with patch("builtins.open", unittest.mock.mock_open(read_data=log_content)), \
              patch("os.path.isfile", return_value=True), \
              patch("arm.config.config.arm_config", {"AUTO_EJECT": True, "LOGPATH": "/tmp", "WHIPPER_ACCURATERIP": True}):

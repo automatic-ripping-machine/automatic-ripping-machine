@@ -565,6 +565,7 @@ def check_whipper_errors(logfile_content: str, returncode: int, accuraterip_stri
     # Check for physical read errors / damaged disc (e.g. cdparanoia/whipper giving up after MAX_TRIES)
     damaged_disc_patterns = [
         r"giving up on track.*MAX_TRIES",
+        r"Rip attempts number is equal to .*MAX_TRIES",
         r"giving up on track",
         r"MAX_TRIES"
     ]
@@ -588,12 +589,18 @@ def check_whipper_errors(logfile_content: str, returncode: int, accuraterip_stri
             return False, f"Whipper failed with read/disc error matching '{pattern}' (code {returncode})"
 
     # Check for AccurateRip mismatch or missing entry
+    # Note: Do not match plain 'accuraterip' as Whipper always outputs info messages mentioning AccurateRip
     accuraterip_patterns = [
-        r"accuraterip",
-        r"not accurate",
+        r"accuraterip verification failed",
+        r"accuraterip.*not accurate",
+        r"accuraterip.*mismatch",
+        r"accuraterip.*no matches found",
         r"confidence mismatch",
-        r"no matches found",
-        r"cannot be verified"
+        r"rip was not accurate",
+        r"track.*is not accurate",
+        r"cannot be verified.*accuraterip",
+        r"not present in accuraterip",
+        r"accuraterip.*differ"
     ]
     has_ar_mismatch = any(re.search(pat, logfile_content, re.IGNORECASE) for pat in accuraterip_patterns)
 
@@ -706,7 +713,7 @@ def rip_music(job, logfile):
         else:
             is_damaged_disc = (
                 "Physical read error / damaged disc" in message
-                or bool(re.search(r"giving up on track.*MAX_TRIES|giving up on track|MAX_TRIES", log_content, re.IGNORECASE))
+                or bool(re.search(r"giving up on track.*MAX_TRIES|Rip attempts number is equal to .*MAX_TRIES|giving up on track|MAX_TRIES", log_content, re.IGNORECASE))
             )
             is_toc_or_no_disc = (
                 "No disc present" in message

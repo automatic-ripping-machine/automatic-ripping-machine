@@ -14,23 +14,35 @@ DEFAULT_UID=1000
 DEFAULT_GID=1000
 
 
-# Function to check if the ARM user has ownership of the requested folder
+# Function to check and ensure the ARM user has ownership of the requested folder
 check_folder_ownership() {
     local check_dir="$1"  # Get the folder path from the first argument
-    local folder_uid=$(stat -c "%u" "$check_dir")
-    local folder_gid=$(stat -c "%g" "$check_dir")
+
+    if [ ! -d "$check_dir" ]; then
+        mkdir -p "$check_dir"
+    fi
+
+    local folder_uid=$(stat -c "%u" "$check_dir" 2>/dev/null || echo "")
+    local folder_gid=$(stat -c "%g" "$check_dir" 2>/dev/null || echo "")
 
     echo "Checking ownership of $check_dir"
 
     if [ "$folder_uid" != "$ARM_UID" ] || [ "$folder_gid" != "$ARM_GID" ]; then
-        echo "---------------------------------------------"
-        echo "[ERROR]: ARM does not have permissions to $check_dir using $ARM_UID:$ARM_GID"
-        echo "Check your user permissions and restart ARM. Folder permissions--> $folder_uid:$folder_gid"
-        echo "---------------------------------------------"
-        exit 1
+        echo "Adjusting ownership of $check_dir to $ARM_UID:$ARM_GID..."
+        chown -R "$ARM_UID:$ARM_GID" "$check_dir" 2>/dev/null || chown "$ARM_UID:$ARM_GID" "$check_dir" 2>/dev/null || true
+        chmod -R u+rwX "$check_dir" 2>/dev/null || true
+        folder_uid=$(stat -c "%u" "$check_dir" 2>/dev/null || echo "")
+        folder_gid=$(stat -c "%g" "$check_dir" 2>/dev/null || echo "")
     fi
 
-    echo "[OK]: ARM UID and GID set correctly, ARM has access to '$check_dir' using $ARM_UID:$ARM_GID"
+    if [ "$folder_uid" != "$ARM_UID" ] || [ "$folder_gid" != "$ARM_GID" ]; then
+        echo "---------------------------------------------"
+        echo "[WARNING]: ARM could not set permissions to $check_dir using $ARM_UID:$ARM_GID"
+        echo "Current folder permissions--> $folder_uid:$folder_gid"
+        echo "---------------------------------------------"
+    else
+        echo "[OK]: ARM UID and GID set correctly, ARM has access to '$check_dir' using $ARM_UID:$ARM_GID"
+    fi
 }
 
 ### Setup User
@@ -53,21 +65,27 @@ echo "Adding arm user to 'render' group"
 usermod -a -G render arm
 
 ### Setup Files
-chown -R arm:arm /opt/arm
+chown -R arm:arm /opt/arm 2>/dev/null || true
 
-# Check ownership of the ARM home folder
+# Check ownership of the ARM home folder and main volume directories
 check_folder_ownership "/home/arm"
 
-# setup needed/expected dirs if not found
-SUBDIRS="media media/completed media/raw media/movies media/transcode logs logs/progress db music .MakeMKV"
+# setup needed/expected dirs if not found and guarantee ownership
+SUBDIRS="media media/completed media/raw media/movies media/transcode logs logs/progress db music raw .MakeMKV"
 for dir in $SUBDIRS ; do
   thisDir="$ARM_HOME/$dir"
   if [[ ! -d "$thisDir" ]] ; then
     echo "Creating dir: $thisDir"
     mkdir -p "$thisDir"
-    # Set the default ownership to arm instead of root
-    chown -R arm:arm "$thisDir"
   fi
+  # Always ensure ARM user has read/write ownership and permissions
+  chown -R arm:arm "$thisDir" 2>/dev/null || true
+  chmod -R u+rwX "$thisDir" 2>/dev/null || true
+done
+
+# Explicitly ensure ownership for all standard ARM volumes to prevent 'Can't write to folder' errors
+for vol in "/home/arm/media" "/home/arm/music" "/home/arm/logs" "/home/arm/raw" "/home/arm/db"; do
+  check_folder_ownership "$vol"
 done
 
 echo "Removing any link between music and Music"
