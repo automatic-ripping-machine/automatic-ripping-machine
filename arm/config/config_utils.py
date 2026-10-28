@@ -9,7 +9,7 @@ def arm_yaml_check_groups(comments, key):
     :param key: the current post key from form.args
     :return: arm.yaml config with any new comments added
     """
-    comment_groups = {'COMPLETED_PATH': "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP'],
+    comment_groups = {'WHIPPER_CONFIG_FILE': "\n" + comments['ARM_CFG_GROUPS']['DIR_SETUP'],
                       'WEBSERVER_IP': "\n" + comments['ARM_CFG_GROUPS']['WEB_SERVER'],
                       'SET_MEDIA_PERMISSIONS': "\n" + comments['ARM_CFG_GROUPS']['FILE_PERMS'],
                       'RIPMETHOD': "\n" + comments['ARM_CFG_GROUPS']['MAKE_MKV'],

@@ -58,16 +58,13 @@ The System Info tab provides an overview of the current ARM server state.
 <img title="ARM Settings - System Info" alt="ARM Settings system information page" src="images/settings_sysinfo.png" width="60%" height=""/>
 
 
-### abcde Config
+### Whipper Config
 
-The .abcde Config configures how ARM handles Music discs.
-ARM doesn't carry out any Music ripping, but passes the job off to the [.abcde package](https://abcde.einval.com/wiki/).
-Configuration of the .abcde file from the UI allows for modification of the output format, folder structure, and any other
-configuration possible via .abcde.
+The Whipper Config configures how ARM securely handles Music discs.
+ARM uses [whipper](https://github.com/whipper-team/whipper) with AccurateRip verification to extract and tag CD audio accurately using MusicBrainz metadata.
+Configuration options such as drive offset, AccurateRip verification strictness, and track/disc naming templates can be adjusted in `arm.yaml` as well as `/etc/arm/config/whipper.conf`.
 
-More info can be found on the [.abcde config](Config-abcde.conf) page.
-
-<img title="ARM Settings - abcde" alt="ARM Settings abcde page" src="images/settings_abcde.png" width="60%" height=""/>
+More info can be found on the [Whipper config](Config-whipper.conf) page.
 
 
 ### Ripper Settings

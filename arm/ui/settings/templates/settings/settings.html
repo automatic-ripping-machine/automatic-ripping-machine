@@ -54,8 +54,8 @@
                                aria-controls="system" aria-selected="false">System Info</a>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <a class="nav-link" id="abcde-tab" data-toggle="tab" href="#abcde" role="tab"
-                               aria-controls="abcde" aria-selected="false">abcde Config</a>
+                            <a class="nav-link" id="whipper-tab" data-toggle="tab" href="#whipper" role="tab"
+                               aria-controls="whipper" aria-selected="false">Whipper Config</a>
                         </li>
                         <li class="nav-item" role="presentation">
                             <a class="nav-link" id="settings-tab" data-toggle="tab" href="#settings" role="tab"
@@ -84,8 +84,8 @@
                         {% include 'settings/general.html' %}
                         <!-- system information -->
                         {% include 'settings/tab_sysinfo.html' %}
-                        <!-- abcde config -->
-                        {% include 'settings/abcde.html' %}
+                        <!-- whipper config -->
+                        {% include 'settings/whipper.html' %}
                         <!-- Ripper settings -->
                         {% include 'settings/ripper.html' %}
                         <!-- UI settings -->
@@ -132,6 +132,10 @@
                 e.preventDefault();
                 sendSettings($("#ripperSettings"), "/save_settings");
             })
+            $("#whipperSettings").submit(function (e) {
+                e.preventDefault();
+                sendSettings($("#whipperSettings"), "/save_whipper_settings");
+            });
             $("#abcdeSettings").submit(function (e) {
                 e.preventDefault();
                 sendSettings($("#abcdeSettings"), "/save_abcde_settings");

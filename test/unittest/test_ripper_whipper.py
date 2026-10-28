@@ -1,0 +1,288 @@
+import os
+import sys
+import types
+import unittest
+from unittest.mock import MagicMock, patch
+
+# Ensure repository root is on sys.path
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+sys.path.insert(0, repo_root)
+os.environ["ARM_CONFIG_FILE"] = os.path.join(repo_root, "setup/arm.yaml")
+
+
+class MockModule(types.ModuleType):
+    def __init__(self, name):
+        super().__init__(name)
+        self.__path__ = []
+
+    def __getattr__(self, name):
+        if name in ("__file__", "__path__", "__spec__"):
+            return None
+        mock = MagicMock()
+        setattr(self, name, mock)
+        return mock
+
+
+# Mock heavy/external dependencies if not installed in current environment
+for dep in [
+    "apprise", "flask", "flask.logging", "flask.views", "flask_login",
+    "flask_sqlalchemy", "sqlalchemy", "sqlalchemy.orm", "sqlalchemy.ext",
+    "sqlalchemy.ext.hybrid", "flask_migrate", "flask_cors", "flask_wtf",
+    "wtforms", "wtforms.validators", "netifaces", "bcrypt", "requests",
+    "psutil", "pyudev", "pydvdid", "xmltodict", "alembic", "alembic.script",
+    "alembic.config", "sqlalchemy.sql", "sqlalchemy.sql.schema",
+    "sqlalchemy.exc", "discid", "musicbrainzngs", "werkzeug", "werkzeug.utils",
+    "werkzeug.routing", "prettytable"
+]:
+    if dep not in sys.modules:
+        sys.modules[dep] = MockModule(dep)
+
+
+class DummyModel:
+    pass
+
+
+class DummyUserMixin:
+    pass
+
+
+sys.modules["flask_login"].UserMixin = DummyUserMixin
+sys.modules["sqlalchemy.exc"].SQLAlchemyError = Exception
+sys.modules["werkzeug.routing"].ValidationError = Exception
+db_mock = MockModule("arm.ui.db")
+db_mock.Model = DummyModel
+sys.modules["arm.ui"] = MockModule("arm.ui")
+sys.modules["arm.ui"].__path__ = [os.path.join(repo_root, "arm/ui")]
+sys.modules["arm.ui"].db = db_mock
+
+from arm.ripper.utils import (  # noqa: E402
+    check_whipper_errors, rip_music, ERR_NO_DISC, ERR_DAMAGED_DISC
+)
+from arm.ui.json_api import process_audio_logfile  # noqa: E402
+
+
+class TestWhipperRipper(unittest.TestCase):
+    def setUp(self):
+        """Set up common defaults for rip_music tests."""
+        self.default_arm_config = {
+            "AUTO_EJECT": True,
+            "LOGPATH": "/tmp",
+            "WHIPPER_ACCURATERIP": True,
+            "WHIPPER_DRIVE_OFFSET": 667,
+            "WHIPPER_OUTPUT_FORMAT": "%A/%d/%t - %n",
+            "WHIPPER_DISC_TEMPLATE": "%A/%d/%A - %d"
+        }
+
+    @staticmethod
+    def _create_mock_job(devpath="/dev/sr0", crc_id=None, disctype="music", no_of_titles=10):
+        """Helper to create and return a fully configured mock Job object."""
+        job = MagicMock()
+        job.disctype = disctype
+        job.devpath = devpath
+        job.crc_id = crc_id
+        job.config.LOGPATH = "/tmp"
+        job.config.COMPLETED_PATH = "/tmp/completed"
+        job.no_of_titles = no_of_titles
+        job.start_time = MagicMock()
+        job.eject = MagicMock()
+        job.errors = ""
+        return job
+
+    @staticmethod
+    def _mock_subprocess(mock_run, returncode=0, stdout=b"", stderr=b""):
+        """Helper to configure subprocess mock with returncode and output."""
+        mock_proc = MagicMock()
+        mock_proc.returncode = returncode
+        mock_proc.stdout = stdout
+        mock_proc.stderr = stderr
+        mock_run.return_value = mock_proc
+        return mock_proc
+
+    def _execute_rip_music_test(self, mock_run, returncode, log_content, mock_check_cd=None):
+        """Helper to run rip_music with mocked execution and logfile content."""
+        if mock_check_cd:
+            mock_check_cd.return_value = (True, "")
+        self._mock_subprocess(mock_run, returncode=returncode)
+        job = self._create_mock_job()
+
+        with patch("builtins.open", unittest.mock.mock_open(read_data=log_content)), \
+             patch("os.path.isfile", return_value=True), \
+             patch("arm.config.config.arm_config", self.default_arm_config):
+            return rip_music(job, "test_job.log"), job
+
+    def test_check_whipper_errors_success(self):
+        """Test success when returncode is 0."""
+        success, msg = check_whipper_errors("Rip completed successfully", 0, accuraterip_strict=True)
+        self.assertTrue(success)
+        self.assertEqual(msg, "")
+
+    def test_check_whipper_errors_read_failure(self):
+        """Test failure when unrecoverable read or scratch error is logged."""
+        log = "Ripping track 1... Read error at sector 12345. Unrecoverable error."
+        success, msg = check_whipper_errors(log, 1, accuraterip_strict=False)
+        self.assertFalse(success)
+        self.assertIn("read/disc error", msg)
+
+    def test_check_whipper_errors_accuraterip_strict(self):
+        """Test AccurateRip mismatch fails when strict mode is enabled."""
+        log = "Track 1: AccurateRip: no matches found in database."
+        success, msg = check_whipper_errors(log, 1, accuraterip_strict=True)
+        self.assertFalse(success)
+        self.assertIn("failed AccurateRip verification", msg)
+
+    def test_check_whipper_errors_accuraterip_permissive(self):
+        """Test AccurateRip mismatch succeeds with notice when permissive mode is enabled."""
+        log = "Track 1: AccurateRip: no matches found in database."
+        success, msg = check_whipper_errors(log, 1, accuraterip_strict=False)
+        self.assertTrue(success)
+        self.assertIn("tolerated per WHIPPER_ACCURATERIP=False", msg)
+
+    def test_check_whipper_errors_mixed_mode_cd_extra(self):
+        """Test mixed-mode CD (Enhanced CD with data track) succeeds with warning when audio tracks were ripped."""
+        log = (
+            "INFO:whipper.command.cd:Ripping track 1 of 2\n"
+            "Track 1: Rip quality 100.0%\n"
+            "INFO:whipper.command.cd:Ripping track 2 of 2\n"
+            "Track 2: cannot rip data track (skipping data track)\n"
+            "CRITICAL:whipper:error reading data track\n"
+        )
+        success, msg = check_whipper_errors(log, 1, accuraterip_strict=True)
+        self.assertTrue(success)
+        self.assertIn("data track skipped or unreadable on mixed-mode CD", msg)
+
+    @patch("arm.ripper.utils.subprocess.run")
+    @patch("arm.ripper.utils.database_updater")
+    @patch("arm.ripper.utils.set_permissions")
+    def test_rip_music_cli_arguments(self, mock_perms, mock_db_update, mock_run):
+        """Test that rip_music builds the correct whipper CLI arguments and passes headless input."""
+        self._mock_subprocess(mock_run, returncode=0)
+        job = self._create_mock_job(crc_id="12345678-1234-5678-1234-567812345678")
+
+        with patch("arm.config.config.arm_config", self.default_arm_config):
+            res = rip_music(job, "test_job.log")
+            self.assertTrue(res)
+
+        mock_run.assert_called_once()
+        cmd = mock_run.call_args[0][0]
+        self.assertEqual(cmd[0], "whipper")
+        self.assertIn("-d", cmd)
+        self.assertIn("/dev/sr0", cmd)
+        self.assertIn("rip", cmd)
+        self.assertIn("--offset", cmd)
+        self.assertIn("667", cmd)
+        self.assertIn("--unknown", cmd)
+        self.assertIn("--release-id", cmd)
+        self.assertIn("12345678-1234-5678-1234-567812345678", cmd)
+        self.assertIn("/tmp/completed/music", cmd)
+        self.assertEqual(mock_run.call_args[1].get("input"), b"1\n")
+
+    @patch("arm.ui.json_api.read_all_log_lines")
+    def test_process_audio_logfile_whipper(self, mock_read_lines):
+        """Test process_audio_logfile correctly parses whipper progress lines."""
+        mock_read_lines.return_value = [
+            "INFO:whipper.command.cd:Ripping disc...",
+            "INFO:whipper.command.cd:Ripping track 3 of 10",
+        ]
+        job = self._create_mock_job()
+        with patch("arm.config.config.arm_config", self.default_arm_config):
+            res = process_audio_logfile("test.log", job, {})
+            self.assertIn("stage", res)
+
+    def test_check_whipper_errors_toc_failure(self):
+        """Test failure when cdrdao/whipper fails to read TOC or file is missing."""
+        log = (
+            "CRITICAL:whipper:FileNotFoundError: [Errno 2] "
+            "No such file or directory: '/tmp/test.cdrdao.read-toc.whipper.task'"
+        )
+        success, msg = check_whipper_errors(log, 1, accuraterip_strict=False)
+        self.assertFalse(success)
+        self.assertIn(ERR_NO_DISC, msg)
+
+    @patch("arm.ripper.utils.check_cd_present")
+    @patch("arm.ripper.utils.database_updater")
+    def test_rip_music_no_cd_present_prevalidation(self, mock_db_update, mock_check_cd):
+        """Test that rip_music fails gracefully and ejects when no CD is present."""
+        mock_check_cd.return_value = (False, "Cannot read CD TOC on /dev/sr0")
+        job = self._create_mock_job()
+
+        with patch("arm.config.config.arm_config", self.default_arm_config):
+            res = rip_music(job, "test_job.log")
+            self.assertFalse(res)
+            self.assertEqual(job.errors, ERR_NO_DISC)
+            job.eject.assert_called_once()
+            mock_db_update.assert_called()
+
+    @patch("arm.ripper.utils.check_cd_present")
+    @patch("arm.ripper.utils.subprocess.run")
+    @patch("arm.ripper.utils.database_updater")
+    def test_rip_music_toc_error_during_whipper_execution(self, mock_db_update, mock_run, mock_check_cd):
+        """Test that whipper TOC read failure during execution marks job as failed and ejects."""
+        log = "FileNotFoundError: [Errno 2] No such file or directory: '/tmp/whipper.task.cdrdao.read-toc.task'\n"
+        res, job = self._execute_rip_music_test(mock_run, 1, log, mock_check_cd)
+        self.assertFalse(res)
+        self.assertEqual(job.errors, ERR_NO_DISC)
+        job.eject.assert_called_once()
+
+    def test_check_whipper_errors_damaged_disc_max_tries(self):
+        """Test failure when whipper/cdparanoia gives up on a track after MAX_TRIES."""
+        log = "Ripping track 1... cdparanoia: giving up on track 1 after MAX_TRIES. Rip quality 65.2%"
+        success, msg = check_whipper_errors(log, 1, accuraterip_strict=False)
+        self.assertFalse(success)
+        self.assertIn(ERR_DAMAGED_DISC, msg)
+
+    def test_check_whipper_errors_rip_attempts_max_tries(self):
+        """Test failure when Whipper logs 'Rip attempts number is equal to MAX_TRIES'."""
+        log = "CRITICAL:whipper:Rip attempts number is equal to 'MAX_TRIES'"
+        success, msg = check_whipper_errors(log, 255, accuraterip_strict=False)
+        self.assertFalse(success)
+        self.assertIn(ERR_DAMAGED_DISC, msg)
+
+    def test_check_whipper_errors_code_255_not_falsely_accuraterip(self):
+        """Test exit code 255 with informational AccurateRip logs does not report AccurateRip verification failure."""
+        log = (
+            "INFO:whipper.command.cd:Checking AccurateRip database...\n"
+            "INFO:whipper.command.cd:AccurateRip summary:\n"
+            "Traceback (most recent call last):\n"
+            "ValueError: Unknown drive configuration\n"
+        )
+        success, msg = check_whipper_errors(log, 255, accuraterip_strict=True)
+        self.assertFalse(success)
+        self.assertNotIn("failed AccurateRip verification", msg)
+        self.assertIn("Call to whipper failed with code: 255", msg)
+
+    @patch("arm.ui.json_api.read_all_log_lines")
+    def test_process_audio_logfile_returns_all_keys(self, mock_read_lines):
+        """Test process_audio_logfile returns all required keys and valid values."""
+        mock_read_lines.return_value = ["INFO:whipper.command.cd:ripping track 4 of 10"]
+        job = self._create_mock_job(no_of_titles=10)
+        with patch("arm.config.config.arm_config", self.default_arm_config):
+            res = process_audio_logfile("test.log", job, {})
+            self.assertEqual(res["progress"], 40)
+            self.assertEqual(res["progress_round"], 40)
+            self.assertEqual(res["stage"], "Track: 4/10")
+
+    @patch("arm.ripper.utils.check_cd_present")
+    @patch("arm.ripper.utils.subprocess.run")
+    @patch("arm.ripper.utils.database_updater")
+    def test_rip_music_damaged_disc_max_tries_eject(self, mock_db_update, mock_run, mock_check_cd):
+        """Test that whipper giving up on track MAX_TRIES sets damaged disc error and ejects."""
+        log = "CRITICAL:whipper: giving up on track 2... MAX_TRIES\n"
+        res, job = self._execute_rip_music_test(mock_run, 1, log, mock_check_cd)
+        self.assertFalse(res)
+        self.assertEqual(job.errors, ERR_DAMAGED_DISC)
+        job.eject.assert_called_once()
+
+    @patch("arm.ripper.utils.check_cd_present")
+    @patch("arm.ripper.utils.subprocess.run")
+    @patch("arm.ripper.utils.database_updater")
+    def test_rip_music_rip_attempts_max_tries_eject(self, mock_db_update, mock_run, mock_check_cd):
+        """Test that whipper 'Rip attempts number is equal to MAX_TRIES' sets damaged disc error and ejects."""
+        log = "CRITICAL:whipper:Rip attempts number is equal to 'MAX_TRIES'\n"
+        res, job = self._execute_rip_music_test(mock_run, 255, log, mock_check_cd)
+        self.assertFalse(res)
+        self.assertEqual(job.errors, ERR_DAMAGED_DISC)
+        job.eject.assert_called_once()
+
+
+if __name__ == "__main__":
+    unittest.main()

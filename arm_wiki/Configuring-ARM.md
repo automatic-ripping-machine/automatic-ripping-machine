@@ -4,7 +4,7 @@ ARM's config file is usually located at `/etc/arm/config/arm.yaml`. This path ca
 
 `arm.yaml` includes explanations for each option. Pay special attention to the 'directory setup' section and make sure the 'arm' user has write access to wherever you define these directories.
 
-In case you want to adjust settings specific to audio CDs, you can find the ABCDE config file at `/etc/arm/config/.abcde.conf` unless configured otherwise in `arm.yaml`.
+In case you want to adjust settings specific to audio CDs, you can configure drive offsets, AccurateRip verification, and formatting templates in `arm.yaml`, or customize standalone preferences in the Whipper config file at `/etc/arm/config/whipper.conf`.
 
 To allow ARM to identify movie/tv titles, register for an [OMDb API key](http://www.omdbapi.com/apikey.aspx) and set the OMDB_API_KEY parameter in the config file.
 
