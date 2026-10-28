@@ -440,7 +440,7 @@ def process_tracks(job, mb_track_list: dict, is_stub=False):
             title = track.get('title', f"Untitled track {trackno}")
         else:
             title = track['recording']['title']
-        u.put_track(job, trackno, track_leng, "n/a", 0.1, False, "ABCDE", title)
+        u.put_track(job, trackno, track_leng, "n/a", 0.1, False, "Whipper", title)
 
 
 if __name__ == "__main__":

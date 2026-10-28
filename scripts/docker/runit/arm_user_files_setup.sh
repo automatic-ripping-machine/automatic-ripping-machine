@@ -81,7 +81,7 @@ fi
 check_folder_ownership "/etc/arm/config"
 
 mkdir -p /etc/arm/config
-CONFS="arm.yaml apprise.yaml"
+CONFS="arm.yaml apprise.yaml whipper.conf"
 for conf in $CONFS; do
   thisConf="/etc/arm/config/${conf}"
   if [[ ! -f "${thisConf}" ]] ; then
@@ -91,7 +91,17 @@ for conf in $CONFS; do
   fi
 done
 
-##### abcde config setup
+##### whipper config setup
+echo "Checking location of whipper configuration files"
+mkdir -p /home/arm/.config/whipper
+if ! [ -f /etc/arm/config/whipper.conf ]; then
+  echo "whipper.conf doesn't exist"
+  cp /opt/arm/setup/whipper.conf /etc/arm/config/whipper.conf
+fi
+ln -sf /etc/arm/config/whipper.conf /home/arm/.config/whipper/whipper.conf
+chown -R arm:arm /home/arm/.config 2>/dev/null || true
+
+##### abcde config setup (legacy)
 # abcde.conf is expected in /etc by the abcde installation
 echo "Checking location of abcde configuration files"
 # Test if abcde.conf is a hyperlink, if so remove it

@@ -278,16 +278,34 @@ def process_audio_logfile(logfile, job, job_results):
     # \((track[^[]+)(?!track)
     line = read_all_log_lines(os.path.join(cfg.arm_config["LOGPATH"], logfile))
     for one_line in line:
-        job_stage_index = re.search(r"\(track([^[]+)", str(one_line))
-        if job_stage_index:
+        curr_track = None
+        total_tracks = job.no_of_titles
+
+        # Whipper progress pattern: "Ripping track 1 of 10" or "Track 1 of 10"
+        whipper_match = re.search(r"(?:Ripping track|Track)\s+(\d+)\s+of\s+(\d+)", str(one_line), re.IGNORECASE)
+        if whipper_match:
+            curr_track = int(whipper_match.group(1))
+            total_tracks = int(whipper_match.group(2))
+            if not job.no_of_titles:
+                job.no_of_titles = total_tracks
+        else:
+            # Fallback legacy abcde pattern: "(track 1"
+            abcde_match = re.search(r"\(track([^[]+)", str(one_line))
+            if abcde_match:
+                try:
+                    curr_track = int(abcde_match.group(1).strip())
+                except (ValueError, TypeError):
+                    curr_track = None
+
+        if curr_track is not None and total_tracks:
             try:
-                current_index = f"Track: {job_stage_index.group(1)}/{job.no_of_titles}"
+                current_index = f"Track: {curr_track}/{total_tracks}"
                 job.stage = job_results['stage'] = current_index
-                job.eta = calc_process_time(job.start_time, job_stage_index.group(1), job.no_of_titles)
-                job.progress = round(percentage(job_stage_index.group(1), job.no_of_titles + 1))
+                job.eta = calc_process_time(job.start_time, curr_track, total_tracks)
+                job.progress = round(percentage(curr_track, total_tracks + 1))
                 job.progress_round = round(job.progress)
             except Exception as error:
-                app.logger.debug("Error processing abcde logfile. Error dump"
+                app.logger.debug("Error processing audio logfile. Error dump"
                                  f"-  {error}", exc_info=True)
                 job.stage = "Unknown"
                 job.eta = "Unknown"

@@ -44,6 +44,22 @@ RUN \
 # Remove SSH
 RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 
+# Install Whipper dependencies (and remove legacy abcde)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libcdio-paranoia \
+        libcdio-cdda-dev \
+        libiso9660-dev \
+        cdrdao \
+        sox \
+        flac \
+        pkg-config \
+        libsndfile1-dev && \
+    pip3 install --no-cache-dir pycdio whipper && \
+    apt-get remove -y abcde || true && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Add ARMui service
 RUN mkdir /etc/service/armui
 COPY ./scripts/docker/runsv/armui.sh /etc/service/armui/run

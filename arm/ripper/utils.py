@@ -441,40 +441,140 @@ def find_largest_file(files, mkv_out_path):
     return largest_file_name
 
 
+def check_whipper_errors(logfile_content: str, returncode: int, accuraterip_strict: bool) -> tuple[bool, str]:
+    """
+    Parses whipper execution result and log content.
+    Returns (success: bool, error_message: str).
+    """
+    if returncode == 0:
+        return True, ""
+
+    # Check for unrecoverable read / disc errors (cdparanoia / whipper failure indicators)
+    read_error_patterns = [
+        r"read error",
+        r"rip error",
+        r"scratch detected",
+        r"unrecoverable error",
+        r"could not rip track",
+        r"failed to rip",
+        r"drive error",
+        r"cannot read cd-rom toc",
+        r"paranoia error"
+    ]
+    for pattern in read_error_patterns:
+        if re.search(pattern, logfile_content, re.IGNORECASE):
+            return False, f"Whipper failed with read/disc error matching '{pattern}' (code {returncode})"
+
+    # Check for AccurateRip mismatch or missing entry
+    accuraterip_patterns = [
+        r"accuraterip",
+        r"not accurate",
+        r"confidence mismatch",
+        r"no matches found",
+        r"cannot be verified"
+    ]
+    has_ar_mismatch = any(re.search(pat, logfile_content, re.IGNORECASE) for pat in accuraterip_patterns)
+
+    if has_ar_mismatch:
+        if not accuraterip_strict:
+            return True, f"Whipper finished with AccurateRip notice (tolerated per WHIPPER_ACCURATERIP=False, code {returncode})"
+        return False, f"Whipper failed AccurateRip verification (strict mode enabled, code {returncode})"
+
+    return False, f"Call to whipper failed with code: {returncode}"
+
+
 def rip_music(job, logfile):
     """
-    Rip music CD using abcde config\n
+    Rip music CD using whipper cd rip
+
     :param job: job object
-    :param logfile: location of logfile\n
+    :param logfile: location of logfile
     :return: Bool on success or fail
     """
+    if job.disctype != "music":
+        return False
 
-    abcfile = cfg.arm_config["ABCDE_CONFIG_FILE"]
-    if job.disctype == "music":
-        logging.info("Disc identified as music")
-        # If user has set a cfg.arm_config file with ARM use it
-        if os.path.isfile(abcfile):
-            cmd = f'abcde -d "{job.devpath}" -c {abcfile} >> "{os.path.join(job.config.LOGPATH, logfile)}" 2>&1'
-        else:
-            cmd = f'abcde -d "{job.devpath}" >> "{os.path.join(job.config.LOGPATH, logfile)}" 2>&1'
+    logging.info("Disc identified as music. Starting Whipper rip.")
 
-        logging.debug(f"Sending command: {cmd}")
-        args = {"status": JobState.AUDIO_RIPPING.value}
-        database_updater(args, job)
+    # Determine music completed destination
+    music_completed_dir = os.path.join(job.config.COMPLETED_PATH, "music")
+    os.makedirs(music_completed_dir, exist_ok=True)
 
-        try:
-            # TODO check output and confirm all tracks ripped; find "Finished\.$"
-            subprocess.check_output(cmd, shell=True).decode("utf-8")
-            logging.info("abcde call successful")
+    # Whipper settings from config
+    offset = cfg.arm_config.get("WHIPPER_DRIVE_OFFSET", 0)
+    accuraterip_strict = str(cfg.arm_config.get("WHIPPER_ACCURATERIP", "true")).lower() == "true"
+    track_template = cfg.arm_config.get("WHIPPER_OUTPUT_FORMAT", "%A/%d/%t - %n")
+    disc_template = cfg.arm_config.get("WHIPPER_DISC_TEMPLATE", "%A/%d/%A - %d")
+
+    # Build whipper CLI command
+    cmd = ["whipper", "cd", "-d", str(job.devpath), "rip"]
+
+    if offset is not None and str(offset).strip() != "":
+        cmd.extend(["--offset", str(offset).strip()])
+
+    # --unknown allows ripping CDs not found in MusicBrainz without prompting
+    cmd.append("--unknown")
+
+    # If MusicBrainz release ID was determined, supply it directly
+    if job.crc_id and re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', str(job.crc_id), re.I):
+        logging.info(f"Passing MusicBrainz release ID to whipper: {job.crc_id}")
+        cmd.extend(["--release-id", str(job.crc_id)])
+
+    cmd.extend(["--output-directory", music_completed_dir])
+    cmd.extend(["--track-template", track_template])
+    cmd.extend(["--disc-template", disc_template])
+
+    logging.debug(f"Sending command: {' '.join(cmd)}")
+    args = {"status": JobState.AUDIO_RIPPING.value}
+    database_updater(args, job)
+
+    full_logfile = os.path.join(job.config.LOGPATH, logfile)
+
+    try:
+        with open(full_logfile, "a", encoding="utf-8", errors="ignore") as log_out:
+            proc = subprocess.run(
+                cmd,
+                stdout=log_out,
+                stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
+                check=False
+            )
+
+        # Read last lines of log to inspect results
+        log_content = ""
+        if os.path.isfile(full_logfile):
+            with open(full_logfile, "r", encoding="utf-8", errors="ignore") as log_in:
+                lines = log_in.readlines()
+                log_content = "".join(lines[-200:])
+
+        success, message = check_whipper_errors(log_content, proc.returncode, accuraterip_strict)
+
+        if success:
+            if message:
+                logging.warning(message)
+            logging.info("Whipper call completed successfully")
+            set_permissions(music_completed_dir)
             args = {"status": JobState.IDLE.value}
             database_updater(args, job)
             return True
-        except subprocess.CalledProcessError as ab_error:
-            err = f"Call to abcde failed with code: {ab_error.returncode} ({ab_error.output})"
-            args = {"status": JobState.FAILURE.value, "errors": err}
+        else:
+            args = {"status": JobState.FAILURE.value, "errors": message}
             database_updater(args, job)
-            logging.error(err)
-    return False
+            logging.error(message)
+            return False
+
+    except FileNotFoundError as fnf_err:
+        err = f"Whipper binary not found on system: {fnf_err}"
+        args = {"status": JobState.FAILURE.value, "errors": err}
+        database_updater(args, job)
+        logging.critical(err)
+        return False
+    except Exception as ex:
+        err = f"Unexpected error during Whipper execution: {ex}"
+        args = {"status": JobState.FAILURE.value, "errors": err}
+        database_updater(args, job)
+        logging.error(err, exc_info=True)
+        return False
 
 
 def rip_data(job):

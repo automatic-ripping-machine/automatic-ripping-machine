@@ -81,6 +81,7 @@ jobs:
         sudo mkdir -p /etc/arm/config/ /home/arm/db /home/arm /home/arm/config /home/arm/media /home/arm/music
         sudo cp setup/arm.yaml /etc/arm/config/arm.yaml
         sudo cp setup/apprise.yaml /etc/arm/config/apprise.yaml
+        sudo cp setup/whipper.conf /etc/arm/config/whipper.conf
         sudo cp setup/.abcde.conf /etc/arm/config/abcde.conf
         sudo mkdir -p /opt/arm/arm /opt/arm/setup
         sudo cp -r arm/migrations /opt/arm/arm

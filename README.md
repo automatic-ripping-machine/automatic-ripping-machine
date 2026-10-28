@@ -40,7 +40,7 @@ See: https://b3n.org/automatic-ripping-machine
     - Eject disc and queue up Handbrake transcoding when done
     - Transcoding jobs are asynchronously batched from ripping
     - Send notifications via IFTTT, Pushbullet, Slack, Discord, and many more!
-  - If audio (CD) - rip using abcde (get disc-data and album art from [musicbrainz](https://musicbrainz.org/))
+  - If audio (CD) - rip using whipper with AccurateRip verification (get disc-data and album art from [musicbrainz](https://musicbrainz.org/))
   - If data (Blu-ray, DVD, DVD-Audio or CD) - make an ISO backup
 - Headless, designed to be run from a server
 - Can rip from multiple-optical drives in parallel

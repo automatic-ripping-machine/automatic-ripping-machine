@@ -816,9 +816,9 @@ function BuildAndInstallHandBrakeCLI() {
 ###################################################
 
 function InstallArmDependencies() {
-  apt install -y  abcde \
-                  at \
+  apt install -y  at \
                   cdparanoia \
+                  cdrdao \
                   default-jre-headless \
                   eject \
                   ffmpeg \
@@ -826,14 +826,20 @@ function InstallArmDependencies() {
                   glyrc \
                   imagemagick \
                   libavcodec-extra \
+                  libcdio-paranoia \
+                  libcdio-cdda-dev \
+                  libiso9660-dev \
                   libcurl4-openssl-dev \
                   libdvdcss2 \
+                  libsndfile1-dev \
                   libssl-dev \
                   lsdvd \
+                  pkg-config \
                   python3 \
                   python3-venv \
                   python3-libdiscid \
-                  python3-pip
+                  python3-pip \
+                  sox
 
   DEBIAN_FRONTEND=noninteractive apt -y install libdvd-pkg
   dpkg-reconfigure --frontend noninteractive libdvd-pkg
@@ -860,8 +866,14 @@ function DownloadArm () {
   if $PreviousInstallationFound ; then
 
     ExistingArmYamlFile="/etc/arm/config/arm.yaml"
+    ExistingWhipperConfFile="/etc/arm/config/whipper.conf"
     ExistingAbcdeConfFile="/etc/arm/config/abcde.conf"
     ExistingAppriseYamlFile="/etc/arm/config/apprise.yaml"
+
+    if [[ -f ${ExistingWhipperConfFile} ]] && [[ "${UseExistingConfigFiles}" = false ]] ; then
+      echo "Backing up whipper.conf"
+      cp "${ExistingWhipperConfFile}" "${ExistingWhipperConfFile}.bck"
+    fi
 
     if [[ -f ${ExistingAbcdeConfFile} ]] && [[ "${UseExistingConfigFiles}" = false ]] ; then
       echo "Backing up ABCDE.conf"
@@ -899,6 +911,7 @@ function DownloadArm () {
     echo "Copying Clean Config Files"
     cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
     cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
+    cp /opt/arm/setup/whipper.conf /etc/arm/config/whipper.conf
     cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
   fi
 
@@ -922,6 +935,7 @@ function DownloadArm () {
 
   cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
   cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
+  cp /opt/arm/setup/whipper.conf /etc/arm/config/whipper.conf.default
   cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf.default
 }
 

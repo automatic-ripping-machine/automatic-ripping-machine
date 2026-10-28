@@ -129,7 +129,7 @@ function checkTranscodeStatus(job) {
     if (job.status === "ripping" && job.stage !== "" && job.progress) {
         status = true;
     }
-    // abcde is ripping the audio disc and is outputting stage and eta
+    // whipper is ripping the audio disc and is outputting stage and eta
     if (job.disctype === "music" && job.stage !== "") {
         status = true;
     }
