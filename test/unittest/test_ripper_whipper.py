@@ -77,11 +77,24 @@ class TestWhipperRipper(unittest.TestCase):
         self.assertTrue(success)
         self.assertIn("tolerated per WHIPPER_ACCURATERIP=False", msg)
 
+    def test_check_whipper_errors_mixed_mode_cd_extra(self):
+        """Test mixed-mode CD (Enhanced CD with data track) succeeds with warning when audio tracks were ripped."""
+        log = (
+            "INFO:whipper.command.cd:Ripping track 1 of 2\n"
+            "Track 1: Rip quality 100.0%\n"
+            "INFO:whipper.command.cd:Ripping track 2 of 2\n"
+            "Track 2: cannot rip data track (skipping data track)\n"
+            "CRITICAL:whipper:error reading data track\n"
+        )
+        success, msg = check_whipper_errors(log, 1, accuraterip_strict=True)
+        self.assertTrue(success)
+        self.assertIn("data track skipped or unreadable on mixed-mode CD", msg)
+
     @patch("arm.ripper.utils.subprocess.run")
     @patch("arm.ripper.utils.database_updater")
     @patch("arm.ripper.utils.set_permissions")
     def test_rip_music_cli_arguments(self, mock_perms, mock_db_update, mock_run):
-        """Test that rip_music builds the correct whipper CLI arguments."""
+        """Test that rip_music builds the correct whipper CLI arguments and passes headless input."""
         mock_proc = MagicMock()
         mock_proc.returncode = 0
         mock_run.return_value = mock_proc
@@ -106,6 +119,7 @@ class TestWhipperRipper(unittest.TestCase):
         # Inspect CLI arguments passed to subprocess.run
         mock_run.assert_called_once()
         cmd_called = mock_run.call_args[0][0]
+        kwargs_called = mock_run.call_args[1]
         self.assertEqual(cmd_called[0], "whipper")
         self.assertIn("cd", cmd_called)
         self.assertIn("-d", cmd_called)
@@ -118,6 +132,8 @@ class TestWhipperRipper(unittest.TestCase):
         self.assertIn("12345678-1234-5678-1234-567812345678", cmd_called)
         self.assertIn("--output-directory", cmd_called)
         self.assertIn("/tmp/completed/music", cmd_called)
+        # Verify headless input passed to avoid hanging on multimatch
+        self.assertEqual(kwargs_called.get("input"), b"1\n")
 
     @patch("arm.ui.json_api.read_all_log_lines")
     def test_process_audio_logfile_whipper(self, mock_read_lines):

@@ -4,6 +4,7 @@ import os
 import tempfile
 import shutil
 
+import test  # noqa: F401 - bootstrap environment
 sys.path.insert(0, '/opt/arm')
 
 from arm.ripper.utils import find_matching_file  # noqa: E402

@@ -441,13 +441,38 @@ def find_largest_file(files, mkv_out_path):
     return largest_file_name
 
 
-def check_whipper_errors(logfile_content: str, returncode: int, accuraterip_strict: bool) -> tuple[bool, str]:
+def check_whipper_errors(logfile_content: str, returncode: int, accuraterip_strict: bool,
+                         music_completed_dir: str = None) -> tuple[bool, str]:
     """
     Parses whipper execution result and log content.
     Returns (success: bool, error_message: str).
     """
     if returncode == 0:
         return True, ""
+
+    # Check for mixed-mode CD / Enhanced CD / CD-Extra with data tracks.
+    # On mixed CDs, the data track in the second session cannot be ripped as audio,
+    # causing cdparanoia/whipper to report errors or non-zero exit code on the data track
+    # even when all audio tracks ripped successfully.
+    data_track_patterns = [
+        r"data track",
+        r"enhanced cd",
+        r"cd-extra",
+        r"cannot rip data track",
+        r"skipping data track",
+        r"error reading data track"
+    ]
+    has_data_track_notice = any(re.search(pat, logfile_content, re.IGNORECASE) for pat in data_track_patterns)
+    has_ripped_audio = bool(re.search(r"Rip quality|Accurately ripped|Track \d+.*ripped", logfile_content, re.IGNORECASE))
+    if not has_ripped_audio and music_completed_dir and os.path.isdir(music_completed_dir):
+        # Check if any audio tracks (.flac) were actually produced
+        for root, _, files in os.walk(music_completed_dir):
+            if any(f.lower().endswith(".flac") for f in files):
+                has_ripped_audio = True
+                break
+
+    if has_data_track_notice and has_ripped_audio:
+        return True, f"Whipper completed with warning: data track skipped or unreadable on mixed-mode CD (code {returncode})"
 
     # Check for unrecoverable read / disc errors (cdparanoia / whipper failure indicators)
     read_error_patterns = [
@@ -531,12 +556,12 @@ def rip_music(job, logfile):
     full_logfile = os.path.join(job.config.LOGPATH, logfile)
 
     try:
-        with open(full_logfile, "a", encoding="utf-8", errors="ignore") as log_out:
+        with open(full_logfile, "ab") as log_out:
             proc = subprocess.run(
                 cmd,
                 stdout=log_out,
                 stderr=subprocess.STDOUT,
-                stdin=subprocess.DEVNULL,
+                input=b"1\n",
                 check=False
             )
 
@@ -547,7 +572,12 @@ def rip_music(job, logfile):
                 lines = log_in.readlines()
                 log_content = "".join(lines[-200:])
 
-        success, message = check_whipper_errors(log_content, proc.returncode, accuraterip_strict)
+        success, message = check_whipper_errors(
+            log_content,
+            proc.returncode,
+            accuraterip_strict,
+            music_completed_dir=music_completed_dir
+        )
 
         if success:
             if message:
@@ -689,7 +719,7 @@ def put_track(job, t_no, seconds, aspect, fps, mainfeature, source, filename="",
     :param str aspect: aspect ratio (ie '16:9')
     :param str fps: frames per second:str (-not a float-)
     :param bool mainfeature: If the file is identified as the mainfeature
-    :param str source: Source of information (HandBrake, MakeMKV, abcde)
+    :param str source: Source of information (HandBrake, MakeMKV, whipper)
     :param str filename: filename of track
     :param int chapters: number of chapters in track
     :param int filesize: size of track in bytes
