@@ -56,7 +56,7 @@ RUN apt-get update && \
         libiso9660-dev \
         pkg-config \
         libsndfile1-dev && \
-    (pip3 install --no-cache-dir pycdio "whipper>=0.10.0" || true) && \
+    pip3 install --no-cache-dir pycdio==2.1.1 whipper==0.10.0 && \
     ln -sf "$(command -v whipper || which whipper || echo /usr/bin/whipper)" /usr/local/bin/whipper && \
     which whipper && \
     python3 -c "import whipper; print('Whipper loaded successfully')" && \
