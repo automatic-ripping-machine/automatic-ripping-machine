@@ -9,6 +9,7 @@ from arm.ui import app
 import arm.config.config as cfg
 
 TMDB_YEAR_REGEX = r"-\d{0,2}-\d{0,2}"
+OMDB_TOO_MANY_RESULTS = "Too many results."
 
 
 def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
@@ -44,13 +45,40 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
         title_info = json.loads(title_info_json.decode())
         title_info['background_url'] = None
         app.logger.debug(f"omdb - {title_info}")
-        if 'Error' in title_info or title_info['Response'] == "False":
+        if title and not imdb_id and title_info.get('Error') == OMDB_TOO_MANY_RESULTS:
+            # A short or common title (e.g. "ER") matches too many entries for the
+            # free search (s=). Ask OMDb for the exact title (t=) instead.
+            app.logger.debug(f"omdb - too many results for '{title}', trying exact title search")
+            title_info = call_omdb_exact_title(title, year, plot, omdb_api_key)
+        if title_info is None or 'Error' in title_info or title_info['Response'] == "False":
             title_info = None
     except urllib.error.HTTPError as error:
         app.logger.error(f"omdb call failed with error - {error}")
     else:
         app.logger.debug("omdb - call was successful")
     return title_info
+
+
+def call_omdb_exact_title(title, year, plot, omdb_api_key):
+    """
+    Queries OMDbapi.org for an exact title match (t=) and wraps the single result
+    in the same format returned by the free search (s=), so callers can use it
+    without changes.
+    :param title: url-quoted title
+    :param year: url-quoted year, or None
+    :param plot: short or full plot
+    :param omdb_api_key: OMDb api key
+    :return: dict in OMDb search format, or None if nothing was found
+    """
+    str_url = f"https://www.omdbapi.com/?t={title}&plot={plot}&r=json&apikey={omdb_api_key}"
+    if year and year != "None":
+        str_url = f"https://www.omdbapi.com/?t={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
+    title_info = json.loads(urllib.request.urlopen(str_url).read().decode())
+    app.logger.debug(f"omdb exact title - {title_info}")
+    if 'Error' in title_info or title_info.get('Response') == "False":
+        return None
+    result = {key: title_info.get(key) for key in ('Title', 'Year', 'imdbID', 'Type', 'Poster')}
+    return {'Search': [result], 'totalResults': "1", 'Response': "True", 'background_url': None}
 
 
 def get_omdb_poster(title=None, year=None, imdb_id=None, plot="short"):
