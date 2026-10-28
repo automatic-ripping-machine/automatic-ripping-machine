@@ -74,7 +74,7 @@ ARM can be started directly using Docker Compose:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/KM-Kinter/automatic-ripping-machine.git
+   git clone https://github.com/automatic-ripping-machine/automatic-ripping-machine.git
    cd automatic-ripping-machine
    ```
 
@@ -93,16 +93,16 @@ ARM can be started directly using Docker Compose:
 
 5. Access the web interface at `http://<HOST_IP>:8080` (Default credentials: `admin` / `password`).
 
-For advanced configuration, multi-drive setups, and troubleshooting, refer to the [Docker Wiki Guide](https://github.com/KM-Kinter/automatic-ripping-machine/wiki/docker).
+For advanced configuration, multi-drive setups, and troubleshooting, refer to the [Docker Wiki Guide](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/docker).
 
 ## Troubleshooting
- [Please see the wiki for troubleshooting](https://github.com/KM-Kinter/automatic-ripping-machine/wiki/).
+ [Please see the wiki for troubleshooting](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/).
 
 ## Contributing
 
-Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/KM-Kinter/automatic-ripping-machine/wiki/Contributing-Guide)
+Pull requests are welcome.  Please see the [Contributing Guide](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki/Contributing-Guide)
 
-If you set ARM up in a different environment (hardware/OS/virtual/etc.), please consider [submitting a howto to the wiki](https://github.com/KM-Kinter/automatic-ripping-machine/wiki).
+If you set ARM up in a different environment (hardware/OS/virtual/etc.), please consider [submitting a howto to the wiki](https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki).
 
 ## License
 
