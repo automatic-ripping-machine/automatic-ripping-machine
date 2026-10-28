@@ -47,15 +47,15 @@ RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 # Install Whipper and its dependencies (and remove legacy abcde)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        whipper \
-        flac \
-        sox \
         cdrdao \
-        libcdio-paranoia-dev \
+        flac \
         libcdio-cdda-dev \
+        libcdio-paranoia-dev \
         libiso9660-dev \
+        libsndfile1-dev \
         pkg-config \
-        libsndfile1-dev && \
+        sox \
+        whipper && \
     ln -sf "$(command -v whipper || which whipper || echo /usr/bin/whipper)" /usr/local/bin/whipper && \
     which whipper && \
     apt-get remove -y abcde || true && \
@@ -85,14 +85,9 @@ FROM base AS automatic-ripping-machine
 # Copy over source code
 COPY . /opt/arm/
 
-# Install python dependencies from requirements.txt
-RUN pip install --no-cache-dir -r /opt/arm/requirements.txt
-
-# Our docker udev rule
-RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/
-
-# Allow git to be managed from the /opt/arm folders
-RUN git config --global --add safe.directory /opt/arm
+# Our docker udev rule and safe git directory
+RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/ && \
+    git config --global --add safe.directory /opt/arm
 
 CMD ["/sbin/my_init"]
 WORKDIR /home/arm

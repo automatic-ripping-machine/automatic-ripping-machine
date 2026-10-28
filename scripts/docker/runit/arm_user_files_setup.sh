@@ -132,11 +132,9 @@ if [[ -h /etc/arm/config/abcde.conf ]]; then
   unlink /etc/arm/config/abcde.conf
 fi
 # check if abcde is in config main location - only copy if it doesn't exist and setup template exists
-if [[ ! -f /etc/arm/config/abcde.conf ]]; then
-  if [[ -f /opt/arm/setup/.abcde.conf ]]; then
-    echo "abcde.conf doesnt exist, copying from setup"
-    cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
-  fi
+if [[ ! -f /etc/arm/config/abcde.conf && -f /opt/arm/setup/.abcde.conf ]]; then
+  echo "abcde.conf doesnt exist, copying from setup"
+  cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
 fi
 # The system link to the fake default file - only link if config exists
 if [[ ! -h /etc/abcde.conf && -f /etc/arm/config/abcde.conf ]]; then
