@@ -47,9 +47,9 @@ def test_logreader_serves_increments_and_the_page_appends(monkeypatch):
     armcat = client.get("/logreader?logfile=increment-test.log&mode=armcat")
     assert armcat.data == b"ARM: second\n"
     page = client.get("/logs?logfile=increment-test.log&mode=tail").data.decode()
-    assert "appendChild" in page
+    assert "js/logReader.js" in page
     assert "setInterval" not in page
-    assert "X-Log-Offset" in page
+    assert "startLogReader" in page
     log.unlink()
 
 
@@ -127,16 +127,16 @@ def test_logreader_rotation_headers_reset_even_when_new_file_is_larger(monkeypat
         log.unlink()
 
 
-def test_log_page_runs_its_real_polling_script(tmp_path, monkeypatch):
+def test_log_page_configures_and_runs_the_polling_module(monkeypatch):
     from arm.ui import app
     import arm.ui.routes  # noqa: F401
     node = shutil.which("node")
     if node is None:
-        pytest.skip("Node is required to execute the rendered log page's JavaScript")
+        pytest.skip("Node is required to execute the log page polling module")
     monkeypatch.setitem(app.config, "LOGIN_DISABLED", True)
     page = app.test_client().get("/logs?logfile=page-test.log&mode=armcat")
     assert page.status_code == 200
-    rendered = tmp_path / "log.html"
-    rendered.write_bytes(page.data)
-    subprocess.run([node, str(Path(__file__).with_name("check_log_page.js")), str(rendered)],
+    assert b"js/logReader.js" in page.data
+    assert b'mode: "armcat"' in page.data
+    subprocess.run([node, "--test", str(Path(__file__).with_name("test_log_reader.js"))],
                    check=True, capture_output=True, timeout=15)

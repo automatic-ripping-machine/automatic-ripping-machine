@@ -1,14 +1,9 @@
-// Executed by test_log_page_runs_its_real_polling_script with Flask-rendered HTML.
+// Exercise the same polling module that the Flask-rendered log page loads.
+const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
-const createLogBuffer = require('../../arm/ui/static/js/logBuffer.js');
+const startLogReader = require('../../arm/ui/static/js/logReader.js');
 
-async function main() {
-    const html = fs.readFileSync(process.argv[2], 'utf8');
-    const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)]
-        .map(match => match[1]).find(value => value.includes('createLogBuffer'));
-    assert.ok(script, 'the rendered page contains the polling script');
+test('polling preserves partial lines and resets display on rotation', async () => {
     const encoder = new TextEncoder();
     const firstLine = encoder.encode('ARM: café\n');
     const parts = [firstLine.slice(0, 2), firstLine.slice(2, 9), firstLine.slice(9)];
@@ -25,8 +20,10 @@ async function main() {
         textContent: '',
         appendChild: function (node) { this.textContent += node.textContent; }
     };
-    vm.runInNewContext(script, {
-        createLogBuffer, encodeURIComponent, parseInt,
+    startLogReader({
+        mode: 'armcat',
+        url: '/logreader?logfile=page-test.log&mode=full',
+        output,
         document: {getElementById: () => output, createTextNode: text => ({textContent: text})},
         setTimeout: (callback, delay) => timers.push({callback, delay}),
         fetch: async url => {
@@ -57,6 +54,4 @@ async function main() {
     assert.equal(requests.length, 4);
     assert.ok(requests.every(url => url.includes('mode=full')));
     assert.ok(requests[1].includes('offset=2&file_id=first'));
-}
-
-main().catch(error => { console.error(error); process.exitCode = 1; });
+});
