@@ -1,6 +1,8 @@
 """Log viewer reads: bounded, closed, incremental (#1561, #1631)."""
 
 from pathlib import Path
+import shutil
+import subprocess
 
 import pytest
 
@@ -65,3 +67,76 @@ def test_logreader_refuses_a_log_that_resolves_outside_the_log_folder(monkeypatc
         assert b"not a log" not in response.data
     finally:
         link.unlink()
+
+
+def test_raw_reads_advance_through_long_lines(tmp_path):
+    from arm.ui import utils as ui_utils
+    original = b"ARM: " + b"x" * 100 + b"\n"
+    path = write_log(tmp_path / "long.log", original)
+    chunks, offset, file_id = [], 0, None
+    while offset < len(original):
+        data, start, next_offset, file_id = ui_utils.read_log_data(path, offset, limit=16, file_id=file_id)
+        assert start == offset
+        assert 0 < next_offset - offset <= 16
+        chunks.append(data)
+        offset = next_offset
+    assert b"".join(chunks) == original
+    assert "".join(ui_utils.generate_arm_cat(path)) == original.decode()
+
+
+def test_armcat_snapshot_keeps_a_marker_and_unicode_split_across_reads(tmp_path, monkeypatch):
+    from arm.ui import utils as ui_utils
+    monkeypatch.setattr(ui_utils, "LOG_CHUNK_BYTES", 3)
+    original = "noise\nARM: café\nplain\nARM: last"
+    path = write_log(tmp_path / "split.log", original.encode())
+    assert "".join(ui_utils.generate_arm_cat(path)) == "ARM: café\nARM: last"
+
+
+@pytest.mark.parametrize("rotation", ["truncate", "replace", "copytruncate"])
+def test_raw_cursor_resets_when_the_log_rotates(tmp_path, rotation):
+    from arm.ui import utils as ui_utils
+    path = write_log(tmp_path / "rotate.log", b"old log\n" * 20)
+    _, _, offset, file_id = ui_utils.read_log_data(path)
+    replacement = b"new log\n" * (30 if rotation != "truncate" else 1)
+    if rotation == "replace":
+        write_log(tmp_path / "new.log", replacement).replace(path)
+    else:
+        path.write_bytes(replacement)
+    data, start, next_offset, new_id = ui_utils.read_log_data(path, offset, file_id=file_id)
+    assert start == 0
+    assert data == replacement
+    assert next_offset == len(replacement)
+    assert new_id != file_id
+
+
+def test_logreader_rotation_headers_reset_even_when_new_file_is_larger(monkeypatch):
+    from arm.ui import app
+    import arm.ui.routes  # noqa: F401
+    monkeypatch.setitem(app.config, "LOGIN_DISABLED", True)
+    log = Path(cfg.arm_config["LOGPATH"]) / "rotate-http.log"
+    write_log(log, b"ARM: old\n")
+    try:
+        client = app.test_client()
+        response = client.get("/logreader?logfile=rotate-http.log&mode=full")
+        cursor = {"offset": response.headers["X-Log-Offset"], "file_id": response.headers["X-Log-Id"]}
+        log.write_bytes(b"ARM: replacement\n" * 20)
+        response = client.get("/logreader", query_string={"logfile": log.name, "mode": "full", **cursor})
+        assert response.headers["X-Log-Start"] == "0"
+        assert response.data == log.read_bytes()
+    finally:
+        log.unlink()
+
+
+def test_log_page_runs_its_real_polling_script(tmp_path, monkeypatch):
+    from arm.ui import app
+    import arm.ui.routes  # noqa: F401
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node is required to execute the rendered log page's JavaScript")
+    monkeypatch.setitem(app.config, "LOGIN_DISABLED", True)
+    page = app.test_client().get("/logs?logfile=page-test.log&mode=armcat")
+    assert page.status_code == 200
+    rendered = tmp_path / "log.html"
+    rendered.write_bytes(page.data)
+    subprocess.run([node, str(Path(__file__).with_name("check_log_page.js")), str(rendered)],
+                   check=True, capture_output=True, timeout=15)

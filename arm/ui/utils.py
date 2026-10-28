@@ -2,6 +2,7 @@
 Main catch all page for functions for the A.R.M ui
 """
 import hashlib
+import codecs
 import os
 import shutil
 import json
@@ -365,22 +366,26 @@ def generate_comments():
 LOG_CHUNK_BYTES = 1024 * 1024
 
 
-def read_log_chunk(full_path, offset=0, limit=LOG_CHUNK_BYTES):
-    """
-    Read new log text from a byte offset (#1561, #1631).\n
-    The file is opened once, read without sleeping and closed. Bytes are decoded tolerantly; when the
-    chunk limit stops short of the end, the read ends on a line boundary.
-    A file that shrank (rotated) is read again from the start.
-    :return: (text, next_offset)
-    """
+def read_log_data(full_path, offset=0, limit=LOG_CHUNK_BYTES, file_id=None):
+    """Read bounded raw bytes and return enough cursor information to detect rotation."""
     with open(full_path, "rb") as log_file:
-        size = os.fstat(log_file.fileno()).st_size
-        offset = offset if 0 <= offset <= size else 0
-        log_file.seek(offset)
+        stat = os.fstat(log_file.fileno())
+        # The prefix also detects common copy/truncate rotations that retain the inode.
+        prefix = log_file.read(64)
+        current_id = f"{stat.st_dev}:{stat.st_ino}:{hashlib.sha256(prefix).hexdigest()}"
+        start = offset if 0 <= offset <= stat.st_size and file_id in (None, current_id) else 0
+        log_file.seek(start)
         data = log_file.read(limit)
-    if offset + len(data) < size and b"\n" in data:
-        data = data[:data.rindex(b"\n") + 1]  # never split a line (or a UTF-8 sequence) at the chunk limit
-    return data.decode("utf-8", errors="replace"), offset + len(data)
+    return data, start, start + len(data), current_id
+
+
+def read_log_chunk(full_path, offset=0, limit=LOG_CHUNK_BYTES):
+    """Read tolerant text, ending on a line boundary where possible, without waiting."""
+    data, start, next_offset, _file_id = read_log_data(full_path, offset, limit)
+    if len(data) == limit and b"\n" in data:
+        data = data[:data.rindex(b"\n") + 1]
+        next_offset = start + len(data)
+    return data.decode("utf-8", errors="replace"), next_offset
 
 
 def generate_full_log(full_path, offset=0):
@@ -396,15 +401,28 @@ def generate_full_log(full_path, offset=0):
         offset = next_offset
 
 
-def generate_arm_cat(full_path, offset=0):
-    """
-    Yield only ARM: lines from ``offset`` to the current end; the file is closed afterwards.
-    :param full_path: full path to job logfile
-    """
-    for chunk in generate_full_log(full_path, offset):
-        for line in chunk.splitlines(keepends=True):
-            if "ARM:" in line:
-                yield line
+def generate_arm_cat(full_path, offset=0, end=None):
+    """Stream a finite ARM-only snapshot, preserving lines across bounded reads."""
+    decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+    pending = ""
+    with open(full_path, "rb") as log_file:
+        size = os.fstat(log_file.fileno()).st_size
+        end = size if end is None else min(end, size)
+        offset = offset if 0 <= offset <= end else 0
+        log_file.seek(offset)
+        while offset < end:
+            data = log_file.read(min(LOG_CHUNK_BYTES, end - offset))
+            if not data:
+                break
+            offset += len(data)
+            lines = (pending + decoder.decode(data)).split("\n")
+            pending = lines.pop()
+            for line in lines:
+                if "ARM:" in line:
+                    yield line + "\n"
+        pending += decoder.decode(b"", final=True)
+        if "ARM:" in pending:
+            yield pending
 
 
 def setup_database():

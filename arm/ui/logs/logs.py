@@ -89,10 +89,18 @@ def logreader():
     real_path = os.path.realpath(full_path)
     if not real_path.startswith(log_root + os.sep):
         raise ValidationError("logfile is outside the log folder")
-    text, next_offset = ui_utils.read_log_chunk(real_path, offset)
     if mode == "armcat":
-        text = "".join(line for line in text.splitlines(keepends=True) if "ARM:" in line)
-    response = app.response_class(text, mimetype='text/plain')
-    response.headers["X-Log-Offset"] = str(next_offset)
+        # Compatibility snapshot for direct callers. The page polls raw bytes and
+        # buffers lines in the browser, so partial and oversized lines cannot stall it.
+        end = os.path.getsize(real_path)
+        response = app.response_class(ui_utils.generate_arm_cat(real_path, offset, end), mimetype='text/plain')
+        response.headers["X-Log-Offset"] = str(end)
+    else:
+        data, start, next_offset, file_id = ui_utils.read_log_data(
+            real_path, offset, file_id=request.args.get("file_id"))
+        response = app.response_class(data, mimetype='text/plain')
+        response.headers["X-Log-Start"] = str(start)
+        response.headers["X-Log-Offset"] = str(next_offset)
+        response.headers["X-Log-Id"] = file_id
     response.headers["Cache-Control"] = "no-store"
     return response

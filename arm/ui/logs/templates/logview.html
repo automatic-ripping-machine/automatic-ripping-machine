@@ -12,28 +12,39 @@
 {% block footer %}{{ super() }}{% endblock %}
 {% block js %}
 {{ super() }}
+<script src="{{ url_for('static', filename='js/logBuffer.js') }}"></script>
 <script>
     (function () {
         // Fetch only new log bytes and append them; never rewrite the whole page (#1561, #1631).
         const output = document.getElementById({{ file|tojson }});
-        const mode = {{ ('full' if mode in ['tail', 'full'] else mode)|tojson }};
+        const mode = {{ mode|tojson }};
         const tail = {{ (mode == 'tail')|tojson }};
-        const base = '/logreader?logfile=' + encodeURIComponent({{ file|tojson }}) + '&mode=' + encodeURIComponent(mode);
+        const base = '/logreader?logfile=' + encodeURIComponent({{ file|tojson }}) + '&mode=full';
+        const buffer = createLogBuffer(mode === 'armcat');
         let offset = 0;
+        let fileId = '';
 
         function poll() {
-            fetch(base + '&offset=' + offset, {cache: 'no-store', credentials: 'same-origin'})
+            fetch(base + '&offset=' + offset + '&file_id=' + encodeURIComponent(fileId),
+                {cache: 'no-store', credentials: 'same-origin'})
                 .then(function (response) {
                     if (!response.ok) { throw new Error(response.status); }
                     const next = parseInt(response.headers.get('X-Log-Offset') || offset, 10);
-                    return response.text().then(function (text) {
-                        if (next < offset) { output.textContent = ''; }
+                    const start = parseInt(response.headers.get('X-Log-Start') || '0', 10);
+                    const nextId = response.headers.get('X-Log-Id') || '';
+                    return response.arrayBuffer().then(function (bytes) {
+                        if (start !== offset || (fileId && fileId !== nextId)) {
+                            output.textContent = '';
+                            buffer.reset();
+                        }
+                        const text = buffer.append(bytes);
                         offset = next;
+                        fileId = nextId;
                         if (text) {
                             output.appendChild(document.createTextNode(text));
                             if (tail) { window.scrollTo(0, document.body.scrollHeight); }
                         }
-                        setTimeout(poll, text.length >= 1048000 ? 50 : 2000);
+                        setTimeout(poll, bytes.byteLength >= 1048576 ? 50 : 2000);
                     });
                 })
                 .catch(function () { setTimeout(poll, 5000); });
