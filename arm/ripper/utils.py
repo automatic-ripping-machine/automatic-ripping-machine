@@ -27,7 +27,7 @@ from arm.models.notifications import Notifications
 from arm.models.track import Track
 from arm.models.user import User
 from arm.models.system_drives import SystemDrives
-from arm.ripper import apprise_bulk
+from arm.ripper import apprise_bulk, abcde
 
 NOTIFY_TITLE = "ARM notification"
 
@@ -444,37 +444,50 @@ def find_largest_file(files, mkv_out_path):
 def rip_music(job, logfile):
     """
     Rip music CD using abcde config\n
+    abcde can exit 0 after an incomplete rip (#1526), so success also requires its "Finished." line
+    and one non-empty output file per audio track, recorded by this invocation.\n
     :param job: job object
     :param logfile: location of logfile\n
     :return: Bool on success or fail
     """
+    if job.disctype != "music":
+        return False
 
+    def fail(err):
+        database_updater({"status": JobState.FAILURE.value, "errors": err}, job)
+        logging.error(err)
+        return False
+
+    logging.info("Disc identified as music")
     abcfile = cfg.arm_config["ABCDE_CONFIG_FILE"]
-    if job.disctype == "music":
-        logging.info("Disc identified as music")
-        # If user has set a cfg.arm_config file with ARM use it
-        if os.path.isfile(abcfile):
-            cmd = f'abcde -d "{job.devpath}" -c {abcfile} >> "{os.path.join(job.config.LOGPATH, logfile)}" 2>&1'
-        else:
-            cmd = f'abcde -d "{job.devpath}" >> "{os.path.join(job.config.LOGPATH, logfile)}" 2>&1'
-
-        logging.debug(f"Sending command: {cmd}")
-        args = {"status": JobState.AUDIO_RIPPING.value}
-        database_updater(args, job)
-
-        try:
-            # TODO check output and confirm all tracks ripped; find "Finished\.$"
-            subprocess.check_output(cmd, shell=True).decode("utf-8")
-            logging.info("abcde call successful")
-            args = {"status": JobState.IDLE.value}
-            database_updater(args, job)
-            return True
-        except subprocess.CalledProcessError as ab_error:
-            err = f"Call to abcde failed with code: {ab_error.returncode} ({ab_error.output})"
-            args = {"status": JobState.FAILURE.value, "errors": err}
-            database_updater(args, job)
-            logging.error(err)
-    return False
+    try:
+        from arm.ripper import music_brainz
+        expected = len(music_brainz.get_disc_id(job).tracks)
+    except Exception as error:  # the track count only strengthens the check
+        logging.warning(f"Could not read the disc's track count, output files will not be counted: {error}")
+        expected = None
+    log_path = os.path.join(job.config.LOGPATH, logfile)
+    database_updater({"status": JobState.AUDIO_RIPPING.value}, job)
+    offset = os.path.getsize(log_path) if os.path.exists(log_path) else 0
+    try:
+        with abcde.output_manifest(abcfile) as (config, manifest, types):
+            command = ["abcde", "-d", job.devpath, "-c", str(config)]
+            logging.debug(f"Sending command: {command}")
+            with open(log_path, "ab") as log:
+                subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True)
+            with open(log_path, "rb") as log:
+                log.seek(offset)
+                output = log.read().decode("utf-8", errors="replace")
+            if not re.search(r"^Finished\.(?: Not cleaning .+)?\s*$", output, re.MULTILINE):
+                return fail("abcde did not report 'Finished.'; the rip is incomplete")
+            error = abcde.output_error(manifest, types, expected)
+            if error:
+                return fail(error)
+    except (OSError, subprocess.CalledProcessError) as ab_error:
+        return fail(f"Call to abcde failed: {ab_error}")
+    database_updater({"status": JobState.IDLE.value}, job)
+    logging.info("abcde call successful")
+    return True
 
 
 def rip_data(job):
