@@ -18,7 +18,7 @@ DEFAULT_GID=1000
 check_folder_ownership() {
     local check_dir="$1"  # Get the folder path from the first argument
 
-    if [ ! -d "$check_dir" ]; then
+    if [[ ! -d "$check_dir" ]]; then
         mkdir -p "$check_dir"
     fi
 
@@ -27,7 +27,7 @@ check_folder_ownership() {
 
     echo "Checking ownership of $check_dir"
 
-    if [ "$folder_uid" != "$ARM_UID" ] || [ "$folder_gid" != "$ARM_GID" ]; then
+    if [[ "$folder_uid" != "$ARM_UID" || "$folder_gid" != "$ARM_GID" ]]; then
         echo "Adjusting ownership of $check_dir to $ARM_UID:$ARM_GID..."
         chown -R "$ARM_UID:$ARM_GID" "$check_dir" 2>/dev/null || chown "$ARM_UID:$ARM_GID" "$check_dir" 2>/dev/null || true
         chmod -R u+rwX "$check_dir" 2>/dev/null || true
@@ -35,7 +35,7 @@ check_folder_ownership() {
         folder_gid=$(stat -c "%g" "$check_dir" 2>/dev/null || echo "")
     fi
 
-    if [ "$folder_uid" != "$ARM_UID" ] || [ "$folder_gid" != "$ARM_GID" ]; then
+    if [[ "$folder_uid" != "$ARM_UID" || "$folder_gid" != "$ARM_GID" ]]; then
         echo "---------------------------------------------"
         echo "[WARNING]: ARM could not set permissions to $check_dir using $ARM_UID:$ARM_GID"
         echo "Current folder permissions--> $folder_uid:$folder_gid"
@@ -112,13 +112,13 @@ done
 ##### whipper config setup
 echo "Checking location of whipper configuration files"
 mkdir -p /home/arm/.config/whipper
-if ! [ -f /etc/arm/config/whipper.conf ]; then
+if [[ ! -f /etc/arm/config/whipper.conf ]]; then
   echo "whipper.conf doesn't exist"
-  if [ -f /opt/arm/setup/whipper.conf ]; then
+  if [[ -f /opt/arm/setup/whipper.conf ]]; then
     cp /opt/arm/setup/whipper.conf /etc/arm/config/whipper.conf
   fi
 fi
-if [ -f /etc/arm/config/whipper.conf ]; then
+if [[ -f /etc/arm/config/whipper.conf ]]; then
   ln -sf /etc/arm/config/whipper.conf /home/arm/.config/whipper/whipper.conf
 fi
 chown -R arm:arm /home/arm/.config 2>/dev/null || true
@@ -127,19 +127,19 @@ chown -R arm:arm /home/arm/.config 2>/dev/null || true
 # abcde.conf is kept only for backward compatibility if present in setup
 echo "Checking location of legacy abcde configuration files"
 # Test if abcde.conf is a hyperlink, if so remove it
-if [ -h /etc/arm/config/abcde.conf ]; then
+if [[ -h /etc/arm/config/abcde.conf ]]; then
   echo "Old hyper link exists removing!"
   unlink /etc/arm/config/abcde.conf
 fi
 # check if abcde is in config main location - only copy if it doesn't exist and setup template exists
-if ! [ -f /etc/arm/config/abcde.conf ]; then
-  if [ -f /opt/arm/setup/.abcde.conf ]; then
+if [[ ! -f /etc/arm/config/abcde.conf ]]; then
+  if [[ -f /opt/arm/setup/.abcde.conf ]]; then
     echo "abcde.conf doesnt exist, copying from setup"
     cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
   fi
 fi
 # The system link to the fake default file - only link if config exists
-if ! [ -h /etc/abcde.conf ] && [ -f /etc/arm/config/abcde.conf ]; then
+if [[ ! -h /etc/abcde.conf && -f /etc/arm/config/abcde.conf ]]; then
   echo "/etc/abcde.conf link doesnt exist"
   ln -sf /etc/arm/config/abcde.conf /etc/abcde.conf
 fi

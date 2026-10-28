@@ -303,8 +303,8 @@ class Job(db.Model):
                 try:
                     subprocess.run(["eject", str(self.devpath)], check=False)
                     self.ejected = True
-                except Exception as ex:
-                    logging.error(f"Fallback eject failed for {self.devpath}: {ex}")
+                except Exception:
+                    logging.exception(f"Fallback eject failed for {self.devpath}")
             return
         if not cfg.arm_config['AUTO_EJECT']:
             logging.info("Skipping auto eject")

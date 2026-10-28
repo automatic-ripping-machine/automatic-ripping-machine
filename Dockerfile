@@ -56,10 +56,8 @@ RUN apt-get update && \
         libiso9660-dev \
         pkg-config \
         libsndfile1-dev && \
-    pip3 install --no-cache-dir pycdio==2.1.1 whipper==0.10.0 && \
     ln -sf "$(command -v whipper || which whipper || echo /usr/bin/whipper)" /usr/local/bin/whipper && \
     which whipper && \
-    python3 -c "import whipper; print('Whipper loaded successfully')" && \
     apt-get remove -y abcde || true && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -86,6 +84,9 @@ FROM base AS automatic-ripping-machine
 
 # Copy over source code
 COPY . /opt/arm/
+
+# Install python dependencies from requirements.txt
+RUN pip install --no-cache-dir -r /opt/arm/requirements.txt
 
 # Our docker udev rule
 RUN ln -sv /opt/arm/setup/51-docker-arm.rules /lib/udev/rules.d/

@@ -441,15 +441,12 @@ def find_largest_file(files, mkv_out_path):
     return largest_file_name
 
 
-def check_cd_present(job) -> tuple[bool, str]:
-    """
-    Validate that an Audio CD is present in the drive and that TOC is readable.
-    Checks hardware tray status, discid, or cd-info/setcd.
-    Returns (is_valid: bool, error_msg: str).
-    """
-    devpath = str(job.devpath)
+ERR_NO_DISC = "No disc present / Read error"
+ERR_DAMAGED_DISC = "Physical read error / damaged disc"
 
-    # 1. Check drive hardware tray status if available
+
+def _check_cd_drive_status(job) -> tuple[bool, str]:
+    """Check hardware tray status if available."""
     try:
         if hasattr(job, "drive") and job.drive:
             job.drive.tray_status()
@@ -457,20 +454,11 @@ def check_cd_present(job) -> tuple[bool, str]:
                 return False, f"Drive tray status indicates disc not ready (status: {job.drive.tray})"
     except Exception as drive_err:
         logging.debug(f"Could not check drive tray status via Job.drive: {drive_err}")
+    return True, ""
 
-    # 2. Check TOC via discid (native CD TOC reader)
-    try:
-        import discid
-        discid.read(devpath)
-        return True, ""
-    except Exception as discid_err:
-        err_str = str(discid_err).lower()
-        logging.warning(f"discid failed to read TOC on {devpath}: {discid_err}")
-        # DiscError indicates drive cannot read TOC or disc is not present
-        if any(w in err_str for w in ["toc", "no disc", "not ready", "cannot open", "drive"]):
-            return False, f"Cannot read CD TOC on {devpath}: {discid_err}"
 
-    # 3. Fallback check with cd-info if installed
+def _check_cd_cli_fallbacks(devpath: str) -> tuple[bool, str]:
+    """Fallback CLI checks using cd-info and setcd."""
     import shutil
     if shutil.which("cd-info"):
         try:
@@ -487,7 +475,6 @@ def check_cd_present(job) -> tuple[bool, str]:
         except Exception as cd_err:
             logging.debug(f"cd-info check error on {devpath}: {cd_err}")
 
-    # 4. Fallback check with setcd -i if installed
     if shutil.which("setcd"):
         try:
             res = subprocess.run(
@@ -506,6 +493,119 @@ def check_cd_present(job) -> tuple[bool, str]:
     return True, ""
 
 
+def check_cd_present(job) -> tuple[bool, str]:
+    """
+    Validate that an Audio CD is present in the drive and that TOC is readable.
+    Checks hardware tray status, discid, or cd-info/setcd.
+    Returns (is_valid: bool, error_msg: str).
+    """
+    devpath = str(job.devpath)
+    valid, msg = _check_cd_drive_status(job)
+    if not valid:
+        return False, msg
+
+    try:
+        import discid
+        discid.read(devpath)
+        return True, ""
+    except Exception as discid_err:
+        err_str = str(discid_err).lower()
+        logging.warning(f"discid failed to read TOC on {devpath}: {discid_err}")
+        if any(w in err_str for w in ["toc", "no disc", "not ready", "cannot open", "drive"]):
+            return False, f"Cannot read CD TOC on {devpath}: {discid_err}"
+
+    return _check_cd_cli_fallbacks(devpath)
+
+
+def _has_ripped_audio_files(music_completed_dir: str) -> bool:
+    """Check if any audio tracks (.flac) were actually produced."""
+    if not music_completed_dir or not os.path.isdir(music_completed_dir):
+        return False
+    for _, _, files in os.walk(music_completed_dir):
+        if any(f.lower().endswith(".flac") for f in files):
+            return True
+    return False
+
+
+def _check_whipper_mixed_cd(logfile_content: str, returncode: int,
+                            music_completed_dir: str = None) -> tuple[bool, str]:
+    """Check for mixed-mode CD / Enhanced CD / CD-Extra with data tracks."""
+    data_track_patterns = [
+        r"data track",
+        r"enhanced cd",
+        r"cd-extra",
+        r"cannot rip data track",
+        r"skipping data track",
+        r"error reading data track"
+    ]
+    has_data_track_notice = any(re.search(pat, logfile_content, re.IGNORECASE) for pat in data_track_patterns)
+    has_ripped_audio = bool(
+        re.search(r"Rip quality|Accurately ripped|Track \d+[^,\n]{0,40}ripped", logfile_content, re.IGNORECASE)
+    )
+    if not has_ripped_audio:
+        has_ripped_audio = _has_ripped_audio_files(music_completed_dir)
+
+    if has_data_track_notice and has_ripped_audio:
+        msg = f"Whipper completed with warning: data track skipped or unreadable on mixed-mode CD (code {returncode})"
+        return True, msg
+    return False, ""
+
+
+def _check_whipper_disc_errors(logfile_content: str, returncode: int) -> tuple[bool, str]:
+    """Check for physical read errors or damaged disc."""
+    damaged_disc_patterns = [
+        r"giving up on track.*MAX_TRIES",
+        r"Rip attempts number is equal to .*MAX_TRIES",
+        r"giving up on track",
+        r"MAX_TRIES"
+    ]
+    for pattern in damaged_disc_patterns:
+        if re.search(pattern, logfile_content, re.IGNORECASE):
+            return False, f"{ERR_DAMAGED_DISC}: matching '{pattern}' (code {returncode})"
+
+    read_error_patterns = [
+        r"read error",
+        r"rip error",
+        r"scratch detected",
+        r"unrecoverable error",
+        r"could not rip track",
+        r"failed to rip",
+        r"drive error",
+        r"paranoia error"
+    ]
+    for pattern in read_error_patterns:
+        if re.search(pattern, logfile_content, re.IGNORECASE):
+            return False, f"Whipper failed with read/disc error matching '{pattern}' (code {returncode})"
+    return True, ""
+
+
+def _check_whipper_accuraterip(logfile_content: str, returncode: int,
+                               accuraterip_strict: bool) -> tuple[bool, str]:
+    """Check for AccurateRip mismatch or missing entry."""
+    accuraterip_patterns = [
+        r"accuraterip verification failed",
+        r"accuraterip.*not accurate",
+        r"accuraterip.*mismatch",
+        r"accuraterip.*no matches found",
+        r"confidence mismatch",
+        r"rip was not accurate",
+        r"track.*is not accurate",
+        r"cannot be verified.*accuraterip",
+        r"not present in accuraterip",
+        r"accuraterip.*differ"
+    ]
+    has_ar_mismatch = any(re.search(pat, logfile_content, re.IGNORECASE) for pat in accuraterip_patterns)
+    if has_ar_mismatch:
+        if not accuraterip_strict:
+            msg = (
+                f"Whipper finished with AccurateRip notice "
+                f"(tolerated per WHIPPER_ACCURATERIP=False, code {returncode})"
+            )
+            return True, msg
+        return False, f"Whipper failed AccurateRip verification (strict mode enabled, code {returncode})"
+    return False, ""
+
+
 def check_whipper_errors(logfile_content: str, returncode: int, accuraterip_strict: bool,
                          music_completed_dir: str = None) -> tuple[bool, str]:
     """
@@ -515,7 +615,6 @@ def check_whipper_errors(logfile_content: str, returncode: int, accuraterip_stri
     if returncode == 0:
         return True, ""
 
-    # Check for missing disc or unreadable TOC errors (cdrdao / whipper failure indicators)
     toc_error_patterns = [
         r"FileNotFoundError.*cdrdao\.read-toc",
         r"cdrdao\.read-toc.*No such file or directory",
@@ -536,78 +635,19 @@ def check_whipper_errors(logfile_content: str, returncode: int, accuraterip_stri
     ]
     for pattern in toc_error_patterns:
         if re.search(pattern, logfile_content, re.IGNORECASE):
-            return False, f"No disc present / Read error: matching '{pattern}' (code {returncode})"
+            return False, f"{ERR_NO_DISC}: matching '{pattern}' (code {returncode})"
 
-    # Check for mixed-mode CD / Enhanced CD / CD-Extra with data tracks.
-    # On mixed CDs, the data track in the second session cannot be ripped as audio,
-    # causing cdparanoia/whipper to report errors or non-zero exit code on the data track
-    # even when all audio tracks ripped successfully.
-    data_track_patterns = [
-        r"data track",
-        r"enhanced cd",
-        r"cd-extra",
-        r"cannot rip data track",
-        r"skipping data track",
-        r"error reading data track"
-    ]
-    has_data_track_notice = any(re.search(pat, logfile_content, re.IGNORECASE) for pat in data_track_patterns)
-    has_ripped_audio = bool(re.search(r"Rip quality|Accurately ripped|Track \d+.*ripped", logfile_content, re.IGNORECASE))
-    if not has_ripped_audio and music_completed_dir and os.path.isdir(music_completed_dir):
-        # Check if any audio tracks (.flac) were actually produced
-        for root, _, files in os.walk(music_completed_dir):
-            if any(f.lower().endswith(".flac") for f in files):
-                has_ripped_audio = True
-                break
+    is_mixed, mixed_msg = _check_whipper_mixed_cd(logfile_content, returncode, music_completed_dir)
+    if is_mixed:
+        return True, mixed_msg
 
-    if has_data_track_notice and has_ripped_audio:
-        return True, f"Whipper completed with warning: data track skipped or unreadable on mixed-mode CD (code {returncode})"
+    ok_disc, disc_msg = _check_whipper_disc_errors(logfile_content, returncode)
+    if not ok_disc:
+        return False, disc_msg
 
-    # Check for physical read errors / damaged disc (e.g. cdparanoia/whipper giving up after MAX_TRIES)
-    damaged_disc_patterns = [
-        r"giving up on track.*MAX_TRIES",
-        r"Rip attempts number is equal to .*MAX_TRIES",
-        r"giving up on track",
-        r"MAX_TRIES"
-    ]
-    for pattern in damaged_disc_patterns:
-        if re.search(pattern, logfile_content, re.IGNORECASE):
-            return False, f"Physical read error / damaged disc: matching '{pattern}' (code {returncode})"
-
-    # Check for unrecoverable read / disc errors (cdparanoia / whipper failure indicators)
-    read_error_patterns = [
-        r"read error",
-        r"rip error",
-        r"scratch detected",
-        r"unrecoverable error",
-        r"could not rip track",
-        r"failed to rip",
-        r"drive error",
-        r"paranoia error"
-    ]
-    for pattern in read_error_patterns:
-        if re.search(pattern, logfile_content, re.IGNORECASE):
-            return False, f"Whipper failed with read/disc error matching '{pattern}' (code {returncode})"
-
-    # Check for AccurateRip mismatch or missing entry
-    # Note: Do not match plain 'accuraterip' as Whipper always outputs info messages mentioning AccurateRip
-    accuraterip_patterns = [
-        r"accuraterip verification failed",
-        r"accuraterip.*not accurate",
-        r"accuraterip.*mismatch",
-        r"accuraterip.*no matches found",
-        r"confidence mismatch",
-        r"rip was not accurate",
-        r"track.*is not accurate",
-        r"cannot be verified.*accuraterip",
-        r"not present in accuraterip",
-        r"accuraterip.*differ"
-    ]
-    has_ar_mismatch = any(re.search(pat, logfile_content, re.IGNORECASE) for pat in accuraterip_patterns)
-
-    if has_ar_mismatch:
-        if not accuraterip_strict:
-            return True, f"Whipper finished with AccurateRip notice (tolerated per WHIPPER_ACCURATERIP=False, code {returncode})"
-        return False, f"Whipper failed AccurateRip verification (strict mode enabled, code {returncode})"
+    has_ar, ar_msg = _check_whipper_accuraterip(logfile_content, returncode, accuraterip_strict)
+    if has_ar or ar_msg:
+        return (not accuraterip_strict), ar_msg
 
     return False, f"Call to whipper failed with code: {returncode}"
 
@@ -629,6 +669,82 @@ def fail_job_and_eject(job, error_message: str) -> bool:
     return False
 
 
+def _build_whipper_cmd(job, music_completed_dir: str) -> list[str]:
+    """Construct Whipper CLI argument list from Job and configuration."""
+    offset = cfg.arm_config.get("WHIPPER_DRIVE_OFFSET", 0)
+    track_template = cfg.arm_config.get("WHIPPER_OUTPUT_FORMAT", "%A/%d/%t - %n")
+    disc_template = cfg.arm_config.get("WHIPPER_DISC_TEMPLATE", "%A/%d/%A - %d")
+
+    cmd = ["whipper", "cd", "-d", str(job.devpath), "rip"]
+    if offset is not None and str(offset).strip() != "":
+        cmd.extend(["--offset", str(offset).strip()])
+    cmd.append("--unknown")
+
+    uuid_regex = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    if job.crc_id and re.match(uuid_regex, str(job.crc_id), re.I):
+        logging.info(f"Passing MusicBrainz release ID to whipper: {job.crc_id}")
+        cmd.extend(["--release-id", str(job.crc_id)])
+
+    cmd.extend(["--output-directory", music_completed_dir])
+    cmd.extend(["--track-template", track_template])
+    cmd.extend(["--disc-template", disc_template])
+    return cmd
+
+
+def _handle_whipper_failure(job, message: str, log_content: str) -> bool:
+    """Classify and record Whipper failure, then eject disc."""
+    damaged_regex = (
+        r"giving up on track.*MAX_TRIES|Rip attempts number is equal to .*MAX_TRIES|"
+        r"giving up on track|MAX_TRIES"
+    )
+    is_damaged_disc = (
+        ERR_DAMAGED_DISC in message
+        or bool(re.search(damaged_regex, log_content, re.IGNORECASE))
+    )
+    is_toc_or_no_disc = (
+        "No disc present" in message
+        or "TOC" in message
+        or any(re.search(pat, log_content, re.IGNORECASE) for pat in [
+            r"FileNotFoundError.*cdrdao\.read-toc",
+            r"cdrdao\.read-toc",
+            r"cannot read cd-rom toc",
+            r"cannot read toc",
+            r"no disc",
+            r"drive not ready"
+        ])
+    )
+    if is_damaged_disc:
+        err_msg = (
+            f"[ERROR] Physical read error / damaged disc in drive {job.devpath} "
+            f"(giving up on track after MAX_TRIES)."
+        )
+        logging.error(err_msg)
+        return fail_job_and_eject(job, ERR_DAMAGED_DISC)
+    if is_toc_or_no_disc:
+        logging.error(f"[ERROR] No CD present in drive {job.devpath} or TOC unreadable.")
+        return fail_job_and_eject(job, ERR_NO_DISC)
+
+    logging.error(message)
+    return fail_job_and_eject(job, message)
+
+
+def _handle_whipper_exception(job, ex: Exception) -> bool:
+    """Handle unexpected exception during Whipper execution."""
+    ex_str = str(ex)
+    if "giving up on track" in ex_str or "MAX_TRIES" in ex_str:
+        err_msg = (
+            f"[ERROR] Physical read error / damaged disc in drive {job.devpath} "
+            f"(giving up on track after MAX_TRIES)."
+        )
+        logging.error(err_msg)
+        return fail_job_and_eject(job, ERR_DAMAGED_DISC)
+    if "cdrdao.read-toc" in ex_str or "No such file or directory" in ex_str or "TOC" in ex_str:
+        logging.error(f"[ERROR] No CD present in drive {job.devpath} or TOC unreadable.")
+        return fail_job_and_eject(job, ERR_NO_DISC)
+    logging.exception(f"Unexpected error during Whipper execution for {job.devpath}")
+    return fail_job_and_eject(job, f"Unexpected error during Whipper execution: {ex}")
+
+
 def rip_music(job, logfile):
     """
     Rip music CD using whipper cd rip
@@ -641,48 +757,21 @@ def rip_music(job, logfile):
         return False
 
     logging.info("Disc identified as music. Validating CD presence before Whipper rip.")
-
-    # Validate CD presence and TOC readability prior to launching Whipper
-    is_present, cd_err = check_cd_present(job)
+    is_present, _ = check_cd_present(job)
     if not is_present:
         logging.error(f"[ERROR] No CD present in drive {job.devpath} or TOC unreadable.")
-        return fail_job_and_eject(job, "No disc present / Read error")
+        return fail_job_and_eject(job, ERR_NO_DISC)
 
     logging.info("Starting Whipper rip.")
-
-    # Determine music completed destination
     music_completed_dir = os.path.join(job.config.COMPLETED_PATH, "music")
     os.makedirs(music_completed_dir, exist_ok=True)
-
-    # Whipper settings from config
-    offset = cfg.arm_config.get("WHIPPER_DRIVE_OFFSET", 0)
-    accuraterip_strict = str(cfg.arm_config.get("WHIPPER_ACCURATERIP", "true")).lower() == "true"
-    track_template = cfg.arm_config.get("WHIPPER_OUTPUT_FORMAT", "%A/%d/%t - %n")
-    disc_template = cfg.arm_config.get("WHIPPER_DISC_TEMPLATE", "%A/%d/%A - %d")
-
-    # Build whipper CLI command
-    cmd = ["whipper", "cd", "-d", str(job.devpath), "rip"]
-
-    if offset is not None and str(offset).strip() != "":
-        cmd.extend(["--offset", str(offset).strip()])
-
-    # --unknown allows ripping CDs not found in MusicBrainz without prompting
-    cmd.append("--unknown")
-
-    # If MusicBrainz release ID was determined, supply it directly
-    if job.crc_id and re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', str(job.crc_id), re.I):
-        logging.info(f"Passing MusicBrainz release ID to whipper: {job.crc_id}")
-        cmd.extend(["--release-id", str(job.crc_id)])
-
-    cmd.extend(["--output-directory", music_completed_dir])
-    cmd.extend(["--track-template", track_template])
-    cmd.extend(["--disc-template", disc_template])
+    cmd = _build_whipper_cmd(job, music_completed_dir)
 
     logging.debug(f"Sending command: {' '.join(cmd)}")
-    args = {"status": JobState.AUDIO_RIPPING.value}
-    database_updater(args, job)
+    database_updater({"status": JobState.AUDIO_RIPPING.value}, job)
 
     full_logfile = os.path.join(job.config.LOGPATH, logfile)
+    accuraterip_strict = str(cfg.arm_config.get("WHIPPER_ACCURATERIP", "true")).lower() == "true"
 
     try:
         with open(full_logfile, "ab") as log_out:
@@ -694,7 +783,6 @@ def rip_music(job, logfile):
                 check=False
             )
 
-        # Read last lines of log to inspect results
         log_content = ""
         if os.path.isfile(full_logfile):
             with open(full_logfile, "r", encoding="utf-8", errors="ignore") as log_in:
@@ -713,51 +801,17 @@ def rip_music(job, logfile):
                 logging.warning(message)
             logging.info("Whipper call completed successfully")
             set_permissions(music_completed_dir)
-            args = {"status": JobState.IDLE.value}
-            database_updater(args, job)
+            database_updater({"status": JobState.IDLE.value}, job)
             return True
-        else:
-            is_damaged_disc = (
-                "Physical read error / damaged disc" in message
-                or bool(re.search(r"giving up on track.*MAX_TRIES|Rip attempts number is equal to .*MAX_TRIES|giving up on track|MAX_TRIES", log_content, re.IGNORECASE))
-            )
-            is_toc_or_no_disc = (
-                "No disc present" in message
-                or "TOC" in message
-                or any(re.search(pat, log_content, re.IGNORECASE) for pat in [
-                    r"FileNotFoundError.*cdrdao\.read-toc",
-                    r"cdrdao\.read-toc",
-                    r"cannot read cd-rom toc",
-                    r"cannot read toc",
-                    r"no disc",
-                    r"drive not ready"
-                ])
-            )
-            if is_damaged_disc:
-                logging.error(f"[ERROR] Physical read error / damaged disc in drive {job.devpath} (giving up on track after MAX_TRIES).")
-                return fail_job_and_eject(job, "Physical read error / damaged disc")
-            elif is_toc_or_no_disc:
-                logging.error(f"[ERROR] No CD present in drive {job.devpath} or TOC unreadable.")
-                return fail_job_and_eject(job, "No disc present / Read error")
-            else:
-                logging.error(message)
-                return fail_job_and_eject(job, message)
+
+        return _handle_whipper_failure(job, message, log_content)
 
     except FileNotFoundError as fnf_err:
         err = f"Whipper binary not found on system: {fnf_err}"
         logging.critical(err)
         return fail_job_and_eject(job, err)
     except Exception as ex:
-        ex_str = str(ex)
-        if "giving up on track" in ex_str or "MAX_TRIES" in ex_str:
-            logging.error(f"[ERROR] Physical read error / damaged disc in drive {job.devpath} (giving up on track after MAX_TRIES).")
-            return fail_job_and_eject(job, "Physical read error / damaged disc")
-        if "cdrdao.read-toc" in ex_str or "No such file or directory" in ex_str or "TOC" in ex_str:
-            logging.error(f"[ERROR] No CD present in drive {job.devpath} or TOC unreadable.")
-            return fail_job_and_eject(job, "No disc present / Read error")
-        err = f"Unexpected error during Whipper execution: {ex}"
-        logging.error(err, exc_info=True)
-        return fail_job_and_eject(job, err)
+        return _handle_whipper_exception(job, ex)
 
 
 def rip_data(job):

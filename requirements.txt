@@ -7,5 +7,5 @@ colorama==0.4.6
 flake8==7.3.0
 waitress==2.1.2
 # Requirements for Whipper AccurateRip audio CD ripper
-whipper>=0.10.0
-pycdio
+pycdio==2.1.1
+whipper==0.10.0

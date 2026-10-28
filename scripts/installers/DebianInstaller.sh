@@ -913,7 +913,7 @@ function DownloadArm () {
     cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml
     cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml
     cp /opt/arm/setup/whipper.conf /etc/arm/config/whipper.conf
-    if [ -f /opt/arm/setup/.abcde.conf ]; then
+    if [[ -f /opt/arm/setup/.abcde.conf ]]; then
       cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
     fi
   fi
@@ -939,7 +939,7 @@ function DownloadArm () {
   cp /opt/arm/setup/arm.yaml /etc/arm/config/arm.yaml.default
   cp /opt/arm/setup/apprise.yaml /etc/arm/config/apprise.yaml.default
   cp /opt/arm/setup/whipper.conf /etc/arm/config/whipper.conf.default
-  if [ -f /opt/arm/setup/.abcde.conf ]; then
+  if [[ -f /opt/arm/setup/.abcde.conf ]]; then
     cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf.default
   fi
 }
