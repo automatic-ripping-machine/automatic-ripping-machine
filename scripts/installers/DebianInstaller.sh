@@ -826,7 +826,7 @@ function InstallArmDependencies() {
                   glyrc \
                   imagemagick \
                   libavcodec-extra \
-                  libcdio-paranoia \
+                  libcdio-paranoia-dev \
                   libcdio-cdda-dev \
                   libiso9660-dev \
                   libcurl4-openssl-dev \
@@ -839,7 +839,8 @@ function InstallArmDependencies() {
                   python3-venv \
                   python3-libdiscid \
                   python3-pip \
-                  sox
+                  sox \
+                  whipper
 
   DEBIAN_FRONTEND=noninteractive apt -y install libdvd-pkg
   dpkg-reconfigure --frontend noninteractive libdvd-pkg

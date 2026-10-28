@@ -44,18 +44,22 @@ RUN \
 # Remove SSH
 RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
 
-# Install Whipper dependencies (and remove legacy abcde)
+# Install Whipper and its dependencies (and remove legacy abcde)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        libcdio-paranoia \
+        whipper \
+        flac \
+        sox \
+        cdrdao \
+        libcdio-paranoia-dev \
         libcdio-cdda-dev \
         libiso9660-dev \
-        cdrdao \
-        sox \
-        flac \
         pkg-config \
         libsndfile1-dev && \
-    pip3 install --no-cache-dir pycdio whipper && \
+    (pip3 install --no-cache-dir pycdio "whipper>=0.10.0" || true) && \
+    ln -sf "$(command -v whipper || which whipper || echo /usr/bin/whipper)" /usr/local/bin/whipper && \
+    which whipper && \
+    python3 -c "import whipper; print('Whipper loaded successfully')" && \
     apt-get remove -y abcde || true && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
