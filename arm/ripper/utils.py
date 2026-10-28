@@ -441,6 +441,71 @@ def find_largest_file(files, mkv_out_path):
     return largest_file_name
 
 
+def check_cd_present(job) -> tuple[bool, str]:
+    """
+    Validate that an Audio CD is present in the drive and that TOC is readable.
+    Checks hardware tray status, discid, or cd-info/setcd.
+    Returns (is_valid: bool, error_msg: str).
+    """
+    devpath = str(job.devpath)
+
+    # 1. Check drive hardware tray status if available
+    try:
+        if hasattr(job, "drive") and job.drive:
+            job.drive.tray_status()
+            if not job.drive.ready:
+                return False, f"Drive tray status indicates disc not ready (status: {job.drive.tray})"
+    except Exception as drive_err:
+        logging.debug(f"Could not check drive tray status via Job.drive: {drive_err}")
+
+    # 2. Check TOC via discid (native CD TOC reader)
+    try:
+        import discid
+        discid.read(devpath)
+        return True, ""
+    except Exception as discid_err:
+        err_str = str(discid_err).lower()
+        logging.warning(f"discid failed to read TOC on {devpath}: {discid_err}")
+        # DiscError indicates drive cannot read TOC or disc is not present
+        if any(w in err_str for w in ["toc", "no disc", "not ready", "cannot open", "drive"]):
+            return False, f"Cannot read CD TOC on {devpath}: {discid_err}"
+
+    # 3. Fallback check with cd-info if installed
+    import shutil
+    if shutil.which("cd-info"):
+        try:
+            res = subprocess.run(
+                ["cd-info", "-d", devpath, "--no-cdda", "--no-cddb"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=10
+            )
+            combined = (res.stdout + " " + res.stderr).lower()
+            if res.returncode != 0 or "no disc found" in combined or "cannot read" in combined:
+                return False, f"cd-info reported no disc or unreadable TOC on {devpath}"
+        except Exception as cd_err:
+            logging.debug(f"cd-info check error on {devpath}: {cd_err}")
+
+    # 4. Fallback check with setcd -i if installed
+    if shutil.which("setcd"):
+        try:
+            res = subprocess.run(
+                ["setcd", "-i", devpath],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=10
+            )
+            combined = (res.stdout + " " + res.stderr).lower()
+            if "no disc is inserted" in combined or "tray is open" in combined:
+                return False, f"setcd reported no disc inserted in {devpath}"
+        except Exception as setcd_err:
+            logging.debug(f"setcd check error on {devpath}: {setcd_err}")
+
+    return True, ""
+
+
 def check_whipper_errors(logfile_content: str, returncode: int, accuraterip_strict: bool,
                          music_completed_dir: str = None) -> tuple[bool, str]:
     """
@@ -449,6 +514,29 @@ def check_whipper_errors(logfile_content: str, returncode: int, accuraterip_stri
     """
     if returncode == 0:
         return True, ""
+
+    # Check for missing disc or unreadable TOC errors (cdrdao / whipper failure indicators)
+    toc_error_patterns = [
+        r"FileNotFoundError.*cdrdao\.read-toc",
+        r"cdrdao\.read-toc.*No such file or directory",
+        r"cannot read cd-rom toc",
+        r"cannot read table of contents",
+        r"cannot read toc",
+        r"error reading disc toc",
+        r"error reading toc",
+        r"could not read toc",
+        r"toc unreadable",
+        r"no disc present",
+        r"no cd present",
+        r"drive not ready",
+        r"no disc found",
+        r"no medium found",
+        r"device not ready",
+        r"failed to read toc"
+    ]
+    for pattern in toc_error_patterns:
+        if re.search(pattern, logfile_content, re.IGNORECASE):
+            return False, f"No disc present / Read error: matching '{pattern}' (code {returncode})"
 
     # Check for mixed-mode CD / Enhanced CD / CD-Extra with data tracks.
     # On mixed CDs, the data track in the second session cannot be ripped as audio,
@@ -483,7 +571,6 @@ def check_whipper_errors(logfile_content: str, returncode: int, accuraterip_stri
         r"could not rip track",
         r"failed to rip",
         r"drive error",
-        r"cannot read cd-rom toc",
         r"paranoia error"
     ]
     for pattern in read_error_patterns:
@@ -519,7 +606,26 @@ def rip_music(job, logfile):
     if job.disctype != "music":
         return False
 
-    logging.info("Disc identified as music. Starting Whipper rip.")
+    logging.info("Disc identified as music. Validating CD presence before Whipper rip.")
+
+    # Validate CD presence and TOC readability prior to launching Whipper
+    is_present, cd_err = check_cd_present(job)
+    if not is_present:
+        logging.error(f"[ERROR] No CD present in drive {job.devpath} or TOC unreadable.")
+        err_msg = "No disc present / Read error"
+        args = {"status": JobState.FAILURE.value, "errors": err_msg}
+        database_updater(args, job)
+        job.errors = err_msg
+        if hasattr(job, "eject"):
+            job.eject()
+        elif cfg.arm_config.get("AUTO_EJECT", False):
+            try:
+                subprocess.run(["eject", str(job.devpath)], check=False)
+            except Exception:
+                pass
+        return False
+
+    logging.info("Starting Whipper rip.")
 
     # Determine music completed destination
     music_completed_dir = os.path.join(job.config.COMPLETED_PATH, "music")
@@ -588,10 +694,37 @@ def rip_music(job, logfile):
             database_updater(args, job)
             return True
         else:
-            args = {"status": JobState.FAILURE.value, "errors": message}
-            database_updater(args, job)
-            logging.error(message)
-            return False
+            is_toc_or_no_disc = (
+                "No disc present" in message
+                or "TOC" in message
+                or any(re.search(pat, log_content, re.IGNORECASE) for pat in [
+                    r"FileNotFoundError.*cdrdao\.read-toc",
+                    r"cdrdao\.read-toc",
+                    r"cannot read cd-rom toc",
+                    r"cannot read toc",
+                    r"no disc",
+                    r"drive not ready"
+                ])
+            )
+            if is_toc_or_no_disc:
+                logging.error(f"[ERROR] No CD present in drive {job.devpath} or TOC unreadable.")
+                err_text = "No disc present / Read error"
+                args = {"status": JobState.FAILURE.value, "errors": err_text}
+                database_updater(args, job)
+                job.errors = err_text
+                if hasattr(job, "eject"):
+                    job.eject()
+                elif cfg.arm_config.get("AUTO_EJECT", False):
+                    try:
+                        subprocess.run(["eject", str(job.devpath)], check=False)
+                    except Exception:
+                        pass
+                return False
+            else:
+                args = {"status": JobState.FAILURE.value, "errors": message}
+                database_updater(args, job)
+                logging.error(message)
+                return False
 
     except FileNotFoundError as fnf_err:
         err = f"Whipper binary not found on system: {fnf_err}"
@@ -600,6 +733,21 @@ def rip_music(job, logfile):
         logging.critical(err)
         return False
     except Exception as ex:
+        ex_str = str(ex)
+        if "cdrdao.read-toc" in ex_str or "No such file or directory" in ex_str or "TOC" in ex_str:
+            logging.error(f"[ERROR] No CD present in drive {job.devpath} or TOC unreadable.")
+            err = "No disc present / Read error"
+            args = {"status": JobState.FAILURE.value, "errors": err}
+            database_updater(args, job)
+            job.errors = err
+            if hasattr(job, "eject"):
+                job.eject()
+            elif cfg.arm_config.get("AUTO_EJECT", False):
+                try:
+                    subprocess.run(["eject", str(job.devpath)], check=False)
+                except Exception:
+                    pass
+            return False
         err = f"Unexpected error during Whipper execution: {ex}"
         args = {"status": JobState.FAILURE.value, "errors": err}
         database_updater(args, job)

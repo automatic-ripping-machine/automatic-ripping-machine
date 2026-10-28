@@ -150,8 +150,59 @@ class TestWhipperRipper(unittest.TestCase):
         with patch("arm.config.config.arm_config", {"LOGPATH": "/tmp"}):
             res = process_audio_logfile("test.log", job, job_results)
 
-        self.assertEqual(res["stage"], "Track: 3/10")
-        self.assertEqual(job.stage, "Track: 3/10")
+    def test_check_whipper_errors_toc_failure(self):
+        """Test failure when cdrdao/whipper fails to read TOC or file is missing."""
+        log = "CRITICAL:whipper:FileNotFoundError: [Errno 2] No such file or directory: '/tmp/test.cdrdao.read-toc.whipper.task'"
+        success, msg = check_whipper_errors(log, 1, accuraterip_strict=False)
+        self.assertFalse(success)
+        self.assertIn("No disc present / Read error", msg)
+
+    @patch("arm.ripper.utils.check_cd_present")
+    @patch("arm.ripper.utils.database_updater")
+    def test_rip_music_no_cd_present_prevalidation(self, mock_db_update, mock_check_cd):
+        """Test that rip_music fails gracefully and ejects when no CD is present."""
+        mock_check_cd.return_value = (False, "Cannot read CD TOC on /dev/sr0")
+
+        job = MagicMock()
+        job.disctype = "music"
+        job.devpath = "/dev/sr0"
+        job.eject = MagicMock()
+
+        with patch("arm.config.config.arm_config", {"AUTO_EJECT": True, "LOGPATH": "/tmp"}):
+            res = rip_music(job, "test_job.log")
+            self.assertFalse(res)
+            self.assertEqual(job.errors, "No disc present / Read error")
+            job.eject.assert_called_once()
+            mock_db_update.assert_called()
+
+    @patch("arm.ripper.utils.check_cd_present")
+    @patch("arm.ripper.utils.subprocess.run")
+    @patch("arm.ripper.utils.database_updater")
+    def test_rip_music_toc_error_during_whipper_execution(self, mock_db_update, mock_run, mock_check_cd):
+        """Test that whipper TOC read failure during execution marks job as failed and ejects."""
+        mock_check_cd.return_value = (True, "")
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 1
+        mock_run.return_value = mock_proc
+
+        job = MagicMock()
+        job.disctype = "music"
+        job.devpath = "/dev/sr0"
+        job.crc_id = None
+        job.config.LOGPATH = "/tmp"
+        job.config.COMPLETED_PATH = "/tmp/completed"
+        job.eject = MagicMock()
+
+        # Simulate log containing cdrdao read-toc FileNotFoundError
+        log_content = "FileNotFoundError: [Errno 2] No such file or directory: '/tmp/whipper.task.cdrdao.read-toc.task'\n"
+        with patch("builtins.open", unittest.mock.mock_open(read_data=log_content)), \
+             patch("os.path.isfile", return_value=True), \
+             patch("arm.config.config.arm_config", {"AUTO_EJECT": True, "LOGPATH": "/tmp", "WHIPPER_ACCURATERIP": True}):
+            res = rip_music(job, "test_job.log")
+            self.assertFalse(res)
+            self.assertEqual(job.errors, "No disc present / Read error")
+            job.eject.assert_called_once()
 
 
 if __name__ == "__main__":

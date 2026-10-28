@@ -21,6 +21,8 @@ def main(disc):
     or "".
     """
     discid = get_disc_id(disc)
+    if not discid:
+        return ""
     if cfg.arm_config['GET_AUDIO_TITLE'] == 'musicbrainz':
         return music_brainz(discid, disc)
     return ""
@@ -31,9 +33,13 @@ def get_disc_id(disc):
     Calculates the identifier of the disc
 
     return:
-    identification object from discid package
+    identification object from discid package or None on error
     """
-    return read(disc.devpath)
+    try:
+        return read(disc.devpath)
+    except Exception as exc:
+        logging.warning(f"Could not read disc ID from {disc.devpath}: {exc}")
+        return None
 
 
 def music_brainz(discid: str, job) -> str:
