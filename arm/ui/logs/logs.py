@@ -74,16 +74,33 @@ def logreader():
     full_path = os.path.join(log_path, request.args.get('logfile'))
     ui_utils.validate_logfile(request.args.get('logfile'), mode, Path(full_path))
 
-    # Only ARM logs
-    if mode == "armcat":
-        generate = ui_utils.generate_arm_cat(full_path)
-    # Give everything / Tail
-    elif mode == "full":
-        generate = ui_utils.generate_full_log(full_path)
-    elif mode == "download":
+    if mode == "download":
         return send_file(full_path, as_attachment=True)
-    else:
+    if mode not in ("armcat", "full"):
         # No mode - error out
         raise ValidationError
-
-    return app.response_class(generate, mimetype='text/plain')
+    try:
+        offset = max(0, int(request.args.get('offset', 0)))
+    except ValueError:
+        offset = 0
+    # Read only a file that resolves inside LOGPATH, then one bounded read per poll;
+    # the page asks again from X-Log-Offset (#1561, #1631).
+    log_root = os.path.realpath(log_path)
+    real_path = os.path.realpath(full_path)
+    if not real_path.startswith(log_root + os.sep):
+        raise ValidationError("logfile is outside the log folder")
+    if mode == "armcat":
+        # Compatibility snapshot for direct callers. The page polls raw bytes and
+        # buffers lines in the browser, so partial and oversized lines cannot stall it.
+        end = os.path.getsize(real_path)
+        response = app.response_class(ui_utils.generate_arm_cat(real_path, offset, end), mimetype='text/plain')
+        response.headers["X-Log-Offset"] = str(end)
+    else:
+        data, start, next_offset, file_id = ui_utils.read_log_data(
+            real_path, offset, file_id=request.args.get("file_id"))
+        response = app.response_class(data, mimetype='text/plain')
+        response.headers["X-Log-Start"] = str(start)
+        response.headers["X-Log-Offset"] = str(next_offset)
+        response.headers["X-Log-Id"] = file_id
+    response.headers["Cache-Control"] = "no-store"
+    return response
