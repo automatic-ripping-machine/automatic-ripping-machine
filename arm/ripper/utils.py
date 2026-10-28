@@ -22,6 +22,7 @@ from netifaces import interfaces, ifaddresses, AF_INET
 import arm.config.config as cfg
 from arm.ripper.ProcessHandler import arm_subprocess
 from arm.ui import db  # needs to be imported before models
+from arm.ui import pending_changes
 from arm.models.job import Job, JobState
 from arm.models.notifications import Notifications
 from arm.models.track import Track
@@ -660,8 +661,12 @@ def database_updater(args, job, wait_time=90):
     for (key, value) in args.items():
         logging.debug(f"ID:{job.job_id} {key}={value}:{type(value)}")
 
+    # a rollback discards the whole transaction, so keep the caller's other changes for the retry
+    changes = pending_changes.collect(db.session)
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
+            if i:
+                pending_changes.replay(db.session, changes)
             # (re)apply the values, a rollback after a failed try discards them
             for (key, value) in args.items():
                 setattr(job, key, value)
@@ -671,6 +676,7 @@ def database_updater(args, job, wait_time=90):
         except Exception as error:
             if "locked" in str(error):
                 # the failed flush leaves the session unusable until it is rolled back
+                pending_changes.collect(db.session, changes)
                 db.session.rollback()
                 time.sleep(1)
                 logging.debug(f"database is locked - try {i}/{wait_time}")
@@ -688,8 +694,11 @@ def database_adder(obj_class):
     :param obj_class: Job/Config/Track/ etc
     :return: True if success
     """
+    changes = pending_changes.collect(db.session)
     for i in range(90):  # give up after the users wait period in seconds
         try:
+            if i:
+                pending_changes.replay(db.session, changes)
             logging.debug(f"Trying to add {type(obj_class).__name__}")
             db.session.add(obj_class)
             db.session.commit()
@@ -697,6 +706,7 @@ def database_adder(obj_class):
             return True
         except Exception as error:
             if "locked" in str(error):
+                pending_changes.collect(db.session, changes)
                 db.session.rollback()
                 time.sleep(1)
                 logging.debug(f"database is locked - try {i}/90")

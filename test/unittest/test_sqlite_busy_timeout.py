@@ -7,6 +7,7 @@ from sqlalchemy import event, text
 from arm.ui import app, db
 import arm.ui.utils as ui_utils
 import arm.ripper.utils as ripper_utils
+from arm.models.notifications import Notifications
 from arm.models.track import Track
 
 
@@ -88,3 +89,69 @@ def test_database_adder_retries_after_locked_commit(short_busy_timeout, lock_hol
     assert ripper_utils.database_adder(track) is True
     assert len(sleeps) == 1
     assert track.track_id is not None
+
+
+def stored(app_db, sql, *args):
+    conn = sqlite3.connect(app_db.engine.url.database)
+    try:
+        return conn.execute(sql, args).fetchone()
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize("module", [ripper_utils, ui_utils], ids=["ripper", "ui"])
+def test_database_updater_retry_keeps_the_callers_other_changes(short_busy_timeout, lock_holder, monkeypatch, module):
+    """change_job_params sets the job's Config fields directly and adds a Notifications row
+    before calling database_updater; the rollback after a locked try must not drop them"""
+    track = make_track()
+    db.session.add(track)
+    db.session.commit()
+    conn, sleeps, fake_sleep = lock_holder
+    if module is ripper_utils:
+        monkeypatch.setattr(ripper_utils.time, "sleep", fake_sleep)
+    else:
+        monkeypatch.setattr(ui_utils, "sleep", fake_sleep)
+    db.session.refresh(track)  # a caller works on a loaded object; reloading it would autoflush under the lock
+    conn.execute("BEGIN IMMEDIATE")
+    track.basename = "changed directly"
+    db.session.add(Notifications("Job updated", "kept across the retry"))
+
+    assert module.database_updater({"status": "ripped"}, track, wait_time=3) is True
+    assert len(sleeps) == 1
+    assert stored(db, "SELECT status, basename FROM track WHERE track_id = ?", track.track_id) == \
+        ("ripped", "changed directly")
+    assert stored(db, "SELECT message FROM notifications WHERE title = 'Job updated'") == ("kept across the retry",)
+
+
+def test_database_updater_retry_keeps_an_autoflushed_change(app_db, monkeypatch):
+    """A change an autoflush already sent is undone by the rollback too"""
+    track = make_track()
+    db.session.add(track)
+    db.session.commit()
+    track.basename = "flushed early"
+    db.session.flush()
+    real_commit = db.session.commit
+    calls = []
+
+    def commit_locked_once():
+        calls.append(1)
+        if len(calls) == 1:
+            raise RuntimeError("(sqlite3.OperationalError) database is locked")
+        real_commit()
+    monkeypatch.setattr(db.session, "commit", commit_locked_once)
+    monkeypatch.setattr(ripper_utils.time, "sleep", lambda _seconds: None)
+
+    assert ripper_utils.database_updater({"status": "ripped"}, track, wait_time=3) is True
+    assert stored(db, "SELECT status, basename FROM track WHERE track_id = ?", track.track_id) == \
+        ("ripped", "flushed early")
+
+
+def test_database_adder_retry_keeps_other_pending_rows(short_busy_timeout, lock_holder, monkeypatch):
+    conn, sleeps, fake_sleep = lock_holder
+    monkeypatch.setattr(ripper_utils.time, "sleep", fake_sleep)
+    conn.execute("BEGIN IMMEDIATE")
+    db.session.add(Notifications("Added first", "kept across the retry"))
+
+    assert ripper_utils.database_adder(make_track()) is True
+    assert len(sleeps) == 1
+    assert stored(db, "SELECT message FROM notifications WHERE title = 'Added first'") == ("kept across the retry",)
