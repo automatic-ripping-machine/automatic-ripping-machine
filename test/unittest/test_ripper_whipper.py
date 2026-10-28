@@ -201,7 +201,40 @@ class TestWhipperRipper(unittest.TestCase):
              patch("arm.config.config.arm_config", {"AUTO_EJECT": True, "LOGPATH": "/tmp", "WHIPPER_ACCURATERIP": True}):
             res = rip_music(job, "test_job.log")
             self.assertFalse(res)
-            self.assertEqual(job.errors, "No disc present / Read error")
+    def test_check_whipper_errors_damaged_disc_max_tries(self):
+        """Test failure when whipper/cdparanoia gives up on a track after MAX_TRIES."""
+        log = "Ripping track 1... cdparanoia: giving up on track 1 after MAX_TRIES. Rip quality 65.2%"
+        success, msg = check_whipper_errors(log, 1, accuraterip_strict=False)
+        self.assertFalse(success)
+        self.assertIn("Physical read error / damaged disc", msg)
+
+    @patch("arm.ripper.utils.check_cd_present")
+    @patch("arm.ripper.utils.subprocess.run")
+    @patch("arm.ripper.utils.database_updater")
+    def test_rip_music_damaged_disc_max_tries_eject(self, mock_db_update, mock_run, mock_check_cd):
+        """Test that whipper giving up on track MAX_TRIES sets damaged disc error and ejects."""
+        mock_check_cd.return_value = (True, "")
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 1
+        mock_run.return_value = mock_proc
+
+        job = MagicMock()
+        job.disctype = "music"
+        job.devpath = "/dev/sr0"
+        job.crc_id = None
+        job.config.LOGPATH = "/tmp"
+        job.config.COMPLETED_PATH = "/tmp/completed"
+        job.eject = MagicMock()
+
+        # Simulate log containing cdparanoia giving up on track after MAX_TRIES
+        log_content = "CRITICAL:whipper: giving up on track 2... MAX_TRIES\n"
+        with patch("builtins.open", unittest.mock.mock_open(read_data=log_content)), \
+             patch("os.path.isfile", return_value=True), \
+             patch("arm.config.config.arm_config", {"AUTO_EJECT": True, "LOGPATH": "/tmp", "WHIPPER_ACCURATERIP": True}):
+            res = rip_music(job, "test_job.log")
+            self.assertFalse(res)
+            self.assertEqual(job.errors, "Physical read error / damaged disc")
             job.eject.assert_called_once()
 
 

@@ -562,6 +562,16 @@ def check_whipper_errors(logfile_content: str, returncode: int, accuraterip_stri
     if has_data_track_notice and has_ripped_audio:
         return True, f"Whipper completed with warning: data track skipped or unreadable on mixed-mode CD (code {returncode})"
 
+    # Check for physical read errors / damaged disc (e.g. cdparanoia/whipper giving up after MAX_TRIES)
+    damaged_disc_patterns = [
+        r"giving up on track.*MAX_TRIES",
+        r"giving up on track",
+        r"MAX_TRIES"
+    ]
+    for pattern in damaged_disc_patterns:
+        if re.search(pattern, logfile_content, re.IGNORECASE):
+            return False, f"Physical read error / damaged disc: matching '{pattern}' (code {returncode})"
+
     # Check for unrecoverable read / disc errors (cdparanoia / whipper failure indicators)
     read_error_patterns = [
         r"read error",
@@ -694,6 +704,10 @@ def rip_music(job, logfile):
             database_updater(args, job)
             return True
         else:
+            is_damaged_disc = (
+                "Physical read error / damaged disc" in message
+                or bool(re.search(r"giving up on track.*MAX_TRIES|giving up on track|MAX_TRIES", log_content, re.IGNORECASE))
+            )
             is_toc_or_no_disc = (
                 "No disc present" in message
                 or "TOC" in message
@@ -706,7 +720,21 @@ def rip_music(job, logfile):
                     r"drive not ready"
                 ])
             )
-            if is_toc_or_no_disc:
+            if is_damaged_disc:
+                logging.error(f"[ERROR] Physical read error / damaged disc in drive {job.devpath} (giving up on track after MAX_TRIES).")
+                err_text = "Physical read error / damaged disc"
+                args = {"status": JobState.FAILURE.value, "errors": err_text}
+                database_updater(args, job)
+                job.errors = err_text
+                if hasattr(job, "eject"):
+                    job.eject()
+                elif cfg.arm_config.get("AUTO_EJECT", False):
+                    try:
+                        subprocess.run(["eject", str(job.devpath)], check=False)
+                    except Exception:
+                        pass
+                return False
+            elif is_toc_or_no_disc:
                 logging.error(f"[ERROR] No CD present in drive {job.devpath} or TOC unreadable.")
                 err_text = "No disc present / Read error"
                 args = {"status": JobState.FAILURE.value, "errors": err_text}
@@ -723,17 +751,47 @@ def rip_music(job, logfile):
             else:
                 args = {"status": JobState.FAILURE.value, "errors": message}
                 database_updater(args, job)
+                job.errors = message
                 logging.error(message)
+                if hasattr(job, "eject"):
+                    job.eject()
+                elif cfg.arm_config.get("AUTO_EJECT", False):
+                    try:
+                        subprocess.run(["eject", str(job.devpath)], check=False)
+                    except Exception:
+                        pass
                 return False
 
     except FileNotFoundError as fnf_err:
         err = f"Whipper binary not found on system: {fnf_err}"
         args = {"status": JobState.FAILURE.value, "errors": err}
         database_updater(args, job)
+        job.errors = err
         logging.critical(err)
+        if hasattr(job, "eject"):
+            job.eject()
+        elif cfg.arm_config.get("AUTO_EJECT", False):
+            try:
+                subprocess.run(["eject", str(job.devpath)], check=False)
+            except Exception:
+                pass
         return False
     except Exception as ex:
         ex_str = str(ex)
+        if "giving up on track" in ex_str or "MAX_TRIES" in ex_str:
+            logging.error(f"[ERROR] Physical read error / damaged disc in drive {job.devpath} (giving up on track after MAX_TRIES).")
+            err = "Physical read error / damaged disc"
+            args = {"status": JobState.FAILURE.value, "errors": err}
+            database_updater(args, job)
+            job.errors = err
+            if hasattr(job, "eject"):
+                job.eject()
+            elif cfg.arm_config.get("AUTO_EJECT", False):
+                try:
+                    subprocess.run(["eject", str(job.devpath)], check=False)
+                except Exception:
+                    pass
+            return False
         if "cdrdao.read-toc" in ex_str or "No such file or directory" in ex_str or "TOC" in ex_str:
             logging.error(f"[ERROR] No CD present in drive {job.devpath} or TOC unreadable.")
             err = "No disc present / Read error"
@@ -751,7 +809,15 @@ def rip_music(job, logfile):
         err = f"Unexpected error during Whipper execution: {ex}"
         args = {"status": JobState.FAILURE.value, "errors": err}
         database_updater(args, job)
+        job.errors = err
         logging.error(err, exc_info=True)
+        if hasattr(job, "eject"):
+            job.eject()
+        elif cfg.arm_config.get("AUTO_EJECT", False):
+            try:
+                subprocess.run(["eject", str(job.devpath)], check=False)
+            except Exception:
+                pass
         return False
 
 
