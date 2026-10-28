@@ -96,27 +96,32 @@ echo "Checking location of whipper configuration files"
 mkdir -p /home/arm/.config/whipper
 if ! [ -f /etc/arm/config/whipper.conf ]; then
   echo "whipper.conf doesn't exist"
-  cp /opt/arm/setup/whipper.conf /etc/arm/config/whipper.conf
+  if [ -f /opt/arm/setup/whipper.conf ]; then
+    cp /opt/arm/setup/whipper.conf /etc/arm/config/whipper.conf
+  fi
 fi
-ln -sf /etc/arm/config/whipper.conf /home/arm/.config/whipper/whipper.conf
+if [ -f /etc/arm/config/whipper.conf ]; then
+  ln -sf /etc/arm/config/whipper.conf /home/arm/.config/whipper/whipper.conf
+fi
 chown -R arm:arm /home/arm/.config 2>/dev/null || true
 
-##### abcde config setup (legacy)
-# abcde.conf is expected in /etc by the abcde installation
-echo "Checking location of abcde configuration files"
+##### abcde config setup (legacy fallback)
+# abcde.conf is kept only for backward compatibility if present in setup
+echo "Checking location of legacy abcde configuration files"
 # Test if abcde.conf is a hyperlink, if so remove it
 if [ -h /etc/arm/config/abcde.conf ]; then
   echo "Old hyper link exists removing!"
   unlink /etc/arm/config/abcde.conf
 fi
-# check if abcde is in config main location - only copy if it doesnt exist
+# check if abcde is in config main location - only copy if it doesn't exist and setup template exists
 if ! [ -f /etc/arm/config/abcde.conf ]; then
-  echo "abcde.conf doesnt exist"
-  cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
-  # chown arm:arm /etc/arm/config/abcde.conf
+  if [ -f /opt/arm/setup/.abcde.conf ]; then
+    echo "abcde.conf doesnt exist, copying from setup"
+    cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
+  fi
 fi
-# The system link to the fake default file -not really needed but as a precaution to the -C variable being blank
-if ! [ -h /etc/abcde.conf ]; then
+# The system link to the fake default file - only link if config exists
+if ! [ -h /etc/abcde.conf ] && [ -f /etc/arm/config/abcde.conf ]; then
   echo "/etc/abcde.conf link doesnt exist"
   ln -sf /etc/arm/config/abcde.conf /etc/abcde.conf
 fi
