@@ -27,7 +27,7 @@ from arm.models.job import Job
 from arm.models.system_info import SystemInfo
 from arm.models.ui_settings import UISettings
 from arm.models.user import User
-from arm.ui import app, db
+from arm.ui import app, db, pending_changes
 from arm.ui.metadata import tmdb_search, get_tmdb_poster, tmdb_find, call_omdb_api
 from arm.ui.settings import DriveUtils
 
@@ -47,15 +47,24 @@ def database_updater(args, job, wait_time=90):
     """
     # Loop through our args and try to set any of our job variables
     for (key, value) in args.items():
-        setattr(job, key, value)
         app.logger.debug(f"Setting {key}: {value}")
+    # a rollback discards the whole transaction, so keep the caller's other changes for the retry
+    changes = pending_changes.collect(db.session)
     for i in range(wait_time):  # give up after the users wait period in seconds
         try:
+            if i:
+                pending_changes.replay(db.session, changes)
+            # (re)apply the values, a rollback after a failed try discards them
+            for (key, value) in args.items():
+                setattr(job, key, value)
             db.session.commit()
             app.logger.debug("successfully written to the database")
             return True
         except Exception as error:
             if "locked" in str(error):
+                # the failed flush leaves the session unusable until it is rolled back
+                pending_changes.collect(db.session, changes)
+                db.session.rollback()
                 sleep(1)
                 app.logger.debug(f"database is locked - trying in 1 second {i}/{wait_time} - {error}")
             else:
