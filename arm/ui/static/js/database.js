@@ -217,7 +217,7 @@ function checkHref() {
             hrrref = "";
         }
         // Delete, abandon and fix permissions change the job: a POST, sent with the page's CSRF token
-        const changesJob = ["delete", "abandon", "fixperms"].indexOf(actionType) !== -1;
+        const changesJob = ["delete", "abandon", "fixperms"].includes(actionType);
         $.ajax({url: hrrref, type: changesJob ? "post" : "get", dataType: "json", success: function (data) {
             console.log(data.success);
             console.log("#jobId" + activeJob);
