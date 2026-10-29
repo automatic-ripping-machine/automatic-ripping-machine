@@ -227,3 +227,36 @@ def test_nav_logs_out_with_a_form(ui):
     form = re.search(r'<form action="/logout" method="post"[^>]*>(.*?)</form>', page, re.S)
     assert form, "the nav's log out is not a POST form"
     assert 'name="csrf_token"' in form.group(1)
+
+
+def test_cors_and_xhr_headers_do_not_authorize_an_anonymous_change(ui, calls):
+    app, db = ui
+    client = app.test_client()
+    origin = "https://untrusted.example"
+    preflight = client.options("/json?mode=delete&job=1", headers={
+        "Origin": origin, "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "X-Requested-With"})
+    assert preflight.headers.get("Access-Control-Allow-Origin") in ("*", origin)
+    assert "x-requested-with" in preflight.headers.get("Access-Control-Allow-Headers", "").lower()
+    headers = {"Origin": origin, **XHR}
+    assert client.get("/json?mode=delete&job=1", headers=headers).status_code == 405
+    assert client.post("/json", data={"mode": "delete", "job": 1}, headers=headers).status_code == 400
+    assert "delete_job" not in calls
+
+
+def test_another_anonymous_sessions_token_cannot_authorize_a_change(ui, calls):
+    app, db = ui
+    other_client = app.test_client()
+    token = page_token(other_client)
+    client = app.test_client()
+    response = client.post("/json", data={"mode": "delete", "job": 1}, headers={"X-CSRFToken": token})
+    assert response.status_code == 400
+    assert "delete_job" not in calls
+
+
+def test_restart_without_a_token_cannot_reach_its_handler(ui, calls):
+    app, db = ui
+    client = app.test_client()
+    assert client.get("/json?mode=restart", headers=XHR).status_code == 405
+    assert client.post("/json", data={"mode": "restart"}, headers=XHR).status_code == 400
+    assert "restart_ui" not in calls
