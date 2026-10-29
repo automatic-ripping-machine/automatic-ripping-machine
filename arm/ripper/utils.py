@@ -194,15 +194,14 @@ def move_files(base_path, filename, job, is_main_feature=False):
     :param str filename: name of file to be moved\n
     :param job: instance of Job class\n
     :param bool is_main_feature: if current is main feature move to main dir
-    :return str: Full movie path
+    :return bool: False if the file could not be moved
     """
     video_title = fix_job_title(job)
     logging.debug(f"Arguments: {base_path} : {filename} : "
                   f"{job.hasnicetitle} : {video_title} : {is_main_feature}")
-    # If filename is blank skip and return
-    if filename == "":
-        logging.info(f"{filename} is empty... Skipping")
-        return None
+    if not filename or not filename.strip():
+        logging.error("Cannot move a ripped track without a filename; keeping source files")
+        return False
 
     movie_path = job.path
     logging.info(f"Moving {job.video_type} {filename} to {movie_path}")
@@ -213,14 +212,13 @@ def move_files(base_path, filename, job, is_main_feature=False):
     if is_main_feature:
         movie_file = os.path.join(movie_path, video_title + "." + job.config.DEST_EXT)
         logging.info(f"Track is the Main Title.  Moving '{os.path.join(base_path, filename)}' to {movie_file}")
-        move_files_main(os.path.join(base_path, filename), movie_file, movie_path)
+        return move_files_main(os.path.join(base_path, filename), movie_file, movie_path)
     else:
         # Don't make the extra's path unless we need it
         make_dir(extras_path)
         logging.info(f"Moving '{os.path.join(base_path, filename)}' to {extras_path}")
         # This also handles series - But it doesn't use the extras folder
-        move_files_main(os.path.join(base_path, filename), os.path.join(extras_path, filename), extras_path)
-    return movie_path
+        return move_files_main(os.path.join(base_path, filename), os.path.join(extras_path, filename), extras_path)
 
 
 def _calculate_filename_similarity(expected_base, actual_base):
@@ -318,18 +316,22 @@ def move_files_main(old_file, new_file, base_path):
     :param str old_file: The file to be moved - must include full path
     :param str new_file: Final destination of file - must include full path
     :param str base_path: The base path of the new file - used for logging
-    :return: None
+    :return bool: True if the file was moved to new_file
     """
-    if not os.path.isfile(new_file):
+    # A directory would make shutil.move nest the source, and a broken link can be overwritten.
+    # Every existing directory entry is a collision, regardless of its target or type.
+    if not os.path.lexists(new_file):
         # Try to find the file, handling minor naming discrepancies
         actual_old_file = find_matching_file(old_file)
 
         try:
             shutil.move(actual_old_file, new_file)
+            return True
         except Exception as error:
             logging.error(f"Unable to move '{actual_old_file}' to '{base_path}' - Error: {error}")
     else:
-        logging.info(f"File: {new_file} already exists.  Not moving.")
+        logging.error(f"File: {new_file} already exists.  Not moving.")
+    return False
 
 
 def move_movie_poster(final_directory, hb_out_path):
@@ -498,6 +500,11 @@ def rip_data(job):
         make_dir(raw_path, False)
 
     final_path = os.path.join(final_path, final_file_name)
+    full_final_file = os.path.join(final_path, f"{str(job.label)}.iso")
+    if os.path.isfile(full_final_file):
+        # A disc with the same label was ripped before - use a new folder rather than skip the move
+        final_path = f"{final_path}_{round(time.time() * 100)}"
+        full_final_file = os.path.join(final_path, f"{str(job.label)}.iso")
     incomplete_filename = os.path.join(raw_path, str(job.label) + ".part")
     make_dir(final_path)
     logging.info(f"Ripping data disc to: {incomplete_filename}")
@@ -507,9 +514,13 @@ def rip_data(job):
     logging.debug(f"Sending command: {cmd}")
     try:
         subprocess.check_output(cmd, shell=True).decode("utf-8")
-        full_final_file = os.path.join(final_path, f"{str(job.label)}.iso")
         logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
-        move_files_main(incomplete_filename, full_final_file, final_path)
+        if not move_files_main(incomplete_filename, full_final_file, final_path):
+            # Don't remove raw_path below, the image there is the only copy
+            err = f"Data image could not be moved to '{full_final_file}'. It was kept at '{incomplete_filename}'"
+            logging.error(err)
+            database_updater({"status": JobState.FAILURE.value, "errors": err}, job)
+            return False
         logging.info("Data rip call successful")
         success = True
     except subprocess.CalledProcessError as dd_error:
