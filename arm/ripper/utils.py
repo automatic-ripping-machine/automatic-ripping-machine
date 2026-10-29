@@ -257,10 +257,20 @@ def _calculate_filename_similarity(expected_base, actual_base):
 
 
 def _different_number(expected_base, actual_base):
-    """title_t01 vs title_t00: same length, differing only where both have digits - another title."""
-    if len(expected_base) != len(actual_base):
-        return False
-    return any(a != b and a.isdigit() and b.isdigit() for a, b in zip(expected_base, actual_base))
+    """Fuzzy spelling must preserve every numeric token, regardless of padding or stem length."""
+    expected_numbers = [int(number) for number in re.findall(r"[0-9]+", expected_base)]
+    actual_numbers = [int(number) for number in re.findall(r"[0-9]+", actual_base)]
+    return expected_numbers != actual_numbers
+
+
+def _matching_file_candidates(directory, expected_ext):
+    """Return files with the requested extension; a directory entry is never a candidate."""
+    candidates = []
+    for filename in os.listdir(directory):
+        base, ext = os.path.splitext(filename)
+        if ext.lower() == expected_ext.lower() and os.path.isfile(os.path.join(directory, filename)):
+            candidates.append((filename, base))
+    return candidates
 
 
 def find_matching_file(expected_file):
@@ -285,15 +295,9 @@ def find_matching_file(expected_file):
 
     # Get candidate files with same extension
     try:
-        files_in_dir = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+        candidate_files = _matching_file_candidates(directory, expected_ext)
     except OSError:
         return expected_file
-
-    candidate_files = []
-    for file in files_in_dir:
-        base, ext = os.path.splitext(file)
-        if ext.lower() == expected_ext.lower():
-            candidate_files.append((file, base))
 
     if not candidate_files:
         return expected_file

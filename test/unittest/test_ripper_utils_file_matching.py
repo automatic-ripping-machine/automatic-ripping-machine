@@ -64,11 +64,11 @@ class TestFileMatching(unittest.TestCase):
 
     def test_find_matching_file_multiple_candidates(self):
         """Test that the best match is selected when multiple similar files exist"""
-        expected_file = os.path.join(self.test_dir, "Movie123.mp4")
+        expected_file = os.path.join(self.test_dir, "MovieNameee.mp4")
 
         # Create multiple files
-        close_match = os.path.join(self.test_dir, "Movie12.mp4")
-        far_match = os.path.join(self.test_dir, "Movie1.mp4")
+        close_match = os.path.join(self.test_dir, "MovieNamee.mp4")
+        far_match = os.path.join(self.test_dir, "MovieName.mp4")
 
         with open(close_match, 'w') as f:
             f.write("test")
