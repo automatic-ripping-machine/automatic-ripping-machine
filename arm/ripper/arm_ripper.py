@@ -196,16 +196,19 @@ def move_files_post(transcode_out_path, job):
     if movie check what source we got them from, for MakeMKV use skip_transcode_movie, so we can check filesize\n
     :param transcode_out_path: This should either be the RAW_PATH from MakeMKV, /dev/srX or TRANSCODE_PATH
     :param job: current job
-    :return bool: False if any file could not be moved
+    :return bool: True only when at least one ripped track exists and every required move succeeds
     """
     all_moved = True
-    tracks = job.tracks.filter_by(ripped=True)  # .order_by(job.tracks.length.desc())
+    tracks = list(job.tracks.filter_by(ripped=True))
+    if not tracks or any(not track.filename or not track.filename.strip() for track in tracks):
+        logging.error("No complete set of ripped filenames is available; keeping source files")
+        return False
     if job.video_type == "series":
         for track in tracks:
             all_moved &= utils.move_files(transcode_out_path, track.filename, job, False)
     else:
         for track in tracks:
-            if tracks.count() == 1:
+            if len(tracks) == 1:
                 all_moved &= utils.move_files(transcode_out_path, track.filename, job, True)
             else:
                 # If source is MakeMKV we know the mainfeature will be wrong let skip_transcode_movie handle it

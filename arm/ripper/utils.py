@@ -199,10 +199,9 @@ def move_files(base_path, filename, job, is_main_feature=False):
     video_title = fix_job_title(job)
     logging.debug(f"Arguments: {base_path} : {filename} : "
                   f"{job.hasnicetitle} : {video_title} : {is_main_feature}")
-    # If filename is blank skip and return
-    if filename == "":
-        logging.info(f"{filename} is empty... Skipping")
-        return True
+    if not filename or not filename.strip():
+        logging.error("Cannot move a ripped track without a filename; keeping source files")
+        return False
 
     movie_path = job.path
     logging.info(f"Moving {job.video_type} {filename} to {movie_path}")

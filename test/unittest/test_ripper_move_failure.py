@@ -10,8 +10,8 @@ from arm.ripper import arm_ripper, utils
 class _Tracks(list):
     """Stand-in for the job.tracks query"""
 
-    def filter_by(self, **_kwargs):
-        return self
+    def filter_by(self, **kwargs):
+        return _Tracks(track for track in self if all(getattr(track, key) == value for key, value in kwargs.items()))
 
     def count(self):
         return len(self)
@@ -31,7 +31,7 @@ def series_job(tmp_path, monkeypatch):
     config = SimpleNamespace(TRANSCODE_PATH=str(tmp_path / "transcode"), COMPLETED_PATH=str(tmp_path / "completed"),
                              SKIP_TRANSCODE=True, NOTIFY_RIP=False, NOTIFY_TRANSCODE=False, MAINFEATURE=False,
                              RIPMETHOD="mkv", EXTRAS_SUB="extras", DEST_EXT="mkv")
-    track = SimpleNamespace(filename="title_t00.mkv", source="MakeMKV", main_feature=False)
+    track = SimpleNamespace(filename="title_t00.mkv", source="MakeMKV", main_feature=False, ripped=True)
     job = SimpleNamespace(config=config, video_type="series", title="Show", title_manual=None, year="2020",
                           hasnicetitle=True, disctype="bluray", devpath="/dev/sr0", status="active",
                           path=None, tracks=_Tracks([track]))
@@ -66,6 +66,56 @@ def test_destination_exists_keeps_raw_and_fails(series_job):
 
     assert (raw_dir / "title_t00.mkv").read_bytes() == b"ripped title"
     assert (final_dir / "title_t00.mkv").read_bytes() == b"other disc"
+
+
+@pytest.mark.parametrize("video_type", ["series", "movie"])
+@pytest.mark.parametrize("filename", ["", None, "   "])
+def test_missing_required_filename_keeps_raw_and_fails(series_job, video_type, filename):
+    job, raw_dir, final_dir = series_job
+    job.video_type = video_type
+    job.tracks[0].filename = filename
+
+    with pytest.raises(utils.RipperException, match="could not be moved"):
+        arm_ripper.rip_visual_media(False, job, "job.log", 0)
+
+    assert (raw_dir / "title_t00.mkv").read_bytes() == b"ripped title"
+
+
+@pytest.mark.parametrize("video_type", ["series", "movie"])
+@pytest.mark.parametrize("only_unripped", [False, True])
+def test_no_ripped_tracks_keeps_raw_and_fails(series_job, video_type, only_unripped):
+    job, raw_dir, final_dir = series_job
+    job.video_type = video_type
+    if only_unripped:
+        job.tracks[0].ripped = False
+    else:
+        job.tracks.clear()
+
+    with pytest.raises(utils.RipperException, match="could not be moved"):
+        arm_ripper.rip_visual_media(False, job, "job.log", 0)
+
+    assert (raw_dir / "title_t00.mkv").read_bytes() == b"ripped title"
+
+
+def test_incomplete_track_list_keeps_all_sources_before_moving(series_job):
+    job, raw_dir, final_dir = series_job
+    job.tracks.append(SimpleNamespace(filename="", source="MakeMKV", main_feature=False, ripped=True))
+
+    with pytest.raises(utils.RipperException, match="could not be moved"):
+        arm_ripper.rip_visual_media(False, job, "job.log", 0)
+
+    assert (raw_dir / "title_t00.mkv").read_bytes() == b"ripped title"
+    assert not (final_dir / "title_t00.mkv").exists()
+
+
+def test_a_single_movie_track_is_moved_before_cleanup(series_job):
+    job, raw_dir, final_dir = series_job
+    job.video_type = "movie"
+
+    arm_ripper.rip_visual_media(False, job, "job.log", 0)
+
+    assert (final_dir.parent.parent / "movies" / "Show (2020)" / "Show (2020).mkv").read_bytes() == b"ripped title"
+    assert not raw_dir.exists()
 
 
 @pytest.fixture
