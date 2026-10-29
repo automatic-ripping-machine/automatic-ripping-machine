@@ -9,6 +9,8 @@ from arm.ui import app
 import arm.config.config as cfg
 
 TMDB_YEAR_REGEX = r"-\d{0,2}-\d{0,2}"
+# Seconds before an OMDb/TMDB request is abandoned; identification continues without it.
+REQUEST_TIMEOUT = 30
 
 
 def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
@@ -190,7 +192,7 @@ def tmdb_process_results(poster_base, return_results, search_results, media_type
         app.logger.debug(result)
         result['poster_path'] = result['poster_path'] if result['poster_path'] is not None else None
         result['release_date'] = '0000-00-00' if 'release_date' not in result else result['release_date']
-        result['imdbID'] = tmdb_get_imdb(result['id'])
+        result['imdbID'] = tmdb_get_imdb(result['id'], media_type)
         result['Year'] = re.sub(TMDB_YEAR_REGEX, "", result['first_air_date']) if 'first_air_date' in result else \
             re.sub(TMDB_YEAR_REGEX, "", result['release_date'])
         result['Title'] = result['title'] if 'title' in result else result['name']  # This isn't great
@@ -202,10 +204,12 @@ def tmdb_process_results(poster_base, return_results, search_results, media_type
     return return_results
 
 
-def tmdb_get_imdb(tmdb_id):
+def tmdb_get_imdb(tmdb_id, media_type="movie"):
     """
     Queries api.themoviedb.org for imdb_id by TMDB id\n
     :param tmdb_id: tmdb id of media
+    :param media_type: movie or series; TMDB movie and TV ids overlap, so a series never
+        falls through to the movie with the same id
     :return: str of imdb_id
     """
     # https://api.themoviedb.org/3/movie/78?api_key=
@@ -214,6 +218,10 @@ def tmdb_get_imdb(tmdb_id):
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={tmdb_api_key}&" \
           f"append_to_response=alternative_titles,credits,images,keywords,releases,reviews,similar,videos,external_ids"
     url_tv = f"https://api.themoviedb.org/3/tv/{tmdb_id}/external_ids?api_key={tmdb_api_key}"
+    if media_type == "series":
+        response = requests.get(url_tv, timeout=REQUEST_TIMEOUT)
+        tv_json = json.loads(response.text)
+        return None if 'status_code' in tv_json else tv_json.get('imdb_id')
     # Making a get request
     response = requests.get(url)
     search_results = json.loads(response.text)
