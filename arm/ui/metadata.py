@@ -217,7 +217,7 @@ def tmdb_get_imdb(tmdb_id, media_type="movie"):
           f"append_to_response=alternative_titles,credits,images,keywords,releases,reviews,similar,videos,external_ids"
     url_tv = f"https://api.themoviedb.org/3/tv/{tmdb_id}/external_ids?api_key={tmdb_api_key}"
     if media_type == "series":
-        response = requests.get(url_tv)
+        response = requests.get(url_tv, timeout=30)
         tv_json = json.loads(response.text)
         return None if 'status_code' in tv_json else tv_json.get('imdb_id')
     # Making a get request

@@ -2,6 +2,8 @@
 import json
 from types import SimpleNamespace
 
+import pytest
+
 
 def test_series_result_never_takes_the_movie_with_the_same_id(monkeypatch):
     import arm.config.config as cfg
@@ -21,3 +23,33 @@ def test_series_result_never_takes_the_movie_with_the_same_id(monkeypatch):
     assert metadata.tmdb_get_imdb(1396, "series") == "tt0903747"
     assert requested == ["https://api.themoviedb.org/3/tv/1396/external_ids"]
     assert metadata.tmdb_get_imdb(1396) == "tt0000001"
+
+
+def test_series_external_id_lookup_has_a_finite_timeout(monkeypatch):
+    from arm.ui import metadata
+
+    calls = []
+
+    def get(url, **kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(text=json.dumps({"imdb_id": "tt0903747"}))
+
+    monkeypatch.setattr(metadata.requests, "get", get)
+    assert metadata.tmdb_get_imdb(1396, "series") == "tt0903747"
+    assert calls == [{"timeout": 30}]
+
+
+def test_series_lookup_does_not_fall_back_to_a_movie_after_a_timeout(monkeypatch):
+    from arm.ui import metadata
+
+    calls = []
+
+    def get(url, **kwargs):
+        calls.append(url)
+        raise metadata.requests.Timeout("fixture timeout")
+
+    monkeypatch.setattr(metadata.requests, "get", get)
+    with pytest.raises(metadata.requests.Timeout, match="fixture timeout"):
+        metadata.tmdb_get_imdb(1396, "series")
+    assert len(calls) == 1
+    assert "/tv/1396/external_ids" in calls[0]
