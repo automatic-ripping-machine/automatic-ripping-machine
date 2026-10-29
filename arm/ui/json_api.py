@@ -540,17 +540,21 @@ def terminate_process(pid):
 def change_job_params(config_id):
     """Update values for job"""
     job = Job.query.get(config_id)
+    if job is None or job.config is None:
+        return {'return': '', 'success': False}
     config = job.config
-    form = ChangeParamsForm(request.args, meta={'csrf': False})
+    # Flask-WTF accepts the form token or the header already checked by CSRFProtect.
+    form = ChangeParamsForm(request.form)
     app.logger.debug("Before valid")
     if form.validate():
         app.logger.debug("Valid")
         job.disctype = format(form.DISCTYPE.data)
-        cfg.arm_config["MINLENGTH"] = config.MINLENGTH = format(form.MINLENGTH.data)
-        cfg.arm_config["MAXLENGTH"] = config.MAXLENGTH = format(form.MAXLENGTH.data)
-        cfg.arm_config["RIPMETHOD"] = config.RIPMETHOD = format(form.RIPMETHOD.data)
+        # This job's config only: the UI's arm.yaml values are what the next settings save writes back.
+        config.MINLENGTH = format(form.MINLENGTH.data)
+        config.MAXLENGTH = format(form.MAXLENGTH.data)
+        config.RIPMETHOD = format(form.RIPMETHOD.data)
         # must be 1 for True 0 for False
-        cfg.arm_config["MAINFEATURE"] = config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
+        config.MAINFEATURE = 1 if format(form.MAINFEATURE.data).lower() == "true" else 0
         args = {'disctype': job.disctype}
         message = f'Parameters changed. Rip Method={config.RIPMETHOD}, Main Feature={config.MAINFEATURE},' \
                   f'Minimum Length={config.MINLENGTH}, Maximum Length={config.MAXLENGTH}, Disctype={job.disctype}'
