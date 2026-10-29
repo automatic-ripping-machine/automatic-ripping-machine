@@ -318,7 +318,9 @@ def move_files_main(old_file, new_file, base_path):
     :param str base_path: The base path of the new file - used for logging
     :return bool: True if the file was moved to new_file
     """
-    if not os.path.isfile(new_file):
+    # A directory would make shutil.move nest the source, and a broken link can be overwritten.
+    # Every existing directory entry is a collision, regardless of its target or type.
+    if not os.path.lexists(new_file):
         # Try to find the file, handling minor naming discrepancies
         actual_old_file = find_matching_file(old_file)
 

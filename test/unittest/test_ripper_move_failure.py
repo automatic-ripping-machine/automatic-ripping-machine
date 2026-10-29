@@ -68,6 +68,26 @@ def test_destination_exists_keeps_raw_and_fails(series_job):
     assert (final_dir / "title_t00.mkv").read_bytes() == b"other disc"
 
 
+@pytest.mark.parametrize("kind", ["directory", "dangling_symlink"])
+def test_destination_entry_collision_keeps_raw_and_fails(series_job, kind):
+    job, raw_dir, final_dir = series_job
+    final_dir.mkdir(parents=True)
+    destination = final_dir / "title_t00.mkv"
+    if kind == "directory":
+        destination.mkdir()
+    else:
+        destination.symlink_to(final_dir / "missing-target")
+
+    with pytest.raises(utils.RipperException, match="could not be moved"):
+        arm_ripper.rip_visual_media(False, job, "job.log", 0)
+
+    assert (raw_dir / "title_t00.mkv").read_bytes() == b"ripped title"
+    if kind == "directory":
+        assert list(destination.iterdir()) == []
+    else:
+        assert destination.is_symlink()
+
+
 @pytest.mark.parametrize("video_type", ["series", "movie"])
 @pytest.mark.parametrize("filename", ["", None, "   "])
 def test_missing_required_filename_keeps_raw_and_fails(series_job, video_type, filename):
