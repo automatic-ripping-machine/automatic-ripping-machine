@@ -9,6 +9,8 @@ from arm.ui import app
 import arm.config.config as cfg
 
 TMDB_YEAR_REGEX = r"-\d{0,2}-\d{0,2}"
+# Seconds before an OMDb/TMDB request is abandoned; identification continues without it.
+REQUEST_TIMEOUT = 30
 
 
 def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
@@ -217,7 +219,7 @@ def tmdb_get_imdb(tmdb_id, media_type="movie"):
           f"append_to_response=alternative_titles,credits,images,keywords,releases,reviews,similar,videos,external_ids"
     url_tv = f"https://api.themoviedb.org/3/tv/{tmdb_id}/external_ids?api_key={tmdb_api_key}"
     if media_type == "series":
-        response = requests.get(url_tv, timeout=30)
+        response = requests.get(url_tv, timeout=REQUEST_TIMEOUT)
         tv_json = json.loads(response.text)
         return None if 'status_code' in tv_json else tv_json.get('imdb_id')
     # Making a get request

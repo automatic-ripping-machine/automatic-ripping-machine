@@ -25,9 +25,11 @@ def test_series_result_never_takes_the_movie_with_the_same_id(monkeypatch):
     assert metadata.tmdb_get_imdb(1396) == "tt0000001"
 
 
-def test_series_external_id_lookup_has_a_finite_timeout(monkeypatch):
+@pytest.mark.parametrize("timeout", [7, 30])
+def test_series_external_id_lookup_uses_the_shared_timeout(monkeypatch, timeout):
     from arm.ui import metadata
 
+    monkeypatch.setattr(metadata, "REQUEST_TIMEOUT", timeout)
     calls = []
 
     def get(url, **kwargs):
@@ -36,7 +38,7 @@ def test_series_external_id_lookup_has_a_finite_timeout(monkeypatch):
 
     monkeypatch.setattr(metadata.requests, "get", get)
     assert metadata.tmdb_get_imdb(1396, "series") == "tt0903747"
-    assert calls == [{"timeout": 30}]
+    assert calls == [{"timeout": timeout}]
 
 
 def test_series_lookup_does_not_fall_back_to_a_movie_after_a_timeout(monkeypatch):
