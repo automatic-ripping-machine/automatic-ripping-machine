@@ -9,6 +9,24 @@ from arm.ui import app
 import arm.config.config as cfg
 
 TMDB_YEAR_REGEX = r"-\d{0,2}-\d{0,2}"
+TMDB_SEARCH_URL = "https://api.themoviedb.org/3/search"
+
+
+def _query_text(search_query):
+    """
+    The ripper joins search words with "+" (see identify.search_title). That
+    only means "space" while it sits unencoded in a URL, so turn it back into
+    spaces before the query is encoded.
+    """
+    return str(search_query).replace("+", " ").strip()
+
+
+def _tmdb_search_request(kind, search_query, tmdb_api_key, year=None):
+    """GET /search/<kind> with the query URL-encoded by requests."""
+    params = {"api_key": tmdb_api_key, "query": _query_text(search_query)}
+    if year:
+        params["year"] = year
+    return requests.get(f"{TMDB_SEARCH_URL}/{kind}", params=params)
 
 
 def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
@@ -30,7 +48,7 @@ def call_omdb_api(title=None, year=None, imdb_id=None, plot="short"):
         str_url = f"https://www.omdbapi.com/?i={imdb_id}&plot={plot}&r=json&apikey={omdb_api_key}"
     elif title:
         # try:
-        title = urllib.parse.quote(title)
+        title = urllib.parse.quote(_query_text(title))
         if year and year is not None:
             year = urllib.parse.quote(year)
             str_url = f"https://www.omdbapi.com/?s={title}&y={year}&plot={plot}&r=json&apikey={omdb_api_key}"
@@ -115,8 +133,7 @@ def get_tmdb_poster(search_query=None, year=None):
         return tmdb_process_poster(search_results, poster_base)
 
     # Search tmdb for tv series
-    url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={search_query}"
-    response = requests.get(url)
+    response = _tmdb_search_request("tv", search_query, tmdb_api_key)
     search_results = json.loads(response.text)
     # app.logger.debug(json.dumps(response.json(), indent=4, sort_keys=True))
     if search_results['total_results'] > 0:
@@ -165,8 +182,7 @@ def tmdb_search(search_query=None, year=None):
         return tmdb_process_results(poster_base, return_results, search_results, "movie")
     # Search for tv series
     app.logger.debug("tmdb_search - movie not found, trying tv series ")
-    url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={search_query}"
-    response = requests.get(url)
+    response = _tmdb_search_request("tv", search_query, tmdb_api_key)
     search_results = json.loads(response.text)
     if search_results['total_results'] > 0:
         app.logger.debug(search_results['total_results'])
@@ -291,14 +307,10 @@ def tmdb_fetch_results(search_query, year, tmdb_api_key):
     # https://api.themoviedb.org/3/movie/78?api_key= # base url
     # Additional
     # &append_to_response=alternative_titles,changes,credits,images,keywords,lists,releases,reviews,similar,videos
-    if year:
-        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}&year={year}"
-    else:
-        url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={search_query}"
     # Valid poster sizes
     # "w92", "w154", "w185", "w342", "w500", "w780", "original"
     poster_size = "original"
     poster_base = f"https://image.tmdb.org/t/p/{poster_size}"
-    response = requests.get(url)
+    response = _tmdb_search_request("movie", search_query, tmdb_api_key, year)
     return_json = json.loads(response.text)
     return return_json, poster_base, response
