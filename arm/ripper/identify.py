@@ -238,6 +238,10 @@ def identify_dvd(job):
         # The disc-ID match is exact. A search on the disc label would overwrite
         # it with whatever the metadata provider lists first.
         logging.info("Disc identified by its CRC64, skipping the label search.")
+    elif job.label == "not identified":
+        # No label to search with. identify_loop() would otherwise cut the
+        # placeholder down to "not" and search for that.
+        logging.info("Disc has no label, skipping the label search.")
     else:
         # in this block we want to strip out any chars that might be bad
         # strip all non-numeric chars and use that for year
@@ -370,7 +374,10 @@ def metadata_selector(job, title=None, year=None):
     # job.title with it. The guard in get_video_details() cannot catch this,
     # because by the time it runs job.title is the bogus match rather than the
     # placeholder. Refuse the search here instead, where every caller passes.
-    if title is None or str(title).strip().lower() in ("", "not identified"):
+    # Callers pass search strings ("not+identified", "not_identified"), so
+    # compare the words, not the raw string.
+    words = re.sub(r"[+_\s]+", " ", str(title)).strip().lower() if title is not None else ""
+    if words in ("", "not identified"):
         logging.info(f"Not searching for placeholder title: {title!r}")
         return None
     search_results = None

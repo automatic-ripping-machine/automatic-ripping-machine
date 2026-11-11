@@ -60,6 +60,27 @@ class TestIdentifyDvd(unittest.TestCase):
         self.assertEqual(selector.call_args.args[1], "SPIRITED+AWAY")
         self.assertEqual(loop.call_args.args[2], "SPIRITED+AWAY")
 
+    def test_unlabelled_disc_is_not_searched(self):
+        """CHECK a disc without a label never searches for the 'not identified' placeholder"""
+        job = make_job(label=None)
+        with patch.object(identify.pydvdid, "compute", return_value="abc123"), \
+                patch.object(identify.urllib.request, "urlopen", return_value=crc_api_response(False)), \
+                patch.object(identify.utils, "database_updater", side_effect=fake_database_updater), \
+                patch.object(identify.ui_utils, "tmdb_search") as tmdb, \
+                patch.object(identify.ui_utils, "call_omdb_api") as omdb, \
+                patch.object(identify, "arm_subprocess", return_value=None):
+            identify.identify_dvd(job)
+        tmdb.assert_not_called()
+        omdb.assert_not_called()
+        self.assertFalse(job.hasnicetitle)
+
+    def test_placeholder_guard_matches_search_strings(self):
+        """CHECK the placeholder guard also catches 'not+identified' and 'NOT_IDENTIFIED'"""
+        with patch.object(identify.ui_utils, "tmdb_search") as tmdb:
+            for title in ("not identified", "not+identified", "NOT_IDENTIFIED", " ", None):
+                self.assertIsNone(identify.metadata_selector(make_job(), title))
+        tmdb.assert_not_called()
+
     def test_crc_match_is_not_overwritten_by_label_search(self):
         """CHECK an exact disc-ID match skips the label search"""
         job = make_job()
