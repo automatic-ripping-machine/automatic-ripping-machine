@@ -36,6 +36,15 @@ class RipperException(Exception):
     pass
 
 
+class DriveEmptyException(RipperException):
+    """
+    The drive has no disc (tray open or empty), so there is nothing to rip.
+
+    Opening or ejecting a tray also fires the udev "change" event that starts
+    ARM, so this is a normal exit, not an error.
+    """
+
+
 def notify(job, title: str, body: str):
     """
     Send notifications with apprise\n
