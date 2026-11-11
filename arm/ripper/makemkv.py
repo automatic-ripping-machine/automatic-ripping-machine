@@ -1245,27 +1245,57 @@ def run(options, select):
     logging.debug(f"command: '{' '.join(cmd)}'")
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True) as proc:
         logging.debug(f"PID {proc.pid}: command: '{' '.join(cmd)}'")
-        for line in proc.stdout:
-            line = line.rstrip(os.linesep)
-            logging.debug(line)  # Maybe write the raw output to a separate log
-            if proc.returncode:
-                buffer.append(line)
-                continue
-            try:
-                msg_type, data = parse_line(line)
-            except MakeMkvParserError as err:
-                logging.warning(err)
-                buffer.append(line)
-                continue
-            logging.debug(data)
-            if msg_type in select:
-                yield data
+        try:
+            for line in proc.stdout:
+                line = line.rstrip(os.linesep)
+                logging.debug(line)  # Maybe write the raw output to a separate log
+                if proc.returncode:
+                    buffer.append(line)
+                    continue
+                try:
+                    msg_type, data = parse_line(line)
+                except MakeMkvParserError as err:
+                    logging.warning(err)
+                    buffer.append(line)
+                    continue
+                logging.debug(data)
+                if msg_type in select:
+                    yield data
+        except BaseException:
+            # We stopped reading early: an error in the caller, SIGTERM from
+            # "Abandon Job", or the generator being closed. Leaving the Popen
+            # block would wait() for makemkvcon to exit on its own, which can
+            # take forever while it keeps holding the drive.
+            _stop_makemkvcon(proc)
+            raise
     if proc.returncode:
         raise MakeMkvRuntimeError(proc.returncode, cmd, output=os.linesep.join(buffer))
     if buffer and proc.returncode:
         logging.warning(f"Cannot parse {len(buffer)} lines: {os.linesep.join(buffer)}")
         raise MakeMkvRuntimeError(proc.returncode, cmd, output=os.linesep.join(buffer))
     logging.info("MakeMKV exits gracefully.")
+
+
+def _stop_makemkvcon(proc, timeout=10):
+    """
+    Stop a makemkvcon process that is still running.
+
+    Sends SIGTERM, waits up to `timeout` seconds, then sends SIGKILL.
+
+    Parameters:
+        proc (subprocess.Popen): the makemkvcon process
+        timeout (int): seconds to wait after SIGTERM before SIGKILL
+    """
+    if proc.poll() is not None:
+        return
+    logging.warning(f"Stopping makemkvcon (PID {proc.pid})")
+    proc.terminate()
+    try:
+        proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        logging.warning(f"makemkvcon (PID {proc.pid}) ignored SIGTERM, killing it")
+        proc.kill()
+        proc.wait()
 
 
 def manual_wait(job) -> bool:
