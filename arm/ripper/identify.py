@@ -202,7 +202,6 @@ def identify_dvd(job):
     # Some older DVDs aren't actually labelled
     if not job.label or job.label == "":
         job.label = "not identified"
-    crc_match = False
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
         logging.info(f"DVD CRC64 hash is: {crc64}")
@@ -230,15 +229,13 @@ def identify_dvd(job):
                 'hasnicetitle': True
             }
             utils.database_updater(args, job)
-            crc_match = True
     except Exception as error:
         logging.error(f"Pydvdid failed with the error: {error}")
 
-    if crc_match:
-        # The disc-ID match is exact. A search on the disc label would overwrite
-        # it with whatever the metadata provider lists first.
-        logging.info("Disc identified by its CRC64, skipping the label search.")
-    elif job.label == "not identified":
+    # The label search still runs after a CRC64 match and replaces it when it
+    # finds something: disc-ID entries are user-submitted and can be wrong. If
+    # the search finds nothing, the CRC64 result is kept.
+    if job.label == "not identified":
         # No label to search with. identify_loop() would otherwise cut the
         # placeholder down to "not" and search for that.
         logging.info("Disc has no label, skipping the label search.")

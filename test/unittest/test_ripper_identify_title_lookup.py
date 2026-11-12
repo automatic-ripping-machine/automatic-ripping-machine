@@ -81,12 +81,11 @@ class TestIdentifyDvd(unittest.TestCase):
                 self.assertIsNone(identify.metadata_selector(make_job(), title))
         tmdb.assert_not_called()
 
-    def test_crc_match_is_not_overwritten_by_label_search(self):
-        """CHECK an exact disc-ID match skips the label search"""
+    def test_crc_match_kept_when_label_search_finds_nothing(self):
+        """CHECK the label search still runs after a disc-ID match, and the match stays if it finds nothing"""
         job = make_job()
-        selector, loop = self.run_identify_dvd(job, crc_found=True)
-        selector.assert_not_called()
-        loop.assert_not_called()
+        selector, _loop = self.run_identify_dvd(job, crc_found=True)
+        self.assertEqual(selector.call_args.args[1], "SPIRITED+AWAY")
         self.assertEqual(job.title, "Spirited-Away")
         self.assertEqual(job.year, "2001")
         self.assertTrue(job.hasnicetitle)
