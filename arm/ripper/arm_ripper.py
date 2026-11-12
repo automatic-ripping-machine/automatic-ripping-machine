@@ -59,8 +59,15 @@ def rip_visual_media(have_dupes, job, logfile, protection):
         db.session.commit()
         try:
             makemkv_out_path = makemkv.makemkv(job)
-        except Exception as mkv_error:  # noqa: E722
-            raise utils.RipperException("Error while running MakeMKV") from mkv_error
+        except (makemkv.MakeMkvRuntimeError, makemkv.UpdateKeyRunTimeError, utils.RipperException) as mkv_error:
+            # Keep the reason: main.py only logs this exception's message (it
+            # prints the chained traceback at DEBUG level only), and it is
+            # what job.errors and the failure notification show.
+            raise utils.RipperException(f"Error while running MakeMKV: {mkv_error}") from mkv_error
+        except Exception as mkv_error:
+            logging.exception("Unexpected error while running MakeMKV")
+            raise utils.RipperException(
+                f"Error while running MakeMKV: {type(mkv_error).__name__}: {mkv_error}") from mkv_error
 
         if job.config.NOTIFY_RIP:
             utils.notify(job, constants.NOTIFY_TITLE, f"{job.title} rip complete. Starting transcode. ")
