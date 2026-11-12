@@ -884,6 +884,39 @@ def job_dupe_check(job):
         return False
 
 
+MANUAL_FIELDS = ("title", "year", "video_type", "imdb_id", "poster_url")
+
+
+def apply_manual_overrides(job):
+    """
+    Re-apply values set in the UI (title_manual, year_manual, ...) over the
+    automatic identification.
+
+    The UI writes both <field> and <field>_manual. If that happens while the
+    disc is still being identified, identify.py and job_dupe_check() then
+    overwrite <field>, and only the title survived (fix_job_title() reads
+    title_manual). Only the *_manual columns are read from the database, so
+    uncommitted changes on ``job`` are kept.
+
+    :param job: Current job
+    :return: True if any value was re-applied
+    """
+    columns = [getattr(Job, f"{field}_manual") for field in MANUAL_FIELDS]
+    row = db.session.query(*columns).filter(Job.job_id == job.job_id).one_or_none()
+    if row is None:
+        return False
+    updates = {}
+    for field, manual in zip(MANUAL_FIELDS, row):
+        if manual not in (None, "", "None") and getattr(job, field) != manual:
+            updates[field] = manual
+            updates[f"{field}_manual"] = manual
+    if updates:
+        logging.info("Re-applying values set in the UI: "
+                     + ", ".join(f"{key}={value}" for key, value in updates.items() if not key.endswith("_manual")))
+        database_updater(updates, job)
+    return bool(updates)
+
+
 def check_for_wait(job):
     """
     Wait if we have waiting for user input updates\n\n
@@ -901,6 +934,7 @@ def check_for_wait(job):
             db.session.refresh(job)
             if job.title_manual:
                 logging.info("Manual override found.  Overriding auto identification values.")
+                apply_manual_overrides(job)
                 job.updated = True
                 job.hasnicetitle = True
                 database_updater({"hasnicetitle": True, "updated": True}, job)
