@@ -140,13 +140,13 @@ def identify_bluray(job):
                       f"number is: {error.errno}")
         # Maybe call OMdb with label when we can't find any ident on disc ?
         # Attempt to parse label
-        if str(job.label) == "":
-            job.title = str(job.label)
+        if str(job.label or "") == "":
+            job.title = str(job.label or "")
             job.year = ""
             db.session.commit()
             return False
         else:
-            bluray_title = str(job.label)
+            bluray_title = str(job.label or "")
             bluray_title = bluray_title.replace('_', ' ')
             bluray_title = bluray_title.title()
             job.title = job.title_auto = bluray_title
@@ -155,14 +155,14 @@ def identify_bluray(job):
             return True
 
     if doc is None:
-        bluray_title = str(job.label)
+        bluray_title = str(job.label or "")
     else:
         try:
             bluray_title = doc['disclib']['di:discinfo']['di:title']['di:name']
             if not bluray_title:
-                bluray_title = str(job.label)
-        except KeyError:
-            bluray_title = str(job.label)
+                bluray_title = str(job.label or "")
+        except (KeyError, TypeError):  # missing element, or an empty one (None)
+            bluray_title = str(job.label or "")
             logging.error(
                 "Could not parse title from bdmt_eng.xml file. "
                 "Using disc label '%s'.",
@@ -204,7 +204,7 @@ def identify_dvd(job):
         job.crc_id = str(crc64)
         urlstring = f"https://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
         logging.debug(urlstring)
-        dvd_info_xml = urllib.request.urlopen(urlstring).read()
+        dvd_info_xml = urllib.request.urlopen(urlstring, timeout=30).read()
         arm_api_json = json.loads(dvd_info_xml)
         logging.debug(f"dvd xml - {arm_api_json}")
         logging.debug(f"results = {arm_api_json['results']}")
