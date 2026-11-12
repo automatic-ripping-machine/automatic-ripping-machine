@@ -8,6 +8,7 @@ import shutil
 import time
 import random
 import re
+import shlex
 from logging import Logger
 from pathlib import Path, PurePath
 from math import ceil
@@ -486,28 +487,33 @@ def rip_data(job):
     success = False
     if job.label == "" or job.label is None:
         job.label = "data-disc"
+    # The label comes from the disc: keep it out of the shell and inside our folders
+    file_label = str(job.label).replace("/", "_")
+    if file_label in (".", ".."):
+        file_label = "data-disc"
     # get filesystem in order
-    raw_path = os.path.join(job.config.RAW_PATH, str(job.label))
+    raw_path = os.path.join(job.config.RAW_PATH, file_label)
     final_path = os.path.join(job.config.COMPLETED_PATH, convert_job_type(job.video_type))
-    final_file_name = str(job.label)
+    final_file_name = file_label
 
     if (make_dir(raw_path)) is False:
         random_time = str(round(time.time() * 100))
-        raw_path = os.path.join(job.config.RAW_PATH, str(job.label) + "_" + random_time)
-        final_file_name = f"{job.label}_{random_time}"
+        raw_path = os.path.join(job.config.RAW_PATH, file_label + "_" + random_time)
+        final_file_name = f"{file_label}_{random_time}"
         make_dir(raw_path, False)
 
     final_path = os.path.join(final_path, final_file_name)
-    incomplete_filename = os.path.join(raw_path, str(job.label) + ".part")
+    incomplete_filename = os.path.join(raw_path, file_label + ".part")
     make_dir(final_path)
     logging.info(f"Ripping data disc to: {incomplete_filename}")
-    # Added from pull 366
-    cmd = f'dd if="{job.devpath}" of="{incomplete_filename}" {cfg.arm_config["DATA_RIP_PARAMETERS"]} 2>> ' \
-          f'{os.path.join(job.config.LOGPATH, job.logfile)}'
+    # Added from pull 366. Run dd directly (no shell), with its stderr in the job log.
+    cmd = ["dd", f"if={job.devpath}", f"of={incomplete_filename}"]
+    cmd += shlex.split(str(cfg.arm_config["DATA_RIP_PARAMETERS"] or ""))
     logging.debug(f"Sending command: {cmd}")
     try:
-        subprocess.check_output(cmd, shell=True).decode("utf-8")
-        full_final_file = os.path.join(final_path, f"{str(job.label)}.iso")
+        with open(os.path.join(job.config.LOGPATH, job.logfile), "a") as job_log:
+            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=job_log, check=True)
+        full_final_file = os.path.join(final_path, f"{file_label}.iso")
         logging.info(f"Moving data-disc from '{incomplete_filename}' to '{full_final_file}'")
         move_files_main(incomplete_filename, full_final_file, final_path)
         logging.info("Data rip call successful")
@@ -515,7 +521,8 @@ def rip_data(job):
     except subprocess.CalledProcessError as dd_error:
         err = f"Data rip failed with code: {dd_error.returncode}({dd_error.output})"
         logging.error(err)
-        os.unlink(incomplete_filename)
+        if os.path.exists(incomplete_filename):
+            os.unlink(incomplete_filename)
         args = {"status": JobState.FAILURE.value, "errors": err}
         database_updater(args, job)
     try:
