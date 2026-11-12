@@ -492,7 +492,13 @@ def abandon_job(job_id):
     job = Job.query.get(int(job_id))
     job.status = JobState.FAILURE.value
     try:
-        terminate_process(job.pid)
+        if is_job_process(job):
+            terminate_process(job.pid)
+        else:
+            # After a restart the PID may belong to another process (another
+            # job's ripper, the UI, ...). Don't signal it; just release the job.
+            app.logger.warning(f"Job {job_id}: PID {job.pid} is no longer this job's ripper. "
+                               "Not sending it a signal.")
     except Exception as err:
         db.session.rollback()
         json_return["Error"] = str(err)
@@ -510,6 +516,21 @@ def abandon_job(job_id):
     db.session.add(notification)
     db.session.commit()
     return json_return
+
+
+def is_job_process(job):
+    """
+    Check that job.pid is still the ripper process that started the job.
+
+    Job.get_pid() stores hash(psutil.Process(pid)), which covers the PID and
+    the process start time, so a reused PID gives a different hash.
+    """
+    if job.pid is None:
+        return False
+    try:
+        return hash(psutil.Process(job.pid)) == job.pid_hash
+    except psutil.NoSuchProcess:
+        return False
 
 
 def terminate_process(pid):
