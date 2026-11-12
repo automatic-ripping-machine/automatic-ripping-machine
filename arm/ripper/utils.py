@@ -702,6 +702,22 @@ def database_adder(obj_class):
     return False
 
 
+def job_process_running(job):
+    """
+    Check whether the process that started a job is still alive\n
+    A PID that now belongs to another process (different hash) counts as gone,
+    which is common after a container restart.
+    :param job: Job to check
+    :return: True if the job's own process is still running
+    """
+    if not job.pid or not psutil.pid_exists(job.pid):
+        return False
+    try:
+        return hash(psutil.Process(job.pid)) == job.pid_hash
+    except psutil.NoSuchProcess:
+        return False
+
+
 def clean_old_jobs():
     """
     Check for running jobs - Update failed jobs that are no longer running\n
@@ -710,12 +726,10 @@ def clean_old_jobs():
     active_jobs = db.session.query(Job).filter(Job.status.notin_(['fail', 'success'])).all()
     # Clean up abandoned jobs
     for job in active_jobs:
-        if psutil.pid_exists(job.pid):
-            job_process = psutil.Process(job.pid)
-            if job.pid_hash == hash(job_process):
-                logging.info(f"Job #{job.job_id} with PID {job.pid} is currently running.")
+        if job_process_running(job):
+            logging.info(f"Job #{job.job_id} with PID {job.pid} is currently running.")
         else:
-            logging.info(f"Job #{job.job_id} with PID {job.pid} has been abandoned."
+            logging.info(f"Job #{job.job_id} with PID {job.pid} has been abandoned. "
                          f"Updating job status to fail.")
             job.status = JobState.FAILURE.value
             db.session.commit()
@@ -781,6 +795,15 @@ def duplicate_run_check(dev_path):
     if drive is None or not drive.processing:
         return  # unknown or idle drive is safe to start another run.
     job = drive.job_current
+    if job.finished or not job_process_running(job):
+        # A crashed, killed or finished job must not hold the drive forever
+        logging.warning(f"Drive {dev_path} is held by Job ({job.job_id}) with status '{job.status}', "
+                        f"which is finished or no longer running (PID {job.pid}). Releasing the drive.")
+        if not job.finished:
+            job.status = JobState.FAILURE.value
+        drive.release_current_job()
+        db.session.commit()
+        return
     logging.critical(f'Drive {dev_path} has an active Job ({job.job_id}): {job.status}.')
     # log time
     job_time = ceil(job.run_time // 60)
