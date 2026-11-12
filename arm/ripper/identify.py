@@ -80,11 +80,16 @@ def identify(job):
                 res = identify_dvd(job)
             if job.disctype == "bluray":
                 res = identify_bluray(job)
-            if res:
-                get_video_details(job)
-            else:
+            if not res:
                 job.hasnicetitle = False
                 db.session.commit()
+            elif job.hasnicetitle:
+                # identify_dvd() already found the title (ARM disc-ID database or
+                # the label search). Searching again with that title can only
+                # replace a good match with another first result.
+                logging.info("Disc already identified, skipping the title search.")
+            else:
+                get_video_details(job)
 
             logging.info(f"Disc title Post ident -  title:{job.title} "
                          f"year:{job.year} video_type:{job.video_type} "
@@ -199,7 +204,6 @@ def identify_dvd(job):
         job.label = "not identified"
     try:
         crc64 = pydvdid.compute(str(job.mountpoint))
-        dvd_title = f"{job.label}_{crc64}"
         logging.info(f"DVD CRC64 hash is: {crc64}")
         job.crc_id = str(crc64)
         urlstring = f"https://1337server.pythonanywhere.com/api/v1/?mode=s&crc64={crc64}"
@@ -227,27 +231,33 @@ def identify_dvd(job):
             utils.database_updater(args, job)
     except Exception as error:
         logging.error(f"Pydvdid failed with the error: {error}")
-        dvd_title = str(job.label)
 
-    logging.debug(f"dvd_title_label: {dvd_title}")
-    # in this block we want to strip out any chars that might be bad
-    # strip all non-numeric chars and use that for year
-    year = re.sub(r"\D", "", str(job.year)) if job.year else None
-    # next line is not really needed, but we don't want to leave an x somewhere
-    dvd_title = job.label.replace("16x9", "")
-    logging.debug(f"dvd_title ^a-z _-: {dvd_title}")
-    # rip out any SKU's at the end of the line
-    dvd_title = re.sub(r"SKU\b", "", dvd_title)
-    logging.debug(f"dvd_title SKU$: {dvd_title}")
+    # The label search still runs after a CRC64 match and replaces it when it
+    # finds something: disc-ID entries are user-submitted and can be wrong. If
+    # the search finds nothing, the CRC64 result is kept.
+    if job.label == "not identified":
+        # No label to search with. identify_loop() would otherwise cut the
+        # placeholder down to "not" and search for that.
+        logging.info("Disc has no label, skipping the label search.")
+    else:
+        # in this block we want to strip out any chars that might be bad
+        # strip all non-numeric chars and use that for year
+        year = re.sub(r"\D", "", str(job.year)) if job.year else None
+        # next line is not really needed, but we don't want to leave an x somewhere
+        dvd_title = job.label.replace("16x9", "")
+        # rip out any SKU's at the end of the line
+        dvd_title = re.sub(r"SKU\b", "", dvd_title)
+        # Labels use underscores for spaces (THE_WIND_RISES). TMDB treats
+        # "THE_WIND_RISES" as one token and returns unrelated titles first.
+        dvd_title = search_title(dvd_title)
+        logging.debug(f"dvd_title: {dvd_title}")
 
-    # Do we really need metaselector if we have got from ARM online db?
-    try:
-        dvd_info_xml = metadata_selector(job, dvd_title, year)
-        logging.debug(f"DVD_INFO_XML: {dvd_info_xml}")
-        identify_loop(job, dvd_info_xml, dvd_title, year)
-    except Exception:
-        dvd_info_xml = None
-        logging.debug("Cant connect to online service!")
+        try:
+            dvd_info_xml = metadata_selector(job, dvd_title, year)
+            logging.debug(f"DVD_INFO_XML: {dvd_info_xml}")
+            identify_loop(job, dvd_info_xml, dvd_title, year)
+        except Exception:
+            logging.debug("Cant connect to online service!")
     # Failsafe so that we always have a title.
     if job.title is None or job.title == "None":
         job.title = str(job.label)
@@ -271,6 +281,18 @@ def identify_dvd(job):
     return True
 
 
+def search_title(title):
+    """
+    Turn a disc label or title into a search string: underscores and spaces
+    become "+" (a space in the search query), which identify_loop() also uses
+    to drop trailing words when nothing is found.
+
+    >>> search_title(" THE_WIND_RISES ")
+    'THE+WIND+RISES'
+    """
+    return re.sub('[_ ]+', "+", title.strip())
+
+
 def get_video_details(job):
     """ Clean up title and year.  Get video_type, imdb_id, poster_url from
     omdbapi.com webservice.\n
@@ -285,7 +307,7 @@ def get_video_details(job):
     if title == "not identified" or title is None or title == "":
         logging.info("Disc couldn't be identified")
         return
-    title = re.sub('[_ ]', "+", title.strip())
+    title = search_title(title)
 
     # strip all non-numeric chars and use that for year
     if job.year is None:
@@ -349,7 +371,10 @@ def metadata_selector(job, title=None, year=None):
     # job.title with it. The guard in get_video_details() cannot catch this,
     # because by the time it runs job.title is the bogus match rather than the
     # placeholder. Refuse the search here instead, where every caller passes.
-    if title is None or str(title).strip().lower() in ("", "not identified"):
+    # Callers pass search strings ("not+identified", "not_identified"), so
+    # compare the words, not the raw string.
+    words = re.sub(r"[+_\s]+", " ", str(title)).strip().lower() if title is not None else ""
+    if words in ("", "not identified"):
         logging.info(f"Not searching for placeholder title: {title!r}")
         return None
     search_results = None
