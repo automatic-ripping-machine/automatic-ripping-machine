@@ -303,6 +303,7 @@ def get_track_info(srcpath, job):
                 aspect = str(aspect).replace(",", "")
     else:
         logging.info("HandBrake unable to get track information")
+        return
 
     utils.put_track(job, t_no, seconds, aspect, fps, main_feature, "HandBrake")
 
@@ -361,10 +362,10 @@ def handbrake_char_encoding(cmd):
     """
     Allows us to try multiple char encoding types\n\n
     :param cmd: CMD to push
-    :return: the output from HandBrake or -1 if it fails
+    :return: the output from HandBrake or None if it fails
     """
     charset_found = False
-    hand_brake_output = -1
+    hand_brake_output = None
     try:
         hand_brake_output = subprocess.check_output(
             cmd,

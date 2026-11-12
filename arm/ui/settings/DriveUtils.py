@@ -306,7 +306,7 @@ def drives_update(startup=False):
     if stale_count > 0:
         app.logger.info("%d drives are unavailable.", stale_count)
 
-    return drive_count - SystemDrives.query.count()
+    return SystemDrives.query.count() - drive_count
 
 
 def update_job_status():
