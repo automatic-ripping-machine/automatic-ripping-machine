@@ -240,7 +240,7 @@ def rips():
     """
     This no longer works properly because of the 'transcoding' status
     """
-    active_jobs = Job.query.filter_by(~Job.finished)
+    active_jobs = Job.query.filter(~Job.finished)
     return render_template('activerips.html', jobs=active_jobs)
 
 

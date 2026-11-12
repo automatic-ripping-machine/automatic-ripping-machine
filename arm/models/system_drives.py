@@ -66,7 +66,7 @@ def _tray_status(devpath, logger=logging):
         logger.critical(f"Possibly Stale Mount Points detected: '{err}'")
         return None  # should be cleared in `ui.settings.DriveUtils.drives_update`
     except TypeError as err:
-        logger.critical(f"Possible Database Inconsistency for {devpath}: '{err:s}'")
+        logger.critical(f"Possible Database Inconsistency for {devpath}: '{err}'")
         return None  # inconsistency in SystemDrives.mount
     except OSError as err:
         # Sometimes ARM will log errors opening hard drives. this check should stop it
@@ -81,7 +81,7 @@ def _tray_status(devpath, logger=logging):
     try:
         return fcntl.ioctl(disk_check, 0x5326, 0)
     except OSError as err:
-        logger.warning(f"Failed to check status for '{devpath}': {err:s}")
+        logger.warning(f"Failed to check status for '{devpath}': {err}")
         return None
     finally:
         os.close(disk_check)

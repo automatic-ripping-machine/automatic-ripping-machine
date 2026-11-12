@@ -393,7 +393,7 @@ def drive_manual(manual_id):
     """
 
     drive = SystemDrives.query.filter_by(drive_id=manual_id).first()
-    dev_path = drive.mount.lstrip('/dev/')
+    dev_path = drive.mount.removeprefix('/dev/')
 
     cmd = os.path.join(
         cfg.arm_config["INSTALLPATH"],
