@@ -462,15 +462,44 @@ def rip_music(job, logfile):
         args = {"status": JobState.AUDIO_RIPPING.value}
         database_updater(args, job)
 
+        logpath = os.path.join(job.config.LOGPATH, logfile)
+        # How long (seconds) progress may stall before the job is killed; 0 = disabled
+        stall_timeout = int(cfg.arm_config.get("MUSIC_STALL_TIMEOUT", 1800))
+
         try:
-            # TODO check output and confirm all tracks ripped; find "Finished\.$"
-            subprocess.check_output(cmd, shell=True).decode("utf-8")
+            proc = subprocess.Popen(cmd, shell=True)
+            last_size = -1
+            last_progress_time = time.time()
+
+            while proc.poll() is None:
+                time.sleep(30)
+                try:
+                    current_size = os.path.getsize(logpath)
+                except OSError:
+                    current_size = last_size
+
+                if current_size != last_size:
+                    last_size = current_size
+                    last_progress_time = time.time()
+                elif stall_timeout > 0 and (time.time() - last_progress_time) > stall_timeout:
+                    proc.kill()
+                    proc.wait()
+                    err = (f"abcde stalled for over {stall_timeout // 60} minutes with no log activity — "
+                           f"job killed. Check disc for damage.")
+                    args = {"status": JobState.FAILURE.value, "errors": err}
+                    database_updater(args, job)
+                    logging.error(err)
+                    return False
+
+            if proc.returncode != 0:
+                raise subprocess.CalledProcessError(proc.returncode, cmd)
+
             logging.info("abcde call successful")
             args = {"status": JobState.IDLE.value}
             database_updater(args, job)
             return True
         except subprocess.CalledProcessError as ab_error:
-            err = f"Call to abcde failed with code: {ab_error.returncode} ({ab_error.output})"
+            err = f"Call to abcde failed with code: {ab_error.returncode}"
             args = {"status": JobState.FAILURE.value, "errors": err}
             database_updater(args, job)
             logging.error(err)

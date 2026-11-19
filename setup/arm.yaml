@@ -123,6 +123,9 @@ AUTO_EJECT: true
 # This over-rides any other abcde.conf files
 ABCDE_CONFIG_FILE: "/etc/arm/config/abcde.conf"
 
+# Seconds of log inactivity before a stalled music rip is killed (0 = disabled)
+MUSIC_STALL_TIMEOUT: 1800
+
 # Path to raw MakeMKV directory
 # Destination for MakeMKV and source for HandBrake
 RAW_PATH: "/home/arm/media/raw/"
