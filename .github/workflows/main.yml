@@ -32,23 +32,25 @@ jobs:
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4.38.2
+      uses: github/codeql-action/init@v4.39.4
       with:
         languages: ${{ matrix.language }}
 
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v4.38.2
+      uses: github/codeql-action/autobuild@v4.39.4
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4.38.2
+      uses: github/codeql-action/analyze@v4.39.4
 
 # This workflow will install Python dependencies, run tests and lint with a single version of Python
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
   test-armui:
     name: "Test A.R.M UI"
-    runs-on: ubuntu-latest
+    # ubuntu-latest is Ubuntu 26.04, which has no Python 3.9 build for
+    # actions/setup-python. 24.04 still provides every version in the matrix.
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         python-version: ['3.9', '3.10', '3.11', '3.12']
