@@ -7,15 +7,12 @@ A pre-built image has been added to docker hub [HERE](https://hub.docker.com/r/a
 ## Installing Linux
 - Select the option to install all third-party drivers
 - Make sure the username is `arm`
+- Debian and Ubuntu are recommended. Linux Mint, Arch, Cachyos, Manjaro, Fedora, RHEL, Centos, Rocky and Almalinux Linux is also supported, but receives less testing.
 
 ## Prepare Linux
-If running in a VM, make sure all disks are available to your distro via hardware passthrough in the VM Hypervisor software and confirm all drives are showing up by running `lsscsi -g`
+If running in a VM, make sure all disks are available to your distro via hardware passthrough in the VM Hypervisor software and confirm all drives are showing up by running `lsscsi -g` (Installation Example: `sudo apt install wget lsscsi`)
 
-**This script only supports Linux distros using the `apt` package manager.**
-
-```
-sudo apt install wget lsscsi
-lsscsi -g
+```bash
 wget https://raw.githubusercontent.com/automatic-ripping-machine/automatic-ripping-machine/main/scripts/installers/docker-setup.sh
 sudo chmod +x docker-setup.sh
 ```
