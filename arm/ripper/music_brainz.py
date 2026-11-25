@@ -208,6 +208,9 @@ def check_musicbrainz_data(job, disc_info: dict) -> str:
                     else:
                         logging.debug("we didnt get art image")
                     music_data = artist_title
+                    # Use the first CD release only; the others are other
+                    # pressings of the same disc
+                    break
 
     # Run if not a disc, but a cdstub (limited data)
     # No check on release is done here, assuming cdstub is limited to CDs
@@ -433,7 +436,8 @@ def process_tracks(job, mb_track_list: dict, is_stub=False):
                 track_leng = int(track['length'])
             else:
                 track_leng = int(track['recording']['length'])
-        except ValueError:
+        except (ValueError, KeyError, TypeError):
+            # MusicBrainz omits the length for some recordings
             logging.error("Failed to find track length")
         trackno = track.get('number', idx + 1)
         if is_stub:
