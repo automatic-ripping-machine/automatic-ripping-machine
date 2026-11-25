@@ -1,7 +1,12 @@
 """File to hold all functions pertaining to apprise"""
 import logging
+import urllib.parse
+
 import yaml
 import apprise
+
+# Secure modes apprise accepts for mailto:// URLs, with the port it assumes for each
+EMAIL_SECURE_PORTS = {'ssl': '465', 'starttls': '587', 'insecure': '25'}
 
 
 # TODO: Refactor this to leverage apprise_config stored in config.py
@@ -98,6 +103,66 @@ def apprise_notify(apprise_cfg, title, body):
             logging.error(f"Failed sending {host} apprise notification.  continuing  processing...{error}")
 
     ntfy_notify(cfg, title, body)
+    email_notify(cfg, title, body)
+
+
+def email_notify(cfg, title, body):
+    """
+    EMAIL NOTIFICATIONS\n
+    Uses the generic mailto:// handler, so any address apprise knows a template
+    for (e.g. Fastmail) works without a separate key per provider.
+    :param cfg: apprise.yaml loaded as dict
+    :param title: the message title
+    :param body: the main body of the message
+    :return: None
+    """
+    # Existing apprise.yaml files predate these keys, so they are all optional
+    sender = str(cfg.get('EMAIL_FROM') or "")
+    if sender == "":
+        return
+
+    recipients = [address.strip() for address in str(cfg.get('EMAIL_TO') or "").split(",") if address.strip()]
+    if not recipients:
+        logging.error("Failed sending email apprise notification: EMAIL_TO is empty")
+        return
+
+    secure_mode = str(cfg.get('EMAIL_SECURE_MODE') or "").strip().lower()
+    if secure_mode != "" and secure_mode not in EMAIL_SECURE_PORTS:
+        logging.error(f"Failed sending email apprise notification: unknown EMAIL_SECURE_MODE '{secure_mode}'")
+        return
+
+    quote = urllib.parse.quote
+    # Credentials go in the URL authority, so they have to be quoted to keep the '@' and any ':'
+    # inside the address from being read as separators. Without a password there is nothing to
+    # log in with and the whole part is left out, which is what lets a plain SMTP relay work.
+    credentials = ''
+    password = str(cfg.get('EMAIL_PASS') or "")
+    if password != "":
+        user = str(cfg.get('EMAIL_USER') or "").strip() or sender
+        credentials = quote(user, safe='') + ':' + quote(password, safe='') + '@'
+
+    # A blank host leaves apprise to pick the provider defaults for the sender's own domain,
+    # which is how it knows e.g. that Fastmail uses smtp.fastmail.com on port 465 with SSL
+    host = str(cfg.get('EMAIL_SMTP_HOST') or "").strip() or sender.split('@')[-1]
+    server = '@' + host
+    port = str(cfg.get('EMAIL_SMTP_PORT') or "").strip() or EMAIL_SECURE_PORTS.get(secure_mode, "")
+    if port != "":
+        server += ':' + port
+
+    serverstring = f"mailto://{credentials}{server}/" + '/'.join(quote(address, safe='') for address in recipients)
+    serverstring += f"?from={quote(sender, safe='')}"
+    if secure_mode != "":
+        serverstring += f"&mode={secure_mode}"
+
+    try:
+        apobj = apprise.Apprise()
+        if not apobj.add(serverstring):
+            logging.error("Failed sending email apprise notification: the mailto URL was rejected")
+            return
+        apobj.notify(body, title=title)
+        logging.debug("Sent apprise to email was successful")
+    except Exception as error:  # noqa: E722
+        logging.error(f"Failed sending email apprise notification. Continuing  processing...{error}")
 
 
 def ntfy_notify(cfg, title, body):

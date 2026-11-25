@@ -60,6 +60,7 @@ If you would like a services added to ARM that is not yet listed here, please op
   - Mailgun
   - Boxcar
   - Discord
+  - Email
   - Fast
   - Flock
   - Gitter
@@ -93,6 +94,36 @@ If you would like a services added to ARM that is not yet listed here, please op
   - Zilup
 
 ## Service Specific Configurations
+
+### **Email**
+
+ARM builds a standard `mailto://` apprise URL from the `EMAIL_*` entries, so any
+address apprise has a template for works, including Fastmail. The settings are:
+
+| Setting | Meaning |
+|---|---|
+| `EMAIL_FROM` | The sender address. Leave it blank to turn email notifications off. |
+| `EMAIL_USER` | Login for the SMTP server. Leave it blank to log in as `EMAIL_FROM`. |
+| `EMAIL_PASS` | Password for that login. Leave it blank for a relay that needs no login. |
+| `EMAIL_TO` | Comma separated list of recipients. |
+| `EMAIL_SMTP_HOST` | SMTP server. Leave it blank to use the sender address' own provider. |
+| `EMAIL_SMTP_PORT` | SMTP port. Leave it blank to use the port that matches `EMAIL_SECURE_MODE`. |
+| `EMAIL_SECURE_MODE` | `ssl`, `starttls`, `insecure`, or blank to let apprise decide. |
+
+For Fastmail, leave the host, port and mode blank and give a
+[app password](https://www.fastmail.help/hc/en-us/articles/360058752854-App-passwords)
+in `EMAIL_PASS`: apprise already knows that `fastmail.com` means
+`smtp.fastmail.com` on port 465 with SSL.
+
+```yaml
+EMAIL_FROM: "ripper@fastmail.com"
+EMAIL_USER: ""
+EMAIL_PASS: "app-password-from-fastmail"
+EMAIL_TO: "phone@example.com"
+EMAIL_SMTP_HOST: ""
+EMAIL_SMTP_PORT: ""
+EMAIL_SECURE_MODE: ""
+```
 
 ### **Gotify**
 
