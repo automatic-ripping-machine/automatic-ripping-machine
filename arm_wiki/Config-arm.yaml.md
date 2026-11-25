@@ -12,6 +12,7 @@ They include
   - Contacting [OMdb](http://www.omdbapi.com/)/auto identify movies or series
   - HandBrake Settings (profile, arguments, and file extention)
   - MakeMKV settings (rip method, arguments)
+  - Whipper audio CD settings (drive offset, AccurateRip verification, output formatting templates)
   - A manual wait time (useful for overriding the OMdb identify or disc mode)
   - Enable or disable ripping of the same disc
   - Media directory settings (identified, unidentified, raw disc files locations)

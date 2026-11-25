@@ -183,3 +183,5 @@ removed/*
 /installed
 
 arm.yaml
+
+.DS_Store 

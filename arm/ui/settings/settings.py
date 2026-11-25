@@ -37,7 +37,7 @@ from arm.models.system_info import SystemInfo
 from arm.models.ui_settings import UISettings
 import arm.config.config as cfg
 from arm.ui.settings import DriveUtils as drive_utils
-from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, SystemInfoDrives
+from arm.ui.forms import SettingsForm, UiSettingsForm, AbcdeForm, WhipperForm, SystemInfoDrives
 from arm.ui.settings.ServerUtil import ServerUtil
 import arm.ripper.utils as ripper_utils
 
@@ -132,6 +132,8 @@ def settings():
                            apprise_cfg=cfg.apprise_config,
                            form=form,
                            jsoncomments=comments,
+                           whipper_cfg=cfg.whipper_config,
+                           whipper_read_only=is_read_only(cfg.whipper_config_path),
                            abcde_cfg=cfg.abcde_config,
                            server=server,
                            serverutil=serverutil,
@@ -237,6 +239,35 @@ def save_ui_settings():
     # sqlalchemy.orm.exc.DetachedInstanceError: Instance <UISettings at 0x7f294c109fd0>
     # app.jinja_env.globals.update(armui_cfg=arm_ui_cfg)
     return {'success': success, 'settings': str(arm_ui_cfg), 'form': 'arm ui settings'}
+
+
+@route_settings.route('/save_whipper_settings', methods=['POST'])
+@login_required
+def save_whipper():
+    """
+    Page - save_whipper_settings
+    Method - POST
+    Overview - Save 'whipper Config' page settings to the database. Not a user page
+    """
+    success = False
+    whipper_cfg_str = ""
+    form = WhipperForm()
+    if form.validate():
+        app.logger.debug(f"routes.save_whipper: Saving new whipper.conf: {cfg.whipper_config_path}")
+        whipper_cfg_str = str(form.whipperConfig.data).strip()
+        clean_whipper_str = '\n'.join(whipper_cfg_str.splitlines())
+        try:
+            with open(cfg.whipper_config_path, "w") as whipper_file:
+                whipper_file.write(clean_whipper_str)
+                whipper_file.close()
+            success = True
+            cfg.whipper_config = clean_whipper_str
+        except OSError as e:
+            app.logger.error(f"{cfg.whipper_config_path} is read-only", exc_info=e)
+
+    return {'success': success,
+            'settings': clean_whipper_str,
+            'form': 'whipper config'}
 
 
 @route_settings.route('/save_abcde_settings', methods=['POST'])

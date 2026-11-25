@@ -59,39 +59,44 @@ $(document).ready(function () {
  * @param    {Class} oldJob    Copy of old job
  */
 function updateProgress(job, oldJob) {
+    const progress_round = (job.progress_round !== undefined && job.progress_round !== null) ? job.progress_round : 0;
+    const progress = (job.progress !== undefined && job.progress !== null) ? job.progress : 0;
+    const eta = (job.eta !== undefined && job.eta !== null && job.eta !== "" && job.eta !== "undefined") ? job.eta : "Calculating...";
+    const stage = (job.stage !== undefined && job.stage !== null && job.stage !== "undefined") ? job.stage : "Ripping";
+
     const subProgressBar = `<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
-                             aria-valuenow="${job.progress_round}" aria-valuemin="0" aria-valuemax="100" 
-                             style="width: ${job.progress_round}%">
+                             aria-valuenow="${progress_round}" aria-valuemin="0" aria-valuemax="100" 
+                             style="width: ${progress_round}%">
                              <small class="justify-content-center d-flex position-absolute w-100" style="color: black; z-index: 2;">
-                             ${job.progress}%
+                             ${progress}%
                              </small></div></div>`;
-    const mainProgressBar = `<div id="jobId${job.job_id}_stage"><b>Stage: </b>${job.stage}</div>
+    const mainProgressBar = `<div id="jobId${job.job_id}_stage"><b>Stage: </b>${stage}</div>
                              <div id="jobId${job.job_id}_progress" ><div class="progress">${subProgressBar}</div>
-                             <div id="jobId${job.job_id}_eta"><b>ETA: </b>${job.eta}</div>
+                             <div id="jobId${job.job_id}_eta"><b>ETA: </b>${eta}</div>
                              <div id="jobId${job.job_id}_cur_fps"><b>CUR FPS: </b>${job.cur_fps}</div>
                              <div id="jobId${job.job_id}_avg_fps"><b>AVG FPS: </b>${job.avg_fps}</div>`;
     const progressSection = $(`#jobId${job.job_id}_progress_section`);
-    const stage = $(`#jobId${job.job_id}_stage`);
-    const eta = $(`#jobId${job.job_id}_eta`);
+    const stageDiv = $(`#jobId${job.job_id}_stage`);
+    const etaDiv = $(`#jobId${job.job_id}_eta`);
     const progressBarDiv = $(`#jobId${job.job_id}_progress`)
     if (checkTranscodeStatus(job)) {
         // Catch if the progress section is empty and populate it
         if (progressSection[0].innerHTML === "" || !progressBarDiv.length) {
             progressSection[0].innerHTML = mainProgressBar;
         } else {
-            if (job.progress_round !== oldJob.progress_round || job.progress !== oldJob.progress) {
+            if (progress_round !== oldJob.progress_round || progress !== oldJob.progress) {
                 let el = progressBarDiv[0].querySelector('.progress-bar');
                 if (el) {
-                    el.style.width = `${job.progress_round}%`;
-                    el.setAttribute('aria-valuenow', job.progress_round);
+                    el.style.width = `${progress_round}%`;
+                    el.setAttribute('aria-valuenow', progress_round);
                     let small = el.querySelector('small');
-                    if (small) small.innerText = `${job.progress}%`;
+                    if (small) small.innerText = `${progress}%`;
                 } else {
                     progressBarDiv[0].innerHTML = `<div class="progress">${subProgressBar}`;
                 }
             }
-            updateContents(stage, job, "Stage", job.stage);
-            updateContents(eta, job, "ETA", job.eta);
+            updateContents(stageDiv, job, "Stage", stage);
+            updateContents(etaDiv, job, "ETA", eta);
 
             const curFpsDiv = $(`#jobId${job.job_id}_cur_fps`);
             const avgFpsDiv = $(`#jobId${job.job_id}_avg_fps`);
@@ -129,7 +134,7 @@ function checkTranscodeStatus(job) {
     if (job.status === "ripping" && job.stage !== "" && job.progress) {
         status = true;
     }
-    // abcde is ripping the audio disc and is outputting stage and eta
+    // whipper is ripping the audio disc and is outputting stage and eta
     if (job.disctype === "music" && job.stage !== "") {
         status = true;
     }

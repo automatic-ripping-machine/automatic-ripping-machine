@@ -82,7 +82,7 @@ The script will now:
     Removing any link between music and Music
     Checking ownership of /etc/arm/config
     [OK]: ARM UID and GID set correctly, ARM has access to '/etc/arm/config' using 1001:1001
-    Checking location of abcde configuration files
+    Checking location of audio configuration files
     ```
     - If ARM does not have ownership, you'll see:
     ```
@@ -161,7 +161,7 @@ Each volume specified in the default script is needed by A.R.M. The following is
     * It is strongly recommended that this volume has access to a large amount of fast (SSD) disk space.
     * The default suggested location is `/home/arm/media` for the "{Path_Outside_Of_Docker_Container}" of the volume definition.
 * `/etc/arm/config`
-    * This is where A.R.M. will look for the configuration files `arm.yaml`, `apprise.yaml` and `abcde.conf`. If the files are present it will use them, if they are not present A.R.M. will copy fresh copies with all the defaults and use those.  You can edit these files manually here or you can edit them in the A.R.M. web interface by clicking on the "Arm Settings" button on the toolbar.
+    * This is where A.R.M. will look for the configuration files `arm.yaml`, `apprise.yaml` and `whipper.conf`. If the files are present it will use them, if they are not present A.R.M. will copy fresh copies with all the defaults and use those.  You can edit these files manually here or you can edit them in the A.R.M. web interface by clicking on the "Arm Settings" button on the toolbar.
     * The default suggested location is `/home/arm/config` for the "{Path_Outside_Of_Docker_Container}" of the volume definition.
  
 ### An Important note about permissions.

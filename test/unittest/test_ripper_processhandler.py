@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 import subprocess
 
+import test  # noqa: F401 - bootstraps path and test environment mocks
 sys.path.insert(0, '/opt/arm')
 from arm.ripper.ProcessHandler import arm_subprocess    # noqa: E402
 
@@ -23,7 +24,7 @@ class TestProcessHandler(unittest.TestCase):
         result = arm_subprocess(cmd, in_shell)
 
         self.assertEqual(result, mock_output)
-        mock_check_output.assert_called_once_with(cmd, shell=in_shell)
+        mock_check_output.assert_called_once_with(cmd, shell=in_shell, stderr=subprocess.STDOUT, encoding="utf-8")
 
     @patch("subprocess.check_output")
     def test_arm_subprocess_error(self, mock_check_output):
@@ -43,7 +44,7 @@ class TestProcessHandler(unittest.TestCase):
         result = arm_subprocess(cmd, in_shell)
 
         self.assertEqual(result, None)
-        mock_check_output.assert_called_once_with(cmd, shell=in_shell)
+        mock_check_output.assert_called_once_with(cmd, shell=in_shell, stderr=subprocess.STDOUT, encoding="utf-8")
 
 
 if __name__ == '__main__':

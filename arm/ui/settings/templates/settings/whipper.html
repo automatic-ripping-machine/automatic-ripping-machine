@@ -1,0 +1,25 @@
+{% block whipper %}
+    <div class="tab-pane pt-5" id="whipper" role="tabpanel" aria-labelledby="whipper-tab">
+        <h4> Music (Whipper) Config </h4>
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <form id="whipperSettings" name="whipperSettings" method="post" action="">
+                    {{ form.hidden_tag() }}
+                    <label for="whipperConfigText">Whipper Config:</label>
+                    <textarea id="whipperConfigText" name="whipperConfig" spellcheck="false"
+                              class="w-100 form-control min-vh-100"
+                              {% if whipper_read_only %}
+                                disabled="" title="whipper.conf is read-only"
+                              {% endif %}
+                              >
+                              {{ whipper_cfg }}
+                            </textarea>
+                    <br>
+                    <button id="whipperConfigSubmit" class="btn btn-secondary btn-lg btn-block"
+                            form="whipperSettings">Submit
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

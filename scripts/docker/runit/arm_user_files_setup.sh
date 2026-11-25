@@ -14,23 +14,35 @@ DEFAULT_UID=1000
 DEFAULT_GID=1000
 
 
-# Function to check if the ARM user has ownership of the requested folder
+# Function to check and ensure the ARM user has ownership of the requested folder
 check_folder_ownership() {
     local check_dir="$1"  # Get the folder path from the first argument
-    local folder_uid=$(stat -c "%u" "$check_dir")
-    local folder_gid=$(stat -c "%g" "$check_dir")
+
+    if [[ ! -d "$check_dir" ]]; then
+        mkdir -p "$check_dir"
+    fi
+
+    local folder_uid=$(stat -c "%u" "$check_dir" 2>/dev/null || echo "")
+    local folder_gid=$(stat -c "%g" "$check_dir" 2>/dev/null || echo "")
 
     echo "Checking ownership of $check_dir"
 
-    if [ "$folder_uid" != "$ARM_UID" ] || [ "$folder_gid" != "$ARM_GID" ]; then
-        echo "---------------------------------------------"
-        echo "[ERROR]: ARM does not have permissions to $check_dir using $ARM_UID:$ARM_GID"
-        echo "Check your user permissions and restart ARM. Folder permissions--> $folder_uid:$folder_gid"
-        echo "---------------------------------------------"
-        exit 1
+    if [[ "$folder_uid" != "$ARM_UID" || "$folder_gid" != "$ARM_GID" ]]; then
+        echo "Adjusting ownership of $check_dir to $ARM_UID:$ARM_GID..."
+        chown -R "$ARM_UID:$ARM_GID" "$check_dir" 2>/dev/null || chown "$ARM_UID:$ARM_GID" "$check_dir" 2>/dev/null || true
+        chmod -R u+rwX "$check_dir" 2>/dev/null || true
+        folder_uid=$(stat -c "%u" "$check_dir" 2>/dev/null || echo "")
+        folder_gid=$(stat -c "%g" "$check_dir" 2>/dev/null || echo "")
     fi
 
-    echo "[OK]: ARM UID and GID set correctly, ARM has access to '$check_dir' using $ARM_UID:$ARM_GID"
+    if [[ "$folder_uid" != "$ARM_UID" || "$folder_gid" != "$ARM_GID" ]]; then
+        echo "---------------------------------------------"
+        echo "[WARNING]: ARM could not set permissions to $check_dir using $ARM_UID:$ARM_GID"
+        echo "Current folder permissions--> $folder_uid:$folder_gid"
+        echo "---------------------------------------------"
+    else
+        echo "[OK]: ARM UID and GID set correctly, ARM has access to '$check_dir' using $ARM_UID:$ARM_GID"
+    fi
 }
 
 ### Setup User
@@ -53,21 +65,27 @@ echo "Adding arm user to 'render' group"
 usermod -a -G render arm
 
 ### Setup Files
-chown -R arm:arm /opt/arm
+chown -R arm:arm /opt/arm 2>/dev/null || true
 
-# Check ownership of the ARM home folder
+# Check ownership of the ARM home folder and main volume directories
 check_folder_ownership "/home/arm"
 
-# setup needed/expected dirs if not found
-SUBDIRS="media media/completed media/raw media/movies media/transcode logs logs/progress db music .MakeMKV"
+# setup needed/expected dirs if not found and guarantee ownership
+SUBDIRS="media media/completed media/raw media/movies media/transcode logs logs/progress db music raw .MakeMKV"
 for dir in $SUBDIRS ; do
   thisDir="$ARM_HOME/$dir"
   if [[ ! -d "$thisDir" ]] ; then
     echo "Creating dir: $thisDir"
     mkdir -p "$thisDir"
-    # Set the default ownership to arm instead of root
-    chown -R arm:arm "$thisDir"
   fi
+  # Always ensure ARM user has read/write ownership and permissions
+  chown -R arm:arm "$thisDir" 2>/dev/null || true
+  chmod -R u+rwX "$thisDir" 2>/dev/null || true
+done
+
+# Explicitly ensure ownership for all standard ARM volumes to prevent 'Can't write to folder' errors
+for vol in "/home/arm/media" "/home/arm/music" "/home/arm/logs" "/home/arm/raw" "/home/arm/db"; do
+  check_folder_ownership "$vol"
 done
 
 echo "Removing any link between music and Music"
@@ -81,7 +99,7 @@ fi
 check_folder_ownership "/etc/arm/config"
 
 mkdir -p /etc/arm/config
-CONFS="arm.yaml apprise.yaml"
+CONFS="arm.yaml apprise.yaml whipper.conf"
 for conf in $CONFS; do
   thisConf="/etc/arm/config/${conf}"
   if [[ ! -f "${thisConf}" ]] ; then
@@ -91,22 +109,35 @@ for conf in $CONFS; do
   fi
 done
 
-##### abcde config setup
-# abcde.conf is expected in /etc by the abcde installation
-echo "Checking location of abcde configuration files"
+##### whipper config setup
+echo "Checking location of whipper configuration files"
+mkdir -p /home/arm/.config/whipper
+if [[ ! -f /etc/arm/config/whipper.conf ]]; then
+  echo "whipper.conf doesn't exist"
+  if [[ -f /opt/arm/setup/whipper.conf ]]; then
+    cp /opt/arm/setup/whipper.conf /etc/arm/config/whipper.conf
+  fi
+fi
+if [[ -f /etc/arm/config/whipper.conf ]]; then
+  ln -sf /etc/arm/config/whipper.conf /home/arm/.config/whipper/whipper.conf
+fi
+chown -R arm:arm /home/arm/.config 2>/dev/null || true
+
+##### abcde config setup (legacy fallback)
+# abcde.conf is kept only for backward compatibility if present in setup
+echo "Checking location of legacy abcde configuration files"
 # Test if abcde.conf is a hyperlink, if so remove it
-if [ -h /etc/arm/config/abcde.conf ]; then
+if [[ -h /etc/arm/config/abcde.conf ]]; then
   echo "Old hyper link exists removing!"
   unlink /etc/arm/config/abcde.conf
 fi
-# check if abcde is in config main location - only copy if it doesnt exist
-if ! [ -f /etc/arm/config/abcde.conf ]; then
-  echo "abcde.conf doesnt exist"
+# check if abcde is in config main location - only copy if it doesn't exist and setup template exists
+if [[ ! -f /etc/arm/config/abcde.conf && -f /opt/arm/setup/.abcde.conf ]]; then
+  echo "abcde.conf doesnt exist, copying from setup"
   cp /opt/arm/setup/.abcde.conf /etc/arm/config/abcde.conf
-  # chown arm:arm /etc/arm/config/abcde.conf
 fi
-# The system link to the fake default file -not really needed but as a precaution to the -C variable being blank
-if ! [ -h /etc/abcde.conf ]; then
+# The system link to the fake default file - only link if config exists
+if [[ ! -h /etc/abcde.conf && -f /etc/arm/config/abcde.conf ]]; then
   echo "/etc/abcde.conf link doesnt exist"
   ln -sf /etc/arm/config/abcde.conf /etc/abcde.conf
 fi

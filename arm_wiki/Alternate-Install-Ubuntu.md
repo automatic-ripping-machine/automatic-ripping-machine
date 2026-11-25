@@ -48,7 +48,7 @@ NumOnly=$(cut -f2 <<< `lsb_release -r`) && case $NumOnly in "16.04" ) sudo add-a
 sudo apt update -y && \
 sudo apt install makemkv-bin makemkv-oss -y && \
 sudo apt install handbrake-cli libavcodec-extra -y && \
-sudo apt install abcde flac imagemagick glyrc cdparanoia -y && \
+sudo apt install whipper cdrdao libcdio-paranoia-dev sox flac imagemagick -y && \
 sudo apt install at -y && \
 sudo apt install python3 python3-pip -y && \
 sudo apt-get install libcurl4-openssl-dev libssl-dev -y && \
@@ -76,10 +76,9 @@ sudo ln -s /opt/arm/arm.yaml /etc/arm/
 sudo chmod +x /opt/arm/scripts/arm_wrapper.sh
 sudo chmod +x /opt/arm/scripts/update_key.sh
 
-cp --no-clobber "/opt/arm/setup/.abcde.conf" "/etc/.abcde.conf"
-chown arm:arm "/etc/.abcde.conf"
 sudo mkdir -p /etc/arm/config
-su - arm -c "ln -sf /etc/.abdce.conf /etc/arm/config/abcde.conf"
+cp --no-clobber "/opt/arm/setup/whipper.conf" "/etc/arm/config/whipper.conf"
+chown -R arm:arm "/etc/arm/config"
 
 ```
 

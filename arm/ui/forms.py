@@ -92,8 +92,15 @@ class PasswordReset(FlaskForm):
     submit = SubmitField('Submit')
 
 
+class WhipperForm(FlaskForm):
+    """whipper config form used on pages\n
+              - /settings"""
+    whipperConfig = StringField('whipperConfig', validators=[DataRequired()])
+    submit = SubmitField('Submit')
+
+
 class AbcdeForm(FlaskForm):
-    """abcde config form used on pages\n
+    """abcde config form (legacy) used on pages\n
               - /settings"""
     abcdeConfig = StringField('abcdeConfig', validators=[DataRequired()])
     submit = SubmitField('Submit')

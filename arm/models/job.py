@@ -299,6 +299,12 @@ class Job(db.Model):
             return
         if self.drive is None:
             logging.warning("No drive was backpopulated with this job!")
+            if cfg.arm_config.get('AUTO_EJECT', False):
+                try:
+                    subprocess.run(["eject", str(self.devpath)], check=False)
+                    self.ejected = True
+                except Exception:
+                    logging.exception(f"Fallback eject failed for {self.devpath}")
             return
         if not cfg.arm_config['AUTO_EJECT']:
             logging.info("Skipping auto eject")

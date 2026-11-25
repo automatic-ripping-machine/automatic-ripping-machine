@@ -24,12 +24,35 @@ from arm.ui.forms import ChangeParamsForm
 from arm.ui.utils import job_id_validator, database_updater, authenticated_state
 from arm.ui.settings import DriveUtils as drive_utils # noqa E402
 
+CALCULATING = "Calculating..."
+
 
 def get_notifications():
     """Get all current notifications"""
     all_notification = Notifications.query.filter_by(seen=False)
     notification = [a.get_d() for a in all_notification]
     return notification
+
+
+def _format_single_job(job, job_result_entry):
+    """Populate single job dict for get_x_jobs output."""
+    job_log = os.path.join(cfg.arm_config['LOGPATH'], str(job.logfile))
+    process_logfile(job_log, job, job_result_entry)
+    try:
+        job_result_entry['config'] = job.config.get_d()
+    except AttributeError:
+        job_result_entry['config'] = "config not found"
+        app.logger.debug("couldn't get config")
+
+    for key, value in job.get_d().items():
+        if key != "config":
+            job_result_entry[str(key)] = str(value)
+
+    # Ensure dynamic progress/eta fields computed from logfile are preserved
+    job_result_entry['progress'] = getattr(job, 'progress', 0)
+    job_result_entry['progress_round'] = getattr(job, 'progress_round', 0)
+    job_result_entry['eta'] = getattr(job, 'eta', CALCULATING)
+    job_result_entry['stage'] = getattr(job, 'stage', 'Ripping') or "Ripping"
 
 
 def get_x_jobs(job_status):
@@ -49,21 +72,10 @@ def get_x_jobs(job_status):
         raise ValueError(f"{job_status} is not a valid option")
 
     job_results = {}
-    i = 0
-    for j in jobs:
+    for i, j in enumerate(jobs):
         job_results[i] = {}
-        job_log = os.path.join(cfg.arm_config['LOGPATH'], str(j.logfile))
-        process_logfile(job_log, j, job_results[i])
-        try:
-            job_results[i]['config'] = j.config.get_d()
-        except AttributeError:
-            job_results[i]['config'] = "config not found"
-            app.logger.debug("couldn't get config")
+        _format_single_job(j, job_results[i])
 
-        for key, value in j.get_d().items():
-            if key != "config":
-                job_results[i][str(key)] = str(value)
-        i += 1
     if jobs:
         app.logger.debug("jobs  - we have " + str(len(job_results)) + " jobs")
         success = True
@@ -267,31 +279,78 @@ def process_handbrake_logfile(logfile, job, job_results):
     return job_results
 
 
+def _parse_audio_tracks_from_log(log_lines, default_total_tracks):
+    """Extract current track and total tracks from audio ripper log lines."""
+    curr_track = None
+    total_tracks = default_total_tracks
+    wh_pattern = r"(?:ripping\s+track|track:?)\s+(\d+)\s+(?:of|/)\s+(\d+)"
+
+    for one_line in log_lines:
+        line_str = str(one_line)
+        whipper_match = re.search(wh_pattern, line_str, re.IGNORECASE)
+        if whipper_match:
+            curr_track = int(whipper_match.group(1))
+            total_tracks = int(whipper_match.group(2))
+            continue
+
+        abcde_match = re.search(r"\(track([^[]+)", line_str)
+        if abcde_match:
+            try:
+                curr_track = int(abcde_match.group(1).strip())
+            except (ValueError, TypeError):
+                pass
+    return curr_track, total_tracks
+
+
+def _update_audio_job_progress(job, curr_track, total_tracks):
+    """Update job stage, progress and eta for audio ripper."""
+    if curr_track is not None and total_tracks > 0:
+        job.stage = f"Track: {curr_track}/{total_tracks}"
+        try:
+            job.eta = calc_process_time(job.start_time, curr_track, total_tracks)
+            calc_prog = percentage(curr_track, total_tracks)
+            job.progress = round(calc_prog)
+            job.progress_round = int(job.progress)
+        except Exception as error:
+            app.logger.debug(f"Error processing audio logfile: {error}", exc_info=True)
+            job.eta = CALCULATING
+            job.progress = job.progress_round = 0
+    elif total_tracks > 0:
+        job.stage = f"Track: 0/{total_tracks}"
+
+
 def process_audio_logfile(logfile, job, job_results):
     """
     Process audio disc logs to show current ripping tracks
     :param logfile: will come in as only the bare logfile, no path
     :param job: current job, so we can update the stage
-    :param job_results:
-    :return:
+    :param job_results: dict for JSON API results
+    :return: dict
     """
-    # \((track[^[]+)(?!track)
-    line = read_all_log_lines(os.path.join(cfg.arm_config["LOGPATH"], logfile))
-    for one_line in line:
-        job_stage_index = re.search(r"\(track([^[]+)", str(one_line))
-        if job_stage_index:
-            try:
-                current_index = f"Track: {job_stage_index.group(1)}/{job.no_of_titles}"
-                job.stage = job_results['stage'] = current_index
-                job.eta = calc_process_time(job.start_time, job_stage_index.group(1), job.no_of_titles)
-                job.progress = round(percentage(job_stage_index.group(1), job.no_of_titles + 1))
-                job.progress_round = round(job.progress)
-            except Exception as error:
-                app.logger.debug("Error processing abcde logfile. Error dump"
-                                 f"-  {error}", exc_info=True)
-                job.stage = "Unknown"
-                job.eta = "Unknown"
-                job.progress = job.progress_round = 0
+    job.stage = getattr(job, 'stage', 'Ripping')
+    if not job.stage or job.stage.isdigit():
+        job.stage = "Ripping track"
+    job.progress = getattr(job, 'progress', 0) or 0
+    job.progress_round = getattr(job, 'progress_round', 0) or 0
+    job.eta = getattr(job, 'eta', CALCULATING) or CALCULATING
+    job.cur_fps = getattr(job, 'cur_fps', 0)
+    job.avg_fps = getattr(job, 'avg_fps', 0)
+
+    log_file_path = os.path.join(cfg.arm_config["LOGPATH"], logfile) if logfile else ""
+    lines = read_all_log_lines(log_file_path) if log_file_path else []
+
+    curr_track, total_tracks = _parse_audio_tracks_from_log(lines, job.no_of_titles or 0)
+    if not job.no_of_titles and total_tracks:
+        job.no_of_titles = total_tracks
+
+    _update_audio_job_progress(job, curr_track, total_tracks)
+
+    job_results['stage'] = job.stage
+    job_results['progress'] = job.progress
+    job_results['progress_round'] = job.progress_round
+    job_results['eta'] = job.eta
+    job_results['cur_fps'] = job.cur_fps
+    job_results['avg_fps'] = job.avg_fps
     return job_results
 
 

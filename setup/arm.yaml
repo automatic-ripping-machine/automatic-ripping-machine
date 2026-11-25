@@ -4,13 +4,13 @@
 ## ARM Options ##
 #################
 
+
 # A friendly name for this machine. Useful if you are running multiple instances.
 # Used in notification titles.
 ARM_NAME: ""
 
-# ARM_CHILDREN
 # Comma delimited list of child ARM servers to display on the Home Page
-# Should be full protocol, path, and port: http://192.168.0.100:8080
+# Should be full protocol, path, and port: http://192.168.0.100:8080/
 ARM_CHILDREN: ""
 
 # Workaround for Track 99
@@ -22,10 +22,7 @@ PREVENT_99: true
 # Distinguish UDF video discs from UDF data discs.  Requires mounting disc so adds a few seconds to the identify script.
 ARM_CHECK_UDF: true
 
-# Umask for created files (in RAW_PATH, TRANSCODE_PATH, and COMPLETED_PATH).
-# Setting this to 0o002 (octal) makes these files group writable.
-# For general information about umask, see for example https://en.wikipedia.org/wiki/Umask
-UMASK: 0o002
+UMASK: "0o002"
 
 # When enabled if the disc is a DVD use dvdid to calculate a crc64 and query Windows Media Meta Services for the Movie Title.
 # For BluRays attempts to extract the title from an XML file on the disc
@@ -55,11 +52,11 @@ SKIP_TRANSCODE: false
 VIDEOTYPE: "auto"
 
 # Minimum length of track for ARM rip (in seconds)
-MINLENGTH: "600"
+MINLENGTH: 600
 
 # Maximum length of track for ARM rip (in seconds)
 # Use "99999" to indicate no maximum length
-MAXLENGTH: "99999"
+MAXLENGTH: 99999
 
 # Wait for manual identification
 MANUAL_WAIT: true
@@ -73,7 +70,7 @@ DATE_FORMAT: "%m-%d-%Y %H:%M:%S"
 
 ## Do you want to allow Rips of the same disk multiple times
 ## With this set as false the task will exit if it recognises the same movie being ripped
-## recommended to set to true for series
+## recommended to set to true for series 
 ALLOW_DUPLICATES: false
 
 # Number of Transcodes that runs at the same time.
@@ -82,21 +79,18 @@ ALLOW_DUPLICATES: false
 # Set to 0 to disable
 MAX_CONCURRENT_TRANSCODES: 0
 
-# Number of concurrent makemkv info calls. For some drives makemkv info may
-# crash makemkv backup|mkv. Setting this to 1 waits for free makemkv slots and
-# uses the time set in MANUAL_WAIT_TIME after each call to makemkv info to
-# allow pending info processes to pick up a free slot.
+# Number of MakeMKV info calls that are allowed to run.
+#This can be set to 1 if makemkvcon info calls lead to crashes on backup or mkv calls.
 # Set to 0 to disable
 MAX_CONCURRENT_MAKEMKVINFO: 0
 
 # Additional parameters for dd. e.g. "conv=noerror,sync" for ignoring read errors
-# "status=progress" to log progress
 DATA_RIP_PARAMETERS: ""
 
 # This selects the metadata provider, Each provider has their own ups and downs
-# But a general rule would be
-#    OMDB for movies and shows
-#    TMDB for movies only
+# But a general rule would be 
+# OMDB for movies and shows 
+# TMDB for movies only
 # You will still need to provide an api key for the provider you have selected
 METADATA_PROVIDER: "omdb"
 
@@ -114,13 +108,25 @@ RIP_POSTER: false
 # Set to false to disable auto-ejection
 AUTO_EJECT: true
 
-
 #####################
 ## Directory setup ##
 #####################
+# Location of your Whipper config file
+WHIPPER_CONFIG_FILE: "/etc/arm/config/whipper.conf"
+
+# Whipper drive read offset in samples. Defaults to 0.
+WHIPPER_DRIVE_OFFSET: 0
+
+# Whipper AccurateRip verification requirement (true/false)
+WHIPPER_ACCURATERIP: true
+
+# Whipper track output format template (relative to output directory)
+WHIPPER_OUTPUT_FORMAT: "%A/%d/%t - %n"
+
+# Whipper disc output format template (for CUE sheet and rip log)
+WHIPPER_DISC_TEMPLATE: "%A/%d/%A - %d"
 
 # Location of your ABCDE config file
-# This over-rides any other abcde.conf files
 ABCDE_CONFIG_FILE: "/etc/arm/config/abcde.conf"
 
 # Path to raw MakeMKV directory
@@ -141,7 +147,7 @@ COMPLETED_PATH: "/home/arm/media/completed/"
 # For Plex see https://support.plex.tv/hc/en-us/articles/200220677
 EXTRAS_SUB: "extras"
 
-# Path to installation of ARM
+# Path to installation of ARM 
 INSTALLPATH: "/opt/arm/"
 
 # Path to directory to hold log files
@@ -160,11 +166,9 @@ LOGLIFE: 1
 # Path to ARM database file
 DBFILE: "/home/arm/db/arm.db"
 
-
 ##################
 ##  Web Server  ##
 ##################
-
 # IP address of web server (this machine)
 # Use x.x.x.x to autodetect the IP address to use
 WEBSERVER_IP: x.x.x.x
@@ -173,40 +177,39 @@ WEBSERVER_IP: x.x.x.x
 WEBSERVER_PORT: 8080
 
 # Base URL to use for notifications and display purposes
-# Be sure to include protocol and port if needed (e.g. http://example.com:8091 or https://example.com)
+#Be sure to include protocol and port if needed (e.g. http://example.com:8091 or https://example.com)
 UI_BASE_URL: ""
+
 
 ########################
 ##  File Permissions  ##
 ########################
-
 # Enabling this setting will allow you to adjust the default file permissions of the outputted files
 # The default value is set to 777 for read/write/execute for all users, but can be changed below using the "CHMOD_VALUE" setting
 # This setting is helpful when storing the data locally on the system
 SET_MEDIA_PERMISSIONS: false
 CHMOD_VALUE: 777
 
+# Don't bother. This does not do anything yet
 SET_MEDIA_OWNER: false
-CHOWN_USER:
-CHOWN_GROUP:
-
-
-########################
-## MakeMKV Parameters ##
-########################
+CHOWN_USER: "None"
+CHOWN_GROUP: "None"
 
 # Storage for a purchased key the user may have paid for. Populating will prevent the beta key updater from running.
 MAKEMKV_PERMA_KEY: ""
 
-# Method of MakeMKV to use for Blu-ray discs
-# Options are "mkv", "backup", or "backup_dvd".
-# backup decrypts the dvd and then copies it to the hard drive.
-# This allows HandBrake to apply some of its analytical abilities such as the main-feature identification.
-# This method seems to offer success on Blu-ray discs that fail in "mkv" mode.
-# *** NOTE: MakeMKV only supports the backup or backup_dvd method on BluRay discs.
+########################
+## MakeMKV Parameters ##
+########################
+# Method of MakeMKV to use for Blu Ray discs.  Options are "mkv", "backup" or "backup_dvd".
+# backup decrypts the dvd and then copies it to the hard drive.  This allows HandBrake to apply some of it's
+# analytical abilities such as the main-feature identification.  This method seems to offer success on bluray 
+# discs that fail in "mkv" mode. *** NOTE: MakeMKV only supports the backup or backup_dvd method on BluRay discs.
 # backup_dvd forces arm to extract the dvd with MakeMKV prior to the Handbrake step
 RIPMETHOD: "mkv"
+
 RIPMETHOD_DVD: "PLACEHOLDER"
+
 RIPMETHOD_BR: "PLACEHOLDER"
 
 # MakeMKV Arguments
@@ -220,11 +223,9 @@ MKV_ARGS: ""
 # Remove any files created in the raw and transcode paths for the job after processing is complete
 DELRAWFILES: true
 
-
 ##########################
 ## HandBrake Parameters ##
 ##########################
-
 # Handbrake preset profile for DVDs
 # Execute "HandBrakeCLI -z" to see a list of all presets
 HB_PRESET_DVD: "HQ 720p30 Surround"
@@ -234,18 +235,19 @@ HB_PRESET_DVD: "HQ 720p30 Surround"
 HB_PRESET_BD: "HQ 1080p30 Surround"
 
 # Extension of the final video file
-DEST_EXT: mkv
+DEST_EXT: "mkv"
 
-# Handbrake binary to call.  These should be the same unless you are doing remote
-# processing
-HANDBRAKE_CLI: HandBrakeCLI
-HANDBRAKE_LOCAL: HandBrakeCLI
+# Handbrake binary to call.  These should be the same unless you are doing remote processing.
+HANDBRAKE_CLI: "HandBrakeCLI"
+
+# Handbrake binary to call.  These should be the same unless you are doing remote processing.
+HANDBRAKE_LOCAL: "HandBrakeCLI"
 
 # Have HandBrake transcode the main feature only.  BluRay discs must have RIPMETHOD="backup" for this to work.
 # If MAINFEATURE is true, blurays will be backed up to the HD and then HandBrake will go to work on the backed up
-# files.
+# files.  
 # This will require libdvdcss2 be installed.
-# NOTE: For the most part, HandBrake correctly identifies the main feature on movie DVD's, although it is not perfect.
+# NOTE: For the most part, HandBrake correctly identifies the main feature on movie DVD's, although it is not perfect. 
 # However, it does not handle tv shows well at all.  This setting is only used when the video is identified as a movie.
 MAINFEATURE: false
 
@@ -255,24 +257,24 @@ HB_ARGS_DVD: "--subtitle scan -F"
 # Additional Handbrake arguments for Bluray Discs.
 HB_ARGS_BD: "--subtitle scan -F --subtitle-burned --audio-lang-list eng --all-audio"
 
+# FFMPEG binary to call. These should be the same unless you are doing remote processing.
+FFMPEG_CLI: "FFMPEG"
 
-##########################
-## FFMPEG Parameters ##
-##########################
-FFMPEG_CLI: FFMPEG
-FFMPEG_LOCAL: FFMPEG
+# FFMPEG binary to call. These should be the same unless you are doing remote processing.
+FFMPEG_LOCAL: "FFMPEG"
 
-FFMPEG_PRE_FILE_ARGS: 
-FFMPEG_POST_FILE_ARGS:
+# CLI Arguments for FFMPEG that go before the -i input_file. Can be found by doing ffmpeg -h.
+FFMPEG_PRE_FILE_ARGS: "None"
 
-#ffmpeg is currently an experimental feature
+# CLI Arguments for FFMPEG that go after the -i input_file. Can be found by doing ffmpeg -h.
+FFMPEG_POST_FILE_ARGS: "None"
+
+# Use FFMPEG for transcoding instead of handbreak. Set to true to enable.
 USE_FFMPEG: false
-
 
 #####################
 ## Emby Parameters ##
 #####################
-
 # Parameters to enable automatic library scan in Emby.  This will trigger only if MainFeature is true above.
 # Scan emby library after successful placement of mainfeature (see above)
 EMBY_REFRESH: false
@@ -280,9 +282,10 @@ EMBY_REFRESH: false
 # Server parameters
 # Server can be ip address or domain name
 EMBY_SERVER: ""
-EMBY_PORT: "8096"
+EMBY_PORT: 8096
 
 # Emby authentication fluff parameters.  These can be anything.
+
 EMBY_CLIENT: "ARM"
 EMBY_DEVICE: "ARM"
 EMBY_DEVICEID: "ARM"
@@ -295,20 +298,18 @@ EMBY_USERNAME: ""
 EMBY_USERID: ""
 
 # This is the SHA1 encrypted password for the username above.  You can generate the SHA1 hash of your password by executing the following at
-# the command line:
+# the command line: 
 # echo -n your-password | sha1sum | awk '{print $1}'
-# or using an online generator like the one located at https://www.sha1-online.com/
+# or using an online generator like the one located at http://www.sha1-online.com/
 EMBY_PASSWORD: ""
 
-# Emby API key.  This can be found (generated) by going to Advanced/Security in the
+# Emby API key.  This can be found (generated) by going to Advanced/Security in the 
 # Emby dashboard
 EMBY_API_KEY: ""
-
 
 #############################
 ## Notification Parameters ##
 #############################
-
 # Notify after Rip?
 NOTIFY_RIP: true
 
@@ -334,13 +335,7 @@ IFTTT_EVENT: "arm_event"
 PO_USER_KEY: ""
 PO_APP_KEY: ""
 
-
-## Specify a script to be called.
-# We will call the script with two arguments:
-# First Argument: Title
-# Second Argument: Body
 BASH_SCRIPT: ""
-
 
 # OMDB_API_KEY
 # omdbapi.com API Key
@@ -360,11 +355,9 @@ TMDB_API_KEY: ""
 # Url to send Notifications to in JSON format
 JSON_URL: ""
 
-
 #################################################
 ##            APPRISE NOTIFICATIONS            ##
 #################################################
-
-# File location of your apprise.yaml file
-# Leave blank to disable
+# File location of your apprise.yaml file. 
+# Docker default is '/etc/arm/config/apprise.yaml'.
 APPRISE: ""
