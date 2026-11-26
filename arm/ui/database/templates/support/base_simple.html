@@ -53,17 +53,7 @@
 {% endblock %}
 <!-- Errors -->
 <div id="content" class="h-100 content" style="width: 99%;padding-top: 51px;padding-left: 15px;">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div id="message1" class="alert alert-{{ category if category !=" message
-    " else 'info' }} text-center"
-                     role="alert">
-                    <h4 class="alert-heading">{{ message|safe }}</h4>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {% include 'flash_messages.html' %}
     {% block content %}{% endblock %}</div>
 <!-- Footer -->
 <div id="footer" class="container-fluid h-100">
