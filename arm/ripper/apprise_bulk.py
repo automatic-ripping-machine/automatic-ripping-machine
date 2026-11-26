@@ -134,7 +134,11 @@ def ntfy_notify(cfg, title, body):
 
             ntfy_serverstring += cfg['NTFY_TOPIC']
 
-            print(ntfy_serverstring)
+            # Never log the password: it is part of the URL
+            logged = ntfy_serverstring
+            if cfg['NTFY_PASS']:
+                logged = logged.replace(f":{cfg['NTFY_PASS']}@", ":****@")
+            logging.debug(f"ntfy server: {logged}")
             apobj.add(ntfy_serverstring)
             apobj.notify(
                 body,
