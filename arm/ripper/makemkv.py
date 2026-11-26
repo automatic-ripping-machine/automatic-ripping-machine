@@ -478,6 +478,11 @@ class MakeMkvRuntimeError(RuntimeError):
         if stderr is not None:
             logging.debug(f"MakeMKV stderr: {stderr}")
         self.message = f"Call to MakeMKV failed with code: {returncode}"
+        # Add the first line of output (e.g. "0 titles were saved") so the
+        # reason survives into the job log, job.errors and notifications.
+        detail = next((line.strip() for line in str(output or "").splitlines() if line.strip()), "")
+        if detail:
+            self.message += f": {detail[:200]}"
         logging.error(self.message)
         super().__init__(self.message)
 
