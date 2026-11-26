@@ -469,11 +469,18 @@ def process_tracks(job, mb_track_list: dict, is_stub=False):
         except (ValueError, KeyError, TypeError):
             # MusicBrainz omits the length for some recordings
             logging.error("Failed to find track length")
-        trackno = track.get('number', idx + 1)
+        # The medium position is the track number; MusicBrainz "number" ("A1", "1-3") is only a label (#1846).
+        try:
+            trackno = int(track.get('position', idx + 1))
+        except (TypeError, ValueError):
+            trackno = idx + 1
+        label = str(track.get('number', trackno))
         if is_stub:
-            title = track.get('title', f"Untitled track {trackno}")
+            title = track.get('title', f"Untitled track {label}")
         else:
             title = track['recording']['title']
+        if label != str(trackno):
+            logging.debug(f"Track {trackno} is labelled {label} on the release")
         u.put_track(job, trackno, track_leng, "n/a", 0.1, False, "ABCDE", title)
 
 
