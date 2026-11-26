@@ -50,7 +50,33 @@
                         </div>
                     </div>
                     <br>
-                    {% with pages=pages, page_name="route_history.history" %}
+                    <!-- View options: changing any of them reloads from page 1 -->
+                    <form method="get" action="{{ url_for('route_history.history') }}" class="form-inline mb-2">
+                        <label class="mr-2" for="status">Show</label>
+                        <select class="form-control form-control-sm mr-3" id="status" name="status"
+                                onchange="this.form.submit()">
+                            {% for value, label in status_filters.items() %}
+                                <option value="{{ value }}" {% if view.status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <label class="mr-2" for="order">Order</label>
+                        <select class="form-control form-control-sm mr-3" id="order" name="order"
+                                onchange="this.form.submit()">
+                            {% for value, label in orders.items() %}
+                                <option value="{{ value }}" {% if view.order == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <label class="mr-2" for="per_page">Per page</label>
+                        <select class="form-control form-control-sm mr-3" id="per_page" name="per_page"
+                                onchange="this.form.submit()">
+                            {% for size in view.page_sizes %}
+                                <option value="{{ size }}" {% if view.per_page == size %}selected{% endif %}>{{ size }}</option>
+                            {% endfor %}
+                        </select>
+                        <noscript><button type="submit" class="btn btn-sm btn-primary">Apply</button></noscript>
+                        <span class="ml-auto">{{ pages.total if pages.total is not none else 0 }} job(s)</span>
+                    </form>
+                    {% with pages=pages, page_name="route_history.history", page_args=page_args %}
                         {% include "pagination.html" %}
                     {% endwith %}
                     <!-- Main Body -->
@@ -81,11 +107,15 @@
                                 <td><a href="logs?logfile={{ job.logfile }}&mode=full">{{ job.logfile|truncate(50, True)
                                     if job.logfile is not none else 'Unknown logfile' }}</a></td>
                             </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center">No jobs match this view.</td>
+                            </tr>
                             {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% with pages=pages, page_name="route_history.history" %}
+                    {% with pages=pages, page_name="route_history.history", page_args=page_args %}
                         {% include "pagination.html" %}
                     {% endwith %}
                 </div>
