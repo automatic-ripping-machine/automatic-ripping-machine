@@ -330,6 +330,7 @@ def server_info():
 
 
 @route_settings.route('/systemdrivescan')
+@login_required
 def system_drive_scan():
     """
     Page - systemdrivescan
@@ -393,7 +394,7 @@ def drive_manual(manual_id):
     """
 
     drive = SystemDrives.query.filter_by(drive_id=manual_id).first()
-    dev_path = drive.mount.lstrip('/dev/')
+    dev_path = drive.mount.removeprefix('/dev/')
 
     cmd = os.path.join(
         cfg.arm_config["INSTALLPATH"],
@@ -434,14 +435,15 @@ def testapprise():
     """
     # Send a sample notification
     message = "This is a notification by the ARM-Notification Test!"
-    if cfg.arm_config["UI_BASE_URL"] and cfg.arm_config["WEBSERVER_PORT"]:
-        message = message + f" Server URL: http://{cfg.arm_config['UI_BASE_URL']}:{cfg.arm_config['WEBSERVER_PORT']}"
+    # Same address as real job notifications (#1769).
+    message = message + f" Server URL: {ripper_utils.ui_address()}"
     ripper_utils.notify(None, "ARM notification", message)
     flash("Test notification sent ", "success")
     return redirect(url_for(REDIRECT_SETTINGS))
 
 
 @route_settings.route('/updatesysinfo')
+@login_required
 def update_sysinfo():
     """
     Update system information
