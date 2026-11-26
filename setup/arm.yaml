@@ -368,3 +368,11 @@ JSON_URL: ""
 # File location of your apprise.yaml file
 # Leave blank to disable
 APPRISE: ""
+
+# Any other Apprise notification URLs, separated by spaces or commas
+# See https://github.com/caronc/apprise/wiki for the URL format of each service, e.g.
+# Email/Gmail: mailtos://user:app_password@gmail.com
+# Home Assistant: hassios://hass.example.com/long_lived_access_token
+# Signal: signals://signal-api.example.com/+15551234567/+15557654321
+# Leave blank to disable
+APPRISE_URLS: ""
