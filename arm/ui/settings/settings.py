@@ -434,8 +434,8 @@ def testapprise():
     """
     # Send a sample notification
     message = "This is a notification by the ARM-Notification Test!"
-    if cfg.arm_config["UI_BASE_URL"] and cfg.arm_config["WEBSERVER_PORT"]:
-        message = message + f" Server URL: http://{cfg.arm_config['UI_BASE_URL']}:{cfg.arm_config['WEBSERVER_PORT']}"
+    # Same address as real job notifications (#1769).
+    message = message + f" Server URL: {ripper_utils.ui_address()}"
     ripper_utils.notify(None, "ARM notification", message)
     flash("Test notification sent ", "success")
     return redirect(url_for(REDIRECT_SETTINGS))
