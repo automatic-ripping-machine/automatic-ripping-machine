@@ -176,7 +176,7 @@ def notify_exit(job):
     """
     if job.config.NOTIFY_TRANSCODE:
         if job.errors:
-            errlist = ', '.join(job.errors)
+            errlist = job.errors
             utils.notify(job, constants.NOTIFY_TITLE,
                          f" {job.title} processing completed with errors. "
                          f"Title(s) {errlist} failed to complete. ")
