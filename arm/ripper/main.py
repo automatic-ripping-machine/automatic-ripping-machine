@@ -115,6 +115,8 @@ def main():
     # Check db for entries matching the crc and successful
     have_dupes = utils.job_dupe_check(job)
     logging.debug(f"Value of have_dupes: {have_dupes}")
+    # Values set in the UI during identification win over the automatic ones
+    utils.apply_manual_overrides(job)
 
     utils.notify_entry(job)
     # Check if user has manual wait time enabled

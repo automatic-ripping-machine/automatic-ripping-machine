@@ -147,7 +147,8 @@ def customtitle():
         args = {
             'title': request.args.get("title"),
             'title_manual': request.args.get("title"),
-            'year': request.args.get("year")
+            'year': request.args.get("year"),
+            'year_manual': request.args.get("year")
         }
         notification = Notifications(f"Job: {job.job_id} was updated",
                                      f'Title: {job.title} ({job.year}) was updated to '
