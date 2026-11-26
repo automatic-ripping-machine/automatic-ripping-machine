@@ -43,7 +43,7 @@
         const jobItems = {{ job_list }};
         $.each(jobItems, function (index, jobId) {
             $("#currentTotal").html("<h3>Sending Job Progress: 0/" + jobItems.length + "</h3>");
-            var jqxhr = $.get("/json", {mode: "send_item", job: jobId}, function (job) {
+            var jqxhr = $.post("/json", {mode: "send_item", job: jobId}, function (job) {
                 console.log(job);
                 $("#currentTotal").html("<h3>Sending Job Progress: " + currentJob + "/" + jobItems.length + "</h3>")
                 $(".card-deck").prepend(addJobItem(job))

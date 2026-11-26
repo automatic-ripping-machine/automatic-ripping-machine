@@ -2,7 +2,10 @@
 <div class="tab-pane pt-5" id="appriseTab" role="tabpanel" aria-labelledby="apprise-tab">
     <h4> Apprise Notification Service </h4>
     <p> Send messages from ARM to mulitple services at once using apprise. Set the required fields below, then point the service to the configuration file. ARM by default in docker loads the apprise configuration to '/etc/arm/config/apprise.yaml'</p>
-    <a class="btn btn-primary float-left" href="testapprise">Send Test Notification</a>
+    <form class="float-left" action="testapprise" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-primary">Send Test Notification</button>
+    </form>
     <form id="appriseCfg" name="appriseCfg" method="post" action="">
         {{ form.hidden_tag() }}
         {% for k, v in apprise_cfg.items() %}

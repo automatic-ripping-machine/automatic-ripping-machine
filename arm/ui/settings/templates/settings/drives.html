@@ -158,7 +158,10 @@
             {% endif %}
         </div>
         <div class="card-footer">
-            <p><a href="systemdrivescan">Scan for Drives</a></p>
+            <form action="systemdrivescan" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <p><button type="submit" class="btn btn-link p-0 align-baseline">Scan for Drives</button></p>
+            </form>
             <p><i><u>Note:</u> Ripping does not require drives to be listed in the UI here. However, if a drive does not show up, there may be an issue with the docker container settings.</i></p>
         </div>
     </div>

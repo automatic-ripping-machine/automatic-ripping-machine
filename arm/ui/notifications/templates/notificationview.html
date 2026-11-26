@@ -7,7 +7,10 @@
             {% if notifications_new is not none: %}
                     <div class="card">
                         <div class="card-header">
-                            Clear All <a href="notificationclose">[x]</a>
+                            <form action="notificationclose" method="post" class="m-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                Clear All <button type="submit" class="btn btn-link p-0 align-baseline">[x]</button>
+                            </form>
                         </div>
                     </div>
                 {% for notification in notifications_new %}

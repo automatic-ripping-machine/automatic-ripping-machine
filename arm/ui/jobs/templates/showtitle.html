@@ -14,13 +14,16 @@
                     <div class="card-body"><strong>Full Plot:</strong> {{ results["Plot"] }}</div>
                     <div class="card-footer">
 						<a href="titlesearch?job_id={{ job_id }}" class="btn btn-primary">New Search</a>   
-                        <a href="{{ url_for('route_jobs.updatetitle',
-                                            title=results['Title'],
-                                            year=results['Year'],
-                                            imdbID=results['imdbID'],
-                                            type=results['Type'],
-                                            poster=results['Poster'],
-                                            job_id=job_id) }}" class="btn btn-primary">Update Title</a>
+                        <form action="{{ url_for('route_jobs.updatetitle') }}" method="post" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="title" value="{{ results['Title'] }}">
+                            <input type="hidden" name="year" value="{{ results['Year'] }}">
+                            <input type="hidden" name="imdbID" value="{{ results['imdbID'] }}">
+                            <input type="hidden" name="type" value="{{ results['Type'] }}">
+                            <input type="hidden" name="poster" value="{{ results['Poster'] }}">
+                            <input type="hidden" name="job_id" value="{{ job_id }}">
+                            <button type="submit" class="btn btn-primary">Update Title</button>
+                        </form>
                     </div>
                 </div>
             </div>

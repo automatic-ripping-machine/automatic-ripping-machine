@@ -22,7 +22,8 @@ $(document).ready(function () {
             // Add the spinner to let them know we are loading
             $("#m-body").append("<div class=\"d-flex justify-content-center\"><div class=\"spinner-border\" role=\"status\">" +
                                 "<span class=\"sr-only\">Loading...</span></div></div>");
-            $.get(hrrref, function (data) {
+            // Abandon and fix permissions change the job: a POST, sent with the page's CSRF token
+            $.post(hrrref, function (data) {
                 console.log(data.success);
                 console.log("#jobId" + activeJob);
                 if (data.success && data.mode === "abandon") {

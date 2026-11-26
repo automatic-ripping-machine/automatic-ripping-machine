@@ -1,7 +1,11 @@
 {% block tab_sysinfo %}
     <div class="tab-pane pt-5" id="system" role="tabpanel" aria-labelledby="system-tab">
         <h4> System Info and Health </h4>
-        <p>Current CPU and System information - <a href="updatesysinfo">Update system information</a></p>
+        <form action="updatesysinfo" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <p>Current CPU and System information -
+                <button type="submit" class="btn btn-link p-0 align-baseline">Update system information</button></p>
+        </form>
         {% include 'settings/sysinfo.html' %}
     </div>
 {% endblock %}

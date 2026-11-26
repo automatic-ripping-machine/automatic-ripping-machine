@@ -39,7 +39,10 @@
                         <a class="nav-link" href="update_password"> Change admin password</a>
                     </li>
                     <li id="navlogout" class="nav-item">
-                        <a class="nav-link" href="logout"> Logout</a>
+                        <form action="{{ url_for('route_auth.logout') }}" method="post" class="m-0">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="nav-link btn btn-link border-0"> Logout</button>
+                        </form>
                     </li>
                     <li id="notificationview" class="nav-item">
                         {% include 'navnotify.html' %}

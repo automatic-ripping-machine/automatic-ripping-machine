@@ -3,7 +3,7 @@ ARM route blueprint for database pages
 Covers
 - database [GET]
 - dbupdate [POST]
-- import_movies [JSON]
+- import_movies [JSON POST]
 """
 
 import os
@@ -89,7 +89,7 @@ def update_database():
         return redirect('/index')
 
 
-@route_database.route('/import_movies')
+@route_database.route('/import_movies', methods=['POST'])
 @login_required
 def import_movies():
     """

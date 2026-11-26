@@ -7,12 +7,12 @@ Covers
 - save_abcde_settings [POST]
 - save_apprise_cfg [POST]
 - systeminfo [POST]
-- systemdrivescan [GET]
+- systemdrivescan [POST]
 - update_arm [POST]
 - drive_eject [GET]
 - drive_remove [GET]
-- testapprise [GET]
-- updatesysinfo [GET]
+- testapprise [POST]
+- updatesysinfo [POST]
 """
 import platform
 import importlib
@@ -329,11 +329,11 @@ def server_info():
         return redirect(url_for(REDIRECT_SETTINGS))
 
 
-@route_settings.route('/systemdrivescan')
+@route_settings.route('/systemdrivescan', methods=['POST'])
 def system_drive_scan():
     """
     Page - systemdrivescan
-    Method - GET
+    Method - POST
     Overview - Scan for the system drives and update the database.
     """
     # Update to scan for changes to the ripper system
@@ -425,11 +425,11 @@ def drive_manual(manual_id):
     return redirect('/settings')
 
 
-@route_settings.route('/testapprise')
+@route_settings.route('/testapprise', methods=['POST'])
 def testapprise():
     """
     Page - testapprise
-    Method - GET
+    Method - POST
     Overview - Send a test notification to Apprise.
     """
     # Send a sample notification
@@ -441,7 +441,7 @@ def testapprise():
     return redirect(url_for(REDIRECT_SETTINGS))
 
 
-@route_settings.route('/updatesysinfo')
+@route_settings.route('/updatesysinfo', methods=['POST'])
 def update_sysinfo():
     """
     Update system information

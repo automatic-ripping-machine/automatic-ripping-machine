@@ -200,8 +200,9 @@ function hideModal() {
 
 function pingReadNotify(toastId) {
     $.ajax({
-        url: "/json?mode=read_notification&notify_id=" + toastId,
-        type: "get",
+        url: "/json",
+        type: "post",
+        data: {mode: "read_notification", notify_id: toastId},
         timeout: 2000,
         success: function (data) {
             console.log(data)
