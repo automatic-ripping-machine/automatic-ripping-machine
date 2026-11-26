@@ -116,8 +116,9 @@ def create_early_logger(stdout=True, syslog=True, file=True):
     # logging.getLogger("requests").setLevel(logging.ERROR)
     # logging.getLogger("urllib3").setLevel(logging.ERROR)
 
-    # create logger
-    logger = logging.getLogger("ARM")
+    # Configure the root logger: every ripper module logs through logging.info() etc., so a
+    # named logger left setup messages (lease, tray wait, setup failures) without a handler.
+    logger = logging.getLogger()
     logger.setLevel(cfg.arm_config["LOGLEVEL"])
 
     if file:
