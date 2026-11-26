@@ -17,12 +17,19 @@ DEFAULT_GID=1000
 # Function to check if the ARM user has ownership of the requested folder
 check_folder_ownership() {
     local check_dir="$1"  # Get the folder path from the first argument
-    local folder_uid=$(stat -c "%u" "$check_dir")
-    local folder_gid=$(stat -c "%g" "$check_dir")
+    local folder_uid folder_gid
+    folder_uid=$(stat -c "%u" "$check_dir")
+    folder_gid=$(stat -c "%g" "$check_dir")
 
     echo "Checking ownership of $check_dir"
 
     if [ "$folder_uid" != "$ARM_UID" ] || [ "$folder_gid" != "$ARM_GID" ]; then
+        # Owned by someone else, but still usable if the arm user can write to it
+        # (e.g. NFS shares that squash ownership, or group-writable shares)
+        if runuser -u arm -- test -w "$check_dir"; then
+            echo "[WARN]: '$check_dir' is owned by $folder_uid:$folder_gid, not $ARM_UID:$ARM_GID, but ARM can write to it"
+            return 0
+        fi
         echo "---------------------------------------------"
         echo "[ERROR]: ARM does not have permissions to $check_dir using $ARM_UID:$ARM_GID"
         echo "Check your user permissions and restart ARM. Folder permissions--> $folder_uid:$folder_gid"
@@ -31,6 +38,16 @@ check_folder_ownership() {
     fi
 
     echo "[OK]: ARM UID and GID set correctly, ARM has access to '$check_dir' using $ARM_UID:$ARM_GID"
+}
+
+# When the home folder is the container's own directory and not a mounted volume,
+# usermod -u has moved its owner to ARM_UID but groupmod -g does not change the
+# group of existing files, so hand the folder itself to the updated arm user/group
+fix_home_ownership() {
+    if ! mountpoint -q "$ARM_HOME"; then
+        echo "$ARM_HOME is not a mounted volume, setting its owner to arm:arm"
+        chown arm:arm "$ARM_HOME"
+    fi
 }
 
 ### Setup User
@@ -56,6 +73,7 @@ usermod -a -G render arm
 chown -R arm:arm /opt/arm
 
 # Check ownership of the ARM home folder
+fix_home_ownership
 check_folder_ownership "/home/arm"
 
 # setup needed/expected dirs if not found
