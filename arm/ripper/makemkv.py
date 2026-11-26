@@ -673,6 +673,8 @@ def makemkv_mkv(job, rawpath):
         logging.info("Trying to find mainfeature (sorting by filesize desc, chapters desc, track_number asc)")
         track = Track.query.filter_by(job_id=job.job_id).order_by(
             Track.filesize.desc(), Track.chapters.desc(), Track.track_number.asc()).first()
+        if track is None:
+            raise utils.RipperException("MakeMKV found no titles to rip (MAINFEATURE is enabled)")
         rip_mainfeature(job, track, rawpath)
     elif mode == 'manual':  # Run if mode is manual, user selects tracks
         # Set job status to waiting
@@ -741,11 +743,15 @@ def makemkv(job):
         db.session.refresh(job)
         # If job.drive is still None after refresh, log warning with available info
         if job.drive is None:
+            # Everything below reads job.drive.mdisc, so stop with a clear error
+            # instead of an AttributeError on None.
             if disc_index is not None:
-                logging.warning(f"job.drive is None but found disc index {disc_index} for {job.devpath}")
+                message = (f"Drive {job.devpath} (MakeMKV disc index {disc_index}) "
+                           f"is not linked to job {job.job_id}")
             else:
-                logging.error(f"Could not find drive for {job.devpath}")
-                raise ValueError(f"No drive found for device {job.devpath}")
+                message = f"No drive found for device {job.devpath}"
+            logging.error(message)
+            raise ValueError(message)
     logging.info(f"MakeMKV disc number: {job.drive.mdisc:d}")
     # get filesystem in order
     rawpath = setup_rawpath(job, os.path.join(str(job.config.RAW_PATH), str(job.title)))
@@ -1143,9 +1149,6 @@ class MakeMKVOutputChecker:
         """Dispatch processing based on message code."""
         code = self.data.code
 
-        if code == MessageID.RIP_TITLE_ERROR:
-            self.rip_title_error()
-
         if code == MessageID.RIP_COMPLETED:
             return self.zero_saved_files()
 
@@ -1175,14 +1178,6 @@ class MakeMKVOutputChecker:
             logging.critical(self.data.message)
             raise MakeMkvRuntimeError(1, ["RIP_COMPLETED"],
                                       output=f"{saved} titles were saved. See log for more details")
-
-    def rip_title_error(self):
-        """
-        If a single item fails, raise MakeMkvRuntimeError
-        """
-        logging.critical(self.data.message)
-        raise MakeMkvRuntimeError(1, ["RIP_TITLE_ERROR"],
-                                  output=self.data.message)
 
     def read_error(self):
         error_msg = self.data.sprintf[1]

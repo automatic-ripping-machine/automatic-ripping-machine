@@ -65,6 +65,11 @@ def update_database():
     """
     Update the ARM database when changes are made or the arm db file is missing
     """
+    db_state = ui_utils.arm_db_check()
+    if db_state["db_current"] and db_state["db_exists"] and not ui_utils.authenticated_state():
+        # The login page offers this form only while the database needs it; afterwards it is an admin action
+        # (each migrate request copies the whole database file).
+        return redirect('/login')
     form = DBUpdate(request.form)
     if request.method == 'POST' and form.validate():
         if form.dbfix.data == "migrate":
