@@ -39,6 +39,9 @@ dictConfig({
     },
 })
 
+# Imported after dictConfig, which would otherwise disable this module's logger
+from arm.ui.secret_key import load_secret_key  # noqa: E402
+
 app = Flask(__name__)
 csrf = CSRFProtect()
 csrf.init_app(app)
@@ -50,14 +53,11 @@ login_manager.init_app(app)
 # Set Flask database connection configurations
 app.config['SQLALCHEMY_DATABASE_URI'] = sqlitefile
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# We should really generate a key for each system
-app.config['SECRET_KEY'] = "Big secret key"  # TODO: make this random!
+# Random per-install key, stored next to the database (or set ARM_SECRET_KEY)
+app.config['SECRET_KEY'] = load_secret_key(os.path.dirname(cfg.arm_config['DBFILE']))
 # Set the global Flask Login state, set to True will ignore any @login_required
 app.config['LOGIN_DISABLED'] = cfg.arm_config['DISABLE_LOGIN']
 app.logger.debug(f"Disable Login: {cfg.arm_config['DISABLE_LOGIN']}")
-# Set debug pin as it is hidden normally
-os.environ["WERKZEUG_DEBUG_PIN"] = "12345"  # make this random!
-app.logger.debug("Debugging pin: " + os.environ["WERKZEUG_DEBUG_PIN"])
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
