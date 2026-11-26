@@ -26,7 +26,7 @@ if find_spec("arm") is None:
 import arm.config.config as cfg  # noqa E402
 from arm.models.config import Config  # noqa: E402
 from arm.models.job import Job, JobState  # noqa: E402
-from arm.models.system_drives import SystemDrives  # noqa: E402
+from arm.models.system_drives import CDS, SystemDrives  # noqa: E402
 from arm.ripper import (arm_ripper, identify, logger,  # noqa: E402
                         music_brainz, utils)
 from arm.ripper.ARMInfo import ARMInfo  # noqa E402
@@ -140,8 +140,9 @@ def main():
             db.session.commit()
         else:
             logging.critical("Music rip failed.  See previous errors.  Exiting. ")
-            job.status = JobState.FAILURE.value
-            db.session.commit()
+            # Raise so __main__ marks the job as failed rather than successful.
+            # Reuse the rip's own error, since the handler overwrites job.errors
+            raise utils.RipperException(job.errors or "Music rip failed")
 
     # Type: Data
     elif job.disctype == "data":
@@ -150,10 +151,12 @@ def main():
             utils.notify(job, constants.NOTIFY_TITLE, f"Data disc: {job.label} copying complete. ")
         else:
             logging.critical("Data rip failed.  See previous errors.  Exiting.")
+            raise utils.RipperException(job.errors or "Data rip failed")
 
     # Type: undefined
     else:
         logging.critical("Couldn't identify the disc type. Exiting without any action.")
+        raise utils.RipperException(f"Couldn't identify the disc type: {job.disctype}")
 
 
 def setup():
@@ -188,6 +191,9 @@ def setup():
         logging.info(msg)
         time.sleep(1)
     else:  # no break
+        if drive.tray in (CDS.TRAY_OPEN, CDS.NO_DISC):
+            raise utils.DriveEmptyException(
+                f"No disc in drive [{drive.mount}] (ioctl tray status: {drive.tray}). Nothing to rip.")
         raise utils.RipperException(f"Timed out waiting for drive to be ready (ioctl tray status: {drive.tray}).")
 
     # ARM Job starts
@@ -238,11 +244,17 @@ def setup():
     log_udev_params(devpath)
 
 
-if __name__ == "__main__":
+def run():
+    """Set up and process one disc, then record how the job ended."""
+    global job
     job = None
     try:
         setup()
         main()
+    except utils.DriveEmptyException as error:
+        # Opening or ejecting the tray starts ARM too. Not a failure, so no
+        # "fatal error" notification.
+        logging.info(error)
     except Exception as error:
         logging.critical("A fatal error has occurred and ARM is exiting.")
         print_stacktrace = (
@@ -283,3 +295,7 @@ if __name__ == "__main__":
             else:
                 job.job_length = "0:00:00"
             db.session.commit()
+
+
+if __name__ == "__main__":
+    run()
