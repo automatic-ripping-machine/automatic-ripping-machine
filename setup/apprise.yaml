@@ -215,3 +215,17 @@ ZILUP_CHAT_ORG: ""
 ## DESKTOP NOTI
 
 ## EMAIL NOTI
+## Any address Apprise knows a template for can be used, e.g. a Fastmail
+## account with an app password. Full info @ https://github.com/caronc/apprise/wiki/Notify_email
+## Leave EMAIL_FROM blank to disable
+EMAIL_FROM: ""
+## Login for the SMTP server; leave blank for a server that needs no login
+EMAIL_USER: ""
+EMAIL_PASS: ""
+## Comma separated list of recipients
+EMAIL_TO: ""
+## SMTP server and port, defaults to smtp.fastmail.com:465 for Fastmail addresses
+EMAIL_SMTP_HOST: ""
+EMAIL_SMTP_PORT: ""
+## Valid entries are "ssl", "starttls", "insecure" and "" for the default
+EMAIL_SECURE_MODE: ""
