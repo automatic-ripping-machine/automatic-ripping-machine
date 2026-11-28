@@ -32,6 +32,24 @@ def _disc_dir_exists(mountpoint, name):
         return False
 
 
+def _blkid_label(devpath):
+    """
+    Read the filesystem label straight from the disc with ``blkid -p``.
+
+    Whitespace becomes "_", as in udev's ID_FS_LABEL.
+
+    :return: the label, or ``None`` if the disc has none or blkid failed
+    """
+    try:
+        proc = subprocess.run(["blkid", "-p", "-s", "LABEL", "-o", "value", devpath],
+                              capture_output=True, text=True, errors="replace", timeout=60)
+    except (OSError, subprocess.SubprocessError) as error:
+        logging.debug(f"blkid failed for {devpath}: {error}")
+        return None
+    label = "_".join(proc.stdout.split())
+    return label or None
+
+
 def _listdir_safe(path):
     """Return os.listdir(path), or [] if the path is inaccessible."""
     try:
@@ -209,6 +227,14 @@ class Job(db.Model):
                 self.disctype = "music"
             else:
                 continue
+
+        if not self.label and self.disctype != "music":
+            # Some drives report a new disc before udev has probed it, and udev
+            # keeps that record (no ID_FS_LABEL, no media type). The drive is
+            # ready by now, so read the label from the disc itself.
+            self.label = _blkid_label(self.devpath)
+            if self.label:
+                logging.info(f"udev had no disc label; read '{self.label}' from the disc with blkid")
 
     def get_pid(self):
         """
